@@ -173,9 +173,7 @@ interface StrategyConf {
   extra_opts?: {
     enableProof?: boolean;
   };
-  auth_opts?: {
-    scope?: string | string[];
-  };
+  auth_opts?: passport.AuthenticateOptions;
   // return type has to partially fit with passport_login
   login_info: {
     id: string | LoginInfoDerivator<string>; // id is required!
@@ -221,7 +219,7 @@ const GoogleStrategyConf: StrategyConf = {
 
 const GithubStrategyConf: StrategyConf = {
   strategy: "github",
-  PassportStrategyConstructor: require("passport-github").Strategy,
+  PassportStrategyConstructor: require("passport-github2").Strategy,
   login_info: {
     id: (profile) => profile.id,
     full_name: (profile) =>
@@ -259,7 +257,8 @@ const FacebookStrategyConf: StrategyConf = {
 
 const TwitterStrategyConf: StrategyConf = {
   strategy: "twitter",
-  PassportStrategyConstructor: require("passport-twitter").Strategy,
+  PassportStrategyConstructor: require("@passport-next/passport-twitter")
+    .Strategy,
   login_info: {
     id: (profile) => profile.id,
     full_name: (profile) => profile.displayName,
@@ -491,13 +490,17 @@ class PassportManager {
       this.init_strategy(TwitterStrategyConf),
       this.init_extra_strategies(),
     ]);
-    process.exit();
   }
 
   // this maps additional strategy configurations to a list of StrategyConf objects
   // the overall goal is to support custom OAuth2 and LDAP endpoints, where additional
   // info is sent to the webapp client to properly present them. Google&co are legacy configurations.
-  private async init_extra_strategies(): Promise<void> {}
+  private async init_extra_strategies(): Promise<void> {
+    // LDAP via passport-ldapauth: https://github.com/vesse/passport-ldapauth#readme
+    // OAuth2 via @passport-next/passport-oauth2: https://github.com/passport-next/passport-oauth2#readme
+    // ORCID via passport-orcid: https://github.com/hubgit/passport-orcid#readme
+    // OrcidStrategy = require('passport-orcid').Strategy
+  }
 
   // a generalized strategy initizalier
   private async init_strategy(strategy_config: StrategyConf): Promise<void> {
@@ -510,6 +513,11 @@ class PassportManager {
     } = strategy_config;
     const dbg = (m) => winston.debug(`init_strategy ${strategy}: ${m}`);
     dbg("start");
+
+    if (strategy == null) {
+      dbg(`strategy is null -- aborting initialization`);
+      return;
+    }
 
     const conf = await this.get_conf(strategy);
     if (conf == null) {
@@ -526,23 +534,28 @@ class PassportManager {
       extra_opts
     );
 
-    dbg(`opts = ${JSON.stringify(opts)}`);
+    // attn: this log line shows secrets
+    // dbg(`opts = ${JSON.stringify(opts)}`);
 
     const verify = (_accessToken, _refreshToken, profile, done) =>
       done(undefined, { profile });
+
     passport.use(new PassportStrategyConstructor(opts, verify));
 
     this.router.get(
       `${AUTH_BASE}/${strategy}`,
       this.handle_get_api_key,
-      passport.authenticate(strategy, auth_opts)
+      passport.authenticate(strategy, auth_opts || {})
     );
 
     this.router.get(
       `${AUTH_BASE}/${strategy}/return`,
       passport.authenticate(strategy),
       async (req, res) => {
-        const { profile } = req.user;
+        if (req.user == null) {
+          throw Error("req.user == null -- that shouldn't happen");
+        }
+        const profile = (req.user["profile"] as any) as passport.Profile;
         const login_opts = {
           strategy,
           profile, // will just get saved in database
