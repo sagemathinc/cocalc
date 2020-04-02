@@ -135,7 +135,7 @@ const CC_NOCLEAN = !!process.env.CC_NOCLEAN;
 // but obviously less safe.  This is designed for use, e.g.,
 // when trying to do a quick production build in an emergency,
 // when we already know the typescript all works.
-const TS_TRANSPILE_ONLY = process.env.TS_TRANSPILE_ONLY;
+const TS_TRANSPILE_ONLY = !!process.env.TS_TRANSPILE_ONLY;
 
 // When building the static page or if the user explicitly sets
 // an env variable, we do not want to use the forking typescript
@@ -518,11 +518,14 @@ module.exports = {
         test: /\.tsx?$/,
         use: {
           loader: "ts-loader",
-          options: {
-            // do not run typescript checker in same process...
-            transpileOnly: TS_TRANSPILE_ONLY,
-            experimentalWatchApi: !DISABLE_TS_LOADER_OPTIMIZATIONS,
-          },
+          options:
+            TS_TRANSPILE_ONLY || DISABLE_TS_LOADER_OPTIMIZATIONS
+              ? { transpileOnly: TS_TRANSPILE_ONLY } // run as normal or not at all
+              : {
+                  // do not run typescript checker in same process...
+                  transpileOnly: !TS_TRANSPILE_ONLY,
+                  experimentalWatchApi: true,
+                },
         },
       },
       {

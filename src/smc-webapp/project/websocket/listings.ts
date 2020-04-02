@@ -58,7 +58,11 @@ export class Listings extends EventEmitter {
   // that at least one client is interested in this path.
   // Don't worry about calling this function **too much**, since
   // it throttles calls.
-  public async watch(path: string): Promise<void> {
+  public async watch(path: string, force: boolean = false): Promise<void> {
+    if (force) {
+      await this._watch(path);
+      return;
+    }
     if (this.throttled_watch[path] == null) {
       this.throttled_watch[path] = throttle(
         () => this._watch(path),

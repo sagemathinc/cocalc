@@ -110,7 +110,8 @@ export const QUERIES = {
 };
 
 interface FetchDirectoryListingOpts {
-  path: string;
+  path?: string;
+  force?: boolean;
   cb?: () => void;
 }
 
@@ -1534,8 +1535,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const opts: FetchDirectoryListingOpts = defaults(opts_args, {
       path: store.get("current_path"),
+      force: false,
       cb: undefined,
     }); // WARNING: THINK VERY HARD BEFORE YOU USE THIS
+
+    if (opts.force && opts.path != null) {
+      // always update our interest.
+      store.get_listings().watch(opts.path, true);
+    }
+
     // In the vast majority of cases, you just want to look at the data.
     // Very rarely should you need something to execute exactly after this
     let { path } = opts;
