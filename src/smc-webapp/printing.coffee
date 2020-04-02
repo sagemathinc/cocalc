@@ -602,13 +602,15 @@ class SagewsPrinter extends Printer
                 sagews_data : data
 
             progress(.95, "Saving to #{@output_file} ...")
-            webapp_client.write_text_file_to_project
-                project_id : @editor.project_id
-                path       : @output_file
-                content    : content
-                cb         : (err, resp) =>
-                    console.debug("write_text_file_to_project.resp: '#{resp}'")
-                    cb?(err)
+            try
+                await webapp_client.project_client.write_text_file
+                    project_id : @editor.project_id
+                    path       : @output_file
+                    content    : content
+                console.debug("write_text_file")
+                cb?()
+            catch err
+                cb?(err)
 
         # parallel is tempting, but videos depend on process lines
         async.series([sagews_data, process_lines, embed_videos], finalize)

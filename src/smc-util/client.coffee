@@ -72,6 +72,7 @@ DEFAULT_TIMEOUT = 30  # in seconds
 {QueryClient} = require('smc-webapp/client/query')
 {TimeClient} = require('smc-webapp/client/time')
 {AccountClient} = require('smc-webapp/client/account')
+{ProjectClient} = require('smc-webapp/client/project')
 
 
 class exports.Connection extends EventEmitter
@@ -102,6 +103,7 @@ class exports.Connection extends EventEmitter
         @query_client = new QueryClient(@)
         @time_client = new TimeClient(@)
         @account_client = new AccountClient(@)
+        @project_client = new ProjectClient(@async_call.bind(@))
 
         @url = url
         # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
@@ -511,49 +513,6 @@ class exports.Connection extends EventEmitter
     # Individual Projects
     #################################################
 
-    open_project: (opts) =>
-        opts = defaults opts,
-            project_id   : required
-            cb           : required
-        @call
-            message :
-                message.open_project
-                    project_id : opts.project_id
-            cb : opts.cb
-
-    write_text_file_to_project: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            path       : required
-            content    : required
-            timeout    : DEFAULT_TIMEOUT
-            cb         : undefined
-
-        @call
-            error_event : true
-            message :
-                message.write_text_file_to_project
-                    project_id : opts.project_id
-                    path       : opts.path
-                    content    : opts.content
-            timeout : opts.timeout
-            cb      : (err, resp) => opts.cb?(err, resp)
-
-    read_text_file_from_project: (opts) =>
-        opts = defaults opts,
-            project_id : required  # string or array of strings
-            path       : required  # string or array of strings
-            cb         : required
-            timeout    : DEFAULT_TIMEOUT
-
-        @call
-            error_event : true
-            message :
-                message.read_text_file_from_project
-                    project_id : opts.project_id
-                    path       : opts.path
-            timeout : opts.timeout
-            cb : opts.cb
 
     # Like "read_text_file_from_project" above, except the callback
     # message gives a url from which the file can be

@@ -1258,7 +1258,7 @@ ${details}
     path: string;
     content: string;
   }): Promise<void> {
-    await callback2(webapp_client.write_text_file_to_project, {
+    await webapp_client.project_client.write_text_file({
       project_id: this.get_store().get("course_project_id"),
       path: opts.path,
       content: opts.content,

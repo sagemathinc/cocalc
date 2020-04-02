@@ -101,20 +101,21 @@ class DevTerminalActions extends Actions
         session_uuid = store.get('session_uuid')
         filename = store.get('filename')
 
-        webapp_client.read_text_file_from_project
-            project_id : project_id
-            path       : filename
-            cb         : (err, result) =>
-                if err
-                    report_error(err)
-                else
-                    # New session or connect to session
-                    if result.content? and result.content.length < 36
-                        # empty/corrupted -- messed up by bug in early version of SMC...
-                        delete result.content
-                    @setState
-                        session_uuid : result.content
-                    @connect_to_server(cb)
+        try
+            content = await webapp_client.project_client.read_text_file
+                project_id : project_id
+                path       : filename
+        catch err
+            report_error(err)
+            cb?(err)
+            return
+        # New session or connect to session
+        if content? and content.length < 36
+            # empty/corrupted -- messed up by bug in early version of SMC...
+            content = undefined
+        @setState
+            session_uuid : content
+        @connect_to_server(cb)
 
     connect_to_server: (cb) =>
         store = @get_store()

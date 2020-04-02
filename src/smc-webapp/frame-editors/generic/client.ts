@@ -2,7 +2,7 @@
 Typescript async/await rewrite of smc-util/client.coffee...
 */
 
-const webapp_client = require("smc-webapp/webapp_client").webapp_client;
+import { webapp_client } from "../../webapp-client";
 const schema = require("smc-util/schema");
 const DEFAULT_FONT_SIZE: number = require("smc-util/db-schema")
   .DEFAULT_FONT_SIZE;
@@ -13,7 +13,7 @@ import { Map } from "immutable";
 import { CompressedPatch } from "smc-util/sync/editor/generic/types";
 
 export function server_time(): Date {
-  return webapp_client.server_time();
+  return webapp_client.time_client.server_time();
 }
 
 export interface ExecOpts {
@@ -88,21 +88,12 @@ export async function start_project(
 interface ReadTextFileOpts {
   project_id: string;
   path: string;
-  timeout?: number;
 }
-
-/*
-export async function exists_in_project(
-  project_id:string, path:string) : Promise<boolean> {
-
-}
-*/
 
 export async function read_text_file_from_project(
   opts: ReadTextFileOpts
 ): Promise<string> {
-  const mesg = await callback2(webapp_client.read_text_file_from_project, opts);
-  return mesg.content;
+  return await webapp_client.project_client.read_text_file(opts);
 }
 
 interface WriteTextFileOpts {
@@ -114,7 +105,7 @@ interface WriteTextFileOpts {
 export async function write_text_file_to_project(
   opts: WriteTextFileOpts
 ): Promise<void> {
-  await callback2(webapp_client.write_text_file_to_project, opts);
+  await webapp_client.project_client.write_text_file(opts);
 }
 
 export async function public_get_text_file(
@@ -296,5 +287,5 @@ export async function project_api(project_id: string): Promise<API> {
 
 // Returns the raw URL to read the file from the project.
 export function raw_url_of_file(project_id: string, path: string): string {
-  return webapp_client.read_file_from_project({ project_id, path });
+  return webapp_client.project_client.read_file({ project_id, path });
 }

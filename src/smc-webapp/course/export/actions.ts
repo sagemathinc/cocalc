@@ -1,7 +1,6 @@
 import { replace_all, split } from "smc-util/misc";
 import { redux } from "../../app-framework";
 import { webapp_client } from "../../webapp-client";
-import { callback2 } from "smc-util/async-utils";
 
 import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
@@ -38,7 +37,7 @@ export class ExportActions {
     const id = actions.set_activity({ desc: `Writing ${path}` });
     const project_id = this.get_store().get("course_project_id");
     try {
-      await callback2(webapp_client.write_text_file_to_project, {
+      await webapp_client.project_client.write_text_file({
         project_id,
         path,
         content,

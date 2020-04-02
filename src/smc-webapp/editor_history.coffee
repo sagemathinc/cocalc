@@ -587,18 +587,17 @@ class exports.HistoryEditor extends FileEditor
             entry.user = @account_id_to_username(entry.account_id)
 
         path = @_path + '-timetravel.json'
-        webapp_client.write_text_file_to_project
-            project_id : @project_id
-            path       : path
-            content    : JSON.stringify(x, null, 2)
-            cb         : (err) =>
-                if err
-                    alert_message(type:'error', message:"Error exporting history to file -- #{err}", timeout:15)
-                else
-                    alert_message(type:'info', message:"Exported history to #{path}.", timeout:5)
-                    redux.getProjectActions(@project_id).open_file
-                        path       : path
-                        foreground : true
+        try
+            await webapp_client.project_client.write_text_file
+                project_id : @project_id
+                path       : path
+                content    : JSON.stringify(x, null, 2)
+            alert_message(type:'info', message:"Exported history to #{path}.", timeout:5)
+            redux.getProjectActions(@project_id).open_file
+                path       : path
+                foreground : true
+        catch err
+            alert_message(type:'error', message:"Error exporting history to file -- #{err}", timeout:15)
 
 
 # Compute a line-level diff between two strings, which

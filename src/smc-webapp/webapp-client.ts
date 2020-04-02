@@ -39,6 +39,7 @@ import { SupportTickets } from "./client/support";
 import { QueryClient } from "./client/query";
 import { TimeClient } from "./client/time";
 import { AccountClient } from "./client/account";
+import { ProjectClient } from "./client/project";
 
 export interface WebappClient extends EventEmitter {
   stripe: StripeClient;
@@ -47,12 +48,12 @@ export interface WebappClient extends EventEmitter {
   query_client: QueryClient;
   time_client: TimeClient;
   account_client: AccountClient;
+  project_client: ProjectClient;
 
   user_search: Function;
   server_time: Function;
   project_set_quotas: Function;
   copy_path_between_projects: Function;
-  write_text_file_to_project: Function;
   exec: Function;
   find_directories: Function;
   sync_db2: Function;
@@ -61,6 +62,12 @@ export interface WebappClient extends EventEmitter {
   remember_me_key: () => string;
   synctable_project: Function;
   project_websocket: Function;
+  prettier: Function;
+  sync_string: Function;
+  sync_db: Function;
+  query: Function;
+  public_get_text_file: Function;
+  touch_project: Function;
   log_error: (any) => void;
 }
 
