@@ -526,7 +526,9 @@ export const Explorer = rclass<ReactProps>(
             />
             <br />
             <Button
-              onClick={() => this.props.actions.fetch_directory_listing()}
+              onClick={() =>
+                this.props.actions.fetch_directory_listing({ force: true })
+              }
             >
               <Icon name="refresh" /> Try again to get directory listing
             </Button>

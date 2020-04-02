@@ -246,8 +246,12 @@ class ListingsTable {
       missing = listing.length - MAX_FILES_PER_PATH;
       listing = listing.slice(0, MAX_FILES_PER_PATH);
     }
+    // We want to clear the error, but just clearning it in synctable doesn't
+    // clear to database, so if there is an error, we set it to "" which does
+    // save fine to the database. (TODO: this is just a workaround.)
+    const error = y?.get("error") != null ? "" : undefined;
 
-    this.set({ path, listing, time, missing, deleted, error: undefined });
+    this.set({ path, listing, time, missing, deleted, error });
   }
 
   private start_watching(path: string): void {
