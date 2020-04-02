@@ -66,7 +66,10 @@ export class AccountClient {
     remember_me?: boolean;
     get_api_key?: boolean; // if given, will create/get api token in response message
   }): Promise<any> {
-    return await this.call(message.sign_in(opts));
+    return await this.async_call({
+      message: message.sign_in(opts),
+      error_event: false,
+    });
   }
 
   public async cookies(mesg): Promise<void> {
@@ -95,14 +98,12 @@ export class AccountClient {
   public async sign_out(everywhere: boolean = false): Promise<void> {
     await this.delete_remember_me_cookie();
     delete this.client.account_id;
-
     await this.call(message.sign_out({ everywhere }));
-
     this.client.emit("signed_out");
   }
 
   public async change_password(
-    old_password?: string,
+    old_password: string,
     new_password: string = ""
   ): Promise<any> {
     if (this.client.account_id == null) {

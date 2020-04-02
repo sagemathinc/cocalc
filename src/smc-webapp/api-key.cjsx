@@ -59,15 +59,14 @@ exports.APIKeySetting = rclass
 
     do_action: (action) ->
         @setState(state:'loading')
-        webapp_client.api_key
-            action   : action
-            password : @state.password
-            cb       : (err, api_key) =>
-                if @_mounted
-                    if err
-                        @setState(error:err, password:undefined, api_key:undefined, state:'error')
-                    else
-                        @setState(api_key:api_key, state:'showkey')
+        try
+            api_key = await webapp_client.account_client.api_key(action, @state.password)
+            if @_mounted
+                @setState(api_key:api_key, state:'showkey')
+        catch err
+            if @_mounted
+                @setState(error:err, password:undefined, api_key:undefined, state:'error')
+
 
     render_api_key: ->
         if @state.api_key

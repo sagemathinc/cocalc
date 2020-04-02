@@ -58,7 +58,7 @@ export interface WebappClient extends EventEmitter {
   sync_db2: Function;
   get_username: Function;
   is_signed_in: () => boolean;
-  remember_me_key: Function;
+  remember_me_key: () => string;
   synctable_project: Function;
   project_websocket: Function;
   log_error: (any) => void;

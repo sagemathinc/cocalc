@@ -33,7 +33,10 @@ export async function do_anonymous_setup(client: WebappClient): Promise<void> {
     redux.getActions("account").setState({ doing_anonymous_setup: true });
     log("creating account");
     try {
-      await client.account_client.create_account({});
+      const resp = await client.account_client.create_account({});
+      if (resp?.event == "account_creation_failed") {
+        throw Error(resp.error);
+      }
     } catch (err) {
       log("failed to create account", err);
       // If there is an error specifically with creating the account

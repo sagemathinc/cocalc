@@ -250,7 +250,7 @@ class Connection extends client.Connection
             auth_token = QueryParams.get('auth_token')
             if not @_signed_in and auth_token
                 QueryParams.remove('auth_token')
-                @sign_in_using_auth_token(auth_token : auth_token)
+                @account_client.sign_in_using_auth_token(auth_token)
             else if should_do_anonymous_setup()
                 do_anonymous_setup(@)
 
