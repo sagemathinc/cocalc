@@ -38,13 +38,15 @@ import { ProjectCollaborators } from "./client/project-collaborators";
 import { SupportTickets } from "./client/support";
 import { QueryClient } from "./client/query";
 import { TimeClient } from "./client/time";
+import { AccountClient } from "./client/account";
 
-interface WebappClient extends EventEmitter {
+export interface WebappClient extends EventEmitter {
   stripe: StripeClient;
   project_collaborators: ProjectCollaborators;
   support_tickets: SupportTickets;
   query_client: QueryClient;
   time_client: TimeClient;
+  account_client: AccountClient;
 
   user_search: Function;
   server_time: Function;

@@ -21,7 +21,7 @@ export class AccountClient {
   }
 
   public async create_account(opts: {
-    first_name: undefined;
+    first_name?: string;
     last_name?: string;
     email_address?: string;
     password?: string;
