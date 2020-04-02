@@ -525,7 +525,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
       return;
     }
     const do_it = (): void => {
-      this.copy_handout(step, false);
+      this.copy_handout(step, false, true);
       this.setState({
         copy_handout_confirm_overwrite: false,
         copy_handout_confirm_overwrite_text: "",
