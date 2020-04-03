@@ -23,7 +23,7 @@ interface Client {
     project_id: string;
     cb?: Function;
   }) => Promise<any>;
-  project_websocket: (project_id: string) => Promise<any>;
+  project_client: { websocket: (project_id: string) => Promise<any> };
   set_connected: (connected: boolean) => void;
 }
 
@@ -134,7 +134,9 @@ class SyncTableChannel extends EventEmitter {
     // starts the project.
     this.client.touch_project({ project_id: this.project_id });
     // Get a websocket.
-    this.websocket = await this.client.project_websocket(this.project_id);
+    this.websocket = await this.client.project_client.websocket(
+      this.project_id
+    );
     if (this.websocket.state != "online") {
       // give websocket state once chance to change.
       // It could change to destroyed or online.

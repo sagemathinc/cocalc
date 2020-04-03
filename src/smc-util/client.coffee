@@ -586,64 +586,14 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, resp.result)
 
-    ###
-    Execute code in a given project.
-
-    Aggregate option -- use like this:
-
-        webapp.exec
-            aggregate: timestamp (or something else sequential)
-
-    means: if there are multiple attempts to run the given command with the same
-    time, they are all aggregated and run only one time by the project.   If requests
-    comes in with a newer time, they all run in another group after the first
-    one finishes.    The timestamp will usually come from something like the "last save
-    time" (which is stored in the db), which they client will know.  This is used, e.g.,
-    for operations like "run rst2html on this file whenever it is saved."
-    ###
+    # See client/project.ts.
     exec: (opts) =>
-        opts = defaults opts,
-            project_id      : required
-            path            : ''
-            command         : required
-            args            : []
-            timeout         : 30
-            network_timeout : undefined
-            max_output      : undefined
-            bash            : false
-            aggregate       : undefined  # see comment above.
-            err_on_exit     : true
-            allow_post      : true       # **DEPRECATED** set to false if genuinely could take a long time (e.g., more than about 5s?); but this requires websocket be setup, so more likely to fail or be slower.
-            env             : undefined  # extra environment variables
-            cb              : required   # cb(err, {stdout:..., stderr:..., exit_code:..., time:[time from client POV in ms]}).
-
-        start_time = new Date()
+        cb = opts.cb
+        delete opts.cb
         try
-            ws = await @project_websocket(opts.project_id)
-            exec_opts =
-                path        : opts.path
-                command     : opts.command
-                args        : opts.args
-                timeout     : opts.timeout
-                max_output  : opts.max_output
-                bash        : opts.bash
-                err_on_exit : opts.err_on_exit
-                env         : opts.env
-                aggregate   : opts.aggregate
-            opts.cb(undefined, await ws.api.exec(exec_opts))
+            cb(undefined, await @project_client.exec(opts))
         catch err
-            opts.cb(err)
-
-    makedirs: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            path       : required
-            cb         : undefined      # (err)
-        @exec
-            project_id : opts.project_id
-            command    : 'mkdir'
-            args       : ['-p', opts.path]
-            cb         : opts.cb
+            cb(err)
 
     # find directories and subdirectories matching a given query
     find_directories: (opts) =>
@@ -730,11 +680,6 @@ class exports.Connection extends EventEmitter
     #################################################
     # File Management
     #################################################
-    project_websocket: (project_id) =>
-        group = @_redux?.getStore('projects')?.get_my_group(project_id)
-        if not group? or group == 'public'
-            throw Error("no access to project websocket")
-        return await require('smc-webapp/project/websocket/connect').connection_to_project(project_id)
 
     project_directory_listing: (opts) =>
         opts = defaults opts,

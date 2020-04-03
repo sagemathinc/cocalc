@@ -292,7 +292,7 @@ export class Listings extends EventEmitter {
       throw Error("must be in init state");
     }
     // Make sure there is a working websocket to the project
-    await webapp_client.project_websocket(this.project_id);
+    await webapp_client.project_client.websocket(this.project_id);
     if ((this.state as State) == "closed") return;
 
     // Now create the table.

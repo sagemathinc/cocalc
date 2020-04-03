@@ -2,8 +2,12 @@
 Functionality that mainly involves working with a specific project.
 */
 
-import { encode_path } from "smc-util/misc2";
+import { required, defaults } from "smc-util/misc";
+import { copy_without, encode_path } from "smc-util/misc2";
 import * as message from "smc-util/message";
+import { connection_to_project } from "../project/websocket/connect";
+import { API } from "../project/websocket/api";
+import { redux } from "../app-framework";
 
 export class ProjectClient {
   private async_call: Function;
@@ -89,5 +93,69 @@ export class ProjectClient {
     member_host?: number;
   }): Promise<void> {
     await this.call(message.project_set_quotas(opts));
+  }
+
+  public async websocket(project_id: string): Promise<any> {
+    const group = redux.getStore("projects").get_my_group(project_id);
+    if (group == null || group === "public") {
+      throw Error("no access to project websocket");
+    }
+    return await connection_to_project(project_id);
+  }
+
+  public async api(project_id: string): Promise<API> {
+    return (await this.websocket(project_id)).api;
+  }
+
+  /*
+    Execute code in a given project.
+
+    Aggregate option -- use like this:
+
+        webapp.exec
+            aggregate: timestamp (or something else sequential)
+
+    means: if there are multiple attempts to run the given command with the same
+    time, they are all aggregated and run only one time by the project.   If requests
+    comes in with a newer time, they all run in another group after the first
+    one finishes.    The timestamp will usually come from something like the "last save
+    time" (which is stored in the db), which they client will know.  This is used, e.g.,
+    for operations like "run rst2html on this file whenever it is saved."
+    */
+  public async exec(opts: {
+    project_id: string;
+    path?: string;
+    command: string;
+    args?: string[];
+    timeout?: number;
+    network_timeout?: number;
+    max_output?: number;
+    bash?: false;
+    aggregate?: any; // see comment above.
+    err_on_exit?: boolean;
+    env?: string[]; // extra environment variables
+  }): Promise<{
+    stdout: string;
+    stderr: string;
+    exit_code: number;
+    time: number;
+  }> {
+    opts = defaults(opts, {
+      project_id: required,
+      path: "",
+      command: required,
+      args: [],
+      timeout: 30,
+      network_timeout: undefined,
+      max_output: undefined,
+      bash: false,
+      aggregate: undefined,
+      err_on_exit: true,
+      env: undefined,
+    });
+
+    const ws = await this.websocket(opts.project_id);
+    const exec_opts = copy_without(opts, ["project_id"]);
+    return await ws.api.exec(exec_opts);
   }
 }

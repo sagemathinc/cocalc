@@ -302,7 +302,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   public async api(): Promise<API> {
-    return (await webapp_client.project_websocket(this.project_id)).api;
+    return await webapp_client.project_client.api(this.project_id);
   }
 
   destroy = (): void => {

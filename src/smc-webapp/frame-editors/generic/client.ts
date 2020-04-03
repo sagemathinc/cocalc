@@ -276,7 +276,7 @@ export async function user_search(opts: {
 }
 
 export async function project_websocket(project_id: string): Promise<any> {
-  return await webapp_client.project_websocket(project_id);
+  return await webapp_client.project_client.websocket(project_id);
 }
 
 import { API } from "smc-webapp/project/websocket/api";

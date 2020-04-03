@@ -6,7 +6,7 @@ export async function delete_files(
   paths: string[]
 ): Promise<void> {
   // Get project api
-  const api = (await webapp_client.project_websocket(project_id)).api;
+  const api = await webapp_client.project_client.api(project_id);
   // Send message requesting to delete the files
   await api.delete_files(paths);
 }
