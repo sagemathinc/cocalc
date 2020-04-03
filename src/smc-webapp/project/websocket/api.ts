@@ -53,8 +53,12 @@ export class API {
     return await this.call({ cmd: "rename_file", src, dest }, 30000);
   }
 
-  async listing(path: string, hidden?: boolean): Promise<object[]> {
-    return await this.call({ cmd: "listing", path, hidden }, 15000);
+  async listing(
+    path: string,
+    hidden: boolean = false,
+    timeout: number = 15000
+  ): Promise<object[]> {
+    return await this.call({ cmd: "listing", path, hidden }, timeout);
   }
 
   /* Normalize the given paths relative to the HOME directory.

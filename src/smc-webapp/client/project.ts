@@ -158,4 +158,39 @@ export class ProjectClient {
     const exec_opts = copy_without(opts, ["project_id"]);
     return await ws.api.exec(exec_opts);
   }
+
+  public async directory_listing(opts: {
+    project_id: string;
+    path: string;
+    timeout?: number;
+    hidden?: boolean;
+  }): Promise<any> {
+    if (opts.timeout == null) opts.timeout = 15;
+    const api = await this.api(opts.project_id);
+    const listing = await api.listing(
+      opts.path,
+      opts.hidden,
+      opts.timeout * 1000
+    );
+    return { files: listing };
+  }
+
+  public async public_directory_listing(opts: {
+    project_id: string;
+    path: string;
+    time?: boolean;
+    start?: number;
+    limit?: number;
+    timeout?: number;
+    hidden: false;
+  }): Promise<any> {
+    if (opts.start == null) opts.start = 0;
+    if (opts.limit == null) opts.limit = -1;
+    const timeout = opts.timeout;
+    delete opts.timeout;
+    return await this.async_call({
+      message: message.public_get_directory_listing(opts),
+      timeout: timeout ?? 30,
+    }).result;
+  }
 }

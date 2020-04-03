@@ -558,33 +558,6 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, resp.data)
 
-    public_project_directory_listing: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            path       : '.'
-            time       : false
-            start      : 0
-            limit      : -1
-            timeout    : DEFAULT_TIMEOUT
-            hidden     : false
-            cb         : required
-        @call
-            message :
-                message.public_get_directory_listing
-                    project_id : opts.project_id
-                    path       : opts.path
-                    time       : opts.time
-                    start      : opts.tart
-                    limit      : opts.limit
-                    hidden     : opts.hidden
-            timeout : opts.timeout
-            cb      : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(undefined, resp.result)
 
     # See client/project.ts.
     exec: (opts) =>
@@ -677,23 +650,6 @@ class exports.Connection extends EventEmitter
             account_id : opts.account_id
             cb         : opts.cb
 
-    #################################################
-    # File Management
-    #################################################
-
-    project_directory_listing: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            path       : '.'
-            timeout    : 10  # in seconds
-            hidden     : false
-            cb         : required
-        try
-            ws = await @project_websocket(opts.project_id)
-            listing = await ws.api.listing(opts.path, opts.hidden, opts.timeout*1000)
-            opts.cb(undefined, {files:listing})
-        catch err
-            opts.cb(err)
 
     #################################################
     # Print file to pdf
