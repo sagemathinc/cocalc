@@ -29,7 +29,7 @@
  *  limitations under the License.
  */
 
-import * as $ from "jquery";
+declare var $: any;
 
 export const tex2jax = {
   config: {
