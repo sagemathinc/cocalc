@@ -778,8 +778,8 @@ export function welcome_email(opts): void {
   send_email({
     subject,
     body,
-    fromname: COMPANY_NAME,
-    from: COMPANY_EMAIL,
+    fromname: fallback(settings.organization_name, COMPANY_NAME),
+    from: fallback(settings.organization_email, COMPANY_EMAIL),
     to: opts.to,
     cb: opts.cb,
     category,
