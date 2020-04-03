@@ -135,7 +135,7 @@ class exports.Connection extends EventEmitter
         # Browser client should set @_redux, since this
         # is used in a few ways:
         #   - to be able to use mark_file
-        #   - raising an error on attempt to get project_websocket for non-collab
+        # TODO: eliminate this.
         @_redux = undefined
 
         @register_data_handler(JSON_CHANNEL, @handle_json_data)
@@ -762,7 +762,7 @@ class exports.Connection extends EventEmitter
     symmetric_channel: (name, project_id) =>
         if not misc.is_valid_uuid_string(project_id) or typeof(name) != 'string'
             throw Error("project_id must be a valid uuid")
-        return (await @project_websocket(project_id)).api.symmetric_channel(name)
+        return (await @project_client.api(project_id)).symmetric_channel(name)
 
     sync_string2: (opts) =>
         opts = defaults opts,
@@ -876,8 +876,8 @@ class exports.Connection extends EventEmitter
             options    : undefined
             cb         : undefined
         try
-            ws = await @project_websocket(opts.project_id)
-            resp = await ws.api.prettier(opts.path, opts.options ? {})
+            api = await @project_client.api(opts.project_id)
+            resp = await api.prettier(opts.path, opts.options ? {})
             opts.cb(undefined, resp)
         catch err
             opts.cb(err)
@@ -950,7 +950,7 @@ class exports.Connection extends EventEmitter
             throw Error("project_id must be a valid uuid")
         if typeof aspect != 'string'
             throw Error("aspect (=#{aspect}) must be a string")
-        return (await @project_websocket(project_id)).api.configuration(aspect, no_cache)
+        return (await @project_client.api(project_id)).configuration(aspect, no_cache)
 
     syncdoc_history: (opts) =>
         opts = defaults opts,

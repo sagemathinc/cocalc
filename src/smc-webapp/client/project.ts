@@ -9,6 +9,27 @@ import { connection_to_project } from "../project/websocket/connect";
 import { API } from "../project/websocket/api";
 import { redux } from "../app-framework";
 
+export interface ExecOpts {
+  project_id: string;
+  path?: string;
+  command: string;
+  args?: string[];
+  timeout?: number;
+  network_timeout?: number;
+  max_output?: number;
+  bash?: boolean;
+  aggregate?: string | number | { value: string | number };
+  err_on_exit?: boolean;
+  env?: { [key: string]: string }; // custom environment variables.
+}
+
+export interface ExecOutput {
+  stdout: string;
+  stderr: string;
+  exit_code: number;
+  time: number; // time in ms, from user point of view.
+}
+
 export class ProjectClient {
   private async_call: Function;
 
@@ -122,24 +143,7 @@ export class ProjectClient {
     time" (which is stored in the db), which they client will know.  This is used, e.g.,
     for operations like "run rst2html on this file whenever it is saved."
     */
-  public async exec(opts: {
-    project_id: string;
-    path?: string;
-    command: string;
-    args?: string[];
-    timeout?: number;
-    network_timeout?: number;
-    max_output?: number;
-    bash?: false;
-    aggregate?: any; // see comment above.
-    err_on_exit?: boolean;
-    env?: string[]; // extra environment variables
-  }): Promise<{
-    stdout: string;
-    stderr: string;
-    exit_code: number;
-    time: number;
-  }> {
+  public async exec(opts: ExecOpts): Promise<ExecOutput> {
     opts = defaults(opts, {
       project_id: required,
       path: "",
@@ -156,7 +160,14 @@ export class ProjectClient {
 
     const ws = await this.websocket(opts.project_id);
     const exec_opts = copy_without(opts, ["project_id"]);
-    return await ws.api.exec(exec_opts);
+
+    const msg = await ws.api.exec(exec_opts);
+    if (msg.status && msg.status == "error") {
+      throw new Error(msg.error);
+    }
+    delete msg.status;
+    delete msg.error;
+    return msg;
   }
 
   public async directory_listing(opts: {

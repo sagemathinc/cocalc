@@ -369,7 +369,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // this would have to do preciesly what kucalc's project init does.
     const sentinel = ".cocalc-project-init-done";
     await exec({
-      allow_post: true,
       timeout: 10,
       project_id: this.project_id,
       command: "rm",

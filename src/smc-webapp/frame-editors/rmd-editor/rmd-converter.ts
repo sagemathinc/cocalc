@@ -31,7 +31,6 @@ export async function convert(
   // console.log("rmd cmd", cmd);
 
   return await exec({
-    allow_post: false, // definitely could take a long time to fully run all the R stuff...
     timeout: 4 * 60,
     bash: true, // so timeout is enforced by ulimit
     command: "Rscript",

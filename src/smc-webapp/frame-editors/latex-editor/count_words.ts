@@ -11,7 +11,6 @@ export async function count_words(
 ) {
   const { head, tail } = path_split(path);
   const res = await exec({
-    allow_post: true,
     command: "texcount",
     args: [tail],
     project_id: project_id,

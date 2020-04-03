@@ -11,40 +11,16 @@ import { callback2 } from "smc-util/async-utils";
 import { FakeSyncstring } from "./syncstring-fake";
 import { Map } from "immutable";
 import { CompressedPatch } from "smc-util/sync/editor/generic/types";
+import { ExecOpts, ExecOutput } from "../../client/project";
+export { ExecOpts, ExecOutput };
 
 export function server_time(): Date {
   return webapp_client.time_client.server_time();
 }
 
-export interface ExecOpts {
-  project_id: string;
-  path?: string;
-  command: string;
-  args?: string[];
-  timeout?: number;
-  network_timeout?: number;
-  max_output?: number;
-  bash?: boolean;
-  aggregate?: string | number | { value: string | number };
-  err_on_exit?: boolean;
-  allow_post?: boolean; // set to false if genuinely could take a long time
-  env?: any; // custom environment variables.
-}
-
-export interface ExecOutput {
-  stdout: string;
-  stderr: string;
-  exit_code: number;
-  time: number; // time in ms, from user point of view.
-}
-
 // async version of the webapp_client exec -- let's you run any code in a project!
 export async function exec(opts: ExecOpts): Promise<ExecOutput> {
-  const msg = await callback2(webapp_client.exec, opts);
-  if (msg.status && msg.status == "error") {
-    throw new Error(msg.error);
-  }
-  return msg;
+  return await webapp_client.project_client.exec(opts);
 }
 
 export async function touch(project_id: string, path: string): Promise<void> {
