@@ -55,6 +55,8 @@ smc_version = require('smc-util/smc-version')
 
 {APIKeySetting} = require('./api-key')
 
+{ LEGACY_SSO } = require("./passport-types")
+
 log_strategy = (is_anonymous, name) ->
     if is_anonymous
         log("add_passport", {passport: name, source: "anonymous_account"})
@@ -539,7 +541,7 @@ AccountSettings = rclass
         if not id
             return
         webapp_client.unlink_passport
-            strategy : strategy
+            strategy : strategy.name
             id       : id
             cb       : (err) ->
                 if err
@@ -575,14 +577,28 @@ AccountSettings = rclass
                 </ButtonToolbar>
             </Well>
 
+    render_strategy_icon: (strategy) ->
+        if strategy.icon?
+            style =
+                verticalAlign: 'text-bottom'
+                borderRadius: '50%'
+                width:'20px'
+                height:'auto'
+            return <img src={strategy.icon} style={style} />
+        else if LEGACY_SSO.indexOf(strategy.name) >= 0
+            return <Icon name={strategy.name} />
+        else
+            return undefined
+
     render_strategy: (strategy, strategies) ->
-        if strategy != 'email'
+        sname = strategy.name
+        if sname != 'email'
             <Button
                 disabled={@props.is_anonymous and not @state.terms_checkbox}
-                onClick = {=>@setState(if strategy in strategies then {remove_strategy_button:strategy, add_strategy_link:undefined} else {add_strategy_link:strategy, remove_strategy_button:undefined})}
-                key     = {strategy}
-                bsStyle = {if strategy in strategies then 'info' else 'default'}>
-                <Icon name={strategy} /> {misc.capitalize(strategy)}...
+                onClick = {=>@setState(if sname in strategies then {remove_strategy_button:strategy, add_strategy_link:undefined} else {add_strategy_link:strategy, remove_strategy_button:undefined})}
+                key     = {sname}
+                bsStyle = {if sname in strategies then 'info' else 'default'}>
+                {@render_strategy_icon(strategy)} {strategy.display ? misc.capitalize(sname)}...
             </Button>
 
     render_sign_out_error: ->
