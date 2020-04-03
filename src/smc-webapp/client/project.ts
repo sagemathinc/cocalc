@@ -45,4 +45,49 @@ export class ProjectClient {
     }
     return encode_path(`${base}/${opts.project_id}/raw/${opts.path}`);
   }
+
+  public async copy_path_between_projects(opts: {
+    public?: boolean; // TODO: should get deprecated because of share server.
+    src_project_id: string; // id of source project
+    src_path: string; // relative path of director or file in the source project
+    target_project_id: string; // if of target project
+    target_path?: string; // defaults to src_path
+    overwrite_newer?: boolean; // overwrite newer versions of file at destination (destructive)
+    delete_missing?: boolean; // delete files in dest that are missing from source (destructive)
+    backup?: boolean; // make ~ backup files instead of overwriting changed files
+    timeout?: number; // how long to wait for the copy to complete before reporting "error" (though it could still succeed)
+  }): Promise<void> {
+    const is_public = opts.public;
+    delete opts.public;
+
+    if (opts.target_path == null) {
+      opts.target_path = opts.src_path;
+    }
+
+    const mesg = is_public
+      ? message.copy_public_path_between_projects(opts)
+      : message.copy_path_between_projects(opts);
+
+    await this.async_call({
+      timeout: opts.timeout,
+      message: mesg,
+      allow_post: false, // since it may take too long
+    });
+  }
+
+  // Set a quota parameter for a given project.
+  // As of now, only user in the admin group can make these changes.
+  public async set_quotas(opts: {
+    project_id: string;
+    memory?: number; // see message.js for the units, etc., for all these settings
+    memory_request?: number;
+    cpu_shares?: number;
+    cores?: number;
+    disk_quota?: number;
+    mintime?: number;
+    network?: number;
+    member_host?: number;
+  }): Promise<void> {
+    await this.call(message.project_set_quotas(opts));
+  }
 }

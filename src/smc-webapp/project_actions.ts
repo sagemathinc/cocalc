@@ -2428,12 +2428,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       overwrite_newer: false, // overwrite newer versions of file at destination (destructive)
       delete_missing: false, // delete files in dest that are missing from source (destructive)
       backup: false, // make ~ backup files instead of overwriting changed files
-      timeout: undefined, // how long to wait for the copy to complete before reporting "error" (though it could still succeed)
-      exclude_history: false, // if true, exclude all files of the form *.sage-history
-      id: undefined,
-      cb: undefined, // optional callback when all done.
     });
-    const id = opts.id != null ? opts.id : misc.uuid();
+    const id = misc.uuid();
     this.set_activity({
       id,
       status: `Copying ${opts.src.length} ${misc.plural(
@@ -2451,16 +2447,22 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       count: src.length > 3 ? src.length : undefined,
       project: opts.target_project_id,
     });
-    const f = (src_path, cb) => {
+    const f = async (src_path, cb) => {
       const opts0 = misc.copy(opts);
-      opts0.cb = cb;
+      delete opts0.cb;
       opts0.src_path = src_path;
       // we do this for consistent semantics with file copy
       opts0.target_path = misc.path_to_file(
         opts0.target_path,
         misc.path_split(src_path).tail
       );
-      webapp_client.copy_path_between_projects(opts0);
+      opts0.timeout = 90;
+      try {
+        await webapp_client.project_client.copy_path_between_projects(opts0);
+        cb();
+      } catch (err) {
+        cb(err);
+      }
     };
     async.mapLimit(src, 3, f, this._finish_exec(id, opts.cb));
   }

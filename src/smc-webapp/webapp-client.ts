@@ -52,8 +52,6 @@ export interface WebappClient extends EventEmitter {
 
   user_search: Function;
   server_time: Function;
-  project_set_quotas: Function;
-  copy_path_between_projects: Function;
   exec: Function;
   find_directories: Function;
   sync_db2: Function;

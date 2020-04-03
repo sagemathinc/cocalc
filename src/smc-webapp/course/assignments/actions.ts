@@ -360,7 +360,7 @@ export class AssignmentsActions {
       desc: `Copying assignment from ${student_name}`,
     });
     try {
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: student_project_id,
         src_path: assignment.get("target_path"),
         target_project_id: store.get("course_project_id"),
@@ -368,7 +368,6 @@ export class AssignmentsActions {
         overwrite_newer: true,
         backup: true,
         delete_missing: false,
-        exclude_history: false,
       });
       // write their name to a file
       const name = store.get_student_name_extra(student_id);
@@ -510,7 +509,7 @@ ${details}
         path: src_path + "/GRADE.md",
         content,
       });
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: store.get("course_project_id"),
         src_path,
         target_project_id: student_project_id,
@@ -518,7 +517,6 @@ ${details}
         overwrite_newer: true,
         backup: true,
         delete_missing: false,
-        exclude_history: true,
       });
       if (peer_graded) {
         // Delete GRADER file
@@ -746,7 +744,7 @@ ${details}
         id,
         desc: `Copying files to ${student_name}'s project`,
       });
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: store.get("course_project_id"),
         src_path,
         target_project_id: student_project_id,
@@ -754,7 +752,6 @@ ${details}
         overwrite_newer: !!overwrite, // default is "false"
         delete_missing: !!overwrite, // default is "false"
         backup: !!!overwrite, // default is "true"
-        exclude_history: true,
       });
 
       // successful finish
@@ -1069,7 +1066,7 @@ ${details}
       if (this.course_actions.is_closed()) return;
 
       // copy the files to be peer graded into place for this student
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: store.get("course_project_id"),
         src_path,
         target_project_id: student_project_id,
@@ -1086,7 +1083,7 @@ ${details}
         content: guidelines,
       });
       // copy it over
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: store.get("course_project_id"),
         src_path: peer_grading_guidelines_file,
         target_project_id: student_project_id,
@@ -1156,7 +1153,7 @@ ${details}
       )}-peer-grade/${our_student_id}/${student_id}`;
 
       // copy the files over from the student who did the peer grading
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: s.get("project_id"),
         src_path,
         target_project_id: store.get("course_project_id"),
