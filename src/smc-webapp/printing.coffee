@@ -528,7 +528,7 @@ class SagewsPrinter extends Printer
             cb()
 
         sagews_data = (cb) =>
-            dl_url = webapp_client.read_file_from_project
+            dl_url = webapp_client.project_client.read_file
                 project_id  : @editor.project_id
                 path        : @editor.filename
 

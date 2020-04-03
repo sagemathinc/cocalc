@@ -31,7 +31,7 @@ export class ProjectClient {
     return (await this.call(message.read_text_file_from_project(opts))).content;
   }
 
-  // Like "read_text_file_from_project" above, except the callback
+  // Like "read_text_file" above, except the callback
   // message gives a url from which the file can be
   // downloaded using standard AJAX.
   public read_file(opts: {

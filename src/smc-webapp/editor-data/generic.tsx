@@ -15,7 +15,7 @@ const { register_file_editor } = require("../project_file");
 import { Well } from "react-bootstrap";
 
 import { Markdown } from "../r_misc";
-const { webapp_client } = require("../webapp_client");
+import { webapp_client } from "../webapp-client";
 
 import { keys, filename_extension } from "smc-util/misc2";
 
@@ -85,7 +85,7 @@ class DataGeneric extends Component<Props, {}> {
   }
 
   render() {
-    const src = webapp_client.read_file_from_project({
+    const src = webapp_client.project_client.read_file({
       project_id: this.props.project_id,
       path: this.props.path,
     });

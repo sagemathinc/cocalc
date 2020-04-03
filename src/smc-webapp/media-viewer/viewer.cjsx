@@ -57,7 +57,7 @@ exports.MediaViewer = rclass
 
     render_content: ->
         # the URL to the file:
-        url = webapp_client.read_file_from_project({project_id:@props.project_id, path:@props.path})
+        url = webapp_client.project_client.read_file({project_id:@props.project_id, path:@props.path})
         if @state.param
             url += "?param=#{@state.param}"   # this forces reload whenever refresh button clicked
         <div style={overflowY:'auto', flex:1, marginTop:'1px', padding:'1px', borderTop:'1px solid lightgray', textAlign:'center', background:'black'}>

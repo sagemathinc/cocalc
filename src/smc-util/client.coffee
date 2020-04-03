@@ -512,29 +512,6 @@ class exports.Connection extends EventEmitter
     #################################################
     # Individual Projects
     #################################################
-
-
-    # Like "read_text_file_from_project" above, except the callback
-    # message gives a url from which the file can be
-    # downloaded using standard AJAX.
-    # Despite the callback, this function is NOT asynchronous (that was for historical reasons).
-    # It also just returns the url.
-    read_file_from_project: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            path       : required
-            timeout    : DEFAULT_TIMEOUT
-            archive    : 'tar.bz2'   # NOT SUPPORTED ANYMORE! -- when path is a directory: 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'
-            cb         : undefined
-
-        base = window?.app_base_url ? '' # will be defined in web browser
-        if opts.path[0] == '/'
-            # absolute path to the root
-            opts.path = '.smc/root' + opts.path  # use root symlink, which is created by start_smc
-        url = misc.encode_path("#{base}/#{opts.project_id}/raw/#{opts.path}")
-        opts.cb?(false, {url:url})
-        return url
-
     copy_path_between_projects: (opts) =>
         opts = defaults opts,
             public            : false

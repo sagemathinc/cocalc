@@ -1172,7 +1172,7 @@ class CodeMirrorEditor extends FileEditor
                     if is_subdir or not pdf?
                         cb(); return
                     # pdf file exists -- show it in the UI
-                    url = webapp_client.read_file_from_project
+                    url = webapp_client.project_client.read_file
                         project_id  : @project_id
                         path        : pdf
                     dialog.find(".webapp-file-printing-link").attr('href', url).text(pdf).show()

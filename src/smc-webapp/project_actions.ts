@@ -52,7 +52,7 @@ function normalize(path: string): string {
 import * as misc from "smc-util/misc";
 const { MARKERS } = require("smc-util/sagews");
 import { alert_message } from "./alerts";
-const { webapp_client } = require("./webapp_client");
+import { webapp_client } from "./webapp-client";
 const { project_tasks } = require("./project_tasks");
 const { defaults, required } = misc;
 
@@ -2238,7 +2238,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     _init_library_index_ongoing[this.project_id] = true;
 
-    const index_json_url = webapp_client.read_file_from_project({
+    const index_json_url = webapp_client.project_client.read_file({
       project_id: this.project_id,
       path: LIBRARY_INDEX_FILE,
     });
