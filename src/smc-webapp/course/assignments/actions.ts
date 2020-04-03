@@ -15,7 +15,6 @@ import {
   NBgraderRunInfo,
   get_nbgrader_score,
 } from "../store";
-import { callback2 } from "smc-util/async-utils";
 import { start_project, exec } from "../../frame-editors/generic/client";
 import { webapp_client } from "../../webapp-client";
 import { redux } from "../../app-framework";
@@ -520,7 +519,7 @@ ${details}
       });
       if (peer_graded) {
         // Delete GRADER file
-        await callback2(webapp_client.exec, {
+        await webapp_client.project_client.exec({
           project_id: student_project_id,
           command: "rm ./*/GRADER*.txt",
           timeout: 60,
@@ -1052,7 +1051,7 @@ ${details}
       // delete the student's name so that grading is anonymous; also, remove original
       // due date to avoid confusion.
       const name = store.get_student_name_extra(student_id);
-      await callback2(webapp_client.exec, {
+      await webapp_client.project_client.exec({
         project_id: store.get("course_project_id"),
         command: "rm",
         args: [

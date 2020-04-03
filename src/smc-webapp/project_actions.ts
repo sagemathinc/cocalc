@@ -274,7 +274,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this._absolute_path = this._absolute_path.bind(this);
     this.create_folder = this.create_folder.bind(this);
     this.create_file = this.create_file.bind(this);
-    this.new_file_from_web = this.new_file_from_web.bind(this);
     this.set_public_path = this.set_public_path.bind(this);
     this.toggle_search_checkbox_subdirectories = this.toggle_search_checkbox_subdirectories.bind(
       this
@@ -850,16 +849,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   private async open_sagenb_worksheet(opts): Promise<void> {
-    // sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
+    // sagenb worksheet (or backup of it created during unzip of
+    // multiple worksheets with same name)
     alert_message({
       type: "info",
       message: `Opening converted CoCalc worksheet file instead of '${opts.path}...`,
     });
     try {
-      const path: string = await callback(
-        this.convert_sagenb_worksheet,
-        opts.path
-      );
+      const path: string = await this.convert_sagenb_worksheet(opts.path);
       await this.open_file({
         path,
         foreground: opts.foreground,
@@ -881,7 +878,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       message: `Opening converted plain text file instead of '${opts.path}...`,
     });
     try {
-      const path: string = await callback(this.convert_docx_file, opts.path);
+      const path: string = await this.convert_docx_file(opts.path);
       await this.open_file({
         path,
         foreground: opts.foreground,
@@ -1322,69 +1319,34 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.open_files.set(filename, "has_activity", true);
   }
 
-  convert_sagenb_worksheet(filename, cb) {
-    return async.series(
-      [
-        (cb) => {
-          const ext = misc.filename_extension(filename);
-          if (ext === "sws") {
-            return cb();
-          } else {
-            const i = filename.length - ext.length;
-            const new_filename =
-              filename.slice(0, i - 1) + ext.slice(3) + ".sws";
-            webapp_client.exec({
-              project_id: this.project_id,
-              command: "cp",
-              args: [filename, new_filename],
-              cb: (err) => {
-                if (err) {
-                  return cb(err);
-                } else {
-                  filename = new_filename;
-                  return cb();
-                }
-              },
-            });
-          }
-        },
-        (cb) => {
-          webapp_client.exec({
-            project_id: this.project_id,
-            command: "smc-sws2sagews",
-            args: [filename],
-            cb: (err) => {
-              return cb(err);
-            },
-          });
-        },
-      ],
-      (err) => {
-        if (err) {
-          return cb(err);
-        } else {
-          return cb(
-            undefined,
-            filename.slice(0, filename.length - 3) + "sagews"
-          );
-        }
-      }
-    );
+  private async convert_sagenb_worksheet(filename: string): Promise<string> {
+    const ext = misc.filename_extension(filename);
+    if (ext != "sws") {
+      const i = filename.length - ext.length;
+      const new_filename = filename.slice(0, i - 1) + ext.slice(3) + ".sws";
+      await webapp_client.project_client.exec({
+        project_id: this.project_id,
+        command: "cp",
+        args: [filename, new_filename],
+      });
+      filename = new_filename;
+    }
+    await webapp_client.project_client.exec({
+      project_id: this.project_id,
+      command: "smc-sws2sagews",
+      args: [filename],
+    });
+
+    return filename.slice(0, filename.length - 3) + "sagews";
   }
 
-  convert_docx_file(filename, cb) {
-    webapp_client.exec({
+  private async convert_docx_file(filename): Promise<string> {
+    await webapp_client.project_client.exec({
       project_id: this.project_id,
       command: "smc-docx2txt",
       args: [filename],
-      cb: (err, output) => {
-        if (err) {
-          return cb(`${err}, ${misc.to_json(output)}`);
-        } else {
-          return cb(false, filename.slice(0, filename.length - 4) + "txt");
-        }
-      },
     });
+    return filename.slice(0, filename.length - 4) + "txt";
   }
 
   // Closes all files and removes all references
@@ -1942,45 +1904,38 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.set_file_action(opts.action, () => path_splitted.tail);
   }
 
-  get_from_web(opts) {
+  private async get_from_web(opts: {
+    url: string;
+    dest?: string;
+    timeout: number;
+    alert?: boolean;
+  }): Promise<void> {
     opts = defaults(opts, {
       url: required,
       dest: undefined,
       timeout: 45,
       alert: true,
-      cb: undefined,
-    }); // cb(true or false, depending on error)
+    });
 
     const { command, args } = transform_get_url(opts.url);
 
-    webapp_client.exec({
-      project_id: this.project_id,
-      command,
-      timeout: opts.timeout,
-      path: opts.dest,
-      args,
-      cb: (err, result) => {
-        if (opts.alert) {
-          if (err) {
-            alert_message({ type: "error", message: err, timeout: 15 });
-          } else if (result.event === "error") {
-            alert_message({
-              type: "error",
-              message: result.error,
-              timeout: 15,
-            });
-          }
-        }
-        typeof opts.cb === "function"
-          ? opts.cb(err || result.event === "error")
-          : undefined;
-      },
-    });
+    try {
+      await webapp_client.project_client.exec({
+        project_id: this.project_id,
+        command,
+        timeout: opts.timeout,
+        path: opts.dest,
+        args,
+      });
+    } catch (err) {
+      alert_message({ type: "error", message: err, timeout: 15 });
+    }
   }
 
-  // function used internally by things that call webapp_client.exec
+  // function used internally by things that call webapp_client.project_client.exec
   private _finish_exec(id, cb?) {
-    // returns a function that takes the err and output and does the right activity logging stuff.
+    // returns a function that takes the err and output and
+    // does the right activity logging stuff.
     return (err, output) => {
       this.fetch_directory_listing();
       if (err) {
@@ -2715,7 +2670,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  new_file_from_web(url, current_path, cb?) {
+  private async new_file_from_web(
+    url: string,
+    current_path: string
+  ): Promise<void> {
     let d = current_path;
     if (d === "") {
       d = "root directory of project";
@@ -2726,19 +2684,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       id,
       status: `Downloading '${url}' to '${d}', which may run for up to ${FROM_WEB_TIMEOUT_S} seconds...`,
     });
-    this.get_from_web({
-      url,
-      dest: current_path,
-      timeout: FROM_WEB_TIMEOUT_S,
-      alert: true,
-      cb: (err) => {
-        this.fetch_directory_listing();
-        this.set_activity({ id, stop: "" });
-        this.setState({ downloading_file: false });
-        this.set_active_tab("files", { update_file_listing: false });
-        typeof cb === "function" ? cb(err) : undefined;
-      },
-    });
+    try {
+      await this.get_from_web({
+        url,
+        dest: current_path,
+        timeout: FROM_WEB_TIMEOUT_S,
+        alert: true,
+      });
+    } finally {
+      this.fetch_directory_listing();
+      this.set_activity({ id, stop: "" });
+      this.setState({ downloading_file: false });
+      this.set_active_tab("files", { update_file_listing: false });
+    }
   }
 
   /*

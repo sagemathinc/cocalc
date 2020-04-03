@@ -52,7 +52,6 @@ export interface WebappClient extends EventEmitter {
 
   user_search: Function;
   server_time: Function;
-  exec: Function;
   find_directories: Function;
   sync_db2: Function;
   get_username: Function;
@@ -65,6 +64,7 @@ export interface WebappClient extends EventEmitter {
   sync_db: Function;
   query: Function;
   public_get_text_file: Function;
+  exec: Function; // TODO: rewrite project_actions.ts to not use this at all.
   touch_project: Function;
   log_error: (any) => void;
 }
