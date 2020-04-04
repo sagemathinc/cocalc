@@ -412,19 +412,22 @@ class ProjectsActions extends Actions
         if @[block]
             return
         @[block] = true
-        webapp_client.find_directories
-            include_hidden : false
-            project_id     : project_id
-            exclusions     : opts.exclusions
-            cb             : (err, resp) =>
-                # ignore calls to update_directory_tree for 5 more seconds
-                setTimeout((()=>delete @[block]), 5000)
-                x = store.get('directory_trees') ? immutable.Map()
-                obj =
-                    error   : err
-                    tree    : resp?.directories.sort()
-                    updated : new Date()
-                @setState(directory_trees: x.set(project_id, immutable.fromJS(obj)))
+        error = undefined
+        try
+            resp = await webapp_client.project_client.find_directories
+                include_hidden : false
+                project_id     : project_id
+                exclusions     : opts.exclusions
+        catch err
+            error = err
+        # ignore calls to update_directory_tree for 5 more seconds
+        setTimeout((()=>delete @[block]), 5000)
+        x = store.get('directory_trees') ? immutable.Map()
+        obj =
+            error   : err
+            tree    : resp?.directories.sort()
+            updated : new Date()
+        @setState(directory_trees: x.set(project_id, immutable.fromJS(obj)))
 
     # The next few actions below involve changing the users field of a project.
     # See the users field of schema.coffee for documentation of the structure of this.

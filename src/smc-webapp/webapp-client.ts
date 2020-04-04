@@ -52,7 +52,6 @@ export interface WebappClient extends EventEmitter {
 
   user_search: Function;
   server_time: Function;
-  find_directories: Function;
   sync_db2: Function;
   get_username: Function;
   is_signed_in: () => boolean;

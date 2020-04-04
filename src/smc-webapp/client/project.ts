@@ -211,4 +211,69 @@ export class ProjectClient {
   }): Promise<string> {
     return (await this.call(message.public_get_text_file(opts))).data;
   }
+
+  public async find_directories(opts: {
+    project_id: string;
+    query?: string; // see the -iname option to the UNIX find command.
+    path?: string; // Root path to find directories from
+    exclusions?: string[]; // paths relative to `opts.path`. Skips whole sub-trees
+    include_hidden?: boolean;
+  }): Promise<{
+    query: string;
+    path: string;
+    project_id: string;
+    directories: string[];
+  }> {
+    opts = defaults(opts, {
+      project_id: required,
+      query: "*", // see the -iname option to the UNIX find command.
+      path: ".", // Root path to find directories from
+      exclusions: undefined, // Array<String> Paths relative to `opts.path`. Skips whole sub-trees
+      include_hidden: false,
+    });
+    if (opts.path == null || opts.query == null) throw Error("bug -- cannot happen");
+
+    const args: string[] = [
+      opts.path,
+      "-xdev",
+      "!",
+      "-readable",
+      "-prune",
+      "-o",
+      "-type",
+      "d",
+      "-iname",
+      `'${opts.query}'`,
+      "-readable",
+    ];
+    if (opts.exclusions != null) {
+      for (const excluded_path of opts.exclusions) {
+        args.push(
+          `-a -not \\( -path '${opts.path}/${excluded_path}' -prune \\)`
+        );
+      }
+    }
+
+    args.push("-print");
+    const command = `find ${args.join(" ")}`;
+
+    const result = await this.exec({
+      project_id: opts.project_id,
+      command,
+      timeout: 60,
+      aggregate: Math.round(new Date().valueOf() / 5000), // aggregate calls into 5s windows, in case multiple clients ask for same find at once...
+    });
+    const n = opts.path.length + 1;
+    let v = result.stdout.split("\n");
+    if (!opts.include_hidden) {
+      v = v.filter((x) => x.indexOf("/.") === -1);
+    }
+    v = v.filter((x) => x.length > n).map((x) => x.slice(n));
+    return {
+      query: opts.query,
+      path: opts.path,
+      project_id: opts.project_id,
+      directories: v,
+    };
+  }
 }
