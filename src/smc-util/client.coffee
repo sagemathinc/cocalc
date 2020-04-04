@@ -531,34 +531,6 @@ class exports.Connection extends EventEmitter
                     else
                         opts.cb?()
 
-
-    #################################################
-    # *PUBLIC* Projects
-    #################################################
-
-    public_get_text_file: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            path       : required
-            cb         : required
-            timeout    : DEFAULT_TIMEOUT
-
-        @call
-            error_event : true
-            message :
-                message.public_get_text_file
-                    project_id : opts.project_id
-                    path       : opts.path
-            timeout : opts.timeout
-            cb      : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(undefined, resp.data)
-
-
     # See client/project.ts.
     exec: (opts) =>
         cb = opts.cb

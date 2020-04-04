@@ -63,7 +63,6 @@ export interface WebappClient extends EventEmitter {
   sync_string: Function;
   sync_db: Function;
   query: Function;
-  public_get_text_file: Function;
   exec: Function; // TODO: rewrite project_actions.ts to not use this at all.
   touch_project: Function;
   log_error: (any) => void;

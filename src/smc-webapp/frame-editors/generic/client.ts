@@ -87,7 +87,7 @@ export async function write_text_file_to_project(
 export async function public_get_text_file(
   opts: ReadTextFileOpts
 ): Promise<string> {
-  return await callback2(webapp_client.public_get_text_file, opts);
+  return await webapp_client.project_client.public_get_text_file(opts);
 }
 
 interface ParserOptions {

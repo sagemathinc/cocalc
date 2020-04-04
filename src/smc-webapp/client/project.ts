@@ -204,4 +204,11 @@ export class ProjectClient {
       timeout: timeout ?? 30,
     }).result;
   }
+
+  public async public_get_text_file(opts: {
+    project_id: string;
+    path: string;
+  }): Promise<string> {
+    return (await this.call(message.public_get_text_file(opts))).data;
+  }
 }
