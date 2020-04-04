@@ -19,7 +19,7 @@ export function LogSearch({
   actions,
   reset_cursor,
   increment_cursor,
-  decrement_cursor
+  decrement_cursor,
 }: Props): JSX.Element {
   const open_selected = React.useCallback(
     (_value, info: any): void => {
@@ -34,7 +34,7 @@ export function LogSearch({
           if (target != null) {
             actions.open_file({
               path: target,
-              foreground: !info.ctrl_down
+              foreground: !info.ctrl_down,
             });
           }
           break;

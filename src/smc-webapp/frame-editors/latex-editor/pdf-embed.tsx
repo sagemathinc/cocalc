@@ -45,7 +45,7 @@ export class PDFEmbed extends Component<Props, {}> {
             position: "absolute",
             width: "100%",
             height: "100%",
-            zIndex: this.props.is_current ? -1 : 1
+            zIndex: this.props.is_current ? -1 : 1,
           }}
           onMouseEnter={() => this.focus()}
         />
@@ -60,7 +60,7 @@ export class PDFEmbed extends Component<Props, {}> {
         style={{
           position: "relative",
           height: "100%",
-          width: "100%"
+          width: "100%",
         }}
       >
         {this.render_clickable()}

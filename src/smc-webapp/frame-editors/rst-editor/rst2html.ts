@@ -16,6 +16,6 @@ export async function convert(
     args: [path, aux_file(path, "html")],
     project_id: project_id,
     err_on_exit: true,
-    aggregate: time
+    aggregate: time,
   });
 }

@@ -17,15 +17,15 @@ export const time_travel = {
   component: TimeTravel,
   buttons: set(["decrease_font_size", "increase_font_size", "help", "-file"]),
   hide_file_menu: true,
-  hide_public: true
+  hide_public: true,
 };
 
 const EDITOR_SPEC = {
-  time_travel
+  time_travel,
 };
 
 export const Editor = createEditor({
   format_bar: false,
   editor_spec: EDITOR_SPEC,
-  display_name: "TimeTravel"
+  display_name: "TimeTravel",
 });

@@ -21,7 +21,7 @@ export class SagewsControl extends React.Component<Props, State> {
     super(props);
     this.state = {
       loading: false,
-      message: ""
+      message: "",
     };
   }
 
@@ -48,15 +48,15 @@ export class SagewsControl extends React.Component<Props, State> {
         if (err) {
           this.setState({
             message:
-              "Error trying to restart worksheet server. Try restarting the project server instead."
+              "Error trying to restart worksheet server. Try restarting the project server instead.",
           });
         } else {
           this.setState({
             message:
-              "Worksheet server restarted. Restarted worksheets will use a new Sage session."
+              "Worksheet server restarted. Restarted worksheets will use a new Sage session.",
           });
         }
-      }
+      },
     });
   };
 

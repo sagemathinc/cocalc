@@ -9,4 +9,4 @@ Functionality:
 - interrupt a sage process
 - evaluate a block of code (with data) and push out results as they appear
 - maintain queue of evaluation requests
-- if sage server likely to be started (based on previous *usage* of this project), start it right when project starts up
+- if sage server likely to be started (based on previous _usage_ of this project), start it right when project starts up

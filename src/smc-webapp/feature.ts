@@ -80,7 +80,7 @@ if ((global as any).window != undefined) {
         isMobile.iOS() ||
         isMobile.Windows()
       );
-    }
+    },
   };
 
   if ($ == undefined) {
@@ -114,7 +114,7 @@ if ((global as any).window != undefined) {
   $.browser.blink = ($.browser.chrome || $.browser.opera) && !!window.CSS;
   $.browser.edge = /edge\/\d./i.test(user_agent);
 
-  get_browser = function() {
+  get_browser = function () {
     for (const k in $.browser) {
       const v = $.browser[k];
       if (v) {
@@ -124,7 +124,7 @@ if ((global as any).window != undefined) {
     return undefined;
   };
 
-  get_mobile = function() {
+  get_mobile = function () {
     for (const k in isMobile) {
       const v = isMobile[k];
       if (v()) {
@@ -161,7 +161,7 @@ if ((global as any).window != undefined) {
     console.log("DEBUG MODE:", DEBUG);
   }
 
-  var cookies_and_local_storage = function() {
+  var cookies_and_local_storage = function () {
     if (navigator == undefined) {
       return;
     }
@@ -223,5 +223,5 @@ export {
   isMobile,
   is_responsive_mode,
   get_browser,
-  get_mobile
+  get_mobile,
 };

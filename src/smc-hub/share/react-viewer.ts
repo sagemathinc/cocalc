@@ -17,7 +17,7 @@ export function react_viewer(
   description?: string,
   launch_path?: string
 ): Function {
-  return function(res, component, subtitle: string, noindex: boolean): void {
+  return function (res, component, subtitle: string, noindex: boolean): void {
     const the_page = React.createElement(
       ContentPage,
       {
@@ -31,7 +31,7 @@ export function react_viewer(
         viewer,
         is_public,
         noindex,
-        launch_path
+        launch_path,
       },
       component
     );

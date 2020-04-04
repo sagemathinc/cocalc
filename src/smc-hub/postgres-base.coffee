@@ -40,6 +40,8 @@ EventEmitter = require('events')
 
 fs      = require('fs')
 async   = require('async')
+escapeString = require('sql-string-escape')
+validator = require('validator')
 
 pg      = require('pg').native    # You might have to do: "apt-get install libpq5 libpq-dev"
 if not pg?
@@ -669,12 +671,27 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             opts.query += " WHERE #{WHERE.join(' AND ')}"
 
         if opts.order_by?
+            if opts.order_by.indexOf("'") >= 0
+                err = "ERROR -- detected ' apostrophe in order_by='#{opts.order_by}'"
+                dbg(err)
+                opts.cb?(err)
+                return
             opts.query += " ORDER BY #{opts.order_by} "
 
-        if opts.limit?  # TODO: type checking and sanitization for limit, etc....
+        if opts.limit?
+            if not validator.isInt('' + opts.limit, min:0)
+                err = "ERROR -- opts.limit = '#{opts.limit}' is not an integer"
+                dbg(err)
+                opts.cb?(err)
+                return
             opts.query += " LIMIT #{opts.limit} "
 
         if opts.offset?
+            if not validator.isInt('' + opts.offset, min:0)
+                err = "ERROR -- opts.offset = '#{opts.offset}' is not an integer"
+                dbg(err)
+                opts.cb?(err)
+                return
             opts.query += " OFFSET #{opts.offset} "
 
 
@@ -1071,13 +1088,18 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                         desc += " UNIQUE"
                     if info.pg_check
                         desc += " " + info.pg_check
+                    # Disable the safety_checks since we know these are
+                    # fine and they can be hit, e.g., when adding a column
+                    # named "deleted"...
                     switch task.action
                         when 'alter'
                             @_query
+                                safety_check : false
                                 query : "ALTER TABLE #{quote_field(table)} ALTER COLUMN #{col} TYPE #{desc} USING #{col}::#{type}"
                                 cb    : cb
                         when 'add'
                             @_query
+                                safety_check : false
                                 query : "ALTER TABLE #{quote_field(table)} ADD COLUMN #{col} #{desc}"
                                 cb    : cb
                         else
@@ -1243,6 +1265,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             query : "SELECT COUNT(*) FROM #{opts.table}"
             cb    : count_result(opts.cb)
 
+    # sanitize strings before inserting them into a query string
+    sanitize: (s) =>
+        escapeString(s)
+
 ###
 Other misc functions
 ###
@@ -1273,7 +1299,7 @@ exports.pg_type = pg_type = (info) ->
             return 'JSONB'
         when 'integer'
             return 'INTEGER'
-        when 'number', 'double', 'float'
+        when 'number'
             return 'DOUBLE PRECISION'
         when 'array'
             throw Error("pg_type: you must specify the array type explicitly (info=#{misc.to_json(info)})")

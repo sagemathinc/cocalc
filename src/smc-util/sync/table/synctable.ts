@@ -520,7 +520,7 @@ export class SyncTable extends EventEmitter {
       obj: this,
       until,
       timeout,
-      change_event: "change-no-throttle"
+      change_event: "change-no-throttle",
     });
   }
 
@@ -592,7 +592,7 @@ export class SyncTable extends EventEmitter {
       do_emit_changes,
       this.throttle_changes
     );
-    this.emit_change = changed_keys => {
+    this.emit_change = (changed_keys) => {
       //console.log("emit_change", changed_keys);
       this.dbg("emit_change")(changed_keys);
       //console.log("#{this.table} -- queue changes", changed_keys)
@@ -743,7 +743,7 @@ export class SyncTable extends EventEmitter {
       query_cancel: this.client.query_cancel,
       options: this.options,
       query: this.query,
-      table: this.table
+      table: this.table,
     };
   }
 
@@ -830,7 +830,7 @@ export class SyncTable extends EventEmitter {
     if (this.primary_keys.length === 1) {
       // very common case
       const pk = this.primary_keys[0];
-      this.obj_to_key = obj => {
+      this.obj_to_key = (obj) => {
         if (obj == null) {
           return;
         }
@@ -842,7 +842,7 @@ export class SyncTable extends EventEmitter {
       };
     } else {
       // compound primary key
-      this.obj_to_key = obj => {
+      this.obj_to_key = (obj) => {
         if (obj == null) {
           return;
         }
@@ -983,7 +983,7 @@ export class SyncTable extends EventEmitter {
         await callback2(this.client.query, {
           query,
           options: [{ set: true }], // force it to be a set query
-          timeout: 30
+          timeout: 30,
         });
         this.last_save = value; // success -- don't have to save this stuff anymore...
       } catch (err) {
@@ -1595,5 +1595,26 @@ export class SyncTable extends EventEmitter {
         `the synctable "${this.table}" must not be closed -- ${desc}`
       );
     }
+  }
+
+  // **WARNING:** Right now this *barely* works at all... due to
+  // barely being implemented since I mostly haven't needed it.
+  // It will delete the object from the database, but if some
+  // client still has the object, they can end up just writing
+  // it back.
+  public async delete(obj): Promise<void> {
+    // Table spec must have set.delete = true.
+    // This function does a direct database query to delete
+    // the entry with primary key described by obj from
+    // the database.  That will have the side effect slightly
+    // later of removing the object from this table.  This
+    // thus works differently than making changes or
+    // creating new entries, at least right now (since
+    // implementing this properly is a lot of work but
+    // not used much).
+
+    const query = { [this.table]: obj };
+    const options = [{ delete: true }];
+    await callback2(this.client.query, { query, options });
   }
 }

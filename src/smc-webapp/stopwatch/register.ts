@@ -39,11 +39,11 @@ register_file_editor({
       project_id,
       path,
       primary_keys: ["id"],
-      string_cols: ["label"]
+      string_cols: ["label"],
     });
     actions.syncdb = syncdb;
     actions.store = store;
-    syncdb.once("error", err => {
+    syncdb.once("error", (err) => {
       const message = `Stopwatch error '${path}' -- ${err}`;
       alert_message({ type: "error", message });
     });
@@ -68,5 +68,5 @@ register_file_editor({
     redux.removeStore(name);
     redux.removeActions(name);
     return name;
-  }
+  },
 });

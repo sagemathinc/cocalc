@@ -24,14 +24,14 @@ export class MiscSideButtons extends React.Component<Props> {
   handle_hidden_toggle = (e: React.MouseEvent): void => {
     e.preventDefault();
     return this.props.actions.setState({
-      show_hidden: !this.props.show_hidden
+      show_hidden: !this.props.show_hidden,
     });
   };
 
   handle_masked_toggle = (e: React.MouseEvent): void => {
     e.preventDefault();
     this.props.actions.setState({
-      show_masked: !this.props.show_masked
+      show_masked: !this.props.show_masked,
     });
   };
 
@@ -39,18 +39,6 @@ export class MiscSideButtons extends React.Component<Props> {
     e.preventDefault();
     this.props.actions.open_directory(".snapshots");
   };
-
-  render_refresh(): JSX.Element {
-    return (
-      <Button
-        bsSize="small"
-        cocalc-test="files-refresh"
-        onClick={this.handle_refresh}
-      >
-        <Icon name="refresh" />
-      </Button>
-    );
-  }
 
   render_hidden_toggle(): JSX.Element {
     const icon = this.props.show_hidden ? "eye" : "eye-slash";
@@ -133,15 +121,16 @@ export class MiscSideButtons extends React.Component<Props> {
         className="pull-right"
       >
         <ButtonGroup bsSize="small">
-          {(this.props.available_features != null
-          ? this.props.available_features.library
-          : undefined)
+          {(
+            this.props.available_features != null
+              ? this.props.available_features.library
+              : undefined
+          )
             ? this.render_library_button()
             : undefined}
           {this.render_upload_button()}
         </ButtonGroup>
         <ButtonGroup bsSize="small" className="pull-right">
-          {this.render_refresh()}
           {this.render_hidden_toggle()}
           {this.render_masked_toggle()}
           {this.render_backup()}

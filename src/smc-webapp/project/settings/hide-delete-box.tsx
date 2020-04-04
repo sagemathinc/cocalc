@@ -56,7 +56,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
 
   user_has_applied_upgrades(account_id: string, project: Project) {
     const upgrades = project.getIn(["users", account_id]);
-    return upgrades ? upgrades.some(val => val > 0) : undefined;
+    return upgrades ? upgrades.some((val) => val > 0) : undefined;
   }
 
   delete_message(): JSX.Element {
@@ -128,16 +128,12 @@ export class HideDeleteBox extends React.Component<Props, State> {
             automatically. Undeleting the project will not automatically restore
             them. This will not affect upgrades other people have applied.
           </Alert>
-        ) : (
-          undefined
-        )}
+        ) : undefined}
         {!has_upgrades ? (
           <div style={{ marginBottom: "5px" }}>
             Are you sure you want to delete this project?
           </div>
-        ) : (
-          undefined
-        )}
+        ) : undefined}
         <ButtonToolbar>
           <Button
             bsStyle="danger"
@@ -187,9 +183,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
           <Row style={{ marginTop: "10px" }}>
             <Col sm={12}>{this.render_expanded_delete_info()}</Col>
           </Row>
-        ) : (
-          undefined
-        )}
+        ) : undefined}
         <hr />
         <Row style={{ color: "#666" }}>
           <Col sm={12}>

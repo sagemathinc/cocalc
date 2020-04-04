@@ -9,7 +9,7 @@ import screenshot from "./screenshot";
 import { Page } from "puppeteer";
 import { expect } from "chai";
 
-export const test_widget = async function(creds: Creds, opts: Opts, page: Page): Promise<PassFail> {
+export const test_widget = async function (creds: Creds, opts: Opts, page: Page): Promise<PassFail> {
   const pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
@@ -54,15 +54,11 @@ export const test_widget = async function(creds: Creds, opts: Opts, page: Page):
     await page.click(sel);
     debuglog("clicked Kernel button");
 
-    let linkHandlers = await page.$x(
-      "//span[contains(., 'Restart and run all (do not stop on errors)...')]"
-    );
+    let linkHandlers = await page.$x("//span[contains(., 'Restart and run all (do not stop on errors)...')]");
     await linkHandlers[0].click();
     debuglog("clicked Restart and run all no stop");
 
-    linkHandlers = await page.$x(
-      "//button[contains(., 'Restart and run all')]"
-    );
+    linkHandlers = await page.$x("//button[contains(., 'Restart and run all')]");
     await linkHandlers[0].click();
     debuglog("clicked Restart and run all");
 
@@ -72,11 +68,10 @@ export const test_widget = async function(creds: Creds, opts: Opts, page: Page):
     let text: string = "XX";
     let step: number = 0;
     for (; step < restart_max_tries; step++) {
-      text = await page.$eval(sel, function(e) {
+      text = await page.$eval(sel, function (e) {
         return (<HTMLElement>e).innerText.toString();
       });
-      if (step > 0 && step % 10 == 0)
-        debuglog(step, ": readout: ", text.substr(0, 40));
+      if (step > 0 && step % 10 == 0) debuglog(step, ": readout: ", text.substr(0, 40));
       if (text.startsWith(empty_exec_str)) break;
       await page.waitFor(100);
     }
@@ -92,7 +87,7 @@ export const test_widget = async function(creds: Creds, opts: Opts, page: Page):
     let textw: string = "XX";
     let stepw: number = 0;
     for (; stepw < restart_max_triesw; stepw++) {
-      textw = await page.$eval(sel, function(e) {
+      textw = await page.$eval(sel, function (e) {
         return (<HTMLElement>e).innerText.toString();
       });
       debuglog(stepw, ": readout: ", textw);
@@ -115,25 +110,14 @@ export const test_widget = async function(creds: Creds, opts: Opts, page: Page):
     // { x: 166, y: 288, width: 212, height: 28, top: 288, right: 378, bottom: 316, left: 166 }
     // use "!" after querySelector to suppress TSC "possibly null" error
     const box = await page.evaluate(() => {
-      const gbcr = function(element: any) {
-        const {
-          top,
-          right,
-          bottom,
-          left,
-          width,
-          height,
-          x,
-          y
-        } = element!.getBoundingClientRect();
+      const gbcr = function (element: any) {
+        const { top, right, bottom, left, width, height, x, y } = element!.getBoundingClientRect();
         return { top, right, bottom, left, width, height, x, y };
       };
       const sr = document.querySelector(".ui-slider");
       return gbcr(sr);
     });
-    debuglog(
-      `slider at (${box.left},${box.top}) to (${box.right},${box.bottom})`
-    );
+    debuglog(`slider at (${box.left},${box.top}) to (${box.right},${box.bottom})`);
 
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
@@ -141,9 +125,7 @@ export const test_widget = async function(creds: Creds, opts: Opts, page: Page):
     debuglog("clicked slider");
 
     // readout of slider should be fifty
-    await page.waitForFunction(
-      'document.querySelector("div.widget-readout").innerText==50'
-    );
+    await page.waitForFunction('document.querySelector("div.widget-readout").innerText==50');
     debuglog("got 50 readout");
 
     sel = "button[title='Close and halt']";

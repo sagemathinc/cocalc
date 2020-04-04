@@ -18,31 +18,31 @@ const BASE_ICON_STYLE: React.CSSProperties = {
   width: "50px",
   height: "50px",
   marginRight: "10px",
-  textAlign: "center"
+  textAlign: "center",
 };
 
 const PASSPORT_ICON_STYLES = {
   facebook: {
     backgroundColor: "#395996",
-    color: "white"
+    color: "white",
   },
   google: {
     backgroundColor: "#DC4839",
-    color: "white"
+    color: "white",
   },
   twitter: {
     backgroundColor: "#55ACEE",
-    color: "white"
+    color: "white",
   },
   github: {
     backgroundColor: "white",
-    color: "black"
-  }
+    color: "black",
+  },
 };
 
 export class Passports extends React.Component<Props> {
   static defaultProps = {
-    strategies: List([])
+    strategies: List([]),
   };
 
   render_strategy(name) {
@@ -113,7 +113,7 @@ export class Passports extends React.Component<Props> {
     return (
       <div style={this.props.style}>
         {this.render_heading()}
-        <div>{strategies.map(name => this.render_strategy(name))}</div>
+        <div>{strategies.map((name) => this.render_strategy(name))}</div>
         <hr style={{ marginTop: 10, marginBottom: 10 }} />
       </div>
     );

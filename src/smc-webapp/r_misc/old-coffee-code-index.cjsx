@@ -50,9 +50,9 @@ copy_to_clipboard = require('copy-to-clipboard')
 share_server = require('./share-server');
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
-smc_version = SMC_VERSION ? 'N/A'
-build_date  = BUILD_DATE  ? 'N/A'
-smc_git_rev = SMC_GIT_REV ? 'N/A'
+exports.smc_version = smc_version = SMC_VERSION ? 'N/A'
+exports.build_date  = build_date  = BUILD_DATE  ? 'N/A'
+exports.smc_git_rev = smc_git_rev = SMC_GIT_REV ? 'N/A'
 
 Combobox    = require('react-widgets/lib/Combobox')
 
@@ -159,36 +159,11 @@ exports.Octicon = rclass
             classNames.push('mega-octicon')
         return <span className={classNames.join(' ')} />
 
-exports.Footer = rclass
-    displayName : "Footer"
-
-    mixins: [ImmutablePureRenderMixin]
-
-    render: ->
-        # Have to re-import them here to deal with some sort of circular
-        # reference or something when doing the backend static
-        # rendering.  To see this run
-        #   ~/cocalc/src$ scripts/update_react_static
-        # This problem should just go away when all this code is
-        # refactored in typescript.
-        {HelpEmailLink, SiteName, CompanyName} = require('../customize')
-        <footer style={fontSize:"small",color:"gray",textAlign:"center",padding: "#{2*UNIT}px 0" }>
-            <hr/>
-            <Space/>
-            <SiteName/> by <CompanyName/>
-            {' '} &middot; {' '}
-            <a target="_blank" rel='noopener' href={PolicyIndexPageUrl}>Policies</a>
-            {' '} &middot; {' '}
-            <a target="_blank" rel='noopener' href={PolicyTOSPageUrl}>Terms of Service</a>
-            {' '} &middot; {' '}
-            <HelpEmailLink />
-            {' '} &middot; {' '}
-            <span title="Version #{smc_version} @ #{build_date} | #{smc_git_rev[..8]}">&copy; {misc.YEAR}</span>
-        </footer>
-
+# required for hub-landing -- in all other contexts import directly from customize
 exports.render_static_footer = ->
-    Footer = exports.Footer
+    {Footer} = require('smc-webapp/customize')
     <Footer />
+
 
 exports.MessageDisplay = MessageDisplay = rclass
     displayName : 'Misc-MessageDisplay'
@@ -288,6 +263,7 @@ exports.TimeAgoElement = rclass
         live              : rtypes.bool       # whether or not to auto-update
         time_ago_absolute : rtypes.bool
         date              : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
+        style             : rtypes.object
 
     getDefaultProps: ->
         popover   : true
@@ -544,6 +520,10 @@ exports.HTML = HTML = rclass
         highlight        : rtypes.immutable.Set
         content_editable : rtypes.bool     # if true, makes rendered HTML contenteditable
         reload_images    : rtypes.bool     # if true, after any update to component, force reloading of all images.
+        smc_image_scaling : rtypes.bool    # if true, after rendering run the smc_image_scaling pluging to handle smc-image-scaling= attributes, which
+                                           # are used in smc_sagews to rescale certain png images produced by other kernels (e.g., the R kernel).
+                                           # See https://github.com/sagemathinc/cocalc/issues/4421.  This functionality is NOT actually used at all right now,
+                                           # since it doesn't work on the share server anyways...
         highlight_code   : rtypes.bool     # if true, highlight some <code class='language-r'> </code> blocks.  See misc_page for how tiny this is!
         id               : rtypes.string
         mathjax_selector : rtypes.string   # if given, only run mathjax on result of jquery select with this selector and never use katex.
@@ -554,7 +534,7 @@ exports.HTML = HTML = rclass
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['value', 'auto_render_math', 'highlight', 'safeHTML', \
-                 'reload_images', 'highlight_code']) or \
+                 'reload_images', 'smc_image_scaling', 'highlight_code']) or \
                not underscore.isEqual(@props.style, next.style)
 
     _update_mathjax: ->
@@ -584,8 +564,11 @@ exports.HTML = HTML = rclass
         $(ReactDOM.findDOMNode(@)).find("table").addClass('table')
 
     _update_images: ->
-        if @_is_mounted and @props.reload_images
-            $(ReactDOM.findDOMNode(@)).reload_images()
+        if @_is_mounted
+            if @props.reload_images
+                $(ReactDOM.findDOMNode(@)).reload_images()
+            if @props.smc_image_scaling
+                $(ReactDOM.findDOMNode(@)).smc_image_scaling()
 
     _update_code: ->
         if @_is_mounted and @props.highlight_code
@@ -684,6 +667,7 @@ exports.Markdown = rclass
         content_editable : rtypes.bool     # if true, makes rendered Markdown contenteditable
         id               : rtypes.string
         reload_images    : rtypes.bool
+        smc_image_scaling: rtypes.bool
         highlight_code   : rtypes.bool
 
     getDefaultProps: ->
@@ -691,7 +675,7 @@ exports.Markdown = rclass
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['value', 'highlight', 'safeHTML',  \
-                    'checkboxes', 'reload_images', 'highlight_code']) or \
+                    'checkboxes', 'reload_images', 'smc_image_scaling', 'highlight_code']) or \
                not underscore.isEqual(@props.style, next.style)
 
     to_html: ->
@@ -713,6 +697,7 @@ exports.Markdown = rclass
             highlight        = {@props.highlight}
             safeHTML         = {@props.safeHTML}
             reload_images    = {@props.reload_images}
+            smc_image_scaling= {@props.smc_image_scaling}
             highlight_code   = {@props.highlight_code}
             content_editable = {@props.content_editable} />
 
@@ -1034,13 +1019,12 @@ exports.ProjectState = rclass
         show_desc : false
 
     render_spinner:  ->
-        <span>... <Icon name='cc-icon-cocalc-ring' spin /></span>
+        <span style={{marginRight:'15px'}}>... <Icon name='cc-icon-cocalc-ring' spin /></span>
 
     render_desc: (desc) ->
         if not @props.show_desc
             return
         <span>
-            <br/>
             <span style={fontSize:'11pt'}>
                 {desc}
                 {@render_time()}
@@ -1058,7 +1042,9 @@ exports.ProjectState = rclass
             return <Loading />
         {display, desc, icon, stable} = s
         <span>
-            <Icon name={icon} /> {display} {@render_spinner() if not stable}
+            <Icon name={icon} /> {display}
+            <Space />
+            {@render_spinner() if not stable}
             {@render_desc(desc)}
         </span>
 

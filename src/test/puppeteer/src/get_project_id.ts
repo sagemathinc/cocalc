@@ -8,11 +8,7 @@ import { time_log2 } from "./time_log";
 import axios from "axios";
 import { expect } from "chai";
 
-export const get_project_id = async function(
-  creds: Creds,
-  opts: Opts,
-  api_key: string
-): Promise<TestGetString> {
+export const get_project_id = async function (creds: Creds, opts: Opts, api_key: string): Promise<TestGetString> {
   const ags: TestGetString = new TestGetString();
   try {
     const tm_start = process.hrtime.bigint();

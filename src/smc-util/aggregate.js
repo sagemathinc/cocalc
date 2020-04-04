@@ -88,7 +88,7 @@ function leq(a, b) {
   return a <= b;
 }
 
-exports.aggregate = function(options, f) {
+exports.aggregate = function (options, f) {
   if (f == null) {
     f = options;
     options = undefined;
@@ -145,11 +145,11 @@ exports.aggregate = function(options, f) {
       next: [], // things requested to be run in the future -- these are opts with same key
       callbacks: [opts.cb], // callbacks to call when this evaluation completes
       time: new Date(),
-      args: undefined
+      args: undefined,
     };
 
     // This gets called when f completes.
-    opts.cb = function(...args) {
+    opts.cb = function (...args) {
       const { callbacks, next } = state[key];
       done[key] = state[key];
       done[key].args = args;
@@ -168,7 +168,7 @@ exports.aggregate = function(options, f) {
         next.sort(field_cmp("aggregate"));
         next.reverse();
         // And just do the calls, which will add these to the new state[key].callbacks
-        next.map(opts0 => aggregate_call_f(opts0));
+        next.map((opts0) => aggregate_call_f(opts0));
       }
     };
 
@@ -178,7 +178,7 @@ exports.aggregate = function(options, f) {
 
   // Construct and return new function: if called with aggregate not
   // set or false-ish, just calls f.  Othwerwise, aggregates calls.
-  return function(opts) {
+  return function (opts) {
     if (opts.aggregate == null) {
       just_call_f(opts);
     } else {

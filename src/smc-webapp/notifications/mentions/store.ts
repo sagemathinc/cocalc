@@ -23,7 +23,7 @@ export class MentionsStore extends Store<MentionsState> {
 
     const account_id = account_store.get("account_id");
     let unseen_count = 0;
-    mentions.map(mention => {
+    mentions.map((mention) => {
       if (
         mention.get("target") === account_id &&
         !mention.getIn(["users", account_id, "read"])

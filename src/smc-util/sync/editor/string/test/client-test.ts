@@ -7,7 +7,7 @@ import { bind_methods, keys } from "../../../../misc2";
 import { once } from "../../../../async-utils";
 import {
   Client as Client0,
-  FileWatcher as FileWatcher0
+  FileWatcher as FileWatcher0,
 } from "../../generic/types";
 
 import { SyncTable } from "../../../table/synctable";
@@ -128,6 +128,12 @@ export class Client extends EventEmitter implements Client0 {
   public query_cancel(_): void {}
 
   public alert_message(_): void {}
+
+  public is_deleted(_filename: string, _project_id?: string): boolean {
+    return false;
+  }
+
+  public set_deleted(_filename: string, _project_id?: string): void {}
 
   async synctable_project(
     _project_id: string,

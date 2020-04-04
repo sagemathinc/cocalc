@@ -40,7 +40,7 @@ export class AccountActions extends Actions<AccountState> {
       "set_active_tab",
       "add_ssh_key",
       "delete_ssh_key",
-      "help"
+      "help",
     ]);
   }
 
@@ -64,7 +64,7 @@ export class AccountActions extends Actions<AccountState> {
   set_user_type(user_type): void {
     this.setState({
       user_type,
-      is_logged_in: user_type === "signed_in"
+      is_logged_in: user_type === "signed_in",
     });
   }
 
@@ -88,7 +88,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
         this.setState({ signing_in: false });
         if (error) {
           this.setState({
-            sign_in_error: `There was an error signing you in (${error}). ${err_help}`
+            sign_in_error: `There was an error signing you in (${error}). ${err_help}`,
           });
           return;
         }
@@ -107,11 +107,11 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
             this.setState({
               sign_in_error: `The server responded with invalid message when signing in: ${JSON.stringify(
                 mesg
-              )}`
+              )}`,
             });
             return;
         }
-      }
+      },
     });
   }
 
@@ -154,14 +154,14 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
           // should never ever happen
           // alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
         }
-      }
+      },
     });
   }
   // deletes the account and then signs out everywhere
   delete_account(): void {
     async.series(
       [
-        async cb => {
+        async (cb) => {
           // cancel any subscriptions
           try {
             await this.redux.getActions("billing").cancel_everything();
@@ -176,19 +176,19 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
             }
           }
         },
-        cb => {
+        (cb) => {
           // actually request to delete the account
           webapp_client.delete_account({
             account_id: this.redux.getStore("account").get_account_id(),
             timeout: 40,
-            cb
+            cb,
           });
-        }
+        },
       ],
-      err => {
+      (err) => {
         if (err != null) {
           this.setState({
-            account_deletion_error: `Error trying to delete the account: ${err}`
+            account_deletion_error: `Error trying to delete the account: ${err}`,
           });
         } else {
           this.sign_out(true);
@@ -207,17 +207,17 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
         if (err != null) {
           this.setState({
             forgot_password_error: `Error sending password reset message to ${email} -- ${err}. Write to ${this.help()} for help.`,
-            forgot_password_success: ""
+            forgot_password_success: "",
           });
           return;
         } else {
           this.setState({
             forgot_password_success: `Password reset message sent to ${email}; if you don't receive it, check your spam folder; if you have further trouble, write to ${this.help()}.`,
-            forgot_password_error: ""
+            forgot_password_error: "",
           });
           return;
         }
-      }
+      },
     });
   }
 
@@ -228,7 +228,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
       cb: (error, mesg) => {
         if (error) {
           this.setState({
-            reset_password_error: `Error communicating with server: ${error}`
+            reset_password_error: `Error communicating with server: ${error}`,
           });
         } else {
           if (mesg.error) {
@@ -244,7 +244,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
             this.setState({ reset_key: "", reset_password_error: "" });
           }
         }
-      }
+      },
     });
   }
 
@@ -271,7 +271,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     // and *invalidate* the remember_me cookie for this client.
     webapp_client.sign_out({
       everywhere,
-      cb: error => {
+      cb: (error) => {
         if (error) {
           // We don't know error is a string; and the state when this happens could be
           // arbitrarily messed up.  So... both pop up an error (which user will see),
@@ -282,7 +282,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
           alert_message({ type: "error", message: err });
           this.setState({
             sign_out_error: err,
-            show_sign_out: false
+            show_sign_out: false,
           });
         } else {
           // Invalidate the remember_me cookie and force a refresh, since otherwise there could be data
@@ -298,7 +298,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
             "/" +
             (sign_in ? "app" : "")) as any;
         }
-      }
+      },
     }); // redirect to sign in page
   }
 
@@ -327,16 +327,16 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     }>(unsafe_opts, {
       fingerprint: required,
       title: required,
-      value: required
+      value: required,
     });
     this.redux.getTable("account").set({
       ssh_keys: {
         [opts.fingerprint]: {
           title: opts.title,
           value: opts.value,
-          creation_date: new Date().valueOf()
-        }
-      }
+          creation_date: new Date().valueOf(),
+        },
+      },
     });
   }
 
@@ -344,8 +344,8 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
   delete_ssh_key(fingerprint): void {
     this.redux.getTable("account").set({
       ssh_keys: {
-        [fingerprint]: null
-      }
+        [fingerprint]: null,
+      },
     }); // null is how to tell the backend/synctable to delete this...
   }
 }

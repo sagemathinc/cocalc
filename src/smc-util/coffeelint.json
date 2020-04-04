@@ -127,6 +127,6 @@
     "level": "warn"
   },
   "coffeelint": {
-    "transforms": [ "coffee-react-transform" ]
+    "transforms": ["coffee-react-transform"]
   }
 }

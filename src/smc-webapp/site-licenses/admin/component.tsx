@@ -9,7 +9,7 @@ import {
   Component,
   rtypes,
   rclass,
-  TypedMap
+  TypedMap,
 } from "../../app-framework";
 import { ErrorDisplay, Icon, Loading, Space, r_join } from "../../r_misc";
 import { SiteLicense } from "./types";
@@ -48,8 +48,8 @@ class SiteLicenses extends Component<Props> {
         show_projects: rtypes.immutable.Set,
         search: rtypes.string,
         matches_search: rtypes.immutable.Set,
-        usage_stats: rtypes.immutable.Map
-      }
+        usage_stats: rtypes.immutable.Map,
+      },
     };
   }
 
@@ -161,10 +161,10 @@ class SiteLicenses extends Component<Props> {
           width: "40ex",
           padding: "5px",
           border: "1px solid lightgrey",
-          borderRadius: "3px"
+          borderRadius: "3px",
         }}
         value={this.props.search ?? ""}
-        onChange={e => actions.set_search((e.target as any).value)}
+        onChange={(e) => actions.set_search((e.target as any).value)}
       />
     );
   }

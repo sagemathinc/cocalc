@@ -140,7 +140,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
           width: "100%",
           color: this.props.label ? "#444" : "#999",
           borderBottom: "1px solid #999",
-          marginBottom: "10px"
+          marginBottom: "10px",
         }}
         onClick={() => this.edit_label()}
       >
@@ -156,12 +156,12 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
         style={{
           fontSize: "25px",
           marginTop: "25px",
-          width: "100%"
+          width: "100%",
         }}
       >
         <TextInput
           text={this.props.label ? this.props.label : ""}
-          on_change={value => {
+          on_change={(value) => {
             this.props.set_label(value);
             this.setState({ editing_label: false });
           }}
@@ -209,7 +209,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
         style={{
           borderBottom: "1px solid #666",
           background: "#efefef",
-          padding: "15px"
+          padding: "15px",
         }}
       >
         <Row>
@@ -240,7 +240,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   }
 }
 
-const zpad = function(n) {
+const zpad = function (n) {
   n = `${n}`;
   if (n.length === 1) {
     n = `0${n}`;
@@ -265,7 +265,7 @@ function TimeAmount(props: TimeProps) {
     <div
       style={{
         fontSize: !props.compact ? "50pt" : undefined,
-        fontFamily: "courier"
+        fontFamily: "courier",
       }}
     >
       {zpad(hours)}:{zpad(minutes)}:{zpad(seconds)}

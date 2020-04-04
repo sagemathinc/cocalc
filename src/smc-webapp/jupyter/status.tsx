@@ -21,8 +21,8 @@ class Mode0 extends Component<ModeProps> {
   public static reduxProps({ name }) {
     return {
       [name]: {
-        mode: rtypes.string
-      }
+        mode: rtypes.string,
+      },
     };
   }
 
@@ -51,26 +51,26 @@ const KERNEL_NAME_STYLE: React.CSSProperties = {
   margin: "5px",
   color: "rgb(33, 150, 243)",
   borderLeft: "1px solid #666",
-  paddingLeft: "5px"
+  paddingLeft: "5px",
 };
 
 const KERNEL_USAGE_STYLE: React.CSSProperties = {
   margin: "5px",
   color: "#666",
   borderRight: "1px solid #666",
-  paddingRight: "5px"
+  paddingRight: "5px",
 };
 
 const KERNEL_ERROR_STYLE: React.CSSProperties = {
   margin: "5px",
   color: "#fff",
   padding: "5px",
-  backgroundColor: "red"
+  backgroundColor: "red",
 };
 
 const BACKEND_STATE_STYLE: React.CSSProperties = {
   marginRight: "5px",
-  color: KERNEL_NAME_STYLE.color
+  color: KERNEL_NAME_STYLE.color,
 };
 
 interface KernelProps {
@@ -103,8 +103,8 @@ class Kernel0 extends Component<KernelProps> {
         kernel_state: rtypes.string,
         kernel_usage: rtypes.immutable.Map,
         trust: rtypes.bool,
-        read_only: rtypes.bool
-      }
+        read_only: rtypes.bool,
+      },
     };
   }
 
@@ -250,7 +250,7 @@ class Kernel0 extends Component<KernelProps> {
             color: "white",
             cursor: "pointer",
             padding: "3px",
-            borderRadius: "3px"
+            borderRadius: "3px",
           }}
           onClick={() => this.props.actions.trust_notebook()}
         >

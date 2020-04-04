@@ -8,7 +8,7 @@ import { Component, React, ReactDOM, redux } from "../app-framework";
 import {
   ComputeImages,
   ComputeImageTypes,
-  custom_image_name
+  custom_image_name,
 } from "../custom-software/init";
 
 import { delay } from "awaiting";
@@ -24,7 +24,7 @@ const {
   FormControl,
   FormGroup,
   Alert,
-  ErrorDisplay
+  ErrorDisplay,
 } = require("react-bootstrap");
 
 import { Icon, Space } from "../r_misc";
@@ -60,7 +60,7 @@ const INIT_STATE: Readonly<State> = Object.freeze({
   show_advanced: false,
   image_selected: undefined,
   image_type: official,
-  title_prefill: true
+  title_prefill: true,
 });
 
 export class NewProjectCreator extends Component<Props, State> {
@@ -71,7 +71,7 @@ export class NewProjectCreator extends Component<Props, State> {
     this.state = Object.assign({}, INIT_STATE, {
       // view --> edit --> saving --> view
       state: props.start_in_edit_mode ? "edit" : "view",
-      title_text: props.default_value ? props.default_value : ""
+      title_text: props.default_value ? props.default_value : "",
     });
   }
 
@@ -95,7 +95,7 @@ export class NewProjectCreator extends Component<Props, State> {
   start_editing() {
     this.setState({
       state: "edit",
-      title_text: this.props.default_value ? this.props.default_value : ""
+      title_text: this.props.default_value ? this.props.default_value : "",
     });
     this.select_text();
   }
@@ -125,7 +125,7 @@ export class NewProjectCreator extends Component<Props, State> {
       title: this.state.title_text,
       image: compute_image,
       token,
-      start: false // definitely do NOT want to start, due to apply_default_upgrades
+      start: false, // definitely do NOT want to start, due to apply_default_upgrades
     });
     redux
       .getStore("projects")
@@ -134,7 +134,7 @@ export class NewProjectCreator extends Component<Props, State> {
           if (this.is_mounted) {
             this.setState({
               state: "edit",
-              error: `Error creating project -- ${err}`
+              error: `Error creating project -- ${err}`,
             });
           }
         } else {
@@ -226,7 +226,7 @@ export class NewProjectCreator extends Component<Props, State> {
     this.set_title(text);
   };
 
-  handle_keypress = e => {
+  handle_keypress = (e) => {
     if (e.keyCode === 27) {
       this.cancel_editing();
     } else if (e.keyCode === 13 && this.state.title_text !== "") {
@@ -238,7 +238,7 @@ export class NewProjectCreator extends Component<Props, State> {
     if (!this.state.show_advanced) return;
     return (
       <CustomSoftware
-        setParentState={obj => this.setState(obj)}
+        setParentState={(obj) => this.setState(obj)}
         images={this.props.images}
         image_selected={this.state.image_selected}
         image_type={this.state.image_type}

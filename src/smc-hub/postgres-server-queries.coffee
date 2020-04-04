@@ -32,12 +32,15 @@ PROJECT_GROUPS = misc.PROJECT_GROUPS
 collab = require('./postgres/collab')
 {set_account_info_if_possible} = require('./postgres/account-queries')
 
-{site_license_usage_stats, projects_using_site_license} = require('./postgres/site-license/analytics')
+{site_license_usage_stats, projects_using_site_license, number_of_projects_using_site_license} = require('./postgres/site-license/analytics')
 {update_site_license_usage_log} = require('./postgres/site-license/usage-log')
 {site_license_public_info} = require('./postgres/site-license/public')
+{permanently_unlink_all_deleted_projects_of_user} = require('./postgres/delete-projects')
+{unlist_all_public_paths} = require('./postgres/public-paths')
 
 SERVER_SETTINGS_EXTRAS = require("smc-util/db-schema/site-settings-extras").EXTRAS
 SITE_SETTINGS_CONF = require("smc-util/schema").site_settings_conf
+SERVER_SETTINGS_CACHE = require("expiring-lru-cache")({ size: 10, expiry: 10 * 1000 })
 
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # write an event to the central_log table
@@ -193,13 +196,27 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             name  : required
             value : required
             cb    : required
-        @_query
-            query  : 'INSERT INTO server_settings'
-            values :
-                'name::TEXT'  : opts.name
-                'value::TEXT' : opts.value
-            conflict : 'name'
-            cb     : opts.cb
+        async.series([
+            (cb) ->
+                @_query
+                    query  : 'INSERT INTO server_settings'
+                    values :
+                        'name::TEXT'  : opts.name
+                        'value::TEXT' : opts.value
+                    conflict : 'name'
+                    cb     : cb
+            # also set a timestamp
+            (cb) ->
+                @_query
+                    query  : 'INSERT INTO server_settings'
+                    values :
+                        'name::TEXT'  : '_last_update'
+                        'value::TEXT' : (new Date()).toISOString()
+                    conflict : 'name'
+                    cb     : cb
+        ], (err) ->
+            opts.cb(err)
+        )
 
     get_server_setting: (opts) =>
         opts = defaults opts,
@@ -214,6 +231,13 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     get_server_settings_cached: (opts) =>
         opts = defaults opts,
             cb: required
+
+        settings = SERVER_SETTINGS_CACHE.get('server_settings')
+        if settings != null
+            opts.cb(undefined, settings)
+            return
+
+        dbg = @_dbg('get_server_settings_cached')
         @_query
             query : 'SELECT name, value FROM server_settings'
             cache : true
@@ -222,12 +246,20 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     opts.cb(err)
                 else
                     x = {}
+                    # process values, possibly post-process values
                     for k in result.rows
                         val = k.value
                         config = SITE_SETTINGS_CONF[k.name] ? SERVER_SETTINGS_EXTRAS[k.name]
                         if config?.to_val?
                             val = config.to_val(val)
                         x[k.name] = val
+                    # set default values for missing keys
+                    for config in [SERVER_SETTINGS_EXTRAS, SITE_SETTINGS_CONF]
+                        for ckey in Object.keys(config)
+                            if (not x[ckey]?) or x[ckey] == ''
+                                x[ckey] = config[ckey].default
+                    SERVER_SETTINGS_CACHE.set('server_settings', x)
+                    #dbg("server_settings = #{JSON.stringify(x, null, 2)}")
                     opts.cb(undefined, x)
 
     get_site_settings: (opts) =>
@@ -2099,11 +2131,17 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     get_project_ids_with_user: (opts) =>
         opts = defaults opts,
             account_id : required
+            is_owner   : undefined     # if set to true, only return projects with this owner.
             cb         : required      # opts.cb(err, [project_id, project_id, project_id, ...])
         if not @_validate_opts(opts) then return
+
+        if opts.is_owner
+            where = {"users#>>'{#{opts.account_id},group}' = $::TEXT" : 'owner'}
+        else
+            where = {'users ? $::TEXT' : opts.account_id}
         @_query
             query : 'SELECT project_id FROM projects'
-            where : 'users ? $::TEXT' : opts.account_id
+            where : where
             cb    : all_results('project_id', opts.cb)
 
     # cb(err, array of account_id's of accounts in non-invited-only groups)
@@ -2131,8 +2169,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             to         : required  # an email address
             cb         : required
         if not @_validate_opts(opts) then return
+        # in particular, emails like bla'foo@bar.com → bla''foo@bar.com
+        sani_to = @sanitize("{\"#{opts.to}\"}")
+        query_select = "SELECT invite#>#{sani_to} AS to FROM projects"
         @_query
-            query : "SELECT invite#>'{\"#{opts.to}\"}' AS to FROM projects"
+            query : query_select
             where : 'project_id :: UUID = $' : opts.project_id
             cb    : one_result 'to', (err, y) =>
                 opts.cb(err, if not y? or y.error or not y.time then 0 else new Date(y.time))
@@ -3147,9 +3188,21 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         return await projects_using_site_license(@, opts)
 
     # async function
+    number_of_projects_using_site_license: (opts) =>
+        return await number_of_projects_using_site_license(@, opts)
+
+    # async function
     site_license_public_info: (license_id) =>
         return await site_license_public_info(@, license_id)
 
     # async function
     update_site_license_usage_log: =>
         return await update_site_license_usage_log(@)
+
+    # async function
+    permanently_unlink_all_deleted_projects_of_user: (account_id_or_email_address) =>
+        return await permanently_unlink_all_deleted_projects_of_user(@, account_id_or_email_address)
+
+    # async function
+    unlist_all_public_paths: (account_id, is_owner) =>
+        return await unlist_all_public_paths(@, account_id, is_owner)

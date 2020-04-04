@@ -28,7 +28,7 @@ export function init(redux) {
   redux.createTable("account", AccountTable);
 
   // Login status
-  webapp_client.on("signed_in", function(mesg) {
+  webapp_client.on("signed_in", function (mesg) {
     if (mesg != null ? mesg.api_key : undefined) {
       // wait for sign in to finish and cookie to get set, then redirect
       const f = () =>
@@ -48,7 +48,7 @@ export function init(redux) {
 
   // Autosave interval
   let _autosave_interval: NodeJS.Timeout | undefined = undefined;
-  const init_autosave = function(autosave) {
+  const init_autosave = function (autosave) {
     if (_autosave_interval) {
       // This function can safely be called again to *adjust* the
       // autosave interval, in case user changes the settings.
@@ -58,7 +58,7 @@ export function init(redux) {
 
     // Use the most recent autosave value.
     if (autosave) {
-      const save_all_files = function() {
+      const save_all_files = function () {
         if (webapp_client.is_connected()) {
           return redux.getActions("projects").save_all_files();
         }
@@ -68,7 +68,7 @@ export function init(redux) {
   };
 
   let _last_autosave_interval_s = undefined;
-  store.on("change", function() {
+  store.on("change", function () {
     const interval_s = store.get("autosave");
     if (interval_s !== _last_autosave_interval_s) {
       _last_autosave_interval_s = interval_s;
@@ -78,7 +78,7 @@ export function init(redux) {
 
   // Standby timeout
   let last_set_standby_timeout_m = undefined;
-  store.on("change", function() {
+  store.on("change", function () {
     // NOTE: we call this on any change to account settings, which is maybe too extreme.
     const x = store.getIn(["other_settings", "standby_timeout_m"]);
     if (last_set_standby_timeout_m !== x) {

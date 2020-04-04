@@ -23,10 +23,10 @@ export async function convert(
       "pygments",
       path,
       "-o",
-      outfile
+      outfile,
     ],
     project_id: project_id,
     err_on_exit: true,
-    aggregate: time
+    aggregate: time,
   });
 }

@@ -15,6 +15,6 @@ for (const ext of KNITR_EXTS.concat(["tex"])) {
   register_file_editor({
     ext: ext,
     component: Editor,
-    Actions
+    Actions,
   });
 }

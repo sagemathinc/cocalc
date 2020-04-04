@@ -29,7 +29,7 @@ export function handle_share_listing(opts: {
     page_number: page_number,
     page_size: PAGE_SIZE,
     paths_order,
-    public_paths: public_paths.get_all() as any // TODO
+    public_paths: public_paths.get_all() as any, // TODO
   });
   const r = react_viewer(
     base_url,

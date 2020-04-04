@@ -29,7 +29,7 @@ export async function wait({
   obj,
   until,
   timeout,
-  change_event
+  change_event,
 }: {
   obj: WaitObject;
   until: Function;

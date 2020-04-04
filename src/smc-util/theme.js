@@ -83,7 +83,7 @@ const COLORS = {
   BS_RED: "#dc3545",
   BS_BG_INFO: "#d9edf7",
   BS_BG_DANGER: "#f2dede",
-  BS_BG_WARNING: "#fcf8e3"
+  BS_BG_WARNING: "#fcf8e3",
 };
 
 // The definitions below add semantic meaning by using the colors
@@ -97,7 +97,7 @@ COLORS.TOP_BAR = {
   TEXT_ACTIVE: COLORS.GRAY_D,
   X: COLORS.GRAY,
   X_HOVER: COLORS.GRAY_L,
-  SIGN_IN_BG: COLORS.YELL_L
+  SIGN_IN_BG: COLORS.YELL_L,
 };
 
 // landing page

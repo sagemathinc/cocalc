@@ -9,7 +9,7 @@ import {
   React,
   Rendered,
   rclass,
-  rtypes
+  rtypes,
 } from "../app-framework";
 import { ProjectUsers } from "./project-users";
 import { analytics_event } from "../tracker";
@@ -20,14 +20,14 @@ const { AddCollaborators } = require("../collaborators/add-to-project");
 import { id2name, ComputeImages } from "../custom-software/init";
 import {
   CUSTOM_IMG_PREFIX,
-  compute_image2basename
+  compute_image2basename,
 } from "../custom-software/util";
 const COLORS = require("smc-util/theme").COLORS;
 
 const image_name_style: React.CSSProperties = {
   fontSize: "12px",
   color: COLORS.GRAY,
-  marginTop: "5px"
+  marginTop: "5px",
 };
 
 interface Project {
@@ -61,8 +61,8 @@ export const ProjectRow = rclass<ReactProps>(
     static reduxProps = () => {
       return {
         projects: {
-          add_collab: rtypes.immutable.Set
-        }
+          add_collab: rtypes.immutable.Set,
+        },
       };
     };
 
@@ -208,11 +208,11 @@ export const ProjectRow = rclass<ReactProps>(
 
     handle_mouse_down = () => {
       this.setState({
-        selection_at_last_mouse_down: (window.getSelection() || "").toString()
+        selection_at_last_mouse_down: (window.getSelection() || "").toString(),
       });
     };
 
-    handle_click = e => {
+    handle_click = (e) => {
       const cur_sel = (window.getSelection() || "").toString();
       // Check if user has highlighted some text.
       // Do NOT open if the user seems to be trying to highlight text on the row
@@ -225,27 +225,27 @@ export const ProjectRow = rclass<ReactProps>(
       }
     };
 
-    open_project_from_list = e => {
+    open_project_from_list = (e) => {
       const project_id = this.props.project.project_id;
       this.props.redux.getActions("projects").open_project({
         project_id,
-        switch_to: !(e.which === 2 || e.ctrlKey || e.metaKey)
+        switch_to: !(e.which === 2 || e.ctrlKey || e.metaKey),
       });
       e.preventDefault();
       analytics_event("projects_page", "opened_a_project");
       user_tracking("open_project", { how: "projects_page", project_id });
     };
 
-    open_project_settings = e => {
+    open_project_settings = (e) => {
       this.props.redux.getActions("projects").open_project({
         project_id: this.props.project.project_id,
         switch_to: !(e.which === 2 || e.ctrlKey || e.metaKey),
-        target: "settings"
+        target: "settings",
       });
       e.stopPropagation();
     };
 
-    toggle_add_collaborators = e => {
+    toggle_add_collaborators = (e) => {
       this.add_collab(!this.get_collab_state());
       e.stopPropagation();
     };
@@ -255,7 +255,7 @@ export const ProjectRow = rclass<ReactProps>(
         backgroundColor: this.props.index % 2 ? "#eee" : "white",
         marginBottom: 0,
         cursor: "pointer",
-        wordWrap: "break-word"
+        wordWrap: "break-word",
       };
 
       return (
@@ -266,7 +266,7 @@ export const ProjectRow = rclass<ReactProps>(
               sm={3}
               style={{
                 maxHeight: "10em",
-                overflowY: "auto"
+                overflowY: "auto",
               }}
             >
               <div style={{ fontWeight: "bold" }}>
@@ -281,7 +281,7 @@ export const ProjectRow = rclass<ReactProps>(
               style={{
                 color: COLORS.GRAY,
                 maxHeight: "10em",
-                overflowY: "auto"
+                overflowY: "auto",
               }}
             >
               {this.render_project_description()}

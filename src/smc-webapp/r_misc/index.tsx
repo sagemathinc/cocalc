@@ -67,5 +67,8 @@ export const {
   VisibleMDLG,
   VisibleLG,
   VisibleXSSM,
-  ErrorBoundary
+  ErrorBoundary,
+  smc_version,
+  build_date,
+  smc_git_rev,
 } = require("./old-coffee-code-index");

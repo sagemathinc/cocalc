@@ -29,7 +29,7 @@ import {
   defaults,
   hash_string,
   server_seconds_ago,
-  server_time
+  server_time,
 } from "smc-util/misc";
 
 const { webapp_client } = require("./webapp_client");
@@ -52,7 +52,7 @@ const default_timeout: { [severity in Severity]: number } = {
   error: 8,
   default: 4,
   success: 4,
-  info: 6
+  info: 6,
 };
 
 const last_shown = {};
@@ -72,7 +72,7 @@ export function alert_message(opts: AlertMessageOptions = {}) {
     title: undefined,
     message: "",
     block: undefined,
-    timeout: undefined // time in seconds
+    timeout: undefined, // time in seconds
   });
   if (opts.type == null) throw Error("bug"); // make typescript happy.
   if (opts.timeout == null) {
@@ -104,7 +104,7 @@ export function alert_message(opts: AlertMessageOptions = {}) {
   f({
     message: title,
     description: opts.message,
-    duration: opts.block ? 0 : opts.timeout
+    duration: opts.block ? 0 : opts.timeout,
   });
 
   if (opts.type === "error") {
@@ -144,7 +144,7 @@ function check_for_clock_skew() {
     return exports.alert_message({
       type: "error",
       timeout: 9999,
-      message: `Your computer's clock is off by about ${s} seconds!  You MUST set it correctly then refresh your browser.  Expect nothing to work until you fix this.`
+      message: `Your computer's clock is off by about ${s} seconds!  You MUST set it correctly then refresh your browser.  Expect nothing to work until you fix this.`,
     });
   }
 }

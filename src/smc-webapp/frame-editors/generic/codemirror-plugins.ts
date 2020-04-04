@@ -28,7 +28,7 @@ declare module "codemirror" {
   }
 }
 
-CodeMirror.defineExtension("insertCompletion", function(item: string): void {
+CodeMirror.defineExtension("insertCompletion", function (item: string): void {
   const cm = this;
   const cursor = cm.getCursor();
   console.log("insertCompletion", cursor, item);

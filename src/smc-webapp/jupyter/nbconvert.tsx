@@ -22,10 +22,11 @@ const NAMES = {
     ext: "sagews",
     display: "Sage Worksheet",
     internal: true,
-    nolink: true
+    nolink: true,
   },
   pdf: { ext: "pdf", display: "PDF" },
-  script: { ext: "txt", display: "Executable Script", internal: true }
+  script: { ext: "txt", display: "Executable Script", internal: true },
+  "chromium-pdf": { ext: "pdf", display: "PDF", no_run_button: true },
 };
 
 interface ErrorProps {
@@ -88,7 +89,7 @@ class Error extends Component<ErrorProps> {
           Running nbconvert failed with an error {this.render_time()}. Read the
           error log below, update your Jupyter notebook, then try again.
           <pre
-            ref={node => (this.preNode = node)}
+            ref={(node) => (this.preNode = node)}
             style={{ maxHeight: "40vh", margin: "5px 30px" }}
           >
             {error}
@@ -163,9 +164,7 @@ export class NBConvert extends Component<NBConvertProps> {
           <a href={url} target="_blank">
             {target_path}
           </a>
-        ) : (
-          undefined
-        )}
+        ) : undefined}
         {info.internal ? this.render_edit(target_path) : undefined}
       </div>
     );
@@ -224,6 +223,11 @@ export class NBConvert extends Component<NBConvertProps> {
     let cmd: any;
     const { tail = undefined } = misc.path_split(this.props.path) || {};
     if (
+      this.props.nbconvert_dialog != null &&
+      this.props.nbconvert_dialog.get("to") === "chromium-pdf"
+    ) {
+      cmd = shell_escape(["cc-ipynb-to-pdf", tail]);
+    } else if (
       this.props.nbconvert_dialog != null &&
       this.props.nbconvert_dialog.get("to") === "sagews"
     ) {
@@ -295,6 +299,9 @@ export class NBConvert extends Component<NBConvertProps> {
     if (this.props.nbconvert_dialog == null) {
       return;
     }
+    const to = this.props.nbconvert_dialog.get("to");
+    const info = NAMES[to];
+    if (info.no_run_button) return;
     const state =
       this.props.nbconvert != null
         ? this.props.nbconvert.get("state")

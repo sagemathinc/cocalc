@@ -29,12 +29,12 @@ import {
   AssistantEvent,
   UpgradeEvent,
   CollaboratorEvent,
-  SystemEvent
+  SystemEvent,
 } from "./types";
 
 const selected_item: React.CSSProperties = {
   backgroundColor: "#08c",
-  color: "white"
+  color: "white",
 };
 
 const file_action_icons = {
@@ -43,7 +43,7 @@ const file_action_icons = {
   moved: "move",
   copied: "copy",
   share: "shared",
-  uploaded: "upload"
+  uploaded: "upload",
 };
 
 interface Props {
@@ -59,7 +59,7 @@ interface Props {
 
 function TookTime({
   ms,
-  display = "seconds"
+  display = "seconds",
 }: {
   ms?: number;
   display?: "seconds";
@@ -206,7 +206,7 @@ export class LogEntry extends React.Component<Props> {
       case "deleted":
         return (
           <span>
-            deleted {this.multi_file_links(e, false)}{" "}
+            deleted {this.multi_file_links(e, true)}{" "}
             {e.count != null ? `(${e.count} total)` : ""}
           </span>
         );

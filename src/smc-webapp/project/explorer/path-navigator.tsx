@@ -16,7 +16,7 @@ interface Props {
 export function PathNavigator({
   current_path,
   history_path = "",
-  actions
+  actions,
 }: Props): JSX.Element {
   function make_path(): JSX.Element[] {
     const v: JSX.Element[] = [];

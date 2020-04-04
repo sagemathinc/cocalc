@@ -89,9 +89,9 @@ class ChatActions extends Actions
         @setState({last_sent: mesg, search:""})
         # NOTE: we clear search, since it's very confusing to send a message and not even see it (if it doesn't match search).
         # NOTE: further that annoyingly the search box isn't controlled so the input isn't cleared, which is also confusing. todo -- fix.
-        @save()
         @set_input('')
         user_tracking("send_chat", {project_id:@syncdb.project_id, path:@syncdb.path})
+        @save_to_disk()
 
     set_editing: (message, is_editing) =>
         if not @syncdb?
@@ -125,7 +125,7 @@ class ChatActions extends Actions
             history : [{author_id: author_id, content:mesg, date:time_stamp}].concat(message.get('history').toJS())
             editing : message.get('editing').set(author_id, null).toJS()
             date    : message.get('date').toISOString()
-        @save()
+        @save_to_disk()
 
     # Make sure everything is sent to the project.
     save: =>

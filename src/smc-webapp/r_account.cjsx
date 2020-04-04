@@ -25,9 +25,9 @@ async = require('async')
 
 {Button, ButtonToolbar, Checkbox, Panel, Grid, Row, Col, FormControl, FormGroup, Well, Modal, ProgressBar, Alert, Radio} = require('react-bootstrap')
 
-{A, ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer, Space, TimeAgo} = require('./r_misc')
+{A, ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Space, TimeAgo} = require('./r_misc')
 
-{SiteName, TermsOfService} = require('./customize')
+{SiteName, TermsOfService, Footer} = require('./customize')
 
 {ColorPicker} = require('./colorpicker')
 {Avatar} = require('./other-users')

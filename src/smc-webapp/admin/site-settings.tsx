@@ -12,7 +12,7 @@ import {
   ReactDOM,
   rtypes,
   rclass,
-  redux
+  redux,
 } from "../app-framework";
 
 import { query } from "../frame-editors/generic/client";
@@ -24,11 +24,11 @@ const MAX_UPGRADES = require("smc-util/upgrade-spec").upgrades.max_per_project;
 
 const FIELD_DEFAULTS = {
   default_quotas: ON_PREM_DEFAULT_QUOTAS,
-  max_upgrades: MAX_UPGRADES
+  max_upgrades: MAX_UPGRADES,
 } as const;
 
 import { EXTRAS } from "smc-util/db-schema/site-settings-extras";
-import { ConfigValid, Config } from "smc-util/db-schema/site-defaults";
+import { ConfigValid, Config, RowType } from "smc-util/db-schema/site-defaults";
 
 import { isEqual } from "lodash";
 
@@ -39,7 +39,7 @@ import {
   Markdown,
   ErrorDisplay,
   LabeledRow,
-  Space /*, Tip*/
+  Space /*, Tip*/,
 } from "../r_misc";
 
 const smc_version = require("smc-util/smc-version");
@@ -72,8 +72,8 @@ class SiteSettingsComponent extends Component<
   public static reduxProps(): object {
     return {
       account: {
-        email_address: rtypes.string
-      }
+        email_address: rtypes.string,
+      },
     };
   }
 
@@ -94,8 +94,8 @@ class SiteSettingsComponent extends Component<
     try {
       result = await query({
         query: {
-          site_settings: [{ name: null, value: null }]
-        }
+          site_settings: [{ name: null, value: null }],
+        },
       });
     } catch (err) {
       this.setState({ state: "error", error: err });
@@ -110,7 +110,7 @@ class SiteSettingsComponent extends Component<
       error: undefined,
       data,
       edited: deep_copy(data),
-      disable_tests: false
+      disable_tests: false,
     });
   }
 
@@ -123,15 +123,24 @@ class SiteSettingsComponent extends Component<
     }
   }
 
+  // return true, if the given settings key is a header
+  private is_header(name): boolean {
+    return (
+      EXTRAS[name]?.type == ("header" as RowType) ||
+      site_settings_conf[name]?.type == ("header" as RowType)
+    );
+  }
+
   private async store(): Promise<void> {
     for (const name in this.state.edited) {
       const value = this.state.edited[name];
+      if (this.is_header[name]) continue;
       if (!isEqual(value, this.state.data[name])) {
         try {
           await query({
             query: {
-              site_settings: { name: name, value: value }
-            }
+              site_settings: { name: name, value: value },
+            },
           });
         } catch (err) {
           this.setState({ state: "error" as State, error: err });
@@ -181,7 +190,7 @@ class SiteSettingsComponent extends Component<
             background: "red",
             color: "white",
             margin: "15px",
-            padding: "15px"
+            padding: "15px",
           }}
         >
           INVALID version - it is in the future!!
@@ -290,15 +299,22 @@ class SiteSettingsComponent extends Component<
     return this.setState({ edited: e });
   }
 
-  private render_row_entry_inner(name, value, valid, password): Rendered {
+  private render_row_entry_inner(
+    name,
+    value,
+    valid,
+    password,
+    clearable,
+    multiline
+  ): Rendered {
     if (Array.isArray(valid)) {
       return (
         <Select
           defaultValue={value}
-          onChange={val => this.on_change_entry(name, val)}
+          onChange={(val) => this.on_change_entry(name, val)}
           style={{ width: "100%" }}
         >
-          {valid.map(e => (
+          {valid.map((e) => (
             <Select.Option value={e} key={e}>
               {e}
             </Select.Option>
@@ -312,18 +328,36 @@ class SiteSettingsComponent extends Component<
             style={this.row_entry_style(value, valid)}
             value={value}
             visibilityToggle={true}
-            onChange={e => this.on_change_entry(name, e.target.value)}
+            onChange={(e) => this.on_change_entry(name, e.target.value)}
           />
         );
       } else {
-        return (
-          <Input
-            ref={name}
-            style={this.row_entry_style(value, valid)}
-            value={value}
-            onChange={() => this.on_change_entry(name)}
-          />
-        );
+        if (multiline != null) {
+          const style = Object.assign(this.row_entry_style(value, valid), {
+            fontFamily: "monospace",
+            fontSize: "80%",
+          } as React.CSSProperties);
+          return (
+            <Input.TextArea
+              rows={4}
+              ref={name}
+              style={style}
+              value={value}
+              onChange={() => this.on_change_entry(name)}
+            />
+          );
+        } else {
+          return (
+            <Input
+              ref={name}
+              style={this.row_entry_style(value, valid)}
+              value={value}
+              onChange={() => this.on_change_entry(name)}
+              // clearable disabled, otherwise it's not possible to edit the value
+              allowClear={clearable && false}
+            />
+          );
+        }
       }
     }
   }
@@ -332,26 +366,40 @@ class SiteSettingsComponent extends Component<
     name: string,
     value: string,
     password: boolean,
-    parsed_val?: string,
+    displayed_val?: string,
     valid?: ConfigValid,
-    hint?: Rendered
+    hint?: Rendered,
+    row_type?: RowType,
+    clearable?: boolean,
+    multiline?: number
   ) {
-    switch (name) {
-      case "default_quotas":
-      case "max_upgrades":
-        return this.render_json_entry(name, value);
-      default:
-        return (
-          <FormGroup>
-            {this.render_row_entry_inner(name, value, valid, password)}
-            <div style={{ fontSize: "90%", display: "inlineBlock" }}>
-              {this.render_row_version_hint(name, value)}
-              {hint}
-              {this.render_row_entry_parsed(parsed_val)}
-              {this.render_row_entry_valid(valid)}
-            </div>
-          </FormGroup>
-        );
+    if (row_type == ("header" as RowType)) {
+      return <div />;
+    } else {
+      switch (name) {
+        case "default_quotas":
+        case "max_upgrades":
+          return this.render_json_entry(name, value);
+        default:
+          return (
+            <FormGroup>
+              {this.render_row_entry_inner(
+                name,
+                value,
+                valid,
+                password,
+                clearable,
+                multiline
+              )}
+              <div style={{ fontSize: "90%", display: "inlineBlock" }}>
+                {this.render_row_version_hint(name, value)}
+                {hint}
+                {this.render_row_entry_parsed(displayed_val)}
+                {this.render_row_entry_valid(valid)}
+              </div>
+            </FormGroup>
+          );
+      }
     }
   }
 
@@ -371,11 +419,17 @@ class SiteSettingsComponent extends Component<
       return undefined;
     }
     const raw_value = this.state.edited[name] ?? conf.default;
+    const row_type: RowType = conf.type ?? ("setting" as RowType);
 
+    // fallbacks: to_display? → to_val? → undefined
     const parsed_value: string | undefined =
-      typeof conf.to_val == "function"
+      typeof conf.to_display == "function"
+        ? `${conf.to_display(raw_value)}`
+        : typeof conf.to_val == "function"
         ? `${conf.to_val(raw_value)}`
         : undefined;
+
+    const clearable = conf.clearable ?? false;
 
     const label = (
       <>
@@ -389,11 +443,11 @@ class SiteSettingsComponent extends Component<
 
     const style: React.CSSProperties = { marginTop: "2rem" };
     // indent optional fields
-    if (typeof conf.show == "function") {
+    if (typeof conf.show == "function" && row_type == ("setting" as RowType)) {
       Object.assign(style, {
         borderLeft: `2px solid ${COLORS.GRAY}`,
         marginLeft: "0px",
-        marginTop: "0px"
+        marginTop: "0px",
       } as React.CSSProperties);
     }
 
@@ -405,18 +459,23 @@ class SiteSettingsComponent extends Component<
           conf.password ?? false,
           parsed_value,
           conf.valid,
-          hint
+          hint,
+          row_type,
+          clearable,
+          conf.multiline
         )}
       </LabeledRow>
     );
   }
 
   private render_editor_site_settings(): Rendered[] {
-    return keys(site_settings_conf).map(name => this.render_default_row(name));
+    return keys(site_settings_conf).map((name) =>
+      this.render_default_row(name)
+    );
   }
 
   private render_editor_extras(): Rendered[] {
-    return keys(EXTRAS).map(name => this.render_extras_row(name));
+    return keys(EXTRAS).map((name) => this.render_extras_row(name));
   }
 
   private render_editor(): Rendered {
@@ -448,7 +507,7 @@ class SiteSettingsComponent extends Component<
     await this.store();
     this.setState({ disable_tests: true });
     // wait 3 secs
-    await new Promise(done => setTimeout(done, 3000));
+    await new Promise((done) => setTimeout(done, 3000));
     switch (type) {
       case "password_reset":
         redux.getActions("account").forgot_password(email);
@@ -456,13 +515,13 @@ class SiteSettingsComponent extends Component<
       case "invite_email":
         alert_message({
           type: "error",
-          message: "Simulated invite emails are NYI"
+          message: "Simulated invite emails are NYI",
         });
         break;
       case "mention":
         alert_message({
           type: "error",
-          message: "Simulated mention emails are NYI"
+          message: "Simulated mention emails are NYI",
         });
         break;
       case "verification":
@@ -539,7 +598,7 @@ class SiteSettingsComponent extends Component<
           <Well
             style={{
               margin: "auto",
-              maxWidth: "80%"
+              maxWidth: "80%",
             }}
           >
             {this.render_buttons()}

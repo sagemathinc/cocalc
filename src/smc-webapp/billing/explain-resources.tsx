@@ -5,7 +5,7 @@ import { A } from "../r_misc/A";
 const {
   HelpEmailLink,
   PolicyPricingPageUrl,
-  SiteName
+  SiteName,
 } = require("../customize");
 import { ProjectQuotaFreeTable } from "./project-quota-free-table";
 import { ProjectQuotaBoundsTable } from "./project-quota-bounds-table";
@@ -70,9 +70,7 @@ export class ExplainResources extends Component<Props> {
                     pricing FAQ
                   </a>{" "}
                 </span>
-              ) : (
-                undefined
-              )}
+              ) : undefined}
               if anything is unclear to you, you just have a quick question and
               do not want to wade through all the text below. Also, contact us
               if you need <b>enterprise support</b>, which includes customized

@@ -10,5 +10,5 @@ import { register_file_editor } from "../frame-tree/register";
 register_file_editor({
   ext: "rst",
   component: Editor,
-  Actions
+  Actions,
 });

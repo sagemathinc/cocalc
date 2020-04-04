@@ -35,8 +35,8 @@ class EditorTime extends Component<Props> {
     return {
       [name]: {
         timers: rtypes.immutable.List,
-        error: rtypes.string
-      }
+        error: rtypes.string,
+      },
     };
   }
 
@@ -46,8 +46,8 @@ class EditorTime extends Component<Props> {
     }
     const v: Rendered[] = [];
     this.props.timers
-      .sortBy(x => x.get("id"))
-      .map(data => {
+      .sortBy((x) => x.get("id"))
+      .map((data) => {
         v.push(
           <Stopwatch
             key={data.get("id")}
@@ -55,8 +55,8 @@ class EditorTime extends Component<Props> {
             total={data.get("total")}
             state={data.get("state")}
             time={data.get("time")}
-            click_button={button => this.click_button(data.get("id"), button)}
-            set_label={label => this.set_label(data.get("id"), label)}
+            click_button={(button) => this.click_button(data.get("id"), button)}
+            set_label={(label) => this.set_label(data.get("id"), label)}
           />
         );
       });

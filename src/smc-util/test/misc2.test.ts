@@ -14,7 +14,7 @@ describe("path_split", () => {
   test("abspath", () =>
     expect(ps("/HOME/USER/DIR")).toEqual({
       head: "/HOME/USER",
-      tail: "DIR"
+      tail: "DIR",
     }));
 
   test("ROOT", () => expect(ps("/")).toEqual({ head: "", tail: "" }));

@@ -51,6 +51,7 @@ kucalc = require('./kucalc')
 blobs = require('./blobs')
 
 {get_syncdoc} = require('./sync/sync-doc')
+{get_listings_table} = require('./sync/listings')
 
 {defaults, required} = misc
 
@@ -587,3 +588,11 @@ class exports.Client extends EventEmitter
             string_id : string_id
             patches   : patches
         return await callback2(@call, {message:mesg})
+
+    is_deleted: (filename, project_id) => # project_id is ignored, of course
+        listings = get_listings_table();
+        return listings.is_deleted(filename)
+
+    set_deleted: (filename, project_id) => # project_id is ignored
+        listings = get_listings_table();
+        await listings.set_deleted(filename) 

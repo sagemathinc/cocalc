@@ -86,12 +86,12 @@ export function calculateColorGamut(): string {
   const map = {
     rec2020: "(color-gamut: rec2020)",
     P3: "(color-gamut: p3)",
-    srgb: "(color-gamut: srgb)"
+    srgb: "(color-gamut: srgb)",
   };
 
   let found;
   if (typeof window.matchMedia === "function") {
-    found = Object.keys(map).find(k => window.matchMedia(map[k]).matches);
+    found = Object.keys(map).find((k) => window.matchMedia(map[k]).matches);
   }
 
   return found ? found : "";
@@ -216,7 +216,7 @@ export function calculateScreens(width: number, height: number, dpi: number) {
     0,
     0,
     width,
-    height
+    height,
   ];
 
   return [screen]; // just a single screen

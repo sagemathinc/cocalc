@@ -13,7 +13,7 @@ import {
   Component,
   Rendered,
   rclass,
-  rtypes
+  rtypes,
 } from "../../app-framework";
 
 interface Props {
@@ -44,7 +44,7 @@ function render_caption(caption: string): Rendered {
 const COLORS = {
   information: "#5bc0de",
   error: "#d9534f",
-  warning: "#f0ad4e"
+  warning: "#f0ad4e",
 };
 
 export function message_color(severity: string, synced: boolean): string {
@@ -58,7 +58,7 @@ export function message_color(severity: string, synced: boolean): string {
 const ICONS = {
   information: "info-circle",
   error: "exclamation-triangle",
-  warning: "exclamation-circle"
+  warning: "exclamation-circle",
 };
 
 export function message_icon(severity: string): string {
@@ -74,7 +74,7 @@ function render_text(text: string): Rendered {
         fontFamily: "monospace",
         whiteSpace: "pre-wrap",
         marginTop: "1ex",
-        fontSize: "110%"
+        fontSize: "110%",
       }}
     >
       {text}
@@ -101,7 +101,7 @@ export class RenderedMessage extends Component<MessageProps, {}> {
             fontFamily: "sans-serif",
             fontWeight: "bold",
             color: color,
-            borderBottom: `1px solid ${color}`
+            borderBottom: `1px solid ${color}`,
           }}
         >
           <Icon name={message_icon(message.severity)} />
@@ -133,7 +133,7 @@ class LeanMessages extends Component<Props, {}> {
       "messages",
       "tasks",
       "sync",
-      "syncstring_hash"
+      "syncstring_hash",
     ]);
   }
 
@@ -143,8 +143,8 @@ class LeanMessages extends Component<Props, {}> {
         messages: rtypes.immutable.List,
         tasks: rtypes.immutable.List,
         sync: rtypes.immutable.Map,
-        syncstring_hash: rtypes.number
-      }
+        syncstring_hash: rtypes.number,
+      },
     };
   }
 
@@ -184,7 +184,7 @@ class LeanMessages extends Component<Props, {}> {
           fontWeight: "bold",
           borderBottom: "1px solid black",
           minHeight: "30px",
-          marginBottom: "15px"
+          marginBottom: "15px",
         }}
       >
         <Icon name="cc-icon-cocalc-ring" spin />
@@ -205,7 +205,7 @@ class LeanMessages extends Component<Props, {}> {
           fontWeight: "bold",
           borderBottom: "1px solid black",
           minHeight: "30px",
-          marginBottom: "15px"
+          marginBottom: "15px",
         }}
       >
         <Icon name="check-circle" />
@@ -254,7 +254,7 @@ class LeanMessages extends Component<Props, {}> {
         style={{
           overflowY: "auto",
           padding: "0px 15px",
-          fontSize: this.props.font_size
+          fontSize: this.props.font_size,
         }}
       >
         {this.render_sync()}

@@ -10,7 +10,7 @@ describe("create syncstring and test doing some edits", () => {
   const v = [
     "SageMathCloud",
     "SageMathCloud -- Collaborative Calculation",
-    "CoCalc -- Collaborative Calculation"
+    "CoCalc -- Collaborative Calculation",
   ];
 
   it("creates the syncstring and wait until ready", async () => {
@@ -100,7 +100,7 @@ describe("create syncstring and test doing some edits", () => {
     (syncstring as any).set_save({
       state: "done",
       error: "",
-      hash: syncstring.hash_of_live_version()
+      hash: syncstring.hash_of_live_version(),
     });
     (syncstring as any).syncstring_table.emit("change-no-throttle");
     await promise;

@@ -5,7 +5,7 @@ const { Nav, NavItem } = require("react-bootstrap");
 export function NotificationNav({
   filter,
   on_click,
-  style
+  style,
 }: {
   filter: MentionFilter;
   on_click: (label: MentionFilter) => void;

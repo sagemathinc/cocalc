@@ -30,7 +30,7 @@ export function print_code(opts: Options) {
     value,
     options,
     style: { background: "white", width: "auto" },
-    no_border: true
+    no_border: true,
   };
   const s: string = renderToStaticMarkup(
     React.createElement(CodeMirrorStatic, props)

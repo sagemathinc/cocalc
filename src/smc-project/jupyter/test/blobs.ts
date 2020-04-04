@@ -6,7 +6,7 @@ const misc_node = require("smc-util-node/misc_node");
 
 import { blob_store } from "../jupyter-blobs-sqlite";
 
-describe("very basic tests of the blob store -- ", function() {
+describe("very basic tests of the blob store -- ", function () {
   blob_store.delete_all_blobs();
 
   it("gets a list of blobs (which should be empty)", () =>
@@ -19,7 +19,7 @@ describe("very basic tests of the blob store -- ", function() {
   const buffer = new Buffer(blob, "base64");
   const sha1 = misc_node.sha1(buffer);
 
-  it("saves a blob", function() {
+  it("saves a blob", function () {
     expect(blob_store.save(blob, "image/png")).toBe(sha1);
     return expect(blob_store.keys()).toEqual([sha1]);
   });

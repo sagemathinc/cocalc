@@ -23,7 +23,7 @@ interface Props {
 export class Icon extends React.Component<Props> {
   static defaultProps = {
     name: "square-o",
-    onClick: undefined
+    onClick: undefined,
   };
 
   shouldComponentUpdate(next) {
@@ -40,7 +40,7 @@ export class Icon extends React.Component<Props> {
         "fixedWidth",
         "stack",
         "inverse",
-        "className"
+        "className",
       ]) ||
       !misc.is_equal(this.props.style, next.style)
     );
@@ -58,7 +58,7 @@ export class Icon extends React.Component<Props> {
       fixedWidth,
       stack,
       inverse,
-      className
+      className,
     } = this.props;
 
     let i = name.indexOf("cc-icon");

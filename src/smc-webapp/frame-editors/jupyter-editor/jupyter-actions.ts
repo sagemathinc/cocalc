@@ -34,12 +34,12 @@ export function create_jupyter_actions(
     primary_keys: ["type", "id"],
     string_cols: ["input"],
     cursors: true,
-    persistent: true
+    persistent: true,
   });
 
   actions._init(project_id, path, syncdb, store, webapp_client);
 
-  syncdb.once("init", err => {
+  syncdb.once("init", (err) => {
     if (err) {
       const message = `Error opening '${path}' -- ${err}`;
       console.warn(message);

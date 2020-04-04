@@ -75,7 +75,7 @@ export function cm_options(
     spaces_instead_of_tabs: editor_settings.get("spaces_instead_of_tabs", true),
     style_active_line: editor_settings.get("style_active_line", true),
     bindings: editor_settings.get("bindings"),
-    theme: theme
+    theme: theme,
   });
   if (opts.mode == null) {
     // to satisfy typescript
@@ -101,7 +101,7 @@ export function cm_options(
     },
     "Shift-Ctrl-L"(cm) {
       cm.align_assignments();
-    }
+    },
   };
 
   if (feature.IS_TOUCH) {
@@ -201,7 +201,7 @@ export function cm_options(
       },
       "Alt-T"() {
         build();
-      }
+      },
     };
     for (const k in actionKeys) {
       const v = actionKeys[k];
@@ -228,12 +228,12 @@ export function cm_options(
         comment: "Shift-Ctrl-3",
         strikethrough: "Shift-Cmd-X Shift-Ctrl-X",
         subscript: "Cmd-= Ctrl-=",
-        superscript: "Shift-Cmd-= Shift-Ctrl-="
+        superscript: "Shift-Cmd-= Shift-Ctrl-=",
       };
 
       // use a closure to bind cmd.
       const f = (key, cmd) =>
-        (extraKeys[key] = cm => {
+        (extraKeys[key] = (cm) => {
           cm.edit_selection({ cmd });
           return editor_actions.set_syncstring_to_codemirror();
         });
@@ -273,7 +273,7 @@ export function cm_options(
     "cc",
     "cpp",
     "h",
-    "bib"
+    "bib",
   ];
   if (tab2exts.includes(ext)) {
     opts.tab_size = opts.indent_unit = 2;
@@ -316,7 +316,7 @@ export function cm_options(
     showCursorWhenSelecting: true,
     extraKeys,
     cursorScrollMargin: 3,
-    viewportMargin: 10
+    viewportMargin: 10,
   };
 
   if (opts.match_xml_tags) {
@@ -324,8 +324,8 @@ export function cm_options(
   }
 
   if (opts.code_folding) {
-    extraKeys["Ctrl-Q"] = cm => cm.foldCodeSelectionAware();
-    extraKeys["Alt-Q"] = cm => cm.foldCodeSelectionAware();
+    extraKeys["Ctrl-Q"] = (cm) => cm.foldCodeSelectionAware();
+    extraKeys["Alt-Q"] = (cm) => cm.foldCodeSelectionAware();
     options.foldGutter = true;
     options.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"];
   } else {
@@ -353,7 +353,7 @@ export function cm_options(
   return options;
 }
 
-var tab_key = function(editor, spaces_instead_of_tabs) {
+var tab_key = function (editor, spaces_instead_of_tabs) {
   if (editor.somethingSelected()) {
     return (CodeMirror as any).commands.defaultTab(editor);
   } else {

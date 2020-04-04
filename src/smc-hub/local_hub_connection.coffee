@@ -896,15 +896,20 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     id      : data_uuid
                     timeout : 60
                     cb      : (_data) =>
-                        data = _data
-                        data.archive = result_archive
-                        cb()
-
+                        # recv_mesg returns either a Buffer blob
+                        # *or* a {event:'error', error:'the error'} object.
+                        # Fortunately `new Buffer().event` is valid (and undefined).
+                        if _data.event == 'error'
+                            cb(_data.error)
+                        else
+                            data = _data
+                            data.archive = result_archive
+                            cb()
         ], (err) =>
             if err
                 cb(err)
             else
-                cb(false, data)
+                cb(undefined, data)
         )
 
     # Write a file

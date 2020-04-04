@@ -18,7 +18,7 @@ async function biber(input_path, output_path) {
     "--output-fieldcase=lower",
     "--output-file",
     output_path,
-    input_path
+    input_path,
   ];
 
   return await callback_opts(execute_code)({
@@ -26,7 +26,7 @@ async function biber(input_path, output_path) {
     args: args,
     err_on_exit: false,
     bash: false,
-    timeout: 20
+    timeout: 20,
   });
 }
 

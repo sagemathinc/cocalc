@@ -1356,23 +1356,14 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     # make links open in a new tab
                     a.attr("target","_blank")
 
+        # scale images
+        e.smc_image_scaling()
+
         # make relative links to images use the raw server
         a = e.find("img")
         for x in a
             y           = $(x)
             src         = y.attr('src')
-            # see https://github.com/sagemathinc/cocalc/issues/1192
-            img_scaling = y.attr('smc-image-scaling')
-            if img_scaling?
-                img = y.get(0)
-                scale_img = ->
-                    width  = img.naturalWidth
-                    factor = parseFloat(img_scaling)
-                    if not isNaN(factor)
-                        new_width = width * factor
-                        y.css('width', "#{new_width}px")
-                scale_img()
-                img.onload = scale_img
             # checking, if we need to fix the src path
             is_fullurl  = src.indexOf('://') != -1
             is_blob     = misc.startswith(src, "#{window.app_base_url}/blobs/")

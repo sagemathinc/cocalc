@@ -3,7 +3,7 @@ import * as fs from "fs";
 import { callback } from "awaiting";
 
 function _exists(path: string, cb: Function): void {
-  fs.exists(path, exists => {
+  fs.exists(path, (exists) => {
     cb(undefined, exists);
   });
 }

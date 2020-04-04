@@ -19,7 +19,7 @@ export const initial_state: StoreState = {
   state: "edit",
   status: "",
   query: "",
-  result: List([])
+  result: List([]),
 };
 
 export class AdminUsersStore extends Store<StoreState> {}

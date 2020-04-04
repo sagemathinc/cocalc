@@ -56,7 +56,7 @@ export class EditCellMetadata extends Component<EditCellMetadataProps> {
     }
     this.props.actions.set_cell_metadata({
       id: this.props.id,
-      metadata: value
+      metadata: value,
     });
   }
 
@@ -67,7 +67,7 @@ export class EditCellMetadata extends Component<EditCellMetadataProps> {
           fontSize: this.props.font_size,
           border: "1px solid #ccc",
           margin: "5px",
-          borderRadius: "3px"
+          borderRadius: "3px",
         }}
       >
         <JSONEditor

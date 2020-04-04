@@ -288,7 +288,7 @@ export function endswith(s: string, t: string): boolean {
 
 // We use this uuid implementation only for the browser client.  For node code, use node-uuid.
 export function uuid(): string {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
     const r = (Math.random() * 16) | 0;
     const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
@@ -343,7 +343,7 @@ export function encode_path(path) {
   return path.replace(/#/g, "%23").replace(/\?/g, "%3F");
 }
 
-const reValidEmail = (function() {
+const reValidEmail = (function () {
   const sQtext = "[^\\x0d\\x22\\x5c\\x80-\\xff]";
   const sDtext = "[^\\x0d\\x5b-\\x5d\\x80-\\xff]";
   const sAtom =
@@ -479,7 +479,7 @@ export function path_to_title(path: string): string {
 
 // names is a Set<string>
 export function list_alternatives(names): string {
-  names = names.map(x => x.toUpperCase()).toJS();
+  names = names.map((x) => x.toUpperCase()).toJS();
   if (names.length == 1) {
     return names[0];
   } else if (names.length == 2) {
@@ -520,7 +520,7 @@ export function is_array(obj: any): boolean {
 
 export let is_integer: Function = Number.isInteger;
 if (is_integer == null) {
-  is_integer = n => typeof n === "number" && n % 1 === 0;
+  is_integer = (n) => typeof n === "number" && n % 1 === 0;
 }
 
 export function is_string(obj: any): boolean {
@@ -608,7 +608,7 @@ export function delete_local_storage(key) {
 
 // converts an array to a "human readable" array
 export function to_human_list(arr) {
-  arr = lodash.map(arr, x => x.toString());
+  arr = lodash.map(arr, (x) => x.toString());
   if (arr.length > 1) {
     return arr.slice(0, -1).join(", ") + " and " + arr.slice(-1);
   } else if (arr.length === 1) {

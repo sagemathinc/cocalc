@@ -29,7 +29,7 @@ export class Impersonate extends Component<Props, State> {
       const { auth_token } = await callback2(
         webapp_client.get_user_auth_token,
         {
-          account_id: this.props.account_id
+          account_id: this.props.account_id,
         }
       );
       this.setState({ auth_token });
@@ -77,7 +77,7 @@ export class Impersonate extends Component<Props, State> {
           border: "1px solid red",
           borderRadius: "3px",
           fontSize: "14pt",
-          margin: "15px"
+          margin: "15px",
         }}
       >
         <b>
