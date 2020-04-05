@@ -33,7 +33,7 @@ import {
   rtypes,
   Component,
   AppRedux,
-  Rendered
+  Rendered,
 } from "../../app-framework";
 import { Button, ButtonGroup, Checkbox } from "../../antd-bootstrap";
 
@@ -51,7 +51,7 @@ import {
   TextInput,
   TimeAgo,
   Tip,
-  ErrorDisplay
+  ErrorDisplay,
 } from "../../r_misc";
 
 import { StudentProjectUpgrades } from "./upgrades";
@@ -92,8 +92,8 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
     static reduxProps({ name }) {
       return {
         [name]: {
-          action_all_projects_state: rtypes.string
-        }
+          action_all_projects_state: rtypes.string,
+        },
       };
     }
 
@@ -101,7 +101,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
       super(props);
       this.state = {
         confirm_stop_all_projects: false,
-        confirm_start_all_projects: false
+        confirm_start_all_projects: false,
       };
     }
 
@@ -324,12 +324,12 @@ class DisableStudentCollaboratorsPanel extends Component<
           style={{
             border: "1px solid lightgrey",
             padding: "10px",
-            borderRadius: "5px"
+            borderRadius: "5px",
           }}
         >
           <Checkbox
             checked={this.props.checked}
-            onChange={e => this.props.on_change((e.target as any).checked)}
+            onChange={(e) => this.props.on_change((e.target as any).checked)}
           >
             Allow arbitrary collaborators
           </Checkbox>
@@ -365,6 +365,7 @@ interface ConfigurationPanelState {
   show_students_pay_dialog: boolean;
   email_body_error?: string;
   students_pay?: boolean;
+  collapsed: boolean;
 }
 
 export class ConfigurationPanel extends Component<
@@ -375,11 +376,12 @@ export class ConfigurationPanel extends Component<
     super(props);
     this.state = {
       show_students_pay_dialog: false,
-      email_body_error: undefined
+      email_body_error: undefined,
+      collapsed: false,
     };
     this.check_email_body = debounce(this.check_email_body.bind(this), 50, {
       leading: true,
-      trailing: true
+      trailing: true,
     });
   }
 
@@ -387,12 +389,13 @@ export class ConfigurationPanel extends Component<
     return (
       misc.is_different(this.state, state, [
         "show_students_pay_dialog",
-        "email_body_error"
+        "email_body_error",
+        "collapsed",
       ]) ||
       misc.is_different(this.props, props, [
         "settings",
         "project_map",
-        "configuring_projects"
+        "configuring_projects",
       ])
     );
   }
@@ -426,7 +429,7 @@ export class ConfigurationPanel extends Component<
         <LabeledRow label="Title">
           <TextInput
             text={(left = this.props.settings.get("title")) != null ? left : ""}
-            on_change={title =>
+            on_change={(title) =>
               this.get_actions().configuration.set_title(title)
             }
           />
@@ -438,7 +441,7 @@ export class ConfigurationPanel extends Component<
             rows={6}
             type="textarea"
             default_value={this.props.settings.get("description")}
-            on_save={desc =>
+            on_save={(desc) =>
               this.get_actions().configuration.set_description(desc)
             }
           />
@@ -515,7 +518,7 @@ export class ConfigurationPanel extends Component<
       .allow_urls_in_emails(this.props.project_id);
     if (!allow_urls && contains_url(value)) {
       this.setState({
-        email_body_error: "Sending URLs is not allowed. (anti-spam measure)"
+        email_body_error: "Sending URLs is not allowed. (anti-spam measure)",
       });
     } else {
       this.setState({ email_body_error: undefined });
@@ -542,7 +545,7 @@ export class ConfigurationPanel extends Component<
           style={{
             border: "1px solid lightgrey",
             padding: "10px",
-            borderRadius: "5px"
+            borderRadius: "5px",
           }}
         >
           {this.render_email_body_error()}
@@ -552,7 +555,7 @@ export class ConfigurationPanel extends Component<
             rows={6}
             type="textarea"
             default_value={this.get_store().get_email_invite()}
-            on_save={body =>
+            on_save={(body) =>
               this.get_actions().configuration.set_email_invite(body)
             }
             save_disabled={this.state.email_body_error != null}
@@ -591,9 +594,7 @@ export class ConfigurationPanel extends Component<
         >
           {this.props.configuring_projects ? (
             <Icon name="cc-icon-cocalc-ring" spin />
-          ) : (
-            undefined
-          )}{" "}
+          ) : undefined}{" "}
           Reconfigure all projects
         </Button>
       </Card>
@@ -681,7 +682,7 @@ export class ConfigurationPanel extends Component<
     );
   }
 
-  handle_student_pay_choice = e => {
+  handle_student_pay_choice = (e) => {
     return this.get_actions().configuration.set_pay_choice(
       "student",
       e.target.checked
@@ -727,7 +728,7 @@ export class ConfigurationPanel extends Component<
             style={{ width: "20em" }}
             placeholder={"Student Pay Deadline"}
             value={value != null ? value : this.props.settings.get("pay")}
-            onChange={date => {
+            onChange={(date) => {
               this.get_actions().configuration.set_course_info(
                 date != null ? date.toISOString() : undefined
               );
@@ -751,7 +752,7 @@ export class ConfigurationPanel extends Component<
     );
   }
 
-  handle_students_pay_checkbox = e => {
+  handle_students_pay_checkbox = (e) => {
     if (e.target.checked) {
       this.get_actions().configuration.set_course_info(
         this.get_student_pay_when()
@@ -886,9 +887,11 @@ export class ConfigurationPanel extends Component<
         }
       >
         {this.render_student_pay_choice_checkbox()}
-        {(this.props.settings != null
-        ? this.props.settings.get("student_pay")
-        : undefined)
+        {(
+          this.props.settings != null
+            ? this.props.settings.get("student_pay")
+            : undefined
+        )
           ? this.render_student_pay_details()
           : undefined}
       </Card>
@@ -964,116 +967,285 @@ export class ConfigurationPanel extends Component<
     return (
       <DisableStudentCollaboratorsPanel
         checked={!!this.props.settings.get("allow_collabs")}
-        on_change={val =>
+        on_change={(val) =>
           this.get_actions().configuration.set_allow_collabs(val)
         }
       />
     );
   }
 
-  scrollToTargetAdjusted = id => {
+  scrollToTargetAdjusted = (id) => {
     var element: HTMLElement | null = document.getElementById(id);
     if (!element) {
       console.log("document.getElementById(id) returned null");
       return;
     }
     element.scrollIntoView(true);
-    document.getElementById("configurationpagecontainer")!.scrollTop;
+    //document.getElementById("configurationpagecontainer")!.scrollTop;
+  };
+
+  toggleCollapsed = () => {
+    this.setState({ collapsed: !this.state.collapsed });
   };
 
   render() {
-    return (
-      <div
-        className="smc-vfill"
-        id="configurationpagecontainer"
-        style={{
-          flexDirection: "row"
-        }}
-      >
+    if (window.innerWidth > 700) {
+      // LARGER SCREENS
+      return (
         <div
           className="smc-vfill"
-          style={{ overflowX: "hidden", overflowY: "auto", flex: "2", minWidth:"260px", paddingLeft: "10px" }}
+          style={{
+            flexDirection: "row",
+          }}
         >
-          <h1
+          <div
+            className="smc-vfill"
             style={{
-              fontSize: "20px"
+              overflowX: "hidden",
+              overflowY: "auto",
+              flex: "2",
+              paddingLeft: "10px",
+              minWidth: "260px",
             }}
           >
-            <Icon name="wrench" /> Configuration Settings
-          </h1>
-          <div style={{ overflow: "auto"}}>
+            <h1
+              style={{
+                fontSize: "20px",
+              }}
+            >
+              <Icon name="wrench" /> Configuration Settings
+            </h1>
             <Menu
               mode="inline"
-              onClick={e => {
+              onClick={(e) => {
+                this.scrollToTargetAdjusted(e.key);
+              }}
+              inlineCollapsed={this.state.collapsed}
+            >
+              <Menu.Item key="item1">
+                <Icon name="header" />
+                <span> Title and Description</span>
+              </Menu.Item>
+              <Menu.Item key="item2">
+                <Icon name="envelope" />
+                <span> Email Invitation</span>
+              </Menu.Item>
+              <Menu.Item key="item3">
+                <Icon name="envelope" />
+                <span> Colaborator Policy</span>
+              </Menu.Item>
+              <Menu.Item key="item4">
+                <Icon name="bolt" />
+                <span> Start/Stop Projects</span>
+              </Menu.Item>
+              <Menu.Item key="item5">
+                <Icon name="terminal" />
+                <span> Projects Terminal</span>
+              </Menu.Item>
+              <Menu.Item key="item6">
+                <Icon name="trash" />
+                <span> Delete Projects/Students</span>
+              </Menu.Item>
+              {this.props.settings.get("shared_project_id") ? (
+                <Menu.Item key="item7">
+                  <Icon name="trash" />
+                  <span> Delete Shared projects</span>
+                </Menu.Item>
+              ) : undefined}
+              <Menu.Item key="item8">
+                <Icon name="share-square" />
+                <span> Copy Assiangments</span>
+              </Menu.Item>
+              <Menu.Item key="item9">
+                <Icon name="dashboard" />
+                <span> Upgrade Settings</span>
+              </Menu.Item>
+              <Menu.Item key="item10">
+                <Icon name="table" />
+                <span> Export Grades</span>
+              </Menu.Item>
+              <Menu.Item key="item11">
+                <Icon name="envelope" />
+                <span> Project Configuration</span>
+              </Menu.Item>
+              <Menu.Item key="item12">
+                <Icon name="exclamation-circle" />
+                <span> Help</span>
+              </Menu.Item>
+            </Menu>
+            <div style={{ overflow: "auto" }}></div>
+          </div>
+          <div
+            className="smc-vfill"
+            //id="configurationpagecontainer"
+            style={{ overflow: "auto", flex: "13" }}
+          >
+            <div style={{ padding: "15px", maxWidth: "1000px" }}>
+              <div id="item1"></div>
+              {this.render_title_description()}
+              <br />
+              <div id="item2"></div>
+              {this.render_email_invite_body()}
+              <br />
+              <div id="item3"></div>
+              {this.render_disable_students()}
+              <br />
+              <div id="item4"></div>
+              {this.render_start_all_projects()}
+              <br />
+              <div id="item5"></div>
+              {this.render_terminal_command()}
+              <br />
+              <div id="item6"></div>
+              {this.render_delete_student_projects()}
+              <br />
+              {this.render_delete_all_students()}
+              <br />
+              <div id="item7"></div>
+              {this.render_delete_shared_project()}
+              <div id="item8"></div>
+              {this.render_push_missing_handouts_and_assignments()}
+              <br />
+              <div id="item9"></div>
+              {this.render_require_students_pay()}
+              <br />
+              {this.render_require_institute_pay()}
+              <br />
+              <div id="item10"></div>
+              {this.render_save_grades()}
+              <br />
+              <div id="item11"></div>
+              {this.render_configure_all_projects()}
+              <br />
+              <div id="item12"></div>
+              <HelpBox />
+              <div style={{ height: "700px" }}></div>
+            </div>
+          </div>
+        </div>
+      );
+    } else {
+      //   MOBILE LAYOUT
+      return (
+        <div className="smc-vfill" style={{}}>
+          <div
+            style={{
+              overflowX: "hidden",
+              overflowY: "auto",
+              paddingLeft: "10px",
+            }}
+          >
+            <Menu
+              mode="horizontal"
+              onClick={(e) => {
                 this.scrollToTargetAdjusted(e.key);
               }}
             >
-              <Menu.Item key="item1">Title and Description</Menu.Item>
-              <Menu.Item key="item2">Email Invitation</Menu.Item>
-              <Menu.Item key="item3">Colaborator Policy</Menu.Item>
-              <Menu.Item key="item4">Start/Stop Projects</Menu.Item>
-              <Menu.Item key="item5">Projects Terminal</Menu.Item>
-              <Menu.Item key="item6">Delete Projects/Students</Menu.Item>
+              <Menu.Item key="item1">
+                <span>
+                  <Icon name="header" />
+                </span>
+                <span> Title and Description</span>
+              </Menu.Item>
+              <Menu.Item key="item2">
+                <Icon name="envelope" />
+                <span> Email Invitation</span>
+              </Menu.Item>
+              <Menu.Item key="item3">
+                <Icon name="envelope" />
+                <span> Colaborator Policy</span>
+              </Menu.Item>
+              <Menu.Item key="item4">
+                <Icon name="bolt" />
+                <span> Start/Stop Projects</span>
+              </Menu.Item>
+              <Menu.Item key="item5">
+                <Icon name="terminal" />
+                <span> Projects Terminal</span>
+              </Menu.Item>
+              <Menu.Item key="item6">
+                <Icon name="trash" />
+                <span> Delete Projects/Students</span>
+              </Menu.Item>
               {this.props.settings.get("shared_project_id") ? (
-                <Menu.Item key="item7"></Menu.Item>
-              ) : (
-                undefined
-              )}
-              <Menu.Item key="item8">Copy Assiangments</Menu.Item>
-              <Menu.Item key="item9">Upgrade Settings</Menu.Item>
-              <Menu.Item key="item10">Export Grades</Menu.Item>
-              <Menu.Item key="item11">Project Configuration</Menu.Item>
+                <Menu.Item key="item7">
+                  <Icon name="trash" />
+                  <span> Delete Shared projects</span>
+                </Menu.Item>
+              ) : undefined}
+              <Menu.Item key="item8">
+                <Icon name="share-square" />
+                <span> Copy Assiangments</span>
+              </Menu.Item>
+              <Menu.Item key="item9">
+                <Icon name="dashboard" />
+                <span> Upgrade Settings</span>
+              </Menu.Item>
+              <Menu.Item key="item10">
+                <Icon name="table" />
+                <span> Export Grades</span>
+              </Menu.Item>
+              <Menu.Item key="item11">
+                <Icon name="envelope" />
+                <span> Project Configuration</span>
+              </Menu.Item>
               <Menu.Item key="item12">
-                <Icon name="exclamation-circle" /> Help
+                <Icon name="exclamation-circle" />
+                <span> Help</span>
               </Menu.Item>
             </Menu>
           </div>
-        </div>
-        <div className="smc-vfill" style={{ overflow: "auto", flex: "13" }}>
-          <div style={{ padding: "15px", width: "1000px" }}>
-            <div id="item1"></div>
-            {this.render_title_description()}
-            <br />
-            <div id="item2"></div>
-            {this.render_email_invite_body()}
-            <br />
-            <div id="item3"></div>
-            {this.render_disable_students()}
-            <br />
-            <div id="item4"></div>
-            {this.render_start_all_projects()}
-            <br />
-            <div id="item5"></div>
-            {this.render_terminal_command()}
-            <br />
-            <div id="item6"></div>
-            {this.render_delete_student_projects()}
-            <br />
-            {this.render_delete_all_students()}
-            <br />
-            <div id="item7"></div>
-            {this.render_delete_shared_project()}
-            <div id="item8"></div>
-            {this.render_push_missing_handouts_and_assignments()}
-            <br />
-            <div id="item9"></div>
-            {this.render_require_students_pay()}
-            <br />
-            {this.render_require_institute_pay()}
-            <br />
-            <div id="item10"></div>
-            {this.render_save_grades()}
-            <br />
-            <div id="item11"></div>
-            {this.render_configure_all_projects()}
-            <br />
-            <div id="item12"></div>
-            <HelpBox />
-            <div style={{ height: "700px" }}></div>
+
+          <div
+            className="smc-vfill"
+            //id="configurationpagecontainer"
+            style={{ alignItems: "Center", overflow: "auto", flex: "13" }}
+          >
+            <div style={{ padding: "15px" }}>
+              <div id="item1"></div>
+              {this.render_title_description()}
+              <br />
+              <div id="item2"></div>
+              {this.render_email_invite_body()}
+              <br />
+              <div id="item3"></div>
+              {this.render_disable_students()}
+              <br />
+              <div id="item4"></div>
+              {this.render_start_all_projects()}
+              <br />
+              <div id="item5"></div>
+              {this.render_terminal_command()}
+              <br />
+              <div id="item6"></div>
+              {this.render_delete_student_projects()}
+              <br />
+              {this.render_delete_all_students()}
+              <br />
+              <div id="item7"></div>
+              {this.render_delete_shared_project()}
+              <div id="item8"></div>
+              {this.render_push_missing_handouts_and_assignments()}
+              <br />
+              <div id="item9"></div>
+              {this.render_require_students_pay()}
+              <br />
+              {this.render_require_institute_pay()}
+              <br />
+              <div id="item10"></div>
+              {this.render_save_grades()}
+              <br />
+              <div id="item11"></div>
+              {this.render_configure_all_projects()}
+              <br />
+              <div id="item12"></div>
+              <HelpBox />
+              <div style={{ height: "700px" }}></div>
+            </div>
           </div>
         </div>
-      </div>
-    );
+      );
+    }
   }
 }
 
