@@ -288,19 +288,18 @@ exports.quota = function (
   ): void {
     if (factor == null) factor = 1;
 
-    const base: number = (() => {
-      // settings "overwrite" the default quotas
-      // there are also no limits to settings "admin" upgrades
+    const dflt_quota = quota[name];
+
+    const base: number = ((): number => {
+      // there are no limits to settings "admin" upgrades
       if (settings[upgrade]) {
-        quota[name] = factor * parse_num(settings[upgrade]);
-        return quota[name];
+        return factor * parse_num(settings[upgrade]);
       } else {
         return Math.min(quota[name], factor * max_upgrades[upgrade]);
       }
     })();
-    // compute how much is left for contributed user upgrades
-    const remain = Math.max(0, factor * max_upgrades[upgrade] - base);
 
+    // contributions can come from user upgrades or site licenses
     let contribs = 0;
     for (const userid in users) {
       const val = users[userid];
@@ -331,7 +330,13 @@ exports.quota = function (
         }
       }
     }
-    contribs = Math.min(remain, contribs);
+    // limit the contributions by the overall maximum (except for the defaults!)
+    const contribs_limit = Math.max(
+      0,
+      factor * max_upgrades[upgrade] - dflt_quota
+    );
+    contribs = Math.min(contribs, contribs_limit);
+    // base is the default or the modified admin upgrades
     quota[name] = base + contribs;
   };
 
