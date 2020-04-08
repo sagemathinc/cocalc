@@ -1125,83 +1125,15 @@ export class ConfigurationPanel extends Component<
         </div>
       );
     } else {
-      //   MOBILE LAYOUT
+      //  SIMPLE MOBILE LAYOUT. single column of settings panels
       return (
         <div className="smc-vfill" style={{}}>
           <div
-            style={{
-              overflowX: "hidden",
-              overflowY: "auto",
-              paddingLeft: "10px",
-            }}
-          >
-            <Menu
-              mode="horizontal"
-              onClick={(e) => {
-                this.scrollToTargetAdjusted(e.key);
-              }}
-            >
-              <Menu.Item key="item1">
-                <span>
-                  <Icon name="header" />
-                </span>
-                <span> Title and Description</span>
-              </Menu.Item>
-              <Menu.Item key="item2">
-                <Icon name="envelope" />
-                <span> Email Invitation</span>
-              </Menu.Item>
-              <Menu.Item key="item3">
-                <Icon name="envelope" />
-                <span> Colaborator Policy</span>
-              </Menu.Item>
-              <Menu.Item key="item4">
-                <Icon name="bolt" />
-                <span> Start/Stop Projects</span>
-              </Menu.Item>
-              <Menu.Item key="item5">
-                <Icon name="terminal" />
-                <span> Projects Terminal</span>
-              </Menu.Item>
-              <Menu.Item key="item6">
-                <Icon name="trash" />
-                <span> Delete Projects/Students</span>
-              </Menu.Item>
-              {this.props.settings.get("shared_project_id") ? (
-                <Menu.Item key="item7">
-                  <Icon name="trash" />
-                  <span> Delete Shared projects</span>
-                </Menu.Item>
-              ) : undefined}
-              <Menu.Item key="item8">
-                <Icon name="share-square" />
-                <span> Copy Assiangments</span>
-              </Menu.Item>
-              <Menu.Item key="item9">
-                <Icon name="dashboard" />
-                <span> Upgrade Settings</span>
-              </Menu.Item>
-              <Menu.Item key="item10">
-                <Icon name="table" />
-                <span> Export Grades</span>
-              </Menu.Item>
-              <Menu.Item key="item11">
-                <Icon name="envelope" />
-                <span> Project Configuration</span>
-              </Menu.Item>
-              <Menu.Item key="item12">
-                <Icon name="exclamation-circle" />
-                <span> Help</span>
-              </Menu.Item>
-            </Menu>
-          </div>
-
-          <div
             className="smc-vfill"
             //id="configurationpagecontainer"
-            style={{ alignItems: "Center", overflow: "auto", flex: "13" }}
+            style={{ alignItems: "Center", overflow: "auto" }}
           >
-            <div style={{ padding: "15px" }}>
+            <div style={{ }}>
               <div id="item1"></div>
               {this.render_title_description()}
               <br />
@@ -1240,7 +1172,6 @@ export class ConfigurationPanel extends Component<
               <br />
               <div id="item12"></div>
               <HelpBox />
-              <div style={{ height: "700px" }}></div>
             </div>
           </div>
         </div>
