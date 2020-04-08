@@ -6,13 +6,13 @@ const misc = require("smc-util/misc");
 import {
   Icon,
   NonMemberProjectWarning,
-  NoNetworkProjectWarning
+  NoNetworkProjectWarning,
 } from "../../r_misc";
 import { redux, rtypes, rclass } from "../../app-framework";
 
 import {
   AddCollaboratorsPanel,
-  CurrentCollaboratorsPanel
+  CurrentCollaboratorsPanel,
 } from "../../collaborators";
 
 import { TitleDescriptionBox } from "./title-description-box";
@@ -68,11 +68,11 @@ export const Body = rclass<ReactProps>(
       return {
         account: {
           get_total_upgrades: rtypes.func,
-          groups: rtypes.array
+          groups: rtypes.array,
         },
         customize: {
           kucalc: rtypes.string,
-          ssh_gateway: rtypes.bool
+          ssh_gateway: rtypes.bool,
         },
         projects: {
           get_course_info: rtypes.func,
@@ -81,12 +81,12 @@ export const Body = rclass<ReactProps>(
           get_total_project_quotas: rtypes.func,
           get_upgrades_to_project: rtypes.func,
           compute_images: rtypes.immutable.Map,
-          all_projects_have_been_loaded: rtypes.bool
+          all_projects_have_been_loaded: rtypes.bool,
         },
         [name]: {
           configuration: rtypes.immutable,
-          available_features: rtypes.object
-        }
+          available_features: rtypes.object,
+        },
       };
     }
 
@@ -99,7 +99,7 @@ export const Body = rclass<ReactProps>(
           "compute_images",
           "configuration",
           "available_features",
-          "all_projects_have_been_loaded"
+          "all_projects_have_been_loaded",
         ]) ||
         (props.customer != undefined &&
           !props.customer.equals(this.props.customer))
@@ -132,7 +132,7 @@ export const Body = rclass<ReactProps>(
 
       const { commercial } = require("../../customize");
 
-      const scrollToTargetAdjusted = id => {
+      const scrollToTargetAdjusted = (id) => {
         var element: HTMLElement | null = document.getElementById(id);
         if (!element) {
           console.log("document.getElementById(id) returned null");
@@ -142,172 +142,273 @@ export const Body = rclass<ReactProps>(
         //document.getElementById("thisone")!.scrollTop;
       };
 
-      return (
-        <div
-          className="smc-vfill"
-          style={{ flexDirection: "row" }}
-        >
-          <div
-            className="smc-vfill"
-            style={{
-              overflowX: "hidden",
-              overflowY: "auto",
-              flex: "2",
-              minWidth: "260px"
-            }}
-          >
-            <h1
+      if (window.innerWidth > 700) {
+        // LARGER SCREENS
+        return (
+          <div className="smc-vfill" style={{ flexDirection: "row" }}>
+            <div
+              className="smc-vfill"
               style={{
-                marginTop: "0px",
-                fontSize: "20px"
+                overflowX: "hidden",
+                overflowY: "auto",
+                flex: "2",
+                minWidth: "260px",
               }}
             >
-              <Icon name="wrench" /> Project Settings
-            </h1>
-            <div style={{ overflow: "auto" }}>
-              <Menu
-                mode="inline"
-                onClick={e => {
-                  scrollToTargetAdjusted(e.key);
+              <h1
+                style={{
+                  marginTop: "0px",
+                  fontSize: "20px",
                 }}
               >
-                <Menu.Item key="TitleDescriptionBox">
-                  Title and Description
-                </Menu.Item>
-                <Menu.Item key="UpgradeUsage">Upgrade Usage</Menu.Item>
-                <Menu.Item key="HideDeleteBox">Hide or Delete</Menu.Item>
+                <Icon name="wrench" /> Project Settings
+              </h1>
+              <div style={{ overflow: "auto" }}>
+                <Menu
+                  mode="inline"
+                  onClick={(e) => {
+                    scrollToTargetAdjusted(e.key);
+                  }}
+                >
+                  <Menu.Item key="TitleDescriptionBox">
+                    Title and Description
+                  </Menu.Item>
+                  <Menu.Item key="UpgradeUsage">Upgrade Usage</Menu.Item>
+                  <Menu.Item key="HideDeleteBox">Hide or Delete</Menu.Item>
+                  {this.props.ssh_gateway ||
+                  this.props.kucalc === KUCALC_COCALC_COM ? (
+                    <Menu.Item key="ProjectCapabilities">SSH panel</Menu.Item>
+                  ) : undefined}
+                  <Menu.Item key="ProjectCapabilities">
+                    Project Capabilities
+                  </Menu.Item>
+                  <Menu.Item key="CurrentCollaboratorsPanel">
+                    Current Collaborators
+                  </Menu.Item>
+                  <Menu.Item key="AddCollaboratorsPanel">
+                    Add Collaborators
+                  </Menu.Item>
+                  <Menu.Item key="ProjectControl">Project Control</Menu.Item>
+                  <Menu.Item key="SagewsControl">Sage worksheet</Menu.Item>
+                </Menu>
+              </div>
+            </div>
+            <div
+              className="smc-vfill"
+              id="thisone"
+              style={{ overflowY: "auto", flex: "13" }}
+            >
+              <div style={{ padding: "15px", width: "800px" }}>
+                {commercial &&
+                total_project_quotas != undefined &&
+                !total_project_quotas.member_host ? (
+                  <NonMemberProjectWarning
+                    upgrade_type="member_host"
+                    upgrades_you_can_use={upgrades_you_can_use}
+                    upgrades_you_applied_to_all_projects={
+                      upgrades_you_applied_to_all_projects
+                    }
+                    course_info={course_info}
+                    account_id={webapp_client.account_id}
+                    email_address={this.props.email_address}
+                  />
+                ) : undefined}
+                {commercial &&
+                total_project_quotas != undefined &&
+                !total_project_quotas.network ? (
+                  <NoNetworkProjectWarning
+                    upgrade_type="network"
+                    upgrades_you_can_use={upgrades_you_can_use}
+                    upgrades_you_applied_to_all_projects={
+                      upgrades_you_applied_to_all_projects
+                    }
+                  />
+                ) : undefined}
+                <div id="TitleDescriptionBox"></div>
+                <TitleDescriptionBox
+                  project_id={id}
+                  project_title={this.props.project.get("title") || ""}
+                  description={this.props.project.get("description") || ""}
+                  actions={redux.getActions("projects")}
+                />
+                <div id="UpgradeUsage"></div>
+                <UpgradeUsage
+                  project_id={id}
+                  project={this.props.project}
+                  actions={redux.getActions("projects")}
+                  user_map={this.props.user_map}
+                  account_groups={this.props.groups}
+                  upgrades_you_can_use={upgrades_you_can_use}
+                  upgrades_you_applied_to_all_projects={
+                    upgrades_you_applied_to_all_projects
+                  }
+                  upgrades_you_applied_to_this_project={
+                    upgrades_you_applied_to_this_project
+                  }
+                  total_project_quotas={total_project_quotas}
+                  all_upgrades_to_this_project={all_upgrades_to_this_project}
+                  all_projects_have_been_loaded={
+                    this.props.all_projects_have_been_loaded
+                  }
+                  site_license_upgrades={site_license_upgrades}
+                  site_license_ids={site_license_ids}
+                />
+                <div id="HideDeleteBox"></div>
+                <HideDeleteBox
+                  key="hidedelete"
+                  project={this.props.project}
+                  actions={redux.getActions("projects")}
+                />
+                <div id="SSHPanel"></div>
                 {this.props.ssh_gateway ||
                 this.props.kucalc === KUCALC_COCALC_COM ? (
-                  <Menu.Item key="ProjectCapabilities">SSH panel</Menu.Item>
-                ) : (
-                  undefined
-                )}
-                <Menu.Item key="ProjectCapabilities">
-                  Project Capabilities
-                </Menu.Item>
-                <Menu.Item key="CurrentCollaboratorsPanel">
-                  Current Collaborators
-                </Menu.Item>
-                <Menu.Item key="AddCollaboratorsPanel">
-                  Add Collaborators
-                </Menu.Item>
-                <Menu.Item key="ProjectControl">Project Control</Menu.Item>
-                <Menu.Item key="SagewsControl">Sage worksheet</Menu.Item>
-              </Menu>
-            </div>
-          </div>
-          <div
-            className="smc-vfill"
-            id="thisone"
-            style={{ overflowY: "auto", flex: "13" }}
-          >
-            <div style={{ padding: "15px", width: "800px" }}>
-              {commercial &&
-              total_project_quotas != undefined &&
-              !total_project_quotas.member_host ? (
-                <NonMemberProjectWarning
-                  upgrade_type="member_host"
-                  upgrades_you_can_use={upgrades_you_can_use}
-                  upgrades_you_applied_to_all_projects={
-                    upgrades_you_applied_to_all_projects
-                  }
-                  course_info={course_info}
-                  account_id={webapp_client.account_id}
-                  email_address={this.props.email_address}
+                  <SSHPanel
+                    key="ssh-keys"
+                    project={this.props.project}
+                    user_map={this.props.user_map}
+                    account_id={this.props.account_id}
+                  />
+                ) : undefined}
+                <div id="ProjectCapabilities"></div>
+                <ProjectCapabilities
+                  name={this.props.name}
+                  key={"capabilities"}
+                  project={this.props.project}
                 />
-              ) : (
-                undefined
-              )}
-              {commercial &&
-              total_project_quotas != undefined &&
-              !total_project_quotas.network ? (
-                <NoNetworkProjectWarning
-                  upgrade_type="network"
-                  upgrades_you_can_use={upgrades_you_can_use}
-                  upgrades_you_applied_to_all_projects={
-                    upgrades_you_applied_to_all_projects
-                  }
-                />
-              ) : (
-                undefined
-              )}
-              <div id="TitleDescriptionBox"></div>
-              <TitleDescriptionBox
-                project_id={id}
-                project_title={this.props.project.get("title") || ""}
-                description={this.props.project.get("description") || ""}
-                actions={redux.getActions("projects")}
-              />
-              <div id="UpgradeUsage"></div>
-              <UpgradeUsage
-                project_id={id}
-                project={this.props.project}
-                actions={redux.getActions("projects")}
-                user_map={this.props.user_map}
-                account_groups={this.props.groups}
-                upgrades_you_can_use={upgrades_you_can_use}
-                upgrades_you_applied_to_all_projects={
-                  upgrades_you_applied_to_all_projects
-                }
-                upgrades_you_applied_to_this_project={
-                  upgrades_you_applied_to_this_project
-                }
-                total_project_quotas={total_project_quotas}
-                all_upgrades_to_this_project={all_upgrades_to_this_project}
-                all_projects_have_been_loaded={
-                  this.props.all_projects_have_been_loaded
-                }
-                site_license_upgrades={site_license_upgrades}
-                site_license_ids={site_license_ids}
-              />
-              <div id="HideDeleteBox"></div>
-              <HideDeleteBox
-                key="hidedelete"
-                project={this.props.project}
-                actions={redux.getActions("projects")}
-              />
-              <div id="SSHPanel"></div>
-              {this.props.ssh_gateway ||
-              this.props.kucalc === KUCALC_COCALC_COM ? (
-                <SSHPanel
-                  key="ssh-keys"
+                <div id="CurrentCollaboratorsPanel"></div>
+                <CurrentCollaboratorsPanel
+                  key="current-collabs"
                   project={this.props.project}
                   user_map={this.props.user_map}
-                  account_id={this.props.account_id}
                 />
-              ) : (
-                undefined
-              )}
-              <div id="ProjectCapabilities"></div>
-              <ProjectCapabilities
-                name={this.props.name}
-                key={"capabilities"}
-                project={this.props.project}
-              />
-              <div id="CurrentCollaboratorsPanel"></div>
-              <CurrentCollaboratorsPanel
-                key="current-collabs"
-                project={this.props.project}
-                user_map={this.props.user_map}
-              />
-              <div id="AddCollaboratorsPanel"></div>
-              <AddCollaboratorsPanel
-                key="new-collabs"
-                project={this.props.project}
-                on_invite={() =>
-                  analytics_event("project_settings", "add collaborator")
-                }
-                allow_urls={allow_urls}
-              />
-              <div id="ProjectControl"></div>
-              <ProjectControl key="control" project={this.props.project} />
-              <div id="SagewsControl"></div>
-              <SagewsControl key="worksheet" project={this.props.project} />
-              <div style={{ height: "750px" }}></div>
+                <div id="AddCollaboratorsPanel"></div>
+                <AddCollaboratorsPanel
+                  key="new-collabs"
+                  project={this.props.project}
+                  on_invite={() =>
+                    analytics_event("project_settings", "add collaborator")
+                  }
+                  allow_urls={allow_urls}
+                />
+                <div id="ProjectControl"></div>
+                <ProjectControl key="control" project={this.props.project} />
+                <div id="SagewsControl"></div>
+                <SagewsControl key="worksheet" project={this.props.project} />
+                <div style={{ height: "750px" }}></div>
+              </div>
             </div>
           </div>
-        </div>
-      );
+        );
+      } else {
+        // MOBILE VIEW 
+        return (
+          <div className="smc-vfill" style={{ }}>
+            <div
+              className="smc-vfill"
+              id="thisone"
+              style={{ overflowY: "auto", flex: "13" }}
+            >
+              <div style={{ }}>
+                {commercial &&
+                total_project_quotas != undefined &&
+                !total_project_quotas.member_host ? (
+                  <NonMemberProjectWarning
+                    upgrade_type="member_host"
+                    upgrades_you_can_use={upgrades_you_can_use}
+                    upgrades_you_applied_to_all_projects={
+                      upgrades_you_applied_to_all_projects
+                    }
+                    course_info={course_info}
+                    account_id={webapp_client.account_id}
+                    email_address={this.props.email_address}
+                  />
+                ) : undefined}
+                {commercial &&
+                total_project_quotas != undefined &&
+                !total_project_quotas.network ? (
+                  <NoNetworkProjectWarning
+                    upgrade_type="network"
+                    upgrades_you_can_use={upgrades_you_can_use}
+                    upgrades_you_applied_to_all_projects={
+                      upgrades_you_applied_to_all_projects
+                    }
+                  />
+                ) : undefined}
+                <div id="TitleDescriptionBox"></div>
+                <TitleDescriptionBox
+                  project_id={id}
+                  project_title={this.props.project.get("title") || ""}
+                  description={this.props.project.get("description") || ""}
+                  actions={redux.getActions("projects")}
+                />
+                <div id="UpgradeUsage"></div>
+                <UpgradeUsage
+                  project_id={id}
+                  project={this.props.project}
+                  actions={redux.getActions("projects")}
+                  user_map={this.props.user_map}
+                  account_groups={this.props.groups}
+                  upgrades_you_can_use={upgrades_you_can_use}
+                  upgrades_you_applied_to_all_projects={
+                    upgrades_you_applied_to_all_projects
+                  }
+                  upgrades_you_applied_to_this_project={
+                    upgrades_you_applied_to_this_project
+                  }
+                  total_project_quotas={total_project_quotas}
+                  all_upgrades_to_this_project={all_upgrades_to_this_project}
+                  all_projects_have_been_loaded={
+                    this.props.all_projects_have_been_loaded
+                  }
+                  site_license_upgrades={site_license_upgrades}
+                  site_license_ids={site_license_ids}
+                />
+                <div id="HideDeleteBox"></div>
+                <HideDeleteBox
+                  key="hidedelete"
+                  project={this.props.project}
+                  actions={redux.getActions("projects")}
+                />
+                <div id="SSHPanel"></div>
+                {this.props.ssh_gateway ||
+                this.props.kucalc === KUCALC_COCALC_COM ? (
+                  <SSHPanel
+                    key="ssh-keys"
+                    project={this.props.project}
+                    user_map={this.props.user_map}
+                    account_id={this.props.account_id}
+                  />
+                ) : undefined}
+                <div id="ProjectCapabilities"></div>
+                <ProjectCapabilities
+                  name={this.props.name}
+                  key={"capabilities"}
+                  project={this.props.project}
+                />
+                <div id="CurrentCollaboratorsPanel"></div>
+                <CurrentCollaboratorsPanel
+                  key="current-collabs"
+                  project={this.props.project}
+                  user_map={this.props.user_map}
+                />
+                <div id="AddCollaboratorsPanel"></div>
+                <AddCollaboratorsPanel
+                  key="new-collabs"
+                  project={this.props.project}
+                  on_invite={() =>
+                    analytics_event("project_settings", "add collaborator")
+                  }
+                  allow_urls={allow_urls}
+                />
+                <div id="ProjectControl"></div>
+                <ProjectControl key="control" project={this.props.project} />
+                <div id="SagewsControl"></div>
+                <SagewsControl key="worksheet" project={this.props.project} />
+              </div>
+            </div>
+          </div>
+        );
+      }
     }
   }
 );
