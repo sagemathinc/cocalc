@@ -96,9 +96,7 @@ class Configure extends Component<Props, State> {
   private render_how_shared_heading(): Rendered {
     return (
       <div style={{ color: "#444", fontSize: "15pt" }}>
-        How the {this.props.isdir ? "directory" : "file"}{" "}
-        <span style={{ fontFamily: "monospace" }}>"{this.props.path}"</span> is
-        shared
+       Public or Private?
       </div>
     );
   }
@@ -161,7 +159,7 @@ class Configure extends Component<Props, State> {
           <Space />
           <i>Public (listed)</i> - on the{" "}
           <a href={share_server_url()} target="_blank">
-            public share server
+            public Google-indexed server
           </a>
           .
         </Radio>
@@ -201,7 +199,7 @@ class Configure extends Component<Props, State> {
       >
         <Icon name="eye-slash" />
         <Space />
-        <i>Public (unlisted)</i> - Only people with the link can view this.
+        <i>Public (unlisted)</i> - only people with the link can view this.
       </Radio>
     );
   }
@@ -217,7 +215,7 @@ class Configure extends Component<Props, State> {
       >
         <Icon name="lock" />
         <Space />
-        <i>Private</i> - Only collaborators on this project can view this.
+        <i>Private</i> - only collaborators on this project can view this.
       </Radio>
     );
   }
@@ -365,12 +363,12 @@ class Configure extends Component<Props, State> {
     return (
       <div style={{ color: "#555", fontSize: "12pt" }}>
         <a href={SHARE_HELP_URL} target="_blank" rel="noopener">
-          You share
+          You make
         </a>{" "}
         files or directories{" "}
         <a href={server} target="_blank" rel="noopener">
           <b>
-            <i>to the world</i>,
+            <i>public to the world</i>,
           </b>
         </a>{" "}
         either indexed by search engines (listed), or only visible with the link
