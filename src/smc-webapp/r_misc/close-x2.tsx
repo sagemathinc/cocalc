@@ -11,8 +11,8 @@ export class CloseX2 extends React.Component<Props> {
     close: undefined,
     style: {
       cursor: "pointer",
-      fontSize: "13pt"
-    }
+      fontSize: "13pt",
+    },
   };
 
   shouldComponentUpdate(next) {

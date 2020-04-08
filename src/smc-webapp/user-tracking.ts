@@ -18,15 +18,15 @@ export async function log(eventName: string, payload: any): Promise<void> {
       account_id: redux.getStore("account")?.get("account_id"),
       analytics_cookie: get_cookie(analytics),
       cocalc_version: version,
-      ...payload
+      ...payload,
     },
-    time: server_time()
+    time: server_time(),
   };
   try {
     await query({
       query: {
-        central_log
-      }
+        central_log,
+      },
     });
   } catch (err) {
     console.warn("WARNING: Failed to write log event -- ", central_log);

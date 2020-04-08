@@ -46,7 +46,7 @@ export class Image extends Component<ImageProps, ImageState> {
   };
 
   img_click(): void {
-    this.setState(state => {
+    this.setState((state) => {
       return { zoomed: !state.zoomed };
     });
   }
@@ -56,7 +56,7 @@ export class Image extends Component<ImageProps, ImageState> {
       src,
       width: this.props.width,
       height: this.props.height,
-      onClick: this.img_click
+      onClick: this.img_click,
     };
     if (this.props.width == null && this.props.height == null) {
       const cursor = this.state.zoomed ? "zoom-out" : "zoom-in";

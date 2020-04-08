@@ -29,7 +29,7 @@ import {
   synctable_no_changefeed,
   synctable_no_database,
   SyncTable,
-  VersionedChange
+  VersionedChange,
 } from "../smc-util/sync/table";
 
 import { init_syncdoc } from "./sync-doc";
@@ -117,7 +117,7 @@ class SyncTableChannel {
     query,
     options,
     logger,
-    name
+    name,
   }: {
     client: Client;
     primus: Primus;
@@ -301,7 +301,7 @@ class SyncTableChannel {
     // with table state.
     this.send_synctable_to_browser(spark);
 
-    spark.on("data", async mesg => {
+    spark.on("data", async (mesg) => {
       try {
         await this.handle_mesg_from_browser(spark, mesg);
       } catch (err) {
@@ -450,6 +450,12 @@ async function synctable_channel0(
 ): Promise<string> {
   const name = channel_name(query, options);
   logger.debug("synctable_channel", JSON.stringify(query), name);
+  if (query?.syncstrings != null) {
+    const path = query?.syncstrings[0]?.path;
+    if (client.is_deleted(path)) {
+      throw Error(`${path} is deleted`);
+    }
+  }
   if (synctable_channels[name] === undefined) {
     synctable_channels[name] = new SyncTableChannel({
       client,
@@ -457,7 +463,7 @@ async function synctable_channel0(
       name,
       query,
       options,
-      logger
+      logger,
     });
     await synctable_channels[name].init();
     if (query?.listings != null) {
@@ -472,5 +478,5 @@ async function synctable_channel0(
 }
 
 export const synctable_channel = reuseInFlight(synctable_channel0, {
-  createKey
+  createKey,
 });

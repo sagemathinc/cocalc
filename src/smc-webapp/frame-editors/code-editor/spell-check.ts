@@ -52,7 +52,7 @@ export async function misspelled_words(opts: Options): Promise<string[]> {
     bash: true,
     err_on_exit: true,
     allow_post: true,
-    aggregate: opts.time
+    aggregate: opts.time,
   });
 
   if (output.stderr) {

@@ -29,7 +29,7 @@ import {
   AssignmentRecord,
   StudentRecord,
   LastCopyInfo,
-  NBgraderRunInfo
+  NBgraderRunInfo,
 } from "./store";
 import { NotebookScores } from "../jupyter/nbgrader/autograde";
 import { NbgraderScores } from "./nbgrader/scores";
@@ -47,7 +47,7 @@ import {
   MarkdownInput,
   TimeAgo,
   Tip,
-  is_different_date
+  is_different_date,
 } from "../r_misc";
 
 export { FoldersToolbar } from "./common/FoldersToolBar";
@@ -232,13 +232,13 @@ export class StudentAssignmentInfo extends Component<
       recopy_copy: false,
       recopy_copy_tip: false,
       recopy_open_tip: false,
-      recopy_placement: false
+      recopy_placement: false,
     };
   }
 
   static defaultProps = {
     grade: "",
-    comments: ""
+    comments: "",
   };
 
   private get_actions(): CourseActions {
@@ -300,12 +300,12 @@ export class StudentAssignmentInfo extends Component<
     );
   };
 
-  private handle_grade_change = e => {
+  private handle_grade_change = (e) => {
     e.preventDefault();
     this.set_edited_feedback(e.target.value);
   };
 
-  private handle_comments_change = value => {
+  private handle_comments_change = (value) => {
     this.set_edited_feedback(undefined, value);
   };
 
@@ -347,9 +347,7 @@ export class StudentAssignmentInfo extends Component<
               <span>
                 <strong>Comments</strong>:
               </span>
-            ) : (
-              undefined
-            )}
+            ) : undefined}
           </div>
         );
       }
@@ -377,13 +375,13 @@ export class StudentAssignmentInfo extends Component<
           maxHeight: "4em",
           overflowY: "auto",
           padding: "5px",
-          border: "1px solid #888"
+          border: "1px solid #888",
         }}
       />
     );
   }
 
-  private on_key_down_grade_editor = e => {
+  private on_key_down_grade_editor = (e) => {
     switch (e.keyCode) {
       case 27:
         this.cancel_editing();
@@ -636,7 +634,10 @@ export class StudentAssignmentInfo extends Component<
     }
     // We search for two different error messages, since different errors happen in
     // KuCalc versus other places cocalc runs.  It depends on what is doing the copy.
-    if (error.indexOf("No such file or directory") !== -1 || error.indexOf("ENOENT") != -1) {
+    if (
+      error.indexOf("No such file or directory") !== -1 ||
+      error.indexOf("ENOENT") != -1
+    ) {
       error = `The student probably renamed the directory that contained their assignment.  Open their project and see what happened.   If they renamed it, you could rename it back, then collect the assignment again.\n${error}`;
     } else {
       error = `Try to ${name.toLowerCase()} again:\n` + error;
@@ -666,7 +667,7 @@ export class StudentAssignmentInfo extends Component<
       enable_copy: false,
       copy_tip: "",
       open_tip: "",
-      omit_errors: false
+      omit_errors: false,
     });
 
     const open = () =>
@@ -725,7 +726,7 @@ export class StudentAssignmentInfo extends Component<
           copy_tip:
             "Copy collected assignments from your project to this student's project so they can grade them.",
           open_tip:
-            "Open the student's copies of this assignment directly in their project, so you can see what they are peer grading."
+            "Open the student's copies of this assignment directly in their project, so you can see what they are peer grading.",
         })}
       </Col>
     );
@@ -742,7 +743,7 @@ export class StudentAssignmentInfo extends Component<
           copy_tip:
             "Copy the peer-graded assignments from various student projects back to your project so you can assign their official grade.",
           open_tip:
-            "Open your copy of your student's peer grading work in your own project, so that you can grade their work."
+            "Open your copy of your student's peer grading work in your own project, so that you can grade their work.",
         })}
       </Col>
     );
@@ -752,7 +753,7 @@ export class StudentAssignmentInfo extends Component<
     let show_grade_col, show_return_graded;
     const peer_grade: boolean = !!this.props.assignment.getIn([
       "peer_grade",
-      "enabled"
+      "enabled",
     ]);
     const skip_grading: boolean = !!this.props.assignment.get("skip_grading");
     const skip_assignment: boolean = !!this.props.assignment.get(
@@ -790,7 +791,7 @@ export class StudentAssignmentInfo extends Component<
           style={{
             borderTop: "1px solid #aaa",
             paddingTop: "5px",
-            paddingBottom: "5px"
+            paddingBottom: "5px",
           }}
         >
           <Col md={4} key="title">
@@ -809,7 +810,7 @@ export class StudentAssignmentInfo extends Component<
                   open_tip:
                     "Open the student's copy of this assignment directly in their project. " +
                     "You will be able to see them type, chat with them, leave them hints, etc.",
-                  omit_errors: skip_assignment
+                  omit_errors: skip_assignment,
                 })}
               </Col>
               <Col md={width} key="last_collect">
@@ -828,7 +829,7 @@ export class StudentAssignmentInfo extends Component<
                         "Copy the assignment from your student's project back to your project so you can grade their work.",
                       open_tip:
                         "Open the copy of your student's work in your own project, so that you can grade their work.",
-                      omit_errors: skip_collect
+                      omit_errors: skip_collect,
                     })
                   : undefined}
               </Col>
@@ -857,7 +858,7 @@ export class StudentAssignmentInfo extends Component<
                         "Copy the graded assignment back to your student's project.",
                       open_tip:
                         "Open the copy of your student's work that you returned to them. " +
-                        "This opens the returned assignment directly in their project."
+                        "This opens the returned assignment directly in their project.",
                     })
                   : undefined}
               </Col>

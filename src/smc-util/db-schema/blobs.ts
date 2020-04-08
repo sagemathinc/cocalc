@@ -6,49 +6,49 @@ Table({
     id: {
       type: "uuid",
       desc:
-        "The uuid of this blob, which is a uuid derived from the Sha1 hash of the blob content."
+        "The uuid of this blob, which is a uuid derived from the Sha1 hash of the blob content.",
     },
     blob: {
       type: "Buffer",
-      desc: "The actual blob content"
+      desc: "The actual blob content",
     },
     expire: {
       type: "timestamp",
       desc:
-        "When to expire this blob (when delete_expired is called on the database)."
+        "When to expire this blob (when delete_expired is called on the database).",
     },
     created: {
       type: "timestamp",
-      desc: "When the blob was created."
+      desc: "When the blob was created.",
     },
     project_id: {
       type: "string",
-      desc: "The uuid of the project that created the blob."
+      desc: "The uuid of the project that created the blob.",
     },
     last_active: {
       type: "timestamp",
-      desc: "When the blob was last pulled from the database."
+      desc: "When the blob was last pulled from the database.",
     },
     count: {
       type: "number",
-      desc: "How many times the blob has been pulled from the database."
+      desc: "How many times the blob has been pulled from the database.",
     },
     size: {
       type: "number",
-      desc: "The size in bytes of the blob."
+      desc: "The size in bytes of the blob.",
     },
     gcloud: {
       type: "string",
-      desc: "name of a bucket that contains the actual blob, if available."
+      desc: "name of a bucket that contains the actual blob, if available.",
     },
     backup: {
       type: "boolean",
-      desc: "if true, then this blob was saved to an offsite backup"
+      desc: "if true, then this blob was saved to an offsite backup",
     },
     compress: {
       type: "string",
-      desc: "optional compression used: 'gzip', 'zlib', 'snappy'"
-    }
+      desc: "optional compression used: 'gzip', 'zlib', 'snappy'",
+    },
   },
   rules: {
     desc:
@@ -70,13 +70,13 @@ Table({
               } else {
                 cb(undefined, { id: obj.id, blob });
               }
-            }
+            },
           });
         },
         fields: {
           id: null,
-          blob: null
-        }
+          blob: null,
+        },
       },
       set: {
         // NOTE: we put "as any" for fields below because ttl is not an actual field but
@@ -89,12 +89,12 @@ Table({
           id: true,
           blob: true,
           project_id: "project_write",
-          ttl: 0
+          ttl: 0,
         } as any,
         required_fields: {
           id: true,
           blob: true,
-          project_id: true
+          project_id: true,
         },
         async instead_of_change(
           database,
@@ -109,10 +109,10 @@ Table({
             ttl: new_val.ttl,
             project_id: new_val.project_id,
             check: true, // can't trust the user!
-            cb
+            cb,
           });
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+  },
 });

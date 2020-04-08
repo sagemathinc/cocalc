@@ -21,7 +21,7 @@ describe("smoke testing", () => {
     expect(rendered).toMatchSnapshot();
 
     rendered.setProps({
-      number: updated_number
+      number: updated_number,
     });
 
     expect(rendered).toMatchSnapshot();

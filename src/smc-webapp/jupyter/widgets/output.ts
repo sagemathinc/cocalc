@@ -7,7 +7,7 @@ export class OutputModel extends outputBase.OutputModel {
   defaults() {
     return {
       ...super.defaults(),
-      msg_id: ""
+      msg_id: "",
     };
   }
 

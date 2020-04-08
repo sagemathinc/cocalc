@@ -18,7 +18,7 @@ regex_split = require("./regex-split").regex_split;
 //  Clear the current math positions and store the index of the
 //    math, then push the math string onto the storage array.
 //  The preProcess function is called on all blocks if it has been passed in
-var process_math = function(i, j, pre_process, math, blocks) {
+var process_math = function (i, j, pre_process, math, blocks) {
   var block = blocks.slice(i, j + 1).join("");
   while (j > i) {
     blocks[j] = "";
@@ -38,7 +38,7 @@ var process_math = function(i, j, pre_process, math, blocks) {
 //  Don't allow math to pass through a double linebreak
 //    (which will be a paragraph).
 //
-exports.remove_math = function(text) {
+exports.remove_math = function (text) {
   var math = []; // stores math strings for later
   var start;
   var end;
@@ -56,16 +56,16 @@ exports.remove_math = function(text) {
   if (hasCodeSpans) {
     text = text
       .replace(/~/g, "~T")
-      .replace(/(^|[^\\])(`+)([^\n]*?[^`\n])\2(?!`)/gm, function(wholematch) {
+      .replace(/(^|[^\\])(`+)([^\n]*?[^`\n])\2(?!`)/gm, function (wholematch) {
         return wholematch.replace(/\$/g, "~D");
       });
-    de_tilde = function(text) {
-      return text.replace(/~([TD])/g, function(wholematch, character) {
+    de_tilde = function (text) {
+      return text.replace(/~([TD])/g, function (wholematch, character) {
         return { T: "~", D: "$" }[character];
       });
     };
   } else {
-    de_tilde = function(text) {
+    de_tilde = function (text) {
       return text;
     };
   }
@@ -142,10 +142,10 @@ exports.remove_math = function(text) {
 //
 //  Put back the math strings that were saved.
 //
-exports.replace_math = function(text, math) {
+exports.replace_math = function (text, math) {
   // Replace all the math group placeholders in the text
   // with the saved strings.
-  return text.replace(/@@(\d+)@@/g, function(match, n) {
+  return text.replace(/@@(\d+)@@/g, function (match, n) {
     return math[n];
   });
 };

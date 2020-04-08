@@ -9,13 +9,13 @@ import {
   TimeElapsed,
   Space,
   Icon,
-  SettingBox
+  SettingBox,
 } from "../../r_misc";
 import {
   CUSTOM_SOFTWARE_HELP_URL,
   compute_image2name,
   compute_image2basename,
-  CUSTOM_IMG_PREFIX
+  CUSTOM_IMG_PREFIX,
 } from "../../custom-software/util";
 import { async } from "async";
 import { analytics_event } from "../../tracker";
@@ -24,7 +24,7 @@ import {
   Button,
   MenuItem,
   Alert,
-  DropdownButton
+  DropdownButton,
 } from "react-bootstrap";
 import { alert_message } from "../../alerts";
 import { Project } from "./types";
@@ -33,7 +33,7 @@ import { Popconfirm, Icon as AntIcon } from "antd";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 let {
   COMPUTE_IMAGES,
-  DEFAULT_COMPUTE_IMAGE
+  DEFAULT_COMPUTE_IMAGE,
 } = require("smc-util/compute-images");
 COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES); // only because that's how all the ui code was written.
 
@@ -61,11 +61,11 @@ export const ProjectControl = rclass<ReactProps>(
     static reduxProps() {
       return {
         customize: {
-          kucalc: rtypes.string
+          kucalc: rtypes.string,
         },
         compute_images: {
-          images: rtypes.immutable.Map
-        }
+          images: rtypes.immutable.Map,
+        },
       };
     }
 
@@ -75,7 +75,7 @@ export const ProjectControl = rclass<ReactProps>(
         show_ssh: false,
         compute_image: this.props.project.get("compute_image"),
         compute_image_changing: false,
-        compute_image_focused: false
+        compute_image_focused: false,
       };
     }
 
@@ -87,7 +87,7 @@ export const ProjectControl = rclass<ReactProps>(
       if (new_image !== this.state.compute_image) {
         return this.setState({
           compute_image: new_image,
-          compute_image_changing: false
+          compute_image_changing: false,
         });
       }
     }
@@ -96,19 +96,19 @@ export const ProjectControl = rclass<ReactProps>(
       e.preventDefault();
       const project_id = this.props.project.get("project_id");
       return async.series([
-        cb => {
+        (cb) => {
           return project_tasks(project_id).ensure_directory_exists({
             path: ".ssh",
-            cb
+            cb,
           });
         },
-        cb => {
+        (cb) => {
           redux.getActions({ project_id }).open_file({
             path: ".ssh/authorized_keys",
-            foreground: true
+            foreground: true,
           });
           return cb();
-        }
+        },
       ]);
     }
 
@@ -286,20 +286,20 @@ export const ProjectControl = rclass<ReactProps>(
       );
     }
 
-    cancel_compute_image = current_image => {
+    cancel_compute_image = (current_image) => {
       this.setState({
         compute_image: current_image,
         compute_image_changing: false,
-        compute_image_focused: false
+        compute_image_focused: false,
       });
     };
 
-    save_compute_image = async current_image => {
+    save_compute_image = async (current_image) => {
       // image is reset to the previous name and componentWillReceiveProps will set it when new
       this.setState({
         compute_image: current_image,
         compute_image_changing: true,
-        compute_image_focused: false
+        compute_image_focused: false,
       });
       const new_image = this.state.compute_image;
       const actions = redux.getProjectActions(
@@ -324,7 +324,7 @@ export const ProjectControl = rclass<ReactProps>(
     }
 
     render_compute_image_items() {
-      return COMPUTE_IMAGES.entrySeq().map(entry => {
+      return COMPUTE_IMAGES.entrySeq().map((entry) => {
         const [name, data] = entry;
         return (
           <MenuItem
@@ -452,7 +452,9 @@ export const ProjectControl = rclass<ReactProps>(
                 selected_title != undefined ? selected_title : selected_image
               }
               id={selected_image}
-              onToggle={open => this.setState({ compute_image_focused: open })}
+              onToggle={(open) =>
+                this.setState({ compute_image_focused: open })
+              }
               onBlur={() => this.setState({ compute_image_focused: false })}
             >
               {this.render_compute_image_items()}
@@ -462,9 +464,7 @@ export const ProjectControl = rclass<ReactProps>(
               <span style={{ color: COLORS.GRAY, fontSize: "11pt" }}>
                 <br /> (If in doubt, select "{default_title}".)
               </span>
-            ) : (
-              undefined
-            )}
+            ) : undefined}
           </div>
           <div style={{ marginTop: "10px" }}>
             <span>
@@ -484,9 +484,7 @@ export const ProjectControl = rclass<ReactProps>(
                 Cancel
               </Button>
             </div>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </div>
       );
     }
@@ -494,7 +492,7 @@ export const ProjectControl = rclass<ReactProps>(
     rowstyle(delim?) {
       const style: React.CSSProperties = {
         marginBottom: "5px",
-        paddingBottom: "10px"
+        paddingBottom: "10px",
       };
       if (delim) {
         style.borderBottom = "1px solid #ccc";

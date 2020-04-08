@@ -39,7 +39,7 @@ export function parse_target(
               | "billing"
               | "upgrades"
               | "support"
-              | "ssh-keys"
+              | "ssh-keys",
           };
         default:
           return { page: "account", tab: "account" };

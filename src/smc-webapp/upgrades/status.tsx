@@ -12,7 +12,7 @@ import {
   Rendered,
   Component,
   React,
-  redux
+  redux,
 } from "../app-framework";
 
 import { len } from "smc-util/misc2";
@@ -31,11 +31,11 @@ class UpgradeStatus extends Component<Props, {}> {
   static reduxProps() {
     return {
       account: {
-        stripe_customer: rtypes.immutable.Map
+        stripe_customer: rtypes.immutable.Map,
       },
       projects: {
-        project_map: rtypes.immutable.Map
-      }
+        project_map: rtypes.immutable.Map,
+      },
     };
   }
 

@@ -50,11 +50,10 @@ const {
   SENDGRID_ASM_NEWSLETTER,
   COMPANY_NAME,
   COMPANY_EMAIL,
-  DOMAIN_NAME,
   SITE_NAME,
   DNS,
   HELP_EMAIL,
-  LIVE_DEMO_REQUEST
+  LIVE_DEMO_REQUEST,
 } = require("smc-util/theme");
 
 export function escape_email_body(body: string, allow_urls: boolean): string {
@@ -88,12 +87,20 @@ export function escape_email_body(body: string, allow_urls: boolean): string {
     "tr",
     "th",
     "td",
-    "pre"
+    "pre",
   ];
   if (allow_urls) {
     allowedTags.push("a");
   }
   return sanitizeHtml(body, { allowedTags });
+}
+
+function fallback(val: string | undefined, alt: string) {
+  if (typeof val == "string" && val.length > 0) {
+    return val;
+  } else {
+    return alt;
+  }
 }
 
 // global state
@@ -156,8 +163,8 @@ async function init_smtp_server(opts: Opts, dbg): Promise<void> {
     secure: s.email_smtp_secure, // true for 465, false for other ports
     auth: {
       user: s.email_smtp_login,
-      pass: s.email_smtp_password
-    }
+      pass: s.email_smtp_password,
+    },
   });
   dbg("SMTP server configured");
 }
@@ -168,7 +175,7 @@ async function send_via_smtp(opts: Opts, dbg): Promise<string | undefined> {
     from: opts.from,
     to: opts.to,
     subject: opts.subject,
-    html: smtp_email_body(opts)
+    html: smtp_email_body(opts),
   };
   if (opts.replyto) {
     msg.reply_to = opts.replyto;
@@ -196,8 +203,8 @@ async function send_via_sendgrid(opts, dbg): Promise<void> {
     content: [
       {
         type: "text/html",
-        value: opts.body
-      }
+        value: opts.body,
+      },
     ],
     // plain template with a header (cocalc logo), a h1 title, and a footer
     template_id: SENDGRID_TEMPLATE_ID,
@@ -207,22 +214,22 @@ async function send_via_sendgrid(opts, dbg): Promise<void> {
         subject: opts.subject,
         to: [
           {
-            email: opts.to
-          }
-        ]
-      }
+            email: opts.to,
+          },
+        ],
+      },
     ],
 
     // This #title# will end up below the header in an <h1> according to the template
     substitutions: {
-      "#title#": opts.subject
-    }
+      "#title#": opts.subject,
+    },
   };
 
   if (opts.replyto) {
     msg.reply_to = {
       name: opts.replyto_name ?? opts.replyto,
-      email: opts.replyto
+      email: opts.replyto,
     };
   }
 
@@ -253,7 +260,7 @@ async function send_via_sendgrid(opts, dbg): Promise<void> {
   const req = {
     body: msg,
     method: "POST",
-    url: "/v3/mail/send"
+    url: "/v3/mail/send",
   };
 
   return new Promise((done, fail) => {
@@ -263,7 +270,7 @@ async function send_via_sendgrid(opts, dbg): Promise<void> {
         dbg(`sending email to ${opts.to} -- success -- ${misc.to_json(body)}`);
         done();
       })
-      .catch(err => {
+      .catch((err) => {
         dbg(`sending email to ${opts.to} -- error = ${misc.to_json(err)}`);
         fail(err);
       });
@@ -331,9 +338,9 @@ export function is_banned(address): boolean {
 
 function make_dbg(opts) {
   if (opts.verbose) {
-    return m => winston.debug(`send_email(to:${opts.to}) -- ${m}`);
+    return (m) => winston.debug(`send_email(to:${opts.to}) -- ${m}`);
   } else {
-    return function(_) {};
+    return function (_) {};
   }
 }
 
@@ -350,14 +357,14 @@ async function init_pw_reset_smtp_server(opts): Promise<void> {
     secure: s.password_reset_smtp_secure, // true for 465, false for other ports
     auth: {
       user: s.password_reset_smtp_login,
-      pass: s.password_reset_smtp_password
-    }
+      pass: s.password_reset_smtp_password,
+    },
   });
 }
 
 const smtp_footer = `
 <p style="margin-top:150px; border-top: 1px solid gray; color: gray; font-size:85%; text-align:center">
-This email was sent by <a href="${DOMAIN_NAME}"><%= settings.site_name %></a> by ${COMPANY_NAME}.
+This email was sent by <a href="<%= url %>"><%= settings.site_name %></a> by <%= company_name %>.
 Contact <a href="mailto:<%= settings.help_email %>"><%= settings.help_email %></a> if you have any questions.
 </p>`;
 
@@ -401,14 +408,16 @@ interface Opts {
   asm_group?: number;
   // "Partial" b/c any might be missing for random reasons
   settings: AllSiteSettings;
+  url?: string; // for the string templates
+  company_name?: string; // for the string templates
   cb?: (err?, msg?) => void;
 }
 
 const opts_default: Opts = {
   subject: required,
   body: required,
-  fromname: COMPANY_NAME,
-  from: COMPANY_EMAIL,
+  fromname: undefined,
+  from: undefined,
   to: required,
   replyto: undefined,
   replyto_name: undefined,
@@ -418,13 +427,21 @@ const opts_default: Opts = {
   cb: undefined,
   category: undefined,
   asm_group: undefined,
-  settings: required
+  settings: required,
 };
 
 // here's how I test this function:
 //    require('email').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@sagemath.com', cb:console.log)
 export async function send_email(opts: Opts): Promise<void> {
+  const settings = opts.settings;
+  const company_name = fallback(settings.organization_name, COMPANY_NAME);
+  opts_default.fromname = opts_default.fromname || company_name;
+  opts_default.from = opts_default.from || settings.organization_email;
   opts = defaults(opts, opts_default);
+  opts.company_name = company_name;
+
+  const dns = fallback(settings.dns, DNS);
+  opts.url = `https://${dns}`;
 
   const dbg = make_dbg(opts);
   dbg(`${opts.body.slice(0, 201)}...`);
@@ -471,7 +488,7 @@ export async function send_email(opts: Opts): Promise<void> {
         replyTo: opts.settings.password_reset_smtp_from,
         to: opts.to,
         subject: opts.subject,
-        html: password_reset_body(opts)
+        html: password_reset_body(opts),
       });
 
       message = `password reset email sent via SMTP: ${info.messageId}`;
@@ -530,10 +547,10 @@ export function mass_email(opts): void {
     to: required, // array or string (if string, opens and reads from file, splitting on whitspace)
     cc: "",
     limit: 10, // number to send in parallel
-    cb: undefined
+    cb: undefined,
   }); // cb(err, list of recipients that we succeeded in sending email to)
 
-  const dbg = m => winston.debug(`mass_email: ${m}`);
+  const dbg = (m) => winston.debug(`mass_email: ${m}`);
   dbg(opts.filename);
   dbg(opts.subject);
   dbg(opts.body);
@@ -542,12 +559,12 @@ export function mass_email(opts): void {
 
   return async.series(
     [
-      function(cb): void {
+      function (cb): void {
         if (typeof opts.to !== "string") {
           recipients.push(opts.to);
           cb();
         } else {
-          fs.readFile(opts.to, function(err, data): void {
+          fs.readFile(opts.to, function (err, data): void {
             if (err) {
               cb(err);
             } else {
@@ -557,9 +574,9 @@ export function mass_email(opts): void {
           });
         }
       },
-      function(cb): void {
+      function (cb): void {
         let n = 0;
-        const f = function(to, cb) {
+        const f = function (to, cb) {
           if (n % 100 === 0) {
             dbg(`${n}/${recipients.length - 1}`);
           }
@@ -582,14 +599,14 @@ export function mass_email(opts): void {
               } else {
                 cb(`error sending email to ${to} -- ${err}`);
               }
-            }
+            },
           });
         };
 
         async.mapLimit(recipients, opts.limit, f, cb);
-      }
+      },
     ],
-    err => (typeof opts.cb === "function" ? opts.cb(err, success) : undefined)
+    (err) => (typeof opts.cb === "function" ? opts.cb(err, success) : undefined)
   );
 }
 
@@ -612,12 +629,12 @@ ${token_url}
 }
 
 // beware, this needs to be HTML which is compatible with email-clients!
-function welcome_email_html(token_url, verify_emails) {
+function welcome_email_html({ token_url, verify_emails, site_name, url }) {
   return `\
-<h1>Welcome to ${SITE_NAME}</h1>
+<h1>Welcome to ${site_name}</h1>
 
 <p style="margin-top:0;margin-bottom:10px;">
-<a href="${DOMAIN_NAME}">${SITE_NAME}</a> helps you to work with open-source scientific software in your web browser.
+<a href="${url}">${site_name}</a> helps you to work with open-source scientific software in your web browser.
 </p>
 
 <p style="margin-top:0;margin-bottom:20px;">
@@ -630,12 +647,12 @@ ${verify_emails ? verify_email_html(token_url) : ""}
 
 <hr size="1"/>
 
-<h3>Exploring ${SITE_NAME}</h3>
+<h3>Exploring ${site_name}</h3>
 <p style="margin-top:0;margin-bottom:10px;">
-In ${SITE_NAME} your work happens inside <strong>private projects</strong>.
+In ${site_name} your work happens inside <strong>private projects</strong>.
 These are personal workspaces which contain your files, computational worksheets, and data.
 You can run your computations through the web interface, via interactive worksheets and notebooks, or by executing a program in a terminal.
-${SITE_NAME} supports online editing of
+${site_name} supports online editing of
     <a href="https://jupyter.org/">Jupyter Notebooks</a>,
     <a href="https://www.sagemath.org/">Sage Worksheets</a>,
     <a href="https://en.wikibooks.org/wiki/LaTeX">Latex files</a>, etc.
@@ -725,7 +742,7 @@ export function welcome_email(opts): void {
     token: required, // the email verification token
     only_verify: false, // TODO only send the verification token, for now this is good enough
     settings: required,
-    cb: undefined
+    cb: undefined,
   });
 
   if (opts.to == null) {
@@ -734,36 +751,40 @@ export function welcome_email(opts): void {
     return;
   }
 
+  const settings = opts.settings;
+  const site_name = fallback(settings.site_name, SITE_NAME);
+  const dns = fallback(settings.dns, DNS);
+  const url = `https://${dns}`;
   const base_url = require("./base-url").base_url();
   const token_query = encodeURI(
     `email=${encodeURIComponent(opts.to)}&token=${opts.token}`
   );
   const endpoint = os_path.join("/", base_url, "auth", "verify");
-  const token_url = `${DOMAIN_NAME}${endpoint}?${token_query}`;
+  const token_url = `${url}${endpoint}?${token_query}`;
   const verify_emails = opts.settings.verify_emails ?? true;
 
   if (opts.only_verify) {
     // only send the verification email, if settings.verify_emails is true
     if (!verify_emails) return;
-    subject = `Verify your email address on ${SITE_NAME} (${DNS})`;
+    subject = `Verify your email address on ${site_name} (${dns})`;
     body = verify_email_html(token_url);
     category = "verify";
   } else {
-    subject = `Welcome to ${SITE_NAME} - ${DNS}`;
-    body = welcome_email_html(token_url, verify_emails);
+    subject = `Welcome to ${site_name} - ${dns}`;
+    body = welcome_email_html({ token_url, verify_emails, site_name, url });
     category = "welcome";
   }
 
   send_email({
     subject,
     body,
-    fromname: COMPANY_NAME,
-    from: COMPANY_EMAIL,
+    fromname: fallback(settings.organization_name, COMPANY_NAME),
+    from: fallback(settings.organization_email, COMPANY_EMAIL),
     to: opts.to,
     cb: opts.cb,
     category,
     settings: opts.settings,
-    asm_group: 147985
+    asm_group: 147985,
   }); // https://app.sendgrid.com/suppressions/advanced_suppression_manager
 }
 

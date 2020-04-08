@@ -17,7 +17,7 @@ const INPUT_STYLE: React.CSSProperties = {
   fontFamily: "monospace",
   textAlign: "right",
   paddingRight: "1ex",
-  cursor: "pointer"
+  cursor: "pointer",
 };
 
 interface InputPromptProps {
@@ -97,7 +97,7 @@ const OUTPUT_STYLE: React.CSSProperties = {
   fontFamily: "monospace",
   textAlign: "right",
   paddingRight: ".4em",
-  paddingBottom: "2px"
+  paddingBottom: "2px",
 };
 
 interface OutputPromptProps {

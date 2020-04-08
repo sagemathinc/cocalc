@@ -46,8 +46,8 @@ idle_notification_html = ->
     """
     <div>
     <img src="#{APP_LOGO_WHITE}">
-    <h1>... is on standby</h1>
-    &mdash; click to resume &mdash;
+    <h1>Collaborative Calculation</h1>
+    &mdash; click to reconnect &mdash;
     </div>
     """
 

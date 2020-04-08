@@ -365,7 +365,6 @@ interface ConfigurationPanelState {
   show_students_pay_dialog: boolean;
   email_body_error?: string;
   students_pay?: boolean;
-  collapsed: boolean;
 }
 
 export class ConfigurationPanel extends Component<
@@ -377,7 +376,6 @@ export class ConfigurationPanel extends Component<
     this.state = {
       show_students_pay_dialog: false,
       email_body_error: undefined,
-      collapsed: false,
     };
     this.check_email_body = debounce(this.check_email_body.bind(this), 50, {
       leading: true,
@@ -390,7 +388,6 @@ export class ConfigurationPanel extends Component<
       misc.is_different(this.state, state, [
         "show_students_pay_dialog",
         "email_body_error",
-        "collapsed",
       ]) ||
       misc.is_different(this.props, props, [
         "settings",

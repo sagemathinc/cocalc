@@ -52,7 +52,7 @@ import {
   FormControl,
   Row,
   ButtonGroup,
-  Well
+  Well,
 } from "react-bootstrap";
 
 import { ChatLog } from "./chat/chat-log";
@@ -70,7 +70,7 @@ const {
   render_history_title,
   render_history_footer,
   render_history,
-  scroll_to_bottom
+  scroll_to_bottom,
 } = require("./editor_chat");
 
 const { VideoChatButton } = require("./video-chat");
@@ -130,7 +130,7 @@ export class Message extends Component<MessageProps, MessageState> {
     is_prev_sender: rtypes.bool,
     is_next_sender: rtypes.bool,
     show_heads: rtypes.bool,
-    saved_mesg: rtypes.string
+    saved_mesg: rtypes.string,
   };
   constructor(props: MessageProps, context: any) {
     super(props, context);
@@ -138,7 +138,7 @@ export class Message extends Component<MessageProps, MessageState> {
       edited_message: newest_content(this.props.message),
       history_size: this.props.message.get("history").size,
       show_history: false,
-      new_changes: false
+      new_changes: false,
     };
   }
 
@@ -153,12 +153,12 @@ export class Message extends Component<MessageProps, MessageState> {
         "is_next_sender",
         "editor_name",
         "saved_mesg",
-        "sender_name"
+        "sender_name",
       ]) ||
       misc.is_different(this.state, nextState, [
         "edited_message",
         "show_history",
-        "new_changes"
+        "new_changes",
       ])
     );
   }
@@ -305,10 +305,7 @@ export class Message extends Component<MessageProps, MessageState> {
             date={
               new Date(
                 this.props.message.get("history").first() != null
-                  ? this.props.message
-                      .get("history")
-                      .first()
-                      .get("date")
+                  ? this.props.message.get("history").first().get("date")
                   : undefined
               )
             }
@@ -329,9 +326,7 @@ export class Message extends Component<MessageProps, MessageState> {
           >
             Save
           </Button>
-        ) : (
-          undefined
-        )}
+        ) : undefined}
       </span>
     );
   }
@@ -340,12 +335,12 @@ export class Message extends Component<MessageProps, MessageState> {
     this.props.actions.set_editing(this.props.message, true);
   };
 
-  on_keydown = e => {
+  on_keydown = (e) => {
     if (e.keyCode === 27) {
       // ESC
       e.preventDefault();
       this.setState({
-        edited_message: newest_content(this.props.message)
+        edited_message: newest_content(this.props.message),
       });
       this.props.actions.set_editing(this.props.message, false);
     } else if (e.keyCode === 13 && e.shiftKey) {
@@ -402,7 +397,7 @@ export class Message extends Component<MessageProps, MessageState> {
       padding: "0px",
       textAlign,
       verticalAlign: "middle",
-      width: "4%"
+      width: "4%",
     };
 
     // TODO: do something better when we don't know the user (or when sender account_id is bogus)
@@ -411,9 +406,7 @@ export class Message extends Component<MessageProps, MessageState> {
         <div>
           {account != null && this.props.show_avatar ? (
             <Avatar size={32} account_id={account.account_id} />
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </div>
       </Col>
     );
@@ -432,13 +425,13 @@ export class Message extends Component<MessageProps, MessageState> {
       background,
       color,
       lighten,
-      message_class
+      message_class,
     } = editor_chat.message_colors(this.props.account_id, this.props.message);
 
     // smileys, just for fun.
     value = misc.smiley({
       s: value,
-      wrap: ['<span class="smc-editor-chat-smiley">', "</span>"]
+      wrap: ['<span class="smc-editor-chat-smiley">', "</span>"],
     });
 
     const font_size = `${this.props.font_size}px`;
@@ -472,7 +465,7 @@ export class Message extends Component<MessageProps, MessageState> {
       marginBottom,
       marginTop,
       borderRadius,
-      fontSize: font_size
+      fontSize: font_size,
     };
 
     return (
@@ -603,7 +596,7 @@ interface ChatRoomState {
 
 class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   public static defaultProps = {
-    font_size: 14
+    font_size: 14,
   };
 
   public static reduxProps({ name }) {
@@ -621,26 +614,26 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
         is_saving: rtypes.bool,
         has_unsaved_changes: rtypes.bool,
         has_uncommitted_changes: rtypes.bool,
-        unsent_user_mentions: rtypes.immutable.List
+        unsent_user_mentions: rtypes.immutable.List,
       },
 
       users: {
-        user_map: rtypes.immutable
+        user_map: rtypes.immutable,
       },
 
       projects: {
-        project_map: rtypes.immutable
+        project_map: rtypes.immutable,
       },
 
       account: {
         account_id: rtypes.string,
         font_size: rtypes.number,
-        other_settings: rtypes.immutable.Map
+        other_settings: rtypes.immutable.Map,
       },
 
       file_use: {
-        file_use: rtypes.immutable
-      }
+        file_use: rtypes.immutable,
+      },
     };
   }
 
@@ -649,7 +642,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     actions: rtypes.object,
     name: rtypes.string.isRequired,
     project_id: rtypes.string.isRequired,
-    path: rtypes.string
+    path: rtypes.string,
   };
 
   private input_ref = React.createRef<HTMLTextAreaElement>();
@@ -665,7 +658,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     fontSize: "14px",
     borderRadius: "10px 10px 10px 10px",
     boxShadow: "#666 3px 3px 3px",
-    paddingBottom: "20px"
+    paddingBottom: "20px",
   };
 
   componentDidUpdate() {
@@ -684,7 +677,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     }
   }, 300);
 
-  on_send_button_click = e => {
+  on_send_button_click = (e) => {
     e.preventDefault();
     this.on_send(this.props.input);
   };
@@ -724,7 +717,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       ? this.props.redux.getProjectActions(this.props.project_id).open_file({
           path: misc.history_path(this.props.path),
           foreground: true,
-          foreground_project: true
+          foreground_project: true,
         })
       : undefined;
   };
@@ -788,7 +781,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       let value = this.state.preview;
       value = misc.smiley({
         s: value,
-        wrap: ['<span class="smc-editor-chat-smiley">', "</span>"]
+        wrap: ['<span class="smc-editor-chat-smiley">', "</span>"],
       });
       value = misc_page.sanitize_html_safe(value);
       const file_path =
@@ -811,7 +804,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                   marginRight: "-8px",
                   marginTop: "-10px",
                   cursor: "pointer",
-                  fontSize: "13pt"
+                  fontSize: "13pt",
                 }}
                 onClick={this.button_off_click}
               >
@@ -881,7 +874,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
         placeholder={"Find messages..."}
         default_value={this.props.search}
         on_change={debounce(
-          value => this.props.actions.setState({ search: value }),
+          (value) => this.props.actions.setState({ search: value }),
           500
         )}
         style={{ margin: 0 }}
@@ -912,11 +905,11 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     );
   }
 
-  generate_temp_upload_text = file => {
+  generate_temp_upload_text = (file) => {
     return `[Uploading...]\(${file.name}\)`;
   };
 
-  start_upload = file => {
+  start_upload = (file) => {
     const text_area = this.input_ref.current;
     if (text_area == null) return;
     const temporary_insertion_text = this.generate_temp_upload_text(file);
@@ -937,7 +930,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     this.props.actions.set_input(temp_new_text);
   };
 
-  append_file = file => {
+  append_file = (file) => {
     let final_insertion_text;
     if (file.type.indexOf("image") !== -1) {
       final_insertion_text = `<img src=\".chat-images/${file.name}\" style="max-width:100%">`;
@@ -989,7 +982,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     this.mark_as_read();
   };
 
-  on_send = input => {
+  on_send = (input) => {
     scroll_to_bottom(this.log_container_ref, true);
     this.props.actions.submit_user_mentions(
       this.props.project_id,
@@ -1013,7 +1006,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       maxWidth: "1200px",
       display: "flex",
       flexDirection: "column",
-      width: "100%"
+      width: "100%",
     };
 
     const chat_log_style: React.CSSProperties = {
@@ -1022,7 +1015,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       margin: "0",
       padding: "0",
       background: "white",
-      flex: "1 0 auto"
+      flex: "1 0 auto",
     };
 
     // the immutable.Map() default is because of admins:
@@ -1075,7 +1068,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
             style={{ flex: "1", padding: "0px 2px 0px 2px", width: "250px" }}
           >
             <SMC_Dropwrapper
-              ref={node => (this.dropzoneWrapperRef = node)}
+              ref={(node) => (this.dropzoneWrapperRef = node)}
               project_id={this.props.project_id}
               dest_path={misc.normalized_path_join(
                 this.props.redux
@@ -1085,7 +1078,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
               )}
               event_handlers={{
                 complete: this.append_file,
-                sending: this.start_upload
+                sending: this.start_upload,
               }}
               style={{ height: "100%" }}
             >
@@ -1116,7 +1109,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
               padding: "0",
               marginBottom: "0",
               display: "flex",
-              flexDirection: "column"
+              flexDirection: "column",
             }}
           >
             {!IS_MOBILE ? (
@@ -1128,9 +1121,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
               >
                 Preview
               </Button>
-            ) : (
-              undefined
-            )}
+            ) : undefined}
             <Button
               onClick={this.on_send_button_click}
               disabled={this.props.input === ""}

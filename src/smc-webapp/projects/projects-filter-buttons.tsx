@@ -15,7 +15,7 @@ export class ProjectsFilterButtons extends Component<Props> {
     hidden: false,
     deleted: false,
     show_hidden_button: false,
-    show_deleted_button: false
+    show_deleted_button: false,
   };
 
   render_deleted_button() {

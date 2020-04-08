@@ -23,9 +23,9 @@ export function a_txt() {
           doctype: '{"type":"string"}',
           read_only: false,
           deleted: false,
-          save: { state: "done", error: "", hash: 0, time: 1546626249624 }
-        }
-      ]
-    }
+          save: { state: "done", error: "", hash: 0, time: 1546626249624 },
+        },
+      ],
+    },
   };
 }

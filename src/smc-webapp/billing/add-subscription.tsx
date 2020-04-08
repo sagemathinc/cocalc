@@ -5,7 +5,7 @@ import {
   ButtonToolbar,
   Col,
   Row,
-  Well
+  Well,
 } from "react-bootstrap";
 import { Icon } from "../r_misc/icon";
 import { PROJECT_UPGRADES } from "smc-util/schema";
@@ -129,18 +129,14 @@ export class AddSubscription extends Component<Props, State> {
               This subscription will <b>automatically renew</b> every {length}.
               You can cancel automatic renewal at any time.
             </span>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           {!renews ? (
             <span>
               You will be <b>charged only once</b> for the course package, which
               lasts {endswith(length, "s") ? "" : "a "}
               {length}. It does <b>not automatically renew</b>.
             </span>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </p>
       );
     }
@@ -272,9 +268,7 @@ export class AddSubscription extends Component<Props, State> {
               is_recurring={this.is_recurring()}
               on_close={this.props.on_close}
             />
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           {this.render_create_subscription_buttons()}
           <Row style={{ paddingTop: "15px" }}>
             <Col sm={5} smOffset={7}>

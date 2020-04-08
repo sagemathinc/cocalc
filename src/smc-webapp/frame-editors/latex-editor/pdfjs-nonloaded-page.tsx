@@ -20,7 +20,7 @@ export class NonloadedPage extends Component<Props, {}> {
           margin: "auto",
           background: "white",
           position: "relative",
-          display: "inline-block"
+          display: "inline-block",
         }}
       >
         <div style={{ width: width, height: height }} />

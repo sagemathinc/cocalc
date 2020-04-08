@@ -25,7 +25,7 @@ export async function export_to_json(
   await callback2(webapp_client.write_text_file_to_project, {
     project_id,
     path,
-    content: JSON.stringify(x, null, 2)
+    content: JSON.stringify(x, null, 2),
   });
 
   return path;

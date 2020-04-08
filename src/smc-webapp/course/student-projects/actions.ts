@@ -33,7 +33,7 @@ export class StudentProjectsActions {
   ): Promise<string | undefined> {
     const { store, student } = this.course_actions.resolve({
       student_id,
-      finish: this.course_actions.set_error.bind(this)
+      finish: this.course_actions.set_error.bind(this),
     });
     if (store == null || student == null) return;
     if (store.get("students") == null || store.get("settings") == null) {
@@ -49,16 +49,16 @@ export class StudentProjectsActions {
     this.course_actions.set({
       create_project: webapp_client.server_time(),
       table: "students",
-      student_id
+      student_id,
     });
     const id = this.course_actions.set_activity({
-      desc: `Create project for ${store.get_student_name(student_id)}.`
+      desc: `Create project for ${store.get_student_name(student_id)}.`,
     });
     let project_id: string;
     try {
       project_id = await redux.getActions("projects").create_project({
         title: store.get("settings").get("title"),
-        description: store.get("settings").get("description")
+        description: store.get("settings").get("description"),
       });
     } catch (err) {
       this.course_actions.set_error(
@@ -74,7 +74,7 @@ export class StudentProjectsActions {
       create_project: null,
       project_id,
       table: "students",
-      student_id
+      student_id,
     });
     await this.configure_project(student_id, false, project_id);
     return project_id;
@@ -104,7 +104,7 @@ export class StudentProjectsActions {
     let body = s.get_email_invite();
 
     // Define function to invite or add collaborator
-    const invite = async x => {
+    const invite = async (x) => {
       // console.log("invite", x, " to ", student_project_id);
       const account_store = redux.getStore("account");
       const name = account_store.get_fullname();
@@ -148,7 +148,7 @@ export class StudentProjectsActions {
         this.course_actions.set({
           table: "students",
           student_id,
-          last_email_invite: new Date().valueOf()
+          last_email_invite: new Date().valueOf(),
         });
       }
     } else if (
@@ -313,10 +313,7 @@ export class StudentProjectsActions {
   public async set_all_student_project_titles(title: string): Promise<void> {
     const actions = redux.getActions("projects");
     const store = this.get_store();
-    for (const student of store
-      .get_students()
-      .valueSeq()
-      .toArray()) {
+    for (const student of store.get_students().valueSeq().toArray()) {
       const student_project_id = student.get("project_id");
       const project_title = `${store.get_student_name(
         student.get("student_id")
@@ -345,10 +342,7 @@ export class StudentProjectsActions {
   ): Promise<void> {
     const store = this.get_store();
     const actions = redux.getActions("projects");
-    for (const student of store
-      .get_students()
-      .valueSeq()
-      .toArray()) {
+    for (const student of store.get_students().valueSeq().toArray()) {
       const student_project_id = student.get("project_id");
       if (student_project_id != null) {
         await actions.set_project_description(student_project_id, description);
@@ -375,7 +369,7 @@ export class StudentProjectsActions {
       }
       this.course_actions.set({
         pay,
-        table: "settings"
+        table: "settings",
       });
     }
 
@@ -385,13 +379,10 @@ export class StudentProjectsActions {
     }
     const actions = redux.getActions("projects");
     const id = this.course_actions.set_activity({
-      desc: "Updating project course info..."
+      desc: "Updating project course info...",
     });
     try {
-      for (const student of store
-        .get_students()
-        .valueSeq()
-        .toArray()) {
+      for (const student of store.get_students().valueSeq().toArray()) {
         const student_project_id = student.get("project_id");
         if (student_project_id == null) continue;
         // account_id: might not be known when student first added, or if student
@@ -450,13 +441,13 @@ export class StudentProjectsActions {
     const student_project_id = store.getIn([
       "students",
       student_id,
-      "project_id"
+      "project_id",
     ]);
     if (student_project_id == null) return;
     const student_account_id = store.getIn([
       "students",
       student_id,
-      "account_id"
+      "account_id",
     ]);
     if (student_account_id != undefined) {
       redux
@@ -468,7 +459,7 @@ export class StudentProjectsActions {
       create_project: null,
       project_id: null,
       table: "students",
-      student_id
+      student_id,
     });
   }
 
@@ -485,7 +476,7 @@ export class StudentProjectsActions {
     try {
       this.course_actions.setState({ configuring_projects: true });
       id = this.course_actions.set_activity({
-        desc: "Ensuring all projects are configured..."
+        desc: "Ensuring all projects are configured...",
       });
       const ids = store.get_student_ids({ deleted: false });
       if (ids == undefined) {
@@ -496,7 +487,7 @@ export class StudentProjectsActions {
         if (this.course_actions.is_closed()) return;
         i += 1;
         const id1: number = this.course_actions.set_activity({
-          desc: `Configuring student project ${i} of ${ids.length}`
+          desc: `Configuring student project ${i} of ${ids.length}`,
         });
         await this.configure_project(student_id, false, undefined, force);
         this.course_actions.set_activity({ id: id1 });
@@ -520,7 +511,7 @@ export class StudentProjectsActions {
     const store = this.get_store();
 
     const id = this.course_actions.set_activity({
-      desc: "Deleting all student projects..."
+      desc: "Deleting all student projects...",
     });
     try {
       const ids = store.get_student_ids({ deleted: false });
@@ -551,7 +542,7 @@ export class StudentProjectsActions {
       return;
     }
     const id = this.course_actions.set_activity({
-      desc: `Adjusting upgrades on ${len(plan)} student projects...`
+      desc: `Adjusting upgrades on ${len(plan)} student projects...`,
     });
     const a = redux.getActions("projects");
     const s = redux.getStore("projects");

@@ -19,7 +19,7 @@ export class Changefeed extends EventEmitter {
     query_cancel,
     options,
     query,
-    table
+    table,
   }: {
     do_query: Function;
     query_cancel: Function;
@@ -95,7 +95,7 @@ export class Changefeed extends EventEmitter {
         } else {
           this.handle_update(err, resp);
         }
-      }
+      },
     });
   }
 

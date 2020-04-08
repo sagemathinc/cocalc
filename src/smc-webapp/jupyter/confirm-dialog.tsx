@@ -54,7 +54,7 @@ export class ConfirmDialog extends Component<ConfirmDialogProps> {
     const choices = this.props.confirm_dialog.get("choices");
     const buttons: Rendered[] = [];
     if (choices != null) {
-      choices.forEach(choice =>
+      choices.forEach((choice) =>
         buttons.push(this.render_button(choice.toJS()))
       );
     }

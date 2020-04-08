@@ -180,7 +180,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     link:
       "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#developing-assignments-with-the-assignment-toolbar",
     hover:
-      "This is a normal Jupyter cell, which won't be graded and doesn't contain any special autograding meaning."
+      "This is a normal Jupyter cell, which won't be graded and doesn't contain any special autograding meaning.",
   },
   {
     title: "Manually graded answer",
@@ -201,8 +201,8 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     template: {
       python: PY_MANUAL_ANSWER,
       r: R_MANUAL_ANSWER,
-      julia: JULIA_MANUAL_ANSWER
-    }
+      julia: JULIA_MANUAL_ANSWER,
+    },
   },
   {
     // The official docs so this is only for markdown cells only and that is all that makes sense,
@@ -225,7 +225,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     task: true,
     template: TASK_TEMPLATE,
     points: DEFAULT_POINTS,
-    markdown_only: true
+    markdown_only: true,
   },
   {
     title: "Autograded answer",
@@ -246,8 +246,8 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     template: {
       python: PY_ANSWER,
       r: R_ANSWER,
-      julia: JULIA_ANSWER
-    }
+      julia: JULIA_ANSWER,
+    },
   },
   {
     title: "Autograder tests",
@@ -269,8 +269,8 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     template: {
       python: PY_TEST,
       r: R_TEST,
-      julia: JULIA_TEST
-    }
+      julia: JULIA_TEST,
+    },
   },
   {
     title: "Readonly",
@@ -286,8 +286,8 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     grade: false,
     locked: true,
     solution: false,
-    task: false
-  }
+    task: false,
+  },
 ];
 
 export const CELLTYPE_INFO_MAP: { [value: string]: CelltypeInfo } = {};
@@ -334,7 +334,7 @@ export function value_to_state(value: string): Metadata {
     locked: x.locked,
     solution: x.solution,
     task: x.task,
-    points: x.points
+    points: x.points,
   };
 }
 

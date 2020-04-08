@@ -9,7 +9,7 @@ import {
   Component,
   Rendered,
   rclass,
-  rtypes
+  rtypes,
 } from "../../app-framework";
 
 interface Props {
@@ -28,7 +28,7 @@ class LeanHelp extends Component<Props, {}> {
       "font_size",
       "info",
       "sync",
-      "syncstring_hash"
+      "syncstring_hash",
     ]);
   }
 
@@ -37,8 +37,8 @@ class LeanHelp extends Component<Props, {}> {
       [name]: {
         info: rtypes.immutable.Map,
         sync: rtypes.immutable.Map,
-        syncstring_hash: rtypes.number
-      }
+        syncstring_hash: rtypes.number,
+      },
     };
   }
 
@@ -75,7 +75,7 @@ class LeanHelp extends Component<Props, {}> {
         style={{
           overflowY: "auto",
           margin: "0px 15px",
-          fontSize: this.props.font_size
+          fontSize: this.props.font_size,
         }}
       >
         {this.render_doc()}

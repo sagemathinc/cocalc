@@ -33,7 +33,7 @@ interface ChatState {
 }
 
 export class ChatStore extends Store<ChatState> {
-  getInitialState = function() {
+  getInitialState = function () {
     return {
       height: 0,
       input: "",
@@ -51,7 +51,7 @@ export class ChatStore extends Store<ChatState> {
       is_saving: false,
       has_uncommitted_changes: false,
       has_unsaved_changes: false,
-      unsent_user_mentions: immutable.List()
+      unsent_user_mentions: immutable.List(),
     };
   };
 }

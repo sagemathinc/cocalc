@@ -16,7 +16,7 @@ const STUBS: { [language: string]: string[] } = {
   matlab: "% YOUR CODE HERE\nerror('No Answer Given!')".split("\n"),
   octave: "% YOUR CODE HERE\nerror('No Answer Given!')".split("\n"),
   java: ["// YOUR CODE HERE"],
-  markdown: ["YOUR ANSWER HERE"]
+  markdown: ["YOUR ANSWER HERE"],
 };
 
 const begin_solution_delimiter = "BEGIN SOLUTION";

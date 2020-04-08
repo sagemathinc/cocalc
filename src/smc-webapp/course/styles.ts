@@ -9,7 +9,7 @@ export const selected_entry: CSSProperties = merge(
     border: "1px solid #aaa",
     boxShadow: "5px 5px 5px #999",
     borderRadius: "3px",
-    marginBottom: "10px"
+    marginBottom: "10px",
   },
   exports.entry_style
 );
@@ -17,7 +17,7 @@ export const selected_entry: CSSProperties = merge(
 export const note: CSSProperties = {
   borderTop: "3px solid #aaa",
   marginTop: "10px",
-  paddingTop: "5px"
+  paddingTop: "5px",
 };
 
 export function show_hide_deleted(opts): CSSProperties {
@@ -25,6 +25,6 @@ export function show_hide_deleted(opts): CSSProperties {
 
   return {
     marginTop: opts.needs_margin ? "15px" : "0px",
-    float: "right"
+    float: "right",
   };
 }

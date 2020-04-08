@@ -49,7 +49,7 @@ export async function do_anonymous_setup(client: any): Promise<void> {
     const project_id = await actions.create_project({
       title: "Welcome to CoCalc!",
       start: true,
-      description: ""
+      description: "",
     });
     log("opening project");
     actions.open_project({ project_id, switch_to: true });

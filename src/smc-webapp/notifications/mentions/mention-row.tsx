@@ -10,7 +10,7 @@ const { User } = require("../../users");
 export function MentionRow({
   id,
   mention,
-  user_map
+  user_map,
 }: {
   id: string;
   mention: MentionInfo;
@@ -22,7 +22,7 @@ export function MentionRow({
     source,
     time,
     target,
-    description
+    description,
   } = mention.toJS();
 
   const on_row_click = () => {
@@ -39,7 +39,7 @@ export function MentionRow({
     read_icon = "check-square-o";
     row_style = {
       backgroundColor: "rgb(246, 248, 250)",
-      color: "rgb(88, 96, 105)"
+      color: "rgb(88, 96, 105)",
     };
   }
 
@@ -47,7 +47,7 @@ export function MentionRow({
     save_icon = "bookmark";
   }
 
-  const on_read_unread_click = e => {
+  const on_read_unread_click = (e) => {
     e.preventDefault();
     e.stopPropagation();
     const actions = redux.getActions("mentions");
@@ -59,7 +59,7 @@ export function MentionRow({
     }
   };
 
-  const on_save_unsave_click = e => {
+  const on_save_unsave_click = (e) => {
     e.preventDefault();
     e.stopPropagation();
     const actions = redux.getActions("mentions");
@@ -109,5 +109,5 @@ export function MentionRow({
 
 const description_style: React.CSSProperties = { flex: "1" };
 const avatar_wrapping_style: React.CSSProperties = {
-  margin: ".9em"
+  margin: ".9em",
 };

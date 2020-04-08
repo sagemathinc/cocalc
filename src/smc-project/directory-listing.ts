@@ -164,7 +164,7 @@ export function directory_listing_router(express): any {
 }
 
 function directory_listing_http_server(base, router): void {
-  router.get(base + "*", async function(req, res) {
+  router.get(base + "*", async function (req, res) {
     // decodeURIComponent because decodeURI(misc.encode_path('asdf/te #1/')) != 'asdf/te #1/'
     // https://github.com/sagemathinc/cocalc/issues/2400
     const path = decodeURIComponent(req.path.slice(base.length).trim());

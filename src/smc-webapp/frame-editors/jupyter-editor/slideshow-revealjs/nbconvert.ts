@@ -14,7 +14,7 @@ export async function revealjs_slideshow_html(
   const opts = {
     command,
     args,
-    project_id
+    project_id,
   };
   await exec(opts);
   const ext = ".slides.html";

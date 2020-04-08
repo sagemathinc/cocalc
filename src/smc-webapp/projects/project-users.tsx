@@ -24,11 +24,11 @@ export const ProjectUsers = rclass<ReactProps>(
     static reduxProps = () => {
       return {
         users: {
-          user_map: rtypes.immutable
+          user_map: rtypes.immutable,
         },
         account: {
-          account_id: rtypes.string
-        }
+          account_id: rtypes.string,
+        },
       };
     };
 

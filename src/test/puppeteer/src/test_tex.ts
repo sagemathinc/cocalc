@@ -10,7 +10,7 @@ import { Page } from "puppeteer";
 
 import { expect } from "chai";
 
-export const test_tex = async function(creds: Creds, opts: Opts, page: Page): Promise<PassFail> {
+export const test_tex = async function (creds: Creds, opts: Opts, page: Page): Promise<PassFail> {
   const pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
@@ -63,7 +63,7 @@ export const test_tex = async function(creds: Creds, opts: Opts, page: Page): Pr
     sel = '*[cocalc-test="word-count-output"]';
     await page.waitForSelector(sel);
 
-    const text: string = await page.$eval(sel, function(e) {
+    const text: string = await page.$eval(sel, function (e) {
       return (<HTMLElement>e).innerText.toString();
     });
     const want: string = "Words in headers: 3";

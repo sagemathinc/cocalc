@@ -14,11 +14,11 @@ Table({
         fields: {
           project_id: true,
           title: true,
-          description: true
-        }
-      }
-    }
-  }
+          description: true,
+        },
+      },
+    },
+  },
 });
 
 Table({
@@ -27,45 +27,46 @@ Table({
     id: {
       type: "string",
       pg_type: "CHAR(40)",
-      desc: "sha1 hash derived from project_id and path"
+      desc: "sha1 hash derived from project_id and path",
     },
     project_id: {
-      type: "uuid"
+      type: "uuid",
     },
     path: {
-      type: "string"
+      type: "string",
     },
     description: {
-      type: "string"
+      type: "string",
     },
     disabled: {
       type: "boolean",
-      desc: "if true then disabled"
+      desc: "if true then disabled",
     },
     unlisted: {
       type: "boolean",
-      desc: "if true then unlisted, so does not appear in /share listing page."
+      desc: "if true then unlisted, so does not appear in /share listing page.",
     },
     license: {
       type: "string",
-      desc: "The license that the content of the share is made available under."
+      desc:
+        "The license that the content of the share is made available under.",
     },
     created: {
       type: "timestamp",
-      desc: "when this path was created"
+      desc: "when this path was created",
     },
     last_edited: {
       type: "timestamp",
-      desc: "when this path was last edited"
+      desc: "when this path was last edited",
     },
     last_saved: {
       type: "timestamp",
       desc:
-        "when this path was last saved (or deleted if disabled) by manage-storage"
+        "when this path was last saved (or deleted if disabled) by manage-storage",
     },
     counter: {
       type: "number",
-      desc: "the number of times this public path has been accessed"
+      desc: "the number of times this public path has been accessed",
     },
     vhost: {
       // For now, this will only be used *manually* for now; at some point users will be able to specify this,
@@ -79,18 +80,18 @@ Table({
       type: "string",
       desc:
         'Request for the given host (which must not container "cocalc") will be served by this public share. Only one public path can have a given vhost.  The vhost field can be a comma-separated string for multiple vhosts.',
-      unique: true
+      unique: true,
     },
     auth: {
       type: "map",
       desc:
-        "Map from relative path inside the share to array of {path:[{name:[string], pass:[password-hash]}, ...], ...}.  Used both by vhost and share server, but not user editable yet.  Later it will be user editable.  The password hash is from smc-hub/auth.password_hash (so 1000 iterations of sha512)"
+        "Map from relative path inside the share to array of {path:[{name:[string], pass:[password-hash]}, ...], ...}.  Used both by vhost and share server, but not user editable yet.  Later it will be user editable.  The password hash is from smc-hub/auth.password_hash (so 1000 iterations of sha512)",
     },
     token: {
       type: "string",
       desc:
-        "Random token that must be passed in as query parameter to see this share; this increases security.  Only used for unlisted shares."
-    }
+        "Random token that must be passed in as query parameter to see this share; this increases security.  Only used for unlisted shares.",
+    },
   },
   rules: {
     primary_key: "id",
@@ -100,7 +101,7 @@ Table({
     pg_indexes: [
       "project_id",
       "(substring(project_id::text from 1 for 1))",
-      "(substring(project_id::text from 1 for 2))"
+      "(substring(project_id::text from 1 for 2))",
     ],
 
     user_query: {
@@ -118,8 +119,8 @@ Table({
           last_edited: null,
           created: null,
           last_saved: null,
-          counter: null
-        }
+          counter: null,
+        },
       },
       set: {
         fields: {
@@ -133,16 +134,16 @@ Table({
           unlisted: true,
           license: true,
           last_edited: true,
-          created: true
+          created: true,
         },
         required_fields: {
           id: true,
           project_id: true,
-          path: true
-        }
-      }
-    }
-  }
+          path: true,
+        },
+      },
+    },
+  },
 });
 
 schema.public_paths.project_query = deep_copy(schema.public_paths.user_query);
@@ -174,9 +175,9 @@ Table({
           last_edited: null,
           created: null,
           last_saved: null,
-          counter: null
-        }
-      }
-    }
-  }
+          counter: null,
+        },
+      },
+    },
+  },
 });

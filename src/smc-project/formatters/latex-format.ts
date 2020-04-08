@@ -11,7 +11,7 @@ interface ParserOptions {
 }
 
 function close(proc, cb): void {
-  proc.on("close", code => cb(undefined, code));
+  proc.on("close", (code) => cb(undefined, code));
 }
 
 export async function latex_format(
@@ -26,7 +26,7 @@ export async function latex_format(
     const latexindent = spawn("latexindent", [input_path]);
     let output: string = "";
     // read data as it is produced.
-    latexindent.stdout.on("data", data => (output += data.toString()));
+    latexindent.stdout.on("data", (data) => (output += data.toString()));
     // wait for subprocess to close.
     const code = await callback(close, latexindent);
     if (code) {

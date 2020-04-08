@@ -9,7 +9,7 @@ import {
   ReactDOM,
   rclass,
   redux,
-  rtypes
+  rtypes,
 } from "../app-framework";
 
 // Sibling Libraries
@@ -71,8 +71,8 @@ class MarkdownInput0 extends Component<
   static reduxProps() {
     return {
       markdown_inputs: {
-        open_inputs: rtypes.immutable.Map.isRequired
-      }
+        open_inputs: rtypes.immutable.Map.isRequired,
+      },
     };
   }
 
@@ -89,7 +89,7 @@ class MarkdownInput0 extends Component<
 
     return {
       editing,
-      value
+      value,
     };
   };
 
@@ -119,7 +119,7 @@ class MarkdownInput0 extends Component<
     }
   }
 
-  persist_value = value => {
+  persist_value = (value) => {
     if (this.props.persist_id != null) {
       this.getActions().set_value(
         this.props.persist_id,
@@ -134,7 +134,7 @@ class MarkdownInput0 extends Component<
     }
   };
 
-  set_value = value => {
+  set_value = (value) => {
     if (typeof this.props.on_change === "function") {
       this.props.on_change(value);
     }
@@ -172,7 +172,7 @@ class MarkdownInput0 extends Component<
     }
   };
 
-  keydown = e => {
+  keydown = (e) => {
     if (e.keyCode === 27) {
       this.cancel();
     } else if (e.keyCode === 13 && e.shiftKey) {
@@ -262,9 +262,7 @@ class MarkdownInput0 extends Component<
           <div dangerouslySetInnerHTML={html} style={style} />
           {!this.props.hide_edit_button ? (
             <Button onClick={this.edit}>Edit</Button>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </div>
       );
     }

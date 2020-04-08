@@ -4,7 +4,7 @@ import {
   Rendered,
   rtypes,
   redux,
-  rclass
+  rclass,
 } from "../app-framework";
 import { Icon } from "../r_misc/icon";
 import { Button, ButtonToolbar, Col, Row, Well } from "react-bootstrap";
@@ -38,8 +38,8 @@ class PayCourseFee extends Component<Props, State> {
       billing: {
         applied_coupons: rtypes.immutable.Map.isRequired,
         coupon_error: rtypes.string,
-        course_pay: rtypes.immutable.Set.isRequired
-      }
+        course_pay: rtypes.immutable.Set.isRequired,
+      },
     };
   }
 
@@ -88,10 +88,10 @@ class PayCourseFee extends Component<Props, State> {
         );
       },
       timeout: 30, // wait up to 30 seconds
-      cb: err => {
+      cb: (err) => {
         if (err) {
           actions.setState({
-            error: `Error purchasing course subscription: ${err}`
+            error: `Error purchasing course subscription: ${err}`,
           });
         } else {
           // Upgrades now available -- apply a network and members only upgrades to the course project.
@@ -102,7 +102,7 @@ class PayCourseFee extends Component<Props, State> {
         }
         // Set in billing that done
         actions.set_is_paying_for_course(this.props.project_id, false);
-      }
+      },
     });
   }
 

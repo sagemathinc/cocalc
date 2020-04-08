@@ -15,7 +15,7 @@ export async function jupyter_run_notebook(
   const jupyter = kernel({
     name,
     client,
-    path: opts.path + `/${uuid()}.ipynb`  // critical that this doesn't randomly conflict with something else running at the same time.
+    path: opts.path + `/${uuid()}.ipynb`, // critical that this doesn't randomly conflict with something else running at the same time.
   });
   try {
     await jupyter.spawn();

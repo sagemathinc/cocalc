@@ -17,7 +17,7 @@ interface ISpecs {
 }
 
 /* credits: https://stackoverflow.com/a/38080051/54236 */
-const get_spec = function(): ISpecs {
+const get_spec = function (): ISpecs {
   const mstr = /(opera|chrome|safari|firefox|msie|trident(?=\/))\/?\s*(\d+)/i;
   const ua = navigator.userAgent;
   let tem: RegExpMatchArray | null;
@@ -32,7 +32,7 @@ const get_spec = function(): ISpecs {
       return {
         name: tem[1].replace("OPR", "Opera") as NAMES,
         version: parseInt(tem[2]),
-        buildID: ""
+        buildID: "",
       };
   }
   M = M[2] ? [M[1], M[2]] : [navigator.appName, navigator.appVersion, "-?"];
@@ -45,7 +45,7 @@ const get_spec = function(): ISpecs {
     try {
       const vers = navigator.appVersion.match(/\bChrome\/([0-9.]+)\b/);
       if (vers != null) {
-        buildID = vers[1].split(".").map(x => parseInt(x));
+        buildID = vers[1].split(".").map((x) => parseInt(x));
       }
     } catch {
       console.log(`Unable to extract buildID from ${navigator.appVersion}`);
@@ -54,7 +54,7 @@ const get_spec = function(): ISpecs {
   return {
     name: M[0] as NAMES,
     version: parseInt(M[1]),
-    buildID
+    buildID,
   };
 };
 
@@ -104,10 +104,10 @@ function preflight_check(): void {
   const ff60esr =
     spec.name === "Firefox" &&
     spec.version == 60 &&
-    (spec.buildID !== undefined &&
-      typeof spec.buildID === "string" &&
-      spec.buildID.length >= 8 &&
-      spec.buildID.slice(0, 8) >= "20180903");
+    spec.buildID !== undefined &&
+    typeof spec.buildID === "string" &&
+    spec.buildID.length >= 8 &&
+    spec.buildID.slice(0, 8) >= "20180903";
 
   // 69 to 61 have issues, and 65 up until beta8 exhibits similar issues.
   // 65 resolved in beta9. upstream: https://bugzilla.mozilla.org/show_bug.cgi?id=1514688
@@ -121,10 +121,10 @@ function preflight_check(): void {
   const buggyCh77 =
     spec.name === "Chrome" &&
     spec.version == 77 &&
-    (spec.buildID !== undefined &&
-      Array.isArray(spec.buildID) &&
-      spec.buildID[2] <= 3865 &&
-      spec.buildID[3] < 114);
+    spec.buildID !== undefined &&
+    Array.isArray(spec.buildID) &&
+    spec.buildID[2] <= 3865 &&
+    spec.buildID[3] < 114;
 
   // This is set to be accessible globally, since this bug is still widely deployed (e.g.,
   // all ChromeOS users), right now it is used elsewhere to display a message

@@ -39,7 +39,7 @@ export async function export_assignment(
         collect_path + "/" + student_id,
         export_path,
         name,
-        s => log(desc + s)
+        (s) => log(desc + s)
       );
     } catch (err) {
       errors[name] = `${err}`;
@@ -50,7 +50,7 @@ export async function export_assignment(
   await exec({
     command: "zip",
     args: ["-r", export_path + ".zip", export_path],
-    project_id
+    project_id,
   });
 
   if (len(errors) > 0) {
@@ -92,12 +92,12 @@ async function export_one_directory(
           command: "cc-ipynb-to-pdf",
           args: [source + "/" + name],
           project_id,
-          timeout
+          timeout,
         });
         await exec({
           command: "mv",
           args: [source + "/" + pdf, target + "/" + prefix + "-" + pdf],
-          project_id
+          project_id,
         });
       } catch (err) {
         try {
@@ -108,12 +108,12 @@ async function export_one_directory(
             command: "jupyter",
             args: ["nbconvert", source + "/" + name, "--to", "html"],
             project_id,
-            timeout
+            timeout,
           });
           await exec({
             command: "mv",
             args: [source + "/" + html, target + "/" + prefix + "-" + html],
-            project_id
+            project_id,
           });
         } catch (err) {
           log("convert to html failed too");
@@ -127,12 +127,12 @@ async function export_one_directory(
           command: "cc-sagews2pdf",
           args: [source + "/" + name],
           project_id,
-          timeout
+          timeout,
         });
         await exec({
           command: "mv",
           args: [source + "/" + pdf, target + "/" + prefix + "-" + pdf],
-          project_id
+          project_id,
         });
       } catch (err) {
         // Failed to convert sagews to pdf, so do nothing.
@@ -143,7 +143,7 @@ async function export_one_directory(
     await exec({
       command: "cp",
       args: [source + "/" + name, target + "/" + prefix + "-" + name],
-      project_id
+      project_id,
     });
   }
 }

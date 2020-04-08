@@ -5,9 +5,10 @@ import { throttle } from "lodash";
 import { SyncTable } from "smc-util/sync/table";
 import { webapp_client } from "../../webapp-client";
 import { redux, TypedMap } from "../../app-framework";
-import { merge } from "smc-util/misc2";
+import { merge, path_split } from "smc-util/misc2";
 import { once } from "smc-util/async-utils";
-import { query } from "../../frame-editors/generic/client";
+import { deleted_file_variations } from "smc-util/delete-files";
+import { exec, query } from "../../frame-editors/generic/client";
 
 import { get_directory_listing } from "../directory-listing";
 
@@ -33,6 +34,7 @@ interface Listing {
   interest?: Date;
   missing?: number;
   error?: string;
+  deleted?: string[];
 }
 export type ImmutableListing = TypedMap<Listing>;
 
@@ -40,10 +42,11 @@ export class Listings extends EventEmitter {
   private table?: SyncTable;
   private project_id: string;
   private last_version: { [path: string]: any } = {}; // last version emitted via change event.
+  private last_deleted: { [path: string]: any } = {};
   private state: State = "init";
   private throttled_watch: { [path: string]: Function } = {};
 
-  constructor(project_id: string): void {
+  constructor(project_id: string) {
     super();
     this.project_id = project_id;
     this.init();
@@ -55,14 +58,18 @@ export class Listings extends EventEmitter {
   // that at least one client is interested in this path.
   // Don't worry about calling this function **too much**, since
   // it throttles calls.
-  public async watch(path: string): Promise<void> {
+  public async watch(path: string, force: boolean = false): Promise<void> {
+    if (force) {
+      await this._watch(path);
+      return;
+    }
     if (this.throttled_watch[path] == null) {
       this.throttled_watch[path] = throttle(
         () => this._watch(path),
         WATCH_THROTTLE_MS,
         {
           leading: true,
-          trailing: true
+          trailing: true,
         }
       );
     }
@@ -75,7 +82,7 @@ export class Listings extends EventEmitter {
     if (this.state == "closed") return;
     this.set({
       path,
-      interest: webapp_client.server_time()
+      interest: webapp_client.server_time(),
     });
   }
 
@@ -107,8 +114,102 @@ export class Listings extends EventEmitter {
     return x.get("listing")?.toJS();
   }
 
+  public async get_deleted(path: string): Promise<List<string> | undefined> {
+    if (this.state == "closed") return;
+    if (this.state != "ready") {
+      const q = await query({
+        query: {
+          listings: {
+            project_id: this.project_id,
+            path,
+            deleted: null,
+          },
+        },
+      });
+      if (q.query.listings?.error) {
+        throw Error(q.query.listings?.error);
+      }
+      if (q.query.listings?.deleted != null) {
+        return fromJS(q.query.listings.deleted);
+      } else {
+        return;
+      }
+    }
+    if (this.state == ("closed" as State)) return;
+    if (this.state != ("ready" as State)) {
+      await once(this, "state");
+      if (this.state != ("ready" as State)) return;
+    }
+    return this.get_record(path)?.get("deleted");
+  }
+
+  public async undelete(path: string): Promise<void> {
+    if (path == "") return;
+    if (this.state == ("closed" as State)) return;
+    if (this.state != ("ready" as State)) {
+      await once(this, "state");
+      if (this.state != ("ready" as State)) return;
+    }
+
+    // Check is_deleted, so we can assume that path definitely
+    // is deleted according to our rules.
+    if (!this.is_deleted(path)) {
+      return;
+    }
+
+    const { head, tail } = path_split(path);
+    if (head != "") {
+      // make sure the containing directory exists.
+      await exec({
+        project_id: this.project_id,
+        command: "mkdir",
+        args: ["-p", head],
+      });
+    }
+    const cur = this.get_record(head);
+    if (cur == null) {
+      // undeleting a file that was maybe deleted as part of a directory tree.
+      // NOTE: If you undelete *one* file from directory tree, then
+      // creating any other file in that tree will just work.  This is
+      // **by design** to keep things from getting too complicated!
+      await this.undelete(head);
+      return;
+    }
+    let deleted = cur.get("deleted");
+    if (deleted == null || deleted.indexOf(tail) == -1) {
+      await this.undelete(head);
+      return;
+    }
+    const remove = new Set([tail].concat(deleted_file_variations(tail)));
+    deleted = deleted.filter((x) => !remove.has(x));
+    await this.set({ path: head, deleted: deleted.toJS() });
+  }
+
+  // true or false if known deleted or not; undefined if don't know yet.
+  // TODO: technically we should check the all the
+  // deleted_file_variations... but that is really an edge case
+  // that probably doesn't matter much.
+  public is_deleted(filename: string): boolean | undefined {
+    const { head, tail } = path_split(filename);
+    if (head != "" && this.is_deleted(head)) {
+      // recursively check if filename is contained in a
+      // directory tree that go deleted.
+      return true;
+    }
+    let x;
+    try {
+      x = this.get_record(head);
+    } catch (err) {
+      return undefined;
+    }
+    if (x == null) return false;
+    const deleted = x.get("deleted");
+    if (deleted == null) return false;
+    return deleted.indexOf(tail) != -1;
+  }
+
   // Returns:
-  //  - List<ImmutablePathEntry> in case of a proper directory listinmg
+  //  - List<ImmutablePathEntry> in case of a proper directory listing
   //  - string in case of an error
   //  - undefined if directory listing not known (and error not known either).
   public async get_for_store(
@@ -136,9 +237,8 @@ export class Listings extends EventEmitter {
           project_id: this.project_id,
           path,
           listing: null,
-          missing: null
-        }
-      }
+        },
+      },
     });
     if (q.query.listings?.error) {
       throw Error(q.query.listings?.error);
@@ -158,15 +258,15 @@ export class Listings extends EventEmitter {
     // make sure that our relationship to this project is known.
     if (store == null) throw Error("bug");
     const group = await store.async_wait({
-      until: s => (s as any).get_my_group(this.project_id),
-      timeout: 60
+      until: (s) => (s as any).get_my_group(this.project_id),
+      timeout: 60,
     });
     const x = await get_directory_listing({
       project_id: this.project_id,
       path,
       hidden: true,
       max_time_s: 15 * 60,
-      group
+      group,
     });
     if (x.error != null) {
       throw Error(x.error);
@@ -207,28 +307,49 @@ export class Listings extends EventEmitter {
             time: null,
             interest: null,
             missing: null,
-            error: null
-          }
-        ]
+            error: null,
+            deleted: null,
+          },
+        ],
       },
       []
     );
+
     if ((this.state as State) == "closed") return;
 
     this.table.on("change", async (keys: string[]) => {
+      // handle changes to directory listings and deleted files lists
       const paths: string[] = [];
+      const deleted_paths: string[] = [];
       for (const key of keys) {
         const path = JSON.parse(key)[1];
-        // Be careful to only emit a change event if the actual listing itself changes.
-        // Table emits more frequently, e.g., due to updating watch, time of listing changing, etc.
+        // Be careful to only emit a change event if the actual
+        // listing itself changes.  Table emits more frequently,
+        // e.g., due to updating watch, time of listing changing, etc.
         const this_version = await this.get_for_store(path);
         if (this_version != this.last_version[path]) {
           this.last_version[path] = this_version;
           paths.push(path);
         }
+
+        const this_deleted = this.get_record(path)?.get("deleted");
+        if (this_deleted != this.last_deleted[path]) {
+          if (
+            this_deleted != null &&
+            !this_deleted.equals(this.last_deleted[path])
+          ) {
+            deleted_paths.push(path);
+          }
+
+          this.last_deleted[path] = this_deleted;
+        }
       }
       if (paths.length > 0) {
         this.emit("change", paths);
+      }
+
+      if (deleted_paths.length > 0) {
+        this.emit("deleted", deleted_paths);
       }
     });
     this.set_state("ready");
@@ -245,9 +366,16 @@ export class Listings extends EventEmitter {
     return this.table;
   }
 
-  private set(obj: Listing): void {
-    this.get_table().set(merge({ project_id: this.project_id }, obj));
-    this.get_table().save();
+  private async set(obj: Listing): Promise<void> {
+    this.get_table().set(
+      merge({ project_id: this.project_id }, obj),
+      "shallow"
+    );
+    await this.get_table().save();
+  }
+
+  public is_ready(): boolean {
+    return this.state == ("ready" as State);
   }
 
   private get_record(path: string): ImmutableListing | undefined {

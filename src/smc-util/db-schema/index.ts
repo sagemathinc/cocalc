@@ -1,6 +1,5 @@
 export { SCHEMA } from "./types";
 
-
 // The tables
 import "./account-creation-actions";
 import "./account-profiles";
@@ -38,7 +37,7 @@ export {
   DEFAULT_FONT_SIZE,
   NEW_FILENAMES,
   DEFAULT_NEW_FILENAMES,
-  DEFAULT_COMPUTE_IMAGE
+  DEFAULT_COMPUTE_IMAGE,
 } from "./defaults";
 
 export { site_settings_conf } from "./site-defaults";

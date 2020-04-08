@@ -63,7 +63,7 @@ export async function launch_share(launch: string): Promise<void> {
   alert_message({
     type: "info",
     title: "Opening a copy of this shared content in a project...",
-    timeout: 5
+    timeout: 5,
   });
 
   const store = redux.getStore("account");
@@ -81,9 +81,9 @@ export async function launch_share(launch: string): Promise<void> {
           project_id: null,
           path: null,
           description: null,
-          license: null
-        }
-      }
+          license: null,
+        },
+      },
     })
   ).query.public_paths_by_id;
   //console.log("public_path = ", public_path);
@@ -115,7 +115,7 @@ export async function launch_share(launch: string): Promise<void> {
         title: "Opened project with the shared content.",
         message:
           "Since your account already has edit access to this shared content, it has been opened for you.",
-        block: true
+        block: true,
       });
       break;
     case "anonymous":
@@ -125,7 +125,7 @@ export async function launch_share(launch: string): Promise<void> {
         title: `Shared content opened - ${public_path.description}`,
         message:
           "You can edit and run this share!  Create an account in order to save your changes, collaborate with other people (and much more!).",
-        block: true
+        block: true,
       });
       break;
     case "fork":
@@ -135,7 +135,7 @@ export async function launch_share(launch: string): Promise<void> {
         title: `Shared content opened in a new project - ${public_path.description}`,
         message:
           "You can edit and run this share in this new project.  You may want to upgrade this project or copy files to another one of your projects.",
-        block: true
+        block: true,
       });
       break;
     default:
@@ -151,7 +151,9 @@ type Relationship =
   | "fork" // user is a normal user who needs to make a fork of the shared files in a new project (a fork)
   | "anonymous"; // user is anonymous, so make a copy of the shared files in their own project
 
-async function get_relationship_to_share(project_id: string): Promise<Relationship> {
+async function get_relationship_to_share(
+  project_id: string
+): Promise<Relationship> {
   const account_store = redux.getStore("account");
   if (account_store == null) {
     throw Error("acount_store MUST be defined");
@@ -192,7 +194,7 @@ function open_share_as_collaborator(project_id: string, path: string): void {
   redux.getActions("projects").open_project({
     project_id,
     switch_to: true,
-    target
+    target,
   });
 }
 
@@ -244,7 +246,7 @@ async function open_share_in_project(
   const projects_actions = redux.getActions("projects");
   projects_actions.open_project({
     project_id: target_project_id,
-    switch_to: true
+    switch_to: true,
   });
 
   // Copy the share to the target project.
@@ -252,7 +254,7 @@ async function open_share_in_project(
   const id = uuid();
   actions.set_activity({
     id,
-    status: "Copying shared content to your project..."
+    status: "Copying shared content to your project...",
   });
 
   await callback2(webapp_client.copy_path_between_projects.bind(actions), {
@@ -260,7 +262,7 @@ async function open_share_in_project(
     src_project_id: project_id,
     src_path: path,
     target_project_id,
-    timeout: 120
+    timeout: 120,
   });
 
   actions.set_activity({ id, status: "Opening the shared content..." });
@@ -277,7 +279,7 @@ async function open_share_in_project(
   await actions.set_current_path(containing_path);
   const store = redux.getProjectStore(target_project_id);
   await callback2(store.wait.bind(store), {
-    until: () => store.getIn(["directory_listings", containing_path]) != null
+    until: () => store.getIn(["directory_listings", containing_path]) != null,
   });
   const listing = store.getIn(["directory_listings", containing_path]);
   let isdir: boolean = false;
@@ -293,7 +295,7 @@ async function open_share_in_project(
     await actions.open_file({
       path,
       foreground: true,
-      foreground_project: true
+      foreground_project: true,
     });
   }
   actions.set_activity({ id, stop: "" });
@@ -305,7 +307,7 @@ async function open_share_in_a_new_project(info: ShareInfo): Promise<void> {
   const target_project_id = await actions.create_project({
     title: "Share", // gets changed in a moment by set_project_metadata
     start: true,
-    description: ""
+    description: "",
   });
   set_project_metadata(target_project_id, info);
   await open_share_in_project(info.project_id, info.path, target_project_id);

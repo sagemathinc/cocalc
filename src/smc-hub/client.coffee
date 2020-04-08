@@ -768,7 +768,7 @@ class exports.Client extends EventEmitter
         @invalidate_remember_me
             cb:(error) =>
                 @dbg('mesg_sign_out')("signing out: #{mesg.id}, #{error}")
-                if not error
+                if error
                     @push_to_client(message.error(id:mesg.id, error:error))
                 else
                     @push_to_client(message.signed_out(id:mesg.id))

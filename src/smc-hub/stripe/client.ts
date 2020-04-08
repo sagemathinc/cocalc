@@ -97,7 +97,7 @@ export class StripeClient {
       customer: await this.need_customer_id(),
       limit: mesg.limit,
       ending_before: mesg.ending_before,
-      starting_after: mesg.starting_after
+      starting_after: mesg.starting_after,
     };
   }
 
@@ -163,7 +163,7 @@ export class StripeClient {
     }
     return message.stripe_customer({
       stripe_publishable_key: this.stripe.publishable_key,
-      customer
+      customer,
     });
   }
 
@@ -189,7 +189,7 @@ export class StripeClient {
     dbg("get identifying info about user");
     const r = await callback2(this.client.database.get_account, {
       columns: ["email_address", "first_name", "last_name"],
-      account_id: this.client.account_id
+      account_id: this.client.account_id,
     });
     const email = r.email_address;
     const description = `${r.first_name} ${r.last_name}`;
@@ -202,20 +202,18 @@ export class StripeClient {
       name: description,
       email,
       metadata: {
-        account_id: this.client.account_id
-      }
+        account_id: this.client.account_id,
+      },
     };
 
-    const customer_id: string = (await this.call_stripe_api(
-      "customers",
-      "create",
-      x
-    )).id;
+    const customer_id: string = (
+      await this.call_stripe_api("customers", "create", x)
+    ).id;
 
     dbg("success; now save customer_id to database");
     await callback2(this.client.database.set_stripe_customer_id, {
       account_id: this.client.account_id,
-      customer_id
+      customer_id,
     });
 
     await this.update_database();
@@ -228,7 +226,7 @@ export class StripeClient {
     dbg("add card to existing stripe customer");
     const customer_id = await this.need_customer_id();
     await this.call_stripe_api("customers", "createCard", customer_id, {
-      card: token
+      card: token,
     });
 
     await this.update_database();
@@ -254,7 +252,7 @@ export class StripeClient {
     const customer_id: string = await this.need_customer_id();
     dbg("now setting the default source in stripe");
     await this.call_stripe_api("customers", "update", customer_id, {
-      default_source: card_id
+      default_source: card_id,
     });
     await this.update_database();
   }
@@ -266,7 +264,7 @@ export class StripeClient {
     await callback2(this.client.database.stripe_update_customer, {
       account_id: this.client.account_id,
       stripe: this.stripe,
-      customer_id
+      customer_id,
     });
   }
 
@@ -319,12 +317,12 @@ export class StripeClient {
     const options: any = {
       plan,
       quantity,
-      coupon: mesg.coupon_id
+      coupon: mesg.coupon_id,
     };
 
     dbg("determine applicable tax");
     const tax_rate = await callback2(stripe_sales_tax, {
-      customer_id
+      customer_id,
     });
     dbg(`tax_rate = ${tax_rate}`);
     if (tax_rate) {
@@ -345,7 +343,7 @@ export class StripeClient {
     if (schema.cancel_at_period_end) {
       dbg("Setting subscription to cancel at period end");
       await this.call_stripe_api("subscriptions", "update", subscription.id, {
-        cancel_at_period_end: true
+        cancel_at_period_end: true,
       });
     }
 
@@ -363,7 +361,7 @@ export class StripeClient {
       coupon_history[coupon.id] += 1;
       await callback2(this.client.database.update_coupon_history, {
         account_id: this.client.account_id,
-        coupon_history
+        coupon_history,
       });
     }
   }
@@ -382,7 +380,7 @@ export class StripeClient {
     // This also returns the subscription, which lets
     // us easily get the metadata of all projects associated to this subscription.
     await this.call_stripe_api("subscriptions", "update", subscription_id, {
-      cancel_at_period_end: mesg.at_period_end
+      cancel_at_period_end: mesg.at_period_end,
     });
 
     await this.update_database();
@@ -398,7 +396,7 @@ export class StripeClient {
     const changes = {
       quantity: mesg.quantity,
       plan: mesg.plan,
-      coupon: mesg.coupon_id
+      coupon: mesg.coupon_id,
     };
     await this.call_stripe_api(
       "customers",
@@ -415,7 +413,7 @@ export class StripeClient {
       coupon_history[coupon.id] += 1;
       await callback2(this.client.database.update_coupon_history, {
         account_id: this.client.account_id,
-        coupon_history
+        coupon_history,
       });
     }
   }
@@ -465,7 +463,7 @@ export class StripeClient {
     let coupon_history: CouponHistory = await callback2(
       this.client.database.get_coupon_history,
       {
-        account_id: this.client.account_id
+        account_id: this.client.account_id,
       }
     );
     if (!coupon.valid) throw Error("Sorry! This coupon has expired.");
@@ -522,10 +520,10 @@ export class StripeClient {
         "email_address",
         "first_name",
         "last_name",
-        "account_id"
+        "account_id",
       ],
       account_id: mesg.account_id,
-      email_address: mesg.email_address
+      email_address: mesg.email_address,
     });
     let customer_id = r.stripe_customer_id;
     const email = r.email_address;
@@ -538,7 +536,7 @@ export class StripeClient {
       await callback2(this.client.database.stripe_update_customer, {
         account_id: mesg.account_id,
         stripe: this.stripe,
-        customer_id
+        customer_id,
       });
     } else {
       dbg("create stripe entry for this customer");
@@ -546,15 +544,15 @@ export class StripeClient {
         description,
         email,
         metadata: {
-          account_id: mesg.account_id
-        }
+          account_id: mesg.account_id,
+        },
       };
       const customer = await this.call_stripe_api("customers", "create", x);
       customer_id = customer.id;
       dbg("store customer id in our database");
       await callback2(this.client.database.set_stripe_customer_id, {
         account_id: mesg.account_id,
-        customer_id
+        customer_id,
       });
     }
     if (!(mesg.amount != null && mesg.description != null)) {
@@ -567,7 +565,7 @@ export class StripeClient {
       customer: customer_id,
       amount: mesg.amount * 100,
       currency: "usd",
-      description: mesg.description
+      description: mesg.description,
     });
   }
 
@@ -581,7 +579,7 @@ export class StripeClient {
       return message.available_upgrades({
         total: {},
         excess: {},
-        available: {}
+        available: {},
       });
     }
     const stripe_data = customer.subscriptions.data;
@@ -590,7 +588,7 @@ export class StripeClient {
     const projects = await callback2(
       this.client.database.get_user_project_upgrades,
       {
-        account_id: this.client.account_id
+        account_id: this.client.account_id,
       }
     );
     const { excess, available } = available_upgrades(stripe_data, projects);
@@ -598,7 +596,7 @@ export class StripeClient {
     return message.available_upgrades({
       total,
       excess,
-      available
+      available,
     });
   }
 
@@ -608,7 +606,7 @@ export class StripeClient {
     if (this.client.account_id == null) throw Error("you must be signed in");
     await callback2(this.client.database.remove_all_user_project_upgrades, {
       account_id: this.client.account_id,
-      projects: mesg.projects
+      projects: mesg.projects,
     });
   }
 }

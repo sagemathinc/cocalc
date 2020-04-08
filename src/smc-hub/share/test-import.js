@@ -11,7 +11,7 @@ few **minutes**, since typescript is quite slow.
 
 console.log("Doing a test import of code...");
 require("ts-node").register({
-  cacheDirectory: process.env.HOME + "/.ts-node-cache"
+  cacheDirectory: process.env.HOME + "/.ts-node-cache",
 });
 require("node-cjsx").transform();
 require("./server");

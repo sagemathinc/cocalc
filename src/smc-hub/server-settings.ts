@@ -22,15 +22,15 @@ interface ServerSettings {
 
 let server_settings: ServerSettings | undefined = undefined;
 
-module.exports = function(db) {
+module.exports = function (db) {
   if (server_settings != null) {
     return server_settings;
   }
   const table = db.server_settings_synctable();
   server_settings = { all: {}, pub: {}, version: {}, table: table };
   const { all, pub, version } = server_settings;
-  const update = function() {
-    table.get().forEach(function(record, field) {
+  const update = function () {
+    table.get().forEach(function (record, field) {
       all[field] = record.get("value");
       if (site_settings_conf[field]) {
         if (startswith(field, "version_")) {

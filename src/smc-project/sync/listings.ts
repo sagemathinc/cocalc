@@ -1,21 +1,22 @@
 import { delay } from "awaiting";
-
 import { once } from "../smc-util/async-utils";
 import { SyncTable } from "../smc-util/sync/table";
 import { TypedMap } from "../smc-webapp/app-framework";
-import { merge } from "../smc-util/misc2";
+import { endswith, merge, path_split, startswith } from "../smc-util/misc2";
 import { field_cmp, seconds_ago } from "../smc-util/misc";
-import { get_listing } from "../directory-listing";
+import { get_listing, ListingEntry } from "../directory-listing";
 import {
   WATCH_TIMEOUT_MS,
-  MAX_FILES_PER_PATH
+  MAX_FILES_PER_PATH,
 } from "../smc-util/db-schema/listings";
 import { Watcher } from "./path-watcher";
+import { close_all_syncdocs_in_tree } from "./sync-doc";
+import { remove_jupyter_backend } from "../jupyter/jupyter";
 
 // Update directory listing only when file changes stop for at least this long.
 // This is important since we don't want to fire off dozens of changes per second,
 // e.g., if a logfile is being updated.
-const WATCH_DEBOUNCE_MS = 1000;
+const WATCH_DEBOUNCE_MS = 2000;
 
 // Watch directories for which some client has shown interest recently:
 const INTEREST_THRESH_SECONDS = WATCH_TIMEOUT_MS / 1000;
@@ -29,11 +30,12 @@ import { MAX_PATHS } from "../smc-util/db-schema/listings";
 interface Listing {
   path: string;
   project_id?: string;
-  listing?: object[];
+  listing?: ListingEntry[];
   time?: Date;
   interest?: Date;
   missing?: number;
   error?: string;
+  deleted?: string[];
 }
 export type ImmutableListing = TypedMap<Listing>;
 
@@ -72,7 +74,7 @@ class ListingsTable {
     if (this.table.get_state() != "connected") {
       return; // game over
     }
-    this.table.get().forEach(val => {
+    this.table.get().forEach((val) => {
       const path = val.get("path");
       if (path == null) return;
       if (this.watchers[path] == null) return; // already watching -- shouldn't happen
@@ -89,7 +91,7 @@ class ListingsTable {
   private async remove_stale_watchers(): Promise<void> {
     if (this.table == null) return; // closed
     if (this.table.get_state() == "connected") {
-      this.table.get().forEach(val => {
+      this.table.get().forEach((val) => {
         const path = val.get("path");
         if (path == null) return;
         if (this.watchers[path] == null) return;
@@ -134,12 +136,12 @@ class ListingsTable {
     return this.table;
   }
 
-  set(obj: Listing): void {
+  async set(obj: Listing): Promise<void> {
     this.get_table().set(
       merge({ project_id: this.project_id }, obj),
       "shallow"
     );
-    this.get_table().save();
+    await this.get_table().save();
   }
 
   public get(path: string): ImmutableListing | undefined {
@@ -208,13 +210,48 @@ class ListingsTable {
       throw err;
     }
     let missing: number | undefined = undefined;
+
+    const y = this.get(path);
+    const previous_listing = y?.get("listing")?.toJS();
+    let deleted: any = y?.get("deleted")?.toJS();
+    if (previous_listing != null) {
+      // Check to see to what extend change in the listing is due to files
+      // being deleted.  Note that in case of a directory with a large
+      // number of files we only know about recent files (since we don't)
+      // store the full listing, so deleting a non-recent file won't get
+      // detected here -- which is fine, since deletion tracking is important
+      // mainly for recently files.
+      const cur = new Set();
+      for (const x of listing) {
+        cur.add(x.name);
+      }
+      for (const x of previous_listing) {
+        if (!cur.has(x.name)) {
+          // x.name is suddenly gone... so deleted
+          if (deleted == null) {
+            deleted = [x.name];
+          } else {
+            if (deleted.indexOf(x.name) == -1) {
+              deleted.push(x.name);
+            }
+          }
+        }
+      }
+    }
+
+    // Shrink listing length
     if (listing.length > MAX_FILES_PER_PATH) {
       listing.sort(field_cmp("mtime"));
       listing.reverse();
       missing = listing.length - MAX_FILES_PER_PATH;
       listing = listing.slice(0, MAX_FILES_PER_PATH);
     }
-    this.set({ path, listing, time, missing, error: undefined });
+    // We want to clear the error, but just clearning it in synctable doesn't
+    // clear to database, so if there is an error, we set it to "" which does
+    // save fine to the database. (TODO: this is just a workaround.)
+    const error = y?.get("error") != null ? "" : undefined;
+
+    this.set({ path, listing, time, missing, deleted, error });
   }
 
   private start_watching(path: string): void {
@@ -222,7 +259,11 @@ class ListingsTable {
     if (process.env.HOME == null) {
       throw Error("HOME env variable must be defined");
     }
-    this.watchers[path] = new Watcher(path, WATCH_DEBOUNCE_MS, this.log.bind(this));
+    this.watchers[path] = new Watcher(
+      path,
+      WATCH_DEBOUNCE_MS,
+      this.log.bind(this)
+    );
     this.watchers[path].on("change", async () => {
       try {
         await this.compute_listing(path);
@@ -253,7 +294,7 @@ class ListingsTable {
     // by "interest" timestamp, and eliminate the oldest ones that are
     // not *currently* being watched.
     const paths: { path: string; interest: Date }[] = [];
-    table.get().forEach(val => {
+    table.get().forEach((val) => {
       const path = val.get("path");
       if (this.watchers[path] != null) {
         num_to_remove -= 1;
@@ -279,6 +320,62 @@ class ListingsTable {
     this.log("remove_path", path);
     await this.get_table().delete({ project_id: this.project_id, path });
   }
+
+  // Given a "filename", add it to deleted if there is already a record
+  // for the containing path in the database.  (TODO: we may change this
+  // to create the record if it doesn't exist.)
+  public async set_deleted(filename: string): Promise<void> {
+    if (filename[0] == "/") {
+      // absolute path
+      if (process.env.HOME == null || !startswith(filename, process.env.HOME)) {
+        // can't do anything with this.
+        return;
+      }
+      filename = filename.slice(process.env.HOME.length + 1);
+    }
+    const { head, tail } = path_split(filename);
+    const x = this.get(head);
+    if (x != null) {
+      // TODO/edge case: if x is null we *could* create the path here...
+      let deleted: any = x.get("deleted");
+      if (deleted == null) {
+        deleted = [tail];
+      } else {
+        if (deleted.indexOf(tail) != -1) return;
+        deleted = deleted.toJS();
+        deleted.push(tail);
+      }
+      await this.set({ path: head, deleted });
+    }
+
+    // Also we need to close *all* syncdocs that are going to be deleted,
+    // and wait until closing is done before we return.
+    await close_all_syncdocs_in_tree(filename);
+
+    // If it is a Jupyter kernel, close that too
+    if (endswith(filename, ".ipynb")) {
+      this.log(`set_deleted: handling jupyter kernel for ${filename}`);
+      await remove_jupyter_backend(filename, this.project_id);
+    }
+  }
+
+  public is_deleted(filename: string): boolean {
+    const { head, tail } = path_split(filename);
+    if (head != "" && this.is_deleted(head)) {
+      // recursively check if filename is contained in a
+      // directory tree that go deleted.
+      return true;
+    }
+    const x = this.get(head);
+    if (x == null) {
+      return false;
+    }
+    const deleted = x.get("deleted");
+    if (deleted == null) {
+      return false;
+    }
+    return deleted.indexOf(tail) != -1;
+  }
 }
 
 let listings_table: ListingsTable | undefined = undefined;
@@ -295,4 +392,8 @@ export function register_listings_table(
   }
   listings_table = new ListingsTable(table, logger, project_id);
   return;
+}
+
+export function get_listings_table(): ListingsTable | undefined {
+  return listings_table;
 }

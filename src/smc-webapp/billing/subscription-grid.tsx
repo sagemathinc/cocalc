@@ -49,14 +49,14 @@ export class SubscriptionGrid extends Component<Props> {
 
   private render_cols(row: string[], ncols: number): Rendered[] {
     const width = 12 / ncols;
-    return row.map(plan => (
+    return row.map((plan) => (
       <Col sm={width} key={plan}>
         {this.render_plan_info(plan)}
       </Col>
     ));
   }
 
-  private render_rows(live_subscriptions: (string[])[], ncols): Rendered[] {
+  private render_rows(live_subscriptions: string[][], ncols): Rendered[] {
     const v: Rendered[] = [];
     for (const i in live_subscriptions) {
       const row: string[] = live_subscriptions[i];
@@ -66,7 +66,7 @@ export class SubscriptionGrid extends Component<Props> {
   }
 
   public render(): Rendered {
-    const live_subscriptions: (string[])[] = [];
+    const live_subscriptions: string[][] = [];
     let ncols: number = 0; // max number of columns in any row
     for (const row of PROJECT_UPGRADES.live_subscriptions) {
       const v: string[] = [];

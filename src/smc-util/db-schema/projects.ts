@@ -18,7 +18,7 @@ Table({
       "USING GIN (users)", // so get_collaborator_ids is fast
       "USING GIN (host jsonb_path_ops)", // so get_projects_on_compute_server is fast
       "lti_id",
-      "USING GIN (state)" // so getting all running projects is fast (e.g. for site_license_usage_log... but also manage-state)
+      "USING GIN (state)", // so getting all running projects is fast (e.g. for site_license_usage_log... but also manage-state)
     ],
 
     user_query: {
@@ -46,8 +46,8 @@ Table({
           action_request: null, // last requested action -- {action:?, time:?, started:?, finished:?, err:?}
           course: null,
           compute_image: DEFAULT_COMPUTE_IMAGE,
-          addons: null
-        }
+          addons: null,
+        },
       },
       set: {
         fields: {
@@ -62,7 +62,7 @@ Table({
           action_request: true, // used to request that an action be performed, e.g., "save"; handled by before_change
           compute_image: true,
           course: true,
-          site_license: true
+          site_license: true,
         },
 
         before_change(database, old_val, new_val, account_id, cb) {
@@ -81,8 +81,8 @@ Table({
             account_id,
             cb
           );
-        }
-      }
+        },
+      },
     },
 
     project_query: {
@@ -92,182 +92,182 @@ Table({
           project_id: null,
           title: null,
           description: null,
-          status: null
-        }
+          status: null,
+        },
       },
       set: {
         fields: {
           project_id: "project_id",
           title: true,
           description: true,
-          status: true
-        }
-      }
-    }
+          status: true,
+        },
+      },
+    },
   },
   fields: {
     project_id: {
       type: "uuid",
       desc:
-        "The project id, which is the primary key that determines the project."
+        "The project id, which is the primary key that determines the project.",
     },
     title: {
       type: "string",
       desc:
-        "The short title of the project. Should use no special formatting, except hashtags."
+        "The short title of the project. Should use no special formatting, except hashtags.",
     },
     description: {
       type: "string",
       desc:
-        "A longer textual description of the project.  This can include hashtags and should be formatted using markdown."
+        "A longer textual description of the project.  This can include hashtags and should be formatted using markdown.",
     }, // markdown rendering possibly not implemented
     users: {
       type: "map",
       desc:
-        "This is a map from account_id's to {hide:bool, group:['owner',...], upgrades:{memory:1000, ...}, ssh:{...}}."
+        "This is a map from account_id's to {hide:bool, group:['owner',...], upgrades:{memory:1000, ...}, ssh:{...}}.",
     },
     invite: {
       type: "map",
       desc:
         "Map from email addresses to {time:when invite sent, error:error message if there was one}",
-      date: ["time"]
+      date: ["time"],
     },
     invite_requests: {
       type: "map",
       desc:
         "This is a map from account_id's to {timestamp:?, message:'i want to join because...'}.",
-      date: ["timestamp"]
+      date: ["timestamp"],
     },
     deleted: {
       type: "boolean",
-      desc: "Whether or not this project is deleted."
+      desc: "Whether or not this project is deleted.",
     },
     host: {
       type: "map",
       desc:
         "This is a map {host:'hostname_of_server', assigned:timestamp of when assigned to that server}.",
-      date: ["assigned"]
+      date: ["assigned"],
     },
     settings: {
       type: "map",
       desc:
-        'This is a map that defines the free base quotas that a project has. It is of the form {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0, ephemeral_state:0, ephemeral_disk:0}.  WARNING: some of the values are strings not numbers in the database right now, e.g., disk_quota:"1000".'
+        'This is a map that defines the free base quotas that a project has. It is of the form {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0, ephemeral_state:0, ephemeral_disk:0}.  WARNING: some of the values are strings not numbers in the database right now, e.g., disk_quota:"1000".',
     },
     site_license: {
       type: "map",
       desc:
-        "This is a map that defines upgrades (just when running the project) that come from a site license, and also the licenses that are applied to this project.  The format is {licensed_id:{memory:?, mintime:?, ...}} where the target of the license_id is the same as for the settings field. The licensed_id is the uuid of the license that contributed these upgrades.  To tell cocalc to use a license for a project, a user sets site_license to {license_id:{}}, and when it is requested to start the project, the backend decides what allocation license_id provides and changes the field accordingly."
+        "This is a map that defines upgrades (just when running the project) that come from a site license, and also the licenses that are applied to this project.  The format is {licensed_id:{memory:?, mintime:?, ...}} where the target of the license_id is the same as for the settings field. The licensed_id is the uuid of the license that contributed these upgrades.  To tell cocalc to use a license for a project, a user sets site_license to {license_id:{}}, and when it is requested to start the project, the backend decides what allocation license_id provides and changes the field accordingly.",
     },
     status: {
       type: "map",
       desc:
-        'This is a map computed by the status command run inside a project, and slightly enhanced by the compute server, which gives extensive status information about a project.  It has the form {console_server.pid: [pid of the console server, if running], console_server.port: [port if it is serving], disk_MB: [MB of used disk], installed: [whether code is installed], local_hub.pid: [pid of local hub server process],  local_hub.port: [port of local hub process], memory: {count:?, pss:?, rss:?, swap:?, uss:?} [output by smem],  raw.port: [port that the raw server is serving on], sage_server.pid: [pid of sage server process], sage_server.port: [port of the sage server], secret_token: [long random secret token that is needed to communicate with local_hub], state: "running" [see COMPUTE_STATES in the compute-states file], version: [version number of local_hub code]}'
+        'This is a map computed by the status command run inside a project, and slightly enhanced by the compute server, which gives extensive status information about a project.  It has the form {console_server.pid: [pid of the console server, if running], console_server.port: [port if it is serving], disk_MB: [MB of used disk], installed: [whether code is installed], local_hub.pid: [pid of local hub server process],  local_hub.port: [port of local hub process], memory: {count:?, pss:?, rss:?, swap:?, uss:?} [output by smem],  raw.port: [port that the raw server is serving on], sage_server.pid: [pid of sage server process], sage_server.port: [port of the sage server], secret_token: [long random secret token that is needed to communicate with local_hub], state: "running" [see COMPUTE_STATES in the compute-states file], version: [version number of local_hub code]}',
     },
     state: {
       type: "map",
       desc:
         'Info about the state of this project of the form  {error: "", state: "running", time: timestamp}, where time is when the state was last computed.  See COMPUTE_STATES in the compute-states file.',
-      date: ["time"]
+      date: ["time"],
     },
     last_edited: {
       type: "timestamp",
       desc:
-        "The last time some file was edited in this project.  This is the last time that the file_use table was updated for this project."
+        "The last time some file was edited in this project.  This is the last time that the file_use table was updated for this project.",
     },
     last_started: {
       type: "timestamp",
-      desc: "The last time the project started running."
+      desc: "The last time the project started running.",
     },
     last_active: {
       type: "map",
       desc:
         "Map from account_id's to the timestamp of when the user with that account_id touched this project.",
-      date: "all"
+      date: "all",
     },
     created: {
       type: "timestamp",
-      desc: "When the project was created."
+      desc: "When the project was created.",
     },
     action_request: {
       type: "map",
       desc:
         "Request state change action for project: {action:['restart', 'stop', 'save', 'close'], started:timestamp, err:?, finished:timestamp}",
-      date: ["started", "finished"]
+      date: ["started", "finished"],
     },
     storage: {
       type: "map",
       desc:
         "This is a map {host:'hostname_of_server', assigned:when first saved here, saved:when last saved here}.",
-      date: ["assigned", "saved"]
+      date: ["assigned", "saved"],
     },
     last_backup: {
       type: "timestamp",
       desc:
-        "(DEPRECATED) Timestamp of last off-disk successful backup using bup to Google cloud storage"
+        "(DEPRECATED) Timestamp of last off-disk successful backup using bup to Google cloud storage",
     },
     storage_request: {
       type: "map",
       desc:
         "(DEPRECATED) {action:['save', 'close', 'move', 'open'], requested:timestap, pid:?, target:?, started:timestamp, finished:timestamp, err:?}",
-      date: ["started", "finished", "requested"]
+      date: ["started", "finished", "requested"],
     },
     course: {
       type: "map",
       desc:
         "{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must move the project to a members only server.",
-      date: ["pay"]
+      date: ["pay"],
     },
     storage_server: {
       type: "integer",
       desc:
-        "(DEPRECATED) Number of the Kubernetes storage server with the data for this project: one of 0, 1, 2, ..."
+        "(DEPRECATED) Number of the Kubernetes storage server with the data for this project: one of 0, 1, 2, ...",
     },
     storage_ready: {
       type: "boolean",
       desc:
-        "(DEPRECATED) Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices that run is true."
+        "(DEPRECATED) Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices that run is true.",
     },
     disk_size: {
       type: "integer",
-      desc: "Size in megabytes of the project disk."
+      desc: "Size in megabytes of the project disk.",
     },
     resources: {
       type: "map",
       desc:
-        'Object of the form {requests:{memory:"30Mi",cpu:"5m"}, limits:{memory:"100Mi",cpu:"300m"}} which is passed to the k8s resources section for this pod.'
+        'Object of the form {requests:{memory:"30Mi",cpu:"5m"}, limits:{memory:"100Mi",cpu:"300m"}} which is passed to the k8s resources section for this pod.',
     },
     preemptible: {
       type: "boolean",
-      desc: "If true, allow to run on preemptible nodes."
+      desc: "If true, allow to run on preemptible nodes.",
     },
     idle_timeout: {
       type: "integer",
       desc:
-        "If given and nonzero, project will be killed if it is idle for this many **minutes**, where idle *means* that last_edited has not been updated."
+        "If given and nonzero, project will be killed if it is idle for this many **minutes**, where idle *means* that last_edited has not been updated.",
     },
     run_quota: {
       type: "map",
-      desc: "If project is running, this is the quota that it is running with."
+      desc: "If project is running, this is the quota that it is running with.",
     },
     compute_image: {
       type: "string",
-      desc: `Specify the name of the underlying (kucalc) compute image (default: '${DEFAULT_COMPUTE_IMAGE}')`
+      desc: `Specify the name of the underlying (kucalc) compute image (default: '${DEFAULT_COMPUTE_IMAGE}')`,
     },
     addons: {
       type: "map",
       desc:
-        "Configure (kucalc specific) addons for projects. (e.g. academic software, license keys, ...)"
+        "Configure (kucalc specific) addons for projects. (e.g. academic software, license keys, ...)",
     },
     lti_id: {
       type: "array",
       pg_type: "TEXT[]",
-      desc: "This is a specific ID derived from an LTI context"
+      desc: "This is a specific ID derived from an LTI context",
     },
     lti_data: {
       type: "map",
-      desc: "extra information related to LTI"
-    }
-  }
+      desc: "extra information related to LTI",
+    },
+  },
 });
 
 // Same query above, but without the last_edited time constraint.
@@ -295,10 +295,10 @@ Table({
         admin: true, // only admins can do get queries on this table
         // (without this, users who have read access could read)
         pg_where: [{ "project_id = $::UUID": "project_id" }],
-        fields: schema.projects.user_query.get.fields
-      }
-    }
-  }
+        fields: schema.projects.user_query.get.fields,
+      },
+    },
+  },
 });
 
 /*
@@ -320,15 +320,15 @@ Table({
       set: {
         fields: {
           project_id: "project_owner",
-          course: true
-        }
-      }
-    }
+          course: true,
+        },
+      },
+    },
   },
   fields: {
     project_id: true,
-    course: true
-  }
+    course: true,
+  },
 });
 
 /*
@@ -364,16 +364,16 @@ Table({
       set: {
         fields: {
           project_id: true,
-          invite_requests: true
+          invite_requests: true,
         },
         before_change(_database, _old_val, _new_val, _account_id, cb) {
           cb();
-        }
-      }
-    }
+        },
+      },
+    },
   }, // actual function will be database._user...
   fields: {
     project_id: true,
-    invite_requests: true
-  } // {account_id:{timestamp:?, message:?}, ...}
+    invite_requests: true,
+  }, // {account_id:{timestamp:?, message:?}, ...}
 });

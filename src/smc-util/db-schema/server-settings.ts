@@ -3,16 +3,16 @@ import { Table } from "./types";
 Table({
   name: "passport_settings",
   rules: {
-    primary_key: "strategy"
+    primary_key: "strategy",
   },
   fields: {
     strategy: {
-      type: "string"
+      type: "string",
     },
     conf: {
-      type: "map"
-    }
-  }
+      type: "map",
+    },
+  },
 });
 
 Table({
@@ -26,17 +26,17 @@ Table({
         admin: true,
         fields: {
           name: null,
-          value: null
-        }
-      }
-    }
+          value: null,
+        },
+      },
+    },
   },
   fields: {
     name: {
-      type: "string"
+      type: "string",
     },
     value: {
-      type: "string"
-    }
-  }
+      type: "string",
+    },
+  },
 });

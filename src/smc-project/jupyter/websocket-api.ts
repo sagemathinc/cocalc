@@ -56,7 +56,7 @@ export async function handle_request(
       return await kernel.introspect({
         code,
         cursor_pos,
-        detail_level
+        detail_level,
       });
     case "store":
       const { key, value } = query;

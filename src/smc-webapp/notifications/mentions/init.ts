@@ -9,7 +9,7 @@ export function init(redux: AppRedux) {
     return;
   }
   redux.createStore<MentionsState, MentionsStore>(redux_name, MentionsStore, {
-    filter: "unread"
+    filter: "unread",
   });
   redux.createActions<MentionsState, MentionsActions>(
     redux_name,

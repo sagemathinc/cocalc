@@ -51,7 +51,7 @@ export class Surface {
     metadata,
     properties,
     send,
-    is_overlay
+    is_overlay,
   }) {
     this.parent = parent;
     this.is_overlay = is_overlay;

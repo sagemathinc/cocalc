@@ -67,7 +67,7 @@ export class FileRow extends React.Component<Props, State> {
     }
     const style = {
       color: this.props.mask ? "#bbbbbb" : undefined,
-      verticalAlign: "sub"
+      verticalAlign: "sub",
     };
     return (
       <a style={style}>
@@ -108,7 +108,7 @@ export class FileRow extends React.Component<Props, State> {
       wordWrap: "break-word",
       overflowWrap: "break-word",
       verticalAlign: "middle",
-      color: this.props.mask ? "#bbbbbb" : undefined
+      color: this.props.mask ? "#bbbbbb" : undefined,
     };
 
     if (show_tip) {
@@ -157,11 +157,11 @@ export class FileRow extends React.Component<Props, State> {
 
   handle_mouse_down = () => {
     this.setState({
-      selection_at_last_mouse_down: (window.getSelection() || "").toString()
+      selection_at_last_mouse_down: (window.getSelection() || "").toString(),
     });
   };
 
-  handle_click = e => {
+  handle_click = (e) => {
     if (
       this.state != null &&
       (window.getSelection() || "").toString() !==
@@ -175,7 +175,7 @@ export class FileRow extends React.Component<Props, State> {
     const foreground = misc.should_open_in_foreground(e);
     this.props.actions.open_file({
       path: this.full_path(),
-      foreground
+      foreground,
     });
     if (foreground) {
       this.props.actions.set_file_search("");
@@ -187,12 +187,12 @@ export class FileRow extends React.Component<Props, State> {
     );
   };
 
-  handle_download_click = e => {
+  handle_download_click = (e) => {
     e.preventDefault();
     e.stopPropagation();
     this.props.actions.download_file({
       path: this.full_path(),
-      log: true
+      log: true,
     });
   };
 
@@ -236,7 +236,7 @@ export class FileRow extends React.Component<Props, State> {
       backgroundColor: this.props.color,
       borderStyle: "solid",
       borderColor: this.props.bordered ? COLORS.BLUE_BG : this.props.color,
-      margin: "1px 1px 1px 1px"
+      margin: "1px 1px 1px 1px",
     };
 
     // See https://github.com/sagemathinc/cocalc/issues/1020

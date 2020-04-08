@@ -520,7 +520,7 @@ export class SyncTable extends EventEmitter {
       obj: this,
       until,
       timeout,
-      change_event: "change-no-throttle"
+      change_event: "change-no-throttle",
     });
   }
 
@@ -592,7 +592,7 @@ export class SyncTable extends EventEmitter {
       do_emit_changes,
       this.throttle_changes
     );
-    this.emit_change = changed_keys => {
+    this.emit_change = (changed_keys) => {
       //console.log("emit_change", changed_keys);
       this.dbg("emit_change")(changed_keys);
       //console.log("#{this.table} -- queue changes", changed_keys)
@@ -743,7 +743,7 @@ export class SyncTable extends EventEmitter {
       query_cancel: this.client.query_cancel,
       options: this.options,
       query: this.query,
-      table: this.table
+      table: this.table,
     };
   }
 
@@ -830,7 +830,7 @@ export class SyncTable extends EventEmitter {
     if (this.primary_keys.length === 1) {
       // very common case
       const pk = this.primary_keys[0];
-      this.obj_to_key = obj => {
+      this.obj_to_key = (obj) => {
         if (obj == null) {
           return;
         }
@@ -842,7 +842,7 @@ export class SyncTable extends EventEmitter {
       };
     } else {
       // compound primary key
-      this.obj_to_key = obj => {
+      this.obj_to_key = (obj) => {
         if (obj == null) {
           return;
         }
@@ -983,7 +983,7 @@ export class SyncTable extends EventEmitter {
         await callback2(this.client.query, {
           query,
           options: [{ set: true }], // force it to be a set query
-          timeout: 30
+          timeout: 30,
         });
         this.last_save = value; // success -- don't have to save this stuff anymore...
       } catch (err) {

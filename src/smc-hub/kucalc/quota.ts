@@ -36,20 +36,20 @@ interface Limit {
 // it fails to start in time and times out.
 const MIN_POSSIBLE_CPU: Limit = Object.freeze({
   member: 0.05,
-  nonmember: 0.02
+  nonmember: 0.02,
 });
 
 // Min possible **guaranteed** RAM.
 const MIN_POSSIBLE_MEMORY: Limit = Object.freeze({
   member: 300,
-  nonmember: 200
+  nonmember: 200,
 });
 
 // lower bound for the RAM "limit"
 // in particular, we make sure member projects are above the free quota
 const MIN_MEMORY_LIMIT: Limit = Object.freeze({
   member: 1.5 * DEFAULT_QUOTAS.memory,
-  nonmember: DEFAULT_QUOTAS.memory
+  nonmember: DEFAULT_QUOTAS.memory,
 });
 
 type NumParser = (s: string | undefined) => number;
@@ -132,7 +132,7 @@ const BASE_QUOTAS: Quota = {
   disk_quota: DEFAULT_QUOTAS.disk_quota,
   memory_limit: DEFAULT_QUOTAS.memory, // upper bound on RAM in MB
   cpu_limit: DEFAULT_QUOTAS.cores, // upper bound on vCPU's
-  idle_timeout: DEFAULT_QUOTAS.mintime // minimum uptime
+  idle_timeout: DEFAULT_QUOTAS.mintime, // minimum uptime
 } as const;
 
 // sanitize the overcommitment ratio or discard it
@@ -180,7 +180,7 @@ function calc_default_quotas(site_settings?: SiteSettingsQuotas): Quota {
   return q;
 }
 
-exports.quota = function(
+exports.quota = function (
   settings_arg?: Settings,
   users_arg?: Users,
   site_license?: { [license_id: string]: Settings },
@@ -280,7 +280,7 @@ exports.quota = function(
   // Little helper to calculate the quotas, contributions, and limits.
   // name: of the computed quota, upgrade the quota config key,
   // parse_num for converting numbers, and factor for conversions
-  const calc = function(
+  const calc = function (
     name: string, // keyof Quota, but only the numeric ones
     upgrade: string, // keyof Settings, but only the numeric ones
     parse_num: NumParser,
@@ -288,19 +288,18 @@ exports.quota = function(
   ): void {
     if (factor == null) factor = 1;
 
-    const base: number = (() => {
-      // settings "overwrite" the default quotas
-      // there are also no limits to settings "admin" upgrades
+    const dflt_quota = quota[name];
+
+    const base: number = ((): number => {
+      // there are no limits to settings "admin" upgrades
       if (settings[upgrade]) {
-        quota[name] = factor * parse_num(settings[upgrade]);
-        return quota[name];
+        return factor * parse_num(settings[upgrade]);
       } else {
         return Math.min(quota[name], factor * max_upgrades[upgrade]);
       }
     })();
-    // compute how much is left for contributed user upgrades
-    const remain = Math.max(0, factor * max_upgrades[upgrade] - base);
 
+    // contributions can come from user upgrades or site licenses
     let contribs = 0;
     for (const userid in users) {
       const val = users[userid];
@@ -331,7 +330,13 @@ exports.quota = function(
         }
       }
     }
-    contribs = Math.min(remain, contribs);
+    // limit the contributions by the overall maximum (except for the defaults!)
+    const contribs_limit = Math.max(
+      0,
+      factor * max_upgrades[upgrade] - dflt_quota
+    );
+    contribs = Math.min(contribs, contribs_limit);
+    // base is the default or the modified admin upgrades
     quota[name] = base + contribs;
   };
 
@@ -367,12 +372,12 @@ exports.quota = function(
 
 // TODO name is <K extends keyof Quota>, but that causes troubles ...
 // at this point we already know that we only look for numeric properties and they're all != null
-const cap_lower_bound = function(quota: Quota, name: string, MIN_SPEC) {
+const cap_lower_bound = function (quota: Quota, name: string, MIN_SPEC) {
   const cap = quota.member_host ? MIN_SPEC.member : MIN_SPEC.nonmember;
   return (quota[name] = Math.max(quota[name], cap));
 };
 
-const make_number_parser: NumParserGen = function(fn: Str2Num) {
+const make_number_parser: NumParserGen = function (fn: Str2Num) {
   return (s: string | undefined) => {
     if (s == null) return 0;
     try {

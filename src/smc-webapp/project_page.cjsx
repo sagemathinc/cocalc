@@ -30,6 +30,7 @@ feature = require('./feature')
 {Button, Nav, NavItem, NavDropdown, MenuItem, Alert, Col, Row} = require('react-bootstrap')
 {SortableContainer, SortableElement} = require('react-sortable-hoc')
 {delay} = require('awaiting')
+{webapp_client} = require('./webapp_client')
 
 Draggable = require('react-draggable')
 
@@ -40,6 +41,7 @@ Draggable = require('react-draggable')
 {ProjectLog}       = require('./project/history')
 {ProjectSearch}    = require('./project_search')
 {ProjectSettings}  = require('./project/settings')
+{DeletedFile}      = require('./project/deleted-file')
 {ProjectStore}     = require('./project_store')
 {DiskSpaceWarning, RamWarning, OOMWarning} = require('./project_warnings')
 {KioskModeBanner} = require('./app_shared2')
@@ -356,6 +358,12 @@ ProjectContentViewer = rclass
 
 
     render_editor_tab: ->
+        if webapp_client.is_deleted(@props.file_path, @props.project_id)
+            return <DeletedFile
+                     project_id = {@props.project_id}
+                     path       = {@props.file_path}
+                     onOpen     = {=> @setState(counter : @state.counter+1)}/>
+
         if feature.IS_MOBILE
             # Side chat is not supported at all on mobile.
             is_chat_open = false
@@ -612,7 +620,6 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 fullscreen      = {@props.fullscreen}
             />
         return v
-
 
     render_project_content: (active_path, group) ->
         v = []

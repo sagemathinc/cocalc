@@ -12,7 +12,7 @@ export async function site_license_public_info(
     select: ["title", "expires", "activates", "upgrades", "run_limit"],
     table: "site_licenses",
     where: { id: license_id },
-    one: true
+    one: true,
   });
   if (!obj) throw Error(`no license with id ${license_id}`);
 

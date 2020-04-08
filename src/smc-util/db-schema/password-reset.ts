@@ -3,19 +3,19 @@ import { Table } from "./types";
 Table({
   name: "password_reset",
   rules: {
-    primary_key: "id"
+    primary_key: "id",
   },
   fields: {
     id: {
-      type: "uuid"
+      type: "uuid",
     },
     email_address: {
-      type: "string"
+      type: "string",
     },
     expire: {
-      type: "timestamp"
-    }
-  }
+      type: "timestamp",
+    },
+  },
 });
 
 Table({
@@ -23,21 +23,21 @@ Table({
   rules: {
     primary_key: "id",
     durability: "soft", // loss not serious, since used only for analytics and preventing attacks
-    pg_indexes: ["time"]
+    pg_indexes: ["time"],
   },
   fields: {
     id: {
-      type: "uuid"
+      type: "uuid",
     },
     email_address: {
-      type: "string"
+      type: "string",
     },
     ip_address: {
       type: "string",
-      pg_type: "inet"
+      pg_type: "inet",
     },
     time: {
-      type: "timestamp"
-    }
-  }
+      type: "timestamp",
+    },
+  },
 });

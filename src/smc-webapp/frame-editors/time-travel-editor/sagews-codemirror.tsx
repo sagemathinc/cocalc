@@ -46,7 +46,7 @@ export class SagewsCodemirror extends Component<Props> {
 
     const opts0 = {
       allow_javascript_eval: false,
-      static_viewer: true
+      static_viewer: true,
     };
     this.worksheet = new SynchronizedWorksheet(this.view_doc, opts0);
 

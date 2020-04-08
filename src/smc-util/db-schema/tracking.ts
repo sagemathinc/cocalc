@@ -10,29 +10,29 @@ Table({
   rules: {
     primary_key: ["token"],
     pg_indexes: ["token", "data_time"],
-    durability: "soft"
+    durability: "soft",
   },
   fields: {
     token: {
-      type: "uuid"
+      type: "uuid",
     },
     data: {
       type: "map",
-      desc: "referrer, landing page, utm, etc."
+      desc: "referrer, landing page, utm, etc.",
     },
     data_time: {
       type: "timestamp",
-      desc: "when the data field was set"
+      desc: "when the data field was set",
     },
     account_id: {
       type: "uuid",
-      desc: "set only once, when the user (eventually) signs in"
+      desc: "set only once, when the user (eventually) signs in",
     },
     account_id_time: {
       type: "timestamp",
-      desc: "when the account id was set"
-    }
-  }
+      desc: "when the account id was set",
+    },
+  },
 });
 
 /*
@@ -60,25 +60,25 @@ Table({
   rules: {
     primary_key: ["account_id", "time"],
     pg_indexes: ["event", "time"],
-    durability: "soft"
+    durability: "soft",
   },
   fields: {
     account_id: {
       type: "uuid",
-      desc: "id of the user's account"
+      desc: "id of the user's account",
     },
     time: {
       type: "timestamp",
-      desc: "time of this message"
+      desc: "time of this message",
     },
     event: {
       type: "string",
       desc: "event we are tracking",
-      pg_check: "NOT NULL"
+      pg_check: "NOT NULL",
     },
     value: {
       type: "map",
-      desc: "optional further info about the event (as a map)"
-    }
-  }
+      desc: "optional further info about the event (as a map)",
+    },
+  },
 });

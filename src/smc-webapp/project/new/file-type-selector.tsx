@@ -21,14 +21,14 @@ interface Props {
 export const FileTypeSelector: React.FC<Props> = ({
   create_file,
   project_id,
-  children
+  children,
 }: Props): JSX.Element | null => {
   const [show_jupyter_server, set_show_jupyter_server] = React.useState(false);
   const [show_jupyterlab_server, set_show_jupyterlab_server] = React.useState(
     false
   );
 
-  const available_features = redux.useProjectStore(store => {
+  const available_features = redux.useProjectStore((store) => {
     return store?.get("available_features");
   }, project_id);
 
@@ -62,9 +62,7 @@ export const FileTypeSelector: React.FC<Props> = ({
                 ext="sagews"
               />
             </Tip>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           {available.jupyter_notebook ? (
             <Tip
               icon="cc-icon-jupyter"
@@ -78,9 +76,7 @@ export const FileTypeSelector: React.FC<Props> = ({
                 ext={"ipynb"}
               />
             </Tip>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           {available.latex ? (
             <Tip
               title="LaTeX Document"
@@ -94,9 +90,7 @@ export const FileTypeSelector: React.FC<Props> = ({
                 ext="tex"
               />
             </Tip>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           <Tip
             title="Linux terminal"
             icon="terminal"
@@ -122,9 +116,7 @@ export const FileTypeSelector: React.FC<Props> = ({
                 ext="x11"
               />
             </Tip>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </Col>
       </Row>
       <Row style={row_style}>
@@ -184,9 +176,7 @@ export const FileTypeSelector: React.FC<Props> = ({
                 ext="rmd"
               />
             </Tip>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           <Tip
             title="Task list"
             icon="tasks"
@@ -235,9 +225,7 @@ export const FileTypeSelector: React.FC<Props> = ({
                 disabled={show_jupyter_server}
               />
             </Tip>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           {available.jupyter_lab ? (
             <Tip
               title={"JupyterLab server"}
@@ -255,25 +243,19 @@ export const FileTypeSelector: React.FC<Props> = ({
                 disabled={show_jupyterlab_server}
               />
             </Tip>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </Col>
       </Row>
       <Row style={row_style}>
         <Col sm={6}>
           {show_jupyter_server ? (
             <JupyterServerPanel project_id={project_id} />
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </Col>
         <Col sm={6}>
           {show_jupyterlab_server ? (
             <JupyterLabServerPanel project_id={project_id} />
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </Col>
       </Row>
     </>

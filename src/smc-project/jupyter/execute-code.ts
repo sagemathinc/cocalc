@@ -14,7 +14,7 @@ import { uuid, trunc, deep_copy, copy_with } from "../smc-util/misc2";
 import {
   CodeExecutionEmitterInterface,
   ExecOpts,
-  StdinFunction
+  StdinFunction,
 } from "../smc-webapp/jupyter/project-interface";
 
 export class CodeExecutionEmitter extends EventEmitter
@@ -44,15 +44,15 @@ export class CodeExecutionEmitter extends EventEmitter
         username: "",
         session: "",
         msg_type: "execute_request",
-        version: VERSION
+        version: VERSION,
       },
       content: {
         code: this.code,
         silent: false,
         store_history: true, // so execution_count is updated.
         user_expressions: {},
-        allow_stdin: this.stdin != null
-      }
+        allow_stdin: this.stdin != null,
+      },
     };
 
     this._go = this._go.bind(this);
@@ -120,11 +120,11 @@ export class CodeExecutionEmitter extends EventEmitter
         username: "",
         session: "",
         msg_type: "input_reply",
-        version: VERSION
+        version: VERSION,
       },
       content: {
-        value: response
-      }
+        value: response,
+      },
     };
     dbg(`STDIN server --> kernel: ${JSON.stringify(m)}`);
     this.kernel._channels.stdin.next(m);

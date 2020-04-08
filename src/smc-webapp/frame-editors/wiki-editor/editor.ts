@@ -31,8 +31,8 @@ const EDITOR_SPEC = {
       "copy",
       "undo",
       "redo",
-      "reload"
-    ])
+      "reload",
+    ]),
   },
 
   html: {
@@ -46,7 +46,7 @@ const EDITOR_SPEC = {
       "increase_font_size",
       "save",
       "time_travel",
-      "reload"
+      "reload",
     ]),
     path(path) {
       return aux_file(path, "html");
@@ -54,19 +54,19 @@ const EDITOR_SPEC = {
     fullscreen_style: {
       // set via jquery
       "max-width": "900px",
-      margin: "auto"
-    }
+      margin: "auto",
+    },
   },
 
   terminal,
 
   settings: SETTINGS_SPEC,
 
-  time_travel
+  time_travel,
 };
 
 export const Editor = createEditor({
   format_bar: true,
   editor_spec: EDITOR_SPEC,
-  display_name: "WikiEditor"
+  display_name: "WikiEditor",
 });

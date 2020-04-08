@@ -95,7 +95,7 @@ export async function projects_using_site_license(
   const x = await callback2(db._query.bind(db), {
     query: select + " " + query,
     limit: opts.limit,
-    params
+    params,
   });
   const v: { [field: string]: any }[] = [];
   for (const row of x.rows) {
@@ -136,7 +136,7 @@ export async function number_of_projects_using_site_license(
 
   const x = await callback2(db._query.bind(db), {
     query: "SELECT COUNT(DISTINCT(projects.project_id)) " + query,
-    params
+    params,
   });
   return parseInt(x.rows[0].count);
 }

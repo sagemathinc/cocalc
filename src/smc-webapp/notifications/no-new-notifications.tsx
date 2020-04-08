@@ -14,5 +14,5 @@ export function NoNewNotifications({ text, style }) {
 
 const well_style: React.CSSProperties = {
   padding: "40px, 30px",
-  textAlign: "center"
+  textAlign: "center",
 };

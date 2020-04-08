@@ -80,7 +80,7 @@ export class ProjectAndUserTracker extends EventEmitter {
         table: "projects",
         select: { project_id: "UUID" },
         watch: ["users"],
-        where: {}
+        where: {},
       });
       dbg("Success");
     } catch (err) {
@@ -176,7 +176,7 @@ export class ProjectAndUserTracker extends EventEmitter {
     try {
       users = await query(this.db, {
         query: "SELECT jsonb_object_keys(users) AS account_id FROM projects",
-        where: { "project_id = $::UUID": project_id }
+        where: { "project_id = $::UUID": project_id },
       });
     } catch (err) {
       this.handle_error(err);
@@ -368,7 +368,7 @@ export class ProjectAndUserTracker extends EventEmitter {
         projects = await query(this.db, {
           query:
             "SELECT project_id, json_agg(o) as users FROM (select project_id, jsonb_object_keys(users) AS o FROM projects WHERE users ? $1::TEXT) s group by s.project_id",
-          params: [account_id]
+          params: [account_id],
         });
       } catch (err) {
         const e = `error registering '${account_id}' -- err=${err}`;
@@ -471,7 +471,7 @@ export class ProjectAndUserTracker extends EventEmitter {
       "add_user_to_project",
       "remove_user_from_project",
       "add_collaborator",
-      "remove_collaborator"
+      "remove_collaborator",
     ]) {
       const event = e + "-" + account_id;
       x[event] = this.listenerCount(event);

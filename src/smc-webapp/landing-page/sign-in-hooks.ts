@@ -26,15 +26,15 @@ async function analytics_send(mesg: SignedIn): Promise<void> {
       cache: "no-cache",
       credentials: "include",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       redirect: "follow",
       body: JSON.stringify({
-        account_id: mesg.account_id
-      })
+        account_id: mesg.account_id,
+      }),
     })
     // .then(response => console.log("Success:", response))
-    .catch(error =>
+    .catch((error) =>
       console.error("sign-in-hooks::analytics_send error:", error)
     );
 }

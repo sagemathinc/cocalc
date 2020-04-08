@@ -19,7 +19,7 @@ export function SettingBox({
   title_el,
   close,
   children,
-  show_header = true
+  show_header = true,
 }: Props) {
   function render_header() {
     if (!show_header) {

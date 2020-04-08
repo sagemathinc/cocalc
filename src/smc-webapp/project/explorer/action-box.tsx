@@ -16,7 +16,7 @@ const {
   FormControl,
   FormGroup,
   Alert,
-  Checkbox
+  Checkbox,
 } = require("react-bootstrap");
 const account = require("../../account");
 
@@ -70,14 +70,14 @@ export const ActionBox = rclass<ReactProps>(
           // get_total_project_quotas relys on this data
           // Will be removed by #1084
           project_map: rtypes.immutable.Map,
-          get_total_project_quotas: rtypes.func
+          get_total_project_quotas: rtypes.func,
         },
         account: {
-          get_user_type: rtypes.func
+          get_user_type: rtypes.func,
         },
         customize: {
-          site_name: rtypes.string
-        }
+          site_name: rtypes.string,
+        },
       };
     };
 
@@ -90,7 +90,7 @@ export const ActionBox = rclass<ReactProps>(
           : this.props.project_id,
         move_destination: "",
         new_name: this.props.new_name,
-        show_different_project: this.props.public_view
+        show_different_project: this.props.public_view,
       };
       this.pre_styles = {
         marginBottom: "15px",
@@ -100,7 +100,7 @@ export const ActionBox = rclass<ReactProps>(
         fontFamily: "inherit",
         color: "#555",
         backgroundColor: "#eee",
-        padding: "6px 12px"
+        padding: "6px 12px",
       } as const;
     }
 
@@ -135,7 +135,7 @@ export const ActionBox = rclass<ReactProps>(
     render_selected_files_list(): JSX.Element {
       return (
         <pre style={this.pre_styles}>
-          {this.props.checked_files.toArray().map(name => (
+          {this.props.checked_files.toArray().map((name) => (
             <div key={name}>{misc.path_split(name).tail}</div>
           ))}
         </pre>
@@ -148,7 +148,7 @@ export const ActionBox = rclass<ReactProps>(
       ) as any).value;
       this.props.actions.zip_files({
         src: this.props.checked_files.toArray(),
-        dest: misc.path_to_file(this.props.current_path, destination)
+        dest: misc.path_to_file(this.props.current_path, destination),
       });
       this.props.actions.set_all_files_unchecked();
       this.props.actions.set_file_action();
@@ -200,7 +200,7 @@ export const ActionBox = rclass<ReactProps>(
 
     delete_click = (): void => {
       this.props.actions.delete_files({
-        paths: this.props.checked_files.toArray()
+        paths: this.props.checked_files.toArray(),
       });
       this.props.actions.set_file_action();
       this.props.actions.set_all_files_unchecked();
@@ -239,7 +239,7 @@ export const ActionBox = rclass<ReactProps>(
               however, older backups of your files may still be available in the{" "}
               <a
                 href=""
-                onClick={e => {
+                onClick={(e) => {
                   e.preventDefault();
                   this.props.actions.open_directory(".snapshots");
                 }}
@@ -278,11 +278,14 @@ export const ActionBox = rclass<ReactProps>(
         .value;
       switch (this.props.file_action) {
         case "rename":
-          this.props.actions.move_files({
-            src: this.props.checked_files.toArray(),
+          const checked = this.props.checked_files.toArray();
+          if (checked.length != 1) {
+            // shouldn't happen -- shouldn't even get to this point.
+            return;
+          }
+          this.props.actions.rename_file({
+            src: checked[0],
             dest: misc.path_to_file(rename_dir, destination),
-            dest_is_folder: false,
-            include_chats: true
           });
           analytics_event("project_file_listing", "rename item");
           break;
@@ -290,7 +293,7 @@ export const ActionBox = rclass<ReactProps>(
           this.props.actions.copy_paths({
             src: this.props.checked_files.toArray(),
             dest: misc.path_to_file(rename_dir, destination),
-            only_contents: true
+            only_contents: true,
           });
           analytics_event("project_file_listing", "duplicate item");
           break;
@@ -373,7 +376,7 @@ export const ActionBox = rclass<ReactProps>(
                     this.setState({
                       new_name: (ReactDOM.findDOMNode(
                         this.refs.new_name
-                      ) as any).value
+                      ) as any).value,
                     })
                   }
                   onKeyDown={this.action_key}
@@ -411,8 +414,6 @@ export const ActionBox = rclass<ReactProps>(
       this.props.actions.move_files({
         src: this.props.checked_files.toArray(),
         dest: this.state.move_destination,
-        dest_is_folder: true,
-        include_chats: true
       });
       this.props.actions.set_file_action();
       this.props.actions.set_all_files_unchecked();
@@ -447,7 +448,9 @@ export const ActionBox = rclass<ReactProps>(
               <h4>Destination</h4>
               <DirectoryInput
                 autoFocus={true}
-                on_change={value => this.setState({ move_destination: value })}
+                on_change={(value) =>
+                  this.setState({ move_destination: value })
+                }
                 key="move_destination"
                 default_value=""
                 placeholder="Home directory"
@@ -499,7 +502,7 @@ export const ActionBox = rclass<ReactProps>(
                 !this.props.public_view ? this.props.project_id : undefined
               }
               placeholder="Select a project..."
-              onSelect={value =>
+              onSelect={(value) =>
                 this.setState({ copy_destination_project_id: value.id })
               }
               messages={{ emptyFilter: "", emptyList: "" }}
@@ -516,7 +519,7 @@ export const ActionBox = rclass<ReactProps>(
           <div>
             <Checkbox
               ref="delete_extra_files_checkbox"
-              onChange={e =>
+              onChange={(e) =>
                 this.setState({ delete_extra_files: e.target.checked })
               }
             >
@@ -524,7 +527,7 @@ export const ActionBox = rclass<ReactProps>(
             </Checkbox>
             <Checkbox
               ref="overwrite_newer_checkbox"
-              onChange={e =>
+              onChange={(e) =>
                 this.setState({ overwrite_newer: e.target.checked })
               }
             >
@@ -564,13 +567,13 @@ export const ActionBox = rclass<ReactProps>(
           target_project_id: destination_project_id,
           target_path: destination_directory,
           overwrite_newer,
-          delete_missing: delete_extra_files
+          delete_missing: delete_extra_files,
         });
         analytics_event("project_file_listing", "copy between projects");
       } else {
         this.props.actions.copy_paths({
           src: paths,
-          dest: destination_directory
+          dest: destination_directory,
         });
         analytics_event("project_file_listing", "copy within a project");
       }
@@ -654,7 +657,7 @@ export const ActionBox = rclass<ReactProps>(
                 </h4>
                 <DirectoryInput
                   autoFocus={true}
-                  on_change={value =>
+                  on_change={(value) =>
                     this.setState({ copy_destination_directory: value })
                   }
                   key="copy_destination_directory"
@@ -713,7 +716,7 @@ export const ActionBox = rclass<ReactProps>(
           public={public_data.public}
           close={this.cancel_action}
           action_key={this.action_key}
-          set_public_path={opts =>
+          set_public_path={(opts) =>
             this.props.actions.set_public_path(path, opts)
           }
           has_network_access={total_quotas.network}
@@ -724,7 +727,7 @@ export const ActionBox = rclass<ReactProps>(
     download_single_click = (): void => {
       this.props.actions.download_file({
         path: this.props.checked_files.first(),
-        log: true
+        log: true,
       });
       this.props.actions.set_file_action();
       analytics_event("project_file_listing", "download item");
@@ -739,17 +742,17 @@ export const ActionBox = rclass<ReactProps>(
       this.props.actions.zip_files({
         src: files,
         dest,
-        cb: err => {
+        cb: (err) => {
           if (err) {
             this.props.actions.set_activity({ id: misc.uuid(), error: err });
             return;
           }
           this.props.actions.download_file({
             path: dest,
-            log: files
+            log: files,
           });
           this.props.actions.fetch_directory_listing();
-        }
+        },
       });
       this.props.actions.set_all_files_unchecked();
       this.props.actions.set_file_action();

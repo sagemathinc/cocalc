@@ -7,10 +7,10 @@ const w = window as any;
 
 w.test_load = {};
 
-w.test_load.basic = function() {
+w.test_load.basic = function () {
   require("../../markdown-editor/test/basic");
 };
 
-w.test_load.math = function() {
+w.test_load.math = function () {
   require("../../markdown-editor/test/math");
 };

@@ -6,7 +6,7 @@ const { APP_BASE_URL } = require("../misc_page");
 
 // tests at startup if localStorage exists and works. if not or disabled, uses memory as a fallback.
 
-const LS: { [k: string]: string | undefined } = (function() {
+const LS: { [k: string]: string | undefined } = (function () {
   let it_works = false;
   try {
     const test_key = "cocalc_test";

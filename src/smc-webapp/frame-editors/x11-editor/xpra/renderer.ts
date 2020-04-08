@@ -98,7 +98,7 @@ export class Renderer {
         data,
         sequence,
         rowstride,
-        options
+        options,
       });
       this.send("damage-sequence", sequence, this.wid, w, h, diff, "");
     } catch (err) {
