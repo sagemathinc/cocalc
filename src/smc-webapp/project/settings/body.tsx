@@ -171,25 +171,43 @@ export const Body = rclass<ReactProps>(
                   }}
                 >
                   <Menu.Item key="TitleDescriptionBox">
-                    Title and Description
+                    <Icon name="header" />
+                    <span> Title and Description</span>
                   </Menu.Item>
-                  <Menu.Item key="UpgradeUsage">Upgrade Usage</Menu.Item>
-                  <Menu.Item key="HideDeleteBox">Hide or Delete</Menu.Item>
+                  <Menu.Item key="UpgradeUsage">
+                    <Icon name="dashboard" />
+                    <span> Upgrade Usage</span>
+                  </Menu.Item>
+                  <Menu.Item key="HideDeleteBox">
+                    <Icon name="warning" />
+                    <span> Hide or Delete</span>
+                  </Menu.Item>
                   {this.props.ssh_gateway ||
                   this.props.kucalc === KUCALC_COCALC_COM ? (
-                    <Menu.Item key="ProjectCapabilities">SSH panel</Menu.Item>
+                    <Menu.Item key="SSHPanel">
+                      <Icon name="clipboard-check" /> <span> SSH panel</span>
+                    </Menu.Item>
                   ) : undefined}
                   <Menu.Item key="ProjectCapabilities">
-                    Project Capabilities
+                    <Icon name="clipboard-check" />
+                    <span> Project Capabilities</span>
                   </Menu.Item>
                   <Menu.Item key="CurrentCollaboratorsPanel">
-                    Current Collaborators
+                    <Icon name="user" />
+                    <span> Current Collaborators</span>
                   </Menu.Item>
                   <Menu.Item key="AddCollaboratorsPanel">
-                    Add Collaborators
+                    <Icon name="plus" />
+                    <span> Add Collaborators</span>
                   </Menu.Item>
-                  <Menu.Item key="ProjectControl">Project Control</Menu.Item>
-                  <Menu.Item key="SagewsControl">Sage worksheet</Menu.Item>
+                  <Menu.Item key="ProjectControl">
+                    <Icon name="gears" />
+                    <span> Project Control</span>
+                  </Menu.Item>
+                  <Menu.Item key="SagewsControl">
+                    <Icon name="refresh" />
+                    <span> Sage worksheet</span>
+                  </Menu.Item>
                 </Menu>
               </div>
             </div>
@@ -300,15 +318,15 @@ export const Body = rclass<ReactProps>(
           </div>
         );
       } else {
-        // MOBILE VIEW 
+        // MOBILE VIEW
         return (
-          <div className="smc-vfill" style={{ }}>
+          <div className="smc-vfill" style={{}}>
             <div
               className="smc-vfill"
               id="thisone"
               style={{ overflowY: "auto", flex: "13" }}
             >
-              <div style={{ }}>
+              <div style={{}}>
                 {commercial &&
                 total_project_quotas != undefined &&
                 !total_project_quotas.member_host ? (
@@ -404,6 +422,7 @@ export const Body = rclass<ReactProps>(
                 <ProjectControl key="control" project={this.props.project} />
                 <div id="SagewsControl"></div>
                 <SagewsControl key="worksheet" project={this.props.project} />
+                <div style={{ height: "750px" }}></div>
               </div>
             </div>
           </div>
