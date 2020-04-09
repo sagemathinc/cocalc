@@ -1397,7 +1397,7 @@ class exports.Connection extends EventEmitter
         @exec
             project_id : opts.project_id
             command    : command
-            timeout    : 30
+            timeout    : 60
             allow_post : false  # walking tree can be slow!
             aggregate  : Math.round((new Date() - 0)/5000)  # aggregate calls into 5s windows, in case multiple clients ask for same find at once...
             cb         : (err, result) =>
