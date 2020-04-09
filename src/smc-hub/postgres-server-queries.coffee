@@ -37,6 +37,7 @@ collab = require('./postgres/collab')
 {site_license_public_info} = require('./postgres/site-license/public')
 {permanently_unlink_all_deleted_projects_of_user} = require('./postgres/delete-projects')
 {unlist_all_public_paths} = require('./postgres/public-paths')
+{get_remember_me} = require('./postgres/remember-me')
 
 SERVER_SETTINGS_EXTRAS = require("smc-util/db-schema/site-settings-extras").EXTRAS
 SITE_SETTINGS_CONF = require("smc-util/schema").site_settings_conf
@@ -1421,13 +1422,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     get_remember_me: (opts) =>
         opts = defaults opts,
             hash                : required
+            cache               : true
             cb                  : required   # cb(err, signed_in_message)
-        @_query
-            query : 'SELECT value, expire FROM remember_me'
-            where :
-                'hash = $::TEXT' : opts.hash.slice(0,127)
-            retry_until_success  : {max_time:60000, start_delay:3000}  # since we want this to be (more) robust to database connection failures.
-            cb       : one_result('value', opts.cb)
+        try
+            opts.cb(undefined, await get_remember_me(@, opts.hash, opts.cache))
+        catch err
+            opts.cb(err)
 
     delete_remember_me: (opts) =>
         opts = defaults opts,

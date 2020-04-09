@@ -25,7 +25,7 @@ export class TopBar extends Component<TopBarProps> {
       <span style={{ marginRight: "10px" }}>
         <a href={top} style={{ textDecoration: "none" }}>
           <CoCalcLogo base_url={this.props.base_url} /> {this.props.site_name}{" "}
-          Shared Files
+          Public Files
         </a>
       </span>
     );

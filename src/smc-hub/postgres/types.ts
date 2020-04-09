@@ -16,6 +16,8 @@ export interface QueryOptions {
   where?: QueryWhere;
   query?: string;
   params?: string[];
+  cache?: boolean;
+  retry_until_success?: any; // todo
   cb?: Function;
 }
 

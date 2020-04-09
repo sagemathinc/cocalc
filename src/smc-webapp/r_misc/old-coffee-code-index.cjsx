@@ -1070,9 +1070,13 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
         style     : {marginRight:'2px', whiteSpace: 'nowrap'}
 
     handle_click: (name) ->
-        @props.actions.show_file_action_panel
-            path   : @props.filename
-            action : name
+        # ugly: fix when refactor this code.
+        {file_actions} = require('../project_store')
+        for action, v of file_actions
+            if v.name == name
+                @props.actions.show_file_action_panel
+                    path   : @props.filename
+                    action : action
 
     render_menu_item: (name, icon) ->
         <MenuItem onSelect={=>@handle_click(name)} key={name} >
@@ -1088,7 +1092,7 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
         else
             # dynamically create a map from 'key' to 'icon'
             {file_actions} = require('../project_store')
-            items = underscore.object(([k, v.icon] for k, v of file_actions))
+            items = underscore.object(([v.name, v.icon] for k, v of file_actions))
 
         for name, icon of items
             @render_menu_item(name, icon)
