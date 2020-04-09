@@ -1395,6 +1395,7 @@ class exports.Connection extends EventEmitter
         command = "find #{args.join(' ')}"
 
         @exec
+            err_on_exit:false  # because want this to still work even if there's a nonzero exit code, which might happen if find hits a directory it can't read, e.g., a broken ~/.snapshots.
             project_id : opts.project_id
             command    : command
             timeout    : 60
