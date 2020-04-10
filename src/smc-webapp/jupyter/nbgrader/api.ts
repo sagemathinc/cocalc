@@ -35,6 +35,7 @@ export interface NBGraderAPIResponse {
 export async function nbgrader(
   opts: NBGraderAPIOptions
 ): Promise<NBGraderAPIResponse> {
+  // console.log("nbgrader", opts);
   const autograde_ipynb = create_autograde_ipynb(
     opts.instructor_ipynb,
     opts.student_ipynb

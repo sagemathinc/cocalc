@@ -22,11 +22,7 @@ interface Props {
   terminal_command?: TerminalCommand;
 }
 
-class TerminalCommandPanel extends Component<Props, {}> {
-  constructor(props) {
-    super(props);
-  }
-
+class TerminalCommandPanel extends Component<Props> {
   get_actions(): CourseActions {
     const actions = redux.getActions(this.props.name);
     if (actions == null) {
