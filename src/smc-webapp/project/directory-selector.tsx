@@ -4,7 +4,7 @@ Component that allows a user to select a directory in a project.
 - [ ] text box to filter what is shown (?)
 */
 
-import { Map, Set } from "immutable";
+import * as immutable from "immutable";
 import {
   Rendered,
   Component,
@@ -36,18 +36,18 @@ const DEFAULT_STYLE: React.CSSProperties = {
 interface Props {
   project_id: string;
   starting_path?: string;
-  exclusions?: string[]; // grey these directories out; should not be available to select.  Relative to home directory.
+  exclusions?: Set<string>; // grey these directories out; should not be available to select.  Relative to home directory.
   onSelect: Function; // called when user chooses a directory
   onCancel?: Function;
 
   // reduxProps
-  directory_listings?: Map<string, any>;
+  directory_listings?: immutable.Map<string, any>;
 }
 
 interface State {
   current_path: string;
   selected_path?: string;
-  expanded_paths: Set<string>; // paths that are expanded
+  expanded_paths: immutable.Set<string>; // paths that are expanded
   edit_path: string; // path whose name is being edited
   edited_name: string;
   show_hidden: boolean;
@@ -74,7 +74,7 @@ class DirectorySelector extends Component<Props, State> {
     }
     this.state = {
       current_path,
-      expanded_paths: Set(expanded_paths),
+      expanded_paths: immutable.Set(expanded_paths),
       show_hidden: false,
       edit_path: "",
       edited_name: "",
@@ -98,6 +98,7 @@ class DirectorySelector extends Component<Props, State> {
     const is_selected: boolean = this.state.selected_path == path;
     const is_editable: boolean =
       (path != "" || tail != "") && this.state.edit_path == path;
+    const is_excluded: boolean = !!this.props.exclusions?.has(path);
     let content: Rendered;
     if (!is_editable) {
       content = <>{tail ? tail : "Home directory"}</>;
@@ -125,6 +126,14 @@ class DirectorySelector extends Component<Props, State> {
         />
       );
     }
+    let color = "black";
+    let backgroundColor: string | undefined = undefined;
+    if (is_excluded) {
+      color = "gray";
+    } else if (!is_editable && is_selected) {
+      color = "white";
+      backgroundColor = "#40a9ff";
+    }
 
     return (
       <span
@@ -136,11 +145,17 @@ class DirectorySelector extends Component<Props, State> {
           textOverflow: "ellipsis",
           padding: "0 5px",
           whiteSpace: "nowrap",
-          backgroundColor: !is_editable && is_selected ? "#40a9ff" : undefined,
-          color: !is_editable && is_selected ? "white" : undefined,
+          backgroundColor,
+          color,
         }}
-        onClick={() => this.select_path(path)}
-        onDoubleClick={() => this.edit_name(path)}
+        onClick={() => {
+          if (is_excluded) return;
+          this.select_path(path);
+        }}
+        onDoubleClick={() => {
+          if (is_excluded) return;
+          this.edit_name(path);
+        }}
       >
         {content}
       </span>
@@ -159,9 +174,18 @@ class DirectorySelector extends Component<Props, State> {
     const edit_path = this.state.edit_path;
     const { head, tail } = path_split(edit_path);
     const edited_name = this.state.edited_name;
+    // If the directory being renamed is the currently
+    // selected one, change the selected one too.
     this.cancel_edit_name();
     if (edited_name == tail) return; // no-op
-    // TODO: this changes with my client.coffee rewrite!?
+    console.log({ edit_path, current_path: this.state.selected_path });
+    if (edit_path == this.state.selected_path) {
+      let selected_path = head == "" ? edited_name : head + "/" + edited_name;
+      console.log("edit_path is selected", { edit_path, selected_path });
+      this.setState({ selected_path });
+    }
+
+    // TODO: this changes with my client.coffee rewrite / move api call...
     try {
       await exec({
         command: "mv",

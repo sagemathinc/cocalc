@@ -464,7 +464,7 @@ export const ActionBox = rclass<ReactProps>(
                 onSelect={(value) => this.setState({ move_destination: value })}
                 project_id={this.props.project_id}
                 starting_path={this.props.current_path}
-                exclusions={this.props.checked_files.toArray()}
+                exclusions={new Set(this.props.checked_files.toArray())}
               />
             </Col>
           </Row>
