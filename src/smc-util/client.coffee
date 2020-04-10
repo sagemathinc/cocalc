@@ -833,17 +833,6 @@ class exports.Connection extends EventEmitter
             error_event : true
             cb          : opts.cb
 
-    disconnect_from_project: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : undefined
-        @call
-            allow_post  : true
-            message     : message.disconnect_from_project(project_id: opts.project_id)
-            error_event : true
-            cb          : opts.cb
-
-
     get_user_auth_token: (opts) =>
         opts = defaults opts,
             account_id : required
