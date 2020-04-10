@@ -540,7 +540,6 @@ class exports.Connection extends EventEmitter
         catch err
             cb(err)
 
-
     #################################################
     # Search / user info
     #################################################

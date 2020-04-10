@@ -54,7 +54,7 @@ project_file = require('./project_file')
 
 {ChatIndicator} = require('./chat-indicator')
 
-{ShareIndicator} = require('./share-indicator')
+{ShareIndicator} = require('./share/share-indicator')
 
 {FileTab, DEFAULT_FILE_TAB_STYLES} = require('./project/file-tab')
 {file_tab_labels} = require('./project/file-tab-labels')

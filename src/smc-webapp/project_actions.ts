@@ -166,7 +166,7 @@ export const FILE_ACTIONS = {
     allows_multiple_files: true,
   },
   share: {
-    name: "Share",
+    name: "Public",
     icon: "share-square-o",
     allows_multiple_files: false,
   },

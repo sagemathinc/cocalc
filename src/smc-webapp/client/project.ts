@@ -231,7 +231,8 @@ export class ProjectClient {
       exclusions: undefined, // Array<String> Paths relative to `opts.path`. Skips whole sub-trees
       include_hidden: false,
     });
-    if (opts.path == null || opts.query == null) throw Error("bug -- cannot happen");
+    if (opts.path == null || opts.query == null)
+      throw Error("bug -- cannot happen");
 
     const args: string[] = [
       opts.path,
@@ -258,6 +259,9 @@ export class ProjectClient {
     const command = `find ${args.join(" ")}`;
 
     const result = await this.exec({
+      // err_on_exit = false: because want this to still work even if there's a nonzero exit code,
+      // which might happen if find hits a directory it can't read, e.g., a broken ~/.snapshots.
+      err_on_exit: false,
       project_id: opts.project_id,
       command,
       timeout: 60,
