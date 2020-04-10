@@ -114,4 +114,11 @@ export class ConfigurationActions {
       );
     }
   }
+
+  public set_nbgrader_grade_in_instructor_project(value: boolean): void {
+    this.set({
+      nbgrader_grade_in_instructor_project: value,
+      table: "settings",
+    });
+  }
 }

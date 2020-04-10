@@ -11,6 +11,7 @@ export interface SyncDBRecordSettings {
   shared_project_id?: string;
   pay?: string;
   site_license_id?: string;
+  nbgrader_grade_in_instructor_project?: boolean;
 }
 
 // This is closely related to store.AssignmentRecord...

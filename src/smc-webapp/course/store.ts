@@ -140,6 +140,7 @@ export type CourseSettingsRecord = TypedMap<{
   title: string;
   upgrade_goal: Map<any, any>;
   site_license_id?: string;
+  nbgrader_grade_in_instructor_project?: boolean;
 }>;
 
 export const CourseSetting = createTypedMap<CourseSettingsRecord>();

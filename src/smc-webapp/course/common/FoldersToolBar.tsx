@@ -403,6 +403,7 @@ export class FoldersToolbar extends Component<
         err,
         add_search_results: undefined,
       });
+      return;
     }
 
     if (resp.directories.length === 0) {
