@@ -4,6 +4,7 @@ import * as immutable from "immutable";
 
 import { rtypes, rclass } from "../../app-framework";
 import { DirectoryInput, Icon, Loading, LoginLink } from "../../r_misc";
+import { DirectorySelector } from "../directory-selector";
 import { analytics_event } from "../../tracker";
 import { file_actions, ProjectActions } from "../../project_store";
 const misc = require("smc-util/misc");
@@ -446,7 +447,7 @@ export const ActionBox = rclass<ReactProps>(
             </Col>
             <Col sm={5} style={{ color: "#666", marginBottom: "15px" }}>
               <h4>Destination</h4>
-              <DirectoryInput
+              {/* <DirectoryInput
                 autoFocus={true}
                 on_change={(value) =>
                   this.setState({ move_destination: value })
@@ -456,6 +457,13 @@ export const ActionBox = rclass<ReactProps>(
                 placeholder="Home directory"
                 project_id={this.props.project_id}
                 on_key_up={this.action_key}
+                exclusions={this.props.checked_files.toArray()}
+              /> */}
+              <DirectorySelector
+                key="move_destination"
+                onSelect={(value) => this.setState({ move_destination: value })}
+                project_id={this.props.project_id}
+                starting_path={this.props.current_path}
                 exclusions={this.props.checked_files.toArray()}
               />
             </Col>
