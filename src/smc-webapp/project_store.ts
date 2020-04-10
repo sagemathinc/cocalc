@@ -571,7 +571,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
           actions.close_tab(file);
           alert_message({
             type: "info",
-            message: `Closing '${file}' since it was deleted.`,
+            message: `Closing '${file}' since it was deleted or moved.`,
           });
         }
       } else {
@@ -581,7 +581,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
           if (actions.close_frames_with_path(path)) {
             alert_message({
               type: "info",
-              message: `Closed '${path}' in '${file}' since it was deleted.`,
+              message: `Closed '${path}' in '${file}' since it was deleted or moved.`,
             });
           }
         }
