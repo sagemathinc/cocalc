@@ -34,7 +34,8 @@ export type SiteSettingsKeys =
   | "default_quotas"
   | "max_upgrades"
   | "email_enabled"
-  | "verify_emails";
+  | "verify_emails"
+  | "email_signup";
 
 export interface Config {
   readonly name: string;
@@ -310,6 +311,14 @@ export const site_settings_conf: SiteSettings = {
       "If 'true', email verification tokens are sent out + account settings UI shows it – email sending must be enabled",
     default: "no",
     show: is_email_enabled,
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  email_signup: {
+    name: "Allow email signup",
+    desc:
+      "Users can sign up via email&password. Could be subject to an 'account creation token'.",
+    default: "yes",
     valid: only_booleans,
     to_val: to_bool,
   },

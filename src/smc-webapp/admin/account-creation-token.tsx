@@ -3,12 +3,9 @@ Input box for setting the account creation token.
 */
 
 import { React, Rendered, Component, redux } from "../app-framework";
-
 import { Button, Well, FormGroup, FormControl } from "react-bootstrap";
-
 import { query } from "../frame-editors/generic/client";
-
-import { ErrorDisplay, Saving } from "../r_misc";
+import { ErrorDisplay, Saving, COLORS } from "../r_misc";
 
 interface State {
   state: "view" | "edit" | "save";
@@ -121,6 +118,14 @@ export class AccountCreationToken extends Component<{}, State> {
     );
   }
 
+  render_info(): Rendered {
+    return (
+      <div style={{ color: COLORS.GRAY, fontStyle: "italic" }}>
+        Note: You can disable email sign up in Site Settings
+      </div>
+    );
+  }
+
   render_content(): Rendered {
     const account_store: any = redux.getStore("account");
     if (account_store == null) {
@@ -139,6 +144,7 @@ export class AccountCreationToken extends Component<{}, State> {
         {this.render_control()}
         {this.render_save()}
         {this.render_error()}
+        {this.render_info()}
       </div>
     );
   }

@@ -41,6 +41,7 @@ interface Props {
   has_remember_me: boolean;
   help_email: string;
   terms_of_service: string;
+  email_signup: boolean;
 }
 
 interface State {
@@ -265,16 +266,18 @@ export class SignUp extends React.Component<Props, State> {
         {this.render_error("account_creation_failed")}
         {this.render_error("other")}
         {this.render_passports()}
-        <form
-          style={{ marginTop: 20, marginBottom: 20 }}
-          onSubmit={this.make_account}
-        >
-          {this.render_first_name()}
-          {this.render_last_name()}
-          {this.render_email()}
-          {this.render_password()}
-          {this.render_button()}
-        </form>
+        {this.props.email_signup && (
+          <form
+            style={{ marginTop: 20, marginBottom: 20 }}
+            onSubmit={this.make_account}
+          >
+            {this.render_first_name()}
+            {this.render_last_name()}
+            {this.render_email()}
+            {this.render_password()}
+            {this.render_button()}
+          </form>
+        )}
       </div>
     );
   }

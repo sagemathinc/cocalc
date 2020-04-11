@@ -43,6 +43,7 @@ misc = require('smc-util/misc')
 {APP_TAGLINE, DOC_URL} = require('smc-util/theme')
 {APP_ICON, APP_ICON_WHITE, APP_LOGO_NAME, APP_LOGO_NAME_WHITE} = require('./art')
 {APP_BASE_URL} = require('./misc_page')
+
 $.get window.app_base_url + "/registration", (obj, status) ->
     if status == 'success'
         redux.getActions('account').setState(token : obj.token)
@@ -266,6 +267,7 @@ exports.LandingPage = rclass
         remember_me             : rtypes.bool
         has_remember_me         : rtypes.bool
         has_account             : rtypes.bool
+        email_signup            : rtypes.bool
 
     reduxProps:
         page:
@@ -277,6 +279,7 @@ exports.LandingPage = rclass
             logo_rectangular : rtypes.string
             help_email       : rtypes.string
             terms_of_service : rtypes.string
+            email_signup     : rtypes.bool
         account:
             sign_in_email_address : rtypes.string
         "#{LA_NAME}":
@@ -468,6 +471,7 @@ exports.LandingPage = rclass
                         has_account     = {@props.has_account}
                         help_email      = {@props.help_email}
                         terms_of_service= {@props.terms_of_service}
+                        email_signup    = {@props.email_signup}
                     />
                 </Col>
                 <Col sm={6}>
