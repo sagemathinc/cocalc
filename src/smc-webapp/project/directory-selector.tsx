@@ -15,7 +15,7 @@ import {
   project_redux_name,
 } from "../app-framework";
 
-import { Icon } from "../r_misc";
+import { Icon, Loading } from "../r_misc";
 import { path_split, startswith } from "smc-util/misc2";
 import { exec } from "../frame-editors/generic/client";
 import { alert_message } from "../alerts";
@@ -34,6 +34,7 @@ const DEFAULT_STYLE: React.CSSProperties = {
 };
 
 interface Props {
+  style?: React.CSSProperties;
   project_id: string;
   starting_path?: string;
   exclusions?: Set<string>; // grey these directories out; should not be available to select.  Relative to home directory.
@@ -108,7 +109,7 @@ class DirectorySelector extends Component<Props, State> {
           type="text"
           value={this.state.edited_name}
           autoFocus
-          style={{ width: "10em", border: 0, padding: "0 5px" }}
+          style={{ width: "100%", border: 0, padding: "0 5px" }}
           onChange={(event) =>
             this.setState({ edited_name: event.target.value })
           }
@@ -140,7 +141,7 @@ class DirectorySelector extends Component<Props, State> {
         style={{
           cursor: "pointer",
           display: "inline-block",
-          width: "10em",
+          width: "100%",
           overflowX: "hidden",
           textOverflow: "ellipsis",
           padding: "0 5px",
@@ -163,7 +164,11 @@ class DirectorySelector extends Component<Props, State> {
   }
 
   private edit_name(edit_path: string): void {
-    this.setState({ edit_path, edited_name: path_split(edit_path).tail });
+    this.select_path(edit_path);
+    this.setState({
+      edit_path,
+      edited_name: path_split(edit_path).tail,
+    });
   }
 
   private cancel_edit_name(): void {
@@ -178,11 +183,9 @@ class DirectorySelector extends Component<Props, State> {
     // selected one, change the selected one too.
     this.cancel_edit_name();
     if (edited_name == tail) return; // no-op
-    console.log({ edit_path, current_path: this.state.selected_path });
     if (edit_path == this.state.selected_path) {
       let selected_path = head == "" ? edited_name : head + "/" + edited_name;
-      console.log("edit_path is selected", { edit_path, selected_path });
-      this.setState({ selected_path });
+      this.select_path(selected_path);
     }
 
     // TODO: this changes with my client.coffee rewrite / move api call...
@@ -244,18 +247,20 @@ class DirectorySelector extends Component<Props, State> {
   }
 
   private async fetch_directory_listing(path: string): Promise<void> {
-    // must happen in a different render loop, hence the delay
+    // Must happen in a different render loop, hence the delay, because
+    // fetch can actually update the store in the same render loop.
     await delay(0);
-    redux
-      .getProjectActions(this.props.project_id)
-      .fetch_directory_listing({ path });
+    const actions = redux.getProjectActions(this.props.project_id);
+    if (actions == null) throw Error("bug");
+    actions.fetch_directory_listing({ path });
   }
 
   private render_subdirs(path: string): Rendered {
-    const v = this.props.directory_listings?.get(path)?.toJS();
+    const x = this.props.directory_listings?.get(path);
+    const v = x?.toJS != null ? x.toJS() : undefined;
     if (v == null) {
       this.fetch_directory_listing(path);
-      return;
+      return <Loading />;
     } else {
       const w: Rendered[] = [];
       const base = path == "" ? "" : path + "/";
@@ -347,9 +352,21 @@ class DirectorySelector extends Component<Props, State> {
     );
   }
 
+  private async init_store(): Promise<void> {
+    await delay(0);
+    // Ensure store gets initialized before redux
+    // E.g., for copy between projects you make this
+    // directory selector before even opening the project.
+    redux.getProjectStore(this.props.project_id);
+  }
+
   public render(): Rendered {
+    if (this.props.directory_listings == null) {
+      this.init_store();
+      return <Loading />;
+    }
     return (
-      <div style={DEFAULT_STYLE}>
+      <div style={{ ...DEFAULT_STYLE, ...this.props.style }}>
         {this.render_selectable_path("", "")}
         <div style={{ marginLeft: "2em" }}>{this.render_subdirs("")}</div>
         {this.render_hidden()}

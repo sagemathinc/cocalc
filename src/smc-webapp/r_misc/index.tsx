@@ -46,7 +46,6 @@ export const {
   SaveButton,
   PathLink,
   Calendar,
-  DirectoryInput,
   DeletedProjectWarning,
   course_warning,
   CourseProjectExtraHelp,
