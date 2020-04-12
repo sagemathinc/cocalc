@@ -5,6 +5,12 @@ Actions involving working with assignments:
 
 export const STUDENT_SUBDIR = "student";
 
+// default timeout of 1 minute per cell
+export const NBGRADER_CELL_TIMEOUT_MS: number = 60 * 1000;
+
+// default timeout of 10 minutes for whole notebooks
+export const NBGRADER_TIMEOUT_MS: number = 10 * 60 * 1000;
+
 import { Map } from "immutable";
 
 import { CourseActions, PARALLEL_LIMIT } from "../actions";
@@ -1547,7 +1553,7 @@ ${details}
     const course_project_id = store.get("course_project_id");
 
     let grade_project_id: string;
-    let where_grade : string;
+    let where_grade: string;
     if (nbgrader_grade_in_instructor_project) {
       grade_project_id = course_project_id;
       where_grade = "instructor project";
@@ -1618,8 +1624,14 @@ ${details}
           this.course_actions.clear_activity(id);
         }
         const r = await nbgrader({
-          timeout_ms: 120000, // timeout for total notebook
-          cell_timeout_ms: 30000, // per cell timeout
+          timeout_ms: store.getIn(
+            ["settings", "nbgrader_timeout_ms"],
+            NBGRADER_TIMEOUT_MS
+          ), // default timeout for total notebook
+          cell_timeout_ms: store.getIn(
+            ["settings", "nbgrader_cell_timeout_ms"],
+            NBGRADER_CELL_TIMEOUT_MS
+          ), // per cell timeout
           student_ipynb,
           instructor_ipynb,
           path: student_path,

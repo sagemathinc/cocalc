@@ -28,9 +28,21 @@ export async function jupyter_run_notebook(
         // it anyways, just in case.
         cell.outputs = [];
       }
-      // TODO: limits on time and size; also should we worry about combining
+      let timeout_ms: undefined | number = undefined;
+      if (opts.limits != null) {
+        if (opts.limits.max_time_per_cell_ms) {
+          timeout_ms = opts.limits.max_time_per_cell_ms;
+        } else if (opts.limits.max_total_time_ms) {
+          timeout_ms = opts.limits.max_total_time_ms;
+        }
+      }
+
+      // TODO: limits on size; also should we worry about combining
       // adjacent messages.
-      const result = await jupyter.execute_code_now({ code });
+      const result = await jupyter.execute_code_now({
+        code,
+        timeout_ms,
+      });
       if (opts.nbgrader) {
         // Only process output for autograder cells.
         const is_autograde =
