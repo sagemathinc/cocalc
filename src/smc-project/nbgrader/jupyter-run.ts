@@ -1,6 +1,6 @@
 import { RunNotebookOptions } from "../smc-webapp/jupyter/nbgrader/api";
 import { JupyterNotebook } from "../smc-webapp/jupyter/nbgrader/autograde";
-import { is_object, len, uuid } from "../smc-util/misc";
+import { is_object, len, uuid, trunc_middle } from "../smc-util/misc";
 
 import { kernel } from "../jupyter/jupyter";
 
@@ -9,7 +9,7 @@ export async function jupyter_run_notebook(
   logger,
   opts: RunNotebookOptions
 ): Promise<string> {
-  logger.debug("jupyter_run_notebook", opts);
+  logger.debug("jupyter_run_notebook", trunc_middle(JSON.stringify(opts)));
   const notebook: JupyterNotebook = JSON.parse(opts.ipynb);
   const name = notebook.metadata.kernelspec.name;
   const jupyter = kernel({

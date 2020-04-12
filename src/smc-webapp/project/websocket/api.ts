@@ -255,9 +255,10 @@ export class API {
   // input is dumb.
 
   async jupyter_run_notebook(opts: RunNotebookOptions): Promise<string> {
+    const max_total_time_ms = opts.limits?.max_total_time_ms ?? 20 * 60 * 1000;
     return await this.call(
       { cmd: "jupyter_run_notebook", opts },
-      60000 // TODO: implement timeout taking into account opts.limits as second option
+      max_total_time_ms
     );
   }
 
