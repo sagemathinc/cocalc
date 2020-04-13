@@ -172,8 +172,9 @@ exports.init_http_proxy_server = (opts) ->
                     cb(msg)
                     return
                 database.get_remember_me
-                    hash : hash
-                    cb   : (err, signed_in_mesg) =>
+                    hash  : hash
+                    cache : true
+                    cb    : (err, signed_in_mesg) =>
                         if err or not signed_in_mesg?
                             cb("unable to get remember_me from db -- #{err}")
                             dbg("failed to get remember_me -- #{err}")

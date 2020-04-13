@@ -1395,9 +1395,10 @@ class exports.Connection extends EventEmitter
         command = "find #{args.join(' ')}"
 
         @exec
+            err_on_exit:false  # because want this to still work even if there's a nonzero exit code, which might happen if find hits a directory it can't read, e.g., a broken ~/.snapshots.
             project_id : opts.project_id
             command    : command
-            timeout    : 30
+            timeout    : 60
             allow_post : false  # walking tree can be slow!
             aggregate  : Math.round((new Date() - 0)/5000)  # aggregate calls into 5s windows, in case multiple clients ask for same find at once...
             cb         : (err, result) =>

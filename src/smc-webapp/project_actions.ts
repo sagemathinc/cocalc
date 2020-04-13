@@ -166,7 +166,7 @@ export const FILE_ACTIONS = {
     allows_multiple_files: true,
   },
   share: {
-    name: "Share",
+    name: "Public",
     icon: "share-square-o",
     allows_multiple_files: false,
   },
@@ -1642,6 +1642,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (err && !misc.is_string(err)) {
           err = misc.to_json(err);
         }
+        if (path == null) throw Error('bug');  // make typescript happy
         const map = store
           .get("directory_listings")
           .set(path, err ? err : immutable.fromJS(the_listing.files));

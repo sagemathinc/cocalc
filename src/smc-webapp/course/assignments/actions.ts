@@ -5,6 +5,12 @@ Actions involving working with assignments:
 
 export const STUDENT_SUBDIR = "student";
 
+// default timeout of 1 minute per cell
+export const NBGRADER_CELL_TIMEOUT_MS: number = 60 * 1000;
+
+// default timeout of 10 minutes for whole notebooks
+export const NBGRADER_TIMEOUT_MS: number = 10 * 60 * 1000;
+
 import { Map } from "immutable";
 
 import { CourseActions, PARALLEL_LIMIT } from "../actions";
@@ -1530,6 +1536,7 @@ ${details}
       assignment_id,
       student_id,
     });
+
     if (
       student == null ||
       assignment == null ||
@@ -1538,15 +1545,29 @@ ${details}
       return; // nothing case.
     }
 
-    const student_project_id = student.get("project_id");
-    if (student_project_id == null) {
-      // This would happen if maybe instructor deletes student project at
-      // the exact wrong time.
-      // TODO: just create a new project for them?
-      throw Error("student has no project, so can't run nbgrader");
-    }
+    const nbgrader_grade_in_instructor_project: boolean = !!store.getIn([
+      "settings",
+      "nbgrader_grade_in_instructor_project",
+    ]);
 
     const course_project_id = store.get("course_project_id");
+
+    let grade_project_id: string;
+    let where_grade: string;
+    if (nbgrader_grade_in_instructor_project) {
+      grade_project_id = course_project_id;
+      where_grade = "instructor project";
+    } else {
+      const student_project_id = student.get("project_id");
+      if (student_project_id == null) {
+        // This would happen if maybe instructor deletes student project at
+        // the exact wrong time.
+        // TODO: just create a new project for them?
+        throw Error("student has no project, so can't run nbgrader");
+      }
+      grade_project_id = student_project_id;
+      where_grade = "student's project";
+    }
 
     if (instructor_ipynb_files == null) {
       instructor_ipynb_files = await this.nbgrader_instructor_ipynb_files(
@@ -1572,7 +1593,7 @@ ${details}
       const activity_id = this.course_actions.set_activity({
         desc: `Running nbgrader on ${store.get_student_name(
           student_id
-        )}'s "${file}"`,
+        )}'s "${file}" in ${where_grade}`,
       });
       if (assignment == null || student == null) {
         // This won't happen, but it makes Typescript happy.
@@ -1598,17 +1619,23 @@ ${details}
           )}'s project is running`,
         });
         try {
-          await start_project(student_project_id, 60);
+          await start_project(grade_project_id, 60);
         } finally {
           this.course_actions.clear_activity(id);
         }
         const r = await nbgrader({
-          timeout_ms: 120000, // timeout for total notebook
-          cell_timeout_ms: 30000, // per cell timeout
+          timeout_ms: store.getIn(
+            ["settings", "nbgrader_timeout_ms"],
+            NBGRADER_TIMEOUT_MS
+          ), // default timeout for total notebook
+          cell_timeout_ms: store.getIn(
+            ["settings", "nbgrader_cell_timeout_ms"],
+            NBGRADER_CELL_TIMEOUT_MS
+          ), // per cell timeout
           student_ipynb,
           instructor_ipynb,
           path: student_path,
-          project_id: student_project_id,
+          project_id: grade_project_id,
         });
         /* console.log("nbgrader finished successfully", {
           student_id,

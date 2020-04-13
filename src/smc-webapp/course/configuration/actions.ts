@@ -114,4 +114,25 @@ export class ConfigurationActions {
       );
     }
   }
+
+  public set_nbgrader_grade_in_instructor_project(value: boolean): void {
+    this.set({
+      nbgrader_grade_in_instructor_project: value,
+      table: "settings",
+    });
+  }
+
+  public set_nbgrader_cell_timeout_ms(value: number): void {
+    this.set({
+      nbgrader_cell_timeout_ms: value,
+      table: "settings",
+    });
+  }
+
+  public set_nbgrader_timeout_ms(value: number): void {
+    this.set({
+      nbgrader_timeout_ms: value,
+      table: "settings",
+    });
+  }
 }

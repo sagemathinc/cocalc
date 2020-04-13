@@ -3,7 +3,8 @@ import * as ReactDOM from "react-dom";
 import * as immutable from "immutable";
 
 import { rtypes, rclass } from "../../app-framework";
-import { DirectoryInput, Icon, Loading, LoginLink } from "../../r_misc";
+import { Icon, Loading, LoginLink } from "../../r_misc";
+import { DirectorySelector } from "../directory-selector";
 import { analytics_event } from "../../tracker";
 import { file_actions, ProjectActions } from "../../project_store";
 const misc = require("smc-util/misc");
@@ -441,22 +442,23 @@ export const ActionBox = rclass<ReactProps>(
         <div>
           <Row>
             <Col sm={5} style={{ color: "#666" }}>
-              <h4>Move to a folder</h4>
+              <h4>Move to a directory</h4>
               {this.render_selected_files_list()}
             </Col>
             <Col sm={5} style={{ color: "#666", marginBottom: "15px" }}>
-              <h4>Destination</h4>
-              <DirectoryInput
-                autoFocus={true}
-                on_change={(value) =>
-                  this.setState({ move_destination: value })
-                }
+              <h4>
+                Destination:{" "}
+                {this.state.move_destination == ""
+                  ? "Home directory"
+                  : this.state.move_destination}
+              </h4>
+              <DirectorySelector
                 key="move_destination"
-                default_value=""
-                placeholder="Home directory"
+                onSelect={(value) => this.setState({ move_destination: value })}
                 project_id={this.props.project_id}
-                on_key_up={this.action_key}
-                exclusions={this.props.checked_files.toArray()}
+                starting_path={this.props.current_path}
+                exclusions={new Set(this.props.checked_files.toArray())}
+                style={{ width: "100%" }}
               />
             </Col>
           </Row>
@@ -543,9 +545,9 @@ export const ActionBox = rclass<ReactProps>(
         <Button
           bsSize="large"
           onClick={() => this.setState({ show_different_project: true })}
-          style={{ padding: "0px 5px" }}
+          style={{ padding: "0px 5px 5px", fontWeight: 500 }}
         >
-          A Different Project
+          A Possibly Different Project
         </Button>
       );
     }
@@ -653,18 +655,19 @@ export const ActionBox = rclass<ReactProps>(
                       : undefined
                   }
                 >
-                  Destination
+                  Destination:{" "}
+                  {this.state.copy_destination_directory == ""
+                    ? "Home directory"
+                    : this.state.copy_destination_directory}
                 </h4>
-                <DirectoryInput
-                  autoFocus={true}
-                  on_change={(value) =>
+                <DirectorySelector
+                  onSelect={(value) =>
                     this.setState({ copy_destination_directory: value })
                   }
                   key="copy_destination_directory"
-                  placeholder="Home directory"
-                  default_value=""
+                  starting_path=""
                   project_id={this.state.copy_destination_project_id}
-                  on_key_up={this.action_key}
+                  style={{ width: "100%" }}
                 />
               </Col>
             </Row>

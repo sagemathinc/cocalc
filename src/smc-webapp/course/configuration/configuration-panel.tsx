@@ -66,6 +66,8 @@ import { DeleteAllStudents } from "./delete-all-students";
 import { DeleteSharedProjectPanel } from "../shared-project/delete-shared-project";
 import { TerminalCommandPanel } from "./terminal-command";
 
+import { Nbgrader } from "./nbgrader";
+
 import { upgrades } from "smc-util/upgrade-spec";
 const STUDENT_COURSE_PRICE = upgrades.subscription.student_course.price.month4;
 
@@ -956,7 +958,7 @@ export class ConfigurationPanel extends Component<
 
   render_terminal_command() {
     return (
-      <TerminalCommandPanel redux={this.props.redux} name={this.props.name} />
+      <TerminalCommandPanel name={this.props.name} />
     );
   }
 
@@ -971,6 +973,10 @@ export class ConfigurationPanel extends Component<
     );
   }
 
+  render_nbgrader() {
+    return <Nbgrader name={this.props.name} />;
+  }
+
   scrollToTargetAdjusted = (id) => {
     var element: HTMLElement | null = document.getElementById(id);
     if (!element) {
@@ -979,10 +985,6 @@ export class ConfigurationPanel extends Component<
     }
     element.scrollIntoView(true);
     //document.getElementById("configurationpagecontainer")!.scrollTop;
-  };
-
-  toggleCollapsed = () => {
-    this.setState({ collapsed: !this.state.collapsed });
   };
 
   render() {
@@ -1017,7 +1019,6 @@ export class ConfigurationPanel extends Component<
               onClick={(e) => {
                 this.scrollToTargetAdjusted(e.key);
               }}
-              inlineCollapsed={this.state.collapsed}
             >
               <Menu.Item key="item1">
                 <Icon name="header" />
@@ -1066,6 +1067,10 @@ export class ConfigurationPanel extends Component<
                 <span> Project Configuration</span>
               </Menu.Item>
               <Menu.Item key="item12">
+                <Icon name="graduation-cap" />
+                <span> Nbgrader</span>
+              </Menu.Item>
+              <Menu.Item key="item13">
                 <Icon name="exclamation-circle" />
                 <span> Help</span>
               </Menu.Item>
@@ -1115,6 +1120,8 @@ export class ConfigurationPanel extends Component<
               {this.render_configure_all_projects()}
               <br />
               <div id="item12"></div>
+              {this.render_nbgrader()}
+              <div id="item13"></div>
               <HelpBox />
               <div style={{ height: "700px" }}></div>
             </div>
@@ -1166,8 +1173,10 @@ export class ConfigurationPanel extends Component<
               <br />
               <div id="item11"></div>
               {this.render_configure_all_projects()}
-              <br />
               <div id="item12"></div>
+              {this.render_nbgrader()}
+              <br />
+              <div id="item13"></div>
               <HelpBox />
             </div>
           </div>
@@ -1176,7 +1185,6 @@ export class ConfigurationPanel extends Component<
     }
   }
 }
-
 export function ConfigurationPanelHeader() {
   return (
     <Tip

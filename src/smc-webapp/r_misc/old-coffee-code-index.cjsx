@@ -54,8 +54,6 @@ exports.smc_version = smc_version = SMC_VERSION ? 'N/A'
 exports.build_date  = build_date  = BUILD_DATE  ? 'N/A'
 exports.smc_git_rev = smc_git_rev = SMC_GIT_REV ? 'N/A'
 
-Combobox    = require('react-widgets/lib/Combobox')
-
 misc        = require('smc-util/misc')
 theme       = require('smc-util/theme')
 immutable   = require('immutable')
@@ -826,58 +824,6 @@ exports.Calendar = rclass
             onChange     = {@props.on_change}
         />
 
-# NOTE: This component calls the fetch_directory_tree action.  That is currently necessary
-# to update the tree as of July 31, 2015, though when there is a sync'd filetree it won't be.
-exports.DirectoryInput = rclass
-    displayName : 'DirectoryInput'
-
-    reduxProps :
-        projects :
-            directory_trees : rtypes.immutable
-
-    propTypes :
-        project_id    : rtypes.string.isRequired
-        on_change     : rtypes.func.isRequired
-        default_value : rtypes.string
-        placeholder   : rtypes.string
-        autoFocus     : rtypes.bool
-        on_key_down   : rtypes.func
-        on_key_up     : rtypes.func
-        exclusions    : rtypes.array
-
-    update_soon: ->
-        do_update = => redux.getActions('projects').fetch_directory_tree(@props.project_id, exclusions:@props.exclusions)
-        # This must happen in a later render loop, since fetch_directory_tree will change state, and you should not
-        # change state in a render method (this is called below).
-        setTimeout(do_update, 1)
-
-    render: ->
-        x = @props.directory_trees?.get(@props.project_id)?.toJS()
-        if not x? or new Date() - x.updated >= 15000
-            @update_soon()
-        tree = x?.tree
-        if tree?
-            group = (s) ->
-                i = s.indexOf('/')
-                if i == -1
-                    return s
-                else
-                    return s.slice(0, i)
-        else
-            group = (s) -> s
-        <Combobox
-            autoFocus    = {@props.autoFocus}
-            data         = {tree}
-            filter       = {'contains'}
-            groupBy      = {group}
-            defaultValue = {@props.default_value}
-            placeholder  = {@props.placeholder}
-            messages     = {emptyFilter : '', emptyList : ''}
-            onChange     = {(value) => @props.on_change(value)}
-            onKeyDown    = {@props.on_key_down}
-            onKeyUp      = {@props.on_key_up}
-        />
-
 # A warning to put on pages when the project is deleted
 # TODO: use this in more places
 exports.DeletedProjectWarning = ->
@@ -1070,9 +1016,13 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
         style     : {marginRight:'2px', whiteSpace: 'nowrap'}
 
     handle_click: (name) ->
-        @props.actions.show_file_action_panel
-            path   : @props.filename
-            action : name
+        # ugly: fix when refactor this code.
+        {file_actions} = require('../project_store')
+        for action, v of file_actions
+            if v.name == name
+                @props.actions.show_file_action_panel
+                    path   : @props.filename
+                    action : action
 
     render_menu_item: (name, icon) ->
         <MenuItem onSelect={=>@handle_click(name)} key={name} >
@@ -1088,7 +1038,7 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
         else
             # dynamically create a map from 'key' to 'icon'
             {file_actions} = require('../project_store')
-            items = underscore.object(([k, v.icon] for k, v of file_actions))
+            items = underscore.object(([v.name, v.icon] for k, v of file_actions))
 
         for name, icon of items
             @render_menu_item(name, icon)
