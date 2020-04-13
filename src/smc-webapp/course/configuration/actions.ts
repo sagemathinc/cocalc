@@ -121,4 +121,18 @@ export class ConfigurationActions {
       table: "settings",
     });
   }
+
+  public set_nbgrader_cell_timeout_ms(value: number): void {
+    this.set({
+      nbgrader_cell_timeout_ms: value,
+      table: "settings",
+    });
+  }
+
+  public set_nbgrader_timeout_ms(value: number): void {
+    this.set({
+      nbgrader_timeout_ms: value,
+      table: "settings",
+    });
+  }
 }
