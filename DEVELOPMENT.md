@@ -76,3 +76,12 @@ NOTE: There is no working testing or coverage of smc-webapp yet.
 ### Start webpack watcher in development mode
 
     ./w
+
+## License Headers
+
+1. install [licenseheaders]()
+2. run
+   ```
+   licenseheaders --dir src/ --tmpl LICENSE.tmpl -x $(find -maxdepth 3 -name node_modules -type d) -d . --additional-extensions java=.ts --owner "Sagemath, Inc." -y 2012-2020  --projname CoCalc --projurl "https//cocalc.com"
+   ```
+
