@@ -80,6 +80,19 @@ class DirectorySelector extends Component<Props, State> {
       edit_path: "",
       edited_name: "",
     };
+    this.watch();
+  }
+
+  private watch(): void {
+    if (!this.is_mounted) return;
+    // Component is mounted, so call watch on all expanded paths.
+    const listings = redux
+      .getProjectStore(this.props.project_id)
+      .get_listings();
+    for (const path of this.state.expanded_paths) {
+      listings.watch(path);
+    }
+    setTimeout(this.watch.bind(this), 30000);
   }
 
   static reduxProps({ project_id }) {
@@ -109,7 +122,11 @@ class DirectorySelector extends Component<Props, State> {
           type="text"
           value={this.state.edited_name}
           autoFocus
-          style={{ width: "100%", border: 0, padding: "0 5px" }}
+          style={{
+            width: "100%",
+            border: "1px solid #40a9ff",
+            padding: "0 5px 0 0",
+          }}
           onChange={(event) =>
             this.setState({ edited_name: event.target.value })
           }
