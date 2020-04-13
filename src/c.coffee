@@ -1,4 +1,9 @@
 ###
+# license
+###
+
+
+###
 Some convenient command-line shortcuts.  If you're working on the command line, do
 
     require('./c.coffee')

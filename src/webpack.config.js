@@ -1,4 +1,6 @@
-// CoCalc, by SageMath, Inc., (c) 2016, 2017 -- License: AGPLv3
+/*
+ * CoCalc, by SageMath, Inc., (c) 2016, 2017 -- License: AGPLv3
+ */
 
 /*
 * Webpack configuration file
