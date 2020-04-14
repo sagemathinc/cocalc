@@ -23,10 +23,9 @@ interface TrialBannerProps {
   project_map: immutable.Map<string, any>;
   get_total_project_quotas: Function;
   date_when_course_payment_required: Function;
-  free_warning_extra_shown: boolean;
-  free_warning_closed: boolean;
   project_log: any;
   is_commercial: boolean;
+  free_warning_closed: boolean;
 }
 
 class TrialBannerComponent extends Component<TrialBannerProps> {
@@ -49,7 +48,6 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
         is_commercial: rtypes.bool,
       },
       [name]: {
-        free_warning_extra_shown: rtypes.bool,
         free_warning_closed: rtypes.bool,
         project_log: rtypes.immutable,
       },
@@ -58,63 +56,11 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
 
   public shouldComponentUpdate(next) {
     return (
-      this.props.free_warning_extra_shown != next.free_warning_extra_shown ||
       this.props.free_warning_closed != next.free_warning_closed ||
       this.props.project_map?.get(this.props.project_id) !=
         next.project_map?.get(this.props.project_id) ||
       this.props.other_settings?.get("no_free_warnings") !=
         next.other_settings?.get("no_free_warnings")
-    );
-  }
-
-  private extra(host, internet): Rendered {
-    if (!this.props.free_warning_extra_shown) {
-      return undefined;
-    }
-    return (
-      <div>
-        {host && (
-          <span>
-            This project runs on a heavily loaded server that may be unavailable
-            during peak hours and is rebooted at least once a day.
-            <br /> Upgrade your project to run on a members-only server for more
-            reliability and faster code execution.
-          </span>
-        )}
-
-        {internet && (
-          <span>
-            <br /> This project does not have external network access, so you
-            cannot install software or download data from external websites.
-          </span>
-        )}
-        <ul>
-          <li style={{ lineHeight: "32px" }}>
-            Upgrade <em>this</em> project in{" "}
-            <a
-              style={{ cursor: "pointer" }}
-              onClick={() =>
-                redux.getActions("page").set_active_tab("settings")
-              }
-            >
-              Project Settings
-            </a>
-          </li>
-          <li style={{ lineHeight: "32px" }}>
-            Visit{" "}
-            <a
-              style={{ cursor: "pointer" }}
-              onClick={() => {
-                redux.getActions("page").set_active_tab("account");
-                redux.getActions("account").set_active_tab("billing");
-              }}
-            >
-              Billing
-            </a>{" "}
-            to <em>subscribe</em> to a plan
-          </li>
-        </ul>
-      </div>
     );
   }
 
@@ -133,15 +79,18 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
     //return (<a style={dismiss_styles} onClick={this.props.actions(project_id: this.props.project_id).close_free_warning}>×</a>)
   }
 
-  private message(host: boolean, internet: boolean): Rendered {
-    // implications for having no internet and/or no member hosting
+  private message(host: boolean, internet: boolean, color): Rendered {
+    // explains implications for having no internet and/or no member hosting
+    const a_style: React.CSSProperties = { cursor: "pointer", color };
     const trial_project = (
       <strong>
-        <A href={trial_url}>Trial Project</A>
+        <A href={trial_url} style={a_style}>
+          Trial Project
+        </A>
       </strong>
     );
     const no_internet =
-      "you can't install software packages, connect to GitHub, or send email notifications";
+      "you can't install software packages, connect to GitHub, or download data from external websites";
     const no_host = ["expect poor performance", "random interruptions"];
     const inetquota =
       "https://doc.cocalc.com/billing.html#what-exactly-is-the-internet-access-quota";
@@ -149,13 +98,13 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
       "https://doc.cocalc.com/billing.html#what-is-member-hosting";
     const upgrade = (
       <a
-        style={{ cursor: "pointer" }}
+        style={a_style}
         onClick={() => {
           redux.getActions("page").set_active_tab("account");
           redux.getActions("account").set_active_tab("billing");
         }}
       >
-        get upgrades
+       buy upgrades
       </a>
     );
     if (host && internet) {
@@ -169,8 +118,11 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
     } else if (host) {
       return (
         <span>
-          {trial_project} – Upgrade <A href={memberquota}>Member Hosting</A> or{" "}
-          {humanizeList(no_host)}
+          {trial_project} – Upgrade{" "}
+          <A href={memberquota} style={a_style}>
+            Member Hosting
+          </A>{" "}
+          or {humanizeList(no_host)}
           {"."}
         </span>
       );
@@ -178,7 +130,10 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
       return (
         <span>
           <strong>No internet access</strong> – Upgrade{" "}
-          <A href={inetquota}>Internet Access</A> or {no_internet}
+          <A href={inetquota} style={a_style}>
+            Internet Access
+          </A>{" "}
+          or {no_internet}
           {"."}
         </span>
       );
@@ -187,29 +142,17 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
 
   private render_learn_more(color): Rendered {
     return (
-      // <>
-      //   {" "}
-      //   &mdash;{" "}
-      //   <A
-      //     href={trial_url}
-      //     style={{ fontWeight: "bold", color: color, cursor: "pointer" }}
-      //   >
-      //     more info
-      //   </A>
-      //   {"..."}
-      // </>
-
-      <a
-        onClick={() =>
-          redux
-            .getProjectActions(this.props.project_id)
-            .show_extra_free_warning()
-        }
-        style={{ color: color, cursor: "pointer" }}
-      >
+      <>
         {" "}
-        learn more...
-      </a>
+        &mdash;{" "}
+        <A
+          href={trial_url}
+          style={{ fontWeight: "bold", color: color, cursor: "pointer" }}
+        >
+          more info
+        </A>
+        {"..."}
+      </>
     );
   }
 
@@ -246,8 +189,9 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
     }
 
     const font_size: number = Math.min(
-      18,
-      10 + (this.props.project_log?.size ?? 0) / 30
+      16,
+      //10 + (this.props.project_log?.size ?? 0) / 30
+      10
     );
     const styles: React.CSSProperties = {
       padding: "5px 10px",
@@ -259,7 +203,7 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
       styles.background = "red";
     }
 
-    const mesg = this.message(host, internet);
+    const mesg = this.message(host, internet, styles.color);
 
     return (
       <Alert bsStyle="warning" style={styles}>
@@ -270,7 +214,6 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
         <Icon name="exclamation-triangle" /> {mesg}
         {this.render_learn_more(styles.color)}
         {this.render_dismiss()}
-        {this.extra(host, internet)}
       </Alert>
     );
   }

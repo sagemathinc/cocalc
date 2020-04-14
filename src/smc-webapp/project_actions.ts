@@ -291,7 +291,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.process_search_results = this.process_search_results.bind(this);
     this.search = this.search.bind(this);
     this.load_target = this.load_target.bind(this);
-    this.show_extra_free_warning = this.show_extra_free_warning.bind(this);
     this.close_free_warning = this.close_free_warning.bind(this);
     this.ask_filename = this.ask_filename.bind(this);
 
@@ -3062,10 +3061,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.set_current_path(full_path);
         this.set_active_tab("search", { change_history: change_history });
     }
-  }
-
-  show_extra_free_warning(): void {
-    this.setState({ free_warning_extra_shown: true });
   }
 
   close_free_warning(): void {
