@@ -73,6 +73,7 @@ DEFAULT_TIMEOUT = 30  # in seconds
 {TimeClient} = require('smc-webapp/client/time')
 {AccountClient} = require('smc-webapp/client/account')
 {ProjectClient} = require('smc-webapp/client/project')
+{AdminClient} = require('smc-webapp/client/admin')
 
 
 class exports.Connection extends EventEmitter
@@ -104,6 +105,7 @@ class exports.Connection extends EventEmitter
         @time_client = new TimeClient(@)
         @account_client = new AccountClient(@)
         @project_client = new ProjectClient(@async_call.bind(@))
+        @admin_client = new AdminClient(@async_call.bind(@))
 
         @url = url
         # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
@@ -893,32 +895,6 @@ class exports.Connection extends EventEmitter
             message    : message.user_tracking(evt:opts.event, value:opts.value)
             allow_post : true
             cb         : opts.cb
-
-    admin_reset_password: (opts) =>
-        opts = defaults opts,
-            email_address : required
-            cb         : required
-        @call
-            message    : message.admin_reset_password(email_address:opts.email_address)
-            allow_post : true
-            error_event : true
-            cb         : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(undefined, resp.link)
-
-    admin_ban_user: (opts) =>
-        opts = defaults opts,
-            account_id : required
-            ban        : true     # if true, ban user  -- if false, unban them.
-            cb         : required
-        @call
-            message    : message.admin_ban_user(account_id:opts.account_id, ban:opts.ban)
-            allow_post : true
-            error_event : true
-            cb         : (err, resp) =>
-                opts.cb(err)
 
 #################################################
 # Other account Management functionality shared between client and server

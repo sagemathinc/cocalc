@@ -40,6 +40,7 @@ import { QueryClient } from "./client/query";
 import { TimeClient } from "./client/time";
 import { AccountClient } from "./client/account";
 import { ProjectClient } from "./client/project";
+import { AdminClient } from "./client/admin";
 
 export interface WebappClient extends EventEmitter {
   stripe: StripeClient;
@@ -49,6 +50,7 @@ export interface WebappClient extends EventEmitter {
   time_client: TimeClient;
   account_client: AccountClient;
   project_client: ProjectClient;
+  admin_client: AdminClient;
 
   user_search: Function;
   server_time: Function;

@@ -22,7 +22,7 @@ export class NBViewerActions extends Actions<NBViewerState> {
     path: string,
     store: NBViewerStore,
     client?: WebappClient,
-    content: string | undefined
+    content?: string
   ): void => {
     this.store = store;
     if (client == null && content == null) {

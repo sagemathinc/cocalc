@@ -4,9 +4,7 @@ import { Button } from "react-bootstrap";
 
 import { Icon, ErrorDisplay } from "smc-webapp/r_misc";
 
-const { webapp_client } = require("../../webapp_client");
-
-import { callback2 } from "smc-util/async-utils";
+import { webapp_client } from "../../webapp-client";
 
 interface Props {
   email_address?: string;
@@ -31,12 +29,13 @@ export class PasswordReset extends Component<Props, State> {
   }
 
   async do_request(): Promise<void> {
+    if (!this.props.email_address) throw Error("bug");
     this.setState({ running: true });
     let link: string;
     try {
-      link = await callback2(webapp_client.admin_reset_password, {
-        email_address: this.props.email_address,
-      });
+      link = await webapp_client.admin_client.admin_reset_password(
+        this.props.email_address
+      );
     } catch (err) {
       if (!this.mounted) return;
       this.setState({ error: `${err}`, running: false });
