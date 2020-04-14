@@ -7,6 +7,7 @@ that shouldn't also be used on the backend.
 
 require('codemirror/mode/clike/clike.js')
 require('codemirror/mode/clojure/clojure.js')
+require('codemirror/mode/cobol/cobol.js')
 require('codemirror/mode/coffeescript/coffeescript.js')
 require('codemirror/mode/commonlisp/commonlisp.js')
 require('codemirror/mode/css/css.js')
