@@ -3,11 +3,17 @@ Functionality that mainly involves working with a specific project.
 */
 
 import { required, defaults } from "smc-util/misc";
-import { copy_without, encode_path } from "smc-util/misc2";
+import {
+  copy_without,
+  encode_path,
+  is_valid_uuid_string,
+} from "smc-util/misc2";
 import * as message from "smc-util/message";
 import { connection_to_project } from "../project/websocket/connect";
 import { API } from "../project/websocket/api";
 import { redux } from "../app-framework";
+
+import { Configuration, ConfigurationAspect } from "../project_configuration";
 
 export interface ExecOpts {
   project_id: string;
@@ -279,5 +285,17 @@ export class ProjectClient {
       project_id: opts.project_id,
       directories: v,
     };
+  }
+
+  // This is async, so do "await smc_webapp.configuration(...project_id...)".
+  public async configuration(
+    project_id: string,
+    aspect: ConfigurationAspect,
+    no_cache: boolean
+  ): Promise<Configuration> {
+    if (!is_valid_uuid_string(project_id)) {
+      throw Error("project_id must be a valid uuid");
+    }
+    return (await this.api(project_id)).configuration(aspect, no_cache);
   }
 }

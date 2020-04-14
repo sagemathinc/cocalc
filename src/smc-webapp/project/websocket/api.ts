@@ -7,6 +7,7 @@ import { Channel } from "./types";
 import {
   ConfigurationAspect,
   Capabilities,
+  Configuration,
   ProjectConfiguration,
   isMainConfiguration,
 } from "../../project_configuration";
@@ -81,7 +82,7 @@ export class API {
   async configuration(
     aspect: ConfigurationAspect,
     no_cache = false
-  ): Promise<object[]> {
+  ): Promise<Configuration> {
     return await this.call({ cmd: "configuration", aspect, no_cache }, 15000);
   }
 

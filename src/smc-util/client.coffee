@@ -793,11 +793,6 @@ class exports.Connection extends EventEmitter
     async_query_cancel: (id) =>
         return await @query_client.cancel(id)
 
-    # Send metrics to the hub this client is connected to.
-    # There is no confirmation or response.
-    send_metrics: (metrics) =>
-        @send(message.metrics(metrics:metrics))
-
     # Run prettier on a syncstring -- modifies the syncstring from the backend
     prettier: (opts) =>
         opts = defaults opts,
@@ -863,14 +858,6 @@ class exports.Connection extends EventEmitter
                 mentions : misc.copy_without(opts, 'cb')
             cb : opts.cb
 
-    # This is async, so do "await smc_webapp.configuration(...project_id...)".
-    configuration: (project_id, aspect, no_cache) =>
-        if not misc.is_valid_uuid_string(project_id)
-            throw Error("project_id must be a valid uuid")
-        if typeof aspect != 'string'
-            throw Error("aspect (=#{aspect}) must be a string")
-        return (await @project_client.api(project_id)).configuration(aspect, no_cache)
-
     syncdoc_history: (opts) =>
         opts = defaults opts,
             string_id : required
@@ -895,6 +882,11 @@ class exports.Connection extends EventEmitter
             message    : message.user_tracking(evt:opts.event, value:opts.value)
             allow_post : true
             cb         : opts.cb
+
+    # Send metrics to the hub this client is connected to.
+    # There is no confirmation or response.
+    send_metrics: (metrics) =>
+        @send(message.metrics(metrics:metrics))
 
 #################################################
 # Other account Management functionality shared between client and server
