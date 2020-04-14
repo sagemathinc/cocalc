@@ -1,17 +1,17 @@
 //- the main html template for the static pages (shares some _inc_* files with app.pug)
 
-mixin _start_button_anon_2
+mixin _start_button_anon_2(startup='jupyter')
   a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run #{NAME} Now
 
-mixin start_button_2(startup)
+mixin start_button_2(startup='jupyter')
   p.cc-create-account-btn
     if ANONYMOUS_SIGNUP
-      +_start_button_anon_2
+      +_start_button_anon_2(startup)
       a.btn.btn-default.btn-lg(href=PREFIX + "app") Sign In
     else
       a.btn.btn-success.btn-lg(href=PREFIX + "app") Sign in to #{NAME}
 
-mixin sign_in_buttons(startup)
+mixin sign_in_buttons(startup='jupyter')
   div(style="margin-top: 1rem")
     div.container
       div.col-sm-12.center
