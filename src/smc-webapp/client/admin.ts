@@ -32,4 +32,13 @@ export class AdminClient {
       allow_post: true,
     });
   }
+
+  public async get_user_auth_token(account_id: string): Promise<string> {
+    return (
+      await this.async_call({
+        message: message.user_auth({ account_id, password: "" }),
+        allow_post: false,
+      })
+    ).auth_token;
+  }
 }
