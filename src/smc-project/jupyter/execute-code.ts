@@ -5,7 +5,7 @@ the results and gather them together.
 TODO: for easy testing/debugging, at an "async run() : Messages[]" method.
 */
 
-import { callback } from "awaiting";
+import { callback, delay } from "awaiting";
 import { EventEmitter } from "events";
 import { JupyterKernel, VERSION } from "./jupyter";
 
@@ -17,6 +17,8 @@ import {
   StdinFunction,
 } from "../smc-webapp/jupyter/project-interface";
 
+type State = "init" | "closed" | "running";
+
 export class CodeExecutionEmitter extends EventEmitter
   implements CodeExecutionEmitterInterface {
   readonly kernel: JupyterKernel;
@@ -26,10 +28,12 @@ export class CodeExecutionEmitter extends EventEmitter
   readonly halt_on_error: boolean;
   private iopub_done: boolean = false;
   private shell_done: boolean = false;
-  private state: string = "init";
+  private state: State = "init";
   private all_output: object[] = [];
   private _message: any;
   private _go_cb: Function;
+  private timeout_ms?: number;
+  private killing: boolean = false;
 
   constructor(kernel: JupyterKernel, opts: ExecOpts) {
     super();
@@ -38,6 +42,7 @@ export class CodeExecutionEmitter extends EventEmitter
     this.id = opts.id;
     this.stdin = opts.stdin;
     this.halt_on_error = !!opts.halt_on_error;
+    this.timeout_ms = opts.timeout_ms;
     this._message = {
       header: {
         msg_id: `execute_${uuid()}`,
@@ -158,13 +163,9 @@ export class CodeExecutionEmitter extends EventEmitter
     const dbg = this.kernel.dbg("_handle_iopub");
     dbg(`got IOPUB message -- ${JSON.stringify(mesg)}`);
 
-    this.iopub_done =
-      (mesg.content != null ? mesg.content.execution_state : undefined) ===
-      "idle";
+    this.iopub_done = this.killing || mesg.content?.execution_state == "idle";
 
-    if (
-      (mesg.content != null ? mesg.content.comm_id : undefined) !== undefined
-    ) {
+    if (mesg.content?.comm_id != null) {
       // A comm message that is a result of execution of this code.
       // IGNORE here -- all comm messages are handles at a higher
       // level in jupyter.ts.  Also, this case should never happen, since
@@ -180,7 +181,7 @@ export class CodeExecutionEmitter extends EventEmitter
   }
 
   _finish(): void {
-    if (this.state === "closed") {
+    if (this.state == "closed") {
       return;
     }
     this.kernel.removeListener("iopub", this._handle_iopub);
@@ -245,5 +246,37 @@ export class CodeExecutionEmitter extends EventEmitter
 
     dbg("send the message to get things rolling");
     this.kernel._channels.shell.next(this._message);
+
+    if (this.timeout_ms) {
+      // setup a timeout at which point things will get killed if they don't finish
+      setTimeout(this.timeout.bind(this), this.timeout_ms);
+    }
+  }
+
+  private async timeout(): Promise<void> {
+    const dbg = this.kernel.dbg("CodeExecutionEmitter.timeout");
+    if (this.state == "closed") {
+      dbg("already finished, so nothing to worry about");
+      return;
+    }
+    this.killing = true;
+    let tries = 3;
+    let d = 1000;
+    while (this.state != ("closed" as State) && tries > 0) {
+      dbg("code still running, so try to interrupt it");
+      // Code still running but timeout reached.
+      // Keep sending interrupt signal, which will hopefully do something to
+      // stop running code (there is no guarantee, of course).  We
+      // try a few times...
+      this.kernel.signal("SIGINT");
+      await delay(d);
+      d *= 1.3;
+      tries -= 1;
+    }
+    if (this.state != ("closed" as State)) {
+      dbg("now try SIGKILL, which should kill things for sure.");
+      this.kernel.signal("SIGKILL");
+      this._finish();
+    }
   }
 }

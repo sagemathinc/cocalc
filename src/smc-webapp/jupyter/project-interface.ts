@@ -62,6 +62,7 @@ export interface ExecOpts {
   id?: string;
   stdin?: StdinFunction;
   halt_on_error?: boolean;
+  timeout_ms?: number;
 }
 
 export interface CodeExecutionEmitterInterface extends EventEmitterInterface {
