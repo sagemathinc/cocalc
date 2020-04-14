@@ -4,6 +4,8 @@ import { aggregate } from "smc-util/aggregate";
 import * as message from "smc-util/message";
 import { callback2 } from "smc-util/async-utils";
 
+import { User } from "../frame-editors/generic/client";
+
 const get_username = aggregate({ omit: ["call"] }, function (opts: {
   account_id: string;
   call: Function;
@@ -25,9 +27,31 @@ const get_username = aggregate({ omit: ["call"] }, function (opts: {
 
 export class UsersClient {
   private call: Function;
+  private async_call: Function;
 
-  constructor(call: Function) {
+  constructor(call: Function, async_call: Function) {
     this.call = call;
+    this.async_call = async_call;
+  }
+
+  public async user_search(opts: {
+    query: string;
+    limit?: number;
+    active?: string; // if given, would restrict to users active this recently
+    admin?: boolean; // admins can do an admin version of the query, which also does substring searches on email address (not just name)
+  }): Promise<User[]> {
+    if (opts.limit == null) opts.limit = 20;
+    if (opts.active == null) opts.active = "";
+
+    const { results } = await this.async_call({
+      message: message.user_search({
+        query: opts.query,
+        limit: opts.limit,
+        admin: opts.admin,
+        active: opts.active,
+      }),
+    });
+    return results;
   }
 
   // Gets username with given account_id.   The aggregate makes it so

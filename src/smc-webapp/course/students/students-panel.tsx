@@ -24,7 +24,6 @@ import * as misc from "smc-util/misc";
 import { webapp_client } from "../../webapp-client";
 import { is_different } from "smc-util/misc2";
 import { keys } from "underscore";
-import { callback2 } from "smc-util/async-utils";
 
 // React libraries and components
 import {
@@ -218,7 +217,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       const { add_search } = this.state;
       let select;
       try {
-        select = await callback2(webapp_client.user_search, {
+        select = await webapp_client.users_client.user_search({
           query: add_search,
           limit: 150,
         });

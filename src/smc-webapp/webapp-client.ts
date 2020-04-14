@@ -54,7 +54,6 @@ export interface WebappClient extends EventEmitter {
   admin_client: AdminClient;
   users_client: UsersClient;
 
-  user_search: Function;
   server_time: Function;
   sync_db2: Function;
   get_username: Function;

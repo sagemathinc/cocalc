@@ -105,7 +105,7 @@ class exports.Connection extends EventEmitter
         @account_client = new AccountClient(@)
         @project_client = new ProjectClient(@async_call.bind(@))
         @admin_client = new AdminClient(@async_call.bind(@))
-        @users_client = new UsersClient(@call.bind(@))
+        @users_client = new UsersClient(@call.bind(@), @async_call.bind(@))
 
         @url = url
         # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
@@ -541,29 +541,6 @@ class exports.Connection extends EventEmitter
             cb(undefined, await @project_client.exec(opts))
         catch err
             cb(err)
-
-    #################################################
-    # Search / user info
-    #################################################
-
-    user_search: (opts) =>
-        opts = defaults opts,
-            query    : required
-            query_id : -1     # So we can check that it matches the most recent query
-            limit    : 20
-            timeout  : DEFAULT_TIMEOUT
-            active   : ''   # if given, would restrict to users active this recently
-            admin    : false  # admins can do and admin version of the query, which returns email addresses and does substring searches on email
-            cb       : required
-
-        @call
-            message : message.user_search(query:opts.query, limit:opts.limit, admin:opts.admin, active:opts.active)
-            timeout : opts.timeout
-            cb      : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(undefined, resp.results, opts.query_id)
 
     #################################################
     # Print file to pdf

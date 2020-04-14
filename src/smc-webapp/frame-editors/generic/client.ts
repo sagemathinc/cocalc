@@ -242,13 +242,11 @@ export interface User {
 
 export async function user_search(opts: {
   query: string;
-  query_id?: number;
   limit?: number;
-  timeout?: number;
   admin?: boolean;
   active?: string;
 }): Promise<User[]> {
-  return callback2(webapp_client.user_search, opts);
+  return await webapp_client.users_client.user_search(opts);
 }
 
 export async function project_websocket(project_id: string): Promise<any> {
