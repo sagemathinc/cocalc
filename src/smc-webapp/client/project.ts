@@ -298,4 +298,9 @@ export class ProjectClient {
     }
     return (await this.api(project_id)).configuration(aspect, no_cache);
   }
+
+  // Remove all upgrades from all projects that this user collaborates on.
+  public async remove_all_upgrades(projects?: string[]): Promise<void> {
+    await this.call(message.remove_all_upgrades({ projects }));
+  }
 }

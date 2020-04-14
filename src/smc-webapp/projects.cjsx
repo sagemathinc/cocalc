@@ -1304,10 +1304,11 @@ ProjectsListingDescription = rclass
 
     do_remove_upgrades_from_all: ->
         v = (x.project_id for x in @props.visible_projects)
-        webapp_client.remove_all_upgrades v, (err) =>
-            if err
-                err = "Error removing upgrades -- #{err}"
-                alert_message(type:'error', message:err)
+        try
+            await webapp_client.project_client.remove_all_upgrades(v)
+        catch err
+            err = "Error removing upgrades -- #{err.toString()}"
+            alert_message(type:'error', message:err)
 
     render_remove_from_all: ->
         if @props.visible_projects.length == 0

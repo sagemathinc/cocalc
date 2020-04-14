@@ -639,24 +639,7 @@ class exports.Connection extends EventEmitter
             error_event : true
             cb          : cb
 
-    # Remove all upgrades from all projects that this user collaborates on.
-    remove_all_upgrades: (projects, cb) =>
-        @call
-            message     : message.remove_all_upgrades(projects:projects)
-            error_event : true
-            cb          : cb
-
     # Queries directly to the database (sort of like Facebook's GraphQL)
-
-    projects: (opts) =>
-        opts = defaults opts,
-            cb : required
-        @query
-            query :
-                projects : [{project_id:null, title:null, description:null, last_edited:null, users:null}]
-            changes : true
-            cb : opts.cb
-
     changefeed: (opts) =>
         keys = misc.keys(opts)
         if keys.length != 1

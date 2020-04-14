@@ -251,10 +251,12 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
             @render_upgraded_project(project_id, upgrades, i%2==0)
 
     confirm_reset: (e) ->
-        webapp_client.remove_all_upgrades undefined, (err) =>
+        try
+            await webapp_client.project_client.remove_all_upgrades()
+        catch err
             @setState
                 expand_remove_all_upgrades : false
-                remove_all_upgrades_error  : err
+                remove_all_upgrades_error  : err?.toString()
 
     render_remove_all_upgrades_error: ->
         err = @state.remove_all_upgrades_error
