@@ -45,8 +45,6 @@ smc_version = require('./smc-version')
 message = require("./message")
 misc    = require("./misc")
 
-client_aggregate = require('./client-aggregate')
-
 {once} = require('./async-utils')
 
 {NOT_SIGNED_IN} = require('./consts')
@@ -74,6 +72,7 @@ DEFAULT_TIMEOUT = 30  # in seconds
 {AccountClient} = require('smc-webapp/client/account')
 {ProjectClient} = require('smc-webapp/client/project')
 {AdminClient} = require('smc-webapp/client/admin')
+{UsersClient} = require('smc-webapp/client/users')
 
 
 class exports.Connection extends EventEmitter
@@ -106,6 +105,7 @@ class exports.Connection extends EventEmitter
         @account_client = new AccountClient(@)
         @project_client = new ProjectClient(@async_call.bind(@))
         @admin_client = new AdminClient(@async_call.bind(@))
+        @users_client = new UsersClient(@call.bind(@))
 
         @url = url
         # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
@@ -565,22 +565,6 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, resp.results, opts.query_id)
 
-
-    ###
-    Bulk information about several accounts (may be used by chat, etc.).
-    Currently used for admin and public views, mainly.
-    ###
-    get_username: (opts) =>
-        opts = defaults opts,
-            account_id : required
-            cb         : required     # cb(err, map from account_id to {first_name:?, last_name:?})
-        client_aggregate.get_username
-            client     : @
-            aggregate  : Math.floor(new Date()/60000)   # so it never actually calls to the backend more than once at a time (per minute).
-            account_id : opts.account_id
-            cb         : opts.cb
-
-
     #################################################
     # Print file to pdf
     # The printed version of the file will be created in the same directory
@@ -630,14 +614,6 @@ class exports.Connection extends EventEmitter
 
     webapp_error: (opts) =>
         @call(message : message.webapp_error(opts))
-
-    # This is probably just for testing -- it's used by the HTTP API, but websocket clients
-    # can just compute this themselves via results of DB query.
-    get_available_upgrades: (cb) =>
-        @call
-            message     : message.get_available_upgrades()
-            error_event : true
-            cb          : cb
 
     # Queries directly to the database (sort of like Facebook's GraphQL)
     changefeed: (opts) =>
