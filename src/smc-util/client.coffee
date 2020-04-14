@@ -86,7 +86,6 @@ class exports.Connection extends EventEmitter
     constructor: (url) ->
         super()
 
-
         {StripeClient} = require('smc-webapp/client/stripe')
         {ProjectCollaborators} = require('smc-webapp/client/project-collaborators')
         {SupportTickets} = require('smc-webapp/client/support')
@@ -466,30 +465,6 @@ class exports.Connection extends EventEmitter
             obj.cb('disconnect')
             delete @call_callbacks[id]
 
-    call_local_hub: (opts) =>
-        opts = defaults opts,
-            project_id : required    # determines the destination local hub
-            message    : required
-            timeout    : undefined
-            cb         : undefined
-        m = message.local_hub
-                multi_response : false
-                project_id     : opts.project_id
-                message        : opts.message
-                timeout        : opts.timeout
-        if opts.cb?
-            f = (err, resp) =>
-                #console.log("call_local_hub:#{misc.to_json(opts.message)} got back #{misc.to_json(err:err,resp:resp)}")
-                opts.cb?(err, resp)
-        else
-            f = undefined
-
-        @call
-            allow_post : not m.multi_response
-            message    : m
-            timeout    : opts.timeout
-            cb         : f
-
     ###
     Project Management
     ###
@@ -542,37 +517,6 @@ class exports.Connection extends EventEmitter
             cb(undefined, await @project_client.exec(opts))
         catch err
             cb(err)
-
-    #################################################
-    # Print file to pdf
-    # The printed version of the file will be created in the same directory
-    # as path, but with extension replaced by ".pdf".
-    #################################################
-    print_to_pdf: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            path        : required
-            timeout     : 90          # client timeout -- some things can take a long time to print!
-            options     : undefined   # optional options that get passed to the specific backend for this file type
-            cb          : undefined   # cp(err, relative path in project to printed file)
-        opts.options.timeout = opts.timeout  # timeout on backend
-        @call_local_hub
-            project_id : opts.project_id
-            message    : message.print_to_pdf
-                path    : opts.path
-                options : opts.options
-            timeout    : opts.timeout
-            cb         : (err, resp) =>
-                if err
-                    opts.cb?(err)
-                else if resp.event == 'error'
-                    if resp.error?
-                        opts.cb?(resp.error)
-                    else
-                        opts.cb?('error')
-                else
-                    opts.cb?(undefined, resp.path)
-
 
     #################################################
     # Bad situation error loging

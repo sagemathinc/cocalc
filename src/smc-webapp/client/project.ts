@@ -323,4 +323,33 @@ export class ProjectClient {
     this.touch_throttle[project_id] = new Date().valueOf();
     await this.call(message.touch_project({ project_id }));
   }
+
+  // Print file to pdf
+  // The printed version of the file will be created in the same directory
+  // as path, but with extension replaced by ".pdf".
+  // Only used for sagews, and would be better done with websocket api anyways...
+  public async print_to_pdf(opts: {
+    project_id: string;
+    path: string;
+    options?: any; // optional options that get passed to the specific backend for this file type
+    timeout?: number; // client timeout -- some things can take a long time to print!
+  }): Promise<string> {
+    // returns path to pdf file
+    if (opts.options == null) opts.options = {};
+    opts.options.timeout = opts.timeout; // timeout on backend
+
+    return (
+      await this.client.async_call({
+        message: message.local_hub({
+          project_id: opts.project_id,
+          message: message.print_to_pdf({
+            path: opts.path,
+            options: opts.options,
+          }),
+        }),
+        timeout: opts.timeout,
+        allow_post: false,
+      })
+    ).path;
+  }
 }
