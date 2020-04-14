@@ -274,7 +274,7 @@ class ProjectsActions extends Actions
         else
             token = false
         try
-            project_id = await callback2(webapp_client.create_project, opts)
+            project_id = await webapp_client.project_client.create(opts)
             if token
                 _create_project_tokens[token] = {project_id:project_id}
         catch err

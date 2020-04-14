@@ -352,4 +352,23 @@ export class ProjectClient {
       })
     ).path;
   }
+
+  public async create(opts: {
+    title: string;
+    description: string;
+    image?: string;
+    start?: boolean;
+  }): Promise<string> {
+    const { project_id } = await this.client.async_call({
+      allow_post: false, // since gets called for anonymous and cookie not yet set.
+      message: message.create_project(opts),
+    });
+
+    this.client.user_tracking({
+      event: "create_project",
+      value: { project_id, title: opts.title },
+    });
+
+    return project_id;
+  }
 }

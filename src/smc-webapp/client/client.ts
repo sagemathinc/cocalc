@@ -38,4 +38,5 @@ export interface WebappClient extends EventEmitter {
   touch_project: (project_id: string) => Promise<void>;
   log_error: (any) => void;
   async_call: AsyncCall;
+  user_tracking: Function;
 }
