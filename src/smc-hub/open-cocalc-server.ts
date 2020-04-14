@@ -31,6 +31,7 @@ function fallback(val: string | undefined, fallback: string): string {
 async function get_params(opts: GetData) {
   const { db, base_url } = opts;
   const settings = await callback2(db.get_server_settings_cached, {});
+  const ANONYMOUS_SIGNUP = !settings.account_creation_token;
   const NAME = settings.site_name;
   const DESCRIPTION = settings.site_description;
   const PREFIX = ""; // this is unrelated of base_url, used for subdirectories
@@ -69,13 +70,13 @@ async function get_params(opts: GetData) {
     LOGO_SQUARE_URL,
     LOGO_RECTANGULAR_URL,
     SPLASH_IMG,
-    ANONYMOUS_SIGNUP: false, // TODO show anon signup button under certain conditions
     INDEX_INFO: settings.index_info_html,
     ORGANIZATION_NAME,
     ORGANIZATION_URL,
     HELP_EMAIL,
     CONTACT_EMAIL: fallback(ORGANIZATION_EMAIL, HELP_EMAIL),
     TOS_URL: settings.terms_of_service_url,
+    ANONYMOUS_SIGNUP,
   };
   return data;
 }
