@@ -469,9 +469,14 @@ export class SyncTable extends EventEmitter {
     return new_val;
   }
 
-  private touch_project(): void {
-    if (this.project_id !== undefined) {
-      this.client.touch_project({ project_id: this.project_id });
+  private async touch_project(): Promise<void> {
+    if (this.project_id != null) {
+      try {
+        await this.client.touch_project(this.project_id);
+      } catch (err) {
+        // not fatal
+        console.warn("touch_project -- ", this.project_id, err);
+      }
     }
   }
 

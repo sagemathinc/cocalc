@@ -64,16 +64,6 @@ exports.JSON_CHANNEL = JSON_CHANNEL # export, so can be used by hub
 # if there is no response to an operation after this amount of time.
 DEFAULT_TIMEOUT = 30  # in seconds
 
-{StripeClient} = require('smc-webapp/client/stripe')
-{ProjectCollaborators} = require('smc-webapp/client/project-collaborators')
-{SupportTickets} = require('smc-webapp/client/support')
-{QueryClient} = require('smc-webapp/client/query')
-{TimeClient} = require('smc-webapp/client/time')
-{AccountClient} = require('smc-webapp/client/account')
-{ProjectClient} = require('smc-webapp/client/project')
-{AdminClient} = require('smc-webapp/client/admin')
-{UsersClient} = require('smc-webapp/client/users')
-
 
 class exports.Connection extends EventEmitter
     # Connection events:
@@ -96,6 +86,17 @@ class exports.Connection extends EventEmitter
     constructor: (url) ->
         super()
 
+
+        {StripeClient} = require('smc-webapp/client/stripe')
+        {ProjectCollaborators} = require('smc-webapp/client/project-collaborators')
+        {SupportTickets} = require('smc-webapp/client/support')
+        {QueryClient} = require('smc-webapp/client/query')
+        {TimeClient} = require('smc-webapp/client/time')
+        {AccountClient} = require('smc-webapp/client/account')
+        {ProjectClient} = require('smc-webapp/client/project')
+        {AdminClient} = require('smc-webapp/client/admin')
+        {UsersClient} = require('smc-webapp/client/users')
+
         # Refactored functionality
         @stripe = new StripeClient(@call.bind(@))
         @project_collaborators = new ProjectCollaborators(@async_call.bind(@))
@@ -103,7 +104,7 @@ class exports.Connection extends EventEmitter
         @query_client = new QueryClient(@)
         @time_client = new TimeClient(@)
         @account_client = new AccountClient(@)
-        @project_client = new ProjectClient(@async_call.bind(@))
+        @project_client = new ProjectClient(@)
         @admin_client = new AdminClient(@async_call.bind(@))
         @users_client = new UsersClient(@call.bind(@), @async_call.bind(@))
 
@@ -743,27 +744,9 @@ class exports.Connection extends EventEmitter
         catch err
             opts.cb(err)
 
-    touch_project: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : undefined
-        if not @account_id?
-            # silently ignore if not signed in
-            opts.cb?()
-            return
-        # Throttle -- so if this function is called with the same project_id
-        # twice in 20s, it's ignored (to avoid unnecessary network traffic).
-        @_touch_project_throttle ?= {}
-        last = @_touch_project_throttle[opts.project_id]
-        if last? and new Date().valueOf() - last <= 20000
-            opts.cb?()
-            return
-        @_touch_project_throttle[opts.project_id] = new Date().valueOf()
-        @call
-            allow_post  : true
-            message     : message.touch_project(project_id: opts.project_id)
-            error_event : true
-            cb          : opts.cb
+    # ASYNC
+    touch_project: (project_id) =>
+        await this.project_client.touch(project_id)
 
     mention: (opts) =>
         opts = defaults opts,

@@ -66,8 +66,8 @@ class ClientNoDatabase extends EventEmitter {
     return this.client.is_project();
   }
 
-  public touch_project(opts): void {
-    this.client.touch_project(opts);
+  public async touch_project(project_id: string): Promise<void> {
+    await this.client.touch_project(project_id);
   }
 
   public is_connected(): boolean {

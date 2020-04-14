@@ -16,13 +16,7 @@ import { once, retry_until_success } from "smc-util/async-utils";
 const MIN_CONNECT_WAIT_MS = 5000;
 
 interface Client {
-  touch_project: ({
-    project_id,
-    cb,
-  }: {
-    project_id: string;
-    cb?: Function;
-  }) => Promise<any>;
+  touch_project: (project_id: string) => Promise<void>;
   project_client: { websocket: (project_id: string) => Promise<any> };
   set_connected: (connected: boolean) => void;
 }
@@ -132,7 +126,7 @@ class SyncTableChannel extends EventEmitter {
     // touch_project mainly makes sure that some hub is connected to
     // the project, so the project can do DB queries.  Also
     // starts the project.
-    this.client.touch_project({ project_id: this.project_id });
+    await this.client.touch_project(this.project_id);
     // Get a websocket.
     this.websocket = await this.client.project_client.websocket(
       this.project_id

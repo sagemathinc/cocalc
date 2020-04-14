@@ -328,9 +328,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // This is throttled, so multiple calls are spaced out.
   touch = async (): Promise<void> => {
     try {
-      await callback2(webapp_client.touch_project, {
-        project_id: this.project_id,
-      });
+      await webapp_client.project_client.touch(this.project_id);
     } catch (err) {
       // nonfatal.
       console.warn(`unable to touch ${this.project_id} -- ${err}`);
@@ -1603,7 +1601,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (err && !misc.is_string(err)) {
           err = misc.to_json(err);
         }
-        if (path == null) throw Error('bug');  // make typescript happy
+        if (path == null) throw Error("bug"); // make typescript happy
         const map = store
           .get("directory_listings")
           .set(path, err ? err : immutable.fromJS(the_listing.files));

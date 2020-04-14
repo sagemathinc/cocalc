@@ -576,9 +576,8 @@ class exports.Client extends EventEmitter
         opts.cb?('get_blob: not implemented')
 
 
-    # no-op
-    touch_project: (opts) =>
-        opts.cb?()
+    # no-op; assumed async api
+    touch_project: (project_id) =>
 
     # async
     get_syncdoc_history: (string_id, patches=false) =>
@@ -595,4 +594,4 @@ class exports.Client extends EventEmitter
 
     set_deleted: (filename, project_id) => # project_id is ignored
         listings = get_listings_table();
-        await listings.set_deleted(filename) 
+        await listings.set_deleted(filename)

@@ -21,6 +21,7 @@ import { /* getScript*/ ajax, globalEval } from "jquery";
 const { redux } = require("../../app-framework");
 
 import { set_project_websocket_state, WebsocketState } from "./websocket-state";
+import { WebappClient } from "../../client/client";
 
 const connections = {};
 
@@ -38,8 +39,12 @@ async function start_project(project_id: string) {
   }
 
   // Encourage project to start running, if it isn't already...
-  const { webapp_client } = require("../../webapp_client");
-  await callback2(webapp_client.touch_project, { project_id });
+
+  // TODO: this is awkward due to circular imports/code run during startup,
+  // which will hopefully go away with the client.coffee refactor...
+  const webapp_client: WebappClient = require("../../webapp_client")
+    .webapp_client;
+  await webapp_client.project_client.touch(project_id);
   if (projects.get_my_group(project_id) == "admin") {
     // must be viewing as admin, so can't start as below.  Just touch and be done.
     return;

@@ -31,44 +31,9 @@ import { handle_hash_url } from "./client/handle-hash-url";
 // at least prevent a typo.  When something you need from the
 // actual webapp client isn't here, add it (there api is huge).
 
-import { EventEmitter } from "events";
+import { WebappClient } from "./client/client";
 
-import { StripeClient } from "./client/stripe";
-import { ProjectCollaborators } from "./client/project-collaborators";
-import { SupportTickets } from "./client/support";
-import { QueryClient } from "./client/query";
-import { TimeClient } from "./client/time";
-import { AccountClient } from "./client/account";
-import { ProjectClient } from "./client/project";
-import { AdminClient } from "./client/admin";
-import { UsersClient } from "./client/users";
-
-export interface WebappClient extends EventEmitter {
-  stripe: StripeClient;
-  project_collaborators: ProjectCollaborators;
-  support_tickets: SupportTickets;
-  query_client: QueryClient;
-  time_client: TimeClient;
-  account_client: AccountClient;
-  project_client: ProjectClient;
-  admin_client: AdminClient;
-  users_client: UsersClient;
-
-  server_time: Function;
-  sync_db2: Function;
-  get_username: Function;
-  is_signed_in: () => boolean;
-  remember_me_key: () => string;
-  synctable_project: Function;
-  project_websocket: Function;
-  prettier: Function;
-  sync_string: Function;
-  sync_db: Function;
-  query: Function;
-  exec: Function; // TODO: rewrite project_actions.ts to not use this at all.
-  touch_project: Function;
-  log_error: (any) => void;
-}
+export { WebappClient };
 
 export let webapp_client: WebappClient;
 

@@ -1,10 +1,11 @@
 import { replace_all } from "smc-util/misc2";
 import * as message from "smc-util/message";
+import { AsyncCall } from "./client";
 
 export class SupportTickets {
-  private async_call: Function;
+  private async_call: AsyncCall;
 
-  constructor(async_call: Function) {
+  constructor(async_call: AsyncCall) {
     this.async_call = async_call;
   }
 

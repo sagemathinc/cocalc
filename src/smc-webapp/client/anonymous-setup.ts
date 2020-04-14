@@ -3,7 +3,7 @@ import { redux } from "../app-framework";
 import { QueryParams } from "../misc/query-params";
 const { APP_BASE_URL, get_cookie } = require("../misc_page");
 import { WelcomeFile } from "./welcome-file";
-import { WebappClient } from "../webapp-client";
+import { WebappClient } from "./client";
 
 /*
 If the anonymous query param is set at all (doesn't matter to what) during

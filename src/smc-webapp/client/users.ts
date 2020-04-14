@@ -3,6 +3,7 @@
 import { aggregate } from "smc-util/aggregate";
 import * as message from "smc-util/message";
 import { callback2 } from "smc-util/async-utils";
+import { AsyncCall } from "./client";
 
 import { User } from "../frame-editors/generic/client";
 
@@ -27,9 +28,9 @@ const get_username = aggregate({ omit: ["call"] }, function (opts: {
 
 export class UsersClient {
   private call: Function;
-  private async_call: Function;
+  private async_call: AsyncCall;
 
-  constructor(call: Function, async_call: Function) {
+  constructor(call: Function, async_call: AsyncCall) {
     this.call = call;
     this.async_call = async_call;
   }

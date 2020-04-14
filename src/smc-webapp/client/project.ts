@@ -12,6 +12,7 @@ import * as message from "smc-util/message";
 import { connection_to_project } from "../project/websocket/connect";
 import { API } from "../project/websocket/api";
 import { redux } from "../app-framework";
+import { WebappClient } from "./client";
 
 import { Configuration, ConfigurationAspect } from "../project_configuration";
 
@@ -37,14 +38,15 @@ export interface ExecOutput {
 }
 
 export class ProjectClient {
-  private async_call: Function;
+  private client: WebappClient;
+  private touch_throttle: { [project_id: string]: number } = {};
 
-  constructor(async_call: Function) {
-    this.async_call = async_call;
+  constructor(client: WebappClient) {
+    this.client = client;
   }
 
   private async call(message: object): Promise<any> {
-    return await this.async_call({ message });
+    return await this.client.async_call({ message });
   }
 
   public async write_text_file(opts: {
@@ -99,7 +101,7 @@ export class ProjectClient {
       ? message.copy_public_path_between_projects(opts)
       : message.copy_path_between_projects(opts);
 
-    await this.async_call({
+    await this.client.async_call({
       timeout: opts.timeout,
       message: mesg,
       allow_post: false, // since it may take too long
@@ -205,10 +207,12 @@ export class ProjectClient {
     if (opts.limit == null) opts.limit = -1;
     const timeout = opts.timeout;
     delete opts.timeout;
-    return await this.async_call({
-      message: message.public_get_directory_listing(opts),
-      timeout: timeout ?? 30,
-    }).result;
+    return (
+      await this.client.async_call({
+        message: message.public_get_directory_listing(opts),
+        timeout: timeout ?? 30,
+      })
+    ).result;
   }
 
   public async public_get_text_file(opts: {
@@ -302,5 +306,21 @@ export class ProjectClient {
   // Remove all upgrades from all projects that this user collaborates on.
   public async remove_all_upgrades(projects?: string[]): Promise<void> {
     await this.call(message.remove_all_upgrades({ projects }));
+  }
+
+  public async touch(project_id: string): Promise<void> {
+    if (!this.client.is_signed_in()) {
+      // silently ignore if not signed in
+      return;
+    }
+
+    // Throttle -- so if this function is called with the same project_id
+    // twice in 20s, it's ignored (to avoid unnecessary network traffic).
+    const last = this.touch_throttle[project_id];
+    if (last != null && new Date().valueOf() - last <= 20000) {
+      return;
+    }
+    this.touch_throttle[project_id] = new Date().valueOf();
+    await this.call(message.touch_project({ project_id }));
   }
 }

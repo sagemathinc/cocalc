@@ -1,9 +1,10 @@
 import * as message from "smc-util/message";
+import { AsyncCall } from "./client";
 
 export class ProjectCollaborators {
-  private async_call: Function;
+  private async_call: AsyncCall;
 
-  constructor(async_call: Function) {
+  constructor(async_call: AsyncCall) {
     this.async_call = async_call;
   }
 
