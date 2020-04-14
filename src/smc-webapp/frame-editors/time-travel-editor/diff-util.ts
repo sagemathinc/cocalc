@@ -96,7 +96,7 @@ export function set_cm_line_diff(
   // as it conflicts with the red/green diff coloring
   cm.setOption("theme", "default");
   cm.setOption("lineNumbers", false);
-  cm.setOption("showTrailingSpace", false);
+  cm.setOption("showTrailingSpace" as any, false);
   cm.setOption("gutters", ["cocalc-history-diff-gutter"]);
 
   // highlight the lines based on type
