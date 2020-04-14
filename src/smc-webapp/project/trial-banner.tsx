@@ -4,6 +4,7 @@
 
 import * as immutable from "immutable";
 import * as humanizeList from "humanize-list";
+import { server_time } from "../frame-editors/generic/client";
 import {
   Rendered,
   Component,
@@ -81,7 +82,11 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
 
   private message(host: boolean, internet: boolean, color): Rendered {
     // explains implications for having no internet and/or no member hosting
-    const a_style: React.CSSProperties = { cursor: "pointer", color };
+    const a_style: React.CSSProperties = {
+      cursor: "pointer",
+      color,
+      fontWeight: "bold",
+    };
     const trial_project = (
       <strong>
         <A href={trial_url} style={a_style}>
@@ -104,7 +109,7 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
           redux.getActions("account").set_active_tab("billing");
         }}
       >
-       buy upgrades
+        buy and apply upgrades
       </a>
     );
     if (host && internet) {
@@ -188,17 +193,25 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
       return undefined;
     }
 
-    const font_size: number = Math.min(
-      16,
-      //10 + (this.props.project_log?.size ?? 0) / 30
-      10
+    // we want this to be between 10 to 16 and growing over time (weeks)
+    const proj_created = this.props.project_map.getIn(
+      [this.props.project_id, "created"],
+      new Date(0)
     );
+
+    const min_fontsize = 10;
+    const age_ms: number = server_time().getTime() - proj_created.getTime();
+    const age_days = age_ms / (24 * 60 * 1000);
+    const font_size = Math.min(14, min_fontsize + age_days / 15);
     const styles: React.CSSProperties = {
       padding: "5px 10px",
       marginBottom: 0,
       fontSize: font_size + "pt",
+      borderRadius: 0,
+      marginTop: "-3px",
     };
-    if (host && font_size > 11) {
+    // turns red after about 1 month (2 * 15, see above)
+    if (host && font_size > min_fontsize + 2) {
       styles.color = "white";
       styles.background = "red";
     }
