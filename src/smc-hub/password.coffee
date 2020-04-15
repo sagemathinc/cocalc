@@ -117,7 +117,8 @@ exports.forgot_password = (opts) ->
             # send an email to opts.mesg.email_address that has a password reset link
             theme = require('smc-util/theme')
 
-            DOMAIN_NAME = theme.DOMAIN_NAME # actually a https url
+            dns         = locals.settings.dns or theme.DNS
+            DOMAIN_NAME = "https://#{dns}"
             HELP_EMAIL  = locals.settings.help_email ? theme.HELP_EMAIL
             SITE_NAME   = locals.settings.site_name  ? theme.SITE_NAME
 
