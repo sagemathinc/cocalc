@@ -499,21 +499,6 @@ class exports.Connection extends EventEmitter
         catch err
             cb(err)
 
-    # Log given error to a backend table.  Logs the *same* error
-    # at most once every 15 minutes.
-    log_error: (error) =>
-        @_log_error_cache ?= {}
-        if not misc.is_string(error)
-            error = misc.to_json(error)
-        last = @_log_error_cache[error]
-        if last? and new Date() - last <= 1000*60*15
-            return
-        @_log_error_cache[error] = new Date()
-        @call(message : message.log_client_error(error:error))
-
-    webapp_error: (opts) =>
-        @call(message : message.webapp_error(opts))
-
     # Queries directly to the database (sort of like Facebook's GraphQL)
     changefeed: (opts) =>
         keys = misc.keys(opts)

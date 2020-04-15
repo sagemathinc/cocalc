@@ -3,6 +3,7 @@ import * as message from "smc-util/message";
 
 export class TrackingClient {
   private client: WebappClient;
+  private log_error_cache: { [error: string]: number } = {};
 
   constructor(client: WebappClient) {
     this.client = client;
@@ -19,5 +20,23 @@ export class TrackingClient {
     await this.client.async_call({
       message: message.user_tracking({ evt, value }),
     });
+  }
+
+  public log_error(error: any): void {
+    if (typeof error != "string") {
+      error = JSON.stringify(error);
+    }
+    const last = this.log_error_cache[error];
+    if (last != null && new Date().valueOf() - last <= 1000 * 60 * 15) {
+      return;
+    }
+    this.log_error_cache[error] = new Date().valueOf();
+    this.client.call({
+      message: message.log_client_error({ error }),
+    });
+  }
+
+  public webapp_error(opts: object): void {
+    this.client.call({ message: message.webapp_error(opts) });
   }
 }

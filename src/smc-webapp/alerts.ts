@@ -97,7 +97,7 @@ export function alert_message(opts: AlertMessageOptions = {}) {
     // that us developers know what errors people are hitting.
     // There really should be no situation where users *regularly*
     // get error alert messages.
-    webapp_client.log_error(opts.message);
+    webapp_client.tracking_client.log_error(opts.message);
   }
 }
 

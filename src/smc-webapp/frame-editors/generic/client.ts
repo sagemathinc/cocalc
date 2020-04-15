@@ -124,10 +124,7 @@ export async function prettier(
 }
 
 export function log_error(error: string | object): void {
-  if (typeof error != "string") {
-    error = JSON.stringify(error);
-  }
-  webapp_client.log_error(error);
+  webapp_client.tracking_client.log_error(error);
 }
 
 interface SyncstringOpts {

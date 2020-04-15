@@ -42,4 +42,5 @@ export interface WebappClient extends EventEmitter {
   async_call: AsyncCall;
   user_tracking: Function;
   send: Function;
+  call: Function;
 }
