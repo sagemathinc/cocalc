@@ -93,6 +93,7 @@ class exports.Connection extends EventEmitter
         {TimeClient} = require('smc-webapp/client/time')
         {AccountClient} = require('smc-webapp/client/account')
         {ProjectClient} = require('smc-webapp/client/project')
+        {SyncClient} = require('smc-webapp/client/sync')
         {AdminClient} = require('smc-webapp/client/admin')
         {UsersClient} = require('smc-webapp/client/users')
         {TrackingClient} = require('smc-webapp/client/tracking')
@@ -106,6 +107,7 @@ class exports.Connection extends EventEmitter
         @time_client = new TimeClient(@)
         @account_client = new AccountClient(@)
         @project_client = new ProjectClient(@)
+        @sync_client = new SyncClient(@)
         @admin_client = new AdminClient(@async_call.bind(@))
         @users_client = new UsersClient(@call.bind(@), @async_call.bind(@))
         @tracking_client = new TrackingClient(@)
@@ -505,73 +507,15 @@ class exports.Connection extends EventEmitter
             x[table] = opts[table]
         return @query(query:x, changes: true)
 
-    sync_table2: (query, options, throttle_changes=undefined) =>
-        return synctable2.synctable(query, options, @, throttle_changes)
-
-    # This is async! The returned synctable is fully initialized.
-    synctable_database: (query, options, throttle_changes=undefined) =>
-        s = this.sync_table2(query, options, throttle_changes)
-        await once(s, 'connected')
-        return s
-
-    synctable_no_changefeed: (query, options, throttle_changes=undefined) =>
-        return synctable2.synctable_no_changefeed(query, options, @, throttle_changes)
-
-    synctable_no_database: (query, options, throttle_changes=undefined) =>
-        return synctable2.synctable_no_database(query, options, @, throttle_changes)
-
-    # This is async! The returned synctable is fully initialized.
-    synctable_project: (project_id, query, options, throttle_changes=undefined, id='') =>
-        return await synctable_project(project_id:project_id, query:query, options:options, client:@, throttle_changes:throttle_changes, id:id)
-
-    # this is async
-    symmetric_channel: (name, project_id) =>
-        if not misc.is_valid_uuid_string(project_id) or typeof(name) != 'string'
-            throw Error("project_id must be a valid uuid")
-        return (await @project_client.api(project_id)).symmetric_channel(name)
-
-    sync_string2: (opts) =>
-        opts = defaults opts,
-            id                : undefined
-            project_id        : required
-            path              : required
-            file_use_interval : 'default'
-            cursors           : false
-            patch_interval    : 1000
-            save_interval     : 2000
-            persistent        : false
-            data_server       : undefined
-        opts.client = @
-        return new SyncString2(opts)
-
-    sync_db2: (opts) =>
-        opts = defaults opts,
-            id                : undefined
-            project_id        : required
-            path              : required
-            file_use_interval : 'default'
-            cursors           : false
-            patch_interval    : 1000
-            save_interval     : 2000
-            change_throttle   : undefined
-            primary_keys      : required
-            string_cols       : []
-            persistent        : false
-            data_server       : undefined
-        opts.client = @
-        return new SyncDB2(opts)
-
-    # This now returns the new sync_db2 and sync_string2 objects.
-    # ASYNC function
-    open_existing_sync_document: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            path       : required
-            data_server : undefined
-            persistent : false
-        opts.client = @
-        {open_existing_sync_document} = require('smc-webapp/client/sync')
-        return await open_existing_sync_document(opts)
+    sync_table2: (...args) => @sync_client.sync_table(...args)
+    synctable_database: (...args) => await @sync_client.synctable_database(...args)
+    synctable_no_changefeed: (...args) => @sync_client.synctable_no_changefeed(...args)
+    synctable_no_database: (...args) => @sync_client.synctable_no_database(...args)
+    synctable_project: (...args) => await @sync_client.synctable_project(...args)
+    symmetric_channel: (...args) => await @sync_client.symmetric_channel(...args)
+    sync_string2: (opts) => @sync_client.sync_string(opts)
+    sync_db2: (opts) => @sync_client.sync_db(opts)
+    open_existing_sync_document: (opts) => await @sync_client.open_existing_sync_document(opts)
 
     # Returns true if the given file in the given project is currently marked as deleted.
     is_deleted: (filename, project_id) =>
@@ -647,7 +591,6 @@ class exports.Connection extends EventEmitter
                     opts.cb(err)
                 else
                     opts.cb(undefined, resp.history)
-
 
 #################################################
 # Other account Management functionality shared between client and server

@@ -10,8 +10,10 @@ import { TimeClient } from "./time";
 import { AccountClient } from "./account";
 import { ProjectClient } from "./project";
 import { AdminClient } from "./admin";
+import { SyncClient } from "./sync";
 import { UsersClient } from "./users";
 import { TrackingClient } from "./tracking";
+import { Query, QueryOptions } from "smc-util/sync/table";
 
 export interface WebappClient extends EventEmitter {
   stripe: StripeClient;
@@ -22,6 +24,7 @@ export interface WebappClient extends EventEmitter {
   account_client: AccountClient;
   project_client: ProjectClient;
   admin_client: AdminClient;
+  sync_client: SyncClient;
   users_client: UsersClient;
   tracking_client: TrackingClient;
 
@@ -35,7 +38,6 @@ export interface WebappClient extends EventEmitter {
   prettier: Function;
   sync_string: Function;
   sync_db: Function;
-  query: Function;
   exec: Function; // TODO: rewrite project_actions.ts to not use this at all.
   touch_project: (project_id: string) => Promise<void>;
   log_error: (any) => void;
@@ -43,14 +45,26 @@ export interface WebappClient extends EventEmitter {
   user_tracking: Function;
   send: Function;
   call: Function;
+  dbg: (str: string) => Function;
+  is_project: () => boolean;
+  is_connected: () => boolean;
+  query: (opts: {
+    query: Query;
+    options?: QueryOptions;
+    timeout?: number;
+    cb?: Function;
+  }) => void;
+  query_cancel: Function;
+
+  set_connected?: Function;
 }
 
 export class Client extends EventEmitter {
-  private client: WebappClient;
+  //private client: WebappClient;
 
-  constructor(client) {
+  constructor(/* client */) {
     super();
-    this.client = client;
+    //this.client = client;
     this.dbg = this.dbg.bind(this);
   }
 

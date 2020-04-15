@@ -10,22 +10,18 @@ import { synctable_no_database, SyncTable } from "smc-util/sync/table";
 
 import { once, retry_until_success } from "smc-util/async-utils";
 
+import { WebappClient } from "../../webapp-client";
+
 // Always wait at least this long between connect attempts.  This
 // avoids flooding the project with connection requests if, e.g., the
 // client limit for a particular file is reached.
 const MIN_CONNECT_WAIT_MS = 5000;
 
-interface Client {
-  touch_project: (project_id: string) => Promise<void>;
-  project_client: { websocket: (project_id: string) => Promise<any> };
-  set_connected: (connected: boolean) => void;
-}
-
 interface Options {
   project_id: string;
   query: object;
   options: any[];
-  client: Client;
+  client: WebappClient;
   throttle_changes?: undefined | number;
   id: string;
 }
@@ -35,7 +31,7 @@ import { EventEmitter } from "events";
 class SyncTableChannel extends EventEmitter {
   public synctable: SyncTable;
   private project_id: string;
-  private client: Client;
+  private client: WebappClient;
   private channel?: any;
   private websocket?: any;
   private query: any;
@@ -110,7 +106,9 @@ class SyncTableChannel extends EventEmitter {
     if (this.synctable == null) return;
     this.log("set_connected", connected);
     this.connected = connected;
-    this.synctable.client.set_connected(connected);
+    if (this.synctable.client.set_connected != null) {
+      this.synctable.client.set_connected(connected);
+    }
     if (connected) {
       this.emit("connected");
     } else {
