@@ -640,24 +640,6 @@ class exports.Connection extends EventEmitter
     touch_project: (project_id) =>
         await this.project_client.touch(project_id)
 
-    mention: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            path       : required
-            target     : required # account_id (for now)
-            source     : required # account_id
-            priority   : undefined # optional integer; larger number is higher; 0 is default.
-            description: undefined # optional string context eg. part of the message
-            cb         : undefined
-        if not @is_signed_in()
-            # wait until signed in, otherwise query below just fails
-            # with an error and mention is lost
-            await once(@, "signed_in")
-        @query
-            query :
-                mentions : misc.copy_without(opts, 'cb')
-            cb : opts.cb
-
     syncdoc_history: (opts) =>
         opts = defaults opts,
             string_id : required
