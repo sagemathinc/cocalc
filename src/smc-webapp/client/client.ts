@@ -44,3 +44,30 @@ export interface WebappClient extends EventEmitter {
   send: Function;
   call: Function;
 }
+
+export class Client extends EventEmitter {
+  private client: WebappClient;
+
+  constructor(client) {
+    super();
+    this.client = client;
+    this.dbg = this.dbg.bind(this);
+  }
+
+  public dbg(f): Function {
+    return function (...m) {
+      let s;
+      switch (m.length) {
+        case 0:
+          s = "";
+          break;
+        case 1:
+          s = m[0];
+          break;
+        default:
+          s = JSON.stringify(m);
+      }
+      console.log(`${new Date().toISOString()} - Client.${f}: ${s}`);
+    };
+  }
+}

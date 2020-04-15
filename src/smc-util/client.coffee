@@ -96,6 +96,7 @@ class exports.Connection extends EventEmitter
         {AdminClient} = require('smc-webapp/client/admin')
         {UsersClient} = require('smc-webapp/client/users')
         {TrackingClient} = require('smc-webapp/client/tracking')
+        {Client} = require('smc-webapp/client/client')
 
         # Refactored functionality
         @stripe = new StripeClient(@call.bind(@))
@@ -108,6 +109,7 @@ class exports.Connection extends EventEmitter
         @admin_client = new AdminClient(@async_call.bind(@))
         @users_client = new UsersClient(@call.bind(@), @async_call.bind(@))
         @tracking_client = new TrackingClient(@)
+        @client = new Client(@)
 
         @url = url
         # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
@@ -182,16 +184,7 @@ class exports.Connection extends EventEmitter
         # after things have settled down a little (to not throw off ping time).
         @once("connected", => setTimeout((=> @time_client.ping()), 5000))
 
-    dbg: (f) =>
-        return (m...) ->
-            switch m.length
-                when 0
-                    s = ''
-                when 1
-                    s = m[0]
-                else
-                    s = JSON.stringify(m)
-            console.log("#{(new Date()).toISOString()} - Client.#{f}: #{s}")
+    dbg: (f) => return @client.dbg(f)
 
     # Returns (approximate) time in ms since epoch on the server.
     # NOTE:
