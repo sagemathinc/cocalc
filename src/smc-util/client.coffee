@@ -349,7 +349,7 @@ class exports.Connection extends EventEmitter
             cb()
 
     _do_call: (opts, cb) =>
-        if opts.allow_post and @account_id?  # would never work if account_id not set
+        if opts.allow_post and @_enable_post and @account_id?  # would never work if account_id not set
             delete opts.allow_post
             @_do_post_call(opts, cb)
             return
