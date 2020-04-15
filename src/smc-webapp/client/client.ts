@@ -11,6 +11,7 @@ import { AccountClient } from "./account";
 import { ProjectClient } from "./project";
 import { AdminClient } from "./admin";
 import { UsersClient } from "./users";
+import { TrackingClient } from "./tracking";
 
 export interface WebappClient extends EventEmitter {
   stripe: StripeClient;
@@ -22,6 +23,7 @@ export interface WebappClient extends EventEmitter {
   project_client: ProjectClient;
   admin_client: AdminClient;
   users_client: UsersClient;
+  tracking_client: TrackingClient;
 
   server_time: Function;
   sync_db2: Function;
@@ -39,4 +41,5 @@ export interface WebappClient extends EventEmitter {
   log_error: (any) => void;
   async_call: AsyncCall;
   user_tracking: Function;
+  send: Function;
 }

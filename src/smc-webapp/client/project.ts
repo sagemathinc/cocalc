@@ -364,9 +364,9 @@ export class ProjectClient {
       message: message.create_project(opts),
     });
 
-    this.client.user_tracking({
-      event: "create_project",
-      value: { project_id, title: opts.title },
+    this.client.tracking_client.user_tracking("create_project", {
+      project_id,
+      title: opts.title,
     });
 
     return project_id;

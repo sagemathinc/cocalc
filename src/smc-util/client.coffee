@@ -95,6 +95,7 @@ class exports.Connection extends EventEmitter
         {ProjectClient} = require('smc-webapp/client/project')
         {AdminClient} = require('smc-webapp/client/admin')
         {UsersClient} = require('smc-webapp/client/users')
+        {TrackingClient} = require('smc-webapp/client/tracking')
 
         # Refactored functionality
         @stripe = new StripeClient(@call.bind(@))
@@ -106,6 +107,7 @@ class exports.Connection extends EventEmitter
         @project_client = new ProjectClient(@)
         @admin_client = new AdminClient(@async_call.bind(@))
         @users_client = new UsersClient(@call.bind(@), @async_call.bind(@))
+        @tracking_client = new TrackingClient(@)
 
         @url = url
         # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
@@ -497,10 +499,6 @@ class exports.Connection extends EventEmitter
         catch err
             cb(err)
 
-    #################################################
-    # Bad situation error loging
-    #################################################
-
     # Log given error to a backend table.  Logs the *same* error
     # at most once every 15 minutes.
     log_error: (error) =>
@@ -704,20 +702,6 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, resp.history)
 
-    user_tracking: (opts) =>
-        opts = defaults opts,
-            event : required
-            value : {}
-            cb    : undefined
-        @call
-            message    : message.user_tracking(evt:opts.event, value:opts.value)
-            allow_post : true
-            cb         : opts.cb
-
-    # Send metrics to the hub this client is connected to.
-    # There is no confirmation or response.
-    send_metrics: (metrics) =>
-        @send(message.metrics(metrics:metrics))
 
 #################################################
 # Other account Management functionality shared between client and server
