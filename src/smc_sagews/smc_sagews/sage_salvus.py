@@ -4174,19 +4174,6 @@ def show_pdf(filename, viewer="object", width=1000, height=600, scale=1.6):
 
 
 ########################################################
-# WebRTC Support
-########################################################
-def sage_chat(chatroom=None, height="258px"):
-    if chatroom is None:
-        from random import randint
-        chatroom = randint(0, 1e24)
-    html("""
-    <iframe src="/static/webrtc/group_chat_cell.html?%s" height="%s" width="100%%"></iframe>
-    """ % (chatroom, height),
-         hide=False)
-
-
-########################################################
 # Documentation of modes
 ########################################################
 def modes():
