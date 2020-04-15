@@ -184,6 +184,17 @@ interface StrategyConf {
   };
 }
 
+// primary strategies -- all other ones are "extra"
+
+const PRIMARY_STRATEGIES = [
+  "email",
+  "site_conf",
+  "facebook",
+  "github",
+  "google",
+  "twitter",
+];
+
 // docs for getting these for your app
 // https://developers.google.com/identity/protocols/oauth2/openid-connect#appsetup
 // and https://console.developers.google.com/apis/credentials
@@ -346,13 +357,6 @@ class PassportManager {
     this.host = host;
   }
 
-  private async get_conf(strategy): Promise<PassportStrategyDB> {
-    if (this.strategies == null) {
-      throw Error("get_conf strategies are null -- forgot to init first?");
-    }
-    return this.strategies[strategy];
-  }
-
   private async init_passport_settings(): Promise<{
     [k: string]: PassportStrategyDB;
   }> {
@@ -475,7 +479,7 @@ class PassportManager {
       });
     });
 
-    // prerequesite for setting up any SSO endpoints
+    // prerequisite for setting up any SSO endpoints
     await this.init_passport_settings();
 
     const settings = await cb2(this.database.get_server_settings_cached);
@@ -492,14 +496,59 @@ class PassportManager {
     ]);
   }
 
-  // this maps additional strategy configurations to a list of StrategyConf objects
-  // the overall goal is to support custom OAuth2 and LDAP endpoints, where additional
-  // info is sent to the webapp client to properly present them. Google&co are legacy configurations.
-  private async init_extra_strategies(): Promise<void> {
+  private extra_strategy_constructor(name: string) {
     // LDAP via passport-ldapauth: https://github.com/vesse/passport-ldapauth#readme
     // OAuth2 via @passport-next/passport-oauth2: https://github.com/passport-next/passport-oauth2#readme
     // ORCID via passport-orcid: https://github.com/hubgit/passport-orcid#readme
-    // OrcidStrategy = require('passport-orcid').Strategy
+    switch (name) {
+      case "ldap":
+        return require("passport-ldapauth").Strategy;
+      case "oauth2":
+        return require("@passport-next/passport-oauth2").Strategy;
+      case "orcid":
+        return require("passport-orcid").Strategy;
+      case "saml":
+        return require("passport-saml").Strategy;
+      default:
+        throw Error(`hub/auth: unknown extra strategy "${name}"`);
+    }
+  }
+
+  // this maps additional strategy configurations to a list of StrategyConf objects
+  // the overall goal is to support custom OAuth2 and LDAP endpoints, where additional
+  // info is sent to the webapp client to properly present them. Google&co are "primary" configurations.
+  private async init_extra_strategies(): Promise<void> {
+    if (this.strategies == null) throw Error("strategies not initalized!");
+    const inits: Promise<void>[] = [];
+    for (const [name, strategy] of Object.entries(this.strategies)) {
+      if (PRIMARY_STRATEGIES.indexOf(name) >= 0) {
+        continue;
+      }
+      if (strategy.type == null) {
+        throw Error(
+          `all "extra" strategies must define their type, in particular also "${name}"`
+        );
+      }
+      const cons = this.extra_strategy_constructor(strategy.type);
+      const config: StrategyConf = {
+        strategy: name,
+        PassportStrategyConstructor: cons,
+        login_info: {
+          id: (profile) => profile.id,
+        },
+        // e.g. tokenURL will be extracted here, and then passed to the constructor
+        extra_opts: _.omit(strategy, [
+          "name",
+          "display",
+          "type",
+          "icon",
+          "clientID",
+          "clientSecret",
+        ]),
+      };
+      inits.push(this.init_strategy(config));
+    }
+    await Promise.all(inits);
   }
 
   // a generalized strategy initizalier
@@ -513,13 +562,13 @@ class PassportManager {
     } = strategy_config;
     const dbg = (m) => winston.debug(`init_strategy ${strategy}: ${m}`);
     dbg("start");
-
+    if (this.strategies == null) throw Error("strategies not initalized!");
     if (strategy == null) {
       dbg(`strategy is null -- aborting initialization`);
       return;
     }
 
-    const conf = await this.get_conf(strategy);
+    const conf = this.strategies[strategy];
     if (conf == null) {
       dbg(`conf is null -- aborting initialization`);
       return;
@@ -540,7 +589,7 @@ class PassportManager {
     const verify = (_accessToken, _refreshToken, profile, done) =>
       done(undefined, { profile });
 
-    passport.use(new PassportStrategyConstructor(opts, verify));
+    passport.use(strategy, new PassportStrategyConstructor(opts, verify));
 
     this.router.get(
       `${AUTH_BASE}/${strategy}`,
