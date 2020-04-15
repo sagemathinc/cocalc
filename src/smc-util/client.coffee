@@ -636,20 +636,6 @@ class exports.Connection extends EventEmitter
     async_query_cancel: (id) =>
         return await @query_client.cancel(id)
 
-    # Run prettier on a syncstring -- modifies the syncstring from the backend
-    prettier: (opts) =>
-        opts = defaults opts,
-            path       : required
-            project_id : required
-            options    : undefined
-            cb         : undefined
-        try
-            api = await @project_client.api(opts.project_id)
-            resp = await api.prettier(opts.path, opts.options ? {})
-            opts.cb(undefined, resp)
-        catch err
-            opts.cb(err)
-
     # ASYNC
     touch_project: (project_id) =>
         await this.project_client.touch(project_id)
