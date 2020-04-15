@@ -4,7 +4,7 @@ import * as misc from "smc-util/misc";
 import { Rendered } from "./app-framework";
 import { Icon, Tip } from "./r_misc";
 import { SiteName } from "./customize";
-import { PassportStrategy, LEGACY_SSO } from "./passport-types";
+import { PassportStrategy, PRIMARY_SSO } from "./passport-types";
 import { COLORS } from "smc-util/theme";
 
 interface Props {
@@ -85,7 +85,7 @@ export class Passports extends React.Component<Props> {
   private strategy_tip_title(name: string, passport_name: string) {
     return (
       <span>
-        {LEGACY_SSO.indexOf(name) >= 0 ? <Icon name={name} /> : undefined}{" "}
+        {PRIMARY_SSO.indexOf(name) >= 0 ? <Icon name={name} /> : undefined}{" "}
         {passport_name}
       </span>
     );
@@ -125,7 +125,7 @@ export class Passports extends React.Component<Props> {
     icon?: string,
     display?: string
   ): Rendered {
-    if (LEGACY_SSO.indexOf(name) >= 0) {
+    if (PRIMARY_SSO.indexOf(name) >= 0) {
       const icon_style = this.strategy_icon_style(name);
       return <Icon name={name} style={icon_style} />;
     } else if (icon != null) {

@@ -55,7 +55,7 @@ smc_version = require('smc-util/smc-version')
 
 {APIKeySetting} = require('./api-key')
 
-{ LEGACY_SSO } = require("./passport-types")
+{ PRIMARY_SSO } = require("./passport-types")
 
 log_strategy = (is_anonymous, name) ->
     if is_anonymous
@@ -585,7 +585,7 @@ AccountSettings = rclass
                 width:'20px'
                 height:'auto'
             return <img src={strategy.icon} style={style} />
-        else if LEGACY_SSO.indexOf(strategy.name) >= 0
+        else if PRIMARY_SSO.indexOf(strategy.name) >= 0
             return <Icon name={strategy.name} />
         else
             return undefined

@@ -71,7 +71,10 @@ import {
   welcome_email,
 } from "./email";
 import { PostgreSQL } from "./postgres/types";
-import { PassportStrategy, LEGACY_SSO } from "../smc-webapp/passport-types";
+import { PassportStrategy, PRIMARY_SSO } from "../smc-webapp/passport-types";
+
+// primary strategies -- all other ones are "extra"
+const PRIMARY_STRATEGIES = ["email", "site_conf", ...PRIMARY_SSO];
 
 // root for authentication related endpoints -- will be prefixed with the base_url
 const AUTH_BASE = "/auth";
@@ -183,17 +186,6 @@ interface StrategyConf {
     emails?: string | LoginInfoDerivator<string[]>;
   };
 }
-
-// primary strategies -- all other ones are "extra"
-
-const PRIMARY_STRATEGIES = [
-  "email",
-  "site_conf",
-  "facebook",
-  "github",
-  "google",
-  "twitter",
-];
 
 // docs for getting these for your app
 // https://developers.google.com/identity/protocols/oauth2/openid-connect#appsetup
@@ -401,7 +393,7 @@ class PassportManager {
   // it only returns a string[] array of the legacy authentication strategies
   private strategies_v1(res): void {
     const data: string[] = [];
-    const known = ["email", ...LEGACY_SSO];
+    const known = ["email", ...PRIMARY_SSO];
     for (const name in this.strategies) {
       if (name === "site_conf") continue;
       if (known.indexOf(name) >= 0) {
