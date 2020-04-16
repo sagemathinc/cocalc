@@ -508,11 +508,7 @@ class exports.Connection extends EventEmitter
         return @query(query:x, changes: true)
 
     synctable_database: (...args) => await @sync_client.synctable_database(...args)
-    synctable_no_changefeed: (...args) => @sync_client.synctable_no_changefeed(...args)
-    synctable_no_database: (...args) => @sync_client.synctable_no_database(...args)
     synctable_project: (...args) => await @sync_client.synctable_project(...args)
-    symmetric_channel: (...args) => await @sync_client.symmetric_channel(...args)
-    open_existing_sync_document: (opts) => await @sync_client.open_existing_sync_document(opts)
 
     # Returns true if the given file in the given project is currently marked as deleted.
     is_deleted: (filename, project_id) =>

@@ -17,7 +17,7 @@ import { once } from "smc-util/async-utils";
 import { filename_extension, keys, path_split } from "smc-util/misc2";
 import { meta_file } from "smc-util/misc";
 import { SyncDoc } from "smc-util/sync/editor/generic/sync-doc";
-const { webapp_client } = require("../../webapp_client");
+import { webapp_client } from "../../webapp-client";
 import {
   Actions as CodeEditorActions,
   CodeEditorState,
@@ -86,7 +86,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
 
   private async init_syncdoc(): Promise<void> {
     const persistent = this.docext == "ipynb" || this.docext == "sagews"; // ugly for now (?)
-    this.syncdoc = await webapp_client.open_existing_sync_document({
+    this.syncdoc = await webapp_client.sync_client.open_existing_sync_document({
       project_id: this.project_id,
       path: this.syncpath,
       persistent,

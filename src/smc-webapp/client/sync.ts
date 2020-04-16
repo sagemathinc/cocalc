@@ -19,8 +19,7 @@ import {
   SyncTable,
   Query,
   QueryOptions,
-  synctable_no_changefeed,
-  synctable_no_database,
+  synctable_no_changefeed
 } from "smc-util/sync/table";
 
 import { synctable_project } from "../project/websocket/synctable";
@@ -66,14 +65,6 @@ export class SyncClient {
     );
   }
 
-  public synctable_no_database(
-    query: Query,
-    options: QueryOptions,
-    throttle_changes?: number
-  ): SyncTable {
-    return synctable_no_database(query, options, this.client, throttle_changes);
-  }
-
   public async synctable_project(
     project_id: string,
     query: Query,
@@ -91,6 +82,7 @@ export class SyncClient {
     });
   }
 
+  // NOT currently used.
   public async symmetric_channel(
     name: string,
     project_id: string

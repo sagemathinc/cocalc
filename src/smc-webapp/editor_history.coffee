@@ -86,7 +86,7 @@ class exports.HistoryEditor extends FileEditor
 
     init_syncstring: (cb) =>
         try
-            @syncstring = await webapp_client.open_existing_sync_document
+            @syncstring = await webapp_client.sync_client.open_existing_sync_document
                 project_id : @project_id
                 path       : @_path
                 persistent : @ext == 'ipynb' or @ext == 'sagews'  # ugly for now...
