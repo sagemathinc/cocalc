@@ -10,7 +10,8 @@ import {
   StripeCustomer,
   Customer,
 } from "smc-webapp/todo-types";
-const { webapp_client } = require("../../webapp_client");
+
+import { webapp_client } from "../../webapp-client";
 const { Alert } = require("react-bootstrap");
 import { SCHEMA } from "smc-util/schema";
 
@@ -85,7 +86,10 @@ export const ProjectSettings = rclass<ReactProps>(
         // https://github.com/sagemathinc/cocalc/issues/4137
         query[k] = k === "project_id" ? this.props.project_id : null;
       }
-      this._table = webapp_client.sync_table2({ projects_admin: query }, []);
+      this._table = webapp_client.sync_client.sync_table(
+        { projects_admin: query },
+        []
+      );
       this._table.on("change", () => {
         this.setState({
           admin_project: this._table.get(this.props.project_id),

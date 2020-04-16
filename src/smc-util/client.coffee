@@ -507,7 +507,6 @@ class exports.Connection extends EventEmitter
             x[table] = opts[table]
         return @query(query:x, changes: true)
 
-    sync_table2: (...args) => @sync_client.sync_table(...args)
     synctable_database: (...args) => await @sync_client.synctable_database(...args)
     synctable_no_changefeed: (...args) => @sync_client.synctable_no_changefeed(...args)
     synctable_no_database: (...args) => @sync_client.synctable_no_database(...args)

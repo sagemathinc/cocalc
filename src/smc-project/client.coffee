@@ -320,7 +320,7 @@ class exports.Client extends EventEmitter
                 socket  : socket
                 cb      : opts.cb
 
-    sync_table2: (query, options, throttle_changes=undefined) =>
+    sync_table: (query, options, throttle_changes=undefined) =>
         return synctable2.synctable(query, options, @, throttle_changes)
 
     # We leave in the project_id for consistency with the browser UI.
