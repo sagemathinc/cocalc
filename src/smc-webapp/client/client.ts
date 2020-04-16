@@ -16,6 +16,8 @@ import { TrackingClient } from "./tracking";
 import { Query, QueryOptions } from "smc-util/sync/table";
 
 export interface WebappClient extends EventEmitter {
+  public account_id?: string;
+
   stripe: StripeClient;
   project_collaborators: ProjectCollaborators;
   support_tickets: SupportTickets;
@@ -30,7 +32,7 @@ export interface WebappClient extends EventEmitter {
 
   sync_string: Function;
   sync_db: Function;
-  
+
   server_time: Function;
   get_username: Function;
   is_signed_in: () => boolean;

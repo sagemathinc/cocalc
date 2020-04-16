@@ -54,6 +54,7 @@ import { AccountStore, AccountActions } from "./account";
 
 import { MentionsActions, MentionsStore } from "./notifications";
 import { FileUseStore } from "./file-use/store";
+import { FileUseActions } from "./file-use/actions";
 export { TypedMap } from "./app-framework/TypedMap";
 
 // Only import the types
@@ -210,6 +211,7 @@ export class AppRedux {
   getActions(name: "page"): any;
   getActions(name: "admin-users"): AdminUsersActions;
   getActions(name: "mentions"): MentionsActions;
+  getActions(name: "file_use"): FileUseActions | undefined;
   getActions(name: { project_id: string }): ProjectActions;
   getActions<T, C extends Actions<T>>(name: string): C;
   getActions<T, C extends Actions<T>>(
@@ -266,14 +268,14 @@ export class AppRedux {
   }
 
   getStore(name: "account"): AccountStore;
-  getStore(name: "customize"): any;
   getStore(name: "projects"): any;
-  getStore(name: "users"): any;
-  getStore(name: "page"): any;
   getStore(name: "billing"): any;
-  getStore(name: "mentions"): MentionsStore;
+  getStore(name: "page"): any;
   getStore(name: "admin-users"): AdminUsersStore;
+  getStore(name: "mentions"): MentionsStore;
   getStore(name: "file_use"): FileUseStore | undefined;
+  getStore(name: "customize"): any;
+  getStore(name: "users"): any;
   getStore<State>(name: string): Store<State>;
   getStore<State, C extends Store<State>>(name: string): C | undefined;
   getStore<State, C extends Store<State>>(name: string): C | undefined {

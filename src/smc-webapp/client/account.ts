@@ -1,14 +1,14 @@
 import { callback } from "awaiting";
 declare const $: any; // jQuery
 import * as message from "smc-util/message";
-import { AsyncCall } from "./client";
+import { AsyncCall, WebappClient } from "./client";
 
 export class AccountClient {
   private async_call: AsyncCall;
-  private client: any;
+  private client: WebappClient;
   private create_account_lock: boolean = false;
 
-  constructor(client: any) {
+  constructor(client: WebappClient) {
     this.client = client;
     this.async_call = client.async_call;
   }

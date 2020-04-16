@@ -1406,13 +1406,13 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # how worksheets render slightly.
         uuids = @_output_blobs_with_possible_ttl()
         if uuids?
-            webapp_client.remove_blob_ttls
-                uuids : uuids
-                cb    : (err) =>
-                    if not err
-                        # don't try again to remove ttls for these blobs -- since did so successfully
-                        @_output_blobs_ttls_removed(uuids)
-                    cb?(err)
+            try
+                await webapp_client.file_client.remove_blob_ttls(uuids)
+            catch err
+                cb?(err)
+                return
+            # don't try again to remove ttls for these blobs -- since did so successfully
+            @_output_blobs_ttls_removed(uuids)
 
     raw_input: (raw_input) =>
         prompt = raw_input.prompt

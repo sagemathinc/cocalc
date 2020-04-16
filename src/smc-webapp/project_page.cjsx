@@ -358,7 +358,7 @@ ProjectContentViewer = rclass
 
 
     render_editor_tab: ->
-        if webapp_client.is_deleted(@props.file_path, @props.project_id)
+        if webapp_client.file_client.is_deleted(@props.file_path, @props.project_id)
             return <DeletedFile
                      project_id = {@props.project_id}
                      path       = {@props.file_path}

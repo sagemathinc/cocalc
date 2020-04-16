@@ -564,13 +564,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       default:
         // editor...
         const path = misc.tab_to_path(key);
-        if (this.redux.hasActions("file_use")) {
-          (this.redux.getActions("file_use") as any).mark_file(
-            this.project_id,
-            path,
-            "open"
-          );
-        }
+        this.redux
+          .getActions("file_use")
+          ?.mark_file(this.project_id, path, "open");
         if (opts.change_history) {
           this.push_state(`files/${path}`);
         }
@@ -892,14 +888,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   private log_file_open(path: string): void {
-    if (this.redux.hasActions("file_use")) {
-      // if the user is anonymous they don't have a file_use Actions (yet)
-      (this.redux.getActions("file_use") as any).mark_file(
-        this.project_id,
-        path,
-        "open"
-      );
-    }
+    this.redux.getActions("file_use")?.mark_file(this.project_id, path, "open");
     const event = {
       event: "open",
       action: "open",
