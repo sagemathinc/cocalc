@@ -273,13 +273,14 @@ exports.LandingPage = rclass
         page:
             get_api_key   : rtypes.string
         customize:
-            is_commercial    : rtypes.bool
-            _is_configured   : rtypes.bool
-            logo_square      : rtypes.string
-            logo_rectangular : rtypes.string
-            help_email       : rtypes.string
-            terms_of_service : rtypes.string
-            email_signup     : rtypes.bool
+            is_commercial        : rtypes.bool
+            _is_configured       : rtypes.bool
+            logo_square          : rtypes.string
+            logo_rectangular     : rtypes.string
+            help_email           : rtypes.string
+            terms_of_service     : rtypes.string
+            terms_of_service_url : rtypes.string
+            email_signup         : rtypes.bool
         account:
             sign_in_email_address : rtypes.string
         "#{LA_NAME}":
@@ -472,6 +473,7 @@ exports.LandingPage = rclass
                         help_email      = {@props.help_email}
                         terms_of_service= {@props.terms_of_service}
                         email_signup    = {@props.email_signup}
+                        terms_of_service_url = {@props.terms_of_service_url}
                     />
                 </Col>
                 <Col sm={6}>

@@ -132,16 +132,17 @@ export const site_settings_conf: SiteSettings = {
     show: show_theming_vars,
   },
   terms_of_service_url: {
-    name: "Terms of Service",
-    desc: "URL to a page describing ToS, Policies, etc.",
+    name: "Terms of Service URL",
+    desc:
+      "URL to the page describing ToS, Policies, etc. (leave empty to not require)",
     default: "",
     clearable: true,
-    show: (conf) => show_theming_vars(conf) && conf.terms_of_service == "",
+    show: show_theming_vars,
   },
   terms_of_service: {
     name: "ToS information",
     desc:
-      "The text displayed for the terms of service link (make empty to not require).",
+      "The text displayed for the terms of service link (empty falls back a boilerplate using the URL).",
     default:
       "By creating an account you agree to the <em>Terms of Service</em>.",
     clearable: true,

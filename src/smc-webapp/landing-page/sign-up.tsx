@@ -42,6 +42,7 @@ interface Props {
   help_email: string;
   terms_of_service: string;
   email_signup: boolean;
+  terms_of_service_url: string;
 }
 
 interface State {
@@ -53,7 +54,9 @@ interface State {
 export class SignUp extends React.Component<Props, State> {
   constructor(props) {
     super(props);
-    const show_terms = props.terms_of_service?.length > 0;
+    const show_terms =
+      props.terms_of_service?.length > 0 ||
+      props.terms_of_service_url?.length > 0;
     this.state = {
       show_terms,
       terms_checkbox: !show_terms,
