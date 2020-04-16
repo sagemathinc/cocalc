@@ -1064,7 +1064,11 @@ export class Actions<
   }
 
   async save(explicit: boolean): Promise<void> {
-    if (this.is_public || !this.store.get("is_loaded")) {
+    if (
+      this.is_public ||
+      !this.store.get("is_loaded") ||
+      this._syncstring == null
+    ) {
       return;
     }
     // TODO: Maybe just move this to some explicit menu of actions, which also includes
