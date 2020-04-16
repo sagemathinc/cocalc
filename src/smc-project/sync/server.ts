@@ -201,7 +201,7 @@ class SyncTableChannel {
     // if the synctable closes, then the channel should also close.
     this.synctable.once("closed", this.close.bind(this));
 
-    if (this.query[this.synctable.table][0].string_id != null) {
+    if (this.query[this.synctable.get_table()][0].string_id != null) {
       register_synctable(this.query, this.synctable);
     }
     if (this.synctable.table === "syncstrings") {

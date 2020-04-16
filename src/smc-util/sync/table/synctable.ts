@@ -85,7 +85,7 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { Changefeed } from "./changefeed";
 import { parse_query, to_key } from "./util";
 
-type State = "disconnected" | "connected" | "closed";
+export type State = "disconnected" | "connected" | "closed";
 
 export class SyncTable extends EventEmitter {
   private changefeed?: Changefeed;
@@ -93,7 +93,7 @@ export class SyncTable extends EventEmitter {
   private client_query: any;
   private primary_keys: string[];
   private options: QueryOptions;
-  public client: Client;
+  public readonly client: Client;
   private throttle_changes?: number;
   private throttled_emit_changes?: Function;
   private last_server_time: number = 0;
@@ -119,7 +119,7 @@ export class SyncTable extends EventEmitter {
 
   // disconnected <--> connected --> closed
   private state: State;
-  private table: string;
+  public table: string;
   private schema: any;
   private emit_change: Function;
   public reference_count: number = 0;

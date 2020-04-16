@@ -6,10 +6,14 @@ import { callback2 } from "smc-util/async-utils";
 import { once } from "smc-util/async-utils";
 import { is_valid_uuid_string, merge } from "smc-util/misc2";
 import { defaults, required } from "smc-util/misc";
+
 import { SyncDoc, SyncOpts0 } from "smc-util/sync/editor/generic/sync-doc";
 interface SyncOpts extends Omit<SyncOpts0, "client"> {}
+
+import { SyncDB, SyncDBOpts0 } from "smc-util/sync/editor/db";
+interface SyncDBOpts extends Omit<SyncDBOpts, "client"> {}
+
 import { SyncString } from "smc-util/sync/editor/string/sync";
-import { SyncDB } from "smc-util/sync/editor/db";
 import {
   synctable,
   SyncTable,
@@ -115,8 +119,8 @@ export class SyncClient {
     return new SyncString(opts0);
   }
 
-  public sync_db(opts: SyncOpts): SyncDoc {
-    const opts0: SyncOpts0 = defaults(opts, {
+  public sync_db(opts: SyncDBOpts): SyncDoc {
+    const opts0: SyncDBOpts0 = defaults(opts, {
       id: undefined,
       project_id: required,
       path: required,
@@ -125,10 +129,12 @@ export class SyncClient {
       patch_interval: 1000,
       save_interval: 2000,
       change_throttle: undefined,
-      primary_keys: required,
-      string_cols: [],
       persistent: false,
       data_server: undefined,
+
+      primary_keys: required,
+      string_cols: [],
+
       client: this.client,
     });
     return new SyncDB(opts0);
@@ -171,6 +177,7 @@ export class SyncClient {
     if (doctype.opts != null) {
       opts2 = merge(opts2, doctype.opts);
     }
-    return this.client[`sync_${doctype.type}2`](opts2);
+    const f = `sync_${doctype.type}`;
+    return (this as any)[f](opts2);
   }
 }

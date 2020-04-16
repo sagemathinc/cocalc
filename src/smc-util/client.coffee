@@ -512,8 +512,6 @@ class exports.Connection extends EventEmitter
     synctable_no_database: (...args) => @sync_client.synctable_no_database(...args)
     synctable_project: (...args) => await @sync_client.synctable_project(...args)
     symmetric_channel: (...args) => await @sync_client.symmetric_channel(...args)
-    sync_string2: (opts) => @sync_client.sync_string(opts)
-    sync_db2: (opts) => @sync_client.sync_db(opts)
     open_existing_sync_document: (opts) => await @sync_client.open_existing_sync_document(opts)
 
     # Returns true if the given file in the given project is currently marked as deleted.

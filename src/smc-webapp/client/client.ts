@@ -28,16 +28,16 @@ export interface WebappClient extends EventEmitter {
   users_client: UsersClient;
   tracking_client: TrackingClient;
 
+  sync_string: Function;
+  sync_db: Function;
+  
   server_time: Function;
-  sync_db2: Function;
   get_username: Function;
   is_signed_in: () => boolean;
   remember_me_key: () => string;
   synctable_project: Function;
   project_websocket: Function;
   prettier: Function;
-  sync_string: Function;
-  sync_db: Function;
   exec: Function; // TODO: rewrite project_actions.ts to not use this at all.
   touch_project: (project_id: string) => Promise<void>;
   log_error: (any) => void;
