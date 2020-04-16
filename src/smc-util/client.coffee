@@ -519,3 +519,4 @@ class exports.Connection extends EventEmitter
 
     set_deleted: (filename, project_id) => @file_client.set_deleted(filename, project_id)
     is_deleted: (filename, project_id) => @file_client.is_deleted(filename, project_id)
+    mark_file: (opts) => @file_client.mark_file(opts)

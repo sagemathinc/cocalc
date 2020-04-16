@@ -59,6 +59,12 @@ export interface WebappClient extends EventEmitter {
   query_cancel: Function;
 
   set_connected?: Function;
+  public mark_file(opts: {
+    project_id: string;
+    path: string;
+    action: string;
+    ttl?: number;
+  }): Promise<void>;
 }
 
 export class Client extends EventEmitter {
