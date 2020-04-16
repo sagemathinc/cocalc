@@ -463,27 +463,6 @@ class exports.Connection extends EventEmitter
             delete @call_callbacks[id]
 
 
-    #################################################
-    # Blobs
-    #################################################
-    remove_blob_ttls: (opts) =>
-        opts = defaults opts,
-            uuids : required   # list of sha1 hashes of blobs stored in the blobstore
-            cb    : undefined
-        if opts.uuids.length == 0
-            opts.cb?()
-        else
-            @call
-                message :
-                    message.remove_blob_ttls
-                        uuids : opts.uuids
-                cb : (err, resp) =>
-                    if err
-                        opts.cb?(err)
-                    else if resp.event == 'error'
-                        opts.cb?(resp.error)
-                    else
-                        opts.cb?()
 
     # See client/project.ts.
     exec: (opts) =>
@@ -494,39 +473,8 @@ class exports.Connection extends EventEmitter
         catch err
             cb(err)
 
-    # Queries directly to the database (sort of like Facebook's GraphQL)
-    changefeed: (opts) =>
-        keys = misc.keys(opts)
-        if keys.length != 1
-            throw Error("must specify exactly one table")
-        table = keys[0]
-        x = {}
-        if not misc.is_array(opts[table])
-            x[table] = [opts[table]]
-        else
-            x[table] = opts[table]
-        return @query(query:x, changes: true)
-
     synctable_database: (...args) => await @sync_client.synctable_database(...args)
     synctable_project: (...args) => await @sync_client.synctable_project(...args)
-
-    # Returns true if the given file in the given project is currently marked as deleted.
-    is_deleted: (filename, project_id) =>
-        return !!@_redux?.getProjectStore(project_id)?.get_listings()?.is_deleted(filename)
-
-    set_deleted: (filename, project_id) =>
-        throw Error("set_deleted doesn't make sense for the frontend")
-
-    # If called on the fronted, will make the given file with the given action.
-    # Does nothing on the backend.
-    mark_file: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            path       : required
-            action     : required
-            ttl        : 120
-        # Will only do something if @_redux has been set.
-        @_redux?.getActions('file_use')?.mark_file(opts.project_id, opts.path, opts.action, opts.ttl)
 
     query: (opts) =>
         opts = defaults opts,
@@ -563,13 +511,12 @@ class exports.Connection extends EventEmitter
         catch err
             opts.cb?(err)
 
-    async_query_cancel: (id) =>
-        return await @query_client.cancel(id)
+    async_query_cancel: (id) => await @query_client.cancel(id)
 
-    # ASYNC
-    touch_project: (project_id) =>
-        await this.project_client.touch(project_id)
+    touch_project: (project_id) => await this.project_client.touch(project_id)
 
+
+    
     syncdoc_history: (opts) =>
         opts = defaults opts,
             string_id : required
@@ -585,25 +532,39 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, resp.history)
 
-#################################################
-# Other account Management functionality shared between client and server
-#################################################
-exports.is_valid_password = (password) ->
-    if typeof(password) != 'string'
-        return [false, 'Password must be specified.']
-    if password.length >= 6 and password.length <= 64
-        return [true, '']
-    else
-        return [false, 'Password must be between 6 and 64 characters in length.']
+    # Returns true if the given file in the given project is currently marked as deleted.
+    is_deleted: (filename, project_id) =>
+        return !!@_redux?.getProjectStore(project_id)?.get_listings()?.is_deleted(filename)
 
-exports.issues_with_create_account = (mesg) ->
-    issues = {}
-    if mesg.email_address and not misc.is_valid_email_address(mesg.email_address)
-        issues.email_address = 'Email address does not appear to be valid.'
-    if mesg.password
-        [valid, reason] = exports.is_valid_password(mesg.password)
-        if not valid
-            issues.password = reason
-    return issues
+    set_deleted: (filename, project_id) =>
+        throw Error("set_deleted doesn't make sense for the frontend")
 
+    # If called on the fronted, will make the given file with the given action.
+    # Does nothing on the backend.
+    mark_file: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            action     : required
+            ttl        : 120
+        # Will only do something if @_redux has been set.
+        @_redux?.getActions('file_use')?.mark_file(opts.project_id, opts.path, opts.action, opts.ttl)
 
+    remove_blob_ttls: (opts) =>
+        opts = defaults opts,
+            uuids : required   # list of sha1 hashes of blobs stored in the blobstore
+            cb    : undefined
+        if opts.uuids.length == 0
+            opts.cb?()
+        else
+            @call
+                message :
+                    message.remove_blob_ttls
+                        uuids : opts.uuids
+                cb : (err, resp) =>
+                    if err
+                        opts.cb?(err)
+                    else if resp.event == 'error'
+                        opts.cb?(resp.error)
+                    else
+                        opts.cb?()
