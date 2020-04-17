@@ -496,6 +496,8 @@ class PassportManager {
       case "ldap":
         return require("passport-ldapauth").Strategy;
       case "oauth2":
+        return require("passport-oauth2").Strategy;
+      case "oauth2next":
         return require("@passport-next/passport-oauth2").Strategy;
       case "orcid":
         return require("passport-orcid").Strategy;
