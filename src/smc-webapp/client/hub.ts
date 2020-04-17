@@ -56,7 +56,7 @@ export class HubClient {
     recv_length: 0,
   };
 
-  constructor(client: WebappClient, url: string) {
+  constructor(client: WebappClient) {
     this.client = client;
 
     /* We heavily throttle this, since it's ONLY used for the connections
@@ -70,7 +70,7 @@ export class HubClient {
     this.reconnect = throttle(this.reconnect.bind(this), 10000);
 
     // Start attempting to connect to a hub.
-    this.init_hub_websocket(url);
+    this.init_hub_websocket();
   }
 
   private emit_mesg_data(): void {
@@ -358,7 +358,7 @@ export class HubClient {
     this.emit_mesg_data();
   }
 
-  private init_hub_websocket(url: string) {
+  private init_hub_websocket() {
     const log = (...mesg) => console.log("hub_websocket -", ...mesg);
     log("connect");
     this.client.emit("connecting");
@@ -371,15 +371,7 @@ export class HubClient {
     });
 
     this.delete_websocket_cookie();
-    /* const opts = { // these were the opts from before; we're trying the defaults now.
-      reconnect: {
-        max: 10000,
-        min: 1000,
-        factor: 1.3,
-        retries: 100000,
-      },
-    };*/
-    const conn = (this.conn = new Primus(url));
+    const conn = (this.conn = new Primus());
 
     conn.on("open", () => {
       this.connected = true;
@@ -453,12 +445,18 @@ export class HubClient {
   }
 
   private send_version(): void {
-    this.send(message.version({ version: this.client.client.version() }));
+    this.send(message.version({ version: this.client.version() }));
   }
 
   public fix_connection(): void {
     this.delete_websocket_cookie();
     this.conn.end();
     this.conn.open();
+  }
+
+  public latency(): number | void {
+    if (this.connected) {
+      return this.conn.latency;
+    }
   }
 }

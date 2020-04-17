@@ -27,7 +27,6 @@
 ###
 #
 # NOTE: Automatic reconnect if the server is restarted does not work with this.
-# It *does* work for client_browser.coffee though, which is what matters.
 
 client = require('client')
 

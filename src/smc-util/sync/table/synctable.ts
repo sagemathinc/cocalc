@@ -51,12 +51,7 @@ export type QueryOptions = any[]; // todo
 export interface Client extends EventEmitter {
   is_project: () => boolean;
   dbg: (str: string) => Function;
-  query: (opts: {
-    query: Query;
-    options?: QueryOptions;
-    timeout?: number;
-    cb?: Function;
-  }) => void;
+  query: Function;
   query_cancel: Function;
   server_time: Function;
   alert_message?: Function;

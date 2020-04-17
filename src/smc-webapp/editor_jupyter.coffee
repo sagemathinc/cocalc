@@ -292,9 +292,9 @@ class JupyterWrapper extends EventEmitter
         # all always seems to cause a dialog to pop up, even if the user doesn't want one according to smc's
         # own prefs.
         @frame.window.onbeforeunload = null
-        # when active, periodically reset the idle timer's reset time in client_browser.Connection
+        # when active, periodically reset the idle timer's reset time
         # console.log 'iframe', @iframe
-        @iframe.contents().find("body").on("click mousemove keydown focusin", webapp_client.idle_reset)
+        @iframe.contents().find("body").on("click mousemove keydown focusin", webapp_client.idle_reset.bind(webapp_client))
 
     remove_modal_backdrop: =>
         # For mysterious reasons, this modal-backdrop div
