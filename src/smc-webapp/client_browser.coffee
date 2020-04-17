@@ -23,6 +23,7 @@ if not Primus?
     alert("Library not fully built (Primus not defined) -- refresh your browser")
     setTimeout((->window.location.reload()), 1000)
 
+{delay} = require('awaiting')
 $ = window.$
 _ = require('underscore')
 
@@ -38,7 +39,6 @@ misc = require('smc-util/misc')
 { SITE_NAME } = require("smc-util/theme")
 
 {do_anonymous_setup, should_do_anonymous_setup} = require('./client/anonymous-setup')
-
 
 class Connection extends client.Connection
     constructor: (opts) ->
@@ -56,47 +56,11 @@ class Connection extends client.Connection
         # http://stackoverflow.com/questions/3275816/debugging-iframes-with-chrome-developer-tools/8581276#8581276
         #
         super(opts)
-        @_setup_window_smc()
+        @global_cocalc()
 
         # Start reporting metrics to the backend if requested.
         if prom_client.enabled
             @on('start_metrics', prom_client.start_metrics)
-
-    _setup_window_smc: () =>
-        # if we are in DEBUG mode, inject the client into the global window object
-        window.enable_post = =>
-            @_enable_post = true
-        window.disable_post = =>
-            @_enable_post = false
-
-        # Disable POST by default since:
-        # (1) we're having weird cloudflare issues
-        # (2) it was designed to address an efficiency issue that we may have already addressed
-        #     more effectively via an architectural change (project websocket).
-        # One can still test this by typing "enable_post()" in the console (even in production).
-        @_enable_post = false
-
-        if not DEBUG
-            return
-        window.smc                     ?= {}
-        window.smc.client              = @
-        window.smc.misc                = require('smc-util/misc')
-        window.smc.misc_page           = require('./misc_page')
-        window.smc.immutable           = require('immutable')
-        window.smc.done                = window.smc.misc.done
-        window.smc.sha1                = require('sha1')
-        window.smc.schema              = require('smc-util/schema')
-        # use to enable/disable verbose synctable logging
-        window.smc.idle_trigger        = => @emit('idle', 'away')
-        window.smc.prom_client         = prom_client
-        window.smc.redux               = require('./app-framework').redux
-
-        if require('./feature').IS_TOUCH
-            # Debug mode and on a touch device -- e.g., iPad -- so make it possible to get a
-            # devel console via https://github.com/liriliri/eruda
-            # This pulls eruda from a CDN.
-            document.write('<script src="//cdn.jsdelivr.net/npm/eruda"></script>')
-            document.write('<script>eruda.init();</script>')
 
     # return latest ping/pong time (latency) if connected; otherwise, return undefined
     latency: () =>
@@ -106,6 +70,9 @@ class Connection extends client.Connection
     alert_message: (args...) =>
         require('./alerts').alert_message(args...)
 
+    global_cocalc: =>
+        await delay(1)
+        require('./client/console').setup_global_cocalc()
 
 connection = undefined
 exports.connect = (url) ->
