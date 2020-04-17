@@ -52,6 +52,10 @@ export class QueryClient {
     return await callback(f);
   }
 
+  // This works like a normal async function when
+  // opts.cb is NOT specified.  When opts.cb is specified,
+  // it works like a cb and returns nothing.  For changefeeds
+  // you MUST specify opts.cb, but can always optionally do so.
   public async query(opts: {
     query: object;
     changes?: boolean;
@@ -66,6 +70,9 @@ export class QueryClient {
     if (opts.options != null && !is_array(opts.options)) {
       // should never happen...
       throw Error("options must be an array");
+    }
+    if (opts.changes && opts.cb == null) {
+      throw Error("for changefeed, must specify opts.cb");
     }
 
     if (
@@ -153,11 +160,20 @@ export class QueryClient {
         cb: opts.cb,
       });
     } else {
-      return await this.call(mesg, opts.timeout);
+      if (opts.cb != null) {
+        try {
+          const result = await this.call(mesg, opts.timeout);
+          opts.cb(undefined, result);
+        } catch (err) {
+          opts.cb(err.message);
+        }
+      } else {
+        return await this.call(mesg, opts.timeout);
+      }
     }
   }
 
   public async cancel(id: string): Promise<void> {
-    return await this.call(message.query_cancel({ id }), 30);
+    await this.call(message.query_cancel({ id }), 30);
   }
 }

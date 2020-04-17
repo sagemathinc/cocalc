@@ -20,13 +20,7 @@
 ###############################################################################
 
 {EventEmitter} = require('events')
-
-misc    = require("./misc")
-
 {once} = require('./async-utils')
-
-defaults = misc.defaults
-required = defaults.required
 
 class exports.Connection extends EventEmitter
     # Connection events:
@@ -95,13 +89,6 @@ class exports.Connection extends EventEmitter
 
     dbg: (f) => return @client.dbg(f)
 
-    # Returns (approximate) time in ms since epoch on the server.
-    # NOTE:
-    #     This is guaranteed to be an *increasing* function, with an arbitrary
-    #     ms added on in case of multiple calls at once, to guarantee uniqueness.
-    #     Also, if the user changes their clock back a little, this will still
-    #     increase... very slowly until things catch up.  This avoids any
-    #     possibility of weird random re-ordering of patches within a given session.
     server_time: => @time_client.server_time()
     ping_test: (opts={}) => @time_client.ping_test(opts)
 
@@ -110,72 +97,28 @@ class exports.Connection extends EventEmitter
     is_signed_in: => @hub_client.is_signed_in()
     is_connected: => @hub_client.is_connected()
 
-    # account_id or project_id of this client
-    client_id: () =>
-        return @account_id
+    # account_id of this client
+    client_id: () => return @account_id
 
     # false since this client is not a project
-    is_project: () =>
-        return false
+    is_project: () => return false
 
     # true since this client is a user
-    is_user: () =>
-        return true
+    is_user: () => return true
 
     remember_me_key: => @client.remember_me_key()
 
     call: (opts) => @hub_client.call(opts)
-
     async_call: (opts) => await @hub_client.async_call(opts)
 
-    # See client/project.ts.
-    exec: (opts) =>
-        cb = opts.cb
-        delete opts.cb
-        try
-            cb(undefined, await @project_client.exec(opts))
-        catch err
-            cb(err)
+    exec: (opts) => await @project_client.exec(opts)
 
     synctable_database: (...args) => await @sync_client.synctable_database(...args)
     synctable_project: (...args) => await @sync_client.synctable_project(...args)
 
-    query: (opts) =>
-        opts = defaults opts,
-            query   : required
-            changes : undefined
-            options : undefined    # if given must be an array of objects, e.g., [{limit:5}]
-            standby : false        # if true and use HTTP post, then will use standby server (so must be read only)
-            timeout : 30
-            no_post : false        # if true, will not use a post query
-            cb      : undefined
-        if opts.changes
-            # changefeed does a normal call with a opts.cb
-            @query_client.query(opts)
-            return
-        # Use the async api
-        cb = opts.cb
-        if not cb?
-            opts.ignore_response = true
-        delete opts.cb
-        try
-            cb?(undefined, await @query_client.query(opts))
-        catch err
-            cb?(err.message)
-
-    async_query: (opts) =>
-        return await @query_client.query(opts)
-
-    query_cancel: (opts) =>
-        opts = defaults opts,
-            id : required
-            cb : undefined
-        try
-            opts.cb?(undefined, await @query_client.cancel(opts.id))
-        catch err
-            opts.cb?(err)
-
-    async_query_cancel: (id) => await @query_client.cancel(id)
+    query: (opts) => @query_client.query(opts)
+    async_query: (opts) => return await @query_client.query(opts)
+    query_cancel: (id) => await @query_client.cancel(id)
 
     touch_project: (project_id) => await this.project_client.touch(project_id)
 

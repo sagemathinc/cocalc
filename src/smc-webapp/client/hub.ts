@@ -235,7 +235,7 @@ export class HubClient {
 
     this.call_callbacks[id] = {
       cb: (...args) => {
-        if (!called_cb && this.call_callbacks[id] != null) {
+        if (!called_cb) {
           called_cb = true;
           cb();
         }
@@ -253,7 +253,7 @@ export class HubClient {
 
     if (opts.timeout) {
       setTimeout(() => {
-        if (this.call_callbacks[id]?.first) {
+        if (this.call_callbacks[id] == null || this.call_callbacks[id].first) {
           const error = "Timeout after " + opts.timeout + " seconds";
           if (!called_cb) {
             called_cb = true;
@@ -266,17 +266,17 @@ export class HubClient {
         }
       }, opts.timeout * 1000);
     } else {
-      // IMPORTANT: No matter what, we call cb within 120s; if we don't do this then
+      // IMPORTANT: No matter what, we call cb within 60s; if we don't do this then
       // in case opts.timeout isn't set but opts.cb is, but user disconnects,
       // then cb would never get called, which throws off our call counter.
       // Note that the input to cb doesn't matter.
       const f = () => {
-        if (!called_cb && this.call_callbacks[id] != null) {
+        if (!called_cb) {
           called_cb = true;
           cb();
         }
       };
-      setTimeout(f, 120 * 1000);
+      setTimeout(f, 60 * 1000);
     }
   }
 
@@ -346,9 +346,10 @@ export class HubClient {
   private clear_call_queue(): void {
     for (const id in this.call_callbacks) {
       const obj = this.call_callbacks[id];
-      obj.cb("disconnect");
       delete this.call_callbacks[id];
+      obj.cb("disconnect");
     }
+    this.emit_mesg_data();
   }
 
   private init_hub_websocket(url: string) {
@@ -364,6 +365,14 @@ export class HubClient {
     });
 
     this.delete_websocket_cookie();
+    /* const opts = { // these were the opts from before; we're trying the defaults now.
+      reconnect: {
+        max: 10000,
+        min: 1000,
+        factor: 1.3,
+        retries: 100000,
+      },
+    };*/
     const conn = (this.conn = new Primus(url));
 
     conn.on("open", () => {

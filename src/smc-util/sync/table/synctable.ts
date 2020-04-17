@@ -749,7 +749,7 @@ export class SyncTable extends EventEmitter {
   private changefeed_options() {
     return {
       do_query: query_function(this.client.query, this.table),
-      query_cancel: this.client.query_cancel,
+      query_cancel: this.client.query_cancel.bind(this.client),
       options: this.options,
       query: this.query,
       table: this.table,

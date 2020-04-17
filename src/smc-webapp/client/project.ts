@@ -28,6 +28,7 @@ export interface ExecOpts {
   aggregate?: string | number | { value: string | number };
   err_on_exit?: boolean;
   env?: { [key: string]: string }; // custom environment variables.
+  cb?: Function; // if given use a callback interface *instead* of async.
 }
 
 export interface ExecOutput {
@@ -164,18 +165,33 @@ export class ProjectClient {
       aggregate: undefined,
       err_on_exit: true,
       env: undefined,
+      cb: undefined, // if given use a callback interface instead of async
     });
 
-    const ws = await this.websocket(opts.project_id);
-    const exec_opts = copy_without(opts, ["project_id"]);
+    try {
+      const ws = await this.websocket(opts.project_id);
+      const exec_opts = copy_without(opts, ["project_id"]);
 
-    const msg = await ws.api.exec(exec_opts);
-    if (msg.status && msg.status == "error") {
-      throw new Error(msg.error);
+      const msg = await ws.api.exec(exec_opts);
+      if (msg.status && msg.status == "error") {
+        throw new Error(msg.error);
+      }
+      delete msg.status;
+      delete msg.error;
+      if (opts.cb == null) {
+        return msg;
+      } else {
+        opts.cb(undefined, msg);
+        return msg;
+      }
+    } catch (err) {
+      if (opts.cb == null) {
+        throw err;
+      } else {
+        opts.cb(err.message);
+        return { stdout: "", stderr: err.message, exit_code: 1, time: 0 }; // should be ignored; this is just to make typescript happy.
+      }
     }
-    delete msg.status;
-    delete msg.error;
-    return msg;
   }
 
   public async directory_listing(opts: {
