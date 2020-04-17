@@ -39,46 +39,6 @@ misc = require('smc-util/misc')
 
 {do_anonymous_setup, should_do_anonymous_setup} = require('./client/anonymous-setup')
 
-# these idle notifications were in misc_page, but importing it here failed
-
-idle_notification_html = ->
-    {redux}   = require('./app-framework')
-    customize = redux.getStore('customize')
-    site_name = customize.get('site_name') or SITE_NAME
-    logo_url = customize.get('logo_square') or APP_LOGO_WHITE
-    """
-    <div>
-    <img src="#{logo_url}">
-    <h1>#{site_name}</h1>
-    &mdash; click to reconnect &mdash;
-    </div>
-    """
-
-idle_notification_state = undefined
-
-idle_notification = (show) ->
-    if idle_notification_state? and idle_notification_state == show
-        return
-    $idle = $("#smc-idle-notification")
-    if show
-        if $idle.length == 0
-            content = idle_notification_html()
-            box = $("<div/>", id: "smc-idle-notification" ).html(content)
-            $("body").append(box)
-            # quick slide up, just to properly slide down on the fist time
-            box.slideUp 0, ->
-                box.slideDown "slow"
-        else
-            $idle.slideDown "slow"
-    else
-        $idle.slideUp "slow"
-    idle_notification_state = show
-
-#if DEBUG
-#    window?.smc ?= {}
-#    window?.smc.idle_notification = idle_notification
-
-# end idle notifications
 
 class Connection extends client.Connection
     constructor: (opts) ->
@@ -97,12 +57,6 @@ class Connection extends client.Connection
         #
         super(opts)
         @_setup_window_smc()
-
-        # 60 min default. Correct val will get set when user account settings are loaded.
-        # Set here rather than in @_init_idle to avoid any potential race.
-        @_idle_timeout = 15 * 60 * 1000
-
-        setTimeout(@_init_idle, 15 * 1000)
 
         # Start reporting metrics to the backend if requested.
         if prom_client.enabled
@@ -143,83 +97,6 @@ class Connection extends client.Connection
             # This pulls eruda from a CDN.
             document.write('<script src="//cdn.jsdelivr.net/npm/eruda"></script>')
             document.write('<script>eruda.init();</script>')
-
-    _init_idle: () =>
-        # Do not bother on mobile, since mobile devices already automatically disconnect themselves
-        # very aggressively to save battery life.
-        if require('./feature').IS_TOUCH
-            return
-
-        ###
-        The @_init_time is a timestamp in the future.
-        It is pushed forward each time @_idle_reset is called.
-        The setInterval timer checks every minute, if the current time is past this @_init_time.
-        If so, the user is 'idle'.
-        To keep 'active', call webapp_client.idle_reset as often as you like:
-        A document.body event listener here and one for each jupyter iframe.body (see jupyter.coffee).
-        ###
-
-        @_idle_reset()
-        setInterval(@_idle_check, 60 * 1000)
-
-        # call this idle_reset like a function
-        # will reset timer on *first* call and then every 15secs while being called
-        @idle_reset = _.throttle(@_idle_reset, 15 * 1000)
-
-        # activate a listener on our global body (universal sink for bubbling events, unless stopped!)
-        $(document).on('click mousemove keydown focusin touchstart', @idle_reset)
-        $('#smc-idle-notification').on('click mousemove keydown focusin touchstart', @_idle_reset)
-
-        delayed_disconnect = undefined
-
-        reconn = =>
-            if @_connection_is_totally_dead # CRITICAL: See https://github.com/primus/primus#primusopen !!!!!
-                @_conn?.open()
-        reconn = _.throttle(reconn, 10*1000)  # never attempt to reconnect more than once per 10s, no matter what.
-
-        disconn = =>
-            if @_connected
-                @_conn?.end()
-
-        @on 'idle', (state) ->
-            #console.log("idle state: #{state}")
-            switch state
-
-                when "away"
-                    idle_notification(true)
-                    delayed_disconnect ?= setTimeout(disconn, 15 * 1000)
-
-                when "active"
-                    idle_notification(false)
-                    if delayed_disconnect?
-                        clearTimeout(delayed_disconnect)
-                        delayed_disconnect = undefined
-                    reconn()
-                    setTimeout(reconn, 5000) # avoid race condition???
-
-    # This is called periodically. If the user hasn't been active
-    # for @_idle_timeout ms, then we emit an idle event.
-    _idle_check: =>
-        if not @_idle_time?
-            return
-        now = (new Date()).getTime()
-        #console.log("idle: checking idle #{@_idle_time} < #{now}")
-        if @_idle_time < now
-            @emit('idle', 'away')
-
-    # Set @_idle_time to the **moment in in the future** at which the user will be
-    # considered idle, and also emit event indicating that user is currently active.
-    _idle_reset: =>
-        @_idle_time = (new Date()).getTime() + @_idle_timeout + 1000
-        #console.log '_idle_reset', new Date(@_idle_time), ' _idle_timeout=', @_idle_timeout
-        @emit('idle', 'active')
-
-    # Change the standby timeout to a particular time in minutes.
-    # This gets called when the user configuration settings are set/loaded.
-    set_standby_timeout_m: (time_m) =>
-        # console.log 'set_standby_timeout_m', time_m
-        @_idle_timeout = time_m * 60 * 1000
-        @_idle_reset()
 
     # return latest ping/pong time (latency) if connected; otherwise, return undefined
     latency: () =>

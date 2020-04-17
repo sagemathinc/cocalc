@@ -57,6 +57,7 @@ class exports.Connection extends EventEmitter
         {FileClient} = require('smc-webapp/client/file')
         {HubClient} = require('smc-webapp/client/hub')
         {Client} = require('smc-webapp/client/client')
+        {IdleClient} = require('smc-webapp/client/idle')
 
         # Refactored functionality
         @stripe = new StripeClient(@call.bind(@))
@@ -71,6 +72,7 @@ class exports.Connection extends EventEmitter
         @users_client = new UsersClient(@call.bind(@), @async_call.bind(@))
         @tracking_client = new TrackingClient(@)
         @file_client = new FileClient(@async_call.bind(@))
+        @idle_client = new IdleClient(@)
         @client = new Client(@)
 
         # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
@@ -91,6 +93,8 @@ class exports.Connection extends EventEmitter
 
     server_time: => @time_client.server_time()
     ping_test: (opts={}) => @time_client.ping_test(opts)
+
+    idle_reset: => @idle_client.idle_reset()
 
     version: => @client.version()
 
@@ -125,3 +129,4 @@ class exports.Connection extends EventEmitter
     set_deleted: (filename, project_id) => @file_client.set_deleted(filename, project_id)
     is_deleted: (filename, project_id) => @file_client.is_deleted(filename, project_id)
     mark_file: (opts) => @file_client.mark_file(opts)
+

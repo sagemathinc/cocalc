@@ -128,12 +128,18 @@ export class HubClient {
     return !!this.connected;
   }
 
-  private reconnect(): void {
+  public reconnect(): void {
     if (this.connection_is_totally_dead) {
       // CRITICAL: See https://github.com/primus/primus#primusopen !
       if (this.conn != null) {
         this.conn.open();
       }
+    }
+  }
+
+  public disconnect(): void {
+    if (this.connected && this.conn != null) {
+      this.conn.end();
     }
   }
 

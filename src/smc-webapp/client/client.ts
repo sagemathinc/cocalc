@@ -14,6 +14,7 @@ import { SyncClient } from "./sync";
 import { UsersClient } from "./users";
 import { TrackingClient } from "./tracking";
 import { HubClient } from "./hub";
+import { IdleClient } from "./idle";
 import { Query, QueryOptions } from "smc-util/sync/table";
 import { version } from "smc-util/smc-version";
 
@@ -68,6 +69,7 @@ export interface WebappClient extends EventEmitter {
   users_client: UsersClient;
   tracking_client: TrackingClient;
   hub_client: HubClient;
+  idle_client: IdleClient;
   client: Client;
 
   sync_string: Function;
