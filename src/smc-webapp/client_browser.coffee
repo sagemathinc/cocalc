@@ -90,9 +90,6 @@ class Connection extends client.Connection
         super(opts)
         @_setup_window_smc()
 
-        # This is used by the base class for marking file use notifications.
-        @_redux = require('./app-framework').redux
-
         # 60 min default. Correct val will get set when user account settings are loaded.
         # Set here rather than in @_init_idle to avoid any potential race.
         @_idle_timeout = 15 * 60 * 1000
@@ -216,104 +213,10 @@ class Connection extends client.Connection
         @_idle_timeout = time_m * 60 * 1000
         @_idle_reset()
 
-    _connect: (url, ondata) ->
-        log = (mesg...) ->
-            console.log("websocket -", mesg...)
-        log("connect")
-
-        @url = url
-        if @ondata?
-            # handlers already setup
-            return
-
-        @ondata = ondata
-
-        opts =
-            reconnect:
-                max     : 10000
-                min     : 1000
-                factor  : 1.3
-                retries : 100000
-
-        misc_page.delete_cookie('SMCSERVERID3')
-        @_delete_websocket_cookie()
-        conn = new Primus(url, opts)
-
-        @_conn = conn
-        conn.on 'open', () =>
-            @_connected = true
-            @_connection_is_totally_dead = false
-            protocol = if window.WebSocket? then 'websocket' else 'polling'
-            @emit("connected", protocol)
-            log("connected; protocol='#{protocol}'")
-            @_num_attempts = 0
-
-            conn.removeAllListeners('data')
-            conn.on("data", ondata)
-
-            auth_token = QueryParams.get('auth_token')
-            if not @_signed_in and auth_token
-                QueryParams.remove('auth_token')
-                @account_client.sign_in_using_auth_token(auth_token)
-            else if should_do_anonymous_setup()
-                do_anonymous_setup(@)
-
-        conn.on 'outgoing::open', (evt) =>
-            log("connecting")
-            @emit("connecting")
-
-        conn.on 'offline', (evt) =>
-            log("offline")
-            @_connected = @_signed_in = false
-            @emit("disconnected", "offline")
-
-        conn.on 'online', (evt) =>
-            log("online")
-
-        conn.on 'message', (evt) =>
-            ondata(evt.data)
-
-        conn.on 'error', (err) =>
-            log("error: ", err)
-            # NOTE: we do NOT emit an error event in this case!  See
-            # https://github.com/sagemathinc/cocalc/issues/1819
-            # for extensive discussion.
-
-        conn.on 'close', () =>
-            log("closed")
-            @_connected = @_signed_in = false
-            @emit("disconnected", "close")
-
-        conn.on 'end', =>
-            @_connection_is_totally_dead = true
-
-        conn.on 'reconnect scheduled', (opts) =>
-            @_num_attempts = opts.attempt
-            @emit("disconnected", "close") # This just informs everybody that we *are* disconnected.
-            conn.removeAllListeners('data')
-            @_delete_websocket_cookie()
-            log("reconnect scheduled (attempt #{opts.attempt} out of #{opts.retries})")
-
-        conn.on 'reconnect', =>
-            @emit("connecting")
-
-        @_write = (data) =>
-            conn.write(data)
-
     # return latest ping/pong time (latency) if connected; otherwise, return undefined
     latency: () =>
         if @_connected
             return @_conn.latency
-
-    _delete_websocket_cookie: =>
-        console.log('websocket -- delete cookie')
-        misc_page.delete_cookie('SMCSERVERID3')
-
-    _fix_connection: =>
-        console.log("websocket --_fix_connection... ")
-        @_delete_websocket_cookie()
-        @_conn.end()
-        @_conn.open()
 
     alert_message: (args...) =>
         require('./alerts').alert_message(args...)

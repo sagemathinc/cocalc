@@ -87,7 +87,11 @@ export class QueryClient {
         });
       } catch (err) {
         if (err.message === NOT_SIGNED_IN) {
-          if (new Date().valueOf() - this.client._signed_in_time >= 60000) {
+          if (
+            new Date().valueOf() -
+              this.client.hub_client.get_signed_in_time() >=
+            60000
+          ) {
             // If you did NOT recently sign in, and you're
             // getting this error, we sign you out.  Right
             // when you first sign in, you might get this
@@ -101,7 +105,7 @@ export class QueryClient {
             // being set in the browser since it is not
             // visible to Javascript.
             // See https://github.com/sagemathinc/cocalc/issues/2204
-            this.client._set_signed_out();
+            this.client.hub_client.set_signed_out();
           }
         }
         if (opts.standby) {
@@ -142,7 +146,7 @@ export class QueryClient {
         throw Error("changefeed requires cb callback");
       }
       this.client.call({
-        allow_post: false,  // changefeeds can't use post, of course.
+        allow_post: false, // changefeeds can't use post, of course.
         message: mesg,
         error_event: true,
         timeout: opts.timeout,

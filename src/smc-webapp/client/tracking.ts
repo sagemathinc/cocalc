@@ -13,7 +13,7 @@ export class TrackingClient {
   // There is no confirmation or response that this succeeded,
   // which is fine, since dropping some metrics is fine.
   public send_metrics(metrics: object): void {
-    this.client.send(message.metrics({ metrics }));
+    this.client.hub_client.send(message.metrics({ metrics }));
   }
 
   public async user_tracking(evt: string, value: object): Promise<void> {

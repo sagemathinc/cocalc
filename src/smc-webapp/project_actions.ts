@@ -1591,10 +1591,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           err = misc.to_json(err);
         }
         if (path == null) throw Error("bug"); // make typescript happy
-        const map = store
-          .get("directory_listings")
-          .set(path, err ? err : immutable.fromJS(the_listing.files));
-        this.setState({ directory_listings: map });
+        if (the_listing != null) {
+          const map = store
+            .get("directory_listings")
+            .set(path, err ? err : immutable.fromJS(the_listing.files));
+          this.setState({ directory_listings: map });
+        }
         // done! releasing lock, then executing callback(s)
         const cbs = this._set_directory_files_lock[_key];
         delete this._set_directory_files_lock[_key];

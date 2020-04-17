@@ -13,7 +13,45 @@ import { AdminClient } from "./admin";
 import { SyncClient } from "./sync";
 import { UsersClient } from "./users";
 import { TrackingClient } from "./tracking";
+import { HubClient } from "./hub";
 import { Query, QueryOptions } from "smc-util/sync/table";
+import { version } from "smc-util/smc-version";
+
+export class Client extends EventEmitter {
+  //private client: WebappClient;
+
+  constructor(/* client */) {
+    super();
+    //this.client = client;
+    this.dbg = this.dbg.bind(this);
+  }
+
+  public remember_me_key(): string {
+    const app_base_url = (window as any).app_base_url ?? "";
+    return "remember_me" + app_base_url;
+  }
+
+  public dbg(f): Function {
+    return function (...m) {
+      let s;
+      switch (m.length) {
+        case 0:
+          s = "";
+          break;
+        case 1:
+          s = m[0];
+          break;
+        default:
+          s = JSON.stringify(m);
+      }
+      console.log(`${new Date().toISOString()} - Client.${f}: ${s}`);
+    };
+  }
+
+  public version(): string {
+    return version;
+  }
+}
 
 export interface WebappClient extends EventEmitter {
   public account_id?: string;
@@ -29,6 +67,8 @@ export interface WebappClient extends EventEmitter {
   sync_client: SyncClient;
   users_client: UsersClient;
   tracking_client: TrackingClient;
+  hub_client: HubClient;
+  client: Client;
 
   sync_string: Function;
   sync_db: Function;
@@ -65,31 +105,4 @@ export interface WebappClient extends EventEmitter {
     action: string;
     ttl?: number;
   }): Promise<void>;
-}
-
-export class Client extends EventEmitter {
-  //private client: WebappClient;
-
-  constructor(/* client */) {
-    super();
-    //this.client = client;
-    this.dbg = this.dbg.bind(this);
-  }
-
-  public dbg(f): Function {
-    return function (...m) {
-      let s;
-      switch (m.length) {
-        case 0:
-          s = "";
-          break;
-        case 1:
-          s = m[0];
-          break;
-        default:
-          s = JSON.stringify(m);
-      }
-      console.log(`${new Date().toISOString()} - Client.${f}: ${s}`);
-    };
-  }
 }
