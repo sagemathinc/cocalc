@@ -35,6 +35,7 @@ misc_page = require('./misc_page')
 misc = require('smc-util/misc')
 
 {APP_LOGO_WHITE} = require('./art')
+{ SITE_NAME } = require("smc-util/theme")
 
 {do_anonymous_setup, should_do_anonymous_setup} = require('./client/anonymous-setup')
 
@@ -43,10 +44,12 @@ misc = require('smc-util/misc')
 idle_notification_html = ->
     {redux}   = require('./app-framework')
     customize = redux.getStore('customize')
+    site_name = customize.get('site_name') or SITE_NAME
+    logo_url = customize.get('logo_square') or APP_LOGO_WHITE
     """
     <div>
-    <img src="#{APP_LOGO_WHITE}">
-    <h1>Collaborative Calculation</h1>
+    <img src="#{logo_url}">
+    <h1>#{site_name}</h1>
     &mdash; click to reconnect &mdash;
     </div>
     """
@@ -59,7 +62,8 @@ idle_notification = (show) ->
     $idle = $("#smc-idle-notification")
     if show
         if $idle.length == 0
-            box = $("<div/>", id: "smc-idle-notification" ).html(idle_notification_html())
+            content = idle_notification_html()
+            box = $("<div/>", id: "smc-idle-notification" ).html(content)
             $("body").append(box)
             # quick slide up, just to properly slide down on the fist time
             box.slideUp 0, ->
@@ -69,6 +73,10 @@ idle_notification = (show) ->
     else
         $idle.slideUp "slow"
     idle_notification_state = show
+
+#if DEBUG
+#    window?.smc ?= {}
+#    window?.smc.idle_notification = idle_notification
 
 # end idle notifications
 
