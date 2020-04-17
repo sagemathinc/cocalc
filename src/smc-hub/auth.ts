@@ -495,6 +495,8 @@ class PassportManager {
     switch (name) {
       case "ldap":
         return require("passport-ldapauth").Strategy;
+      case "oauth1":
+        return require("passport-oauth").Strategy;
       case "oauth2":
         return require("passport-oauth2").Strategy;
       case "oauth2next":
