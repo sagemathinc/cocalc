@@ -19,26 +19,11 @@
 #
 ###############################################################################
 
-if not Primus?
-    alert("Library not fully built (Primus not defined) -- refresh your browser")
-    setTimeout((->window.location.reload()), 1000)
-
 {delay} = require('awaiting')
-$ = window.$
-_ = require('underscore')
 
 prom_client = require('./prom-client')
 
 client = require('smc-util/client')
-
-misc_page = require('./misc_page')
-{QueryParams} = require('./misc/query-params')
-misc = require('smc-util/misc')
-
-{APP_LOGO_WHITE} = require('./art')
-{ SITE_NAME } = require("smc-util/theme")
-
-{do_anonymous_setup, should_do_anonymous_setup} = require('./client/anonymous-setup')
 
 class Connection extends client.Connection
     constructor: (opts) ->
