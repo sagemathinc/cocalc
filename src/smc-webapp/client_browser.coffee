@@ -110,8 +110,12 @@ class Connection extends client.Connection
         window.disable_post = =>
             @_enable_post = false
 
-        # Make this the default now.
-        @_enable_post = true
+        # Disable POST by default since:
+        # (1) we're having weird cloudflare issues
+        # (2) it was designed to address an efficiency issue that we may have already addressed
+        #     more effectively via an architectural change (project websocket).
+        # One can still test this by typing "enable_post()" in the console (even in production).
+        @_enable_post = false
 
         if not DEBUG
             return
