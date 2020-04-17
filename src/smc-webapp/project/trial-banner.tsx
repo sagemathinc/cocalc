@@ -95,7 +95,7 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
       </strong>
     );
     const no_internet =
-      "you can't install software packages, connect to GitHub, or download data from external websites";
+      "you can't install Python packages, clone from GitHub, or download datasets";
     const no_host = ["expect poor performance", "random interruptions"];
     const inetquota =
       "https://doc.cocalc.com/billing.html#what-exactly-is-the-internet-access-quota";
@@ -148,8 +148,7 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
   private render_learn_more(color): Rendered {
     return (
       <>
-        {" "}
-        &mdash;{" "}
+        {" – "}
         <A
           href={trial_url}
           style={{ fontWeight: "bold", color: color, cursor: "pointer" }}
@@ -161,39 +160,39 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
     );
   }
 
-  public render(): Rendered {
+  public render() {
     if (this.props.other_settings?.get("no_free_warnings")) {
-      return undefined;
+      return null;
     }
     if (!this.props.is_commercial) {
-      return undefined;
+      return null;
     }
     if (this.props.is_anonymous) {
       // No need to provide all these warnings and scare anonymous users, who are just
       // playing around for the first time (and probably wouldn't read this, and should
       // assume strong limitations since they didn't even make an account).
-      return undefined;
+      return null;
     }
     if (this.props.free_warning_closed) {
-      return undefined;
+      return null;
     }
     const pay: boolean = !!this.props.date_when_course_payment_required(
       this.props.project_id
     );
     if (pay) {
-      return undefined;
+      return null;
     }
     const quotas = this.props.get_total_project_quotas(this.props.project_id);
     if (quotas == null) {
-      return undefined;
+      return null;
     }
     const host: boolean = !quotas.member_host;
     const internet: boolean = !quotas.network;
     if (!host && !internet) {
-      return undefined;
+      return null;
     }
 
-    // we want this to be between 10 to 16 and growing over time (weeks)
+    // we want this to be between 10 to 14 and growing over time (weeks)
     const proj_created = this.props.project_map.getIn(
       [this.props.project_id, "created"],
       new Date(0)
