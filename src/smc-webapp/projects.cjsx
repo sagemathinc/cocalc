@@ -720,6 +720,9 @@ class ProjectsStore extends Store
     get_description: (project_id) =>
         return @getIn(['project_map', project_id, 'description'])
 
+    get_created: (project_id) =>
+        return @getIn(['project_map', project_id, 'created'])
+
     # Immutable.js info about a student project that is part of a
     # course (will be undefined if not a student project)
     get_course_info: (project_id) =>
