@@ -10,11 +10,11 @@ It also offers capabilities to author documents in [LaTeX](https://cocalc.com/do
 storing and organizing files, a web-based [Linux Terminal](https://doc.cocalc.com/terminal.html),
 communication tools like a [chatrooms](https://doc.cocalc.com/chat.html),
 [course management](https://cocalc.com/doc/teaching.html) and more.
-It is the best choice for teaching remote scientific courses.
+It is the best choice for [teaching remote scientific courses](https://cocalc.com/doc/teaching.html).
 
 ## Website
 
-- [CoCalc](https://cocalc.com) -- commercial CoCalc hosting and support
+- [CoCalc](https://cocalc.com/index.html) -- commercial CoCalc hosting and support
 - [CoCalc user manual](https://doc.cocalc.com/) -- learn how to use CoCalc
 - [Code repository](https://github.com/sagemathinc/cocalc) -- source code of CoCalc
 - [CoCalc-Docker](https://github.com/sagemathinc/cocalc-docker) -- run CoCalc on your own computer (using Docker)
