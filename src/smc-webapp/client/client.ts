@@ -219,7 +219,7 @@ class Client extends EventEmitter implements WebappClient {
 
   private async init_global_cocalc(): Promise<void> {
     await delay(1);
-    require("./console").setup_global_cocalc();
+    require("./console").setup_global_cocalc(this);
   }
 
   private init_prom_client(): void {

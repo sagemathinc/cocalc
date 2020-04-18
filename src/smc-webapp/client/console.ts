@@ -24,13 +24,13 @@ declare var DEBUG; // I think this comes from webpack.
 import { IS_TOUCH } from "../feature";
 import { redux } from "../app-framework";
 
-export function setup_global_cocalc(): void {
+export function setup_global_cocalc(client): void {
   if (!DEBUG) {
     return;
   }
 
   const cocalc: any = {};
-  cocalc.client = this;
+  cocalc.client = client;
   cocalc.misc = require("smc-util/misc");
   cocalc.misc_page = require("../misc_page");
   cocalc.immutable = require("immutable");
