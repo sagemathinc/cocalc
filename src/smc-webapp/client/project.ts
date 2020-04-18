@@ -22,7 +22,6 @@ export interface ExecOpts {
   command: string;
   args?: string[];
   timeout?: number;
-  network_timeout?: number;
   max_output?: number;
   bash?: boolean;
   aggregate?: string | number | { value: string | number };
@@ -159,7 +158,6 @@ export class ProjectClient {
       command: required,
       args: [],
       timeout: 30,
-      network_timeout: undefined,
       max_output: undefined,
       bash: false,
       aggregate: undefined,
@@ -337,7 +335,12 @@ export class ProjectClient {
       return;
     }
     this.touch_throttle[project_id] = new Date().valueOf();
-    await this.call(message.touch_project({ project_id }));
+    try {
+      await this.call(message.touch_project({ project_id }));
+    } catch (err) {
+      // silently ignore; this happens, e.g., if you touch too frequently,
+      // and shouldn't be fatal and break other things.
+    }
   }
 
   // Print file to pdf
