@@ -117,16 +117,14 @@ EmailVerification = rclass
             @setState(disabled_button: false)
 
     verify : ->
-        webapp_client.send_verification_email
-            account_id         : @props.account_id
-            cb                 : (err, resp) =>
-                @setState(disabled_button: true)
-                if not err and resp.error?
-                    err = resp.error
-                if err
-                    err_msg = "Problem sending email verification: #{err}"
-                    console.log(err_msg)
-                    alert_message(type:"error", message:err_msg)
+        try
+            await webapp_client.account_client.send_verification_email(@props.account_id)
+        catch err
+            err_msg = "Problem sending email verification: #{err}"
+            console.log(err_msg)
+            alert_message(type:"error", message:err_msg)
+        finally
+            @setState(disabled_button: true)
 
     test : ->
         if not @props.email_address?
@@ -195,46 +193,30 @@ EmailAddressSetting = rclass
             return
         @setState
             state : 'saving'
-        async.series([
-            (cb) =>
-                webapp_client.change_email
-                    new_email_address : @state.email_address
-                    password          : @state.password
-                    cb                : (err, resp) =>
-                        if not err and resp.error?
-                            err = resp.error
-                        if err
-                            @setState
-                                state    : 'edit'
-                                error    : "Error -- #{err}"
-                        else
-                            if @props.is_anonymous
-                                log("email_sign_up", {source: "anonymous_account"});
-                            @setState
-                                state    : 'view'
-                                error    : ''
-                                password : ''
-                        cb(err)
-
-            (cb) =>
-                # if email verification is enabled, send out a token
-                # in any case, send a welcome email to an anonymous user, possibly including an email verification link
-                if not (@props.verify_emails or @props.is_anonymous)
-                    cb()
-                    return
-                webapp_client.send_verification_email
-                    account_id         : @props.account_id
-                    only_verify        : not @props.is_anonymous   # anonymouse users will get the "welcome" email
-                    cb                 : (err, resp) =>
-                        if not err and resp.error?
-                            err = resp.error
-                        if err
-                            err_msg = "Problem sending welcome email: #{err}"
-                            console.log(err_msg)
-                            alert_message(type:"error", message:err_msg)
-                        cb(err)
-        ])
-
+        try
+            await webapp_client.account_client.change_email(@state.email_address, @state.password)
+        catch err
+            @setState
+                state    : 'edit'
+                error    : "Error -- #{err}"
+            return
+        if @props.is_anonymous
+            log("email_sign_up", {source: "anonymous_account"});
+        @setState
+            state    : 'view'
+            error    : ''
+            password : ''
+        # if email verification is enabled, send out a token
+        # in any case, send a welcome email to an anonymous user, possibly including an email verification link
+        if not (@props.verify_emails or @props.is_anonymous)
+            return
+        try
+            # anonymouse users will get the "welcome" email
+            await webapp_client.account_client.send_verification_email(@props.account_id, not @props.is_anonymous)
+        catch err
+            err_msg = "Problem sending welcome email: #{err}"
+            console.log(err_msg)
+            alert_message(type:"error", message:err_msg)
 
     is_submittable: ->
         return @state.password != '' and @state.email_address != @props.email_address
@@ -376,23 +358,19 @@ PasswordSetting = rclass
     save_new_password: ->
         @setState
             state : 'saving'
-        webapp_client.change_password
-            old_password  : @state.old_password
-            new_password  : @state.new_password
-            cb            : (err, resp) =>
-                if not err and resp.error
-                    err = misc.to_json(resp.error)
-                if err
-                    @setState
-                        state        : 'edit'
-                        error        : "Error changing password -- #{err}"
-                else
-                    @setState
-                        state        : 'view'
-                        error        : ''
-                        old_password : ''
-                        new_password : ''
-                        strength     : 0
+        try
+            await webapp_client.account_client.change_password(@state.old_password, @state.new_password)
+        catch err
+            @setState
+                state        : 'edit'
+                error        : "Error changing password -- #{err}"
+            return
+        @setState
+            state        : 'view'
+            error        : ''
+            old_password : ''
+            new_password : ''
+            strength     : 0
 
     is_submittable: ->
         return @state.new_password.length >= 6 and @state.new_password and @state.new_password != @state.old_password and (not @state.zxcvbn? or @state.zxcvbn?.score > 0)
@@ -535,17 +513,15 @@ AccountSettings = rclass
         strategy = @state.remove_strategy_button
         @setState(remove_strategy_button:undefined, add_strategy_link:undefined)
         for k, _ of @props.passports?.toJS() ? {}
-            if misc.startswith(k, strategy)
+            if misc.startswith(k, strategy.name)
                 id = k.split('-')[1]
                 break
         if not id
             return
-        webapp_client.unlink_passport
-            strategy : strategy.name
-            id       : id
-            cb       : (err) ->
-                if err
-                    ugly_error(err)
+        try
+            await webapp_client.account_client.unlink_passport(strategy.name, id)
+        catch err
+            ugly_error(err)
 
     render_remove_strategy_button: ->
         if not @state.remove_strategy_button

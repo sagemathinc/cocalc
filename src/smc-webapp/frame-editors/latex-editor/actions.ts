@@ -233,6 +233,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     this._init_syncdb(["key"], undefined, path);
 
     // Wait for the syncdb to be loaded and ready.
+    if (this._syncdb == null) throw Error("syncdb must be defined");
     if (this._syncdb.get_state() == "init") {
       await once(this._syncdb, "ready");
       if (this._state == "closed") return;
@@ -242,6 +243,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     // set in syncdb, we wait for file to load,
     // looks for "% !TeX program =", and if so
     // sets up the build command based on that:
+    if (this._syncdb == null) throw Error("syncdb must be defined");
     if (this._syncdb.get_one({ key: "build_command" }) == null) {
       await this.init_build_directive();
       if (this._state == "closed") return;
@@ -321,6 +323,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     // at this point we know that this.init_config already ran and set a build command
     if (this._syncdb == null) throw Error("syncdb must be defined");
     const x = this._syncdb.get_one({ key: "build_command" });
+    if (x == null) return false; // should not happen
 
     const old_cmd: List<string> | string = x.get("value");
     let new_cmd: string[] | string =
@@ -1187,8 +1190,10 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   set_build_command(command: string | string[]): void {
-    // I deleted the insane time:now in this syncdb set, since that would seem to generate
-    // an insane amount of traffic (and I'm surprised it wouldn't generate a feedback loop)!
+    if (this._syncdb == null) throw Error("syncdb must be defined");
+    // I deleted the insane time:now in this syncdb set, since that
+    // would seem to generate an insane amount of traffic (and I'm
+    // surprised it wouldn't generate a feedback loop)!
     this._syncdb.set({ key: "build_command", value: command });
     this._syncdb.commit();
     this.setState({ build_command: fromJS(command) });

@@ -766,7 +766,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     # NOTE: we do get mesg.event not error, but mesg.target isn't defined: see https://github.com/sagemathinc/cocalc/issues/1685
                     err = "sagews: unable to instrospect '#{line}' -- #{JSON.stringify(mesg)}"
                     console.log(err)  # this is intentional... -- it's may be useful to know
-                    webapp_client.log_error(err)
+                    webapp_client.tracking_client.log_error(err)
                     return
                 else
                     from = {line:pos.line, ch:pos.ch - mesg.target.length}
@@ -1406,13 +1406,13 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # how worksheets render slightly.
         uuids = @_output_blobs_with_possible_ttl()
         if uuids?
-            webapp_client.remove_blob_ttls
-                uuids : uuids
-                cb    : (err) =>
-                    if not err
-                        # don't try again to remove ttls for these blobs -- since did so successfully
-                        @_output_blobs_ttls_removed(uuids)
-                    cb?(err)
+            try
+                await webapp_client.file_client.remove_blob_ttls(uuids)
+            catch err
+                cb?(err)
+                return
+            # don't try again to remove ttls for these blobs -- since did so successfully
+            @_output_blobs_ttls_removed(uuids)
 
     raw_input: (raw_input) =>
         prompt = raw_input.prompt

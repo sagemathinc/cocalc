@@ -98,7 +98,7 @@ refresh_iframe = (project_id, path, elt, show) ->
         iframe.hide()
 
 get_url = (project_id, path) ->
-    return webapp_client.read_file_from_project({project_id:project_id, path:path})
+    return webapp_client.project_client.read_file({project_id:project_id, path:path})
 
 create_iframe = (project_id, path) ->
     src = get_url(project_id, path)

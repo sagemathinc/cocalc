@@ -5,8 +5,6 @@ const { APP_BASE_URL } = require("../../misc_page");
 
 const { webapp_client } = require("../../webapp_client");
 
-import { callback2 } from "smc-util/async-utils";
-
 interface Props {
   account_id: string;
   first_name: string;
@@ -26,11 +24,8 @@ export class Impersonate extends Component<Props, State> {
 
   async get_token(): Promise<void> {
     try {
-      const { auth_token } = await callback2(
-        webapp_client.get_user_auth_token,
-        {
-          account_id: this.props.account_id,
-        }
+      const auth_token = await webapp_client.admin_client.get_user_auth_token(
+        this.props.account_id
       );
       this.setState({ auth_token });
     } catch (err) {

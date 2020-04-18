@@ -400,7 +400,7 @@ webapp_client.on "connecting", () ->
         f()
     else
         window.setTimeout(f, CONNECTING_STATE_DELAY_MS)
-    attempt = webapp_client._num_attempts ? 1
+    attempt = webapp_client.hub_client.get_num_attempts()
     reconnect = (msg) ->
         # reset recent disconnects, and hope that after the reconnection the situation will be better
         recent_disconnects = []
@@ -408,7 +408,7 @@ webapp_client.on "connecting", () ->
         console.log("ALERT: connection unstable, notification + attempting to fix it -- #{attempt} attempts and #{num_recent_disconnects()} disconnects")
         if not recent_wakeup_from_standby()
             alert_message(msg)
-        webapp_client._fix_connection(true)
+        webapp_client.hub_client.fix_connection()
         # remove one extra reconnect added by the call above
         setTimeout((-> recent_disconnects.pop()), 500)
 

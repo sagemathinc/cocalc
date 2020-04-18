@@ -1,6 +1,6 @@
 import { server_time } from "smc-util/misc";
-import { callback2, once, retry_until_success } from "smc-util/async-utils";
-const { webapp_client } = require("../webapp_client");
+import { once, retry_until_success } from "smc-util/async-utils";
+import { webapp_client } from "../webapp-client";
 import { redux } from "../app-framework";
 
 const prom_client = require("../prom-client");
@@ -33,7 +33,7 @@ export async function get_directory_listing(opts: ListingOpts): Promise<any> {
 
   let method, state, time0, timeout;
   if (["owner", "collaborator", "admin"].indexOf(opts.group) != -1) {
-    method = webapp_client.project_directory_listing;
+    method = webapp_client.project_client.directory_listing;
     // Also, make sure project starts running, in case it isn't.
     state = (redux.getStore("projects") as any).getIn([
       "project_map",
@@ -53,7 +53,7 @@ export async function get_directory_listing(opts: ListingOpts): Promise<any> {
     }
   } else {
     state = time0 = undefined;
-    method = webapp_client.public_project_directory_listing;
+    method = webapp_client.project_client.public_directory_listing;
     timeout = 15;
     if (prom_client.enabled) {
       prom_labels.public = true;
@@ -61,9 +61,10 @@ export async function get_directory_listing(opts: ListingOpts): Promise<any> {
   }
 
   let listing_err: Error | undefined;
+  method = method.bind(webapp_client.project_client);
   async function f(): Promise<any> {
     try {
-      return await callback2(method, {
+      return await method({
         project_id: opts.project_id,
         path: opts.path,
         hidden: opts.hidden,

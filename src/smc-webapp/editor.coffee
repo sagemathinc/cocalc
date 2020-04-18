@@ -1172,7 +1172,7 @@ class CodeMirrorEditor extends FileEditor
                     if is_subdir or not pdf?
                         cb(); return
                     # pdf file exists -- show it in the UI
-                    url = webapp_client.read_file_from_project
+                    url = webapp_client.project_client.read_file
                         project_id  : @project_id
                         path        : pdf
                     dialog.find(".webapp-file-printing-link").attr('href', url).text(pdf).show()
@@ -1734,20 +1734,21 @@ class PublicHTML extends FileEditor
         @element = templates.find(".webapp-editor-static-html").clone()
         # ATTN: we can't set src='raw-path' because the sever might not run.
         # therefore we retrieve the content and set it directly.
+        @_load_content()
+
+    _load_content: () =>
         if not @content?
             @content = 'Loading...'
             # Now load the content from the backend...
-            webapp_client.public_get_text_file
-                project_id : @project_id
-                path       : @filename
-                timeout    : 60
-                cb         : (err, content) =>
-                    if err
-                        @content = "Error opening file -- #{err}"
-                    else
-                        @content = content
-                    if @iframe?
-                        @set_iframe()
+            try
+                content = await webapp_client.project_client.public_get_text_file
+                    project_id : @project_id
+                    path       : @filename
+                @content = content
+            catch err
+                @content = "Error opening file -- #{err}"
+            if @iframe?
+                @set_iframe()
 
     show: () =>
         if not @is_active()
@@ -1784,15 +1785,16 @@ class PublicCodeMirrorEditor extends CodeMirrorEditor
         super(project_id, filename, "Loading...", opts)
         @element.find('a[href="#save"]').hide()       # no need to even put in the button for published
         @element.find('a[href="#readonly"]').hide()   # ...
-        webapp_client.public_get_text_file
-            project_id : @project_id
-            path       : @filename
-            timeout    : 60
-            cb         : (err, content) =>
-                if err
-                    content = "Error opening file -- #{err}"
-                @_set(content)
-                cb?(err, @)
+        error = undefined
+        try
+            content = webapp_client.project_client.public_get_text_file
+                project_id : @project_id
+                path       : @filename
+        catch err
+            error = err
+            content = "Error opening file -- #{err}"
+        @_set(content)
+        cb?(error, @)
 
 class PublicSagews extends PublicCodeMirrorEditor
     constructor: (project_id, filename, content, opts) ->

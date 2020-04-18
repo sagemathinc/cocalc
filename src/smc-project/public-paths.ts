@@ -16,7 +16,7 @@ export function monitor(client) {
 interface Client {
   dbg: Function;
   client_id: Function;
-  sync_table2: Function;
+  sync_table: Function;
   query: Function;
 }
 
@@ -47,7 +47,7 @@ class MonitorPublicPaths {
       last_edited: null,
       disabled: null,
     };
-    this.table = this.client.sync_table2({ public_paths: [pattern] });
+    this.table = this.client.sync_table({ public_paths: [pattern] });
     this.update_loop(); // do not await!
   }
 

@@ -4,10 +4,7 @@ Convert R Markdown file to hidden Markdown file, then read.
 
 // import { aux_file } from "../frame-tree/util";
 import { path_split } from "smc-util/misc2";
-import {
-  exec,
-  ExecOutput /* read_text_file_from_project */,
-} from "../generic/client";
+import { exec, ExecOutput } from "../generic/client";
 
 export async function convert(
   project_id: string,
@@ -34,7 +31,6 @@ export async function convert(
   // console.log("rmd cmd", cmd);
 
   return await exec({
-    allow_post: false, // definitely could take a long time to fully run all the R stuff...
     timeout: 4 * 60,
     bash: true, // so timeout is enforced by ulimit
     command: "Rscript",

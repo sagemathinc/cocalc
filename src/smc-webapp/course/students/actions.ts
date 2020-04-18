@@ -133,11 +133,12 @@ export class StudentsActions {
     });
     if (s.length == 0) return;
     try {
-      const result = await callback2(webapp_client.user_search, {
+      const result = await webapp_client.users_client.user_search({
         query: s.join(","),
         limit: s.length,
       });
       for (const x of result) {
+        if (x.email_address == null) continue;
         this.course_actions.set({
           account_id: x.account_id,
           table: "students",

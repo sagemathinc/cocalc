@@ -53,12 +53,13 @@ exports.AddCollaborators = rclass
              @setState(err:undefined, select:undefined)
              return
         @setState(searching:true)
-        webapp_client.user_search
-            query : search
-            limit : 50
-            cb    : (err, select) =>
-                @write_email_invite()
-                @setState(searching:false, err:err, select:select, email_to:undefined)
+        err = undefined
+        try
+            users = await webapp_client.users_client.user_search(query:search, limit:50)
+        catch e
+            err = e.toString()
+        @write_email_invite()
+        @setState(searching:false, err:err, select:users, email_to:undefined)
 
     render_options: (select) ->
         if @props.user_map?

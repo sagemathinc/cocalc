@@ -27,10 +27,10 @@ export function init_syncdoc(
   synctable: SyncTable,
   logger: any
 ): void {
-  if (synctable.table !== "syncstrings") {
+  if (synctable.get_table() !== "syncstrings") {
     throw Error("table must be 'syncstrings'");
   }
-  if (synctable.state === "closed") {
+  if (synctable.get_state() == "closed") {
     throw Error("synctable must not be closed");
   }
   // It's the right type of table and not closed.  Now do
@@ -104,7 +104,7 @@ async function wait_until_synctable_ready(
   synctable: SyncTable,
   log: Function
 ): Promise<void> {
-  if (synctable.state === "disconnected") {
+  if (synctable.get_state() == "disconnected") {
     log("wait for synctable be connected");
     await once(synctable, "connected");
   }

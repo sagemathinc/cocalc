@@ -392,7 +392,7 @@ exports.ConnectionInfo = rclass
                     <pre>{if @props.hub? then @props.hub else "Not signed in"}</pre>
                 </Col>
                 <Col sm={2}>
-                    <Button onClick={=>webapp_client._fix_connection(true)}>
+                    <Button onClick={=>webapp_client.hub_client.fix_connection()}>
                         <Icon name='repeat' spin={@props.status == 'connecting'} /> Reconnect
                     </Button>
                 </Col>

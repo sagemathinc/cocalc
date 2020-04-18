@@ -19,7 +19,6 @@ function exec_synctex(
   args: string[]
 ): Promise<ExecOutput> {
   return exec({
-    allow_post: true, // synctex is FAST.
     timeout: 5,
     command: "synctex",
     args: args,

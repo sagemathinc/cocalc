@@ -56,6 +56,8 @@ project_file = require('./project_file')
 
 {ShareIndicator} = require('./share/share-indicator')
 
+{TrialBanner} = require('./project/trial-banner')
+
 {FileTab, DEFAULT_FILE_TAB_STYLES} = require('./project/file-tab')
 {file_tab_labels} = require('./project/file-tab-labels')
 
@@ -86,123 +88,6 @@ GhostTab = (props) ->
 SortableFileTab = SortableElement(FileTab)
 SortableNav = SortableContainer(NavWrapper)
 
-FreeProjectWarning = rclass ({name}) ->
-    displayName : 'FreeProjectWarning'
-
-    reduxProps:
-        account :
-            other_settings : rtypes.immutable.Map
-            is_anonymous   : rtypes.bool
-        projects :
-            # get_total_project_quotas relys on this data
-            # Will be removed by #1084
-            project_map                       : rtypes.immutable.Map
-            get_total_project_quotas          : rtypes.func
-            date_when_course_payment_required : rtypes.func
-        "#{name}" :
-            free_warning_extra_shown : rtypes.bool
-            free_warning_closed      : rtypes.bool
-            project_log              : rtypes.immutable
-
-    propTypes:
-        project_id : rtypes.string
-
-    shouldComponentUpdate: (next) ->
-        return @props.free_warning_extra_shown            != next.free_warning_extra_shown or  \
-            @props.free_warning_closed                    != next.free_warning_closed or   \
-            @props.project_map?.get(@props.project_id)    != next.project_map?.get(@props.project_id) or \
-            @props.other_settings?.get('no_free_warnings') != next.other_settings?.get('no_free_warnings')
-
-    extra: (host, internet) ->
-        {PolicyPricingPageUrl} = require('./customize')
-        if not @props.free_warning_extra_shown
-            return null
-        <div>
-            {<span>This project runs on a heavily loaded server that may be unavailable during peak hours and is rebooted at least once a day.
-            <br/> Upgrade your project to run on a members-only server for more reliability and faster code execution.</span> if host}
-
-            {<span><br/> This project does not have external network access, so you cannot install software or download data from external websites.</span> if internet}
-            <ul>
-                <li style={lineHeight: '32px'}>Upgrade <em>this</em> project in <a style={cursor:'pointer'} onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')}>Project Settings</a></li>
-                <li style={lineHeight: '32px'}>Visit <a style={cursor:'pointer'} onClick={=>@actions('page').set_active_tab('account');@actions('account').set_active_tab('billing')}>Billing</a> to <em>subscribe</em> to a plan</li>
-            </ul>
-        </div>
-
-    render_dismiss: ->
-        return  # disabled
-        dismiss_styles =
-            cursor     : 'pointer'
-            display    : 'inline-block'
-            float      : 'right'
-            fontWeight : 700
-            top        : -4
-            fontSize   : "13pt"
-            color      : 'grey'
-            position   : 'relative'
-            height     : 0
-        <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
-
-    render_learn_more: (color) ->
-        <Fragment>
-            {' '}&mdash;{' '}
-            <a
-                href   = "https://doc.cocalc.com/trial.html"
-                target = "_blank"
-                style  = {fontWeight : 'bold', color:color, cursor:'pointer'}
-            >
-                more info
-            </a>
-            {'...'}
-        </Fragment>
-        #<a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={color:'white', cursor:'pointer'}> learn more...</a>
-
-    render: ->
-        if @props.other_settings?.get('no_free_warnings')
-            return null
-        if not require('./customize').commercial
-            return null
-        if @props.is_anonymous
-            # No need to provide all these warnings and scare anonymous users, who are just
-            # playing around for the first time (and probably wouldn't read this, and should
-            # assume strong limitations since they didn't even make an account).
-            return null
-        if @props.free_warning_closed
-            return null
-        pay = @props.date_when_course_payment_required(@props.project_id)
-        if pay
-            return null
-        quotas = @props.get_total_project_quotas(@props.project_id)
-        if not quotas?
-            return null
-        host = not quotas.member_host
-        internet = not quotas.network
-        if not host and not internet
-            return null
-
-        font_size = Math.min(18, 10 + (@props.project_log?.size ? 0) / 30)
-        styles =
-            padding      : "5px 10px"
-            marginBottom : 0
-            fontSize     : "#{font_size}pt"
-
-        if host and font_size > 11
-            styles.color      = 'white'
-            styles.background = 'red'
-
-        if host and internet
-            mesg = <span>Upgrade this project. It is on an <b>unpaid trial server</b> and has no internet access.  Expect poor performance and no email notifications.</span>
-        else if host
-            mesg = <span>Upgrade this project. It is on an <b>unpaid trial server</b>.   Expect poor performance and no email notifications.</span>
-        else if internet
-            mesg = <span>This project does not have access to the internet.  No installs, external resources or email notifications.</span>
-
-        <Alert bsStyle='warning' style={styles}>
-            <Icon name='exclamation-triangle' style={float:'right', marginTop: '3px'}/>
-            <Icon name='exclamation-triangle' /> {mesg}
-            {@render_learn_more(styles.color)}
-            {@render_dismiss()}
-            {@extra(host, internet)}
-        </Alert>
 
 # is_public below -- only show this tab if this is true
 
@@ -358,7 +243,7 @@ ProjectContentViewer = rclass
 
 
     render_editor_tab: ->
-        if webapp_client.is_deleted(@props.file_path, @props.project_id)
+        if webapp_client.file_client.is_deleted(@props.file_path, @props.project_id)
             return <DeletedFile
                      project_id = {@props.project_id}
                      path       = {@props.file_path}
@@ -660,11 +545,12 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             overflow      : 'auto'
         if not @props.fullscreen
             style.paddingTop = '3px'
+
         <div className='container-content' style={style}>
             <DiskSpaceWarning project_id={@props.project_id} />
             <RamWarning project_id={@props.project_id} />
             <OOMWarning project_id={@props.project_id} name={name} />
-            <FreeProjectWarning project_id={@props.project_id} name={name} />
+            <TrialBanner project_id={@props.project_id} name={name} />
             {@render_file_tabs(group == 'public') if not @props.fullscreen}
             {<DeletedProjectWarning /> if project?.get('deleted')}
             {@render_project_content(active_path, group)}
@@ -775,7 +661,7 @@ exports.MobileProjectPage = rclass ({name}) ->
         <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1, overflow:'auto'}>
             {<DeletedProjectWarning /> if project?.get('deleted')}
             <DiskSpaceWarning project_id={@props.project_id} />
-            <FreeProjectWarning project_id={@props.project_id} name={name} />
+            <TrialBanner project_id={@props.project_id} name={name} />
             {<div className="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
                 <Nav bsStyle="pills" className="smc-file-tabs-fixed-mobile" style={float:'left'}>
                     {[<FileTab

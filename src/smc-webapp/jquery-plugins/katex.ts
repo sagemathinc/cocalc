@@ -8,8 +8,8 @@ Falls back to mathjax *plugin* when katex fails, if said plugin is available.
 const CACHE_SIZE = 300;
 
 import { renderToString, KatexOptions } from "katex";
-import * as $ from "jquery";
 export const jQuery = $;
+declare var $: any;
 import { tex2jax } from "./tex2jax";
 import * as LRU from "lru-cache";
 

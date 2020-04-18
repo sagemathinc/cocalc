@@ -1,6 +1,4 @@
-const { webapp_client } = require("../../webapp_client");
-
-import { callback2 } from "smc-util/async-utils";
+import { webapp_client } from "../../webapp-client";
 import { account_id_to_username } from "./util";
 
 // Returns the json file that we exported to.
@@ -22,7 +20,7 @@ export async function export_to_json(
 
   path = path + "-timetravel.json";
 
-  await callback2(webapp_client.write_text_file_to_project, {
+  await webapp_client.project_client.write_text_file({
     project_id,
     path,
     content: JSON.stringify(x, null, 2),

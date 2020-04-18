@@ -21,7 +21,6 @@ import {
   NBgraderRunInfo,
   get_nbgrader_score,
 } from "../store";
-import { callback2 } from "smc-util/async-utils";
 import { start_project, exec } from "../../frame-editors/generic/client";
 import { webapp_client } from "../../webapp-client";
 import { redux } from "../../app-framework";
@@ -366,7 +365,7 @@ export class AssignmentsActions {
       desc: `Copying assignment from ${student_name}`,
     });
     try {
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: student_project_id,
         src_path: assignment.get("target_path"),
         target_project_id: store.get("course_project_id"),
@@ -374,7 +373,6 @@ export class AssignmentsActions {
         overwrite_newer: true,
         backup: true,
         delete_missing: false,
-        exclude_history: false,
       });
       // write their name to a file
       const name = store.get_student_name_extra(student_id);
@@ -516,7 +514,7 @@ ${details}
         path: src_path + "/GRADE.md",
         content,
       });
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: store.get("course_project_id"),
         src_path,
         target_project_id: student_project_id,
@@ -524,11 +522,10 @@ ${details}
         overwrite_newer: true,
         backup: true,
         delete_missing: false,
-        exclude_history: true,
       });
       if (peer_graded) {
         // Delete GRADER file
-        await callback2(webapp_client.exec, {
+        await webapp_client.project_client.exec({
           project_id: student_project_id,
           command: "rm ./*/GRADER*.txt",
           timeout: 60,
@@ -752,7 +749,7 @@ ${details}
         id,
         desc: `Copying files to ${student_name}'s project`,
       });
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: store.get("course_project_id"),
         src_path,
         target_project_id: student_project_id,
@@ -760,7 +757,6 @@ ${details}
         overwrite_newer: !!overwrite, // default is "false"
         delete_missing: !!overwrite, // default is "false"
         backup: !!!overwrite, // default is "true"
-        exclude_history: true,
       });
 
       // successful finish
@@ -1061,7 +1057,7 @@ ${details}
       // delete the student's name so that grading is anonymous; also, remove original
       // due date to avoid confusion.
       const name = store.get_student_name_extra(student_id);
-      await callback2(webapp_client.exec, {
+      await webapp_client.project_client.exec({
         project_id: store.get("course_project_id"),
         command: "rm",
         args: [
@@ -1075,7 +1071,7 @@ ${details}
       if (this.course_actions.is_closed()) return;
 
       // copy the files to be peer graded into place for this student
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: store.get("course_project_id"),
         src_path,
         target_project_id: student_project_id,
@@ -1092,7 +1088,7 @@ ${details}
         content: guidelines,
       });
       // copy it over
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: store.get("course_project_id"),
         src_path: peer_grading_guidelines_file,
         target_project_id: student_project_id,
@@ -1162,7 +1158,7 @@ ${details}
       )}-peer-grade/${our_student_id}/${student_id}`;
 
       // copy the files over from the student who did the peer grading
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: s.get("project_id"),
         src_path,
         target_project_id: store.get("course_project_id"),
@@ -1264,7 +1260,7 @@ ${details}
     path: string;
     content: string;
   }): Promise<void> {
-    await callback2(webapp_client.write_text_file_to_project, {
+    await webapp_client.project_client.write_text_file({
       project_id: this.get_store().get("course_project_id"),
       path: opts.path,
       content: opts.content,

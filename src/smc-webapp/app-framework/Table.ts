@@ -1,4 +1,6 @@
 import { AppRedux } from "../app-framework";
+// import { webapp_client } from "../webapp-client";
+import { WebappClient } from "../client/client";
 declare let Primus;
 
 export type TableConstructor<T extends Table> = new (name, redux) => T;
@@ -29,15 +31,20 @@ export abstract class Table {
       // hack for now -- not running in browser (instead in testing server)
       return;
     }
+    // TODO: Unfortunately, we currently have to do this later import,
+    // due to circular imports:
+    const {
+      webapp_client,
+    }: { webapp_client: WebappClient } = require("../webapp-client");
     if (this.no_changefeed()) {
       // Create the table but with no changefeed.
-      this._table = require("../webapp_client").webapp_client.synctable_no_changefeed(
+      this._table = webapp_client.sync_client.synctable_no_changefeed(
         this.query(),
         this.options()
       );
     } else {
       // Set up a changefeed
-      this._table = require("../webapp_client").webapp_client.sync_table2(
+      this._table = webapp_client.sync_client.sync_table(
         this.query(),
         this.options()
       );
