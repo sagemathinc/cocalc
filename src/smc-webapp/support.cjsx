@@ -573,6 +573,9 @@ exports.Support = rclass
         account:
             is_anonymous : rtypes.bool
 
+    componentDidMount: ->
+        @props.actions.check_valid()
+
     componentWillReceiveProps: (newProps) ->
         newProps.actions.check_valid()
 
