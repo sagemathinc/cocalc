@@ -225,17 +225,6 @@ exports.init_express_http_server = (opts) ->
                 else
                     res.send(resp)
 
-    # HTTP-POST-based user queries
-    require('./user-query').init(router, opts.base_url, opts.database)
-
-    # HTTP-POST-based user API
-    require('./user-api').init
-        router         : router
-        base_url       : opts.base_url
-        database       : opts.database
-        compute_server : opts.compute_server
-        logger         : winston
-
     # stripe invoices:  /invoice/[invoice_id].pdf
     stripe_connections = require('./stripe/connect').get_stripe()
     if stripe_connections?
