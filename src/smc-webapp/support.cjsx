@@ -30,6 +30,7 @@ misc_page       = require('./misc_page')
 feature         = require('./feature')
 {HelpEmailLink, SiteName, Footer} = require('./customize')
 {DISCORD_INVITE} = require('smc-util/theme')
+{delay} = require('awaiting')
 
 STATE =
     NEW        : 'new'      # new/default/resetted/no problem
@@ -78,30 +79,40 @@ class SupportActions extends Actions
             @check_valid()
 
     load_support_tickets: () ->
-        # mockup for testing -- set it to "true" to see some tickets
-        if DEBUG and false
-            @setState
-                support_tickets : [
-                    id : 123
-                    status: 'open'
-                    description: 'test ticket 123'
-                ,
-                    id : 456
-                    status : 'open'
-                    description: 'test ticket 456'
-                ]
-                support_ticket_error : null
-        else
-            try
-                tickets = await webapp_client.support_tickets.get()
-                tickets = tickets.sort(cmp_tickets)
+        if @_loading
+            return
+        try
+            @_loading = true
+            # mockup for testing -- set it to "true" to see some tickets
+            if DEBUG and false
                 @setState
-                    support_ticket_error : undefined
-                    support_tickets      : tickets
-            catch err
-                @setState
-                    support_ticket_error : err
-                    support_tickets      : []
+                    support_tickets : [
+                        id : 123
+                        status: 'open'
+                        description: 'test ticket 123'
+                        created_at: new Date()
+                        updated_at: new Date()
+                    ,
+                        id : 456
+                        status : 'open'
+                        description: 'test ticket 456'
+                        created_at: new Date()
+                        updated_at: new Date()
+                    ]
+                    support_ticket_error : null
+            else
+                try
+                    tickets = await webapp_client.support_tickets.get()
+                    tickets = tickets.sort(cmp_tickets)
+                    @setState
+                        support_ticket_error : undefined
+                        support_tickets      : tickets
+                catch err
+                    @setState
+                        support_ticket_error : err
+                        support_tickets      : []
+        finally
+            @_loading = false
 
     reset: =>
         @init_email_address()
@@ -236,7 +247,7 @@ exports.SupportPage = rclass
 
     reduxProps :
         support:
-            support_tickets      : rtypes.array
+            support_tickets      : rtypes.immutable.List
             support_ticket_error : rtypes.string
 
     render_header: ->
@@ -251,7 +262,7 @@ exports.SupportPage = rclass
         open_new_tab(url, '_blank')
 
     render_body: ->
-        for i, ticket of @props.support_tickets
+        for i, ticket of @props.support_tickets.toJS()
             do (ticket, i) =>
                 style = switch ticket.status
                     when 'open', 'new'
@@ -285,15 +296,21 @@ exports.SupportPage = rclass
                     </td>
                 </tr>
 
+    load_support_tickets_soon: -> # see https://github.com/sagemathinc/cocalc/issues/4520
+        await delay(1)
+        redux.getActions('support').load_support_tickets()
+
+
     render_table: ->
         divStyle = {textAlign:"center", marginTop: "4em"}
 
         if not @props.support_tickets?
+            @load_support_tickets_soon()
             return <div style={divStyle}>
                         <Loading />
                    </div>
 
-        if @props.support_tickets.length > 0
+        if @props.support_tickets.size > 0
             <Table responsive style={borderCollapse: "separate", borderSpacing: "0 1em"}>
                 <tbody>{@render_body()}</tbody>
             </Table>
