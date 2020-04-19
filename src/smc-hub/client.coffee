@@ -354,7 +354,7 @@ class exports.Client extends EventEmitter
         data = misc.to_json_socket(mesg)
         tm = new Date() - t
         if tm > 10
-            dbg("mesg.id=#{mesg.id}: time to json=#{tm}ms; length=#{json.length}; value='#{misc.trunc(json, 500)}'")
+            dbg("mesg.id=#{mesg.id}: time to json=#{tm}ms; length=#{data.length}; value='#{misc.trunc(data, 500)}'")
         @push_data_to_client(data)
         if not listen
             cb?()

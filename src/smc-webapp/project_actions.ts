@@ -1972,7 +1972,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       command: "zip",
       args,
       timeout: 10 * 60 /* compressing CAN take a while -- zip is slow! */,
-      network_timeout: 10 * 60,
       err_on_exit: true, // this should fail if exit_code != 0
       path: opts.path,
       cb: opts.cb != null ? opts.cb : this._finish_exec(id),
@@ -2138,7 +2137,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         command: cmd,
         bash: true,
         timeout: 30,
-        network_timeout: 120,
         err_on_exit: false,
         path: ".",
         cb: (err, output) => {
@@ -2264,7 +2262,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       command: "rsync",
       args: ["-rlDx", source, target],
       timeout: 120, // how long rsync runs on client
-      network_timeout: 120, // how long network call has until it must return something or get total error.
       err_on_exit: true,
       path: ".",
       cb: (err, output) => {
@@ -2354,7 +2351,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       command: "rsync", // don't use "a" option to rsync, since on snapshots results in destroying project access!
       args,
       timeout: 120, // how long rsync runs on client
-      network_timeout: 120, // how long network call has until it must return something or get total error.
       err_on_exit: true,
       path: ".",
       cb: this._finish_exec(id),
@@ -2904,7 +2900,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       project_id: this.project_id,
       command: cmd + " | cut -c 1-256", // truncate horizontal line length (imagine a binary file that is one very long line)
       timeout: 20, // how long grep runs on client
-      network_timeout: 25, // how long network call has until it must return something or get total error.
       max_output,
       bash: true,
       err_on_exit: true,
