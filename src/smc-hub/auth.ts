@@ -72,6 +72,7 @@ import {
 } from "./email";
 import { PostgreSQL } from "./postgres/types";
 import { PassportStrategy, PRIMARY_SSO } from "../smc-webapp/passport-types";
+const safeJsonStringify = require('safe-json-stringify');
 
 // primary strategies -- all other ones are "extra"
 const PRIMARY_STRATEGIES = ["email", "site_conf", ...PRIMARY_SSO];
@@ -569,10 +570,10 @@ class PassportManager {
     );
 
     // attn: this log line shows secrets
-    // dbg(`opts = ${JSON.stringify(opts)}`);
+    // dbg(`opts = ${safeJsonStringify(opts)}`);
 
-    const verify = (_accessToken, _refreshToken, profile, done) =>
-      done(undefined, { profile });
+    const verify = (_accessToken, _refreshToken, params, profile, done) =>
+      done(undefined, { params, profile });
 
     passport.use(strategy, new PassportStrategyConstructor(opts, verify));
 
@@ -589,9 +590,14 @@ class PassportManager {
         if (req.user == null) {
           throw Error("req.user == null -- that shouldn't happen");
         }
+        console.log(
+          `auth/init_strategy ${strategy}/return user = ${safeJsonStringify(
+            req.user
+          )}`
+        );
         const profile = (req.user["profile"] as any) as passport.Profile;
         console.log(
-          `auth/init_strategy ${strategy}/return profile = ${JSON.stringify(
+          `auth/init_strategy ${strategy}/return profile = ${safeJsonStringify(
             profile
           )}`
         );
@@ -612,14 +618,14 @@ class PassportManager {
               : // v is a string for dot-object
                 dot.pick(v, profile);
           console.log(
-            `auth/init_strategy ${strategy}/login_info ${k} -> v = ${JSON.stringify(
+            `auth/init_strategy ${strategy}/login_info ${k} -> v = ${safeJsonStringify(
               v
             )}`
           );
           Object.assign(login_opts, { [k]: param });
         }
         console.log(
-          `auth/init_strategy ${strategy} call passport_login(${JSON.stringify(
+          `auth/init_strategy ${strategy} call passport_login(${safeJsonStringify(
             login_opts
           )})`
         );
