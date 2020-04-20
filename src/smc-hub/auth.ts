@@ -626,7 +626,7 @@ class PassportManager {
           `PassportStrategyConstructor.prototype.userProfile userinfoURL=${userinfoURL}, accessToken=${accessToken}`
         );
 
-        this.useAuthorizationHeaderforGET(true);
+        this._oauth2.useAuthorizationHeaderforGET(true);
         this._oauth2.get(userinfoURL, accessToken, (err, body) => {
           console.log(
             `PassportStrategyConstructor.prototype.userProfile get->body = ${body}`
