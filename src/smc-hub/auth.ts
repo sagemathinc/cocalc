@@ -61,7 +61,7 @@ import * as dot from "dot-object";
 import * as _ from "lodash";
 const misc = require("smc-util/misc");
 import * as message from "smc-util/message"; // message protocol between front-end and back-end
-const { sign_in } = require("./sign-in");
+const sign_in = require("./sign-in");
 import * as Cookies from "cookies";
 import * as express_session from "express-session";
 import { HELP_EMAIL, DNS } from "smc-util/theme";
@@ -756,9 +756,12 @@ class PassportManager {
     });
 
     const dbg = (m) => winston.debug(`passport_login: ${m}`);
+    dbg(
+      `strategy=${opts.strategy} id=${opts.id} emails=${
+        opts.emails
+      } user=${safeJsonStringify(opts.req.user)}`
+    );
     const BASE_URL = opts.base_url;
-
-    dbg(misc.to_json(opts.req.user));
 
     const cookies = new Cookies(opts.req, opts.res);
 
