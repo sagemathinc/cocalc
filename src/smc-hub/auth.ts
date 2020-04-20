@@ -72,7 +72,7 @@ import {
 } from "./email";
 import { PostgreSQL } from "./postgres/types";
 import { PassportStrategy, PRIMARY_SSO } from "../smc-webapp/passport-types";
-const safeJsonStringify = require('safe-json-stringify');
+const safeJsonStringify = require("safe-json-stringify");
 
 // primary strategies -- all other ones are "extra"
 const PRIMARY_STRATEGIES = ["email", "site_conf", ...PRIMARY_SSO];
@@ -85,6 +85,7 @@ interface PassportStrategyDB extends PassportStrategy {
   clientSecret?: string; // Google, Twitter, ... and OAuth2
   authorizationURL?: string; // OAuth2
   tokenURL?: string; // --*--
+  userinfoURL?: string; // OAuth2, to get a profile
 }
 
 const { defaults, required } = misc;
@@ -175,6 +176,7 @@ interface StrategyConf {
     full_name?: string | LoginInfoDerivator<string>;
     emails?: string | LoginInfoDerivator<string[]>;
   };
+  userinfoURL?: string; // OAuth2, to get a profile
 }
 
 // docs for getting these for your app
@@ -266,6 +268,32 @@ const TwitterStrategyConf: StrategyConf = {
 //    };
 //  }
 //};
+
+// generalized OpenID (OAuth2) profile parser for the "userinfo" endpoint
+function parse_openid_profile(json: any) {
+  const profile: any = {};
+  profile.id = json.sub || json.id;
+  profile.displayName = json.name;
+  if (json.family_name || json.given_name) {
+    profile.name = {
+      familyName: json.family_name,
+      givenName: json.given_name,
+    };
+  }
+  if (json.email) {
+    profile.emails = [
+      {
+        value: json.email,
+        verified: json.email_verified || json.verified_email,
+      },
+    ];
+  }
+  if (json.picture) {
+    profile.photos = [{ value: json.picture }];
+  }
+
+  return profile;
+}
 
 interface InitPassport {
   router: Router;
@@ -522,6 +550,7 @@ class PassportManager {
         login_info: {
           id: (profile) => profile.id,
         },
+        userinfoURL: strategy.userinfoURL,
         // e.g. tokenURL will be extracted here, and then passed to the constructor
         extra_opts: _.omit(strategy, [
           "name",
@@ -530,6 +559,7 @@ class PassportManager {
           "icon",
           "clientID",
           "clientSecret",
+          "userinfoURL",
         ]),
       };
       inits.push(this.init_strategy(config));
@@ -545,6 +575,7 @@ class PassportManager {
       extra_opts,
       auth_opts,
       login_info,
+      userinfoURL,
     } = strategy_config;
     const dbg = (m) => winston.debug(`init_strategy ${strategy}: ${m}`);
     dbg("start");
@@ -572,10 +603,71 @@ class PassportManager {
     // attn: this log line shows secrets
     // dbg(`opts = ${safeJsonStringify(opts)}`);
 
-    const verify = (_accessToken, _refreshToken, params, profile, done) =>
+    const verify = (_accessToken, _refreshToken, params, profile, done) => {
       done(undefined, { params, profile });
+    };
 
-    passport.use(strategy, new PassportStrategyConstructor(opts, verify));
+    // OAuth2 userinfoURL: next to /authorize
+    // https://github.com/passport-next/passport-oauth2/blob/master/lib/strategy.js#L276
+    if (userinfoURL != null) {
+      PassportStrategyConstructor.prototype.userProfile = function userProfile(
+        accessToken,
+        done
+      ) {
+        console.log(
+          `PassportStrategyConstructor.prototype.userProfile userinfoURL=${userinfoURL}, accessToken=${accessToken}`
+        );
+        this._oauth2.get(userinfoURL, accessToken, (err, body) => {
+          console.log(
+            `PassportStrategyConstructor.prototype.userProfile get->body = ${body}`
+          );
+
+          let json;
+
+          if (err) {
+            if (err.data) {
+              try {
+                json = safeJsonStringify(err.data);
+              } catch (_) {
+                json = {};
+              }
+            }
+
+            if (json && json.error && json.error_description) {
+              return done(
+                new Error(
+                  `UserInfoError: ${json.error_description}, ${json.error}`
+                )
+              );
+            }
+            return done(
+              new Error(
+                `InternalOAuthError: Failed to fetch user profile -- ${err}`
+              )
+            );
+          }
+
+          try {
+            json = JSON.parse(body);
+          } catch (ex) {
+            return done(new Error(`Failed to parse user profile -- ${body}`));
+          }
+
+          const profile = parse_openid_profile(json);
+          profile._raw = body;
+          profile._json = json;
+          console.log(
+            `PassportStrategyConstructor.prototype.userProfile: profile = ${safeJsonStringify(
+              profile
+            )}`
+          );
+          return done(null, profile);
+        });
+      };
+    }
+
+    const strategy_instance = new PassportStrategyConstructor(opts, verify);
+    passport.use(strategy, strategy_instance);
 
     this.router.get(
       `${AUTH_BASE}/${strategy}`,
@@ -624,11 +716,6 @@ class PassportManager {
           );
           Object.assign(login_opts, { [k]: param });
         }
-        console.log(
-          `auth/init_strategy ${strategy} call passport_login(${safeJsonStringify(
-            login_opts
-          )})`
-        );
         await this.passport_login(login_opts as PassportLogin);
       }
     );
