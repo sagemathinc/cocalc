@@ -332,12 +332,15 @@ export class ProjectClient {
     // twice in 20s, it's ignored (to avoid unnecessary network traffic).
     const last = this.touch_throttle[project_id];
     if (last != null && new Date().valueOf() - last <= 20000) {
+      console.log("touch", project_id, " - IGNORE ")
       return;
     }
+    console.log("touch", project_id, " - DO IT")
     this.touch_throttle[project_id] = new Date().valueOf();
     try {
       await this.call(message.touch_project({ project_id }));
     } catch (err) {
+      console.log("touch", project_id, " - ERROR", err)
       // silently ignore; this happens, e.g., if you touch too frequently,
       // and shouldn't be fatal and break other things.
     }
@@ -389,5 +392,11 @@ export class ProjectClient {
     });
 
     return project_id;
+  }
+
+  // Disconnect whatever hub we are connected to from the project
+  // Adding this right now only for debugging/dev purposes!
+  public async disconnect_hub_from_project(project_id: string): Promise<void> {
+    await this.call(message.disconnect_from_project({ project_id }));
   }
 }
