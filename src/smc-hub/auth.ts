@@ -62,7 +62,7 @@ import * as _ from "lodash";
 const misc = require("smc-util/misc");
 import message from "smc-util/message"; // message protocol between front-end and back-end
 const { sign_in } = require("./sign-in");
-import Cookies from "cookies";
+import * as Cookies from "cookies";
 import * as express_session from "express-session";
 import { HELP_EMAIL, DNS } from "smc-util/theme";
 import {
@@ -601,6 +601,7 @@ class PassportManager {
           throw Error("req.user == null -- that shouldn't happen");
         }
         const profile = (req.user["profile"] as any) as passport.Profile;
+        dbg(`return profile = ${JSON.stringify(profile)}`);
         const login_opts = {
           strategy,
           profile, // will just get saved in database
@@ -617,6 +618,7 @@ class PassportManager {
                 v(profile)
               : // v is a string for dot-object
                 dot.pick(v, profile);
+          dbg(`login_info ${k} -> v = ${JSON.stringify(v)}`);
           Object.assign(login_opts, { [k]: param });
         }
         await this.passport_login(login_opts as PassportLogin);
