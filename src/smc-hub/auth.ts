@@ -270,30 +270,30 @@ const TwitterStrategyConf: StrategyConf = {
 //};
 
 // generalized OpenID (OAuth2) profile parser for the "userinfo" endpoint
-function parse_openid_profile(json: any) {
-  const profile: any = {};
-  profile.id = json.sub || json.id;
-  profile.displayName = json.name;
-  if (json.family_name || json.given_name) {
-    profile.name = {
-      familyName: json.family_name,
-      givenName: json.given_name,
-    };
-  }
-  if (json.email) {
-    profile.emails = [
-      {
-        value: json.email,
-        verified: json.email_verified || json.verified_email,
-      },
-    ];
-  }
-  if (json.picture) {
-    profile.photos = [{ value: json.picture }];
-  }
-
-  return profile;
-}
+//function parse_openid_profile(json: any) {
+//  const profile: any = {};
+//  profile.id = json.sub || json.id;
+//  profile.displayName = json.name;
+//  if (json.family_name || json.given_name) {
+//    profile.name = {
+//      familyName: json.family_name,
+//      givenName: json.given_name,
+//    };
+//  }
+//  if (json.email) {
+//    profile.emails = [
+//      {
+//        value: json.email,
+//        verified: json.email_verified || json.verified_email,
+//      },
+//    ];
+//  }
+//  if (json.picture) {
+//    profile.photos = [{ value: json.picture }];
+//  }
+//
+//  return profile;
+//}
 
 interface InitPassport {
   router: Router;
@@ -607,13 +607,12 @@ class PassportManager {
       done(undefined, { params, profile });
     };
 
+    const strategy_instance = new PassportStrategyConstructor(opts, verify);
+
     // OAuth2 userinfoURL: next to /authorize
     // https://github.com/passport-next/passport-oauth2/blob/master/lib/strategy.js#L276
     if (userinfoURL != null) {
-      PassportStrategyConstructor.prototype.userProfile = function userProfile(
-        accessToken,
-        done
-      ) {
+      strategy_instance.userProfile = function userProfile(accessToken, done) {
         console.log(
           `PassportStrategyConstructor.prototype.userProfile userinfoURL=${userinfoURL}, accessToken=${accessToken}`
         );
@@ -622,51 +621,61 @@ class PassportManager {
             `PassportStrategyConstructor.prototype.userProfile get->body = ${body}`
           );
 
-          let json;
+          //let json;
 
           if (err) {
-            if (err.data) {
-              try {
-                json = safeJsonStringify(err.data);
-              } catch (_) {
-                json = {};
-              }
-            }
-
-            if (json && json.error && json.error_description) {
-              return done(
-                new Error(
-                  `UserInfoError: ${json.error_description}, ${json.error}`
-                )
-              );
-            }
-            return done(
-              new Error(
-                `InternalOAuthError: Failed to fetch user profile -- ${err}`
-              )
+            console.log(
+              `InternalOAuthError: Failed to fetch user profile -- ${safeJsonStringify(
+                err
+              )}`
             );
+
+            // if (err.data) {
+            //   try {
+            //     json = safeJsonStringify(err.data);
+            //   } catch (_) {
+            //     json = {};
+            //   }
+            // }
+
+            // if (json && json.error && json.error_description) {
+            //   return done(
+            //     new Error(
+            //       `UserInfoError: ${json.error_description}, ${json.error}`
+            //     )
+            //   );
+            // }
+            // return done(
+            //   new Error(
+            //     `InternalOAuthError: Failed to fetch user profile -- ${safeJsonStringify(
+            //       err
+            //     )}`
+            //   )
+            // );
           }
 
-          try {
-            json = JSON.parse(body);
-          } catch (ex) {
-            return done(new Error(`Failed to parse user profile -- ${body}`));
-          }
+          return done(null, {});
 
-          const profile = parse_openid_profile(json);
-          profile._raw = body;
-          profile._json = json;
-          console.log(
-            `PassportStrategyConstructor.prototype.userProfile: profile = ${safeJsonStringify(
-              profile
-            )}`
-          );
-          return done(null, profile);
+          // try {
+          //   json = JSON.parse(body);
+          // } catch (ex) {
+          //   return done(new Error(`Failed to parse user profile -- ${body}`));
+          // }
+
+          // const profile = parse_openid_profile(json);
+          // profile.provider = strategy;
+          // profile._raw = body;
+          // profile._json = json;
+          // console.log(
+          //   `PassportStrategyConstructor.prototype.userProfile: profile = ${safeJsonStringify(
+          //     profile
+          //   )}`
+          // );
+          // return done(null, profile);
         });
       };
     }
 
-    const strategy_instance = new PassportStrategyConstructor(opts, verify);
     passport.use(strategy, strategy_instance);
 
     this.router.get(
