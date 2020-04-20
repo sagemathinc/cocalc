@@ -270,30 +270,39 @@ const TwitterStrategyConf: StrategyConf = {
 //};
 
 // generalized OpenID (OAuth2) profile parser for the "userinfo" endpoint
-//function parse_openid_profile(json: any) {
-//  const profile: any = {};
-//  profile.id = json.sub || json.id;
-//  profile.displayName = json.name;
-//  if (json.family_name || json.given_name) {
-//    profile.name = {
-//      familyName: json.family_name,
-//      givenName: json.given_name,
-//    };
-//  }
-//  if (json.email) {
-//    profile.emails = [
-//      {
-//        value: json.email,
-//        verified: json.email_verified || json.verified_email,
-//      },
-//    ];
-//  }
-//  if (json.picture) {
-//    profile.photos = [{ value: json.picture }];
-//  }
-//
-//  return profile;
-//}
+function parse_openid_profile(json: any) {
+  const profile: any = {};
+  profile.id = json.sub || json.id;
+  profile.displayName = json.name;
+  if (json.family_name || json.given_name) {
+    profile.name = {
+      familyName: json.family_name,
+      givenName: json.given_name,
+    };
+    // no name? we use the email address
+  } else if (json.email) {
+    const emailacc = json.email.split("@")[0];
+    profile.name = {
+      familyName: emailacc,
+      givenName: "",
+    };
+  }
+
+  if (json.email) {
+    profile.emails = [
+      {
+        value: json.email,
+        verified: json.email_verified || json.verified_email,
+      },
+    ];
+  }
+
+  if (json.picture) {
+    profile.photos = [{ value: json.picture }];
+  }
+
+  return profile;
+}
 
 interface InitPassport {
   router: Router;
@@ -616,12 +625,14 @@ class PassportManager {
         console.log(
           `PassportStrategyConstructor.prototype.userProfile userinfoURL=${userinfoURL}, accessToken=${accessToken}`
         );
+
+        this.useAuthorizationHeaderforGET(true);
         this._oauth2.get(userinfoURL, accessToken, (err, body) => {
           console.log(
             `PassportStrategyConstructor.prototype.userProfile get->body = ${body}`
           );
 
-          //let json;
+          let json;
 
           if (err) {
             console.log(
@@ -630,48 +641,46 @@ class PassportManager {
               )}`
             );
 
-            // if (err.data) {
-            //   try {
-            //     json = safeJsonStringify(err.data);
-            //   } catch (_) {
-            //     json = {};
-            //   }
-            // }
+            if (err.data) {
+              try {
+                json = safeJsonStringify(err.data);
+              } catch (_) {
+                json = {};
+              }
+            }
 
-            // if (json && json.error && json.error_description) {
-            //   return done(
-            //     new Error(
-            //       `UserInfoError: ${json.error_description}, ${json.error}`
-            //     )
-            //   );
-            // }
-            // return done(
-            //   new Error(
-            //     `InternalOAuthError: Failed to fetch user profile -- ${safeJsonStringify(
-            //       err
-            //     )}`
-            //   )
-            // );
+            if (json && json.error && json.error_description) {
+              return done(
+                new Error(
+                  `UserInfoError: ${json.error_description}, ${json.error}`
+                )
+              );
+            }
+            return done(
+              new Error(
+                `InternalOAuthError: Failed to fetch user profile -- ${safeJsonStringify(
+                  err
+                )}`
+              )
+            );
           }
 
-          return done(null, {});
+          try {
+            json = JSON.parse(body);
+          } catch (ex) {
+            return done(new Error(`Failed to parse user profile -- ${body}`));
+          }
 
-          // try {
-          //   json = JSON.parse(body);
-          // } catch (ex) {
-          //   return done(new Error(`Failed to parse user profile -- ${body}`));
-          // }
-
-          // const profile = parse_openid_profile(json);
-          // profile.provider = strategy;
-          // profile._raw = body;
-          // profile._json = json;
-          // console.log(
-          //   `PassportStrategyConstructor.prototype.userProfile: profile = ${safeJsonStringify(
-          //     profile
-          //   )}`
-          // );
-          // return done(null, profile);
+          const profile = parse_openid_profile(json);
+          profile.provider = strategy;
+          profile._raw = body;
+          profile._json = json;
+          console.log(
+            `PassportStrategyConstructor.prototype.userProfile: profile = ${safeJsonStringify(
+              profile
+            )}`
+          );
+          return done(null, profile);
         });
       };
     }
