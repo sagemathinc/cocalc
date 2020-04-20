@@ -141,17 +141,6 @@ export function password_hash(password): string {
   });
 }
 
-async function create_account(opts, email_address): Promise<string> {
-  return await cb2(opts.database.create_account, {
-    first_name: opts.first_name,
-    last_name: opts.last_name,
-    email_address,
-    PassportStrategyConstructor: opts.strategy,
-    passport_id: opts.id,
-    passport_profile: opts.profile,
-  });
-}
-
 interface PassportLogin {
   strategy: string;
   profile: any; // complex object
@@ -601,7 +590,11 @@ class PassportManager {
           throw Error("req.user == null -- that shouldn't happen");
         }
         const profile = (req.user["profile"] as any) as passport.Profile;
-        dbg(`return profile = ${JSON.stringify(profile)}`);
+        console.log(
+          `auth/init_strategy ${strategy}/return profile = ${JSON.stringify(
+            profile
+          )}`
+        );
         const login_opts = {
           strategy,
           profile, // will just get saved in database
@@ -618,9 +611,18 @@ class PassportManager {
                 v(profile)
               : // v is a string for dot-object
                 dot.pick(v, profile);
-          dbg(`login_info ${k} -> v = ${JSON.stringify(v)}`);
+          console.log(
+            `auth/init_strategy ${strategy}/login_info ${k} -> v = ${JSON.stringify(
+              v
+            )}`
+          );
           Object.assign(login_opts, { [k]: param });
         }
+        console.log(
+          `auth/init_strategy ${strategy} call passport_login(${JSON.stringify(
+            login_opts
+          )})`
+        );
         await this.passport_login(login_opts as PassportLogin);
       }
     );
@@ -865,6 +867,17 @@ class PassportManager {
     } // END: handle case where we passport doesn't exist but we know email addresses ...
   }
 
+  private async create_account(opts, email_address): Promise<string> {
+    return await cb2(this.database.create_account, {
+      first_name: opts.first_name,
+      last_name: opts.last_name,
+      email_address,
+      PassportStrategyConstructor: opts.strategy,
+      passport_id: opts.id,
+      passport_profile: opts.profile,
+    });
+  }
+
   private async maybe_create_account(
     opts: PassportLogin,
     locals: PassportLoginLocals
@@ -878,7 +891,7 @@ class PassportManager {
       locals.email_address = opts.emails[0];
     }
 
-    locals.account_id = await create_account(opts, locals.email_address);
+    locals.account_id = await this.create_account(opts, locals.email_address);
     locals.new_account_created = true;
     if (locals.email_address != null) {
       await cb2(this.database.do_account_creation_actions, {
