@@ -60,7 +60,7 @@ import * as passport from "passport";
 import * as dot from "dot-object";
 import * as _ from "lodash";
 const misc = require("smc-util/misc");
-import message from "smc-util/message"; // message protocol between front-end and back-end
+import * as message from "smc-util/message"; // message protocol between front-end and back-end
 const { sign_in } = require("./sign-in");
 import * as Cookies from "cookies";
 import * as express_session from "express-session";
@@ -623,13 +623,13 @@ class PassportManager {
     if (userinfoURL != null) {
       strategy_instance.userProfile = function userProfile(accessToken, done) {
         console.log(
-          `PassportStrategyConstructor.prototype.userProfile userinfoURL=${userinfoURL}, accessToken=${accessToken}`
+          `PassportStrategyConstructor.userProfile userinfoURL=${userinfoURL}, accessToken=${accessToken}`
         );
 
         this._oauth2.useAuthorizationHeaderforGET(true);
         this._oauth2.get(userinfoURL, accessToken, (err, body) => {
           console.log(
-            `PassportStrategyConstructor.prototype.userProfile get->body = ${body}`
+            `PassportStrategyConstructor.userProfile get->body = ${body}`
           );
 
           let json;
@@ -676,7 +676,7 @@ class PassportManager {
           profile._raw = body;
           profile._json = json;
           console.log(
-            `PassportStrategyConstructor.prototype.userProfile: profile = ${safeJsonStringify(
+            `PassportStrategyConstructor.userProfile: profile = ${safeJsonStringify(
               profile
             )}`
           );
@@ -728,8 +728,8 @@ class PassportManager {
               : // v is a string for dot-object
                 dot.pick(v, profile);
           console.log(
-            `auth/init_strategy ${strategy}/login_info ${k} -> v = ${safeJsonStringify(
-              v
+            `auth/init_strategy ${strategy}/login_info ${k} -> param = ${safeJsonStringify(
+              param
             )}`
           );
           Object.assign(login_opts, { [k]: param });
