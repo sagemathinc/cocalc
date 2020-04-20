@@ -329,20 +329,23 @@ export class ProjectClient {
     }
 
     // Throttle -- so if this function is called with the same project_id
-    // twice in 20s, it's ignored (to avoid unnecessary network traffic).
+    // twice in 3s, it's ignored (to avoid unnecessary network traffic).
+    // Do not make the timeout long, since that can mess up
+    // getting the hub-websocket to connect to the project.
     const last = this.touch_throttle[project_id];
-    if (last != null && new Date().valueOf() - last <= 20000) {
-      console.log("touch", project_id, " - IGNORE ")
+    if (last != null && new Date().valueOf() - last <= 3000) {
       return;
     }
-    console.log("touch", project_id, " - DO IT")
     this.touch_throttle[project_id] = new Date().valueOf();
     try {
       await this.call(message.touch_project({ project_id }));
     } catch (err) {
-      console.log("touch", project_id, " - ERROR", err)
       // silently ignore; this happens, e.g., if you touch too frequently,
       // and shouldn't be fatal and break other things.
+      // NOTE: this is a bit ugly for now -- basically the
+      // hub returns an error regarding actually touching
+      // the project (updating the db), but it still *does*
+      // ensure there is a TCP connection to the project.
     }
   }
 

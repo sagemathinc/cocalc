@@ -49,7 +49,7 @@ export interface WebappClient extends EventEmitter {
   project_websocket: Function;
   prettier: Function;
   exec: Function; // TODO: rewrite project_actions.ts to not use this at all.
-  touch_project: (project_id: string) => Promise<void>;
+  touch_project: (project_id: string) => void;
   log_error: (any) => void;
   async_call: AsyncCall;
   user_tracking: Function;
@@ -116,7 +116,7 @@ class Client extends EventEmitter implements WebappClient {
   project_websocket: Function;
   prettier: Function;
   exec: Function; // TODO: rewrite project_actions.ts to not use this at all.
-  touch_project: (project_id: string) => Promise<void>;
+  touch_project: (project_id: string) => void;
   log_error: (any) => void;
   async_call: AsyncCall;
   user_tracking: Function;
@@ -166,13 +166,11 @@ class Client extends EventEmitter implements WebappClient {
     this.file_client = new FileClient(this.async_call.bind(this));
     this.idle_client = new IdleClient(this);
 
-
     // Expose a public API as promised by WebappClient
     this.server_time = this.time_client.server_time.bind(this.time_client);
     this.ping_test = this.time_client.ping_test.bind(this.time_client);
 
     this.idle_reset = this.idle_client.idle_reset.bind(this.idle_client);
-
 
     this.exec = this.project_client.exec.bind(this.project_client);
     this.touch_project = this.project_client.touch.bind(this.project_client);
