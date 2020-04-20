@@ -974,7 +974,8 @@ class PassportManager {
       first_name: opts.first_name,
       last_name: opts.last_name,
       email_address,
-      PassportStrategyConstructor: opts.strategy,
+
+      passport_strategy: opts.strategy,
       passport_id: opts.id,
       passport_profile: opts.profile,
     });
