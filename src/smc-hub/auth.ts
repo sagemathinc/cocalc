@@ -964,45 +964,46 @@ class PassportManager {
     opts: PassportLogin,
     locals: PassportLoginLocals
   ): Promise<void> {
-    // handle case where we passport doesn't exist, but we know one or more email addresses → check for matching email
-    if (!(locals.account_id || opts.emails == null)) {
-      locals.dbg(
-        "passport doesn't exist and emails available, so check for existing account with a matching email -- if we find one it's an error"
-      );
+    // handle case where passport doesn't exist, but we know one or more email addresses → check for matching email
 
-      const check_emails = opts.emails.map(async (email) => {
+    if (locals.account_id != null || opts.emails == null) return;
+
+    locals.dbg(
+      "passport doesn't exist but emails are available -- therefore check for existing account with a matching email -- if we find one it's an error"
+    );
+
+    const check_emails = opts.emails.map(async (email) => {
+      if (locals.account_id) {
+        locals.dbg(
+          `already found a match with account_id=${locals.account_id} -- done`
+        );
+        return;
+      } else {
+        locals.dbg(`checking for account with email ${email}...`);
+        const _account_id = await cb2(this.database.account_exists, {
+          email_address: email.toLowerCase(),
+        });
         if (locals.account_id) {
+          // already done, so ignore
           locals.dbg(
             `already found a match with account_id=${locals.account_id} -- done`
           );
           return;
+        } else if (!_account_id) {
+          locals.dbg(`check_email: no _account_id for ${email}`);
         } else {
-          locals.dbg(`checking for account with email ${email}...`);
-          const _account_id = await cb2(this.database.account_exists, {
-            email_address: email.toLowerCase(),
-          });
-          if (locals.account_id) {
-            // already done, so ignore
-            locals.dbg(
-              `already found a match with account_id=${locals.account_id} -- done`
-            );
-            return;
-          } else if (!_account_id) {
-            throw Error("check_email: no _account_id");
-          } else {
-            locals.account_id = _account_id;
-            locals.email_address = email.toLowerCase();
-            locals.dbg(
-              `found matching account ${locals.account_id} for email ${locals.email_address}`
-            );
-            throw Error(
-              `There is already an account with email address ${locals.email_address}; please sign in using that email account, then link ${opts.strategy} to it in account settings.`
-            );
-          }
+          locals.account_id = _account_id;
+          locals.email_address = email.toLowerCase();
+          locals.dbg(
+            `found matching account ${locals.account_id} for email ${locals.email_address}`
+          );
+          throw Error(
+            `There is already an account with email address ${locals.email_address}; please sign in using that email account, then link ${opts.strategy} to it in account settings.`
+          );
         }
-      });
-      await Promise.all(check_emails);
-    } // END: handle case where we passport doesn't exist but we know email addresses ...
+      }
+    });
+    await Promise.all(check_emails);
   }
 
   private async create_account(opts, email_address): Promise<string> {
