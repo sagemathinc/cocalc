@@ -11,7 +11,8 @@ Top-level react component for task list
 {Find}                  = require('./find')
 {DescVisible}           = require('./desc-visible')
 {HashtagBar}            = require('./hashtag-bar')
-{Headings, is_sortable} = require('./headings')
+{is_sortable} =  require('../frame-editors/task-editor/headings-info')
+{Headings} = require('./headings')
 {Row, Col}              = require('react-bootstrap')
 
 {IS_MOBILE} = require('../feature')

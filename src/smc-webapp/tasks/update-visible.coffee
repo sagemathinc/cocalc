@@ -8,7 +8,7 @@ misc = require('smc-util/misc')
 
 {search_matches, get_search} = require('./search')
 
-{SORT_INFO, HEADINGS, HEADINGS_DIR} = require('./headings')
+{SORT_INFO, HEADINGS, HEADINGS_DIR} = require('../frame-editors/task-editor/headings-info')
 
 # Show tasks for a few seconds, even after marked done:
 # Set to 0 to disable (since it is actually really annoying, and we have undo.)

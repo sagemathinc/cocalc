@@ -12,7 +12,7 @@ A single task
 {Changed}      = require('./changed')
 {DueDate}      = require('./due')
 {DragHandle}   = require('./drag')
-{DoneCheckbox} = require('./done')
+{DoneCheckbox} = require('../frame-editors/task-editor/done')
 {Timer}        = require('./timer')
 {header_part}  = require('./desc-rendering')
 

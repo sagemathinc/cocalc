@@ -12,21 +12,7 @@ Headings of the task list:
 
 {Icon, Space} = require('../r_misc')
 
-exports.HEADINGS     = HEADINGS = ['Custom Order', 'Due', 'Changed']
-exports.HEADINGS_DIR = HEADINGS_DIR = ['asc', 'desc']
-exports.SORT_INFO =
-    'Custom Order' :
-        key     : 'position'
-        reverse : false
-    'Due' :
-        key     : 'due_date'
-        reverse : false
-    'Changed' :
-        key     : 'last_edited'
-        reverse : true
-
-exports.is_sortable = (sort_column) ->
-    return sort_column == exports.HEADINGS[0]
+{HEADINGS, HEADINGS_DIR} = require('../frame-editors/task-editor/headings-info')
 
 Heading = rclass
     propTypes :

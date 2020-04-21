@@ -14,11 +14,11 @@ underscore = require('underscore')
 
 misc = require('smc-util/misc')
 
-{HEADINGS, HEADINGS_DIR} = require('./headings')
+{HEADINGS, HEADINGS_DIR} = require('../frame-editors/task-editor/headings-info')
 
 {update_visible} = require('./update-visible')
 
-keyboard = require('./keyboard')
+{create_key_handler} = require('../frame-editors/task-editor/keyboard')
 
 {toggle_checkbox} = require('./desc-rendering')
 
@@ -60,7 +60,7 @@ class exports.TaskActions extends Actions
     enable_key_handler: =>
         if @_state == 'closed'
             return
-        @_key_handler ?= keyboard.create_key_handler(@)
+        @_key_handler ?= create_key_handler(@)
         @redux.getActions('page').set_active_key_handler(@_key_handler, @project_id, @path)
 
     disable_key_handler: =>
