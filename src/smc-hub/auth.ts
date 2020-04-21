@@ -291,10 +291,12 @@ function parse_openid_profile(json: any) {
     };
     // no name? we use the email address
   } else if (json.email) {
-    const emailacc = json.email.split("@")[0];
+    // don't include dots, because our "spam protection" rejects domain-like patterns
+    const emailacc = json.email.split("@")[0].split(".");
+    const [first, ...last] = emailacc; // last is always at least []
     profile.name = {
-      familyName: emailacc,
-      givenName: "",
+      familyName: first,
+      givenName: last.join(" "),
     };
   }
 
