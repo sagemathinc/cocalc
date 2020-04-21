@@ -80,12 +80,20 @@ const PRIMARY_STRATEGIES = ["email", "site_conf", ...PRIMARY_SSO];
 // root for authentication related endpoints -- will be prefixed with the base_url
 const AUTH_BASE = "/auth";
 
+type login_info_keys =
+  | "id"
+  | "first_name"
+  | "last_name"
+  | "full_name"
+  | "emails";
+
 interface PassportStrategyDB extends PassportStrategy {
   clientID?: string; // Google, Twitter, ... and OAuth2
   clientSecret?: string; // Google, Twitter, ... and OAuth2
   authorizationURL?: string; // OAuth2
   tokenURL?: string; // --*--
   userinfoURL?: string; // OAuth2, to get a profile
+  login_info?: { [key in login_info_keys]?: string };
 }
 
 const { defaults, required } = misc;
@@ -548,17 +556,19 @@ class PassportManager {
         continue;
       }
       if (strategy.type == null) {
-        throw Error(
+        throw new Error(
           `all "extra" strategies must define their type, in particular also "${name}"`
         );
       }
       const cons = this.extra_strategy_constructor(strategy.type);
+      // by default, all of these have .id, but we can overwrite them in the configuration's login_info field
+      const dflt_login_info = {
+        id: (profile) => profile.id,
+      };
       const config: StrategyConf = {
         strategy: name,
         PassportStrategyConstructor: cons,
-        login_info: {
-          id: (profile) => profile.id,
-        },
+        login_info: Object.assign(dflt_login_info, strategy.login_info),
         userinfoURL: strategy.userinfoURL,
         // e.g. tokenURL will be extracted here, and then passed to the constructor
         extra_opts: _.omit(strategy, [
@@ -621,6 +631,7 @@ class PassportManager {
     // OAuth2 userinfoURL: next to /authorize
     // https://github.com/passport-next/passport-oauth2/blob/master/lib/strategy.js#L276
     if (userinfoURL != null) {
+      // closure for "strategy"
       strategy_instance.userProfile = function userProfile(accessToken, done) {
         console.log(
           `PassportStrategyConstructor.userProfile userinfoURL=${userinfoURL}, accessToken=${accessToken}`
@@ -748,7 +759,7 @@ class PassportManager {
       first_name: undefined,
       last_name: undefined,
       full_name: undefined,
-      emails: undefined, // if user not logged in (via remember_me) already, and existing account with same email, and passport not created, then get an error instead of login or account creation.
+      emails: undefined, // string or Array<string> if user not logged in (via remember_me) already, and existing account with same email, and passport not created, then get an error instead of login or account creation.
       req: required, // request object
       res: required, // response object
       base_url: "",
@@ -811,8 +822,10 @@ class PassportManager {
 
     if (opts.emails != null) {
       opts.emails = (() => {
+        const emails =
+          typeof opts.emails == "string" ? [opts.emails] : opts.emails;
         const result: string[] = [];
-        for (const x of opts.emails) {
+        for (const x of emails) {
           if (typeof x === "string" && misc.is_valid_email_address(x)) {
             result.push(x.toLowerCase());
           }
@@ -841,9 +854,11 @@ class PassportManager {
       await this.handle_new_sign_in(opts, locals, BASE_URL);
     } catch (err) {
       if (err) {
-        opts.res.send(`Error trying to login using ${opts.strategy} -- ${err}`);
+        const err_msg = `Error trying to login using ${opts.strategy} -- ${err}`;
+        dbg(`sending error "${err_msg}"`);
+        opts.res.send(err_msg);
       } else {
-        dbg("redirect the client");
+        dbg(`redirect the client to '${locals.target}'`);
         opts.res.redirect(locals.target);
       }
     }
@@ -1000,12 +1015,14 @@ class PassportManager {
     if (locals.account_id) return;
 
     locals.dbg(
-      "no existing account to link, so create new account that can be accessed using this passport"
+      "maybe_create_account/no existing account to link, so create new account that can be accessed using this passport"
     );
     if (opts.emails != null) {
       locals.email_address = opts.emails[0];
     }
-
+    locals.dbg(
+      "maybe_create_account: emails=${opts.emails} email_address=${locals.email_address}"
+    );
     locals.account_id = await this.create_account(opts, locals.email_address);
     locals.new_account_created = true;
     if (locals.email_address != null) {
@@ -1036,7 +1053,9 @@ class PassportManager {
   ): Promise<void> {
     if (!locals.new_account_created) {
       // don't make client wait for this -- it's just a log message for us.
-      locals.dbg(`record_sign_in: ${opts.req.url}`);
+      locals.dbg(
+        `maybe_record_sign_in → no new account → record_sign_in: ${opts.req.ip}`
+      );
       sign_in.record_sign_in({
         ip_address: opts.req.ip,
         successful: true,
@@ -1093,10 +1112,10 @@ class PassportManager {
     if (locals.has_valid_remember_me) return;
 
     // make TS happy
-    if (locals.account_id == null) throw Error("locals.account_id is null");
+    if (locals.account_id == null) throw new Error("locals.account_id is null");
 
     locals.dbg(
-      "passport created: set remember_me cookie, so user gets logged in"
+      "handle_new_sign_in/passport created: set remember_me cookie, so user gets logged in"
     );
 
     // create and set remember_me cookie, then redirect.
@@ -1109,24 +1128,24 @@ class PassportManager {
       last_name: opts.last_name,
     });
 
-    locals.dbg("create remember_me cookie");
+    locals.dbg("handle_new_sign_in/create remember_me cookie");
     const session_id = uuid.v4();
     const hash_session_id = password_hash(session_id);
-    const ttl = 24 * 3600 * 30; // 30 days
+    const ttl_s = 24 * 3600 * 30; // 30 days
     const x: string[] = hash_session_id.split("$");
     const remember_me_value = [x[0], x[1], x[2], session_id].join("$");
 
-    locals.dbg("save remember_me cookie in database");
+    locals.dbg("handle_new_sign_in/save remember_me cookie in database");
     await cb2(this.database.save_remember_me, {
       account_id: locals.account_id,
       hash: hash_session_id,
       value: signed_in_mesg,
-      ttl,
+      ttl_s,
     });
 
-    locals.dbg("and also set remember_me cookie in client");
+    locals.dbg("handle_new_sign_in/and also set remember_me cookie in client");
     locals.cookies.set(remember_me_cookie_name(BASE_URL), remember_me_value, {
-      maxAge: ttl * 1000,
+      maxAge: ttl_s * 1000,
     });
   }
 
