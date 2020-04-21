@@ -572,8 +572,12 @@ class PassportManager {
       }
       const cons = this.extra_strategy_constructor(strategy.type);
       // by default, all of these have .id, but we can overwrite them in the configuration's login_info field
+      // the default below works well for OAuth2
       const dflt_login_info = {
-        id: (profile) => profile.id,
+        id: "id",
+        first_name: "name.givenName",
+        last_name: "name.familyName",
+        emails: "emails[0].value",
       };
       const config: StrategyConf = {
         strategy: name,
@@ -739,7 +743,9 @@ class PassportManager {
                 dot.pick(v, profile);
           Object.assign(login_opts, { [k]: param });
         }
-        dbg2(`login_opts = ${safeJsonStringify(login_opts)}`);
+        dbg2(
+          `login_opts = ${safeJsonStringify(_.omit(login_opts, ["req, res"]))}`
+        );
         await this.passport_login(login_opts as PassportLogin);
       }
     );
