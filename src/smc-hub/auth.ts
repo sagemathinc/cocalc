@@ -1150,7 +1150,7 @@ class PassportManager {
       account_id: locals.account_id,
       hash: hash_session_id,
       value: signed_in_mesg,
-      ttl_s,
+      ttl: ttl_s,
     });
 
     locals.dbg("handle_new_sign_in/and also set remember_me cookie in client");
