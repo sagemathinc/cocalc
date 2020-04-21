@@ -16,6 +16,7 @@ const { instantiate_snippets } = require("../assistant/main");
 import { NBGraderActions } from "./nbgrader/actions";
 import { CellToolbarName } from "./types";
 import { exec } from "../frame-editors/generic/client";
+import { open_popup_window } from "../r_misc";
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -629,5 +630,11 @@ export class JupyterActions extends JupyterActions0 {
       this.nbgrader_actions.update_metadata();
     }
     this.setState({ cell_toolbar: name });
+  }
+
+  public custom_jupyter_kernel_docs(): void {
+    open_popup_window(
+      "https://doc.cocalc.com/howto/custom-jupyter-kernel.html"
+    );
   }
 }

@@ -13,7 +13,7 @@ interface WindowOpts {
   height?: string;
 }
 
-export function open_popup_window(url: string, opts: WindowOpts) {
+export function open_popup_window(url: string, opts: WindowOpts = {}) {
   return open_new_tab(url, true, opts);
 }
 
