@@ -663,6 +663,7 @@ class exports.Client extends EventEmitter
             else
                 @error_to_client(id:mesg.id, error:"Unknown message type '#{mesg.type}'")
 
+    # TODO: I think this is deprecated:
     mesg_connect_to_session: (mesg) =>
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to start a session."))
@@ -677,6 +678,7 @@ class exports.Client extends EventEmitter
                 # TODO
                 @push_to_client(message.error(id:mesg.id, error:"Connecting to session of type '#{mesg.type}' not yet implemented"))
 
+    # TODO: I think this is deprecated:
     connect_to_console_session: (mesg) =>
         # TODO -- implement read-only console sessions too (easy and amazing).
         @get_project mesg, 'write', (err, project) =>
@@ -692,6 +694,7 @@ class exports.Client extends EventEmitter
                             connect_mesg.id = mesg.id
                             @push_to_client(connect_mesg)
 
+    # TODO: I think this is deprecated:
     mesg_terminate_session: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if not err  # get_project sends error to client
@@ -2073,17 +2076,22 @@ class exports.Client extends EventEmitter
                 dbg("checking conditions")
                 @_check_project_access(mesg.project_id, cb)
             (cb) =>
-                @touch
-                    project_id : mesg.project_id
-                    action     : 'touch'
-                    cb         : cb
-            (cb) =>
+                # IMPORTANT: do this ensure_connection_to_project *first*, since
+                # it is critical always ensure this, and the @touch below gives
+                # an error if done more than once per 45s, whereas we may want
+                # to check much more frequently that we have a TCP connection
+                # to the project.
                 f = @database.ensure_connection_to_project
                 if f?
                     dbg("also create socket connection (so project can query db, etc.)")
                     # We do NOT block on this -- it can take a while.
                     f(mesg.project_id)
                 cb()
+            (cb) =>
+                @touch
+                    project_id : mesg.project_id
+                    action     : 'touch'
+                    cb         : cb
         ], (err) =>
             if err
                 dbg("failed -- #{err}")
