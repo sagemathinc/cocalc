@@ -295,8 +295,8 @@ function parse_openid_profile(json: any) {
     const emailacc = json.email.split("@")[0].split(".");
     const [first, ...last] = emailacc; // last is always at least []
     profile.name = {
-      familyName: first,
-      givenName: last.join(" "),
+      givenName: first,
+      familyName: last.join(" "),
     };
   }
 
