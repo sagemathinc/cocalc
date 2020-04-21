@@ -278,6 +278,7 @@ const TwitterStrategyConf: StrategyConf = {
 //};
 
 // generalized OpenID (OAuth2) profile parser for the "userinfo" endpoint
+// the returned structure matches passport.js's conventions
 function parse_openid_profile(json: any) {
   const profile: any = {};
   profile.id = json.sub || json.id;
@@ -548,6 +549,14 @@ class PassportManager {
   // this maps additional strategy configurations to a list of StrategyConf objects
   // the overall goal is to support custom OAuth2 and LDAP endpoints, where additional
   // info is sent to the webapp client to properly present them. Google&co are "primary" configurations.
+  //
+  // here is one example what can be saved in the DB to make this work for a general OAuth2
+  //
+  // insert into passport_settings (strategy, conf ) VALUES ( '[unique, e.g. "wowtech"]', '{"type": "oauth2next", "clientID": "CoCalc_Client", "scope": ["email", "cocalc", "profile", ... depends on the config], "clientSecret": "[a password]", "authorizationURL": "https://domain.edu/.../oauth2/authorize", "userinfoURL" :"https://domain.edu/.../oauth2/userinfo",  "tokenURL":"https://domain.edu/.../oauth2/...extras.../access_token",  "login_info" : {"emails" :"emails[0].value"}, "display": "[user visible, e.g. "WOW Tech"]", "icon": "https://storage.googleapis.com/square.svg"}'::JSONB );
+  //
+  // note, the login_info.emails string extracts from the profile object constructed by parse_openid_profile,
+  // which is only triggered if there is such a "userinfoURL", which is OAuth2 specific.
+  // other auth mechanisms might already provide the profile in passport.js's structure!
   private async init_extra_strategies(): Promise<void> {
     if (this.strategies == null) throw Error("strategies not initalized!");
     const inits: Promise<void>[] = [];
