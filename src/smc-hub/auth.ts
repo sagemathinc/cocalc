@@ -53,9 +53,10 @@ Then restart the hubs.
 
 import { Router } from "express";
 import { callback2 as cb2 } from "../smc-util/async-utils";
+import * as debug from "debug";
+const LOG = debug("hub:auth");
 import { join as path_join } from "path";
 import * as uuid from "node-uuid";
-import * as winston from "winston";
 import * as passport from "passport";
 import * as dot from "dot-object";
 import * as _ from "lodash";
@@ -348,7 +349,7 @@ interface PassportManagerOpts {
 
 // passport_login state
 interface PassportLoginLocals {
-  dbg: (m: string) => void;
+  dbg: InstanceType<typeof LOG>;
   account_id: string | undefined;
   email_address: string | undefined;
   new_account_created: boolean;
@@ -388,7 +389,7 @@ class PassportManager {
   private async init_passport_settings(): Promise<{
     [k: string]: PassportStrategyDB;
   }> {
-    const dbg = (m) => winston.debug(`init_passport_settings: ${m}`);
+    const dbg = LOG.extend("init_passport_settings");
     if (this.strategies != null) {
       dbg("already initialized -- just returning what we have");
       return this.strategies;
@@ -413,7 +414,7 @@ class PassportManager {
 
   // Define handler for api key cookie setting.
   private handle_get_api_key(req, res, next) {
-    const dbg = (m) => winston.debug(`handle_get_api_key: ${m}`);
+    const dbg = LOG.extend("handle_get_api_key");
     dbg("");
     if (req.query.get_api_key) {
       const cookies = new Cookies(req, res);
@@ -459,7 +460,7 @@ class PassportManager {
 
   async init(): Promise<void> {
     // Initialize authentication plugins using Passport
-    const dbg = (m) => winston.debug(`init_passport: ${m}`);
+    const dbg = LOG.extend("init");
     dbg("");
 
     // initialize use of middleware
@@ -605,7 +606,7 @@ class PassportManager {
       login_info,
       userinfoURL,
     } = strategy_config;
-    const dbg = (m) => winston.debug(`init_strategy ${strategy}: ${m}`);
+    const dbg = LOG.extend(`init_strategy ${strategy}`);
     dbg("start");
     if (this.strategies == null) throw Error("strategies not initalized!");
     if (strategy == null) {
@@ -640,22 +641,19 @@ class PassportManager {
     // OAuth2 userinfoURL: next to /authorize
     // https://github.com/passport-next/passport-oauth2/blob/master/lib/strategy.js#L276
     if (userinfoURL != null) {
-      // closure for "strategy"
+      // closure captures "strategy"
       strategy_instance.userProfile = function userProfile(accessToken, done) {
-        console.log(
-          `PassportStrategyConstructor.userProfile userinfoURL=${userinfoURL}, accessToken=${accessToken}`
-        );
+        const dbg = LOG.extend("PassportStrategy").extend("userProfile");
+        dbg(`userinfoURL=${userinfoURL}, accessToken=${accessToken}`);
 
         this._oauth2.useAuthorizationHeaderforGET(true);
         this._oauth2.get(userinfoURL, accessToken, (err, body) => {
-          console.log(
-            `PassportStrategyConstructor.userProfile get->body = ${body}`
-          );
+          dbg(`get->body = ${body}`);
 
           let json;
 
           if (err) {
-            console.log(
+            dbg(
               `InternalOAuthError: Failed to fetch user profile -- ${safeJsonStringify(
                 err
               )}`
@@ -694,8 +692,7 @@ class PassportManager {
           const profile = parse_openid_profile(json);
           profile.provider = strategy;
           profile._raw = body;
-          profile._json = json;
-          console.log(
+          dbg(
             `PassportStrategyConstructor.userProfile: profile = ${safeJsonStringify(
               profile
             )}`
@@ -717,20 +714,13 @@ class PassportManager {
       `${AUTH_BASE}/${strategy}/return`,
       passport.authenticate(strategy),
       async (req, res) => {
+        const dbg2 = dbg.extend("router.get");
         if (req.user == null) {
           throw Error("req.user == null -- that shouldn't happen");
         }
-        console.log(
-          `auth/init_strategy ${strategy}/return user = ${safeJsonStringify(
-            req.user
-          )}`
-        );
+        dbg2(`${strategy}/return user = ${safeJsonStringify(req.user)}`);
         const profile = (req.user["profile"] as any) as passport.Profile;
-        console.log(
-          `auth/init_strategy ${strategy}/return profile = ${safeJsonStringify(
-            profile
-          )}`
-        );
+        dbg2(`${strategy}/return profile = ${safeJsonStringify(profile)}`);
         const login_opts = {
           strategy,
           profile, // will just get saved in database
@@ -747,13 +737,9 @@ class PassportManager {
                 v(profile)
               : // v is a string for dot-object
                 dot.pick(v, profile);
-          console.log(
-            `auth/init_strategy ${strategy}/login_info ${k} -> param = ${safeJsonStringify(
-              param
-            )}`
-          );
           Object.assign(login_opts, { [k]: param });
         }
+        dbg2(`login_opts = ${safeJsonStringify(login_opts)}`);
         await this.passport_login(login_opts as PassportLogin);
       }
     );
@@ -775,16 +761,9 @@ class PassportManager {
       host: required,
     });
 
-    const dbg = (m) => winston.debug(`passport_login: ${m}`);
-    dbg(
-      `strategy=${opts.strategy} id=${opts.id} emails=${
-        opts.emails
-      } user=${safeJsonStringify(opts.req.user)}`
-    );
+    const dbg = LOG.extend("passport_login");
     const BASE_URL = opts.base_url;
-
     const cookies = new Cookies(opts.req, opts.res);
-
     const locals: PassportLoginLocals = {
       dbg,
       cookies,
@@ -800,7 +779,13 @@ class PassportManager {
     };
 
     //# dbg("cookies = '#{opts.req.headers['cookie']}'")  # DANGER -- do not uncomment except for debugging due to SECURITY
-    dbg(`remember_me_cookie = '${locals.remember_me_cookie}'`);
+    dbg(
+      `strategy=${opts.strategy} id=${opts.id} emails=${
+        opts.emails
+      } remember_me_cookie = '${
+        locals.remember_me_cookie
+      }' user=${safeJsonStringify(opts.req.user)}`
+    );
 
     // check if user is just trying to get an api key.
     if (locals.get_api_key) {
@@ -861,15 +846,13 @@ class PassportManager {
       await this.is_user_banned(locals.account_id, locals.email_address);
       //  last step: set remember me cookie (for a  new sign in)
       await this.handle_new_sign_in(opts, locals, BASE_URL);
+      // no exceptions → we're all good
+      dbg(`redirect the client to '${locals.target}'`);
+      opts.res.redirect(locals.target);
     } catch (err) {
-      if (err) {
-        const err_msg = `Error trying to login using ${opts.strategy} -- ${err}`;
-        dbg(`sending error "${err_msg}"`);
-        opts.res.send(err_msg);
-      } else {
-        dbg(`redirect the client to '${locals.target}'`);
-        opts.res.redirect(locals.target);
-      }
+      const err_msg = `Error trying to login using ${opts.strategy} -- ${err}`;
+      dbg(`sending error "${err_msg}"`);
+      opts.res.send(err_msg);
     }
   } // end passport_login
 
@@ -877,8 +860,9 @@ class PassportManager {
     locals: PassportLoginLocals
   ): Promise<void> {
     if (!locals.remember_me_cookie) return;
+    const dbg = locals.dbg.extend("check_remember_me_cookie");
 
-    locals.dbg("check if user has a valid remember_me cookie");
+    dbg("check if user has a valid remember_me cookie");
     const value = locals.remember_me_cookie;
     const x: string[] = value.split("$");
     if (x.length !== 4) {
@@ -889,7 +873,7 @@ class PassportManager {
       hash = generate_hash(x[0], x[1], x[2], x[3]);
     } catch (error) {
       const err = error;
-      locals.dbg(
+      dbg(
         `unable to generate hash from remember_me cookie = '${locals.remember_me_cookie}' -- ${err}`
       );
     }
@@ -898,7 +882,7 @@ class PassportManager {
         hash,
       });
       if (signed_in_mesg != null) {
-        locals.dbg("user does have valid remember_me token");
+        dbg("user does have valid remember_me token");
         locals.account_id = signed_in_mesg.account_id;
         locals.has_valid_remember_me = true;
       } else {
@@ -911,7 +895,8 @@ class PassportManager {
     opts: PassportLogin,
     locals: PassportLoginLocals
   ): Promise<void> {
-    locals.dbg(
+    const dbg = locals.dbg.extend("check_passport_exists");
+    dbg(
       "check to see if the passport already exists indexed by the given id -- in that case we will log user in"
     );
 
@@ -925,7 +910,7 @@ class PassportManager {
       locals.has_valid_remember_me &&
       locals.account_id != null
     ) {
-      locals.dbg(
+      dbg(
         "passport doesn't exist, but user is authenticated (via remember_me), so we add this passport for them."
       );
       await cb2(this.database.create_passport, {
@@ -939,19 +924,17 @@ class PassportManager {
       });
     } else {
       if (locals.has_valid_remember_me && locals.account_id !== _account_id) {
-        locals.dbg(
-          "passport exists but is associated with another account already"
-        );
+        dbg("passport exists but is associated with another account already");
         throw Error(
           `Your ${opts.strategy} account is already attached to another CoCalc account.  First sign into that account and unlink ${opts.strategy} in account settings if you want to instead associate it with this account.`
         );
       } else {
         if (locals.has_valid_remember_me) {
-          locals.dbg(
+          dbg(
             "passport already exists and is associated to the currently logged into account"
           );
         } else {
-          locals.dbg(
+          dbg(
             "passport exists and is already associated to a valid account, which we'll log user into"
           );
           locals.account_id = _account_id;
@@ -965,36 +948,37 @@ class PassportManager {
     locals: PassportLoginLocals
   ): Promise<void> {
     // handle case where passport doesn't exist, but we know one or more email addresses → check for matching email
-
     if (locals.account_id != null || opts.emails == null) return;
 
-    locals.dbg(
+    const dbg = locals.dbg.extend("check_existing_emails");
+
+    dbg(
       "passport doesn't exist but emails are available -- therefore check for existing account with a matching email -- if we find one it's an error"
     );
 
     const check_emails = opts.emails.map(async (email) => {
       if (locals.account_id) {
-        locals.dbg(
+        dbg(
           `already found a match with account_id=${locals.account_id} -- done`
         );
         return;
       } else {
-        locals.dbg(`checking for account with email ${email}...`);
+        dbg(`checking for account with email ${email}...`);
         const _account_id = await cb2(this.database.account_exists, {
           email_address: email.toLowerCase(),
         });
         if (locals.account_id) {
           // already done, so ignore
-          locals.dbg(
+          dbg(
             `already found a match with account_id=${locals.account_id} -- done`
           );
           return;
         } else if (!_account_id) {
-          locals.dbg(`check_email: no _account_id for ${email}`);
+          dbg(`check_email: no _account_id for ${email}`);
         } else {
           locals.account_id = _account_id;
           locals.email_address = email.toLowerCase();
-          locals.dbg(
+          dbg(
             `found matching account ${locals.account_id} for email ${locals.email_address}`
           );
           throw Error(
@@ -1024,15 +1008,15 @@ class PassportManager {
   ): Promise<void> {
     if (locals.account_id) return;
 
-    locals.dbg(
-      "maybe_create_account/no existing account to link, so create new account that can be accessed using this passport"
+    const dbg = locals.dbg.extend("maybe_create_account");
+
+    dbg(
+      "no existing account to link, so create new account that can be accessed using this passport"
     );
     if (opts.emails != null) {
       locals.email_address = opts.emails[0];
     }
-    locals.dbg(
-      "maybe_create_account: emails=${opts.emails} email_address=${locals.email_address}"
-    );
+    dbg("emails=${opts.emails} email_address=${locals.email_address}");
     locals.account_id = await this.create_account(opts, locals.email_address);
     locals.new_account_created = true;
     if (locals.email_address != null) {
@@ -1061,26 +1045,28 @@ class PassportManager {
     opts: PassportLogin,
     locals: PassportLoginLocals
   ): Promise<void> {
-    if (!locals.new_account_created) {
-      // don't make client wait for this -- it's just a log message for us.
-      locals.dbg(
-        `maybe_record_sign_in → no new account → record_sign_in: ${opts.req.ip}`
-      );
-      sign_in.record_sign_in({
-        ip_address: opts.req.ip,
-        successful: true,
-        remember_me: locals.has_valid_remember_me,
-        email_address: locals.email_address,
-        account_id: locals.account_id,
-        database: this.database,
-      });
-    }
+    if (locals.new_account_created) return;
+
+    const dbg = locals.dbg.extend("maybe_record_sign_in");
+
+    // don't make client wait for this -- it's just a log message for us.
+    dbg(`no new account → record_sign_in: ${opts.req.ip}`);
+    sign_in.record_sign_in({
+      ip_address: opts.req.ip,
+      successful: true,
+      remember_me: locals.has_valid_remember_me,
+      email_address: locals.email_address,
+      account_id: locals.account_id,
+      database: this.database,
+    });
   }
 
   private async maybe_provision_api_key(
     locals: PassportLoginLocals
   ): Promise<void> {
     if (!locals.get_api_key) return;
+
+    const dbg = locals.dbg.extend("maybe_provision_api_key");
 
     // Just handle getting api key here.
     const { api_key_action } = require("./api/manage"); // here, rather than at beginnig of file, due to some circular references...
@@ -1099,9 +1085,7 @@ class PassportManager {
 
     // if there is no key
     if (!locals.api_key) {
-      locals.dbg(
-        "get_api_key -- must generate key, since don't already have it"
-      );
+      dbg("must generate key, since don't already have it");
       locals.api_key = await cb2(api_key_action, {
         database: this.database,
         account_id: locals.account_id,
@@ -1121,12 +1105,12 @@ class PassportManager {
   ): Promise<void> {
     if (locals.has_valid_remember_me) return;
 
+    const dbg = locals.dbg.extend("handle_new_sign_in");
+
     // make TS happy
     if (locals.account_id == null) throw new Error("locals.account_id is null");
 
-    locals.dbg(
-      "handle_new_sign_in/passport created: set remember_me cookie, so user gets logged in"
-    );
+    dbg("passport created: set remember_me cookie, so user gets logged in");
 
     // create and set remember_me cookie, then redirect.
     // See the remember_me method of client for the algorithm we use.
@@ -1138,14 +1122,14 @@ class PassportManager {
       last_name: opts.last_name,
     });
 
-    locals.dbg("handle_new_sign_in/create remember_me cookie");
+    dbg("create remember_me cookie");
     const session_id = uuid.v4();
     const hash_session_id = password_hash(session_id);
     const ttl_s = 24 * 3600 * 30; // 30 days
     const x: string[] = hash_session_id.split("$");
     const remember_me_value = [x[0], x[1], x[2], session_id].join("$");
 
-    locals.dbg("handle_new_sign_in/save remember_me cookie in database");
+    dbg("save remember_me cookie in database");
     await cb2(this.database.save_remember_me, {
       account_id: locals.account_id,
       hash: hash_session_id,
@@ -1153,7 +1137,7 @@ class PassportManager {
       ttl: ttl_s,
     });
 
-    locals.dbg("handle_new_sign_in/and also set remember_me cookie in client");
+    dbg("and also set remember_me cookie in client");
     locals.cookies.set(remember_me_cookie_name(BASE_URL), remember_me_value, {
       maxAge: ttl_s * 1000,
     });
