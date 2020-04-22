@@ -17,7 +17,7 @@ export async function matching_site_licenses(
     i += 1;
   }
   let query = "SELECT * FROM site_licenses";
-  query += ` WHERE (${where.join(" OR ")})`;
+  query += ` WHERE (${where.join(" AND ")})`;
   // recently active licenses are much more relevant than old ones
   query += " ORDER BY last_used DESC NULLS LAST";
   query += ` LIMIT $${i}::INTEGER`;

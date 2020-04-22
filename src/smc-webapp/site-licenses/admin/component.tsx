@@ -30,7 +30,6 @@ interface Props {
   edits?: Map<string, TypedMap<SiteLicense>>;
   show_projects?: Map<string, "now" | Date>;
   search?: string;
-  matches_search?: Set<string>;
   usage_stats?: Map<string, number>;
 }
 
@@ -48,7 +47,6 @@ class SiteLicenses extends Component<Props> {
         edits: rtypes.immutable.Map,
         show_projects: rtypes.immutable.Set,
         search: rtypes.string,
-        matches_search: rtypes.immutable.Set,
         usage_stats: rtypes.immutable.Map,
       },
     };
@@ -90,13 +88,6 @@ class SiteLicenses extends Component<Props> {
     if (!this.props.site_licenses) return;
     const v: Rendered[] = [];
     for (const license of this.props.site_licenses) {
-      if (
-        this.props.search &&
-        this.props.matches_search != null &&
-        !this.props.matches_search.has(license.get("id"))
-      ) {
-        continue;
-      }
       v.push(this.render_license(license));
     }
     return r_join(v, <div style={{ height: "20px" }}></div>);
@@ -139,9 +130,12 @@ class SiteLicenses extends Component<Props> {
         okText={"Yes"}
         cancelText={"Cancel"}
       >
-        <Button disabled={this.props.creating} style={{ margin: "15px 0" }}>
+        <Button
+          disabled={this.props.creating}
+          style={{ margin: "15px 0", float: "right" }}
+        >
           <Icon name="plus" spin={this.props.creating} />
-          <Space /> New...
+          <Space /> Create License
         </Button>
       </Popconfirm>
     );
@@ -171,20 +165,20 @@ class SiteLicenses extends Component<Props> {
   }
 
   private render_search_restriction_note(): Rendered {
-    if (this.props.matches_search?.size) {
-      return (
-        <b style={{ marginLeft: "10px" }}>
-          Showing the most recent {this.props.matches_search.size}{" "}
-          {plural(this.props.matches_search.size, "license")} matching the
-          search <a onClick={() => actions.set_search("")}>(clear)</a>.
-        </b>
-      );
-    } else if (this.props.site_licenses?.size) {
+    if (this.props.site_licenses?.size) {
       return (
         <b style={{ marginLeft: "10px" }}>
           Showing the most recent {this.props.site_licenses.size}{" "}
           {plural(this.props.site_licenses.size, "license")} matching the search{" "}
-          <a onClick={() => actions.set_search("")}>(clear)</a>.
+          <a
+            onClick={() => {
+              actions.set_search("");
+              actions.load();
+            }}
+          >
+            (clear)
+          </a>
+          .
         </b>
       );
     }

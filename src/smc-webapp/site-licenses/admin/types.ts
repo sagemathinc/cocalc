@@ -91,12 +91,11 @@ export interface SiteLicensesState {
   error?: string;
   loading?: boolean;
   creating?: boolean;
-  site_licenses?: SiteLicense[];
+  site_licenses?: SiteLicense[]; // licenses that match the search
   editing?: Set<string>; // id's of site licenses that are currently being edited.
   saving?: Set<string>; // id's of site licenses that are currently being saved to the backend.
   show_projects?: Map<string, Date | "now">; // id's where we should show the projects that are using the license and what cutoff date
   edits?: Map<string, TypedMap<SiteLicense>>;
   search?: string;
-  matches_search?: Set<string> | undefined; // id's of licenses that match search
   usage_stats?: Map<string, number>; // {license_id:number of running projects using that license}
 }

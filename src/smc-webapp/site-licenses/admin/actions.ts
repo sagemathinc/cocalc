@@ -4,9 +4,7 @@ import { SiteLicensesState, SiteLicense, license_field_names } from "./types";
 import { store } from "./store";
 import { query, server_time } from "../../frame-editors/generic/client";
 import { uuid } from "smc-util/misc2";
-import { search_split, search_match } from "smc-util/misc";
 import { normalize_upgrades_for_save } from "./upgrades";
-import { debounce } from "lodash";
 
 export class SiteLicensesActions extends Actions<SiteLicensesState> {
   public set_error(error: any): void {
@@ -180,43 +178,8 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
     this.setState({ show_projects });
   }
 
-  public update_search(): void {
-    const search = store.get("search", "").trim().toLowerCase();
-    let matches_search: undefined | Set<string> = undefined;
-    if (search) {
-      // figure out what matches the search
-      const site_licenses = store.get("site_licenses");
-      if (site_licenses != null) {
-        const terms = search_split(search);
-        matches_search = Set<string>([]);
-        const x = site_licenses.toJS();
-        for (const license of x) {
-          if (search_match(JSON.stringify(license).toLowerCase(), terms)) {
-            matches_search = matches_search.add(license.id);
-          }
-        }
-        if (
-          matches_search != null &&
-          matches_search.size == site_licenses.size
-        ) {
-          matches_search = undefined;
-        }
-      }
-    } else {
-      this.setState({ matches_search: undefined, site_licenses: undefined });
-      return;
-    }
-    if (
-      matches_search == null ||
-      !matches_search.equals(store.get("matches_search"))
-    ) {
-      this.setState({ matches_search });
-    }
-  }
-
   public set_search(search: string): void {
     this.setState({ search });
-    this.update_search();
   }
 
   public async update_usage_stats(): Promise<void> {
@@ -236,5 +199,3 @@ export const actions = redux.createActions(
   SiteLicensesActions
 );
 
-// why 200?  https://stackoverflow.com/questions/4098678/average-inter-keypress-time-when-typing
-actions.update_search = debounce(actions.update_search.bind(actions), 200);

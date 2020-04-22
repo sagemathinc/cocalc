@@ -131,7 +131,7 @@ Table({
   },
 });
 
-const MATCHING_SITE_LICENSES_LIMIT = 30; // pretty arbitrary limit.
+const MATCHING_SITE_LICENSES_LIMIT = 50; // pretty arbitrary limit.
 
 Table({
   name: "matching_site_licenses",
