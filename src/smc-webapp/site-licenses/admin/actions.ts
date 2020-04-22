@@ -2,8 +2,12 @@ import { Map, Set } from "immutable";
 import { Actions, redux, TypedMap } from "../../app-framework";
 import { SiteLicensesState, SiteLicense, license_field_names } from "./types";
 import { store } from "./store";
-import { query, server_time } from "../../frame-editors/generic/client";
-import { uuid } from "smc-util/misc2";
+import {
+  query,
+  server_time,
+  user_search,
+} from "../../frame-editors/generic/client";
+import { is_valid_uuid_string, uuid } from "smc-util/misc2";
 import { normalize_upgrades_for_save } from "./upgrades";
 
 export class SiteLicensesActions extends Actions<SiteLicensesState> {
@@ -192,10 +196,67 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
       this.set_error(err);
     }
   }
+
+  private async get_account_id(email_address_or_account_id): Promise<string> {
+    if (is_valid_uuid_string(email_address_or_account_id)) {
+      return email_address_or_account_id;
+    }
+    // lookup user by email address
+    const x = await user_search({
+      query: email_address_or_account_id,
+      limit: 1,
+      admin: true,
+    });
+    if (x.length == 0) {
+      throw Error(
+        `no user with email address '${email_address_or_account_id}'`
+      );
+    } else {
+      return x[0].account_id;
+    }
+  }
+
+  private async get_managers(id: string): Promise<string[]> {
+    const managers = (
+      await query({
+        query: { site_licenses: { id, managers: null } },
+      })
+    ).query?.site_licenses?.managers;
+    return managers ?? [];
+  }
+
+  private async set_managers(id: string, managers: string[]): Promise<void> {
+    await query({
+      query: { site_licenses: { id, managers } },
+    });
+  }
+
+  public async add_manager(
+    id: string,
+    email_address_or_account_id: string
+  ): Promise<void> {
+    const managers: string[] = await this.get_managers(id);
+    const account_id = await this.get_account_id(email_address_or_account_id);
+    if (managers.indexOf(account_id) == -1) {
+      managers.push(account_id);
+    }
+    await this.set_managers(id, managers);
+  }
+
+  public async remove_manager(
+    id: string,
+    email_address_or_account_id: string
+  ): Promise<void> {
+    const managers: string[] = await this.get_managers(id);
+    const account_id = await this.get_account_id(email_address_or_account_id);
+    const v = managers.filter((x) => x != account_id);
+    if (v.length < managers.length) {
+      await this.set_managers(id, v);
+    }
+  }
 }
 
 export const actions = redux.createActions(
   "admin-site-licenses",
   SiteLicensesActions
 );
-
