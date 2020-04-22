@@ -452,7 +452,7 @@ export class License extends Component<Props> {
             onClick={() => actions.cancel_editing(id)}
             disabled={this.props.saving}
           >
-            Cancel
+            Discard changes
           </Button>
           <Button
             disabled={

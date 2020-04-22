@@ -63,11 +63,10 @@ class UserSearch extends Component<ReduxProps> {
         </Col>
         <Col md={6}>
           <Button
-            bsStyle="warning"
             disabled={this.props.query == ""}
             onClick={() => actions.search()}
           >
-            Search for User
+            Search for Users
           </Button>
         </Col>
       </Row>
@@ -107,7 +106,11 @@ class UserSearch extends Component<ReduxProps> {
 
   render_result(): Rendered[] | Rendered {
     if (!this.props.result || this.props.result.size == 0) {
-      return <div>No results</div>;
+      if (this.props.query) {
+        return <div>No results</div>;
+      } else {
+        return;
+      }
     }
     const v: Rendered[] = [this.render_user_header()];
     this.props.result.forEach((user) => {

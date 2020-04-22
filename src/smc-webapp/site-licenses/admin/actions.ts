@@ -22,6 +22,12 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
 
   public async load(): Promise<void> {
     if (store.get("loading")) return;
+    const search = store.get("search");
+    if (!search) {
+      // Empty search = clear
+      this.setState({ site_licenses: [] });
+      return;
+    }
     try {
       this.setState({ loading: true });
       const x = await query({
@@ -195,6 +201,9 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
           matches_search = undefined;
         }
       }
+    } else {
+      this.setState({ matches_search: undefined, site_licenses: undefined });
+      return;
     }
     if (
       matches_search == null ||

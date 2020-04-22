@@ -65,11 +65,7 @@ class SiteLicenses extends Component<Props> {
 
   private render_loading(): Rendered {
     if (this.props.loading) {
-      return (
-        <div style={{ float: "right" }}>
-          <Loading theme="medium" />
-        </div>
-      );
+      return <Loading theme="medium" />;
     }
   }
 
@@ -120,16 +116,15 @@ class SiteLicenses extends Component<Props> {
     );
   }
 
-  private render_refresh_button(): Rendered {
+  private render_search_button(): Rendered {
     if (!this.props.view) return;
     return (
       <Button
         onClick={() => actions.load()}
-        disabled={this.props.loading}
+        disabled={this.props.loading || !this.props.search}
         style={{ margin: "15px 0" }}
       >
-        <Icon name="sync" spin={this.props.loading} />
-        <Space /> Refresh
+        Search for licenses
       </Button>
     );
   }
@@ -155,7 +150,7 @@ class SiteLicenses extends Component<Props> {
     if (!this.props.view) return;
     return (
       <DebounceInput
-        placeholder={"Search"}
+        placeholder={"Search for licenses"}
         style={{
           marginLeft: "5px",
           width: "40ex",
@@ -165,6 +160,11 @@ class SiteLicenses extends Component<Props> {
         }}
         value={this.props.search ?? ""}
         onChange={(e) => actions.set_search((e.target as any).value)}
+        onKeyDown={(e) => {
+          if (e.keyCode === 13) {
+            actions.load();
+          }
+        }}
       />
     );
   }
@@ -187,13 +187,15 @@ class SiteLicenses extends Component<Props> {
       <div style={{ margin: "0 30px" }}>
         {this.render_error()}
         <div>
-          {this.render_refresh_button()}
+          {this.render_search()}
+          <Space />
+          <Space />
+          {this.render_search_button()}
           <Space />
           <Space />
           {this.render_create_new_license()}
           <Space />
           <Space />
-          {this.render_search()}
           {this.render_search_restriction_note()}
           {this.render_loading()}
         </div>
