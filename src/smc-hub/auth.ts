@@ -475,30 +475,28 @@ class PassportManager {
     });
 
     // email verification
-    this.router.get(`${AUTH_BASE}/verify`, function (req, res) {
+    this.router.get(`${AUTH_BASE}/verify`, async (req, res) => {
       const { DOMAIN_NAME } = require("smc-util/theme");
       const path = require("path").join("/", this.base_url, "/app");
       const url = `${DOMAIN_NAME}${path}`;
       res.header("Content-Type", "text/html");
       res.header("Cache-Control", "private, no-cache, must-revalidate");
       if (!(req.query.token && req.query.email)) {
-        res.send("ERROR: I need email and corresponding token data");
+        res.send("ERROR: I need the email address and the corresponding token data");
         return;
       }
       const email = decodeURIComponent(req.query.email);
       // .toLowerCase() on purpose: some crazy MTAs transform everything to uppercase!
       const token = req.query.token.toLowerCase();
-      this.database.verify_email_check_token({
-        email_address: email,
-        token,
-        cb(err) {
-          if (err) {
-            res.send(email_verification_problem(url, err));
-          } else {
-            res.send(email_verified_successfully(url));
-          }
-        },
-      });
+      try {
+        await cb2(this.database.verify_email_check_token, {
+          email_address: email,
+          token,
+        });
+        res.send(email_verified_successfully(url));
+      } catch (err) {
+        res.send(email_verification_problem(url, err));
+      }
     });
 
     // prerequisite for setting up any SSO endpoints

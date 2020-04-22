@@ -168,4 +168,5 @@ export interface PostgreSQL extends EventEmitter {
     invalidate_remember_me?: boolean;
     cb: Function;
   });
+  verify_email_check_token(opts: { email_address: string; token: string });
 }
