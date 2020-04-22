@@ -19,6 +19,8 @@
 #
 ###############################################################################
 
+## TODO: rewrite/refactor this in typescript and move to misc-page/
+
 $ = window.$
 
 {IS_MOBILE} = require('./feature')
@@ -1891,9 +1893,9 @@ exports.drag_stop_iframe_enable = ->
 
 # for backward compatibility, and no circular import
 exports.open_popup_window = (args...) ->
-    require('./r_misc/open-browser-tab').open_popup_window(args...)
+    require('./misc-page/open-browser-tab').open_popup_window(args...)
 exports.open_new_tab = (args...) ->
-    require('./r_misc/open-browser-tab').open_new_tab(args...)
+    require('./misc-page/open-browser-tab').open_new_tab(args...)
 
 
 exports.get_cookie = (name) ->

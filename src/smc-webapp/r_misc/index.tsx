@@ -22,7 +22,6 @@ export { DropdownMenu, MenuItem, MenuDivider } from "./dropdown-menu";
 export { WindowedList } from "./windowed-list";
 export { UncommittedChanges } from "./uncommited-changes";
 export { DateTimePicker } from "./date-time-picker";
-export { open_new_tab, open_popup_window } from "./open-browser-tab";
 
 export const {
   MarkdownInput,

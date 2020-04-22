@@ -16,7 +16,7 @@ const { instantiate_snippets } = require("../assistant/main");
 import { NBGraderActions } from "./nbgrader/actions";
 import { CellToolbarName } from "./types";
 import { exec } from "../frame-editors/generic/client";
-import { open_popup_window } from "../r_misc";
+import { open_popup_window } from "../misc-page";
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
