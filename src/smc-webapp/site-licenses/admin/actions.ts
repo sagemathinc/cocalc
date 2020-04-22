@@ -32,8 +32,9 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
       this.setState({ loading: true });
       const x = await query({
         query: {
-          site_licenses: [
+          matching_site_licenses: [
             {
+              search,
               id: null,
               title: null,
               description: null,
@@ -51,7 +52,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
           ],
         },
       });
-      this.setState({ site_licenses: x.query.site_licenses });
+      this.setState({ site_licenses: x.query.matching_site_licenses });
       await this.update_usage_stats();
     } catch (err) {
       this.set_error(err);

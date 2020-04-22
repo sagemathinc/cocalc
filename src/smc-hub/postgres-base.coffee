@@ -42,6 +42,7 @@ fs      = require('fs')
 async   = require('async')
 escapeString = require('sql-string-escape')
 validator = require('validator')
+{callback2} = require('smc-util/async-utils')
 
 pg      = require('pg').native    # You might have to do: "apt-get install libpq5 libpq-dev"
 if not pg?
@@ -395,6 +396,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             'Concurrent queries (started and finished)',
             ['state']
         )
+
+    async_query: (opts) =>
+        return await callback2(@_query.bind(@), opts)
 
     _query: (opts) =>
         opts  = defaults opts,

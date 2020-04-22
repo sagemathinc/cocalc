@@ -131,6 +131,85 @@ Table({
   },
 });
 
+const MATCHING_SITE_LICENSES_LIMIT = 30; // pretty arbitrary limit.
+
+Table({
+  name: "matching_site_licenses",
+  fields: {
+    search: {
+      type: "string",
+      desc: "A search query",
+    },
+    id: true,
+    title: true,
+    description: true,
+    info: true,
+    expires: true,
+    activates: true,
+    created: true,
+    last_used: true,
+    managers: true,
+    restricted: true,
+    upgrades: true,
+    run_limit: true,
+    apply_limit: true,
+  },
+  rules: {
+    virtual: true, // don't make an actual table
+    desc:
+      "Site Licenses that match a query (default limit of ${MATCHING_SITE_LICENSES_LIMIT} most active)",
+    anonymous: false,
+    primary_key: ["id"],
+    user_query: {
+      get: {
+        admin: true,
+        fields: {
+          search: null,
+          id: null,
+          title: null,
+          description: null,
+          info: null,
+          expires: null,
+          activates: null,
+          created: null,
+          last_used: null,
+          managers: null,
+          restricted: null,
+          upgrades: null,
+          run_limit: null,
+          apply_limit: null,
+        },
+        // Actual query is implemented using this code below rather than an actual query directly.
+        // We also completely ignore the user-requested fields and just return everything, since
+        // in our application this is fine right now (since all fields are always requested).
+        async instead_of_query(database, opts, cb): Promise<void> {
+          try {
+            if (!opts.multi) {
+              throw Error(
+                "only query requesting multiple results is implemented"
+              );
+            }
+            let limit: number = MATCHING_SITE_LICENSES_LIMIT;
+            if (opts.options != null) {
+              for (const option of opts.options) {
+                if (option["limit"]) {
+                  limit = option["limit"];
+                }
+              }
+            }
+            cb(
+              undefined,
+              await database.matching_site_licenses(opts.query.search, limit)
+            );
+          } catch (err) {
+            cb(err);
+          }
+        },
+      },
+    },
+  },
+});
+
 // A virtual table that can be queried only by admins and gets global information
 // about how site licenses are currently being used by active projects.
 

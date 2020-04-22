@@ -11,6 +11,7 @@ import {
   rclass,
   TypedMap,
 } from "../../app-framework";
+import { plural } from "smc-util/misc";
 import { ErrorDisplay, Icon, Loading, Space, r_join } from "../../r_misc";
 import { SiteLicense } from "./types";
 import { actions } from "./actions";
@@ -170,11 +171,19 @@ class SiteLicenses extends Component<Props> {
   }
 
   private render_search_restriction_note(): Rendered {
-    if (this.props.matches_search != null && this.props.site_licenses != null) {
+    if (this.props.matches_search?.size) {
       return (
         <b style={{ marginLeft: "10px" }}>
-          Showing {this.props.matches_search.size} of{" "}
-          {this.props.site_licenses.size} licenses matching the search{" "}
+          Showing the most recent {this.props.matches_search.size}{" "}
+          {plural(this.props.matches_search.size, "license")} matching the
+          search <a onClick={() => actions.set_search("")}>(clear)</a>.
+        </b>
+      );
+    } else if (this.props.site_licenses?.size) {
+      return (
+        <b style={{ marginLeft: "10px" }}>
+          Showing the most recent {this.props.site_licenses.size}{" "}
+          {plural(this.props.site_licenses.size, "license")} matching the search{" "}
           <a onClick={() => actions.set_search("")}>(clear)</a>.
         </b>
       );

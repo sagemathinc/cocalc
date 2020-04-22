@@ -52,7 +52,7 @@ class UserSearch extends Component<ReduxProps> {
               width: "90%",
             }}
             value={this.props.query}
-            placeholder="Part of first name, last name, or email address..."
+            placeholder="Search for users by first name, last name, or email address..."
             onChange={(e) => actions.set_query(e.target.value)}
             onKeyDown={(e) => {
               if (e.keyCode === 13) {
@@ -106,7 +106,7 @@ class UserSearch extends Component<ReduxProps> {
 
   render_result(): Rendered[] | Rendered {
     if (!this.props.result || this.props.result.size == 0) {
-      if (this.props.query) {
+      if (this.props.query && this.props.result != null) {
         return <div>No results</div>;
       } else {
         return;
@@ -138,9 +138,6 @@ class UserSearch extends Component<ReduxProps> {
     if (!this.props.view) return;
     return (
       <div style={{ margin: "0 30px" }}>
-        <div style={{ color: "#666", marginBottom: "5px" }}>
-          Search for users:
-        </div>
         <div>
           {this.render_form()}
           {this.render_status()}
