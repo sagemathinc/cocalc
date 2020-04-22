@@ -23,7 +23,7 @@ import * as message from "smc-util/message";
 
 // Maximum number of outstanding concurrent messages (that have responses)
 // to send at once to hub-websocket.
-const MAX_CONCURRENT: number = 25;
+const MAX_CONCURRENT: number = 10;
 
 export class HubClient {
   private client: WebappClient;
@@ -64,7 +64,7 @@ export class HubClient {
     update things for no reason.  It also impacts the color of the
     connection indicator, so throttling will make that color change a
     bit more laggy.  That's probably worth it. */
-    this.emit_mesg_data = throttle(this.emit_mesg_data.bind(this), 10000);
+    this.emit_mesg_data = throttle(this.emit_mesg_data.bind(this), 3000);
 
     // never attempt to reconnect more than once per 10s, no matter what.
     this.reconnect = throttle(this.reconnect.bind(this), 10000);
