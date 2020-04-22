@@ -179,6 +179,17 @@ export class KernelSelector extends Component<
     );
   }
 
+  private render_custom(): Rendered {
+    return (
+      <Row style={row_style}>
+        <h4>Custom kernels</h4>
+        <a onClick={() => this.props.actions.custom_jupyter_kernel_docs()}>
+          How to create a custom kernel...
+        </a>
+      </Row>
+    );
+  }
+
   // render_all_selected_link() {
   //   if (this.props.kernels_by_name == null) return;
   //   const name = this.state.selected_kernel;
@@ -291,7 +302,7 @@ export class KernelSelector extends Component<
     } else {
       const name = this.kernel_name(this.props.kernel);
       const current =
-        name != null ? <>The currently selected kernel is "{name}".</> : "";
+        name != null ? <>{" "}The currently selected kernel is "{name}".</> : "";
 
       return (
         <Row style={row_style}>
@@ -362,6 +373,7 @@ export class KernelSelector extends Component<
           {this.render_dont_ask_again()}
           {this.render_suggested()}
           {this.render_all()}
+          {this.render_custom()}
           <hr />
           {this.render_footer()}
         </>

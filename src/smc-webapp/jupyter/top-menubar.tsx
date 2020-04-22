@@ -372,7 +372,8 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
       "<Change kernel...",
     ]
       .concat((items as any) || [])
-      .concat(["", "refresh kernels"]);
+      .concat(["", "refresh kernels"])
+      .concat(["", "custom kernel"]);
 
     return this.render_menu({
       heading: "Kernel",
