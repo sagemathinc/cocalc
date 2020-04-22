@@ -269,15 +269,6 @@ const TwitterStrategyConf: StrategyConf = {
   },
 };
 
-//const Oauth2StrategyConf: StrategyConf = {
-//  strategy: "oauth2",
-//  PassportStrategyConstructor: require("@passport-next/passport-oauth2").Strategy,
-//  login_info: {
-//      id: "id"
-//    };
-//  }
-//};
-
 // generalized OpenID (OAuth2) profile parser for the "userinfo" endpoint
 // the returned structure matches passport.js's conventions
 function parse_openid_profile(json: any) {
