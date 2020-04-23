@@ -101,21 +101,34 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
       "https://doc.cocalc.com/billing.html#what-exactly-is-the-internet-access-quota";
     const memberquota =
       "https://doc.cocalc.com/billing.html#what-is-member-hosting";
-    const upgrade = (
-      <a
-        style={a_style}
-        onClick={() => {
-          redux.getActions("page").set_active_tab("account");
-          redux.getActions("account").set_active_tab("billing");
-        }}
-      >
-        buy and apply upgrades
-      </a>
+    const buy_and_upgrade = (
+      <>
+        <a
+          style={a_style}
+          onClick={() => {
+            redux.getActions("page").set_active_tab("account");
+            redux.getActions("account").set_active_tab("billing");
+          }}
+        >
+          buy a subscription
+        </a>{" "}
+        and{" "}
+        <a
+          style={a_style}
+          onClick={() => {
+            redux
+              .getProjectActions(this.props.project_id)
+              .set_active_tab("settings");
+          }}
+        >
+          apply upgrades
+        </a>
+      </>
     );
     if (host && internet) {
       return (
         <span>
-          {trial_project} – {upgrade} or{" "}
+          {trial_project} – {buy_and_upgrade} or{" "}
           {humanizeList([...no_host, no_internet])}
           {"."}
         </span>
@@ -123,7 +136,7 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
     } else if (host) {
       return (
         <span>
-          {trial_project} – Upgrade{" "}
+          {trial_project} – upgrade{" "}
           <A href={memberquota} style={a_style}>
             Member Hosting
           </A>{" "}
@@ -134,7 +147,7 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
     } else if (internet) {
       return (
         <span>
-          <strong>No internet access</strong> – Upgrade{" "}
+          <strong>No internet access</strong> – upgrade{" "}
           <A href={inetquota} style={a_style}>
             Internet Access
           </A>{" "}
