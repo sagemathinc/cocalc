@@ -1071,10 +1071,26 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cb     : required     # cb(err, list of {id:?, first_name:?, last_name:?, email_address:?}), where the
                                   # email_address *only* occurs in search queries that are by email_address -- we do not reveal
                                   # email addresses of users queried by name.
+
+        if opts.admin and misc.is_valid_uuid_string(opts.query)
+            # One special case: when the query is a uuid, in which case we
+            # just return that account (this is ONLY for admins) since
+            # this includes the email address, except NOT an error if
+            # there is no match
+            @get_account
+                account_id:opts.query
+                columns:['account_id', 'first_name', 'last_name', 'email_address', 'last_active', 'created', 'banned']
+                cb: (err, account) =>
+                    if err
+                        opts.cb(undefined, [])
+                    else
+                        opts.cb(undefined, [account])
+            return
+
         {string_queries, email_queries} = misc.parse_user_search(opts.query)
 
         if opts.admin
-            # For admin we just do substring queries.
+            # For admin we just do substring queries:
             for x in email_queries
                 string_queries.push([x])
             email_queries = []

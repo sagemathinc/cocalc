@@ -22,6 +22,8 @@ import {
 } from "./upgrades";
 import { Projects } from "../../admin/users/projects";
 import { DisplayManagers, EditManagers } from "./managers";
+import { UserMap } from "../../todo-types";
+import { ManagerInfo } from "./types";
 
 const BACKGROUNDS = ["white", "#f8f8f8"];
 
@@ -32,6 +34,8 @@ interface Props {
   license: TypedMap<SiteLicense>;
   edits?: TypedMap<SiteLicense>;
   usage_stats?: number; // for now this is just the number of projects running right now with the license; later it might have hourly/daily/weekly, active, etc.
+  user_map?: UserMap;
+  manager_info?: ManagerInfo;
 }
 
 function format_as_label(field: string): string {
@@ -303,7 +307,14 @@ export class License extends Component<Props> {
           }
           break;
         case "account_id[]":
-          x = <DisplayManagers managers={val} />;
+          x = (
+            <DisplayManagers
+              managers={val}
+              user_map={this.props.user_map}
+              license_id={this.props.license.get("id")}
+              manager_info={this.props.manager_info}
+            />
+          );
           break;
         case "upgrades":
           x = <DisplayUpgrades upgrades={val} />;

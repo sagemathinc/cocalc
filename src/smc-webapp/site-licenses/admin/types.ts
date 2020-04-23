@@ -86,6 +86,16 @@ export const license_fields: {
 
 // export const source_fields = ["expires", "activates", "created", "last_used"];
 
+export type ManagerInfo = TypedMap<{
+  license_id: string;
+  account_id: string;
+  email_address?: string;
+  first_name?: string;
+  last_name?: string;
+  created?: Date;
+  last_active?: Date;
+}>;
+
 export interface SiteLicensesState {
   view?: boolean; // if true, open for viewing/editing
   error?: string;
@@ -98,4 +108,5 @@ export interface SiteLicensesState {
   edits?: Map<string, TypedMap<SiteLicense>>;
   search?: string;
   usage_stats?: Map<string, number>; // {license_id:number of running projects using that license}
+  manager_info?: ManagerInfo; // if given, show more info about this manager
 }

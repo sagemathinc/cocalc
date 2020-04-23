@@ -1,6 +1,11 @@
 import { Map, Set } from "immutable";
 import { Actions, redux, TypedMap } from "../../app-framework";
-import { SiteLicensesState, SiteLicense, license_field_names } from "./types";
+import {
+  SiteLicensesState,
+  SiteLicense,
+  license_field_names,
+  ManagerInfo,
+} from "./types";
 import { store } from "./store";
 import {
   query,
@@ -252,6 +257,36 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
     const v = managers.filter((x) => x != account_id);
     if (v.length < managers.length) {
       await this.set_managers(id, v);
+    }
+  }
+
+  public async show_manager_info(
+    license_id: string,
+    account_id: string | undefined
+  ): Promise<void> {
+    if (account_id == null) {
+      this.setState({ manager_info: undefined });
+      return;
+    }
+    let manager_info: ManagerInfo = Map({ license_id, account_id }) as any;
+    this.setState({ manager_info });
+    // also grab more info using admin powers, but don't block on this.
+    const x = await user_search({ query: account_id, admin: true });
+    if (x.length == 0) return;
+    // make sure same info still
+    if (store.getIn(["manager_info", "account_id"]) == account_id) {
+      for (const field of [
+        "first_name",
+        "last_name",
+        "last_active",
+        "created",
+        "banned",
+        "email_address",
+      ]) {
+        // TODO: I'm being typescript lazy here.
+        manager_info = manager_info.set(field as any, x[0][field]) as any;
+      }
+      this.setState({ manager_info });
     }
   }
 }

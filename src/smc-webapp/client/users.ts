@@ -55,9 +55,9 @@ export class UsersClient {
     return results;
   }
 
-  // Gets username with given account_id.   The aggregate makes it so
-  // this never calls to the backend more than once at a time (per minute)
-  // for a given account_id.
+  // Gets username with given account_id.   We use caching and aggregate to
+  // makes it so this never calls to the backend more than once at a time
+  // (per minute) for a given account_id.
   public async get_username(
     account_id: string
   ): Promise<{ first_name: string | null; last_name: string | null }> {
