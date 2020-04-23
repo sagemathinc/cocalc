@@ -1,6 +1,6 @@
 import * as React from "react";
 import { ErrorDisplay } from "smc-webapp/r_misc";
-const { AccountPage } = require("../../account_page");
+import { AccountPage } from "../../account/account-page";
 
 interface Props {
   public_view: boolean;
