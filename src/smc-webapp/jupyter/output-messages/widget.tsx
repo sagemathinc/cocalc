@@ -6,7 +6,7 @@ const $ = require("jquery");
 
 import { Map, Set, List, fromJS } from "immutable";
 
-import { Tabs, Tab } from "react-bootstrap";
+import { Tabs, Tab } from "../../antd-bootstrap";
 
 import {
   React,
@@ -345,8 +345,9 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
     const v: Rendered[] = [];
     let i = 0;
     for (const model_id of this.state.react_view.toJS()) {
+      const key = `${i}`;
       v.push(
-        <Tab eventKey={i} key={i} title={this.model.attributes._titles[i]}>
+        <Tab eventKey={key} key={key} title={this.model.attributes._titles[i]}>
           <Widget
             value={fromJS({ model_id })}
             actions={this.props.actions}
@@ -359,7 +360,7 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
 
     return (
       <Tabs
-        activeKey={this.model.attributes.selected_index}
+        activeKey={`${this.model.attributes.selected_index}`}
         onSelect={(selected_index) => {
           if (this.model) {
             this.model.set_state({ selected_index });

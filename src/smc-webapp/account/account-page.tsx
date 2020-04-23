@@ -15,8 +15,7 @@ import {
   Rendered,
   Component,
 } from "../app-framework";
-import { Tab, Tabs } from "react-bootstrap";
-import { Col, Row } from "../antd-bootstrap";
+import { Col, Row, Tab, Tabs } from "../antd-bootstrap";
 
 //import { LandingPage } from "../landing_page";
 const { LandingPage } = require("../landing_page");
@@ -228,11 +227,29 @@ class AccountPage extends Component<Props> {
     );
   }
 
-  private render_special_tabs(): Rendered[] | void {
+  private render_account_tab(): Rendered {
+    return (
+      <Tab
+        key="account"
+        eventKey="account"
+        title={
+          <span>
+            <Icon name="wrench" /> Preferences
+          </span>
+        }
+      >
+        {this.props.active_page == null || this.props.active_page === "account"
+          ? this.render_account_settings()
+          : undefined}
+      </Tab>
+    );
+  }
+
+  private render_special_tabs(): Rendered[] {
     // adds a few conditional tabs
     if (this.props.is_anonymous) {
       // None of these make any sense for a temporary anonymous account.
-      return;
+      return [];
     }
     const v: Rendered[] = [];
     if (this.props.is_commercial) {
@@ -319,6 +336,9 @@ class AccountPage extends Component<Props> {
         <div style={{ margin: "5% 10%" }}>{this.render_account_settings()}</div>
       );
     }
+    const tabs: Rendered[] = [this.render_account_tab()].concat(
+      this.render_special_tabs()
+    );
     return (
       <Row>
         <Col md={12}>
@@ -326,27 +346,12 @@ class AccountPage extends Component<Props> {
             <SignOut everywhere={false} danger={true} />
           </div>
           <Tabs
-            activeKey={this.props.active_page}
+            activeKey={this.props.active_page ?? "account"}
             onSelect={this.handle_select.bind(this)}
             animation={false}
             style={{ paddingTop: "1em" }}
-            id="account-page-tabs"
           >
-            <Tab
-              key="account"
-              eventKey="account"
-              title={
-                <span>
-                  <Icon name="wrench" /> Preferences
-                </span>
-              }
-            >
-              {this.props.active_page == null ||
-              this.props.active_page === "account"
-                ? this.render_account_settings()
-                : undefined}
-            </Tab>
-            {this.render_special_tabs()}
+            {tabs}
           </Tabs>
         </Col>
       </Row>

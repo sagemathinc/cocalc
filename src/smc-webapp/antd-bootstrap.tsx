@@ -9,10 +9,10 @@ some serious problems / bug /issues with using our stupid old react-bootstrap
 *at all*, hence this.
 */
 
-// What we haven't converted yet, but do use in CoCalc:
+// TODO: What we haven't converted yet, but do use in CoCalc:
 export { FormControl, FormGroup, Form, InputGroup } from "react-bootstrap";
 
-import { React } from "./app-framework";
+import { React, Rendered } from "./app-framework";
 import { r_join, Space } from "./r_misc";
 
 import * as antd from "antd";
@@ -134,4 +134,63 @@ export function Col(props: any) {
     }
   }
   return <antd.Col {...props2}>{props.children}</antd.Col>;
+}
+
+export function Tabs(props: {
+  id?: string;
+  key?: string;
+  activeKey: string;
+  onSelect?: (activeKey: string) => void;
+  animation?: boolean;
+  style?: React.CSSProperties;
+  children: any;
+}) {
+  // We do this because for antd, "There must be `tab` property on children of Tabs."
+  let tabs: Rendered[] | Rendered = [];
+  if (Symbol.iterator in Object(props.children)) {
+    for (const x of props.children) {
+      if (!x.props) continue;
+      tabs.push(Tab(x.props));
+    }
+  } else {
+    tabs = Tab(props.children);
+  }
+  return (
+    <antd.Tabs
+      activeKey={props.activeKey}
+      onChange={props.onSelect}
+      animated={props.animation ?? false}
+      style={props.style}
+    >
+      {tabs}
+    </antd.Tabs>
+  );
+}
+
+export function Tab(props: {
+  id?: string;
+  key?: string;
+  eventKey?: string;
+  title: any;
+  children?: any;
+  style?: React.CSSProperties;
+}) {
+  let title = props.title;
+  if (!title) {
+    // In case of useless title, some sort of fallback.
+    // This is important since a tab with no title can't
+    // be selected.
+    title = props.eventKey ?? props.key;
+    if (!title) title = "Tab";
+  }
+  // Get rid of the fade transition, which is inconsistent with
+  // react-bootstrap (and also really annoying to me). See
+  // https://github.com/ant-design/ant-design/issues/951#issuecomment-176291275
+  const style = { ...{ transition: "0s" }, ...props.style };
+
+  return (
+    <antd.Tabs.TabPane key={props.eventKey} tab={title} style={style}>
+      {props.children}
+    </antd.Tabs.TabPane>
+  );
 }
