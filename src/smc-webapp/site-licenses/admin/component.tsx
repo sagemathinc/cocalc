@@ -72,7 +72,9 @@ class SiteLicenses extends Component<Props> {
 
   private render_loading(): Rendered {
     if (this.props.loading) {
-      return <Loading theme="medium" />;
+      return (
+        <Loading theme="medium" style={{ float: "right", fontSize: "20pt" }} />
+      );
     }
   }
 
@@ -159,7 +161,7 @@ class SiteLicenses extends Component<Props> {
     if (!this.props.view) return;
     return (
       <DebounceInput
-        placeholder={"Search for licenses"}
+        placeholder={"Search for licenses..."}
         style={{
           marginLeft: "5px",
           width: "40ex",
@@ -169,7 +171,7 @@ class SiteLicenses extends Component<Props> {
         }}
         value={this.props.search ?? ""}
         onChange={(e) => actions.set_search((e.target as any).value)}
-        onKeyDown={(e) => {
+        onKeyUp={(e) => {
           if (e.keyCode === 13) {
             actions.load();
           }

@@ -1072,13 +1072,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                                   # email_address *only* occurs in search queries that are by email_address -- we do not reveal
                                   # email addresses of users queried by name.
 
-        if opts.admin and misc.is_valid_uuid_string(opts.query)
-            # One special case: when the query is a uuid, in which case we
+        if opts.admin and (misc.is_valid_uuid_string(opts.query) or misc.is_valid_email_address(opts.query))
+            # One special case: when the query is just an email address or uuid, in which case we
             # just return that account (this is ONLY for admins) since
             # this includes the email address, except NOT an error if
             # there is no match
             @get_account
-                account_id:opts.query
+                account_id : if misc.is_valid_uuid_string(opts.query) then opts.query
+                email_address : if misc.is_valid_email_address(opts.query) then opts.query
                 columns:['account_id', 'first_name', 'last_name', 'email_address', 'last_active', 'created', 'banned']
                 cb: (err, account) =>
                     if err
@@ -1086,6 +1087,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     else
                         opts.cb(undefined, [account])
             return
+
 
         {string_queries, email_queries} = misc.parse_user_search(opts.query)
 

@@ -13,7 +13,13 @@ import {
   plural,
 } from "smc-util/misc2";
 import { hours_ago, days_ago, weeks_ago, months_ago } from "smc-util/misc";
-import { CopyToClipBoard, DateTimePicker, TimeAgo, Icon } from "../../r_misc";
+import {
+  CopyToClipBoard,
+  DateTimePicker,
+  TimeAgo,
+  Icon,
+  Space,
+} from "../../r_misc";
 import { Checkbox } from "../../antd-bootstrap";
 import {
   DisplayUpgrades,
@@ -233,7 +239,7 @@ export class License extends Component<Props> {
                 background: val ? undefined : "yellow",
               }}
             >
-              {val ? val : "Please enter a description"}
+              {val ? val : "Enter a description"}
             </div>
           );
           break;
@@ -245,7 +251,7 @@ export class License extends Component<Props> {
                 background: val ? undefined : "yellow",
               }}
             >
-              {val ? val : "Please enter a title"}
+              {val ? val : "Enter a title"}
             </div>
           );
           break;
@@ -259,8 +265,7 @@ export class License extends Component<Props> {
             if (!val) {
               x = (
                 <span style={{ background: "yellow" }}>
-                  <Icon name="warning" /> Never expires -- you should probably
-                  set an expiration date
+                  <Icon name="warning" /> Never expires -- set an expiration date
                 </span>
               );
             } else if (val <= new Date()) {
@@ -286,8 +291,8 @@ export class License extends Component<Props> {
                     color: "white",
                   }}
                 >
-                  <Icon name="warning" /> Never actives -- please set an
-                  activation date!
+                  <Icon name="warning" /> Never actives -- set an activation
+                  date!
                 </div>
               );
             } else if (val > new Date()) {
@@ -340,7 +345,7 @@ export class License extends Component<Props> {
               background: "yellow",
             }}
           >
-            <Icon name="warning" /> No limit -- you should probably set a limit
+            <Icon name="warning" /> No limit -- set a limit
           </div>
         );
       }
@@ -465,6 +470,7 @@ export class License extends Component<Props> {
           >
             Discard changes
           </Button>
+          <Space />
           <Button
             disabled={
               this.props.edits == null ||

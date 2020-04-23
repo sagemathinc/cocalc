@@ -6,6 +6,7 @@ import { User } from "../../users";
 import { r_join, Space } from "../../r_misc";
 import { Button } from "../../antd-bootstrap";
 import { Popconfirm } from "antd";
+import { alert_message } from "../../alerts";
 
 export interface DisplayProps {
   managers: undefined | List<string>;
@@ -13,17 +14,31 @@ export interface DisplayProps {
   license_id: string;
   manager_info?: ManagerInfo;
 }
-export class DisplayManagers extends Component<DisplayProps> {
-  private show_manager_info(account_id?: string | undefined): void {
-    redux
-      .getActions("admin-site-licenses")
-      .show_manager_info(this.props.license_id, account_id);
+
+interface State {
+  add_value: string;
+}
+
+export class DisplayManagers extends Component<DisplayProps, State> {
+  constructor(props, state) {
+    super(props, state);
+    this.state = { add_value: "" };
   }
 
-  private remove_manager(account_id: string): void {
-    redux
-      .getActions("admin-site-licenses")
-      .remove_manager(this.props.license_id, account_id);
+  private show_manager_info(account_id?: string | undefined): void {
+    const actions = redux.getActions("admin-site-licenses");
+    actions.show_manager_info(this.props.license_id, account_id);
+  }
+
+  private async remove_manager(account_id: string): Promise<void> {
+    const actions = redux.getActions("admin-site-licenses");
+    this.show_manager_info();
+    try {
+      await actions.remove_manager(this.props.license_id, account_id);
+      await actions.load();
+    } catch (err) {
+      alert_message({ type: "error", message: err });
+    }
   }
 
   private render_manager_buttons(account_id: string): Rendered {
@@ -37,7 +52,7 @@ export class DisplayManagers extends Component<DisplayProps> {
           okText={"Yes"}
           cancelText={"Cancel"}
         >
-          <Button>Remove as manager...</Button>
+          <Button>Remove this manager...</Button>
         </Popconfirm>
         <Space />
         <Button onClick={() => this.show_manager_info()}>Close</Button>
@@ -78,6 +93,47 @@ export class DisplayManagers extends Component<DisplayProps> {
       </a>
     );
   }
+
+  private async add_manager(): Promise<void> {
+    const actions = redux.getActions("admin-site-licenses");
+    const value = this.state.add_value.trim();
+    if (!value) return;
+    this.setState({ add_value: "" });
+    try {
+      await actions.add_manager(this.props.license_id, value);
+      await actions.load();
+    } catch (err) {
+      alert_message({ type: "error", message: err });
+    }
+  }
+
+  private render_add(): Rendered {
+    return (
+      <div style={{ float: "right" }}>
+        <input
+          style={{ width: "40ex" }}
+          placeholder="Email address or account_id..."
+          value={this.state.add_value}
+          onChange={(e) =>
+            this.setState({ add_value: (e.target as any).value })
+          }
+          onKeyUp={(e) => {
+            if (e.keyCode === 13) {
+              this.add_manager();
+            }
+          }}
+        />
+        <Space />
+        <Button
+          disabled={!this.state.add_value.trim()}
+          onClick={() => this.add_manager()}
+        >
+          Add manager
+        </Button>
+      </div>
+    );
+  }
+
   public render(): Rendered {
     if (this.props.managers == null || this.props.user_map == null) {
       return <span />;
@@ -86,8 +142,12 @@ export class DisplayManagers extends Component<DisplayProps> {
     for (const account_id of this.props.managers ?? []) {
       v.push(this.render_user(account_id));
     }
+    if (v.length == 0) {
+      return this.render_add();
+    }
     return (
       <div>
+        {this.render_add()}
         <div>{r_join(v, ", ")}</div>
         {this.render_manager_info()}
       </div>
