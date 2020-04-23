@@ -49,6 +49,8 @@ import { keys, is_valid_uuid_string } from "../smc-util/misc2";
 
 import { AdminUsersActions } from "./admin/users/actions";
 import { AdminUsersStore } from "./admin/users/store";
+import { SiteLicensesActions } from "./site-licenses/admin/actions";
+import { SiteLicensesStore } from "./site-licenses/admin/store";
 
 import { AccountStore, AccountActions } from "./account";
 
@@ -210,6 +212,7 @@ export class AppRedux {
   getActions(name: "billing"): any;
   getActions(name: "page"): any;
   getActions(name: "admin-users"): AdminUsersActions;
+  getActions(name: "admin-site-licenses"): SiteLicensesActions;
   getActions(name: "mentions"): MentionsActions;
   getActions(name: "file_use"): FileUseActions | undefined;
   getActions(name: { project_id: string }): ProjectActions;
@@ -272,6 +275,7 @@ export class AppRedux {
   getStore(name: "billing"): any;
   getStore(name: "page"): any;
   getStore(name: "admin-users"): AdminUsersStore;
+  getStore(name: "admin-site-licenses"): SiteLicensesStore;
   getStore(name: "mentions"): MentionsStore;
   getStore(name: "file_use"): FileUseStore | undefined;
   getStore(name: "customize"): any;

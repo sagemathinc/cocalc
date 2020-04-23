@@ -15,11 +15,13 @@ export interface QueryOptions {
   table?: string;
   where?: QueryWhere;
   query?: string;
-  params?: string[];
+  params?: (string | number | Date)[];  // todo -- maybe too specific?
   cache?: boolean;
   retry_until_success?: any; // todo
   cb?: Function;
 }
+
+export interface AsyncQueryOptions extends Omit<QueryOptions, "cb"> {}
 
 export type QueryResult = { [key: string]: any };
 
@@ -38,14 +40,20 @@ export interface ChangefeedOptions {
 
 export interface PostgreSQL extends EventEmitter {
   _dbg(desc: string): Function;
+
   _stop_listening(table: string, select: QuerySelect, watch: string[]);
+
   _query(opts: QueryOptions): void;
+
+  async_query(opts: AsyncQueryOptions): Promise<any>;
+
   _listen(
     table: string,
     select: QuerySelect,
     watch: string[],
     cb: Function
   ): void;
+
   changefeed(opts: ChangefeedOptions): Changes;
 
   account_ids_to_usernames(opts: { account_ids: string[]; cb: Function }): void;
