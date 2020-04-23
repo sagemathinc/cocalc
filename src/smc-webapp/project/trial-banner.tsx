@@ -213,7 +213,7 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
 
     const min_fontsize = 10;
     const age_ms: number = server_time().getTime() - proj_created.getTime();
-    const age_days = age_ms / (24 * 60 * 1000);
+    const age_days = age_ms / (24 * 60 * 60 * 1000);
     const font_size = Math.min(14, min_fontsize + age_days / 15);
     const styles: React.CSSProperties = {
       padding: "5px 10px",
