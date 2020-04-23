@@ -2,7 +2,7 @@ import { React, Component, Rendered } from "smc-webapp/app-framework";
 
 import { Button } from "react-bootstrap";
 
-import { Icon, ErrorDisplay } from "smc-webapp/r_misc";
+import { CopyToClipBoard, Icon, ErrorDisplay } from "smc-webapp/r_misc";
 
 import { webapp_client } from "../../webapp-client";
 
@@ -83,7 +83,7 @@ export class PasswordReset extends Component<Props, State> {
       <div>
         <div style={{ marginTop: "20px" }}>
           {" "}
-          Copy and paste the link below and send it to{" "}
+          Send this somehow to{" "}
           <a
             href={`mailto:${this.props.email_address}`}
             target="_blank"
@@ -92,14 +92,8 @@ export class PasswordReset extends Component<Props, State> {
             {this.props.email_address}.
           </a>
           <br />
-          Tell them to visit the link to reset their password sometime within
-          the next 24 hours.
-          <br />
-          This link can only be used once.
+          <CopyToClipBoard value={this.state.link} />
         </div>
-        <pre ref="link" style={{ margin: "15px", padding: "20px" }}>
-          {this.state.link}
-        </pre>
       </div>
     );
   }
