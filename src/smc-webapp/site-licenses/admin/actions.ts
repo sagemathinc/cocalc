@@ -1,12 +1,19 @@
 import { Map, Set } from "immutable";
 import { Actions, redux, TypedMap } from "../../app-framework";
-import { SiteLicensesState, SiteLicense, license_field_names } from "./types";
+import {
+  SiteLicensesState,
+  SiteLicense,
+  license_field_names,
+  ManagerInfo,
+} from "./types";
 import { store } from "./store";
-import { query, server_time } from "../../frame-editors/generic/client";
-import { uuid } from "smc-util/misc2";
-import { search_split, search_match } from "smc-util/misc";
+import {
+  query,
+  server_time,
+  user_search,
+} from "../../frame-editors/generic/client";
+import { is_valid_uuid_string, uuid } from "smc-util/misc2";
 import { normalize_upgrades_for_save } from "./upgrades";
-import { debounce } from "lodash";
 
 export class SiteLicensesActions extends Actions<SiteLicensesState> {
   public set_error(error: any): void {
@@ -22,12 +29,19 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
 
   public async load(): Promise<void> {
     if (store.get("loading")) return;
+    const search = store.get("search");
+    if (!search) {
+      // Empty search = clear
+      this.setState({ site_licenses: [] });
+      return;
+    }
     try {
       this.setState({ loading: true });
       const x = await query({
         query: {
-          site_licenses: [
+          matching_site_licenses: [
             {
+              search,
               id: null,
               title: null,
               description: null,
@@ -45,7 +59,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
           ],
         },
       });
-      this.setState({ site_licenses: x.query.site_licenses });
+      this.setState({ site_licenses: x.query.matching_site_licenses });
       await this.update_usage_stats();
     } catch (err) {
       this.set_error(err);
@@ -173,40 +187,8 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
     this.setState({ show_projects });
   }
 
-  public update_search(): void {
-    const search = store.get("search", "").trim().toLowerCase();
-    let matches_search: undefined | Set<string> = undefined;
-    if (search) {
-      // figure out what matches the search
-      const site_licenses = store.get("site_licenses");
-      if (site_licenses != null) {
-        const terms = search_split(search);
-        matches_search = Set<string>([]);
-        const x = site_licenses.toJS();
-        for (const license of x) {
-          if (search_match(JSON.stringify(license).toLowerCase(), terms)) {
-            matches_search = matches_search.add(license.id);
-          }
-        }
-        if (
-          matches_search != null &&
-          matches_search.size == site_licenses.size
-        ) {
-          matches_search = undefined;
-        }
-      }
-    }
-    if (
-      matches_search == null ||
-      !matches_search.equals(store.get("matches_search"))
-    ) {
-      this.setState({ matches_search });
-    }
-  }
-
   public set_search(search: string): void {
     this.setState({ search });
-    this.update_search();
   }
 
   public async update_usage_stats(): Promise<void> {
@@ -219,12 +201,97 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
       this.set_error(err);
     }
   }
+
+  private async get_account_id(email_address_or_account_id): Promise<string> {
+    if (is_valid_uuid_string(email_address_or_account_id)) {
+      return email_address_or_account_id;
+    }
+    // lookup user by email address
+    const x = await user_search({
+      query: email_address_or_account_id,
+      limit: 1,
+      admin: true,
+    });
+    if (x.length == 0) {
+      throw Error(
+        `no user with email address '${email_address_or_account_id}'`
+      );
+    } else {
+      return x[0].account_id;
+    }
+  }
+
+  private async get_managers(id: string): Promise<string[]> {
+    const managers = (
+      await query({
+        query: { site_licenses: { id, managers: null } },
+      })
+    ).query?.site_licenses?.managers;
+    return managers ?? [];
+  }
+
+  private async set_managers(id: string, managers: string[]): Promise<void> {
+    await query({
+      query: { site_licenses: { id, managers } },
+    });
+  }
+
+  public async add_manager(
+    id: string,
+    email_address_or_account_id: string
+  ): Promise<void> {
+    const managers: string[] = await this.get_managers(id);
+    const account_id = await this.get_account_id(email_address_or_account_id);
+    if (managers.indexOf(account_id) == -1) {
+      managers.push(account_id);
+    }
+    await this.set_managers(id, managers);
+  }
+
+  public async remove_manager(
+    id: string,
+    email_address_or_account_id: string
+  ): Promise<void> {
+    const managers: string[] = await this.get_managers(id);
+    const account_id = await this.get_account_id(email_address_or_account_id);
+    const v = managers.filter((x) => x != account_id);
+    if (v.length < managers.length) {
+      await this.set_managers(id, v);
+    }
+  }
+
+  public async show_manager_info(
+    license_id: string,
+    account_id: string | undefined
+  ): Promise<void> {
+    if (account_id == null) {
+      this.setState({ manager_info: undefined });
+      return;
+    }
+    let manager_info: ManagerInfo = Map({ license_id, account_id }) as any;
+    this.setState({ manager_info });
+    // also grab more info using admin powers, but don't block on this.
+    const x = await user_search({ query: account_id, admin: true });
+    if (x.length == 0) return;
+    // make sure same info still
+    if (store.getIn(["manager_info", "account_id"]) == account_id) {
+      for (const field of [
+        "first_name",
+        "last_name",
+        "last_active",
+        "created",
+        "banned",
+        "email_address",
+      ]) {
+        // TODO: I'm being typescript lazy here.
+        manager_info = manager_info.set(field as any, x[0][field]) as any;
+      }
+      this.setState({ manager_info });
+    }
+  }
 }
 
 export const actions = redux.createActions(
   "admin-site-licenses",
   SiteLicensesActions
 );
-
-// why 200?  https://stackoverflow.com/questions/4098678/average-inter-keypress-time-when-typing
-actions.update_search = debounce(actions.update_search.bind(actions), 200);

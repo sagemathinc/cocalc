@@ -40,8 +40,8 @@ import { WindowedList } from "../../r_misc/windowed-list";
 import { LogSearch } from "./search";
 import { LogEntry } from "./log-entry";
 import { ProjectLogMap, EventRecord } from "./types";
-import { ProjectActions } from "smc-webapp/project_store";
-import { UserMap } from "smc-webapp/todo-types";
+import { ProjectActions } from "../../project_store";
+import { UserMap } from "../../todo-types";
 
 interface ReactProps {
   project_id: string;

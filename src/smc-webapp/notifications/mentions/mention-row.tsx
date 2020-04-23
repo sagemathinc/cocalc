@@ -5,7 +5,7 @@ import { MentionInfo } from "./types";
 
 const { Avatar } = require("../../other-users");
 import { Icon, TimeAgo } from "../../r_misc";
-const { User } = require("../../users");
+import { User } from "../../users";
 
 export function MentionRow({
   id,

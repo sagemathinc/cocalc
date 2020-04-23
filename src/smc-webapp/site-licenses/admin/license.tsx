@@ -13,7 +13,13 @@ import {
   plural,
 } from "smc-util/misc2";
 import { hours_ago, days_ago, weeks_ago, months_ago } from "smc-util/misc";
-import { CopyToClipBoard, DateTimePicker, TimeAgo, Icon } from "../../r_misc";
+import {
+  CopyToClipBoard,
+  DateTimePicker,
+  TimeAgo,
+  Icon,
+  Space,
+} from "../../r_misc";
 import { Checkbox } from "../../antd-bootstrap";
 import {
   DisplayUpgrades,
@@ -22,6 +28,8 @@ import {
 } from "./upgrades";
 import { Projects } from "../../admin/users/projects";
 import { DisplayManagers, EditManagers } from "./managers";
+import { UserMap } from "../../todo-types";
+import { ManagerInfo } from "./types";
 
 const BACKGROUNDS = ["white", "#f8f8f8"];
 
@@ -32,6 +40,8 @@ interface Props {
   license: TypedMap<SiteLicense>;
   edits?: TypedMap<SiteLicense>;
   usage_stats?: number; // for now this is just the number of projects running right now with the license; later it might have hourly/daily/weekly, active, etc.
+  user_map?: UserMap;
+  manager_info?: ManagerInfo;
 }
 
 function format_as_label(field: string): string {
@@ -229,7 +239,7 @@ export class License extends Component<Props> {
                 background: val ? undefined : "yellow",
               }}
             >
-              {val ? val : "Please enter a description"}
+              {val ? val : "Enter a description"}
             </div>
           );
           break;
@@ -241,7 +251,7 @@ export class License extends Component<Props> {
                 background: val ? undefined : "yellow",
               }}
             >
-              {val ? val : "Please enter a title"}
+              {val ? val : "Enter a title"}
             </div>
           );
           break;
@@ -255,8 +265,7 @@ export class License extends Component<Props> {
             if (!val) {
               x = (
                 <span style={{ background: "yellow" }}>
-                  <Icon name="warning" /> Never expires -- you should probably
-                  set an expiration date
+                  <Icon name="warning" /> Never expires -- set an expiration date
                 </span>
               );
             } else if (val <= new Date()) {
@@ -282,8 +291,8 @@ export class License extends Component<Props> {
                     color: "white",
                   }}
                 >
-                  <Icon name="warning" /> Never actives -- please set an
-                  activation date!
+                  <Icon name="warning" /> Never actives -- set an activation
+                  date!
                 </div>
               );
             } else if (val > new Date()) {
@@ -303,7 +312,14 @@ export class License extends Component<Props> {
           }
           break;
         case "account_id[]":
-          x = <DisplayManagers managers={val} />;
+          x = (
+            <DisplayManagers
+              managers={val}
+              user_map={this.props.user_map}
+              license_id={this.props.license.get("id")}
+              manager_info={this.props.manager_info}
+            />
+          );
           break;
         case "upgrades":
           x = <DisplayUpgrades upgrades={val} />;
@@ -329,7 +345,7 @@ export class License extends Component<Props> {
               background: "yellow",
             }}
           >
-            <Icon name="warning" /> No limit -- you should probably set a limit
+            <Icon name="warning" /> No limit -- set a limit
           </div>
         );
       }
@@ -452,8 +468,9 @@ export class License extends Component<Props> {
             onClick={() => actions.cancel_editing(id)}
             disabled={this.props.saving}
           >
-            Cancel
+            Discard changes
           </Button>
+          <Space />
           <Button
             disabled={
               this.props.edits == null ||
