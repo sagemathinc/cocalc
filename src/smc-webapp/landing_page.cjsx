@@ -32,6 +32,7 @@ The Landing Page
 {SignIn} = require('./landing-page/sign-in')
 {ForgotPassword} = require('./landing-page/forgot-password')
 {ResetPassword} = require('./landing-page/reset-password')
+{Connecting} = require('./landing-page/connecting')
 {QueryParams} = require('./misc/query-params')
 LA_NAME = require('./launch/actions').NAME
 
@@ -48,11 +49,6 @@ $.get window.app_base_url + "/registration", (obj, status) ->
     if status == 'success'
         redux.getActions('account').setState(token : obj.token)
 
-exports.Connecting = Connecting = () ->
-    # See https://github.com/sagemathinc/cocalc/issues/4136 for the second part below, which will get deleted.
-    <div style={fontSize : "25px", marginTop: "75px", textAlign: "center", color: COLORS.GRAY}>
-        <Icon name="cc-icon-cocalc-ring" spin /> Connecting...
-    </div>
 
 exports.LandingPage = rclass
     displayName: 'LandingPage'

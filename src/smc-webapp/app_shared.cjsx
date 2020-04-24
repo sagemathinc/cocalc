@@ -37,7 +37,7 @@ misc = require('smc-util/misc')
 {analytics_event} = require('./tracker')
 {user_tracking} = require('./user-tracking')
 {KioskModeBanner} = require('./app_shared2')
-{Connecting} = require('./landing_page')
+{Connecting} = require('./landing-page/connecting')
 
 ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
 feature = require('./feature')
