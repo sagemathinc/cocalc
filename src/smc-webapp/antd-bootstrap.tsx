@@ -89,7 +89,7 @@ export function Grid(props: any) {
 
 export function Well(props: { style?: React.CSSProperties; children?: any }) {
   let style: React.CSSProperties = props.style != null ? props.style : {};
-  style.backgroundColor = "#f5f5f5";
+  style.backgroundColor = "white";
   style.border = "1px solid #e3e3e3";
   return <antd.Card style={style}>{props.children}</antd.Card>;
 }
