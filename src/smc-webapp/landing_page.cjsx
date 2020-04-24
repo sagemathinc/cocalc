@@ -50,17 +50,9 @@ $.get window.app_base_url + "/registration", (obj, status) ->
 
 exports.Connecting = Connecting = () ->
     # See https://github.com/sagemathinc/cocalc/issues/4136 for the second part below, which will get deleted.
-    <React.Fragment>
-        <div style={fontSize : "25px", marginTop: "75px", textAlign: "center", color: COLORS.GRAY}>
-            <Icon name="cc-icon-cocalc-ring" spin /> Connecting...
-        </div>
-        {<div style={textAlign: "center", margin:"auto", width:"50%", fontSize:'13pt', color: COLORS.GRAY}>
-            If you are having persistent problems connecting,
-            close this browser tab and open a new tab, or use Chrome version at least 77.3865.114.
-            There was a <a target='_blank' rel="noopener" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1006243">bug in Chrome v77</a>;{" "}
-            opening a new tab works around this bug.
-        </div> if window.buggyCh77}
-    </React.Fragment>
+    <div style={fontSize : "25px", marginTop: "75px", textAlign: "center", color: COLORS.GRAY}>
+        <Icon name="cc-icon-cocalc-ring" spin /> Connecting...
+    </div>
 
 exports.LandingPage = rclass
     displayName: 'LandingPage'
