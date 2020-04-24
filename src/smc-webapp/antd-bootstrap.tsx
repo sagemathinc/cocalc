@@ -10,7 +10,7 @@ some serious problems / bug /issues with using our stupid old react-bootstrap
 */
 
 // TODO: What we haven't converted yet, but do use in CoCalc:
-export { Modal, FormControl, FormGroup, Form, InputGroup } from "react-bootstrap";
+export { FormControl, FormGroup, Form, InputGroup } from "react-bootstrap";
 
 import { React, Rendered } from "./app-framework";
 import { r_join, Space } from "./r_misc";
@@ -194,3 +194,19 @@ export function Tab(props: {
     </antd.Tabs.TabPane>
   );
 }
+
+export function Modal(props: {
+  show?: boolean;
+  onHide: () => void;
+  children?: any;
+}) {
+  return (
+    <antd.Modal visible={props.show} footer={null} closable={false}>
+      {props.children}
+    </antd.Modal>
+  );
+}
+
+Modal.Body = function (props: any) {
+  return <>{props.children}</>;
+};

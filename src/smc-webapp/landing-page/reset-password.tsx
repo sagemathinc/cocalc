@@ -8,6 +8,8 @@ import { HelpEmailLink } from "../customize";
 
 import { Modal, FormGroup, FormControl, Row, Button } from "../antd-bootstrap";
 
+import { Space } from "../r_misc";
+
 interface Props {
   reset_key: string;
   reset_password_error?: string;
@@ -95,17 +97,17 @@ export class ResetPassword extends Component<Props, State> {
             {this.render_email()}
             <Row>
               <div style={{ textAlign: "right", paddingRight: 15 }}>
+                <Button onClick={this.hide_reset_password.bind(this)}>
+                  Cancel
+                </Button>
+                <Space />
                 <Button
                   type="submit"
                   bsStyle="primary"
-                  style={{ marginRight: 10 }}
                   disabled={this.state.resetting}
                   onClick={this.reset_password.bind(this)}
                 >
                   Reset Password
-                </Button>
-                <Button onClick={this.hide_reset_password.bind(this)}>
-                  Cancel
                 </Button>
               </div>
             </Row>
