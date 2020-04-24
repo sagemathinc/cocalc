@@ -59,7 +59,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
           ],
         },
       });
-      this.setState({ site_licenses: x.query.matching_site_licenses });
+      this.setState({ site_licenses: x?.query.matching_site_licenses });
       await this.update_usage_stats();
     } catch (err) {
       this.set_error(err);

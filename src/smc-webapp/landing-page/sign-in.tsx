@@ -21,12 +21,12 @@ import { actions } from "./util";
 
 interface Props {
   sign_in_error?: string;
-  signing_in: boolean;
-  has_account: boolean;
-  xs: boolean; // extra small
+  signing_in?: boolean;
+  has_account?: boolean;
+  xs?: boolean; // extra small
   color: string;
-  strategies: List<PassportStrategy>;
-  get_api_key: string;
+  strategies?: List<PassportStrategy>;
+  get_api_key?: string;
 }
 
 interface State {

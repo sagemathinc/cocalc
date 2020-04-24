@@ -111,7 +111,7 @@ function NoMentions({
       text = "No read mentions";
       break;
     case "saved":
-      text = "No saved Mentions";
+      text = "No saved mentions";
       break;
     case "all":
       text = "No mentions";

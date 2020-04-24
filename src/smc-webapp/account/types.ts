@@ -48,4 +48,5 @@ export interface AccountState {
   lti_id?: immutable.List<string>;
   created?: Date;
   strategies?: immutable.List<PassportStrategy>;
+  token?: string;
 }

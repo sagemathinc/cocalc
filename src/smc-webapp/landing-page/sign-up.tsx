@@ -31,18 +31,18 @@ const ERROR_STYLE: React.CSSProperties = {
 };
 
 interface Props {
-  strategies: List<PassportStrategy>;
-  get_api_key: string;
-  sign_up_error: any;
-  token: boolean;
-  has_account: boolean;
-  signing_up: boolean;
-  style: React.CSSProperties;
-  has_remember_me: boolean;
-  help_email: string;
-  terms_of_service: string;
-  email_signup: boolean;
-  terms_of_service_url: string;
+  strategies?: List<PassportStrategy>;
+  email_signup?: boolean;
+  get_api_key?: string;
+  sign_up_error?: any;
+  token?: boolean;
+  has_account?: boolean;
+  signing_up?: boolean;
+  style?: React.CSSProperties;
+  has_remember_me?: boolean;
+  help_email?: string;
+  terms_of_service?: string;
+  terms_of_service_url?: string;
 }
 
 interface State {
@@ -296,7 +296,7 @@ export class SignUp extends React.Component<Props, State> {
         {this.render_question()}
         {this.render_terms()}
         {this.render_creation_form()}
-        {this.props.help_email?.length > 0 ? (
+        {!!this.props.help_email ? (
           <div style={{ textAlign: "center" }}>
             Email <HelpEmailLink /> if you need help.
           </div>

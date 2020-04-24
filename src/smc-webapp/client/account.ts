@@ -160,13 +160,16 @@ export class AccountClient {
   public async reset_forgot_password(
     reset_code: string,
     new_password: string
-  ): Promise<any> {
-    return await this.call(
+  ): Promise<void> {
+    const resp = await this.call(
       message.reset_forgot_password({
         reset_code,
         new_password,
       })
     );
+    if (resp.error) {
+      throw Error(resp.error);
+    }
   }
 
   // forget about a given passport authentication strategy for this user

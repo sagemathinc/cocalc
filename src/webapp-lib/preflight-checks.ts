@@ -117,41 +117,11 @@ function preflight_check(): void {
     ((59 <= spec.version && spec.version <= 61) || spec.version == 66) &&
     !ff60esr;
 
-  // https://bugs.chromium.org/p/chromium/issues/detail?id=1006243
-  const buggyCh77 =
-    spec.name === "Chrome" &&
-    spec.version == 77 &&
-    spec.buildID !== undefined &&
-    Array.isArray(spec.buildID) &&
-    spec.buildID[2] <= 3865 &&
-    spec.buildID[3] < 114;
-
-  // This is set to be accessible globally, since this bug is still widely deployed (e.g.,
-  // all ChromeOS users), right now it is used elsewhere to display a message
-  // that is likely to be visible when the actual bug happens.
-  // See https://github.com/sagemathinc/cocalc/issues/4136
-  (window as any).buggyCh77 = buggyCh77;
-
   if (oldFF || oldIE || oldEdge || oldSafari || oldOpera || oldChrome) {
     const msg = `
       <h2>CoCalc does not support ${spec.name} version ${spec.version}.</h2>
       <div>
           <p>We recommend that you use the newest version of <a target="_blank" rel="noopener" href='https://google.com/chrome'>Google Chrome</a>.</p>
-      </div>`;
-    halt_and_catch_fire(msg);
-  } else if (false && buggyCh77) {
-    // spec.buildID must be a number[] because buggyCh77 is true.
-    // Trying to use Typescript type inference in this case didn't work...
-    const id = (spec.buildID as number[]).join(".");
-    const msg = `
-      <h2>There is a signficant bug using CoCalc with ${spec.name} version ${id}.</h2>
-      <div>
-          <p style="font-weight:bold">
-             You may have problems using CoCalc with your current browser, because of
-             <a href="https://bugs.chromium.org/p/chromium/issues/detail?id=1006243">Chrome issue #1006243</a>.
-          </p>
-          <p>Update to at least Chrome/Chromium version 77 with subrelease <code>77.0.3865.114</code>.
-          </p>
       </div>`;
     halt_and_catch_fire(msg);
   } else if (buggyFF) {

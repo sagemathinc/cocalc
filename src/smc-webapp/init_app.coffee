@@ -422,23 +422,18 @@ webapp_client.on "connecting", () ->
         {SITE_NAME} = require('smc-util/theme')
         SiteName = redux.getStore('customize').site_name ? SITE_NAME
         if (reconnection_warning == null) or (reconnection_warning < (+misc.minutes_ago(1)))
-            # This "extra" crap will get deleted -- see https://github.com/sagemathinc/cocalc/issues/4136
-            if window.buggyCh77
-                extra = " If your network is fine, close this browser tab and open a new tab, or upgrade to Chrome version at least 77.3865.114.  There was a major bug in Chrome v77; opening a new tab works around this bug."
-            else
-                extra = ''
             if num_recent_disconnects() >= 7 or attempt >= 20
                 redux.getActions('page').set_connection_quality("bad")
                 reconnect
                     type: "error"
                     timeout: 10
-                    message: "Your connection is unstable or #{SiteName} is temporarily not available." + extra
+                    message: "Your connection is unstable or #{SiteName} is temporarily not available."
             else if attempt >= 10
                 redux.getActions('page').set_connection_quality("flaky")
                 reconnect
                     type: "info"
                     timeout: 10
-                    message: "Your connection could be weak or the #{SiteName} service is temporarily unstable. Proceed with caution." + extra
+                    message: "Your connection could be weak or the #{SiteName} service is temporarily unstable. Proceed with caution."
     else
         reconnection_warning = null
         redux.getActions('page').set_connection_quality("good")

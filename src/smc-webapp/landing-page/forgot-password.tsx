@@ -13,8 +13,8 @@ import { actions } from "./util";
 
 interface Props {
   initial_email_address: string;
-  forgot_password_error: string;
-  forgot_password_success: string;
+  forgot_password_error?: string;
+  forgot_password_success?: string;
 }
 
 interface State {
