@@ -135,7 +135,7 @@ export class DisplayManagers extends Component<DisplayProps, State> {
   }
 
   public render(): Rendered {
-    if (this.props.managers == null || this.props.user_map == null) {
+    if (this.props.user_map == null) {
       return <span />;
     }
     const v: Rendered[] = [];
