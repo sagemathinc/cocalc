@@ -87,7 +87,7 @@ export function Grid(props: any) {
   return <div>{props.children}</div>;
 }
 
-export function Well(props: any) {
+export function Well(props: { style?: React.CSSProperties; children?: any }) {
   let style: React.CSSProperties = props.style != null ? props.style : {};
   style.backgroundColor = "#f5f5f5";
   style.border = "1px solid #e3e3e3";
@@ -123,7 +123,18 @@ export function Checkbox(props: any) {
 
 export const Row = antd.Row;
 
-export function Col(props: any) {
+export function Col(props: {
+  xs?: number;
+  sm?: number;
+  md?: number;
+  lg?: number;
+  xsOffset?: number;
+  smOffset?: number;
+  mdOffset?: number;
+  lgOffset?: number;
+  style?: React.CSSProperties;
+  children?: any;
+}) {
   const props2: any = {};
   for (const p of ["xs", "sm", "md", "lg"]) {
     if (props[p] != null) {

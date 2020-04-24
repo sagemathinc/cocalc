@@ -17,8 +17,7 @@ import {
 } from "../app-framework";
 import { Col, Row, Tab, Tabs } from "../antd-bootstrap";
 
-//import { LandingPage } from "../landing_page";
-const { LandingPage } = require("../landing_page");
+import { LandingPage } from "../landing-page/landing-page";
 
 //import { AccountSettingsTop } from "../r_account";
 const { AccountSettingsTop } = require("../r_account");
@@ -208,7 +207,6 @@ class AccountPage extends Component<Props> {
   private render_landing_page(): Rendered {
     return (
       <LandingPage
-        redux={redux}
         strategies={this.props.strategies}
         sign_up_error={this.props.sign_up_error}
         sign_in_error={this.props.sign_in_error}
