@@ -19,8 +19,7 @@ import { Col, Row, Tab, Tabs } from "../antd-bootstrap";
 
 import { LandingPage } from "../landing-page/landing-page";
 
-//import { AccountSettingsTop } from "../r_account";
-const { AccountSettingsTop } = require("../r_account");
+import { AccountPreferences } from "./account-preferences";
 
 import { BillingPage } from "../billing/billing-page";
 
@@ -176,15 +175,13 @@ class AccountPage extends Component<Props> {
 
   private render_account_settings(): Rendered {
     return (
-      <AccountSettingsTop
-        redux={redux}
+      <AccountPreferences
         account_id={this.props.account_id}
         first_name={this.props.first_name}
         last_name={this.props.last_name}
         email_address={this.props.email_address}
         email_address_verified={this.props.email_address_verified}
         passports={this.props.passports}
-        show_sign_out={this.props.show_sign_out}
         sign_out_error={this.props.sign_out_error}
         everywhere={this.props.everywhere}
         terminal={this.props.terminal}
