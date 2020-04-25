@@ -5,7 +5,7 @@ import * as React from "react";
 import { rtypes, rclass, redux } from "../app-framework";
 import { ErrorDisplay, Icon, MarkdownInput, SettingBox } from "../r_misc";
 import { PickerList } from "./picker-list";
-const { webapp_client } = require("../webapp_client");
+import { webapp_client } from "../webapp-client";
 const { callback_opts } = require("smc-util/async-utils");
 import * as immutable from "immutable";
 import { User } from "../frame-editors/generic/client";
@@ -32,7 +32,7 @@ async function search_for_accounts(search = ""): Promise<UserAndProfile[]> {
   if (search === "") {
     return [];
   }
-  const select: User[] = await callback_opts(webapp_client.user_search)({
+  const select: User[] = await webapp_client.users_client.user_search({
     query: search,
     limit: 25,
   });

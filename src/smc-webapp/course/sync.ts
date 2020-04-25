@@ -49,14 +49,13 @@ export function create_sync_db(
   const path = store.get("course_filename");
   actions.setState({ loading: true });
 
-  const syncdb = webapp_client.sync_db2({
+  const syncdb = webapp_client.sync_client.sync_db({
     project_id,
     path,
     primary_keys: ["table", "handout_id", "student_id", "assignment_id"],
     string_cols: ["note", "description", "title", "email_invite"],
     change_throttle: 500, // helps when doing a lot of assign/collect, etc.
-    save_interval: 3000,
-  }); // wait at least 3s between saving changes to backend
+  });
 
   syncdb.once("error", (err) => {
     if (!actions.is_closed()) {

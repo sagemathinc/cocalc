@@ -1,8 +1,9 @@
-import { callback2, once } from "smc-util/async-utils";
+import { once } from "smc-util/async-utils";
 import { redux } from "../app-framework";
 import { QueryParams } from "../misc/query-params";
 const { APP_BASE_URL, get_cookie } = require("../misc_page");
 import { WelcomeFile } from "./welcome-file";
+import { WebappClient } from "./client";
 
 /*
 If the anonymous query param is set at all (doesn't matter to what) during
@@ -22,7 +23,7 @@ export function should_do_anonymous_setup(): boolean {
   return resp;
 }
 
-export async function do_anonymous_setup(client: any): Promise<void> {
+export async function do_anonymous_setup(client: WebappClient): Promise<void> {
   function log(..._args): void {
     // uncomment to debug...
     // console.log("do_anonymous_setup", ..._args);
@@ -31,9 +32,13 @@ export async function do_anonymous_setup(client: any): Promise<void> {
   try {
     redux.getActions("account").setState({ doing_anonymous_setup: true });
     log("creating account");
-    const x = await callback2(client.create_account.bind(client), {});
-    if (x != null && x.event == "account_creation_failed") {
-      log("failed to create account", x);
+    try {
+      const resp = await client.account_client.create_account({});
+      if (resp?.event == "account_creation_failed") {
+        throw Error(resp.error);
+      }
+    } catch (err) {
+      log("failed to create account", err);
       // If there is an error specifically with creating the account
       // due to the backend not allowing it (e.g., missing token), then
       // it is fine to silently return, which falls back to the login
@@ -42,7 +47,7 @@ export async function do_anonymous_setup(client: any): Promise<void> {
     }
     if (!client.is_signed_in()) {
       log("waiting to be signed in");
-      await once(this, "signed_in");
+      await once(client, "signed_in");
     }
     const actions = redux.getActions("projects");
     log("creating project");

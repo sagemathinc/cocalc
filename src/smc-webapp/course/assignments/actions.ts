@@ -5,6 +5,12 @@ Actions involving working with assignments:
 
 export const STUDENT_SUBDIR = "student";
 
+// default timeout of 1 minute per cell
+export const NBGRADER_CELL_TIMEOUT_MS: number = 60 * 1000;
+
+// default timeout of 10 minutes for whole notebooks
+export const NBGRADER_TIMEOUT_MS: number = 10 * 60 * 1000;
+
 import { Map } from "immutable";
 
 import { CourseActions, PARALLEL_LIMIT } from "../actions";
@@ -15,7 +21,6 @@ import {
   NBgraderRunInfo,
   get_nbgrader_score,
 } from "../store";
-import { callback2 } from "smc-util/async-utils";
 import { start_project, exec } from "../../frame-editors/generic/client";
 import { webapp_client } from "../../webapp-client";
 import { redux } from "../../app-framework";
@@ -360,7 +365,7 @@ export class AssignmentsActions {
       desc: `Copying assignment from ${student_name}`,
     });
     try {
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: student_project_id,
         src_path: assignment.get("target_path"),
         target_project_id: store.get("course_project_id"),
@@ -368,7 +373,6 @@ export class AssignmentsActions {
         overwrite_newer: true,
         backup: true,
         delete_missing: false,
-        exclude_history: false,
       });
       // write their name to a file
       const name = store.get_student_name_extra(student_id);
@@ -510,7 +514,7 @@ ${details}
         path: src_path + "/GRADE.md",
         content,
       });
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: store.get("course_project_id"),
         src_path,
         target_project_id: student_project_id,
@@ -518,11 +522,10 @@ ${details}
         overwrite_newer: true,
         backup: true,
         delete_missing: false,
-        exclude_history: true,
       });
       if (peer_graded) {
         // Delete GRADER file
-        await callback2(webapp_client.exec, {
+        await webapp_client.project_client.exec({
           project_id: student_project_id,
           command: "rm ./*/GRADER*.txt",
           timeout: 60,
@@ -746,7 +749,7 @@ ${details}
         id,
         desc: `Copying files to ${student_name}'s project`,
       });
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: store.get("course_project_id"),
         src_path,
         target_project_id: student_project_id,
@@ -754,7 +757,6 @@ ${details}
         overwrite_newer: !!overwrite, // default is "false"
         delete_missing: !!overwrite, // default is "false"
         backup: !!!overwrite, // default is "true"
-        exclude_history: true,
       });
 
       // successful finish
@@ -1055,7 +1057,7 @@ ${details}
       // delete the student's name so that grading is anonymous; also, remove original
       // due date to avoid confusion.
       const name = store.get_student_name_extra(student_id);
-      await callback2(webapp_client.exec, {
+      await webapp_client.project_client.exec({
         project_id: store.get("course_project_id"),
         command: "rm",
         args: [
@@ -1069,7 +1071,7 @@ ${details}
       if (this.course_actions.is_closed()) return;
 
       // copy the files to be peer graded into place for this student
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: store.get("course_project_id"),
         src_path,
         target_project_id: student_project_id,
@@ -1086,7 +1088,7 @@ ${details}
         content: guidelines,
       });
       // copy it over
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: store.get("course_project_id"),
         src_path: peer_grading_guidelines_file,
         target_project_id: student_project_id,
@@ -1156,7 +1158,7 @@ ${details}
       )}-peer-grade/${our_student_id}/${student_id}`;
 
       // copy the files over from the student who did the peer grading
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: s.get("project_id"),
         src_path,
         target_project_id: store.get("course_project_id"),
@@ -1258,7 +1260,7 @@ ${details}
     path: string;
     content: string;
   }): Promise<void> {
-    await callback2(webapp_client.write_text_file_to_project, {
+    await webapp_client.project_client.write_text_file({
       project_id: this.get_store().get("course_project_id"),
       path: opts.path,
       content: opts.content,
@@ -1530,6 +1532,7 @@ ${details}
       assignment_id,
       student_id,
     });
+
     if (
       student == null ||
       assignment == null ||
@@ -1538,15 +1541,29 @@ ${details}
       return; // nothing case.
     }
 
-    const student_project_id = student.get("project_id");
-    if (student_project_id == null) {
-      // This would happen if maybe instructor deletes student project at
-      // the exact wrong time.
-      // TODO: just create a new project for them?
-      throw Error("student has no project, so can't run nbgrader");
-    }
+    const nbgrader_grade_in_instructor_project: boolean = !!store.getIn([
+      "settings",
+      "nbgrader_grade_in_instructor_project",
+    ]);
 
     const course_project_id = store.get("course_project_id");
+
+    let grade_project_id: string;
+    let where_grade: string;
+    if (nbgrader_grade_in_instructor_project) {
+      grade_project_id = course_project_id;
+      where_grade = "instructor project";
+    } else {
+      const student_project_id = student.get("project_id");
+      if (student_project_id == null) {
+        // This would happen if maybe instructor deletes student project at
+        // the exact wrong time.
+        // TODO: just create a new project for them?
+        throw Error("student has no project, so can't run nbgrader");
+      }
+      grade_project_id = student_project_id;
+      where_grade = "student's project";
+    }
 
     if (instructor_ipynb_files == null) {
       instructor_ipynb_files = await this.nbgrader_instructor_ipynb_files(
@@ -1572,7 +1589,7 @@ ${details}
       const activity_id = this.course_actions.set_activity({
         desc: `Running nbgrader on ${store.get_student_name(
           student_id
-        )}'s "${file}"`,
+        )}'s "${file}" in ${where_grade}`,
       });
       if (assignment == null || student == null) {
         // This won't happen, but it makes Typescript happy.
@@ -1598,17 +1615,23 @@ ${details}
           )}'s project is running`,
         });
         try {
-          await start_project(student_project_id, 60);
+          await start_project(grade_project_id, 60);
         } finally {
           this.course_actions.clear_activity(id);
         }
         const r = await nbgrader({
-          timeout_ms: 120000, // timeout for total notebook
-          cell_timeout_ms: 30000, // per cell timeout
+          timeout_ms: store.getIn(
+            ["settings", "nbgrader_timeout_ms"],
+            NBGRADER_TIMEOUT_MS
+          ), // default timeout for total notebook
+          cell_timeout_ms: store.getIn(
+            ["settings", "nbgrader_cell_timeout_ms"],
+            NBGRADER_CELL_TIMEOUT_MS
+          ), // per cell timeout
           student_ipynb,
           instructor_ipynb,
           path: student_path,
-          project_id: student_project_id,
+          project_id: grade_project_id,
         });
         /* console.log("nbgrader finished successfully", {
           student_id,

@@ -671,9 +671,9 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       .get_file_info(this.props.project_id, this.props.path);
     if (info == null || info.is_unread) {
       // file is unread from *our* point of view, so mark read
-      return this.props.redux
+      this.props.redux
         .getActions("file_use")
-        .mark_file(this.props.project_id, this.props.path, "read", 2000);
+        ?.mark_file(this.props.project_id, this.props.path, "read", 2000);
     }
   }, 300);
 

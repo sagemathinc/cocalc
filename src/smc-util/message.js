@@ -340,7 +340,7 @@ message({
 }); // if set, eval scope contains an object cell that refers to the cell in the worksheet with this id.
 
 //###########################################
-// Information about several projects or accounts
+// Information about accounts
 //############################################
 
 API(

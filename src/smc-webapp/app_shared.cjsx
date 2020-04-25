@@ -29,7 +29,7 @@ misc = require('smc-util/misc')
 {InfoPage} = require('./info/info')
 {ProjectsPage} = require('./projects')
 {ProjectPage, MobileProjectPage} = require('./project_page')
-{AccountPage} = require('./account_page')
+{AccountPage} = require('./account/account-page')
 {FileUsePage} = require('./file-use/page')
 {NotificationPage} = require('./notifications')
 {AdminPage} = require('./admin')
@@ -37,7 +37,7 @@ misc = require('smc-util/misc')
 {analytics_event} = require('./tracker')
 {user_tracking} = require('./user-tracking')
 {KioskModeBanner} = require('./app_shared2')
-{Connecting} = require('./landing_page')
+{Connecting} = require('./landing-page/connecting')
 
 ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
 feature = require('./feature')
@@ -392,7 +392,7 @@ exports.ConnectionInfo = rclass
                     <pre>{if @props.hub? then @props.hub else "Not signed in"}</pre>
                 </Col>
                 <Col sm={2}>
-                    <Button onClick={=>webapp_client._fix_connection(true)}>
+                    <Button onClick={=>webapp_client.hub_client.fix_connection()}>
                         <Icon name='repeat' spin={@props.status == 'connecting'} /> Reconnect
                     </Button>
                 </Col>

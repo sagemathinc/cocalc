@@ -5,8 +5,6 @@ const { APP_BASE_URL } = require("../../misc_page");
 
 const { webapp_client } = require("../../webapp_client");
 
-import { callback2 } from "smc-util/async-utils";
-
 interface Props {
   account_id: string;
   first_name: string;
@@ -26,11 +24,8 @@ export class Impersonate extends Component<Props, State> {
 
   async get_token(): Promise<void> {
     try {
-      const { auth_token } = await callback2(
-        webapp_client.get_user_auth_token,
-        {
-          account_id: this.props.account_id,
-        }
+      const auth_token = await webapp_client.admin_client.get_user_auth_token(
+        this.props.account_id
       );
       this.setState({ auth_token });
     } catch (err) {
@@ -46,16 +41,21 @@ export class Impersonate extends Component<Props, State> {
     if (this.state.auth_token == null) {
       return <Loading />;
     }
+    const link = `${APP_BASE_URL}/settings/support/app?auth_token=${this.state.auth_token}`;
     return (
-      <a
-        href={`${APP_BASE_URL}/app?auth_token=${this.state.auth_token}`}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Right click and open this link in a new incognito window, where you will
-        be signed in as {this.props.first_name} {this.props.last_name}... Sign
-        out when done.
-      </a>
+      <div>
+        <a href={link} target="_blank" rel="noopener noreferrer">
+          Right click and open this link in a new incognito window, where you
+          will be signed in as {this.props.first_name} {this.props.last_name}...
+        </a>
+        <br />
+        The actual link:
+        <pre style={{ fontSize: "11pt", textAlign: "center" }}>
+          <a href={link} target="_blank" rel="noopener noreferrer">
+            {link}
+          </a>
+        </pre>
+      </div>
     );
   }
 
@@ -81,7 +81,7 @@ export class Impersonate extends Component<Props, State> {
         }}
       >
         <b>
-          Impersonate {this.props.first_name} {this.props.last_name}
+          Impersonate user "{this.props.first_name} {this.props.last_name}"
         </b>
         <br />
         {this.render_err()}

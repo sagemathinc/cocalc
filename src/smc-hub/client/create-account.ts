@@ -5,7 +5,6 @@ Client account creation and deletion
 const MAX_ACCOUNTS_PER_30MIN = 150;
 const MAX_ACCOUNTS_PER_30MIN_GOLD = 1500;
 
-const client_lib = require("smc-util/client");
 const auth = require("../auth");
 
 import * as message from "smc-util/message";
@@ -15,17 +14,34 @@ import {
   required,
   defaults,
 } from "smc-util/misc";
-import { len, to_json } from "smc-util/misc2";
+import { is_valid_email_address, len, to_json } from "smc-util/misc2";
 import { callback2 } from "smc-util/async-utils";
 import { PostgreSQL } from "../postgres/types";
 const { api_key_action } = require("../api/manage");
 
 export function is_valid_password(password: string) {
-  const [valid, reason] = client_lib.is_valid_password(password);
-  if (!valid) {
-    return [valid, reason];
+  if (typeof password !== "string") {
+    return [false, "Password must be specified."];
   }
-  return [true, ""];
+  if (password.length >= 6 && password.length <= 64) {
+    return [true, ""];
+  } else {
+    return [false, "Password must be between 6 and 64 characters in length."];
+  }
+}
+
+function issues_with_create_account(mesg) {
+  const issues : any = {};
+  if (mesg.email_address && !is_valid_email_address(mesg.email_address)) {
+    issues.email_address = "Email address does not appear to be valid.";
+  }
+  if (mesg.password) {
+    const [valid, reason] = is_valid_password(mesg.password);
+    if (!valid) {
+      issues.password = reason;
+    }
+  }
+  return issues;
 }
 
 interface AccountCreationOptions {
@@ -83,7 +99,7 @@ export async function create_account(
     dbg("run tests on generic validity of input");
 
     // issues_with_create_account also does check is_valid_password!
-    const issues = client_lib.issues_with_create_account(opts.mesg);
+    const issues = issues_with_create_account(opts.mesg);
 
     // TODO -- only uncomment this for easy testing to allow any password choice.
     // the client test suite will then fail, which is good, so we are reminded

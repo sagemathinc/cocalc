@@ -25,18 +25,4 @@
 # A lot of code still uses this...
 ###
 
-
-{ handle_hash_url } = require("./client/handle-hash-url");
-
-
-############################################
-# connection to back-end hub
-############################################
-if window? and window.location?
-    # running in a web browser
-    if not window.app_base_url?
-        window.app_base_url = ""
-
-    handle_hash_url()
-    client_browser = require('client_browser')
-    exports.webapp_client = client_browser.connect()
+exports.webapp_client = require('webapp-client').webapp_client

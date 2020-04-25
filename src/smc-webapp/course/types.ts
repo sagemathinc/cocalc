@@ -11,6 +11,9 @@ export interface SyncDBRecordSettings {
   shared_project_id?: string;
   pay?: string;
   site_license_id?: string;
+  nbgrader_grade_in_instructor_project?: boolean;
+  nbgrader_cell_timeout_ms?: number;
+  nbgrader_timeout_ms?: number;
 }
 
 // This is closely related to store.AssignmentRecord...

@@ -165,7 +165,7 @@ class ChatActions extends Actions
             end_of_mention_index = mention.get('plainTextIndex') + mention.get('display').length
             end_of_context_index = end_of_mention_index + CONTEXT_SIZE
 
-            # Add relevant ellpises depending on size of full message
+            # Add relevant ellipses depending on size of full message
             description = ""
             if mention.get('plainTextIndex') != 0
                 description = "... "
@@ -173,14 +173,17 @@ class ChatActions extends Actions
             if end_of_context_index < @store.get('message_plain_text').length
                 description += " ..."
 
-            webapp_client.mention({
-                project_id: project_id
-                path: path
-                target: mention.get('id')
-                priority: 2
-                description: description
-                source: account_store.get_account_id()
-            })
+            # TODO: this is just naively assuming that no errors happen.  What if there is a network blip?
+            # Then we would just loose the mention, which is no good. Do better.
+            webapp_client.query_client.query
+                query :
+                    mentions:
+                        project_id: project_id
+                        path: path
+                        target: mention.get('id')
+                        priority: 2
+                        description: description
+                        source: account_store.get_account_id()
         )
         @setState(unsent_user_mentions: immutable.List())
 

@@ -25,48 +25,12 @@
 
 import { handle_hash_url } from "./client/handle-hash-url";
 
+handle_hash_url();
+
 // The following interface obviously needs to get completed,
 // and then of course all of webapp client itself needs to
 // be rewritten in Typescript.  In the meantime, this might
 // at least prevent a typo.  When something you need from the
 // actual webapp client isn't here, add it (there api is huge).
 
-import { EventEmitter } from "events";
-
-interface WebappClient extends EventEmitter {
-  user_search: Function;
-  server_time: Function;
-  project_set_quotas: Function;
-  copy_path_between_projects: Function;
-  write_text_file_to_project: Function;
-  exec: Function;
-  find_directories: Function;
-  sync_db2: Function;
-  get_username: Function;
-  is_signed_in: () => boolean;
-  remember_me_key: Function;
-  synctable_project: Function;
-  project_websocket: Function;
-}
-
-export let webapp_client: WebappClient;
-
-if (
-  typeof window !== "undefined" &&
-  window !== null &&
-  window.location != null
-) {
-  // We are running in a web browser (not somewhere else).
-
-  // Set base url
-  if (window.app_base_url == null) {
-    window.app_base_url = "";
-  }
-
-  handle_hash_url();
-
-  const client_browser = require("./client_browser");
-  webapp_client = client_browser.connect() as WebappClient;
-} else {
-  webapp_client = ({} as unknown) as WebappClient; // will never get used in this case...
-}
+export { WebappClient, webapp_client } from "./client/client";

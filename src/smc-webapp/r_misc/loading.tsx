@@ -12,6 +12,7 @@ interface Props {
   text?: string;
   estimate?: Estimate;
   theme?: "medium" | undefined;
+  delay?: number; // if given, don't show anything until after delay milliseconds.  The component could easily unmount by then, and hence never annoyingly flicker on screen.
 }
 
 const LOADING_THEMES: { [keys: string]: React.CSSProperties } = {

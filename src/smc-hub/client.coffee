@@ -15,7 +15,6 @@ exports.COOKIE_OPTIONS = COOKIE_OPTIONS = Object.freeze(secure:true, sameSite:'n
 Cookies              = require('cookies')            # https://github.com/jed/cookies
 misc                 = require('smc-util/misc')
 {defaults, required, to_safe_str} = misc
-{JSON_CHANNEL}       = require('smc-util/client')
 message              = require('smc-util/message')
 base_url_lib         = require('./base-url')
 access               = require('./access')
@@ -49,6 +48,9 @@ underscore = require('underscore')
 DEBUG2 = !!process.env.SMC_DEBUG2
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
+
+# Temporarily to handle old clients for a few days.
+JSON_CHANNEL = '\u0000'
 
 # Anti DOS parameters:
 # If a client sends a burst of messages, we space handling them out by this many milliseconds:
@@ -349,20 +351,20 @@ class exports.Client extends EventEmitter
             setTimeout(f, 15000) # timeout after some seconds
 
         t = new Date()
-        json = misc.to_json_socket(mesg)
+        data = misc.to_json_socket(mesg)
         tm = new Date() - t
         if tm > 10
-            dbg("mesg.id=#{mesg.id}: time to json=#{tm}ms; length=#{json.length}; value='#{misc.trunc(json, 500)}'")
-        @push_data_to_client(JSON_CHANNEL, json)
+            dbg("mesg.id=#{mesg.id}: time to json=#{tm}ms; length=#{data.length}; value='#{misc.trunc(data, 500)}'")
+        @push_data_to_client(data)
         if not listen
             cb?()
             return
 
-    push_data_to_client: (channel, data) ->
+    push_data_to_client: (data) ->
         return if not @conn?
         if @closed
             return
-        @conn.write(channel + data)
+        @conn.write(data)
 
     error_to_client: (opts) =>
         opts = defaults opts,
@@ -544,31 +546,14 @@ class exports.Client extends EventEmitter
             @error_to_client(error:msg)
             return
 
-        if data.length == 0
-            msg = "The server ignored a message since it was empty."
-            @logger?.error(msg)
-            @error_to_client(error:msg)
-            return
-
         if not @_handle_data_queue?
             @_handle_data_queue = []
-
-        channel = data[0]
-        h = @_data_handlers[channel]
-
-        if not h?
-            if channel != 'X'  # X is a special case used on purpose -- not an error.
-                @logger?.error("unable to handle data on an unknown channel: '#{channel}', '#{data}'")
-            # Tell the client that they had better reconnect.
-            @push_to_client( message.session_reconnect(data_channel : channel) )
-            return
 
         # The rest of the function is basically the same as "h(data.slice(1))", except that
         # it ensure that if there is a burst of messages, then (1) we handle at most 1 message
         # per client every MESG_QUEUE_INTERVAL_MS, and we drop messages if there are too many.
         # This is an anti-DOS measure.
-
-        @_handle_data_queue.push([h, data.slice(1)])
+        @_handle_data_queue.push([@handle_json_message_from_client, data])
 
         if @_handle_data_queue_empty_function?
             return
@@ -678,6 +663,7 @@ class exports.Client extends EventEmitter
             else
                 @error_to_client(id:mesg.id, error:"Unknown message type '#{mesg.type}'")
 
+    # TODO: I think this is deprecated:
     mesg_connect_to_session: (mesg) =>
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to start a session."))
@@ -692,6 +678,7 @@ class exports.Client extends EventEmitter
                 # TODO
                 @push_to_client(message.error(id:mesg.id, error:"Connecting to session of type '#{mesg.type}' not yet implemented"))
 
+    # TODO: I think this is deprecated:
     connect_to_console_session: (mesg) =>
         # TODO -- implement read-only console sessions too (easy and amazing).
         @get_project mesg, 'write', (err, project) =>
@@ -707,6 +694,7 @@ class exports.Client extends EventEmitter
                             connect_mesg.id = mesg.id
                             @push_to_client(connect_mesg)
 
+    # TODO: I think this is deprecated:
     mesg_terminate_session: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if not err  # get_project sends error to client
@@ -2088,17 +2076,22 @@ class exports.Client extends EventEmitter
                 dbg("checking conditions")
                 @_check_project_access(mesg.project_id, cb)
             (cb) =>
-                @touch
-                    project_id : mesg.project_id
-                    action     : 'touch'
-                    cb         : cb
-            (cb) =>
+                # IMPORTANT: do this ensure_connection_to_project *first*, since
+                # it is critical always ensure this, and the @touch below gives
+                # an error if done more than once per 45s, whereas we may want
+                # to check much more frequently that we have a TCP connection
+                # to the project.
                 f = @database.ensure_connection_to_project
                 if f?
                     dbg("also create socket connection (so project can query db, etc.)")
                     # We do NOT block on this -- it can take a while.
                     f(mesg.project_id)
                 cb()
+            (cb) =>
+                @touch
+                    project_id : mesg.project_id
+                    action     : 'touch'
+                    cb         : cb
         ], (err) =>
             if err
                 dbg("failed -- #{err}")

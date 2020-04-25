@@ -66,6 +66,8 @@ import { DeleteAllStudents } from "./delete-all-students";
 import { DeleteSharedProjectPanel } from "../shared-project/delete-shared-project";
 import { TerminalCommandPanel } from "./terminal-command";
 
+import { Nbgrader } from "./nbgrader";
+
 import { upgrades } from "smc-util/upgrade-spec";
 const STUDENT_COURSE_PRICE = upgrades.subscription.student_course.price.month4;
 
@@ -956,7 +958,7 @@ export class ConfigurationPanel extends Component<
 
   render_terminal_command() {
     return (
-      <TerminalCommandPanel redux={this.props.redux} name={this.props.name} />
+      <TerminalCommandPanel name={this.props.name} />
     );
   }
 
@@ -969,6 +971,10 @@ export class ConfigurationPanel extends Component<
         }
       />
     );
+  }
+
+  render_nbgrader() {
+    return <Nbgrader name={this.props.name} />;
   }
 
   render() {
@@ -991,6 +997,8 @@ export class ConfigurationPanel extends Component<
             {this.render_delete_all_students()}
             <br />
             {this.render_delete_shared_project()}
+            <br />
+            {this.render_nbgrader()}
           </Col>
           <Col md={12} style={{ padding: "15px" }}>
             <HelpBox />

@@ -91,7 +91,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
         @project_id  = @opts.project_id
         @filename    = @opts.filename
         @connect     = @_connect
-        @_syncstring = webapp_client.sync_string2
+        @_syncstring = webapp_client.sync_client.sync_string
             project_id    : @project_id
             path          : @filename
             cursors       : opts.cursors
@@ -234,7 +234,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @filename = '.smc/root' + @filename
 
         id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
-        @_syncstring = webapp_client.sync_string2
+        @_syncstring = webapp_client.sync_client.sync_string
             id         : id
             project_id : @project_id
             path       : @filename

@@ -571,11 +571,7 @@ export const Explorer = rclass<ReactProps>(
               redux={this.props.redux}
               show_new={this.props.show_new}
               last_scroll_top={this.props.file_listing_scroll_top}
-              configuration_main={
-                this.props.configuration != undefined
-                  ? this.props.configuration.get("main")
-                  : undefined
-              }
+              configuration_main={this.props.configuration?.get("main")}
             />
           </SMC_Dropwrapper>
         );

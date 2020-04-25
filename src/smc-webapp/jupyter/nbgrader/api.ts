@@ -35,20 +35,23 @@ export interface NBGraderAPIResponse {
 export async function nbgrader(
   opts: NBGraderAPIOptions
 ): Promise<NBGraderAPIResponse> {
+  // console.log("nbgrader", opts);
   const autograde_ipynb = create_autograde_ipynb(
     opts.instructor_ipynb,
     opts.student_ipynb
   );
+  const limits = {
+    max_total_output: 3000000,
+    max_output_per_cell: 500000,
+    max_time_per_cell_ms: opts.cell_timeout_ms,
+    max_total_time_ms: opts.timeout_ms,
+  };
+  console.log("nbgrader", { limits });
   const graded_ipynb = await jupyter_run_notebook(opts.project_id, {
     path: opts.path,
     ipynb: autograde_ipynb,
     nbgrader: true,
-    limits: {
-      max_total_output: 3000000,
-      max_output_per_cell: 500000,
-      max_time_per_cell_ms: opts.cell_timeout_ms,
-      max_total_time_ms: opts.timeout_ms,
-    },
+    limits,
   });
 
   // console.log("graded_ipynb = ", (window as any).graded_ipynb);

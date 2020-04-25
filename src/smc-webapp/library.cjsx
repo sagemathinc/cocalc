@@ -187,7 +187,7 @@ exports.Library = rclass ({name}) ->
     thumbnail: ->
         return null if (not @props.library_selected.get('thumbnail')?) or (not @props.project_id)
 
-        img_path = webapp_client.read_file_from_project
+        img_path = webapp_client.project_client.read_file
             project_id : @props.project_id
             path       : @props.library_selected.get('thumbnail')
 

@@ -2368,16 +2368,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
     }
 
-    // first delete
-    this._set(
-      {
-        type: "cell",
-        id,
-        metadata: null,
-      },
-      false
-    );
-    // then set
+    if (!merge) {
+      // first delete -- we have to do this due to shortcomings in syncdb, but it
+      // can have annoying side effects on the UI
+      this._set(
+        {
+          type: "cell",
+          id,
+          metadata: null,
+        },
+        false
+      );
+    }
+    // now set
     this._set(
       {
         type: "cell",

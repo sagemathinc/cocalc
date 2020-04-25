@@ -18,7 +18,7 @@ exports.init = init = (path, redux, project_id) ->
     actions = redux.createActions(name, ChatActions)
     store   = redux.createStore(name, ChatStore)
 
-    syncdb = webapp_client.sync_db2
+    syncdb = webapp_client.sync_client.sync_db
         project_id   : project_id
         path         : path
         primary_keys : ['date']

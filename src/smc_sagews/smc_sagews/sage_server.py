@@ -2198,7 +2198,7 @@ def serve(port, host, extra_imports=False):
                 'modes', 'octave', 'pandoc', 'perl', 'plot3d_using_matplotlib',
                 'prun', 'python_future_feature', 'py3print_mode', 'python',
                 'python3', 'r', 'raw_input', 'reset', 'restore', 'ruby',
-                'runfile', 'sage_chat', 'sage_eval', 'scala', 'scala211',
+                'runfile', 'sage_eval', 'scala', 'scala211',
                 'script', 'search_doc', 'search_src', 'sh', 'show',
                 'show_identifiers', 'singular_kernel', 'time', 'timeit',
                 'typeset_mode', 'var', 'wiki'

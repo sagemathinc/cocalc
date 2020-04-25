@@ -176,7 +176,7 @@ const InfoPageElement = rclass<{}>(
               <ComputeEnvironment />
             </Row>
           </Col>
-          <Col sm={1} md={2} xsHidden></Col>
+          <Col sm={1} md={2}></Col>
           <Col xs={12} sm={12} md={12}>
             <Footer />
           </Col>

@@ -27,7 +27,6 @@ export async function knitr(
   const expr = `require(knitr); opts_knit$set(concordance = TRUE, progress = FALSE); knit("${filename}")`;
   status(`${expr}`);
   return exec({
-    allow_post: false, // definitely could take a long time to fully run Knitr
     timeout: 360,
     command: R_CMD,
     args: [...R_ARGS, expr],
@@ -130,7 +129,6 @@ export async function patch_synctex(
   const expr = `require(patchSynctex); patchSynctex("${filename}")`;
   status(`${expr}`);
   return exec({
-    allow_post: true,
     timeout: 10,
     command: R_CMD,
     args: [...R_ARGS, expr],

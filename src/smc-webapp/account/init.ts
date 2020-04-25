@@ -1,6 +1,5 @@
 import * as misc from "smc-util/misc";
-const { webapp_client } = require("../webapp_client");
-const remember_me = webapp_client.remember_me_key();
+import { webapp_client } from "../webapp-client";
 import { AccountActions } from "./actions";
 import { AccountStore } from "./store";
 import { AccountTable } from "./table";
@@ -16,7 +15,7 @@ export function init(redux) {
   init.other_settings.announcement_info = init.other_settings.announcement_high =
     "loading"; // indicates there is no data yet
   init.editor_settings.physical_keyboard = "NO_DATA"; // indicator that there is no data
-  init.user_type = misc.get_local_storage(remember_me)
+  init.user_type = misc.get_local_storage(webapp_client.remember_me_key())
     ? "signing_in"
     : "public"; // default
   const store = redux.createStore("account", AccountStore, init);
@@ -83,7 +82,7 @@ export function init(redux) {
     const x = store.getIn(["other_settings", "standby_timeout_m"]);
     if (last_set_standby_timeout_m !== x) {
       last_set_standby_timeout_m = x;
-      webapp_client.set_standby_timeout_m(x);
+      webapp_client.idle_client.set_standby_timeout_m(x);
     }
   });
 }

@@ -219,7 +219,7 @@ Table({
             confirm_close: false,
             mask_files: true,
             page_size: 500,
-            standby_timeout_m: 10,
+            standby_timeout_m: 5,
             default_file_sort: "time",
             [NEW_FILENAMES]: DEFAULT_NEW_FILENAMES,
             notification_info: null,

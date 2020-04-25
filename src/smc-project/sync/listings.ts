@@ -1,6 +1,6 @@
 import { delay } from "awaiting";
 import { once } from "../smc-util/async-utils";
-import { SyncTable } from "../smc-util/sync/table";
+import { SyncTable, SyncTableState } from "../smc-util/sync/table";
 import { TypedMap } from "../smc-webapp/app-framework";
 import { endswith, merge, path_split, startswith } from "../smc-util/misc2";
 import { field_cmp, seconds_ago } from "../smc-util/misc";
@@ -68,13 +68,13 @@ class ListingsTable {
   // in response to a *change* after starting).
   private async setup_watchers(): Promise<void> {
     if (this.table == null) return; // closed
-    if (this.table.get_state() == "init") {
+    if (this.table.get_state() == ("init" as SyncTableState)) {
       await once(this.table, "state");
     }
-    if (this.table.get_state() != "connected") {
+    if (this.table.get_state() != ("connected" as SyncTableState)) {
       return; // game over
     }
-    this.table.get().forEach((val) => {
+    this.table.get()?.forEach((val) => {
       const path = val.get("path");
       if (path == null) return;
       if (this.watchers[path] == null) return; // already watching -- shouldn't happen
@@ -90,8 +90,8 @@ class ListingsTable {
 
   private async remove_stale_watchers(): Promise<void> {
     if (this.table == null) return; // closed
-    if (this.table.get_state() == "connected") {
-      this.table.get().forEach((val) => {
+    if (this.table.get_state() == ("connected" as SyncTableState)) {
+      this.table.get()?.forEach((val) => {
         const path = val.get("path");
         if (path == null) return;
         if (this.watchers[path] == null) return;
@@ -115,10 +115,10 @@ class ListingsTable {
     }
 
     if (this.table == null) return; // closed
-    if (this.table.get_state() == "connected") {
+    if (this.table.get_state() == ("connected" as SyncTableState)) {
       await delay(1000 * INTEREST_THRESH_SECONDS);
       if (this.table == null) return; // closed
-      if (this.table.get_state() != "connected") return;
+      if (this.table.get_state() != ("connected" as SyncTableState)) return;
       this.remove_stale_watchers();
     }
   }
@@ -129,8 +129,10 @@ class ListingsTable {
   }
 
   private get_table(): SyncTable {
-    if (this.table == null) return; // closed
-    if (this.table.get_state() != "connected") {
+    if (
+      this.table == null ||
+      this.table.get_state() != ("connected" as SyncTableState)
+    ) {
       throw Error("table not initialized ");
     }
     return this.table;
@@ -145,7 +147,9 @@ class ListingsTable {
   }
 
   public get(path: string): ImmutableListing | undefined {
-    return this.get_table().get(JSON.stringify([this.project_id, path]));
+    const x = this.get_table().get(JSON.stringify([this.project_id, path]));
+    if (x == null) return x;
+    return (x as unknown) as ImmutableListing;
     // NOTE: That we have to use JSON.stringify above is an ugly shortcoming
     // of the get method in smc-util/sync/table/synctable.ts
     // that could probably be relatively easily fixed.
@@ -294,7 +298,7 @@ class ListingsTable {
     // by "interest" timestamp, and eliminate the oldest ones that are
     // not *currently* being watched.
     const paths: { path: string; interest: Date }[] = [];
-    table.get().forEach((val) => {
+    table.get()?.forEach((val) => {
       const path = val.get("path");
       if (this.watchers[path] != null) {
         num_to_remove -= 1;

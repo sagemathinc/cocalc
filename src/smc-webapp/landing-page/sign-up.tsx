@@ -30,16 +30,17 @@ const ERROR_STYLE: React.CSSProperties = {
 };
 
 interface Props {
-  strategies: List<string>;
-  get_api_key: string;
-  sign_up_error: any;
-  token: boolean;
-  has_account: boolean;
-  signing_up: boolean;
-  style: React.CSSProperties;
-  has_remember_me: boolean;
-  help_email: string;
-  terms_of_service: string;
+  strategies?: List<string>;
+  get_api_key?: string;
+  sign_up_error?: any;
+  token?: boolean;
+  has_account?: boolean;
+  signing_up?: boolean;
+  style?: React.CSSProperties;
+  has_remember_me?: boolean;
+  help_email?: string;
+  terms_of_service?: string;
+  terms_of_service_url?: string;
 }
 
 interface State {
@@ -51,7 +52,9 @@ interface State {
 export class SignUp extends React.Component<Props, State> {
   constructor(props) {
     super(props);
-    const show_terms = props.terms_of_service?.length > 0;
+    const show_terms =
+      props.terms_of_service?.length > 0 ||
+      props.terms_of_service_url?.length > 0;
     this.state = {
       show_terms,
       terms_checkbox: !show_terms,
@@ -289,7 +292,7 @@ export class SignUp extends React.Component<Props, State> {
         {this.render_question()}
         {this.render_terms()}
         {this.render_creation_form()}
-        {this.props.help_email?.length > 0 ? (
+        {!!this.props.help_email ? (
           <div style={{ textAlign: "center" }}>
             Email <HelpEmailLink /> if you need help.
           </div>

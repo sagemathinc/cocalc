@@ -49,11 +49,14 @@ import { keys, is_valid_uuid_string } from "../smc-util/misc2";
 
 import { AdminUsersActions } from "./admin/users/actions";
 import { AdminUsersStore } from "./admin/users/store";
+import { SiteLicensesActions } from "./site-licenses/admin/actions";
+import { SiteLicensesStore } from "./site-licenses/admin/store";
 
 import { AccountStore, AccountActions } from "./account";
 
 import { MentionsActions, MentionsStore } from "./notifications";
 import { FileUseStore } from "./file-use/store";
+import { FileUseActions } from "./file-use/actions";
 export { TypedMap } from "./app-framework/TypedMap";
 
 // Only import the types
@@ -209,7 +212,9 @@ export class AppRedux {
   getActions(name: "billing"): any;
   getActions(name: "page"): any;
   getActions(name: "admin-users"): AdminUsersActions;
+  getActions(name: "admin-site-licenses"): SiteLicensesActions;
   getActions(name: "mentions"): MentionsActions;
+  getActions(name: "file_use"): FileUseActions | undefined;
   getActions(name: { project_id: string }): ProjectActions;
   getActions<T, C extends Actions<T>>(name: string): C;
   getActions<T, C extends Actions<T>>(
@@ -266,14 +271,15 @@ export class AppRedux {
   }
 
   getStore(name: "account"): AccountStore;
-  getStore(name: "customize"): any;
   getStore(name: "projects"): any;
-  getStore(name: "users"): any;
-  getStore(name: "page"): any;
   getStore(name: "billing"): any;
-  getStore(name: "mentions"): MentionsStore;
+  getStore(name: "page"): any;
   getStore(name: "admin-users"): AdminUsersStore;
+  getStore(name: "admin-site-licenses"): SiteLicensesStore;
+  getStore(name: "mentions"): MentionsStore;
   getStore(name: "file_use"): FileUseStore | undefined;
+  getStore(name: "customize"): any;
+  getStore(name: "users"): any;
   getStore<State>(name: string): Store<State>;
   getStore<State, C extends Store<State>>(name: string): C | undefined;
   getStore<State, C extends Store<State>>(name: string): C | undefined {

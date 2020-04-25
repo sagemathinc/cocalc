@@ -4,7 +4,6 @@ Actions involving working with handouts.
 
 import { CourseActions, PARALLEL_LIMIT } from "../actions";
 import { CourseStore } from "../store";
-import { callback2 } from "smc-util/async-utils";
 import { webapp_client } from "../../webapp-client";
 import { redux } from "../../app-framework";
 import { uuid, mswalltime } from "smc-util/misc";
@@ -202,12 +201,16 @@ export class HandoutsActions {
         );
       }
 
+      if (student_project_id == null) {
+        throw Error("bug -- student project should have been created");
+      }
+
       this.course_actions.set_activity({
         id,
         desc: `Copying files to ${student_name}'s project`,
       });
 
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: course_project_id,
         src_path,
         target_project_id: student_project_id,
@@ -215,7 +218,6 @@ export class HandoutsActions {
         overwrite_newer: !!overwrite, // default is "false"
         delete_missing: !!overwrite, // default is "false"
         backup: !!!overwrite, // default is "true"
-        exclude_history: true,
       });
       finish();
     } catch (err) {

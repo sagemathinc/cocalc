@@ -52,7 +52,7 @@ function normalize(path: string): string {
 import * as misc from "smc-util/misc";
 const { MARKERS } = require("smc-util/sagews");
 import { alert_message } from "./alerts";
-const { webapp_client } = require("./webapp_client");
+import { webapp_client } from "./webapp-client";
 const { project_tasks } = require("./project_tasks");
 const { defaults, required } = misc;
 
@@ -166,7 +166,7 @@ export const FILE_ACTIONS = {
     allows_multiple_files: true,
   },
   share: {
-    name: "Share",
+    name: "Public",
     icon: "share-square-o",
     allows_multiple_files: false,
   },
@@ -274,7 +274,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this._absolute_path = this._absolute_path.bind(this);
     this.create_folder = this.create_folder.bind(this);
     this.create_file = this.create_file.bind(this);
-    this.new_file_from_web = this.new_file_from_web.bind(this);
     this.set_public_path = this.set_public_path.bind(this);
     this.toggle_search_checkbox_subdirectories = this.toggle_search_checkbox_subdirectories.bind(
       this
@@ -291,7 +290,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.process_search_results = this.process_search_results.bind(this);
     this.search = this.search.bind(this);
     this.load_target = this.load_target.bind(this);
-    this.show_extra_free_warning = this.show_extra_free_warning.bind(this);
     this.close_free_warning = this.close_free_warning.bind(this);
     this.ask_filename = this.ask_filename.bind(this);
 
@@ -302,7 +300,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   public async api(): Promise<API> {
-    return (await webapp_client.project_websocket(this.project_id)).api;
+    return await webapp_client.project_client.api(this.project_id);
   }
 
   destroy = (): void => {
@@ -329,9 +327,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // This is throttled, so multiple calls are spaced out.
   touch = async (): Promise<void> => {
     try {
-      await callback2(webapp_client.touch_project, {
-        project_id: this.project_id,
-      });
+      await webapp_client.project_client.touch(this.project_id);
     } catch (err) {
       // nonfatal.
       console.warn(`unable to touch ${this.project_id} -- ${err}`);
@@ -369,7 +365,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // this would have to do preciesly what kucalc's project init does.
     const sentinel = ".cocalc-project-init-done";
     await exec({
-      allow_post: true,
       timeout: 10,
       project_id: this.project_id,
       command: "rm",
@@ -568,13 +563,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       default:
         // editor...
         const path = misc.tab_to_path(key);
-        if (this.redux.hasActions("file_use")) {
-          (this.redux.getActions("file_use") as any).mark_file(
-            this.project_id,
-            path,
-            "open"
-          );
-        }
+        this.redux
+          .getActions("file_use")
+          ?.mark_file(this.project_id, path, "open");
         if (opts.change_history) {
           this.push_state(`files/${path}`);
         }
@@ -851,16 +842,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   private async open_sagenb_worksheet(opts): Promise<void> {
-    // sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
+    // sagenb worksheet (or backup of it created during unzip of
+    // multiple worksheets with same name)
     alert_message({
       type: "info",
       message: `Opening converted CoCalc worksheet file instead of '${opts.path}...`,
     });
     try {
-      const path: string = await callback(
-        this.convert_sagenb_worksheet,
-        opts.path
-      );
+      const path: string = await this.convert_sagenb_worksheet(opts.path);
       await this.open_file({
         path,
         foreground: opts.foreground,
@@ -882,7 +871,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       message: `Opening converted plain text file instead of '${opts.path}...`,
     });
     try {
-      const path: string = await callback(this.convert_docx_file, opts.path);
+      const path: string = await this.convert_docx_file(opts.path);
       await this.open_file({
         path,
         foreground: opts.foreground,
@@ -898,14 +887,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   private log_file_open(path: string): void {
-    if (this.redux.hasActions("file_use")) {
-      // if the user is anonymous they don't have a file_use Actions (yet)
-      (this.redux.getActions("file_use") as any).mark_file(
-        this.project_id,
-        path,
-        "open"
-      );
-    }
+    this.redux.getActions("file_use")?.mark_file(this.project_id, path, "open");
     const event = {
       event: "open",
       action: "open",
@@ -1323,69 +1305,34 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.open_files.set(filename, "has_activity", true);
   }
 
-  convert_sagenb_worksheet(filename, cb) {
-    return async.series(
-      [
-        (cb) => {
-          const ext = misc.filename_extension(filename);
-          if (ext === "sws") {
-            return cb();
-          } else {
-            const i = filename.length - ext.length;
-            const new_filename =
-              filename.slice(0, i - 1) + ext.slice(3) + ".sws";
-            webapp_client.exec({
-              project_id: this.project_id,
-              command: "cp",
-              args: [filename, new_filename],
-              cb: (err) => {
-                if (err) {
-                  return cb(err);
-                } else {
-                  filename = new_filename;
-                  return cb();
-                }
-              },
-            });
-          }
-        },
-        (cb) => {
-          webapp_client.exec({
-            project_id: this.project_id,
-            command: "smc-sws2sagews",
-            args: [filename],
-            cb: (err) => {
-              return cb(err);
-            },
-          });
-        },
-      ],
-      (err) => {
-        if (err) {
-          return cb(err);
-        } else {
-          return cb(
-            undefined,
-            filename.slice(0, filename.length - 3) + "sagews"
-          );
-        }
-      }
-    );
+  private async convert_sagenb_worksheet(filename: string): Promise<string> {
+    const ext = misc.filename_extension(filename);
+    if (ext != "sws") {
+      const i = filename.length - ext.length;
+      const new_filename = filename.slice(0, i - 1) + ext.slice(3) + ".sws";
+      await webapp_client.project_client.exec({
+        project_id: this.project_id,
+        command: "cp",
+        args: [filename, new_filename],
+      });
+      filename = new_filename;
+    }
+    await webapp_client.project_client.exec({
+      project_id: this.project_id,
+      command: "smc-sws2sagews",
+      args: [filename],
+    });
+
+    return filename.slice(0, filename.length - 3) + "sagews";
   }
 
-  convert_docx_file(filename, cb) {
-    webapp_client.exec({
+  private async convert_docx_file(filename): Promise<string> {
+    await webapp_client.project_client.exec({
       project_id: this.project_id,
       command: "smc-docx2txt",
       args: [filename],
-      cb: (err, output) => {
-        if (err) {
-          return cb(`${err}, ${misc.to_json(output)}`);
-        } else {
-          return cb(false, filename.slice(0, filename.length - 4) + "txt");
-        }
-      },
     });
+    return filename.slice(0, filename.length - 4) + "txt";
   }
 
   // Closes all files and removes all references
@@ -1642,10 +1589,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (err && !misc.is_string(err)) {
           err = misc.to_json(err);
         }
-        const map = store
-          .get("directory_listings")
-          .set(path, err ? err : immutable.fromJS(the_listing.files));
-        this.setState({ directory_listings: map });
+        if (path == null) throw Error("bug"); // make typescript happy
+        if (the_listing != null) {
+          const map = store
+            .get("directory_listings")
+            .set(path, err ? err : immutable.fromJS(the_listing.files));
+          this.setState({ directory_listings: map });
+        }
         // done! releasing lock, then executing callback(s)
         const cbs = this._set_directory_files_lock[_key];
         delete this._set_directory_files_lock[_key];
@@ -1943,45 +1893,38 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.set_file_action(opts.action, () => path_splitted.tail);
   }
 
-  get_from_web(opts) {
+  private async get_from_web(opts: {
+    url: string;
+    dest?: string;
+    timeout: number;
+    alert?: boolean;
+  }): Promise<void> {
     opts = defaults(opts, {
       url: required,
       dest: undefined,
       timeout: 45,
       alert: true,
-      cb: undefined,
-    }); // cb(true or false, depending on error)
+    });
 
     const { command, args } = transform_get_url(opts.url);
 
-    webapp_client.exec({
-      project_id: this.project_id,
-      command,
-      timeout: opts.timeout,
-      path: opts.dest,
-      args,
-      cb: (err, result) => {
-        if (opts.alert) {
-          if (err) {
-            alert_message({ type: "error", message: err, timeout: 15 });
-          } else if (result.event === "error") {
-            alert_message({
-              type: "error",
-              message: result.error,
-              timeout: 15,
-            });
-          }
-        }
-        typeof opts.cb === "function"
-          ? opts.cb(err || result.event === "error")
-          : undefined;
-      },
-    });
+    try {
+      await webapp_client.project_client.exec({
+        project_id: this.project_id,
+        command,
+        timeout: opts.timeout,
+        path: opts.dest,
+        args,
+      });
+    } catch (err) {
+      alert_message({ type: "error", message: err, timeout: 15 });
+    }
   }
 
-  // function used internally by things that call webapp_client.exec
+  // function used internally by things that call webapp_client.project_client.exec
   private _finish_exec(id, cb?) {
-    // returns a function that takes the err and output and does the right activity logging stuff.
+    // returns a function that takes the err and output and
+    // does the right activity logging stuff.
     return (err, output) => {
       this.fetch_directory_listing();
       if (err) {
@@ -2029,7 +1972,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       command: "zip",
       args,
       timeout: 10 * 60 /* compressing CAN take a while -- zip is slow! */,
-      network_timeout: 10 * 60,
       err_on_exit: true, // this should fail if exit_code != 0
       path: opts.path,
       cb: opts.cb != null ? opts.cb : this._finish_exec(id),
@@ -2195,7 +2137,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         command: cmd,
         bash: true,
         timeout: 30,
-        network_timeout: 120,
         err_on_exit: false,
         path: ".",
         cb: (err, output) => {
@@ -2238,7 +2179,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     _init_library_index_ongoing[this.project_id] = true;
 
-    const index_json_url = webapp_client.read_file_from_project({
+    const index_json_url = webapp_client.project_client.read_file({
       project_id: this.project_id,
       path: LIBRARY_INDEX_FILE,
     });
@@ -2321,7 +2262,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       command: "rsync",
       args: ["-rlDx", source, target],
       timeout: 120, // how long rsync runs on client
-      network_timeout: 120, // how long network call has until it must return something or get total error.
       err_on_exit: true,
       path: ".",
       cb: (err, output) => {
@@ -2411,7 +2351,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       command: "rsync", // don't use "a" option to rsync, since on snapshots results in destroying project access!
       args,
       timeout: 120, // how long rsync runs on client
-      network_timeout: 120, // how long network call has until it must return something or get total error.
       err_on_exit: true,
       path: ".",
       cb: this._finish_exec(id),
@@ -2428,12 +2367,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       overwrite_newer: false, // overwrite newer versions of file at destination (destructive)
       delete_missing: false, // delete files in dest that are missing from source (destructive)
       backup: false, // make ~ backup files instead of overwriting changed files
-      timeout: undefined, // how long to wait for the copy to complete before reporting "error" (though it could still succeed)
-      exclude_history: false, // if true, exclude all files of the form *.sage-history
-      id: undefined,
-      cb: undefined, // optional callback when all done.
     });
-    const id = opts.id != null ? opts.id : misc.uuid();
+    const id = misc.uuid();
     this.set_activity({
       id,
       status: `Copying ${opts.src.length} ${misc.plural(
@@ -2451,16 +2386,22 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       count: src.length > 3 ? src.length : undefined,
       project: opts.target_project_id,
     });
-    const f = (src_path, cb) => {
+    const f = async (src_path, cb) => {
       const opts0 = misc.copy(opts);
-      opts0.cb = cb;
+      delete opts0.cb;
       opts0.src_path = src_path;
       // we do this for consistent semantics with file copy
       opts0.target_path = misc.path_to_file(
         opts0.target_path,
         misc.path_split(src_path).tail
       );
-      webapp_client.copy_path_between_projects(opts0);
+      opts0.timeout = 90;
+      try {
+        await webapp_client.project_client.copy_path_between_projects(opts0);
+        cb();
+      } catch (err) {
+        cb(err);
+      }
     };
     async.mapLimit(src, 3, f, this._finish_exec(id, opts.cb));
   }
@@ -2714,7 +2655,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  new_file_from_web(url, current_path, cb?) {
+  private async new_file_from_web(
+    url: string,
+    current_path: string
+  ): Promise<void> {
     let d = current_path;
     if (d === "") {
       d = "root directory of project";
@@ -2725,19 +2669,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       id,
       status: `Downloading '${url}' to '${d}', which may run for up to ${FROM_WEB_TIMEOUT_S} seconds...`,
     });
-    this.get_from_web({
-      url,
-      dest: current_path,
-      timeout: FROM_WEB_TIMEOUT_S,
-      alert: true,
-      cb: (err) => {
-        this.fetch_directory_listing();
-        this.set_activity({ id, stop: "" });
-        this.setState({ downloading_file: false });
-        this.set_active_tab("files", { update_file_listing: false });
-        typeof cb === "function" ? cb(err) : undefined;
-      },
-    });
+    try {
+      await this.get_from_web({
+        url,
+        dest: current_path,
+        timeout: FROM_WEB_TIMEOUT_S,
+        alert: true,
+      });
+    } finally {
+      this.fetch_directory_listing();
+      this.set_activity({ id, stop: "" });
+      this.setState({ downloading_file: false });
+      this.set_active_tab("files", { update_file_listing: false });
+    }
   }
 
   /*
@@ -2956,7 +2900,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       project_id: this.project_id,
       command: cmd + " | cut -c 1-256", // truncate horizontal line length (imagine a binary file that is one very long line)
       timeout: 20, // how long grep runs on client
-      network_timeout: 25, // how long network call has until it must return something or get total error.
       max_output,
       bash: true,
       err_on_exit: true,
@@ -3061,10 +3004,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.set_current_path(full_path);
         this.set_active_tab("search", { change_history: change_history });
     }
-  }
-
-  show_extra_free_warning(): void {
-    this.setState({ free_warning_extra_shown: true });
   }
 
   close_free_warning(): void {

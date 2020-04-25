@@ -24,7 +24,6 @@ export async function sagetex_hash(
   const s = sagetex_file(base);
   status(`sha1sum ${s}`);
   const output = await exec({
-    allow_post: true, // very quick computation of sha1 hash
     timeout: 10,
     command: "sha1sum",
     args: [s],
@@ -47,7 +46,6 @@ export async function sagetex(
   const s = sagetex_file(base);
   status(`sage ${s}`);
   return exec({
-    allow_post: false, // definitely could take a long time to fully run sage
     timeout: 360,
     bash: true, // so timeout is enforced by ulimit
     command: "sage",

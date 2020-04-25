@@ -8,6 +8,7 @@
 import { Map as iMap } from "immutable";
 import { KNITR_EXTS } from "./frame-editors/latex-editor/constants";
 import { TypedMap } from "./app-framework/TypedMap";
+import { WebappClient } from "./webapp-client";
 
 export const LIBRARY_INDEX_FILE = "/ext/library/cocalc-examples/index.json";
 
@@ -159,14 +160,14 @@ export function is_available(configuration?: ProjectConfiguration): Available {
 // main function, this calls the project "configuration" endpoint.
 // it also manages updating the configuration datastructure, which is used in the project actions
 export async function get_configuration(
-  webapp_client: any,
+  webapp_client: WebappClient,
   project_id: string,
   aspect: ConfigurationAspect = "main",
   prev: ProjectConfiguration,
   no_cache = false
 ): Promise<ProjectConfiguration | undefined> {
   // the actual API call, returning an object
-  const config: Configuration = await webapp_client.configuration(
+  const config: Configuration = await webapp_client.project_client.configuration(
     project_id,
     aspect,
     no_cache

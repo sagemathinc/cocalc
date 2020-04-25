@@ -580,7 +580,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
   private render_export_file_use_times(): Rendered {
     return (
-      <Row key="file-use-times">
+      <Row key="file-use-times-export-used">
         <Col xs={4}>
           <Tip
             title="Export when students used files"
@@ -608,7 +608,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
   private render_export_assignment(): Rendered {
     return (
-      <Row key="file-use-times">
+      <Row key="file-use-times-export-collected">
         <Col xs={4}>
           <Tip
             title="Export collected student files"

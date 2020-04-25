@@ -7,6 +7,7 @@ import { Channel } from "./types";
 import {
   ConfigurationAspect,
   Capabilities,
+  Configuration,
   ProjectConfiguration,
   isMainConfiguration,
 } from "../../project_configuration";
@@ -53,8 +54,12 @@ export class API {
     return await this.call({ cmd: "rename_file", src, dest }, 30000);
   }
 
-  async listing(path: string, hidden?: boolean): Promise<object[]> {
-    return await this.call({ cmd: "listing", path, hidden }, 15000);
+  async listing(
+    path: string,
+    hidden: boolean = false,
+    timeout: number = 15000
+  ): Promise<object[]> {
+    return await this.call({ cmd: "listing", path, hidden }, timeout);
   }
 
   /* Normalize the given paths relative to the HOME directory.
@@ -77,7 +82,7 @@ export class API {
   async configuration(
     aspect: ConfigurationAspect,
     no_cache = false
-  ): Promise<object[]> {
+  ): Promise<Configuration> {
     return await this.call({ cmd: "configuration", aspect, no_cache }, 15000);
   }
 
@@ -255,9 +260,10 @@ export class API {
   // input is dumb.
 
   async jupyter_run_notebook(opts: RunNotebookOptions): Promise<string> {
+    const max_total_time_ms = opts.limits?.max_total_time_ms ?? 20 * 60 * 1000;
     return await this.call(
       { cmd: "jupyter_run_notebook", opts },
-      60000 // TODO: implement timeout taking into account opts.limits as second option
+      max_total_time_ms
     );
   }
 

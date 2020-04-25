@@ -49,8 +49,6 @@ import {
 
 import { Card, Row, Col } from "antd";
 
-import { callback2 } from "smc-util/async-utils";
-
 const SEARCH_STYLE = { marginBottom: "0px" };
 
 interface MultipleAddSearchProps {
@@ -335,7 +333,7 @@ interface FoldersToolbarProps {
   search?: string;
   search_change: (search_value: string) => void; // search_change(current_search_value)
   num_omitted?: number;
-  project_id?: string;
+  project_id: string;
   items: immutable.Map<string, any>;
   add_folders: (folders: string[]) => void; // add_folders (Iterable<T>)
   item_name: string;
@@ -388,7 +386,7 @@ export class FoldersToolbar extends Component<
 
     let resp;
     try {
-      resp = await callback2(webapp_client.find_directories, {
+      resp = await webapp_client.project_client.find_directories({
         project_id: this.props.project_id,
         query: `*${search}*`,
       });
@@ -403,6 +401,7 @@ export class FoldersToolbar extends Component<
         err,
         add_search_results: undefined,
       });
+      return;
     }
 
     if (resp.directories.length === 0) {

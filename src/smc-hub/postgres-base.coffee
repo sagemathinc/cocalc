@@ -42,6 +42,7 @@ fs      = require('fs')
 async   = require('async')
 escapeString = require('sql-string-escape')
 validator = require('validator')
+{callback2} = require('smc-util/async-utils')
 
 pg      = require('pg').native    # You might have to do: "apt-get install libpq5 libpq-dev"
 if not pg?
@@ -77,10 +78,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             connect         : true
             password        : undefined
             pool            : undefined   # IGNORED for now.
-            cache_expiry    : 3000  # expire cached queries after this many milliseconds
+            cache_expiry    : 5000  # expire cached queries after this many milliseconds
                                     # keep this very short; it's just meant to reduce impact of a bunch of
                                     # identical permission checks in a single user query.
-            cache_size      : 100   # cache this many queries; use @_query(cache:true, ...) to cache result
+            cache_size      : 300   # cache this many queries; use @_query(cache:true, ...) to cache result
             concurrent_warn : 500
             ensure_exists   : true  # ensure database exists on startup (runs psql in a shell)
             timeout_ms      : DEFAULT_TIMEOUS_MS # **IMPORTANT: if *any* query takes this long, entire connection is terminated and recreated!**
@@ -395,6 +396,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             'Concurrent queries (started and finished)',
             ['state']
         )
+
+    async_query: (opts) =>
+        return await callback2(@_query.bind(@), opts)
 
     _query: (opts) =>
         opts  = defaults opts,

@@ -2,7 +2,7 @@
    about where they found out about cocalc.
 */
 
-const { webapp_client } = require("../webapp_client");
+import { webapp_client } from "../webapp-client";
 import * as LS from "../misc/local-storage";
 const { APP_BASE_URL } = require("../misc_page");
 import { SignedIn } from "../../smc-util/message-types";
@@ -14,7 +14,7 @@ async function tracking_events(): Promise<void> {
     const value = localStorage[event];
     if (value != null) {
       LS.del(event);
-      webapp_client.user_tracking({ event, value });
+      webapp_client.tracking_client.user_tracking(event, value);
     }
   }
 }

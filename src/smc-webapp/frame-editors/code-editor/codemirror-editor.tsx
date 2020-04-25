@@ -360,13 +360,14 @@ export class CodemirrorEditor extends Component<Props, State> {
     this.cm.on("focus", () => {
       this.props.actions.set_active_id(this.props.id);
       if (this.style_active_line && this.cm) {
-        this.cm.setOption("styleActiveLine", true);
+        // any because the typing doesn't recognize extensions
+        this.cm.setOption("styleActiveLine" as any, true);
       }
     });
 
     this.cm.on("blur", () => {
       if (this.style_active_line && this.cm) {
-        this.cm.setOption("styleActiveLine", false);
+        this.cm.setOption("styleActiveLine" as any, false);
       }
     });
 
@@ -413,7 +414,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       "theme",
     ]) {
       if (!isEqual(cm.options[key], options[key])) {
-        cm.setOption(key, options[key]);
+        cm.setOption(key as any, options[key]);
       }
     }
   }

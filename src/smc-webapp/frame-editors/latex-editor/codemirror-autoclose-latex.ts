@@ -43,7 +43,7 @@ interface Selection {
   anchor: Position;
 }
 
-function auto_close_latex(cm): void {
+function auto_close_latex(cm) {
   if (cm.getOption("disableInput")) {
     return CodeMirror.Pass;
   }

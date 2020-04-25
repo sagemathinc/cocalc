@@ -79,8 +79,8 @@ export interface ProjectStoreState {
   history_path: string;
   open_files: immutable.Map<string, immutable.Map<string, any>>;
   open_files_order: immutable.List<string>;
-  public_paths?: any; // immutable.List,
-  directory_listings: any; // immutable,
+  public_paths?: immutable.List<string>;
+  directory_listings: immutable.Map<string, any>; // immutable,
   show_upload: boolean;
   create_file_alert: boolean;
   displayed_listing?: any; // computed(object),
@@ -92,7 +92,6 @@ export interface ProjectStoreState {
   // Project Page
   active_project_tab: string;
   free_warning_closed: boolean; // Makes bottom height update
-  free_warning_extra_shown: boolean;
   num_ghost_file_tabs: number;
 
   // Project Files
@@ -246,7 +245,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
       // Project Page
       active_project_tab: "files",
       free_warning_closed: false, // Makes bottom height update
-      free_warning_extra_shown: false,
       num_ghost_file_tabs: 0,
 
       // Project Files
@@ -571,7 +569,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
           actions.close_tab(file);
           alert_message({
             type: "info",
-            message: `Closing '${file}' since it was deleted.`,
+            message: `Closing '${file}' since it was deleted or moved.`,
           });
         }
       } else {
@@ -581,7 +579,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
           if (actions.close_frames_with_path(path)) {
             alert_message({
               type: "info",
-              message: `Closed '${path}' in '${file}' since it was deleted.`,
+              message: `Closed '${path}' in '${file}' since it was deleted or moved.`,
             });
           }
         }

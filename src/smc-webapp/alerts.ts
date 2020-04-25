@@ -32,7 +32,7 @@ import {
   server_time,
 } from "smc-util/misc";
 
-const { webapp_client } = require("./webapp_client");
+import { webapp_client } from "./webapp-client";
 
 const severities = tuple(["error", "default", "success", "info", "warning"]);
 type Severity = typeof severities[number];
@@ -112,7 +112,7 @@ export function alert_message(opts: AlertMessageOptions = {}) {
     // that us developers know what errors people are hitting.
     // There really should be no situation where users *regularly*
     // get error alert messages.
-    webapp_client.log_error(opts.message);
+    webapp_client.tracking_client.log_error(opts.message);
   }
 
   // pass on alerts to the global notification bar -- disabled for now
@@ -138,7 +138,7 @@ export function alert_message(opts: AlertMessageOptions = {}) {
 function check_for_clock_skew() {
   const local_time = new Date().valueOf();
   const s = Math.ceil(
-    Math.abs(webapp_client.server_time() - local_time) / 1000
+    Math.abs(webapp_client.time_client.server_time().valueOf() - local_time.valueOf()) / 1000
   );
   if (s > 120) {
     return exports.alert_message({
