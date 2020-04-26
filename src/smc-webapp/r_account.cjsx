@@ -341,7 +341,6 @@ PasswordSetting = rclass
         @setState
             state    : 'edit'
             error    : ''
-            zxcvbn   : undefined
             old_password : ''
             new_password : ''
             strength     : 0
@@ -351,7 +350,6 @@ PasswordSetting = rclass
             state    : 'view'
             old_password : ''
             new_password : ''
-            zxcvbn   : undefined
             strength     : 0
 
     save_new_password: ->
@@ -372,7 +370,7 @@ PasswordSetting = rclass
             strength     : 0
 
     is_submittable: ->
-        return @state.new_password.length >= 6 and @state.new_password and @state.new_password != @state.old_password and (not @state.zxcvbn? or @state.zxcvbn?.score > 0)
+        return @state.new_password.length >= 6 and @state.new_password and @state.new_password != @state.old_password
 
     change_button: ->
         if @is_submittable()
@@ -385,15 +383,6 @@ PasswordSetting = rclass
     render_error: ->
         if @state.error
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} style={marginTop:'15px'}  />
-
-    password_meter: ->
-        result = @state.zxcvbn
-        if result?
-            score = ['Very weak', 'Weak', 'So-so', 'Good', 'Awesome!']
-            return <div style={marginBottom: '1em'}>
-                <ProgressBar striped bsStyle='info' now={2*result.entropy} />
-                {score[result.score]} (crack time: {result.crack_time_display})
-            </div>
 
     render_edit: ->
         <Well style={marginTop:'3ex'}>
@@ -416,11 +405,10 @@ PasswordSetting = rclass
                         ref         = 'new_password'
                         value       = {@state.new_password}
                         placeholder = 'New password'
-                        onChange    = {=>x=ReactDOM.findDOMNode(@refs.new_password).value; @setState(zxcvbn:password_score(x), new_password:x)}
+                        onChange    = {=>x=ReactDOM.findDOMNode(@refs.new_password).value; @setState(new_password:x)}
                     />
                 </FormGroup>
             </form>
-            {@password_meter()}
             <ButtonToolbar>
                 {@change_button()}
                 <Button bsStyle='default' onClick={@cancel_editing}>Cancel</Button>
@@ -1427,22 +1415,3 @@ ugly_error = (err) ->
         err = misc.to_json(err)
     alert_message(type:"error", message:"Settings error -- #{err}")
 
-# returns password score if password checker library
-# loaded; otherwise returns undefined and starts load
-zxcvbn = undefined
-password_score = (password) ->
-    return  # temporary until loading iof zxcvbn below is fixed. See https://github.com/sagemathinc/cocalc/issues/687
-    # if the password checking library is loaded, render a password strength indicator -- otherwise, don't
-    ###
-    if zxcvbn?
-        if zxcvbn != 'loading'
-            # explicitly ban some words.
-            return zxcvbn(password, ['sagemath','salvus','sage','sagemathcloud','smc','mathematica','pari'])
-    else
-        zxcvbn = 'loading'
-        require.ensure [], =>
-            zxcvbn = require("script!zxcvbn/zxcvbn.js")
-            # $.getScript '/static/zxcvbn/zxcvbn.js', () =>
-            #    zxcvbn = window.zxcvbn
-    return
-    ###
