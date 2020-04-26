@@ -335,7 +335,7 @@ class LandingPage extends Component<Props & reduxProps> {
               email_signup={this.props.email_signup}
             />
           </Col>
-          <Col sm={5} smOffset={1}>
+          <Col sm={6}>
             <div style={{ color: "#666", fontSize: "16pt", marginTop: "5px" }}>
               Create a new account to the left or sign in with an existing
               account above.

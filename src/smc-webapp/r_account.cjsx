@@ -447,7 +447,7 @@ PasswordSetting = rclass
 # WARNING: issue -- if edit an account setting in another browser and in the middle of editing
 # a field here, this one will get overwritten on the prop update.  I think using state would
 # fix that.
-AccountSettings = rclass
+exports.AccountSettings = rclass
     displayName : 'AccountSettings'
 
     propTypes :
@@ -889,7 +889,7 @@ TERMINAL_FONT_FAMILIES =
     'Courier New'    : 'Courier New'
     'monospace'      : 'Monospace'
 
-ProfileSettings = rclass
+exports.ProfileSettings = rclass
     displayName : 'Account-ProfileSettings'
 
     propTypes :
@@ -939,7 +939,7 @@ ProfileSettings = rclass
 
 # WARNING: in console.coffee there is also code to set the font size,
 # which our store ignores...
-TerminalSettings = rclass
+exports.TerminalSettings = rclass
     displayName : 'Account-TerminalSettings'
 
     propTypes :
@@ -1223,7 +1223,7 @@ EditorSettingsKeyboardVariant = rclass
             </LabeledRow>
 
 
-EditorSettings = rclass
+exports.EditorSettings = rclass
     displayName : 'Account-EditorSettings'
 
     propTypes :
@@ -1308,7 +1308,7 @@ EVALUATE_KEYS =
     'Shift-Enter' : 'shift+enter'
     'Enter'       : 'enter (shift+enter for newline)'
 
-KeyboardSettings = rclass
+exports.KeyboardSettings = rclass
     displayName : 'Account-KeyboardSettings'
 
     propTypes :
@@ -1341,7 +1341,7 @@ KeyboardSettings = rclass
             {@render_eval_shortcut()}
         </Panel>
 
-OtherSettings = rclass
+exports.OtherSettings = rclass
     displayName : 'Account-OtherSettings'
 
     propTypes :
@@ -1518,92 +1518,8 @@ OtherSettings = rclass
         </Panel>
 
 
-
-# Render the entire settings component
-exports.AccountSettingsTop = rclass
-    displayName : 'AccountSettingsTop'
-
-    propTypes :
-        redux                  : rtypes.object
-        account_id             : rtypes.string
-        first_name             : rtypes.string
-        last_name              : rtypes.string
-        email_address          : rtypes.string
-        email_address_verified : rtypes.immutable.Map
-        passports              : rtypes.immutable.Map
-        sign_out_error         : rtypes.string
-        everywhere             : rtypes.bool
-        terminal               : rtypes.immutable.Map
-        evaluate_key           : rtypes.string
-        autosave               : rtypes.number
-        tab_size               : rtypes.number
-        font_size              : rtypes.number
-        editor_settings        : rtypes.immutable.Map
-        other_settings         : rtypes.immutable.Map
-        groups                 : rtypes.immutable.List
-        stripe_customer        : rtypes.immutable.Map
-        is_anonymous           : rtypes.bool
-        email_enabled          : rtypes.bool
-        verify_emails          : rtypes.bool
-        created                : rtypes.object
-
-    render_account_settings: ->
-        <AccountSettings
-            account_id             = {@props.account_id}
-            first_name             = {@props.first_name}
-            last_name              = {@props.last_name}
-            email_address          = {@props.email_address}
-            email_address_verified = {@props.email_address_verified}
-            passports              = {@props.passports}
-            sign_out_error         = {@props.sign_out_error}
-            everywhere             = {@props.everywhere}
-            other_settings         = {@props.other_settings}
-            is_anonymous           = {@props.is_anonymous}
-            email_enabled          = {@props.email_enabled}
-            verify_emails          = {@props.verify_emails}
-            created                = {@props.created}
-            redux                  = {@props.redux}
-        />
-
-
-    render: ->
-        if @props.is_anonymous
-            return @render_account_settings()
-        <div style={marginTop:'1em'}>
-            <Row>
-                <Col xs={12} md={6}>
-                    {@render_account_settings()}
-                    <OtherSettings
-                        other_settings     = {@props.other_settings}
-                        is_stripe_customer = {!!@props.stripe_customer?.getIn(['subscriptions', 'total_count'])}
-                        redux              = {@props.redux} />
-                    <ProfileSettings
-                        email_address = {@props.email_address}
-                        first_name    = {@props.first_name}
-                        last_name     = {@props.last_name}
-                        redux         = {@props.redux} />
-                </Col>
-                <Col xs={12} md={6}>
-                    <EditorSettings
-                        autosave        = {@props.autosave}
-                        tab_size        = {@props.tab_size}
-                        font_size       = {@props.font_size}
-                        editor_settings = {@props.editor_settings}
-                        email_address   = {@props.email_address}
-                        redux           = {@props.redux} />
-                    <TerminalSettings
-                        terminal = {@props.terminal}
-                        redux    = {@props.redux} />
-                    <KeyboardSettings
-                        evaluate_key = {@props.evaluate_key}
-                        redux        = {@props.redux} />
-                </Col>
-            </Row>
-            <Footer/>
-        </div>
-
 STRATEGIES = [{name:'email'}]
-(->
+f = () ->
     $.get "#{window.app_base_url}/auth/strategies?v=2", (strategies, status) ->
         if status == 'success'
             STRATEGIES = strategies
@@ -1620,8 +1536,9 @@ STRATEGIES = [{name:'email'}]
             # depends on STRATEGIES.
             redux.getActions('account').setState(strategies:strategies)
         else
-            setTimeout(f, 60000)
-)()
+            setTimeout(f, 10000)
+f()
+
 
 ugly_error = (err) ->
     if typeof(err) != 'string'

@@ -90,6 +90,7 @@ export function Grid(props: any) {
 export function Well(props: { style?: React.CSSProperties; children?: any }) {
   let style: React.CSSProperties = props.style != null ? props.style : {};
   style.backgroundColor = "white";
+  Row;
   style.border = "1px solid #e3e3e3";
   return <antd.Card style={style}>{props.children}</antd.Card>;
 }
@@ -121,7 +122,10 @@ export function Checkbox(props: any) {
   );
 }
 
-export const Row = antd.Row;
+export function Row(props: any) {
+  props = { ...{ gutter: 16 }, ...props };
+  return <antd.Row {...props}>{props.children}</antd.Row>;
+}
 
 export function Col(props: {
   xs?: number;
