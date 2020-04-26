@@ -33,12 +33,12 @@ async = require('async')
 {Avatar} = require('./other-users')
 {ProfileImageSelector} = require('./r_profile_image')
 {PHYSICAL_KEYBOARDS, KEYBOARD_VARIANTS} = require('./frame-editors/x11-editor/xpra/keyboards')
-{JUPYTER_CLASSIC_MODERN} = require('smc-util/theme')
 {NewFilenameFamilies, NewFilenames} = require('smc-webapp/project/utils')
 {NEW_FILENAMES} = require('smc-util/db-schema')
 
 {SignOut} =require('./account/sign-out')
 {DeleteAccount} = require('./account/delete-account')
+{EditorSettingsCheckboxes} = require('./account/editor-settings/checkboxes')
 
 {log} = require("./user-tracking")
 
@@ -850,59 +850,6 @@ exports.TerminalSettings = rclass
             {@render_font_family()}
         </Panel>
 
-EDITOR_SETTINGS_CHECKBOXES =
-    line_wrapping             : 'wrap long lines'
-    line_numbers              : 'show line numbers'
-    code_folding              : 'fold code using control+Q'
-    smart_indent              : 'context sensitive indentation'
-    electric_chars            : 'sometimes reindent current line'
-    match_brackets            : 'highlight matching brackets near cursor'
-    auto_close_brackets       : 'automatically close brackets'
-    match_xml_tags            : 'automatically match XML tags'
-    auto_close_xml_tags       : 'automatically close XML tags'
-    auto_close_latex          : 'automatically close LaTeX environments'
-    strip_trailing_whitespace : 'remove whenever file is saved'
-    show_trailing_whitespace  : 'show spaces at ends of lines'
-    spaces_instead_of_tabs    : 'send spaces when the tab key is pressed'
-    extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
-    build_on_save             : 'build LaTex file whenever it is saved to disk'
-    show_exec_warning         : 'warn that certain files are not directly executable'
-    ask_jupyter_kernel        : 'ask which kernel to use for a new Jupyter Notebook'
-    jupyter_classic           : <span>use classical Jupyter notebook <a href={JUPYTER_CLASSIC_MODERN} target='_blank'>(DANGER: this can cause trouble...)</a></span>
-    disable_jupyter_windowing         : 'never use windowing with Jupyter notebooks (windowing is sometimes used to make very large notebooks render quickly, but can lead to trouble in edge cases)'
-
-EditorSettingsCheckboxes = rclass
-    displayName : 'Account-EditorSettingsCheckboxes'
-
-    propTypes :
-        editor_settings : rtypes.immutable.Map.isRequired
-        email_address : rtypes.string
-        on_change       : rtypes.func.isRequired
-
-    shouldComponentUpdate: (props) ->
-        return @props.editor_settings != props.editor_settings
-
-    label_checkbox: (name, desc) ->
-        <span>
-            {misc.capitalize(name.replace(/_/g,' ').replace(/-/g,' ').replace('xml','XML').replace('latex','LaTeX')) + ': '}
-            {desc}
-        </span>
-
-    render_checkbox: (name, desc) ->
-        if @props.email_address?.indexOf('minervaproject.com') != -1 and name == 'jupyter_classic'
-            return
-        <Checkbox checked  = {@props.editor_settings.get(name)}
-               key      = {name}
-               ref      = {name}
-               onChange = {(e)=>@props.on_change(name, e.target.checked)}>
-            {@label_checkbox(name, desc)}
-        </Checkbox>
-
-    render: ->
-        <span>
-            {(@render_checkbox(name, desc) for name, desc of EDITOR_SETTINGS_CHECKBOXES)}
-        </span>
-
 EditorSettingsAutosaveInterval = rclass
     displayName : 'Account-EditorSettingsAutosaveInterval'
 
@@ -935,8 +882,6 @@ EditorSettingsIndentSize = rclass
                 max       = {32}
                 number    = {@props.tab_size} />
         </LabeledRow>
-
-
 
 EditorSettingsFontSize = rclass
     displayName : 'Account-EditorSettingsFontSize'
