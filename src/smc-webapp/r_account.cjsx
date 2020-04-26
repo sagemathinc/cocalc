@@ -38,6 +38,7 @@ async = require('async')
 {NEW_FILENAMES} = require('smc-util/db-schema')
 
 {SignOut} =require('./account/sign-out')
+{DeleteAccount} = require('./account/delete-account')
 
 {log} = require("./user-tracking")
 
@@ -754,109 +755,6 @@ exports.AccountSettings = rclass
             {@render_sign_out_error()}
         </Panel>
 
-DeleteAccount = rclass
-    displayName : 'Account-DeleteAccount'
-
-    propTypes:
-        initial_click     : rtypes.func.isRequired
-        confirm_click     : rtypes.func.isRequired
-        cancel_click      : rtypes.func.isRequired
-        user_name         : rtypes.string.isRequired
-        show_confirmation : rtypes.bool
-        style             : rtypes.object
-
-    render: ->
-        <div>
-            <div style={height:'26px'}>
-                <Button
-                    disabled  = {@props.show_confirmation}
-                    className = 'pull-right'
-                    bsStyle   = 'danger'
-                    style     = {@props.style}
-                    onClick   = {@props.initial_click}
-                >
-                <Icon name='trash' /> Delete Account...
-                </Button>
-            </div>
-            {<DeleteAccountConfirmation
-                confirm_click = {@props.confirm_click}
-                cancel_click  = {@props.cancel_click}
-                required_text = {@props.user_name}
-             /> if @props.show_confirmation}
-        </div>
-
-# Concious choice to make them actually click the confirm delete button.
-DeleteAccountConfirmation = rclass
-    displayName : 'Account-DeleteAccountConfirmation'
-
-    propTypes:
-        confirm_click : rtypes.func.isRequired
-        cancel_click  : rtypes.func.isRequired
-        required_text : rtypes.string.isRequired
-
-    reduxProps:
-        account :
-            account_deletion_error : rtypes.string
-
-    # Loses state on rerender from cancel. But this is what we want.
-    getInitialState: ->
-        confirmation_text : ''
-
-    render_error: ->
-        if not @props.account_deletion_error?
-            return
-        <ErrorDisplay error={@props.account_deletion_error} />
-
-    render: ->
-        <Well style={marginTop: '26px', textAlign:'center', fontSize: '15pt', backgroundColor: 'darkred', color: 'white'}>
-            Are you sure you want to DELETE YOUR ACCOUNT?<br/>
-            You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects, and any subscriptions will be canceled.<br/>
-            <hr style={marginTop:'10px', marginBottom:'10px'}/>
-            Do NOT delete your account if you are a current student in a course on CoCalc! <a href="https://github.com/sagemathinc/cocalc/issues/3243" target="_blank">Why?</a>
-            <hr style={marginTop:'10px', marginBottom:'10px'}/>
-            To DELETE YOUR ACCOUNT, enter your first and last name below.
-            <FormGroup>
-                <FormControl
-                    autoFocus
-                    value       = {@state.confirmation_text}
-                    type        = 'text'
-                    ref         = 'confirmation_field'
-                    onChange    = {=>@setState(confirmation_text : ReactDOM.findDOMNode(@refs.confirmation_field).value)}
-                    style       = {marginTop : '1ex'}
-                />
-            </FormGroup>
-            <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
-                <Button
-                    disabled = {@state.confirmation_text != @props.required_text}
-                    bsStyle  = 'danger'
-                    onClick  = {=>@props.confirm_click()}
-                >
-                    <Icon name='trash' /> Yes, please DELETE MY ACCOUNT
-                </Button>
-                <Button
-                    style   = {paddingRight:'8px'}
-                    bsStyle = 'primary'
-                    onClick = {@props.cancel_click}
-                >
-                    Cancel
-                </Button>
-            </ButtonToolbar>
-            {@render_error()}
-        </Well>
-
-    # Make this the render function to disable account deletion
-    xxx_render: ->
-        <Well  style={marginTop: '26px', textAlign:'center', fontSize: '12pt'}>
-            To delete your account, contact us at <a href="mailto:help@cocalc.com" target="_blank">help@cocalc.com</a>{" "}
-            or open a support request by clicking "Help" in the top right menu.<br/>
-            <Button
-                style = {marginTop:'5px'}
-                bsStyle = 'primary'
-                onClick = {@props.cancel_click}
-            >
-                Cancel
-            </Button>
-        </Well>
 
 ###
 # Terminal
