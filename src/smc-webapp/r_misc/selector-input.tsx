@@ -12,6 +12,7 @@ interface Props {
   disabled?: boolean;
   selected?: string;
   on_change?: (selected: string) => void;
+  style?: React.CSSProperties;
 }
 
 // If the first element is a string, we assume the rest to be a string
@@ -68,7 +69,7 @@ export class SelectorInput extends React.Component<Props> {
 
   render() {
     return (
-      <FormGroup>
+      <FormGroup style={this.props.style}>
         <FormControl
           value={this.props.selected}
           componentClass="select"

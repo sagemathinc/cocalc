@@ -21,7 +21,6 @@ declare const CodeMirror: any; // TODO: find typings for this UMD
 const BLURRED_STYLE: React.CSSProperties = {
   width: "100%",
   overflowX: "hidden",
-  background: "#ffffff",
   lineHeight: "normal",
   height: "auto",
   fontSize: "inherit",
@@ -120,11 +119,8 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
     // in front with the same content... but that's a speed optimization for later.
     let style: React.CSSProperties;
     let width: number;
-    if (
-      this.props.options != null
-        ? this.props.options.get("lineNumbers")
-        : undefined
-    ) {
+    let theme = this.props.options?.get("theme") ?? "default";
+    if (this.props.options?.get("lineNumbers")) {
       const num_lines = this.props.value.split("\n").length;
       if (num_lines < 100) {
         width = 30;
@@ -147,9 +143,19 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
         style = merge(copy(style), this.props.style);
       }
     }
+    if (theme == "default") {
+      style = { ...{ background: "white" }, ...style };
+    }
+
+    const v = theme.split(" ");
+    const theme_base = "cm-s-" + v[0];
+    const theme_extra = v.length == 2 ? "cm-s-" + v[1] : "";
 
     return (
-      <pre className="CodeMirror cm-s-default CodeMirror-wrap" style={style}>
+      <pre
+        className={`CodeMirror ${theme_base} ${theme_extra} CodeMirror-wrap`}
+        style={style}
+      >
         <div style={{ marginLeft: width }}>
           {this.render_lines(width)}
           {this.render_gutter(width)}
@@ -177,6 +183,7 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
       borderRadius: "2px",
       position: "relative",
       overflowX: "auto",
+      fontSize: this.props.font_size ? `${this.props.font_size}px` : undefined,
     };
     if (!this.props.no_border) {
       style.border = "1px solid rgb(207, 207, 207)";

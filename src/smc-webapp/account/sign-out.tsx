@@ -5,6 +5,7 @@ interface Props {
   everywhere?: boolean;
   sign_in?: boolean;
   danger?: boolean;
+  style?: React.CSSProperties;
 }
 
 export class SignOut extends Component<Props> {
@@ -50,7 +51,11 @@ export class SignOut extends Component<Props> {
         okText={`Yes, sign out${this.props.everywhere ? " everywhere" : ""}`}
         cancelText={"Cancel"}
       >
-        <Button icon={"logout"} type={this.props.danger ? "danger" : undefined}>
+        <Button
+          icon={"logout"}
+          type={this.props.danger ? "danger" : undefined}
+          style={this.props.style}
+        >
           {this.render_body()}
         </Button>
       </Popconfirm>

@@ -39,6 +39,8 @@ async = require('async')
 {SignOut} =require('./account/sign-out')
 {DeleteAccount} = require('./account/delete-account')
 {EditorSettingsCheckboxes} = require('./account/editor-settings/checkboxes')
+{EditorSettingsAutosaveInterval} = require('./account/editor-settings/autosave-interval')
+{EditorSettingsColorScheme} = require('./account/editor-settings/color-schemes')
 
 {log} = require("./user-tracking")
 
@@ -850,23 +852,6 @@ exports.TerminalSettings = rclass
             {@render_font_family()}
         </Panel>
 
-EditorSettingsAutosaveInterval = rclass
-    displayName : 'Account-EditorSettingsAutosaveInterval'
-
-    propTypes :
-        autosave  : rtypes.number.isRequired
-        on_change : rtypes.func.isRequired
-
-    render: ->
-        <LabeledRow label='Autosave interval'>
-            <NumberInput
-                on_change = {(n)=>@props.on_change('autosave',n)}
-                min       = {15}
-                max       = {900}
-                number    = {@props.autosave}
-                unit      = "seconds" />
-        </LabeledRow>
-
 EditorSettingsIndentSize = rclass
     displayName : 'Account-EditorSettings-IndentSize'
 
@@ -898,82 +883,6 @@ EditorSettingsFontSize = rclass
                 max       = {32}
                 number    = {@props.font_size}
                 unit      = "px" />
-        </LabeledRow>
-
-EDITOR_COLOR_SCHEMES = exports.EDITOR_COLOR_SCHEMES =
-    'default'                 : 'Default'
-    '3024-day'                : '3024 day'
-    '3024-night'              : '3024 night'
-    'abcdef'                  : 'abcdef'
-    #'ambiance-mobile'         : 'Ambiance mobile'  # doesn't highlight python, confusing
-    'ambiance'                : 'Ambiance'
-    'base16-dark'             : 'Base 16 dark'
-    'base16-light'            : 'Base 16 light'
-    'bespin'                  : 'Bespin'
-    'blackboard'              : 'Blackboard'
-    'cobalt'                  : 'Cobalt'
-    'colorforth'              : 'Colorforth'
-    'darcula'                 : 'Darcula'
-    'dracula'                 : 'Dracula'
-    'duotone-dark'            : 'Duotone Dark'
-    'duotone-light'           : 'Duotone Light'
-    'eclipse'                 : 'Eclipse'
-    'elegant'                 : 'Elegant'
-    'erlang-dark'             : 'Erlang dark'
-    'gruvbox-dark'            : 'Gruvbox-Dark'
-    'hopscotch'               : 'Hopscotch'
-    'icecoder'                : 'Icecoder'
-    'idea'                    : 'Idea'  # this messes with the global hinter CSS!
-    'isotope'                 : 'Isotope'
-    'lesser-dark'             : 'Lesser dark'
-    'liquibyte'               : 'Liquibyte'
-    'lucario'                 : 'Lucario'
-    'material'                : 'Material'
-    'mbo'                     : 'mbo'
-    'mdn-like'                : 'MDN like'
-    'midnight'                : 'Midnight'
-    'monokai'                 : 'Monokai'
-    'neat'                    : 'Neat'
-    'neo'                     : 'Neo'
-    'night'                   : 'Night'
-    'oceanic-next'            : 'Oceanic next'
-    'panda-syntax'            : 'Panda syntax'
-    'paraiso-dark'            : 'Paraiso dark'
-    'paraiso-light'           : 'Paraiso light'
-    'pastel-on-dark'          : 'Pastel on dark'
-    'railscasts'              : 'Railscasts'
-    'rubyblue'                : 'Rubyblue'
-    'seti'                    : 'Seti'
-    'shadowfox'               : 'Shadowfox'
-    'solarized dark'          : 'Solarized dark'
-    'solarized light'         : 'Solarized light'
-    'ssms'                    : 'ssms'
-    'the-matrix'              : 'The Matrix'
-    'tomorrow-night-bright'   : 'Tomorrow Night - Bright'
-    'tomorrow-night-eighties' : 'Tomorrow Night - Eighties'
-    'ttcn'                    : 'ttcn'
-    'twilight'                : 'Twilight'
-    'vibrant-ink'             : 'Vibrant ink'
-    'xq-dark'                 : 'Xq dark'
-    'xq-light'                : 'Xq light'
-    'yeti'                    : 'Yeti'
-    'zenburn'                 : 'Zenburn'
-
-
-EditorSettingsColorScheme = rclass
-    displayName : 'Account-EditorSettingsColorScheme'
-
-    propTypes :
-        theme     : rtypes.string.isRequired
-        on_change : rtypes.func.isRequired
-
-    render: ->
-        <LabeledRow label='Editor color scheme'>
-            <SelectorInput
-                options   = {EDITOR_COLOR_SCHEMES}
-                selected  = {@props.theme}
-                on_change = {@props.on_change}
-            />
         </LabeledRow>
 
 EDITOR_BINDINGS =
@@ -1085,7 +994,7 @@ exports.EditorSettings = rclass
             <EditorSettingsIndentSize
                 on_change={@on_change} tab_size={@props.tab_size} />
             <EditorSettingsColorScheme
-                on_change={(value)=>@on_change('theme',value)} theme={@props.editor_settings.get('theme')} />
+                on_change={(value)=>@on_change('theme',value)} theme={@props.editor_settings.get('theme')} editor_settings={@props.editor_settings} font_size={@props.font_size} />
             <EditorSettingsKeyboardBindings
                 on_change={(value)=>@on_change('bindings',value)} bindings={@props.editor_settings.get('bindings')} />
             <EditorSettingsPhysicalKeyboard
