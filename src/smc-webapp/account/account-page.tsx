@@ -341,7 +341,7 @@ class AccountPage extends Component<Props> {
             <SignOut
               everywhere={false}
               danger={true}
-              style={{ position: "absolute", right: 0 }}
+              style={{ position: "absolute", right: 0, zIndex: 1 }}
             />
           </div>
           <Tabs
