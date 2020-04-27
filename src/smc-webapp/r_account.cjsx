@@ -32,12 +32,21 @@ async = require('async')
 {ColorPicker} = require('./colorpicker')
 {Avatar} = require('./other-users')
 {ProfileImageSelector} = require('./r_profile_image')
-{PHYSICAL_KEYBOARDS, KEYBOARD_VARIANTS} = require('./frame-editors/x11-editor/xpra/keyboards')
-{JUPYTER_CLASSIC_MODERN} = require('smc-util/theme')
+
+{KEYBOARD_VARIANTS} = require('./frame-editors/x11-editor/xpra/keyboards')
+{EditorSettingsPhysicalKeyboard, EditorSettingsKeyboardVariant} = require('./account/editor-settings/x11-keyboard')
+
 {NewFilenameFamilies, NewFilenames} = require('smc-webapp/project/utils')
 {NEW_FILENAMES} = require('smc-util/db-schema')
 
 {SignOut} =require('./account/sign-out')
+{DeleteAccount} = require('./account/delete-account')
+{EditorSettingsCheckboxes} = require('./account/editor-settings/checkboxes')
+{EditorSettingsAutosaveInterval} = require('./account/editor-settings/autosave-interval')
+{EditorSettingsColorScheme} = require('./account/editor-settings/color-schemes')
+{EditorSettingsFontSize} = require('./account/editor-settings/font-size')
+{EditorSettingsIndentSize} = require('./account/editor-settings/indent-size')
+{EditorSettingsKeyboardBindings} = require('./account/editor-settings/keyboard-bindings')
 
 {log} = require("./user-tracking")
 
@@ -342,7 +351,6 @@ PasswordSetting = rclass
         @setState
             state    : 'edit'
             error    : ''
-            zxcvbn   : undefined
             old_password : ''
             new_password : ''
             strength     : 0
@@ -352,7 +360,6 @@ PasswordSetting = rclass
             state    : 'view'
             old_password : ''
             new_password : ''
-            zxcvbn   : undefined
             strength     : 0
 
     save_new_password: ->
@@ -373,7 +380,7 @@ PasswordSetting = rclass
             strength     : 0
 
     is_submittable: ->
-        return @state.new_password.length >= 6 and @state.new_password and @state.new_password != @state.old_password and (not @state.zxcvbn? or @state.zxcvbn?.score > 0)
+        return @state.new_password.length >= 6 and @state.new_password and @state.new_password != @state.old_password
 
     change_button: ->
         if @is_submittable()
@@ -386,15 +393,6 @@ PasswordSetting = rclass
     render_error: ->
         if @state.error
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} style={marginTop:'15px'}  />
-
-    password_meter: ->
-        result = @state.zxcvbn
-        if result?
-            score = ['Very weak', 'Weak', 'So-so', 'Good', 'Awesome!']
-            return <div style={marginBottom: '1em'}>
-                <ProgressBar striped bsStyle='info' now={2*result.entropy} />
-                {score[result.score]} (crack time: {result.crack_time_display})
-            </div>
 
     render_edit: ->
         <Well style={marginTop:'3ex'}>
@@ -417,11 +415,10 @@ PasswordSetting = rclass
                         ref         = 'new_password'
                         value       = {@state.new_password}
                         placeholder = 'New password'
-                        onChange    = {=>x=ReactDOM.findDOMNode(@refs.new_password).value; @setState(zxcvbn:password_score(x), new_password:x)}
+                        onChange    = {=>x=ReactDOM.findDOMNode(@refs.new_password).value; @setState(new_password:x)}
                     />
                 </FormGroup>
             </form>
-            {@password_meter()}
             <ButtonToolbar>
                 {@change_button()}
                 <Button bsStyle='default' onClick={@cancel_editing}>Cancel</Button>
@@ -770,109 +767,6 @@ exports.AccountSettings = rclass
             {@render_sign_out_error()}
         </Panel>
 
-DeleteAccount = rclass
-    displayName : 'Account-DeleteAccount'
-
-    propTypes:
-        initial_click     : rtypes.func.isRequired
-        confirm_click     : rtypes.func.isRequired
-        cancel_click      : rtypes.func.isRequired
-        user_name         : rtypes.string.isRequired
-        show_confirmation : rtypes.bool
-        style             : rtypes.object
-
-    render: ->
-        <div>
-            <div style={height:'26px'}>
-                <Button
-                    disabled  = {@props.show_confirmation}
-                    className = 'pull-right'
-                    bsStyle   = 'danger'
-                    style     = {@props.style}
-                    onClick   = {@props.initial_click}
-                >
-                <Icon name='trash' /> Delete Account...
-                </Button>
-            </div>
-            {<DeleteAccountConfirmation
-                confirm_click = {@props.confirm_click}
-                cancel_click  = {@props.cancel_click}
-                required_text = {@props.user_name}
-             /> if @props.show_confirmation}
-        </div>
-
-# Concious choice to make them actually click the confirm delete button.
-DeleteAccountConfirmation = rclass
-    displayName : 'Account-DeleteAccountConfirmation'
-
-    propTypes:
-        confirm_click : rtypes.func.isRequired
-        cancel_click  : rtypes.func.isRequired
-        required_text : rtypes.string.isRequired
-
-    reduxProps:
-        account :
-            account_deletion_error : rtypes.string
-
-    # Loses state on rerender from cancel. But this is what we want.
-    getInitialState: ->
-        confirmation_text : ''
-
-    render_error: ->
-        if not @props.account_deletion_error?
-            return
-        <ErrorDisplay error={@props.account_deletion_error} />
-
-    render: ->
-        <Well style={marginTop: '26px', textAlign:'center', fontSize: '15pt', backgroundColor: 'darkred', color: 'white'}>
-            Are you sure you want to DELETE YOUR ACCOUNT?<br/>
-            You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects, and any subscriptions will be canceled.<br/>
-            <hr style={marginTop:'10px', marginBottom:'10px'}/>
-            Do NOT delete your account if you are a current student in a course on CoCalc! <a href="https://github.com/sagemathinc/cocalc/issues/3243" target="_blank">Why?</a>
-            <hr style={marginTop:'10px', marginBottom:'10px'}/>
-            To DELETE YOUR ACCOUNT, enter your first and last name below.
-            <FormGroup>
-                <FormControl
-                    autoFocus
-                    value       = {@state.confirmation_text}
-                    type        = 'text'
-                    ref         = 'confirmation_field'
-                    onChange    = {=>@setState(confirmation_text : ReactDOM.findDOMNode(@refs.confirmation_field).value)}
-                    style       = {marginTop : '1ex'}
-                />
-            </FormGroup>
-            <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
-                <Button
-                    disabled = {@state.confirmation_text != @props.required_text}
-                    bsStyle  = 'danger'
-                    onClick  = {=>@props.confirm_click()}
-                >
-                    <Icon name='trash' /> Yes, please DELETE MY ACCOUNT
-                </Button>
-                <Button
-                    style   = {paddingRight:'8px'}
-                    bsStyle = 'primary'
-                    onClick = {@props.cancel_click}
-                >
-                    Cancel
-                </Button>
-            </ButtonToolbar>
-            {@render_error()}
-        </Well>
-
-    # Make this the render function to disable account deletion
-    xxx_render: ->
-        <Well  style={marginTop: '26px', textAlign:'center', fontSize: '12pt'}>
-            To delete your account, contact us at <a href="mailto:help@cocalc.com" target="_blank">help@cocalc.com</a>{" "}
-            or open a support request by clicking "Help" in the top right menu.<br/>
-            <Button
-                style = {marginTop:'5px'}
-                bsStyle = 'primary'
-                onClick = {@props.cancel_click}
-            >
-                Cancel
-            </Button>
-        </Well>
 
 ###
 # Terminal
@@ -980,248 +874,6 @@ exports.TerminalSettings = rclass
             {@render_font_family()}
         </Panel>
 
-EDITOR_SETTINGS_CHECKBOXES =
-    line_wrapping             : 'wrap long lines'
-    line_numbers              : 'show line numbers'
-    code_folding              : 'fold code using control+Q'
-    smart_indent              : 'context sensitive indentation'
-    electric_chars            : 'sometimes reindent current line'
-    match_brackets            : 'highlight matching brackets near cursor'
-    auto_close_brackets       : 'automatically close brackets'
-    match_xml_tags            : 'automatically match XML tags'
-    auto_close_xml_tags       : 'automatically close XML tags'
-    auto_close_latex          : 'automatically close LaTeX environments'
-    strip_trailing_whitespace : 'remove whenever file is saved'
-    show_trailing_whitespace  : 'show spaces at ends of lines'
-    spaces_instead_of_tabs    : 'send spaces when the tab key is pressed'
-    extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
-    build_on_save             : 'build LaTex file whenever it is saved to disk'
-    show_exec_warning         : 'warn that certain files are not directly executable'
-    ask_jupyter_kernel        : 'ask which kernel to use for a new Jupyter Notebook'
-    jupyter_classic           : <span>use classical Jupyter notebook <a href={JUPYTER_CLASSIC_MODERN} target='_blank'>(DANGER: this can cause trouble...)</a></span>
-    disable_jupyter_windowing         : 'never use windowing with Jupyter notebooks (windowing is sometimes used to make very large notebooks render quickly, but can lead to trouble in edge cases)'
-
-EditorSettingsCheckboxes = rclass
-    displayName : 'Account-EditorSettingsCheckboxes'
-
-    propTypes :
-        editor_settings : rtypes.immutable.Map.isRequired
-        email_address : rtypes.string
-        on_change       : rtypes.func.isRequired
-
-    shouldComponentUpdate: (props) ->
-        return @props.editor_settings != props.editor_settings
-
-    label_checkbox: (name, desc) ->
-        <span>
-            {misc.capitalize(name.replace(/_/g,' ').replace(/-/g,' ').replace('xml','XML').replace('latex','LaTeX')) + ': '}
-            {desc}
-        </span>
-
-    render_checkbox: (name, desc) ->
-        if @props.email_address?.indexOf('minervaproject.com') != -1 and name == 'jupyter_classic'
-            return
-        <Checkbox checked  = {@props.editor_settings.get(name)}
-               key      = {name}
-               ref      = {name}
-               onChange = {(e)=>@props.on_change(name, e.target.checked)}>
-            {@label_checkbox(name, desc)}
-        </Checkbox>
-
-    render: ->
-        <span>
-            {(@render_checkbox(name, desc) for name, desc of EDITOR_SETTINGS_CHECKBOXES)}
-        </span>
-
-EditorSettingsAutosaveInterval = rclass
-    displayName : 'Account-EditorSettingsAutosaveInterval'
-
-    propTypes :
-        autosave  : rtypes.number.isRequired
-        on_change : rtypes.func.isRequired
-
-    render: ->
-        <LabeledRow label='Autosave interval'>
-            <NumberInput
-                on_change = {(n)=>@props.on_change('autosave',n)}
-                min       = {15}
-                max       = {900}
-                number    = {@props.autosave}
-                unit      = "seconds" />
-        </LabeledRow>
-
-EditorSettingsIndentSize = rclass
-    displayName : 'Account-EditorSettings-IndentSize'
-
-    propTypes :
-        tab_size  : rtypes.number.isRequired
-        on_change : rtypes.func.isRequired
-
-    render: ->
-        <LabeledRow label='Indent size'>
-            <NumberInput
-                on_change = {(n)=>@props.on_change('tab_size',n)}
-                min       = {2}
-                max       = {32}
-                number    = {@props.tab_size} />
-        </LabeledRow>
-
-
-
-EditorSettingsFontSize = rclass
-    displayName : 'Account-EditorSettingsFontSize'
-
-    propTypes :
-        font_size : rtypes.number.isRequired
-        on_change : rtypes.func.isRequired
-
-    render: ->
-        <LabeledRow label='Font Size' className='cc-account-prefs-font-size'>
-            <NumberInput
-                on_change = {(n)=>@props.on_change('font_size',n)}
-                min       = {5}
-                max       = {32}
-                number    = {@props.font_size}
-                unit      = "px" />
-        </LabeledRow>
-
-EDITOR_COLOR_SCHEMES = exports.EDITOR_COLOR_SCHEMES =
-    'default'                 : 'Default'
-    '3024-day'                : '3024 day'
-    '3024-night'              : '3024 night'
-    'abcdef'                  : 'abcdef'
-    #'ambiance-mobile'         : 'Ambiance mobile'  # doesn't highlight python, confusing
-    'ambiance'                : 'Ambiance'
-    'base16-dark'             : 'Base 16 dark'
-    'base16-light'            : 'Base 16 light'
-    'bespin'                  : 'Bespin'
-    'blackboard'              : 'Blackboard'
-    'cobalt'                  : 'Cobalt'
-    'colorforth'              : 'Colorforth'
-    'darcula'                 : 'Darcula'
-    'dracula'                 : 'Dracula'
-    'duotone-dark'            : 'Duotone Dark'
-    'duotone-light'           : 'Duotone Light'
-    'eclipse'                 : 'Eclipse'
-    'elegant'                 : 'Elegant'
-    'erlang-dark'             : 'Erlang dark'
-    'gruvbox-dark'            : 'Gruvbox-Dark'
-    'hopscotch'               : 'Hopscotch'
-    'icecoder'                : 'Icecoder'
-    'idea'                    : 'Idea'  # this messes with the global hinter CSS!
-    'isotope'                 : 'Isotope'
-    'lesser-dark'             : 'Lesser dark'
-    'liquibyte'               : 'Liquibyte'
-    'lucario'                 : 'Lucario'
-    'material'                : 'Material'
-    'mbo'                     : 'mbo'
-    'mdn-like'                : 'MDN like'
-    'midnight'                : 'Midnight'
-    'monokai'                 : 'Monokai'
-    'neat'                    : 'Neat'
-    'neo'                     : 'Neo'
-    'night'                   : 'Night'
-    'oceanic-next'            : 'Oceanic next'
-    'panda-syntax'            : 'Panda syntax'
-    'paraiso-dark'            : 'Paraiso dark'
-    'paraiso-light'           : 'Paraiso light'
-    'pastel-on-dark'          : 'Pastel on dark'
-    'railscasts'              : 'Railscasts'
-    'rubyblue'                : 'Rubyblue'
-    'seti'                    : 'Seti'
-    'shadowfox'               : 'Shadowfox'
-    'solarized dark'          : 'Solarized dark'
-    'solarized light'         : 'Solarized light'
-    'ssms'                    : 'ssms'
-    'the-matrix'              : 'The Matrix'
-    'tomorrow-night-bright'   : 'Tomorrow Night - Bright'
-    'tomorrow-night-eighties' : 'Tomorrow Night - Eighties'
-    'ttcn'                    : 'ttcn'
-    'twilight'                : 'Twilight'
-    'vibrant-ink'             : 'Vibrant ink'
-    'xq-dark'                 : 'Xq dark'
-    'xq-light'                : 'Xq light'
-    'yeti'                    : 'Yeti'
-    'zenburn'                 : 'Zenburn'
-
-
-EditorSettingsColorScheme = rclass
-    displayName : 'Account-EditorSettingsColorScheme'
-
-    propTypes :
-        theme     : rtypes.string.isRequired
-        on_change : rtypes.func.isRequired
-
-    render: ->
-        <LabeledRow label='Editor color scheme'>
-            <SelectorInput
-                options   = {EDITOR_COLOR_SCHEMES}
-                selected  = {@props.theme}
-                on_change = {@props.on_change}
-            />
-        </LabeledRow>
-
-EDITOR_BINDINGS =
-    standard : 'Standard'
-    sublime  : 'Sublime'
-    vim      : 'Vim'
-    emacs    : 'Emacs'
-
-EditorSettingsKeyboardBindings = rclass
-    displayName : 'Account-EditorSettingsKeyboardBindings'
-
-    propTypes :
-        bindings  : rtypes.string.isRequired
-        on_change : rtypes.func.isRequired
-
-    render: ->
-        <LabeledRow label='Editor keyboard bindings'>
-            <SelectorInput
-                options   = {EDITOR_BINDINGS}
-                selected  = {@props.bindings}
-                on_change = {@props.on_change}
-            />
-        </LabeledRow>
-
-EditorSettingsPhysicalKeyboard = rclass
-    displayName : 'Account-EditorSettingsPhysicalKeyboard'
-
-    propTypes :
-        physical_keyboard  : rtypes.string.isRequired
-        on_change          : rtypes.func.isRequired
-
-    render: ->
-        if @props.physical_keyboard == 'NO_DATA'
-            <Loading />
-        else
-            <LabeledRow label='Keyboard layout (for X11 Desktop)'>
-                <SelectorInput
-                    options   = {PHYSICAL_KEYBOARDS}
-                    selected  = {@props.physical_keyboard}
-                    on_change = {@props.on_change}
-                />
-            </LabeledRow>
-
-EditorSettingsKeyboardVariant = rclass
-    displayName : 'Account-EditorSettingsKeyboardVariant'
-
-    propTypes :
-        keyboard_variant         : rtypes.string.isRequired
-        on_change                : rtypes.func.isRequired
-        keyboard_variant_options : rtypes.array.isRequired
-
-    render: ->
-        if @props.keyboard_variant == 'NO_DATA'
-            <Loading />
-        else
-            <LabeledRow label='Keyboard variant (for X11 Desktop)'>
-                <SelectorInput
-                    options   = {@props.keyboard_variant_options}
-                    selected  = {@props.keyboard_variant}
-                    on_change = {@props.on_change}
-                />
-            </LabeledRow>
-
 
 exports.EditorSettings = rclass
     displayName : 'Account-EditorSettings'
@@ -1270,7 +922,7 @@ exports.EditorSettings = rclass
             <EditorSettingsIndentSize
                 on_change={@on_change} tab_size={@props.tab_size} />
             <EditorSettingsColorScheme
-                on_change={(value)=>@on_change('theme',value)} theme={@props.editor_settings.get('theme')} />
+                on_change={(value)=>@on_change('theme',value)} theme={@props.editor_settings.get('theme')} editor_settings={@props.editor_settings} font_size={@props.font_size} />
             <EditorSettingsKeyboardBindings
                 on_change={(value)=>@on_change('bindings',value)} bindings={@props.editor_settings.get('bindings')} />
             <EditorSettingsPhysicalKeyboard
@@ -1545,22 +1197,3 @@ ugly_error = (err) ->
         err = misc.to_json(err)
     alert_message(type:"error", message:"Settings error -- #{err}")
 
-# returns password score if password checker library
-# loaded; otherwise returns undefined and starts load
-zxcvbn = undefined
-password_score = (password) ->
-    return  # temporary until loading iof zxcvbn below is fixed. See https://github.com/sagemathinc/cocalc/issues/687
-    # if the password checking library is loaded, render a password strength indicator -- otherwise, don't
-    ###
-    if zxcvbn?
-        if zxcvbn != 'loading'
-            # explicitly ban some words.
-            return zxcvbn(password, ['sagemath','salvus','sage','sagemathcloud','smc','mathematica','pari'])
-    else
-        zxcvbn = 'loading'
-        require.ensure [], =>
-            zxcvbn = require("script!zxcvbn/zxcvbn.js")
-            # $.getScript '/static/zxcvbn/zxcvbn.js', () =>
-            #    zxcvbn = window.zxcvbn
-    return
-    ###

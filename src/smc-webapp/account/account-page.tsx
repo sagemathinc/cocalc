@@ -337,8 +337,12 @@ class AccountPage extends Component<Props> {
     return (
       <Row>
         <Col md={12}>
-          <div style={{ float: "right", marginTop: "1rem" }}>
-            <SignOut everywhere={false} danger={true} />
+          <div style={{ marginTop: "1rem" }}>
+            <SignOut
+              everywhere={false}
+              danger={true}
+              style={{ position: "absolute", right: 0 }}
+            />
           </div>
           <Tabs
             activeKey={this.props.active_page ?? "account"}
