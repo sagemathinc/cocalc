@@ -1,11 +1,13 @@
-/* Websocket based request/response api.
+/*
+ * License
+ */
 
-All functionality here is of the form:
-
- -- one request
- -- one response
-
-*/
+// Websocket based request/response api.
+//
+// All functionality here is of the form:
+//
+//  -- one request
+//  -- one response
 
 // This require is just because typescript is confused by
 // the path for now.  Growing pains.

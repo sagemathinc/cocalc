@@ -1,7 +1,8 @@
 /*
-Time travel actions.
+ * license
+ */
 
-*/
+// Time travel actions.
 
 import { List, Map } from "immutable";
 import { ButtonGroup } from "react-bootstrap";

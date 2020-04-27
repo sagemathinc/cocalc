@@ -1,6 +1,8 @@
 /*
-This is a renderer using pdf.js.
-*/
+ * license
+ */
+
+// This is a renderer using pdf.js.
 
 // We render pages within a window of this many pixels around
 // the top of the visible page.  Making this bigger makes it

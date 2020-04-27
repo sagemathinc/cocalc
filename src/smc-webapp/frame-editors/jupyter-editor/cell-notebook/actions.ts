@@ -1,3 +1,7 @@
+/*
+ * license
+ */
+
 import { Set } from "immutable";
 import { delay } from "awaiting";
 

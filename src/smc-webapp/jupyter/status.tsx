@@ -1,6 +1,8 @@
 /*
-Kernel display
-*/
+ * license
+ */
+
+// Kernel display
 
 import { React, Component, rclass, rtypes } from "../app-framework";
 import * as immutable from "immutable";

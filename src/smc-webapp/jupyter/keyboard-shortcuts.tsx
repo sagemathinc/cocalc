@@ -1,9 +1,11 @@
 /*
-The keyboard shortcuts and command listing dialog, which:
+ * licesnse
+ */
 
-  - lets you search through all available commands
-  - see and change the keyboard shortcuts for those commands\
-*/
+// The keyboard shortcuts and command listing dialog, which:
+//
+//   - lets you search through all available commands
+//   - see and change the keyboard shortcuts for those commands\
 
 import { React, Component, Rendered } from "../app-framework";
 import { Map } from "immutable";

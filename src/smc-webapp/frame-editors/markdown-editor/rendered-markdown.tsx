@@ -1,14 +1,16 @@
 /*
-Component that shows rendered markdown.
+ * license
+ */
 
-It also:
-
-   - [x] tracks and restores scroll position
-   - [x] is scrollable
-   - [x] is zoomable
-   - [x] math is properly typeset
-   - [x] checkbox in markdown are interactive (can click them, which edits file)
-*/
+// Component that shows rendered markdown.
+//
+// It also:
+//
+//    - [x] tracks and restores scroll position
+//    - [x] is scrollable
+//    - [x] is zoomable
+//    - [x] math is properly typeset
+//    - [x] checkbox in markdown are interactive (can click them, which edits file)
 
 import { Markdown } from "smc-webapp/r_misc";
 

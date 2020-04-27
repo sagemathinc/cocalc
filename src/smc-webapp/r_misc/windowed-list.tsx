@@ -1,15 +1,18 @@
 /*
-Windowed List, based on react-window:
+ * license
+ */
 
-- automatically handles rows changing sizes, which I guess solves this problem?  https://github.com/bvaughn/react-window/issues/6
+// Windowed List, based on react-window:
+//
+// - automatically handles rows changing sizes, which I guess solves this problem?  https://github.com/bvaughn/react-window/issues/6
+//
+// - handles maintaining sroll position between unmount/mount
+//
+// - We use react-window instead of react-virtualized, since react-window is
+//   enough for our needs, is faster, is smaller, and seems to work better.
+//   I did implement everything first using react-virtualized, but react-window
+//   is definitely faster, and the overscan seems to work much better.
 
-- handles maintaining sroll position between unmount/mount
-
-- We use react-window instead of react-virtualized, since react-window is
-  enough for our needs, is faster, is smaller, and seems to work better.
-  I did implement everything first using react-virtualized, but react-window
-  is definitely faster, and the overscan seems to work much better.
-*/
 import { delay } from "awaiting";
 
 // The ResizeObserver polyfill in the resize-observer package is

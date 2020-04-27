@@ -1,6 +1,8 @@
 /*
-React component that renders the ordered list of cells
-*/
+ * license
+ */
+
+// React component that renders the ordered list of cells
 
 declare const $: any;
 

@@ -1,6 +1,8 @@
 /*
-Components related to toggling the way output is displayed.
-*/
+ * license
+ */
+
+// Components related to toggling the way output is displayed.
 
 import { React, Component } from "../app-framework";
 
