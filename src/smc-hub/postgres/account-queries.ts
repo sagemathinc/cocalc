@@ -1,4 +1,4 @@
-/* Various functions involving the database and accounts. */
+// Various functions involving the database and accounts.
 
 import { PostgreSQL } from "./types";
 
