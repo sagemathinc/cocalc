@@ -46,6 +46,7 @@ async = require('async')
 {EditorSettingsColorScheme} = require('./account/editor-settings/color-schemes')
 {EditorSettingsFontSize} = require('./account/editor-settings/font-size')
 {EditorSettingsIndentSize} = require('./account/editor-settings/indent-size')
+{EditorSettingsKeyboardBindings} = require('./account/editor-settings/keyboard-bindings')
 
 {log} = require("./user-tracking")
 
@@ -856,29 +857,6 @@ exports.TerminalSettings = rclass
             {@render_color_scheme()}
             {@render_font_family()}
         </Panel>
-
-
-EDITOR_BINDINGS =
-    standard : 'Standard'
-    sublime  : 'Sublime'
-    vim      : 'Vim'
-    emacs    : 'Emacs'
-
-EditorSettingsKeyboardBindings = rclass
-    displayName : 'Account-EditorSettingsKeyboardBindings'
-
-    propTypes :
-        bindings  : rtypes.string.isRequired
-        on_change : rtypes.func.isRequired
-
-    render: ->
-        <LabeledRow label='Editor keyboard bindings'>
-            <SelectorInput
-                options   = {EDITOR_BINDINGS}
-                selected  = {@props.bindings}
-                on_change = {@props.on_change}
-            />
-        </LabeledRow>
 
 
 exports.EditorSettings = rclass
