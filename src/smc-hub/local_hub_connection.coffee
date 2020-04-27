@@ -1,29 +1,7 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
 
 {PROJECT_HUB_HEARTBEAT_INTERVAL_S} = require('smc-util/heartbeat')
 
-###
-Connection to a Project (="local hub", for historical reasons only.)
-###
+# Connection to a Project (="local hub", for historical reasons only.)
 
 async   = require('async')
 {callback2} = require('smc-util/async-utils')
@@ -946,4 +924,3 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                             opts.cb(mesg.error)
                         else
                             opts.cb("unexpected message type '#{mesg.event}'")
-

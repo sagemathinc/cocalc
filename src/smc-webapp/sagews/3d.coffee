@@ -1,15 +1,3 @@
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-###############################################################################
 
 $     = window.$
 async = require('async')
@@ -966,4 +954,3 @@ $.fn.webapp_threejs = (opts={}) ->
                         opts.cb?(msg)
         else
             f()
-

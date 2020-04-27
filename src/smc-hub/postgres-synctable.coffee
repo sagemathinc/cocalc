@@ -1,28 +1,6 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2017, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
 
-###
-Server side synchronized tables built on PostgreSQL, and basic support
-for user get query updates.
-###
+# Server side synchronized tables built on PostgreSQL, and basic support
+# for user get query updates.
 
 EventEmitter = require('events')
 
@@ -613,4 +591,3 @@ CREATE TRIGGER trigger_delete_old_trigger_notifications
   EXECUTE PROCEDURE delete_old_trigger_notifications();
 
 ###
-

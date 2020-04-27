@@ -1,43 +1,20 @@
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
-
-###
-Definition and control logic behind the various button bars.
-
-There is a level of separation between the button bar's and the actual content what they insert/modify.
-This is motivated by editing text, where various markups have different realizations ("B"old button -> **abc** or <b>abc</b>)
-
-There are less/none overlaps for programming languages.
-
-FUTURE:
-    * initial examples for Sage, LaTeX, R
-    * think about creating a dedicated dialog for more elaborate examples,
-      which should also have a client/server communication to avoid bloat
-      (think of a repository of hundrets of full examples with explanatory text)
-    * work out how codemirror should react if there is a text selected or multiple cursors active (just the primary one!?)
-
-CONSIDERATIONS:
-    * buttons should insert code which immediately works:
-      it's easier for users to delete lines than to end up with some partial broken fragments
-###
+# Definition and control logic behind the various button bars.
+# 
+# There is a level of separation between the button bar's and the actual content what they insert/modify.
+# This is motivated by editing text, where various markups have different realizations ("B"old button -> **abc** or <b>abc</b>)
+# 
+# There are less/none overlaps for programming languages.
+# 
+# FUTURE:
+#     * initial examples for Sage, LaTeX, R
+#     * think about creating a dedicated dialog for more elaborate examples,
+#       which should also have a client/server communication to avoid bloat
+#       (think of a repository of hundrets of full examples with explanatory text)
+#     * work out how codemirror should react if there is a text selected or multiple cursors active (just the primary one!?)
+# 
+# CONSIDERATIONS:
+#     * buttons should insert code which immediately works:
+#       it's easier for users to delete lines than to end up with some partial broken fragments
 
 $ = window.$
 {defaults} = require('smc-util/misc')

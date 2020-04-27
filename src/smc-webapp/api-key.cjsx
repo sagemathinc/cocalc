@@ -1,6 +1,4 @@
-###
-API Key Configuration
-###
+# API Key Configuration
 
 misc = require('smc-util/misc')
 
