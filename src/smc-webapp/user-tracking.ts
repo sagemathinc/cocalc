@@ -1,6 +1,10 @@
-/* Provide a typescript-friendly stable interface to user_tracking, so
-   client code doesn't have to import webapp_client everywhere, and we can
-   completely change this if we want. */
+/*
+ * lic
+ */
+
+// Provide a typescript-friendly stable interface to user_tracking, so
+// client code doesn't have to import webapp_client everywhere, and we can
+// completely change this if we want.
 
 import { query, server_time } from "./frame-editors/generic/client";
 import { uuid } from "../smc-util/misc2";

@@ -1,6 +1,8 @@
 /*
-The static buttonbar at the top.
-*/
+ * license
+ */
+
+// The static buttonbar at the top.
 
 import { React, Component, rclass, rtypes, Rendered } from "../app-framework";
 import * as immutable from "immutable";

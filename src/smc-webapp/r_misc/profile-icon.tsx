@@ -1,6 +1,8 @@
-/**
- * Presentational component for a user's face
+/*
+ * lic
  */
+
+// Presentational component for a user's face
 
 import * as React from "react";
 

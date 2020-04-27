@@ -1,6 +1,8 @@
-/* A Patch is an entry in the patches table, as represented
-   in memory locally here.
-*/
+/*
+ * license
+ */
+
+// A Patch is an entry in the patches table, as represented in memory locally here.
 
 import { SyncTable } from "../../table/synctable";
 

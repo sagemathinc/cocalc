@@ -1,9 +1,12 @@
-/* The markdown processor markedown-it seems to escape
-a bunch of characters that are relevant to later mathjax
-processing.  This is annoying, violates the Markdown spec
-(https://daringfireball.net/projects/markdown/syntax#backslash),
-and breaks things.  So we remove them first.
-*/
+/*
+ * license
+ */
+
+// The markdown processor markedown-it seems to escape
+// a bunch of characters that are relevant to later mathjax
+// processing.  This is annoying, violates the Markdown spec
+// (https://daringfireball.net/projects/markdown/syntax#backslash),
+// and breaks things.  So we remove them first.
 
 const { replace_all } = require("./misc");
 

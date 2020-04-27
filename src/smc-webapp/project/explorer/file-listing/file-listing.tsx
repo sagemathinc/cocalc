@@ -1,10 +1,12 @@
 /*
-Show a file listing.
+ * license
+ */
 
-NOTES:
-
- - TODO: If we want to preserve the scroll position let's just not unmount this component (like we do with editors).
-*/
+// Show a file listing.
+//
+// NOTES:
+//
+//  - TODO: If we want to preserve the scroll position let's just not unmount this component (like we do with editors).
 
 import { WATCH_THROTTLE_MS } from "../../websocket/listings";
 import * as React from "react";

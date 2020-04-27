@@ -1,17 +1,9 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ * lic
  */
-/*
-CoCalc: Collaborative Calculation in the Cloud
-Copyright (C) 2016, Sagemath Inc.
----
 
-Site Customize -- dynamically customize the look of CoCalc for the client.
-*/
+// Site Customize -- dynamically customize the look of CoCalc for the client.
+
 import { redux, Redux, rclass, rtypes, Store } from "./app-framework";
 import * as React from "react";
 import {

@@ -1,5 +1,9 @@
-/* Given an immutable.js project object (from the project_map),
-   these functions allow you to query some things about it. */
+/*
+ * lic
+ */
+
+// Given an immutable.js project object (from the project_map),
+// these functions allow you to query some things about it.
 
 import { redux } from "../app-framework";
 

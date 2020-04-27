@@ -1,6 +1,8 @@
 /*
-help users selecting a kernel
-*/
+ * license
+ */
+
+// help users selecting a kernel
 
 import { React, Component, Rendered } from "../app-framework";
 import {
@@ -302,7 +304,7 @@ export class KernelSelector extends Component<
     } else {
       const name = this.kernel_name(this.props.kernel);
       const current =
-        name != null ? <>{" "}The currently selected kernel is "{name}".</> : "";
+        name != null ? <> The currently selected kernel is "{name}".</> : "";
 
       return (
         <Row style={row_style}>

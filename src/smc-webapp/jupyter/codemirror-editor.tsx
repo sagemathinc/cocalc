@@ -1,6 +1,8 @@
 /*
-Focused codemirror editor, which you can interactively type into.
-*/
+ * license
+ */
+
+// Focused codemirror editor, which you can interactively type into.
 
 declare const $: any;
 

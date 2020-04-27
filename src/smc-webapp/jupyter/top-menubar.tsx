@@ -1,8 +1,10 @@
 /*
-The Menu bar across the top
+ * license
+ */
 
-File, Edit, etc....
-*/
+// The Menu bar across the top
+//
+// File, Edit, etc....
 
 import { React, Component, rclass, rtypes, Rendered } from "../app-framework";
 import { analytics_event } from "../tracker";

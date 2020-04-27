@@ -1,6 +1,9 @@
 /*
-Add collaborators to a project
-*/
+ * license
+ */
+
+// Add collaborators to a project
+
 import * as React from "react";
 import { rtypes, rclass, redux } from "../app-framework";
 import { ErrorDisplay, Icon, MarkdownInput, SettingBox } from "../r_misc";
