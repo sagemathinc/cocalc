@@ -6,7 +6,7 @@ const { FormControl, FormGroup } = require("react-bootstrap");
 interface Props {
   options:
     | string[]
-    | { value: string; display: JSX.Element }[]
+    | { value: string; display: JSX.Element | string }[]
     | { [keys: string]: JSX.Element }
     | Readonly<{ [keys: string]: string }>;
   disabled?: boolean;

@@ -32,7 +32,10 @@ async = require('async')
 {ColorPicker} = require('./colorpicker')
 {Avatar} = require('./other-users')
 {ProfileImageSelector} = require('./r_profile_image')
-{PHYSICAL_KEYBOARDS, KEYBOARD_VARIANTS} = require('./frame-editors/x11-editor/xpra/keyboards')
+
+{KEYBOARD_VARIANTS} = require('./frame-editors/x11-editor/xpra/keyboards')
+{EditorSettingsPhysicalKeyboard, EditorSettingsKeyboardVariant} = require('./account/editor-settings/x11-keyboard')
+
 {NewFilenameFamilies, NewFilenames} = require('smc-webapp/project/utils')
 {NEW_FILENAMES} = require('smc-util/db-schema')
 
@@ -906,45 +909,6 @@ EditorSettingsKeyboardBindings = rclass
                 on_change = {@props.on_change}
             />
         </LabeledRow>
-
-EditorSettingsPhysicalKeyboard = rclass
-    displayName : 'Account-EditorSettingsPhysicalKeyboard'
-
-    propTypes :
-        physical_keyboard  : rtypes.string.isRequired
-        on_change          : rtypes.func.isRequired
-
-    render: ->
-        if @props.physical_keyboard == 'NO_DATA'
-            <Loading />
-        else
-            <LabeledRow label='Keyboard layout (for X11 Desktop)'>
-                <SelectorInput
-                    options   = {PHYSICAL_KEYBOARDS}
-                    selected  = {@props.physical_keyboard}
-                    on_change = {@props.on_change}
-                />
-            </LabeledRow>
-
-EditorSettingsKeyboardVariant = rclass
-    displayName : 'Account-EditorSettingsKeyboardVariant'
-
-    propTypes :
-        keyboard_variant         : rtypes.string.isRequired
-        on_change                : rtypes.func.isRequired
-        keyboard_variant_options : rtypes.array.isRequired
-
-    render: ->
-        if @props.keyboard_variant == 'NO_DATA'
-            <Loading />
-        else
-            <LabeledRow label='Keyboard variant (for X11 Desktop)'>
-                <SelectorInput
-                    options   = {@props.keyboard_variant_options}
-                    selected  = {@props.keyboard_variant}
-                    on_change = {@props.on_change}
-                />
-            </LabeledRow>
 
 
 exports.EditorSettings = rclass
