@@ -489,7 +489,7 @@ exports.AccountSettings = rclass
         if not @state.add_strategy_link
             return
         strategy = @state.add_strategy_link
-        name = misc.capitalize(strategy)
+        name = strategy.display ? misc.capitalize(strategy.name)
         <Well>
             <h4><Icon name={strategy}/> {name}</h4>
             Link to your {name} account, so you can use {name} to
@@ -598,7 +598,7 @@ exports.AccountSettings = rclass
             # not configured by server
             return
         configured_strategies = (x.slice(0,x.indexOf('-')) for x in misc.keys(@props.passports?.toJS() ? {}))
-        linked = (strategy for strategy in STRATEGIES when strategy != 'email' and strategy in configured_strategies)
+        linked = (strategy for strategy in STRATEGIES when strategy.name != 'email' and strategy in configured_strategies)
         if linked.length == 0
             return
         <div>
