@@ -44,6 +44,8 @@ async = require('async')
 {EditorSettingsCheckboxes} = require('./account/editor-settings/checkboxes')
 {EditorSettingsAutosaveInterval} = require('./account/editor-settings/autosave-interval')
 {EditorSettingsColorScheme} = require('./account/editor-settings/color-schemes')
+{EditorSettingsFontSize} = require('./account/editor-settings/font-size')
+{EditorSettingsIndentSize} = require('./account/editor-settings/indent-size')
 
 {log} = require("./user-tracking")
 
@@ -855,38 +857,6 @@ exports.TerminalSettings = rclass
             {@render_font_family()}
         </Panel>
 
-EditorSettingsIndentSize = rclass
-    displayName : 'Account-EditorSettings-IndentSize'
-
-    propTypes :
-        tab_size  : rtypes.number.isRequired
-        on_change : rtypes.func.isRequired
-
-    render: ->
-        <LabeledRow label='Indent size'>
-            <NumberInput
-                on_change = {(n)=>@props.on_change('tab_size',n)}
-                min       = {2}
-                max       = {32}
-                number    = {@props.tab_size} />
-        </LabeledRow>
-
-EditorSettingsFontSize = rclass
-    displayName : 'Account-EditorSettingsFontSize'
-
-    propTypes :
-        font_size : rtypes.number.isRequired
-        on_change : rtypes.func.isRequired
-
-    render: ->
-        <LabeledRow label='Font Size' className='cc-account-prefs-font-size'>
-            <NumberInput
-                on_change = {(n)=>@props.on_change('font_size',n)}
-                min       = {5}
-                max       = {32}
-                number    = {@props.font_size}
-                unit      = "px" />
-        </LabeledRow>
 
 EDITOR_BINDINGS =
     standard : 'Standard'
