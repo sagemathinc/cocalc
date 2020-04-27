@@ -213,6 +213,7 @@ export class FileListing extends React.Component<Props> {
     if (this.props.file_search[0] === TERM_MODE_CHAR) {
       return;
     }
+
     return (
       <NoFiles
         name={this.props.name}

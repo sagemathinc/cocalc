@@ -68,15 +68,13 @@ class MDActions extends Actions
             project_id : project_id
             file_path  : misc.path_split(path).head
 
-        webapp_client.public_get_text_file
-            project_id : project_id
-            path       : path
-            timeout    : 60
-            cb         : (err, content) =>
-                if err
-                    @setState(error: err)
-                else
-                    @setState(content: content)
+       try
+            content = await webapp_client.project_client.public_get_text_file
+                            project_id : project_id
+                            path       : path
+            @setState(content: content)
+        catch err
+            @setState(error: err)
 
 require('../project_file').register_file_editor
     ext       : 'md'

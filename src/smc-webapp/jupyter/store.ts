@@ -109,7 +109,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
   // immutable List
   public get_cell_list = (): List<string> => {
-    return this.get("cell_list");
+    return this.get("cell_list") ?? List();
   };
 
   // string[]

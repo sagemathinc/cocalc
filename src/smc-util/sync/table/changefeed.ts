@@ -141,11 +141,21 @@ export class Changefeed extends EventEmitter {
     delete this.handle_update_queue;
     if (this.id != null) {
       // stop listening for future updates
-      this.query_cancel({ id: this.id });
+      this.cancel_query(this.id);
       delete this.id;
     }
     this.emit("close");
     this.removeAllListeners();
+  }
+
+  private async cancel_query(id: string): Promise<void> {
+    try {
+      await this.query_cancel(id);
+    } catch (err) {
+      // ignore error, which might be due to disconnecting and isn't a big deal.
+      // Basically anything that could cause an error would have also
+      // cancelled the changefeed anyways.
+    }
   }
 
   public get_state(): string {

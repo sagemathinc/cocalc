@@ -5,7 +5,6 @@ Actions specific to manipulating the student projects that students have in a co
 import { delay } from "awaiting";
 import { CourseActions, EMAIL_REINVITE_DAYS } from "../actions";
 import { CourseStore } from "../store";
-import { callback2 } from "smc-util/async-utils";
 import { webapp_client } from "../../webapp-client";
 import { redux } from "../../app-framework";
 import { len, copy, days_ago } from "smc-util/misc";
@@ -573,7 +572,7 @@ export class StudentProjectsActions {
     for (const project_id of ids) {
       const x = copy(quotas);
       x.project_id = project_id;
-      await callback2(webapp_client.project_set_quotas, x);
+      await webapp_client.project_client.set_quotas(x);
     }
   }
 }

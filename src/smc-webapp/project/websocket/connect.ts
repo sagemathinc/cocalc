@@ -18,10 +18,10 @@ const {
 import { callback } from "awaiting";
 import { /* getScript*/ ajax, globalEval } from "jquery";
 
-const { webapp_client } = require("../../webapp_client");
 const { redux } = require("../../app-framework");
 
 import { set_project_websocket_state, WebsocketState } from "./websocket-state";
+import { webapp_client } from "../../client/client";
 
 const connections = {};
 
@@ -39,7 +39,8 @@ async function start_project(project_id: string) {
   }
 
   // Encourage project to start running, if it isn't already...
-  await callback2(webapp_client.touch_project, { project_id });
+
+  await webapp_client.project_client.touch(project_id);
   if (projects.get_my_group(project_id) == "admin") {
     // must be viewing as admin, so can't start as below.  Just touch and be done.
     return;
@@ -72,6 +73,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
   set_project_websocket_state(project_id, "offline");
 
   const MAX_AJAX_TIMEOUT_MS: number = 3500;
+  const { webapp_client } = require("../../webapp_client");
 
   async function get_primus(do_eval: boolean) {
     let timeout: number = 750;

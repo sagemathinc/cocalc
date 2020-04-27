@@ -32,12 +32,21 @@ async = require('async')
 {ColorPicker} = require('./colorpicker')
 {Avatar} = require('./other-users')
 {ProfileImageSelector} = require('./r_profile_image')
-{PHYSICAL_KEYBOARDS, KEYBOARD_VARIANTS} = require('./frame-editors/x11-editor/xpra/keyboards')
-{JUPYTER_CLASSIC_MODERN} = require('smc-util/theme')
+
+{KEYBOARD_VARIANTS} = require('./frame-editors/x11-editor/xpra/keyboards')
+{EditorSettingsPhysicalKeyboard, EditorSettingsKeyboardVariant} = require('./account/editor-settings/x11-keyboard')
+
 {NewFilenameFamilies, NewFilenames} = require('smc-webapp/project/utils')
 {NEW_FILENAMES} = require('smc-util/db-schema')
 
 {SignOut} =require('./account/sign-out')
+{DeleteAccount} = require('./account/delete-account')
+{EditorSettingsCheckboxes} = require('./account/editor-settings/checkboxes')
+{EditorSettingsAutosaveInterval} = require('./account/editor-settings/autosave-interval')
+{EditorSettingsColorScheme} = require('./account/editor-settings/color-schemes')
+{EditorSettingsFontSize} = require('./account/editor-settings/font-size')
+{EditorSettingsIndentSize} = require('./account/editor-settings/indent-size')
+{EditorSettingsKeyboardBindings} = require('./account/editor-settings/keyboard-bindings')
 
 {log} = require("./user-tracking")
 
@@ -115,16 +124,14 @@ EmailVerification = rclass
             @setState(disabled_button: false)
 
     verify : ->
-        webapp_client.send_verification_email
-            account_id         : @props.account_id
-            cb                 : (err, resp) =>
-                @setState(disabled_button: true)
-                if not err and resp.error?
-                    err = resp.error
-                if err
-                    err_msg = "Problem sending email verification: #{err}"
-                    console.log(err_msg)
-                    alert_message(type:"error", message:err_msg)
+        try
+            await webapp_client.account_client.send_verification_email(@props.account_id)
+        catch err
+            err_msg = "Problem sending email verification: #{err}"
+            console.log(err_msg)
+            alert_message(type:"error", message:err_msg)
+        finally
+            @setState(disabled_button: true)
 
     test : ->
         if not @props.email_address?
@@ -193,46 +200,30 @@ EmailAddressSetting = rclass
             return
         @setState
             state : 'saving'
-        async.series([
-            (cb) =>
-                webapp_client.change_email
-                    new_email_address : @state.email_address
-                    password          : @state.password
-                    cb                : (err, resp) =>
-                        if not err and resp.error?
-                            err = resp.error
-                        if err
-                            @setState
-                                state    : 'edit'
-                                error    : "Error -- #{err}"
-                        else
-                            if @props.is_anonymous
-                                log("email_sign_up", {source: "anonymous_account"});
-                            @setState
-                                state    : 'view'
-                                error    : ''
-                                password : ''
-                        cb(err)
-
-            (cb) =>
-                # if email verification is enabled, send out a token
-                # in any case, send a welcome email to an anonymous user, possibly including an email verification link
-                if not (@props.verify_emails or @props.is_anonymous)
-                    cb()
-                    return
-                webapp_client.send_verification_email
-                    account_id         : @props.account_id
-                    only_verify        : not @props.is_anonymous   # anonymouse users will get the "welcome" email
-                    cb                 : (err, resp) =>
-                        if not err and resp.error?
-                            err = resp.error
-                        if err
-                            err_msg = "Problem sending welcome email: #{err}"
-                            console.log(err_msg)
-                            alert_message(type:"error", message:err_msg)
-                        cb(err)
-        ])
-
+        try
+            await webapp_client.account_client.change_email(@state.email_address, @state.password)
+        catch err
+            @setState
+                state    : 'edit'
+                error    : "Error -- #{err}"
+            return
+        if @props.is_anonymous
+            log("email_sign_up", {source: "anonymous_account"});
+        @setState
+            state    : 'view'
+            error    : ''
+            password : ''
+        # if email verification is enabled, send out a token
+        # in any case, send a welcome email to an anonymous user, possibly including an email verification link
+        if not (@props.verify_emails or @props.is_anonymous)
+            return
+        try
+            # anonymouse users will get the "welcome" email
+            await webapp_client.account_client.send_verification_email(@props.account_id, not @props.is_anonymous)
+        catch err
+            err_msg = "Problem sending welcome email: #{err}"
+            console.log(err_msg)
+            alert_message(type:"error", message:err_msg)
 
     is_submittable: ->
         return @state.password != '' and @state.email_address != @props.email_address
@@ -358,7 +349,6 @@ PasswordSetting = rclass
         @setState
             state    : 'edit'
             error    : ''
-            zxcvbn   : undefined
             old_password : ''
             new_password : ''
             strength     : 0
@@ -368,32 +358,27 @@ PasswordSetting = rclass
             state    : 'view'
             old_password : ''
             new_password : ''
-            zxcvbn   : undefined
             strength     : 0
 
     save_new_password: ->
         @setState
             state : 'saving'
-        webapp_client.change_password
-            old_password  : @state.old_password
-            new_password  : @state.new_password
-            cb            : (err, resp) =>
-                if not err and resp.error
-                    err = misc.to_json(resp.error)
-                if err
-                    @setState
-                        state        : 'edit'
-                        error        : "Error changing password -- #{err}"
-                else
-                    @setState
-                        state        : 'view'
-                        error        : ''
-                        old_password : ''
-                        new_password : ''
-                        strength     : 0
+        try
+            await webapp_client.account_client.change_password(@state.old_password, @state.new_password)
+        catch err
+            @setState
+                state        : 'edit'
+                error        : "Error changing password -- #{err}"
+            return
+        @setState
+            state        : 'view'
+            error        : ''
+            old_password : ''
+            new_password : ''
+            strength     : 0
 
     is_submittable: ->
-        return @state.new_password.length >= 6 and @state.new_password and @state.new_password != @state.old_password and (not @state.zxcvbn? or @state.zxcvbn?.score > 0)
+        return @state.new_password.length >= 6 and @state.new_password and @state.new_password != @state.old_password
 
     change_button: ->
         if @is_submittable()
@@ -406,15 +391,6 @@ PasswordSetting = rclass
     render_error: ->
         if @state.error
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} style={marginTop:'15px'}  />
-
-    password_meter: ->
-        result = @state.zxcvbn
-        if result?
-            score = ['Very weak', 'Weak', 'So-so', 'Good', 'Awesome!']
-            return <div style={marginBottom: '1em'}>
-                <ProgressBar striped bsStyle='info' now={2*result.entropy} />
-                {score[result.score]} (crack time: {result.crack_time_display})
-            </div>
 
     render_edit: ->
         <Well style={marginTop:'3ex'}>
@@ -437,11 +413,10 @@ PasswordSetting = rclass
                         ref         = 'new_password'
                         value       = {@state.new_password}
                         placeholder = 'New password'
-                        onChange    = {=>x=ReactDOM.findDOMNode(@refs.new_password).value; @setState(zxcvbn:password_score(x), new_password:x)}
+                        onChange    = {=>x=ReactDOM.findDOMNode(@refs.new_password).value; @setState(new_password:x)}
                     />
                 </FormGroup>
             </form>
-            {@password_meter()}
             <ButtonToolbar>
                 {@change_button()}
                 <Button bsStyle='default' onClick={@cancel_editing}>Cancel</Button>
@@ -467,7 +442,7 @@ PasswordSetting = rclass
 # WARNING: issue -- if edit an account setting in another browser and in the middle of editing
 # a field here, this one will get overwritten on the prop update.  I think using state would
 # fix that.
-AccountSettings = rclass
+exports.AccountSettings = rclass
     displayName : 'AccountSettings'
 
     propTypes :
@@ -538,12 +513,10 @@ AccountSettings = rclass
                 break
         if not id
             return
-        webapp_client.unlink_passport
-            strategy : strategy
-            id       : id
-            cb       : (err) ->
-                if err
-                    ugly_error(err)
+        try
+            await webapp_client.account_client.unlink_passport(strategy, id)
+        catch err
+            ugly_error(err)
 
     render_remove_strategy_button: ->
         if not @state.remove_strategy_button
@@ -778,109 +751,6 @@ AccountSettings = rclass
             {@render_sign_out_error()}
         </Panel>
 
-DeleteAccount = rclass
-    displayName : 'Account-DeleteAccount'
-
-    propTypes:
-        initial_click     : rtypes.func.isRequired
-        confirm_click     : rtypes.func.isRequired
-        cancel_click      : rtypes.func.isRequired
-        user_name         : rtypes.string.isRequired
-        show_confirmation : rtypes.bool
-        style             : rtypes.object
-
-    render: ->
-        <div>
-            <div style={height:'26px'}>
-                <Button
-                    disabled  = {@props.show_confirmation}
-                    className = 'pull-right'
-                    bsStyle   = 'danger'
-                    style     = {@props.style}
-                    onClick   = {@props.initial_click}
-                >
-                <Icon name='trash' /> Delete Account...
-                </Button>
-            </div>
-            {<DeleteAccountConfirmation
-                confirm_click = {@props.confirm_click}
-                cancel_click  = {@props.cancel_click}
-                required_text = {@props.user_name}
-             /> if @props.show_confirmation}
-        </div>
-
-# Concious choice to make them actually click the confirm delete button.
-DeleteAccountConfirmation = rclass
-    displayName : 'Account-DeleteAccountConfirmation'
-
-    propTypes:
-        confirm_click : rtypes.func.isRequired
-        cancel_click  : rtypes.func.isRequired
-        required_text : rtypes.string.isRequired
-
-    reduxProps:
-        account :
-            account_deletion_error : rtypes.string
-
-    # Loses state on rerender from cancel. But this is what we want.
-    getInitialState: ->
-        confirmation_text : ''
-
-    render_error: ->
-        if not @props.account_deletion_error?
-            return
-        <ErrorDisplay error={@props.account_deletion_error} />
-
-    render: ->
-        <Well style={marginTop: '26px', textAlign:'center', fontSize: '15pt', backgroundColor: 'darkred', color: 'white'}>
-            Are you sure you want to DELETE YOUR ACCOUNT?<br/>
-            You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects, and any subscriptions will be canceled.<br/>
-            <hr style={marginTop:'10px', marginBottom:'10px'}/>
-            Do NOT delete your account if you are a current student in a course on CoCalc! <a href="https://github.com/sagemathinc/cocalc/issues/3243" target="_blank">Why?</a>
-            <hr style={marginTop:'10px', marginBottom:'10px'}/>
-            To DELETE YOUR ACCOUNT, enter your first and last name below.
-            <FormGroup>
-                <FormControl
-                    autoFocus
-                    value       = {@state.confirmation_text}
-                    type        = 'text'
-                    ref         = 'confirmation_field'
-                    onChange    = {=>@setState(confirmation_text : ReactDOM.findDOMNode(@refs.confirmation_field).value)}
-                    style       = {marginTop : '1ex'}
-                />
-            </FormGroup>
-            <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
-                <Button
-                    disabled = {@state.confirmation_text != @props.required_text}
-                    bsStyle  = 'danger'
-                    onClick  = {=>@props.confirm_click()}
-                >
-                    <Icon name='trash' /> Yes, please DELETE MY ACCOUNT
-                </Button>
-                <Button
-                    style   = {paddingRight:'8px'}
-                    bsStyle = 'primary'
-                    onClick = {@props.cancel_click}
-                >
-                    Cancel
-                </Button>
-            </ButtonToolbar>
-            {@render_error()}
-        </Well>
-
-    # Make this the render function to disable account deletion
-    xxx_render: ->
-        <Well  style={marginTop: '26px', textAlign:'center', fontSize: '12pt'}>
-            To delete your account, contact us at <a href="mailto:help@cocalc.com" target="_blank">help@cocalc.com</a>{" "}
-            or open a support request by clicking "Help" in the top right menu.<br/>
-            <Button
-                style = {marginTop:'5px'}
-                bsStyle = 'primary'
-                onClick = {@props.cancel_click}
-            >
-                Cancel
-            </Button>
-        </Well>
 
 ###
 # Terminal
@@ -897,7 +767,7 @@ TERMINAL_FONT_FAMILIES =
     'Courier New'    : 'Courier New'
     'monospace'      : 'Monospace'
 
-ProfileSettings = rclass
+exports.ProfileSettings = rclass
     displayName : 'Account-ProfileSettings'
 
     propTypes :
@@ -947,7 +817,7 @@ ProfileSettings = rclass
 
 # WARNING: in console.coffee there is also code to set the font size,
 # which our store ignores...
-TerminalSettings = rclass
+exports.TerminalSettings = rclass
     displayName : 'Account-TerminalSettings'
 
     propTypes :
@@ -988,250 +858,8 @@ TerminalSettings = rclass
             {@render_font_family()}
         </Panel>
 
-EDITOR_SETTINGS_CHECKBOXES =
-    line_wrapping             : 'wrap long lines'
-    line_numbers              : 'show line numbers'
-    code_folding              : 'fold code using control+Q'
-    smart_indent              : 'context sensitive indentation'
-    electric_chars            : 'sometimes reindent current line'
-    match_brackets            : 'highlight matching brackets near cursor'
-    auto_close_brackets       : 'automatically close brackets'
-    match_xml_tags            : 'automatically match XML tags'
-    auto_close_xml_tags       : 'automatically close XML tags'
-    auto_close_latex          : 'automatically close LaTeX environments'
-    strip_trailing_whitespace : 'remove whenever file is saved'
-    show_trailing_whitespace  : 'show spaces at ends of lines'
-    spaces_instead_of_tabs    : 'send spaces when the tab key is pressed'
-    extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
-    build_on_save             : 'build LaTex file whenever it is saved to disk'
-    show_exec_warning         : 'warn that certain files are not directly executable'
-    ask_jupyter_kernel        : 'ask which kernel to use for a new Jupyter Notebook'
-    jupyter_classic           : <span>use classical Jupyter notebook <a href={JUPYTER_CLASSIC_MODERN} target='_blank'>(DANGER: this can cause trouble...)</a></span>
-    disable_jupyter_windowing         : 'never use windowing with Jupyter notebooks (windowing is sometimes used to make very large notebooks render quickly, but can lead to trouble in edge cases)'
 
-EditorSettingsCheckboxes = rclass
-    displayName : 'Account-EditorSettingsCheckboxes'
-
-    propTypes :
-        editor_settings : rtypes.immutable.Map.isRequired
-        email_address : rtypes.string
-        on_change       : rtypes.func.isRequired
-
-    shouldComponentUpdate: (props) ->
-        return @props.editor_settings != props.editor_settings
-
-    label_checkbox: (name, desc) ->
-        <span>
-            {misc.capitalize(name.replace(/_/g,' ').replace(/-/g,' ').replace('xml','XML').replace('latex','LaTeX')) + ': '}
-            {desc}
-        </span>
-
-    render_checkbox: (name, desc) ->
-        if @props.email_address?.indexOf('minervaproject.com') != -1 and name == 'jupyter_classic'
-            return
-        <Checkbox checked  = {@props.editor_settings.get(name)}
-               key      = {name}
-               ref      = {name}
-               onChange = {(e)=>@props.on_change(name, e.target.checked)}>
-            {@label_checkbox(name, desc)}
-        </Checkbox>
-
-    render: ->
-        <span>
-            {(@render_checkbox(name, desc) for name, desc of EDITOR_SETTINGS_CHECKBOXES)}
-        </span>
-
-EditorSettingsAutosaveInterval = rclass
-    displayName : 'Account-EditorSettingsAutosaveInterval'
-
-    propTypes :
-        autosave  : rtypes.number.isRequired
-        on_change : rtypes.func.isRequired
-
-    render: ->
-        <LabeledRow label='Autosave interval'>
-            <NumberInput
-                on_change = {(n)=>@props.on_change('autosave',n)}
-                min       = {15}
-                max       = {900}
-                number    = {@props.autosave}
-                unit      = "seconds" />
-        </LabeledRow>
-
-EditorSettingsIndentSize = rclass
-    displayName : 'Account-EditorSettings-IndentSize'
-
-    propTypes :
-        tab_size  : rtypes.number.isRequired
-        on_change : rtypes.func.isRequired
-
-    render: ->
-        <LabeledRow label='Indent size'>
-            <NumberInput
-                on_change = {(n)=>@props.on_change('tab_size',n)}
-                min       = {2}
-                max       = {32}
-                number    = {@props.tab_size} />
-        </LabeledRow>
-
-
-
-EditorSettingsFontSize = rclass
-    displayName : 'Account-EditorSettingsFontSize'
-
-    propTypes :
-        font_size : rtypes.number.isRequired
-        on_change : rtypes.func.isRequired
-
-    render: ->
-        <LabeledRow label='Font Size' className='cc-account-prefs-font-size'>
-            <NumberInput
-                on_change = {(n)=>@props.on_change('font_size',n)}
-                min       = {5}
-                max       = {32}
-                number    = {@props.font_size}
-                unit      = "px" />
-        </LabeledRow>
-
-EDITOR_COLOR_SCHEMES = exports.EDITOR_COLOR_SCHEMES =
-    'default'                 : 'Default'
-    '3024-day'                : '3024 day'
-    '3024-night'              : '3024 night'
-    'abcdef'                  : 'abcdef'
-    #'ambiance-mobile'         : 'Ambiance mobile'  # doesn't highlight python, confusing
-    'ambiance'                : 'Ambiance'
-    'base16-dark'             : 'Base 16 dark'
-    'base16-light'            : 'Base 16 light'
-    'bespin'                  : 'Bespin'
-    'blackboard'              : 'Blackboard'
-    'cobalt'                  : 'Cobalt'
-    'colorforth'              : 'Colorforth'
-    'darcula'                 : 'Darcula'
-    'dracula'                 : 'Dracula'
-    'duotone-dark'            : 'Duotone Dark'
-    'duotone-light'           : 'Duotone Light'
-    'eclipse'                 : 'Eclipse'
-    'elegant'                 : 'Elegant'
-    'erlang-dark'             : 'Erlang dark'
-    'gruvbox-dark'            : 'Gruvbox-Dark'
-    'hopscotch'               : 'Hopscotch'
-    'icecoder'                : 'Icecoder'
-    'idea'                    : 'Idea'  # this messes with the global hinter CSS!
-    'isotope'                 : 'Isotope'
-    'lesser-dark'             : 'Lesser dark'
-    'liquibyte'               : 'Liquibyte'
-    'lucario'                 : 'Lucario'
-    'material'                : 'Material'
-    'mbo'                     : 'mbo'
-    'mdn-like'                : 'MDN like'
-    'midnight'                : 'Midnight'
-    'monokai'                 : 'Monokai'
-    'neat'                    : 'Neat'
-    'neo'                     : 'Neo'
-    'night'                   : 'Night'
-    'oceanic-next'            : 'Oceanic next'
-    'panda-syntax'            : 'Panda syntax'
-    'paraiso-dark'            : 'Paraiso dark'
-    'paraiso-light'           : 'Paraiso light'
-    'pastel-on-dark'          : 'Pastel on dark'
-    'railscasts'              : 'Railscasts'
-    'rubyblue'                : 'Rubyblue'
-    'seti'                    : 'Seti'
-    'shadowfox'               : 'Shadowfox'
-    'solarized dark'          : 'Solarized dark'
-    'solarized light'         : 'Solarized light'
-    'ssms'                    : 'ssms'
-    'the-matrix'              : 'The Matrix'
-    'tomorrow-night-bright'   : 'Tomorrow Night - Bright'
-    'tomorrow-night-eighties' : 'Tomorrow Night - Eighties'
-    'ttcn'                    : 'ttcn'
-    'twilight'                : 'Twilight'
-    'vibrant-ink'             : 'Vibrant ink'
-    'xq-dark'                 : 'Xq dark'
-    'xq-light'                : 'Xq light'
-    'yeti'                    : 'Yeti'
-    'zenburn'                 : 'Zenburn'
-
-
-EditorSettingsColorScheme = rclass
-    displayName : 'Account-EditorSettingsColorScheme'
-
-    propTypes :
-        theme     : rtypes.string.isRequired
-        on_change : rtypes.func.isRequired
-
-    render: ->
-        <LabeledRow label='Editor color scheme'>
-            <SelectorInput
-                options   = {EDITOR_COLOR_SCHEMES}
-                selected  = {@props.theme}
-                on_change = {@props.on_change}
-            />
-        </LabeledRow>
-
-EDITOR_BINDINGS =
-    standard : 'Standard'
-    sublime  : 'Sublime'
-    vim      : 'Vim'
-    emacs    : 'Emacs'
-
-EditorSettingsKeyboardBindings = rclass
-    displayName : 'Account-EditorSettingsKeyboardBindings'
-
-    propTypes :
-        bindings  : rtypes.string.isRequired
-        on_change : rtypes.func.isRequired
-
-    render: ->
-        <LabeledRow label='Editor keyboard bindings'>
-            <SelectorInput
-                options   = {EDITOR_BINDINGS}
-                selected  = {@props.bindings}
-                on_change = {@props.on_change}
-            />
-        </LabeledRow>
-
-EditorSettingsPhysicalKeyboard = rclass
-    displayName : 'Account-EditorSettingsPhysicalKeyboard'
-
-    propTypes :
-        physical_keyboard  : rtypes.string.isRequired
-        on_change          : rtypes.func.isRequired
-
-    render: ->
-        if @props.physical_keyboard == 'NO_DATA'
-            <Loading />
-        else
-            <LabeledRow label='Keyboard layout (for X11 Desktop)'>
-                <SelectorInput
-                    options   = {PHYSICAL_KEYBOARDS}
-                    selected  = {@props.physical_keyboard}
-                    on_change = {@props.on_change}
-                />
-            </LabeledRow>
-
-EditorSettingsKeyboardVariant = rclass
-    displayName : 'Account-EditorSettingsKeyboardVariant'
-
-    propTypes :
-        keyboard_variant         : rtypes.string.isRequired
-        on_change                : rtypes.func.isRequired
-        keyboard_variant_options : rtypes.array.isRequired
-
-    render: ->
-        if @props.keyboard_variant == 'NO_DATA'
-            <Loading />
-        else
-            <LabeledRow label='Keyboard variant (for X11 Desktop)'>
-                <SelectorInput
-                    options   = {@props.keyboard_variant_options}
-                    selected  = {@props.keyboard_variant}
-                    on_change = {@props.on_change}
-                />
-            </LabeledRow>
-
-
-EditorSettings = rclass
+exports.EditorSettings = rclass
     displayName : 'Account-EditorSettings'
 
     propTypes :
@@ -1278,7 +906,7 @@ EditorSettings = rclass
             <EditorSettingsIndentSize
                 on_change={@on_change} tab_size={@props.tab_size} />
             <EditorSettingsColorScheme
-                on_change={(value)=>@on_change('theme',value)} theme={@props.editor_settings.get('theme')} />
+                on_change={(value)=>@on_change('theme',value)} theme={@props.editor_settings.get('theme')} editor_settings={@props.editor_settings} font_size={@props.font_size} />
             <EditorSettingsKeyboardBindings
                 on_change={(value)=>@on_change('bindings',value)} bindings={@props.editor_settings.get('bindings')} />
             <EditorSettingsPhysicalKeyboard
@@ -1316,7 +944,7 @@ EVALUATE_KEYS =
     'Shift-Enter' : 'shift+enter'
     'Enter'       : 'enter (shift+enter for newline)'
 
-KeyboardSettings = rclass
+exports.KeyboardSettings = rclass
     displayName : 'Account-KeyboardSettings'
 
     propTypes :
@@ -1349,7 +977,7 @@ KeyboardSettings = rclass
             {@render_eval_shortcut()}
         </Panel>
 
-OtherSettings = rclass
+exports.OtherSettings = rclass
     displayName : 'Account-OtherSettings'
 
     propTypes :
@@ -1527,89 +1155,6 @@ OtherSettings = rclass
 
 
 
-# Render the entire settings component
-exports.AccountSettingsTop = rclass
-    displayName : 'AccountSettingsTop'
-
-    propTypes :
-        redux                  : rtypes.object
-        account_id             : rtypes.string
-        first_name             : rtypes.string
-        last_name              : rtypes.string
-        email_address          : rtypes.string
-        email_address_verified : rtypes.immutable.Map
-        passports              : rtypes.immutable.Map
-        sign_out_error         : rtypes.string
-        everywhere             : rtypes.bool
-        terminal               : rtypes.immutable.Map
-        evaluate_key           : rtypes.string
-        autosave               : rtypes.number
-        tab_size               : rtypes.number
-        font_size              : rtypes.number
-        editor_settings        : rtypes.immutable.Map
-        other_settings         : rtypes.immutable.Map
-        groups                 : rtypes.immutable.List
-        stripe_customer        : rtypes.immutable.Map
-        is_anonymous           : rtypes.bool
-        email_enabled          : rtypes.bool
-        verify_emails          : rtypes.bool
-        created                : rtypes.object
-
-    render_account_settings: ->
-        <AccountSettings
-            account_id             = {@props.account_id}
-            first_name             = {@props.first_name}
-            last_name              = {@props.last_name}
-            email_address          = {@props.email_address}
-            email_address_verified = {@props.email_address_verified}
-            passports              = {@props.passports}
-            sign_out_error         = {@props.sign_out_error}
-            everywhere             = {@props.everywhere}
-            other_settings         = {@props.other_settings}
-            is_anonymous           = {@props.is_anonymous}
-            email_enabled          = {@props.email_enabled}
-            verify_emails          = {@props.verify_emails}
-            created                = {@props.created}
-            redux                  = {@props.redux}
-        />
-
-
-    render: ->
-        if @props.is_anonymous
-            return @render_account_settings()
-        <div style={marginTop:'1em'}>
-            <Row>
-                <Col xs={12} md={6}>
-                    {@render_account_settings()}
-                    <OtherSettings
-                        other_settings     = {@props.other_settings}
-                        is_stripe_customer = {!!@props.stripe_customer?.getIn(['subscriptions', 'total_count'])}
-                        redux              = {@props.redux} />
-                    <ProfileSettings
-                        email_address = {@props.email_address}
-                        first_name    = {@props.first_name}
-                        last_name     = {@props.last_name}
-                        redux         = {@props.redux} />
-                </Col>
-                <Col xs={12} md={6}>
-                    <EditorSettings
-                        autosave        = {@props.autosave}
-                        tab_size        = {@props.tab_size}
-                        font_size       = {@props.font_size}
-                        editor_settings = {@props.editor_settings}
-                        email_address   = {@props.email_address}
-                        redux           = {@props.redux} />
-                    <TerminalSettings
-                        terminal = {@props.terminal}
-                        redux    = {@props.redux} />
-                    <KeyboardSettings
-                        evaluate_key = {@props.evaluate_key}
-                        redux        = {@props.redux} />
-                </Col>
-            </Row>
-            <Footer/>
-        </div>
-
 STRATEGIES = ['email']
 f = () ->
     $.get "#{window.app_base_url}/auth/strategies", (strategies, status) ->
@@ -1636,22 +1181,3 @@ ugly_error = (err) ->
         err = misc.to_json(err)
     alert_message(type:"error", message:"Settings error -- #{err}")
 
-# returns password score if password checker library
-# loaded; otherwise returns undefined and starts load
-zxcvbn = undefined
-password_score = (password) ->
-    return  # temporary until loading iof zxcvbn below is fixed. See https://github.com/sagemathinc/cocalc/issues/687
-    # if the password checking library is loaded, render a password strength indicator -- otherwise, don't
-    ###
-    if zxcvbn?
-        if zxcvbn != 'loading'
-            # explicitly ban some words.
-            return zxcvbn(password, ['sagemath','salvus','sage','sagemathcloud','smc','mathematica','pari'])
-    else
-        zxcvbn = 'loading'
-        require.ensure [], =>
-            zxcvbn = require("script!zxcvbn/zxcvbn.js")
-            # $.getScript '/static/zxcvbn/zxcvbn.js', () =>
-            #    zxcvbn = window.zxcvbn
-    return
-    ###

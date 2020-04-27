@@ -28,7 +28,6 @@ export async function latexmk(
   }
   const exec_output = await exec({
     bash: true, // we use ulimit so that the timeout on the backend is *enforced* via ulimit!!
-    allow_post: false, // definitely could take a long time to fully run latex
     timeout: 4 * 60, // 4 minutes, on par with Overleaf
     command,
     args,
@@ -45,7 +44,6 @@ export async function latexmk(
       await exec({
         project_id,
         bash: false,
-        allow_post: true,
         command: "cp",
         path: x.head,
         args: [`${output_directory}/${pdf_path(x.tail)}`, "."],

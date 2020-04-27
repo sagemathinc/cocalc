@@ -43,23 +43,22 @@ import { copy, is_array, is_object, len } from "../../misc2";
 const misc = require("../../misc");
 const schema = require("../../schema");
 
+export type Query = any; // todo
+export type QueryOptions = any[]; // todo
+
 // What we need the client below to implement so we can use
 // it to support a table.
 export interface Client extends EventEmitter {
   is_project: () => boolean;
   dbg: (str: string) => Function;
-  query: (opts: {
-    query: any;
-    options?: any[];
-    timeout?: number;
-    cb?: Function;
-  }) => void;
+  query: Function;
   query_cancel: Function;
   server_time: Function;
-  alert_message: Function;
+  alert_message?: Function;
   is_connected: () => boolean;
   is_signed_in: () => boolean;
   touch_project: (opts: any) => void;
+  set_connected?: Function;
 }
 
 export interface VersionedChange {
@@ -81,15 +80,15 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { Changefeed } from "./changefeed";
 import { parse_query, to_key } from "./util";
 
-type State = "disconnected" | "connected" | "closed";
+export type State = "disconnected" | "connected" | "closed";
 
 export class SyncTable extends EventEmitter {
   private changefeed?: Changefeed;
-  private query: any;
+  private query: Query;
   private client_query: any;
   private primary_keys: string[];
-  private options: any[];
-  public client: Client;
+  private options: QueryOptions;
+  public readonly client: Client;
   private throttle_changes?: number;
   private throttled_emit_changes?: Function;
   private last_server_time: number = 0;
@@ -115,7 +114,7 @@ export class SyncTable extends EventEmitter {
 
   // disconnected <--> connected --> closed
   private state: State;
-  private table: string;
+  public table: string;
   private schema: any;
   private emit_change: Function;
   public reference_count: number = 0;
@@ -469,9 +468,14 @@ export class SyncTable extends EventEmitter {
     return new_val;
   }
 
-  private touch_project(): void {
-    if (this.project_id !== undefined) {
-      this.client.touch_project({ project_id: this.project_id });
+  private async touch_project(): Promise<void> {
+    if (this.project_id != null) {
+      try {
+        await this.client.touch_project(this.project_id);
+      } catch (err) {
+        // not fatal
+        console.warn("touch_project -- ", this.project_id, err);
+      }
     }
   }
 
@@ -740,7 +744,7 @@ export class SyncTable extends EventEmitter {
   private changefeed_options() {
     return {
       do_query: query_function(this.client.query, this.table),
-      query_cancel: this.client.query_cancel,
+      query_cancel: this.client.query_cancel.bind(this.client),
       options: this.options,
       query: this.query,
       table: this.table,

@@ -51,7 +51,6 @@ export async function misspelled_words(opts: Options): Promise<string[]> {
     command,
     bash: true,
     err_on_exit: true,
-    allow_post: true,
     aggregate: opts.time,
   });
 

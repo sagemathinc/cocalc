@@ -525,16 +525,14 @@ class SiteSettingsComponent extends Component<
         });
         break;
       case "verification":
-        // The code below "looks good" but it doesn't work.
+        // The code below "looks good" but it doesn't work ???
         // const users = await user_search({
         //   query: email,
         //   admin: true,
         //   limit: 1
         // });
         // if (users.length == 1) {
-        //   await callback2(webapp_client.send_verification_email, {
-        //     account_id: users[0].account_id
-        //   });
+        //   await webapp_client.account_client.send_verification_email(users[0].account_id);
         // }
         break;
       default:

@@ -92,7 +92,6 @@ export interface ProjectStoreState {
   // Project Page
   active_project_tab: string;
   free_warning_closed: boolean; // Makes bottom height update
-  free_warning_extra_shown: boolean;
   num_ghost_file_tabs: number;
 
   // Project Files
@@ -246,7 +245,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
       // Project Page
       active_project_tab: "files",
       free_warning_closed: false, // Makes bottom height update
-      free_warning_extra_shown: false,
       num_ghost_file_tabs: 0,
 
       // Project Files

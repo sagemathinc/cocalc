@@ -555,6 +555,11 @@ export function commands(
       f: () => jupyter_actions.fetch_jupyter_kernels(),
     },
 
+    "custom kernel": {
+      m: "How to create a custom kernel...",
+      f: () => jupyter_actions.custom_jupyter_kernel_docs(),
+    },
+
     "rename notebook": {
       m: "Rename...",
       f: () => jupyter_actions.file_action("rename"),

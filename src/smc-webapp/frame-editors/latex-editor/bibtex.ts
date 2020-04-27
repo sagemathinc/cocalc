@@ -15,7 +15,6 @@ export async function bibtex(
 ) {
   const { base, directory } = parse_path(path);
   return await exec({
-    allow_post: true,
     command: "bibtex",
     args: [base],
     project_id: project_id,

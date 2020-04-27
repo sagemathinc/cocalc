@@ -34,7 +34,6 @@ export async function pythontex(
   status(`pythontex ${args.join(" ")}`);
   const aggregate = time && !force ? { value: time } : undefined;
   return exec({
-    allow_post: false, // definitely could take a long time to fully run this
     timeout: 360,
     bash: true, // timeout is enforced by ulimit
     command: "pythontex3",

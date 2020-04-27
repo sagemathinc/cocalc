@@ -9,7 +9,7 @@ import { alert_message } from "../../alerts";
 import { ProjectSettings, ProjectStatus } from "./types";
 const misc = require("smc-util/misc");
 const { User } = require("../../users");
-const { webapp_client } = require("../../webapp_client");
+import { webapp_client } from "../../webapp-client";
 const { PROJECT_UPGRADES } = require("smc-util/schema");
 const {
   Checkbox,
@@ -174,31 +174,28 @@ export class QuotaConsole extends React.Component<Props, State> {
     this.setState({ editing: true });
   }
 
-  private save_admin_editing(): void {
-    webapp_client.project_set_quotas({
-      project_id: this.props.project_id,
-      cores: this.state.cores,
-      cpu_shares: Math.round(this.state.cpu_shares * 256),
-      disk_quota: this.state.disk_quota,
-      memory: this.state.memory,
-      memory_request: this.state.memory_request,
-      mintime: Math.floor(this.state.mintime * 3600),
-      network: this.state.network,
-      member_host: this.state.member_host,
-      cb(err: Error, mesg: { event: string; error?: string }) {
-        if (err) {
-          alert_message({ type: "error", message: err });
-        } else if (mesg.event === "error") {
-          alert_message({ type: "error", message: mesg.error });
-        } else {
-          alert_message({
-            type: "success",
-            message: "Project quotas updated.",
-          });
-        }
-      },
-    });
-    this.setState({ editing: false });
+  private async save_admin_editing(): Promise<void> {
+    try {
+      await webapp_client.project_client.set_quotas({
+        project_id: this.props.project_id,
+        cores: this.state.cores,
+        cpu_shares: Math.round(this.state.cpu_shares * 256),
+        disk_quota: this.state.disk_quota,
+        memory: this.state.memory,
+        memory_request: this.state.memory_request,
+        mintime: Math.floor(this.state.mintime * 3600),
+        network: this.state.network,
+        member_host: this.state.member_host,
+      });
+      alert_message({
+        type: "success",
+        message: "Project quotas updated.",
+      });
+    } catch (err) {
+      alert_message({ type: "error", message: err.message });
+    } finally {
+      this.setState({ editing: false });
+    }
   }
 
   private cancel_admin_editing(): void {

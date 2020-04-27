@@ -11,6 +11,7 @@ const codemirror_associations: { [ext: string]: string } = {
   adb: "ada",
   c: "text/x-c",
   "c++": "text/x-c++src",
+  cob: "text/x-cobol",
   cql: "text/x-sql",
   cpp: "text/x-c++src",
   cc: "text/x-c++src",

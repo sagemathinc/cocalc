@@ -10,7 +10,6 @@ immutable = require('immutable')
 misc = require('smc-util/misc')
 {Button, ButtonToolbar, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
 {HelpEmailLink, SiteName, PolicyPricingPageUrl, Footer} = require('./customize')
-{UpgradeRestartWarning} = require('./upgrade-restart-warning')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
@@ -153,7 +152,6 @@ exports.UpgradesPage = rclass
                 <Footer/>
             </div>
 
-
 exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
     reduxProps :
         account :
@@ -251,10 +249,12 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
             @render_upgraded_project(project_id, upgrades, i%2==0)
 
     confirm_reset: (e) ->
-        webapp_client.remove_all_upgrades undefined, (err) =>
+        try
+            await webapp_client.project_client.remove_all_upgrades()
+        catch err
             @setState
                 expand_remove_all_upgrades : false
-                remove_all_upgrades_error  : err
+                remove_all_upgrades_error  : err?.toString()
 
     render_remove_all_upgrades_error: ->
         err = @state.remove_all_upgrades_error
@@ -316,17 +316,4 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
             {@render_upgraded_projects_rows(upgraded_projects)}
         </Panel>
 
-exports.ResetProjectsConfirmation = ResetProjectsConfirmation = ({on_confirm, on_cancel}) ->
-    <Well style={marginBottom:'0px', marginTop:'10px', background:'white'}>
-        Are you sure you want to remove all upgrades that you have contributed to these projects?<br/>
-        Your upgrades will then be available to use on projects.<br/>
-        <UpgradeRestartWarning style={display:'inline-block', margin:'15px 0'} />
-        <ButtonToolbar>
-            <Button bsStyle='warning' onClick={on_confirm}>
-                Yes, please remove all upgrades
-            </Button>
-            <Button onClick={on_cancel}>
-                Cancel
-            </Button>
-        </ButtonToolbar>
-    </Well>
+exports.ResetProjectsConfirmation = ResetProjectsConfirmation = require('./account/upgrades/reset-projects').ResetProjectsConfirmation;

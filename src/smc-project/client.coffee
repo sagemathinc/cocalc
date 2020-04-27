@@ -320,7 +320,7 @@ class exports.Client extends EventEmitter
                 socket  : socket
                 cb      : opts.cb
 
-    sync_table2: (query, options, throttle_changes=undefined) =>
+    sync_table: (query, options, throttle_changes=undefined) =>
         return synctable2.synctable(query, options, @, throttle_changes)
 
     # We leave in the project_id for consistency with the browser UI.
@@ -345,34 +345,6 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             path : required
         return get_syncdoc(opts.path)
-    ###
-    sync_string2: (opts) =>
-        opts = defaults opts,
-            id                : undefined
-            path              : required
-            file_use_interval : 'default'
-            patch_interval    : 1000
-            save_interval     : 2000
-        opts.client = @
-        opts.project_id = @project_id
-        SyncString2 = require('smc-util/sync/editor/string/sync').SyncString;
-        return new SyncString2(opts)
-
-    sync_db2: (opts) =>
-        opts = defaults opts,
-            id                : undefined
-            path              : required
-            file_use_interval : 'default'
-            cursors           : false
-            patch_interval    : 1000
-            save_interval     : 2000
-            primary_keys      : required
-            string_cols       : []
-        opts.client = @
-        opts.project_id = @project_id
-        SyncDB2 = syncdb2.SyncDB;
-        return new SyncDB2(opts)
-    ###
 
     symmetric_channel: (name) =>
         return require('./browser-websocket/symmetric_channel').symmetric_channel(name)
@@ -576,9 +548,8 @@ class exports.Client extends EventEmitter
         opts.cb?('get_blob: not implemented')
 
 
-    # no-op
-    touch_project: (opts) =>
-        opts.cb?()
+    # no-op; assumed async api
+    touch_project: (project_id) =>
 
     # async
     get_syncdoc_history: (string_id, patches=false) =>
@@ -595,4 +566,4 @@ class exports.Client extends EventEmitter
 
     set_deleted: (filename, project_id) => # project_id is ignored
         listings = get_listings_table();
-        await listings.set_deleted(filename) 
+        await listings.set_deleted(filename)

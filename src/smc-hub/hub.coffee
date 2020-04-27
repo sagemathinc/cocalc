@@ -64,7 +64,6 @@ underscore = require('underscore')
 misc    = require('smc-util/misc')
 {defaults, required} = misc
 message    = require('smc-util/message')     # message protocol between front-end and back-end
-client_lib = require('smc-util/client')
 client     = require('./client')
 sage       = require('./sage')               # sage server
 auth       = require('./auth')

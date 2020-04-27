@@ -452,7 +452,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
 
   private render_export_file_use_times(): Rendered {
     return (
-      <Row key="file-use-times">
+      <Row key="file-use-times-export-handout">
         <Col xs={4}>
           <Tip
             title="Export when students used files"

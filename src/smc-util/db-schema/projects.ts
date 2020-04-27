@@ -47,6 +47,7 @@ Table({
           course: null,
           compute_image: DEFAULT_COMPUTE_IMAGE,
           addons: null,
+          created: null,
         },
       },
       set: {

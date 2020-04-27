@@ -10,28 +10,18 @@ import { synctable_no_database, SyncTable } from "smc-util/sync/table";
 
 import { once, retry_until_success } from "smc-util/async-utils";
 
+import { WebappClient } from "../../webapp-client";
+
 // Always wait at least this long between connect attempts.  This
 // avoids flooding the project with connection requests if, e.g., the
 // client limit for a particular file is reached.
 const MIN_CONNECT_WAIT_MS = 5000;
 
-interface Client {
-  touch_project: ({
-    project_id,
-    cb,
-  }: {
-    project_id: string;
-    cb?: Function;
-  }) => Promise<any>;
-  project_websocket: (project_id: string) => Promise<any>;
-  set_connected: (connected: boolean) => void;
-}
-
 interface Options {
   project_id: string;
   query: object;
   options: any[];
-  client: Client;
+  client: WebappClient;
   throttle_changes?: undefined | number;
   id: string;
 }
@@ -41,7 +31,7 @@ import { EventEmitter } from "events";
 class SyncTableChannel extends EventEmitter {
   public synctable: SyncTable;
   private project_id: string;
-  private client: Client;
+  private client: WebappClient;
   private channel?: any;
   private websocket?: any;
   private query: any;
@@ -116,7 +106,9 @@ class SyncTableChannel extends EventEmitter {
     if (this.synctable == null) return;
     this.log("set_connected", connected);
     this.connected = connected;
-    this.synctable.client.set_connected(connected);
+    if (this.synctable.client.set_connected != null) {
+      this.synctable.client.set_connected(connected);
+    }
     if (connected) {
       this.emit("connected");
     } else {
@@ -132,9 +124,11 @@ class SyncTableChannel extends EventEmitter {
     // touch_project mainly makes sure that some hub is connected to
     // the project, so the project can do DB queries.  Also
     // starts the project.
-    this.client.touch_project({ project_id: this.project_id });
+    await this.client.touch_project(this.project_id);
     // Get a websocket.
-    this.websocket = await this.client.project_websocket(this.project_id);
+    this.websocket = await this.client.project_client.websocket(
+      this.project_id
+    );
     if (this.websocket.state != "online") {
       // give websocket state once chance to change.
       // It could change to destroyed or online.

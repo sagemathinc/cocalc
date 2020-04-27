@@ -11,12 +11,14 @@ import {
   rclass,
   TypedMap,
 } from "../../app-framework";
+import { plural } from "smc-util/misc";
 import { ErrorDisplay, Icon, Loading, Space, r_join } from "../../r_misc";
-import { SiteLicense } from "./types";
+import { ManagerInfo, SiteLicense } from "./types";
 import { actions } from "./actions";
 import { List, Map, Set } from "immutable";
 import { Button, Popconfirm } from "antd";
 import { License } from "./license";
+import { UserMap } from "../../todo-types";
 
 interface Props {
   view?: boolean; // if true, open for viewing/editing
@@ -29,8 +31,10 @@ interface Props {
   edits?: Map<string, TypedMap<SiteLicense>>;
   show_projects?: Map<string, "now" | Date>;
   search?: string;
-  matches_search?: Set<string>;
   usage_stats?: Map<string, number>;
+
+  user_map?: UserMap;
+  manager_info?: ManagerInfo;
 }
 
 class SiteLicenses extends Component<Props> {
@@ -47,8 +51,11 @@ class SiteLicenses extends Component<Props> {
         edits: rtypes.immutable.Map,
         show_projects: rtypes.immutable.Set,
         search: rtypes.string,
-        matches_search: rtypes.immutable.Set,
         usage_stats: rtypes.immutable.Map,
+        manager_info: rtypes.immutable.Map,
+      },
+      users: {
+        user_map: rtypes.immutable,
       },
     };
   }
@@ -66,9 +73,7 @@ class SiteLicenses extends Component<Props> {
   private render_loading(): Rendered {
     if (this.props.loading) {
       return (
-        <div style={{ float: "right" }}>
-          <Loading theme="medium" />
-        </div>
+        <Loading theme="medium" style={{ float: "right", fontSize: "20pt" }} />
       );
     }
   }
@@ -84,6 +89,12 @@ class SiteLicenses extends Component<Props> {
         edits={this.props.edits != null ? this.props.edits.get(id) : undefined}
         show_projects={this.props.show_projects?.get(id)}
         usage_stats={this.props.usage_stats?.get(id)}
+        user_map={this.props.user_map}
+        manager_info={
+          this.props.manager_info?.get("license_id") == id
+            ? this.props.manager_info
+            : undefined
+        }
       />
     );
   }
@@ -93,13 +104,6 @@ class SiteLicenses extends Component<Props> {
     if (!this.props.site_licenses) return;
     const v: Rendered[] = [];
     for (const license of this.props.site_licenses) {
-      if (
-        this.props.search &&
-        this.props.matches_search != null &&
-        !this.props.matches_search.has(license.get("id"))
-      ) {
-        continue;
-      }
       v.push(this.render_license(license));
     }
     return r_join(v, <div style={{ height: "20px" }}></div>);
@@ -120,16 +124,15 @@ class SiteLicenses extends Component<Props> {
     );
   }
 
-  private render_refresh_button(): Rendered {
+  private render_search_button(): Rendered {
     if (!this.props.view) return;
     return (
       <Button
         onClick={() => actions.load()}
-        disabled={this.props.loading}
+        disabled={this.props.loading || !this.props.search}
         style={{ margin: "15px 0" }}
       >
-        <Icon name="sync" spin={this.props.loading} />
-        <Space /> Refresh
+        Search for licenses
       </Button>
     );
   }
@@ -143,9 +146,12 @@ class SiteLicenses extends Component<Props> {
         okText={"Yes"}
         cancelText={"Cancel"}
       >
-        <Button disabled={this.props.creating} style={{ margin: "15px 0" }}>
+        <Button
+          disabled={this.props.creating}
+          style={{ margin: "15px 0", float: "right" }}
+        >
           <Icon name="plus" spin={this.props.creating} />
-          <Space /> New...
+          <Space /> Create License
         </Button>
       </Popconfirm>
     );
@@ -155,7 +161,7 @@ class SiteLicenses extends Component<Props> {
     if (!this.props.view) return;
     return (
       <DebounceInput
-        placeholder={"Search"}
+        placeholder={"Search for licenses..."}
         style={{
           marginLeft: "5px",
           width: "40ex",
@@ -165,17 +171,30 @@ class SiteLicenses extends Component<Props> {
         }}
         value={this.props.search ?? ""}
         onChange={(e) => actions.set_search((e.target as any).value)}
+        onKeyUp={(e) => {
+          if (e.keyCode === 13) {
+            actions.load();
+          }
+        }}
       />
     );
   }
 
   private render_search_restriction_note(): Rendered {
-    if (this.props.matches_search != null && this.props.site_licenses != null) {
+    if (this.props.site_licenses?.size) {
       return (
         <b style={{ marginLeft: "10px" }}>
-          Showing {this.props.matches_search.size} of{" "}
-          {this.props.site_licenses.size} licenses matching the search{" "}
-          <a onClick={() => actions.set_search("")}>(clear)</a>.
+          Showing the most recent {this.props.site_licenses.size}{" "}
+          {plural(this.props.site_licenses.size, "license")} matching the search{" "}
+          <a
+            onClick={() => {
+              actions.set_search("");
+              actions.load();
+            }}
+          >
+            (clear)
+          </a>
+          .
         </b>
       );
     }
@@ -187,13 +206,15 @@ class SiteLicenses extends Component<Props> {
       <div style={{ margin: "0 30px" }}>
         {this.render_error()}
         <div>
-          {this.render_refresh_button()}
+          {this.render_search()}
+          <Space />
+          <Space />
+          {this.render_search_button()}
           <Space />
           <Space />
           {this.render_create_new_license()}
           <Space />
           <Space />
-          {this.render_search()}
           {this.render_search_restriction_note()}
           {this.render_loading()}
         </div>

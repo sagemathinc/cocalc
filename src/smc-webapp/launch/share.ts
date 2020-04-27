@@ -257,7 +257,7 @@ async function open_share_in_project(
     status: "Copying shared content to your project...",
   });
 
-  await callback2(webapp_client.copy_path_between_projects.bind(actions), {
+  await webapp_client.project_client.copy_path_between_projects({
     public: true,
     src_project_id: project_id,
     src_path: path,

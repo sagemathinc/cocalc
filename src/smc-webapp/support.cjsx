@@ -30,6 +30,7 @@ misc_page       = require('./misc_page')
 feature         = require('./feature')
 {HelpEmailLink, SiteName, Footer} = require('./customize')
 {DISCORD_INVITE} = require('smc-util/theme')
+{delay} = require('awaiting')
 
 STATE =
     NEW        : 'new'      # new/default/resetted/no problem
@@ -78,32 +79,40 @@ class SupportActions extends Actions
             @check_valid()
 
     load_support_tickets: () ->
-        # mockup for testing -- set it to "true" to see some tickets
-        if DEBUG and false
-            @setState
-                support_tickets : [
-                    id : 123
-                    status: 'open'
-                    description: 'test ticket 123'
-                ,
-                    id : 456
-                    status : 'open'
-                    description: 'test ticket 456'
-                ]
-                support_ticket_error : null
-        else
-            webapp_client.get_support_tickets (err, tickets) =>
-                # console.log("tickets: #{misc.to_json(tickets)}")
-                # sort by .updated_at
-                if err?
+        if @_loading
+            return
+        try
+            @_loading = true
+            # mockup for testing -- set it to "true" to see some tickets
+            if DEBUG and false
+                @setState
+                    support_tickets : [
+                        id : 123
+                        status: 'open'
+                        description: 'test ticket 123'
+                        created_at: new Date()
+                        updated_at: new Date()
+                    ,
+                        id : 456
+                        status : 'open'
+                        description: 'test ticket 456'
+                        created_at: new Date()
+                        updated_at: new Date()
+                    ]
+                    support_ticket_error : null
+            else
+                try
+                    tickets = await webapp_client.support_tickets.get()
+                    tickets = tickets.sort(cmp_tickets)
+                    @setState
+                        support_ticket_error : undefined
+                        support_tickets      : tickets
+                catch err
                     @setState
                         support_ticket_error : err
                         support_tickets      : []
-                else
-                    tickets = tickets.sort(cmp_tickets)
-                    @setState
-                        support_ticket_error : err
-                        support_tickets      : tickets
+        finally
+            @_loading = false
 
     reset: =>
         @init_email_address()
@@ -213,8 +222,8 @@ class SupportActions extends Actions
 
         name = account.get_fullname()
         name = if name?.trim?().length > 0 then name else null
-        webapp_client.create_support_ticket
-            opts:
+        try
+            url = await webapp_client.support_tickets.create
                 username     : name
                 email_address: @get('email')
                 subject      : @get('subject')
@@ -223,25 +232,22 @@ class SupportActions extends Actions
                 location     : @location()
                 account_id   : account_id
                 info         : info
-            cb : @process_support
-
-    process_support: (err, url) =>
-        if not err?
             @set    # only clear subject/body, if there has been a success!
                 subject  : ''
                 body     : ''
                 url      : url
-        @set
-            state  : if err? then STATE.ERROR else STATE.CREATED
-            err    : err ? ''
-
+                state    : STATE.CREATED
+        catch err
+            @set
+                state : STATE.ERROR
+                err   : err
 
 exports.SupportPage = rclass
     displayName : "SupportPage"
 
     reduxProps :
         support:
-            support_tickets      : rtypes.array
+            support_tickets      : rtypes.immutable.List
             support_ticket_error : rtypes.string
 
     render_header: ->
@@ -256,7 +262,7 @@ exports.SupportPage = rclass
         open_new_tab(url, '_blank')
 
     render_body: ->
-        for i, ticket of @props.support_tickets
+        for i, ticket of @props.support_tickets.toJS()
             do (ticket, i) =>
                 style = switch ticket.status
                     when 'open', 'new'
@@ -290,15 +296,21 @@ exports.SupportPage = rclass
                     </td>
                 </tr>
 
+    load_support_tickets_soon: -> # see https://github.com/sagemathinc/cocalc/issues/4520
+        await delay(1)
+        redux.getActions('support').load_support_tickets()
+
+
     render_table: ->
         divStyle = {textAlign:"center", marginTop: "4em"}
 
         if not @props.support_tickets?
+            @load_support_tickets_soon()
             return <div style={divStyle}>
                         <Loading />
                    </div>
 
-        if @props.support_tickets.length > 0
+        if @props.support_tickets.size > 0
             <Table responsive style={borderCollapse: "separate", borderSpacing: "0 1em"}>
                 <tbody>{@render_body()}</tbody>
             </Table>
@@ -577,6 +589,9 @@ exports.Support = rclass
             valid        : rtypes.bool
         account:
             is_anonymous : rtypes.bool
+
+    componentDidMount: ->
+        @props.actions.check_valid()
 
     componentWillReceiveProps: (newProps) ->
         newProps.actions.check_valid()

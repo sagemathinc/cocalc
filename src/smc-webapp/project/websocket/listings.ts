@@ -292,11 +292,11 @@ export class Listings extends EventEmitter {
       throw Error("must be in init state");
     }
     // Make sure there is a working websocket to the project
-    await webapp_client.project_websocket(this.project_id);
+    await webapp_client.project_client.websocket(this.project_id);
     if ((this.state as State) == "closed") return;
 
     // Now create the table.
-    this.table = await webapp_client.synctable_project(
+    this.table = await webapp_client.sync_client.synctable_project(
       this.project_id,
       {
         listings: [
@@ -379,7 +379,9 @@ export class Listings extends EventEmitter {
   }
 
   private get_record(path: string): ImmutableListing | undefined {
-    return this.get_table().get(JSON.stringify([this.project_id, path]));
+    const x = this.get_table().get(JSON.stringify([this.project_id, path]));
+    if (x == null) return x;
+    return x as unknown as ImmutableListing; // coercing to fight typescript.
     // NOTE: That we have to use JSON.stringify above is an ugly shortcoming
     // of the get method in smc-util/sync/table/synctable.ts
     // that could probably be relatively easily fixed.

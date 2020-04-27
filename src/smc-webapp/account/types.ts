@@ -46,4 +46,5 @@ export interface AccountState {
   doing_anonymous_setup?: boolean;
   lti_id?: immutable.List<string>;
   created?: Date;
+  token?: string;
 }
