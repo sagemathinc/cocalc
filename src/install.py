@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
+
 from __future__ import print_function
 import argparse, os, sys, time
 from concurrent.futures import ThreadPoolExecutor
