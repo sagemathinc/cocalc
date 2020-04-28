@@ -63,10 +63,6 @@ smc_version = require('smc-util/smc-version')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
 
-exports.log_strategy = (is_anonymous, name) ->
-    if is_anonymous
-        log("add_passport", {passport: name, source: "anonymous_account"})
-
 # Define a component for working with the user's basic
 # account information.
 
@@ -95,7 +91,6 @@ exports.TextSetting = rclass
         <LabeledRow label={@props.label} style={if @props.disabled then {color:"#666"}}>
             <FormGroup>
                 <FormControl
-                    ref      = 'input'
                     type     = 'text'
                     value    = {@props.value}
                     onChange = {@props.onChange}

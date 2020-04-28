@@ -25,9 +25,10 @@ const {
   EmailAddressSetting,
   EmailVerification,
   TextSetting,
-  log_strategy,
 } = require("../../r_account");
 const { APIKeySetting } = require("../../api-key");
+
+import { log } from "../../user-tracking";
 
 interface Props {
   account_id?: string;
@@ -109,7 +110,12 @@ export class AccountSettings extends Component<Props, State> {
             target="_blank"
             onClick={() => {
               this.setState({ add_strategy_link: undefined });
-              log_strategy(this.props.is_anonymous, name);
+              if (this.props.is_anonymous) {
+                log("add_passport", {
+                  passport: name,
+                  source: "anonymous_account",
+                });
+              }
             }}
           >
             <Icon name="external-link" /> Link My {name} Account
