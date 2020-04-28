@@ -1,4 +1,3 @@
-#!/usr/bin/env coffee
 # update the colorscheme definitions
 
 fs = require('fs')
