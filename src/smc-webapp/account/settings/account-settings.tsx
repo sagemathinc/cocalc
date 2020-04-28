@@ -24,9 +24,9 @@ const {
   PasswordSetting,
   EmailAddressSetting,
   EmailVerification,
-  TextSetting,
 } = require("../../r_account");
 const { APIKeySetting } = require("../../api-key");
+import { TextSetting } from "./text-setting";
 
 import { log } from "../../user-tracking";
 
@@ -70,18 +70,7 @@ export class AccountSettings extends Component<Props, State> {
   }
 
   private handle_change(evt, field) {
-    // value = ReactDOM.findDOMNode(@refs[field]).value
-    const { value } = evt.target;
-    if (!value && (field === "first_name" || field === "last_name")) {
-      if (!this.props.is_anonymous) {
-        // special case -- don't let them make their name empty;
-        // that's just annoying (not enforced server side).
-        // For anonymous users we do allow this, since they may start typing
-        // their name, then want to backspace it away.
-        return;
-      }
-    }
-    this.actions().setState({ [field]: value });
+    this.actions().setState({ [field]: evt.target.value });
   }
 
   private save_change(evt, field: string): void {
@@ -457,15 +446,12 @@ export class AccountSettings extends Component<Props, State> {
     );
   }
 
-  render() {
+  private render_name(): Rendered {
     return (
-      <Panel header={this.render_header()}>
-        {this.render_anonymous_warning()}
-        {this.render_terms_of_service()}
+      <>
         <TextSetting
           label="First name"
           value={this.props.first_name}
-          ref="first_name"
           onChange={(e) => this.handle_change(e, "first_name")}
           onBlur={(e) => this.save_change(e, "first_name")}
           maxLength={254}
@@ -474,36 +460,64 @@ export class AccountSettings extends Component<Props, State> {
         <TextSetting
           label="Last name"
           value={this.props.last_name}
-          ref="last_name"
           onChange={(e) => this.handle_change(e, "last_name")}
           onBlur={(e) => this.save_change(e, "last_name")}
           maxLength={254}
           disabled={this.props.is_anonymous && !this.state.terms_checkbox}
         />
-        <EmailAddressSetting
+      </>
+    );
+  }
+
+  private render_email_address(): Rendered {
+    return (
+      <EmailAddressSetting
+        account_id={this.props.account_id}
+        email_address={this.props.email_address}
+        redux={redux}
+        ref="email_address"
+        maxLength={254}
+        is_anonymous={this.props.is_anonymous}
+        disabled={this.props.is_anonymous && !this.state.terms_checkbox}
+        verify_emails={this.props.verify_emails}
+      />
+    );
+  }
+
+  private render_email_verification(): Rendered {
+    if (
+      this.props.email_enabled &&
+      this.props.verify_emails &&
+      !this.props.is_anonymous
+    ) {
+      return (
+        <EmailVerification
           account_id={this.props.account_id}
           email_address={this.props.email_address}
-          redux={redux}
-          ref="email_address"
-          maxLength={254}
-          is_anonymous={this.props.is_anonymous}
-          disabled={this.props.is_anonymous && !this.state.terms_checkbox}
-          verify_emails={this.props.verify_emails}
+          email_address_verified={this.props.email_address_verified}
+          ref={"email_address_verified"}
         />
+      );
+    }
+  }
+
+  private render_api_key(): Rendered {
+    if (this.props.is_anonymous) return;
+    return <APIKeySetting />;
+  }
+
+  public render(): Rendered {
+    return (
+      <Panel header={this.render_header()}>
+        {this.render_anonymous_warning()}
+        {this.render_terms_of_service()}
+        {this.render_name()}
+        {this.render_email_address()}
         <div style={{ marginBottom: "15px" }}></div>
-        {this.props.email_enabled &&
-        this.props.verify_emails &&
-        !this.props.is_anonymous ? (
-          <EmailVerification
-            account_id={this.props.account_id}
-            email_address={this.props.email_address}
-            email_address_verified={this.props.email_address_verified}
-            ref={"email_address_verified"}
-          />
-        ) : undefined}
+        {this.render_email_verification()}
         {this.render_newsletter()}
         {this.render_password()}
-        {!this.props.is_anonymous ? <APIKeySetting /> : undefined}
+        {this.render_api_key()}
         {this.render_created()}
         {this.render_delete_account()}
         {this.render_linked_external_accounts()}

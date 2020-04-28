@@ -72,35 +72,6 @@ set_account_table = (obj) ->
         table.set(obj)
     return;
 
-# in a grid:   Title [text input]
-exports.TextSetting = rclass
-    displayName : 'Account-TextSetting'
-
-    propTypes :
-        label     : rtypes.string.isRequired
-        value     : rtypes.string
-        onChange  : rtypes.func.isRequired
-        onBlur    : rtypes.func
-        maxLength : rtypes.number
-        disabled  : rtypes.bool
-
-    getValue: ->
-        ReactDOM.findDOMNode(@refs.input).value
-
-    render: ->
-        <LabeledRow label={@props.label} style={if @props.disabled then {color:"#666"}}>
-            <FormGroup>
-                <FormControl
-                    type     = 'text'
-                    value    = {@props.value}
-                    onChange = {@props.onChange}
-                    onBlur   = {@props.onBlur}
-                    maxLength= {@props.maxLength}
-                    disabled = {@props.disabled}
-                />
-            </FormGroup>
-        </LabeledRow>
-
 
 exports.EmailVerification = rclass
     displayName : 'Account-EmailVerification'
