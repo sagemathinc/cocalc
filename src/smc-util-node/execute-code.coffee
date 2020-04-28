@@ -1,6 +1,5 @@
-###
-Execute code in a subprocess, etc.
-###
+
+# Execute code in a subprocess, etc.
 
 winston       = require('winston')
 winston.remove(winston.transports.Console)
