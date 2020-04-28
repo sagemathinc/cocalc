@@ -21,12 +21,12 @@ import { SignOut } from "../sign-out";
 import { DeleteAccount } from "../delete-account";
 const {
   NewsletterSetting,
-  PasswordSetting,
   EmailAddressSetting,
   EmailVerification,
 } = require("../../r_account");
 const { APIKeySetting } = require("../../api-key");
 import { TextSetting } from "./text-setting";
+import { PasswordSetting } from "./password-setting";
 
 import { log } from "../../user-tracking";
 
@@ -385,7 +385,7 @@ export class AccountSettings extends Component<Props, State> {
       // makes no sense to change password if don't have an email address
       return;
     }
-    return <PasswordSetting maxLength={64} />;
+    return <PasswordSetting />;
   }
 
   private render_newsletter(): Rendered {
