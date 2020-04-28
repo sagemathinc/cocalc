@@ -19,16 +19,13 @@ import { ErrorDisplay, Icon, Space, TimeAgo } from "../../r_misc";
 import { STRATEGIES } from "./strategies";
 import { SignOut } from "../sign-out";
 import { DeleteAccount } from "../delete-account";
-const {
-  NewsletterSetting,
-  EmailAddressSetting,
-  EmailVerification,
-} = require("../../r_account");
-const { APIKeySetting } = require("../../api-key");
 import { TextSetting } from "./text-setting";
 import { PasswordSetting } from "./password-setting";
-
+import { EmailAddressSetting } from "./email-address-setting";
 import { log } from "../../user-tracking";
+
+const { NewsletterSetting, EmailVerification } = require("../../r_account");
+const { APIKeySetting } = require("../../api-key");
 
 interface Props {
   account_id?: string;
@@ -470,13 +467,14 @@ export class AccountSettings extends Component<Props, State> {
   }
 
   private render_email_address(): Rendered {
+    if (!this.props.account_id) {
+      return; // makes no sense to change email if there is no account
+    }
     return (
       <EmailAddressSetting
         account_id={this.props.account_id}
         email_address={this.props.email_address}
-        redux={redux}
         ref="email_address"
-        maxLength={254}
         is_anonymous={this.props.is_anonymous}
         disabled={this.props.is_anonymous && !this.state.terms_checkbox}
         verify_emails={this.props.verify_emails}
