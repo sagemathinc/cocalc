@@ -3,15 +3,15 @@
   "license-header-manager.additionalCommentStyles": [
     {
       "extension": ".coffee",
-      "commentStart": "###",
+      "commentStart": "#########################################################################",
       "commentMiddle": "#",
-      "commentEnd": "###"
+      "commentEnd": "#########################################################################"
     },
     {
       "extension": ".cjsx",
-      "commentStart": "###",
+      "commentStart": "#########################################################################",
       "commentMiddle": "#",
-      "commentEnd": "###"
+      "commentEnd": "#########################################################################"
     },
     {
       "extension": ".tsx",
