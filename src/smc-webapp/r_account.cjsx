@@ -62,9 +62,8 @@ smc_version = require('smc-util/smc-version')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
-{APIKeySetting} = require('./api-key')
 
-log_strategy = (is_anonymous, name) ->
+exports.log_strategy = (is_anonymous, name) ->
     if is_anonymous
         log("add_passport", {passport: name, source: "anonymous_account"})
 
@@ -78,7 +77,7 @@ set_account_table = (obj) ->
     return;
 
 # in a grid:   Title [text input]
-TextSetting = rclass
+exports.TextSetting = rclass
     displayName : 'Account-TextSetting'
 
     propTypes :
@@ -108,7 +107,7 @@ TextSetting = rclass
         </LabeledRow>
 
 
-EmailVerification = rclass
+exports.EmailVerification = rclass
     displayName : 'Account-EmailVerification'
 
     propTypes :
@@ -164,7 +163,7 @@ EmailVerification = rclass
             </div>
         </LabeledRow>
 
-EmailAddressSetting = rclass
+exports.EmailAddressSetting = rclass
     displayName : 'Account-EmailAddressSetting'
 
     propTypes :
@@ -292,7 +291,7 @@ EmailAddressSetting = rclass
             {@render_edit() if @state.state != 'view'}
         </LabeledRow>
 
-NewsletterSetting = rclass
+exports.NewsletterSetting = rclass
     displayName : 'Account-NewsletterSetting'
 
     propTypes :
@@ -335,7 +334,7 @@ NewsletterSetting = rclass
         }
         </LabeledRow>
 
-PasswordSetting = rclass
+exports.PasswordSetting = rclass
     displayName : 'Account-PasswordSetting'
 
     getInitialState: ->
@@ -438,319 +437,6 @@ PasswordSetting = rclass
             </div>
             {@render_edit() if @state.state != 'view'}
         </LabeledRow>
-
-# WARNING: issue -- if edit an account setting in another browser and in the middle of editing
-# a field here, this one will get overwritten on the prop update.  I think using state would
-# fix that.
-exports.AccountSettings = rclass
-    displayName : 'AccountSettings'
-
-    propTypes :
-        account_id             : rtypes.string
-        first_name             : rtypes.string
-        last_name              : rtypes.string
-        email_address          : rtypes.string
-        email_address_verified : rtypes.immutable.Map
-        passports              : rtypes.immutable.Map
-        sign_out_error         : rtypes.string
-        everywhere             : rtypes.bool
-        redux                  : rtypes.object
-        delete_account_error   : rtypes.string
-        other_settings         : rtypes.object
-        is_anonymous           : rtypes.bool
-        email_enabled          : rtypes.bool
-        verify_emails          : rtypes.bool
-        created                : rtypes.object
-
-    getInitialState: ->
-        add_strategy_link      : undefined
-        remote_strategy_button : undefined
-        terms_checkbox         : false
-
-    handle_change: (evt, field) ->
-        # value = ReactDOM.findDOMNode(@refs[field]).value
-        value = evt.target.value
-        if not value and (field == 'first_name' or field == 'last_name')
-            if not @props.is_anonymous
-                # special case -- don't let them make their name empty;
-                # that's just annoying (not enforced server side).
-                # For anonymous users we do allow this, since they may start typing
-                # their name, then want to backspace it away.
-                return
-        @actions('account').setState("#{field}": value)
-
-    save_change: (evt, field) ->
-        value = evt.target.value
-        set_account_table("#{field}": value)
-
-    render_add_strategy_link: ->
-        if not @state.add_strategy_link
-            return
-        strategy = @state.add_strategy_link
-        name = misc.capitalize(strategy)
-        <Well>
-            <h4><Icon name={strategy}/> {name}</h4>
-            Link to your {name} account, so you can use {name} to
-            login to your <SiteName/> account.
-            <br /> <br />
-            <ButtonToolbar style={textAlign: 'center'}>
-                <Button href={"#{window.app_base_url}/auth/#{@state.add_strategy_link}"} target="_blank"
-                    onClick={=>@setState(add_strategy_link:undefined); log_strategy(@props.is_anonymous, name)}>
-                    <Icon name="external-link" /> Link My {name} Account
-                </Button>
-                <Button onClick={=>@setState(add_strategy_link:undefined)} >
-                    Cancel
-                </Button>
-            </ButtonToolbar>
-        </Well>
-
-    remove_strategy_click: ->
-        strategy = @state.remove_strategy_button
-        @setState(remove_strategy_button:undefined, add_strategy_link:undefined)
-        for k, _ of @props.passports?.toJS() ? {}
-            if misc.startswith(k, strategy)
-                id = k.split('-')[1]
-                break
-        if not id
-            return
-        try
-            await webapp_client.account_client.unlink_passport(strategy, id)
-        catch err
-            ugly_error(err)
-
-    render_remove_strategy_button: ->
-        if not @state.remove_strategy_button
-            return
-        strategy = @state.remove_strategy_button
-        name = misc.capitalize(strategy)
-        if @props.passports?.size <= 1 and not @props.email_address
-            <Well>
-                You must set an email address above or add another login method before
-                you can disable login to your <SiteName/> account using your {name} account.
-                Otherwise you would completely lose access to your account!
-            </Well>
-        else
-            <Well>
-                <h4><Icon name={strategy}/> {name}</h4>
-                Your <SiteName/> account is linked to your {name} account, so you can
-                login using it.
-                <br /> <br />
-                If you delink your {name} account, you will no longer be able to
-                use your account to log into <SiteName/>.
-                <br /> <br />
-                <ButtonToolbar style={textAlign: 'center'}>
-                    <Button bsStyle='danger' onClick={@remove_strategy_click} >
-                        <Icon name="unlink" /> Delink My {name} Account
-                    </Button>
-                    <Button onClick={=>@setState(remove_strategy_button:undefined)} >
-                        Cancel
-                    </Button>
-                </ButtonToolbar>
-            </Well>
-
-    render_strategy: (strategy, strategies) ->
-        if strategy != 'email'
-            <Button
-                disabled={@props.is_anonymous and not @state.terms_checkbox}
-                onClick = {=>@setState(if strategy in strategies then {remove_strategy_button:strategy, add_strategy_link:undefined} else {add_strategy_link:strategy, remove_strategy_button:undefined})}
-                key     = {strategy}
-                bsStyle = {if strategy in strategies then 'info' else 'default'}>
-                <Icon name={strategy} /> {misc.capitalize(strategy)}...
-            </Button>
-
-    render_sign_out_error: ->
-        if not @props.sign_out_error
-            return
-        <ErrorDisplay style={margin: '5px 0'}
-            error={@props.sign_out_error}
-            onClose={=>@actions('account').setState(sign_out_error : '')}
-        />
-
-    render_sign_out_buttons: ->
-        <Row style={marginTop: '15px', borderTop: '1px solid #ccc', paddingTop: '15px'}>
-            <Col xs={12}>
-                <div className='pull-right'>
-                    <SignOut everywhere={false}/>
-                    {if not @props.is_anonymous then <Space/>}
-                    {if not @props.is_anonymous then <SignOut everywhere={true}/>}
-                </div>
-            </Col>
-        </Row>
-
-    render_linked_external_accounts: () ->
-        if not STRATEGIES? or STRATEGIES.length <= 1
-            # not configured by server
-            return
-        configured_strategies = (x.slice(0,x.indexOf('-')) for x in misc.keys(@props.passports?.toJS() ? {}))
-        linked = (strategy for strategy in STRATEGIES when strategy != 'email' and strategy in configured_strategies)
-        if linked.length == 0
-            return
-        <div>
-            <hr key='hr0' />
-            <h5 style={color:"#666"}>Your account is linked with (click to unlink)</h5>
-            <ButtonToolbar style={marginBottom:'10px'} >
-                {(@render_strategy(strategy, configured_strategies) for strategy in linked)}
-            </ButtonToolbar>
-            {@render_remove_strategy_button()}
-        </div>
-
-    render_available_to_link: () ->
-        if not STRATEGIES? or STRATEGIES.length <= 1
-            # not configured by server
-            return
-        configured_strategies = (x.slice(0,x.indexOf('-')) for x in misc.keys(@props.passports?.toJS() ? {}))
-        not_linked = (strategy for strategy in STRATEGIES when strategy != 'email' and strategy not in configured_strategies)
-        if not_linked.length == 0
-            return
-        heading = if @props.is_anonymous then "Sign up using your account at" else "Click to link your account"
-        <div>
-            <hr key='hr0' />
-            <h5 style={color:"#666"}>{heading}</h5>
-            <ButtonToolbar style={marginBottom:'10px'} >
-                {(@render_strategy(strategy, configured_strategies) for strategy in not_linked)}
-            </ButtonToolbar>
-            {@render_add_strategy_link()}
-        </div>
-
-    render_anonymous_warning:  ()  ->
-        if not @props.is_anonymous
-            return
-        # makes no sense to delete an account that is anonymous; it'll
-        # get automatically deleted.
-        <div>
-            <Alert bsStyle='warning' style={marginTop:'10px'}>
-                <h4>Sign up</h4>
-                <ul>
-                    <li>It is free</li>
-                    <li><b><i>Avoid losing all your work</i></b></li>
-                    <li>Get added to courses and projects that you were invited to</li>
-                    <li>Create support tickets</li>
-                    <li>Unlock additional features and controls, including unlimited additional projects, realtime collaboration and much, much more</li>
-                </ul>
-                <br/>
-                <h4>Sign in</h4>
-                If you already have a <SiteName/> account,                     <SignOut sign_in={true}/>
-            </Alert>
-            <hr/>
-        </div>
-
-    render_delete_account: () ->
-        if @props.is_anonymous
-            return
-        <Row>
-            <Col xs={12}>
-                <DeleteAccount
-                    style={marginTop:'1ex'}
-                    initial_click = {=>@setState(show_delete_confirmation:true)}
-                    confirm_click = {=>@actions('account').delete_account()}
-                    cancel_click  = {=>@setState(show_delete_confirmation:false)}
-                    user_name     = {(@props.first_name + ' ' + @props.last_name).trim()}
-                    show_confirmation={@state.show_delete_confirmation}
-                    />
-            </Col>
-        </Row>
-
-    render_password: () ->
-        if not @props.email_address
-            # makes no sense to change password if don't have an email address
-            return
-        <PasswordSetting
-            ref   = 'password'
-            maxLength = {64}
-            />
-
-    render_newsletter: ->
-        return # disabling this since we don't have a newsletter these days...
-        <NewsletterSetting
-            redux          = {@props.redux}
-            email_address  = {@props.email_address}
-            other_settings = {@props.other_settings}
-            />
-
-    render_terms_of_service: () ->
-        if not @props.is_anonymous
-            return
-        style = {padding:'10px 20px'}
-        if @state.terms_checkbox
-            style.border = '2px solid #ccc'
-        else
-            style.border = '2px solid red'
-        <FormGroup style={ style }>
-            <Checkbox
-              onChange={(e) => this.setState({ terms_checkbox: e.target.checked })}
-            >
-                 <TermsOfService />
-            </Checkbox>
-        </FormGroup>
-
-    render_header: ->
-        if @props.is_anonymous
-            return <h2><b>Thank you for using CoCalc!</b></h2>
-        else
-            return <h2> <Icon name='user' /> Account</h2>
-
-    render_created: ->
-        if @props.is_anonymous or not @props.created
-            return
-        <Row style={marginBottom:'15px'}>
-            <Col md={4}>
-                Created
-            </Col>
-            <Col md={8}>
-                <TimeAgo date={@props.created} />
-            </Col>
-        </Row>
-
-    render: ->
-        <Panel header={@render_header()}>
-            {@render_anonymous_warning()}
-            {@render_terms_of_service()}
-            {@render_created()}
-            <TextSetting
-                label     = 'First name'
-                value     = {@props.first_name}
-                ref       = 'first_name'
-                onChange  = {(e)=>@handle_change(e, 'first_name')}
-                onBlur    = {(e)=>@save_change(e, 'first_name')}
-                maxLength = {254}
-                disabled  = {@props.is_anonymous and not @state.terms_checkbox}
-            />
-            <TextSetting
-                label    = 'Last name'
-                value    = {@props.last_name}
-                ref      = 'last_name'
-                onChange = {(e)=>@handle_change(e, 'last_name')}
-                onBlur   = {(e)=>@save_change(e, 'last_name')}
-                maxLength = {254}
-                disabled  = {@props.is_anonymous and not @state.terms_checkbox}
-            />
-            <EmailAddressSetting
-                account_id    = {@props.account_id}
-                email_address = {@props.email_address}
-                redux         = {@props.redux}
-                ref           = 'email_address'
-                maxLength     = {254}
-                is_anonymous  = {@props.is_anonymous}
-                disabled      = {@props.is_anonymous and not @state.terms_checkbox}
-                verify_emails = {@props.verify_emails}
-            />
-            <div style={marginBottom:'15px'}></div>
-            {<EmailVerification
-                account_id             = {@props.account_id}
-                email_address          = {@props.email_address}
-                email_address_verified = {@props.email_address_verified}
-                ref                    = {'email_address_verified'}
-              /> if @props.email_enabled and @props.verify_emails and not @props.is_anonymous}
-            {@render_newsletter()}
-            {@render_password()}
-            {if not @props.is_anonymous then <APIKeySetting />}
-            {@render_delete_account()}
-            {@render_linked_external_accounts()}
-            {@render_available_to_link()}
-            {@render_sign_out_buttons()}
-            {@render_sign_out_error()}
-        </Panel>
-
 
 ###
 # Terminal

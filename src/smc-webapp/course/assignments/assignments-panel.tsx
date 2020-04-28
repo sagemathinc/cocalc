@@ -1464,7 +1464,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       // Nothing unreturned and ungraded yet and also nothing returned yet
       return;
     }
-    let bsStyle: string;
+    let bsStyle;
     if (status.return_graded > 0) {
       // Have already returned some
       if (status.not_return_graded === 0) {
