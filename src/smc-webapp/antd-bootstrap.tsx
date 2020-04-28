@@ -289,7 +289,9 @@ export function Alert(props: {
   } else if (props.bsStyle == "primary") {
     type = "success";
   }
-  return <antd.Alert message={props.children} type={type} style={props.style} />;
+  return (
+    <antd.Alert message={props.children} type={type} style={props.style} />
+  );
 }
 
 export function Panel(props: {
@@ -298,8 +300,13 @@ export function Panel(props: {
   header?: any;
   children?: any;
 }) {
+  const style = { ...{ marginBottom: "20px" }, ...props.style };
   return (
-    <antd.Card style={props.style} title={props.header}>
+    <antd.Card
+      style={style}
+      title={props.header}
+      headStyle={{ color: "#333", backgroundColor: "#f5f5f5" }}
+    >
       {props.children}
     </antd.Card>
   );

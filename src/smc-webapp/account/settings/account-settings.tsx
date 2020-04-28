@@ -427,16 +427,12 @@ export class AccountSettings extends Component<Props, State> {
 
   private render_header(): Rendered {
     if (this.props.is_anonymous) {
-      return (
-        <h2>
-          <b>Thank you for using CoCalc!</b>
-        </h2>
-      );
+      return <b>Thank you for using CoCalc!</b>;
     } else {
       return (
-        <h2>
+        <>
           <Icon name="user" /> Account
-        </h2>
+        </>
       );
     }
   }
@@ -460,7 +456,6 @@ export class AccountSettings extends Component<Props, State> {
       <Panel header={this.render_header()}>
         {this.render_anonymous_warning()}
         {this.render_terms_of_service()}
-        {this.render_created()}
         <TextSetting
           label="First name"
           value={this.props.first_name}
@@ -503,6 +498,7 @@ export class AccountSettings extends Component<Props, State> {
         {this.render_newsletter()}
         {this.render_password()}
         {!this.props.is_anonymous ? <APIKeySetting /> : undefined}
+        {this.render_created()}
         {this.render_delete_account()}
         {this.render_linked_external_accounts()}
         {this.render_available_to_link()}
