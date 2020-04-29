@@ -31,14 +31,24 @@ import * as jsonfile from "jsonfile";
 import * as execa from "execa";
 import * as mkdirp from "mkdirp";
 
-// this is passed to "execa", there might be more options
-// https://github.com/sindresorhus/execa#readme
+// this is passed to "execa", there are more options
+// https://github.com/sindresorhus/execa#options
+// https://nodejs.org/dist/latest-v6.x/docs/api/child_process.html#child_process_options_stdio
+type StdIO = "pipe" | "ignore" | "inherit" | undefined;
 export interface LaunchJupyterOpts {
   detached: boolean;
-  stdio: "ignore";
+  stdio: StdIO | (StdIO | number)[];
   env: { [key: string]: string };
   cwd?: string;
   cleanupConnectionFile?: boolean;
+  cleanup?: boolean;
+  preferLocal?: boolean;
+  localDir?: string;
+  execPath?: string;
+  buffer?: boolean;
+  reject?: boolean;
+  stripFinalNewline?: boolean;
+  shell?: boolean | string; // default false
 }
 
 function connection_info(ports) {
