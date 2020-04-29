@@ -102,7 +102,6 @@ export class ResetPassword extends Component<Props, State> {
                 </Button>
                 <Space />
                 <Button
-                  type="submit"
                   bsStyle="primary"
                   disabled={this.state.resetting}
                   onClick={this.reset_password.bind(this)}

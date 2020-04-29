@@ -1,5 +1,5 @@
 import { PostgreSQL } from "../types";
-import { search_split } from "smc-util/misc";
+import { search_split } from "../../smc-util/misc";
 
 export async function matching_site_licenses(
   db: PostgreSQL,
