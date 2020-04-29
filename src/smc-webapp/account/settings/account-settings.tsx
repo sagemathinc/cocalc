@@ -22,10 +22,10 @@ import { DeleteAccount } from "../delete-account";
 import { TextSetting } from "./text-setting";
 import { PasswordSetting } from "./password-setting";
 import { EmailAddressSetting } from "./email-address-setting";
+import { APIKeySetting } from "./api-key";
 import { log } from "../../user-tracking";
 
 const { NewsletterSetting, EmailVerification } = require("../../r_account");
-const { APIKeySetting } = require("../../api-key");
 
 interface Props {
   account_id?: string;
