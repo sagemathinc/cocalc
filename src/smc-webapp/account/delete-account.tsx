@@ -3,15 +3,15 @@ import { Button, ButtonToolbar, Well } from "../antd-bootstrap";
 import { ErrorDisplay, Icon, A } from "../r_misc";
 
 interface Props {
-  initial_click: Function;
-  confirm_click: Function;
-  cancel_click: Function;
+  initial_click: () => void;
+  confirm_click: () => void;
+  cancel_click: () => void;
   user_name: string;
   show_confirmation?: boolean;
   style?: React.CSSProperties;
 }
 
-export function DeleteAccount(props: Props): Rendered {
+export function DeleteAccount(props: Props) {
   return (
     <div>
       <div style={{ height: "26px" }}>
@@ -37,8 +37,8 @@ export function DeleteAccount(props: Props): Rendered {
 }
 
 interface ConfProps {
-  confirm_click: Function;
-  cancel_click: Function;
+  confirm_click: () => void;
+  cancel_click: () => void;
   required_text: string;
 }
 

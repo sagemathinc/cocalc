@@ -34,7 +34,7 @@ const DESC_FONT = "sans-serif";
 const { ShowSupportLink } = require("../support");
 
 import { reset_password_key } from "../client/password-reset";
-import misc from "smc-util/misc";
+import { capitalize } from "smc-util/misc2";
 import { DOC_URL } from "smc-util/theme";
 // import { APP_ICON_WHITE, APP_LOGO_NAME_WHITE } from "../art";
 const { APP_ICON_WHITE, APP_LOGO_NAME_WHITE } = require("../art");
@@ -359,7 +359,7 @@ class LandingPage extends Component<Props & reduxProps> {
     if (!this.props.get_api_key) {
       return main_page;
     }
-    const app = misc.capitalize(this.props.get_api_key);
+    const app = capitalize(this.props.get_api_key);
     return (
       <div>
         <div style={{ padding: "15px" }}>

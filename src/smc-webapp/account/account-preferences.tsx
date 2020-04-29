@@ -3,13 +3,13 @@ import { List, Map } from "immutable";
 import { redux, Component, React, Rendered } from "../app-framework";
 
 const {
-  AccountSettings,
   OtherSettings,
   ProfileSettings,
   EditorSettings,
   TerminalSettings,
   KeyboardSettings,
 } = require("../r_account");
+import { AccountSettings } from "./settings/account-settings";
 import { Row, Col } from "../antd-bootstrap";
 import { Footer } from "../customize";
 
@@ -34,7 +34,7 @@ interface Props {
   is_anonymous?: boolean;
   email_enabled?: boolean;
   verify_emails?: boolean;
-  created?: object;
+  created?: Date;
 }
 
 export class AccountPreferences extends Component<Props> {
@@ -54,7 +54,6 @@ export class AccountPreferences extends Component<Props> {
         email_enabled={this.props.email_enabled}
         verify_emails={this.props.verify_emails}
         created={this.props.created}
-        redux={redux}
       />
     );
   }
