@@ -142,15 +142,21 @@ export class AccountClient {
   }
 
   public async send_verification_email(
-    account_id: string,
     only_verify: boolean = true
   ): Promise<void> {
-    return await this.call(
+    const account_id = this.client.account_id;
+    if (!account_id) {
+      throw Error("must be signed in to an account");
+    }
+    const x = await this.call(
       message.send_verification_email({
         account_id,
         only_verify,
       })
     );
+    if (x.error) {
+      throw Error(x.error);
+    }
   }
 
   // forgot password -- send forgot password request to server
