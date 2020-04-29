@@ -3,7 +3,6 @@ import { List, Map } from "immutable";
 import { redux, Component, React, Rendered } from "../app-framework";
 
 const {
-  OtherSettings,
   ProfileSettings,
   EditorSettings,
   TerminalSettings,
@@ -12,6 +11,8 @@ const {
 import { AccountSettings } from "./settings/account-settings";
 import { Row, Col } from "../antd-bootstrap";
 import { Footer } from "../customize";
+import { OtherSettings } from "./other-settings";
+import { Loading } from "../r_misc";
 
 interface Props {
   account_id?: string;
@@ -58,24 +59,25 @@ export class AccountPreferences extends Component<Props> {
     );
   }
 
+  private render_other_settings(): Rendered {
+    if (this.props.other_settings == null) return <Loading />;
+    return (
+      <OtherSettings
+        other_settings={this.props.other_settings}
+        is_stripe_customer={
+          !!this.props.stripe_customer?.getIn(["subscriptions", "total_count"])
+        }
+      />
+    );
+  }
+
   private render_all_settings(): Rendered {
     return (
       <div style={{ marginTop: "1em" }}>
         <Row>
           <Col xs={12} md={6}>
             {this.render_account_settings()}
-            <OtherSettings
-              other_settings={this.props.other_settings}
-              is_stripe_customer={
-                !!(this.props.stripe_customer != null
-                  ? this.props.stripe_customer.getIn([
-                      "subscriptions",
-                      "total_count",
-                    ])
-                  : undefined)
-              }
-              redux={redux}
-            />
+            {this.render_other_settings()}
             <ProfileSettings
               email_address={this.props.email_address}
               first_name={this.props.first_name}
