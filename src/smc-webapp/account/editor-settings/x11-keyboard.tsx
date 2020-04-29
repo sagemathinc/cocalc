@@ -1,8 +1,6 @@
 import { LabeledRow, Loading, SelectorInput } from "../../r_misc";
-import { React, Rendered } from "../../app-framework";
-import {
-  PHYSICAL_KEYBOARDS,
-} from "../../frame-editors/x11-editor/xpra/keyboards";
+import { React } from "../../app-framework";
+import { PHYSICAL_KEYBOARDS } from "../../frame-editors/x11-editor/xpra/keyboards";
 
 interface PhysicalKeyboardProps {
   physical_keyboard: string;
@@ -11,7 +9,7 @@ interface PhysicalKeyboardProps {
 
 export function EditorSettingsPhysicalKeyboard(
   props: PhysicalKeyboardProps
-): Rendered {
+): JSX.Element {
   if (props.physical_keyboard === "NO_DATA") {
     return <Loading />;
   } else {
@@ -35,7 +33,7 @@ interface KeyboardVariantProps {
 
 export function EditorSettingsKeyboardVariant(
   props: KeyboardVariantProps
-): Rendered {
+): JSX.Element {
   if (props.keyboard_variant === "NO_DATA") {
     return <Loading />;
   } else {

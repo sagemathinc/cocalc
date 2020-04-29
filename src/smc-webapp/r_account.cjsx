@@ -39,12 +39,7 @@ async = require('async')
 {NewFilenameFamilies, NewFilenames} = require('smc-webapp/project/utils')
 {SignOut} =require('./account/sign-out')
 {DeleteAccount} = require('./account/delete-account')
-{EditorSettingsCheckboxes} = require('./account/editor-settings/checkboxes')
-{EditorSettingsAutosaveInterval} = require('./account/editor-settings/autosave-interval')
-{EditorSettingsColorScheme} = require('./account/editor-settings/color-schemes')
-{EditorSettingsFontSize} = require('./account/editor-settings/font-size')
-{EditorSettingsIndentSize} = require('./account/editor-settings/indent-size')
-{EditorSettingsKeyboardBindings} = require('./account/editor-settings/keyboard-bindings')
+
 
 {log} = require("./user-tracking")
 
@@ -174,61 +169,3 @@ exports.TerminalSettings = rclass
             {@render_font_family()}
         </Panel>
 
-
-exports.EditorSettings = rclass
-    displayName : 'Account-EditorSettings'
-
-    propTypes :
-        redux           : rtypes.object
-        autosave        : rtypes.number
-        tab_size        : rtypes.number
-        font_size       : rtypes.number
-        email_address   : rtypes.string
-        editor_settings : rtypes.immutable.Map
-
-    shouldComponentUpdate: (props) ->
-        return misc.is_different(@props, props, ['autosave', 'font_size', 'editor_settings', 'tab_size'])
-
-    get_keyboard_variant_options: (val) ->
-        val ?= @props.editor_settings.get('physical_keyboard')
-        options = misc.deep_copy(KEYBOARD_VARIANTS[val] ? [])
-        options.unshift({value:"", display: "No variant"})
-        return options
-
-    on_change: (name, val) ->
-        if name == 'autosave' or name == 'font_size'
-            set_account_table("#{name}" : val)
-        else
-            set_account_table(editor_settings:{"#{name}":val})
-
-        if name == 'physical_keyboard'
-            options = @get_keyboard_variant_options(val)
-            @actions('account').setState(keyboard_variant_options: options)
-            for opt in options
-                if opt.value == 'nodeadkeys'
-                    @on_change('keyboard_variant', opt.value)
-                    return
-            # otherwise, select default
-            @on_change('keyboard_variant', '')
-
-    render: ->
-        if not @props.editor_settings?
-            return <Loading />
-        <Panel header={<h2> <Icon name='edit' /> Editor</h2>}>
-            <EditorSettingsFontSize
-                on_change={@on_change} font_size={@props.font_size} />
-            <EditorSettingsAutosaveInterval
-                on_change={@on_change} autosave={@props.autosave} />
-            <EditorSettingsIndentSize
-                on_change={@on_change} tab_size={@props.tab_size} />
-            <EditorSettingsColorScheme
-                on_change={(value)=>@on_change('theme',value)} theme={@props.editor_settings.get('theme')} editor_settings={@props.editor_settings} font_size={@props.font_size} />
-            <EditorSettingsKeyboardBindings
-                on_change={(value)=>@on_change('bindings',value)} bindings={@props.editor_settings.get('bindings')} />
-            <EditorSettingsPhysicalKeyboard
-                on_change={(value)=>@on_change('physical_keyboard',value)} physical_keyboard={@props.editor_settings.get('physical_keyboard')} />
-            <EditorSettingsKeyboardVariant
-                on_change={(value)=>@on_change('keyboard_variant',value)} keyboard_variant={@props.editor_settings.get('keyboard_variant')} keyboard_variant_options = {@get_keyboard_variant_options()} />
-            <EditorSettingsCheckboxes
-                on_change={@on_change} editor_settings={@props.editor_settings} email_address={@props.email_address}/>
-        </Panel>

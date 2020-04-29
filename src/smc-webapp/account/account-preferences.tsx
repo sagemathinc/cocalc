@@ -2,16 +2,13 @@ import { List, Map } from "immutable";
 
 import { redux, Component, React, Rendered } from "../app-framework";
 
-const {
-  ProfileSettings,
-  EditorSettings,
-  TerminalSettings,
-} = require("../r_account");
+const { ProfileSettings, TerminalSettings } = require("../r_account");
 import { KeyboardSettings } from "./keyboard-settings";
 import { AccountSettings } from "./settings/account-settings";
 import { Row, Col } from "../antd-bootstrap";
 import { Footer } from "../customize";
 import { OtherSettings } from "./other-settings";
+import { EditorSettings } from "./editor-settings/editor-settings";
 import { Loading } from "../r_misc";
 
 interface Props {
@@ -92,12 +89,9 @@ export class AccountPreferences extends Component<Props> {
               font_size={this.props.font_size}
               editor_settings={this.props.editor_settings}
               email_address={this.props.email_address}
-              redux={redux}
             />
             <TerminalSettings terminal={this.props.terminal} redux={redux} />
-            <KeyboardSettings
-              evaluate_key={this.props.evaluate_key}
-            />
+            <KeyboardSettings evaluate_key={this.props.evaluate_key} />
           </Col>
         </Row>
         <Footer />
