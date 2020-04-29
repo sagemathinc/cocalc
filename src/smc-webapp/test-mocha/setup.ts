@@ -2,7 +2,23 @@ import * as $ from "jquery";
 import { callback, delay } from "awaiting";
 import { startswith } from "smc-util/misc2";
 
+const MOCHA_CSS_ID = "mocha-css";
+
+// https://cdnjs.com/libraries/mocha/5.2.0 → CSS
+function mocha_css() {
+  if (document.getElementById(MOCHA_CSS_ID)) return;
+  const css = document.createElement("link");
+  css.id = MOCHA_CSS_ID;
+  css.href = "https://cdnjs.cloudflare.com/ajax/libs/mocha/5.2.0/mocha.min.css";
+  css.crossorigin = "anonymous";
+  css.type = "text/css";
+  css.rel = "stylesheet";
+  css.integrity = "sha256-Flo6sV8k+IPfHh6Hx97ReUJDLOwIwvhdGlKOz3UgHRE=";
+  document.getElementsByTagName("head")[0].appendChild(link);
+}
+
 export async function mocha_run(path: string): Promise<void> {
+  mocha_css();
   const w: any = window as any;
   w.mocha.setup("bdd");
   load_mocha_tests(path);
