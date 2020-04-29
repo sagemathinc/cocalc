@@ -235,7 +235,7 @@ export class AccountSettings extends Component<Props, State> {
           bsStyle={is_configured ? "info" : undefined}
         >
           <PassportStrategyIcon strategy={strategy_js} small={true} />{" "}
-           {strategy2display(strategy_js)}
+          {strategy2display(strategy_js)}
         </Button>
       );
       return btn;
@@ -298,17 +298,16 @@ export class AccountSettings extends Component<Props, State> {
     );
     if (linked.size === 0) return;
 
+    const btns = linked
+      .map((strategy) => this.render_strategy(strategy, account_passports))
+      .toArray();
     return (
       <div>
         <hr key="hr0" />
         <h5 style={{ color: "#666" }}>
           Your account is linked with (click to unlink)
         </h5>
-        <ButtonToolbar style={{ marginBottom: "10px" }}>
-          {linked.map((strategy) =>
-            this.render_strategy(strategy, account_passports)
-          )}
-        </ButtonToolbar>
+        <ButtonToolbar style={{ marginBottom: "10px" }}>{btns}</ButtonToolbar>
         {this.render_remove_strategy_button()}
       </div>
     );
@@ -332,15 +331,14 @@ export class AccountSettings extends Component<Props, State> {
     const heading = this.props.is_anonymous
       ? "Sign up using your account at"
       : "Click to link your account";
+    const btns = not_linked
+      .map((strategy) => this.render_strategy(strategy, account_passports))
+      .toArray();
     return (
       <div>
         <hr key="hr0" />
         <h5 style={{ color: "#666" }}>{heading}</h5>
-        <ButtonToolbar style={{ marginBottom: "10px" }}>
-          {not_linked.map((strategy) =>
-            this.render_strategy(strategy, account_passports)
-          )}
-        </ButtonToolbar>
+        <ButtonToolbar style={{ marginBottom: "10px" }}>{btns}</ButtonToolbar>
         {this.render_add_strategy_link()}
       </div>
     );
