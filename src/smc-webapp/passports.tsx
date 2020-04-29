@@ -1,10 +1,9 @@
 import * as React from "react";
 import { List } from "immutable";
-import * as misc from "smc-util/misc";
-import { Rendered } from "./app-framework";
+import { capitalize } from "smc-util/misc2";
 import { Icon, Tip } from "./r_misc";
 import { SiteName } from "./customize";
-import { PassportStrategy, PRIMARY_SSO } from "./passport-types";
+import { PassportStrategy, PRIMARY_SSO } from "./account/passport-types";
 import { COLORS } from "smc-util/theme";
 
 interface Props {
@@ -64,6 +63,34 @@ const PASSPORT_ICON_STYLES = {
   },
 };
 
+export function strategy2display(strategy: PassportStrategy): string {
+  return strategy.display ?? capitalize(strategy.name);
+}
+
+export function PassportStrategyIcon({
+  strategy,
+}: {
+  strategy: PassportStrategy;
+}) {
+  const { name, display, icon } = strategy;
+  if (PRIMARY_SSO.indexOf(name) >= 0) {
+    const icon_style: React.CSSProperties = {
+      ...BASE_ICON_STYLE,
+      ...PASSPORT_ICON_STYLES[name],
+    };
+    return <Icon name={name} style={icon_style} />;
+  } else if (icon != null) {
+    // icon is an URL
+    const style: React.CSSProperties = {
+      ...CUSTOM_ICON_STYLE,
+      ...{ backgroundImage: `url("${icon}")` },
+    };
+    return <div style={style} />;
+  } else {
+    return <div style={TEXT_ICON_STYLE}>{display}</div>;
+  }
+}
+
 export class Passports extends React.Component<Props> {
   static defaultProps = {
     strategies: List([]),
@@ -76,10 +103,6 @@ export class Passports extends React.Component<Props> {
         email address and password.
       </>
     );
-  }
-
-  private strategy_display_name(name: string, display?: string): string {
-    return display ?? misc.capitalize(name);
   }
 
   private strategy_tip_title(name: string, passport_name: string) {
@@ -99,16 +122,6 @@ export class Passports extends React.Component<Props> {
     return style;
   }
 
-  private strategy_icon_style(name: string): React.CSSProperties {
-    const style = Object.assign(
-      {},
-      BASE_ICON_STYLE,
-      PASSPORT_ICON_STYLES[name]
-    );
-
-    return style;
-  }
-
   private strategy_url(name: string): string {
     let url = "";
     if (!this.props.disabled) {
@@ -120,33 +133,13 @@ export class Passports extends React.Component<Props> {
     return url;
   }
 
-  private strategy_icon(
-    name: string,
-    icon?: string,
-    display?: string
-  ): Rendered {
-    if (PRIMARY_SSO.indexOf(name) >= 0) {
-      const icon_style = this.strategy_icon_style(name);
-      return <Icon name={name} style={icon_style} />;
-    } else if (icon != null) {
-      // icon is an URL
-      const style = Object.assign({}, CUSTOM_ICON_STYLE, {
-        backgroundImage: `url("${icon}")`,
-      } as React.CSSProperties);
-      return <div style={style} />;
-    } else {
-      return <div style={TEXT_ICON_STYLE}>{display}</div>;
-    }
-  }
-
   private render_strategy(strategy: PassportStrategy) {
-    const { name, display, icon } = strategy;
+    const { name } = strategy;
     if (name === "email") return;
     const url = this.strategy_url(name);
-    const passport_name = this.strategy_display_name(name, display);
+    const passport_name = strategy2display(strategy);
     const title = this.strategy_tip_title(name, passport_name);
     const style = this.strategy_style();
-    const strategy_icon = this.strategy_icon(name, icon, display);
     if (this.props.disabled) {
       return (
         <span key={name} style={style}>
@@ -155,7 +148,7 @@ export class Passports extends React.Component<Props> {
             title={title}
             tip={"Please agree to the terms of service first."}
           >
-            {strategy_icon}
+            <PassportStrategyIcon strategy={strategy} />
           </Tip>
         </span>
       );
@@ -167,7 +160,7 @@ export class Passports extends React.Component<Props> {
             title={title}
             tip={this.render_tip(passport_name)}
           >
-            {strategy_icon}
+            <PassportStrategyIcon strategy={strategy} />
           </Tip>
         </a>
       );

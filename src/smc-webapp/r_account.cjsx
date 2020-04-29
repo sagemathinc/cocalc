@@ -62,7 +62,7 @@ smc_version = require('smc-util/smc-version')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
-{ PRIMARY_SSO } = require("./passport-types")
+{ PRIMARY_SSO } = require("./account/passport-types")
 
 # Define a component for working with the user's basic
 # account information.

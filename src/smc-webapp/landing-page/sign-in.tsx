@@ -6,7 +6,7 @@ import { List } from "immutable";
 import { ErrorDisplay } from "../r_misc/error-display";
 import { Markdown } from "../r_misc";
 import { Passports } from "../passports";
-import { PassportStrategy } from "../passport-types";
+import { PassportStrategy } from "../account/passport-types";
 import {
   Col,
   Row,

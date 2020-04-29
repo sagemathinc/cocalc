@@ -1,6 +1,6 @@
 import { List, Map } from "immutable";
 
-import { redux, Component, React, Rendered } from "../app-framework";
+import { redux, Component, React, Rendered, TypedMap } from "../app-framework";
 
 const {
   OtherSettings,
@@ -12,6 +12,7 @@ const {
 import { AccountSettings } from "./settings/account-settings";
 import { Row, Col } from "../antd-bootstrap";
 import { Footer } from "../customize";
+import { PassportStrategy } from "./passport-types";
 
 interface Props {
   account_id?: string;
@@ -35,6 +36,7 @@ interface Props {
   email_enabled?: boolean;
   verify_emails?: boolean;
   created?: Date;
+  strategies?: List<TypedMap<PassportStrategy>>;
 }
 
 export class AccountPreferences extends Component<Props> {
@@ -54,6 +56,7 @@ export class AccountPreferences extends Component<Props> {
         email_enabled={this.props.email_enabled}
         verify_emails={this.props.verify_emails}
         created={this.props.created}
+        strategies={this.props.strategies}
       />
     );
   }

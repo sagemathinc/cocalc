@@ -72,7 +72,7 @@ import {
   welcome_email,
 } from "./email";
 import { PostgreSQL } from "./postgres/types";
-import { PassportStrategy, PRIMARY_SSO } from "../smc-webapp/passport-types";
+import { PassportStrategy, PRIMARY_SSO } from "../smc-webapp/account/passport-types";
 const safeJsonStringify = require("safe-json-stringify");
 
 // primary strategies -- all other ones are "extra"

@@ -32,7 +32,7 @@ const DESC_FONT = "sans-serif";
 
 // import { ShowSupportLink } from "../support";
 const { ShowSupportLink } = require("../support");
-import { PassportStrategy } from "../passport-types";
+import { PassportStrategy } from "../account/passport-types";
 import { reset_password_key } from "../client/password-reset";
 import { capitalize } from "smc-util/misc2";
 import { DOC_URL } from "smc-util/theme";

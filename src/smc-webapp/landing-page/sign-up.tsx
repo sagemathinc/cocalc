@@ -1,7 +1,7 @@
 import * as React from "react";
 import { ReactDOM, Rendered, redux } from "../app-framework";
 import { Passports } from "../passports";
-import { PassportStrategy } from "../passport-types";
+import { PassportStrategy } from "../account/passport-types";
 import { List } from "immutable";
 
 import { COLORS, UNIT, Icon, Loading } from "../r_misc";

@@ -1,5 +1,11 @@
-import { Map } from "immutable";
-import { redux, Component, React, Rendered } from "../../app-framework";
+import { Map, List } from "immutable";
+import {
+  redux,
+  Component,
+  React,
+  Rendered,
+  TypedMap,
+} from "../../app-framework";
 import {
   Alert,
   Button,
@@ -12,11 +18,10 @@ import {
   FormGroup,
 } from "../../antd-bootstrap";
 import { SiteName, TermsOfService } from "../../customize";
-import { capitalize, keys, startswith } from "smc-util/misc2";
+import { keys, startswith } from "smc-util/misc2";
 import { set_account_table, ugly_error } from "../util";
 import { webapp_client } from "../../webapp-client";
 import { ErrorDisplay, Icon, Space, TimeAgo } from "../../r_misc";
-import { STRATEGIES } from "./strategies";
 import { SignOut } from "../sign-out";
 import { DeleteAccount } from "../delete-account";
 import { TextSetting } from "./text-setting";
@@ -24,6 +29,10 @@ import { PasswordSetting } from "./password-setting";
 import { EmailAddressSetting } from "./email-address-setting";
 import { APIKeySetting } from "./api-key";
 import { log } from "../../user-tracking";
+import { PassportStrategy } from "../passport-types";
+import { PassportStrategyIcon, strategy2display } from "../../passports";
+
+type ImmutablePassportStrategy = TypedMap<PassportStrategy>;
 
 const { NewsletterSetting, EmailVerification } = require("../../r_account");
 
@@ -42,6 +51,7 @@ interface Props {
   email_enabled?: boolean;
   verify_emails?: boolean;
   created?: Date;
+  strategies?: List<ImmutablePassportStrategy>;
 }
 
 interface State {
@@ -75,17 +85,25 @@ export class AccountSettings extends Component<Props, State> {
     set_account_table({ [field]: value });
   }
 
+  private get_strategy(name: string): ImmutablePassportStrategy | undefined {
+    if (this.props.strategies == null) return undefined;
+    return this.props.strategies.find((val) => val.get("name") == name);
+  }
+
   private render_add_strategy_link(): Rendered {
     if (!this.state.add_strategy_link) {
       return;
     }
-    const strategy = this.state.add_strategy_link;
-    const name = capitalize(strategy);
+    const strategy_name = this.state.add_strategy_link;
+    const strategy = this.get_strategy(strategy_name);
+    if (strategy == null) return;
+    const strategy_js = strategy.toJS();
+    const name = strategy2display(strategy_js);
     const href = `${window.app_base_url}/auth/${this.state.add_strategy_link}`;
     return (
       <Well>
         <h4>
-          <Icon name={strategy} /> {name}
+          <PassportStrategyIcon strategy={strategy_js} /> {name}
         </h4>
         Link to your {name} account, so you can use {name} to login to your{" "}
         <SiteName /> account.
@@ -145,8 +163,11 @@ export class AccountSettings extends Component<Props, State> {
     if (!this.state.remove_strategy_button) {
       return;
     }
-    const strategy = this.state.remove_strategy_button;
-    const name = capitalize(strategy);
+    const strategy_name = this.state.remove_strategy_button;
+    const strategy = this.get_strategy(strategy_name);
+    if (strategy == null) return;
+    const strategy_js = strategy.toJS();
+    const name = strategy2display(strategy_js);
     if ((this.props.passports?.size ?? 0) <= 1 && !this.props.email_address) {
       return (
         <Well>
@@ -159,7 +180,7 @@ export class AccountSettings extends Component<Props, State> {
       return (
         <Well>
           <h4>
-            <Icon name={strategy} /> {name}
+            <PassportStrategyIcon strategy={strategy_js} /> {name}
           </h4>
           Your <SiteName /> account is linked to your {name} account, so you can
           login using it.
@@ -187,28 +208,34 @@ export class AccountSettings extends Component<Props, State> {
     }
   }
 
-  private render_strategy(strategy, strategies): Rendered {
-    if (strategy !== "email") {
+  private render_strategy(
+    strategy: ImmutablePassportStrategy,
+    account_passports: string[]
+  ): Rendered {
+    if (strategy.get("name") !== "email") {
+      const is_configured = account_passports.includes(strategy.get("name"));
+      const strategy_js = strategy.toJS();
       return (
         <Button
           disabled={this.props.is_anonymous && !this.state.terms_checkbox}
           onClick={() =>
             this.setState(
-              strategies.includes(strategy)
+              is_configured
                 ? {
-                    remove_strategy_button: strategy,
+                    remove_strategy_button: strategy.get("name"),
                     add_strategy_link: undefined,
                   }
                 : {
-                    add_strategy_link: strategy,
+                    add_strategy_link: strategy.get("name"),
                     remove_strategy_button: undefined,
                   }
             )
           }
-          key={strategy}
-          bsStyle={strategies.includes(strategy) ? "info" : undefined}
+          key={strategy.get("name")}
+          bsStyle={is_configured ? "info" : undefined}
         >
-          <Icon name={strategy} /> {capitalize(strategy)}...
+          <PassportStrategyIcon strategy={strategy_js} />{" "}
+          {strategy2display(strategy_js)}...
         </Button>
       );
     }
@@ -249,25 +276,27 @@ export class AccountSettings extends Component<Props, State> {
     );
   }
 
+  private get_account_passport_names(): string[] {
+    return keys(this.props.passports?.toJS() ?? {}).map((x) =>
+      x.slice(0, x.indexOf("-"))
+    );
+  }
+
   private render_linked_external_accounts(): Rendered {
-    if (
-      typeof STRATEGIES === "undefined" ||
-      STRATEGIES === null ||
-      STRATEGIES.length <= 1
-    ) {
+    if (this.props.strategies == null || this.props.strategies.size <= 1) {
       // not configured by server
       return;
     }
-    const configured_strategies = keys(
-      this.props.passports?.toJS() ?? {}
-    ).map((x) => x.slice(0, x.indexOf("-")));
-    const linked: string[] = STRATEGIES.filter(
-      (strategy) =>
-        strategy !== "email" && configured_strategies.includes(strategy)
+    const account_passports: string[] = this.get_account_passport_names();
+
+    const linked: List<ImmutablePassportStrategy> = this.props.strategies.filter(
+      (strategy) => {
+        const name = strategy.get("name");
+        return name !== "email" && account_passports.includes(name);
+      }
     );
-    if (linked.length === 0) {
-      return;
-    }
+    if (linked.size === 0) return;
+
     return (
       <div>
         <hr key="hr0" />
@@ -276,7 +305,7 @@ export class AccountSettings extends Component<Props, State> {
         </h5>
         <ButtonToolbar style={{ marginBottom: "10px" }}>
           {linked.map((strategy) =>
-            this.render_strategy(strategy, configured_strategies)
+            this.render_strategy(strategy, account_passports)
           )}
         </ButtonToolbar>
         {this.render_remove_strategy_button()}
@@ -285,20 +314,20 @@ export class AccountSettings extends Component<Props, State> {
   }
 
   private render_available_to_link(): Rendered {
-    if (STRATEGIES.length <= 1) {
+    if (this.props.strategies == null || this.props.strategies.size <= 1) {
       // not configured by server yet, or nothing but email
       return;
     }
-    const configured_strategies = keys(
-      this.props.passports?.toJS() ?? {}
-    ).map((x) => x.slice(0, x.indexOf("-")));
-    const not_linked = STRATEGIES.filter(
-      (strategy) =>
-        strategy !== "email" && !configured_strategies.includes(strategy)
+    const account_passports: string[] = this.get_account_passport_names();
+
+    const not_linked: List<ImmutablePassportStrategy> = this.props.strategies.filter(
+      (strategy) => {
+        const name = strategy.get("name");
+        return name !== "email" && !account_passports.includes(name);
+      }
     );
-    if (not_linked.length === 0) {
-      return;
-    }
+    if (not_linked.size === 0) return;
+
     const heading = this.props.is_anonymous
       ? "Sign up using your account at"
       : "Click to link your account";
@@ -308,7 +337,7 @@ export class AccountSettings extends Component<Props, State> {
         <h5 style={{ color: "#666" }}>{heading}</h5>
         <ButtonToolbar style={{ marginBottom: "10px" }}>
           {not_linked.map((strategy) =>
-            this.render_strategy(strategy, configured_strategies)
+            this.render_strategy(strategy, account_passports)
           )}
         </ButtonToolbar>
         {this.render_add_strategy_link()}
