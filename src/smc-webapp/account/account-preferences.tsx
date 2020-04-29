@@ -6,8 +6,8 @@ const {
   ProfileSettings,
   EditorSettings,
   TerminalSettings,
-  KeyboardSettings,
 } = require("../r_account");
+import { KeyboardSettings } from "./keyboard-settings";
 import { AccountSettings } from "./settings/account-settings";
 import { Row, Col } from "../antd-bootstrap";
 import { Footer } from "../customize";
@@ -97,7 +97,6 @@ export class AccountPreferences extends Component<Props> {
             <TerminalSettings terminal={this.props.terminal} redux={redux} />
             <KeyboardSettings
               evaluate_key={this.props.evaluate_key}
-              redux={redux}
             />
           </Col>
         </Row>
