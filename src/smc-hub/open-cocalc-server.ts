@@ -46,7 +46,7 @@ async function get_params(opts: GetData) {
 
   const SPLASH_IMG = fallback(
     settings.splash_image,
-    "https://storage.googleapis.com/cocalc-extra/cocalc-screenshot-20200128-nq8.png"
+    base_url + "/res/pix/cocalc-screenshot-20200128-nq8.png"
   );
 
   const BASE_URL = base_url ?? "";

@@ -60,6 +60,7 @@ open_cocalc = require('./open-cocalc-server')
 
 SMC_ROOT    = process.env.SMC_ROOT
 STATIC_PATH = path_module.join(SMC_ROOT, 'static')
+WEBAPP_RES_PATH = path_module.join(SMC_ROOT, 'webapp-lib', 'res')
 
 
 exports.init_express_http_server = (opts) ->
@@ -146,6 +147,10 @@ exports.init_express_http_server = (opts) ->
     # The /static content
     router.use '/static',
         express.static(STATIC_PATH, setHeaders: cacheLongTerm)
+
+    # This is webapp-lib/res !
+    router.use '/res',
+        express.static(WEBAPP_RES_PATH, setHeaders: cacheLongTerm)
 
     router.get '/app', (req, res) ->
         #res.cookie(opts.base_url + 'has_remember_me', 'true', { maxAge: 60*60*1000, httpOnly: false })
@@ -316,7 +321,7 @@ exports.init_express_http_server = (opts) ->
         q = url.parse(req.url, true).search || "" # gives exactly "?key=value,key=..."
         res.redirect(opts.base_url + "/app#" + req.path.slice(1) + q)
 
-    # Return global status information about smc
+    # Return global status information about CoCalc
     router.get '/stats', (req, res) ->
         if not hub_register.database_is_working()
             res.json({error:"not connected to database"})
