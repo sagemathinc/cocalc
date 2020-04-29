@@ -2,7 +2,8 @@ import { List, Map } from "immutable";
 
 import { redux, Component, React, Rendered } from "../app-framework";
 
-const { ProfileSettings, TerminalSettings } = require("../r_account");
+const { ProfileSettings } = require("../r_account");
+import { TerminalSettings } from "./terminal-settings";
 import { KeyboardSettings } from "./keyboard-settings";
 import { AccountSettings } from "./settings/account-settings";
 import { Row, Col } from "../antd-bootstrap";
@@ -90,7 +91,7 @@ export class AccountPreferences extends Component<Props> {
               editor_settings={this.props.editor_settings}
               email_address={this.props.email_address}
             />
-            <TerminalSettings terminal={this.props.terminal} redux={redux} />
+            <TerminalSettings terminal={this.props.terminal} />
             <KeyboardSettings evaluate_key={this.props.evaluate_key} />
           </Col>
         </Row>

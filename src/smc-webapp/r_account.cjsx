@@ -63,21 +63,6 @@ smc_version = require('smc-util/smc-version')
 
 
 
-###
-# Terminal
-###
-
-# Plan: have this exact same control be available directly when using a terminal (?)
-# Here Terminal = term.js global object
-TERMINAL_COLOR_SCHEMES = {}
-for theme, val of Terminal.color_schemes
-    TERMINAL_COLOR_SCHEMES[theme] = val.comment
-
-TERMINAL_FONT_FAMILIES =
-    'droid-sans-mono': 'Droid Sans Mono'
-    'Courier New'    : 'Courier New'
-    'monospace'      : 'Monospace'
-
 exports.ProfileSettings = rclass
     displayName : 'Account-ProfileSettings'
 
@@ -124,48 +109,5 @@ exports.ProfileSettings = rclass
                     profile={@props.profile}
                 />
              </LabeledRow>
-        </Panel>
-
-# WARNING: in console.coffee there is also code to set the font size,
-# which our store ignores...
-exports.TerminalSettings = rclass
-    displayName : 'Account-TerminalSettings'
-
-    propTypes :
-        terminal : rtypes.immutable.Map
-        redux    : rtypes.object
-
-    shouldComponentUpdate: (props) ->
-        return @props.terminal != props.terminal
-
-    handleChange: (obj) ->
-        set_account_table(terminal: obj)
-
-    render_color_scheme: ->
-        <LabeledRow label='Terminal color scheme'>
-            <SelectorInput
-                selected  = {@props.terminal.get('color_scheme')}
-                options   = {TERMINAL_COLOR_SCHEMES}
-                on_change = {(color_scheme)=>@handleChange(color_scheme : color_scheme)}
-            />
-        </LabeledRow>
-
-    render_font_family: ->
-        return  # disabled due to https://github.com/sagemathinc/cocalc/issues/3304
-        <LabeledRow label='Terminal font family'>
-            <SelectorInput
-                selected  = {@props.terminal.get('font')}
-                options   = {TERMINAL_FONT_FAMILIES}
-                on_change = {(font)=>@handleChange(font:font)}
-            />
-        </LabeledRow>
-
-
-    render: ->
-        if not @props.terminal?
-            return <Loading />
-        <Panel header={<h2> <Icon name='terminal' /> Terminal</h2>}>
-            {@render_color_scheme()}
-            {@render_font_family()}
         </Panel>
 
