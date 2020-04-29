@@ -1,8 +1,8 @@
 import { List, Map } from "immutable";
 
-import { redux, Component, React, Rendered } from "../app-framework";
+import { Component, React, Rendered } from "../app-framework";
 
-const { ProfileSettings } = require("../r_account");
+import { ProfileSettings } from "./profile-settings";
 import { TerminalSettings } from "./terminal-settings";
 import { KeyboardSettings } from "./keyboard-settings";
 import { AccountSettings } from "./settings/account-settings";
@@ -80,7 +80,6 @@ export class AccountPreferences extends Component<Props> {
               email_address={this.props.email_address}
               first_name={this.props.first_name}
               last_name={this.props.last_name}
-              redux={redux}
             />
           </Col>
           <Col xs={12} md={6}>
