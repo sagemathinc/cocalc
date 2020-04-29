@@ -29,8 +29,8 @@ export const NewFilenameFamilies = Object.freeze<
   ymd_heroku: "Heroku-like (prefix today)",
   pet: "Pet names",
   ymd_pet: "Pet names (prefix today)",
-  semantic: "Sematic",
-  ymd_semantic: "Sematic (prefix today) ",
+  semantic: "Semantic",
+  ymd_semantic: "Semantic (prefix today) ",
 });
 
 export class NewFilenames {
