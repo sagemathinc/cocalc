@@ -24,13 +24,14 @@ const BASE_ICON_STYLE: React.CSSProperties = Object.freeze({
   textAlign: "center",
 });
 
-const CUSTOM_ICON_STYLE = Object.freeze(
-  Object.assign({}, BASE_ICON_STYLE, {
+const CUSTOM_ICON_STYLE = Object.freeze({
+  ...BASE_ICON_STYLE,
+  ...{
     position: "relative", // unclear why, somehow due to faking these fa-icons
     top: "14px", // unclear why, somehow due to faking these fa-icons
     backgroundSize: "contain",
-  } as React.CSSProperties)
-);
+  },
+} as React.CSSProperties);
 
 const TEXT_ICON_STYLE: React.CSSProperties = Object.freeze({
   backgroundColor: COLORS.GRAY_D,
@@ -69,14 +70,18 @@ export function strategy2display(strategy: PassportStrategy): string {
 
 export function PassportStrategyIcon({
   strategy,
+  small,
 }: {
   strategy: PassportStrategy;
+  small?: boolean;
 }) {
   const { name, display, icon } = strategy;
+  const small_icon = small ? { width: "25px", height: "25px", top: "0" } : {};
   if (PRIMARY_SSO.indexOf(name) >= 0) {
     const icon_style: React.CSSProperties = {
       ...BASE_ICON_STYLE,
       ...PASSPORT_ICON_STYLES[name],
+      ...small_icon,
     };
     return <Icon name={name} style={icon_style} />;
   } else if (icon != null) {
@@ -84,6 +89,7 @@ export function PassportStrategyIcon({
     const style: React.CSSProperties = {
       ...CUSTOM_ICON_STYLE,
       ...{ backgroundImage: `url("${icon}")` },
+      ...small_icon,
     };
     return <div style={style} />;
   } else {

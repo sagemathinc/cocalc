@@ -215,7 +215,7 @@ export class AccountSettings extends Component<Props, State> {
     if (strategy.get("name") !== "email") {
       const is_configured = account_passports.includes(strategy.get("name"));
       const strategy_js = strategy.toJS();
-      return (
+      const btn = (
         <Button
           disabled={this.props.is_anonymous && !this.state.terms_checkbox}
           onClick={() =>
@@ -234,10 +234,11 @@ export class AccountSettings extends Component<Props, State> {
           key={strategy.get("name")}
           bsStyle={is_configured ? "info" : undefined}
         >
-          <PassportStrategyIcon strategy={strategy_js} />{" "}
-          {strategy2display(strategy_js)}...
+          <PassportStrategyIcon strategy={strategy_js} small={true} />{" "}
+           {strategy2display(strategy_js)}
         </Button>
       );
+      return btn;
     }
   }
 
