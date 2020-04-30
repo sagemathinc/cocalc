@@ -5,15 +5,12 @@ TODO: refactor with markdown print (?).
 */
 
 import { path_split } from "smc-util/misc2";
-
 import { HTML } from "smc-webapp/r_misc";
-
 //import ReactDOMServer from "react-dom/server";
 const ReactDOMServer = require("react-dom/server");
-
 import { React, Redux, redux } from "../../app-framework";
-
 const misc_page = require("../../misc_page");
+import { resource_links_string } from "smc-webapp/misc/resource-links";
 
 let BLOCKED: boolean | undefined = undefined;
 
@@ -105,17 +102,13 @@ function write_content(w, opts: PrintOptions): void {
 
 function html_with_deps(html: string, title: string): string {
   const BASE_URL = misc_page.BASE_URL;
-  const bootstrap_css = `${BASE_URL}/res/bootstrap/bootstrap.min.css`;
-  const codemirror_css = `${BASE_URL}/res/codemirror/lib/codemirror.css`;
-  const katex_css = `${BASE_URL}/res/katex/katex.min.css`;
+  const links = resource_links_string(BASE_URL)
   return `\
 <html lang="en">
     <head>
         <title>${title}</title>
         <meta name="google" content="notranslate"/>
-        <link rel="stylesheet" href="${bootstrap_css}" />
-        <link rel="stylesheet" href="${codemirror_css}" />
-        <link rel="stylesheet" href="${katex_css}" />
+        ${links}
     </head>
     <body style='margin:7%'>
         ${html}
