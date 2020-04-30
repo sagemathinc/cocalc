@@ -10,6 +10,7 @@ import { Map, List } from "immutable";
 import { React } from "smc-webapp/app-framework";
 import { UserPage } from "smc-webapp/share/user-page";
 import * as react_support from "smc-webapp/share/server-render";
+import { Settings } from "./settings"
 
 export function render_user(opts: {
   res: any;
@@ -17,7 +18,7 @@ export function render_user(opts: {
   name: string;
   public_paths: Map<string, any>;
   paths_order: List<string>;
-  google_analytics?: string;
+  settings: Settings;
   base_url: string;
 }): void {
   const component = React.createElement(UserPage, opts);
