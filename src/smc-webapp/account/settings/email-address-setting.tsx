@@ -89,7 +89,6 @@ export class EmailAddressSetting extends Component<Props, State> {
     try {
       // anonymouse users will get the "welcome" email
       await webapp_client.account_client.send_verification_email(
-        this.props.account_id,
         !this.props.is_anonymous
       );
     } catch (error) {

@@ -1,4 +1,4 @@
-import { React, Rendered } from "../../app-framework";
+import { React } from "../../app-framework";
 import { LabeledRow, SelectorInput } from "../../r_misc";
 
 const EDITOR_BINDINGS = {
@@ -13,7 +13,7 @@ interface Props {
   on_change: (selected: string) => void;
 }
 
-export function EditorSettingsKeyboardBindings(props: Props): Rendered {
+export function EditorSettingsKeyboardBindings(props: Props): JSX.Element {
   return (
     <LabeledRow label="Editor keyboard bindings">
       <SelectorInput

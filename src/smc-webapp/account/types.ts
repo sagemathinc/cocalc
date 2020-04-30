@@ -49,4 +49,5 @@ export interface AccountState {
   created?: Date;
   strategies?: immutable.List<PassportStrategy>;
   token?: string;
+  keyboard_variant_options?: immutable.List<any>;
 }

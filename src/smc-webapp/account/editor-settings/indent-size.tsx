@@ -1,4 +1,4 @@
-import { React, Rendered } from "../../app-framework";
+import { React } from "../../app-framework";
 import { LabeledRow, NumberInput } from "../../r_misc";
 
 interface Props {
@@ -6,7 +6,7 @@ interface Props {
   on_change: (name: string, value: number) => void;
 }
 
-export function EditorSettingsIndentSize(props: Props): Rendered {
+export function EditorSettingsIndentSize(props: Props): JSX.Element {
   return (
     <LabeledRow label="Indent size">
       <NumberInput

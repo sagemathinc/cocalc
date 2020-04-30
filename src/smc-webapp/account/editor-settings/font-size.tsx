@@ -1,12 +1,12 @@
-import { React, Rendered } from "../../app-framework";
+import { React } from "../../app-framework";
 import { LabeledRow, NumberInput } from "../../r_misc";
 
 interface Props {
   font_size: number;
-  on_change: (name:string, value: number) => void;
+  on_change: (name: string, value: number) => void;
 }
 
-export function EditorSettingsFontSize(props: Props):Rendered {
+export function EditorSettingsFontSize(props: Props): JSX.Element {
   return (
     <LabeledRow label="Font Size" className="cc-account-prefs-font-size">
       <NumberInput
