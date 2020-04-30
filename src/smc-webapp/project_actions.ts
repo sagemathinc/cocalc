@@ -947,6 +947,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // renders and is put in the foreground (ignored if foreground not true)
     anchor?: string;
   }): Promise<void> {
+    if (misc.endswith(opts.path, "/")) {
+      this.open_directory(opts.path);
+      return;
+    }
     opts = defaults(opts, {
       path: required,
       foreground: true,
