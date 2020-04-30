@@ -31,7 +31,7 @@ sum_clients = (stats) ->
 # improve understanding of large numbers
 fmt = (num) ->
     num = parseInt(num)
-    num.toLocaleString(undefined, {useGrouping:true, maximumSignificantDigits: 2})
+    num.toLocaleString(undefined, {useGrouping:true})
 
 update_stats = (stats) ->
     #console.log stats
