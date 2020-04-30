@@ -1,9 +1,9 @@
-import { React, Component, Rendered } from "./app-framework";
 import { Map as ImmutableMap } from "immutable";
-import { Button, ButtonToolbar, FormControl, Well } from "react-bootstrap";
-const { Avatar } = require("./other-users");
-import { ErrorDisplay, Icon, ProfileIcon } from "./r_misc";
-const md5 = require("md5");
+import { Button, ButtonToolbar, FormControl, Well } from "../antd-bootstrap";
+import { React, Component, Rendered, redux } from "../app-framework";
+const { Avatar } = require("../other-users");
+import { ErrorDisplay, Icon, ProfileIcon } from "../r_misc";
+import * as md5 from "md5";
 
 import * as ReactCrop from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
@@ -17,8 +17,7 @@ const AVATAR_SIZE: number = 160;
 
 interface ProfileImageSelectorProps {
   profile: ImmutableMap<any, any>;
-  redux: any;
-  account_id: any;
+  account_id: string;
   email_address: string | undefined;
 }
 
@@ -59,7 +58,7 @@ export class ProfileImageSelector extends Component<
 
   set_image = async (src: string) => {
     this.setState({ is_loading: true });
-    const table = this.props.redux.getTable("account");
+    const table = redux.getTable("account");
     try {
       await table.set({ profile: { image: src } }, "none");
     } catch (err) {

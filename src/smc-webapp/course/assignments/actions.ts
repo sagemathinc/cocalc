@@ -41,7 +41,11 @@ import {
   NotebookScores,
 } from "../../jupyter/nbgrader/autograde";
 
-import { previous_step, assignment_identifier } from "../util";
+import {
+  previous_step,
+  assignment_identifier,
+  autograded_filename,
+} from "../util";
 import {
   AssignmentCopyType,
   LastAssignmentCopyType,
@@ -1673,6 +1677,18 @@ ${details}
       const r = result[filename];
       if (r == null) continue;
       if (r.output == null) continue;
+
+      // Depending on instructor options, write the graded version of
+      // the notebook to disk, so the student can see why their grade
+      // is what it is:
+
+      await this.write_autograded_notebook(
+        assignment,
+        student_id,
+        filename,
+        r.output
+      );
+
       const notebook = JSON.parse(r.output);
       scores[filename] = extract_auto_scores(notebook);
       if (
@@ -1696,6 +1712,26 @@ ${details}
       scores,
       commit
     );
+  }
+
+  public autograded_path(
+    assignment: AssignmentRecord,
+    student_id: string,
+    filename: string
+  ): string {
+    return autograded_filename(
+      assignment.get("collect_path") + "/" + student_id + "/" + filename
+    );
+  }
+
+  private async write_autograded_notebook(
+    assignment: AssignmentRecord,
+    student_id: string,
+    filename: string,
+    content: string
+  ): Promise<void> {
+    const path = this.autograded_path(assignment, student_id, filename);
+    await this.write_text_file_to_course_project({ path, content });
   }
 
   public async open_file_in_collected_assignment(

@@ -23,9 +23,8 @@ import { TextSetting } from "./text-setting";
 import { PasswordSetting } from "./password-setting";
 import { EmailAddressSetting } from "./email-address-setting";
 import { APIKeySetting } from "./api-key";
+import { EmailVerification } from "./email-verification";
 import { log } from "../../user-tracking";
-
-const { NewsletterSetting, EmailVerification } = require("../../r_account");
 
 interface Props {
   account_id?: string;
@@ -385,17 +384,6 @@ export class AccountSettings extends Component<Props, State> {
     return <PasswordSetting />;
   }
 
-  private render_newsletter(): Rendered {
-    return; // disabling this since we don't have a newsletter these days...
-    return (
-      <NewsletterSetting
-        redux={redux}
-        email_address={this.props.email_address}
-        other_settings={this.props.other_settings}
-      />
-    );
-  }
-
   private render_terms_of_service(): Rendered {
     if (!this.props.is_anonymous) {
       return;
@@ -474,7 +462,6 @@ export class AccountSettings extends Component<Props, State> {
       <EmailAddressSetting
         account_id={this.props.account_id}
         email_address={this.props.email_address}
-        ref="email_address"
         is_anonymous={this.props.is_anonymous}
         disabled={this.props.is_anonymous && !this.state.terms_checkbox}
         verify_emails={this.props.verify_emails}
@@ -490,10 +477,8 @@ export class AccountSettings extends Component<Props, State> {
     ) {
       return (
         <EmailVerification
-          account_id={this.props.account_id}
           email_address={this.props.email_address}
           email_address_verified={this.props.email_address_verified}
-          ref={"email_address_verified"}
         />
       );
     }
@@ -513,7 +498,6 @@ export class AccountSettings extends Component<Props, State> {
         {this.render_email_address()}
         <div style={{ marginBottom: "15px" }}></div>
         {this.render_email_verification()}
-        {this.render_newsletter()}
         {this.render_password()}
         {this.render_api_key()}
         {this.render_created()}

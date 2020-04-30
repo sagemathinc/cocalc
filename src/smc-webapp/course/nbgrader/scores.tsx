@@ -8,6 +8,7 @@ import { React, Rendered, Component, redux } from "../../app-framework";
 import { NotebookScores, Score } from "../../jupyter/nbgrader/autograde";
 import { get_nbgrader_score } from "../store";
 import { CourseActions } from "../actions";
+import { autograded_filename } from "../util";
 
 interface Props {
   nbgrader_scores: { [ipynb: string]: NotebookScores | string };
@@ -52,7 +53,7 @@ export class NbgraderScores extends Component<Props, State> {
   ): Rendered {
     return (
       <div key={filename} style={{ marginBottom: "5px" }}>
-        {this.render_filename_link(filename)}
+        {this.render_filename_links(filename)}
         {this.render_scores_for_file(filename, scores)}
       </div>
     );
@@ -67,14 +68,24 @@ export class NbgraderScores extends Component<Props, State> {
     );
   }
 
-  private render_filename_link(filename: string): Rendered {
+  private render_filename_links(filename: string): Rendered {
+    const filename2 = autograded_filename(filename);
     return (
-      <a
-        style={{ fontFamily: "monospace" }}
-        onClick={() => this.open_filename(filename)}
-      >
-        {filename}
-      </a>
+      <div style={{ fontSize: "12px" }}>
+        <a
+          style={{ fontFamily: "monospace" }}
+          onClick={() => this.open_filename(filename)}
+        >
+          {filename}
+        </a>
+        <br />
+        <a
+          style={{ fontFamily: "monospace" }}
+          onClick={() => this.open_filename(filename2)}
+        >
+          {filename2}
+        </a>
+      </div>
     );
   }
 

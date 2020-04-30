@@ -6,7 +6,7 @@ interface Props {
   on_change: (string, number) => void;
 }
 
-export function EditorSettingsAutosaveInterval(props: Props) {
+export function EditorSettingsAutosaveInterval(props: Props): JSX.Element {
   return (
     <LabeledRow label="Autosave interval">
       <NumberInput

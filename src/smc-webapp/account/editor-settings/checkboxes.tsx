@@ -82,7 +82,7 @@ export class EditorSettingsCheckboxes extends Component<Props> {
     );
   }
 
-  public render(): Rendered {
+  public render(): JSX.Element {
     return (
       <span>
         {keys(EDITOR_SETTINGS_CHECKBOXES).map((name) =>
