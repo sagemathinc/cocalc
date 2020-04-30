@@ -36,8 +36,7 @@ import { PassportStrategy } from "../account/passport-types";
 import { reset_password_key } from "../client/password-reset";
 import { capitalize } from "smc-util/misc2";
 import { DOC_URL } from "smc-util/theme";
-// import { APP_ICON_WHITE, APP_LOGO_NAME_WHITE } from "../art";
-const { APP_ICON_WHITE, APP_LOGO_NAME_WHITE } = require("../art");
+import { APP_ICON_WHITE, APP_LOGO_NAME_WHITE } from "../art";
 
 $.get(window.app_base_url + "/registration", function (obj, status) {
   if (status === "success") {

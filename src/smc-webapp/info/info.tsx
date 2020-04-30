@@ -36,6 +36,7 @@ import { SUPPORT_LINKS, CONNECT_LINKS, ABOUT_LINKS } from "./links";
 import { LinkList } from "./link-list";
 import { Usage } from "./usage";
 import { ThirdPartySoftware } from "./third-party";
+import { APP_LOGO } from "../art";
 
 interface InfoPageElementReduxProps {
   is_cocalc_com: boolean;
@@ -89,7 +90,6 @@ const InfoPageElement = rclass<{}>(
     }
     private render_logo(): Rendered {
       // imports stuff that can't be imported in update_react_static.
-      const { APP_LOGO } = require("../art");
       const custom_logo =
         this.props.logo_rectangular.length > 0 ||
         this.props.logo_square.length > 0;
