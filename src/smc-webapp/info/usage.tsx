@@ -11,7 +11,6 @@ function fmt_large(num) {
   if (localStorage.fmt_large) {
     return num.toLocaleString(undefined, {
       useGrouping: true,
-      maximumSignificantDigits: 2,
     });
   } else {
     return num.toLocaleString();
