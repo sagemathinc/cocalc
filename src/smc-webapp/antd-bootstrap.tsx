@@ -29,7 +29,9 @@ type ButtonStyle =
   | "danger"
   | "link";
 
-const BS_STYLE_TO_TYPE: { [name: ButtonStyle]: string } = {
+const BS_STYLE_TO_TYPE: {
+  [name: string]: "primary" | "default" | "dashed" | "danger" | "link";
+} = {
   primary: "primary",
   success: "default", // antd doesn't have this so we do it via style below.
   info: "dashed",
@@ -47,7 +49,9 @@ function parse_bsStyle(props: {
   style: React.CSSProperties;
 } {
   const type =
-    props.bsStyle == null ? "default" : BS_STYLE_TO_TYPE[props.bsStyle];
+    props.bsStyle == null
+      ? "default"
+      : BS_STYLE_TO_TYPE[props.bsStyle] ?? "default";
 
   let style: React.CSSProperties | undefined = undefined;
   // antd has no analogue of "success" & "warning", it's not clear to me what
