@@ -46,7 +46,7 @@ export async function nbgrader(
     max_time_per_cell_ms: opts.cell_timeout_ms,
     max_total_time_ms: opts.timeout_ms,
   };
-  console.log("nbgrader", { limits });
+  // console.log("nbgrader", { limits });
   const graded_ipynb = await jupyter_run_notebook(opts.project_id, {
     path: opts.path,
     ipynb: autograde_ipynb,
@@ -54,7 +54,6 @@ export async function nbgrader(
     limits,
   });
 
-  // console.log("graded_ipynb = ", (window as any).graded_ipynb);
   return { output: graded_ipynb };
 }
 
