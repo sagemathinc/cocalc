@@ -13,6 +13,8 @@ const ReactDOMServer = require("react-dom/server");
 
 import { React, Redux, redux } from "../../app-framework";
 
+const misc_page = require("../../misc_page");
+
 let BLOCKED: boolean | undefined = undefined;
 
 export function popup(
@@ -102,27 +104,18 @@ function write_content(w, opts: PrintOptions): void {
 }
 
 function html_with_deps(html: string, title: string): string {
+  const BASE_URL = misc_page.BASE_URL;
+  const bootstrap_css = `${BASE_URL}/res/bootstrap/bootstrap.min.css`;
+  const codemirror_css = `${BASE_URL}/res/codemirror/lib/codemirror.css`;
+  const katex_css = `${BASE_URL}/res/katex/katex.min.css`;
   return `\
 <html lang="en">
     <head>
         <title>${title}</title>
         <meta name="google" content="notranslate"/>
-        <link
-            rel         = "stylesheet"
-            href        = "https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css"
-            integrity   = "sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
-            crossOrigin = "anonymous" />
-
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.40.2/codemirror.min.css"
-            integrity="sha256-I8NyGs4wjbMuBSUE40o55W6k6P7tu/7G28/JGUUYCIs="
-            crossorigin="anonymous" />
-
-        <link
-            rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css"
-            integrity="sha256-V8SV2MO1FUb63Bwht5Wx9x6PVHNa02gv8BgH/uH3ung="
-            crossorigin="anonymous" />
-
+        <link rel="stylesheet" href="${bootstrap_css}" />
+        <link rel="stylesheet" href="${codemirror_css}" />
+        <link rel="stylesheet" href="${katex_css}" />
     </head>
     <body style='margin:7%'>
         ${html}
