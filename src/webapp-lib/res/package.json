@@ -5,7 +5,8 @@
   "dependencies": {
     "@fortawesome/fontawesome-free": "^5.13.0",
     "bootstrap": "^3.3.7",
-    "katex": "^0.11.1",
+    "codemirror": "^5.53.2",
+    "katex": "=0.11.1",
     "lozad": "^1.14.0",
     "roboto-fontface": "^0.10.0"
   }

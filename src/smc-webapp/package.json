@@ -39,7 +39,7 @@
     "bootstrap-colorpicker": "^2.5.3",
     "cat-names": "^2.0.0",
     "chai": "^4.2.0",
-    "codemirror": "^5.52.2",
+    "codemirror": "^5.53.2",
     "copy-to-clipboard": "^3.0.8",
     "create-react-class": "^15.6.2",
     "crypto-browserify": "^3.12.0",

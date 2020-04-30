@@ -32,5 +32,8 @@ for path, data in deps.items():
             f"target '{src}' does not exist -- did you forget to run 'npm ci' in '{curdir}'?"
         )
     dst = f"{name}-{data['version']}"
-    print(f"creating symlink '{dst}' → '{src}'")
+    print(f"symlink with    version '{dst}' → '{src}'")
+    os.symlink(src, dst)
+    dst = f"{name}"
+    print(f"symlink without version '{dst}' → '{src}'")
     os.symlink(src, dst)
