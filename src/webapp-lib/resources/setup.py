@@ -26,7 +26,8 @@ for path, data in deps.items():
     else:
         name = path
     extra = extra_path.get(name, '')
-    src = join(curdir, "node_modules", path, extra)
+    # links must be relative to the current directory (we want to be able to move the directory around)
+    src = join("node_modules", path, extra)
     if not exists(src):
         raise Exception(
             f"target '{src}' does not exist -- did you forget to run 'npm ci' in '{curdir}'?"
@@ -35,6 +36,8 @@ for path, data in deps.items():
     dst = f"{name}-{version}"
     print(f"symlink with    version '{dst}' -> '{src}'")
     os.symlink(src, dst)
+    # now, we also symlink from just the name to the versioned symlink
+    src = dst
     dst = f"{name}"
     print(f"symlink without version '{dst}' -> '{src}'")
     os.symlink(src, dst)
