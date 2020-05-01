@@ -104,7 +104,15 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
         }
       }
     }
-    return <li style={{ fontFamily: "monospace" }}>{this.props.license_id}</li>;
+    return (
+      <li>
+        License code:
+        <Space />
+        <span style={{ fontFamily: "monospace", whiteSpace: "nowrap" }}>
+          {this.props.license_id}
+        </span>
+      </li>
+    );
   }
 
   private render_license(): Rendered {
@@ -202,7 +210,14 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
 
     let provides: Rendered;
     let show_run: boolean = true;
-    if (this.state.info == null) return; // wait until done loading.
+    if (this.state.info == null) {
+      if (this.state.loading) {
+        return; // wait until done loading.
+      } else {
+        // Show just the id so user can check for typos
+        return <ul>{this.render_id()}</ul>;
+      }
+    }
     if (this.state.info.expires && new Date() >= this.state.info.expires) {
       // expired?
       // it is expired, so no point in explaining what upgrades it would
