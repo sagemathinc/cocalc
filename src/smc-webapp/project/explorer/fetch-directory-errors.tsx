@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { ErrorDisplay } from "smc-webapp/r_misc";
 import { AccessErrors } from "./access-errors";

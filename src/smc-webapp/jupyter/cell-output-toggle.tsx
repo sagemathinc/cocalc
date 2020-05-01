@@ -1,6 +1,9 @@
 /*
-Components related to toggling the way output is displayed.
-*/
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// Components related to toggling the way output is displayed.
 
 import { React, Component } from "../app-framework";
 

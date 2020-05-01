@@ -1,3 +1,6 @@
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
+
 # This code will work in both Python 2 and Python 3 to get
 # the history of edits of a file in a project, using the
 # project HTTP API.
@@ -29,10 +32,9 @@ def get_syncdoc_history(path, patches=False):
     if patches:
         data['patches'] = True
     x = json.loads(
-        requests.post(
-            'http://localhost:%s/api/v1/get_syncdoc_history' % port,
-            auth=(secret_token, ''),
-            data=data).text)
+        requests.post('http://localhost:%s/api/v1/get_syncdoc_history' % port,
+                      auth=(secret_token, ''),
+                      data=data).text)
     if 'error' in x:
         raise RuntimeError(x['error'])
     else:

@@ -1,6 +1,9 @@
 /*
-Focused codemirror editor, which you can interactively type into.
-*/
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// Focused codemirror editor, which you can interactively type into.
 
 declare const $: any;
 

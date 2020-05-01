@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 This (and the ProjectQuotaBoundsTable) are currently only showed
 in the backend static pages, so the tooltips are not visible there (no javascript).
 */

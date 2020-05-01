@@ -1,4 +1,7 @@
-/* Do not edit or override these styles! The system will likely break if you do. */
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 div#header, div#footer, div#controls, .slide {position: absolute;}
 html>body div#header, html>body div#footer, 

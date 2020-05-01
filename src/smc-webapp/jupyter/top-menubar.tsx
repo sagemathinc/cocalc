@@ -1,8 +1,11 @@
 /*
-The Menu bar across the top
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-File, Edit, etc....
-*/
+// The Menu bar across the top
+//
+// File, Edit, etc....
 
 import { React, Component, rclass, rtypes, Rendered } from "../app-framework";
 import { analytics_event } from "../tracker";

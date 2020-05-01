@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React, Rendered, Component } from "../app-framework";
 
 /* This is a TERRIBLE AD INFESTED DISASTER. It's way too embarassing to deploy. */

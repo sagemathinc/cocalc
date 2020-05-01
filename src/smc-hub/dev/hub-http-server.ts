@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /* Functionality specific to the hub http server when hub is in dev mode.
 
 Proxy server urls -- on SMC in production, HAproxy sends these requests directly to the proxy server

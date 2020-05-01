@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // run via
 // $ tsc export-api-doc.ts  && nodejs export-api-doc.js
 // or if you have node-ts: $ ts-node scripts/export-api-doc.ts

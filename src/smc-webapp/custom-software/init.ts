@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Manage DB <-> UI integration of available *custom* compute images
 // TODO: also get rid of hardcoded official software images
 

@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Compute a line-level diff between two strings, which
 // is useful when showing a diff between two states.
 import { dmp } from "smc-util/sync/editor/generic/util";

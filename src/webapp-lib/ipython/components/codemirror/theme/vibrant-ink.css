@@ -1,4 +1,7 @@
-/* Taken from the popular Visual Studio Vibrant Ink Schema */
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 .cm-s-vibrant-ink.CodeMirror { background: black; color: white; }
 .cm-s-vibrant-ink .CodeMirror-selected { background: #35493c !important; }

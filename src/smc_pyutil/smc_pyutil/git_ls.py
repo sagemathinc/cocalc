@@ -1,7 +1,7 @@
 #!/usr/bin/python
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 """
-(c) William Stein, 2013
-
 A git-aware version of "ls -l", with JSON output
 
 For each file, we compute the following information:
@@ -173,25 +173,22 @@ def main():
         help='order by time instead of alphabetical order (default: False)',
         action='store_true')
     parser.add_argument('--start', help='starting file number', default=0)
-    parser.add_argument(
-        '--limit', help='maximum number of files', default=0)  # 0 = no limit
-    parser.add_argument(
-        '--git',
-        help="actually be git aware (not the default)",
-        action="store_true")
-    parser.add_argument(
-        '--hidden',
-        help="include files/directories that start with a dot",
-        action="store_true")
+    parser.add_argument('--limit', help='maximum number of files',
+                        default=0)  # 0 = no limit
+    parser.add_argument('--git',
+                        help="actually be git aware (not the default)",
+                        action="store_true")
+    parser.add_argument('--hidden',
+                        help="include files/directories that start with a dot",
+                        action="store_true")
     parser.add_argument(
         '--directories_first',
         help="sort by putting directories first, then files (default: False)",
         action="store_true")
-    parser.add_argument(
-        'path',
-        nargs='?',
-        help='return info about all files in this path',
-        default='.')
+    parser.add_argument('path',
+                        nargs='?',
+                        help='return info about all files in this path',
+                        default='.')
     args = parser.parse_args()
     if isinstance(args.path, list):
         args.path = args.path[0]
@@ -202,14 +199,13 @@ def main():
         from update_snapshots import update_snapshots
         update_snapshots()
 
-    r = gitls(
-        path=args.path,
-        time=args.time,
-        start=int(args.start),
-        limit=int(args.limit),
-        hidden=args.hidden,
-        directories_first=args.directories_first,
-        git_aware=args.git)
+    r = gitls(path=args.path,
+              time=args.time,
+              start=int(args.start),
+              limit=int(args.limit),
+              hidden=args.hidden,
+              directories_first=args.directories_first,
+              git_aware=args.git)
     print(json.dumps(r, separators=(',', ':')))
 
 

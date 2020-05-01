@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { server_time } from "smc-util/misc";
 import { once, retry_until_success } from "smc-util/async-utils";
 import { webapp_client } from "../webapp-client";

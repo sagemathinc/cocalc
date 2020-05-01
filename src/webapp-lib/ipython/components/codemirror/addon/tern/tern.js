@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Glue code between CodeMirror and Tern.
 //
 // Create a CodeMirror.TernServer to wrap an actual Tern server,

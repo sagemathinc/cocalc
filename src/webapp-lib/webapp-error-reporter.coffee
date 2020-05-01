@@ -1,32 +1,14 @@
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2017, SageMath, Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
-###
-Catch and report webapp client errors to the SMC server.
-This is based on bugsnag's MIT licensed lib: https://github.com/bugsnag/bugsnag-js
-The basic idea is to wrap very early at a very low level of the event system,
-such that all libraries loaded later are sitting on top of this.
-Additionally, special care is taken to browser brands and their capabilities.
-Finally, additional data about the webapp client is gathered and sent with the error report.
-###
+# Catch and report webapp client errors to the SMC server.
+# This is based on bugsnag's MIT licensed lib: https://github.com/bugsnag/bugsnag-js
+# The basic idea is to wrap very early at a very low level of the event system,
+# such that all libraries loaded later are sitting on top of this.
+# Additionally, special care is taken to browser brands and their capabilities.
+# Finally, additional data about the webapp client is gathered and sent with the error report.
 
 # list of string-identifyers of errors, that were already reported.
 # this avoids excessive resubmission of errors

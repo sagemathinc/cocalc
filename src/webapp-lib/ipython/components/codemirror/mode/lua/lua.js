@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // LUA mode. Ported to CodeMirror 2 from Franciszek Wawrzak's
 // CodeMirror 1 mode.
 // highlights keywords, strings, comments (no leveling supported! ("[==[")), tokens, basic indenting

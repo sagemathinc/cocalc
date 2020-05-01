@@ -1,16 +1,18 @@
 /*
-Rendering of static codemirror editor.
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-Meant to be efficient to render many of these on the page at once.
-
-We use this for:
-
-  - the share server
-  - rendering cells that are offscreen or scrolling.
-
-In benchmarks, this seems to easily be 10x faster than creating an actual
-CodeMirror editor.
-*/
+// Rendering of static codemirror editor.
+//
+// Meant to be efficient to render many of these on the page at once.
+//
+// We use this for:
+//
+//   - the share server
+//   - rendering cells that are offscreen or scrolling.
+//
+// In benchmarks, this seems to easily be 10x faster than creating an actual CodeMirror editor.
 
 import { React, Component, Rendered } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";

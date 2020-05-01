@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 # Handling support tickets for users -- currently a Zendesk wrapper.
 # (c) 2016, SageMath, Inc.
 # License: GPLv3

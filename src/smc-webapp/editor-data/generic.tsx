@@ -1,13 +1,11 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-/*
-"Editor" (really a read-only simple viewer) for generic data files
 
-See https://github.com/sagemathinc/cocalc/issues/2462
-*/
+// "Editor" (really a read-only simple viewer) for generic data files
+//
+// See https://github.com/sagemathinc/cocalc/issues/2462
 
 import { React, Component, Rendered } from "../app-framework";
 const { register_file_editor } = require("../project_file");

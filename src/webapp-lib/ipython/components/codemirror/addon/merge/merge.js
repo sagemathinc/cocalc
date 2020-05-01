@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 (function() {
   "use strict";
   // declare global: diff_match_patch, DIFF_INSERT, DIFF_DELETE, DIFF_EQUAL

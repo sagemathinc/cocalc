@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { LabeledRow, Loading, SelectorInput } from "../../r_misc";
 import { React } from "../../app-framework";
 import { PHYSICAL_KEYBOARDS } from "../../frame-editors/x11-editor/xpra/keyboards";

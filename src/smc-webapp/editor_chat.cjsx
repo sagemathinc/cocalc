@@ -1,59 +1,40 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
-###
-Chat message JSON format:
-
-sender_id : String which is the original message sender's account id
-event     : Can only be "chat" right now.
-date      : A date string
-history   : Array of "History" objects (described below)
-editing   : Object of <account id's> : <"FUTURE">
-
-"FUTURE" Will likely contain their last edit in the future
-
- --- History object ---
-author_id : String which is this message version's author's account id
-content   : The raw display content of the message
-date      : Date **string** of when this edit was sent
-
-Example object:
-{"sender_id":"07b12853-07e5-487f-906a-d7ae04536540",
-"event":"chat",
-"history":[
-        {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"First edited!","date":"2016-07-23T23:10:15.331Z"},
-        {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"Initial sent message!","date":"2016-07-23T23:10:04.837Z"}
-        ],
-"date":"2016-07-23T23:10:04.837Z","editing":{"07b12853-07e5-487f-906a-d7ae04536540":"FUTURE"}}
----
-
-Chat message types after immutable conversion:
-(immutable.Map)
-sender_id : String
-event     : String
-date      : Date Object
-history   : immutable.List of immutable.Maps
-editing   : immutable.Map
-
-###
+# Chat message JSON format:
+# 
+# sender_id : String which is the original message sender's account id
+# event     : Can only be "chat" right now.
+# date      : A date string
+# history   : Array of "History" objects (described below)
+# editing   : Object of <account id's> : <"FUTURE">
+# 
+# "FUTURE" Will likely contain their last edit in the future
+# 
+#  --- History object ---
+# author_id : String which is this message version's author's account id
+# content   : The raw display content of the message
+# date      : Date **string** of when this edit was sent
+# 
+# Example object:
+# {"sender_id":"07b12853-07e5-487f-906a-d7ae04536540",
+# "event":"chat",
+# "history":[
+#         {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"First edited!","date":"2016-07-23T23:10:15.331Z"},
+#         {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"Initial sent message!","date":"2016-07-23T23:10:04.837Z"}
+#         ],
+# "date":"2016-07-23T23:10:04.837Z","editing":{"07b12853-07e5-487f-906a-d7ae04536540":"FUTURE"}}
+# ---
+# 
+# Chat message types after immutable conversion:
+# (immutable.Map)
+# sender_id : String
+# event     : String
+# date      : Date Object
+# history   : immutable.List of immutable.Maps
+# editing   : immutable.Map
 
 # standard non-CoCalc libraries
 immutable = require('immutable')
@@ -204,5 +185,3 @@ exports.scroll_to_bottom = scroll_to_bottom = (log_container_ref, force) ->
                 await delay(d)
     finally
         delete log_container_ref.current?.chat_scroll_to_bottom
-
-

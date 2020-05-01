@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { project_api, start_project } from "../../frame-editors/generic/client";
 
 import { create_autograde_ipynb } from "./autograde";

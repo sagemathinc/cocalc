@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 CodeMirror.defineMode("jinja2", function() {
     var keywords = ["and", "as", "block", "endblock", "by", "cycle", "debug", "else", "elif",
                     "extends", "filter", "endfilter", "firstof", "for",
