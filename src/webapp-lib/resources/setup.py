@@ -20,6 +20,7 @@ for fn in os.listdir('.'):
         os.unlink(fn)
 
 deps = json.load(open('package-lock.json'))["dependencies"]
+versions = {}
 for path, data in deps.items():
     if '/' in path:
         name = path.split('/')[-1]
@@ -31,9 +32,16 @@ for path, data in deps.items():
         raise Exception(
             f"target '{src}' does not exist -- did you forget to run 'npm ci' in '{curdir}'?"
         )
-    dst = f"{name}-{data['version']}"
+    version = data['version']
+    dst = f"{name}-{version}"
     print(f"symlink with    version '{dst}' → '{src}'")
     os.symlink(src, dst)
     dst = f"{name}"
     print(f"symlink without version '{dst}' → '{src}'")
     os.symlink(src, dst)
+    versions[name] = version
+
+# finally, write the version info such that it can be loaded
+with open('versions.ts', 'w') as out:
+    out.write(f'const versions = {json.dumps(versions)};')
+    out.write('export default versions;')

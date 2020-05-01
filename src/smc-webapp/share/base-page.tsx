@@ -101,7 +101,7 @@ gtag('config', '${this.props.settings.google_analytics}');\
       this.props.base_url
     )}`;
     const v: Rendered[] = [];
-    for (const link of resource_links(prefix)) {
+    for (const link of resource_links(prefix, true)) {
       v.push(<link {...link} />);
     }
     return v;
