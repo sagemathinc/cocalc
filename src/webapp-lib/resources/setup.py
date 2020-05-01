@@ -11,7 +11,6 @@ os.chdir(curdir)
 extra_path = {
     'bootstrap': 'dist/css/',
     'katex': 'dist/',
-    'lozad': 'dist/',
 }
 
 # remove symlinks
