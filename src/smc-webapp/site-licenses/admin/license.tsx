@@ -29,7 +29,7 @@ import {
   scale_by_display_factors,
 } from "./upgrades";
 import { Projects } from "../../admin/users/projects";
-import { DisplayManagers, EditManagers } from "./managers";
+import { Managers } from "./managers";
 import { UserMap } from "../../todo-types";
 import { ManagerInfo } from "./types";
 
@@ -168,11 +168,11 @@ export class License extends Component<Props> {
           break;
         case "account_id[]":
           x = (
-            <EditManagers
+            <Managers
               managers={val}
-              onChange={onChange}
+              user_map={this.props.user_map}
               license_id={this.props.license.get("id")}
-              license_field={field}
+              manager_info={this.props.manager_info}
             />
           );
           break;
@@ -232,7 +232,11 @@ export class License extends Component<Props> {
                 }
               />
               <br />
-              Input forgivingly parsed using <A href="https://github.com/rjrodger/jsonic/blob/master/README.md">jsonic</A>; deleting fields is not implemented.
+              Input forgivingly parsed using{" "}
+              <A href="https://github.com/rjrodger/jsonic/blob/master/README.md">
+                jsonic
+              </A>
+              ; deleting fields is not implemented.
             </div>
           );
           break;
@@ -329,7 +333,7 @@ export class License extends Component<Props> {
           break;
         case "account_id[]":
           x = (
-            <DisplayManagers
+            <Managers
               managers={val}
               user_map={this.props.user_map}
               license_id={this.props.license.get("id")}
