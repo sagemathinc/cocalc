@@ -1,3 +1,4 @@
+import * as jsonic from "jsonic";
 import { React, Rendered, Component, TypedMap } from "../../app-framework";
 import { DebounceInput } from "react-debounce-input";
 import { SiteLicense } from "./types";
@@ -14,6 +15,7 @@ import {
 } from "smc-util/misc2";
 import { hours_ago, days_ago, weeks_ago, months_ago } from "smc-util/misc";
 import {
+  A,
   CopyToClipBoard,
   DateTimePicker,
   TimeAgo,
@@ -205,20 +207,33 @@ export class License extends Component<Props> {
           );
           break;
         case "map":
+          let value: string = "";
+          if (val) {
+            if (typeof val != "string") {
+              value = JSON.stringify(val, undefined, 2);
+            } else {
+              value = val;
+            }
+          }
           x = (
-            <DebounceInput
-              element="textarea"
-              forceNotifyByEnter={false}
-              placeholder={
-                '{"invoice_id":"some-structured-JSON-data", "stripe_id": "more-data"}'
-              }
-              style={merge({ width: "100%" }, INPUT_STYLE)}
-              rows={4}
-              value={
-                typeof val == "string" ? val : JSON.stringify(val, undefined, 2)
-              }
-              onChange={(e) => onChange((e.target as any).value)}
-            />
+            <div>
+              <DebounceInput
+                element="textarea"
+                forceNotifyByEnter={false}
+                placeholder={
+                  '{"invoice_id":"some-structured-JSON-data", "stripe_id": "more-data"}'
+                }
+                style={merge({ width: "100%" }, INPUT_STYLE)}
+                rows={4}
+                value={value}
+                onChange={(e) => onChange((e.target as any).value)}
+                onBlur={() =>
+                  onChange(JSON.stringify(jsonic(value), undefined, 2))
+                }
+              />
+              <br />
+              Input forgivingly parsed using <A href="https://github.com/rjrodger/jsonic/blob/master/README.md">jsonic</A>; deleting fields is not implemented.
+            </div>
           );
           break;
         case "readonly":
