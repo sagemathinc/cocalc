@@ -78,7 +78,6 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
           site_licenses: { id, created: now, last_used: now, activates: now },
         },
       });
-      await this.load(); // so will have the new license
       this.start_editing(id);
     } catch (err) {
       this.set_error(err);
@@ -95,6 +94,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
     // This makes UI technically less powerful but also less
     // confusing.
     this.set_search(license_id);
+    this.load();
   }
 
   public cancel_editing(license_id: string): void {

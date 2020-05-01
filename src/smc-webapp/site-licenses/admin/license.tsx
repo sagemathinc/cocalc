@@ -2,7 +2,7 @@ import { React, Rendered, Component, TypedMap } from "../../app-framework";
 import { DebounceInput } from "react-debounce-input";
 import { SiteLicense } from "./types";
 import { actions } from "./actions";
-import { Button, ButtonGroup } from "../../antd-bootstrap";
+import { Button } from "../../antd-bootstrap";
 import { Alert, Row, Col } from "antd";
 import { license_fields, license_field_type } from "./types";
 import {
@@ -265,7 +265,8 @@ export class License extends Component<Props> {
             if (!val) {
               x = (
                 <span style={{ background: "yellow" }}>
-                  <Icon name="warning" /> Never expires -- set an expiration date
+                  <Icon name="warning" /> Never expires -- set an expiration
+                  date
                 </span>
               );
             } else if (val <= new Date()) {
@@ -463,12 +464,12 @@ export class License extends Component<Props> {
     const id = this.props.license.get("id");
     if (this.props.editing) {
       buttons = (
-        <ButtonGroup>
+        <>
           <Button
             onClick={() => actions.cancel_editing(id)}
             disabled={this.props.saving}
           >
-            Discard changes
+            Cancel
           </Button>
           <Space />
           <Button
@@ -482,7 +483,7 @@ export class License extends Component<Props> {
           >
             <Icon name={"save"} /> {this.props.saving ? "Saving..." : "Save"}
           </Button>
-        </ButtonGroup>
+        </>
       );
     } else {
       buttons = <Button onClick={() => actions.start_editing(id)}>Edit</Button>;
