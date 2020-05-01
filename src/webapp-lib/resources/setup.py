@@ -34,10 +34,10 @@ for path, data in deps.items():
         )
     version = data['version']
     dst = f"{name}-{version}"
-    print(f"symlink with    version '{dst}' → '{src}'")
+    print(f"symlink with    version '{dst}' -> '{src}'")
     os.symlink(src, dst)
     dst = f"{name}"
-    print(f"symlink without version '{dst}' → '{src}'")
+    print(f"symlink without version '{dst}' -> '{src}'")
     os.symlink(src, dst)
     versions[name] = version
 
