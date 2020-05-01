@@ -2,6 +2,11 @@
 # Copyright (C) 2017, Sagemath Inc.
 # License: AGPLv3+
 
+###
+# WARNING -- parts of this file are evidently duplicated in various places, e.g.,
+# smc-webapp/info/usage.tsx
+###
+
 # this is embedded into index.pug to do some dynamic changes.
 # the overall goal is to be slick and simple to avoid any slowdowns whatsoever...
 
@@ -31,7 +36,7 @@ sum_clients = (stats) ->
 # improve understanding of large numbers
 fmt = (num) ->
     num = parseInt(num)
-    num.toLocaleString(undefined, {useGrouping:true, maximumSignificantDigits: 2})
+    num.toLocaleString(undefined, {useGrouping:true})
 
 update_stats = (stats) ->
     #console.log stats

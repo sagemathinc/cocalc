@@ -947,6 +947,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // renders and is put in the foreground (ignored if foreground not true)
     anchor?: string;
   }): Promise<void> {
+    if (misc.endswith(opts.path, "/")) {
+      this.open_directory(opts.path);
+      return;
+    }
     opts = defaults(opts, {
       path: required,
       foreground: true,
@@ -2379,9 +2383,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const { src } = opts;
     delete opts.src;
     const with_slashes = src.map(this._convert_to_displayed_path);
+    let dest: string | undefined = undefined;
+    if (opts.target_path != null) {
+      dest = opts.target_path;
+      if (!misc.endswith(dest, "/")) {
+        dest += "/";
+      }
+    }
     this.log({
       event: "file_action",
       action: "copied",
+      dest,
       files: with_slashes.slice(0, 3),
       count: src.length > 3 ? src.length : undefined,
       project: opts.target_project_id,
