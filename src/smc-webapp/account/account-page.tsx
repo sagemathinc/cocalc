@@ -28,8 +28,7 @@ import { AccountPreferences } from "./account-preferences";
 
 import { BillingPage } from "../billing/billing-page";
 
-//import { UpgradesPage } from "../r_upgrades";
-const { UpgradesPage } = require("../r_upgrades");
+import { UpgradesPage } from "./upgrades/upgrades-page";
 
 //import { SupportPage } from "../support";
 const { SupportPage } = require("../support");
@@ -160,13 +159,7 @@ class AccountPage extends Component<Props> {
   }
 
   private render_upgrades(): Rendered {
-    return (
-      <UpgradesPage
-        redux={redux}
-        stripe_customer={this.props.stripe_customer}
-        project_map={this.props.project_map}
-      />
-    );
+    return <UpgradesPage />;
   }
 
   private render_ssh_keys_page(): Rendered {
