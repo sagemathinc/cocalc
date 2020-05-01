@@ -6,4 +6,5 @@ export interface SiteLicensePublicInfo {
   run_limit?: number;
   upgrades?: { [field: string]: number };
   running: number;
+  is_manager: boolean;
 }

@@ -2,7 +2,7 @@ import { fromJS, Map } from "immutable";
 import { Component, React, Rendered, redux } from "../app-framework";
 import { SiteLicensePublicInfo as Info } from "./types";
 import { site_license_public_info } from "./util";
-import { Icon, Loading, TimeAgo } from "../r_misc";
+import { Icon, Loading, Space, TimeAgo } from "../r_misc";
 import { alert_message } from "../alerts";
 import { Alert, Button, Popconfirm } from "antd";
 import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
@@ -79,6 +79,7 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
   }
 
   private render_id(): Rendered {
+    if (this.state.loading) return;
     // dumb minimal security -- only show this for now to admins.
     // Later license managers will see it.   Of course, somebody could
     // sniff their browser traffic and get it so this is just to
@@ -87,15 +88,30 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     // However, if no project_id specified, this license is being used
     // as part of a course config (or something else), so we still show
     // the license id.
-    if (this.props.project_id && !redux.getStore("account").get("is_admin"))
-      return;
-    return (
-      <div style={{ fontFamily: "monospace" }}>{this.props.license_id}</div>
-    );
+    // I could do this as a single if but it is easier to document this way:
+    if (this.props.project_id) {
+      // license display for specific project
+      if (!redux.getStore("account").get("is_admin")) {
+        // Admins always see.
+        // Not an admin, so only show id if you are a manager...
+        // or there is no info (e.g., invalid license key).
+        // Never show if there is an error.
+        if (
+          (this.state.info != null && !this.state.info.is_manager) ||
+          this.state.err
+        ) {
+          return;
+        }
+      }
+    }
+    return <li style={{ fontFamily: "monospace" }}>{this.props.license_id}</li>;
   }
 
   private render_license(): Rendered {
     if (!this.state.info) {
+      if (!this.state.loading && !this.state.err) {
+        return <span>Unknown license key.</span>;
+      }
       return;
     }
     return (
@@ -245,6 +261,7 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     }
     return (
       <ul>
+        {this.render_id()}
         {provides}
         {show_run ? this.render_run_limit() : undefined}
         {show_run ? this.render_running() : undefined}
@@ -279,7 +296,12 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
   }
 
   private render_refresh_button(): Rendered {
-    return <Button onClick={() => this.fetch_info(true)}>Refresh</Button>;
+    return (
+      <Button onClick={() => this.fetch_info(true)}>
+        <Icon name="redo" />
+        <Space /> Refresh
+      </Button>
+    );
   }
 
   private render_remove_button(): Rendered {
@@ -303,7 +325,10 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
         okText={"Yes"}
         cancelText={"Cancel"}
       >
-        <Button>Remove License...</Button>
+        <Button>
+          <Icon name="times" />
+          <Space /> Remove...
+        </Button>
       </Popconfirm>
     );
   }
@@ -328,7 +353,6 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
         </Button.Group>
         <Icon name="key" /> {this.render_body()}
         <br />
-        {this.render_id()}
         {this.render_upgrades()}
         {this.render_err()}
       </div>

@@ -9,7 +9,14 @@ export async function site_license_public_info(
   // Get information about the license itself:
   const obj = await query({
     db,
-    select: ["title", "expires", "activates", "upgrades", "run_limit"],
+    select: [
+      "title",
+      "expires",
+      "activates",
+      "upgrades",
+      "run_limit",
+      "managers",
+    ],
     table: "site_licenses",
     where: { id: license_id },
     one: true,

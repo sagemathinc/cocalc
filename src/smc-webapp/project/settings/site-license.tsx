@@ -106,7 +106,7 @@ export class SiteLicense extends Component<Props, State> {
   public render(): Rendered {
     return (
       <div>
-        <h4>Licenses</h4>
+        <h4><Icon name="key"/> Licenses</h4>
         {this.render_current_licenses()}
         <br />
         <Button

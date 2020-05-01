@@ -436,6 +436,11 @@ Table({
       desc:
         "Number of running projects currently using this license.   Regarding security, we assume that if the user knows the license id, then they are allowed to know how many projects are using it.",
     },
+    is_manager: {
+      type: "boolean",
+      desc:
+        "True if user making the query is a manager of this license.  Frontend UI might tell them this and show license code and other links.",
+    },
   },
   rules: {
     desc: "Publicly available information about site licenses",
@@ -453,17 +458,24 @@ Table({
           upgrades: null,
           run_limit: null,
           running: null,
+          is_manager: null,
         },
         // Actual query is implemented using this code below rather than an
         // actual query directly.  TODO: Also, we're lazy and return all fields we
         // know, even if user doesn't request them all.
+        // If the user making the query is a manager of this license they get a list of
+        // the managers (otherwise managers isn't set for them.)
         async instead_of_query(database, opts, cb): Promise<void> {
           const id = opts.query.id;
           if (typeof id != "string" || !is_valid_uuid_string(id)) {
             cb("must be a single object query with id specified");
           } else {
             try {
-              cb(undefined, await database.site_license_public_info(id));
+              const info = await database.site_license_public_info(id);
+              info.is_manager =
+                info.managers != null &&
+                info.managers.includes(opts.account_id);
+              cb(undefined, info);
             } catch (err) {
               cb(err);
             }
