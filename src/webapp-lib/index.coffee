@@ -133,13 +133,7 @@ init_magic_anchors = ->
             marker.appendChild(document.createTextNode('¶'))
             header.appendChild(marker)
 
-init_lozad = ->
-    imgs = document.querySelectorAll('img[data-src]')
-    observer = window.lozad(imgs)
-    observer.observe()
-
 document.addEventListener "DOMContentLoaded", ->
-    init_lozad()
     if document.getElementById('statstable')?
         get_stats()
     init_video()
