@@ -14,7 +14,7 @@ import {
   CurrentCollaboratorsPanel,
 } from "../../collaborators";
 
-import { TitleDescriptionBox } from "./title-description-box";
+import { AboutBox } from "./about-box";
 import { UpgradeUsage } from "./upgrade-usage";
 import { HideDeleteBox } from "./hide-delete-box";
 import { SagewsControl } from "./sagews-control";
@@ -168,10 +168,11 @@ export const Body = rclass<ReactProps>(
           </h1>
           <Row>
             <Col sm={6}>
-              <TitleDescriptionBox
+              <AboutBox
                 project_id={id}
                 project_title={this.props.project.get("title") || ""}
                 description={this.props.project.get("description") || ""}
+                created={this.props.project.get("created")}
                 actions={redux.getActions("projects")}
               />
               <UpgradeUsage

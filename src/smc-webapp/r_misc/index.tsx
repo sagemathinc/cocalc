@@ -22,6 +22,7 @@ export { DropdownMenu, MenuItem, MenuDivider } from "./dropdown-menu";
 export { WindowedList } from "./windowed-list";
 export { UncommittedChanges } from "./uncommited-changes";
 export { DateTimePicker } from "./date-time-picker";
+export { PathLink } from "./path-link";
 
 export const {
   MarkdownInput,
@@ -44,7 +45,6 @@ export const {
   Markdown,
   ActivityDisplay,
   SaveButton,
-  PathLink,
   Calendar,
   DeletedProjectWarning,
   course_warning,

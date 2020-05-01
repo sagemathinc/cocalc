@@ -10,7 +10,8 @@ interface Props {
   actions: ProjectActions;
   default_value?: string;
 }
-// TODO: Should this be r_misc.PathLink??
+// NOTE: This just happens to have the same name as r_misc.PathLink
+// but is a different thing used for a different purpose...
 export const PathLink = React.memo(function PathLink({
   path,
   actions,
