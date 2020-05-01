@@ -151,7 +151,7 @@ class SiteLicenses extends Component<Props> {
           style={{ margin: "15px 0", float: "right" }}
         >
           <Icon name="plus" spin={this.props.creating} />
-          <Space /> Create License
+          <Space /> Create license...
         </Button>
       </Popconfirm>
     );

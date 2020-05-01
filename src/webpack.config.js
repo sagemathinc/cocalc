@@ -38,7 +38,7 @@ This webpack config file might look scary, but it only consists of a few moving 
       Some css is inserted, but it doesn't work and no styles are applied. In the end,
       it doesn't matter to load it one way or the other. Furthermore, as .js is even better,
       because the initial page load is instant and doesn't require to get the compiled css styles.
-   2. lib: this is a compilation of the essential js files in webapp-lib (via webapp-lib.coffee)
+   2. lib: this is a compilation of the essential js files in webapp-lib (via webapp-lib.js)
    3. smc: the core smc library. besides this, there are also chunks ([number]-hash.js) that are
       loaded later on demand (read up on `require.ensure`).
       For example, such a chunkfile contains latex completions, the data for the wizard, etc.
@@ -373,9 +373,9 @@ plugins.push(...[setNODE_ENV, banner, loaderOptions]);
 
 // ATTN don't alter or add names here, without changing the sorting function above!
 entries = {
-  css: "webapp-css.coffee",
+  css: "webapp-css.js",
   fill: "@babel/polyfill",
-  smc: "webapp-smc.coffee",
+  smc: "webapp-cocalc.js",
   // code splitting: we take all of our vendor code and put it in a separate bundle (vendor.min.js)
   // this way it will have better caching/cache hits since it changes infrequently
   vendor: [

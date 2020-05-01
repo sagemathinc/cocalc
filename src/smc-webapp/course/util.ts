@@ -3,6 +3,7 @@ import { Map } from "immutable";
 import { TypedMap } from "../app-framework/TypedMap";
 import { StudentsMap } from "./store";
 import { AssignmentCopyStep } from "./types";
+import { separate_file_extension } from "smc-util/misc2";
 
 // Pure functions used in the course manager
 
@@ -281,4 +282,9 @@ export function assignment_identifier(
   student_id: string
 ): string {
   return assignment_id + student_id;
+}
+
+export function autograded_filename(filename: string): string {
+  const { name, ext } = separate_file_extension(filename);
+  return name + "_autograded." + ext;
 }

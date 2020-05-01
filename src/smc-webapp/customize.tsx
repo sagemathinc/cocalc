@@ -346,7 +346,7 @@ export const CompanyName = function CompanyName() {
 };
 
 interface ReactProps {
-  style: React.CSSProperties;
+  style?: React.CSSProperties;
 }
 
 interface ReduxProps {
@@ -388,7 +388,7 @@ const TermsOfService0 = rclass<ReactProps>(
   }
 );
 
-export function TermsOfService(props: { style: React.CSSProperties }) {
+export function TermsOfService(props: { style?: React.CSSProperties }) {
   return (
     <Redux>
       <TermsOfService0 style={props.style} />

@@ -14,6 +14,7 @@ import {
 } from "../../frame-editors/generic/client";
 import { is_valid_uuid_string, uuid } from "smc-util/misc2";
 import { normalize_upgrades_for_save } from "./upgrades";
+import * as jsonic from "jsonic";
 
 export class SiteLicensesActions extends Actions<SiteLicensesState> {
   public set_error(error: any): void {
@@ -78,7 +79,6 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
           site_licenses: { id, created: now, last_used: now, activates: now },
         },
       });
-      await this.load(); // so will have the new license
       this.start_editing(id);
     } catch (err) {
       this.set_error(err);
@@ -95,6 +95,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
     // This makes UI technically less powerful but also less
     // confusing.
     this.set_search(license_id);
+    this.load();
   }
 
   public cancel_editing(license_id: string): void {
@@ -128,7 +129,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
       }
       if (site_licenses.info != null) {
         try {
-          site_licenses.info = JSON.parse(site_licenses.info);
+          site_licenses.info = jsonic(site_licenses.info);
         } catch (err) {
           this.set_error(`unable to parse JSON info field -- ${err}`);
           return;

@@ -1,17 +1,16 @@
 import { List, Map } from "immutable";
 
-import { redux, Component, React, Rendered } from "../app-framework";
+import { Component, React, Rendered } from "../app-framework";
 
-const {
-  AccountSettings,
-  OtherSettings,
-  ProfileSettings,
-  EditorSettings,
-  TerminalSettings,
-  KeyboardSettings,
-} = require("../r_account");
+import { ProfileSettings } from "./profile-settings";
+import { TerminalSettings } from "./terminal-settings";
+import { KeyboardSettings } from "./keyboard-settings";
+import { AccountSettings } from "./settings/account-settings";
 import { Row, Col } from "../antd-bootstrap";
 import { Footer } from "../customize";
+import { OtherSettings } from "./other-settings";
+import { EditorSettings } from "./editor-settings/editor-settings";
+import { Loading } from "../r_misc";
 
 interface Props {
   account_id?: string;
@@ -34,7 +33,7 @@ interface Props {
   is_anonymous?: boolean;
   email_enabled?: boolean;
   verify_emails?: boolean;
-  created?: object;
+  created?: Date;
 }
 
 export class AccountPreferences extends Component<Props> {
@@ -54,7 +53,18 @@ export class AccountPreferences extends Component<Props> {
         email_enabled={this.props.email_enabled}
         verify_emails={this.props.verify_emails}
         created={this.props.created}
-        redux={redux}
+      />
+    );
+  }
+
+  private render_other_settings(): Rendered {
+    if (this.props.other_settings == null) return <Loading />;
+    return (
+      <OtherSettings
+        other_settings={this.props.other_settings}
+        is_stripe_customer={
+          !!this.props.stripe_customer?.getIn(["subscriptions", "total_count"])
+        }
       />
     );
   }
@@ -65,23 +75,11 @@ export class AccountPreferences extends Component<Props> {
         <Row>
           <Col xs={12} md={6}>
             {this.render_account_settings()}
-            <OtherSettings
-              other_settings={this.props.other_settings}
-              is_stripe_customer={
-                !!(this.props.stripe_customer != null
-                  ? this.props.stripe_customer.getIn([
-                      "subscriptions",
-                      "total_count",
-                    ])
-                  : undefined)
-              }
-              redux={redux}
-            />
+            {this.render_other_settings()}
             <ProfileSettings
               email_address={this.props.email_address}
               first_name={this.props.first_name}
               last_name={this.props.last_name}
-              redux={redux}
             />
           </Col>
           <Col xs={12} md={6}>
@@ -91,13 +89,9 @@ export class AccountPreferences extends Component<Props> {
               font_size={this.props.font_size}
               editor_settings={this.props.editor_settings}
               email_address={this.props.email_address}
-              redux={redux}
             />
-            <TerminalSettings terminal={this.props.terminal} redux={redux} />
-            <KeyboardSettings
-              evaluate_key={this.props.evaluate_key}
-              redux={redux}
-            />
+            <TerminalSettings terminal={this.props.terminal} />
+            <KeyboardSettings evaluate_key={this.props.evaluate_key} />
           </Col>
         </Row>
         <Footer />

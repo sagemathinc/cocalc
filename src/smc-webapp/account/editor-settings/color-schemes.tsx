@@ -72,7 +72,7 @@ interface Props {
   font_size?: number;
 }
 
-export function EditorSettingsColorScheme(props: Props) {
+export function EditorSettingsColorScheme(props: Props): JSX.Element {
   return (
     <div>
       <LabeledRow label="Editor color scheme">

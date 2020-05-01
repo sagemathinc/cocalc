@@ -3,9 +3,8 @@
 declare var $: any;
 import { throttle } from "lodash";
 import { delay } from "awaiting";
-
 import { redux } from "../app-framework";
-const { APP_LOGO_WHITE } = require("../art");
+import { APP_LOGO_WHITE } from "../art";
 import { IS_TOUCH } from "../feature";
 import { WebappClient } from "./client";
 

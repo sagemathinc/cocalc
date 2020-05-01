@@ -25,7 +25,7 @@ let first_login = true;
 // projects.cjsx definitely has side effects
 const load_app = (cb) =>
   (require as any).ensure([], function () {
-    require("./r_account.cjsx"); // initialize react-related account page
+    require("./account/account-page"); // initialize react-related account page
     require("./projects.cjsx"); // initialize project listing
     cb();
   });

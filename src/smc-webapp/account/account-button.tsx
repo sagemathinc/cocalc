@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Popconfirm, Popover } from "antd";
-const { NavItem } = require("react-bootstrap");
+import { NavItem } from "react-bootstrap";
 import { AccountActions } from "../account";
 
 interface Props {

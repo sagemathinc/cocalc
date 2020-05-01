@@ -6,8 +6,8 @@ export function ResetProjectsConfirmation({
   on_confirm,
   on_cancel,
 }: {
-  on_confirm: Function;
-  on_cancel: Function;
+  on_confirm: (e?: any) => void;
+  on_cancel: (e?: any) => void;
 }) {
   return (
     <Well

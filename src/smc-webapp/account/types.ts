@@ -47,4 +47,6 @@ export interface AccountState {
   lti_id?: immutable.List<string>;
   created?: Date;
   token?: string;
+  strategies?: immutable.List<string>;
+  keyboard_variant_options?: immutable.List<any>;
 }
