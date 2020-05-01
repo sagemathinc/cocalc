@@ -3,10 +3,37 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/*
-class ProjectUpgradesTable {
-  static initClass() {
-    this.prototype.reduxProps = {
+import { Map } from "immutable";
+import { webapp_client } from "../../webapp-client";
+import { rclass, redux, rtypes, Component, React } from "../../app-framework";
+import { ErrorDisplay, UpgradeAdjustor, r_join } from "../../r_misc";
+import { PROJECT_UPGRADES } from "smc-util/schema";
+//import { ProjectTitle } from "../../projects";
+const { ProjectTitle } = require("../../projects");
+import { Button, Row, Col, Panel } from "../../antd-bootstrap";
+import { ResetProjectsConfirmation } from "./reset-projects";
+import { plural, is_string, len, round1 } from "smc-util/misc";
+
+interface reduxProps {
+  get_total_upgrades: Function;
+  help_email: string;
+  project_map: Map<string, any>;
+  get_total_upgrades_you_have_applied: Function;
+  get_upgrades_you_applied_to_project: Function;
+  get_total_project_quotas: Function;
+  get_upgrades_to_project: Function;
+  get_projects_upgraded_by: Function;
+}
+
+interface State {
+  show_adjustor: Map<string, boolean>; // project_id : bool
+  expand_remove_all_upgrades: boolean;
+  remove_all_upgrades_error?: string;
+}
+
+class ProjectUpgradesTable extends Component<reduxProps, State> {
+  static reduxProps() {
+    return {
       account: {
         get_total_upgrades: rtypes.func,
       },
@@ -24,43 +51,46 @@ class ProjectUpgradesTable {
     };
   }
 
-  getInitialState() {
-    return {
-      show_adjustor: immutable.Map({}), // project_id : bool
+  constructor(props, state) {
+    super(props, state);
+    this.state = {
+      show_adjustor: Map({}),
       expand_remove_all_upgrades: false,
       remove_all_upgrades_error: undefined,
     };
   }
 
-  open_project_settings(e, project_id) {
-    this.actions("projects").open_project({
+  open_project_settings(e, project_id: string) {
+    redux.getActions("projects").open_project({
       project_id,
       target: "settings",
       switch_to: !(e.which === 2 || e.ctrlKey || e.metaKey),
     });
-    return e.preventDefault();
+    e.preventDefault();
   }
 
   submit_upgrade_quotas({ project_id, new_quotas }) {
-    this.actions("projects").apply_upgrades_to_project(project_id, new_quotas);
-    return this.toggle_adjustor(project_id);
+    redux
+      .getActions("projects")
+      .apply_upgrades_to_project(project_id, new_quotas);
+    this.toggle_adjustor(project_id);
   }
 
-  generate_on_click_adjust(project_id) {
+  generate_on_click_adjust(project_id: string) {
     return (e) => {
       e.preventDefault();
       return this.toggle_adjustor(project_id);
     };
   }
 
-  toggle_adjustor(project_id) {
+  toggle_adjustor(project_id: string) {
     const status = this.state.show_adjustor.get(project_id);
-    const n = this.state.show_adjustor.set(project_id, !status);
-    return this.setState({ show_adjustor: n });
+    const show_adjustor = this.state.show_adjustor.set(project_id, !status);
+    this.setState({ show_adjustor });
   }
 
-  render_upgrades_to_project(project_id, upgrades) {
-    const v = [];
+  private render_upgrades_to_project(project_id: string, upgrades) {
+    const v: JSX.Element[] = [];
     for (let param in upgrades) {
       const val = upgrades[param];
       if (!val) {
@@ -76,14 +106,14 @@ class ProjectUpgradesTable {
       const n = round1(val != null ? info.display_factor * val : 0);
       v.push(
         <span key={param}>
-          {info.display}: {n} {misc.plural(n, info.display_unit)}
+          {info.display}: {n} {plural(n, info.display_unit)}
         </span>
       );
     }
     return r_join(v);
   }
 
-  render_upgrade_adjustor(project_id) {
+  private render_upgrade_adjustor(project_id: string) {
     return (
       <UpgradeAdjustor
         key={`adjustor-${project_id}`}
@@ -105,8 +135,7 @@ class ProjectUpgradesTable {
     );
   }
 
-  render_upgraded_project(project_id, upgrades, darker) {
-    const { ProjectTitle } = require("./projects");
+  private render_upgraded_project(project_id: string, upgrades, darker) {
     return (
       <Row
         key={project_id}
@@ -131,35 +160,33 @@ class ProjectUpgradesTable {
     );
   }
 
-  render_upgraded_projects_rows(upgraded_projects) {
+  private render_upgraded_projects_rows(upgraded_projects): JSX.Element[] {
     let i = -1;
-    return (() => {
-      const result = [];
-      for (let project_id in upgraded_projects) {
-        const upgrades = upgraded_projects[project_id];
-        i += 1;
-        result.push(
-          this.render_upgraded_project(project_id, upgrades, i % 2 === 0)
-        );
-      }
-      return result;
-    })();
+    const result: JSX.Element[] = [];
+    for (let project_id in upgraded_projects) {
+      const upgrades = upgraded_projects[project_id];
+      i += 1;
+      result.push(
+        this.render_upgraded_project(project_id, upgrades, i % 2 === 0)
+      );
+    }
+    return result;
   }
 
-  async confirm_reset(e) {
+  async confirm_reset(_e) {
     try {
-      return await webapp_client.project_client.remove_all_upgrades();
+      await webapp_client.project_client.remove_all_upgrades();
     } catch (err) {
-      return this.setState({
+      this.setState({
         expand_remove_all_upgrades: false,
-        remove_all_upgrades_error: err != null ? err.toString() : undefined,
+        remove_all_upgrades_error: err?.toString(),
       });
     }
   }
 
-  render_remove_all_upgrades_error() {
-    let err = this.state.remove_all_upgrades_error;
-    if (!misc.is_string(err)) {
+  private render_remove_all_upgrades_error() {
+    let err: any = this.state.remove_all_upgrades_error;
+    if (!is_string(err)) {
       err = JSON.stringify(err);
     }
     return (
@@ -177,12 +204,12 @@ class ProjectUpgradesTable {
     );
   }
 
-  render_remove_all_upgrades_conf() {
+  private render_remove_all_upgrades_conf() {
     return (
       <Row>
         <Col sm={12}>
           <ResetProjectsConfirmation
-            on_confirm={this.confirm_reset}
+            on_confirm={this.confirm_reset.bind(this)}
             on_cancel={() =>
               this.setState({ expand_remove_all_upgrades: false })
             }
@@ -192,12 +219,14 @@ class ProjectUpgradesTable {
     );
   }
 
-  render_header() {
+  private render_header() {
     return (
       <div>
         <Row>
           <Col sm={12} style={{ display: "flex" }}>
-            <h4 style={{ flex: "1" }}>Upgrades you have applied to projects</h4>
+            <div style={{ flex: "1" }}>
+              Upgrades you have applied to projects
+            </div>
             <Button
               bsStyle={"warning"}
               onClick={() =>
@@ -221,7 +250,7 @@ class ProjectUpgradesTable {
 
   render() {
     const upgraded_projects = this.props.get_projects_upgraded_by();
-    if (!misc.len(upgraded_projects)) {
+    if (!len(upgraded_projects)) {
       return null;
     }
     return (
@@ -241,4 +270,6 @@ class ProjectUpgradesTable {
     );
   }
 }
-*/
+
+const tmp = rclass(ProjectUpgradesTable);
+export { tmp as ProjectUpgradesTable };

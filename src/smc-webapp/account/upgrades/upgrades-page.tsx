@@ -24,7 +24,7 @@ import { PROJECT_UPGRADES } from "smc-util/schema";
 
 import { Row, Col, Panel } from "../../antd-bootstrap";
 import { ProgressBar } from "react-bootstrap";
-const { ProjectUpgradesTable } = require("../../r_upgrades");
+import { ProjectUpgradesTable } from "./project-upgrades-table";
 
 interface reduxProps {
   stripe_customer?: Map<string, any>;

@@ -40,7 +40,7 @@ ZERO_QUOTAS = fromPairs(Object.keys(PROJECT_UPGRADES.params).map(((x) -> [x, 0])
 
 COMPUPTE_IMAGES = require("./custom-software/init").NAME
 
-{ResetProjectsConfirmation} = require('./r_upgrades')
+{ResetProjectsConfirmation} = require('./account/upgrades/reset-projects')
 
 {has_internet_access} = require('./upgrades/upgrade-utils')
 
