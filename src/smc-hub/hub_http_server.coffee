@@ -60,7 +60,7 @@ open_cocalc = require('./open-cocalc-server')
 
 SMC_ROOT    = process.env.SMC_ROOT
 STATIC_PATH = path_module.join(SMC_ROOT, 'static')
-WEBAPP_RES_PATH = path_module.join(SMC_ROOT, 'webapp-lib', 'res')
+WEBAPP_RES_PATH = path_module.join(SMC_ROOT, 'webapp-lib', 'resources')
 
 
 exports.init_express_http_server = (opts) ->
@@ -148,7 +148,7 @@ exports.init_express_http_server = (opts) ->
     router.use '/static',
         express.static(STATIC_PATH, setHeaders: cacheLongTerm)
 
-    # This is webapp-lib/res !
+    # This is webapp-lib/resources !
     router.use '/res',
         express.static(WEBAPP_RES_PATH, setHeaders: cacheLongTerm)
 

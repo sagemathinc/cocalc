@@ -1,5 +1,5 @@
 // resource links, pointing to some assets we're hosting (formerly on a CDN)
-// see webapp-lib/res/ for *how* they're hosted
+// see webapp-lib/resources/ for *how* they're hosted
 
 // this encodes <link href="..." crossOrigin="..." etc. />
 // in react, you can use it as <link  {...link_info} />

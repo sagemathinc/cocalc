@@ -73,7 +73,7 @@ react_static() {
 
 webapp_res_setup() {
     cd $SMC_ROOT
-    python3 webapp-lib/res/setup.py
+    python3 webapp-lib/resources/setup.py
 }
 
 # run extras in the background

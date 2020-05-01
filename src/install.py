@@ -95,7 +95,7 @@ def install_hub():
         'smc-hub',
         'smc-util-node',
         'smc-util',
-        'webapp-lib/res'
+        'webapp-lib/resources'
     ]
 
     # npm ci for using pkg lock file
@@ -116,7 +116,7 @@ def install_webapp(*args):
         cmd("git submodule update --init")
         cmd("cd examples && env OUTDIR=../webapp-lib/examples make")
 
-        paths = ['smc-webapp', 'smc-webapp/jupyter', '.', 'smc-util', 'webapp-lib/res']
+        paths = ['smc-webapp', 'smc-webapp/jupyter', '.', 'smc-util', 'webapp-lib/resources']
 
         # npm ci for using pkg lock file
         def build_op(path):
@@ -127,7 +127,7 @@ def install_webapp(*args):
             print(f"TOTAL WEBAPP BUILD TIME: {total:.1f}s")
 
         # this depends on running npm ci first, see above
-        cmd("python3 webapp-lib/res/setup.py")
+        cmd("python3 webapp-lib/resources/setup.py")
 
         # react static step must come *before* webpack step
         cmd("update_react_static")
