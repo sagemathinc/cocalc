@@ -1,5 +1,6 @@
 /*
- * lic
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
 // Component that shows a warning message if has_uncommitted_changes is true for more than a few seconds.

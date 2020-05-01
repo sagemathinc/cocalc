@@ -1,4 +1,7 @@
-
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 # Catch and report webapp client errors to the SMC server.
 # This is based on bugsnag's MIT licensed lib: https://github.com/bugsnag/bugsnag-js

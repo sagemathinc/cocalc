@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /*jshint unused:true, eqnull:true, curly:true, bitwise:true */
 /*jshint undef:true, latedef:true, trailing:true */
 /*global CodeMirror:true */

@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /*
 Convert Mediawiki file to hidden HTML file, which gets displayed in an iframe with
 src pointed to this file (via raw server).

@@ -1,4 +1,7 @@
-
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 {Col, Row, Panel, Table, Tab, Tabs, Modal, Button} = require('react-bootstrap')
 {redux, Redux, rclass, rtypes, React, Actions, Store} = require('./app-framework')

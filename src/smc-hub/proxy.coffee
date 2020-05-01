@@ -1,4 +1,7 @@
-
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 # HTTP Proxy Server, which passes requests directly onto http
 # servers running on project vm's

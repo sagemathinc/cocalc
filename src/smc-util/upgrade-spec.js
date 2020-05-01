@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // IMPORTANT: If you change this file, also update this date, which appears in webapp-lib/policies/pricing.pug
 
 exports.CURRENT_DATE = "August 2019";

@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 # Definition and control logic behind the various button bars.
 # 
 # There is a level of separation between the button bar's and the actual content what they insert/modify.

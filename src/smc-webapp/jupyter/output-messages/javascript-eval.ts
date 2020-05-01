@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /*
 Evaluate a line of code with the scope containing only a jquery wrapped
 element and whatever is available on window.  Obviously not "safe", but

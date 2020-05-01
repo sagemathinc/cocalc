@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Render the contents of a file.   This is typically used
 for smaller files for which we can reasonably do this.
 A lot of sophisticated code in CoCalc's main smc-webapp

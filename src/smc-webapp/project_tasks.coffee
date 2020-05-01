@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 # ProjectTasks are a collection of methods related to projects.
 # The can have a callback, a return value, or be impure.
 # They do not fit into the CQRS pattern in project_store.coffee and hence

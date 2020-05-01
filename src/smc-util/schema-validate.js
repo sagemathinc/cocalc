@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Given a query, do some validation on it, and also possibly fill in fields
 // in the query that are determined by functional calls in the schema.
 // If validation fails, this returns an error message; if validation succeeds,

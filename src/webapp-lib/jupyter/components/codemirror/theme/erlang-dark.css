@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 .cm-s-erlang-dark.CodeMirror { background: #002240; color: white; }
 .cm-s-erlang-dark div.CodeMirror-selected { background: #b36539 !important; }
 .cm-s-erlang-dark .CodeMirror-gutters { background: #002240; border-right: 1px solid #aaa; }

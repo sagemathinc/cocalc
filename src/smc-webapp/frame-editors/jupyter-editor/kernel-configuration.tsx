@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Frame for configuring the kernel for a Jupyter Notebook
 
 - the kernel selection page that you get right now when clicking on the kernel in the upper right

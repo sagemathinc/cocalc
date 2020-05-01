@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Because sometimes you need to mark the selected *text*.
 //
 // Adds an option 'styleSelectedText' which, when enabled, gives

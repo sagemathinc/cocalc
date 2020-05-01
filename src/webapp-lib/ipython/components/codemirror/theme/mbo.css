@@ -1,4 +1,7 @@
-/* Based on mbonaci's Brackets mbo theme */
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 .cm-s-mbo.CodeMirror {background: #2c2c2c; color: #ffffe9;}
 .cm-s-mbo div.CodeMirror-selected {background: #716C62 !important;}
