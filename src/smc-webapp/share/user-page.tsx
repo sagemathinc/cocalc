@@ -41,7 +41,7 @@ export class UserPage extends Component<Props> {
       <div style={{ margin: "30px" }}>
         <BasePage
           base_url={this.props.base_url}
-          google_analytics={this.props.settings.google_analytics}
+          settings={this.props.settings}
           notranslate={true}
           noindex={true}
           viewer={"share"}
@@ -51,7 +51,11 @@ export class UserPage extends Component<Props> {
               <CoCalcLogo base_url={this.props.base_url} /> Shared
             </a>
           </div>
-          <CoCalcLink base_url={this.props.base_url} viewer="embed" />
+          <CoCalcLink
+            base_url={this.props.base_url}
+            viewer="embed"
+            settings={this.props.settings}
+          />
           <div style={{ fontSize: "26px", fontWeight: 600 }}>
             {this.props.name}
           </div>
