@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { fromJS, List as iList, Map as iMap } from "immutable";
 import { Store } from "../app-framework";
 const { webapp_client } = require("../webapp_client");

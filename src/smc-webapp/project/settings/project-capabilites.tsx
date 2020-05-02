@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { sortBy, keys } from "lodash";
 import { SettingBox, A, Icon, Loading } from "smc-webapp/r_misc";

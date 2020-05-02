@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /**
  * term.js - an xterm emulator
  * Copyright (c) 2012-2013, Christopher Jeffrey (MIT License)

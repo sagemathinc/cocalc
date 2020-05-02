@@ -1,4 +1,7 @@
-/* Idle standby timeout -- disconnects and shows an idle page */
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 declare var $: any;
 import { throttle } from "lodash";

@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { SyncDoc, SyncOpts0, SyncOpts } from "../generic/sync-doc";
 import { from_str, DBDocument } from "./doc";
 import { Document, DocType } from "../generic/types";

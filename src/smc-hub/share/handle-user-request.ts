@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { List, Map } from "immutable";
 import { is_valid_uuid_string } from "smc-util/misc2";
 import { render_user } from "./render-user";

@@ -62,7 +62,7 @@ assistant() {
 colors() {
     # generating color scheme
     cd $SMC_ROOT
-    scripts/update-color-scheme.js
+    nodejs scripts/update-color-scheme.js
 }
 
 react_static() {

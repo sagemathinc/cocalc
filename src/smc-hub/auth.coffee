@@ -1,58 +1,40 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
-###
-Passport Authentication (oauth, etc.)
-
-Server-side setup
------------------
-
-In order to get this running, you have to manually setup each service.
-That requires to register with the authentication provider, telling them about CoCalc,
-the domain you use, the return path for the response, and adding the client identification
-and corresponding secret keys to the database.
-Then, the service is active and will be presented to the user on the sign up page.
-The following is an example for setting up google oauth.
-The other services are similar.
-
-1. background: https://developers.google.com/identity/sign-in/web/devconsole-project
-2. https://console.cloud.google.com/apis/credentials/consent
-3. https://console.developers.google.com/apis/credentials → create credentials → oauth, ...
-4. The return path for google is https://{DOMAIN_NAME}/auth/google/return
-5. When done, there should be an entry under "OAuth 2.0 client IDs"
-6. ... and you have your ID and secret!
-
-Now, connect to the database, where the setup is in the passports_settings table:
-
-1. there sould be a site_conf entry:
-```
-insert into passport_settings (strategy , conf ) VALUES ( 'site_conf', '{"auth": "https://[DOMAIN_NAME]/auth"}'::JSONB );
-```
-e.g., {"auth": "https://cocalc.com/auth"} is used on the live site
-and   {"auth": "https://cocalc.com/[project_id]/port/8000/auth"} for a certain dev project.
-
-2. insert into passport_settings (strategy , conf ) VALUES ( 'google', '{"clientID": "....apps.googleusercontent.com", "clientSecret": "..."}'::JSONB )
-
-Then restart the hubs.
-###
+# Passport Authentication (oauth, etc.)
+# 
+# Server-side setup
+# -----------------
+# 
+# In order to get this running, you have to manually setup each service.
+# That requires to register with the authentication provider, telling them about CoCalc,
+# the domain you use, the return path for the response, and adding the client identification
+# and corresponding secret keys to the database.
+# Then, the service is active and will be presented to the user on the sign up page.
+# The following is an example for setting up google oauth.
+# The other services are similar.
+# 
+# 1. background: https://developers.google.com/identity/sign-in/web/devconsole-project
+# 2. https://console.cloud.google.com/apis/credentials/consent
+# 3. https://console.developers.google.com/apis/credentials → create credentials → oauth, ...
+# 4. The return path for google is https://{DOMAIN_NAME}/auth/google/return
+# 5. When done, there should be an entry under "OAuth 2.0 client IDs"
+# 6. ... and you have your ID and secret!
+# 
+# Now, connect to the database, where the setup is in the passports_settings table:
+# 
+# 1. there sould be a site_conf entry:
+# ```
+# insert into passport_settings (strategy , conf ) VALUES ( 'site_conf', '{"auth": "https://[DOMAIN_NAME]/auth"}'::JSONB );
+# ```
+# e.g., {"auth": "https://cocalc.com/auth"} is used on the live site
+# and   {"auth": "https://cocalc.com/[project_id]/port/8000/auth"} for a certain dev project.
+# 
+# 2. insert into passport_settings (strategy , conf ) VALUES ( 'google', '{"clientID": "....apps.googleusercontent.com", "clientSecret": "..."}'::JSONB )
+# 
+# Then restart the hubs.
 
 async   = require('async')
 uuid    = require('node-uuid')

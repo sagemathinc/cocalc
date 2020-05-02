@@ -1,10 +1,13 @@
 /*
-Show a file listing.
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-NOTES:
-
- - TODO: If we want to preserve the scroll position let's just not unmount this component (like we do with editors).
-*/
+// Show a file listing.
+//
+// NOTES:
+//
+//  - TODO: If we want to preserve the scroll position let's just not unmount this component (like we do with editors).
 
 import { WATCH_THROTTLE_MS } from "../../websocket/listings";
 import * as React from "react";

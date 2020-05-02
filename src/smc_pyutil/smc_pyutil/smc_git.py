@@ -1,7 +1,6 @@
 #!/usr/bin/python
-"""
-(c) Tim Clemans, 2016
-"""
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
 import json, os, sys
 import re
@@ -42,8 +41,8 @@ def changed_untracked_files():
 
 
 def compare_current_branch_with_upstream_master():
-    results = os.popen(
-        'git diff %s upstream/master' % (current_branch())).read()
+    results = os.popen('git diff %s upstream/master' %
+                       (current_branch())).read()
     return results
 
 

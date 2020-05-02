@@ -1,14 +1,17 @@
 /*
-Component that shows rendered markdown.
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-It also:
-
-   - [x] tracks and restores scroll position
-   - [x] is scrollable
-   - [x] is zoomable
-   - [x] math is properly typeset
-   - [x] checkbox in markdown are interactive (can click them, which edits file)
-*/
+// Component that shows rendered markdown.
+//
+// It also:
+//
+//    - [x] tracks and restores scroll position
+//    - [x] is scrollable
+//    - [x] is zoomable
+//    - [x] math is properly typeset
+//    - [x] checkbox in markdown are interactive (can click them, which edits file)
 
 import { Markdown } from "smc-webapp/r_misc";
 

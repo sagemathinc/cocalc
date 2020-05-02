@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 """
 Convert ipynb files to pdf using nbconvert's html generating
 and headless chromium, instead of using LaTeX.  This is much

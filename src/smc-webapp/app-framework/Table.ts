@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { AppRedux } from "../app-framework";
 // import { webapp_client } from "../webapp-client";
 import { WebappClient } from "../client/client";

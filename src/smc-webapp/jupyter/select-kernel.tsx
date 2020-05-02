@@ -1,6 +1,9 @@
 /*
-help users selecting a kernel
-*/
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// help users selecting a kernel
 
 import { React, Component, Rendered } from "../app-framework";
 import {
@@ -302,7 +305,7 @@ export class KernelSelector extends Component<
     } else {
       const name = this.kernel_name(this.props.kernel);
       const current =
-        name != null ? <>{" "}The currently selected kernel is "{name}".</> : "";
+        name != null ? <> The currently selected kernel is "{name}".</> : "";
 
       return (
         <Row style={row_style}>

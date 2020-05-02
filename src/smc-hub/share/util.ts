@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // redirect /[uuid] and /[uuid]?query=123 to /[uuid]/ and /[uuid]/?query=123
 export function redirect_to_directory(req, res) {
   const query: string = req.url.slice(req.path.length);
