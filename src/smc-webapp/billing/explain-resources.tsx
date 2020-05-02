@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Col, Row } from "react-bootstrap";
 import { Component, React, Rendered } from "../app-framework";
 import { Space } from "../r_misc/space";

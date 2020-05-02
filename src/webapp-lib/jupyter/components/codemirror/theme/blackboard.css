@@ -1,4 +1,7 @@
-/* Port of TextMate's Blackboard theme */
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 .cm-s-blackboard.CodeMirror { background: #0C1021; color: #F8F8F8; }
 .cm-s-blackboard .CodeMirror-selected { background: #253B76 !important; }

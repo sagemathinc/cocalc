@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /**
  * Diff Match and Patch
  * Copyright 2018 The diff-match-patch Authors.

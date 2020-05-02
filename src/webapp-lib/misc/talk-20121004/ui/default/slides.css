@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 @import url(s5-core.css); /* required to make the slide show run at all */
 @import url(framing.css); /* sets basic placement and size of slide components */
 @import url(pretty.css);  /* stuff that makes the slides look better than blah */

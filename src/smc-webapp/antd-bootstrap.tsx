@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 We use so little of react-bootstrap in CoCalc that for a first quick round
 of switching to antd, I'm going to see if it isn't easy to re-implement
 much of the same functionality on top of antd.

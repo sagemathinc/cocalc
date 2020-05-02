@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // this is purely for manual testing: in ./src/smc-hub$ nodejs test/email.js
 
 // it uses the usual database and hence picks up all the site-settings

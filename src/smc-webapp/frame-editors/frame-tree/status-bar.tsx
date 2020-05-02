@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Show a minimal status bar at the bottom of the screen when status is set in the store.
 
 Very simple for now.  We should obviously add more later, e.g., number of lines of the file...

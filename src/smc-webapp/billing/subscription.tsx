@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Alert, Button, ButtonToolbar, Col, Row } from "react-bootstrap";
 import { stripe_amount, stripe_date, capitalize } from "smc-util/misc";
 import { Component, React, Rendered, redux } from "../app-framework";

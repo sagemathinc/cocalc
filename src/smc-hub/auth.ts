@@ -1,55 +1,37 @@
-//#############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
-
 /*
-Passport Authentication (oauth, etc.)
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-Server-side setup
------------------
-
-In order to get this running, you have to manually setup each service.
-That requires to register with the authentication provider, telling them about CoCalc,
-the domain you use, the return path for the response, and adding the client identification
-and corresponding secret keys to the database.
-Then, the service is active and will be presented to the user on the sign up page.
-The following is an example for setting up google oauth.
-The other services are similar.
-
-1. background: https://developers.google.com/identity/sign-in/web/devconsole-project
-2. https://console.cloud.google.com/apis/credentials/consent
-3. https://console.developers.google.com/apis/credentials → create credentials → oauth, ...
-4. The return path for google is https://{DOMAIN_NAME}/auth/google/return
-5. When done, there should be an entry under "OAuth 2.0 client IDs"
-6. ... and you have your ID and secret!
-
-Now, connect to the database, where the setup is in the passports_settings table:
-
-In older code, there was a "site_conf". We fix it to be $base_url/auth. There is no need to configure it, and existing configurations are ignored. Besides that, it wasn't properly used for all SSO strategies anyways …
-
-What's important is to configure the individual passport settings:
-
-2. insert into passport_settings (strategy , conf ) VALUES ( 'google', '{"clientID": "....apps.googleusercontent.com", "clientSecret": "..."}'::JSONB )
-
-Then restart the hubs.
-*/
+// Passport Authentication (oauth, etc.)
+//
+// Server-side setup
+// -----------------
+//
+// In order to get this running, you have to manually setup each service.
+// That requires to register with the authentication provider, telling them about CoCalc,
+// the domain you use, the return path for the response, and adding the client identification
+// and corresponding secret keys to the database.
+// Then, the service is active and will be presented to the user on the sign up page.
+// The following is an example for setting up google oauth.
+// The other services are similar.
+//
+// 1. background: https://developers.google.com/identity/sign-in/web/devconsole-project
+// 2. https://console.cloud.google.com/apis/credentials/consent
+// 3. https://console.developers.google.com/apis/credentials → create credentials → oauth, ...
+// 4. The return path for google is https://{DOMAIN_NAME}/auth/google/return
+// 5. When done, there should be an entry under "OAuth 2.0 client IDs"
+// 6. ... and you have your ID and secret!
+//
+// Now, connect to the database, where the setup is in the passports_settings table:
+//
+// In older code, there was a "site_conf". We fix it to be $base_url/auth. There is no need to configure it, and existing configurations are ignored. Besides that, it wasn't properly used for all SSO strategies anyways …
+//
+// What's important is to configure the individual passport settings:
+//
+// 2. insert into passport_settings (strategy , conf ) VALUES ( 'google', '{"clientID": "....apps.googleusercontent.com", "clientSecret": "..."}'::JSONB )
+//
+// Then restart the hubs.
 
 import { Router } from "express";
 import { callback2 as cb2 } from "../smc-util/async-utils";
@@ -72,7 +54,10 @@ import {
   welcome_email,
 } from "./email";
 import { PostgreSQL } from "./postgres/types";
-import { PassportStrategy, PRIMARY_SSO } from "../smc-webapp/account/passport-types";
+import {
+  PassportStrategy,
+  PRIMARY_SSO,
+} from "../smc-webapp/account/passport-types";
 const safeJsonStringify = require("safe-json-stringify");
 
 // primary strategies -- all other ones are "extra"
@@ -482,7 +467,9 @@ class PassportManager {
       res.header("Content-Type", "text/html");
       res.header("Cache-Control", "private, no-cache, must-revalidate");
       if (!(req.query.token && req.query.email)) {
-        res.send("ERROR: I need the email address and the corresponding token data");
+        res.send(
+          "ERROR: I need the email address and the corresponding token data"
+        );
         return;
       }
       const email = decodeURIComponent(req.query.email);

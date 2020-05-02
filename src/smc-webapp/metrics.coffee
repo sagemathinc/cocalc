@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 """
 Reporting of time-consuming events to the backend so we can improve
 the usability of CoCalc.

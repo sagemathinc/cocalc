@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /* Declare CodeMirror plugins we use.
 
 It was ridiculously hard to figure out how to declare this in TypeScript!

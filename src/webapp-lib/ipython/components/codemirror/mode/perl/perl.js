@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // CodeMirror2 mode/perl/perl.js (text/x-perl) beta 0.10 (2011-11-08)
 // This is a part of CodeMirror from https://github.com/sabaca/CodeMirror_mode_perl (mail@sabaca.com)
 CodeMirror.defineMode("perl",function(){

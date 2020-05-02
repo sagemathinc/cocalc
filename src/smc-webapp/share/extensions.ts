@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /*
 Various logic depends on filename extensions, so it is good to centralize that to avoid
 duplicating code.  What's below may be pretty dumb though (and we should use some

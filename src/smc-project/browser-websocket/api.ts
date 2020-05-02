@@ -1,11 +1,18 @@
-/* Websocket based request/response api.
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-All functionality here is of the form:
+/*
+ * License
+ */
 
- -- one request
- -- one response
-
-*/
+// Websocket based request/response api.
+//
+// All functionality here is of the form:
+//
+//  -- one request
+//  -- one response
 
 // This require is just because typescript is confused by
 // the path for now.  Growing pains.

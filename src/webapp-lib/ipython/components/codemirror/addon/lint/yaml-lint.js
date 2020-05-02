@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Depends on js-yaml.js from https://github.com/nodeca/js-yaml
 
 // declare global: jsyaml

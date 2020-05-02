@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Show the last latex build log, i.e., output from last time we ran the LaTeX build process.
 */
 

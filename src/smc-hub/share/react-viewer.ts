@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React } from "smc-webapp/app-framework";
 import { ContentPage } from "smc-webapp/share/content-page";
 import { IsPublicFunction } from "smc-webapp/share/types";

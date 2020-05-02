@@ -1,6 +1,10 @@
 /*
-Add collaborators to a project
-*/
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// Add collaborators to a project
+
 import * as React from "react";
 import { rtypes, rclass, redux } from "../app-framework";
 import { ErrorDisplay, Icon, MarkdownInput, SettingBox } from "../r_misc";

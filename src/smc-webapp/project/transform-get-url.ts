@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /*
 Apply various transformations to url's before downloading a file using the "+ New" from web thing:
 This is useful, since people often post a link to a page that *hosts* raw content, but isn't raw

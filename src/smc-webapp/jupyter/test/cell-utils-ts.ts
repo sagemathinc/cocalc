@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { describe, it, expect } from "../../frame-editors/generic/test/util";
 import * as cell_utils from "../cell-utils";
 import * as immutable from "immutable";

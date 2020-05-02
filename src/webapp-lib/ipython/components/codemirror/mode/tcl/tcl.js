@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 //tcl mode by Ford_Lawnmower :: Based on Velocity mode by Steve O'Hara
 CodeMirror.defineMode("tcl", function() {
   function parseWords(str) {

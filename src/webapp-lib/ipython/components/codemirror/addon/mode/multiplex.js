@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 CodeMirror.multiplexingMode = function(outer /*, others */) {
   // Others should be {open, close, mode [, delimStyle] [, innerStyle]} objects
   var others = Array.prototype.slice.call(arguments, 1);

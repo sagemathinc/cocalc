@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /*
  * this manages project configuration specific aspects.
  * It is the corresponding counterpart of smc-project/configuration.ts

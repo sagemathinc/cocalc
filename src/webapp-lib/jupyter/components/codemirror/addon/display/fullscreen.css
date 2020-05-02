@@ -1,3 +1,8 @@
+/* 
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 .CodeMirror-fullscreen {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;

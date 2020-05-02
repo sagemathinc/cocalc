@@ -1,17 +1,15 @@
 /*
-A single terminal frame.
-*/
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// A single terminal frame.
 
 import { Map } from "immutable";
-
 import { Terminal } from "./connected-terminal";
-
 import { throttle } from "underscore";
-
 import { background_color } from "./themes";
-
 import { is_different } from "smc-util/misc2";
-
 import { React, Component, Rendered, ReactDOM } from "../../app-framework";
 
 interface Props {

@@ -1,6 +1,9 @@
 /*
-The static buttonbar at the top.
-*/
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// The static buttonbar at the top.
 
 import { React, Component, rclass, rtypes, Rendered } from "../app-framework";
 import * as immutable from "immutable";

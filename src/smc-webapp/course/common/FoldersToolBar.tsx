@@ -1,34 +1,17 @@
-//##############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016 -- 2017, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
-
 /*
-BUG:
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
- - this code is buggy since the SearchInput component below is NOT controlled,
-   but some of the code assumes it is, which makes no sense.
-   E.g., there is a clear_search prop that is passed in, which is
-   nonsense, because the state of the search is local to the
-   SearchInput. That's why the calls to clear
-   the search in all the code below are all broken.
-
-*/
+// BUG:
+//
+//  - this code is buggy since the SearchInput component below is NOT controlled,
+//    but some of the code assumes it is, which makes no sense.
+//    E.g., there is a clear_search prop that is passed in, which is
+//    nonsense, because the state of the search is local to the
+//    SearchInput. That's why the calls to clear
+//    the search in all the code below are all broken.
+//
 
 import * as underscore from "underscore";
 import * as immutable from "immutable";
