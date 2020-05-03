@@ -117,7 +117,7 @@ export class NewFilenames {
     }
     // in some cases, prefix with the current day
     if (this.type.startsWith("ymd_")) {
-      tokens.unshift(new Date().toISOString().slice(0, 10).split("-").join(""));
+      tokens.unshift(new Date().toISOString().slice(0, 10));
     }
     switch (this.effective_ext) {
       case "java": // CamelCase!
