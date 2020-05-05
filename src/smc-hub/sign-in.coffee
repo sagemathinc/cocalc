@@ -357,6 +357,7 @@ exports.record_sign_in = (opts) ->
         email_address    : undefined
         account_id       : undefined
         remember_me      : false
+
     if not opts.successful
         record_sign_in_fail
             email : opts.email_address
