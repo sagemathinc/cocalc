@@ -7,6 +7,9 @@ COPY_NODE_ENV="$NODE_ENV"
 
 # special cases in kucalc mode
 
+node scripts/update-color-scheme.js
+bash webapp-lib/primus/update_primus
+
 # we test if the webapp builds
 if [[ $KUCALC_MODE == "webapp" ]]; then
     python install.py webapp build

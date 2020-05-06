@@ -23,7 +23,6 @@ export function DeleteAccount(props: Props) {
         <Button
           disabled={props.show_confirmation}
           className="pull-right"
-          bsStyle="danger"
           style={props.style}
           onClick={props.initial_click}
         >

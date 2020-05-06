@@ -341,7 +341,7 @@ class AccountPage extends Component<Props> {
           <div style={{ marginTop: "1rem" }}>
             <SignOut
               everywhere={false}
-              danger={true}
+              highlight={true}
               style={{ position: "absolute", right: 0, zIndex: 1 }}
             />
           </div>
