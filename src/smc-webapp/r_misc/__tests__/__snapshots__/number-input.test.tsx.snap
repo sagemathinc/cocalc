@@ -2,75 +2,45 @@
 
 exports[`smoke testing renders disabled 1`] = `
 <Row
-  bsClass="row"
-  componentClass="div"
+  gutter={16}
 >
   <Col
-    bsClass="col"
-    componentClass="div"
-    xs={6}
+    xs={16}
   >
-    <form
-      onSubmit={[Function]}
-    >
-      <FormGroup
-        bsClass="form-group"
-      >
-        <FormControl
-          bsClass="form-control"
-          componentClass="input"
-          disabled={true}
-          onBlur={[Function]}
-          onChange={[Function]}
-          onKeyDown={[Function]}
-          type="text"
-          value={0}
-        />
-      </FormGroup>
-    </form>
+    <Input
+      disabled={true}
+      onBlur={[Function]}
+      onChange={[Function]}
+      onKeyDown={[Function]}
+      type="text"
+      value={0}
+    />
   </Col>
   <Col
-    bsClass="col"
     className="lighten"
-    componentClass="div"
-    xs={6}
+    xs={8}
   />
 </Row>
 `;
 
 exports[`smoke testing renders with a unit 1`] = `
 <Row
-  bsClass="row"
-  componentClass="div"
+  gutter={16}
 >
   <Col
-    bsClass="col"
-    componentClass="div"
-    xs={6}
+    xs={16}
   >
-    <form
-      onSubmit={[Function]}
-    >
-      <FormGroup
-        bsClass="form-group"
-      >
-        <FormControl
-          bsClass="form-control"
-          componentClass="input"
-          onBlur={[Function]}
-          onChange={[Function]}
-          onKeyDown={[Function]}
-          type="text"
-          value={0}
-        />
-      </FormGroup>
-    </form>
+    <Input
+      onBlur={[Function]}
+      onChange={[Function]}
+      onKeyDown={[Function]}
+      type="text"
+      value={0}
+    />
   </Col>
   <Col
-    bsClass="col"
     className="lighten"
-    componentClass="div"
-    xs={6}
+    xs={8}
   >
     lbs
   </Col>
@@ -79,74 +49,44 @@ exports[`smoke testing renders with a unit 1`] = `
 
 exports[`smoke testing renders with required values 1`] = `
 <Row
-  bsClass="row"
-  componentClass="div"
+  gutter={16}
 >
   <Col
-    bsClass="col"
-    componentClass="div"
-    xs={6}
+    xs={16}
   >
-    <form
-      onSubmit={[Function]}
-    >
-      <FormGroup
-        bsClass="form-group"
-      >
-        <FormControl
-          bsClass="form-control"
-          componentClass="input"
-          onBlur={[Function]}
-          onChange={[Function]}
-          onKeyDown={[Function]}
-          type="text"
-          value={0}
-        />
-      </FormGroup>
-    </form>
+    <Input
+      onBlur={[Function]}
+      onChange={[Function]}
+      onKeyDown={[Function]}
+      type="text"
+      value={0}
+    />
   </Col>
   <Col
-    bsClass="col"
     className="lighten"
-    componentClass="div"
-    xs={6}
+    xs={8}
   />
 </Row>
 `;
 
 exports[`smoke testing renders with required values 2`] = `
 <Row
-  bsClass="row"
-  componentClass="div"
+  gutter={16}
 >
   <Col
-    bsClass="col"
-    componentClass="div"
-    xs={6}
+    xs={16}
   >
-    <form
-      onSubmit={[Function]}
-    >
-      <FormGroup
-        bsClass="form-group"
-      >
-        <FormControl
-          bsClass="form-control"
-          componentClass="input"
-          onBlur={[Function]}
-          onChange={[Function]}
-          onKeyDown={[Function]}
-          type="text"
-          value={12}
-        />
-      </FormGroup>
-    </form>
+    <Input
+      onBlur={[Function]}
+      onChange={[Function]}
+      onKeyDown={[Function]}
+      type="text"
+      value={12}
+    />
   </Col>
   <Col
-    bsClass="col"
     className="lighten"
-    componentClass="div"
-    xs={6}
+    xs={8}
   />
 </Row>
 `;

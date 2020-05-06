@@ -22,6 +22,7 @@ exports[`Setting it to true and letting it sit: Should now have a warning 1`] = 
         "marginLeft": "5px",
         "marginRight": "-5px",
         "padding": "5px",
+        "whiteSpace": "nowrap",
       }
     }
   >
@@ -52,6 +53,7 @@ exports[`Setting it to true, waiting to trigger a warning, and then switching ba
         "marginLeft": "5px",
         "marginRight": "-5px",
         "padding": "5px",
+        "whiteSpace": "nowrap",
       }
     }
   >
