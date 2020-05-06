@@ -38,6 +38,9 @@ import { log } from "../../user-tracking";
 import { PassportStrategy } from "../passport-types";
 import { PassportStrategyIcon, strategy2display } from "../../passports";
 
+import { load_strategies_from_server } from "./strategies";
+load_strategies_from_server();
+
 type ImmutablePassportStrategy = TypedMap<PassportStrategy>;
 
 interface Props {

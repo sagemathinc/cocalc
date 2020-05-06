@@ -8,9 +8,9 @@ import { fromJS } from "immutable";
 import { redux } from "../../app-framework";
 import { PassportStrategy } from "../passport-types";
 
-export const STRATEGIES: PassportStrategy[] = [{ name: "email" }];
+const STRATEGIES: PassportStrategy[] = [{ name: "email" }];
 
-function load_strategies_from_server(): void {
+export function load_strategies_from_server(): void {
   $.get(`${window.app_base_url}/auth/strategies?v=2`, function (
     strategies,
     status
@@ -44,6 +44,3 @@ function load_strategies_from_server(): void {
     }
   });
 }
-
-// try
-load_strategies_from_server();
