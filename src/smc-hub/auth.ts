@@ -209,6 +209,9 @@ const GoogleStrategyConf: StrategyConf = {
 const GithubStrategyConf: StrategyConf = {
   strategy: "github",
   PassportStrategyConstructor: require("passport-github2").Strategy,
+  auth_opts: {
+    scope: ["user:email"],
+  },
   login_info: {
     id: (profile) => profile.id,
     full_name: (profile) =>
