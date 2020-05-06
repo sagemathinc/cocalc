@@ -18,10 +18,10 @@ fi
 
 # running tests (install section did already build everything)
 # easy warmup
-cd $TRAVIS_BUILD_DIR/src/smc-util-node; npm run test
+cd $TRAVIS_BUILD_DIR/src/smc-util-node && npm run test
 
 # jest only, until also the jupyter tests work
-cd $TRAVIS_BUILD_DIR/src/smc-webapp/; npm test -- --ci
+cd $TRAVIS_BUILD_DIR/src/ && npx jest smc-webapp
 
 #- "cd $TRAVIS_BUILD_DIR/src/smc-webapp/; npm run testjcli" # broken
 
