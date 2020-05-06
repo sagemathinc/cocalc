@@ -721,9 +721,10 @@ class PassportManager {
                 dot.pick(v, profile);
           Object.assign(login_opts, { [k]: param });
         }
-        dbg2(
-          `login_opts = ${safeJsonStringify(_.omit(login_opts, ["req, res"]))}`
-        );
+        // this log line below suddenly produces a lot of output [rub, 2020-05-06]
+        //dbg2(
+        //  `login_opts = ${safeJsonStringify(_.omit(login_opts, ["req, res"]))}`
+        //);
         await this.passport_login(login_opts as PassportLogin);
       }
     );
