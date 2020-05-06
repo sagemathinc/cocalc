@@ -143,8 +143,7 @@
   },
   "scripts": {
     "test": "cd .. && npx jest smc-webapp",
-    "testwapp": "echo 'TEST WEBAPP'; SMC_TEST=true node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee",
-    "testjcli": "echo 'TEST JUPYTER CLIENT'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee",
+    "testjcli": "echo 'TEST JUPYTER CLIENT'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee test/*.ts",
     "lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee *.cjsx",
     "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html"
   },
