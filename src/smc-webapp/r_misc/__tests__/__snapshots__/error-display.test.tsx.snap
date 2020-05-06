@@ -1,26 +1,30 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`smoke test 1`] = `
-<Alert
-  bsClass="alert"
-  bsStyle="danger"
-  closeLabel="Close alert"
+<div
   style={
     Object {
       "marginRight": "1ex",
-      "maxWidth": "100ex",
       "whiteSpace": "pre-line",
     }
   }
 >
-  <CloseX
-    on_close={[Function]}
-    style={
-      Object {
-        "fontSize": "11pt",
-      }
+  <Alert
+    closable={true}
+    message={
+      <div
+        style={
+          Object {
+            "marginRight": "10px",
+            "overflowX": "auto",
+          }
+        }
+      >
+        Testing error
+      </div>
     }
+    onClose={[Function]}
+    type="error"
   />
-  Testing error
-</Alert>
+</div>
 `;

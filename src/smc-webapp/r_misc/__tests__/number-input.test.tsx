@@ -88,7 +88,7 @@ describe("input behavior", () => {
         on_change={mock_change}
       />
     );
-    const form = rendered.find("FormControl").first();
+    const form = rendered.find("Input").first();
     form.simulate("change", { target: { value: final_value } });
     form.simulate("blur");
     expect(mock_change.mock.calls.length).toBe(1);
@@ -111,7 +111,7 @@ describe("input behavior", () => {
         on_change={mock_change}
       />
     );
-    const form = rendered.find("FormControl").first();
+    const form = rendered.find("Input").first();
     form.simulate("change", { target: { value: over_max } });
     form.simulate("blur");
     expect(mock_change.mock.calls.length).toBe(1);
@@ -140,7 +140,7 @@ describe("input behavior", () => {
         on_change={mock_change}
       />
     );
-    const form = rendered.find("FormControl").first();
+    const form = rendered.find("Input").first();
     form.simulate("change", { target: { value: under_min } });
     form.simulate("blur");
     expect(mock_change.mock.calls.length).toBe(1);
