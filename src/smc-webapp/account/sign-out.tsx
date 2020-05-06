@@ -9,7 +9,7 @@ import { Button, Popconfirm } from "antd";
 interface Props {
   everywhere?: boolean;
   sign_in?: boolean;
-  danger?: boolean;
+  highlight?: boolean;
   style?: React.CSSProperties;
 }
 
@@ -58,7 +58,7 @@ export class SignOut extends Component<Props> {
       >
         <Button
           icon={"logout"}
-          type={this.props.danger ? "danger" : undefined}
+          type={this.props.highlight ? "primary" : undefined}
           style={this.props.style}
         >
           {this.render_body()}
