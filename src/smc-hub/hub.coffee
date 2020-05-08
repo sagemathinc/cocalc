@@ -397,6 +397,8 @@ start_landing_service = (cb) ->
     {LandingServer} = require('./landing/landing.ts')
     async.series([
         (cb) ->
+            init_metrics(cb)
+        (cb) ->
             connect_to_database(error:99999, pool:5, cb:cb)
         (cb) ->
             landing_server = new LandingServer(port:program.port, db:database, base_url:BASE_URL)
@@ -455,6 +457,16 @@ stripe_sync = (dump_only, cb) ->
                 cb        : cb
     ], cb)
 
+init_metrics = (cb) ->
+    winston.debug("Initializing Metrics Recorder")
+    MetricsRecorder.init(winston, (err, mr) ->
+        if err?
+            cb(err)
+        else
+            metric_blocked = MetricsRecorder.new_counter('blocked_ms_total', 'accumulates the "blocked" time in the hub [ms]')
+            uncaught_exception_total =  MetricsRecorder.new_counter('uncaught_exception_total', 'counts "BUG"s')
+            cb()
+    )
 
 #############################################
 # Start everything running
@@ -502,15 +514,7 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             if not program.port
                 cb(); return
-            winston.debug("Initializing Metrics Recorder")
-            MetricsRecorder.init(winston, (err, mr) ->
-                if err?
-                    cb(err)
-                else
-                    metric_blocked = MetricsRecorder.new_counter('blocked_ms_total', 'accumulates the "blocked" time in the hub [ms]')
-                    uncaught_exception_total =  MetricsRecorder.new_counter('uncaught_exception_total', 'counts "BUG"s')
-                    cb()
-            )
+            init_metrics(cb)
         (cb) ->
             # this defines the global (to this file) database variable.
             winston.debug("Connecting to the database.")
