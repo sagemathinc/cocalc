@@ -18,7 +18,7 @@ import { QueryParams } from "../misc/query-params";
 import { separate_file_extension } from "smc-util/misc2";
 import { JupyterActions } from "smc-webapp/jupyter/actions";
 
-type Kernel = "ir" | "python3" | "bash";
+type Kernel = "ir" | "python3" | "bash" | "octave";
 type Cell = { type?: "markdown" | "code"; content: string };
 
 const ir_welcome = `# Welcome to R in CoCalc!
@@ -30,6 +30,10 @@ const python3_welcome = `# Welcome to Python in CoCalc!
 Run a cell via \`Shift + Return\`. Learn more about [CoCalc Jupyter Notebooks](https://doc.cocalc.com/jupyter.html).`;
 
 const bash_welcome = `# Welcome to Bash in CoCalc!
+
+Run a cell via \`Shift + Return\`. Learn more about [CoCalc Jupyter Notebooks](https://doc.cocalc.com/jupyter.html).`;
+
+const octave_welcome = `# Welcome to Octave in CoCalc!
 
 Run a cell via \`Shift + Return\`. Learn more about [CoCalc Jupyter Notebooks](https://doc.cocalc.com/jupyter.html).`;
 
@@ -55,6 +59,25 @@ plt.plot(xx, yy)`,
     { content: 'foo="World"\necho "Hello $foo!"' },
     { content: "date" },
     { content: "echo '2*20 + 2' | bc -l" },
+  ],
+  octave: [
+    { type: "markdown", content: octave_welcome },
+    {
+      content: `x = 1:10;
+y = 1:10;
+x' * y`,
+    },
+    {
+      content: `tx = ty = linspace (-8, 8, 41)';
+[xx, yy] = meshgrid (tx, ty);
+r = sqrt (xx .^ 2 + yy .^ 2) + eps;
+tz = sin (r) ./ r;
+mesh (tx, ty, tz);
+xlabel ("tx");
+ylabel ("ty");
+zlabel ("tz");
+title ("3-D Sombrero plot");`,
+    },
   ],
 };
 
@@ -90,6 +113,10 @@ export class WelcomeFile {
         break;
       case "jupyter-bash":
         await this.setup_notebook("bash");
+        break;
+      case "octave":
+      case "jupyter-octave":
+        await this.setup_notebook("octave");
         break;
     }
   }
@@ -152,7 +179,9 @@ export class WelcomeFile {
       case "r":
       case "jupyter-r":
       case "jupyter-bash":
-        // TODO: pre-select the R kernel
+      case "octave":
+      case "jupyter-octave":
+        // TODO: pre-select the R, bash or octave kernel
         return "Welcome to CoCalc.ipynb";
       case "linux":
       case "terminal":
