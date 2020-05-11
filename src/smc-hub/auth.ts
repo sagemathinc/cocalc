@@ -978,6 +978,17 @@ class PassportManager {
     await Promise.all(check_emails);
   }
 
+  private async set_email_verified(
+    account_id: string,
+    email_address: string
+  ): Promise<void> {
+    return await cb2(this.database._query, {
+      query: "UPDATE accounts",
+      jsonb_set: { email_address_verified: { [email_address]: new Date() } },
+      where: { "account_id = $::UUID": account_id },
+    });
+  }
+
   private async create_account(opts, email_address): Promise<string> {
     return await cb2(this.database.create_account, {
       first_name: opts.first_name,
@@ -1007,13 +1018,22 @@ class PassportManager {
     dbg("emails=${opts.emails} email_address=${locals.email_address}");
     locals.account_id = await this.create_account(opts, locals.email_address);
     locals.new_account_created = true;
+
+    // if we know the email address,
+    // we execute the account creation actions and set the address to be verified
     if (locals.email_address != null) {
-      await cb2(this.database.do_account_creation_actions, {
+      const actions = cb2(this.database.do_account_creation_actions, {
         email_address: locals.email_address,
         account_id: locals.account_id,
       });
+      const verify = this.set_email_verified(
+        locals.account_id,
+        locals.email_address
+      );
+      await Promise.all([actions, verify]);
     }
-    // log this
+
+    // log the newly created account
     const data = {
       account_id: locals.account_id,
       first_name: opts.first_name,
@@ -1021,6 +1041,7 @@ class PassportManager {
       email_address: locals.email_address != null ? locals.email_address : null,
       created_by: opts.req.ip,
     };
+
     // no await -- don't let client wait for *logging* the fact that we created an account
     // failure wouldn't matter.
     this.database.log({
