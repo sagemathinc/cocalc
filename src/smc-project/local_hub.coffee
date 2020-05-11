@@ -4,10 +4,6 @@
 #########################################################################
 
 ###
-
-CoCalc: Collaborative web-based SageMath, Jupyter, LaTeX and Terminals.
-Copyright 2015, SageMath, Inc., GPL v3.
-
 local_hub -- a node.js program that runs as a regular user, and
              coordinates and maintains the connections between
              the global hubs and *all* projects running as
@@ -29,6 +25,8 @@ uuid    = require('uuid')
 winston = require('winston')
 request = require('request')
 program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
+
+init_gitconfig = require('./gitconfig').init_gitconfig
 
 BUG_COUNTER = 0
 
@@ -309,9 +307,14 @@ start_server = (tcp_port, raw_port, cb) ->
     the_secret_token = undefined
     if program.console_port
         console_sessions.set_port(program.console_port)
+
     # We run init_info_json to determine the INFO variable.
     # However, we do NOT wait for the cb of init_info_json to be called, since we don't care in this process that the file info.json was written.
     init_info_json()
+
+    # setup some files to help users working with Git
+    # this is an async function, but we don't wait for it -- no need
+    init_gitconfig(winston)
 
     async.series([
         (cb) ->
