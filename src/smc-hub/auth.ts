@@ -80,6 +80,8 @@ interface PassportStrategyDB extends PassportStrategy {
   tokenURL?: string; // --*--
   userinfoURL?: string; // OAuth2, to get a profile
   login_info?: { [key in login_info_keys]?: string };
+  public?: boolean; // if true it's a public SSO. this is only used in the UI, i.e. when there are no public ones, we allow token based email sign up
+  disabled?: boolean; // if true, ignore this entry. default false.
 }
 
 const { defaults, required } = misc;
@@ -382,7 +384,11 @@ class PassportManager {
       for (const setting of settings) {
         const name = setting.strategy;
         const conf = setting.conf as PassportStrategyDB;
+        if (conf.disabled === true) {
+          continue;
+        }
         conf.name = name;
+        conf.public = setting.conf.public ?? true; // set the default
         this.strategies[name] = conf;
       }
       return this.strategies;
@@ -421,10 +427,10 @@ class PassportManager {
     res.json(data);
   }
 
-  // version 2 tells the web client a little bit more. the additional info is used to
-  // render customizeable SSO icons
+  // version 2 tells the web client a little bit more.
+  // the additional info is used to render customizeable SSO icons.
   private strategies_v2(res): void {
-    const data: PassportStrategyDB[] = [];
+    const data: PassportStrategy[] = [];
     for (const name in this.strategies) {
       if (name === "site_conf") continue;
       // this is sent to the web client → do not include any secret info!
@@ -433,6 +439,7 @@ class PassportManager {
         "display",
         "type",
         "icon",
+        "public",
       ]);
       data.push(info);
     }
@@ -533,8 +540,9 @@ class PassportManager {
   // info is sent to the webapp client to properly present them. Google&co are "primary" configurations.
   //
   // here is one example what can be saved in the DB to make this work for a general OAuth2
+  // if this SSO is not public (e.g. uni campus, company specific, ...) mark it as {"public":false}!
   //
-  // insert into passport_settings (strategy, conf ) VALUES ( '[unique, e.g. "wowtech"]', '{"type": "oauth2next", "clientID": "CoCalc_Client", "scope": ["email", "cocalc", "profile", ... depends on the config], "clientSecret": "[a password]", "authorizationURL": "https://domain.edu/.../oauth2/authorize", "userinfoURL" :"https://domain.edu/.../oauth2/userinfo",  "tokenURL":"https://domain.edu/.../oauth2/...extras.../access_token",  "login_info" : {"emails" :"emails[0].value"}, "display": "[user visible, e.g. "WOW Tech"]", "icon": "https://storage.googleapis.com/square.svg"}'::JSONB );
+  // insert into passport_settings (strategy, conf ) VALUES ( '[unique, e.g. "wowtech"]', '{"type": "oauth2next", "clientID": "CoCalc_Client", "scope": ["email", "cocalc", "profile", ... depends on the config], "clientSecret": "[a password]", "authorizationURL": "https://domain.edu/.../oauth2/authorize", "userinfoURL" :"https://domain.edu/.../oauth2/userinfo",  "tokenURL":"https://domain.edu/.../oauth2/...extras.../access_token",  "login_info" : {"emails" :"emails[0].value"}, "display": "[user visible, e.g. "WOW Tech"]", "icon": "https://storage.googleapis.com/square.svg", "public": false}'::JSONB );
   //
   // note, the login_info.emails string extracts from the profile object constructed by parse_openid_profile,
   // which is only triggered if there is such a "userinfoURL", which is OAuth2 specific.
@@ -574,6 +582,7 @@ class PassportManager {
           "clientID",
           "clientSecret",
           "userinfoURL",
+          "public", // we don't need that info for initializing them
         ]),
       };
       inits.push(this.init_strategy(config));
