@@ -11,6 +11,7 @@ import { React, Component, Rendered } from "../app-framework";
 import { BasePage } from "./base-page";
 import { TopBar } from "./top-bar";
 import { IsPublicFunction } from "./types";
+import { Settings } from "smc-hub/share/settings";
 
 interface ContentPageProps {
   site_name?: string;
@@ -19,7 +20,7 @@ interface ContentPageProps {
   viewer: "share" | "embed"; // 'share' or 'embed'
   project_id?: string; // only defined if we are viewing something in a project
   subtitle?: string;
-  google_analytics?: string; // optional, and if set just the token
+  settings: Settings;
   notranslate?: boolean;
   is_public: IsPublicFunction;
   noindex: boolean;
@@ -33,7 +34,7 @@ export class ContentPage extends Component<ContentPageProps> {
       <BasePage
         base_url={this.props.base_url}
         subtitle={this.props.subtitle}
-        google_analytics={this.props.google_analytics}
+        settings={this.props.settings}
         notranslate={this.props.notranslate}
         viewer={this.props.viewer}
         noindex={this.props.noindex}
@@ -47,6 +48,7 @@ export class ContentPage extends Component<ContentPageProps> {
           site_name={this.props.site_name}
           is_public={this.props.is_public}
           launch_path={this.props.launch_path}
+          settings={this.props.settings}
         />
         {this.props.children}
       </BasePage>

@@ -19,18 +19,28 @@ import { render_static_path } from "./render-static-path";
 
 import { HostInfo, PublicPaths } from "./public-paths";
 import { AuthorInfo } from "./authors";
+import { SettingsDAO } from "./settings";
 import { react_viewer } from "./react-viewer";
 
 export async function handle_path_request(opts: {
   public_paths: PublicPaths;
   author_info: AuthorInfo;
+  settings_dao: SettingsDAO;
   req: any;
   res: any;
   path_to_files: Function;
   base_url: string;
   viewer?: "download" | "raw" | "share" | "embed";
 }): Promise<void> {
-  const { public_paths, author_info, req, res, path_to_files, base_url } = opts;
+  const {
+    public_paths,
+    author_info,
+    settings_dao,
+    req,
+    res,
+    path_to_files,
+    base_url,
+  } = opts;
   let viewer = opts.viewer;
 
   let info: HostInfo | undefined;
@@ -140,6 +150,7 @@ export async function handle_path_request(opts: {
 
     default:
       const authors = await author_info.get_authors(project_id, path);
+      const settings = await settings_dao.get();
 
       public_paths.increment_view_counter(project_id, public_path);
       let views: undefined | number = undefined;
@@ -159,6 +170,7 @@ export async function handle_path_request(opts: {
           false,
           viewer,
           public_paths.is_public,
+          settings,
           description,
           `/${info.get("id")}/${path}`
         ),

@@ -14,6 +14,7 @@ import { callback } from "awaiting";
 import * as express from "express";
 import { get_public_paths, PublicPaths } from "./public-paths";
 import { AuthorInfo } from "./authors";
+import { SettingsDAO } from "./settings";
 
 import { handle_share_css } from "./handle-share-css";
 import { handle_share_listing } from "./handle-share-listing";
@@ -23,6 +24,7 @@ import { handle_path_request } from "./handle-path-request";
 import * as util from "./util";
 
 import { Database, Logger } from "./types";
+import { PostgreSQL } from "../postgres/types";
 
 export function share_router(opts: {
   database: Database;
@@ -33,6 +35,9 @@ export function share_router(opts: {
   let dbg;
 
   const author_info: AuthorInfo = new AuthorInfo(opts.database);
+  const settings_dao: SettingsDAO = new SettingsDAO(
+    (opts.database as any) as PostgreSQL
+  );
 
   const base_url: string = opts.base_url != null ? opts.base_url : "";
 
@@ -113,7 +118,7 @@ export function share_router(opts: {
   router.get("/", async (req, res) => {
     log_ip(req);
     await ready();
-    handle_share_listing({ public_paths, base_url, req, res });
+    handle_share_listing({ public_paths, base_url, settings_dao, req, res });
   });
 
   router.get("/users/:account_id", async (req, res) => {
@@ -122,6 +127,7 @@ export function share_router(opts: {
     handle_user_request({
       public_paths,
       author_info,
+      settings_dao,
       req,
       res,
       base_url,
@@ -134,6 +140,7 @@ export function share_router(opts: {
     await ready();
     handle_path_request({
       author_info,
+      settings_dao,
       public_paths,
       req,
       res,
@@ -148,6 +155,7 @@ export function share_router(opts: {
     await ready();
     handle_path_request({
       author_info,
+      settings_dao,
       public_paths,
       req,
       res,

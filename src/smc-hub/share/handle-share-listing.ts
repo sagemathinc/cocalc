@@ -10,20 +10,24 @@ import { PublicPathsBrowser } from "smc-webapp/share/public-paths-browser";
 
 import { react_viewer } from "./react-viewer";
 import { PublicPaths } from "./public-paths";
+import { SettingsDAO } from "./settings";
 
-export function handle_share_listing(opts: {
+export async function handle_share_listing(opts: {
   public_paths: PublicPaths;
   base_url: string;
   req: any;
   res: any;
-}): void {
-  const { public_paths, base_url, req, res } = opts;
+  settings_dao: SettingsDAO;
+}): Promise<void> {
+  const { public_paths, base_url, req, res, settings_dao } = opts;
 
   if (req.originalUrl.split("?")[0].slice(-1) !== "/") {
     // note: req.path already has the slash added.
     res.redirect(301, req.baseUrl + req.path);
     return;
   }
+
+  const settings = await settings_dao.get();
 
   const page_number = parseInt(req.query.page != null ? req.query.page : 1);
 
@@ -43,6 +47,7 @@ export function handle_share_listing(opts: {
     true,
     "share",
     public_paths.is_public,
+    settings,
     "Directory listing"
   );
   r(res, page, `${page_number} of ${PAGE_SIZE}`, true);
