@@ -227,10 +227,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         'value::TEXT' : (new Date()).toISOString()
                     conflict : 'name'
                     cb     : cb
-            # and clear the cache
-            (cb) ->
-                SERVER_SETTINGS_CACHE.reset()
         ], (err) ->
+            # clear the cache no matter what (e.g., server_settings might have partly changed then errored)
+            SERVER_SETTINGS_CACHE.reset()
             opts.cb(err)
         )
 
