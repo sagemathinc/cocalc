@@ -7,10 +7,7 @@ import { React } from "smc-webapp/app-framework";
 import { ContentPage } from "smc-webapp/share/content-page";
 import { IsPublicFunction } from "smc-webapp/share/types";
 import * as react_support from "smc-webapp/share/server-render";
-
-// read token from disk, if it is there.
-import { google_analytics_token } from "./util";
-const google_analytics: string | undefined = google_analytics_token();
+import { Settings } from "./settings";
 
 export function react_viewer(
   base_url: string,
@@ -19,6 +16,7 @@ export function react_viewer(
   notranslate: boolean,
   viewer: "share" | "embed",
   is_public: IsPublicFunction,
+  settings: Settings,
   description?: string,
   launch_path?: string
 ): Function {
@@ -32,7 +30,7 @@ export function react_viewer(
         subtitle,
         description,
         notranslate,
-        google_analytics,
+        settings,
         viewer,
         is_public,
         noindex,

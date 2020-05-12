@@ -1,0 +1,12 @@
+{
+  "name": "cocalc-webapp-resources",
+  "version": "1.0.0",
+  "description": "Webapp Resource Files ",
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^5.13.0",
+    "bootstrap": "=3.4.1",
+    "codemirror": "^5.53.2",
+    "katex": "=0.11.1",
+    "roboto-fontface": "^0.10.0"
+  }
+}
