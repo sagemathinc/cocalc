@@ -47,7 +47,8 @@ collab = require('./postgres/collab')
 
 SERVER_SETTINGS_EXTRAS = require("smc-util/db-schema/site-settings-extras").EXTRAS
 SITE_SETTINGS_CONF = require("smc-util/schema").site_settings_conf
-SERVER_SETTINGS_CACHE = require("expiring-lru-cache")({ size: 10, expiry: 10 * 1000 })
+SERVER_SETTINGS_CACHE = require("expiring-lru-cache")({ size: 10, expiry: 60 * 1000 })
+{pii_expire} = require("./utils")
 
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # write an event to the central_log table
@@ -60,6 +61,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         expire = null
         if opts.event == 'uncaught_exception'
             expire = misc.expire_time(30 * 24 * 60 * 60) # del in 30 days
+        else
+            v = opts.value
+            pii_events = ['create_account','change_password','change_email_address','webapp-add_passport','get_user_auth_token','successful_sign_in','webapp-email_sign_up']
+            if v.ip_address? or v.email_address? or event in pii_events
+                expire = await pii_expire(@)
 
         @_query
             query  : 'INSERT INTO central_log'
@@ -221,6 +227,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         'value::TEXT' : (new Date()).toISOString()
                     conflict : 'name'
                     cb     : cb
+            # and clear the cache
+            (cb) ->
+                SERVER_SETTINGS_CACHE.reset()
         ], (err) ->
             opts.cb(err)
         )
