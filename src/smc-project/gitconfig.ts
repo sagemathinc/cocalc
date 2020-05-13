@@ -20,10 +20,11 @@ const EXCLUDES_FN = join(homedir(), ".gitexcludes");
 
 const EXCLUDES = `\
 # Global .gitignore file
+# You can edit this file, CoCalc will not change it.
 # configured via ~/.gitconfig: core/excludesfile
 
 ### CoCalc Platform ###
-.snapshots/
+/.snapshots/
 .*.sage-chat
 .*.sage-history
 .*.sage-jupyter
@@ -31,6 +32,10 @@ const EXCLUDES = `\
 .*.syncdb
 .*.syncdoc
 .*.syncdoc[34]
+
+### Linux hidden files ###
+/.*
+*~
 
 ### Python ###
 __pycache__/
