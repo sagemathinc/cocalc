@@ -10,5 +10,5 @@ export interface PassportStrategy {
   display?: string; // the name to dispaly -- or capitalize(name)
   type?: string; // oauth2, ldap, ...
   icon?: string; // a URL to a square image
-  public?: string; // true, if the SSO strategy, like Google, is not private
+  public?: boolean; // true, if the SSO strategy, like Google, is not private
 }
