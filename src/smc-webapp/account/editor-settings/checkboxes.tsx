@@ -36,7 +36,7 @@ const EDITOR_SETTINGS_CHECKBOXES: { [setting: string]: string | Rendered } = {
     </span>
   ),
   disable_jupyter_windowing:
-    "never use windowing with Jupyter notebooks (windowing is sometimes used to make very large notebooks render quickly, but can lead to trouble in edge cases)",
+    "never use windowing with Jupyter notebooks (windowing is sometimes used on the Chrome browser to make very large notebooks render quickly, but can lead to trouble)",
 };
 
 interface Props {
