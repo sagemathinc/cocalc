@@ -3,13 +3,16 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as jQuery from "jquery";
+declare var $: any;
 
 export function is_safari(): boolean {
-  const $: any = jQuery;
-  if ($.browser !== undefined && $.browser.safari) {
-    return true;
-  } else {
-    return false;
-  }
+  return !!$.browser?.safari;
+}
+
+export function is_firefox(): boolean {
+  return !!$.browser?.firefox;
+}
+
+export function is_chrome(): boolean {
+  return !!$.browser?.chrome;
 }
