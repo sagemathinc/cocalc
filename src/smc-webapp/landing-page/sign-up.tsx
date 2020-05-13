@@ -120,6 +120,7 @@ export class SignUp extends React.Component<Props, State> {
     return (
       <FormGroup>
         <FormControl
+          disabled={!this.state.terms_checkbox}
           type={"text"}
           placeholder={"Enter the secret token"}
           cocalc-test={"sign-up-token"}
@@ -268,8 +269,6 @@ export class SignUp extends React.Component<Props, State> {
   render_creation_form(): Rendered {
     return (
       <div>
-        {this.render_token_input()}
-        {this.render_error("token")}
         {this.render_error("generic")}
         {this.render_error("account_creation_failed")}
         {this.render_error("other")}
@@ -279,6 +278,8 @@ export class SignUp extends React.Component<Props, State> {
             style={{ marginTop: 20, marginBottom: 20 }}
             onSubmit={this.make_account}
           >
+            {this.render_error("token")}
+            {this.render_token_input()}
             {this.render_first_name()}
             {this.render_last_name()}
             {this.render_email()}
