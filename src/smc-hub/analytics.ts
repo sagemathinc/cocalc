@@ -136,6 +136,11 @@ export function setup_analytics_js(
       let allow = false;
       try {
         const pd = parseDomain(origin);
+        if (pd == null) {
+          // This happens, e.g., when origin is https://localhost, which happens with cocalc-docker.
+          cb(null, true);
+          return;
+        }
         if (pd.tld === "com") {
           if (pd.domain === "cocalc" || pd.domain === "sagemath") {
             allow = true;
