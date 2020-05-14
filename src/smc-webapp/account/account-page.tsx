@@ -30,6 +30,8 @@ import { BillingPage } from "../billing/billing-page";
 
 import { UpgradesPage } from "./upgrades/upgrades-page";
 
+import { LicensesPage } from "./licenses/licenses-page";
+
 //import { SupportPage } from "../support";
 const { SupportPage } = require("../support");
 //import { SSHKeysPage } from "../account_ssh_keys";
@@ -158,10 +160,6 @@ class AccountPage extends Component<Props> {
     redux.getActions("account").push_state(`/${key}`);
   }
 
-  private render_upgrades(): Rendered {
-    return <UpgradesPage />;
-  }
-
   private render_ssh_keys_page(): Rendered {
     return (
       <SSHKeysPage
@@ -271,9 +269,20 @@ class AccountPage extends Component<Props> {
             </span>
           }
         >
-          {this.props.active_page === "upgrades"
-            ? this.render_upgrades()
-            : undefined}
+          {this.props.active_page === "upgrades" ? <UpgradesPage /> : undefined}
+        </Tab>
+      );
+      v.push(
+        <Tab
+          key="licenses"
+          eventKey="licenses"
+          title={
+            <span>
+              <Icon name="key" /> Licenses
+            </span>
+          }
+        >
+          {this.props.active_page === "licenses" ? <LicensesPage /> : undefined}
         </Tab>
       );
     }
