@@ -126,6 +126,7 @@ const PRODMODE = NODE_ENV !== DEVEL;
 const COMP_ENV =
   (process.env.CC_COMP_ENV || PRODMODE) &&
   fs.existsSync("webapp-lib/compute-components.json");
+const COMMERCIAL = !!COMP_ENV; // assume to be in the commercial setup, if we show the compute environment
 let { CDN_BASE_URL } = process.env; // CDN_BASE_URL must have a trailing slash
 const DEVMODE = !PRODMODE;
 const MINIFY = !!process.env.WP_MINIFY;
@@ -322,6 +323,7 @@ const pug2app = new HtmlWebpackPlugin({
   template: path.join(INPUT, "app.pug"),
   minify: htmlMinifyOpts,
   GOOGLE_ANALYTICS,
+  COMMERCIAL,
 });
 
 // global css loader configuration
