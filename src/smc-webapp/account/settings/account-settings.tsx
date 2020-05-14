@@ -314,7 +314,9 @@ export class AccountSettings extends Component<Props, State> {
         <h5 style={{ color: "#666" }}>
           Your account is linked with (click to unlink)
         </h5>
-        <ButtonToolbar style={{ marginBottom: "10px" }}>{btns}</ButtonToolbar>
+        <ButtonToolbar style={{ marginBottom: "10px", display: "flex" }}>
+          {btns}
+        </ButtonToolbar>
         {this.render_remove_strategy_button()}
       </div>
     );
@@ -345,7 +347,9 @@ export class AccountSettings extends Component<Props, State> {
       <div>
         <hr key="hr0" />
         <h5 style={{ color: "#666" }}>{heading}</h5>
-        <ButtonToolbar style={{ marginBottom: "10px" }}>{btns}</ButtonToolbar>
+        <ButtonToolbar style={{ marginBottom: "10px", display: "flex" }}>
+          {btns}
+        </ButtonToolbar>
         {this.render_add_strategy_link()}
       </div>
     );

@@ -32,9 +32,10 @@ const BASE_ICON_STYLE: React.CSSProperties = Object.freeze({
 const CUSTOM_ICON_STYLE = Object.freeze({
   ...BASE_ICON_STYLE,
   ...{
+    display: "inline-block",
     position: "relative", // unclear why, somehow due to faking these fa-icons
-    top: "14px", // unclear why, somehow due to faking these fa-icons
     backgroundSize: "contain",
+    padding: "0",
   },
 } as React.CSSProperties);
 
@@ -195,7 +196,7 @@ export class Passports extends React.Component<Props> {
     return (
       <div style={this.props.style}>
         {this.render_heading()}
-        <div>
+        <div style={{ display: "flex" }}>
           {strategies.map((strategy) => this.render_strategy(strategy))}
         </div>
         <hr style={{ marginTop: 10, marginBottom: 10 }} />
