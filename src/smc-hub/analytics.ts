@@ -136,6 +136,10 @@ export function setup_analytics_js(
       let allow = false;
       try {
         const pd = parseDomain(origin);
+        if (pd == null) {
+          cb("CORS: not allowed (unknown origin)", false);
+          return;
+        }
         if (pd.tld === "com") {
           if (pd.domain === "cocalc" || pd.domain === "sagemath") {
             allow = true;
