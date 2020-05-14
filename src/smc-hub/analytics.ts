@@ -137,7 +137,8 @@ export function setup_analytics_js(
       try {
         const pd = parseDomain(origin);
         if (pd == null) {
-          cb("CORS: not allowed (unknown origin)", false);
+          // This happens, e.g., when origin is https://localhost, which happens with cocalc-docker.
+          cb(null, true);
           return;
         }
         if (pd.tld === "com") {
