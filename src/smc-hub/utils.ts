@@ -7,6 +7,7 @@ import * as fs from "fs";
 const winston = require("./winston-metrics").get_logger("utils");
 import { PostgreSQL } from "./postgres/types";
 import { AllSiteSettings } from "../smc-util/db-schema/types";
+import { pii_retention_parse } from "../smc-util/db-schema/site-settings-extras";
 import { expire_time } from "smc-util/misc";
 
 export function get_smc_root(): string {
@@ -49,8 +50,8 @@ export async function pii_expire<T extends object>(
   data?: T & { expire?: Date }
 ): Promise<Date | undefined> {
   const settings = await get_server_settings(db);
-  const secs: number | false = settings.pii_retention;
-  if (secs === false) return;
+  const secs : number | false = pii_retention_parse(settings.pii_retention);
+  if (!secs) return;
   const future: Date = expire_time(secs);
   if (data != null) {
     data.expire = future;
