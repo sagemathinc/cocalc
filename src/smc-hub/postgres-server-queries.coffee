@@ -272,7 +272,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     for config in [SERVER_SETTINGS_EXTRAS, SITE_SETTINGS_CONF]
                         for ckey in Object.keys(config)
                             if (not x[ckey]?) or x[ckey] == ''
-                                x[ckey] = config[ckey].default
+                                conf = config[ckey]
+                                if conf?.to_val?
+                                    x[ckey] = conf.to_val(conf.default)
+                                else
+                                    x[ckey] = conf.default
                     SERVER_SETTINGS_CACHE.set('server_settings', x)
                     #dbg("server_settings = #{JSON.stringify(x, null, 2)}")
                     opts.cb(undefined, x)
