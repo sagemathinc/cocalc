@@ -62,6 +62,7 @@ async function get_params(opts: GetData) {
   const ORGANIZATION_NAME = settings.organization_name;
   const ORGANIZATION_URL = settings.organization_url;
   const HELP_EMAIL = settings.help_email;
+  const COMMERCIAL = settings.commercial;
 
   const data = {
     // to be compatible with webpack
@@ -69,6 +70,7 @@ async function get_params(opts: GetData) {
       options: {
         BASE_URL,
         PREFIX,
+        COMMERCIAL,
       },
     },
     PREFIX,
