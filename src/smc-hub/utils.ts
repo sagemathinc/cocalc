@@ -50,7 +50,7 @@ export async function pii_expire<T extends object>(
 ): Promise<Date | undefined> {
   const settings = await get_server_settings(db);
   const secs: number | false = settings.pii_retention;
-  if (secs === false) return;
+  if (!secs) return;
   const future: Date = expire_time(secs);
   if (data != null) {
     data.expire = future;

@@ -21,7 +21,7 @@ import {
 
 const { is_valid_email_address, expire_time } = require("smc-util/misc");
 
-const pii_retention_parse = (retention: string): number | false => {
+export const pii_retention_parse = (retention: string): number | false => {
   if (retention == "never" || retention == null) return false;
   const [num_str, mult_str] = retention.split(" ");
   const num = parseInt(num_str);
