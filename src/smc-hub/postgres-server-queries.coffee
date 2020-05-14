@@ -40,7 +40,7 @@ collab = require('./postgres/collab')
 {site_license_usage_stats, projects_using_site_license, number_of_projects_using_site_license} = require('./postgres/site-license/analytics')
 {update_site_license_usage_log} = require('./postgres/site-license/usage-log')
 {site_license_public_info} = require('./postgres/site-license/public')
-{matching_site_licenses} = require('./postgres/site-license/search')
+{matching_site_licenses, manager_site_licenses} = require('./postgres/site-license/search')
 {permanently_unlink_all_deleted_projects_of_user} = require('./postgres/delete-projects')
 {unlist_all_public_paths} = require('./postgres/public-paths')
 {get_remember_me} = require('./postgres/remember-me')
@@ -3166,6 +3166,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         # async function
     matching_site_licenses: (...args) =>
         return await matching_site_licenses(@, ...args)
+
+    manager_site_licenses: (...args) =>
+        return await manager_site_licenses(@, ...args)
 
     # async function
     permanently_unlink_all_deleted_projects_of_user: (account_id_or_email_address) =>

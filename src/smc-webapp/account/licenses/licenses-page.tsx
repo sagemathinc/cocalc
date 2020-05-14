@@ -6,6 +6,7 @@
 import { Map } from "immutable";
 import { Loading } from "../../r_misc";
 import { redux, rclass, rtypes, Component, React } from "../../app-framework";
+import { webapp_client } from "../../webapp-client";
 
 interface reduxProps {
   project_map?: Map<string, any>;
@@ -14,6 +15,7 @@ interface reduxProps {
 
 interface InfoAboutLicense {
   upgraded_project_ids: string[]; // projects that you are a collab on that this license is applied to and it is actively upgrading it.
+  applied_project_ids: string[]; // projects you are a collab on that this license is applied to but not actively upgrading
 }
 
 function applied_licenses_info(
@@ -31,9 +33,21 @@ function applied_licenses_info(
           project.getIn(["state", "state"]) == "running"
         ) {
           if (x[id] == null) {
-            x[id] = { upgraded_project_ids: [project_id] };
+            x[id] = {
+              upgraded_project_ids: [project_id],
+              applied_project_ids: [],
+            };
           } else {
             x[id].upgraded_project_ids.push(project_id);
+          }
+        } else {
+          if (x[id] == null) {
+            x[id] = {
+              applied_project_ids: [project_id],
+              upgraded_project_ids: [],
+            };
+          } else {
+            x[id].applied_project_ids.push(project_id);
           }
         }
       }
@@ -42,7 +56,39 @@ function applied_licenses_info(
   return x;
 }
 
-class LicensesPage extends Component<reduxProps> {
+async function managed_licenses(): Promise<object[]> {
+  return await webapp_client.async_query({
+    query: {
+      manager_site_licenses: [{ id: null }],
+    } /* todo put in other fields; they are returned anyways */,
+  });
+}
+
+interface State {
+  managed_licenses?: any[];
+}
+
+class LicensesPage extends Component<reduxProps, State> {
+  private is_mounted: boolean = false;
+  constructor(props, state) {
+    super(props, state);
+    this.state = {};
+  }
+  componentWillUnmount() {
+    this.is_mounted = false;
+  }
+
+  componentWillMount() {
+    this.is_mounted = true;
+    this.get_managed_licenses();
+  }
+
+  async get_managed_licenses(): Promise<void> {
+    const v = await managed_licenses();
+    if (!this.is_mounted) return;
+    this.setState({ managed_licenses: v });
+  }
+
   static reduxProps() {
     return {
       projects: {
@@ -63,6 +109,8 @@ class LicensesPage extends Component<reduxProps> {
 
     return (
       <pre>
+        Manager:
+        {JSON.stringify(this.state.managed_licenses, undefined, 2)} Applied:
         {JSON.stringify(
           applied_licenses_info(this.props.project_map),
           undefined,

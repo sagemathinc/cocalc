@@ -31,3 +31,12 @@ export async function matching_site_licenses(
 
   return (await db.async_query({ query, params })).rows;
 }
+
+export async function manager_site_licenses(
+  db: PostgreSQL,
+  account_id: string
+): Promise<object[]> {
+  const query = "SELECT * FROM site_licenses WHERE $1=ANY(managers)";
+  const params = [account_id];
+  return (await db.async_query({ query, params })).rows;
+}

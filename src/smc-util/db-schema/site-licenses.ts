@@ -137,7 +137,6 @@ Table({
 });
 
 const MATCHING_SITE_LICENSES_LIMIT = 50; // pretty arbitrary limit.
-
 Table({
   name: "matching_site_licenses",
   fields: {
@@ -516,5 +515,68 @@ Table({
       "Table for logging when site licenses are used to upgrade running projects.",
     primary_key: ["license_id", "project_id", "start"],
     pg_indexes: ["license_id"],
+  },
+});
+
+Table({
+  name: "manager_site_licenses",
+  fields: {
+    id: true,
+    title: true,
+    description: true,
+    expires: true,
+    activates: true,
+    created: true,
+    last_used: true,
+    managers: true,
+    restricted: true,
+    upgrades: true,
+    run_limit: true,
+    apply_limit: true,
+  },
+  rules: {
+    virtual: true, // don't make an actual table
+    desc: "Licenses that user doing the query is a manager of.",
+    anonymous: false,
+    primary_key: ["id"],
+    user_query: {
+      get: {
+        admin: false,
+        fields: {
+          id: null,
+          title: null,
+          description: null,
+          expires: null,
+          activates: null,
+          created: null,
+          last_used: null,
+          managers: null,
+          restricted: null,
+          upgrades: null,
+          run_limit: null,
+          apply_limit: null,
+        },
+        // Actual query is implemented using this code below rather than an actual query directly.
+        // We also completely ignore the user-requested fields and just return everything, since
+        // in our application this is fine right now (since all fields are always requested).
+        async instead_of_query(database, opts, cb): Promise<void> {
+          try {
+            if (!opts.multi) {
+              throw Error(
+                "only query requesting multiple results is implemented"
+              );
+            }
+            const v = await database.manager_site_licenses(opts.account_id);
+            // Remove the "info" field, since that is meant only for admins to see.
+            for (const x of v) {
+              delete x["info"];
+            }
+            cb(undefined, v);
+          } catch (err) {
+            cb(err);
+          }
+        },
+      },
+    },
   },
 });
