@@ -161,7 +161,9 @@ interface StrategyConf {
   strategy: string;
   PassportStrategyConstructor: any;
   extra_opts?: {
-    enableProof?: boolean;
+    enableProof?: boolean; // facebook
+    profileFields?: string[]; // facebook
+    includeEmail?: boolean; // twitter
   };
   auth_opts?: passport.AuthenticateOptions;
   // return type has to partially fit with passport_login
@@ -235,10 +237,13 @@ const FacebookStrategyConf: StrategyConf = {
   PassportStrategyConstructor: require("passport-facebook").Strategy,
   extra_opts: {
     enableProof: false,
+    profileFields: ["id", "email", "name", "displayName"],
   },
+  auth_opts: { scope: "email" },
   login_info: {
     id: (profile) => profile.id,
     full_name: (profile) => profile.displayName,
+    emails: (profile) => (profile.emails ?? []).map((x) => x.value),
   },
 };
 
@@ -249,13 +254,29 @@ const FacebookStrategyConf: StrategyConf = {
 // You must then put them in the database, via
 //   db.set_passport_settings(strategy:'twitter', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
 
+const TwitterWrapper = (
+  { clientID: consumerKey, clientSecret: consumerSecret, callbackURL },
+  verify
+) => {
+  // cast to any, because otherwies TypeScript complains:
+  // Only a void function can be called with the 'new' keyword.
+  const TwitterStrat = require("passport-twitter").Strategy as any;
+  return new TwitterStrat(
+    { consumerKey, consumerSecret, callbackURL },
+    verify
+  );
+};
+
 const TwitterStrategyConf: StrategyConf = {
   strategy: "twitter",
-  PassportStrategyConstructor: require("@passport-next/passport-twitter")
-    .Strategy,
+  PassportStrategyConstructor: TwitterWrapper,
   login_info: {
     id: (profile) => profile.id,
     full_name: (profile) => profile.displayName,
+    emails: (profile) => (profile.emails ?? []).map((x) => x.value),
+  },
+  extra_opts: {
+    includeEmail: true,
   },
 };
 
