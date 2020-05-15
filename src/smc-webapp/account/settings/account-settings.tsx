@@ -437,9 +437,10 @@ export class AccountSettings extends Component<Props, State> {
     return (
       <FormGroup style={style}>
         <Checkbox
+          checked={this.state.terms_checkbox}
           onChange={(e) => this.setState({ terms_checkbox: e.target.checked })}
         >
-          <TermsOfService />
+          <TermsOfService style={{ display: "inline" }} />
         </Checkbox>
       </FormGroup>
     );
@@ -447,7 +448,11 @@ export class AccountSettings extends Component<Props, State> {
 
   private render_header(): Rendered {
     if (this.props.is_anonymous) {
-      return <b>Thank you for using CoCalc!</b>;
+      return (
+        <b>
+          Thank you for using <SiteName />!
+        </b>
+      );
     } else {
       return (
         <>
