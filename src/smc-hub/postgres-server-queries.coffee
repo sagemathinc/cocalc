@@ -327,6 +327,13 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 "strategy = $::TEXT" : opts.strategy
             cb    : one_result('conf', opts.cb)
 
+    get_all_passport_settings: (opts) =>
+        opts = defaults opts,
+            cb       : required
+        @_query
+            query : 'SELECT strategy, conf FROM passport_settings'
+            cb    : all_results(opts.cb)
+
     ###
     API Key Management
     ###
@@ -731,7 +738,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         "account_id = $::UUID"       : opts.account_id
                     cb     : cb
         ], (err) ->
-            opts.cb?(err, locals.token, locals.email_address)
+            opts.cb?(err, locals)
         )
 
 

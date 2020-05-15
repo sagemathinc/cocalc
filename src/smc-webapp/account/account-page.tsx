@@ -19,6 +19,7 @@ import {
   redux,
   Rendered,
   Component,
+  TypedMap,
 } from "../app-framework";
 import { Col, Row, Tab, Tabs } from "../antd-bootstrap";
 
@@ -39,6 +40,7 @@ const { SSHKeysPage } = require("../account_ssh_keys");
 import { Icon, Loading } from "../r_misc";
 import { SignOut } from "../account/sign-out";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
+import { PassportStrategy } from "./passport-types";
 
 // All provided via redux
 interface Props {
@@ -55,7 +57,7 @@ interface Props {
   // from the account store
   account_id?: string;
   active_page?: string;
-  strategies?: immutable.List<string>;
+  strategies?: immutable.List<TypedMap<PassportStrategy>>;
   sign_up_error?: immutable.Map<string, string>;
   sign_in_error?: string;
   signing_in?: boolean;
@@ -193,6 +195,7 @@ class AccountPage extends Component<Props> {
         email_enabled={this.props.email_enabled}
         verify_emails={this.props.verify_emails}
         created={this.props.created}
+        strategies={this.props.strategies}
       />
     );
   }

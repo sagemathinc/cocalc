@@ -42,7 +42,8 @@ describe 'email verification: ', ->
             (account_id, cb) ->
                 locals.account_id = account_id
                 db.verify_email_create_token(account_id: account_id, cb:cb)
-        ], (err, token) ->
+        ], (err, verify_info) ->
+            {token} = verify_info
             expect(token.length > 5).toBe(true)
             # only lowercase, because upper/lower case in links in emails can get mangled
             for char in token
@@ -88,7 +89,8 @@ describe 'email verification: ', ->
         async.waterfall([
             (cb) -> db.create_account(first_name:"C", last_name:"D", created_by:"1.2.3.4", email_address:locals.email_address2, password_hash:"test", cb: cb)
             (account_id, cb) -> db.verify_email_create_token(account_id: account_id, cb:cb)
-            (token, email_address, cb) ->
+            (verify_info, cb) ->
+                {token, email_address} = verify_info
                 expect(email_address).toBe(locals.email_address2)
                 db.verify_email_check_token
                     email_address    : locals.email_address2
@@ -378,14 +380,25 @@ describe 'testing the server settings table: ', ->
 describe 'testing the passport settings table: ', ->
     before(setup)
     after(teardown)
-    it 'creates the site_conf passport auth', (done) ->
-        db.set_passport_settings(strategy:'site_conf', conf:{auth:DOMAIN_NAME + '/auth'},  cb: done)
-    it 'verifies that the site_conf passport was created', (done) ->
+    it 'creates a fake passport auth', (done) ->
+        db.set_passport_settings(strategy:'fake', conf:{token:'foo'},  cb: done)
+    it 'verifies that the fake passport was created', (done) ->
         db.get_passport_settings
-            strategy : 'site_conf'
+            strategy : 'fake'
             cb       : (err, value) ->
-                expect(value).toEqual({auth:DOMAIN_NAME + '/auth'})
+                expect(value).toEqual(token:'foo')
                 done(err)
+    it 'checks that it is also in the list of all passport entries', (done) ->
+        db.get_all_passport_settings
+            cb : (err, settings) ->
+                if err
+                    done(err)
+                else
+                    for s in settings
+                        if s.strategy == 'fake' and s.conf?.token == 'foo'
+                            done()
+                            return
+                        expect(false) # not found!
 
 describe 'user enumeration functionality: ', ->
     before(setup)

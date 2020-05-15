@@ -5,6 +5,7 @@
 
 import * as immutable from "immutable";
 import { NewFilenameTypes } from "../project/utils";
+import { PassportStrategy } from "./passport-types";
 
 export interface AccountState {
   active_page: string;
@@ -51,7 +52,7 @@ export interface AccountState {
   doing_anonymous_setup?: boolean;
   lti_id?: immutable.List<string>;
   created?: Date;
+  strategies?: immutable.List<PassportStrategy>;
   token?: string;
-  strategies?: immutable.List<string>;
   keyboard_variant_options?: immutable.List<any>;
 }

@@ -37,7 +37,7 @@ const DESC_FONT = "sans-serif";
 
 // import { ShowSupportLink } from "../support";
 const { ShowSupportLink } = require("../support");
-
+import { PassportStrategy } from "../account/passport-types";
 import { reset_password_key } from "../client/password-reset";
 import { capitalize } from "smc-util/misc2";
 import { DOC_URL } from "smc-util/theme";
@@ -50,7 +50,7 @@ $.get(window.app_base_url + "/registration", function (obj, status) {
 });
 
 interface Props {
-  strategies?: immutable.List<string>;
+  strategies?: immutable.List<PassportStrategy>;
   sign_up_error?: immutable.Map<string, any>;
   sign_in_error?: string;
   signing_in?: boolean;
@@ -76,6 +76,7 @@ interface reduxProps {
   help_email?: string;
   terms_of_service?: string;
   terms_of_service_url?: string;
+  email_signup?: boolean;
 
   sign_in_email_address?: string;
 
@@ -97,6 +98,7 @@ class LandingPage extends Component<Props & reduxProps> {
         help_email: rtypes.string,
         terms_of_service: rtypes.string,
         terms_of_service_url: rtypes.string,
+        email_signup: rtypes.bool,
       },
       account: {
         sign_in_email_address: rtypes.string,
@@ -334,6 +336,7 @@ class LandingPage extends Component<Props & reduxProps> {
               help_email={this.props.help_email}
               terms_of_service={this.props.terms_of_service}
               terms_of_service_url={this.props.terms_of_service_url}
+              email_signup={this.props.email_signup}
             />
           </Col>
           <Col sm={6}>

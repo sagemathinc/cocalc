@@ -5,14 +5,14 @@
 
 import { List, Map } from "immutable";
 
-import { Component, React, Rendered } from "../app-framework";
-
+import { Component, React, Rendered, TypedMap } from "../app-framework";
 import { ProfileSettings } from "./profile-settings";
 import { TerminalSettings } from "./terminal-settings";
 import { KeyboardSettings } from "./keyboard-settings";
 import { AccountSettings } from "./settings/account-settings";
 import { Row, Col } from "../antd-bootstrap";
 import { Footer } from "../customize";
+import { PassportStrategy } from "./passport-types";
 import { OtherSettings } from "./other-settings";
 import { EditorSettings } from "./editor-settings/editor-settings";
 import { Loading } from "../r_misc";
@@ -39,6 +39,7 @@ interface Props {
   email_enabled?: boolean;
   verify_emails?: boolean;
   created?: Date;
+  strategies?: List<TypedMap<PassportStrategy>>;
 }
 
 export class AccountPreferences extends Component<Props> {
@@ -58,6 +59,7 @@ export class AccountPreferences extends Component<Props> {
         email_enabled={this.props.email_enabled}
         verify_emails={this.props.verify_emails}
         created={this.props.created}
+        strategies={this.props.strategies}
       />
     );
   }
