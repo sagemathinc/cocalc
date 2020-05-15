@@ -9,7 +9,6 @@ import { redux, Redux, rclass, rtypes, Store } from "./app-framework";
 import * as React from "react";
 import {
   Loading,
-  A,
   Space,
   smc_version,
   build_date,
@@ -22,6 +21,8 @@ import { callback2, retry_until_success } from "smc-util/async-utils";
 const misc = require("smc-util/misc");
 import * as theme from "smc-util/theme";
 import { site_settings_conf } from "smc-util/db-schema/site-defaults";
+
+export { TermsOfService } from "./customize/terms-of-service";
 
 import {
   KUCALC_DISABLED,
@@ -345,57 +346,6 @@ export function CustomizeString({ name }: CustomizeStringProps) {
 export const CompanyName = function CompanyName() {
   return <span>{theme.COMPANY_NAME}</span>;
 };
-
-interface ReactProps {
-  style?: React.CSSProperties;
-}
-
-interface ReduxProps {
-  terms_of_service: string;
-  terms_of_service_url: string;
-}
-
-const TermsOfService0 = rclass<ReactProps>(
-  class TermsOfService extends React.Component<ReactProps & ReduxProps> {
-    public static reduxProps = () => {
-      return {
-        customize: {
-          terms_of_service: rtypes.string,
-          terms_of_service_url: rtypes.string,
-        },
-      };
-    };
-
-    render() {
-      if (this.props.terms_of_service?.length > 0) {
-        return (
-          <div
-            style={this.props.style}
-            dangerouslySetInnerHTML={{ __html: this.props.terms_of_service }}
-          ></div>
-        );
-      } else if (this.props.terms_of_service_url?.length > 0) {
-        // only used in the context of signing up, hence that phrase...
-        return (
-          <div style={this.props.style}>
-            I agree to the{" "}
-            <A href={this.props.terms_of_service_url}>Terms of Service</A>.
-          </div>
-        );
-      } else {
-        return <div></div>;
-      }
-    }
-  }
-);
-
-export function TermsOfService(props: { style?: React.CSSProperties }) {
-  return (
-    <Redux>
-      <TermsOfService0 style={props.style} />
-    </Redux>
-  );
-}
 
 interface AccountCreationEmailInstructionsProps {
   account_creation_email_instructions: string;
