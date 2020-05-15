@@ -29,10 +29,10 @@ const STYLE: React.CSSProperties = {
  *
  * Does not work with changes to `delay_ms`
  */
-export function UncommittedChanges({
+export const UncommittedChanges: React.FC<Props> = ({
   has_uncommitted_changes,
   delay_ms = 5000,
-}: Props) {
+}) => {
   const [show_error, set_error] = React.useState(false);
 
   // A new interval is created iff has_uncommitted_changes or delay_ms change
@@ -56,4 +56,4 @@ export function UncommittedChanges({
   } else {
     return <span />; // TODO: return undefined?
   }
-}
+};

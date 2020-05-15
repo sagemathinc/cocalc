@@ -742,3 +742,37 @@ export function redux_fields(spec) {
 
 // Export common React Hooks for convenience
 export * from "./app-framework/hooks";
+
+/*
+Selector for getting anything from our global redux store.
+
+Use it in one of two ways:
+
+ useRedux<T>(['name-of-store', 'path', 'in', 'store'])
+
+or
+
+ useRedux<T>(['path', 'in', 'project store'], 'project-id', 'name')
+
+
+*/
+export function useRedux(
+  path: string[],
+  project_id?: string,
+  name?: string // mostly for state about editing a file in project
+) {
+  if (project_id != null) {
+    return useSelector((_) => {
+      if (name == null) {
+        const s: ProjectStore = redux.getProjectStore(project_id);
+        return s.getIn(path as any);
+      } else {
+        redux._redux_store
+          .getState()
+          .getIn([project_redux_name(project_id, name)].concat(path));
+      }
+    });
+  } else {
+    return useSelector((_) => redux._redux_store.getState().getIn(path));
+  }
+}

@@ -4,18 +4,18 @@
  */
 
 import { React } from "../../app-framework";
-import { ManagedLicenses2 } from "./managed-licenses";
+import { ManagedLicenses } from "./managed-licenses";
 import { AppliedLicenses } from "./applied-licenses";
 import { AboutLicenses } from "./about-licenses";
 
-export function LicensesPage(_props) {
+export const LicensesPage: React.FC<> = () => {
   return (
     <div>
       <AboutLicenses />
       <br />
-      <ManagedLicenses2 />
+      <ManagedLicenses />
       <br />
       <AppliedLicenses />
     </div>
   );
-}
+};
