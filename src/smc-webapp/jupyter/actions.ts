@@ -31,10 +31,7 @@ import * as awaiting from "awaiting";
 import { three_way_merge } from "../../smc-util/sync/editor/generic/util";
 
 import { Cell, KernelInfo } from "./types";
-import {
-  Parser,
-  format_parser_for_extension,
-} from "../../smc-util/code-formatter";
+import { Syntax } from "../../smc-util/code-formatter";
 
 import { Actions } from "../app-framework";
 import {
@@ -2435,16 +2432,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const cell_type: string = cell.get("cell_type", "code");
     switch (cell_type) {
       case "code":
-        const ext = this.store.get_kernel_ext();
-        if (ext == null) {
+        const syntax: Syntax = this.store.get_kernel_syntax();
+        if (syntax == null) {
           return; // no-op on these.
         }
-        try {
-          const parser: Parser = format_parser_for_extension(ext);
-          options = { parser };
-        } catch (err) {
-          return; // no parser available.
-        }
+        options = { parser: syntax };
         break;
       case "markdown":
         options = { parser: "markdown" };

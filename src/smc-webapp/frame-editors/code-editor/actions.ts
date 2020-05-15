@@ -63,11 +63,6 @@ import { TerminalManager } from "../terminal-editor/terminal-manager";
 import { CodeEditorManager, CodeEditor } from "./code-editor-manager";
 
 import { AvailableFeatures } from "../../project_configuration";
-import {
-  ext2parser,
-  parser2tool,
-  format_parser_for_extension,
-} from "smc-util/code-formatter";
 
 import { apply_patch } from "smc-util/sync/editor/generic/util";
 
@@ -76,8 +71,11 @@ const { open_new_tab } = require("smc-webapp/misc_page");
 
 import { Options as FormatterOptions } from "smc-project/formatters/prettier";
 import {
-  Parser as FormatterParser,
+  ext2syntax,
+  syntax2tool,
+  Syntax as FormatterSyntax,
   Exts as FormatterExts,
+  Tool as FormatterTool,
 } from "smc-util/code-formatter";
 import { SHELLS } from "./editor";
 
@@ -1901,9 +1899,9 @@ export class Actions<
     const formatting = available_features.get("formatting");
     if (formatting == null || formatting == false) return false;
     // Now formatting is either "true" or a map itself.
-    const parser = ext2parser[ext];
-    if (parser == null) return false;
-    const tool = parser2tool[parser];
+    const syntax = ext2syntax[ext];
+    if (syntax == null) return false;
+    const tool: FormatterTool = syntax2tool[syntax];
     if (tool == null) return false;
     if (formatting !== true && !formatting.get(tool)) return false;
     return tool;
@@ -1955,7 +1953,7 @@ export class Actions<
     // Definitely have format support
     cm.focus();
     const ext = filename_extension(this.path).toLowerCase() as FormatterExts;
-    const parser: FormatterParser = format_parser_for_extension(ext);
+    const parser: FormatterSyntax = ext2syntax[ext];
     const options: FormatterOptions = {
       parser,
       tabWidth: cm.getOption("tabSize") as number,

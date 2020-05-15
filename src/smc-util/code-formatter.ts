@@ -36,6 +36,7 @@ export type Parser =
   | "yaml"
   | "postcss"
   | "python"
+  | "python3"
   | "py"
   | "R"
   | "RMarkdown"
@@ -45,9 +46,12 @@ export type Parser =
   | "tsx"
   | "jsx";
 
+export type Syntax = Parser;
+
 export type Tool =
   | "prettier" // always available
   | "yapf"
+  | "yapf3" // for python 3
   | "knitr"
   | "formatR"
   | "clang-format"
@@ -100,7 +104,7 @@ export const ext2parser: Readonly<Ext2Parser> = Object.freeze({
   json: "JSON",
   yaml: "yaml",
   yml: "yaml",
-  py: "python",
+  py: "python3",
   tex: "latex",
   html: "html",
   r: "R",
@@ -116,6 +120,8 @@ export const ext2parser: Readonly<Ext2Parser> = Object.freeze({
   kml: "xml",
   bib: "bibtex", // via biber --tool
 } as Ext2Parser);
+
+export const ext2syntax = ext2parser;
 
 // those syntaxes (parser) which aren't handled by "prettier" (the default),
 // have these special tools (command-line interface)
@@ -160,6 +166,8 @@ export const parser2tool: Readonly<Config> = Object.freeze({
   // html: "DOES_NOT_EXIST"
 } as Config);
 
+export const syntax2tool = parser2tool;
+
 // Map (a subset of) syntax (aka "parser") to a human-readable language
 // in order to communicate what syntaxes can be formatted.
 type Langs = { [s in Parser]?: string };
@@ -201,66 +209,66 @@ for (const tool of Object.keys(t2d)) {
 
 export const tool2display: Readonly<Tool2Display> = Object.freeze(t2d);
 
-export function format_parser_for_extension(ext: string): Parser {
-  let parser: Parser;
-  switch (ext) {
-    case "js":
-    case "jsx":
-      parser = "babel";
-      break;
-    case "json":
-      parser = "json";
-      break;
-    case "ts":
-    case "tsx":
-      parser = "typescript";
-      break;
-    case "md":
-    case "rmd":
-      parser = "markdown";
-      break;
-    case "css":
-      parser = "postcss";
-      break;
-    case "tex":
-      parser = "latex";
-      break;
-    case "py":
-      parser = "python";
-      break;
-    case "yml":
-    case "yaml":
-      parser = "yaml";
-      break;
-    case "r":
-      parser = "r";
-      break;
-    case "go":
-      parser = "gofmt";
-      break;
-    case "rs":
-      parser = "rustfmt";
-      break;
-    case "html":
-      parser = "html-tidy";
-      break;
-    case "xml":
-    case "cml":
-    case "kml":
-      parser = "xml-tidy";
-      break;
-    case "bib":
-      parser = "bib-biber";
-      break;
-    case "c":
-    case "c++":
-    case "cc":
-    case "cpp":
-    case "h":
-      parser = "clang-format";
-      break;
-    default:
-      throw Error(`no code formatting support for ${ext}`);
-  }
-  return parser;
-}
+//export function format_parser_for_extension(ext: string): Parser {
+//  let parser: Parser;
+//  switch (ext) {
+//    case "js":
+//    case "jsx":
+//      parser = "babel";
+//      break;
+//    case "json":
+//      parser = "json";
+//      break;
+//    case "ts":
+//    case "tsx":
+//      parser = "typescript";
+//      break;
+//    case "md":
+//    case "rmd":
+//      parser = "markdown";
+//      break;
+//    case "css":
+//      parser = "postcss";
+//      break;
+//    case "tex":
+//      parser = "latex";
+//      break;
+//    case "py":
+//      parser = "python";
+//      break;
+//    case "yml":
+//    case "yaml":
+//      parser = "yaml";
+//      break;
+//    case "r":
+//      parser = "r";
+//      break;
+//    case "go":
+//      parser = "gofmt";
+//      break;
+//    case "rs":
+//      parser = "rustfmt";
+//      break;
+//    case "html":
+//      parser = "html-tidy";
+//      break;
+//    case "xml":
+//    case "cml":
+//    case "kml":
+//      parser = "xml-tidy";
+//      break;
+//    case "bib":
+//      parser = "bib-biber";
+//      break;
+//    case "c":
+//    case "c++":
+//    case "cc":
+//    case "cpp":
+//    case "h":
+//      parser = "clang-format";
+//      break;
+//    default:
+//      throw Error(`no code formatting support for ${ext}`);
+//  }
+//  return parser;
+//}
