@@ -299,7 +299,7 @@ export class AccountSettings extends Component<Props, State> {
 
     const linked: List<ImmutablePassportStrategy> = this.props.strategies.filter(
       (strategy) => {
-        const name = strategy.get("name");
+        const name = strategy?.get("name");
         return name !== "email" && account_passports.includes(name);
       }
     );

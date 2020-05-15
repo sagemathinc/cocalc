@@ -64,7 +64,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         else
             v = opts.value
             pii_events = ['create_account','change_password','change_email_address','webapp-add_passport','get_user_auth_token','successful_sign_in','webapp-email_sign_up']
-            if v.ip_address? or v.email_address? or event in pii_events
+            if v.ip_address? or v.email_address? or opts.event in pii_events
                 expire = await pii_expire(@)
 
         @_query
