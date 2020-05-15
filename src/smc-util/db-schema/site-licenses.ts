@@ -518,21 +518,11 @@ Table({
   },
 });
 
+/* Way to get the ids of the all the licenses that a given user is a manager of. */
 Table({
   name: "manager_site_licenses",
   fields: {
     id: true,
-    title: true,
-    description: true,
-    expires: true,
-    activates: true,
-    created: true,
-    last_used: true,
-    managers: true,
-    restricted: true,
-    upgrades: true,
-    run_limit: true,
-    apply_limit: true,
   },
   rules: {
     virtual: true, // don't make an actual table
@@ -544,17 +534,6 @@ Table({
         admin: false,
         fields: {
           id: null,
-          title: null,
-          description: null,
-          expires: null,
-          activates: null,
-          created: null,
-          last_used: null,
-          managers: null,
-          restricted: null,
-          upgrades: null,
-          run_limit: null,
-          apply_limit: null,
         },
         // Actual query is implemented using this code below rather than an actual query directly.
         // We also completely ignore the user-requested fields and just return everything, since
@@ -566,12 +545,10 @@ Table({
                 "only query requesting multiple results is implemented"
               );
             }
-            const v = await database.manager_site_licenses(opts.account_id);
-            // Remove the "info" field, since that is meant only for admins to see.
-            for (const x of v) {
-              delete x["info"];
-            }
-            cb(undefined, v);
+            cb(
+              undefined,
+              await database.manager_site_licenses(opts.account_id)
+            );
           } catch (err) {
             cb(err);
           }

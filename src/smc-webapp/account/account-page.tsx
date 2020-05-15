@@ -275,24 +275,20 @@ class AccountPage extends Component<Props> {
           {this.props.active_page === "upgrades" ? <UpgradesPage /> : undefined}
         </Tab>
       );
-      if (false) {
-        // Hide for dev purposes.
-        v.push(
-          <Tab
-            key="licenses"
-            eventKey="licenses"
-            title={
-              <span>
-                <Icon name="key" /> Licenses
-              </span>
-            }
-          >
-            {this.props.active_page === "licenses" ? (
-              <LicensesPage />
-            ) : undefined}
-          </Tab>
-        );
-      }
+      // Hide for dev purposes.
+      v.push(
+        <Tab
+          key="licenses"
+          eventKey="licenses"
+          title={
+            <span>
+              <Icon name="key" /> Licenses
+            </span>
+          }
+        >
+          {this.props.active_page === "licenses" ? <LicensesPage /> : undefined}
+        </Tab>
+      );
     }
     if (this.props.ssh_gateway || this.props.kucalc === KUCALC_COCALC_COM) {
       v.push(

@@ -1,9 +1,11 @@
 import { ErrorDisplay, Loading } from "../../r_misc";
 import { React, useState, useAsyncEffect } from "../../app-framework";
-import { getManagedLicenses, License } from "./util";
+import { getManagedLicenses } from "./util";
+
+import { LicenseYouManage } from "./license-you-manage";
 
 export const ManagedLicenses: React.FC<> = () => {
-  const [licenses, setLicenses] = useState<License[] | undefined>(undefined);
+  const [licenses, setLicenses] = useState<string[] | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
 
   // When we first mount the component or when error gets cleared,
@@ -30,10 +32,15 @@ export const ManagedLicenses: React.FC<> = () => {
 
   function render_managed() {
     if (error) return;
-    if (licenses == null && !error) {
+    if (licenses == null) {
       return <Loading theme={"medium"} />;
     }
-    return <pre>{JSON.stringify(licenses, undefined, 2)}</pre>;
+    if (licenses.length == 0) {
+      return <div>You do not manage any licenses.</div>;
+    }
+    return licenses.map((license_id) => (
+      <LicenseYouManage license_id={license_id} key={license_id} />
+    ));
   }
 
   return (

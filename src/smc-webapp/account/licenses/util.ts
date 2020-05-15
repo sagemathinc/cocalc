@@ -1,16 +1,14 @@
 import { Map } from "immutable";
 import { webapp_client } from "../../webapp-client";
 
-export type License = object;
-
-export async function getManagedLicenses(): Promise<License[]> {
+export async function getManagedLicenses(): Promise<string[]> {
   return (
     await webapp_client.async_query({
       query: {
         manager_site_licenses: [{ id: null }],
-      } /* todo put in other fields; they are returned anyways */,
+      },
     })
-  ).query.manager_site_licenses;
+  ).query.manager_site_licenses.map((x) => x.id);
 }
 
 interface InfoAboutLicense {
