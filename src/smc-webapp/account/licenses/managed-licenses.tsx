@@ -1,8 +1,17 @@
 import { webapp_client } from "../../webapp-client";
 import { ErrorDisplay, Loading } from "../../r_misc";
-import { Component, React, Rendered } from "../../app-framework";
+import {
+  Component,
+  React,
+  Rendered,
+  useState,
+  useAsyncEffect,
+} from "../../app-framework";
 
 async function managed_licenses(): Promise<object[]> {
+  if (Math.random() < 0.5) {
+    throw Error("random error simulations");
+  }
   return (
     await webapp_client.async_query({
       query: {
@@ -10,6 +19,53 @@ async function managed_licenses(): Promise<object[]> {
       } /* todo put in other fields; they are returned anyways */,
     })
   ).query.manager_site_licenses;
+}
+
+export function ManagedLicenses2() {
+  const [managedLicenses, setManagedLicenses] = useState<any[] | null>(null);
+  const [error, setError] = useState<string | undefined>(undefined);
+
+  useAsyncEffect(
+    async (is_mounted) => {
+      if (error) return; // do not try when error is set.
+      try {
+        const v = await managed_licenses();
+        if (!is_mounted()) return;
+        setManagedLicenses(v);
+      } catch (err) {
+        if (!is_mounted()) return;
+        setError(err.toString());
+      }
+    },
+    [error]
+  );
+
+  function render_error() {
+    if (!error) return;
+    return (
+      <ErrorDisplay
+        style={{ margin: "5px 0" }}
+        error={error}
+        onClose={() => setError(undefined)}
+      />
+    );
+  }
+
+  function render_managed() {
+    if (managedLicenses == null && !error) {
+      return <Loading theme={"medium"} />;
+    }
+    if (error) return;
+    return <pre>{JSON.stringify(managedLicenses, undefined, 2)}</pre>;
+  }
+
+  return (
+    <div>
+      <h3>Licenses that you manage</h3>
+      {render_error()}
+      {render_managed()}
+    </div>
+  );
 }
 
 interface State {

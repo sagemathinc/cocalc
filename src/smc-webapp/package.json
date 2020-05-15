@@ -128,6 +128,7 @@
     "typescript": "^3.8.2",
     "underscore": "^1.9.1",
     "universal-cookie": "^4.0.2",
+    "use-async-effect": "^2.2.2",
     "xterm": "^4.0.2",
     "xterm-addon-fit": "^0.2.1",
     "xterm-addon-web-links": "^0.2.1",

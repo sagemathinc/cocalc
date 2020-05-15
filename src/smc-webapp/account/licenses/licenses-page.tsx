@@ -4,7 +4,7 @@
  */
 
 import { React } from "../../app-framework";
-import { ManagedLicenses } from "./managed-licenses";
+import { ManagedLicenses2 } from "./managed-licenses";
 import { AppliedLicenses } from "./applied-licenses";
 import { AboutLicenses } from "./about-licenses";
 
@@ -13,7 +13,7 @@ export function LicensesPage(_props) {
     <div>
       <AboutLicenses />
       <br />
-      <ManagedLicenses />
+      <ManagedLicenses2 />
       <br />
       <AppliedLicenses />
     </div>
