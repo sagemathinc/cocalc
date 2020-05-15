@@ -202,6 +202,8 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
         <div>
           {this.render_id()}
           {this.render_what_license_provides_overall()}
+          {this.render_run_limit()}
+          {this.render_running()}
         </div>
       );
     }
