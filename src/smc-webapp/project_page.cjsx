@@ -36,7 +36,7 @@ project_file = require('./project_file')
 {React, ReactDOM, rclass, redux, rtypes, Redux, Fragment} = require('./app-framework')
 {DeletedProjectWarning, ErrorBoundary, Icon, Loading, Space} = require('./r_misc')
 
-{ChatIndicator} = require('./chat-indicator')
+{ChatIndicator} = require('./chat/chat-indicator')
 
 {ShareIndicator} = require('./share/share-indicator')
 
