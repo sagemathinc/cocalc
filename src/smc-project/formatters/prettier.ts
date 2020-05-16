@@ -36,12 +36,16 @@ const { remove_math, replace_math } = require("../smc-util/mathjax-utils"); // f
 
 import { once } from "../smc-util/async-utils";
 
-import { Parser as FormatterParser } from "../smc-util/code-formatter";
+import { Syntax as FormatterSyntax } from "../smc-util/code-formatter";
 
-export interface Options {
-  parser: FormatterParser;
+export interface Config {
+  syntax: FormatterSyntax;
   tabWidth?: number;
   useTabs?: boolean;
+}
+
+export interface Options extends Omit<Config, "syntax"> {
+  parser: FormatterSyntax; // TODO refactor this to tool
 }
 
 export async function run_prettier(

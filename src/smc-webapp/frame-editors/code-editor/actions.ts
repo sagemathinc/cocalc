@@ -69,7 +69,6 @@ import { apply_patch } from "smc-util/sync/editor/generic/util";
 const copypaste = require("smc-webapp/copy-paste-buffer");
 const { open_new_tab } = require("smc-webapp/misc_page");
 
-import { Options as FormatterOptions } from "smc-project/formatters/prettier";
 import {
   ext2syntax,
   syntax2tool,
@@ -77,6 +76,9 @@ import {
   Exts as FormatterExts,
   Tool as FormatterTool,
 } from "smc-util/code-formatter";
+import {
+  Config as FormatterConfig,
+} from "smc-project/formatters/prettier";
 import { SHELLS } from "./editor";
 
 interface gutterMarkerParams {
@@ -1892,19 +1894,28 @@ export class Actions<
     }
   }
 
-  public format_support_for_extension(
+  public format_support_for_syntax(
     available_features: AvailableFeatures,
-    ext: string
-  ): false | string {
+    syntax: FormatterSyntax
+  ): false | FormatterTool {
+    if (syntax == null) return false;
+    // first, check if there exists a tool for that syntax
+    const tool: FormatterTool = syntax2tool[syntax];
+    if (tool == null) return false;
+    // if so, check if this formatting tool is available in that project
     const formatting = available_features.get("formatting");
     if (formatting == null || formatting == false) return false;
     // Now formatting is either "true" or a map itself.
-    const syntax = ext2syntax[ext];
-    if (syntax == null) return false;
-    const tool: FormatterTool = syntax2tool[syntax];
-    if (tool == null) return false;
     if (formatting !== true && !formatting.get(tool)) return false;
     return tool;
+  }
+
+  public format_support_for_extension(
+    available_features: AvailableFeatures,
+    ext: string
+  ): false | FormatterTool {
+    const syntax = ext2syntax[ext];
+    return this.format_support_for_syntax(available_features, syntax);
   }
 
   // Not an action, but works to make code clean
@@ -1953,16 +1964,16 @@ export class Actions<
     // Definitely have format support
     cm.focus();
     const ext = filename_extension(this.path).toLowerCase() as FormatterExts;
-    const parser: FormatterSyntax = ext2syntax[ext];
-    const options: FormatterOptions = {
-      parser,
+    const syntax: FormatterSyntax = ext2syntax[ext];
+    const config: FormatterConfig = {
+      syntax,
       tabWidth: cm.getOption("tabSize") as number,
       useTabs: cm.getOption("indentWithTabs") as boolean,
     };
 
     this.set_status("Running code formatter...");
     try {
-      const patch = await prettier(this.project_id, this.path, options);
+      const patch = await prettier(this.project_id, this.path, config);
       if (patch != null) {
         // Apply the patch.
         // NOTE: old backends that haven't restarted just return {status:'ok'}

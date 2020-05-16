@@ -59,7 +59,7 @@ import {
   char_idx_to_js_idx,
 } from "./util";
 
-import { Options as FormatterOptions } from "../../smc-project/formatters/prettier";
+import { Config as FormatterConfig } from "../../smc-project/formatters/prettier";
 
 import { SyncDB } from "../../smc-util/sync/editor/db/sync";
 
@@ -2409,7 +2409,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   private async api_call_prettier(
     str: string,
-    options: object,
+    config: FormatterConfig,
     timeout_ms?: number
   ): Promise<string | undefined> {
     if (this._state === "closed") {
@@ -2417,7 +2417,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     return await (await this.init_project_conn()).api.prettier_string(
       str,
-      options,
+      config,
       timeout_ms
     );
   }
@@ -2428,7 +2428,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       throw Error(`no cell with id ${id}`);
     }
     const code: string = cell.get("input", "").trim();
-    let options: FormatterOptions;
+    let config: FormatterConfig;
     const cell_type: string = cell.get("cell_type", "code");
     switch (cell_type) {
       case "code":
@@ -2436,10 +2436,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         if (syntax == null) {
           return; // no-op on these.
         }
-        options = { parser: syntax };
+        config = { syntax: syntax };
         break;
       case "markdown":
-        options = { parser: "markdown" };
+        config = { syntax: "markdown" };
         break;
       default:
         // no-op -- do not format unknown cells
@@ -2448,7 +2448,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     //  console.log("FMT", cell_type, options, code);
     let resp: string | undefined;
     try {
-      resp = await this.api_call_prettier(code, options);
+      resp = await this.api_call_prettier(code, config);
     } catch (err) {
       this.set_error(err);
       // Do not process response (probably empty anyways) if

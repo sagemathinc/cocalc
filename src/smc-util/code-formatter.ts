@@ -8,58 +8,75 @@
 
 import { tuple } from "./misc2";
 
-// ideally, this is the "syntax", but for historic reasons it's what is being "parsed"
-export type Parser =
+// ideally, this is the "syntax", but for historic reasons it's what is being called "parsed" and
+// hence there there are additional entries for backwards compatibility with older projects.
+// this shouldn't be necessary any more and could be removed.
+export type Syntax =
   | "r"
   | "c"
   | "c++"
   | "clang"
-  | "clang-format"
   | "latex"
   | "go"
-  | "gofmt"
   | "rust"
-  | "rustfmt"
-  | "tidy"
   | "CSS"
   | "html"
-  | "babel"
   | "html-tidy"
   | "xml"
   | "xml-tidy"
-  | "bib-biber"
   | "bibtex"
   | "markdown"
   | "Markdown"
+  | "knitr"
   | "json"
   | "JSON"
   | "yaml"
-  | "postcss"
   | "python"
   | "python3"
   | "py"
   | "R"
   | "RMarkdown"
   | "TypeScript"
-  | "typescript"
   | "JavaScript"
+  // the ones below are to be eliminated (they're in "Tool")
+  | "prettier"
+  | "typescript"
+  | "postcss"
+  | "babel"
+  | "gofmt"
+  | "clang-format"
+  | "rustfmt"
+  | "tidy"
   | "tsx"
-  | "jsx";
+  | "jsx"
+  | "yapf"
+  | "yapf3"
+  | "formatR"
+  | "latexindent"
+  | "bib-biber"
+  | "DOES_NOT_EXIST";
 
-export type Syntax = Parser;
+export type Parser = Syntax;
 
 export type Tool =
-  | "prettier" // always available
   | "yapf"
   | "yapf3" // for python 3
+  | "python" // should be yapf
   | "knitr"
   | "formatR"
   | "clang-format"
   | "latexindent"
   | "gofmt"
   | "rustfmt"
-  | "biber"
+  | "bib-biber"
   | "tidy"
+  | "prettier" // always available
+  | "postcss" // via prettier
+  | "babel" // via prettier
+  | "typescript" // via prettier
+  | "json" // via prettier
+  | "yaml" // via prettier
+  | "markdown" // via prettier
   | "DOES_NOT_EXIST"; // use this for testing;
 
 // the set of file extensions where we want to have formatting support
@@ -92,8 +109,8 @@ export const file_extensions = tuple([
 export type Exts = typeof file_extensions[number];
 
 // associating filename extensions with a specific type of syntax for a parser
-type Ext2Parser = { [s in Exts]: Parser };
-export const ext2parser: Readonly<Ext2Parser> = Object.freeze({
+type Ext2Syntax = { [s in Exts]: Parser };
+export const ext2syntax: Readonly<Ext2Syntax> = Object.freeze({
   js: "JavaScript",
   jsx: "jsx",
   md: "Markdown",
@@ -119,33 +136,32 @@ export const ext2parser: Readonly<Ext2Parser> = Object.freeze({
   cml: "xml",
   kml: "xml",
   bib: "bibtex", // via biber --tool
-} as Ext2Parser);
+} as Ext2Syntax);
 
-export const ext2syntax = ext2parser;
+export const ext2parser = ext2syntax;
 
 // those syntaxes (parser) which aren't handled by "prettier" (the default),
 // have these special tools (command-line interface)
 // (several ones are added for backwards compatibility)
 type Config = { [s in Parser]: Tool };
-export const parser2tool: Readonly<Config> = Object.freeze({
-  py: "yapf",
-  python: "yapf",
-  python3: "yapf3",
+export const syntax2tool: Readonly<Config> = Object.freeze({
+  py: "python",
+  python: "python",
+  python3: "python",
   R: "formatR",
   r: "formatR",
-  JavaScript: "prettier",
-  jsx: "prettier",
-  tsx: "prettier",
-  TypeScript: "prettier",
-  typescript: "prettier",
-  CSS: "prettier",
-  postcss: "prettier",
-  json: "prettier",
-  JSON: "prettier",
-  yaml: "prettier",
-  markdown: "prettier",
-  Markdown: "prettier",
-  RMarkdown: "prettier", // same as markdown!
+  JavaScript: "babel", // in prettier
+  jsx: "babel", // in prettier
+  tsx: "typescript", // in prettier
+  TypeScript: "typescript", // in prettier
+  typescript: "typescript", // in prettier
+  CSS: "postcss", // in prettier
+  json: "json", // in prettier
+  JSON: "json", // in prettier
+  yaml: "yaml",
+  markdown: "markdown", // in prettier
+  Markdown: "markdown", // in prettier
+  RMarkdown: "markdown", // same as markdown, at last for now!
   c: "clang-format",
   clang: "clang-format",
   "clang-format": "clang-format",
@@ -156,8 +172,7 @@ export const parser2tool: Readonly<Config> = Object.freeze({
   gofmt: "gofmt",
   rust: "rustfmt",
   rustfmt: "rustfmt",
-  bibtex: "biber",
-  "bib-biber": "biber",
+  bibtex: "bib-biber",
   tidy: "tidy",
   xml: "tidy",
   "xml-tidy": "tidy",
@@ -166,13 +181,13 @@ export const parser2tool: Readonly<Config> = Object.freeze({
   // html: "DOES_NOT_EXIST"
 } as Config);
 
-export const syntax2tool = parser2tool;
+export const parser2tool = syntax2tool;
 
 // Map (a subset of) syntax (aka "parser") to a human-readable language
 // in order to communicate what syntaxes can be formatted.
 type Langs = { [s in Parser]?: string };
 
-export const parser2display: Readonly<Langs> = Object.freeze({
+export const syntax2display: Readonly<Langs> = Object.freeze({
   r: "R Language",
   c: "C",
   "c++": "C++",
@@ -192,6 +207,8 @@ export const parser2display: Readonly<Langs> = Object.freeze({
   javascript: "JavaScript",
 } as Langs);
 
+export const parser2display = syntax2display;
+
 // pre-process mapping of each tool to human-readable language or text type
 type Tool2Display = { [s in Tool]?: string[] };
 
@@ -208,67 +225,3 @@ for (const tool of Object.keys(t2d)) {
 }
 
 export const tool2display: Readonly<Tool2Display> = Object.freeze(t2d);
-
-//export function format_parser_for_extension(ext: string): Parser {
-//  let parser: Parser;
-//  switch (ext) {
-//    case "js":
-//    case "jsx":
-//      parser = "babel";
-//      break;
-//    case "json":
-//      parser = "json";
-//      break;
-//    case "ts":
-//    case "tsx":
-//      parser = "typescript";
-//      break;
-//    case "md":
-//    case "rmd":
-//      parser = "markdown";
-//      break;
-//    case "css":
-//      parser = "postcss";
-//      break;
-//    case "tex":
-//      parser = "latex";
-//      break;
-//    case "py":
-//      parser = "python";
-//      break;
-//    case "yml":
-//    case "yaml":
-//      parser = "yaml";
-//      break;
-//    case "r":
-//      parser = "r";
-//      break;
-//    case "go":
-//      parser = "gofmt";
-//      break;
-//    case "rs":
-//      parser = "rustfmt";
-//      break;
-//    case "html":
-//      parser = "html-tidy";
-//      break;
-//    case "xml":
-//    case "cml":
-//    case "kml":
-//      parser = "xml-tidy";
-//      break;
-//    case "bib":
-//      parser = "bib-biber";
-//      break;
-//    case "c":
-//    case "c++":
-//    case "cc":
-//    case "cpp":
-//    case "h":
-//      parser = "clang-format";
-//      break;
-//    default:
-//      throw Error(`no code formatting support for ${ext}`);
-//  }
-//  return parser;
-//}

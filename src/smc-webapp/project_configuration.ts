@@ -118,6 +118,26 @@ export function isMainConfiguration(
   );
 }
 
+// if prettier exists, this adds all syntaxes to format via prettier
+function formatting_prettier(formatting: Capabilities): Capabilities {
+  if (formatting.prettier) {
+    formatting.postcss = true;
+    formatting.babel = true;
+    formatting.typescript = true;
+    formatting.json = true;
+    formatting.yaml = true;
+    formatting.markdown = true;
+  }
+  // for backwards compatibility
+  if (formatting.yapf) {
+    formatting.python = true;
+  }
+  if (formatting.biber) {
+    formatting["bib-biber"] = true;
+  }
+  return formatting;
+}
+
 // derive available types of files from the configuration map
 export function is_available(configuration?: ProjectConfiguration): Available {
   if (configuration == null) {
@@ -138,7 +158,7 @@ export function is_available(configuration?: ProjectConfiguration): Available {
   if (capabilities == null) return ALL_AVAIL; // see note above.
   const jupyter: Capabilities | boolean = capabilities.jupyter;
 
-  const formatting = capabilities.formatting;
+  const formatting = formatting_prettier(capabilities.formatting);
 
   // uncomment for testing
   // formatting["yapf"] = formatting["tidy"] = false;
