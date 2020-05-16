@@ -17,7 +17,7 @@ import { FakeSyncstring } from "./syncstring-fake";
 import { Map } from "immutable";
 import { CompressedPatch } from "smc-util/sync/editor/generic/types";
 import { ExecOpts, ExecOutput } from "../../client/project";
-import { Options as FormatterOptions } from "smc-project/formatters/prettier"
+import { Options as FormatterOptions } from "smc-project/formatters/prettier";
 export { ExecOpts, ExecOutput };
 
 export function server_time(): Date {
@@ -203,7 +203,7 @@ interface QueryOpts {
 }
 
 export async function query(opts: QueryOpts): Promise<any> {
-  return callback2(webapp_client.query, opts);
+  return await webapp_client.query_client.query(opts);
 }
 
 export function get_default_font_size(): number {
