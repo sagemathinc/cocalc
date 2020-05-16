@@ -1,26 +1,25 @@
-//########################################################################
-// This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-// License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
-//########################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-import { debounce } from "underscore";
-
-import { copy, filename_extension } from "smc-util/misc2";
+import { debounce } from "lodash";
+import { filename_extension } from "smc-util/misc2";
 import { analytics_event } from "../tracker";
-import { React, rclass, redux, rtypes, COLOR } from "../app-framework";
+import { React, redux, COLOR, useRedux, useMemo } from "../app-framework";
 import { Icon, Tip, Space } from "../r_misc";
 //import { VideoChatButton } from "../video-chat";
 const { VideoChatButton } = require("../video-chat");
 //import { UsersViewing } from "../other-users";
 const { UsersViewing } = require("../other-users");
 
-const CHAT_INDICATOR_STYLE = {
+const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "14pt",
   borderRadius: "3px",
   marginTop: "3px",
 };
 
-const USERS_VIEWING_STYLE = {
+const USERS_VIEWING_STYLE: React.CSSProperties = {
   maxWidth: "120px",
   paddingTop: "3px",
 };
@@ -34,91 +33,57 @@ const CHAT_INDICATOR_TIP = (
   </span>
 );
 
-export const ChatIndicator = rclass({
-  reduxProps: {
-    file_use: {
-      file_use: rtypes.immutable,
+interface Props {
+  project_id: string;
+  path: string;
+  is_chat_open?: boolean;
+  shrink_fixed_tabs?: boolean;
+}
+
+export const ChatIndicator: React.FC<Props> = ({
+  project_id,
+  path,
+  is_chat_open,
+  shrink_fixed_tabs,
+}) => {
+  const fullscreen = useRedux(["page", "fullscreen"]);
+  const file_use = useRedux(["file_use", "file_use"]);
+  const is_new_chat = useMemo(
+    () =>
+      !!redux.getStore("file_use")?.get_file_info(project_id, path)
+        ?.is_unseenchat,
+    [file_use]
+  );
+
+  const toggle_chat = debounce(
+    () => {
+      const a = redux.getProjectActions(project_id);
+      if (is_chat_open) {
+        a.close_chat({ path });
+        analytics_event("side_chat", "close");
+      } else {
+        a.open_chat({ path });
+        analytics_event("side_chat", "open");
+      }
     },
-    page: {
-      fullscreen: rtypes.oneOf(["default", "kiosk"]),
-    },
-  },
+    1000,
+    { leading: true }
+  );
 
-  propTypes: {
-    project_id: rtypes.string.isRequired,
-    path: rtypes.string.isRequired,
-    is_chat_open: rtypes.bool,
-    shrink_fixed_tabs: rtypes.bool,
-  },
-
-  componentWillMount() {
-    return (this.toggle_chat = debounce(this.toggle_chat, 500, true));
-  },
-
-  toggle_chat() {
-    const a = redux.getProjectActions(this.props.project_id);
-    if (this.props.is_chat_open) {
-      a.close_chat({ path: this.props.path });
-      return analytics_event("side_chat", "close");
-    } else {
-      a.open_chat({ path: this.props.path });
-      return analytics_event("side_chat", "open");
-    }
-  },
-
-  is_new_chat() {
-    return !!redux
-      .getStore("file_use")
-      ?.get_file_info(this.props.project_id, this.props.path)?.is_unseenchat;
-  },
-
-  render_users() {
-    return (
-      <UsersViewing
-        project_id={this.props.project_id}
-        path={this.props.path}
-        style={USERS_VIEWING_STYLE}
-      />
-    );
-  },
-
-  render_video_button() {
-    return (
-      <span style={{ marginLeft: "5px", marginRight: "5px", color: "#428bca" }}>
-        <VideoChatButton
-          project_id={this.props.project_id}
-          path={this.props.path}
-          short={true}
-        />
-      </span>
-    );
-  },
-
-  render_chat_label() {
-    if (this.props.shrink_fixed_tabs) {
-      return;
-    }
-    return <span style={{ fontSize: "10.5pt", marginLeft: "5px" }}>Chat</span>;
-  },
-
-  render_chat_button() {
-    if (filename_extension(this.props.path) === "sage-chat") {
+  function render_chat_button() {
+    if (filename_extension(path) === "sage-chat") {
       // Special case: do not show side chat for chatrooms
       return;
     }
 
-    const new_chat = this.is_new_chat();
-    const color = new_chat ? COLOR.FG_RED : COLOR.FG_BLUE;
-    const action = this.props.is_chat_open ? "Hide" : "Show";
+    const color = is_new_chat ? COLOR.FG_RED : COLOR.FG_BLUE;
+    const action = is_chat_open ? "Hide" : "Show";
     const title = (
       <span>
         <Icon name="comment" />
         <Space /> <Space /> {action} chat
       </span>
     );
-    const dir = this.props.is_chat_open ? "down" : "left";
-    const clz = new_chat ? "smc-chat-notification" : "";
-
     return (
       <div
         style={{
@@ -127,43 +92,52 @@ export const ChatIndicator = rclass({
           marginLeft: "5px",
           marginRight: "5px",
         }}
-        className={clz}
+        className={is_new_chat ? "smc-chat-notification" : undefined}
       >
-        {this.props.is_chat_open ? this.render_video_button() : undefined}
+        {is_chat_open && (
+          <span
+            style={{ marginLeft: "5px", marginRight: "5px", color: "#428bca" }}
+          >
+            <VideoChatButton project_id={project_id} path={path} short={true} />
+          </span>
+        )}
         <Tip
           title={title}
           tip={CHAT_INDICATOR_TIP}
           placement={"leftTop"}
-          delayShow={2500}
+          delayShow={3000}
           stable={false}
         >
-          <span onClick={this.toggle_chat}>
-            <Icon name={`caret-${dir}`} />
+          <span onClick={toggle_chat}>
+            <Icon name={`caret-${is_chat_open ? "down" : "left"}`} />
             <Space />
             <Icon name="comment" />
-            {this.render_chat_label()}
+            {!shrink_fixed_tabs && (
+              <span style={{ fontSize: "10.5pt", marginLeft: "5px" }}>
+                Chat
+              </span>
+            )}
           </span>
         </Tip>
       </div>
     );
-  },
+  }
 
-  render() {
-    const style: React.CSSProperties = copy(CHAT_INDICATOR_STYLE);
-    style.display = "flex";
-    if (this.props.fullscreen) {
-      style.top = "1px";
-      style.right = "23px";
-    } else {
-      style.top = "-30px";
-      style.right = "3px";
-    }
-
-    return (
-      <div style={style}>
-        {this.render_users()}
-        {this.render_chat_button()}
-      </div>
-    );
-  },
-} as any);
+  const style: React.CSSProperties = {
+    ...CHAT_INDICATOR_STYLE,
+    ...{ display: "flex" },
+    ...(fullscreen
+      ? { top: "1px", right: "23px" }
+      : { top: "-30px", right: "3px" }),
+  };
+  return (
+    <div style={style}>
+      <UsersViewing
+        project_id={project_id}
+        path={path}
+        style={USERS_VIEWING_STYLE}
+      />
+      {render_chat_button()}
+    </div>
+  );
+};
