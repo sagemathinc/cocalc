@@ -144,7 +144,7 @@ ProjectSearchOutputHeader = rclass
             {@get_info() if @props.info_visible}
         </div>
 
-ProjectSearchBody = rclass ({name}) ->
+exports.ProjectSearchBody = rclass ({name}) ->
     displayName : 'ProjectSearchBody'
 
     reduxProps :
@@ -265,38 +265,4 @@ ProjectSearchResultLine = rclass
         <div style={wordWrap:'break-word'}>
             <a onClick={@click_filename} href=''><strong>{@props.filename}</strong></a>
             <span style={color:'#666'}> {@props.description}</span>
-        </div>
-
-ProjectSearchHeader = rclass ({name}) ->
-    displayName : 'ProjectSearch-ProjectSearchHeader'
-
-    mixins: [ImmutablePureRenderMixin]
-
-    reduxProps :
-        "#{name}" :
-            current_path : rtypes.string
-
-    propTypes :
-        actions : rtypes.object.isRequired
-
-    render: ->
-        <h1 style={marginTop:"0px"}>
-            <Icon name='search' /> Search <span className='hidden-xs'> in <PathLink path={@props.current_path} actions={@props.actions} /></span>
-        </h1>
-
-exports.ProjectSearch = rclass ({name}) ->
-    displayName : 'ProjectSearch'
-
-    render: ->
-        <div style={padding:'15px'}>
-            <Row>
-                <Col sm={12}>
-                    <ProjectSearchHeader actions={@actions(name)} name={name} />
-                </Col>
-            </Row>
-            <Row>
-                <Col sm={12}>
-                    <ProjectSearchBody actions={@actions(name)} name={name} />
-                </Col>
-            </Row>
         </div>
