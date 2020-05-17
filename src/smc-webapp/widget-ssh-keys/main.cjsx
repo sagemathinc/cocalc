@@ -50,7 +50,6 @@ exports.SSHKeyAdder = rclass
 
     propTypes:
         add_ssh_key  : rtypes.func.isRequired  # See arg signature at end of @submit_form
-        account_id   : rtypes.string
         toggleable   : rtypes.bool             # If it should be a button
 
     getInitialState: ->

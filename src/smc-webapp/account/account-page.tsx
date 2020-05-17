@@ -35,8 +35,7 @@ import { LicensesPage } from "./licenses/licenses-page";
 
 //import { SupportPage } from "../support";
 const { SupportPage } = require("../support");
-//import { SSHKeysPage } from "../account_ssh_keys";
-const { SSHKeysPage } = require("../account_ssh_keys");
+import { SSHKeysPage } from "./ssh-keys";
 import { Icon, Loading } from "../r_misc";
 import { SignOut } from "../account/sign-out";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
@@ -87,7 +86,6 @@ interface Props {
   other_settings?: immutable.Map<string, any>;
   groups?: immutable.List<string>;
   stripe_customer?: immutable.Map<string, any>;
-  ssh_keys?: immutable.Map<string, any>;
   is_anonymous?: boolean;
   created?: Date;
 }
@@ -126,7 +124,6 @@ const ACCOUNT_SPEC = {
   other_settings: rtypes.immutable.Map,
   groups: rtypes.immutable.List,
   stripe_customer: rtypes.immutable.Map,
-  ssh_keys: rtypes.immutable.Map,
   is_anonymous: rtypes.bool,
   created: rtypes.object,
 };
@@ -163,12 +160,7 @@ class AccountPage extends Component<Props> {
   }
 
   private render_ssh_keys_page(): Rendered {
-    return (
-      <SSHKeysPage
-        account_id={this.props.account_id}
-        ssh_keys={this.props.ssh_keys}
-      />
-    );
+    return <SSHKeysPage />;
   }
 
   private render_account_settings(): Rendered {
