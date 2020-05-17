@@ -776,3 +776,39 @@ export function useRedux(
     return useSelector((_) => redux._redux_store.getState().getIn(path));
   }
 }
+
+/*
+Hook to get the actions associated to a named actions/store,
+a project, or an editor.  If the first argument is a uuid,
+then it's the project actions or editor actions; otherwise,
+it's one of the other named actions or undefined.
+*/
+
+export function useActions(name: "account"): AccountActions;
+export function useActions(name: "projects"): any;
+export function useActions(name: "billing"): any;
+export function useActions(name: "page"): any;
+export function useActions(name: "admin-users"): AdminUsersActions;
+export function useActions(name: "admin-site-licenses"): SiteLicensesActions;
+export function useActions(name: "mentions"): MentionsActions;
+export function useActions(name: "file_use"): FileUseActions; // or undefined?
+
+// If it is none of the explicitly named ones... it's a project.
+export function useActions(name_or_project_id: string): ProjectActions;
+
+// Or an editor actions (any for now)
+export function useActions(name_or_project_id: string, path: string): any;
+
+export function useActions(name_or_project_id: string, path?: string) {
+  return React.useMemo(() => {
+    if (path == null) {
+      if (is_valid_uuid_string(name_or_project_id)) {
+        return redux.getProjectActions(name_or_project_id);
+      } else {
+        return redux.getActions(name_or_project_id);
+      }
+    } else {
+      return redux.getEditorActions(name_or_project_id, path);
+    }
+  }, [name_or_project_id, path]);
+}
