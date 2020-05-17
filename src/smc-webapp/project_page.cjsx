@@ -23,7 +23,7 @@ Draggable = require('react-draggable')
 {Explorer}         = require('./project/explorer')
 {ProjectNew}       = require('./project/new')
 {ProjectLog}       = require('./project/history')
-{ProjectSearch}    = require('./project_search')
+{ProjectSearch}    = require('./project/search/search')
 {ProjectSettings}  = require('./project/settings')
 {DeletedFile}      = require('./project/deleted-file')
 {ProjectStore}     = require('./project_store')
@@ -36,7 +36,7 @@ project_file = require('./project_file')
 {React, ReactDOM, rclass, redux, rtypes, Redux, Fragment} = require('./app-framework')
 {DeletedProjectWarning, ErrorBoundary, Icon, Loading, Space} = require('./r_misc')
 
-{ChatIndicator} = require('./chat-indicator')
+{ChatIndicator} = require('./chat/chat-indicator')
 
 {ShareIndicator} = require('./share/share-indicator')
 
@@ -283,7 +283,7 @@ ProjectContentViewer = rclass
             when 'log'
                 <ProjectLog name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)} />
             when 'search'
-                <ProjectSearch name={@props.project_name} />
+                <ProjectSearch project_id={@props.project_id} />
             when 'settings'
                 <ProjectSettings project_id={@props.project_id} name={@props.project_name} group={@props.group} />
             else  # @props.active_tab_name = "editor-<filename>"

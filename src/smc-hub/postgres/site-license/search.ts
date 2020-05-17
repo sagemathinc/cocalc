@@ -10,7 +10,7 @@ export async function matching_site_licenses(
   db: PostgreSQL,
   search: string,
   limit: number = 5
-): Promise<object[]> {
+): Promise<{ id: string }[]> {
   const where: any[] = [];
   const params: (string | number)[] = [];
   let i = 1;
@@ -21,7 +21,7 @@ export async function matching_site_licenses(
     params.push(`%${s}%`);
     i += 1;
   }
-  let query = "SELECT * FROM site_licenses";
+  let query = "SELECT id FROM site_licenses";
   query += ` WHERE (${where.join(" AND ")})`;
   // recently active licenses are much more relevant than old ones
   query += " ORDER BY last_used DESC NULLS LAST";

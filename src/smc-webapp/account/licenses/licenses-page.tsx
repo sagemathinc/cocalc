@@ -5,7 +5,7 @@
 
 import { React } from "../../app-framework";
 import { ManagedLicenses } from "./managed-licenses";
-import { AppliedLicenses } from "./applied-licenses";
+import { ProjectsWithLicenses } from "./projects-with-licenses";
 import { AboutLicenses } from "./about-licenses";
 
 export const LicensesPage: React.FC<> = () => {
@@ -15,7 +15,7 @@ export const LicensesPage: React.FC<> = () => {
       <br />
       <ManagedLicenses />
       <br />
-      <AppliedLicenses />
+      <ProjectsWithLicenses />
     </div>
   );
 };

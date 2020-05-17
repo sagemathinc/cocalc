@@ -1248,7 +1248,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Open side chat for the given file, assuming the file is open, store is initialized, etc.
   open_chat(opts) {
     opts = defaults(opts, { path: required });
-    this._set_chat_state(opts.path, true);
+    // First create the chat actions:
     require("./chat/register").init(
       misc.meta_file(opts.path, "chat"),
       this.redux,
@@ -1258,16 +1258,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     editor
       ? editor.local_storage(this.project_id, opts.path, "is_chat_open", true)
       : undefined;
+    // Only then set state to say that the chat is opened!
+    // (Otherwise when the opened chat is rendered actions is randomly not defined, and things break for.)
+    this._set_chat_state(opts.path, true);
   }
 
   // Close side chat for the given file, assuming the file itself is open
   close_chat(opts) {
     opts = defaults(opts, { path: required });
-    this._set_chat_state(opts.path, false);
     const editor = require("./editor");
     editor
       ? editor.local_storage(this.project_id, opts.path, "is_chat_open", false)
       : undefined;
+    this._set_chat_state(opts.path, false);
   }
 
   set_chat_width(opts): void {

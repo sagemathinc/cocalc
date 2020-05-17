@@ -11,7 +11,7 @@ import { Icon, Loading, Space, TimeAgo } from "../r_misc";
 import { alert_message } from "../alerts";
 import { Alert, Button, Popconfirm } from "antd";
 import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
-import { plural } from "smc-util/misc2";
+import { plural, trunc_left } from "smc-util/misc2";
 
 interface Props {
   license_id: string;
@@ -90,31 +90,19 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     // sniff their browser traffic and get it so this is just to
     // discourage really trivial blatant misuse.  We will have other
     // layers of security.
-    // However, if no project_id specified, this license is being used
-    // as part of a course config (or something else), so we still show
-    // the license id.
-    // I could do this as a single if but it is easier to document this way:
-    if (this.props.project_id) {
-      // license display for specific project
-      if (!redux.getStore("account").get("is_admin")) {
-        // Admins always see.
-        // Not an admin, so only show id if you are a manager...
-        // or there is no info (e.g., invalid license key).
-        // Never show if there is an error.
-        if (
-          (this.state.info != null && !this.state.info.is_manager) ||
-          this.state.err
-        ) {
-          return;
-        }
-      }
-    }
+
+    // Show only last few digits if not manager.
+    // license display for specific project
+    const license_id = this.state.info?.is_manager
+      ? this.props.license_id
+      : trunc_left(this.props.license_id, 14);
+
     return (
       <li>
         License code:
         <Space />
         <span style={{ fontFamily: "monospace", whiteSpace: "nowrap" }}>
-          {this.props.license_id}
+          {license_id}
         </span>
       </li>
     );
@@ -184,10 +172,10 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
 
   private render_what_license_provides_overall(): Rendered {
     if (!this.state.info) return;
-    if (!this.state.info.upgrades) return;
+    if (!this.state.info.upgrades) return <div>Provides no upgrades.</div>;
     return (
       <div>
-        Provides the following upgrades {this.render_overall_limit()}
+        Provides the following upgrades {this.render_overall_limit()}:
         <DisplayUpgrades
           upgrades={scale_by_display_factors(fromJS(this.state.info.upgrades))}
           style={{
@@ -210,7 +198,14 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
   private render_upgrades(): Rendered {
     if (!this.props.project_id) {
       // component not being used in the context of a specific project.
-      return this.render_what_license_provides_overall();
+      return (
+        <div>
+          {this.render_id()}
+          {this.render_what_license_provides_overall()}
+          {this.render_run_limit()}
+          {this.render_running()}
+        </div>
+      );
     }
 
     let provides: Rendered;

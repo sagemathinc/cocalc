@@ -1,57 +1,39 @@
 import { Map } from "immutable";
 import { webapp_client } from "../../webapp-client";
+import { field_cmp } from "smc-util/misc";
 
-export type License = object;
-
-export async function getManagedLicenses(): Promise<License[]> {
+export async function getManagedLicenses(): Promise<string[]> {
   return (
     await webapp_client.async_query({
       query: {
         manager_site_licenses: [{ id: null }],
-      } /* todo put in other fields; they are returned anyways */,
+      },
     })
-  ).query.manager_site_licenses;
+  ).query.manager_site_licenses.map((x) => x.id);
 }
 
-interface InfoAboutLicense {
-  upgraded_project_ids: string[]; // projects that you are a collab on that this license is applied to and it is actively upgrading it.
-  applied_project_ids: string[]; // projects you are a collab on that this license is applied to but not actively upgrading
-}
-
-export function applied_licenses_info(
+// Return list of id's of projects that have at least one license applied to
+// them. The license may or may not be valid, in use, etc.
+export function projects_with_licenses(
   project_map: Map<string, any>
-): { [id: string]: InfoAboutLicense } {
-  const x: { [id: string]: InfoAboutLicense } = {};
+): { last_edited?: Date; project_id: string; num_licenses: number }[] {
+  const v: {
+    last_edited?: Date;
+    project_id: string;
+    num_licenses: number;
+  }[] = [];
   for (const y of project_map) {
     const [project_id, project] = y;
-    const v = project.get("site_license");
-    if (v != null) {
-      for (const z of v) {
-        const [id, upgrade] = z;
-        if (
-          upgrade.size > 0 &&
-          project.getIn(["state", "state"]) == "running"
-        ) {
-          if (x[id] == null) {
-            x[id] = {
-              upgraded_project_ids: [project_id],
-              applied_project_ids: [],
-            };
-          } else {
-            x[id].upgraded_project_ids.push(project_id);
-          }
-        } else {
-          if (x[id] == null) {
-            x[id] = {
-              applied_project_ids: [project_id],
-              upgraded_project_ids: [],
-            };
-          } else {
-            x[id].applied_project_ids.push(project_id);
-          }
-        }
-      }
+    const num_licenses = project.get("site_license")?.size;
+    if (num_licenses > 0) {
+      v.push({
+        last_edited: project.get("last_edited"),
+        project_id,
+        num_licenses,
+      });
     }
   }
-  return x;
+  v.sort(field_cmp("last_edited"));
+  v.reverse();
+  return v;
 }
