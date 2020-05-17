@@ -1,8 +1,8 @@
-import { Col, Row } from "../antd-bootstrap";
-import { React, redux, useRedux } from "../app-framework";
-import { A } from "../r_misc";
-//import { SSHKeyList, SSHKeyAdder } from "../widget-ssh-keys/main";
-const { SSHKeyList, SSHKeyAdder } = require("../widget-ssh-keys/main");
+import { Col, Row } from "../../antd-bootstrap";
+import { React, redux, useRedux } from "../../app-framework";
+import { A } from "../../r_misc";
+//import { SSHKeyList, SSHKeyAdder } from "../../widget-ssh-keys/main";
+const { SSHKeyList, SSHKeyAdder } = require("../../widget-ssh-keys/main");
 
 export const SSHKeysPage: React.FC<> = () => {
   function render_pre_list_message() {

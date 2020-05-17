@@ -35,7 +35,7 @@ import { LicensesPage } from "./licenses/licenses-page";
 
 //import { SupportPage } from "../support";
 const { SupportPage } = require("../support");
-import { SSHKeysPage } from "./ssh-keys";
+import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { Icon, Loading } from "../r_misc";
 import { SignOut } from "../account/sign-out";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
