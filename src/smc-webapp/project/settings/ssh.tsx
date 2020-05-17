@@ -13,7 +13,7 @@ import { Project } from "./types";
 import { UserMap } from "smc-webapp/todo-types";
 import { webapp_client } from "../../webapp-client";
 
-const { SSHKeyAdder } = require("../../widget-ssh-keys/main");
+import { SSHKeyAdder } from "../../account/ssh-keys/ssh-key-adder";
 import { SSHKeyList } from "../../account/ssh-keys/ssh-key-list";
 
 interface Props {
@@ -82,7 +82,6 @@ export class SSHPanel extends React.Component<Props> {
             add_ssh_key={this.add_ssh_key}
             toggleable={true}
             style={{ marginBottom: "10px" }}
-            account_id={this.props.account_id}
           />
           {this.render_ssh_notice()}
         </SSHKeyList>

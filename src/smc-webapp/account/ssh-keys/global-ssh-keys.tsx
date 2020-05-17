@@ -2,8 +2,7 @@ import { Map } from "immutable";
 import { Col, Row } from "../../antd-bootstrap";
 import { React, redux, useRedux } from "../../app-framework";
 import { A } from "../../r_misc";
-//import { SSHKeyList, SSHKeyAdder } from "../../widget-ssh-keys/main";
-const { SSHKeyAdder } = require("../../widget-ssh-keys/main");
+import { SSHKeyAdder } from "./ssh-key-adder";
 import { SSHKeyList } from "./ssh-key-list";
 
 export const SSHKeysPage: React.FC<> = () => {
@@ -50,7 +49,6 @@ export const SSHKeysPage: React.FC<> = () => {
         </Col>
         <Col md={4}>
           <SSHKeyAdder
-            ssh_keys={ssh_keys}
             add_ssh_key={(opts) =>
               redux.getActions("account").add_ssh_key(opts)
             }
