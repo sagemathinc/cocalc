@@ -1403,7 +1403,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  open_directory(path, change_history = true): void {
+  open_directory(path, change_history = true, show_files = true): void {
     path = normalize(path);
     this._ensure_project_is_open((err) => {
       if (err) {
@@ -1424,10 +1424,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (store == undefined) {
           return;
         }
-        this.set_active_tab("files", {
-          update_file_listing: false,
-          change_history: change_history,
-        });
+        if (show_files) {
+          this.set_active_tab("files", {
+            update_file_listing: false,
+            change_history: change_history,
+          });
+        }
         this.set_all_files_unchecked();
       }
     });

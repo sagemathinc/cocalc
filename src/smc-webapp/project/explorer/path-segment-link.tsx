@@ -40,11 +40,11 @@ export function PathSegmentLink({
 
   function style(): React.CSSProperties {
     if (history) {
-      return { color: "#c0c0c0" };
+      return { cursor: "pointer", color: "#c0c0c0" };
     } else if (active) {
-      return { color: COLORS.BS_BLUE_BGRND };
+      return { cursor: "pointer", color: COLORS.BS_BLUE_BGRND };
     }
-    return {};
+    return { cursor: "pointer" };
   }
 
   return (

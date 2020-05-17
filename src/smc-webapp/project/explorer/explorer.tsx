@@ -697,11 +697,7 @@ export const Explorer = rclass<ReactProps>(
               marginBottom: "15px",
             }}
           >
-            <PathNavigator
-              current_path={this.props.current_path}
-              history_path={this.props.history_path}
-              actions={this.props.actions}
-            />
+            <PathNavigator project_id={this.props.project_id} />
           </div>
           {!public_view && (
             <>
