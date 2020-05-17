@@ -14,7 +14,7 @@ misc = require('smc-util/misc')
 {Icon, HelpIcon, Space, TimeAgo} = require('../r_misc')
 
 # Sibling Libraries
-{compute_fingerprint} = require('./fingerprint')
+{compute_fingerprint} = require('../account/ssh-keys/fingerprint')
 
 ALLOWED_SSH_TYPES = ['ssh-rsa', 'ssh-dss', 'ssh-ed25519', 'ecdsa-sha2-nistp256', 'ecdsa-sha2-nistp384', 'ecdsa-sha2-nistp521']
 ALLOWED_SSH_TYPES_DESCRIPTION = ALLOWED_SSH_TYPES[...-1].join(', ') + ", or " + ALLOWED_SSH_TYPES[ALLOWED_SSH_TYPES.length - 1]
