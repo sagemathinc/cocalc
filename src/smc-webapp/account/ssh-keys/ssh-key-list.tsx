@@ -9,9 +9,10 @@ import { Panel } from "../../antd-bootstrap";
 // Takes an optional Help string or node to render as a help modal
 export const SSHKeyList: React.FC<{
   ssh_keys?: Map<string, any>;
+  project_id?: string;
   help?: JSX.Element;
   children?: any;
-}> = ({ ssh_keys, help, children }) => {
+}> = ({ ssh_keys, project_id, help, children }) => {
   function render_header() {
     return (
       <h3>
@@ -34,7 +35,13 @@ export const SSHKeyList: React.FC<{
         v.push({
           date: ssh_key.get("last_use_date"),
           fp: fingerprint,
-          component: <OneSSHKey ssh_key={ssh_key} key={fingerprint} />,
+          component: (
+            <OneSSHKey
+              ssh_key={ssh_key}
+              key={fingerprint}
+              project_id={project_id}
+            />
+          ),
         });
       }
     );

@@ -185,6 +185,7 @@ exports.OneSSHKey = OneSSHKey = rclass
     propTypes:
         ssh_key  : rtypes.immutable.Map.isRequired
         delete   : rtypes.func
+        project_id : rtypes.string
 
     getInitialState: ->
         show_delete_conf : false
@@ -201,7 +202,10 @@ exports.OneSSHKey = OneSSHKey = rclass
             </div>
 
     delete_key: (fingerprint) ->
-        redux.getActions("account").delete_ssh_key(fingerprint)
+        if @props.project_id
+            redux.getActions("projects").delete_ssh_key_from_project({fingerprint:fingerprint, project_id: @props.project_id})
+        else
+            redux.getActions("account").delete_ssh_key(fingerprint)
 
     render: ->
         key_style = {fontSize:'42px'}

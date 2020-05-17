@@ -67,7 +67,10 @@ export class SSHPanel extends React.Component<Props> {
     ]);
     return (
       <div>
-        <SSHKeyList ssh_keys={ssh_keys}>
+        <SSHKeyList
+          ssh_keys={ssh_keys}
+          project_id={this.props.project.get("project_id")}
+        >
           <div>
             <span>
               NOTE: If you want to use the same ssh key for all your projects,
