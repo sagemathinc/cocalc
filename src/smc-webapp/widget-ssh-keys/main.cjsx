@@ -10,7 +10,7 @@ immutable = require('immutable')
 # Internal & React Libraries
 misc = require('smc-util/misc')
 {defaults, types, required} = misc
-{React, ReactDOM, rclass, rtypes} = require('../app-framework')
+{React, ReactDOM, rclass, rtypes, redux} = require('../app-framework')
 {Icon, HelpIcon, Space, TimeAgo} = require('../r_misc')
 
 # Sibling Libraries
@@ -179,7 +179,7 @@ DeleteConfirmation = rclass
             </ButtonToolbar>
         </Well>
 
-OneSSHKey = rclass
+exports.OneSSHKey = OneSSHKey = rclass
     displayName: 'SSH-Key'
 
     propTypes:
@@ -199,6 +199,9 @@ OneSSHKey = rclass
             <div style={color:'#333'}>
                 Never used
             </div>
+
+    delete_key: (fingerprint) ->
+        redux.getActions("account").delete_ssh_key(fingerprint)
 
     render: ->
         key_style = {fontSize:'42px'}
@@ -231,67 +234,8 @@ OneSSHKey = rclass
                 </Col>
             </Row>
             {<DeleteConfirmation
-                confirm = {()=>@props.delete(@props.ssh_key.get('fingerprint'))}
+                confirm = {()=>@delete_key(@props.ssh_key.get('fingerprint'))}
                 cancel  = {=>@setState(show_delete_conf : false)}
             /> if @state.show_delete_conf}
         </ListGroupItem>
-
-# Children are rendered above the list of SSH Keys
-# Takes an optional Help string or node to render as a help modal
-exports.SSHKeyList = rclass
-    displayName: 'SSH-Key-List'
-
-    propTypes:
-        ssh_keys   : rtypes.immutable.Map
-        delete_key : rtypes.func
-        help       : rtypes.oneOfType([rtypes.string, rtypes.element])
-
-    getDefaultProps: ->
-        ssh_keys : immutable.Map()
-
-    render_header: ->
-        <h3>
-            <Icon name='list-ul' /> SSH keys <Space/>
-            {<HelpIcon title='Using SSH Keys'>
-                {@props.help}
-            </HelpIcon> if @props.help?}
-        </h3>
-
-    render_keys: ->
-        v = []
-
-        @props.ssh_keys.forEach (ssh_key, fingerprint) =>
-            if not ssh_key
-                return
-            ssh_key = ssh_key.set('fingerprint', fingerprint)
-            v.push
-                date      : ssh_key.get('last_use_date')
-                fp        : fingerprint
-                component : <OneSSHKey
-                    ssh_key  = {ssh_key}
-                    delete   = {@props.delete_key}
-                    key      = {fingerprint}
-                />
-            return
-        # sort in reverse order by last_use_date, then by fingerprint
-        v.sort (a,b) ->
-            if a.date? and b.date?
-                return -misc.cmp(a.date, b.date)
-            if a.date and not b.date?
-                return -1
-            if b.date and not a.date?
-                return +1
-            return misc.cmp(a.fp, b.fp)
-        return (x.component for x in v)
-
-    render: ->
-        <Panel header={@render_header()}>
-            {@props.children}
-            <Panel style={marginBottom:'0px'} >
-                <ListGroup fill={true}>
-                    {@render_keys()}
-                </ListGroup>
-            </Panel>
-        </Panel>
-
 

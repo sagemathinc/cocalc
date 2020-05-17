@@ -1,10 +1,17 @@
+import { Map } from "immutable";
 import { Col, Row } from "../../antd-bootstrap";
 import { React, redux, useRedux } from "../../app-framework";
 import { A } from "../../r_misc";
 //import { SSHKeyList, SSHKeyAdder } from "../../widget-ssh-keys/main";
-const { SSHKeyList, SSHKeyAdder } = require("../../widget-ssh-keys/main");
+const { SSHKeyAdder } = require("../../widget-ssh-keys/main");
+import { SSHKeyList } from "./ssh-key-list";
 
 export const SSHKeysPage: React.FC<> = () => {
+  const ssh_keys: Map<string, any> | undefined = useRedux([
+    "account",
+    "ssh_keys",
+  ]);
+
   function render_pre_list_message() {
     return (
       <div style={{ marginTop: "10px", marginBottom: "10px", color: "#444" }}>
@@ -34,24 +41,16 @@ export const SSHKeysPage: React.FC<> = () => {
     );
   }
 
-  const ssh_keys = useRedux(["account", "ssh_keys"]);
-
   return (
     <div style={{ marginTop: "1em" }}>
       <Row>
         <Col md={8}>
           {render_pre_list_message()}
-          <SSHKeyList
-            ssh_keys={ssh_keys}
-            pre_list={render_pre_list_message()}
-            delete_key={(fingerprint) =>
-              redux.getActions("account").delete_ssh_key(fingerprint)
-            }
-            help={help()}
-          />
+          <SSHKeyList help={help()} ssh_keys={ssh_keys} />
         </Col>
         <Col md={4}>
           <SSHKeyAdder
+            ssh_keys={ssh_keys}
             add_ssh_key={(opts) =>
               redux.getActions("account").add_ssh_key(opts)
             }

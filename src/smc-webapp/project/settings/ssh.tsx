@@ -11,9 +11,10 @@ import { redux } from "../../app-framework";
 
 import { Project } from "./types";
 import { UserMap } from "smc-webapp/todo-types";
+import { webapp_client } from "../../webapp-client";
 
-const { webapp_client } = require("../../webapp_client");
-const { SSHKeyAdder, SSHKeyList } = require("../../widget-ssh-keys/main");
+const { SSHKeyAdder } = require("../../widget-ssh-keys/main");
+import { SSHKeyList } from "../../account/ssh-keys/ssh-key-list";
 
 interface Props {
   project: Project;
@@ -59,16 +60,14 @@ export class SSHPanel extends React.Component<Props> {
   }
 
   render() {
+    const ssh_keys = this.props.project.getIn([
+      "users",
+      webapp_client.account_id as string,
+      "ssh_keys",
+    ]);
     return (
       <div>
-        <SSHKeyList
-          ssh_keys={this.props.project.getIn([
-            "users",
-            webapp_client.account_id,
-            "ssh_keys",
-          ])}
-          delete_key={this.delete_ssh_key}
-        >
+        <SSHKeyList ssh_keys={ssh_keys}>
           <div>
             <span>
               NOTE: If you want to use the same ssh key for all your projects,
