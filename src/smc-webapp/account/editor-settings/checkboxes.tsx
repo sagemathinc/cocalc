@@ -70,7 +70,7 @@ export class EditorSettingsCheckboxes extends Component<Props> {
 
   private render_checkbox(name: string, desc: string | Rendered): Rendered {
     if (
-      this.props.email_address?.indexOf("minervaproject.com") &&
+      this.props.email_address?.indexOf("minervaproject.com") != -1 &&
       name === "jupyter_classic"
     ) {
       // Special case -- minerva doesn't get the jupyter classic option, to avoid student confusion.
