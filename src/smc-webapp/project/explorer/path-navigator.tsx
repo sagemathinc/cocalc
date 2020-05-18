@@ -36,13 +36,10 @@ export function PathNavigator({
     const is_root = current_path[0] === "/";
 
     const current_path_depth =
-      current_path == "" ? 0 : current_path.split("/").length - 1;
+      (current_path == "" ? 0 : current_path.split("/").length) - 1;
     const history_segments = history_path.split("/");
-    for (let i = 0; i < history_segments.length; i++) {
-      const segment = history_segments[i];
-      if (is_root && i === 0) {
-        continue;
-      }
+    history_segments.forEach((segment, i) => {
+      if (is_root && i === 0) return;
       const is_current = i === current_path_depth;
       const is_history = i > current_path_depth;
       v.push(
@@ -56,7 +53,7 @@ export function PathNavigator({
           history={is_history}
         />
       );
-    }
+    });
     return v;
   }
 
