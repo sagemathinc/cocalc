@@ -759,17 +759,18 @@ or
 export function useRedux(
   path: string[],
   project_id?: string,
-  name?: string // mostly for state about editing a file in project
+  filename?: string, // for editing a file in project
+  is_public?: boolean
 ) {
   if (project_id != null) {
     return useSelector((_) => {
-      if (name == null) {
+      if (filename == null) {
         const s: ProjectStore = redux.getProjectStore(project_id);
         return s.getIn(path as any);
       } else {
-        redux._redux_store
+        return redux._redux_store
           .getState()
-          .getIn([project_redux_name(project_id, name)].concat(path));
+          .getIn([redux_name(project_id, filename, is_public)].concat(path));
       }
     });
   } else {
