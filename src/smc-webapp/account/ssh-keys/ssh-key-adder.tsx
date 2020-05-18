@@ -127,10 +127,9 @@ export const SSHKeyAdder: React.FC<Props> = ({
     return (
       <Panel
         header={
-          <h2>
-            {" "}
+          <>
             <Icon name="plus-circle" /> Add an SSH key
-          </h2>
+          </>
         }
         style={style}
       >

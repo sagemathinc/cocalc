@@ -16,10 +16,10 @@ export const SSHKeyList: React.FC<{
 }> = ({ ssh_keys, project_id, help, children }) => {
   function render_header() {
     return (
-      <h3>
+      <>
         <Icon name="list-ul" /> SSH keys <Space />
         {help && <HelpIcon title="Using SSH Keys">{help}</HelpIcon>}
-      </h3>
+      </>
     );
   }
 
@@ -89,7 +89,7 @@ const OneSSHKey: React.FC<{
     }
   }
 
-  function delete_key() : void {
+  function delete_key(): void {
     const fingerprint = ssh_key.get("fingerprint");
     if (project_id) {
       redux.getActions("projects").delete_ssh_key_from_project({
