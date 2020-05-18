@@ -16,7 +16,7 @@ One you add a new built in editor, it should go here.
 
 # require('./editor_terminal')
 require('./chat/register')
-require('./editor_archive')
+require('./editors/archive/actions')
 require('./stopwatch/register')
 
 #require('./jupyter/register')
