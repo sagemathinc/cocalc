@@ -135,6 +135,16 @@ function formatting_prettier(formatting: Capabilities): Capabilities {
   if (formatting.biber) {
     formatting["bib-biber"] = true;
   }
+  if (formatting.tidy) {
+    formatting["xml-tidy"] = true;
+    formatting["html-tidy"] = true;
+  }
+  if (formatting.formatR) {
+    formatting.r = true;
+  }
+  if (formatting.latexindent) {
+    formatting.latex = true;
+  }
   return formatting;
 }
 

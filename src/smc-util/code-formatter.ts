@@ -21,15 +21,14 @@ export type Syntax =
   | "rust"
   | "CSS"
   | "html"
-  | "html-tidy"
   | "xml"
-  | "xml-tidy"
   | "bibtex"
   | "markdown"
   | "Markdown"
   | "knitr"
   | "json"
   | "JSON"
+  | "latex"
   | "yaml"
   | "python"
   | "python3"
@@ -46,7 +45,6 @@ export type Syntax =
   | "gofmt"
   | "clang-format"
   | "rustfmt"
-  | "tidy"
   | "tsx"
   | "jsx"
   | "yapf"
@@ -54,22 +52,27 @@ export type Syntax =
   | "formatR"
   | "latexindent"
   | "bib-biber"
+  | "xml-tidy"
+  | "html-tidy"
   | "DOES_NOT_EXIST";
 
 export type Parser = Syntax;
 
 export type Tool =
+  | "r" // to be removed
   | "yapf"
   | "yapf3" // for python 3
   | "python" // should be yapf
   | "knitr"
   | "formatR"
   | "clang-format"
+  | "latex"
   | "latexindent"
   | "gofmt"
+  | "xml-tidy"
+  | "html-tidy"
   | "rustfmt"
   | "bib-biber"
-  | "tidy"
   | "prettier" // always available
   | "postcss" // via prettier
   | "babel" // via prettier
@@ -145,11 +148,11 @@ export const ext2parser = ext2syntax;
 // (several ones are added for backwards compatibility)
 type Config = { [s in Parser]: Tool };
 export const syntax2tool: Readonly<Config> = Object.freeze({
-  py: "python",
-  python: "python",
-  python3: "python",
-  R: "formatR",
-  r: "formatR",
+  py: "python", // should be yapf or whatever …
+  python: "python", // should be yapf or whatever …
+  python3: "python", // should be yapf or whatever …
+  R: "r", // should be "formatR",
+  r: "r", // should be "formatR",
   JavaScript: "babel", // in prettier
   jsx: "babel", // in prettier
   tsx: "typescript", // in prettier
@@ -158,7 +161,7 @@ export const syntax2tool: Readonly<Config> = Object.freeze({
   CSS: "postcss", // in prettier
   json: "json", // in prettier
   JSON: "json", // in prettier
-  yaml: "yaml",
+  yaml: "yaml", // in prettier
   markdown: "markdown", // in prettier
   Markdown: "markdown", // in prettier
   RMarkdown: "markdown", // same as markdown, at last for now!
@@ -167,17 +170,14 @@ export const syntax2tool: Readonly<Config> = Object.freeze({
   "clang-format": "clang-format",
   "c++": "clang-format",
   babel: "prettier",
-  latex: "latexindent",
+  latex: "latex", // should be "latexindent",
   go: "gofmt",
   gofmt: "gofmt",
   rust: "rustfmt",
   rustfmt: "rustfmt",
   bibtex: "bib-biber",
-  tidy: "tidy",
-  xml: "tidy",
-  "xml-tidy": "tidy",
-  "html-tidy": "tidy",
-  html: "tidy",
+  xml: "xml-tidy",
+  html: "html-tidy",
   // html: "DOES_NOT_EXIST"
 } as Config);
 

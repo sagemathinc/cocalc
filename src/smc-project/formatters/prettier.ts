@@ -98,16 +98,18 @@ export async function run_prettier_string(
   logger.debug(`run_prettier options.parser: "${options.parser}"`);
   switch (options.parser) {
     case "latex":
+    case "latexindent":
       pretty = await latex_format(str, options);
       break;
     case "python":
+    case "yapf":
       pretty = await python_format(str, options, logger);
       break;
     case "r":
+    case "formatR":
       pretty = await r_format(str, options, logger);
       break;
     case "html-tidy":
-    case "tidy":
       pretty = await html_format(str, options, logger);
       break;
     case "xml-tidy":
