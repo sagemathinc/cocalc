@@ -17,7 +17,7 @@ import { FakeSyncstring } from "./syncstring-fake";
 import { Map } from "immutable";
 import { CompressedPatch } from "smc-util/sync/editor/generic/types";
 import { ExecOpts, ExecOutput } from "../../client/project";
-import { Options as FormatterOptions } from "smc-project/formatters/prettier";
+import { Config as FormatterConfig } from "smc-project/formatters/prettier";
 export { ExecOpts, ExecOutput };
 
 export function server_time(): Date {
@@ -99,10 +99,10 @@ export async function public_get_text_file(
 export async function prettier(
   project_id: string,
   path: string,
-  options: FormatterOptions
+  config: FormatterConfig
 ): Promise<CompressedPatch> {
   const api = await webapp_client.project_client.api(project_id);
-  const resp = await api.prettier(path, options);
+  const resp = await api.prettier(path, config);
 
   if (resp.status === "error") {
     const loc = resp.error.loc;
