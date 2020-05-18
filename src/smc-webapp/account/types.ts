@@ -34,6 +34,7 @@ export interface AccountState {
   sign_up_error?: { generic: string };
   signing_in: boolean;
   sign_in_error?: string;
+  sign_in_email_address?: string;
   account_deletion_error?: string;
   forgot_password_error?: string;
   forgot_password_success?: string;
@@ -55,4 +56,5 @@ export interface AccountState {
   strategies?: immutable.List<PassportStrategy>;
   token?: string;
   keyboard_variant_options?: immutable.List<any>;
+  show_forgot_password?: boolean;
 }

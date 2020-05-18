@@ -7,7 +7,7 @@
 Stdout rendering.
 */
 
-import { React, Component, Rendered } from "smc-webapp/app-framework";
+import { React } from "smc-webapp/app-framework";
 import { Map } from "immutable";
 import { is_ansi, Ansi } from "./ansi";
 import { STDOUT_STYLE } from "./style";
@@ -16,29 +16,24 @@ interface StdoutProps {
   message: Map<string, any>;
 }
 
-export class Stdout extends Component<StdoutProps> {
-  shouldComponentUpdate(nextProps: StdoutProps): boolean {
-    return !this.props.message.equals(nextProps.message);
+export const Stdout: React.FC<StdoutProps> = ({ message }) => {
+  let value = message.get("text");
+  console.log("Rendering Stdout ", JSON.stringify(value), typeof value);
+  if (typeof value != "string") {
+    value = `${value}`;
   }
-
-  render(): Rendered {
-    let value = this.props.message.get("text");
-    if (typeof value != "string") {
-      value = `${value}`;
-    }
-    if (is_ansi(value)) {
-      return (
-        <div style={STDOUT_STYLE}>
-          <Ansi>{value}</Ansi>
-        </div>
-      );
-    }
-    // This span below is solely to workaround an **ancient** Firefox bug
-    // See https://github.com/sagemathinc/cocalc/issues/1958
+  if (true || is_ansi(value)) {
     return (
       <div style={STDOUT_STYLE}>
-        <span>{value}</span>
+        <Ansi>{value}</Ansi>
       </div>
     );
   }
-}
+  // This span below is solely to workaround an **ancient** Firefox bug
+  // See https://github.com/sagemathinc/cocalc/issues/1958
+  return (
+    <div style={STDOUT_STYLE}>
+      <span>{value}</span>
+    </div>
+  );
+};

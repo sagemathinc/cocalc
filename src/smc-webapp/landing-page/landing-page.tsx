@@ -232,6 +232,7 @@ class LandingPage extends Component<Props & reduxProps> {
             borderRadius: 5,
             position: "relative",
             whiteSpace: "nowrap",
+            minHeight: 160,
           }}
           className="hidden-xs"
         >
@@ -239,7 +240,7 @@ class LandingPage extends Component<Props & reduxProps> {
             style={{
               width: 490,
               zIndex: 10,
-              position: "relative",
+              position: "absolute",
               top: UNIT,
               right: UNIT,
               fontSize: "11pt",
