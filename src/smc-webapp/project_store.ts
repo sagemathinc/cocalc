@@ -12,7 +12,7 @@ let wrapped_editors;
 declare let window, document;
 if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
-  wrapped_editors = require("./editor_react_wrapper");
+  wrapped_editors = require("./editors/react-wrapper");
 }
 import * as immutable from "immutable";
 

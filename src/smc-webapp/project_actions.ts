@@ -41,7 +41,7 @@ let project_file, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
   project_file = require("./project_file");
-  wrapped_editors = require("./editor_react_wrapper");
+  wrapped_editors = require("./editors/react-wrapper");
 }
 
 // Normalize path as in node, except '' is the home dir, not '.'.

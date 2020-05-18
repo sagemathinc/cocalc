@@ -1924,7 +1924,7 @@ class JupyterNBViewerEmbedded extends FileEditor
 exports.register_nonreact_editors = ->
 
     # Make non-react editors available in react rewrite
-    reg = require('./editor_react_wrapper').register_nonreact_editor
+    reg = require('./editors/react-wrapper').register_nonreact_editor
 
     # wrapper for registering private and public editors
     register = (is_public, cls, extensions) ->
