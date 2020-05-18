@@ -50,10 +50,14 @@ function parse_bsStyle(props: {
   style?: React.CSSProperties;
   disabled?: boolean;
 }): {
-  type: "primary" | "default" | "dashed" | "danger" | "link";
+  type: "primary" | "default" | "dashed" | "link";
   style: React.CSSProperties;
+  danger?: boolean;
+  ghost?: boolean;
+  disabled?: boolean;
+  loading?: boolean;
 } {
-  const type =
+  let type =
     props.bsStyle == null
       ? "default"
       : BS_STYLE_TO_TYPE[props.bsStyle] ?? "default";
@@ -82,7 +86,14 @@ function parse_bsStyle(props: {
   }
 
   style = { ...style, ...props.style };
-  return { type, style };
+  let danger: boolean | undefined = undefined;
+  let loading: boolean | undefined = undefined; // nothing mapped to this yet
+  let ghost: boolean | undefined = undefined; // nothing mapped to this yet
+  if (type == "danger") {
+    type = "default";
+    danger = true;
+  }
+  return { type, style, danger, ghost, loading };
 }
 
 export function Button(props: {
@@ -99,12 +110,12 @@ export function Button(props: {
 }) {
   // The span is needed inside below, otherwise icons and labels get squashed together
   // due to button having word-spacing 0.
-  const { type, style } = parse_bsStyle(props);
-  let size: "default" | "large" | "small" | undefined = undefined;
+  const { type, style, danger, ghost, loading } = parse_bsStyle(props);
+  let size: "middle" | "large" | "small" | undefined = undefined;
   if (props.bsSize == "large") {
     size = "large";
   } else if (props.bsSize == "small") {
-    size = "default";
+    size = "middle";
   } else if (props.bsSize == "xsmall") {
     size = "small";
   }
@@ -118,6 +129,9 @@ export function Button(props: {
       className={props.className}
       href={props.href}
       target={props.target}
+      danger={danger}
+      ghost={ghost}
+      loading={loading}
     >
       <span>{props.children}</span>
     </antd.Button>

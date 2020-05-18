@@ -5,6 +5,7 @@
 
 import { Component, React, Rendered, redux } from "../app-framework";
 import { Button, Popconfirm } from "antd";
+import { LogoutOutlined } from "@ant-design/icons";
 
 interface Props {
   everywhere?: boolean;
@@ -57,7 +58,7 @@ export class SignOut extends Component<Props> {
         cancelText={"Cancel"}
       >
         <Button
-          icon={"logout"}
+          icon={<LogoutOutlined />}
           type={this.props.highlight ? "primary" : undefined}
           style={this.props.style}
         >

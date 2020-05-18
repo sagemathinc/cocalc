@@ -70,7 +70,7 @@ class TerminalCommandPanel extends Component<Props> {
     return (
       <div>
         <Form
-          onSubmit={(e) => {
+          onFinish={(e) => {
             e.preventDefault();
             this.run_terminal_command();
           }}

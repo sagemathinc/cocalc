@@ -34,7 +34,8 @@ import {
 import { alert_message } from "../../alerts";
 import { Project } from "./types";
 import { Map, fromJS } from "immutable";
-import { Popconfirm, Icon as AntIcon } from "antd";
+import { Popconfirm } from "antd";
+import { StopOutlined, SyncOutlined } from "@ant-design/icons";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 let {
   COMPUTE_IMAGES,
@@ -176,7 +177,7 @@ export const ProjectControl = rclass<ReactProps>(
           placement={"bottom"}
           arrowPointAtCenter={true}
           title={text}
-          icon={<AntIcon type={"stop"} theme="outlined" />}
+          icon={<StopOutlined />}
           onConfirm={() => this.stop_project()}
           okText="Yes, stop project"
           cancelText="Cancel"
@@ -204,7 +205,7 @@ export const ProjectControl = rclass<ReactProps>(
           placement={"bottom"}
           arrowPointAtCenter={true}
           title={text}
-          icon={<AntIcon type={"sync"} theme="outlined" />}
+          icon={<SyncOutlined />}
           onConfirm={() => this.restart_project()}
           okText="Yes, restart project"
           cancelText="Cancel"

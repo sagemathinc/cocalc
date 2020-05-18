@@ -3,7 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Menu, Dropdown, Button, Icon } from "antd";
+import { Menu, Dropdown, Button } from "antd";
+import { DownOutlined } from "@ant-design/icons";
 import { merge } from "smc-util/misc2";
 import { Component, React } from "../app-framework";
 
@@ -32,7 +33,7 @@ export class DropdownMenu extends Component<Props> {
           disabled={this.props.disabled}
           id={this.props.id}
         >
-          {this.props.title} <Icon type="down" />
+          {this.props.title} <DownOutlined />
         </Button>
       );
     } else {
