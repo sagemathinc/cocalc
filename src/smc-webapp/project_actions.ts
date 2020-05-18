@@ -1457,7 +1457,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     let history_path = store.get("history_path") || "";
-    const is_adjacent = !`${history_path}/`.startsWith(`${path}/`);
+    const is_adjacent = path.length > 0 && !history_path.startsWith(path);
     // given is_adjacent is false, this tests if it is a subdirectory
     const is_nested = path.length > history_path.length;
     if (is_adjacent || is_nested) {
