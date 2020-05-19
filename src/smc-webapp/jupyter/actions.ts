@@ -16,7 +16,7 @@ This can be used both on the frontend and the backend.
 //    https://github.com/sagemathinc/cocalc/issues/4590
 // It seems like 50000 provides a better tradeoff.  With 10000 we got about
 // four support messages *per year* about this...
-const DEFAULT_MAX_OUTPUT_LENGTH = 50000;
+const DEFAULT_MAX_OUTPUT_LENGTH = 100000;
 
 declare const localStorage: any;
 
@@ -584,8 +584,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               max_output_length: bounded_integer(
                 record.get("max_output_length"),
                 100,
-                100000,
-                20000
+                250000,
+                DEFAULT_MAX_OUTPUT_LENGTH
               ),
             };
             if (kernel !== orig_kernel) {
@@ -651,8 +651,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               max_output_length: bounded_integer(
                 record.get("max_output_length"),
                 100,
-                100000,
-                20000
+                250000,
+                DEFAULT_MAX_OUTPUT_LENGTH
               ),
             };
             if (kernel !== orig_kernel) {
