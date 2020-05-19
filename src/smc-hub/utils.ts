@@ -7,7 +7,7 @@ import * as fs from "fs";
 const winston = require("./winston-metrics").get_logger("utils");
 import { PostgreSQL } from "./postgres/types";
 import { AllSiteSettings } from "../smc-util/db-schema/types";
-import { expire_time } from "smc-util/misc";
+import { expire_time } from "../smc-util/misc";
 
 export function get_smc_root(): string {
   return process.env.SMC_ROOT ?? ".";
