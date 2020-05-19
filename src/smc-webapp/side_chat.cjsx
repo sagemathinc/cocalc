@@ -33,7 +33,7 @@ editor_chat = require('./editor_chat')
 {AddCollaborators} = require('./collaborators/add-to-project')
 
 { ChatInput } = require('./chat/input')
-{ Avatar } = require("./other-users");
+{ Avatar } = require("./account/avatar/avatar");
 
 {ChatLog} = require('./chat/chat-log')
 

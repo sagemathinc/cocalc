@@ -45,8 +45,8 @@ const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
 const { SMC_Dropwrapper } = require("../../smc-dropzone");
 import { ProjectNewForm } from "../new";
 const { Library } = require("../../library");
-const { webapp_client } = require("../../webapp_client");
-const { UsersViewing } = require("../../other-users");
+import { webapp_client } from "../../webapp-client";
+import { UsersViewing } from "../../account/avatar/users-viewing";
 
 const pager_range = function (page_size, page_number) {
   const start_index = page_size * page_number;

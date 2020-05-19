@@ -141,14 +141,14 @@ export const Avatar: React.FC<Props> = (props) => {
         var { ProjectTitle } = require("../../projects"); // MUST be imported here (until gets refactored in typescript).
         return (
           <span>
-            {name} last seen in{" "}
+            {name} last seen at{" "}
             <ProjectTitle project_id={props.activity.project_id} />
           </span>
         );
       case "project":
         return (
           <span>
-            {name} last seen viewing {props.activity.path}
+            {name} last seen at {props.activity.path}
           </span>
         );
       case "file":
