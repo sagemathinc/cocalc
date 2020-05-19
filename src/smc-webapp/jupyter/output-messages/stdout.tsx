@@ -18,11 +18,10 @@ interface StdoutProps {
 
 export const Stdout: React.FC<StdoutProps> = ({ message }) => {
   let value = message.get("text");
-  console.log("Rendering Stdout ", JSON.stringify(value), typeof value);
   if (typeof value != "string") {
     value = `${value}`;
   }
-  if (true || is_ansi(value)) {
+  if (is_ansi(value)) {
     return (
       <div style={STDOUT_STYLE}>
         <Ansi>{value}</Ansi>

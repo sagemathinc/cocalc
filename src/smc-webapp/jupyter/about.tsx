@@ -7,7 +7,7 @@
 About dialog -- provides info about the Jupyter Notebook
 */
 
-import * as Ansi from "ansi-to-react";
+import Ansi from "ansi-to-react";
 import { React, Component, Rendered } from "../app-framework";
 import { Button, Modal } from "react-bootstrap";
 import { Icon } from "../r_misc";

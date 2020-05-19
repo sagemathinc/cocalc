@@ -30,7 +30,7 @@
     "@types/react-image-crop": "^8.1.2",
     "@types/react-redux": "^7.1.7",
     "@zippytech/react-notify-resize": "^3.0.0",
-    "ansi-to-react": "^2.0.6",
+    "ansi-to-react": "^6.0.5",
     "antd": "^4.2.4",
     "async": "^2.6.3",
     "async-await-utils": "^3.0.1",
