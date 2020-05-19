@@ -23,43 +23,6 @@ alert_style = Object.freeze(
 oom_alert_style = Object.freeze(Object.assign({}, alert_style, {fontSize : '11pt', padding : '15px'}))
 
 
-exports.RamWarning = rclass ({name}) ->
-    displayName : 'RAMWarning'
-
-    reduxProps :
-        projects :
-            project_map              : rtypes.immutable.Map
-
-    propTypes :
-        project_id : rtypes.string
-
-    shouldComponentUpdate: (nextProps) ->
-        return @props.project_map?.get(@props.project_id) != nextProps.project_map?.get(nextProps.project_id)
-
-    render: ->
-        if not require('./customize').commercial
-            return <span />
-        project_status = @props.project_map?.get(@props.project_id)?.get('status')
-        if not project_status?
-            return <span />
-
-        rss = project_status.get('memory')?.get('rss')
-        limit = project_status.get('memory')?.get('limit')
-        if not rss or not limit
-            return <span />
-
-        rss_mb   = Math.round(rss/1000)
-        limit_mb = Math.round(limit/1000)
-        if limit_mb > rss_mb + 100
-            return <span />
-
-        <Alert bsStyle='danger' style={alert_style}>
-            <Icon name='exclamation-triangle' /> WARNING: This project is running low on memory.{' '}
-            Upgrade Shared RAM memory in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')} style={cursor:'pointer'}>settings</a>,{' '}
-            restart your project or kill some processes.{' '}
-            (<a href={OOM_INFO_PAGE} target={'_blank'} style={cursor:'pointer'}>more information</a>; memory usage is updated about once per minute.)
-        </Alert>
-
 
 # to test this, set the oom_kills value for your dev project directly in the DB:
 # 1. reset:         UPDATE projects SET status = jsonb_set(status, '{oom_kills}', '0'::JSONB) WHERE project_id='  ... UUID of your cc-in-cc project ... ';
