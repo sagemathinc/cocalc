@@ -21,7 +21,7 @@
     "coffee-cache": "^1.0.2",
     "coffee-register-cache": "0.0.0",
     "coffeelint": "^2.1.0",
-    "coffeescript": "^2.4.1",
+    "coffeescript": "^2.5.1",
     "immutable": "^3.8.2",
     "jest": "^24.9.0",
     "json-stable-stringify": "^1.0.1",

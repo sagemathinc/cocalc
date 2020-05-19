@@ -126,7 +126,7 @@
     "superb": "^3.0.0",
     "three": "^0.78.0",
     "timeago": "^1.6.3",
-    "typescript": "^3.8.2",
+    "typescript": "^3.9.2",
     "underscore": "^1.9.1",
     "universal-cookie": "^4.0.2",
     "use-async-effect": "^2.2.2",
@@ -138,7 +138,7 @@
   "devDependencies": {
     "cjsx-register": "^1.1.0",
     "coffeelint": "^2.1.0",
-    "coffeescript": "^2.4.1",
+    "coffeescript": "^2.5.1",
     "jsdom": "^7.0.2",
     "mocha": "^6.2.2",
     "react-addons-perf": "^15.4.2"
