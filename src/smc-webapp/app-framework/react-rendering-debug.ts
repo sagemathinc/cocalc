@@ -13,6 +13,13 @@ export enum MODES {
   default = "default", // Do nothing extra
 }
 
+// to make typescript happy (TS2339 & co)
+interface TBase {
+  render: any;
+  _render: any;
+  displayName: string;
+}
+
 export function debug_transform<T extends (...args: any[]) => any>(
   rclass: T,
   mode = MODES.default
@@ -32,7 +39,7 @@ export function debug_transform<T extends (...args: any[]) => any>(
       //  smc.reset_render_count()
       //  JSON.stringify(smc.get_render_count())
       let render_count: { [key: string]: number } = {};
-      composed_rclass = function <T extends any>(x: T): T {
+      composed_rclass = function <T extends TBase>(x: T): T {
         x._render = x.render;
         x.render = function (): ReturnType<T["render"]> {
           render_count[x.displayName] =

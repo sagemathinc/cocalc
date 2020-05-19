@@ -60,6 +60,8 @@ const {
 const { VideoChatButton } = require("./video-chat");
 const { SMC_Dropwrapper } = require("./smc-dropzone");
 
+import { TIP_TEXT } from "./widget-markdown-input/main";
+
 interface MessageProps {
   actions?: any;
 
@@ -722,11 +724,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   render_bottom_tip() {
     const tip = (
       <span>
-        You may enter (Github flavored) markdown here and include Latex
-        mathematics in $ signs. In particular, use # for headings, > for block
-        quotes, *'s for italic text, **'s for bold text, - at the beginning of a
-        line for lists, back ticks ` for code, and URL's will automatically
-        become links. Press shift+enter to send your chat. Double click to edit
+        {TIP_TEXT} Press Shift+Enter to send your chat. Double click to edit
         past chats.
       </span>
     );

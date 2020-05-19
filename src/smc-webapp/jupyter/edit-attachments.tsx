@@ -71,7 +71,7 @@ export class EditAttachments extends Component<EditAttachmentsProps> {
     if (v.length === 0) {
       return (
         <span>
-          There are no attachments. To attach images, use Edit -> Insert Image.
+          There are no attachments. To attach images, use Edit &rarr; Insert Image.
         </span>
       );
     }

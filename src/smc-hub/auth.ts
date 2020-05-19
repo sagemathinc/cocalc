@@ -261,10 +261,7 @@ const TwitterWrapper = (
   // cast to any, because otherwies TypeScript complains:
   // Only a void function can be called with the 'new' keyword.
   const TwitterStrat = require("passport-twitter").Strategy as any;
-  return new TwitterStrat(
-    { consumerKey, consumerSecret, callbackURL },
-    verify
-  );
+  return new TwitterStrat({ consumerKey, consumerSecret, callbackURL }, verify);
 };
 
 const TwitterStrategyConf: StrategyConf = {
@@ -497,12 +494,17 @@ class PassportManager {
       const url = `${DOMAIN_NAME}${path}`;
       res.header("Content-Type", "text/html");
       res.header("Cache-Control", "private, no-cache, must-revalidate");
-      if (!(req.query.token && req.query.email)) {
+      if (
+        !(req.query.token && req.query.email) ||
+        typeof req.query.email !== "string" ||
+        typeof req.query.token !== "string"
+      ) {
         res.send(
           "ERROR: I need the email address and the corresponding token data"
         );
         return;
       }
+
       const email = decodeURIComponent(req.query.email);
       // .toLowerCase() on purpose: some crazy MTAs transform everything to uppercase!
       const token = req.query.token.toLowerCase();

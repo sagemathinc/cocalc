@@ -50,7 +50,7 @@ export class EditCellMetadata extends Component<EditCellMetadataProps> {
       <span color="#888">
         NOTE: The metadata fields "collapsed", "scrolled", "slideshow", and
         "tags" are not visible above, and should only be edited through their
-        own toolbar, the UI or via 'View -> Show Notebook as Raw'.
+        own toolbar, the UI or via 'View &rarr; Show Notebook as Raw'.
       </span>
     );
   }
