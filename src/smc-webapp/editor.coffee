@@ -1,23 +1,7 @@
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2014--2016, SageMath, Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 $ = window.$
 
@@ -500,7 +484,9 @@ class CodeMirrorEditor extends FileEditor
                 showCursorWhenSelecting : true
                 extraKeys               : extraKeys
                 cursorScrollMargin      : 6
-                viewportMargin          : 10
+                viewportMargin          : 300 # larger than the default of 10 specifically so *sage worksheets* (which are the only thing that uses this)
+                                              # don't feel jumpy when re-rendering output.
+                                              # NOTE that in cocalc right now, no remaining non-sagews editors use this code.
 
             if opts.match_xml_tags
                 options.matchTags = {bothTags: true}
@@ -1938,7 +1924,7 @@ class JupyterNBViewerEmbedded extends FileEditor
 exports.register_nonreact_editors = ->
 
     # Make non-react editors available in react rewrite
-    reg = require('./editor_react_wrapper').register_nonreact_editor
+    reg = require('./editors/react-wrapper').register_nonreact_editor
 
     # wrapper for registering private and public editors
     register = (is_public, cls, extensions) ->

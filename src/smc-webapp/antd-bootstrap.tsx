@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 We use so little of react-bootstrap in CoCalc that for a first quick round
 of switching to antd, I'm going to see if it isn't easy to re-implement
 much of the same functionality on top of antd.
@@ -21,7 +26,17 @@ import * as antd from "antd";
 // only four in antd, and it we can't automatically collapse them down in a meaningful
 // way without fundamentally removing information and breaking our UI (e.g., buttons
 // change look after an assignment is sent successfully in a course).
-const BS_STYLE_TO_TYPE = {
+type ButtonStyle =
+  | "primary"
+  | "success"
+  | "info"
+  | "warning"
+  | "danger"
+  | "link";
+
+const BS_STYLE_TO_TYPE: {
+  [name: string]: "primary" | "default" | "dashed" | "danger" | "link";
+} = {
   primary: "primary",
   success: "default", // antd doesn't have this so we do it via style below.
   info: "dashed",
@@ -30,43 +45,93 @@ const BS_STYLE_TO_TYPE = {
   link: "link",
 };
 
-export function Button(props: any) {
-  const type = props.bsStyle ? BS_STYLE_TO_TYPE[props.bsStyle] : undefined;
-  let style: undefined | React.CSSProperties = props.style;
+function parse_bsStyle(props: {
+  bsStyle?: ButtonStyle;
+  style?: React.CSSProperties;
+  disabled?: boolean;
+}): {
+  type: "primary" | "default" | "dashed" | "link";
+  style: React.CSSProperties;
+  danger?: boolean;
+  ghost?: boolean;
+  disabled?: boolean;
+  loading?: boolean;
+} {
+  let type =
+    props.bsStyle == null
+      ? "default"
+      : BS_STYLE_TO_TYPE[props.bsStyle] ?? "default";
+
+  let style: React.CSSProperties | undefined = undefined;
+  // antd has no analogue of "success" & "warning", it's not clear to me what
+  // it should be so for now just copy the style from react-bootstrap.
   if (props.bsStyle === "warning") {
-    // antd has no analogue of "warning", it's not clear to me what it should be so for
+    // antd has no analogue of "warning", it's not clear to me what
+    // it should be so for
     // now just copy the style.
-    if (style == null) {
-      style = {};
-    }
-    style.backgroundColor = "#f0ad4e";
-    style.borderColor = "#eea236";
-    style.color = "#ffffff";
-    if (props.disabled) {
-      style.opacity = 0.65;
-    }
+    style = {
+      backgroundColor: "#f0ad4e",
+      borderColor: "#eea236",
+      color: "#ffffff",
+    };
   } else if (props.bsStyle === "success") {
-    // antd has no analogue of "success", it's not clear to me what it should be so for
-    // now just copy the style.
-    if (style == null) {
-      style = {};
-    }
-    style.backgroundColor = "#5cb85c";
-    style.borderColor = "#4cae4c";
-    style.color = "#ffffff";
-    if (props.disabled) {
-      style.opacity = 0.65;
-    }
+    style = {
+      backgroundColor: "#5cb85c",
+      borderColor: "#4cae4c",
+      color: "#ffffff",
+    };
+  }
+  if (props.disabled && style != null) {
+    style.opacity = 0.65;
   }
 
+  style = { ...style, ...props.style };
+  let danger: boolean | undefined = undefined;
+  let loading: boolean | undefined = undefined; // nothing mapped to this yet
+  let ghost: boolean | undefined = undefined; // nothing mapped to this yet
+  if (type == "danger") {
+    type = "default";
+    danger = true;
+  }
+  return { type, style, danger, ghost, loading };
+}
+
+export function Button(props: {
+  bsStyle?: ButtonStyle;
+  bsSize?: "large" | "small" | "xsmall";
+  style?: React.CSSProperties;
+  disabled?: boolean;
+  onClick?: (e?: any) => void;
+  key?: string;
+  children?: any;
+  className?: string;
+  href?: string;
+  target?: string;
+}) {
   // The span is needed inside below, otherwise icons and labels get squashed together
   // due to button having word-spacing 0.
+  const { type, style, danger, ghost, loading } = parse_bsStyle(props);
+  let size: "middle" | "large" | "small" | undefined = undefined;
+  if (props.bsSize == "large") {
+    size = "large";
+  } else if (props.bsSize == "small") {
+    size = "middle";
+  } else if (props.bsSize == "xsmall") {
+    size = "small";
+  }
   return (
     <antd.Button
       onClick={props.onClick}
       type={type}
       disabled={props.disabled}
       style={style}
+      size={size}
+      className={props.className}
+      href={props.href}
+      target={props.target}
+      danger={danger}
+      ghost={ghost}
+      loading={loading}
     >
       <span>{props.children}</span>
     </antd.Button>
@@ -88,9 +153,10 @@ export function Grid(props: any) {
 }
 
 export function Well(props: { style?: React.CSSProperties; children?: any }) {
-  let style: React.CSSProperties = props.style != null ? props.style : {};
-  style.backgroundColor = "white";
-  style.border = "1px solid #e3e3e3";
+  let style: React.CSSProperties = {
+    ...{ backgroundColor: "white", border: "1px solid #e3e3e3" },
+    ...props.style,
+  };
   return <antd.Card style={style}>{props.children}</antd.Card>;
 }
 
@@ -121,7 +187,10 @@ export function Checkbox(props: any) {
   );
 }
 
-export const Row = antd.Row;
+export function Row(props: any) {
+  props = { ...{ gutter: 16 }, ...props };
+  return <antd.Row {...props}>{props.children}</antd.Row>;
+}
 
 export function Col(props: {
   xs?: number;
@@ -221,3 +290,47 @@ export function Modal(props: {
 Modal.Body = function (props: any) {
   return <>{props.children}</>;
 };
+
+export function Alert(props: {
+  key?: string;
+  bsStyle?: ButtonStyle;
+  style?: React.CSSProperties;
+  children?: any;
+}) {
+  let type: "success" | "info" | "warning" | "error" | undefined = undefined;
+  // success, info, warning, error
+  if (
+    props.bsStyle == "success" ||
+    props.bsStyle == "warning" ||
+    props.bsStyle == "info"
+  ) {
+    type = props.bsStyle;
+  } else if (props.bsStyle == "danger") {
+    type = "error";
+  } else if (props.bsStyle == "link") {
+    type = "info";
+  } else if (props.bsStyle == "primary") {
+    type = "success";
+  }
+  return (
+    <antd.Alert message={props.children} type={type} style={props.style} />
+  );
+}
+
+export function Panel(props: {
+  key?: string;
+  style?: React.CSSProperties;
+  header?: any;
+  children?: any;
+}) {
+  const style = { ...{ marginBottom: "20px" }, ...props.style };
+  return (
+    <antd.Card
+      style={style}
+      title={props.header}
+      headStyle={{ color: "#333", backgroundColor: "#f5f5f5" }}
+    >
+      {props.children}
+    </antd.Card>
+  );
+}

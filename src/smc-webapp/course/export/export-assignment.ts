@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Export collected homework assignments in a format that is easy to
 use in an external tool that knows nothing about Sage worksheets
 or Jupyter notebooks and with the directory structure removed.

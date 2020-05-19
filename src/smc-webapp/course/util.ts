@@ -1,28 +1,13 @@
-//#############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import { Map } from "immutable";
 import { TypedMap } from "../app-framework/TypedMap";
 import { StudentsMap } from "./store";
 import { AssignmentCopyStep } from "./types";
+import { separate_file_extension } from "smc-util/misc2";
 
 // Pure functions used in the course manager
 
@@ -301,4 +286,9 @@ export function assignment_identifier(
   student_id: string
 ): string {
   return assignment_id + student_id;
+}
+
+export function autograded_filename(filename: string): string {
+  const { name, ext } = separate_file_extension(filename);
+  return name + "_autograded." + ext;
 }

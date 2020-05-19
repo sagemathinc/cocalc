@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Initialize the ~/.lean directory if it doesn't already exist.
 
 Right now we "install", i.e., make a pointer to a global copy

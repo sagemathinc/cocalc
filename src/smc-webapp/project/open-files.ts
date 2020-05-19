@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Code for manipulating the open_files and open_files_order objects in the project store:
 
   open_files: immutable.Map<string, immutable.Map<string, any>>;

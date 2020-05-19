@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // This file is purely to give HtmlWebpackPlugin an opportunity to pick up these const values
 // In any other place, import from the main schema file
 

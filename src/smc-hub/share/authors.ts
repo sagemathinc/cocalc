@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Information (from the database) about authors of shares,
 and what shares were authored by a given account.
 */
@@ -40,6 +45,12 @@ export class AuthorInfo {
       paths = path;
     }
 
+    const collabs = new Set(
+      await callback2(this.database.get_collaborators.bind(this.database), {
+        project_id,
+      })
+    );
+
     // Get accounts that have edited these paths, if they have edited them using sync.
     for (const path of paths) {
       const id: string = this.database.sha1(project_id, path);
@@ -48,7 +59,11 @@ export class AuthorInfo {
       });
       if (result == null || result.rowCount < 1) continue;
       for (const account_id of result.rows[0].users) {
-        if (account_id != project_id && !known_account_ids.has(account_id)) {
+        if (
+          account_id != project_id &&
+          !known_account_ids.has(account_id) &&
+          collabs.has(account_id)
+        ) {
           account_ids.push(account_id);
           known_account_ids.add(account_id);
         }

@@ -1,23 +1,7 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 $ = window.$
 
@@ -39,7 +23,7 @@ Draggable = require('react-draggable')
 {Explorer}         = require('./project/explorer')
 {ProjectNew}       = require('./project/new')
 {ProjectLog}       = require('./project/history')
-{ProjectSearch}    = require('./project_search')
+{ProjectSearch}    = require('./project/search/search')
 {ProjectSettings}  = require('./project/settings')
 {DeletedFile}      = require('./project/deleted-file')
 {ProjectStore}     = require('./project_store')
@@ -52,7 +36,7 @@ project_file = require('./project_file')
 {React, ReactDOM, rclass, redux, rtypes, Redux, Fragment} = require('./app-framework')
 {DeletedProjectWarning, ErrorBoundary, Icon, Loading, Space} = require('./r_misc')
 
-{ChatIndicator} = require('./chat-indicator')
+{ChatIndicator} = require('./chat/chat-indicator')
 
 {ShareIndicator} = require('./share/share-indicator')
 
@@ -299,7 +283,7 @@ ProjectContentViewer = rclass
             when 'log'
                 <ProjectLog name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)} />
             when 'search'
-                <ProjectSearch name={@props.project_name} />
+                <ProjectSearch project_id={@props.project_id} />
             when 'settings'
                 <ProjectSettings project_id={@props.project_id} name={@props.project_name} group={@props.group} />
             else  # @props.active_tab_name = "editor-<filename>"

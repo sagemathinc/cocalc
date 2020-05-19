@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // NOTE: some code here is similar to code in
 // src/smc-webapp/course/configuration/upgrades.tsx
 
@@ -106,7 +111,7 @@ export class SiteLicense extends Component<Props, State> {
   public render(): Rendered {
     return (
       <div>
-        <h4>Licenses</h4>
+        <h4><Icon name="key"/> Licenses</h4>
         {this.render_current_licenses()}
         <br />
         <Button

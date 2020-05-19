@@ -1,6 +1,12 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { ReactDOM, Rendered, redux } from "../app-framework";
 import { Passports } from "../passports";
+import { PassportStrategy } from "../account/passport-types";
 import { List } from "immutable";
 
 import { COLORS, UNIT, Icon, Loading } from "../r_misc";
@@ -30,7 +36,8 @@ const ERROR_STYLE: React.CSSProperties = {
 };
 
 interface Props {
-  strategies?: List<string>;
+  strategies?: List<PassportStrategy>;
+  email_signup?: boolean;
   get_api_key?: string;
   sign_up_error?: any;
   token?: boolean;
@@ -113,6 +120,7 @@ export class SignUp extends React.Component<Props, State> {
     return (
       <FormGroup>
         <FormControl
+          disabled={!this.state.terms_checkbox}
           type={"text"}
           placeholder={"Enter the secret token"}
           cocalc-test={"sign-up-token"}
@@ -261,22 +269,24 @@ export class SignUp extends React.Component<Props, State> {
   render_creation_form(): Rendered {
     return (
       <div>
-        {this.render_token_input()}
-        {this.render_error("token")}
         {this.render_error("generic")}
         {this.render_error("account_creation_failed")}
         {this.render_error("other")}
         {this.render_passports()}
-        <form
-          style={{ marginTop: 20, marginBottom: 20 }}
-          onSubmit={this.make_account}
-        >
-          {this.render_first_name()}
-          {this.render_last_name()}
-          {this.render_email()}
-          {this.render_password()}
-          {this.render_button()}
-        </form>
+        {this.props.email_signup && (
+          <form
+            style={{ marginTop: 20, marginBottom: 20 }}
+            onSubmit={this.make_account}
+          >
+            {this.render_error("token")}
+            {this.render_token_input()}
+            {this.render_first_name()}
+            {this.render_last_name()}
+            {this.render_email()}
+            {this.render_password()}
+            {this.render_button()}
+          </form>
+        )}
       </div>
     );
   }

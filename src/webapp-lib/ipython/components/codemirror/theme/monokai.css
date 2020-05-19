@@ -1,4 +1,7 @@
-/* Based on Sublime Text's Monokai theme */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 .cm-s-monokai.CodeMirror {background: #272822; color: #f8f8f2;}
 .cm-s-monokai div.CodeMirror-selected {background: #49483E !important;}

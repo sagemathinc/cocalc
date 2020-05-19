@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Password reset modal dialog
 */
 
@@ -102,7 +107,6 @@ export class ResetPassword extends Component<Props, State> {
                 </Button>
                 <Space />
                 <Button
-                  type="submit"
                   bsStyle="primary"
                   disabled={this.state.resetting}
                   onClick={this.reset_password.bind(this)}

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { deep_copy, uuid } from "../misc";
 import { SCHEMA as schema } from "./index";
 import { Table } from "./types";

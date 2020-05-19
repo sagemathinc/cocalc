@@ -1,23 +1,7 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2015 -- 2016, SageMath, Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 # standard non-CoCalc libraries
 immutable = require('immutable')
@@ -32,6 +16,7 @@ misc_page = require('./misc_page')
 {DISCORD_INVITE} = require('smc-util/theme')
 {alert_message} = require('./alerts')
 {analytics_event} = require('./tracker')
+{Avatar} = require('./account/avatar/avatar')
 
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./app-framework')
@@ -283,10 +268,10 @@ ChatRoom = rclass ({name}) ->
 exports.SideChat = ({path, redux, project_id}) ->
     name        = redux_name(project_id, path)
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
-    actions     = redux.getActions(name)
+    actions = redux.getEditorActions(project_id, path)
     <ChatRoom
         redux       = {redux}
-        actions     = {redux.getActions(name)}
+        actions     = {actions}
         name        = {name}
         project_id  = {project_id}
         path        = {path}
@@ -298,7 +283,7 @@ exports.SideChat = ({path, redux, project_id}) ->
 render = (redux, project_id, path) ->
     name = redux_name(project_id, path)
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
-    actions = redux.getActions(name)
+    actions = redux.getEditorActions(project_id, path)
     <ChatRoom redux={redux} actions={actions} name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
 
 # Render the given chatroom, and return the name of the redux actions/store
@@ -325,5 +310,3 @@ exports.free = (project_id, path, dom_node, redux) ->
     # or there will be a huge memory leak.
     redux.removeStore(fname)
     redux.removeActions(fname)
-
-

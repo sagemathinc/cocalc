@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React} from "../../app-framework";
 import { Well, Button, ButtonToolbar } from "../../antd-bootstrap";
 import { UpgradeRestartWarning } from "../../upgrade-restart-warning";
@@ -6,8 +11,8 @@ export function ResetProjectsConfirmation({
   on_confirm,
   on_cancel,
 }: {
-  on_confirm: Function;
-  on_cancel: Function;
+  on_confirm: (e?: any) => void;
+  on_cancel: (e?: any) => void;
 }) {
   return (
     <Well

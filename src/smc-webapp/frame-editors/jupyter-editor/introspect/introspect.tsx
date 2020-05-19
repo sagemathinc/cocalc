@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Introspect -- display information related to help, source code,
 etc., about a Jupyter notebook.  This is what appears as a pop-over
 on the bottom half the of the screen for Jupyter classic.

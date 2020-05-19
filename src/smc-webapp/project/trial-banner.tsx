@@ -1,5 +1,6 @@
 /*
- * Copyright 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
 import * as immutable from "immutable";
@@ -101,21 +102,34 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
       "https://doc.cocalc.com/billing.html#what-exactly-is-the-internet-access-quota";
     const memberquota =
       "https://doc.cocalc.com/billing.html#what-is-member-hosting";
-    const upgrade = (
-      <a
-        style={a_style}
-        onClick={() => {
-          redux.getActions("page").set_active_tab("account");
-          redux.getActions("account").set_active_tab("billing");
-        }}
-      >
-        buy and apply upgrades
-      </a>
+    const buy_and_upgrade = (
+      <>
+        <a
+          style={a_style}
+          onClick={() => {
+            redux.getActions("page").set_active_tab("account");
+            redux.getActions("account").set_active_tab("billing");
+          }}
+        >
+          buy a subscription
+        </a>{" "}
+        and{" "}
+        <a
+          style={a_style}
+          onClick={() => {
+            redux
+              .getProjectActions(this.props.project_id)
+              .set_active_tab("settings");
+          }}
+        >
+          apply upgrades
+        </a>
+      </>
     );
     if (host && internet) {
       return (
         <span>
-          {trial_project} – {upgrade} or{" "}
+          {trial_project} – {buy_and_upgrade} or{" "}
           {humanizeList([...no_host, no_internet])}
           {"."}
         </span>
@@ -123,7 +137,7 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
     } else if (host) {
       return (
         <span>
-          {trial_project} – Upgrade{" "}
+          {trial_project} – upgrade{" "}
           <A href={memberquota} style={a_style}>
             Member Hosting
           </A>{" "}
@@ -134,7 +148,7 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
     } else if (internet) {
       return (
         <span>
-          <strong>No internet access</strong> – Upgrade{" "}
+          <strong>No internet access</strong> – upgrade{" "}
           <A href={inetquota} style={a_style}>
             Internet Access
           </A>{" "}
@@ -200,7 +214,7 @@ class TrialBannerComponent extends Component<TrialBannerProps> {
 
     const min_fontsize = 10;
     const age_ms: number = server_time().getTime() - proj_created.getTime();
-    const age_days = age_ms / (24 * 60 * 1000);
+    const age_days = age_ms / (24 * 60 * 60 * 1000);
     const font_size = Math.min(14, min_fontsize + age_days / 15);
     const styles: React.CSSProperties = {
       padding: "5px 10px",

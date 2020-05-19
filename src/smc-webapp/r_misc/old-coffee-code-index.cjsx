@@ -1,22 +1,7 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 async = require('async')
 
@@ -761,51 +746,6 @@ exports.SaveButton = rclass
         <Button bsStyle='success' disabled={@props.saving or not @props.unsaved} onClick={@props.on_click}>
             <Icon name='save' /> <VisibleMDLG>Sav{if @props.saving then <span>ing... <Icon name='cc-icon-cocalc-ring' spin /></span> else <span>e</span>}</VisibleMDLG>
         </Button>
-
-# Component to attempt opening a cocalc path in a project
-exports.PathLink = rclass
-    displayName : 'Misc-PathLink'
-
-    propTypes :
-        path         : rtypes.string.isRequired
-        project_id   : rtypes.string.isRequired
-        display_name : rtypes.string # if provided, show this as the link and show real name in popover
-        full         : rtypes.bool   # true = show full path, false = show only basename
-        trunc        : rtypes.number # truncate longer names and show a tooltip with the full name
-        style        : rtypes.object
-        link         : rtypes.bool   # set to false to make it not be a link
-
-    getDefaultProps: ->
-        style : {}
-        full  : false
-        link  : true
-
-    handle_click: (e) ->
-        e.preventDefault()
-        switch_to = misc.should_open_in_foreground(e)
-        redux.getProjectActions(@props.project_id).open_file
-            path               : @props.path
-            foreground         : switch_to
-            foreground_project : switch_to
-
-    render_link: (text) ->
-        if @props.link
-            <a onClick={@handle_click} style={@props.style} href=''>{text}</a>
-        else
-            <span style={@props.style}>{text}</span>
-
-    render: ->
-        name = if @props.full then @props.path else misc.path_split(@props.path).tail
-        if name.length > @props.trunc or (@props.display_name? and @props.display_name isnt name)
-            if @props.trunc?
-                text = misc.trunc_middle(@props.display_name ? name, @props.trunc)
-            else
-                text = @props.display_name ? name
-            <Tip title='' tip={name}>
-                {@render_link(text)}
-            </Tip>
-        else
-            @render_link(name)
 
 Globalize = require('globalize')
 globalizeLocalizer = require('react-widgets-globalize')

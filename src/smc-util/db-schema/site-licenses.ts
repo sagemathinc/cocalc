@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Table of all site licenses.
 
 From wikipedia https://en.wikipedia.org/wiki/Site_license: "A site license is a type of software license that allows the user to install a software package in several computers simultaneously, such as at a particular site (facility) or across a corporation.[1] Depending on the amount of fees paid, the license may be unlimited or may limit simultaneous access to a certain number of users. The latter is called a concurrent site license.[2]"
@@ -132,7 +137,6 @@ Table({
 });
 
 const MATCHING_SITE_LICENSES_LIMIT = 50; // pretty arbitrary limit.
-
 Table({
   name: "matching_site_licenses",
   fields: {
@@ -436,6 +440,11 @@ Table({
       desc:
         "Number of running projects currently using this license.   Regarding security, we assume that if the user knows the license id, then they are allowed to know how many projects are using it.",
     },
+    is_manager: {
+      type: "boolean",
+      desc:
+        "True if user making the query is a manager of this license.  Frontend UI might tell them this and show license code and other links.",
+    },
   },
   rules: {
     desc: "Publicly available information about site licenses",
@@ -453,17 +462,24 @@ Table({
           upgrades: null,
           run_limit: null,
           running: null,
+          is_manager: null,
         },
         // Actual query is implemented using this code below rather than an
         // actual query directly.  TODO: Also, we're lazy and return all fields we
         // know, even if user doesn't request them all.
+        // If the user making the query is a manager of this license they get a list of
+        // the managers (otherwise managers isn't set for them.)
         async instead_of_query(database, opts, cb): Promise<void> {
           const id = opts.query.id;
           if (typeof id != "string" || !is_valid_uuid_string(id)) {
             cb("must be a single object query with id specified");
           } else {
             try {
-              cb(undefined, await database.site_license_public_info(id));
+              const info = await database.site_license_public_info(id);
+              info.is_manager =
+                info.managers != null &&
+                info.managers.includes(opts.account_id);
+              cb(undefined, info);
             } catch (err) {
               cb(err);
             }
@@ -499,5 +515,45 @@ Table({
       "Table for logging when site licenses are used to upgrade running projects.",
     primary_key: ["license_id", "project_id", "start"],
     pg_indexes: ["license_id"],
+  },
+});
+
+/* Way to get the ids of the all the licenses that a given user is a manager of. */
+Table({
+  name: "manager_site_licenses",
+  fields: {
+    id: true,
+  },
+  rules: {
+    virtual: true, // don't make an actual table
+    desc: "Licenses that user doing the query is a manager of.",
+    anonymous: false,
+    primary_key: ["id"],
+    user_query: {
+      get: {
+        admin: false,
+        fields: {
+          id: null,
+        },
+        // Actual query is implemented using this code below rather than an actual query directly.
+        // We also completely ignore the user-requested fields and just return everything, since
+        // in our application this is fine right now (since all fields are always requested).
+        async instead_of_query(database, opts, cb): Promise<void> {
+          try {
+            if (!opts.multi) {
+              throw Error(
+                "only query requesting multiple results is implemented"
+              );
+            }
+            cb(
+              undefined,
+              await database.manager_site_licenses(opts.account_id)
+            );
+          } catch (err) {
+            cb(err);
+          }
+        },
+      },
+    },
   },
 });

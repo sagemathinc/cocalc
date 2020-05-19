@@ -1,27 +1,9 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
-###
-The Hub's HTTP Server
-###
+# The Hub's HTTP Server
 
 fs           = require('fs')
 path_module  = require('path')
@@ -60,6 +42,7 @@ open_cocalc = require('./open-cocalc-server')
 
 SMC_ROOT    = process.env.SMC_ROOT
 STATIC_PATH = path_module.join(SMC_ROOT, 'static')
+WEBAPP_RES_PATH = path_module.join(SMC_ROOT, 'webapp-lib', 'resources')
 
 
 exports.init_express_http_server = (opts) ->
@@ -146,6 +129,10 @@ exports.init_express_http_server = (opts) ->
     # The /static content
     router.use '/static',
         express.static(STATIC_PATH, setHeaders: cacheLongTerm)
+
+    # This is webapp-lib/resources !
+    router.use '/res',
+        express.static(WEBAPP_RES_PATH, setHeaders: cacheLongTerm)
 
     router.get '/app', (req, res) ->
         #res.cookie(opts.base_url + 'has_remember_me', 'true', { maxAge: 60*60*1000, httpOnly: false })
@@ -316,7 +303,7 @@ exports.init_express_http_server = (opts) ->
         q = url.parse(req.url, true).search || "" # gives exactly "?key=value,key=..."
         res.redirect(opts.base_url + "/app#" + req.path.slice(1) + q)
 
-    # Return global status information about smc
+    # Return global status information about CoCalc
     router.get '/stats', (req, res) ->
         if not hub_register.database_is_working()
             res.json({error:"not connected to database"})
@@ -355,4 +342,3 @@ exports.init_express_http_server = (opts) ->
         dev.init_share_server(app, opts.database, opts.base_url, winston);
 
     return {http_server:http_server, express_router:router}
-

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Don't take these too seriously -- the expected results appear to be
 // based on the results of actual runs without any serious manual
 // verification. If a change you made causes them to fail, the test is

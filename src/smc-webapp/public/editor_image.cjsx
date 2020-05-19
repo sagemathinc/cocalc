@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 # React libraries
 {React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 {webapp_client} = require('../webapp_client')

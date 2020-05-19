@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 The account page. This is what you see when you
 click "Account" in the upper right.  It has tabs
 for different account related information
@@ -14,26 +19,27 @@ import {
   redux,
   Rendered,
   Component,
+  TypedMap,
 } from "../app-framework";
 import { Col, Row, Tab, Tabs } from "../antd-bootstrap";
 
 import { LandingPage } from "../landing-page/landing-page";
 
-//import { AccountSettingsTop } from "../r_account";
-const { AccountSettingsTop } = require("../r_account");
+import { AccountPreferences } from "./account-preferences";
 
 import { BillingPage } from "../billing/billing-page";
 
-//import { UpgradesPage } from "../r_upgrades";
-const { UpgradesPage } = require("../r_upgrades");
+import { UpgradesPage } from "./upgrades/upgrades-page";
+
+import { LicensesPage } from "./licenses/licenses-page";
 
 //import { SupportPage } from "../support";
 const { SupportPage } = require("../support");
-//import { SSHKeysPage } from "../account_ssh_keys";
-const { SSHKeysPage } = require("../account_ssh_keys");
+import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { Icon, Loading } from "../r_misc";
 import { SignOut } from "../account/sign-out";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
+import { PassportStrategy } from "./passport-types";
 
 // All provided via redux
 interface Props {
@@ -50,7 +56,7 @@ interface Props {
   // from the account store
   account_id?: string;
   active_page?: string;
-  strategies?: immutable.List<string>;
+  strategies?: immutable.List<TypedMap<PassportStrategy>>;
   sign_up_error?: immutable.Map<string, string>;
   sign_in_error?: string;
   signing_in?: boolean;
@@ -80,7 +86,6 @@ interface Props {
   other_settings?: immutable.Map<string, any>;
   groups?: immutable.List<string>;
   stripe_customer?: immutable.Map<string, any>;
-  ssh_keys?: immutable.Map<string, any>;
   is_anonymous?: boolean;
   created?: Date;
 }
@@ -119,7 +124,6 @@ const ACCOUNT_SPEC = {
   other_settings: rtypes.immutable.Map,
   groups: rtypes.immutable.List,
   stripe_customer: rtypes.immutable.Map,
-  ssh_keys: rtypes.immutable.Map,
   is_anonymous: rtypes.bool,
   created: rtypes.object,
 };
@@ -155,36 +159,19 @@ class AccountPage extends Component<Props> {
     redux.getActions("account").push_state(`/${key}`);
   }
 
-  private render_upgrades(): Rendered {
-    return (
-      <UpgradesPage
-        redux={redux}
-        stripe_customer={this.props.stripe_customer}
-        project_map={this.props.project_map}
-      />
-    );
-  }
-
   private render_ssh_keys_page(): Rendered {
-    return (
-      <SSHKeysPage
-        account_id={this.props.account_id}
-        ssh_keys={this.props.ssh_keys}
-      />
-    );
+    return <SSHKeysPage />;
   }
 
   private render_account_settings(): Rendered {
     return (
-      <AccountSettingsTop
-        redux={redux}
+      <AccountPreferences
         account_id={this.props.account_id}
         first_name={this.props.first_name}
         last_name={this.props.last_name}
         email_address={this.props.email_address}
         email_address_verified={this.props.email_address_verified}
         passports={this.props.passports}
-        show_sign_out={this.props.show_sign_out}
         sign_out_error={this.props.sign_out_error}
         everywhere={this.props.everywhere}
         terminal={this.props.terminal}
@@ -200,6 +187,7 @@ class AccountPage extends Component<Props> {
         email_enabled={this.props.email_enabled}
         verify_emails={this.props.verify_emails}
         created={this.props.created}
+        strategies={this.props.strategies}
       />
     );
   }
@@ -276,9 +264,21 @@ class AccountPage extends Component<Props> {
             </span>
           }
         >
-          {this.props.active_page === "upgrades"
-            ? this.render_upgrades()
-            : undefined}
+          {this.props.active_page === "upgrades" ? <UpgradesPage /> : undefined}
+        </Tab>
+      );
+      // Hide for dev purposes.
+      v.push(
+        <Tab
+          key="licenses"
+          eventKey="licenses"
+          title={
+            <span>
+              <Icon name="key" /> Licenses
+            </span>
+          }
+        >
+          {this.props.active_page === "licenses" ? <LicensesPage /> : undefined}
         </Tab>
       );
     }
@@ -340,8 +340,12 @@ class AccountPage extends Component<Props> {
     return (
       <Row>
         <Col md={12}>
-          <div style={{ float: "right", marginTop: "1rem" }}>
-            <SignOut everywhere={false} danger={true} />
+          <div style={{ marginTop: "1rem" }}>
+            <SignOut
+              everywhere={false}
+              highlight={true}
+              style={{ position: "absolute", right: 0, zIndex: 1 }}
+            />
           </div>
           <Tabs
             activeKey={this.props.active_page ?? "account"}

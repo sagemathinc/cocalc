@@ -1,9 +1,14 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React, Component, Rendered } from "../app-framework";
 import { CoCalcLogo } from "./cocalc-logo";
 import { IsPublicFunction } from "./types";
-import { SITE_NAME } from "smc-util/theme";
 import { r_join } from "../r_misc/r_join";
 import { SiteSearch } from "./search";
+import { Settings } from "smc-hub/share/settings";
 
 interface TopBarProps {
   viewer?: string;
@@ -13,18 +18,15 @@ interface TopBarProps {
   site_name?: string;
   is_public: IsPublicFunction;
   launch_path?: string;
+  settings: Settings;
 }
 
 export class TopBar extends Component<TopBarProps> {
-  static defaultProps = {
-    site_name: SITE_NAME,
-  };
-
   private render_logo(top: string): Rendered {
     return (
       <span style={{ marginRight: "10px" }}>
         <a href={top} style={{ textDecoration: "none" }}>
-          <CoCalcLogo base_url={this.props.base_url} /> {this.props.site_name}{" "}
+          <CoCalcLogo base_url={this.props.base_url} /> {this.props.settings.site_name}{" "}
           Public Files
         </a>
       </span>

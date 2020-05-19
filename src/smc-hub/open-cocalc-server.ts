@@ -1,8 +1,16 @@
-/* Open CoCalc Server
- * this is a small part of hub_http_server, which serves the main index page and associated assets.
- * - "webapp" refers to files in SMC_ROOT/webapp-lib
- * - several aspects can be modified via the administrator's tab / "site settings"
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
+
+/*
+ * license
+ */
+
+// Open CoCalc Server
+// this is a small part of hub_http_server, which serves the main index page and associated assets.
+// - "webapp" refers to files in SMC_ROOT/webapp-lib
+// - several aspects can be modified via the administrator's tab / "site settings"
 
 import { PostgreSQL } from "smc-hub/postgres/types";
 import { callback2 } from "smc-util/async-utils";
@@ -46,7 +54,7 @@ async function get_params(opts: GetData) {
 
   const SPLASH_IMG = fallback(
     settings.splash_image,
-    "https://storage.googleapis.com/cocalc-extra/cocalc-screenshot-20200128-nq8.png"
+    base_url + "/res/pix/cocalc-screenshot-20200128-nq8.png"
   );
 
   const BASE_URL = base_url ?? "";
@@ -54,6 +62,7 @@ async function get_params(opts: GetData) {
   const ORGANIZATION_NAME = settings.organization_name;
   const ORGANIZATION_URL = settings.organization_url;
   const HELP_EMAIL = settings.help_email;
+  const COMMERCIAL = settings.commercial;
 
   const data = {
     // to be compatible with webpack
@@ -61,6 +70,7 @@ async function get_params(opts: GetData) {
       options: {
         BASE_URL,
         PREFIX,
+        COMMERCIAL,
       },
     },
     PREFIX,

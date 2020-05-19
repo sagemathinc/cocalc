@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Theme configuration file for CoCalc
 
 Copyright 2017, SageMath, Inc. -- ALL RIGHTS RESERVED

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as ms from "ms";
 import { analytics_cookie_name } from "smc-util/misc";
 import * as fs from "fs";
@@ -131,6 +136,11 @@ export function setup_analytics_js(
       let allow = false;
       try {
         const pd = parseDomain(origin);
+        if (pd == null) {
+          // This happens, e.g., when origin is https://localhost, which happens with cocalc-docker.
+          cb(null, true);
+          return;
+        }
         if (pd.tld === "com") {
           if (pd.domain === "cocalc" || pd.domain === "sagemath") {
             allow = true;

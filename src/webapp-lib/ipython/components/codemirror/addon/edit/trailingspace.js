@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 CodeMirror.defineOption("showTrailingSpace", false, function(cm, val, prev) {
   if (prev == CodeMirror.Init) prev = false;
   if (prev && !val)

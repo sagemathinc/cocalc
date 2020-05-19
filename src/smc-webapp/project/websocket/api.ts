@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 API for direct connection to a project; implemented using the websocket.
 */
 
@@ -12,8 +17,11 @@ import {
   isMainConfiguration,
 } from "../../project_configuration";
 import { redux } from "../../app-framework";
-import { parser2tool } from "smc-util/code-formatter";
-import { Options as FormatterOptions } from "smc-project/formatters/prettier";
+import { syntax2tool } from "smc-util/code-formatter";
+import {
+  Options as FormatterOptions,
+  Config as FormatterConfig,
+} from "smc-project/formatters/prettier";
 import {
   NBGraderAPIOptions,
   RunNotebookOptions,
@@ -86,16 +94,25 @@ export class API {
     return await this.call({ cmd: "configuration", aspect, no_cache }, 15000);
   }
 
-  // Returns  { status: "ok", patch:... the patch} or
-  // { status: "error", phase: "format", error: err.message }.
-  // We return a patch rather than the entire file, since often
-  // the file is very large, but the formatting is tiny.  This is purely
-  // a data compression technique.
-  async prettier(path: string, options: FormatterOptions): Promise<any> {
-    return await this.call(
-      { cmd: "prettier", path: path, options: options },
-      15000
-    );
+  // use the returned FormatterOptions for the API formatting call!
+  private check_formatter_available(config: FormatterConfig): FormatterOptions {
+    const formatting = this.get_formatting();
+    if (formatting == null) {
+      throw new Error(
+        "Code formatting status not available. Please restart your project!"
+      );
+    }
+    // TODO refactor the assocated formatter and smc-project into a common configuration object
+    const tool = syntax2tool[config.syntax];
+    if (tool == null) {
+      throw new Error(`No known tool for '${config.syntax}' available`);
+    }
+    if (formatting[tool] !== true) {
+      throw new Error(
+        `For this project, the code formatter '${tool}' for language '${config.syntax}' is not available.`
+      );
+    }
+    return { parser: tool };
   }
 
   get_formatting(): Capabilities | undefined {
@@ -115,29 +132,23 @@ export class API {
     }
   }
 
-  async prettier_string(str: string, options: FormatterOptions): Promise<any> {
-    const formatting = this.get_formatting();
-    if (formatting == null) {
-      throw new Error(
-        "Code formatting status not available. Please restart your project!"
-      );
-    }
-    // TODO refactor the assocated formatter and smc-project into a common configuration object
-    const tool = parser2tool[options.parser];
-    if (tool == null) {
-      throw new Error(`No known tool for '${options.parser}' available`);
-    }
-    if (formatting[tool] !== true) {
-      throw new Error(
-        `For this project, the code formatter '${tool}' for language '${options.parser}' is not available.`
-      );
-    }
+  // Returns  { status: "ok", patch:... the patch} or
+  // { status: "error", phase: "format", error: err.message }.
+  // We return a patch rather than the entire file, since often
+  // the file is very large, but the formatting is tiny.  This is purely
+  // a data compression technique.
+  async prettier(path: string, config: FormatterConfig): Promise<any> {
+    const options: FormatterOptions = this.check_formatter_available(config);
+    return await this.call({ cmd: "prettier", path: path, options }, 15000);
+  }
 
+  async prettier_string(str: string, config: FormatterConfig): Promise<any> {
+    const options: FormatterOptions = this.check_formatter_available(config);
     return await this.call(
       {
         cmd: "prettier_string",
         str: str,
-        options: options,
+        options,
       },
       15000
     );

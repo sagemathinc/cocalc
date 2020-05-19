@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 Register all the editors.
 
@@ -11,8 +16,7 @@ One you add a new built in editor, it should go here.
 
 # require('./editor_terminal')
 require('./chat/register')
-require('./editor_archive')
-require('./editor_pdf')
+require('./editors/archive/actions')
 require('./stopwatch/register')
 
 #require('./jupyter/register')

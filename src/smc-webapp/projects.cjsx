@@ -1,23 +1,7 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 $          = window.$
 immutable  = require('immutable')
@@ -56,7 +40,7 @@ ZERO_QUOTAS = fromPairs(Object.keys(PROJECT_UPGRADES.params).map(((x) -> [x, 0])
 
 COMPUPTE_IMAGES = require("./custom-software/init").NAME
 
-{ResetProjectsConfirmation} = require('./r_upgrades')
+{ResetProjectsConfirmation} = require('./account/upgrades/reset-projects')
 
 {has_internet_access} = require('./upgrades/upgrade-utils')
 
@@ -1849,5 +1833,3 @@ exports.ProjectTitle = rclass
                 style={@props.style}
                 />
         </Redux>
-
-

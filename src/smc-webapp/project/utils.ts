@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const { to_iso_path } = require("smc-util/misc");
 import {
   unreachable,
@@ -29,8 +34,8 @@ export const NewFilenameFamilies = Object.freeze<
   ymd_heroku: "Heroku-like (prefix today)",
   pet: "Pet names",
   ymd_pet: "Pet names (prefix today)",
-  semantic: "Sematic",
-  ymd_semantic: "Sematic (prefix today) ",
+  semantic: "Semantic",
+  ymd_semantic: "Semantic (prefix today) ",
 });
 
 export class NewFilenames {
@@ -112,7 +117,7 @@ export class NewFilenames {
     }
     // in some cases, prefix with the current day
     if (this.type.startsWith("ymd_")) {
-      tokens.unshift(new Date().toISOString().slice(0, 10).split("-").join(""));
+      tokens.unshift(new Date().toISOString().slice(0, 10));
     }
     switch (this.effective_ext) {
       case "java": // CamelCase!

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 SyncDoc -- the core class for editing with a synchronized document.
 
 This code supports both string-doc and db-doc, for editing both

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 This code is copied straight from the upstream Xpra client code.
 I don't know where it comes from or how it relates to any npm
 modules.  I couldn't find any npm modules that worked in the

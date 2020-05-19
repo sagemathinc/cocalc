@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import memoizeOne from "memoize-one";
 import * as immutable from "immutable";
@@ -9,7 +14,7 @@ import { USER_MENTION_MARKUP } from "./utils";
 import { cmp_Date } from "smc-util/misc2";
 import { FormControl } from "react-bootstrap";
 import { Space } from "../r_misc/space";
-const { Avatar } = require("../other-users");
+import { Avatar } from "../account/avatar/avatar";
 import { IS_MOBILE, isMobile } from "../feature";
 
 interface Props {

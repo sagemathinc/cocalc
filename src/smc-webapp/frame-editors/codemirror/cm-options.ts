@@ -1,16 +1,21 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Compute the codemirror options for file with given name,
 using the given editor settings.
 */
 
 import * as CodeMirror from "codemirror";
-const { file_associations } = require("smc-webapp/file-associations");
-const feature = require("smc-webapp/feature");
+import { file_associations } from "../../file-associations";
+import * as feature from "../../feature";
 import { path_split } from "smc-util/misc2";
 import { get_editor_settings } from "../generic/client";
-const { EDITOR_COLOR_SCHEMES } = require("../../r_account");
+import { EDITOR_COLOR_SCHEMES } from "../../account/editor-settings/color-schemes";
 
-const { filename_extension_notilde, defaults } = require("misc");
+import { filename_extension_notilde, defaults } from "smc-util/misc";
 
 import { extra_alt_keys } from "./mobile";
 import { Map } from "immutable";

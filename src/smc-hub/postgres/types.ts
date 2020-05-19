@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { EventEmitter } from "events";
 import { Changes } from "./changefeed";
 
@@ -110,8 +115,8 @@ export interface PostgreSQL extends EventEmitter {
   account_exists(opts: { email_address: string; cb: Function }): void;
 
   is_banned_user(opts: {
-    email_address: string;
-    account_id: string;
+    email_address?: string;
+    account_id?: string;
     cb: Function;
   }): void;
 
@@ -131,7 +136,7 @@ export interface PostgreSQL extends EventEmitter {
     cb: Function;
   }): void;
 
-  log(opts: { event: string; value: any; cb: Function }): void;
+  log(opts: { event: string; value: any; cb?: Function }): void;
 
   user_is_in_group(opts: {
     account_id: string;
@@ -146,4 +151,35 @@ export interface PostgreSQL extends EventEmitter {
     is_owner?: boolean;
     cb: Function;
   }): void;
+
+  get_remember_me(opts: { hash: string; cb: Function });
+  save_remember_me(opts: {
+    account_id: string;
+    hash: string;
+    value: string;
+    ttl: number;
+    cb: Function;
+  });
+
+  passport_exists(opts: { strategy: string; id: string; cb: Function });
+  create_passport(opts: {
+    account_id: string;
+    strategy: string;
+    id: string;
+    profile: any; // complex object
+    email_address?: string;
+    first_name?: string;
+    last_name?: string;
+    cb: Function;
+  });
+  get_passport_settings(opts: { strategy: string; cb: Function });
+  get_all_passport_settings(opts: { cb: Function });
+
+  change_password(opts: {
+    account_id: string;
+    password_hash: string;
+    invalidate_remember_me?: boolean;
+    cb: Function;
+  });
+  verify_email_check_token(opts: { email_address: string; token: string });
 }

@@ -1,6 +1,11 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Site Settings Config for the servers (hubs)
 // They are only visible and editable for admins and services.
-// in particular, this includes the email backend config, Stripe, etc.
+// In particular, this includes the email backend config, Stripe, etc.
 
 import {
   Config,
@@ -14,9 +19,39 @@ import {
   only_commercial,
 } from "./site-defaults";
 
-const { is_valid_email_address } = require("smc-util/misc");
+const { is_valid_email_address, expire_time } = require("smc-util/misc");
+
+export const pii_retention_parse = (retention: string): number | false => {
+  if (retention == "never" || retention == null) return false;
+  const [num_str, mult_str] = retention.split(" ");
+  const num = parseInt(num_str);
+  const mult = (function () {
+    const m = mult_str.toLowerCase();
+    if (m.startsWith("year")) return 365;
+    if (m.startsWith("month")) return 30;
+    if (m.startsWith("day")) return 1;
+    throw new Error(`unknown multiplyer "${m}"`);
+  })();
+  const secs = num * (mult * 24 * 60 * 60);
+  if (isNaN(secs) || secs == null) {
+    throw new Error(
+      `pii_expire problem: cannot derive future time from "{retention}"`
+    );
+  }
+  return secs;
+};
+
+const pii_retention_display = (retention: string) => {
+  const secs = pii_retention_parse(retention);
+  if (secs === false) {
+    return "will never expire";
+  } else {
+    return `Future date ${expire_time(secs).toLocaleString()}`;
+  }
+};
 
 export type SiteSettingsExtrasKeys =
+  | "pii_retention"
   | "stripe_heading"
   | "stripe_publishable_key"
   | "stripe_secret_key"
@@ -40,6 +75,25 @@ export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
 // not public, but admins can edit them
 export const EXTRAS: SettingsExtras = {
+  pii_retention: {
+    name: "PII Retention",
+    desc:
+      "How long to keep personally identifiable information (deletes certain database entries)",
+    default: "never",
+    // values must be understood by smc-hub/utils.ts pii_expire
+    valid: [
+      "never",
+      "30 days",
+      "3 month",
+      "6 month",
+      "1 year",
+      "2 years",
+      "5 years",
+      "10 years",
+    ],
+    to_val: pii_retention_parse,
+    to_display: pii_retention_display,
+  },
   stripe_heading: {
     // this is consmetic, otherwise it looks weird.
     name: "Stripe Keys",

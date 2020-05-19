@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // This is derived from https://github.com/sharelatex/latex-log-parser-sharelatex
 // commit: 7301857ac402ff5491cb219d9415ac41b19e7e43
 // incorporating fix for https://github.com/sharelatex/latex-log-parser-sharelatex/issues/5 by HSY

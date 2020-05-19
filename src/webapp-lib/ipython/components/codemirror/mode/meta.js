@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 CodeMirror.modeInfo = [
   {name: 'APL', mime: 'text/apl', mode: 'apl'},
   {name: 'Asterisk', mime: 'text/x-asterisk', mode: 'asterisk'},

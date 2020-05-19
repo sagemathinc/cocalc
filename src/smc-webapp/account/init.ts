@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as misc from "smc-util/misc";
 import { webapp_client } from "../webapp-client";
 import { AccountActions } from "./actions";

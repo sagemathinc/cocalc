@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Jupyter Backend
 
 For interactive testing:
@@ -73,6 +78,8 @@ import { JupyterActions } from "../smc-webapp/jupyter/project-actions";
 import { JupyterStore } from "../smc-webapp/jupyter/store";
 
 import { JupyterKernelInterface } from "../smc-webapp/jupyter/project-interface";
+
+import {launch_jupyter_kernel, LaunchJupyterOpts } from "./launch_jupyter_kernel"
 
 /*
 We set a few extra user-specific options for the environment in which
@@ -274,7 +281,7 @@ export class JupyterKernel extends EventEmitter
     const dbg = this.dbg("spawn1");
     dbg("spawning kernel...");
 
-    const opts: any = { detached: true, stdio: "ignore", env: {} };
+    const opts: LaunchJupyterOpts = { detached: true, stdio: "ignore", env: {} };
 
     if (this.name.indexOf("sage") == 0) {
       dbg("setting special environment for sage.* kernels");
@@ -293,7 +300,7 @@ export class JupyterKernel extends EventEmitter
 
     try {
       dbg("launching kernel interface...");
-      this._kernel = await require("spawnteract").launch(this.name, opts);
+      this._kernel = await launch_jupyter_kernel(this.name, opts);
       await this._finish_spawn();
     } catch (err) {
       this._set_state("off");

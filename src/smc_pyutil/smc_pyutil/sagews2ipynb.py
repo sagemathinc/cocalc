@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-Copyright (c) 2017,  SageMath, Inc..
-
-All rights reserved.
-"""
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
 import argparse, codecs, json, os
 
@@ -73,11 +70,10 @@ def sagews_to_pdf(filename):
 def main():
     parser = argparse.ArgumentParser(
         description="convert a sagews worksheet to a Jupyter Notebook")
-    parser.add_argument(
-        "filename",
-        nargs='+',
-        help="name of sagews files (required)",
-        type=str)
+    parser.add_argument("filename",
+                        nargs='+',
+                        help="name of sagews files (required)",
+                        type=str)
     args = parser.parse_args()
 
     for filename in args.filename:

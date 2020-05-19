@@ -1,36 +1,16 @@
-//##############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
-
 /*
-IMPORTANT: If you change this file, also update this date, which appears in webapp-lib/policies/pricing.pug
-*/
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// IMPORTANT: If you change this file, also update this date, which appears in webapp-lib/policies/pricing.pug
 
 exports.CURRENT_DATE = "August 2019";
 
-/*
-Define upgrades to projects.
-
-NOTE: Technically upgrades.subscription should be called upgrades.plans, to better
-corresponding to what stripe does...
-*/
+// Define upgrades to projects.
+//
+// NOTE: Technically upgrades.subscription should be called upgrades.plans, to better
+// corresponding to what stripe does...
 
 // NOTE: This script ./upgrade-spec.coffee is copied into the Docker container
 // in k8s/smc-project/manager/, so if you move or rename this script, you must

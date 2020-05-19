@@ -18,7 +18,6 @@ data/
 \#*
 node_modules
 *.sass-cache
-.vscode/
 .vs/
 err
 log

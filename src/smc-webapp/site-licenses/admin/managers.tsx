@@ -1,6 +1,11 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { List } from "immutable";
 import { Component, React, Rendered, redux } from "../../app-framework";
-import { license_field_names, ManagerInfo } from "./types";
+import { ManagerInfo } from "./types";
 import { UserMap } from "../../todo-types";
 import { User } from "../../users";
 import { r_join, Space } from "../../r_misc";
@@ -19,7 +24,7 @@ interface State {
   add_value: string;
 }
 
-export class DisplayManagers extends Component<DisplayProps, State> {
+export class Managers extends Component<DisplayProps, State> {
   constructor(props, state) {
     super(props, state);
     this.state = { add_value: "" };
@@ -107,7 +112,7 @@ export class DisplayManagers extends Component<DisplayProps, State> {
     }
   }
 
-  private render_add(): Rendered {
+  private render_add(): JSX.Element {
     return (
       <div style={{ float: "right" }}>
         <input
@@ -134,7 +139,7 @@ export class DisplayManagers extends Component<DisplayProps, State> {
     );
   }
 
-  public render(): Rendered {
+  public render(): JSX.Element {
     if (this.props.user_map == null) {
       return <span />;
     }
@@ -150,29 +155,6 @@ export class DisplayManagers extends Component<DisplayProps, State> {
         {this.render_add()}
         <div>{r_join(v, ", ")}</div>
         {this.render_manager_info()}
-      </div>
-    );
-  }
-}
-
-export interface EditProps {
-  license_id: string;
-  license_field: license_field_names;
-  managers: undefined | List<string>;
-  onChange: Function;
-}
-
-export class EditManagers extends Component<EditProps> {
-  private render_add_search() {
-    return <input />;
-  }
-
-  public render(): Rendered {
-    return (
-      <div>
-        <pre>{JSON.stringify(this.props.managers?.toJS(), undefined, 2)}</pre>
-        <br />
-        {this.render_add_search()}
       </div>
     );
   }

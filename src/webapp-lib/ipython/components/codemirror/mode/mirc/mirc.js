@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 //mIRC mode by Ford_Lawnmower :: Based on Velocity mode by Steve O'Hara
 CodeMirror.defineMIME("text/mirc", "mirc");
 CodeMirror.defineMode("mirc", function() {

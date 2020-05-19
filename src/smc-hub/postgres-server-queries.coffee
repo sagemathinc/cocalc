@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 PostgreSQL -- implementation of all the queries needed for the backend servers
 
@@ -35,14 +40,15 @@ collab = require('./postgres/collab')
 {site_license_usage_stats, projects_using_site_license, number_of_projects_using_site_license} = require('./postgres/site-license/analytics')
 {update_site_license_usage_log} = require('./postgres/site-license/usage-log')
 {site_license_public_info} = require('./postgres/site-license/public')
-{matching_site_licenses} = require('./postgres/site-license/search')
+{matching_site_licenses, manager_site_licenses} = require('./postgres/site-license/search')
 {permanently_unlink_all_deleted_projects_of_user} = require('./postgres/delete-projects')
 {unlist_all_public_paths} = require('./postgres/public-paths')
 {get_remember_me} = require('./postgres/remember-me')
 
 SERVER_SETTINGS_EXTRAS = require("smc-util/db-schema/site-settings-extras").EXTRAS
 SITE_SETTINGS_CONF = require("smc-util/schema").site_settings_conf
-SERVER_SETTINGS_CACHE = require("expiring-lru-cache")({ size: 10, expiry: 10 * 1000 })
+SERVER_SETTINGS_CACHE = require("expiring-lru-cache")({ size: 10, expiry: 60 * 1000 })
+{pii_expire} = require("./utils")
 
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # write an event to the central_log table
@@ -55,6 +61,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         expire = null
         if opts.event == 'uncaught_exception'
             expire = misc.expire_time(30 * 24 * 60 * 60) # del in 30 days
+        else
+            v = opts.value
+            pii_events = ['create_account','change_password','change_email_address','webapp-add_passport','get_user_auth_token','successful_sign_in','webapp-email_sign_up']
+            if v.ip_address? or v.email_address? or opts.event in pii_events
+                expire = await pii_expire(@)
 
         @_query
             query  : 'INSERT INTO central_log'
@@ -217,6 +228,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     conflict : 'name'
                     cb     : cb
         ], (err) ->
+            # clear the cache no matter what (e.g., server_settings might have partly changed then errored)
+            SERVER_SETTINGS_CACHE.reset()
             opts.cb(err)
         )
 
@@ -259,7 +272,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     for config in [SERVER_SETTINGS_EXTRAS, SITE_SETTINGS_CONF]
                         for ckey in Object.keys(config)
                             if (not x[ckey]?) or x[ckey] == ''
-                                x[ckey] = config[ckey].default
+                                conf = config[ckey]
+                                if conf?.to_val?
+                                    x[ckey] = conf.to_val(conf.default)
+                                else
+                                    x[ckey] = conf.default
                     SERVER_SETTINGS_CACHE.set('server_settings', x)
                     #dbg("server_settings = #{JSON.stringify(x, null, 2)}")
                     opts.cb(undefined, x)
@@ -309,6 +326,13 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             where :
                 "strategy = $::TEXT" : opts.strategy
             cb    : one_result('conf', opts.cb)
+
+    get_all_passport_settings: (opts) =>
+        opts = defaults opts,
+            cb       : required
+        @_query
+            query : 'SELECT strategy, conf FROM passport_settings'
+            cb    : all_results(opts.cb)
 
     ###
     API Key Management
@@ -714,7 +738,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         "account_id = $::UUID"       : opts.account_id
                     cb     : cb
         ], (err) ->
-            opts.cb?(err, locals.token, locals.email_address)
+            opts.cb?(err, locals)
         )
 
 
@@ -3221,6 +3245,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         # async function
     matching_site_licenses: (...args) =>
         return await matching_site_licenses(@, ...args)
+
+    manager_site_licenses: (...args) =>
+        return await manager_site_licenses(@, ...args)
 
     # async function
     permanently_unlink_all_deleted_projects_of_user: (account_id_or_email_address) =>

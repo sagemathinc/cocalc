@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Jupyter Frame Editor Actions
 */
 
@@ -225,11 +230,11 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
   // Not an action, but works to make code clean
   has_format_support(id: string, available_features?): false | string {
     id = id;
-    const ext = this.jupyter_actions.store.get_kernel_ext();
+    const syntax = this.jupyter_actions.store.get_kernel_syntax();
     const markdown_only = "Format selected markdown cells using prettier.";
-    if (ext == null) return markdown_only;
+    if (syntax == null) return markdown_only;
     if (available_features == null) return markdown_only;
-    const tool = this.format_support_for_extension(available_features, ext);
+    const tool = this.format_support_for_syntax(available_features, syntax);
     if (!tool) return markdown_only;
     return `Format selected code cells using "${tool}", stopping on first error; formats markdown using prettier.`;
   }

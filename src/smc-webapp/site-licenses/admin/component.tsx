@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Viewing and configuring site licenses
 */
 
@@ -151,7 +156,7 @@ class SiteLicenses extends Component<Props> {
           style={{ margin: "15px 0", float: "right" }}
         >
           <Icon name="plus" spin={this.props.creating} />
-          <Space /> Create License
+          <Space /> Create license...
         </Button>
       </Popconfirm>
     );

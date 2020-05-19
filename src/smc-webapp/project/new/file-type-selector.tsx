@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { Col, Row } from "react-bootstrap";
 
@@ -8,7 +13,7 @@ import { JupyterLabServerPanel } from "../jupyterlab-server";
 
 import { NewFileButton } from "./new-file-button";
 import { ALL_AVAIL } from "../../project_configuration";
-import { redux } from "../../app-framework";
+import { useRedux, useState } from "../../app-framework";
 
 interface Props {
   create_file: (name?: string) => void;
@@ -23,14 +28,9 @@ export const FileTypeSelector: React.FC<Props> = ({
   project_id,
   children,
 }: Props): JSX.Element | null => {
-  const [show_jupyter_server, set_show_jupyter_server] = React.useState(false);
-  const [show_jupyterlab_server, set_show_jupyterlab_server] = React.useState(
-    false
-  );
-
-  const available_features = redux.useProjectStore((store) => {
-    return store?.get("available_features");
-  }, project_id);
+  const [show_jupyter_server, set_show_jupyter_server] = useState(false);
+  const [show_jupyterlab_server, set_show_jupyterlab_server] = useState(false);
+  const available_features = useRedux(["available_features"], project_id);
 
   if (!create_file || !create_file || !project_id) {
     return null;

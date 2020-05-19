@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Codemirror-based input cell
 
 TODO:
@@ -20,7 +25,7 @@ interface CodeMirrorProps {
   actions?: JupyterActions;
   frame_actions?: NotebookFrameActions;
   id: string;
-  options: ImmutableMap<any, any>;
+  options: ImmutableMap<string, any>;
   value: string;
   font_size?: number; // not explicitly used, but critical to re-render on change so Codemirror recomputes itself!
   is_focused: boolean;
@@ -35,7 +40,7 @@ interface CodeMirrorState {
 }
 
 export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
-  private _is_mounted: boolean; // DONT DO THIS
+  private is_mounted: boolean;
   private has_rendered_nonstatic: boolean = false;
 
   constructor(props: CodeMirrorProps, context: any) {
@@ -51,20 +56,18 @@ export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
   };
 
   set_last_cursor = (pos: any) => {
-    if (this._is_mounted) {
+    if (this.is_mounted) {
       // ignore unless mounted -- can still get called due to caching of cm editor
       this.setState({ last_cursor: pos });
     }
   };
 
   componentDidMount() {
-    // TODO: don't do this
-    this._is_mounted = true;
+    this.is_mounted = true;
   }
 
   componentWillUnmount() {
-    // TODO: don't do this
-    this._is_mounted = false;
+    this.is_mounted = false;
   }
 
   shouldComponentUpdate(next) {

@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 React Component for displaying the entire page on a mobile device.
 ###
@@ -13,7 +18,8 @@ React Component for displaying the entire page on a mobile device.
 {ProjectPage}  = require('./project_page')
 {FileUsePage}  = require('./file-use/page')
 {Support}      = require('./support')
-{Avatar}       = require('./other-users')
+{ Avatar }     = require("./account/avatar/avatar");
+
 
 # SMC Libraries
 misc = require('smc-util/misc')

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import * as immutable from "immutable";
 import * as underscore from "underscore";
@@ -692,11 +697,7 @@ export const Explorer = rclass<ReactProps>(
               marginBottom: "15px",
             }}
           >
-            <PathNavigator
-              current_path={this.props.current_path}
-              history_path={this.props.history_path}
-              actions={this.props.actions}
-            />
+            <PathNavigator project_id={this.props.project_id} />
           </div>
           {!public_view && (
             <>

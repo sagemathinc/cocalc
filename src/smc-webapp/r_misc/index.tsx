@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 export { A } from "./A";
 export { Icon } from "./icon";
 export { Tip } from "./tip";
@@ -22,6 +27,7 @@ export { DropdownMenu, MenuItem, MenuDivider } from "./dropdown-menu";
 export { WindowedList } from "./windowed-list";
 export { UncommittedChanges } from "./uncommited-changes";
 export { DateTimePicker } from "./date-time-picker";
+export { PathLink } from "./path-link";
 
 export const {
   MarkdownInput,
@@ -44,7 +50,6 @@ export const {
   Markdown,
   ActivityDisplay,
   SaveButton,
-  PathLink,
   Calendar,
   DeletedProjectWarning,
   course_warning,

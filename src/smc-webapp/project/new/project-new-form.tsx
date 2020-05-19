@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as misc from "smc-util/misc";
 
 import { React, rtypes, rclass } from "../../app-framework";
@@ -20,12 +25,12 @@ import { ProjectActions } from "../../project_actions";
 const { special_filenames_with_no_extension } = require("../../project_file");
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { SMC_Dropzone } = require("../../smc-dropzone");
-import { PathLink } from "./path-link";
 import { NewFileButton } from "./new-file-button";
 import { NewFileDropdown } from "./new-file-dropdown";
 import { FileTypeSelector } from "./file-type-selector";
 import { AvailableFeatures } from "./types";
 import { ProjectMap } from "smc-webapp/todo-types";
+import { PathNavigator } from "../explorer/path-navigator";
 
 interface ReactProps {
   project_id: string;
@@ -351,9 +356,9 @@ export const ProjectNewForm = rclass<ReactProps>(
         return (
           <span>
             Create new files in{" "}
-            <PathLink
-              path={this.props.current_path}
-              actions={this.props.actions}
+            <PathNavigator
+              project_id={this.props.project_id}
+              style={{ display: "inline" }}
             />
           </span>
         );

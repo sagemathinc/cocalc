@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Customization and selection of the build command.
 
 */
@@ -9,7 +14,8 @@ import { Loading } from "smc-webapp/r_misc";
 
 import { Alert, FormControl } from "react-bootstrap";
 
-import { Menu, Dropdown, Button, Icon } from "antd";
+import { Menu, Dropdown, Button } from "antd";
+import { DownOutlined } from "@ant-design/icons";
 
 import { React, Rendered, Component } from "../../app-framework";
 
@@ -95,12 +101,12 @@ export class BuildCommand extends Component<Props, State> {
     this.setState({ build_command: this.build_command_string(fromJS(cmd)) });
   }
 
-  render_item(engine: string): Rendered {
+  render_item(engine: string): JSX.Element {
     return <Menu.Item key={engine}>{engine}</Menu.Item>;
   }
 
-  render_menu(): Rendered {
-    const v: Rendered[] = [];
+  render_menu(): JSX.Element {
+    const v: JSX.Element[] = [];
     for (const engine of ENGINES) {
       v.push(this.render_item(engine));
     }
@@ -114,11 +120,11 @@ export class BuildCommand extends Component<Props, State> {
     );
   }
 
-  render_dropdown(): Rendered {
+  render_dropdown(): JSX.Element {
     return (
       <Dropdown overlay={this.render_menu()}>
         <Button style={{ float: "right" }}>
-          Engine <Icon type="down" />
+          Engine <DownOutlined />
         </Button>
       </Dropdown>
     );

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 We cache recently loaded PDF.js docs, so that:
 
 - several frames on the same document only have to load it once
@@ -42,7 +47,8 @@ export function url_to_pdf(
   path: string,
   reload: number
 ): string {
-  return `${raw_url(project_id, encode_path(pdf_path(path)))}?param=${reload}`;
+  const url = raw_url(project_id, encode_path(pdf_path(path)))
+  return `${url}?param=${reload}`;
 }
 
 const doc_cache = new LRU(options);

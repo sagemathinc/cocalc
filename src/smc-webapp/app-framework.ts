@@ -1,25 +1,9 @@
-//#############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2015 -- 2016, SageMath, Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // CoCalc specific wrapper around the redux library
-//##############################################################################
 
 // Important: code below now assumes that a global variable called "DEBUG" is **defined**!
 declare var DEBUG: boolean, smc;
@@ -754,4 +738,78 @@ export function redux_fields(spec) {
     }
   }
   return v;
+}
+
+// Export common React Hooks for convenience
+export * from "./app-framework/hooks";
+
+/*
+Selector for getting anything from our global redux store.
+
+Use it in one of two ways:
+
+ useRedux<T>(['name-of-store', 'path', 'in', 'store'])
+
+or
+
+ useRedux<T>(['path', 'in', 'project store'], 'project-id', 'name')
+
+
+*/
+export function useRedux(
+  path: string[],
+  project_id?: string,
+  filename?: string, // for editing a file in project
+  is_public?: boolean
+) {
+  if (project_id != null) {
+    return useSelector((_) => {
+      if (filename == null) {
+        const s: ProjectStore = redux.getProjectStore(project_id);
+        return s.getIn(path as any);
+      } else {
+        return redux._redux_store
+          .getState()
+          .getIn([redux_name(project_id, filename, is_public)].concat(path));
+      }
+    });
+  } else {
+    return useSelector((_) => redux._redux_store.getState().getIn(path));
+  }
+}
+
+/*
+Hook to get the actions associated to a named actions/store,
+a project, or an editor.  If the first argument is a uuid,
+then it's the project actions or editor actions; otherwise,
+it's one of the other named actions or undefined.
+*/
+
+export function useActions(name: "account"): AccountActions;
+export function useActions(name: "projects"): any;
+export function useActions(name: "billing"): any;
+export function useActions(name: "page"): any;
+export function useActions(name: "admin-users"): AdminUsersActions;
+export function useActions(name: "admin-site-licenses"): SiteLicensesActions;
+export function useActions(name: "mentions"): MentionsActions;
+export function useActions(name: "file_use"): FileUseActions; // or undefined?
+
+// If it is none of the explicitly named ones... it's a project.
+export function useActions(name_or_project_id: string): ProjectActions;
+
+// Or an editor actions (any for now)
+export function useActions(name_or_project_id: string, path: string): any;
+
+export function useActions(name_or_project_id: string, path?: string) {
+  return React.useMemo(() => {
+    if (path == null) {
+      if (is_valid_uuid_string(name_or_project_id)) {
+        return redux.getProjectActions(name_or_project_id);
+      } else {
+        return redux.getActions(name_or_project_id);
+      }
+    } else {
+      return redux.getEditorActions(name_or_project_id, path);
+    }
+  }, [name_or_project_id, path]);
 }

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { RunNotebookOptions } from "../smc-webapp/jupyter/nbgrader/api";
 import { JupyterNotebook } from "../smc-webapp/jupyter/nbgrader/autograde";
 import { is_object, len, uuid, trunc_middle } from "../smc-util/misc";

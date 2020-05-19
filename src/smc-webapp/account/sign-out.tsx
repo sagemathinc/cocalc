@@ -1,10 +1,17 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Component, React, Rendered, redux } from "../app-framework";
 import { Button, Popconfirm } from "antd";
+import { LogoutOutlined } from "@ant-design/icons";
 
 interface Props {
   everywhere?: boolean;
   sign_in?: boolean;
-  danger?: boolean;
+  highlight?: boolean;
+  style?: React.CSSProperties;
 }
 
 export class SignOut extends Component<Props> {
@@ -50,7 +57,11 @@ export class SignOut extends Component<Props> {
         okText={`Yes, sign out${this.props.everywhere ? " everywhere" : ""}`}
         cancelText={"Cancel"}
       >
-        <Button icon={"logout"} type={this.props.danger ? "danger" : undefined}>
+        <Button
+          icon={<LogoutOutlined />}
+          type={this.props.highlight ? "primary" : undefined}
+          style={this.props.style}
+        >
           {this.render_body()}
         </Button>
       </Popconfirm>

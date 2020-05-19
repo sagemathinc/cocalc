@@ -1,12 +1,13 @@
-/* Idle standby timeout -- disconnects and shows an idle page */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 declare var $: any;
 import { throttle } from "lodash";
 import { delay } from "awaiting";
-
 import { redux } from "../app-framework";
-const { APP_LOGO_WHITE } = require("../art");
-import { SITE_NAME } from "smc-util/theme";
+import { APP_LOGO_WHITE } from "../art";
 import { IS_TOUCH } from "../feature";
 import { WebappClient } from "./client";
 
@@ -109,14 +110,25 @@ export class IdleClient {
 
   private notification_html(): string {
     const customize = redux.getStore("customize");
-    const site_name = customize.get("site_name") || SITE_NAME;
-    const logo_url = customize.get("logo_square") || APP_LOGO_WHITE;
-    return `
-<div>
-<img src="${logo_url}">
-<h1>${site_name}</h1>
-&mdash; click to reconnect &mdash;
-</div>`;
+    const site_name = customize.get("site_name");
+    const description = customize.get("site_description");
+    const logo_rect = customize.get("logo_rectangular");
+    const logo_square = customize.get("logo_square");
+
+    // we either have just a customized square logo or square + rectangular -- or just the baked in default
+    let html: string = "<div>";
+    if (logo_square != "") {
+      if (logo_rect != "") {
+        html += `<img class="logo-square" src="${logo_square}"><img  class="logo-rectangular" src="${logo_rect}">`;
+      } else {
+        html += `<img class="logo-square" src="${logo_square}"><h3>${site_name}</h3>`;
+      }
+      html += `<h4>${description}</h4>`;
+    } else {
+      html += `<img class="logo-square" src="${APP_LOGO_WHITE}"><h3>${description}</h3>`;
+    }
+
+    return html + "&mdash; click to reconnect &mdash;</div>";
   }
 
   public show_notification(): void {

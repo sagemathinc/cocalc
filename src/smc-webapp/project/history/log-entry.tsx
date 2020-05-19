@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as misc from "smc-util/misc";
 import * as React from "react";
 
@@ -153,7 +158,7 @@ export class LogEntry extends React.Component<Props> {
     );
   }
 
-  file_link(
+  private file_link(
     path: string,
     link: boolean,
     i: number,
@@ -191,8 +196,15 @@ export class LogEntry extends React.Component<Props> {
     return r_join(links);
   }
 
-  to_link(event: { project?: string; dest?: string }): React.ReactNode {
-    if (event.project != undefined) {
+  private to_link(event: { project?: string; dest?: string }) {
+    if (event.project != undefined && event.dest != null) {
+      return (
+        <>
+          {this.file_link(event.dest, true, 0, event.project)} in the project{" "}
+          {this.project_title({ project: event.project })}
+        </>
+      );
+    } else if (event.project != undefined) {
       return this.project_title({ project: event.project });
     } else if (event.dest != null) {
       return this.file_link(event.dest, true, 0);

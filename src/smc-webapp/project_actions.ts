@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // TODO: we should refactor our code to not have these window/document/$ references here.
 declare let window, document, $;
 
@@ -36,7 +41,7 @@ let project_file, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
   project_file = require("./project_file");
-  wrapped_editors = require("./editor_react_wrapper");
+  wrapped_editors = require("./editors/react-wrapper");
 }
 
 // Normalize path as in node, except '' is the home dir, not '.'.
@@ -947,6 +952,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // renders and is put in the foreground (ignored if foreground not true)
     anchor?: string;
   }): Promise<void> {
+    if (misc.endswith(opts.path, "/")) {
+      this.open_directory(opts.path);
+      return;
+    }
     opts = defaults(opts, {
       path: required,
       foreground: true,
@@ -1239,7 +1248,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Open side chat for the given file, assuming the file is open, store is initialized, etc.
   open_chat(opts) {
     opts = defaults(opts, { path: required });
-    this._set_chat_state(opts.path, true);
+    // First create the chat actions:
     require("./chat/register").init(
       misc.meta_file(opts.path, "chat"),
       this.redux,
@@ -1249,16 +1258,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     editor
       ? editor.local_storage(this.project_id, opts.path, "is_chat_open", true)
       : undefined;
+    // Only then set state to say that the chat is opened!
+    // (Otherwise when the opened chat is rendered actions is randomly not defined, and things break for.)
+    this._set_chat_state(opts.path, true);
   }
 
   // Close side chat for the given file, assuming the file itself is open
   close_chat(opts) {
     opts = defaults(opts, { path: required });
-    this._set_chat_state(opts.path, false);
     const editor = require("./editor");
     editor
       ? editor.local_storage(this.project_id, opts.path, "is_chat_open", false)
       : undefined;
+    this._set_chat_state(opts.path, false);
   }
 
   set_chat_width(opts): void {
@@ -1391,7 +1403,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  open_directory(path, change_history = true): void {
+  open_directory(path, change_history = true, show_files = true): void {
     path = normalize(path);
     this._ensure_project_is_open((err) => {
       if (err) {
@@ -1412,10 +1424,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (store == undefined) {
           return;
         }
-        this.set_active_tab("files", {
-          update_file_listing: false,
-          change_history: change_history,
-        });
+        if (show_files) {
+          this.set_active_tab("files", {
+            update_file_listing: false,
+            change_history: change_history,
+          });
+        }
         this.set_all_files_unchecked();
       }
     });
@@ -1443,7 +1457,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     let history_path = store.get("history_path") || "";
-    const is_adjacent = !`${history_path}/`.startsWith(`${path}/`);
+    const is_adjacent = path.length > 0 && !history_path.startsWith(path);
     // given is_adjacent is false, this tests if it is a subdirectory
     const is_nested = path.length > history_path.length;
     if (is_adjacent || is_nested) {
@@ -2379,9 +2393,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const { src } = opts;
     delete opts.src;
     const with_slashes = src.map(this._convert_to_displayed_path);
+    let dest: string | undefined = undefined;
+    if (opts.target_path != null) {
+      dest = opts.target_path;
+      if (!misc.endswith(dest, "/")) {
+        dest += "/";
+      }
+    }
     this.log({
       event: "file_action",
       action: "copied",
+      dest,
       files: with_slashes.slice(0, 3),
       count: src.length > 3 ? src.length : undefined,
       project: opts.target_project_id,

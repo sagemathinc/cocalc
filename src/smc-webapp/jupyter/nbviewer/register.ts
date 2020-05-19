@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Register the Jupyter Notebook editor and viwer with CoCalc
   - set the file extension, icon, react component,
     and how to init and remove the actions/store

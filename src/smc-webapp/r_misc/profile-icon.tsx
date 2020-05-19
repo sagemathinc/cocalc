@@ -1,6 +1,9 @@
-/**
- * Presentational component for a user's face
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
+
+// Presentational component for a user's face
 
 import * as React from "react";
 

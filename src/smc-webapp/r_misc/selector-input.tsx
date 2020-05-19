@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import * as misc from "smc-util/misc";
 
@@ -6,12 +11,13 @@ const { FormControl, FormGroup } = require("react-bootstrap");
 interface Props {
   options:
     | string[]
-    | { value: string; display: JSX.Element }[]
+    | { value: string; display: JSX.Element | string }[]
     | { [keys: string]: JSX.Element }
     | Readonly<{ [keys: string]: string }>;
   disabled?: boolean;
   selected?: string;
   on_change?: (selected: string) => void;
+  style?: React.CSSProperties;
 }
 
 // If the first element is a string, we assume the rest to be a string
@@ -68,7 +74,7 @@ export class SelectorInput extends React.Component<Props> {
 
   render() {
     return (
-      <FormGroup>
+      <FormGroup style={this.props.style}>
         <FormControl
           value={this.props.selected}
           componentClass="select"

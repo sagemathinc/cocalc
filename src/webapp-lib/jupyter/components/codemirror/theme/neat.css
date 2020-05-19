@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 .cm-s-neat span.cm-comment { color: #a86; }
 .cm-s-neat span.cm-keyword { line-height: 1em; font-weight: bold; color: blue; }
 .cm-s-neat span.cm-string { color: #a22; }

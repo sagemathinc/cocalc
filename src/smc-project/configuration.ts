@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * This derives the configuration and capabilities of the current project.
  * It is used in the UI to only show/run those elements, which should work.
  * The corresponding file in the webapp is smc-webapp/project_configuration.ts

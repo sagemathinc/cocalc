@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Default settings to customize a given site, typically a private install of CoCalc.
 
 const { is_valid_email_address } = require("smc-util/misc");
@@ -34,7 +39,8 @@ export type SiteSettingsKeys =
   | "default_quotas"
   | "max_upgrades"
   | "email_enabled"
-  | "verify_emails";
+  | "verify_emails"
+  | "email_signup";
 
 export interface Config {
   readonly name: string;
@@ -219,7 +225,7 @@ export const site_settings_conf: SiteSettings = {
   commercial: {
     name: "Commercial",
     desc:
-      "Whether or not to include user interface elements related to for-pay upgrades and features.  Set to 'yes' to include these elements.",
+      "Whether or not to include user interface elements related to for-pay upgrades and other features.  Set to 'yes' to include these elements.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
@@ -311,6 +317,14 @@ export const site_settings_conf: SiteSettings = {
       "If 'true', email verification tokens are sent out + account settings UI shows it – email sending must be enabled",
     default: "no",
     show: is_email_enabled,
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  email_signup: {
+    name: "Allow email signup",
+    desc:
+      "Users can sign up via email & password. Could be subject to an 'account creation token'.",
+    default: "yes",
     valid: only_booleans,
     to_val: to_bool,
   },

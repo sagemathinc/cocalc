@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * this manages project configuration specific aspects.
  * It is the corresponding counterpart of smc-project/configuration.ts
  * The various "capabilities" data-structures are used to show/hide UI elements or suppress
@@ -113,6 +118,36 @@ export function isMainConfiguration(
   );
 }
 
+// if prettier exists, this adds all syntaxes to format via prettier
+function formatting_prettier(formatting: Capabilities): Capabilities {
+  if (formatting.prettier) {
+    formatting.postcss = true;
+    formatting.babel = true;
+    formatting.typescript = true;
+    formatting.json = true;
+    formatting.yaml = true;
+    formatting.markdown = true;
+  }
+  // for backwards compatibility
+  if (formatting.yapf) {
+    formatting.python = true;
+  }
+  if (formatting.biber) {
+    formatting["bib-biber"] = true;
+  }
+  if (formatting.tidy) {
+    formatting["xml-tidy"] = true;
+    formatting["html-tidy"] = true;
+  }
+  if (formatting.formatR) {
+    formatting.r = true;
+  }
+  if (formatting.latexindent) {
+    formatting.latex = true;
+  }
+  return formatting;
+}
+
 // derive available types of files from the configuration map
 export function is_available(configuration?: ProjectConfiguration): Available {
   if (configuration == null) {
@@ -133,7 +168,7 @@ export function is_available(configuration?: ProjectConfiguration): Available {
   if (capabilities == null) return ALL_AVAIL; // see note above.
   const jupyter: Capabilities | boolean = capabilities.jupyter;
 
-  const formatting = capabilities.formatting;
+  const formatting = formatting_prettier(capabilities.formatting);
 
   // uncomment for testing
   // formatting["yapf"] = formatting["tidy"] = false;

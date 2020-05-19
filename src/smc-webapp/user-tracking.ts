@@ -1,6 +1,15 @@
-/* Provide a typescript-friendly stable interface to user_tracking, so
-   client code doesn't have to import webapp_client everywhere, and we can
-   completely change this if we want. */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
+ * lic
+ */
+
+// Provide a typescript-friendly stable interface to user_tracking, so
+// client code doesn't have to import webapp_client everywhere, and we can
+// completely change this if we want.
 
 import { query, server_time } from "./frame-editors/generic/client";
 import { uuid } from "../smc-util/misc2";

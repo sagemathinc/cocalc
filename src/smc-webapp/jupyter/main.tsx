@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Top-level react component, which ties everything together
 */
 
@@ -14,7 +19,7 @@ import * as immutable from "immutable";
 
 import { ErrorDisplay } from "../r_misc/error-display";
 import { Loading } from "../r_misc/loading";
-import { is_safari } from "../frame-editors/generic/browser";
+import { is_firefox, is_safari } from "../frame-editors/generic/browser";
 
 // React components that implement parts of the Jupyter notebook.
 import { TopMenubar } from "./top-menubar";
@@ -298,9 +303,10 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
       // avoid it if possible for smaller notebooks.
       return false;
     }
-    // OK, we have a big notebook.  Let's window if we're not on Safari, where I
-    // don't know what is going on... (see #4320).
-    if (is_safari()) {
+    // OK, we have a big notebook.  Let's window if we're not on Safari/Firefox,
+    // where I don't know what is going on -- maybe some polyfill doesn't really
+    // work... (see #4320).
+    if (is_safari() || is_firefox()) {
       return false;
     }
     // OK, let's do it.

@@ -1,26 +1,10 @@
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2014--2016, SageMath, Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 # This is a collection of utility classes for printing documents.
 # They encapsulate the conversion logic, such that they can be used in editors.
-###############################################################################
 
 _               = require('underscore')
 async           = require('async')
@@ -155,14 +139,14 @@ class SagewsPrinter extends Printer
             MathJaxConfig["HTML-CSS"] ?= {}
             MathJaxConfig["HTML-CSS"].scale = 80
 
-            {SITE_NAME, BASE_URL} = require('smc-util/theme')
+            {SITE_NAME} = require('smc-util/theme')
             SiteName = redux.getStore('customize').site_name ? SITE_NAME
-            url = BASE_URL
+            {BASE_URL} = require('./misc_page')
 
             # note to a future reader: the <meta data-name="smc-generated" ... > uniquely tags this document for detection.
             # e.g. this can be used to import it later on
             # version 1: no embedded file
-            # versoin 2: embedded into "a[download]:first"
+            # version 2: embedded into "a[download]:first"
             @_html_tmpl = """
                 <!doctype html>
                 <html lang="en">
@@ -299,7 +283,7 @@ class SagewsPrinter extends Printer
 
                     <script type="text/javascript">window.MathJax = #{misc.to_json(MathJaxConfig)};</script>
                     <script type="text/javascript" async
-                        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS_HTML">
+                        src="#{BASE_URL}/static/mathjax/MathJax.js?config=TeX-AMS_HTML">
                     </script>
                 </head>
 
@@ -324,7 +308,7 @@ class SagewsPrinter extends Printer
                 #{data.content}
                 <footer>
                     <div>generated #{data.timestamp} on
-                    <a href="#{url}">#{SiteName}</a>
+                    <a href="#{BASE_URL}">#{SiteName}</a>
                     </div>
                 </footer>
                 </body>

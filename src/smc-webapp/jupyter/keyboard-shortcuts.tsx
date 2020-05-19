@@ -1,9 +1,12 @@
 /*
-The keyboard shortcuts and command listing dialog, which:
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-  - lets you search through all available commands
-  - see and change the keyboard shortcuts for those commands\
-*/
+// The keyboard shortcuts and command listing dialog, which:
+//
+//   - lets you search through all available commands
+//   - see and change the keyboard shortcuts for those commands\
 
 import { React, Component, Rendered } from "../app-framework";
 import { Map } from "immutable";
