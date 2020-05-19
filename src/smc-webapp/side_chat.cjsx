@@ -16,6 +16,7 @@ misc_page = require('./misc_page')
 {DISCORD_INVITE} = require('smc-util/theme')
 {alert_message} = require('./alerts')
 {analytics_event} = require('./tracker')
+{Avatar} = require('./account/avatar/avatar')
 
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./app-framework')

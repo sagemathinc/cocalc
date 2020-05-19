@@ -7,8 +7,7 @@ import * as React from "react";
 
 import { redux } from "../../app-framework";
 import { MentionInfo } from "./types";
-
-const { Avatar } = require("../../other-users");
+import { Avatar } from "../../account/avatar/avatar";
 import { Icon, TimeAgo } from "../../r_misc";
 import { User } from "../../users";
 

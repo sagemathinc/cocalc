@@ -9,7 +9,7 @@ const { IS_MOBILE, IS_TOUCH } = require("./feature");
 import { debounce } from "underscore";
 
 // CoCalc libraries
-const { Avatar } = require("./other-users");
+import { Avatar } from "./account/avatar/avatar";
 const misc = require("smc-util/misc");
 const misc_page = require("./misc_page");
 

@@ -10,7 +10,7 @@ import { LabeledRow, Loading, Space } from "../r_misc";
 import { ColorPicker } from "../colorpicker";
 import { ProfileImageSelector } from "./profile-image";
 import { set_account_table } from "./util";
-const { Avatar } = require("../other-users");
+import { Avatar } from "./avatar/avatar";
 
 interface Props {
   email_address?: string;

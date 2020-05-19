@@ -6,7 +6,7 @@
 import { Map as ImmutableMap } from "immutable";
 import { Button, ButtonToolbar, FormControl, Well } from "../antd-bootstrap";
 import { React, Component, Rendered, redux } from "../app-framework";
-const { Avatar } = require("../other-users");
+import { Avatar } from "./avatar/avatar";
 import { ErrorDisplay, Icon, ProfileIcon } from "../r_misc";
 import * as md5 from "md5";
 

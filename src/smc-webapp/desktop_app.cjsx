@@ -19,7 +19,7 @@ misc_page = require('./misc_page')
 {ProjectPage}  = require('./project_page')
 {FileUsePage}  = require('./file-use/page')
 {Support}      = require('./support')
-{Avatar}       = require('./other-users')
+{ Avatar }     = require("./account/avatar/avatar");
 
 # CoCalc Libraries
 misc = require('smc-util/misc')
