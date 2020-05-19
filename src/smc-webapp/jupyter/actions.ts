@@ -12,6 +12,12 @@ This can be used both on the frontend and the backend.
 // require('./test/export-to-ipynb-ts');
 // require("./project-actions");
 
+// This was 10000 for a while and that caused regular noticeable problems:
+//    https://github.com/sagemathinc/cocalc/issues/4590
+// It seems like 50000 provides a better tradeoff.  With 10000 we got about
+// four support messages *per year* about this...
+const DEFAULT_MAX_OUTPUT_LENGTH = 50000;
+
 declare const localStorage: any;
 
 import * as immutable from "immutable";
@@ -162,7 +168,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       project_id,
       directory,
       path,
-      max_output_length: 10000,
+      max_output_length: DEFAULT_MAX_OUTPUT_LENGTH,
       cell_toolbar: this.store.get_local_storage("cell_toolbar"),
     });
 
