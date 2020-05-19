@@ -10,6 +10,7 @@ import { redux } from "../app-framework";
 import { APP_LOGO_WHITE } from "../art";
 import { IS_TOUCH } from "../feature";
 import { WebappClient } from "./client";
+import { disconnect_from_all_projects } from "../project/websocket/connect";
 
 export class IdleClient {
   private notification_is_visible: boolean = false;
@@ -81,10 +82,10 @@ export class IdleClient {
       // We actually disconnect 15s after appearing to
       // so that if the user sees the idle banner and immediately
       // dismisses it, then the experience is less disruptive.
-      this.delayed_disconnect = setTimeout(
-        () => this.client.hub_client.disconnect(),
-        15 * 1000
-      );
+      this.delayed_disconnect = setTimeout(() => {
+        this.client.hub_client.disconnect();
+        disconnect_from_all_projects();
+      }, 15 * 1000);
     }
   }
 
