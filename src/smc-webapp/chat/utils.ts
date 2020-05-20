@@ -4,6 +4,7 @@
  */
 
 import { MentionList } from "./store";
+import { Message } from "./types";
 
 export function generate_name(project_id: string, path: string) {
   return `editor-${project_id}-${path}`;
@@ -66,4 +67,40 @@ export function compute_cursor_offset_position(
     }
   }
   return index_offset + usuable_cursor_index;
+}
+
+export function newest_content(message: Message): string {
+  return message.get("history")?.first()?.get("content") ?? "";
+}
+
+export function sender_is_viewer(
+  account_id: string,
+  message: Message
+): boolean {
+  return account_id == message.get("sender_id");
+}
+
+export function message_colors(
+  account_id: string,
+  message: Message
+): {
+  background: string;
+  color: string;
+  message_class: string;
+  lighten?: { color: string };
+} {
+  if (sender_is_viewer(account_id, message)) {
+    return {
+      background: "#46b1f6",
+      color: "#fff",
+      message_class: "smc-message-from-viewer",
+    };
+  } else {
+    return {
+      background: "#efefef",
+      color: "#000",
+      lighten: { color: "#888" },
+      message_class: "smc-message-from-other",
+    };
+  }
 }

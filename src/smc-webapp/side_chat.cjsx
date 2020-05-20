@@ -19,7 +19,7 @@ misc_page = require('./misc_page')
 {Avatar} = require('./account/avatar/avatar')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./app-framework')
+{React, ReactDOM, rclass, rtypes, Actions, Store, Redux, redux_name}  = require('./app-framework')
 {Icon, Loading, Markdown, SearchInput, Space, TimeAgo, Tip, A} = require('./r_misc')
 {Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Panel, Row, ButtonGroup, Well} = require('react-bootstrap')
 
@@ -27,7 +27,9 @@ misc_page = require('./misc_page')
 
 editor_chat = require('./editor_chat')
 
-{redux_name, init_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, scroll_to_bottom} = require('./editor_chat')
+{newest_content, sender_is_viewer} = require('./chat/utils')
+
+{init_redux, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, scroll_to_bottom} = require('./editor_chat')
 
 {ProjectUsers} = require('./projects/project-users')
 {AddCollaborators} = require('./collaborators/add-to-project')

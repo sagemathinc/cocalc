@@ -27,7 +27,12 @@ import { SaveButton } from "../frame-editors/frame-tree/save-button";
 import { Button, ButtonGroup } from "react-bootstrap";
 
 import { ChatInput } from "./input";
-import { compute_cursor_offset_position } from "./utils";
+import {
+  compute_cursor_offset_position,
+  message_colors,
+  newest_content,
+  sender_is_viewer,
+} from "./utils";
 import { MentionList } from "./store";
 
 import { React, ReactDOM, Component, rclass, rtypes } from "../app-framework";
@@ -44,8 +49,6 @@ import { ChatLog } from "./chat-log";
 import { WindowedList } from "../r_misc/windowed-list";
 
 const {
-  newest_content,
-  sender_is_viewer,
   show_user_name,
   is_editing,
   blank_column,
@@ -53,14 +56,13 @@ const {
   render_history_title,
   render_history_footer,
   render_history,
-  render_timeago,
   scroll_to_bottom,
-  message_colors,
 } = require("../editor_chat");
 
 const { VideoChatButton } = require("../video-chat");
 import { FileUploadWrapper } from "../file-upload";
 import { TIP_TEXT } from "../widget-markdown-input/main";
+import { Time } from "./time";
 
 interface MessageProps {
   actions?: any;
@@ -465,7 +467,10 @@ export class Message extends Component<MessageProps, MessageState> {
           onDoubleClick={this.edit_message}
         >
           <span style={lighten}>
-            {render_timeago(this.props.message, this.edit_message)}
+            <Time
+              message={this.props.message}
+              edit={this.edit_message.bind(this)}
+            />
           </span>
           {!is_editing(this.props.message, this.props.account_id)
             ? render_markdown(

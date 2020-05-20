@@ -3,39 +3,6 @@
 # License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
 #########################################################################
 
-# Chat message JSON format:
-# 
-# sender_id : String which is the original message sender's account id
-# event     : Can only be "chat" right now.
-# date      : A date string
-# history   : Array of "History" objects (described below)
-# editing   : Object of <account id's> : <"FUTURE">
-# 
-# "FUTURE" Will likely contain their last edit in the future
-# 
-#  --- History object ---
-# author_id : String which is this message version's author's account id
-# content   : The raw display content of the message
-# date      : Date **string** of when this edit was sent
-# 
-# Example object:
-# {"sender_id":"07b12853-07e5-487f-906a-d7ae04536540",
-# "event":"chat",
-# "history":[
-#         {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"First edited!","date":"2016-07-23T23:10:15.331Z"},
-#         {"author_id":"07b12853-07e5-487f-906a-d7ae04536540","content":"Initial sent message!","date":"2016-07-23T23:10:04.837Z"}
-#         ],
-# "date":"2016-07-23T23:10:04.837Z","editing":{"07b12853-07e5-487f-906a-d7ae04536540":"FUTURE"}}
-# ---
-# 
-# Chat message types after immutable conversion:
-# (immutable.Map)
-# sender_id : String
-# event     : String
-# date      : Date Object
-# history   : immutable.List of immutable.Maps
-# editing   : immutable.Map
-
 # standard non-CoCalc libraries
 immutable = require('immutable')
 {IS_MOBILE, isMobile, IS_TOUCH} = require('./feature')
@@ -57,38 +24,6 @@ misc_page = require('./misc_page')
 {Button, Col, Grid, FormControl, FormGroup, ListGroup, ListGroupItem, Panel, Row, ButtonGroup, Well} = require('react-bootstrap')
 
 {User} = require('./users')
-
-exports.redux_name = redux_name = (project_id, path) ->
-    return "editor-#{project_id}-#{path}"
-
-
-### Message Methods ###
-exports.newest_content = newest_content = (message) ->
-    return message.get('history').first()?.get('content') ? ''
-
-exports.sender_is_viewer = sender_is_viewer = (account_id, message) ->
-    account_id == message.get('sender_id')
-
-exports.message_colors = (account_id, message) ->
-    if sender_is_viewer(account_id, message)
-        return {background: '#46b1f6', color: '#fff', message_class:'smc-message-from-viewer'}
-    else
-        return {background: '#efefef', color: '#000', lighten:{color:'#888'}, message_class:'smc-message-from-other'}
-
-exports.render_timeago = (message, edit) ->
-    # NOTE: we make click on the timestamp edit the chat since onDoubleClick is completely
-    # ignored on mobile touch devices...
-    if IS_TOUCH and edit?
-        f = edit
-    else
-        f = undefined
-    <span
-        onClick   = {f}
-        className = "pull-right small"
-        style     = {maxWidth:'20%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}
-        >
-        <TimeAgo date={new Date(message.get('date'))} />
-    </span>
 
 NAME_STYLE =
     color        : "#888"
