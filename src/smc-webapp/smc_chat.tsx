@@ -58,7 +58,7 @@ const {
 } = require("./editor_chat");
 
 const { VideoChatButton } = require("./video-chat");
-const { SMC_Dropwrapper } = require("./smc-dropzone");
+import { FileUploadWrapper } from "./file-upload";
 
 import { TIP_TEXT } from "./widget-markdown-input/main";
 
@@ -633,6 +633,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
 
   private input_ref = React.createRef<HTMLTextAreaElement>();
   private log_container_ref = React.createRef<WindowedList>();
+  private dropzone_ref: { current: any } = { current: null };
 
   constructor(props: ChatRoomProps, context: any) {
     super(props, context);
@@ -935,8 +936,6 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     this.props.actions.set_input(new_text);
   };
 
-  private dropzoneWrapperRef: any;
-
   handle_paste_event = (e: React.ClipboardEvent<any>) => {
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
@@ -946,10 +945,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
         const file = item.getAsFile();
         if (file != null) {
           const blob = file.slice(0, -1, item.type);
-          this.dropzoneWrapperRef.dropzone.addFile(
-            // TODO: pasted things always have the same name,
-            // which can cause some overwriting of files.
-            // The best thing to do would be to hash the contents.
+          this.dropzone_ref.current?.addFile(
             new File([blob], `paste-${Math.random()}`, { type: item.type })
           );
         }
@@ -1049,8 +1045,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
           <Col
             style={{ flex: "1", padding: "0px 2px 0px 2px", width: "250px" }}
           >
-            <SMC_Dropwrapper
-              ref={(node) => (this.dropzoneWrapperRef = node)}
+            <FileUploadWrapper
               project_id={this.props.project_id}
               dest_path={misc.normalized_path_join(
                 this.props.redux
@@ -1063,6 +1058,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 sending: this.start_upload,
               }}
               style={{ height: "100%" }}
+              dropzone_ref={this.dropzone_ref}
             >
               <ChatInput
                 name={this.props.name}
@@ -1083,7 +1079,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 on_set_to_last_input={this.props.actions.set_to_last_input}
                 account_id={this.props.account_id}
               />
-            </SMC_Dropwrapper>
+            </FileUploadWrapper>
           </Col>
           <Col
             style={{
