@@ -23,27 +23,6 @@ misc_page = require('./misc_page')
 {React, ReactDOM, rclass, rtypes, Actions, Store, redux}  = require('./app-framework')
 {Button, Col, Grid, FormControl, FormGroup, ListGroup, ListGroupItem, Panel, Row, ButtonGroup, Well} = require('react-bootstrap')
 
-{User} = require('./users')
-
-NAME_STYLE =
-    color        : "#888"
-    marginBottom : '1px'
-    marginLeft   : '10px'
-    right        : 0
-    whiteSpace   : 'nowrap'
-    overflow     : 'hidden'
-    textOverflow : 'ellipsis'    # see https://css-tricks.com/snippets/css/truncate-string-with-ellipsis/
-    position     : 'absolute'    # using the "absolute in relative" positioning trick
-    left         : 0
-    top          : 0
-
-exports.show_user_name = show_user_name = (sender_name) ->
-    <div style={position:'relative', height:'1.2em', width:'100%'}>
-        <div className={"small"} style={NAME_STYLE}>
-            {sender_name}
-        </div>
-    </div>
-
 exports.is_editing = is_editing = (message, account_id) ->
     message.get('editing').has(account_id)
 

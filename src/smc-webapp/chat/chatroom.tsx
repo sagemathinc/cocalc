@@ -49,7 +49,6 @@ import { ChatLog } from "./chat-log";
 import { WindowedList } from "../r_misc/windowed-list";
 
 const {
-  show_user_name,
   is_editing,
   blank_column,
   render_markdown,
@@ -63,6 +62,7 @@ const { VideoChatButton } = require("../video-chat");
 import { FileUploadWrapper } from "../file-upload";
 import { TIP_TEXT } from "../widget-markdown-input/main";
 import { Time } from "./time";
+import { Name } from "./name";
 
 interface MessageProps {
   actions?: any;
@@ -458,9 +458,11 @@ export class Message extends Component<MessageProps, MessageState> {
 
     return (
       <Col key={1} xs={10} sm={9}>
-        {!this.props.is_prev_sender && !is_viewers_message
-          ? show_user_name(this.props.sender_name)
-          : undefined}
+        {!this.props.is_prev_sender &&
+        !is_viewers_message &&
+        this.props.sender_name ? (
+          <Name sender_name={this.props.sender_name} />
+        ) : undefined}
         <div
           style={message_style}
           className="smc-chat-message"

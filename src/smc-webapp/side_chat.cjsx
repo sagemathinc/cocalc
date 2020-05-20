@@ -29,7 +29,7 @@ editor_chat = require('./editor_chat')
 
 {newest_content, sender_is_viewer} = require('./chat/utils')
 
-{init_redux, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, scroll_to_bottom} = require('./editor_chat')
+{init_redux, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, scroll_to_bottom} = require('./editor_chat')
 
 {ProjectUsers} = require('./projects/project-users')
 {AddCollaborators} = require('./collaborators/add-to-project')
