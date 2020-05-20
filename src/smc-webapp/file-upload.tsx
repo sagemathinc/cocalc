@@ -152,6 +152,7 @@ interface FileUploadWrapperProps {
   disabled?: boolean;
   style?: React.CSSProperties; // css styles to apply to the containing div
   dropzone_ref?: { current: Dropzone | null }; // gets set to underlying Dropzone instance
+  close_preview_ref?: { current: Function | null }; // set to function to close the preview
 }
 
 export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
@@ -279,6 +280,9 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
       dropzone.current.removeAllFiles();
     }
     set_files([]);
+  }
+  if (props.close_preview_ref != null) {
+    props.close_preview_ref.current = close_preview;
   }
 
   function render_preview() {

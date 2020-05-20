@@ -634,6 +634,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   private input_ref = React.createRef<HTMLTextAreaElement>();
   private log_container_ref = React.createRef<WindowedList>();
   private dropzone_ref: { current: any } = { current: null };
+  private close_preview_ref: { current: Function | null } = { current: null };
 
   constructor(props: ChatRoomProps, context: any) {
     super(props, context);
@@ -973,6 +974,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     ) {
       this.input_ref.current.focus();
     }
+    this.close_preview_ref.current?.();
   };
 
   on_clear = () => {
@@ -1059,6 +1061,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
               }}
               style={{ height: "100%" }}
               dropzone_ref={this.dropzone_ref}
+              close_preview_ref={this.close_preview_ref}
             >
               <ChatInput
                 name={this.props.name}

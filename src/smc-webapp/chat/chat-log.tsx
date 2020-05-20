@@ -177,7 +177,7 @@ export class ChatLog extends Component<ChatLogProps> {
         {this.render_not_showing()}
         <WindowedList
           ref={this.props.windowed_list_ref}
-          overscan_row_count={15}
+          overscan_row_count={25}
           estimated_row_size={62}
           row_count={this.get_sorted_dates().length}
           row_renderer={this.row_renderer.bind(this)}
