@@ -27,9 +27,9 @@ misc_page = require('./misc_page')
 
 editor_chat = require('./editor_chat')
 
-{newest_content, sender_is_viewer} = require('./chat/utils')
+{newest_content, scroll_to_bottom, sender_is_viewer} = require('./chat/utils')
 
-{init_redux, is_editing, blank_column, render_markdown, get_user_name, scroll_to_bottom} = require('./editor_chat')
+{init_redux, is_editing, blank_column, render_markdown} = require('./editor_chat')
 
 {ProjectUsers} = require('./projects/project-users')
 {AddCollaborators} = require('./collaborators/add-to-project')

@@ -31,6 +31,7 @@ import {
   compute_cursor_offset_position,
   message_colors,
   newest_content,
+  scroll_to_bottom,
   sender_is_viewer,
 } from "./utils";
 import { MentionList } from "./store";
@@ -48,12 +49,7 @@ import {
 import { ChatLog } from "./chat-log";
 import { WindowedList } from "../r_misc/windowed-list";
 
-const {
-  is_editing,
-  blank_column,
-  render_markdown,
-  scroll_to_bottom,
-} = require("../editor_chat");
+const { is_editing, blank_column, render_markdown } = require("../editor_chat");
 
 import { HistoryTitle, HistoryFooter, History } from "./history";
 
