@@ -5,44 +5,43 @@
 
 // standard non-CoCalc libraries
 import * as immutable from "immutable";
-const { IS_MOBILE, IS_TOUCH } = require("./feature");
-import { debounce } from "underscore";
+import { debounce } from "lodash";
+const { IS_MOBILE, IS_TOUCH } = require("../feature");
 
 // CoCalc libraries
-import { Avatar } from "./account/avatar/avatar";
-const misc = require("smc-util/misc");
-const misc_page = require("./misc_page");
-
-const { DISCORD_INVITE } = require("smc-util/theme");
-
-import { SaveButton } from "./frame-editors/frame-tree/save-button";
-
-import { ChatInput } from "./chat/input";
-
-import { compute_cursor_offset_position } from "./chat/utils";
-
-import { MentionList } from "./chat/store";
-
-// React libraries
-import { React, ReactDOM, Component, rclass, rtypes } from "./app-framework";
-
-import { Icon, Loading, Tip, SearchInput, TimeAgo, A } from "./r_misc";
-
+import { Avatar } from "../account/avatar/avatar";
 import {
-  Button,
+  is_different,
+  smiley,
+  history_path,
+  emoticons,
+  path_split,
+  normalized_path_join,
+} from "smc-util/misc";
+const { sanitize_html_safe } = require("../misc_page");
+import { DISCORD_INVITE } from "smc-util/theme";
+import { SaveButton } from "../frame-editors/frame-tree/save-button";
+
+// have to rewrite buttons like SaveButton in antd before we can
+// switch to antd buttons.
+import { Button, ButtonGroup } from "react-bootstrap";
+
+import { ChatInput } from "./input";
+import { compute_cursor_offset_position } from "./utils";
+import { MentionList } from "./store";
+
+import { React, ReactDOM, Component, rclass, rtypes } from "../app-framework";
+import { Icon, Loading, Tip, SearchInput, TimeAgo, A } from "../r_misc";
+import {
   Col,
-  Grid,
   FormGroup,
   FormControl,
+  Grid,
   Row,
-  ButtonGroup,
   Well,
-} from "react-bootstrap";
-
-import { ChatLog } from "./chat/chat-log";
-import { WindowedList } from "./r_misc/windowed-list";
-
-const editor_chat = require("./editor_chat");
+} from "../antd-bootstrap";
+import { ChatLog } from "./chat-log";
+import { WindowedList } from "../r_misc/windowed-list";
 
 const {
   newest_content,
@@ -54,13 +53,14 @@ const {
   render_history_title,
   render_history_footer,
   render_history,
+  render_timeago,
   scroll_to_bottom,
-} = require("./editor_chat");
+  message_colors,
+} = require("../editor_chat");
 
-const { VideoChatButton } = require("./video-chat");
-import { FileUploadWrapper } from "./file-upload";
-
-import { TIP_TEXT } from "./widget-markdown-input/main";
+const { VideoChatButton } = require("../video-chat");
+import { FileUploadWrapper } from "../file-upload";
+import { TIP_TEXT } from "../widget-markdown-input/main";
 
 interface MessageProps {
   actions?: any;
@@ -130,7 +130,7 @@ export class Message extends Component<MessageProps, MessageState> {
 
   shouldComponentUpdate(nextProps, nextState) {
     return (
-      misc.is_different(this.props, nextProps, [
+      is_different(this.props, nextProps, [
         "message",
         "user_map",
         "account_id",
@@ -141,7 +141,7 @@ export class Message extends Component<MessageProps, MessageState> {
         "saved_mesg",
         "sender_name",
       ]) ||
-      misc.is_different(this.state, nextState, [
+      is_different(this.state, nextState, [
         "edited_message",
         "show_history",
         "new_changes",
@@ -386,9 +386,10 @@ export class Message extends Component<MessageProps, MessageState> {
       width: "4%",
     };
 
-    // TODO: do something better when we don't know the user (or when sender account_id is bogus)
+    // TODO: do something better when we don't know the user
+    // (or when sender account_id is bogus)
     return (
-      <Col key={0} xsHidden={true} sm={1} style={style}>
+      <Col key={0} sm={1} style={style}>
         <div>
           {account != null && this.props.show_avatar ? (
             <Avatar size={32} account_id={account.account_id} />
@@ -407,15 +408,13 @@ export class Message extends Component<MessageProps, MessageState> {
       this.props.message
     );
 
-    const {
-      background,
-      color,
-      lighten,
-      message_class,
-    } = editor_chat.message_colors(this.props.account_id, this.props.message);
+    const { background, color, lighten, message_class } = message_colors(
+      this.props.account_id,
+      this.props.message
+    );
 
     // smileys, just for fun.
-    value = misc.smiley({
+    value = smiley({
       s: value,
       wrap: ['<span class="smc-editor-chat-smiley">', "</span>"],
     });
@@ -452,6 +451,7 @@ export class Message extends Component<MessageProps, MessageState> {
       marginTop,
       borderRadius,
       fontSize: font_size,
+      padding: "9px",
     };
 
     return (
@@ -459,14 +459,13 @@ export class Message extends Component<MessageProps, MessageState> {
         {!this.props.is_prev_sender && !is_viewers_message
           ? show_user_name(this.props.sender_name)
           : undefined}
-        <Well
+        <div
           style={message_style}
           className="smc-chat-message"
-          bsSize="small"
           onDoubleClick={this.edit_message}
         >
           <span style={lighten}>
-            {editor_chat.render_timeago(this.props.message, this.edit_message)}
+            {render_timeago(this.props.message, this.edit_message)}
           </span>
           {!is_editing(this.props.message, this.props.account_id)
             ? render_markdown(
@@ -488,7 +487,7 @@ export class Message extends Component<MessageProps, MessageState> {
               ? this.toggle_history()
               : undefined}
           </span>
-        </Well>
+        </div>
         {this.state.show_history ? render_history_title() : undefined}
         {this.state.show_history
           ? render_history(this.props.history, this.props.user_map)
@@ -538,7 +537,7 @@ export class Message extends Component<MessageProps, MessageState> {
       }
     }
     return (
-      <Grid fluid={true} style={{ width: "100%" }}>
+      <Grid>
         <Row>{cols}</Row>
       </Grid>
     );
@@ -703,7 +702,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   show_timetravel = () => {
     this.props.redux != null
       ? this.props.redux.getProjectActions(this.props.project_id).open_file({
-          path: misc.history_path(this.props.path),
+          path: history_path(this.props.path),
           foreground: true,
           foreground_project: true,
         })
@@ -752,7 +751,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
           >
             LaTeX
           </a>
-          . Emoticons: {misc.emoticons}. Chat outside CoCalc{" "}
+          . Emoticons: {emoticons}. Chat outside CoCalc{" "}
           <A href={DISCORD_INVITE}>on Discord</A>.
         </div>
       </Tip>
@@ -763,15 +762,13 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     this.set_preview_state();
     if (this.state.preview.length > 0) {
       let value = this.state.preview;
-      value = misc.smiley({
+      value = smiley({
         s: value,
         wrap: ['<span class="smc-editor-chat-smiley">', "</span>"],
       });
-      value = misc_page.sanitize_html_safe(value);
+      value = sanitize_html_safe(value);
       const file_path =
-        this.props.path != null
-          ? misc.path_split(this.props.path).head
-          : undefined;
+        this.props.path != null ? path_split(this.props.path).head : undefined;
 
       return (
         <Row
@@ -781,7 +778,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
           <Col xs={0} sm={2} />
 
           <Col xs={10} sm={9}>
-            <Well bsSize="small" style={ChatRoom0.preview_style}>
+            <Well style={ChatRoom0.preview_style}>
               <div
                 className="pull-right lighten"
                 style={{
@@ -987,11 +984,10 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       display: "flex",
       flexDirection: "column",
       width: "100%",
+      margin: "auto",
     };
 
     const chat_log_style: React.CSSProperties = {
-      overflowY: "auto",
-      overflowX: "hidden",
       margin: "0",
       padding: "0",
       background: "white",
@@ -1007,49 +1003,37 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     const has_collaborators = project_users.size > 1;
 
     return (
-      <Grid fluid={true} className="smc-vfill" style={grid_style}>
+      <div className="smc-vfill" style={grid_style}>
         {!IS_MOBILE ? this.render_button_row() : undefined}
-        <Row className="smc-vfill">
-          <Col
-            className="smc-vfill"
-            md={12}
-            style={{ padding: "0px 2px 0px 2px" }}
-          >
-            <Well
-              className="smc-vfill"
-              style={chat_log_style}
-              ref="log_container"
-            >
-              <ChatLog
-                windowed_list_ref={this.log_container_ref}
-                messages={this.props.messages}
-                account_id={this.props.account_id}
-                user_map={this.props.user_map}
-                project_id={this.props.project_id}
-                font_size={this.props.font_size}
-                file_path={
-                  this.props.path != null
-                    ? misc.path_split(this.props.path).head
-                    : undefined
-                }
-                actions={this.props.actions}
-                saved_mesg={this.props.saved_mesg}
-                search={this.props.search}
-                show_heads={true}
-              />
-              {this.props.input.length > 0 && this.props.is_preview
-                ? this.render_preview_message()
-                : undefined}
-            </Well>
-          </Col>
-        </Row>
-        <Row style={{ display: "flex", maxWidth: "100vw" }}>
-          <Col
+        <div className="smc-vfill" style={chat_log_style}>
+          <ChatLog
+            windowed_list_ref={this.log_container_ref}
+            messages={this.props.messages}
+            account_id={this.props.account_id}
+            user_map={this.props.user_map}
+            project_id={this.props.project_id}
+            font_size={this.props.font_size}
+            file_path={
+              this.props.path != null
+                ? path_split(this.props.path).head
+                : undefined
+            }
+            actions={this.props.actions}
+            saved_mesg={this.props.saved_mesg}
+            search={this.props.search}
+            show_heads={true}
+          />
+          {this.props.input.length > 0 && this.props.is_preview
+            ? this.render_preview_message()
+            : undefined}
+        </div>
+        <div style={{ display: "flex", maxWidth: "100vw" }}>
+          <div
             style={{ flex: "1", padding: "0px 2px 0px 2px", width: "250px" }}
           >
             <FileUploadWrapper
               project_id={this.props.project_id}
-              dest_path={misc.normalized_path_join(
+              dest_path={normalized_path_join(
                 this.props.redux
                   .getProjectStore(this.props.project_id)
                   .get("current_path"),
@@ -1083,8 +1067,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 account_id={this.props.account_id}
               />
             </FileUploadWrapper>
-          </Col>
-          <Col
+          </div>
+          <div
             style={{
               height: "90px",
               padding: "0",
@@ -1111,10 +1095,10 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
             >
               Send
             </Button>
-          </Col>
-        </Row>
-        <Row>{!IS_MOBILE ? this.render_bottom_tip() : undefined}</Row>
-      </Grid>
+          </div>
+        </div>
+        <div>{!IS_MOBILE ? this.render_bottom_tip() : undefined}</div>
+      </div>
     );
   }
 
