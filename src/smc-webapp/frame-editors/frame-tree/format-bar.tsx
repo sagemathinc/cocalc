@@ -22,7 +22,7 @@ const {
   MenuItem,
 } = require("react-bootstrap");
 
-const buttonbar = require("smc-webapp/buttonbar");
+import { FONT_FACES } from "../../editors/editor-button-bar";
 import { Icon, Space } from "smc-webapp/r_misc";
 
 const FONT_SIZES = "xx-small x-small small medium large x-large xx-large".split(
@@ -180,7 +180,7 @@ export class FormatBar extends Component<Props, {}> {
 
   render_font_family_dropdown(): Rendered {
     const items: Rendered[] = [];
-    for (const family of buttonbar.FONT_FACES) {
+    for (const family of FONT_FACES) {
       const item: Rendered = (
         <MenuItem
           key={family}

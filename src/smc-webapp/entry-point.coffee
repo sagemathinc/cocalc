@@ -14,7 +14,7 @@ html = require('./console.html') + require('./editor.html') + require('./jupyter
 $('body').append(html)
 
 # deferred initialization of buttonbars until after global imports -- otherwise, the sagews sage mode bar might be blank
-{init_buttonbars} = require('./buttonbar')
+{init_buttonbars} = require('./editors/editor-button-bar')
 init_buttonbars()
 
 # Load/initialize Redux-based react functionality
