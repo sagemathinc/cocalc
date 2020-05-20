@@ -52,11 +52,10 @@ const {
   is_editing,
   blank_column,
   render_markdown,
-  render_history_title,
-  render_history_footer,
-  render_history,
   scroll_to_bottom,
 } = require("../editor_chat");
+
+import { HistoryTitle, HistoryFooter, History } from "./history";
 
 const { VideoChatButton } = require("../video-chat");
 import { FileUploadWrapper } from "../file-upload";
@@ -495,11 +494,16 @@ export class Message extends Component<MessageProps, MessageState> {
               : undefined}
           </span>
         </div>
-        {this.state.show_history ? render_history_title() : undefined}
-        {this.state.show_history
-          ? render_history(this.props.history, this.props.user_map)
-          : undefined}
-        {this.state.show_history ? render_history_footer() : undefined}
+        {this.state.show_history && (
+          <div>
+            <HistoryTitle />
+            <History
+              history={this.props.history}
+              user_map={this.props.user_map}
+            />
+            <HistoryFooter />
+          </div>
+        )}
       </Col>
     );
   }

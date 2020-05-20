@@ -35,41 +35,6 @@ exports.render_markdown = render_markdown = (value, project_id, file_path, class
         <Markdown value={value} project_id={project_id} file_path={file_path} className={className} checkboxes={true} />
     </div>
 
-exports.render_history_title = render_history_title =  ->
-    <ListGroupItem style={borderRadius: '10px 10px 0px 0px', textAlign:'center', padding: '0px'}>
-        <span style={fontStyle: 'italic', fontWeight: 'bold'}>Message History</span>
-    </ListGroupItem>
-
-exports.render_history_footer = render_history_footer = ->
-    <ListGroupItem style={borderRadius: '0px 0px 10px 10px', marginBottom: '3px'}>
-    </ListGroupItem>
-
-exports.render_history = render_history = (history, user_map) ->
-    if not history?
-        return
-    historyList = history.toJS().slice(1)  # convert to javascript from immutable, and remove current version.
-    for index, objects of historyList
-        value = objects.content
-        value = misc.smiley
-            s: value
-            wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
-        value = misc_page.sanitize_html_safe(value)
-        author = misc.trunc_middle(user_map.get(objects.author_id)?.get('first_name') + ' ' + user_map.get(objects.author_id)?.get('last_name'), 20)
-        if value.trim() == ''
-            text = "Message deleted "
-        else
-            text = "Last edit "
-        <Well key={index} bsSize="small" style={marginBottom:'0px'}>
-            <div style={marginBottom: '-10px', wordWrap:'break-word'}>
-                <Markdown value={value} checkboxes={true} />
-            </div>
-            <div className="small">
-                {text}
-                <TimeAgo date={new Date(objects.date)} />
-                {' by ' + author}
-            </div>
-        </Well>
-
 ### ChatLog Methods ###
 
 exports.get_user_name = get_user_name = (account_id, user_map) ->
