@@ -42,7 +42,7 @@ import { ListingItem } from "./types";
 import { Col, Row, ButtonGroup, Button, Alert } from "react-bootstrap";
 const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
-const { SMC_Dropwrapper } = require("../../smc-dropzone");
+import { FileUploadWrapper } from "../../file-upload";
 import { ProjectNewForm } from "../new";
 const { Library } = require("../../library");
 import { webapp_client } from "../../webapp-client";
@@ -541,7 +541,7 @@ export const Explorer = rclass<ReactProps>(
         );
       } else if (listing != undefined) {
         return (
-          <SMC_Dropwrapper
+          <FileUploadWrapper
             project_id={this.props.project_id}
             dest_path={this.props.current_path}
             event_handlers={{
@@ -578,7 +578,7 @@ export const Explorer = rclass<ReactProps>(
               last_scroll_top={this.props.file_listing_scroll_top}
               configuration_main={this.props.configuration?.get("main")}
             />
-          </SMC_Dropwrapper>
+          </FileUploadWrapper>
         );
       } else {
         return (
