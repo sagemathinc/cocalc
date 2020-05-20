@@ -75,7 +75,7 @@
     "typescript": "^3.9.2",
     "uglify-js": "^3.9.3",
     "uglifyjs-webpack-plugin": "^2.2.0",
-    "url-loader": "^4.1.0",
+    "url-loader": "^0.6.2",
     "utility-types": "^3.10.0",
     "webpack": "^4.43.0",
     "webpack-bundle-analyzer": "^3.8.0",
