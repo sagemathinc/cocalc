@@ -9,9 +9,9 @@ Render all the messages in the chat.
 
 import { List, Map } from "immutable";
 import { Actions, React, Component, Rendered } from "../app-framework";
-import { Alert } from "react-bootstrap";
+import { Alert } from "../antd-bootstrap";
 import { WindowedList } from "../r_misc/windowed-list";
-import { Message } from "../smc_chat";
+import { Message } from "./chatroom";
 import { search_match, search_split } from "smc-util/misc";
 
 type MessageMap = Map<string, any>;

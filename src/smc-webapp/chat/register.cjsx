@@ -13,7 +13,7 @@
 utils = require('./utils')
 {ChatStore} = require('./store')
 {ChatActions} = require('./actions')
-{ChatRoom} = require('../smc_chat')
+{ChatRoom} = require('./chatroom')
 
 exports.init = init = (path, redux, project_id) ->
     name = utils.generate_name(project_id, path)
