@@ -60,7 +60,7 @@ import { WindowedList } from "../r_misc/windowed-list";
 
 import { HistoryTitle, HistoryFooter, History } from "./history";
 
-const { VideoChatButton } = require("../video-chat");
+import { VideoChatButton } from "./video/launch-button";
 import { FileUploadWrapper } from "../file-upload";
 import { TIP_TEXT } from "../widget-markdown-input/main";
 import { Time } from "./time";
@@ -880,6 +880,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       <VideoChatButton
         project_id={this.props.project_id}
         path={this.props.path}
+        button={true}
         label={"Video Chat"}
       />
     );

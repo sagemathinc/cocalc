@@ -38,7 +38,7 @@ video_window = (title, url, cb_closed) ->
 
 video_windows = {}
 
-class VideoChat
+class exports.VideoChat
     constructor: (@project_id, @path, @account_id) ->
 
     we_are_chatting: =>
@@ -114,83 +114,3 @@ class VideoChat
             clearInterval(@_video_interval_id)
             delete video_windows[room_id]
             w?.close()
-
-exports.VideoChatButton = rclass
-    reduxProps :
-        file_use :
-            file_use : rtypes.immutable
-        account :
-            account_id : rtypes.string    # so we can exclude ourselves from list of faces
-
-    propTypes :
-        project_id : rtypes.string.isRequired
-        path       : rtypes.string.isRequired
-        label      : rtypes.string
-        short      : rtypes.bool     # if true, styles button to be short
-
-    shouldComponentUpdate: (props) ->
-        return misc.is_different(@props, props, ['file_use', 'account_id', 'project_id', 'path', 'label', 'short'])
-
-    mixins: [SetIntervalMixin]
-
-    componentWillMount: ->
-        @video_chat = new VideoChat(@props.project_id, @props.path, @props.account_id)
-        @setInterval((=> @forceUpdate()), VIDEO_UPDATE_INTERVAL_MS/2)
-        @click_video_button = debounce(@click_video_button, 750, true)
-
-    click_video_button: ->
-        if @video_chat.we_are_chatting()    # we are chatting, so stop chatting
-            @video_chat.stop_chatting()
-            analytics_event('side_chat', 'stop_video')
-        else
-            @video_chat.start_chatting()    # not chatting, so start
-            analytics_event('side_chat', 'start_video')
-
-    render_num_chatting: (num_users_chatting) ->
-        if num_users_chatting > 0
-            <span>
-                <hr />
-                There following {num_users_chatting} people are using video chat:
-                <br />
-                {@video_chat.get_user_names().join(', ')}
-            </span>
-
-    render_join: (num_users_chatting) ->
-        if @video_chat.we_are_chatting()
-            <span>Click to <b>leave</b> this video chatroom.</span>
-        else
-            if num_users_chatting < VIDEO_CHAT_LIMIT
-                <span>Click to <b>join</b> this video chatroom.</span>
-            else
-                <span>At most {VIDEO_CHAT_LIMIT} people can use the video chat at once.</span>
-
-    render_tip: (num_users_chatting) ->
-        <span>
-            {@render_join(num_users_chatting)}
-            {@render_num_chatting(num_users_chatting)}
-        </span>
-
-    render_label: ->
-        if @props.label
-            <span style={marginLeft:'5px'}>{@props.label}</span>
-
-    render: ->
-        num_users_chatting = @video_chat.num_users_chatting()
-        style = {}
-        if @props.short
-            style.height = '30px'
-        if num_users_chatting > 0
-            style.color = '#c9302c'
-
-        <Button onClick={@click_video_button} style={style}>
-            <Tip
-                title     = {<span>Toggle Video Chat</span>}
-                tip       = {@render_tip(num_users_chatting)}
-                placement = 'left'
-                delayShow = {1000}
-                >
-                <Icon name='video-camera'/>
-                {<span style={marginLeft:'5px'}>{num_users_chatting}</span> if num_users_chatting}
-                {@render_label()}
-            </Tip>
-        </Button>
