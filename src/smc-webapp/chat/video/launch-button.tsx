@@ -5,7 +5,7 @@ import { React, useState, useRedux, useRef } from "../../app-framework";
 
 import { Icon, Tip } from "../../r_misc";
 import { analytics_event } from "../../tracker";
-const { VideoChat } = require("../../video-chat");
+import { VideoChat } from "./video-chat";
 
 //import { Button } from "../../antd-bootstrap";
 import { Button } from "react-bootstrap"; // have to change all at once.
