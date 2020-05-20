@@ -138,3 +138,7 @@ export async function scroll_to_bottom(
     delete log_container_ref.current?.chat_scroll_to_bottom;
   }
 }
+
+export function is_editing(message: Message, account_id: string): boolean {
+  return message.get("editing")?.has(account_id);
+}

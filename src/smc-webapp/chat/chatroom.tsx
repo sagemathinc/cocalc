@@ -29,6 +29,7 @@ import { Button, ButtonGroup } from "react-bootstrap";
 import { ChatInput } from "./input";
 import {
   compute_cursor_offset_position,
+  is_editing,
   message_colors,
   newest_content,
   scroll_to_bottom,
@@ -37,7 +38,15 @@ import {
 import { MentionList } from "./store";
 
 import { React, ReactDOM, Component, rclass, rtypes } from "../app-framework";
-import { Icon, Loading, Tip, SearchInput, TimeAgo, A } from "../r_misc";
+import {
+  Icon,
+  Loading,
+  Markdown,
+  Tip,
+  SearchInput,
+  TimeAgo,
+  A,
+} from "../r_misc";
 import {
   Col,
   FormGroup,
@@ -49,8 +58,6 @@ import {
 import { ChatLog } from "./chat-log";
 import { WindowedList } from "../r_misc/windowed-list";
 
-const { is_editing, blank_column, render_markdown } = require("../editor_chat");
-
 import { HistoryTitle, HistoryFooter, History } from "./history";
 
 const { VideoChatButton } = require("../video-chat");
@@ -58,6 +65,28 @@ import { FileUploadWrapper } from "../file-upload";
 import { TIP_TEXT } from "../widget-markdown-input/main";
 import { Time } from "./time";
 import { Name } from "./name";
+
+const BLANK_COLUMN = <Col key={2} xs={2} sm={2}></Col>;
+
+function render_markdown(
+  value: string,
+  project_id: string,
+  file_path: string,
+  className: string
+): JSX.Element {
+  // the marginBottom offsets that markdown wraps everything in a p tag
+  return (
+    <div style={{ marginBottom: "-10px" }}>
+      <Markdown
+        value={value}
+        project_id={project_id}
+        file_path={file_path}
+        className={className}
+        checkboxes={true}
+      />
+    </div>
+  );
+}
 
 interface MessageProps {
   actions?: any;
@@ -531,13 +560,13 @@ export class Message extends Component<MessageProps, MessageState> {
   render() {
     let cols;
     if (this.props.include_avatar_col) {
-      cols = [this.avatar_column(), this.content_column(), blank_column()];
+      cols = [this.avatar_column(), this.content_column(), BLANK_COLUMN];
       // mirror right-left for sender's view
       if (sender_is_viewer(this.props.account_id, this.props.message)) {
         cols = cols.reverse();
       }
     } else {
-      cols = [this.content_column(), blank_column()];
+      cols = [this.content_column(), BLANK_COLUMN];
       // mirror right-left for sender's view
       if (sender_is_viewer(this.props.account_id, this.props.message)) {
         cols = cols.reverse();

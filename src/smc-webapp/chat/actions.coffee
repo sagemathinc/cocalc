@@ -115,6 +115,8 @@ class ChatActions extends Actions
             history : message.get('history').toJS()
             editing : editing.toJS()
             date    : message.get('date').toISOString()
+        # commit so others users know this user is editing
+        @syncdb.commit()
 
     # Used to edit sent messages.
     # **Extremely** shockingly inefficient. Assumes number of edits is small.
