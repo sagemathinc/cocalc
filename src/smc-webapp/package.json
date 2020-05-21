@@ -78,7 +78,7 @@
     "latex.js": "^0.11.1",
     "lodash": "^4.17.15",
     "lru-cache": "^5.1.1",
-    "lz4": "^0.6.0",
+    "lz4": "^0.6.3",
     "markdown-it": "^8.4.2",
     "markdown-it-front-matter": "^0.1.2",
     "markdown-it-mathjax": "^2.0.0",
