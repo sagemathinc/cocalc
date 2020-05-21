@@ -16,11 +16,9 @@ export function clear_selection() {
       selection.removeAllRanges();
     }
   } else {
-    if (
-      document.selection != null &&
-      typeof document.selection.empty === "function"
-    ) {
-      document.selection.empty();
+    const selection = (document as any).selection;
+    if (selection != null && typeof selection.empty === "function") {
+      selection.empty();
     }
   }
 }
