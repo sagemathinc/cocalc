@@ -1898,15 +1898,6 @@ exports.set_cookie = (name, value, days) ->
         expires = "; expires=" + date.toUTCString()
     document.cookie = name + "=" + value + expires + "; path=/"
 
-# see http://stackoverflow.com/questions/3169786/clear-text-selection-with-javascript
-exports.clear_selection = ->
-    if window.getSelection?().empty?
-        window.getSelection().empty() # chrome
-    else if window.getSelection?().removeAllRanges?
-        window.getSelection().removeAllRanges() # firefox
-    else
-        document.selection?.empty?()
-
 # returns true, if a target page should be loaded
 exports.should_load_target_url = ->
     return window.cocalc_target \
