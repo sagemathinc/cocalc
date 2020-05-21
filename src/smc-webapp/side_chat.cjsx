@@ -19,15 +19,13 @@ misc_page = require('./misc_page')
 {Avatar} = require('./account/avatar/avatar')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./app-framework')
+{React, ReactDOM, rclass, rtypes, Actions, Store, Redux, redux_name}  = require('./app-framework')
 {Icon, Loading, Markdown, SearchInput, Space, TimeAgo, Tip, A} = require('./r_misc')
 {Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Panel, Row, ButtonGroup, Well} = require('react-bootstrap')
 
 {User} = require('./users')
 
-editor_chat = require('./editor_chat')
-
-{redux_name, init_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, scroll_to_bottom} = require('./editor_chat')
+{newest_content, scroll_to_bottom, sender_is_viewer} = require('./chat/utils')
 
 {ProjectUsers} = require('./projects/project-users')
 {AddCollaborators} = require('./collaborators/add-to-project')
@@ -277,36 +275,3 @@ exports.SideChat = ({path, redux, project_id}) ->
         path        = {path}
         file_use_id = {file_use_id}
         />
-
-# Fitting the side chat into non-react parts of SMC:
-
-render = (redux, project_id, path) ->
-    name = redux_name(project_id, path)
-    file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
-    actions = redux.getEditorActions(project_id, path)
-    <ChatRoom redux={redux} actions={actions} name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
-
-# Render the given chatroom, and return the name of the redux actions/store
-exports.render = (project_id, path, dom_node, redux) ->
-    name = init_redux(path, redux, project_id)
-    ReactDOM.render(render(redux, project_id, path), dom_node)
-    return name
-
-exports.hide = (project_id, path, dom_node, redux) ->
-    ReactDOM.unmountComponentAtNode(dom_node)
-
-exports.show = (project_id, path, dom_node, redux) ->
-    ReactDOM.render(render(redux, project_id, path), dom_node)
-
-exports.free = (project_id, path, dom_node, redux) ->
-    fname = redux_name(project_id, path)
-    store = redux.getStore(fname)
-    if not store?
-        return
-    ReactDOM.unmountComponentAtNode(dom_node)
-    store.syncdb?.destroy()
-    delete store.state
-    # It is *critical* to first unmount the store, then the actions,
-    # or there will be a huge memory leak.
-    redux.removeStore(fname)
-    redux.removeActions(fname)

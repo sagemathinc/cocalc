@@ -27,11 +27,26 @@ import { SaveButton } from "../frame-editors/frame-tree/save-button";
 import { Button, ButtonGroup } from "react-bootstrap";
 
 import { ChatInput } from "./input";
-import { compute_cursor_offset_position } from "./utils";
+import {
+  compute_cursor_offset_position,
+  is_editing,
+  message_colors,
+  newest_content,
+  scroll_to_bottom,
+  sender_is_viewer,
+} from "./utils";
 import { MentionList } from "./store";
 
 import { React, ReactDOM, Component, rclass, rtypes } from "../app-framework";
-import { Icon, Loading, Tip, SearchInput, TimeAgo, A } from "../r_misc";
+import {
+  Icon,
+  Loading,
+  Markdown,
+  Tip,
+  SearchInput,
+  TimeAgo,
+  A,
+} from "../r_misc";
 import {
   Col,
   FormGroup,
@@ -43,24 +58,35 @@ import {
 import { ChatLog } from "./chat-log";
 import { WindowedList } from "../r_misc/windowed-list";
 
-const {
-  newest_content,
-  sender_is_viewer,
-  show_user_name,
-  is_editing,
-  blank_column,
-  render_markdown,
-  render_history_title,
-  render_history_footer,
-  render_history,
-  render_timeago,
-  scroll_to_bottom,
-  message_colors,
-} = require("../editor_chat");
+import { HistoryTitle, HistoryFooter, History } from "./history";
 
-const { VideoChatButton } = require("../video-chat");
+import { VideoChatButton } from "./video/launch-button";
 import { FileUploadWrapper } from "../file-upload";
 import { TIP_TEXT } from "../widget-markdown-input/main";
+import { Time } from "./time";
+import { Name } from "./name";
+
+const BLANK_COLUMN = <Col key={2} xs={2} sm={2}></Col>;
+
+function render_markdown(
+  value: string,
+  project_id: string,
+  file_path: string,
+  className: string
+): JSX.Element {
+  // the marginBottom offsets that markdown wraps everything in a p tag
+  return (
+    <div style={{ marginBottom: "-10px" }}>
+      <Markdown
+        value={value}
+        project_id={project_id}
+        file_path={file_path}
+        className={className}
+        checkboxes={true}
+      />
+    </div>
+  );
+}
 
 interface MessageProps {
   actions?: any;
@@ -456,16 +482,21 @@ export class Message extends Component<MessageProps, MessageState> {
 
     return (
       <Col key={1} xs={10} sm={9}>
-        {!this.props.is_prev_sender && !is_viewers_message
-          ? show_user_name(this.props.sender_name)
-          : undefined}
+        {!this.props.is_prev_sender &&
+        !is_viewers_message &&
+        this.props.sender_name ? (
+          <Name sender_name={this.props.sender_name} />
+        ) : undefined}
         <div
           style={message_style}
           className="smc-chat-message"
           onDoubleClick={this.edit_message}
         >
           <span style={lighten}>
-            {render_timeago(this.props.message, this.edit_message)}
+            <Time
+              message={this.props.message}
+              edit={this.edit_message.bind(this)}
+            />
           </span>
           {!is_editing(this.props.message, this.props.account_id)
             ? render_markdown(
@@ -488,11 +519,16 @@ export class Message extends Component<MessageProps, MessageState> {
               : undefined}
           </span>
         </div>
-        {this.state.show_history ? render_history_title() : undefined}
-        {this.state.show_history
-          ? render_history(this.props.history, this.props.user_map)
-          : undefined}
-        {this.state.show_history ? render_history_footer() : undefined}
+        {this.state.show_history && (
+          <div>
+            <HistoryTitle />
+            <History
+              history={this.props.history}
+              user_map={this.props.user_map}
+            />
+            <HistoryFooter />
+          </div>
+        )}
       </Col>
     );
   }
@@ -524,13 +560,13 @@ export class Message extends Component<MessageProps, MessageState> {
   render() {
     let cols;
     if (this.props.include_avatar_col) {
-      cols = [this.avatar_column(), this.content_column(), blank_column()];
+      cols = [this.avatar_column(), this.content_column(), BLANK_COLUMN];
       // mirror right-left for sender's view
       if (sender_is_viewer(this.props.account_id, this.props.message)) {
         cols = cols.reverse();
       }
     } else {
-      cols = [this.content_column(), blank_column()];
+      cols = [this.content_column(), BLANK_COLUMN];
       // mirror right-left for sender's view
       if (sender_is_viewer(this.props.account_id, this.props.message)) {
         cols = cols.reverse();
@@ -844,6 +880,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       <VideoChatButton
         project_id={this.props.project_id}
         path={this.props.path}
+        button={true}
         label={"Video Chat"}
       />
     );
