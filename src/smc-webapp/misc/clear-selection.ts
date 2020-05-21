@@ -10,10 +10,10 @@ export function clear_selection() {
     if (selection == null) return;
     if (typeof selection.empty === "function") {
       // chrome
-      window.getSelection().empty();
+      selection.empty();
     } else if (typeof selection.removeAllRanges === "function") {
       //firefox
-      window.getSelection().removeAllRanges();
+      selection.removeAllRanges();
     }
   } else {
     if (
