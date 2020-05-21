@@ -22,15 +22,30 @@ CONSIDERATIONS:
       it's easier for users to delete lines than to end up with some partial broken fragments
 */
 
-let FONT_FACES, i;
+let i;
 let k;
 let j;
-const { $ } = window;
+const { $ } = (global as any).window as any;
 import { defaults } from "smc-util/misc";
-let _FONT_FACES = (FONT_FACES = "Serif,Sans,Arial,Arial Black,Courier,Courier New,Comic Sans MS,Georgia,Helvetica,Impact,Lucida Grande,Lucida Sans,Monaco,Palatino,Tahoma,Times New Roman,Verdana".split(
-  ","
-));
-export { _FONT_FACES as FONT_FACES };
+export const FONT_FACES = [
+  "Serif",
+  "Sans",
+  "Arial",
+  "Arial Black",
+  "Courier",
+  "Courier New",
+  "Comic Sans MS",
+  "Georgia",
+  "Helvetica",
+  "Impact",
+  "Lucida Grande",
+  "Lucida Sans",
+  "Monaco",
+  "Palatino",
+  "Tahoma",
+  "Times New Roman",
+  "Verdana",
+];
 
 export let commands = {
   shell: {
