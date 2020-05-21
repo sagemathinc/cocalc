@@ -1,6 +1,4 @@
-import { debounce } from "underscore";
 import { client_db } from "smc-util/schema";
-import { analytics_event } from "../../tracker";
 import { alert_message } from "../../alerts";
 import { webapp_client } from "../../webapp-client";
 import { len, trunc_middle } from "smc-util/misc";
@@ -11,7 +9,7 @@ const VIDEO_CHAT_SERVER = "https://meet.jit.si";
 const VIDEO_UPDATE_INTERVAL_MS = 30 * 1000;
 
 // Create pop-up window for video chat
-function video_window(title: string, url: string) {
+function video_window(url: string) {
   return open_new_tab(url, true);
 }
 
@@ -48,10 +46,7 @@ export class VideoChat {
     for (const account_id in this.get_users()) {
       const name = users.get_name(account_id)?.trim();
       if (name) {
-        name = trunc_middle(name, 25);
-        if (name) {
-          v.push(name);
-        }
+        v.push(trunc_middle(name, 25));
       }
     }
     return v;
@@ -59,11 +54,13 @@ export class VideoChat {
 
   private get_users(): { [account_id: string]: Date } {
     // Users is a map {account_id:timestamp of last chat file marking}
-    return redux.getStore("file_use").get_video_chat_users({
-      project_id: this.project_id,
-      path: this.path,
-      ttl: 1.3 * VIDEO_UPDATE_INTERVAL_MS,
-    });
+    return (
+      redux.getStore("file_use")?.get_video_chat_users({
+        project_id: this.project_id,
+        path: this.path,
+        ttl: 1.3 * VIDEO_UPDATE_INTERVAL_MS,
+      }) ?? {}
+    );
   }
 
   public stop_chatting() {
@@ -71,7 +68,7 @@ export class VideoChat {
   }
 
   public start_chatting() {
-    redux.getActions("file_use").mark_file(this.project_id, this.path, "chat");
+    redux.getActions("file_use")?.mark_file(this.project_id, this.path, "chat");
     this.open_video_chat_window();
   }
 
@@ -99,7 +96,7 @@ export class VideoChat {
     const chat_window_is_open = () => {
       return redux
         .getActions("file_use")
-        .mark_file(this.project_id, this.path, "video", 0);
+        ?.mark_file(this.project_id, this.path, "video", 0);
     };
 
     chat_window_is_open();
@@ -108,9 +105,9 @@ export class VideoChat {
       VIDEO_UPDATE_INTERVAL_MS * 0.8
     );
 
-    const title = `CoCalc Video Chat: ${trunc_middle(this.path, 30)}`;
+    //const title = `CoCalc Video Chat: ${trunc_middle(this.path, 30)}`;
     const url = `${VIDEO_CHAT_SERVER}/${room_id}`;
-    const w = video_window(title, url);
+    const w = video_window(url);
     // https://github.com/sagemathinc/cocalc/issues/3648
     if (w == null) {
       return;
@@ -137,7 +134,7 @@ export class VideoChat {
     if (!w) return;
     redux
       .getActions("file_use")
-      .mark_file(this.project_id, this.path, "video", 0, true, 0);
+      ?.mark_file(this.project_id, this.path, "video", 0, true, new Date(0));
     clearInterval(this.video_interval_id);
     delete video_windows[room_id];
     w.close();

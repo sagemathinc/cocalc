@@ -70,9 +70,9 @@ const BLANK_COLUMN = <Col key={2} xs={2} sm={2}></Col>;
 
 function render_markdown(
   value: string,
-  project_id: string,
-  file_path: string,
-  className: string
+  project_id?: string,
+  file_path?: string,
+  className?: string
 ): JSX.Element {
   // the marginBottom offsets that markdown wraps everything in a p tag
   return (
@@ -876,6 +876,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   }
 
   render_video_chat_button() {
+    if (this.props.project_id == null || this.props.path == null) return;
     return (
       <VideoChatButton
         project_id={this.props.project_id}
@@ -1085,7 +1086,6 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
               close_preview_ref={this.close_preview_ref}
             >
               <ChatInput
-                name={this.props.name}
                 input={this.props.input}
                 input_ref={this.input_ref}
                 enable_mentions={

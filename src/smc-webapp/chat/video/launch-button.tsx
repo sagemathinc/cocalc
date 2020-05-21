@@ -28,7 +28,9 @@ export const VideoChatButton: React.FC<Props> = ({
   button,
 }) => {
   // to know if somebody else has video chat opened for this file
+  // @ts-ignore
   const file_use = useRedux(["file_use", "file_use"]);
+
   // so we can exclude ourselves
   const account_id: string = useRedux(["account", "account_id"]);
 
@@ -49,7 +51,7 @@ export const VideoChatButton: React.FC<Props> = ({
       }
     },
     750,
-    true
+    { leading: true }
   );
 
   function render_num_chatting(
@@ -138,7 +140,6 @@ export const VideoChatButton: React.FC<Props> = ({
       <span
         style={{ ...style, height: "30px" }}
         onClick={click_video_button}
-        style={style}
       >
         {icon}
       </span>
