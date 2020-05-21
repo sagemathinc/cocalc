@@ -14,7 +14,7 @@ import { HTML } from "smc-webapp/r_misc";
 //import ReactDOMServer from "react-dom/server";
 const ReactDOMServer = require("react-dom/server");
 import { React, Redux, redux } from "../../app-framework";
-const misc_page = require("../../misc_page");
+import { BASE_URL } from "../../misc/base-url";
 import { resource_links_string } from "smc-webapp/misc/resource-links";
 
 let BLOCKED: boolean | undefined = undefined;
@@ -106,8 +106,7 @@ function write_content(w, opts: PrintOptions): void {
 }
 
 function html_with_deps(html: string, title: string): string {
-  const BASE_URL = misc_page.BASE_URL;
-  const links = resource_links_string(BASE_URL)
+  const links = resource_links_string(BASE_URL);
   return `\
 <html lang="en">
     <head>
