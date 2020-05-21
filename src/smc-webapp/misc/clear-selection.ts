@@ -6,10 +6,12 @@
 // see http://stackoverflow.com/questions/3169786/clear-text-selection-with-javascript
 export function clear_selection() {
   if (typeof window.getSelection === "function") {
-    if (window.getSelection().empty != null) {
+    const selection = window.getSelection();
+    if (selection == null) return;
+    if (typeof selection.empty === "function") {
       // chrome
       window.getSelection().empty();
-    } else if (window.getSelection().removeAllRanges != null) {
+    } else if (typeof selection.removeAllRanges === "function") {
       //firefox
       window.getSelection().removeAllRanges();
     }
