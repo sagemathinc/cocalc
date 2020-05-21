@@ -22,10 +22,7 @@ CONSIDERATIONS:
       it's easier for users to delete lines than to end up with some partial broken fragments
 */
 
-let i;
-let k;
-let j;
-const { $ } = (global as any).window as any;
+declare var $;
 import { defaults } from "smc-util/misc";
 export const FONT_FACES = [
   "Serif",
@@ -46,6 +43,7 @@ export const FONT_FACES = [
   "Times New Roman",
   "Verdana",
 ];
+let i, j, k;
 
 export let commands = {
   shell: {

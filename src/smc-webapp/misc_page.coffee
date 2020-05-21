@@ -10,7 +10,6 @@ $ = window.$
 {IS_MOBILE} = require('./feature')
 misc        = require('smc-util/misc')
 {dmp}       = require('smc-util/sync/editor/generic/util')
-buttonbar   = require('./editors/editor-button-bar')
 markdown    = require('./markdown')
 theme       = require('smc-util/theme')
 {QueryParams} = require('./misc/query-params')
@@ -1005,8 +1004,6 @@ exports.define_codemirror_extensions = () ->
         CodeMirror.registerHelper("hint", "stex", tex_hint)
 
 
-    EDIT_COMMANDS = buttonbar.commands
-
     CodeMirror.defineExtension 'get_edit_mode', (opts) ->
         opts = defaults opts, {}
         cm = @
@@ -1077,6 +1074,14 @@ exports.define_codemirror_extensions = () ->
                     return src.slice(0,i) + src.slice(i+left.length,j) + src.slice(j+right.length)
 
         selections = cm.listSelections()
+
+        # TODO: can't be at top level because misc_page gets imported by
+        # share server; fix will be moving these extension definitions
+        # to their own module, when refactoring this file.
+        buttonbar = require('./editors/editor-button-bar')
+        EDIT_COMMANDS = buttonbar.commands
+        FONT_FACES = buttonbar.FONT_FACES
+
         #selections.reverse()
         for selection in selections
             mode = canonical_mode(cm.getModeAt(selection.head).name)
@@ -1652,8 +1657,6 @@ exports.define_codemirror_extensions = () ->
     # Natural analogue of getLine, which codemirror doesn't have for some reason
     #CodeMirror.defineExtension 'setLine', (n, value) ->
     #    @replaceRange()
-
-FONT_FACES = buttonbar.FONT_FACES
 
 cm_start_end = (selection) ->
     {head, anchor} = selection
