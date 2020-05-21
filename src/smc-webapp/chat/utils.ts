@@ -12,10 +12,6 @@ import { redux } from "../app-framework";
 import { MentionList } from "./store";
 import { Message } from "./types";
 
-export function generate_name(project_id: string, path: string) {
-  return `editor-${project_id}-${path}`;
-}
-
 export const USER_MENTION_MARKUP =
   '<span class="user-mention" account-id=__id__ >@__display__</span>';
 
