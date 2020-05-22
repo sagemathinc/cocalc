@@ -3,13 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as onecolor from "onecolor";
 import { Map } from "immutable";
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
 import { trunc_middle, merge, ensure_bound } from "smc-util/misc";
 import { webapp_client } from "../../webapp-client";
 import { React, redux, useRedux } from "../../app-framework";
 import { Loading, Space } from "../../r_misc";
+import { avatar_fontcolor } from "../../misc/avatar-fontcolor";
 
 const CIRCLE_OUTER_STYLE = {
   textAlign: "center",
@@ -189,8 +189,7 @@ export const Avatar: React.FC<Props> = (props) => {
 
   function render_letter() {
     const backgroundColor = get_background_color();
-    const col = onecolor(backgroundColor);
-    const color = col?.magenta() >= 0.4 ? "white" : "black";
+    const color = avatar_fontcolor(backgroundColor);
     const style = {
       backgroundColor, // onecolor doesn't provide magenta in some browsers
       color,
