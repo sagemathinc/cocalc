@@ -39,6 +39,32 @@ import { FileUploadWrapper } from "../file-upload";
 import { Markdown } from "./markdown";
 import { TIP_TEXT } from "../widget-markdown-input/main";
 
+const PREVIEW_STYLE: React.CSSProperties = {
+  background: "#f5f5f5",
+  fontSize: "14px",
+  borderRadius: "10px 10px 10px 10px",
+  boxShadow: "#666 3px 3px 3px",
+  paddingBottom: "20px",
+  maxHeight: "50vh",
+  overflowY: "auto",
+};
+
+const GRID_STYLE: React.CSSProperties = {
+  maxWidth: "1200px",
+  display: "flex",
+  flexDirection: "column",
+  width: "100%",
+  margin: "auto",
+};
+
+const CHAT_LOG_STYLE: React.CSSProperties = {
+  margin: "0",
+  padding: "0",
+  background: "white",
+  flex: "1 0 auto",
+  position: "relative",
+};
+
 interface ChatRoomOwnProps {}
 
 interface ChatRoomReduxProps {
@@ -134,14 +160,6 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     super(props, context);
     this.state = { preview: "" };
   }
-
-  private static preview_style: React.CSSProperties = {
-    background: "#f5f5f5",
-    fontSize: "14px",
-    borderRadius: "10px 10px 10px 10px",
-    boxShadow: "#666 3px 3px 3px",
-    paddingBottom: "20px",
-  };
 
   componentDidUpdate() {
     scroll_to_bottom(this.log_container_ref);
@@ -266,14 +284,11 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
         this.props.path != null ? path_split(this.props.path).head : undefined;
 
       return (
-        <Row
-          ref="preview"
-          style={{ position: "absolute", bottom: "0px", width: "100%" }}
-        >
+        <Row style={{ position: "absolute", bottom: "0px", width: "100%" }}>
           <Col xs={0} sm={2} />
 
           <Col xs={10} sm={9}>
-            <Well style={ChatRoom0.preview_style}>
+            <Well style={PREVIEW_STYLE}>
               <div
                 className="pull-right lighten"
                 style={{
@@ -291,9 +306,9 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 project_id={this.props.project_id}
                 file_path={file_path}
               />
-              <span className="pull-right small lighten">
+              <div className="small lighten" style={{ marginTop: "15px" }}>
                 Preview (press Shift+Enter to send)
-              </span>
+              </div>
             </Well>
           </Col>
 
@@ -477,21 +492,6 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   };
 
   render_body() {
-    const grid_style: React.CSSProperties = {
-      maxWidth: "1200px",
-      display: "flex",
-      flexDirection: "column",
-      width: "100%",
-      margin: "auto",
-    };
-
-    const chat_log_style: React.CSSProperties = {
-      margin: "0",
-      padding: "0",
-      background: "white",
-      flex: "1 0 auto",
-    };
-
     // the immutable.Map() default is because of admins:
     // https://github.com/sagemathinc/cocalc/issues/3669
     const project_users = this.props.project_map.getIn(
@@ -501,9 +501,9 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     const has_collaborators = project_users.size > 1;
 
     return (
-      <div className="smc-vfill" style={grid_style}>
+      <div className="smc-vfill" style={GRID_STYLE}>
         {!IS_MOBILE ? this.render_button_row() : undefined}
-        <div className="smc-vfill" style={chat_log_style}>
+        <div className="smc-vfill" style={CHAT_LOG_STYLE}>
           <ChatLog
             windowed_list_ref={this.log_container_ref}
             messages={this.props.messages}
