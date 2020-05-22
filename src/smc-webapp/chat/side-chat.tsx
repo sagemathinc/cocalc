@@ -60,7 +60,6 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
     mark_as_read();
   }, []);
 
-  // Scroll to bottom on any update/change to the messages (reasonable for side chat)
   useEffect(() => {
     scroll_to_bottom(log_container_ref);
   }, [messages]);

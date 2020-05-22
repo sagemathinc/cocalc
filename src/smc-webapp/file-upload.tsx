@@ -3,6 +3,7 @@ Drag'n'Drop file upload area
 */
 
 import * as Dropzone from "dropzone";
+export { Dropzone };
 import {
   DropzoneComponent,
   DropzoneComponentHandlers,
@@ -141,6 +142,10 @@ export const FileUpload: React.FC<FileUploadProps> = (props) => {
   );
 };
 
+export interface DropzoneRef {
+  current: Dropzone | null;
+}
+
 interface FileUploadWrapperProps {
   project_id: string; // The project to upload files to
   dest_path: string; // The path for files to be sent
@@ -151,7 +156,7 @@ interface FileUploadWrapperProps {
   on_close?: Function;
   disabled?: boolean;
   style?: React.CSSProperties; // css styles to apply to the containing div
-  dropzone_ref?: { current: Dropzone | null }; // gets set to underlying Dropzone instance
+  dropzone_ref?: DropzoneRef; // gets set to underlying Dropzone instance
   close_preview_ref?: { current: Function | null }; // set to function to close the preview
 }
 
