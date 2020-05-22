@@ -4,13 +4,13 @@
  */
 
 import { delay } from "awaiting";
+import { throttle } from "lodash";
+import { original_path } from "smc-util/misc";
+
+import { redux } from "../app-framework";
 
 import { MentionList } from "./store";
 import { Message } from "./types";
-
-export function generate_name(project_id: string, path: string) {
-  return `editor-${project_id}-${path}`;
-}
 
 export const USER_MENTION_MARKUP =
   '<span class="user-mention" account-id=__id__ >@__display__</span>';
@@ -142,3 +142,19 @@ export async function scroll_to_bottom(
 export function is_editing(message: Message, account_id: string): boolean {
   return message.get("editing")?.has(account_id);
 }
+
+export const mark_chat_as_read_if_unseen: (
+  project_id: string,
+  path: string
+) => void = throttle((project_id: string, path: string) => {
+  const info = redux
+    ?.getStore("file_use")
+    ?.get_file_info(project_id, original_path(path));
+  if (info == null || info.is_unseenchat) {
+    // only mark chat as read if it is unseen
+    const actions = redux?.getActions("file_use");
+    if (actions == null) return;
+    actions.mark_file(project_id, path, "read");
+    actions.mark_file(project_id, path, "chatseen");
+  }
+}, 3000);

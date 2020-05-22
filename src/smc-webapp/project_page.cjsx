@@ -19,7 +19,7 @@ feature = require('./feature')
 Draggable = require('react-draggable')
 
 # CoCalc Libraries
-{SideChat}         = require('./side_chat')
+{SideChat}         = require('./chat/side-chat')
 {Explorer}         = require('./project/explorer')
 {ProjectNew}       = require('./project/new')
 {ProjectLog}       = require('./project/history')
@@ -194,9 +194,8 @@ ProjectContentViewer = rclass
 
     render_side_chat: (path) ->
         <SideChat
-            path       = {misc.meta_file(path, 'chat')}
-            redux      = {redux}
             project_id = {@props.project_id}
+            path       = {misc.meta_file(path, 'chat')}
             />
 
     render_drag_bar: (path) ->

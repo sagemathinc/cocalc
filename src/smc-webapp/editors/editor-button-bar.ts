@@ -11,7 +11,7 @@ This is motivated by editing text, where various markups have different realizat
 There are less/none overlaps for programming languages.
 
 FUTURE:
-d    * think about creating a dedicated dialog for more elaborate examples,
+    * think about creating a dedicated dialog for more elaborate examples,
       which should also have a client/server communication to avoid bloat
       (think of a repository of hundrets of full examples with explanatory text)
     * work out how codemirror should react if there is a text selected or multiple
@@ -23,7 +23,6 @@ CONSIDERATIONS:
 */
 
 declare var $;
-import { defaults } from "smc-util/misc";
 export const FONT_FACES = [
   "Serif",
   "Sans",
@@ -1807,7 +1806,7 @@ Programmatically adding to above data structure
 // 6 markdown heading levels:
 for (k = 1, i = k; k <= 6; k++, i = k) {
   const strip = (() => {
-    const result = [];
+    const result: string[] = [];
     for (j = 1; j <= 6; j++) {
       if (j !== i) {
         result.push(`format_heading_${j}`);
@@ -1819,7 +1818,7 @@ for (k = 1, i = k; k <= 6; k++, i = k) {
     "\n" +
     (() => {
       let asc, end;
-      const result1 = [];
+      const result1: string[] = [];
       for (
         j = 1, end = i, asc = 1 <= end;
         asc ? j <= end : j >= end;
@@ -1847,12 +1846,9 @@ Programmatically creating the menu entries and buttons
 // helper functions
 //
 
-const make_bar = function (cls) {
-  if (cls == null) {
-    cls = "";
-  }
+function make_bar(cls: string = "") {
   return $(`<span class='btn-group ${cls}'></span>`);
-};
+}
 
 // this adds the content of a dropdown menu (basically, single or triple entries)
 const add_menu = function (bar, entries) {
@@ -1893,7 +1889,7 @@ const add_menu = function (bar, entries) {
 };
 
 // this adds a single icon to the bar
-const add_icon = function (bar, inner, href, comment) {
+function add_icon(bar, inner: string, href: string, comment: string) {
   let help = "";
   if (comment.length > 0) {
     help = `data-toggle='tooltip' data-placement='bottom' title='${comment}'`;
@@ -1901,7 +1897,7 @@ const add_icon = function (bar, inner, href, comment) {
   const icon = $(`<a href='${href}' class='btn btn-default' ${help}></a>`);
   icon.html(inner);
   return bar.append(icon);
-};
+}
 
 //
 // initializing and creating the menus
@@ -2332,7 +2328,7 @@ const initialize_sage_python_r_toolbar = function () {
     ],
   ];
 
-  add_icon(sagebar, "$x$", "#var", "Define a symbolic variable", true);
+  add_icon(sagebar, "$x$", "#var", "Define a symbolic variable");
   add_menu(sagebar, sage_plotting);
   add_menu(sagebar, sage_calculus);
   add_menu(sagebar, sage_linalg);
@@ -2363,7 +2359,7 @@ const initialize_sage_python_r_toolbar = function () {
   add_menu(r_control, r_control_entries);
 
   const r_data = make_bar();
-  const r_bar_entries = [
+  const r_data_entries = [
     "Data",
     "Data structures",
     [
@@ -2374,6 +2370,7 @@ const initialize_sage_python_r_toolbar = function () {
       ["Attach", "#attach"],
     ],
   ];
+  add_menu(r_data, r_data_entries);
 
   const r_funcs = make_bar();
   const r_funcs_entries = [
@@ -2394,6 +2391,7 @@ const initialize_sage_python_r_toolbar = function () {
       ["SVD", "#svd"],
     ],
   ];
+  add_menu(r_funcs, r_funcs_entries);
 
   const r_stats = make_bar();
   const r_stats_entries = [
@@ -2427,6 +2425,8 @@ const initialize_sage_python_r_toolbar = function () {
 
   rbar.append(r_basic);
   rbar.append(r_control);
+  rbar.append(r_data);
+  rbar.append(r_funcs);
   rbar.append(r_stats);
   rbar.append(r_plot);
 
@@ -2552,7 +2552,9 @@ const initialize_sage_python_r_toolbar = function () {
   return sh_bar.append(sh_git);
 };
 
-const initialize_latex_buttonbar = function () {
+// error since not yet used.
+// @ts-expect-error
+function initialize_latex_buttonbar() {
   const latexbar = make_bar();
   add_icon(
     latexbar,
@@ -2609,7 +2611,7 @@ const initialize_latex_buttonbar = function () {
 
   const bb = $(".webapp-editor-latex-buttonbar");
   return bb.append(latexbar);
-};
+}
 
 // NOT READY YET.
 //initialize_latex_buttonbar()

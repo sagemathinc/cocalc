@@ -70,9 +70,9 @@ const BLANK_COLUMN = <Col key={2} xs={2} sm={2}></Col>;
 
 function render_markdown(
   value: string,
-  project_id: string,
-  file_path: string,
-  className: string
+  project_id?: string,
+  file_path?: string,
+  className?: string
 ): JSX.Element {
   // the marginBottom offsets that markdown wraps everything in a p tag
   return (
@@ -876,6 +876,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   }
 
   render_video_chat_button() {
+    if (this.props.project_id == null || this.props.path == null) return;
     return (
       <VideoChatButton
         project_id={this.props.project_id}
@@ -997,10 +998,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
 
   on_send = (input) => {
     scroll_to_bottom(this.log_container_ref, true);
-    this.props.actions.submit_user_mentions(
-      this.props.project_id,
-      this.props.path
-    );
+    this.props.actions.submit_user_mentions();
     this.props.actions.send_chat(input);
     if (
       this.input_ref.current != null &&
@@ -1085,7 +1083,6 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
               close_preview_ref={this.close_preview_ref}
             >
               <ChatInput
-                name={this.props.name}
                 input={this.props.input}
                 input_ref={this.input_ref}
                 enable_mentions={
@@ -1100,7 +1097,9 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 on_change={this.on_input_change}
                 on_clear={this.on_clear}
                 on_send={this.on_send}
-                on_set_to_last_input={this.props.actions.set_to_last_input}
+                on_set_to_last_input={() =>
+                  this.props.actions.set_to_last_input()
+                }
                 account_id={this.props.account_id}
               />
             </FileUploadWrapper>
