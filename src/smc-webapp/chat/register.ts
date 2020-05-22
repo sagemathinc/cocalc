@@ -2,14 +2,14 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
+
 import { redux_name } from "../app-framework";
 import { webapp_client } from "../webapp-client";
 import { alert_message } from "../alerts";
 import { register_file_editor } from "../file-editors";
 
 import { ChatStore } from "./store";
-//import { ChatActions } from "./actions";
-const { ChatActions } = require('./actions');
+import { ChatActions } from "./actions";
 import { ChatRoom } from "./chatroom";
 
 export function init(path: string, redux, project_id: string): string {
@@ -20,6 +20,7 @@ export function init(path: string, redux, project_id: string): string {
 
   const actions = redux.createActions(name, ChatActions);
   const store = redux.createStore(name, ChatStore);
+  actions.setState({ project_id, path });
 
   const syncdb = webapp_client.sync_client.sync_db({
     project_id,
@@ -34,10 +35,10 @@ export function init(path: string, redux, project_id: string): string {
   });
 
   syncdb.once("ready", () => {
-    actions.syncdb = syncdb;
+    actions.set_syncdb(syncdb);
     actions.store = store;
     actions.init_from_syncdb();
-    syncdb.on("change", actions._syncdb_change.bind(actions));
+    syncdb.on("change", actions.syncdb_change.bind(actions));
     syncdb.on("has-uncommitted-changes", (val) =>
       actions.setState({ has_uncommitted_changes: val })
     );
@@ -53,7 +54,7 @@ export function init(path: string, redux, project_id: string): string {
 export function remove(path: string, redux, project_id: string): string {
   const name = redux_name(project_id, path);
   const actions = redux.getActions(name);
-  actions?.syncdb?.close();
+  actions?.close();
   const store = redux.getStore(name);
   if (store == null) {
     return name;

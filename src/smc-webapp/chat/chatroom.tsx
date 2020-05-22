@@ -998,10 +998,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
 
   on_send = (input) => {
     scroll_to_bottom(this.log_container_ref, true);
-    this.props.actions.submit_user_mentions(
-      this.props.project_id,
-      this.props.path
-    );
+    this.props.actions.submit_user_mentions();
     this.props.actions.send_chat(input);
     if (
       this.input_ref.current != null &&
@@ -1100,7 +1097,9 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 on_change={this.on_input_change}
                 on_clear={this.on_clear}
                 on_send={this.on_send}
-                on_set_to_last_input={this.props.actions.set_to_last_input}
+                on_set_to_last_input={() =>
+                  this.props.actions.set_to_last_input()
+                }
                 account_id={this.props.account_id}
               />
             </FileUploadWrapper>

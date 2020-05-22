@@ -1,6 +1,6 @@
 import { Map } from "immutable";
 import { debounce } from "lodash";
-import { original_path, path_split } from "smc-util/misc";
+import { path_split } from "smc-util/misc";
 import { DISCORD_INVITE } from "smc-util/theme";
 
 import {
@@ -71,7 +71,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
 
   function send_chat(): void {
     scroll_to_bottom(log_container_ref, true);
-    actions.submit_user_mentions(project_id, original_path(path));
+    actions.submit_user_mentions();
     actions.send_chat(input);
     if (input_ref.current != null) {
       // TODO -- looks bad

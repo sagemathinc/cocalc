@@ -7,9 +7,9 @@
 import * as immutable from "immutable";
 
 // Internal Libraries
-import { Store } from "../app-framework/Store";
+import { Store, TypedMap } from "../app-framework";
 
-export type MentionList = immutable.List<{
+type Mention = TypedMap<{
   id: string;
   display: string;
   type?: string;
@@ -17,7 +17,11 @@ export type MentionList = immutable.List<{
   plainTextIndex: number;
 }>;
 
-interface ChatState {
+export type MentionList = immutable.List<Mention>;
+
+export interface ChatState {
+  project_id?: string;
+  path?: string;
   height: number; // 0 means not rendered; otherwise is the height of the chat editor
   input: string; // content of the input box
   message_plain_text: string; // What the user sees in the chat box eg. stripped of internal mention markup
