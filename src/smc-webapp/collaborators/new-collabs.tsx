@@ -17,7 +17,7 @@ import { FormGroup, FormControl, Button, ButtonToolbar } from "react-bootstrap";
 const { SITE_NAME } = require("smc-util/theme");
 import { contains_url } from "smc-util/misc2";
 import { debounce } from "lodash";
-import { avatar_fontcolor } from "../misc/avatar-fontcolor";
+import { avatar_fontcolor } from "../account/avatar/font-color";
 
 import { has_internet_access } from "../upgrades/upgrade-utils";
 import { Project } from "smc-webapp/project/settings/types";
@@ -192,7 +192,7 @@ export const AddCollaboratorsPanel = rclass<ReactProps>(
             fontFamily: "sans-serif",
             fontSize: `${0.7 * size}px`,
             backgroundColor: bg,
-            color: color,
+            color,
           }}
         >
           {u.first_name ? u.first_name.toUpperCase()[0] : "?"}
