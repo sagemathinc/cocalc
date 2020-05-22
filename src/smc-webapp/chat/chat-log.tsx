@@ -11,7 +11,7 @@ import { List, Map } from "immutable";
 import { Actions, React, Component, Rendered } from "../app-framework";
 import { Alert } from "../antd-bootstrap";
 import { WindowedList } from "../r_misc/windowed-list";
-import { Message } from "./chatroom";
+import { Message } from "./message";
 import { search_match, search_split } from "smc-util/misc";
 
 type MessageMap = Map<string, any>;
