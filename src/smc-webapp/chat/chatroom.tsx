@@ -9,28 +9,17 @@ import { debounce } from "lodash";
 const { IS_MOBILE } = require("../feature");
 
 // CoCalc libraries
-import {
-  smiley,
-  history_path,
-  emoticons,
-  path_split,
-  normalized_path_join,
-} from "smc-util/misc";
+import { smiley, history_path, emoticons, path_split } from "smc-util/misc";
 const { sanitize_html_safe } = require("../misc_page");
 import { DISCORD_INVITE } from "smc-util/theme";
 import { SaveButton } from "../frame-editors/frame-tree/save-button";
-import { alert_message } from "../alerts";
 
 // have to rewrite buttons like SaveButton in antd before we can
 // switch to antd buttons.
 import { Button, ButtonGroup } from "react-bootstrap";
 
 import { ChatInput } from "./input";
-import {
-  compute_cursor_offset_position,
-  mark_chat_as_read_if_unseen,
-  scroll_to_bottom,
-} from "./utils";
+import { mark_chat_as_read_if_unseen, scroll_to_bottom } from "./utils";
 
 import {
   React,
@@ -40,7 +29,6 @@ import {
   useRef,
   useRedux,
   useState,
-  useStore,
   useMemo,
 } from "../app-framework";
 import { Icon, Loading, Tip, SearchInput, A } from "../r_misc";
@@ -49,7 +37,6 @@ import { ChatLog } from "./chat-log";
 import { WindowedList } from "../r_misc/windowed-list";
 
 import { VideoChatButton } from "./video/launch-button";
-import { Dropzone, FileUploadWrapper } from "../file-upload";
 import { Markdown } from "./markdown";
 import { TIP_TEXT } from "../widget-markdown-input/main";
 
@@ -86,16 +73,11 @@ interface Props {
 
 export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   const actions = useActions(project_id, path);
-  const store = useStore(project_id, path);
   const font_size = useRedux(["account", "font_size"]);
   const account_id = useRedux(["account", "account_id"]);
   const other_settings = useRedux(["account", "other_settings"]);
 
-  const unsent_user_mentions = useRedux(
-    ["unsent_user_mentions"],
-    project_id,
-    path
-  );
+  const is_uploading = useRedux(["is_uploading"], project_id, path);
   const is_saving = useRedux(["is_saving"], project_id, path);
   const is_preview = useRedux(["is_preview"], project_id, path);
   const has_unsaved_changes = useRedux(
@@ -117,8 +99,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
 
   const input_ref = useRef<HTMLTextAreaElement>(null);
   const log_container_ref = useRef<WindowedList>(null);
-  const dropzone_ref = useRef<Dropzone>(null);
-  const close_preview_ref = useRef<Function>(null);
 
   const project_map = useRedux(["projects", "project_map"]);
   const project_users = useMemo(() => {
@@ -351,64 +331,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
     );
   }
 
-  function generate_temp_upload_text(file: { name: string }): string {
-    return `[Uploading...]\(${file.name}\)`;
-  }
-
-  function start_upload(file: { name: string }): void {
-    // need version now, not when function was created
-    const input = store.get(enable_mentions ? "message_plain_text" : "input");
-    const text_area = input_ref.current;
-    if (text_area == null) return;
-    const temporary_insertion_text = generate_temp_upload_text(file);
-    const start_pos = compute_cursor_offset_position(
-      text_area.selectionStart,
-      unsent_user_mentions
-    );
-    const end_pos = compute_cursor_offset_position(
-      text_area.selectionEnd,
-      unsent_user_mentions
-    );
-    const temp_new_text =
-      input.slice(0, start_pos) +
-      temporary_insertion_text +
-      input.slice(end_pos);
-    text_area.selectionStart = end_pos;
-    text_area.selectionEnd = end_pos;
-    actions.set_input(temp_new_text);
-  }
-
-  function append_file(file: {
-    type: string;
-    name: string;
-    status: string;
-  }): void {
-    // need input now, not when function was created
-    const input = store.get(enable_mentions ? "message_plain_text" : "input");
-    let final_insertion_text;
-    if (file.status == "error") {
-      final_insertion_text = "";
-      alert_message({ type: "error", message: "Error uploading file." });
-    } else if (file.type.indexOf("image") !== -1) {
-      final_insertion_text = `<img src=\".chat-images/${file.name}\" style="max-width:100%">`;
-    } else {
-      final_insertion_text = `[${file.name}](${file.name})`;
-    }
-
-    const temporary_insertion_text = generate_temp_upload_text(file);
-    const start_index = input.indexOf(temporary_insertion_text);
-    const end_index = start_index + temporary_insertion_text.length;
-
-    if (start_index === -1) {
-      return;
-    }
-
-    const new_text =
-      input.slice(0, start_index) +
-      final_insertion_text +
-      input.slice(end_index);
-    actions.set_input(new_text);
-  }
+  /*
 
   function handle_paste_event(e: React.ClipboardEvent<any>): void {
     const items = e.clipboardData.items;
@@ -427,13 +350,12 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
       }
     }
   }
+  */
 
   function on_send(): void {
     scroll_to_bottom(log_container_ref, true);
-    actions.submit_user_mentions();
     actions.send_chat();
     input_ref.current?.focus?.();
-    close_preview_ref.current?.();
   }
 
   function on_clear(): void {
@@ -470,35 +392,19 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               height: INPUT_HEIGHT,
             }}
           >
-            <FileUploadWrapper
+            <ChatInput
               project_id={project_id}
-              dest_path={normalized_path_join(
-                redux.getProjectStore(project_id).get("current_path"),
-                "/.chat-images"
-              )}
-              event_handlers={{
-                complete: append_file,
-                sending: start_upload,
-              }}
-              style={{ height: "100%" }}
-              dropzone_ref={dropzone_ref}
-              close_preview_ref={close_preview_ref}
-            >
-              <ChatInput
-                project_id={project_id}
-                path={path}
-                input={input}
-                input_ref={input_ref}
-                enable_mentions={enable_mentions}
-                project_users={project_users}
-                user_store={redux.getStore("users")}
-                on_paste={handle_paste_event}
-                on_clear={on_clear}
-                on_send={on_send}
-                on_set_to_last_input={() => actions.set_to_last_input()}
-                account_id={account_id}
-              />
-            </FileUploadWrapper>
+              path={path}
+              input={input}
+              input_ref={input_ref}
+              enable_mentions={enable_mentions}
+              project_users={project_users}
+              user_store={redux.getStore("users")}
+              on_clear={on_clear}
+              on_send={on_send}
+              on_set_to_last_input={() => actions.set_to_last_input()}
+              account_id={account_id}
+            />
           </div>
           <div
             style={{
@@ -522,7 +428,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             <div style={{ height: "5px" }} />
             <Button
               onClick={on_send_button_click}
-              disabled={input === ""}
+              disabled={input.trim() === "" || is_uploading}
               bsStyle="success"
               style={{ flex: 1, width: "100%" }}
             >

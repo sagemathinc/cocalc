@@ -33,51 +33,6 @@ export const ChatInput: React.FC<Props> = (props) => {
   // const mentions_input_ref = useRef<MentionsInput>(null);
   // const input_ref = useRef<HTMLTextAreaElement>(null);
   const actions = useActions(props.project_id, props.path);
-  /*
-  const user_array = useMemo(() => {
-    const user_array = props.project_users
-      .keySeq()
-      .filter((account_id) => {
-        return account_id !== props.account_id;
-      })
-      .map((account_id) => {
-        return {
-          id: account_id,
-          display: props.user_store.get_name(account_id),
-          last_active: props.user_store.get_last_active(account_id),
-        };
-      })
-      .toJS();
-
-    user_array.sort((x, y) => -cmp_Date(x.last_active, y.last_active));
-
-    return user_array;
-  }, [props.project_users, props.account_id]);
-
-  function on_change(e, _?, plain_text?, mentions?): void {
-    actions.set_input(e.target.value);
-    if (mentions != null || plain_text != null) {
-      actions.set_unsent_user_mentions(mentions, plain_text);
-    }
-  }
-
-  function (e): void {
-    if (e.keyCode === 13 && e.shiftKey) {
-      e.preventDefault();
-      if (props.input.trim().length >= 1) {
-        // send actual input since on_input_change is debounced.
-        props.on_send(props.input);
-      }
-    } else if (e.keyCode === 38 && props.input === "") {
-      // Up arrow on an empty input
-      props.on_set_to_last_input();
-    } else if (e.keyCode === 27) {
-      // Esc
-      props.on_clear();
-    }
-  }
-*/
-
   /*function render_user_suggestion(entry: {
     id: string;
     display: string;
@@ -97,7 +52,9 @@ export const ChatInput: React.FC<Props> = (props) => {
       project_id={props.project_id}
       path={props.path}
       value={props.input}
-      enableImages={true}
+      enableUpload={true}
+      onUploadStart={() => actions.set_uploading(true)}
+      onUploadEnd={() => actions.set_uploading(false)}
       enableMentions={props.enable_mentions}
       onChange={(value) => actions.set_input(value)}
       onShiftEnter={props.on_send}

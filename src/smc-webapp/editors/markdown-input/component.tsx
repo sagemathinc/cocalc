@@ -2,24 +2,30 @@
 Markdown editor
 
 Stage 1 -- enough to replace current chat input:
-  [x] editor themes
-  [x] markdown syntax highlighting via codemirror
-  [x] spellcheck
-  [x] vim/emacs/sublime keybinding modes
-  [x] non-monospace font
-  [x] focus current line
-  [x] placeholder text
-  [ ] drag and drop and paste of images
-  [ ] @mentions (via completion dialog) -the collabs on this project
+  - [x] editor themes
+  - [x] markdown syntax highlighting via codemirror
+  - [x] spellcheck
+  - [x] vim/emacs/sublime keybinding modes
+  - [x] non-monospace font
+  - [x] focus current line
+  - [x] placeholder text
+  - [x] drag and drop of images and other files
+  - [x] cancel upload in progress
+  - [ ] cancel upload that is finished
+  - [ ] don't allow send *during* upload.
+  - [ ] paste of images and files
+  - [ ] @mentions (via completion dialog) -the collabs on this project
+  - [ ] make file upload LOOK GOOD
+  - [ ] close file upload when input is blanked (i.e., on send)
 
 Stage 2 -- stretch goal challenges:
 ---
-  [ ] border when focused
-  [ ] preview
-  [ ] directions and links
-  [ ] hashtags
-  [ ] wysiwyg mode: via prosemirror?   maybe https://github.com/outline/rich-markdown-editor
-  [ ] emojis like on github?
+  - [ ] border when focused
+  - [ ] preview
+  - [ ] directions and links
+  - [ ] hashtags
+  - [ ] wysiwyg mode: via prosemirror?   maybe https://github.com/outline/rich-markdown-editor
+  - [ ] emojis like on github?
 
 Use this for:
   - chat input
@@ -30,6 +36,16 @@ Use this for:
 It will be a controlled component that takes project_id and path as input.
 */
 
+// Note -- we make the dest_path .chat-images, mainly for backward
+// compatibility, since it can be used for any files (not just images),
+// and this can be used for more than just chat.
+const UPLOAD_PATH = ".chat-images";
+
+import { join } from "path";
+import * as CodeMirror from "codemirror";
+
+import { len, path_split } from "smc-util/misc2";
+
 import {
   React,
   ReactDOM,
@@ -37,7 +53,8 @@ import {
   useRef,
   useRedux,
 } from "../../app-framework";
-import * as CodeMirror from "codemirror";
+import { Dropzone, FileUploadWrapper } from "../../file-upload";
+import { alert_message } from "../../alerts";
 
 const STYLE: React.CSSProperties = {
   border: "1px solid rgb(204,204,204)", // focused will be rgb(112, 178, 230);
@@ -48,7 +65,9 @@ interface Props {
   path: string;
   value: string;
   onChange: (value: string) => void;
-  enableImages?: boolean; // if true, drag-n-drop and pasted images go in .images/ under a random name.
+  enableUpload?: boolean; // if true, enable drag-n-drop and pasted files
+  onUploadStart?: () => void;
+  onUploadEnd?: () => void;
   enableMentions?: boolean;
   style?: React.CSSProperties;
   onShiftEnter?: () => void;
@@ -60,7 +79,9 @@ export const MarkdownInput: React.FC<Props> = ({
   project_id,
   path,
   value,
-  enableImages,
+  enableUpload,
+  onUploadStart,
+  onUploadEnd,
   enableMentions,
   style,
   onChange,
@@ -70,13 +91,17 @@ export const MarkdownInput: React.FC<Props> = ({
   placeholder,
 }) => {
   // @ts-ignore
-  const deleteme = [project_id, path, enableImages, enableMentions];
+  const deleteme = [project_id, path, enableUpload, enableMentions];
 
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
   const theme = useRedux(["account", "editor_settings", "theme"]);
   const bindings = useRedux(["account", "editor_settings", "bindings"]);
   const fontSize = useRedux(["account", "font_size"]);
+
+  const dropzone_ref = useRef<Dropzone>(null);
+  const close_preview_ref = useRef<Function>(null);
+  const current_uploads_ref = useRef<{ [name: string]: boolean } | null>(null);
 
   useEffect(() => {
     // initialize the codemirror editor
@@ -108,7 +133,10 @@ export const MarkdownInput: React.FC<Props> = ({
     }
 
     const e: any = cm.current.getWrapperElement();
-    e.setAttribute("style", "height:100%; font-family:sans-serif !important");
+    e.setAttribute(
+      "style",
+      "height:100%; font-family:sans-serif !important;padding:6px 12px"
+    );
 
     // clean up
     return () => {
@@ -135,7 +163,68 @@ export const MarkdownInput: React.FC<Props> = ({
     cm.current.setValue(value);
   }, [value]);
 
-  return (
+  function upload_sending(file: { name: string }): void {
+    console.log("upload_sending", file);
+    if (current_uploads_ref.current == null) {
+      current_uploads_ref.current = { [file.name]: true };
+      if (onUploadStart != null) {
+        onUploadStart();
+      }
+    } else {
+      current_uploads_ref.current[file.name] = true;
+    }
+    if (cm.current == null) return;
+    const input = cm.current.getValue();
+    const temporary_insertion_text = generate_temp_upload_text(file);
+    if (input.indexOf(temporary_insertion_text) != -1) {
+      // already have link.
+      return;
+    }
+    cm.current.replaceRange(temporary_insertion_text, cm.current.getCursor());
+  }
+
+  function upload_complete(file: {
+    type: string;
+    name: string;
+    status: string;
+  }): void {
+    console.log("upload_complete", file);
+    if (current_uploads_ref.current != null) {
+      delete current_uploads_ref.current[file.name];
+      if (len(current_uploads_ref.current) == 0) {
+        current_uploads_ref.current = null;
+        if (onUploadEnd != null) {
+          onUploadEnd();
+        }
+      }
+    }
+    if (cm.current == null) return;
+    const input = cm.current.getValue();
+    const temporary_insertion_text = generate_temp_upload_text(file);
+    let final_insertion_text;
+    if (file.status == "error") {
+      final_insertion_text = "";
+      alert_message({ type: "error", message: "Error uploading file." });
+    } else if (file.status == "canceled") {
+      // users can cancel files when they are being uploaded.
+      final_insertion_text = "";
+    } else {
+      const target = join(UPLOAD_PATH, file.name);
+      if (file.type.indexOf("image") !== -1) {
+        final_insertion_text = `<img src=\"${target}\" style="max-width:100%" />`;
+      } else {
+        final_insertion_text = `<a href=\"${target}\">${file.name}</a>`;
+        // We use an a tag instead of [${file.name}](${target}) because for
+        // some files (e.g,. word doc files) our markdown renderer inexplicably
+        // does NOT render them as links!?  a tags work though.
+      }
+    }
+    cm.current.setValue(
+      input.replace(temporary_insertion_text, final_insertion_text)
+    );
+  }
+
+  let body: JSX.Element = (
     <div style={{ ...STYLE, ...style, ...{ fontSize: `${fontSize}px` } }}>
       <textarea
         style={{ display: "none" }}
@@ -144,4 +233,27 @@ export const MarkdownInput: React.FC<Props> = ({
       />
     </div>
   );
+  if (enableUpload) {
+    body = (
+      <FileUploadWrapper
+        project_id={project_id}
+        dest_path={join(path_split(path).head, UPLOAD_PATH)}
+        event_handlers={{
+          complete: upload_complete,
+          sending: upload_sending,
+        }}
+        style={{ height: "100%" }}
+        dropzone_ref={dropzone_ref}
+        close_preview_ref={close_preview_ref}
+      >
+        {body}
+      </FileUploadWrapper>
+    );
+  }
+
+  return body;
 };
+
+function generate_temp_upload_text(file: { name: string }): string {
+  return `[Uploading...]\(${file.name}\)`;
+}

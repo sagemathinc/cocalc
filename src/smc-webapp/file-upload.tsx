@@ -181,6 +181,8 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
           preview_template()
         ),
         maxFilesize: MAX_FILE_SIZE_MB,
+        forceChunking: true,
+        addRemoveLinks: true,
         chunking: true,
         chunkSize: CHUNK_SIZE_MB * 1000 * 1000,
         retryChunks: true, // might as well since it's a little more robust.

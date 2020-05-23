@@ -119,7 +119,10 @@ export class ChatActions extends Actions<ChatState> {
       return;
     }
     const input = this.store.get("input").trim();
-    if (input.length == 0) return; // do not send.
+    if (input.length == 0 || this.store.get("is_uploading")) {
+      // do not send while uploading or there is nothing to send.
+      return;
+    }
     const sender_id = this.redux.getStore("account").get_account_id();
     const time_stamp = webapp_client.server_time().toISOString();
     this.syncdb.set({
@@ -278,5 +281,9 @@ export class ChatActions extends Actions<ChatState> {
       return;
     }
     this.setState({ saved_position: position, height, offset });
+  }
+
+  public set_uploading(is_uploading: boolean): void {
+    this.setState({ is_uploading });
   }
 }

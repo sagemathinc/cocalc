@@ -39,6 +39,7 @@ export interface ChatState {
   has_uncommitted_changes: boolean;
   has_unsaved_changes: boolean;
   unsent_user_mentions: MentionList;
+  is_uploading: boolean;
 }
 
 export class ChatStore extends Store<ChatState> {
@@ -61,6 +62,7 @@ export class ChatStore extends Store<ChatState> {
       has_uncommitted_changes: false,
       has_unsaved_changes: false,
       unsent_user_mentions: immutable.List(),
+      is_uploading: false,
     };
   };
 }
