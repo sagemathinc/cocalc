@@ -813,3 +813,29 @@ export function useActions(name_or_project_id: string, path?: string) {
     }
   }, [name_or_project_id, path]);
 }
+
+export function useStore(name: "account"): AccountStore;
+export function useStore(name: "projects"): any;
+export function useStore(name: "billing"): any;
+export function useStore(name: "page"): any;
+export function useStore(name: "admin-users"): AdminUsersStore;
+export function useStore(name: "admin-site-licenses"): SiteLicensesStore;
+export function useStore(name: "mentions"): MentionsStore;
+export function useStore(name: "file_use"): FileUseStore | undefined;
+// If it is none of the explicitly named ones... it's a project.
+export function useStore(name_or_project_id: string): ProjectStore;
+// Or an editor store (any for now)
+export function useStore(name_or_project_id: string, path: string): any;
+export function useStore(name_or_project_id: string, path?: string): any {
+  return React.useMemo(() => {
+    if (path == null) {
+      if (is_valid_uuid_string(name_or_project_id)) {
+        return redux.getProjectStore(name_or_project_id);
+      } else {
+        return redux.getStore(name_or_project_id);
+      }
+    } else {
+      return redux.getEditorStore(name_or_project_id, path);
+    }
+  }, [name_or_project_id, path]) as any;
+}

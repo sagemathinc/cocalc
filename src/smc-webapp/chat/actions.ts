@@ -198,7 +198,7 @@ export class ChatActions extends Actions<ChatState> {
     this.setState({ input: this.store.get("last_sent") });
   }
 
-  public set_input(input): void {
+  public set_input(input: string): void {
     this.setState({ input });
   }
 
@@ -215,11 +215,11 @@ export class ChatActions extends Actions<ChatState> {
   }
 
   public set_unsent_user_mentions(
-    user_mentions = List(),
+    unsent_user_mentions = List(),
     message_plain_text = ""
   ): void {
     this.setState({
-      unsent_user_mentions: user_mentions,
+      unsent_user_mentions,
       message_plain_text,
     });
   }

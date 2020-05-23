@@ -78,11 +78,6 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
     }
   }
 
-  function on_input_change(new_input: string, mentions, plain_text): void {
-    actions.set_unsent_user_mentions(mentions, plain_text);
-    actions.set_input(new_input);
-  }
-
   function on_clear(): void {
     actions.set_input("");
   }
@@ -232,6 +227,8 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
         <div style={{ display: "flex", height: "6em" }}>
           <div style={{ width: "85%", height: "100%" }}>
             <ChatInput
+              project_id={project_id}
+              path={path}
               input={input}
               input_ref={input_ref}
               enable_mentions={
@@ -241,8 +238,6 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
               }
               project_users={project_users}
               user_store={redux.getStore("users")}
-              font_size={font_size}
-              on_change={on_input_change}
               on_clear={on_clear}
               on_send={() => {
                 send_chat();

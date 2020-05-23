@@ -3,12 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
-import memoizeOne from "memoize-one";
-import * as immutable from "immutable";
-import { delay } from "awaiting";
-
 import { MentionsInput, Mention } from "react-mentions";
+import {
+  React,
+  useRedux,
+  useRef,
+  useMemo,
+  useActions,
+} from "../app-framework";
 import { USER_MENTION_MARKUP } from "./utils";
 import { cmp_Date } from "smc-util/misc2";
 import { FormControl } from "react-bootstrap";
@@ -17,63 +19,30 @@ import { Avatar } from "../account/avatar/avatar";
 import { IS_MOBILE, isMobile } from "../feature";
 
 interface Props {
+  project_id: string;
+  path: string;
   input: string;
+  height?: string;
   input_ref: React.RefObject<HTMLTextAreaElement>;
-  input_style?: any; // Used to override defaults
   enable_mentions: boolean;
   project_users: any;
   user_store: any;
-  font_size: number;
-  height: string;
   on_paste?: (e) => void;
-  on_change: (value, mentions, plain_text) => void;
   on_send: (value) => void;
   on_clear: () => void;
   on_set_to_last_input: () => void;
   account_id: string;
 }
 
-export class ChatInput extends React.PureComponent<Props> {
-  static defaultProps = {
-    enable_mentions: true,
-    font_size: 14,
-    height: "100%",
-  };
+export const ChatInput: React.FC<Props> = (props) => {
+  const font_size = useRedux(["account", "font_size"]);
+  const mentions_input_ref = useRef<MentionsInput>(null);
+  const input_ref = useRef<HTMLTextAreaElement>(null);
+  const actions = useActions(props.project_id, props.path);
 
-  private mentions_input_ref = React.createRef<MentionsInput>();
-  private input_ref: React.RefObject<HTMLTextAreaElement>;
-
-  constructor(props) {
-    super(props);
-    this.mentions_input_ref;
-    this.input_ref = props.input_ref || React.createRef<HTMLTextAreaElement>();
-  }
-
-  // Hack around updating mentions when pasting an image (which we have to handle ourselves)
-  // Without this, MentionsInput does not correctly update its internal representation.
-  async componentDidUpdate(prev_props): Promise<void> {
-    if (
-      this.props.enable_mentions &&
-      this.props.on_paste != null &&
-      prev_props.input != this.props.input
-    ) {
-      await delay(0);
-      // after await, so aspects of this object could have changed; it might
-      // not be mounted anymore, etc.
-      const target = this.input_ref.current;
-      if (this.mentions_input_ref.current != null && target != null) {
-        // see https://github.com/sagemathinc/cocalc/issues/3849 and
-        // https://stackoverflow.com/questions/51693111/current-is-always-null-when-using-react-createref
-        this.mentions_input_ref.current.wrappedInstance.handleChange({
-          target,
-        });
-      }
-    }
-  }
-
-  private input_style = memoizeOne((font_size: number, height: string) => {
+  const input_style = useMemo(() => {
     return {
-      height: height,
+      height: props.height,
 
       "&multiLine": {
         highlighter: {
@@ -122,115 +91,116 @@ export class ChatInput extends React.PureComponent<Props> {
         },
       },
     };
-  });
+  }, [font_size, props.height]);
 
-  private mentions_data = memoizeOne(
-    (project_users: immutable.Map<string, any>) => {
-      const user_array = project_users
-        .keySeq()
-        .filter((account_id) => {
-          return account_id !== this.props.account_id;
-        })
-        .map((account_id) => {
-          return {
-            id: account_id,
-            display: this.props.user_store.get_name(account_id),
-            last_active: this.props.user_store.get_last_active(account_id),
-          };
-        })
-        .toJS();
+  const user_array = useMemo(() => {
+    const user_array = props.project_users
+      .keySeq()
+      .filter((account_id) => {
+        return account_id !== props.account_id;
+      })
+      .map((account_id) => {
+        return {
+          id: account_id,
+          display: props.user_store.get_name(account_id),
+          last_active: props.user_store.get_last_active(account_id),
+        };
+      })
+      .toJS();
 
-      user_array.sort((x, y) => -cmp_Date(x.last_active, y.last_active));
+    user_array.sort((x, y) => -cmp_Date(x.last_active, y.last_active));
 
-      return user_array;
+    return user_array;
+  }, [props.project_users, props.account_id]);
+
+  function on_change(e, _?, plain_text?, mentions?): void {
+    actions.set_input(e.target.value);
+    if (mentions != null || plain_text != null) {
+      actions.set_unsent_user_mentions(mentions, plain_text);
     }
-  );
+  }
 
-  private on_change = (e, _?, plain_text?, mentions?) => {
-    this.props.on_change(e.target.value, mentions, plain_text);
-  };
-
-  private on_keydown = (e: any) => {
-    // TODO: Add timeout component to is_typing
+  function on_keydown(e): void {
     if (e.keyCode === 13 && e.shiftKey) {
       e.preventDefault();
-      if (this.props.input.length && this.props.input.trim().length >= 1) {
-        this.props.on_send(this.props.input);
+      if (props.input.length && props.input.trim().length >= 1) {
+        // send actual input since on_input_change is debounced.
+        props.on_send(props.input);
       }
-    } else if (e.keyCode === 38 && this.props.input === "") {
+    } else if (e.keyCode === 38 && props.input === "") {
       // Up arrow on an empty input
-      this.props.on_set_to_last_input();
+      props.on_set_to_last_input();
     } else if (e.keyCode === 27) {
       // Esc
-      this.props.on_clear();
+      props.on_clear();
     }
-  };
+  }
 
-  private render_user_suggestion = (entry: { id: string; display: string }) => {
+  function render_user_suggestion(entry: {
+    id: string;
+    display: string;
+  }): JSX.Element {
     return (
       <span>
-        <Avatar size={this.props.font_size + 12} account_id={entry.id} />
+        <Avatar size={font_size + 12} account_id={entry.id} />
         <Space />
         <Space />
         {entry.display}
       </span>
     );
-  };
+  }
 
-  render() {
-    const user_array = this.mentions_data(this.props.project_users);
-
-    const style =
-      this.props.input_style ||
-      this.input_style(this.props.font_size, this.props.height);
-
-    if (!this.props.enable_mentions) {
-      // NOTE about the "this.input_ref as any" below.
-      // I think we want to style from react bootstraps
-      // FormControl, but we type things so input_ref
-      // must be a ref to a TextArea.  However, FormControl
-      // doesn't have the same interface type, so typescript
-      // gives an error.  So for now this is "as any".
-      // A better fix would probably be to just replace
-      // this by a normal FormControl, or even better
-      // would be to always allow mentions even for editing past tasks
-      // (which does make very good sense, if the UI would probably
-      // support it, which it should -- it's just more work).
-      return (
-        <FormControl
-          autoFocus={!IS_MOBILE || isMobile.Android()}
-          componentClass="textarea"
-          ref={this.input_ref as any}
-          onKeyDown={this.on_keydown}
-          value={this.props.input}
-          placeholder={"Type a message..."}
-          onChange={this.on_change}
-          style={{ height: "100%" }}
-        />
-      );
-    }
-
+  if (!props.enable_mentions) {
+    // NOTE about the "input_ref as any" below.
+    // I think we want to style from react bootstraps
+    // FormControl, but we type things so input_ref
+    // must be a ref to a TextArea.  However, FormControl
+    // doesn't have the same interface type, so typescript
+    // gives an error.  So for now this is "as any".
+    // A better fix would probably be to just replace
+    // this by a normal FormControl, or even better
+    // would be to always allow mentions even for editing past tasks
+    // (which does make very good sense, if the UI would probably
+    // support it, which it should -- it's just more work).
     return (
-      <MentionsInput
-        ref={this.mentions_input_ref}
+      <FormControl
         autoFocus={!IS_MOBILE || isMobile.Android()}
-        displayTransform={(_, display) => "@" + display}
-        style={style}
-        markup={USER_MENTION_MARKUP}
-        inputRef={this.props.input_ref}
-        onKeyDown={this.on_keydown}
-        value={this.props.input}
-        placeholder={"Type a message, @name..."}
-        onPaste={this.props.on_paste}
-        onChange={this.on_change}
-      >
-        <Mention
-          trigger="@"
-          data={user_array}
-          appendSpaceOnAdd={true}
-          renderSuggestion={this.render_user_suggestion}
-        />
-      </MentionsInput>
+        componentClass="textarea"
+        ref={input_ref as any}
+        onKeyDown={on_keydown}
+        value={props.input}
+        placeholder={"Type a message..."}
+        onChange={on_change}
+        style={{ height: "100%" }}
+      />
     );
   }
-}
+
+  return (
+    <MentionsInput
+      ref={mentions_input_ref}
+      autoFocus={!IS_MOBILE || isMobile.Android()}
+      displayTransform={(_, display) => "@" + display}
+      style={input_style}
+      markup={USER_MENTION_MARKUP}
+      inputRef={props.input_ref}
+      onKeyDown={on_keydown}
+      value={props.input}
+      placeholder={"Type a message, @name..."}
+      onPaste={props.on_paste}
+      onChange={on_change}
+    >
+      <Mention
+        trigger="@"
+        data={user_array}
+        appendSpaceOnAdd={true}
+        renderSuggestion={render_user_suggestion}
+      />
+    </MentionsInput>
+  );
+};
+
+ChatInput.defaultProps = {
+  enable_mentions: true,
+  height: "100%",
+};

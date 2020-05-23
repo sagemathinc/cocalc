@@ -19,6 +19,7 @@ import {
 const { sanitize_html_safe } = require("../misc_page");
 import { DISCORD_INVITE } from "smc-util/theme";
 import { SaveButton } from "../frame-editors/frame-tree/save-button";
+import { alert_message } from "../alerts";
 
 // have to rewrite buttons like SaveButton in antd before we can
 // switch to antd buttons.
@@ -39,6 +40,8 @@ import {
   useRef,
   useRedux,
   useState,
+  useStore,
+  useMemo,
 } from "../app-framework";
 import { Icon, Loading, Tip, SearchInput, A } from "../r_misc";
 import { Col, Row, Well } from "../antd-bootstrap";
@@ -83,6 +86,7 @@ interface Props {
 
 export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   const actions = useActions(project_id, path);
+  const store = useStore(project_id, path);
   const font_size = useRedux(["account", "font_size"]);
   const account_id = useRedux(["account", "account_id"]);
   const other_settings = useRedux(["account", "other_settings"]);
@@ -117,6 +121,16 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   const close_preview_ref = useRef<Function>(null);
 
   const project_map = useRedux(["projects", "project_map"]);
+  const project_users = useMemo(() => {
+    // the immutable.Map() default is because of admins:
+    // https://github.com/sagemathinc/cocalc/issues/3669
+    return project_map.getIn([project_id, "users"], immutable.Map());
+  }, [project_map]);
+  const enable_mentions = useMemo(
+    () => project_users.size > 1 && other_settings.get("allow_mentions"),
+    [project_users, other_settings]
+  );
+
   const user_map = useRedux(["users", "user_map"]);
 
   useEffect(() => {
@@ -347,6 +361,8 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   }
 
   function start_upload(file: { name: string }): void {
+    // need version now, not when function was created
+    const input = store.get(enable_mentions ? "message_plain_text" : "input");
     const text_area = input_ref.current;
     if (text_area == null) return;
     const temporary_insertion_text = generate_temp_upload_text(file);
@@ -367,9 +383,18 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
     actions.set_input(temp_new_text);
   }
 
-  function append_file(file: { type: string; name: string }): void {
+  function append_file(file: {
+    type: string;
+    name: string;
+    status: string;
+  }): void {
+    // need input now, not when function was created
+    const input = store.get(enable_mentions ? "message_plain_text" : "input");
     let final_insertion_text;
-    if (file.type.indexOf("image") !== -1) {
+    if (file.status == "error") {
+      final_insertion_text = "";
+      alert_message({ type: "error", message: "Error uploading file." });
+    } else if (file.type.indexOf("image") !== -1) {
       final_insertion_text = `<img src=\".chat-images/${file.name}\" style="max-width:100%">`;
     } else {
       final_insertion_text = `[${file.name}](${file.name})`;
@@ -408,12 +433,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
     }
   }
 
-  function on_input_change(value, mentions, plain_text): void {
-    actions.set_unsent_user_mentions(mentions, plain_text);
-    actions.set_input(value);
-    mark_as_read();
-  }
-
   function on_send(): void {
     scroll_to_bottom(log_container_ref, true);
     actions.submit_user_mentions();
@@ -429,14 +448,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   }
 
   function render_body(): JSX.Element {
-    // the immutable.Map() default is because of admins:
-    // https://github.com/sagemathinc/cocalc/issues/3669
-    const project_users = project_map.getIn(
-      [project_id, "users"],
-      immutable.Map()
-    );
-    const has_collaborators = project_users.size > 1;
-
     return (
       <div className="smc-vfill" style={GRID_STYLE}>
         {!IS_MOBILE ? render_button_row() : undefined}
@@ -475,17 +486,15 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               close_preview_ref={close_preview_ref}
             >
               <ChatInput
+                project_id={project_id}
+                path={path}
                 input={input}
                 input_ref={input_ref}
-                enable_mentions={
-                  has_collaborators && other_settings.get("allow_mentions")
-                }
+                enable_mentions={enable_mentions}
                 project_users={project_users}
                 user_store={redux.getStore("users")}
-                font_size={font_size}
                 height={"100px"}
                 on_paste={handle_paste_event}
-                on_change={on_input_change}
                 on_clear={on_clear}
                 on_send={on_send}
                 on_set_to_last_input={() => actions.set_to_last_input()}
