@@ -150,7 +150,11 @@ interface FileUploadWrapperProps {
   project_id: string; // The project to upload files to
   dest_path: string; // The path for files to be sent
   config?: object; // All supported dropzone.js config options
-  event_handlers: { complete?: Function; sending?: Function };
+  event_handlers: {
+    complete?: Function;
+    sending?: Function;
+    removedfile?: Function;
+  };
   preview_template?: Function; // See http://www.dropzonejs.com/#layout
   show_upload?: boolean; // Whether or not to show upload area
   on_close?: Function;

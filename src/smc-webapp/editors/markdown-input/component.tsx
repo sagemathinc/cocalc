@@ -11,8 +11,8 @@ Stage 1 -- enough to replace current chat input:
   - [x] placeholder text
   - [x] drag and drop of images and other files
   - [x] cancel upload in progress
+  - [x] don't allow send *during* upload.
   - [ ] cancel upload that is finished
-  - [ ] don't allow send *during* upload.
   - [ ] paste of images and files
   - [ ] @mentions (via completion dialog) -the collabs on this project
   - [ ] make file upload LOOK GOOD
@@ -20,6 +20,7 @@ Stage 1 -- enough to replace current chat input:
 
 Stage 2 -- stretch goal challenges:
 ---
+  - [ ] bonus: don't insert the link inside of an existing link tag...
   - [ ] border when focused
   - [ ] preview
   - [ ] directions and links
@@ -52,6 +53,7 @@ import {
   useEffect,
   useRef,
   useRedux,
+  redux,
 } from "../../app-framework";
 import { Dropzone, FileUploadWrapper } from "../../file-upload";
 import { alert_message } from "../../alerts";
@@ -164,7 +166,7 @@ export const MarkdownInput: React.FC<Props> = ({
   }, [value]);
 
   function upload_sending(file: { name: string }): void {
-    console.log("upload_sending", file);
+    // console.log("upload_sending", file);
     if (current_uploads_ref.current == null) {
       current_uploads_ref.current = { [file.name]: true };
       if (onUploadStart != null) {
@@ -175,12 +177,12 @@ export const MarkdownInput: React.FC<Props> = ({
     }
     if (cm.current == null) return;
     const input = cm.current.getValue();
-    const temporary_insertion_text = generate_temp_upload_text(file);
-    if (input.indexOf(temporary_insertion_text) != -1) {
+    const s = upload_temp_link(file);
+    if (input.indexOf(s) != -1) {
       // already have link.
       return;
     }
-    cm.current.replaceRange(temporary_insertion_text, cm.current.getCursor());
+    cm.current.replaceRange(s, cm.current.getCursor());
   }
 
   function upload_complete(file: {
@@ -188,7 +190,7 @@ export const MarkdownInput: React.FC<Props> = ({
     name: string;
     status: string;
   }): void {
-    console.log("upload_complete", file);
+    // console.log("upload_complete", file);
     if (current_uploads_ref.current != null) {
       delete current_uploads_ref.current[file.name];
       if (len(current_uploads_ref.current) == 0) {
@@ -200,28 +202,34 @@ export const MarkdownInput: React.FC<Props> = ({
     }
     if (cm.current == null) return;
     const input = cm.current.getValue();
-    const temporary_insertion_text = generate_temp_upload_text(file);
-    let final_insertion_text;
+    const s0 = upload_temp_link(file);
+    let s1: string;
     if (file.status == "error") {
-      final_insertion_text = "";
+      s1 = "";
       alert_message({ type: "error", message: "Error uploading file." });
     } else if (file.status == "canceled") {
       // users can cancel files when they are being uploaded.
-      final_insertion_text = "";
+      s1 = "";
     } else {
-      const target = join(UPLOAD_PATH, file.name);
-      if (file.type.indexOf("image") !== -1) {
-        final_insertion_text = `<img src=\"${target}\" style="max-width:100%" />`;
-      } else {
-        final_insertion_text = `<a href=\"${target}\">${file.name}</a>`;
-        // We use an a tag instead of [${file.name}](${target}) because for
-        // some files (e.g,. word doc files) our markdown renderer inexplicably
-        // does NOT render them as links!?  a tags work though.
-      }
+      s1 = upload_link(file);
     }
-    cm.current.setValue(
-      input.replace(temporary_insertion_text, final_insertion_text)
-    );
+    cm.current.setValue(input.replace(s0, s1));
+  }
+
+  function upload_removed(file: { name: string; type: string }): void {
+    if (cm.current == null) return;
+    // console.log("upload_removed", file);
+    const input = cm.current.getValue();
+    const s = upload_link(file);
+    if (input.indexOf(s) == -1) {
+      // not there anymore; maybe user already submitted -- do nothing further.
+      return;
+    }
+    cm.current.setValue(input.replace(s, ""));
+    // delete from project itself
+    const target = join(path_split(path).head, upload_target(file));
+    // console.log("deleting target", target, { paths: [target] });
+    redux.getProjectActions(project_id).delete_files({ paths: [target] });
   }
 
   let body: JSX.Element = (
@@ -241,6 +249,7 @@ export const MarkdownInput: React.FC<Props> = ({
         event_handlers={{
           complete: upload_complete,
           sending: upload_sending,
+          removedfile: upload_removed,
         }}
         style={{ height: "100%" }}
         dropzone_ref={dropzone_ref}
@@ -254,6 +263,22 @@ export const MarkdownInput: React.FC<Props> = ({
   return body;
 };
 
-function generate_temp_upload_text(file: { name: string }): string {
+function upload_target(file: { name: string }): string {
+  return join(UPLOAD_PATH, file.name);
+}
+
+function upload_temp_link(file: { name: string }): string {
   return `[Uploading...]\(${file.name}\)`;
+}
+
+function upload_link(file: { name: string; type: string }): string {
+  const target = upload_target(file);
+  if (file.type.indexOf("image") !== -1) {
+    return `<img src=\"${target}\" style="max-width:100%" />`;
+  } else {
+    // We use an a tag instead of [${file.name}](${target}) because for
+    // some files (e.g,. word doc files) our markdown renderer inexplicably
+    // does NOT render them as links!?  a tags work though.
+    return `<a href=\"${target}\">${file.name}</a>`;
+  }
 }
