@@ -12,14 +12,16 @@ Stage 1 -- enough to replace current chat input:
   - [x] drag and drop of images and other files
   - [x] cancel upload in progress
   - [x] don't allow send *during* upload.
-  - [ ] cancel upload that is finished
-  - [ ] paste of images and files
+  - [x] cancel upload that is finished and delete file
+  - [x] paste of images
+  - [ ] change the path for file uploads to depend on the file being edited. Then move/copy makes WAY more sense and is more robust going forward.
   - [ ] @mentions (via completion dialog) -the collabs on this project
   - [ ] make file upload LOOK GOOD
   - [ ] close file upload when input is blanked (i.e., on send)
 
 Stage 2 -- stretch goal challenges:
 ---
+  - [ ] improve move and delete to be aware of images (?).
   - [ ] bonus: don't insert the link inside of an existing link tag...
   - [ ] border when focused
   - [ ] preview
@@ -143,6 +145,11 @@ export const MarkdownInput: React.FC<Props> = ({
       cm.current.on("blur", () => onBlur());
     }
 
+    if (enableUpload) {
+      // as any because the @types for codemirror are WRONG in this case.
+      cm.current.on("paste", handle_paste_event as any);
+    }
+
     const e: any = cm.current.getWrapperElement();
     e.setAttribute(
       "style",
@@ -239,6 +246,25 @@ export const MarkdownInput: React.FC<Props> = ({
     const target = join(path_split(path).head, upload_target(file));
     // console.log("deleting target", target, { paths: [target] });
     redux.getProjectActions(project_id).delete_files({ paths: [target] });
+  }
+
+  function handle_paste_event(_, e): void {
+    console.log("handle_paste_event", e);
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item != null && item.type.startsWith("image/")) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file != null) {
+          const blob = file.slice(0, -1, item.type);
+          dropzone_ref.current?.addFile(
+            new File([blob], `paste-${Math.random()}`, { type: item.type })
+          );
+        }
+        return;
+      }
+    }
   }
 
   let body: JSX.Element = (
