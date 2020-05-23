@@ -436,10 +436,8 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   function on_send(): void {
     scroll_to_bottom(log_container_ref, true);
     actions.submit_user_mentions();
-    actions.send_chat(input);
-    if (input_ref.current != null && input_ref.current.focus != null) {
-      input_ref.current.focus();
-    }
+    actions.send_chat();
+    input_ref.current?.focus?.();
     close_preview_ref.current?.();
   }
 

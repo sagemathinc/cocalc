@@ -71,7 +71,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
   function send_chat(): void {
     scroll_to_bottom(log_container_ref, true);
     actions.submit_user_mentions();
-    actions.send_chat(input);
+    actions.send_chat();
     if (input_ref.current != null) {
       // TODO -- looks bad
       (input_ref.current as any).focus();

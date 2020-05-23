@@ -113,22 +113,24 @@ export class ChatActions extends Actions<ChatState> {
     }
   }
 
-  public send_chat(content): void {
-    if (this.syncdb == null) {
+  public send_chat(): void {
+    if (this.syncdb == null || this.store == null) {
       // WARNING: give an error or try again later?
       return;
     }
+    const input = this.store.get("input").trim();
+    if (input.length == 0) return; // do not send.
     const sender_id = this.redux.getStore("account").get_account_id();
     const time_stamp = webapp_client.server_time().toISOString();
     this.syncdb.set({
       sender_id,
       event: "chat",
-      history: [{ author_id: sender_id, content, date: time_stamp }],
+      history: [{ author_id: sender_id, content: input, date: time_stamp }],
       date: time_stamp,
     });
     // NOTE: we clear search, since it's very confusing to send a message and not
     // even see it (if it doesn't match search).
-    this.setState({ last_sent: content, search: "", input: "" });
+    this.setState({ last_sent: input, search: "", input: "" });
     // NOTE: further that annoyingly the search box isn't controlled so the input
     // isn't cleared, which is also confusing. todo -- fix.
     user_tracking("send_chat", {
@@ -195,7 +197,9 @@ export class ChatActions extends Actions<ChatState> {
 
   public set_to_last_input(): void {
     if (this.store == null) return;
-    this.setState({ input: this.store.get("last_sent") });
+    const input = this.store.get("last_sent");
+    if (!input || input.trim().length == 0) return;
+    this.setState({ input });
   }
 
   public set_input(input: string): void {

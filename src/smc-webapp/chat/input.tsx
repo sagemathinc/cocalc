@@ -3,14 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { MentionsInput, Mention } from "react-mentions";
-import { React, useRedux, useRef, useMemo, useActions } from "../app-framework";
-import { USER_MENTION_MARKUP } from "./utils";
-import { cmp_Date } from "smc-util/misc2";
-import { FormControl } from "react-bootstrap";
-import { Space } from "../r_misc/space";
-import { Avatar } from "../account/avatar/avatar";
-import { IS_MOBILE, isMobile } from "../feature";
+//import { MentionsInput, Mention } from "react-mentions";
+import { React, useActions } from "../app-framework";
+//import { USER_MENTION_MARKUP } from "./utils";
+// import { cmp_Date } from "smc-util/misc2";
+//import { FormControl } from "react-bootstrap";
+//import { Space } from "../r_misc/space";
+//import { Avatar } from "../account/avatar/avatar";
+//import { IS_MOBILE, isMobile } from "../feature";
 import { MarkdownInput } from "../editors/markdown-input";
 
 interface Props {
@@ -23,71 +23,18 @@ interface Props {
   project_users: any;
   user_store: any;
   on_paste?: (e) => void;
-  on_send: (value) => void;
+  on_send: () => void;
   on_clear: () => void;
   on_set_to_last_input: () => void;
   account_id: string;
 }
 
 export const ChatInput: React.FC<Props> = (props) => {
-  const font_size = useRedux(["account", "font_size"]);
-  const mentions_input_ref = useRef<MentionsInput>(null);
-  const input_ref = useRef<HTMLTextAreaElement>(null);
+  // const font_size = useRedux(["account", "font_size"]);
+  // const mentions_input_ref = useRef<MentionsInput>(null);
+  // const input_ref = useRef<HTMLTextAreaElement>(null);
   const actions = useActions(props.project_id, props.path);
-
-  const input_style = useMemo(() => {
-    return {
-      height: props.height,
-
-      "&multiLine": {
-        highlighter: {
-          padding: 5,
-        },
-
-        control: {
-          height: "100%",
-          backgroundColor: "white",
-          leftMargin: "2px",
-        },
-
-        input: {
-          height: "100%",
-          fontSize: font_size,
-          border: "1px solid #ccc",
-          borderRadius: "4px",
-          boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)",
-          overflow: "auto",
-          padding: "5px 10px",
-        },
-      },
-
-      suggestions: {
-        list: {
-          backgroundColor: "white",
-          border: "1px solid #ccc",
-          borderRadius: "4px",
-          fontSize: font_size,
-          position: "absolute",
-          bottom: "10px",
-          overflow: "auto",
-          maxHeight: "145px",
-          width: "max-content",
-          display: "flex",
-          flexDirection: "column",
-        },
-
-        item: {
-          padding: "5px 15px 5px 10px",
-          borderBottom: "1px solid rgba(0,0,0,0.15)",
-
-          "&focused": {
-            backgroundColor: "rgb(66, 139, 202, 0.4)",
-          },
-        },
-      },
-    };
-  }, [font_size, props.height]);
-
+  /*
   const user_array = useMemo(() => {
     const user_array = props.project_users
       .keySeq()
@@ -115,10 +62,10 @@ export const ChatInput: React.FC<Props> = (props) => {
     }
   }
 
-  function on_keydown(e): void {
+  function (e): void {
     if (e.keyCode === 13 && e.shiftKey) {
       e.preventDefault();
-      if (props.input.length && props.input.trim().length >= 1) {
+      if (props.input.trim().length >= 1) {
         // send actual input since on_input_change is debounced.
         props.on_send(props.input);
       }
@@ -130,8 +77,9 @@ export const ChatInput: React.FC<Props> = (props) => {
       props.on_clear();
     }
   }
+*/
 
-  function render_user_suggestion(entry: {
+  /*function render_user_suggestion(entry: {
     id: string;
     display: string;
   }): JSX.Element {
@@ -143,8 +91,23 @@ export const ChatInput: React.FC<Props> = (props) => {
         {entry.display}
       </span>
     );
-  }
+  }*/
 
+  return (
+    <MarkdownInput
+      project_id={props.project_id}
+      path={props.path}
+      value={props.input}
+      enableImages={true}
+      enableMentions={props.enable_mentions}
+      onChange={(value) => actions.set_input(value)}
+      onShiftEnter={props.on_send}
+      onEscape={props.on_clear}
+      style={{ height: "100px" }}
+    />
+  );
+
+  /*
   if (!props.enable_mentions) {
     // NOTE about the "input_ref as any" below.
     // I think we want to style from react bootstraps
@@ -173,14 +136,12 @@ export const ChatInput: React.FC<Props> = (props) => {
 
   return (
     <div>
-      <br />
       <MarkdownInput
         project_id={props.project_id}
         path={props.path}
         value={props.input}
         onChange={(value) => actions.set_input(value)}
       />
-      <br />
       <MentionsInput
         ref={mentions_input_ref}
         autoFocus={!IS_MOBILE || isMobile.Android()}
@@ -203,6 +164,7 @@ export const ChatInput: React.FC<Props> = (props) => {
       </MentionsInput>
     </div>
   );
+  */
 };
 
 ChatInput.defaultProps = {
