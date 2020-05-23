@@ -127,6 +127,15 @@ export const MarkdownInput: React.FC<Props> = ({
     cm.current = CodeMirror.fromTextArea(node, options);
     cm.current.setValue(value);
     cm.current.on("change", (editor) => {
+      if (current_uploads_ref.current != null) {
+        // IMPORTANT: we do NOT report the latest version back while
+        // uploading files.  Otherwise, if more than one is being
+        // uploaded at once, then we end up with an infinite loop
+        // of updates.  In any case, once all the uploads finish
+        // we'll start reporting chanages again.  This is fine
+        // since you don't want to submit input *during* uploads anyways.
+        return;
+      }
       onChange(editor.getValue());
     });
 
@@ -242,15 +251,16 @@ export const MarkdownInput: React.FC<Props> = ({
     </div>
   );
   if (enableUpload) {
+    const event_handlers = {
+      complete: upload_complete,
+      sending: upload_sending,
+      removedfile: upload_removed,
+    };
     body = (
       <FileUploadWrapper
         project_id={project_id}
         dest_path={join(path_split(path).head, UPLOAD_PATH)}
-        event_handlers={{
-          complete: upload_complete,
-          sending: upload_sending,
-          removedfile: upload_removed,
-        }}
+        event_handlers={event_handlers}
         style={{ height: "100%" }}
         dropzone_ref={dropzone_ref}
         close_preview_ref={close_preview_ref}
