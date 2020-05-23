@@ -55,7 +55,7 @@ const codemirror_associations: { [ext: string]: string } = {
   ls: "text/x-livescript",
   lua: "lua",
   m: "text/x-octave",
-  md: "yaml-frontmatter",
+  md: "text/x-markdown",
   ml: "text/x-ocaml",
   mysql: "text/x-sql",
   patch: "text/x-diff",

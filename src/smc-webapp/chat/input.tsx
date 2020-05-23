@@ -4,19 +4,14 @@
  */
 
 import { MentionsInput, Mention } from "react-mentions";
-import {
-  React,
-  useRedux,
-  useRef,
-  useMemo,
-  useActions,
-} from "../app-framework";
+import { React, useRedux, useRef, useMemo, useActions } from "../app-framework";
 import { USER_MENTION_MARKUP } from "./utils";
 import { cmp_Date } from "smc-util/misc2";
 import { FormControl } from "react-bootstrap";
 import { Space } from "../r_misc/space";
 import { Avatar } from "../account/avatar/avatar";
 import { IS_MOBILE, isMobile } from "../feature";
+import { MarkdownInput } from "../editors/markdown-input";
 
 interface Props {
   project_id: string;
@@ -177,26 +172,36 @@ export const ChatInput: React.FC<Props> = (props) => {
   }
 
   return (
-    <MentionsInput
-      ref={mentions_input_ref}
-      autoFocus={!IS_MOBILE || isMobile.Android()}
-      displayTransform={(_, display) => "@" + display}
-      style={input_style}
-      markup={USER_MENTION_MARKUP}
-      inputRef={props.input_ref}
-      onKeyDown={on_keydown}
-      value={props.input}
-      placeholder={"Type a message, @name..."}
-      onPaste={props.on_paste}
-      onChange={on_change}
-    >
-      <Mention
-        trigger="@"
-        data={user_array}
-        appendSpaceOnAdd={true}
-        renderSuggestion={render_user_suggestion}
+    <div>
+      <br />
+      <MarkdownInput
+        project_id={props.project_id}
+        path={props.path}
+        value={props.input}
+        onChange={(value) => actions.set_input(value)}
       />
-    </MentionsInput>
+      <br />
+      <MentionsInput
+        ref={mentions_input_ref}
+        autoFocus={!IS_MOBILE || isMobile.Android()}
+        displayTransform={(_, display) => "@" + display}
+        style={input_style}
+        markup={USER_MENTION_MARKUP}
+        inputRef={props.input_ref}
+        onKeyDown={on_keydown}
+        value={props.input}
+        placeholder={"Type a message, @name..."}
+        onPaste={props.on_paste}
+        onChange={on_change}
+      >
+        <Mention
+          trigger="@"
+          data={user_array}
+          appendSpaceOnAdd={true}
+          renderSuggestion={render_user_suggestion}
+        />
+      </MentionsInput>
+    </div>
   );
 };
 
