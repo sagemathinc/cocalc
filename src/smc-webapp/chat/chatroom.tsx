@@ -328,7 +328,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           (value) => actions.setState({ search: value }),
           500
         )}
-        style={{ margin: 0 }}
+        style={{ margin: 0, width: "100%", marginBottom: "5px" }}
       />
     );
   }
@@ -336,21 +336,16 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   function render_button_row() {
     return (
       <Row style={{ marginTop: "5px" }}>
-        <Col xs={6} md={6} style={{ padding: "2px" }}>
-          {render_search()}
-        </Col>
-        <Col
-          xs={6}
-          md={6}
-          className="pull-right"
-          style={{ padding: "2px", textAlign: "right" }}
-        >
+        <Col xs={6} md={6} style={{ padding: "2px", textAlign: "right" }}>
           <ButtonGroup>
             {render_save_button()}
             {render_timetravel_button()}
             {render_video_chat_button()}
             {render_bottom_button()}
           </ButtonGroup>
+        </Col>
+        <Col xs={6} md={6} style={{ padding: "2px" }}>
+          {render_search()}
         </Col>
       </Row>
     );
@@ -446,6 +441,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   }
 
   function render_body(): JSX.Element {
+    const INPUT_HEIGHT = "100px";
     return (
       <div className="smc-vfill" style={GRID_STYLE}>
         {!IS_MOBILE ? render_button_row() : undefined}
@@ -467,7 +463,12 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
         </div>
         <div style={{ display: "flex", maxWidth: "100vw" }}>
           <div
-            style={{ flex: "1", padding: "0px 2px 0px 2px", width: "250px" }}
+            style={{
+              flex: "1",
+              padding: "0px 2px 0px 2px",
+              width: "250px",
+              height: INPUT_HEIGHT,
+            }}
           >
             <FileUploadWrapper
               project_id={project_id}
@@ -491,7 +492,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
                 enable_mentions={enable_mentions}
                 project_users={project_users}
                 user_store={redux.getStore("users")}
-                height={"100px"}
                 on_paste={handle_paste_event}
                 on_clear={on_clear}
                 on_send={on_send}
@@ -502,7 +502,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           </div>
           <div
             style={{
-              height: "90px",
+              height: INPUT_HEIGHT,
               padding: "0",
               marginBottom: "0",
               display: "flex",
@@ -519,6 +519,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
                 Preview
               </Button>
             ) : undefined}
+            <div style={{ height: "5px" }} />
             <Button
               onClick={on_send_button_click}
               disabled={input === ""}

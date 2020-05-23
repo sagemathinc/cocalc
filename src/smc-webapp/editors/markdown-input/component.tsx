@@ -7,14 +7,14 @@ Stage 1 -- enough to replace current chat input:
   [x] spellcheck
   [x] vim/emacs/sublime keybinding modes
   [x] non-monospace font
+  [x] focus current line
+  [x] placeholder text
   [ ] drag and drop and paste of images
   [ ] @mentions (via completion dialog) -the collabs on this project
-  [ ] border when focused
-  [ ] focus current line
-  [ ] placeholder text
 
 Stage 2 -- stretch goal challenges:
 ---
+  [ ] border when focused
   [ ] preview
   [ ] directions and links
   [ ] hashtags
@@ -25,6 +25,7 @@ Use this for:
   - chat input
   - course editor conf fields involving markdown
   - markdown in jupyter
+  - task editor (especially with #tag completion)
 
 It will be a controlled component that takes project_id and path as input.
 */
@@ -53,6 +54,7 @@ interface Props {
   onShiftEnter?: () => void;
   onEscape?: () => void;
   onBlur?: () => void;
+  placeholder?: string;
 }
 export const MarkdownInput: React.FC<Props> = ({
   project_id,
@@ -65,6 +67,7 @@ export const MarkdownInput: React.FC<Props> = ({
   onShiftEnter,
   onEscape,
   onBlur,
+  placeholder,
 }) => {
   // @ts-ignore
   const deleteme = [project_id, path, enableImages, enableMentions];
@@ -134,7 +137,11 @@ export const MarkdownInput: React.FC<Props> = ({
 
   return (
     <div style={{ ...STYLE, ...style, ...{ fontSize: `${fontSize}px` } }}>
-      <textarea style={{ display: "none" }} ref={textarea_ref} />
+      <textarea
+        style={{ display: "none" }}
+        ref={textarea_ref}
+        placeholder={placeholder}
+      />
     </div>
   );
 };

@@ -17,7 +17,6 @@ interface Props {
   project_id: string;
   path: string;
   input: string;
-  height?: string;
   input_ref: React.RefObject<HTMLTextAreaElement>;
   enable_mentions: boolean;
   project_users: any;
@@ -103,7 +102,8 @@ export const ChatInput: React.FC<Props> = (props) => {
       onChange={(value) => actions.set_input(value)}
       onShiftEnter={props.on_send}
       onEscape={props.on_clear}
-      style={{ height: "100px" }}
+      style={{ height: "100%" }}
+      placeholder={"Type a message..."}
     />
   );
 
@@ -169,5 +169,4 @@ export const ChatInput: React.FC<Props> = (props) => {
 
 ChatInput.defaultProps = {
   enable_mentions: true,
-  height: "100%",
 };
