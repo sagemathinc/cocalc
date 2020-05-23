@@ -16,7 +16,7 @@ import { Loading } from "../r_misc/loading";
 
 interface ReactProps {
   project: any;
-  none?: React.ComponentType<any>;
+  none?: JSX.Element;
 }
 
 interface ReduxProps {

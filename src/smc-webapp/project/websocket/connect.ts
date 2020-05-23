@@ -245,7 +245,6 @@ async function connection_to_project0(project_id: string): Promise<any> {
 export const connection_to_project = reuseInFlight(connection_to_project0);
 
 export function disconnect_from_project(project_id: string): void {
-  //console.log(`conn ${project_id} -- disconnect`);
   const conn = connections[project_id];
   if (conn === undefined) {
     return;
@@ -254,4 +253,10 @@ export function disconnect_from_project(project_id: string): void {
   conn.destroy();
   delete conn.api;
   delete connections[project_id];
+}
+
+export function disconnect_from_all_projects(): void {
+  for (const project_id in connections) {
+    disconnect_from_project(project_id);
+  }
 }

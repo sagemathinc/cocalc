@@ -38,7 +38,7 @@ if (process.env.JUPYTER_BLOBS_DB_FILE) {
 const BASE64_TYPES = ["image/png", "image/jpeg", "application/pdf", "base64"];
 
 export class BlobStore implements BlobStoreInterface {
-  private _db: Database;
+  private db: Database.Database;
 
   constructor() {
     winston.debug("jupyter BlobStore: constructor");
@@ -70,11 +70,11 @@ export class BlobStore implements BlobStoreInterface {
 
   _init(): void {
     if (JUPYTER_BLOBS_DB_FILE == "memory") {
-      this._db = new Database(".db", { memory: true });
+      this.db = new Database(".db", { memory: true });
     } else {
-      this._db = new Database(JUPYTER_BLOBS_DB_FILE);
+      this.db = new Database(JUPYTER_BLOBS_DB_FILE);
     }
-    this._db
+    this.db
       .prepare(
         "CREATE TABLE IF NOT EXISTS blobs (sha1 TEXT, data BLOB, type TEXT, ipynb TEXT, time INTEGER)"
       )
@@ -89,14 +89,12 @@ export class BlobStore implements BlobStoreInterface {
     // that they do not loose any work.  So a few weeks should be way more than enough.
     // Note that TimeTravel may rely on these old blobs, so images in TimeTravel may
     // stop working after this long.  That's a tradeoff.
-    this._db
-      .prepare("DELETE FROM blobs WHERE time <= ?")
-      .run(months_ago(1) - 0);
+    this.db.prepare("DELETE FROM blobs WHERE time <= ?").run(months_ago(1) - 0);
   }
 
   // used in testing
   delete_all_blobs(): void {
-    this._db.prepare("DELETE FROM blobs").run();
+    this.db.prepare("DELETE FROM blobs").run();
   }
 
   // data could, e.g., be a uuencoded image
@@ -111,13 +109,13 @@ export class BlobStore implements BlobStoreInterface {
       data = Buffer.from(data);
     }
     const sha1: string = misc_node.sha1(data);
-    const row = this._db.prepare("SELECT * FROM blobs where sha1=?").get(sha1);
+    const row = this.db.prepare("SELECT * FROM blobs where sha1=?").get(sha1);
     if (row == null) {
-      this._db
+      this.db
         .prepare("INSERT INTO blobs VALUES(?, ?, ?, ?, ?)")
         .run([sha1, data, type, ipynb, new Date().valueOf()]);
     } else {
-      this._db
+      this.db
         .prepare("UPDATE blobs SET time=? WHERE sha1=?")
         .run([new Date().valueOf(), sha1]);
     }
@@ -138,14 +136,14 @@ export class BlobStore implements BlobStoreInterface {
 
   // Return data with given sha1, or undefined if no such data.
   get(sha1: string): undefined | Buffer {
-    const x = this._db.prepare("SELECT data FROM blobs where sha1=?").get(sha1);
+    const x = this.db.prepare("SELECT data FROM blobs where sha1=?").get(sha1);
     if (x != null) {
       return x.data;
     }
   }
 
   get_ipynb(sha1: string): any {
-    const row = this._db
+    const row = this.db
       .prepare("SELECT ipynb, type, data FROM blobs where sha1=?")
       .get(sha1);
     if (row == null) {
@@ -162,7 +160,7 @@ export class BlobStore implements BlobStoreInterface {
   }
 
   keys(): string[] {
-    return this._db
+    return this.db
       .prepare("SELECT sha1 FROM blobs")
       .all()
       .map((x) => x.sha1);

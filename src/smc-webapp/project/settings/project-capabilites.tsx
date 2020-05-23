@@ -11,6 +11,7 @@ import { Project } from "./types";
 import { Map } from "immutable";
 import * as misc from "smc-util/misc2";
 import { Button } from "antd";
+import { ReloadOutlined } from "@ant-design/icons";
 
 const { CUSTOM_SOFTWARE_HELP_URL } = require("../../custom-software/util");
 const { COLORS } = require("smc-util/theme");
@@ -207,7 +208,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
       return (
         <Button
           onClick={() => this.reload()}
-          icon={"reload"}
+          icon={<ReloadOutlined />}
           disabled={this.props.configuration_loading}
           style={{ float: "right", marginTop: "-7.5px" }} // that compensates for bootstrap's 15px's all over the place...
         >

@@ -1560,7 +1560,7 @@ class CodeMirrorEditor extends FileEditor
 
         # not all textedit buttons are known
         textedit_only_show_known_buttons = (name) =>
-            EDIT_COMMANDS = require('./buttonbar').commands
+            EDIT_COMMANDS = require('./editors/editor-button-bar').commands
             {sagews_canonical_mode} = require('./misc_page')
             default_mode = @focused_codemirror()?.get_edit_mode() ? 'sage'
             mode = sagews_canonical_mode(name, default_mode)

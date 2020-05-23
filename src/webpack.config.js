@@ -422,7 +422,7 @@ if (!DISABLE_TS_LOADER_OPTIMIZATIONS) {
       // in package.json's watch. See
       //  https://blog.johnnyreilly.com/2019/05/typescript-and-high-cpu-usage-watch.html
       async: false,
-      measureCompilationTime: true,
+      measureCompilationTime: false,
     })
   );
 }

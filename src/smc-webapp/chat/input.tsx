@@ -6,7 +6,6 @@
 import * as React from "react";
 import memoizeOne from "memoize-one";
 import * as immutable from "immutable";
-const sha1 = require("sha1");
 import { delay } from "awaiting";
 
 import { MentionsInput, Mention } from "react-mentions";
@@ -18,7 +17,6 @@ import { Avatar } from "../account/avatar/avatar";
 import { IS_MOBILE, isMobile } from "../feature";
 
 interface Props {
-  name: string;
   input: string;
   input_ref: React.RefObject<HTMLTextAreaElement>;
   input_style?: any; // Used to override defaults
@@ -186,11 +184,6 @@ export class ChatInput extends React.PureComponent<Props> {
       this.props.input_style ||
       this.input_style(this.props.font_size, this.props.height);
 
-    let id: string | undefined = undefined;
-    if (this.props.name) {
-      id = sha1(this.props.name);
-    }
-
     if (!this.props.enable_mentions) {
       // NOTE about the "this.input_ref as any" below.
       // I think we want to style from react bootstraps
@@ -205,7 +198,6 @@ export class ChatInput extends React.PureComponent<Props> {
       // support it, which it should -- it's just more work).
       return (
         <FormControl
-          id={id}
           autoFocus={!IS_MOBILE || isMobile.Android()}
           componentClass="textarea"
           ref={this.input_ref as any}
@@ -220,7 +212,6 @@ export class ChatInput extends React.PureComponent<Props> {
 
     return (
       <MentionsInput
-        id={id}
         ref={this.mentions_input_ref}
         autoFocus={!IS_MOBILE || isMobile.Android()}
         displayTransform={(_, display) => "@" + display}

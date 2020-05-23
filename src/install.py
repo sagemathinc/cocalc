@@ -88,7 +88,7 @@ def install_project():
 
     # Pre-compile everything to Javascript, so that loading is much faster and more efficient.
     # This can easily save more than 2 seconds, given how big things have got.
-    cmd("cd /usr/lib/node_modules && coffee -c smc-util smc-util-node smc-webapp smc-project smc-project/jupyter smc-webapp/jupyter"
+    cmd("cd /usr/lib/node_modules && coffee -c smc-util smc-util-node smc-webapp smc-project smc-project/jupyter"
         )
 
 
@@ -119,7 +119,7 @@ def install_webapp(*args):
         cmd("git submodule update --init")
         cmd("cd examples && env OUTDIR=../webapp-lib/examples make")
 
-        paths = ['smc-webapp', 'smc-webapp/jupyter', '.', 'smc-util', 'webapp-lib/resources']
+        paths = ['smc-webapp', '.', 'smc-util', 'webapp-lib/resources']
 
         # npm ci for using pkg lock file
         def build_op(path):

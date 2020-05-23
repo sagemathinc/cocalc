@@ -3,11 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { MentionList } from "./store";
+import { delay } from "awaiting";
+import { throttle } from "lodash";
+import { original_path } from "smc-util/misc";
 
-export function generate_name(project_id: string, path: string) {
-  return `editor-${project_id}-${path}`;
-}
+import { redux } from "../app-framework";
+
+import { MentionList } from "./store";
+import { Message } from "./types";
 
 export const USER_MENTION_MARKUP =
   '<span class="user-mention" account-id=__id__ >@__display__</span>';
@@ -67,3 +70,91 @@ export function compute_cursor_offset_position(
   }
   return index_offset + usuable_cursor_index;
 }
+
+export function newest_content(message: Message): string {
+  return message.get("history")?.first()?.get("content") ?? "";
+}
+
+export function sender_is_viewer(
+  account_id: string,
+  message: Message
+): boolean {
+  return account_id == message.get("sender_id");
+}
+
+export function message_colors(
+  account_id: string,
+  message: Message
+): {
+  background: string;
+  color: string;
+  message_class: string;
+  lighten?: { color: string };
+} {
+  if (sender_is_viewer(account_id, message)) {
+    return {
+      background: "#46b1f6",
+      color: "#fff",
+      message_class: "smc-message-from-viewer",
+    };
+  } else {
+    return {
+      background: "#efefef",
+      color: "#000",
+      lighten: { color: "#888" },
+      message_class: "smc-message-from-other",
+    };
+  }
+}
+
+export async function scroll_to_bottom(
+  log_container_ref: { current: any },
+  force: boolean = false
+): void {
+  if (
+    !log_container_ref.current ||
+    (!force && log_container_ref.current.chat_manual_scroll) ||
+    log_container_ref.current.chat_scroll_to_bottom
+  ) {
+    return;
+  }
+
+  try {
+    // this "chat_scroll_to_bottom" is an abusive hack because I'm lazy -- ws.
+    log_container_ref.current.chat_scroll_to_bottom = true;
+    delete log_container_ref.current.chat_manual_scroll;
+    for (const d of [1, 50, 200]) {
+      if (log_container_ref.current == null) {
+        break;
+      }
+      log_container_ref.current.chat_scroll_to_bottom = true;
+      const windowed_list = log_container_ref.current;
+      if (windowed_list != null) {
+        windowed_list.scrollToRow(-1);
+        await delay(d);
+      }
+    }
+  } finally {
+    delete log_container_ref.current?.chat_scroll_to_bottom;
+  }
+}
+
+export function is_editing(message: Message, account_id: string): boolean {
+  return message.get("editing")?.has(account_id);
+}
+
+export const mark_chat_as_read_if_unseen: (
+  project_id: string,
+  path: string
+) => void = throttle((project_id: string, path: string) => {
+  const info = redux
+    ?.getStore("file_use")
+    ?.get_file_info(project_id, original_path(path));
+  if (info == null || info.is_unseenchat) {
+    // only mark chat as read if it is unseen
+    const actions = redux?.getActions("file_use");
+    if (actions == null) return;
+    actions.mark_file(project_id, path, "read");
+    actions.mark_file(project_id, path, "chatseen");
+  }
+}, 3000);

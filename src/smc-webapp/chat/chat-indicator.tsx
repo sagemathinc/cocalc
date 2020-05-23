@@ -8,10 +8,8 @@ import { filename_extension } from "smc-util/misc2";
 import { analytics_event } from "../tracker";
 import { React, redux, COLOR, useRedux, useMemo } from "../app-framework";
 import { Icon, Tip, Space } from "../r_misc";
-//import { VideoChatButton } from "../video-chat";
-const { VideoChatButton } = require("../video-chat");
-//import { UsersViewing } from "../other-users";
-const { UsersViewing } = require("../other-users");
+import { UsersViewing } from "../account/avatar/users-viewing";
+import { VideoChatButton } from "./video/launch-button";
 
 const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "14pt",
@@ -98,7 +96,7 @@ export const ChatIndicator: React.FC<Props> = ({
           <span
             style={{ marginLeft: "5px", marginRight: "5px", color: "#428bca" }}
           >
-            <VideoChatButton project_id={project_id} path={path} short={true} />
+            <VideoChatButton project_id={project_id} path={path} button={false} />
           </span>
         )}
         <Tip

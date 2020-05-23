@@ -24,7 +24,7 @@ import { ProjectActions } from "../../project_actions";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { special_filenames_with_no_extension } = require("../../project_file");
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { SMC_Dropzone } = require("../../smc-dropzone");
+import { FileUpload } from "../../file-upload";
 import { NewFileButton } from "./new-file-button";
 import { NewFileDropdown } from "./new-file-dropdown";
 import { FileTypeSelector } from "./file-type-selector";
@@ -44,7 +44,7 @@ interface ReactProps {
 }
 
 interface ReduxProps {
-  current_path?: string;
+  current_path: string;
   default_filename: string;
   file_creation_error: string;
   available_features: AvailableFeatures;
@@ -260,7 +260,7 @@ export const ProjectNewForm = rclass<ReactProps>(
           </Row>
           <Row>
             <Col sm={12}>
-              <SMC_Dropzone
+              <FileUpload
                 dropzone_handler={{
                   complete: (): void => {
                     this.props.actions.fetch_directory_listing();
