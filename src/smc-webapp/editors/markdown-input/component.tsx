@@ -14,10 +14,13 @@ Stage 1 -- enough to replace current chat input:
   - [x] don't allow send *during* upload.
   - [x] cancel upload that is finished and delete file
   - [x] paste of images
-  - [ ] change the path for file uploads to depend on the file being edited. Then move/copy makes WAY more sense and is more robust going forward.
+  - [ ] (now) change the path for file uploads to depend on the file being edited. Then move/copy makes WAY more sense and is more robust going forward.
   - [ ] @mentions (via completion dialog) -the collabs on this project
   - [ ] make file upload LOOK GOOD
+
+BUGS:
   - [ ] close file upload when input is blanked (i.e., on send)
+  - [ ] closing the file upload preview DELETES all the uploaded files.
 
 Stage 2 -- stretch goal challenges:
 ---
@@ -39,15 +42,14 @@ Use this for:
 It will be a controlled component that takes project_id and path as input.
 */
 
-// Note -- we make the dest_path .chat-images, mainly for backward
-// compatibility, since it can be used for any files (not just images),
-// and this can be used for more than just chat.
-const UPLOAD_PATH = ".chat-images";
+// Note -- the old file upload used .chat-images for everything,
+// rather than a directory for each file.
+const AUX_FILE_EXT = "upload";
 
 import { join } from "path";
 import * as CodeMirror from "codemirror";
 
-import { len, path_split } from "smc-util/misc2";
+import { aux_file, len, path_split } from "smc-util/misc2";
 
 import {
   React,
@@ -193,7 +195,7 @@ export const MarkdownInput: React.FC<Props> = ({
     }
     if (cm.current == null) return;
     const input = cm.current.getValue();
-    const s = upload_temp_link(file);
+    const s = upload_temp_link(path, file);
     if (input.indexOf(s) != -1) {
       // already have link.
       return;
@@ -218,7 +220,7 @@ export const MarkdownInput: React.FC<Props> = ({
     }
     if (cm.current == null) return;
     const input = cm.current.getValue();
-    const s0 = upload_temp_link(file);
+    const s0 = upload_temp_link(path, file);
     let s1: string;
     if (file.status == "error") {
       s1 = "";
@@ -227,7 +229,7 @@ export const MarkdownInput: React.FC<Props> = ({
       // users can cancel files when they are being uploaded.
       s1 = "";
     } else {
-      s1 = upload_link(file);
+      s1 = upload_link(path, file);
     }
     cm.current.setValue(input.replace(s0, s1));
   }
@@ -236,14 +238,14 @@ export const MarkdownInput: React.FC<Props> = ({
     if (cm.current == null) return;
     // console.log("upload_removed", file);
     const input = cm.current.getValue();
-    const s = upload_link(file);
+    const s = upload_link(path, file);
     if (input.indexOf(s) == -1) {
       // not there anymore; maybe user already submitted -- do nothing further.
       return;
     }
     cm.current.setValue(input.replace(s, ""));
     // delete from project itself
-    const target = join(path_split(path).head, upload_target(file));
+    const target = join(aux_file(path, AUX_FILE_EXT), file.name);
     // console.log("deleting target", target, { paths: [target] });
     redux.getProjectActions(project_id).delete_files({ paths: [target] });
   }
@@ -285,7 +287,7 @@ export const MarkdownInput: React.FC<Props> = ({
     body = (
       <FileUploadWrapper
         project_id={project_id}
-        dest_path={join(path_split(path).head, UPLOAD_PATH)}
+        dest_path={aux_file(path, AUX_FILE_EXT)}
         event_handlers={event_handlers}
         style={{ height: "100%" }}
         dropzone_ref={dropzone_ref}
@@ -299,16 +301,20 @@ export const MarkdownInput: React.FC<Props> = ({
   return body;
 };
 
-function upload_target(file: { name: string }): string {
-  return join(UPLOAD_PATH, file.name);
+function upload_target(path: string, file: { name: string }): string {
+  // path to our upload target, but relative to path.
+  return join(path_split(aux_file(path, AUX_FILE_EXT)).tail, file.name);
 }
 
-function upload_temp_link(file: { name: string }): string {
-  return `[Uploading...]\(${file.name}\)`;
+function upload_temp_link(path: string, file: { name: string }): string {
+  return `[Uploading...]\(${upload_target(path, file)}\)`;
 }
 
-function upload_link(file: { name: string; type: string }): string {
-  const target = upload_target(file);
+function upload_link(
+  path: string,
+  file: { name: string; type: string }
+): string {
+  const target = upload_target(path, file);
   if (file.type.indexOf("image") !== -1) {
     return `<img src=\"${target}\" style="max-width:100%" />`;
   } else {
