@@ -13,9 +13,9 @@ const MAX_FILE_SIZE_MB = 10000;
 
 import { appendFile, rename, readFile, unlink } from "fs";
 import { join } from "path";
-import { series } from "async";
 import * as mkdirp from "mkdirp";
 import { IncomingForm } from "formidable";
+import { callback } from "awaiting";
 
 export function upload_endpoint(
   express,
@@ -34,7 +34,7 @@ export function upload_endpoint(
     return res.send("hello");
   });
 
-  router.post("/.smc/upload", function (req, res) {
+  router.post("/.smc/upload", async function (req, res): Promise<void> {
     function dbg(...m): void {
       if (logger == null) return;
       logger.debug("upload POST ", ...m);
@@ -51,107 +51,66 @@ export function upload_endpoint(
     // Important to set this, since the default is a measly 2MB!
     // See https://stackoverflow.com/questions/13374238/how-to-limit-upload-file-size-in-express-js
     form.maxFileSize = MAX_FILE_SIZE_MB * 1024 * 1024;
-    return series(
-      [
-        (
-          cb // ensure target path exists
-        ) => mkdirp(options.uploadDir, cb),
-        (cb) =>
-          form.parse(req, function (err, fields, files) {
-            if (
-              err ||
-              files.file == null ||
-              files.file.path == null ||
-              files.file.name == null
-            ) {
-              dbg(
-                `upload of '${files.file.name}' to '${files.file.path}' FAILED `,
-                err
-              );
-              cb(err);
-              return;
-            }
-            dbg(
-              `upload of '${files.file.name}' to '${
-                files.file.path
-              }' worked; ${JSON.stringify(fields)}`
-            );
-            const dest =
-              process.env.HOME +
-              "/" +
-              (req.query.dest_dir != null ? req.query.dest_dir : "") +
-              "/" +
-              files.file.name;
-            if (fields.dzchunkindex == null) {
-              // old client that doesn't use chunking...
-              dbg(`now move '${files.file.path}' to '${dest}'`);
-              return rename(files.file.path, dest, function (err) {
-                if (err) {
-                  dbg(`error moving -- ${err}`);
-                  cb(err);
-                } else {
-                  cb();
-                }
-              });
-            } else {
-              dbg("append the next chunk onto the destination file...");
-              handle_chunk_data(
-                parseInt(fields.dzchunkindex),
-                parseInt(fields.dztotalchunkcount),
-                files.file.path,
-                dest,
-                cb
-              );
-            }
-          }),
-      ],
-      function (err) {
-        if (err) {
-          res.status(500).send(`upload failed -- ${err}`);
-        } else {
-          res.send("received upload:\n\n");
-        }
-      }
-    );
-  });
 
+    try {
+      // ensure target path exists
+      await callback(mkdirp, options.uploadDir);
+      const { fields, files } = await callback(form_parse, form, req);
+      if (files.file?.path == null || files.file?.name == null) {
+        throw Error("files.file.[path | name] is null");
+      } else {
+        dbg(`uploading '${files.file.name}' -> '${files.file.path}'`);
+      }
+
+      dbg(
+        `'${files.file.name}' -> '${files.file.path}' worked; ${JSON.stringify(
+          fields
+        )}`
+      );
+
+      const dest = join(
+        process.env.HOME ?? "/home/user",
+        req.query.dest_dir ?? "",
+        files.file.name
+      );
+
+      dbg("append the next chunk onto the destination file...");
+      await handle_chunk_data(
+        parseInt(fields.dzchunkindex),
+        parseInt(fields.dztotalchunkcount),
+        files.file.path,
+        dest
+      );
+
+      res.send("received upload:\n\n");
+    } catch (err) {
+      dbg("upload failed ", err);
+      res.status(500).send(`upload failed -- ${err}`);
+    }
+  });
   return router;
 }
 
-var handle_chunk_data = function (index, total, chunk, dest, cb) {
+async function handle_chunk_data(index, total, chunk, dest): Promise<void> {
   const temp = dest + ".partial-upload";
-  return series(
-    [
-      function (cb) {
-        if (index === 0) {
-          // move chunk to the temp file
-          rename(chunk, temp, cb);
-        } else {
-          // append chunk to the temp file
-          readFile(chunk, function (err, data) {
-            if (err) {
-              cb(err);
-            } else {
-              appendFile(temp, data, function (err) {
-                if (err) {
-                  return cb(err);
-                } else {
-                  unlink(chunk, cb);
-                }
-              });
-            }
-          });
-        }
-      },
-      function (cb) {
-        // if it's the last chunk, move temp to actual file.
-        if (index === total - 1) {
-          rename(temp, dest, cb);
-        } else {
-          cb();
-        }
-      },
-    ],
-    cb
-  );
-};
+  if (index === 0) {
+    // move chunk to the temp file
+    await callback(rename, chunk, temp);
+  } else {
+    // append chunk to the temp file
+    const data = await callback(readFile, chunk);
+    await callback(appendFile, temp, data);
+    await callback(unlink, chunk);
+  }
+  // if it's the last chunk, move temp to actual file.
+  if (index === total - 1) {
+    await callback(rename, temp, dest);
+  }
+}
+
+// Get around that form.parse returns two extra args in its callback
+function form_parse(form, req, cb): void {
+  form.parse(req, (err, fields, files) => {
+    cb(err, { fields, files });
+  });
+}
