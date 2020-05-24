@@ -19,7 +19,11 @@ import { SaveButton } from "../frame-editors/frame-tree/save-button";
 import { Button, ButtonGroup } from "react-bootstrap";
 
 import { ChatInput } from "./input";
-import { mark_chat_as_read_if_unseen, scroll_to_bottom, INPUT_HEIGHT } from "./utils";
+import {
+  mark_chat_as_read_if_unseen,
+  scroll_to_bottom,
+  INPUT_HEIGHT,
+} from "./utils";
 
 import {
   React,
@@ -386,8 +390,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           <div
             style={{
               flex: "1",
-              padding: "0px 2px 0px 2px",
-              //              height: INPUT_HEIGHT,
+              padding: "0px 5px 0px 2px",
             }}
           >
             <ChatInput
@@ -407,29 +410,27 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           </div>
           <div
             style={{
-              height: INPUT_HEIGHT,
-              padding: "0",
-              marginBottom: "0",
               display: "flex",
               flexDirection: "column",
+              padding: "0",
+              marginBottom: "0",
             }}
           >
-            {!IS_MOBILE ? (
-              <Button
-                onClick={on_preview_button_click}
-                disabled={input === ""}
-                bsStyle="info"
-                style={{ height: "50%", width: "100%" }}
-              >
-                Preview
-              </Button>
-            ) : undefined}
+            <div style={{ flex: 1 }} />
+            <Button
+              onClick={on_preview_button_click}
+              disabled={input === ""}
+              bsStyle="info"
+              style={{ height: "47.5px" }}
+            >
+              Preview
+            </Button>
             <div style={{ height: "5px" }} />
             <Button
               onClick={on_send_button_click}
               disabled={input.trim() === "" || is_uploading}
               bsStyle="success"
-              style={{ flex: 1, width: "100%" }}
+              style={{ height: "47.5px" }}
             >
               Send
             </Button>

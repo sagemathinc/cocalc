@@ -258,17 +258,26 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
             account_id={account_id}
             height={INPUT_HEIGHT}
           />
-          <Button
-            style={{ width: "15%", height: INPUT_HEIGHT }}
-            onClick={() => {
-              send_chat();
-              analytics_event("side_chat", "send_chat", "click");
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: INPUT_HEIGHT /* yes, to make it square */,
             }}
-            disabled={send_disabled}
-            bsStyle="success"
           >
-            <Icon name="chevron-circle-right" />
-          </Button>
+            <div style={{ flex: 1 }} />
+            <Button
+              style={{ height: INPUT_HEIGHT }}
+              onClick={() => {
+                send_chat();
+                analytics_event("side_chat", "send_chat", "click");
+              }}
+              disabled={send_disabled}
+              bsStyle="success"
+            >
+              <Icon name="chevron-circle-right" />
+            </Button>
+          </div>
         </div>
         <div style={{ color: "#888", padding: "5px" }}>
           Shift+enter to send. Double click to edit. Use{" "}
