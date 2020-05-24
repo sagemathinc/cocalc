@@ -15,13 +15,11 @@ Stage 1 -- enough to replace current chat input:
   - [x] cancel upload that is finished and delete file
   - [x] paste of images
   - [x] change the path for file uploads to depend on the file being edited. Then move/copy makes WAY more sense and is more robust going forward.
-  - [ ] (now) small file upload is BROKEN
+  - [ ] (now) BUG: close file upload when input is blanked (i.e., on send)
+  - [ ] BUG: closing the file upload preview DELETES all the uploaded files.
+  - [ ] BUG: make file upload LOOK GOOD
   - [ ] @mentions (via completion dialog) -the collabs on this project
-  - [ ] make file upload LOOK GOOD
 
-BUGS:
-  - [ ] close file upload when input is blanked (i.e., on send)
-  - [ ] closing the file upload preview DELETES all the uploaded files.
 
 Stage 2 -- stretch goal challenges:
 ---
@@ -33,6 +31,7 @@ Stage 2 -- stretch goal challenges:
   - [ ] hashtags
   - [ ] wysiwyg mode: via prosemirror?   maybe https://github.com/outline/rich-markdown-editor
   - [ ] emojis like on github?
+  - [ ] BUG: very small file upload is BROKEN in cc-in-cc dev: this may be a proxy issue... exactly the same code works fine outside of cc-in-cc dev.
 
 Use this for:
   - chat input
@@ -107,7 +106,7 @@ export const MarkdownInput: React.FC<Props> = ({
   const fontSize = useRedux(["account", "font_size"]);
 
   const dropzone_ref = useRef<Dropzone>(null);
-  const close_preview_ref = useRef<Function>(null);
+  const upload_close_preview_ref = useRef<Function>(null);
   const current_uploads_ref = useRef<{ [name: string]: boolean } | null>(null);
 
   useEffect(() => {
@@ -182,6 +181,11 @@ export const MarkdownInput: React.FC<Props> = ({
   useEffect(() => {
     if (cm.current == null || cm.current.getValue() === value) return;
     cm.current.setValue(value);
+    if (value == "") {
+      if (upload_close_preview_ref.current != null) {
+        upload_close_preview_ref.current();
+      }
+    }
   }, [value]);
 
   function upload_sending(file: { name: string }): void {
@@ -292,7 +296,7 @@ export const MarkdownInput: React.FC<Props> = ({
         event_handlers={event_handlers}
         style={{ height: "100%" }}
         dropzone_ref={dropzone_ref}
-        close_preview_ref={close_preview_ref}
+        close_preview_ref={upload_close_preview_ref}
       >
         {body}
       </FileUploadWrapper>

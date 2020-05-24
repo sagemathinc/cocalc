@@ -43,20 +43,24 @@ export function upload_endpoint(
     dbg();
 
     // See http://stackoverflow.com/questions/14022353/how-to-change-upload-path-when-use-formidable-with-express-in-node-js
+    // Important to set maxFileSize, since the default is 200MB!
+    // See https://stackoverflow.com/questions/13374238/how-to-limit-upload-file-size-in-express-js
     const options = {
       uploadDir: join(process.env.HOME ?? "/home/user", req.query.dest_dir),
       keepExtensions: true,
+      maxFileSize: MAX_FILE_SIZE_MB * 1024 * 1024,
     };
     const form = new IncomingForm(options);
-    // Important to set this, since the default is a measly 2MB!
-    // See https://stackoverflow.com/questions/13374238/how-to-limit-upload-file-size-in-express-js
-    form.maxFileSize = MAX_FILE_SIZE_MB * 1024 * 1024;
 
     try {
       // ensure target path exists
+      dbg("ensure target path exists... ", options.uploadDir);
       await callback(mkdirp, options.uploadDir);
+      dbg("parsing form data...");
       const { fields, files } = await callback(form_parse, form, req);
+      dbg("finished parsing form data.");
       if (files.file?.path == null || files.file?.name == null) {
+        dbg("error parsing form data");
         throw Error("files.file.[path | name] is null");
       } else {
         dbg(`uploading '${files.file.name}' -> '${files.file.path}'`);
