@@ -15,8 +15,8 @@ Stage 1 -- enough to replace current chat input:
   - [x] cancel upload that is finished and delete file
   - [x] paste of images
   - [x] change the path for file uploads to depend on the file being edited. Then move/copy makes WAY more sense and is more robust going forward.
-  - [ ] (now) BUG: close file upload when input is blanked (i.e., on send)
-  - [ ] BUG: closing the file upload preview DELETES all the uploaded files.
+  - [x] close file upload when input is blanked (i.e., on send)
+  - [x]  explicitly closing the file upload preview before submitting DELETES all the uploaded files.
   - [ ] BUG: make file upload LOOK GOOD
   - [ ] @mentions (via completion dialog) -the collabs on this project
 
@@ -183,7 +183,7 @@ export const MarkdownInput: React.FC<Props> = ({
     cm.current.setValue(value);
     if (value == "") {
       if (upload_close_preview_ref.current != null) {
-        upload_close_preview_ref.current();
+        upload_close_preview_ref.current(true);
       }
     }
   }, [value]);

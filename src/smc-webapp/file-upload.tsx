@@ -186,7 +186,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
         ),
         maxFilesize: MAX_FILE_SIZE_MB,
         forceChunking: true,
-        addRemoveLinks: true,
+        addRemoveLinks: props.event_handlers.removedfile != null,
         chunking: true,
         chunkSize: CHUNK_SIZE_MB * 1000 * 1000,
         retryChunks: true, // might as well since it's a little more robust.
@@ -283,11 +283,16 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
     );
   }
 
-  function close_preview() {
+  // If remove_all is true, then all files are also removed
+  // from the dropzone.  This is true by default if there is
+  // no "removedfile" handler, and false otherwise.
+  function close_preview(
+    remove_all: boolean = props.event_handlers.removedfile == null
+  ) {
     if (typeof props.on_close === "function") {
       props.on_close();
     }
-    if (dropzone.current != null) {
+    if (remove_all && dropzone.current != null) {
       dropzone.current.removeAllFiles();
     }
     set_files([]);
@@ -314,7 +319,9 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
       <div style={style}>
         <div className="close-button pull-right">
           <span
-            onClick={close_preview}
+            onClick={() => {
+              close_preview();
+            }}
             className="close-button-x"
             style={{
               cursor: "pointer",
