@@ -14,7 +14,8 @@ Stage 1 -- enough to replace current chat input:
   - [x] don't allow send *during* upload.
   - [x] cancel upload that is finished and delete file
   - [x] paste of images
-  - [ ] (now) change the path for file uploads to depend on the file being edited. Then move/copy makes WAY more sense and is more robust going forward.
+  - [x] change the path for file uploads to depend on the file being edited. Then move/copy makes WAY more sense and is more robust going forward.
+  - [ ] (now) small file upload is BROKEN
   - [ ] @mentions (via completion dialog) -the collabs on this project
   - [ ] make file upload LOOK GOOD
 
