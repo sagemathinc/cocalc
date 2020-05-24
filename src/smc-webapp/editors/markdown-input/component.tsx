@@ -17,7 +17,7 @@ Stage 1 -- enough to replace current chat input:
   - [x] change the path for file uploads to depend on the file being edited. Then move/copy makes WAY more sense and is more robust going forward.
   - [x] close file upload when input is blanked (i.e., on send)
   - [x] explicitly closing the file upload preview before submitting DELETES all the uploaded files.
-  - [ ] #now make file upload LOOK GOOD
+  - [x] #now make file upload LOOK GOOD
   - [ ] @mentions (via completion dialog) -the collabs on this project
 
 

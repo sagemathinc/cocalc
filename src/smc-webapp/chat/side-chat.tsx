@@ -37,13 +37,9 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
 
   const messages = useRedux(["messages"], project_id, path);
   const input: string = useRedux(["input"], project_id, path);
-  const is_uploading = useRedux(["is_uploading"], project_id, path);
-  const send_disabled = useMemo(() => input.trim() === "" || is_uploading, [
-    input,
-    is_uploading,
-  ]);
   const search: string = useRedux(["search"], project_id, path);
   const add_collab: boolean = useRedux(["add_collab"], project_id, path);
+  const is_uploading = useRedux(["is_uploading"], project_id, path);
 
   const project_map = useRedux(["projects", "project_map"]);
   const user_map = useRedux(["users", "user_map"]);
@@ -250,7 +246,6 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
             user_store={redux.getStore("users")}
             on_clear={on_clear}
             on_send={() => {
-              if (send_disabled) return;
               send_chat();
               analytics_event("side_chat", "send_chat", "keyboard");
             }}
@@ -272,7 +267,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
                 send_chat();
                 analytics_event("side_chat", "send_chat", "click");
               }}
-              disabled={send_disabled}
+              disabled={input.trim() === "" || is_uploading}
               bsStyle="success"
             >
               <Icon name="chevron-circle-right" />
