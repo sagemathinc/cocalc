@@ -6,6 +6,7 @@
 // standard non-CoCalc libraries
 import * as immutable from "immutable";
 import { debounce } from "lodash";
+import { useDebounce } from "use-debounce";
 const { IS_MOBILE } = require("../feature");
 
 // CoCalc libraries
@@ -32,7 +33,6 @@ import {
   useEffect,
   useRef,
   useRedux,
-  useState,
   useMemo,
 } from "../app-framework";
 import { Icon, Loading, Tip, SearchInput, A } from "../r_misc";
@@ -95,11 +95,11 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
     path
   );
   const input: string = useRedux(["input"], project_id, path);
+  const [preview] = useDebounce(input, 250);
+
   const search = useRedux(["search"], project_id, path);
   const saved_mesg = useRedux(["saved_mesg"], project_id, path);
   const messages = useRedux(["messages"], project_id, path);
-
-  const [preview, set_preview] = useState("preview");
 
   const input_ref = useRef<HTMLTextAreaElement>(null);
   const log_container_ref = useRef<WindowedList>(null);
@@ -138,20 +138,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   function button_scroll_to_bottom(): void {
     scroll_to_bottom(log_container_ref, true);
   }
-
-  function button_off_click(): void {
-    actions.set_is_preview(false);
-    input_ref.current?.focus();
-  }
-
-  function on_preview_button_click(): void {
-    actions.set_is_preview(true);
-    input_ref.current?.focus();
-  }
-
-  const set_preview_state = debounce(() => {
-    set_preview(input);
-  }, 250);
 
   function show_timetravel(): void {
     redux.getProjectActions(project_id).open_file({
@@ -207,9 +193,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   }
 
   function render_preview_message(): JSX.Element | undefined {
-    if (input.length == 0) return;
-    set_preview_state();
-    if (preview.length == 0) return;
+    if (input.length == 0 || preview.length == 0) return;
     const value = sanitize_html_safe(
       smiley({
         s: preview,
@@ -232,7 +216,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
                 cursor: "pointer",
                 fontSize: "13pt",
               }}
-              onClick={button_off_click}
+              onClick={() => actions.set_is_preview(false)}
             >
               <Icon name="times" />
             </div>
@@ -310,7 +294,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
         default_value={search}
         on_change={debounce(
           (value) => actions.setState({ search: value }),
-          500
+          250
         )}
         style={{ margin: 0, width: "100%", marginBottom: "5px" }}
       />
@@ -334,27 +318,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
       </Row>
     );
   }
-
-  /*
-
-  function handle_paste_event(e: React.ClipboardEvent<any>): void {
-    const items = e.clipboardData.items;
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (item != null && item.type.startsWith("image/")) {
-        e.preventDefault();
-        const file = item.getAsFile();
-        if (file != null) {
-          const blob = file.slice(0, -1, item.type);
-          dropzone_ref.current?.addFile(
-            new File([blob], `paste-${Math.random()}`, { type: item.type })
-          );
-        }
-        return;
-      }
-    }
-  }
-  */
 
   function on_send(): void {
     scroll_to_bottom(log_container_ref, true);
@@ -418,10 +381,10 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           >
             <div style={{ flex: 1 }} />
             <Button
-              onClick={on_preview_button_click}
-              disabled={input === ""}
+              onClick={() => actions.set_is_preview(true)}
               bsStyle="info"
               style={{ height: "47.5px" }}
+              disabled={is_preview}
             >
               Preview
             </Button>

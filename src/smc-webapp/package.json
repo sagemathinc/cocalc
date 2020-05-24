@@ -131,6 +131,7 @@
     "underscore": "^1.9.1",
     "universal-cookie": "^4.0.2",
     "use-async-effect": "^2.2.2",
+    "use-debounce": "^3.4.2",
     "use-interval": "^1.2.1",
     "xterm": "^4.0.2",
     "xterm-addon-fit": "^0.2.1",

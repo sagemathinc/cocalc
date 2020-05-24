@@ -2,6 +2,7 @@
 Markdown editor
 
 Stage 1 -- enough to replace current chat input:
+  - [ ] @mentions (via completion dialog) -the collabs on this project
   - [x] editor themes
   - [x] markdown syntax highlighting via codemirror
   - [x] spellcheck
@@ -18,15 +19,16 @@ Stage 1 -- enough to replace current chat input:
   - [x] close file upload when input is blanked (i.e., on send)
   - [x] explicitly closing the file upload preview before submitting DELETES all the uploaded files.
   - [x] #now make file upload LOOK GOOD
-  - [ ] @mentions (via completion dialog) -the collabs on this project
 
 
 Stage 2 -- stretch goal challenges:
 ---
+  - [ ] file upload button that pops open the dropzone or a file browser?  (useful for mobile and discoverability)
+  - [ ] "Move" versus "Copy" when dragging/dropping?
   - [ ] improve move and delete to be aware of images (?).
   - [ ] bonus: don't insert the link inside of an existing link tag...
   - [ ] border when focused
-  - [ ] preview
+  - [ ] integrated preview
   - [ ] directions and links
   - [ ] hashtags
   - [ ] wysiwyg mode: via prosemirror?   maybe https://github.com/outline/rich-markdown-editor
@@ -259,7 +261,7 @@ export const MarkdownInput: React.FC<Props> = ({
   }
 
   function handle_paste_event(_, e): void {
-    console.log("handle_paste_event", e);
+    // console.log("handle_paste_event", e);
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
