@@ -5,12 +5,6 @@
 
 //import { MentionsInput, Mention } from "react-mentions";
 import { React, useActions } from "../app-framework";
-//import { USER_MENTION_MARKUP } from "./utils";
-// import { cmp_Date } from "smc-util/misc2";
-//import { FormControl } from "react-bootstrap";
-//import { Space } from "../r_misc/space";
-//import { Avatar } from "../account/avatar/avatar";
-//import { IS_MOBILE, isMobile } from "../feature";
 import { MarkdownInput } from "../editors/markdown-input";
 
 interface Props {
@@ -26,6 +20,7 @@ interface Props {
   on_clear: () => void;
   on_set_to_last_input: () => void;
   account_id: string;
+  height?:string;
 }
 
 export const ChatInput: React.FC<Props> = (props) => {
@@ -59,7 +54,7 @@ export const ChatInput: React.FC<Props> = (props) => {
       onChange={(value) => actions.set_input(value)}
       onShiftEnter={props.on_send}
       onEscape={props.on_clear}
-      style={{ height: "100%" }}
+      height={props.height}
       placeholder={"Type a message..."}
     />
   );

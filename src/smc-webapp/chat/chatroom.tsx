@@ -19,7 +19,7 @@ import { SaveButton } from "../frame-editors/frame-tree/save-button";
 import { Button, ButtonGroup } from "react-bootstrap";
 
 import { ChatInput } from "./input";
-import { mark_chat_as_read_if_unseen, scroll_to_bottom } from "./utils";
+import { mark_chat_as_read_if_unseen, scroll_to_bottom, INPUT_HEIGHT } from "./utils";
 
 import {
   React,
@@ -46,7 +46,7 @@ const PREVIEW_STYLE: React.CSSProperties = {
   borderRadius: "10px 10px 10px 10px",
   boxShadow: "#666 3px 3px 3px",
   paddingBottom: "20px",
-  maxHeight: "50vh",
+  maxHeight: "40vh",
   overflowY: "auto",
 };
 
@@ -363,7 +363,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   }
 
   function render_body(): JSX.Element {
-    const INPUT_HEIGHT = "100px";
     return (
       <div className="smc-vfill" style={GRID_STYLE}>
         {!IS_MOBILE ? render_button_row() : undefined}
@@ -383,13 +382,12 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           />
           {is_preview && render_preview_message()}
         </div>
-        <div style={{ display: "flex", maxWidth: "100vw" }}>
+        <div style={{ display: "flex" }}>
           <div
             style={{
               flex: "1",
               padding: "0px 2px 0px 2px",
-              width: "250px",
-              height: INPUT_HEIGHT,
+              //              height: INPUT_HEIGHT,
             }}
           >
             <ChatInput
@@ -404,6 +402,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               on_send={on_send}
               on_set_to_last_input={() => actions.set_to_last_input()}
               account_id={account_id}
+              height={INPUT_HEIGHT}
             />
           </div>
           <div

@@ -16,8 +16,8 @@ Stage 1 -- enough to replace current chat input:
   - [x] paste of images
   - [x] change the path for file uploads to depend on the file being edited. Then move/copy makes WAY more sense and is more robust going forward.
   - [x] close file upload when input is blanked (i.e., on send)
-  - [x]  explicitly closing the file upload preview before submitting DELETES all the uploaded files.
-  - [ ] BUG: make file upload LOOK GOOD
+  - [x] explicitly closing the file upload preview before submitting DELETES all the uploaded files.
+  - [ ] #now make file upload LOOK GOOD
   - [ ] @mentions (via completion dialog) -the collabs on this project
 
 
@@ -80,6 +80,7 @@ interface Props {
   onEscape?: () => void;
   onBlur?: () => void;
   placeholder?: string;
+  height?: string;
 }
 export const MarkdownInput: React.FC<Props> = ({
   project_id,
@@ -95,6 +96,7 @@ export const MarkdownInput: React.FC<Props> = ({
   onEscape,
   onBlur,
   placeholder,
+  height,
 }) => {
   // @ts-ignore
   const deleteme = [project_id, path, enableUpload, enableMentions];
@@ -127,6 +129,7 @@ export const MarkdownInput: React.FC<Props> = ({
       },
       extraKeys,
       styleActiveLine: true,
+      lineWrapping: true,
     };
     cm.current = CodeMirror.fromTextArea(node, options);
     cm.current.setValue(value);
@@ -275,7 +278,9 @@ export const MarkdownInput: React.FC<Props> = ({
   }
 
   let body: JSX.Element = (
-    <div style={{ ...STYLE, ...style, ...{ fontSize: `${fontSize}px` } }}>
+    <div
+      style={{ ...STYLE, ...style, ...{ fontSize: `${fontSize}px`, height } }}
+    >
       <textarea
         style={{ display: "none" }}
         ref={textarea_ref}
@@ -294,7 +299,7 @@ export const MarkdownInput: React.FC<Props> = ({
         project_id={project_id}
         dest_path={aux_file(path, AUX_FILE_EXT)}
         event_handlers={event_handlers}
-        style={{ height: "100%" }}
+        style={{ height: "100%", width: "100%" }}
         dropzone_ref={dropzone_ref}
         close_preview_ref={upload_close_preview_ref}
       >

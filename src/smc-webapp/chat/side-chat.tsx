@@ -19,7 +19,11 @@ import { ProjectUsers } from "../projects/project-users";
 //import { AddCollaborators } from "../collaborators/add-to-project";
 const { AddCollaborators } = require("../collaborators/add-to-project");
 
-import { mark_chat_as_read_if_unseen, scroll_to_bottom } from "./utils";
+import {
+  mark_chat_as_read_if_unseen,
+  scroll_to_bottom,
+  INPUT_HEIGHT,
+} from "./utils";
 import { ChatLog } from "./chat-log";
 import { ChatInput } from "./input";
 
@@ -206,7 +210,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
       {render_search()}
       <div
         className="smc-vfill"
-        style={{ backgroundColor: "#fff", paddingLeft: "15px" }}
+        style={{ backgroundColor: "#fff", paddingLeft: "15px", flex: 1 }}
       >
         <ChatLog
           windowed_list_ref={log_container_ref}
@@ -227,34 +231,35 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
           padding: "5px",
           paddingLeft: "15px",
           paddingRight: "15px",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
-        <div style={{ display: "flex", height: "6em" }}>
-          <div style={{ width: "85%", height: "100%" }}>
-            <ChatInput
-              project_id={project_id}
-              path={path}
-              input={input}
-              input_ref={input_ref}
-              enable_mentions={
-                project_users.size > 1
-                  ? other_settings.get("allow_mentions")
-                  : undefined
-              }
-              project_users={project_users}
-              user_store={redux.getStore("users")}
-              on_clear={on_clear}
-              on_send={() => {
-                if (send_disabled) return;
-                send_chat();
-                analytics_event("side_chat", "send_chat", "keyboard");
-              }}
-              on_set_to_last_input={() => actions.set_to_last_input()}
-              account_id={account_id}
-            />
-          </div>
+        <div style={{ display: "flex", flex: 1 }}>
+          <ChatInput
+            project_id={project_id}
+            path={path}
+            input={input}
+            input_ref={input_ref}
+            enable_mentions={
+              project_users.size > 1
+                ? other_settings.get("allow_mentions")
+                : undefined
+            }
+            project_users={project_users}
+            user_store={redux.getStore("users")}
+            on_clear={on_clear}
+            on_send={() => {
+              if (send_disabled) return;
+              send_chat();
+              analytics_event("side_chat", "send_chat", "keyboard");
+            }}
+            on_set_to_last_input={() => actions.set_to_last_input()}
+            account_id={account_id}
+            height={INPUT_HEIGHT}
+          />
           <Button
-            style={{ width: "15%", height: "100%" }}
+            style={{ width: "15%", height: INPUT_HEIGHT }}
             onClick={() => {
               send_chat();
               analytics_event("side_chat", "send_chat", "click");
