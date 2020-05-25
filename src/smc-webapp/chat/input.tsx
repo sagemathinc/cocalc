@@ -6,6 +6,7 @@
 //import { MentionsInput, Mention } from "react-mentions";
 import { React, useActions } from "../app-framework";
 import { MarkdownInput } from "../editors/markdown-input";
+import { IS_MOBILE } from "../feature";
 
 interface Props {
   project_id: string;
@@ -20,7 +21,7 @@ interface Props {
   on_clear: () => void;
   on_set_to_last_input: () => void;
   account_id: string;
-  height?:string;
+  height?: string;
 }
 
 export const ChatInput: React.FC<Props> = (props) => {
@@ -56,6 +57,11 @@ export const ChatInput: React.FC<Props> = (props) => {
       onEscape={props.on_clear}
       height={props.height}
       placeholder={"Type a message..."}
+      extraHelp={
+        IS_MOBILE
+          ? "Click the date to edit chats."
+          : "Double click to edit chats."
+      }
     />
   );
 

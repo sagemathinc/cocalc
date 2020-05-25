@@ -10,9 +10,8 @@ import { useDebounce } from "use-debounce";
 const { IS_MOBILE } = require("../feature");
 
 // CoCalc libraries
-import { smiley, history_path, emoticons, path_split } from "smc-util/misc";
+import { smiley, history_path, path_split } from "smc-util/misc";
 const { sanitize_html_safe } = require("../misc_page");
-import { DISCORD_INVITE } from "smc-util/theme";
 import { SaveButton } from "../frame-editors/frame-tree/save-button";
 
 // have to rewrite buttons like SaveButton in antd before we can
@@ -35,14 +34,13 @@ import {
   useRedux,
   useMemo,
 } from "../app-framework";
-import { Icon, Loading, Tip, SearchInput, A } from "../r_misc";
+import { Icon, Loading, Tip, SearchInput } from "../r_misc";
 import { Col, Row, Well } from "../antd-bootstrap";
 import { ChatLog } from "./chat-log";
 import { WindowedList } from "../r_misc/windowed-list";
 
 import { VideoChatButton } from "./video/launch-button";
 import { Markdown } from "./markdown";
-import { TIP_TEXT } from "../widget-markdown-input/main";
 
 const PREVIEW_STYLE: React.CSSProperties = {
   background: "#f5f5f5",
@@ -145,51 +143,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
       foreground: true,
       foreground_project: true,
     });
-  }
-
-  function render_mention_email(): JSX.Element {
-    if (redux.getStore("projects").has_internet_access(project_id)) {
-      return <span>(they may receive an email)</span>;
-    } else {
-      return <span>(enable the Internet Access upgrade to send emails)</span>;
-    }
-  }
-
-  // All render methods
-  function render_bottom_tip(): JSX.Element {
-    const tip = (
-      <span>
-        {TIP_TEXT} Press Shift+Enter to send your chat. Double click to edit
-        past chats.
-      </span>
-    );
-
-    return (
-      <Tip title="Use Markdown" tip={tip} delayShow={2500}>
-        <div
-          style={{ color: "#767676", fontSize: "12.5px", marginBottom: "5px" }}
-        >
-          Shift+Enter to send your message. Use @name to mention a collaborator
-          on this project {render_mention_email()}. Double click chat bubbles to
-          edit them. Format using{" "}
-          <a
-            href="https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/"
-            target="_blank"
-          >
-            Markdown
-          </a>{" "}
-          and{" "}
-          <a
-            href="https://en.wikibooks.org/wiki/LaTeX/Mathematics"
-            target="_blank"
-          >
-            LaTeX
-          </a>
-          . Emoticons: {emoticons}. Chat outside CoCalc{" "}
-          <A href={DISCORD_INVITE}>on Discord</A>.
-        </div>
-      </Tip>
-    );
   }
 
   function render_preview_message(): JSX.Element | undefined {
@@ -349,7 +302,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           />
           {is_preview && render_preview_message()}
         </div>
-        <div style={{ display: "flex" }}>
+        <div style={{ display: "flex", marginBottom: "5px" }}>
           <div
             style={{
               flex: "1",
@@ -399,7 +352,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             </Button>
           </div>
         </div>
-        <div>{!IS_MOBILE ? render_bottom_tip() : undefined}</div>
       </div>
     );
   }

@@ -274,14 +274,6 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
             </Button>
           </div>
         </div>
-        <div style={{ color: "#888", padding: "5px" }}>
-          Shift+enter to send. Double click to edit. Use{" "}
-          <A href="https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/">
-            Markdown
-          </A>{" "}
-          and{" "}
-          <A href="https://en.wikibooks.org/wiki/LaTeX/Mathematics">LaTeX</A>.
-        </div>
       </div>
     </div>
   );

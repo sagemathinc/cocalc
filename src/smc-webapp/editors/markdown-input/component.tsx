@@ -3,6 +3,7 @@ Markdown editor
 
 Stage 1 -- enough to replace current chat input:
   - [ ] @mentions (via completion dialog) -the collabs on this project
+  - [ ] use for editing past chats
   - [x] editor themes
   - [x] markdown syntax highlighting via codemirror
   - [x] spellcheck
@@ -52,7 +53,10 @@ import { join } from "path";
 import * as CodeMirror from "codemirror";
 
 import { aux_file, len, path_split } from "smc-util/misc2";
+//import { emoticons } from "smc-util/misc";
 
+import { IS_MOBILE } from "../../feature";
+import { A } from "../../r_misc";
 import {
   React,
   ReactDOM,
@@ -83,6 +87,7 @@ interface Props {
   onBlur?: () => void;
   placeholder?: string;
   height?: string;
+  extraHelp?: string | JSX.Element;
 }
 export const MarkdownInput: React.FC<Props> = ({
   project_id,
@@ -99,6 +104,7 @@ export const MarkdownInput: React.FC<Props> = ({
   onBlur,
   placeholder,
   height,
+  extraHelp,
 }) => {
   // @ts-ignore
   const deleteme = [project_id, path, enableUpload, enableMentions];
@@ -279,15 +285,105 @@ export const MarkdownInput: React.FC<Props> = ({
     }
   }
 
+  function render_mention_email(): JSX.Element | undefined {
+    if (!redux.getStore("projects").has_internet_access(project_id)) {
+      return <span> (enable the Internet Access upgrade to send emails)</span>;
+    }
+  }
+
+  function render_mobile_instructions() {
+    // TODO: make clicking on drag and drop thing pop up dialog
+    return (
+      <div
+        style={{ color: "#767676", fontSize: "12.5px", marginBottom: "5px" }}
+      >
+        {render_mention_instructions()}
+        {render_mention_email()}. Use{" "}
+        <A href="https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/">
+          Markdown
+        </A>{" "}
+        and{" "}
+        <A href="https://en.wikibooks.org/wiki/LaTeX/Mathematics">
+          LaTeX formulas
+        </A>
+        . {render_upload_instructions()} Attach files... {extraHelp}
+      </div>
+    );
+  }
+
+  function render_desktop_instructions() {
+    // TODO: make depend on the options
+    // TODO: make clicking on drag and drop thing pop up dialog
+    return (
+      <div
+        style={{ color: "#767676", fontSize: "12.5px", marginBottom: "5px" }}
+      >
+        Shift+Enter to send.
+        {render_mention_instructions()}
+        Use{" "}
+        <A href="https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/">
+          Markdown
+        </A>{" "}
+        and{" "}
+        <A href="https://en.wikibooks.org/wiki/LaTeX/Mathematics">
+          LaTeX formulas
+        </A>
+        . {render_upload_instructions()}
+        {extraHelp}
+      </div>
+    );
+    // I removed the emoticons list; it should really be a dropdown that
+    // appears like with github... Emoticons: {emoticons}.
+  }
+
+  function render_mention_instructions(): JSX.Element | undefined {
+    if (!enableMentions) return;
+    return (
+      <>
+        {" "}
+        Use @name to mention collaborators
+        {render_mention_email()}.{" "}
+      </>
+    );
+  }
+
+  function show_upload_file_dialog() {
+    console.log("show_upload_file_dialog");
+  }
+
+  function render_upload_instructions(): JSX.Element | undefined {
+    if (!enableUpload) return;
+    const text = IS_MOBILE
+      ? "Attach files..."
+      : "Attach files by dragging & dropping, selecting or pasting them.";
+    return (
+      <>
+        {" "}
+        <span onClick={show_upload_file_dialog} style={{ cursor: "pointer" }}>
+          {text}
+        </span>{" "}
+      </>
+    );
+  }
+
+  function render_instructions() {
+    return IS_MOBILE
+      ? render_mobile_instructions()
+      : render_desktop_instructions();
+  }
+
   let body: JSX.Element = (
-    <div
-      style={{ ...STYLE, ...style, ...{ fontSize: `${fontSize}px`, height } }}
-    >
-      <textarea
-        style={{ display: "none" }}
-        ref={textarea_ref}
-        placeholder={placeholder}
-      />
+    <div>
+      {value != "" ? render_instructions() : undefined}
+      <div
+        style={{ ...STYLE, ...style, ...{ fontSize: `${fontSize}px`, height } }}
+      >
+        <textarea
+          style={{ display: "none" }}
+          ref={textarea_ref}
+          placeholder={placeholder}
+        />
+      </div>
     </div>
   );
   if (enableUpload) {
