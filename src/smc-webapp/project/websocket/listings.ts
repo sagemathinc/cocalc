@@ -364,7 +364,7 @@ export class Listings extends EventEmitter {
     if (
       this.state != "ready" ||
       this.table == null ||
-      this.table.get_state() != "connected"
+      this.table.get_state() == "closed"
     ) {
       throw Error("table not initialized ");
     }
@@ -386,7 +386,7 @@ export class Listings extends EventEmitter {
   private get_record(path: string): ImmutableListing | undefined {
     const x = this.get_table().get(JSON.stringify([this.project_id, path]));
     if (x == null) return x;
-    return x as unknown as ImmutableListing; // coercing to fight typescript.
+    return (x as unknown) as ImmutableListing; // coercing to fight typescript.
     // NOTE: That we have to use JSON.stringify above is an ugly shortcoming
     // of the get method in smc-util/sync/table/synctable.ts
     // that could probably be relatively easily fixed.
