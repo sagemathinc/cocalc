@@ -10,7 +10,6 @@ const { IS_TOUCH } = require("../feature");
 // CoCalc libraries
 import { Avatar } from "../account/avatar/avatar";
 import { smiley } from "smc-util/misc";
-
 import {
   is_editing,
   message_colors,

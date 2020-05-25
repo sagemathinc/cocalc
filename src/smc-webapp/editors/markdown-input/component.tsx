@@ -3,7 +3,7 @@ Markdown editor
 
 Stage 1 -- enough to replace current chat input:
   - [ ] @mentions (via completion dialog) -the collabs on this project
-  - [ ] use for editing past chats
+  - [ ] use this component for editing past chats
   - [x] editor themes
   - [x] markdown syntax highlighting via codemirror
   - [x] spellcheck
@@ -20,11 +20,11 @@ Stage 1 -- enough to replace current chat input:
   - [x] close file upload when input is blanked (i.e., on send)
   - [x] explicitly closing the file upload preview before submitting DELETES all the uploaded files.
   - [x] #now make file upload LOOK GOOD
+  - [x] file upload button that pops open the dropzone or a file browser?  (useful for mobile and discoverability)
 
 
 Stage 2 -- stretch goal challenges:
 ---
-  - [ ] file upload button that pops open the dropzone or a file browser?  (useful for mobile and discoverability)
   - [ ] "Move" versus "Copy" when dragging/dropping?
   - [ ] improve move and delete to be aware of images (?).
   - [ ] bonus: don't insert the link inside of an existing link tag...
@@ -347,10 +347,6 @@ export const MarkdownInput: React.FC<Props> = ({
     );
   }
 
-  function show_upload_file_dialog() {
-    console.log("show_upload_file_dialog");
-  }
-
   function render_upload_instructions(): JSX.Element | undefined {
     if (!enableUpload) return;
     const text = IS_MOBILE
@@ -359,7 +355,14 @@ export const MarkdownInput: React.FC<Props> = ({
     return (
       <>
         {" "}
-        <span onClick={show_upload_file_dialog} style={{ cursor: "pointer" }}>
+        <span
+          style={{ cursor: "pointer" }}
+          onClick={() => {
+            // I could not get the clickable config to work,
+            // but reading the source code I found that this does:
+            dropzone_ref.current?.hiddenFileInput?.click();
+          }}
+        >
           {text}
         </span>{" "}
       </>
