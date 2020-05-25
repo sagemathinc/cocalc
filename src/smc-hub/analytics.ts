@@ -6,7 +6,7 @@
 import * as ms from "ms";
 import { analytics_cookie_name } from "smc-util/misc";
 import { PostgreSQL } from "./postgres/types";
-import { get_server_settings,pii_retention_to_future } from "./utils";
+import { get_server_settings, pii_retention_to_future } from "./utils";
 import * as fs from "fs";
 import * as TS from "typescript";
 const UglifyJS = require("uglify-js");
