@@ -14,9 +14,7 @@ React component that describes a single cell
 
 import { React, Component, Rendered } from "../app-framework";
 import { Map } from "immutable";
-
-const misc_page = require("../misc_page"); // TODO: import type
-
+import { clear_selection } from "../misc/clear-selection";
 import { COLORS } from "smc-util/theme";
 import { INPUT_PROMPT_COLOR } from "./prompt";
 import { Icon, Tip } from "../r_misc";
@@ -137,7 +135,7 @@ export class Cell extends Component<CellProps> {
       return;
     }
     if (event.shiftKey && !this.props.is_current) {
-      misc_page.clear_selection();
+      clear_selection();
       this.props.frame_actions.select_cell_range(this.props.id);
       return;
     }

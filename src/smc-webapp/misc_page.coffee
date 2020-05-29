@@ -60,9 +60,9 @@ exports.is_enter       = (e) -> e.which is 13 and not e.shiftKey
 exports.is_ctrl_enter  = (e) -> e.which is 13 and e.ctrlKey
 exports.is_escape      = (e) -> e.which is 27
 
-{join} = require('path')
-exports.APP_BASE_URL = window?.app_base_url ? ''
-exports.BASE_URL = if window? then "#{window.location.protocol}//#{join(window.location.hostname, window.app_base_url ? '')}" else theme.DOMAIN_NAME
+base_url_lib = require("./misc/base-url")
+exports.APP_BASE_URL = base_url_lib.APP_BASE_URL
+exports.BASE_URL = base_url_lib.BASE_URL
 
 local_diff = exports.local_diff = (before, after) ->
     # Return object
@@ -1900,15 +1900,6 @@ exports.set_cookie = (name, value, days) ->
         date.setTime(date.getTime() + (days*24*60*60*1000))
         expires = "; expires=" + date.toUTCString()
     document.cookie = name + "=" + value + expires + "; path=/"
-
-# see http://stackoverflow.com/questions/3169786/clear-text-selection-with-javascript
-exports.clear_selection = ->
-    if window.getSelection?().empty?
-        window.getSelection().empty() # chrome
-    else if window.getSelection?().removeAllRanges?
-        window.getSelection().removeAllRanges() # firefox
-    else
-        document.selection?.empty?()
 
 # returns true, if a target page should be loaded
 exports.should_load_target_url = ->

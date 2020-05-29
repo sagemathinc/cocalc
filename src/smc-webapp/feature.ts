@@ -19,7 +19,6 @@ if ((global as any).window != undefined) {
   // In a web browser.
   const window: any = (global as any).window;
   const navigator = window.navigator;
-
   let { $ } = window;
 
   isMobile = {

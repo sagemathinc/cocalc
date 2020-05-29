@@ -249,7 +249,7 @@ describe 'testing working with blobs: ', ->
     {uuidsha1} = require('smc-util-node/misc_node')
     project_id = misc.uuid()
     it 'creating a blob and reading it', (done) ->
-        blob = new Buffer("This is a test blob")
+        blob = Buffer.from("This is a test blob")
         async.series([
             (cb) ->
                 db.save_blob(uuid : uuidsha1(blob), blob : blob, project_id : project_id, cb   : cb)
@@ -270,7 +270,7 @@ describe 'testing working with blobs: ', ->
     it 'tries to save a blob with an invalid uuid and gets an error', (done) ->
         db.save_blob
             uuid       : 'not a uuid'
-            blob       : new Buffer("This is a test blob")
+            blob       : Buffer.from("This is a test blob")
             project_id : project_id
             cb         : (err) ->
                 expect(err).toEqual('uuid is invalid')
@@ -292,7 +292,7 @@ describe 'testing working with blobs: ', ->
         async.series([
             (cb) ->
                 f = (n, cb) ->
-                    blob = new Buffer("x#{n}")
+                    blob = Buffer.from("x#{n}")
                     db.save_blob(uuid : uuidsha1(blob), blob : blob, project_id : project_id, cb   : cb)
                 async.map([0...50], f, cb)
             (cb) ->
@@ -307,7 +307,7 @@ describe 'testing working with blobs: ', ->
         async.series([
             (cb) ->
                 f = (n, cb) ->
-                    blob = new Buffer("x#{n}")
+                    blob = Buffer.from("x#{n}")
                     db.save_blob(uuid : uuidsha1(blob), blob : blob, project_id : project_id, cb : cb, ttl:if n<5 then 0.01 else 0)
                 async.map([0...10], f, cb)
             (cb) ->

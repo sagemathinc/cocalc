@@ -28,7 +28,6 @@ Dropbox = require('dropbox')
 fs = require('fs')
 path = require('path')
 readline = require("readline")
-mkdirp = require('mkdirp')
 gaze = require('gaze')
 
 # random uuid to put in the file cache to store cursor between session
@@ -179,7 +178,7 @@ onDropboxChanges = (db, delta, cb) ->
             return
         if change.stat.isFolder
             console.log('adding folder')
-            mkdirp(filepath, cb)
+            fs.mkdir(filepath, {recursive: true}, cb)
             return
 
         db.readFile change.path, { buffer: true, rev: change.stat.versionTag }, (error, data, stat, rangeInfo) ->
@@ -196,7 +195,7 @@ onDropboxChanges = (db, delta, cb) ->
                 if exists
                     writeFile(filepath, data, stat, cb)
                 else
-                    mkdirp path.dirname(filepath), (error) ->
+                    fs.mkdir path.dirname(filepath), {recursive: true}, (error) ->
                         console.log("mkdir error", error)
                         writeFile(filepath, data, stat, cb)
     # TODO: when the Dropbox.Client supports it, pass this in the /delta endpoint.

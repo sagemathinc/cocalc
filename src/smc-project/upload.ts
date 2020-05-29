@@ -11,9 +11,8 @@ Upload form handler
 // not the total size of the file...
 const MAX_FILE_SIZE_MB = 10000;
 
-import { appendFile, rename, readFile, unlink } from "fs";
+import { appendFile, mkdir, rename, readFile, unlink } from "fs";
 import { join } from "path";
-import * as mkdirp from "mkdirp";
 import { IncomingForm } from "formidable";
 import { callback } from "awaiting";
 
@@ -55,7 +54,7 @@ export function upload_endpoint(
     try {
       // ensure target path exists
       dbg("ensure target path exists... ", options.uploadDir);
-      await callback(mkdirp, options.uploadDir);
+      await callback(mkdir, options.uploadDir, { recursive: true });
       dbg("parsing form data...");
       const { fields, files } = await callback(form_parse, form, req);
       dbg("finished parsing form data.");

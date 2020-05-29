@@ -11,6 +11,7 @@ import { React, Rendered } from "../app-framework";
 import { TimeActions } from "./actions";
 type TimeActions = InstanceType<typeof TimeActions>;
 
+import { HistoryOutlined, RedoOutlined, UndoOutlined } from "@ant-design/icons";
 import { Button } from "antd";
 import { Space } from "../r_misc/space";
 
@@ -29,7 +30,7 @@ function time_travel_button(actions: TimeActions): Rendered {
     <Button
       key={"time-travel"}
       onClick={() => actions.time_travel()}
-      icon={"history"}
+      icon={<HistoryOutlined />}
     >
       TimeTravel
     </Button>
@@ -43,7 +44,7 @@ function undo_redo_group(actions: TimeActions): Rendered {
         key={"undo"}
         title={"Undo last thing you did"}
         onClick={() => actions.undo()}
-        icon={"undo"}
+        icon={<UndoOutlined />}
       >
         Undo
       </Button>
@@ -51,7 +52,7 @@ function undo_redo_group(actions: TimeActions): Rendered {
         key={"redo"}
         title={"Redo last thing you did"}
         onClick={() => actions.redo()}
-        icon={"redo"}
+        icon={<RedoOutlined />}
       >
         Redo
       </Button>
