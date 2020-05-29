@@ -2030,7 +2030,7 @@ class ProjectClient extends EventEmitter
                             if err
                                 opts.cb(err)
                             else
-                                opts.cb(undefined, new Buffer(resp.base64, 'base64'))
+                                opts.cb(undefined, Buffer.from(resp.base64, 'base64'))
 
     get_quotas: (opts) =>
         opts = defaults opts,

@@ -13,7 +13,6 @@ MAX_FILE_SIZE_MB = 10000
 
 fs         = require('fs')
 async      = require('async')
-mkdirp     = require('mkdirp')
 formidable = require('formidable')
 misc       = require('smc-util/misc')
 
@@ -42,7 +41,7 @@ exports.upload_endpoint = (express, logger) ->
         async.series([
             (cb) ->
                 # ensure target path exists
-                mkdirp(options.uploadDir, cb)
+                fs.mkdir(options.uploadDir, {recursive: true}, cb)
             (cb) ->
                 form.parse req, (err, fields, files) ->
                     if err or not files.file? or not files.file.path? or not files.file.name?

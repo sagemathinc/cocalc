@@ -3,7 +3,7 @@
 set -e
 set -v
 
-. cocalc-dirs.sh
+. scripts/cocalc-dirs.sh
 
 for dir in "${CODE_DIRS[@]}"; do
     cd "$dir"

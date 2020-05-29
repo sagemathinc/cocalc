@@ -11,7 +11,7 @@ This is motivated by editing text, where various markups have different realizat
 There are less/none overlaps for programming languages.
 
 FUTURE:
-d    * think about creating a dedicated dialog for more elaborate examples,
+    * think about creating a dedicated dialog for more elaborate examples,
       which should also have a client/server communication to avoid bloat
       (think of a repository of hundrets of full examples with explanatory text)
     * work out how codemirror should react if there is a text selected or multiple
@@ -23,9 +23,25 @@ CONSIDERATIONS:
 */
 
 declare var $;
-export const FONT_FACES = "Serif,Sans,Arial,Arial Black,Courier,Courier New,Comic Sans MS,Georgia,Helvetica,Impact,Lucida Grande,Lucida Sans,Monaco,Palatino,Tahoma,Times New Roman,Verdana".split(
-  ","
-);
+export const FONT_FACES = [
+  "Serif",
+  "Sans",
+  "Arial",
+  "Arial Black",
+  "Courier",
+  "Courier New",
+  "Comic Sans MS",
+  "Georgia",
+  "Helvetica",
+  "Impact",
+  "Lucida Grande",
+  "Lucida Sans",
+  "Monaco",
+  "Palatino",
+  "Tahoma",
+  "Times New Roman",
+  "Verdana",
+];
 let i, j, k;
 
 export let commands = {
@@ -2595,7 +2611,7 @@ function initialize_latex_buttonbar() {
 
   const bb = $(".webapp-editor-latex-buttonbar");
   return bb.append(latexbar);
-};
+}
 
 // NOT READY YET.
 //initialize_latex_buttonbar()

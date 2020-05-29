@@ -30,7 +30,7 @@ exports.WEBAPP_LIB = 'webapp-lib' # was 'static' in the old days, contains js li
 # 
 # TESTS:
 # 
-# m=require('misc_node');s=JSON.stringify({x:new Buffer(10000000).toString('hex')}); d=new Date(); m.from_json_async(string: s, chunk_size:10000, cb: (e, r) -> console.log(e, new Date() - d)); new Date() - d
+# m=require('misc_node');s=JSON.stringify({x:Buffer.alloc(10000000).toString('hex')}); d=new Date(); m.from_json_async(string: s, chunk_size:10000, cb: (e, r) -> console.log(e, new Date() - d)); new Date() - d
 
 # exports.to_json_async = (opts) ->
 #     opts = defaults opts,
@@ -122,13 +122,13 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
             cb?("write_mesg(type='#{type}': data must be defined")
             return
         send = (s) ->
-            buf = new Buffer(4)
+            buf = Buffer.alloc(4)
             # This line was 4 hours of work.  It is absolutely
             # *critical* to change the (possibly a string) s into a
             # buffer before computing its length and sending it!!
             # Otherwise unicode characters will cause trouble.
             if typeof(s) == "string"
-                s = Buffer(s)
+                s = Buffer.from(s)
             buf.writeInt32BE(s.length, 0)
             if not socket.writable
                 cb?("socket not writable")
@@ -148,7 +148,7 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
             when 'blob'
                 assert(data.uuid?, "data object *must* have a uuid attribute")
                 assert(data.blob?, "data object *must* have a blob attribute")
-                send(Buffer.concat([new Buffer('b'), new Buffer(data.uuid), new Buffer(data.blob)]))
+                send(Buffer.concat([Buffer.from('b'),  Buffer.from(data.uuid), Buffer.from(data.blob)]))
             else
                 cb?("unknown message type '#{type}'")
 
@@ -322,7 +322,7 @@ exports.sha1 = (data) ->
         # CRITICAL: Code below assumes data is a Buffer; it will seem to work on a string, but give
         # the wrong result where wrong means that it doesn't agree with the frontend version defined
         # in misc.
-        data = new Buffer(data)
+        data = Buffer.from(data)
     sha1sum = crypto.createHash('sha1')
     sha1sum.update(data)
     return sha1sum.digest('hex')
