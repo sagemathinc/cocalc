@@ -274,7 +274,7 @@ export class Actions extends BaseActions<LatexEditorState> {
           // set; however, it's possible it isn't in case this is
           // an old document that had the build_command set before
           // we implemented output directory support.
-          const build_command: List<string> = this.ensure_output_directory(cmd);
+          const build_command: List<string> = this.sanitize_build_cmd(cmd);
           this.setState({ build_command });
           return;
         }
@@ -306,16 +306,26 @@ export class Actions extends BaseActions<LatexEditorState> {
     return `-output-directory=${dir}`;
   }
 
-  private ensure_output_directory(cmd: List<string>): List<string> {
+  private sanitize_build_cmd(cmd: List<string>): List<string> {
     const has_output_dir = cmd.some(
       (x) => x.indexOf("-output-directory=") != -1
     );
     if (!has_output_dir && this.output_directory != null) {
       // no output directory option.
-      return cmd.splice(cmd.size - 2, 0, this.output_directory_cmd_flag());
-    } else {
-      return cmd;
+      cmd = cmd.splice(cmd.size - 2, 0, this.output_directory_cmd_flag());
     }
+    // -dependents- or -deps- ← don't shows the dependency list, we remove these
+    for (const bad of ["-dependents-", "-deps-"]) {
+      const idx = cmd.indexOf(bad);
+      if (idx !== -1) {
+        cmd = cmd.delete(idx);
+      }
+    }
+    // and then we make sure -deps or -dependents exists
+    if (!cmd.some((x) => x === "-deps" || x === "-dependents")) {
+      cmd = cmd.splice(3, 0, "-deps");
+    }
+    return cmd
   }
 
   // disable the output directory for pythontex and sagetex.
