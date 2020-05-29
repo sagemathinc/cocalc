@@ -142,6 +142,7 @@ export function build_command(
     "-f",
     "-g",
     "-bibtex",
+    "-deps",
     "-synctex=1",
     "-interaction=nonstopmode",
   ];

@@ -81,6 +81,7 @@ class LogText {
 const state = {
   NORMAL: 0,
   ERROR: 1,
+  DEPS: 2,
 };
 
 /* Type of an error or warning */
@@ -104,6 +105,7 @@ export interface IProcessedLatexLog {
   typesetting: Error[];
   all: Error[];
   files: string[];
+  deps: string[]; // dependency files (no absolute files, only tex and bib)
 }
 
 export class ProcessedLatexLog implements IProcessedLatexLog {
@@ -112,6 +114,7 @@ export class ProcessedLatexLog implements IProcessedLatexLog {
   typesetting: Error[] = [];
   all: Error[] = [];
   files: string[] = [];
+  deps: string[] = [];
 
   toJS(): IProcessedLatexLog {
     return Object.assign({}, this);
@@ -130,6 +133,7 @@ export class LatexParser {
   private currentLine: string;
   private currentFilePath: string;
   private files: Set<string> = new Set([]);
+  private deps: string[]; // list of dependency files
 
   constructor(text, options) {
     this.log = new LogText(text);
@@ -140,6 +144,7 @@ export class LatexParser {
     this.fileStack = [];
     this.rootFileList = [];
     this.openParens = 0;
+    this.deps = [];
   }
 
   parse(): IProcessedLatexLog {
@@ -163,11 +168,13 @@ export class LatexParser {
           this.parseHboxLine();
         } else if (this.currentLineIsPackageWarning()) {
           this.parseMultipleWarningLine();
+        } else if (this.currentLineIsDependenciesList()) {
+          this.state = state.DEPS;
+          continue; // skip first line
         } else {
           this.parseParensForFilenames();
         }
-      }
-      if (this.state === state.ERROR) {
+      } else if (this.state === state.ERROR) {
         this.currentError.content += this.log
           .linesUpToNextMatchingLine(/^l\.[0-9]+/)
           .join("\n");
@@ -179,9 +186,35 @@ export class LatexParser {
         }
         this.data.push(this.currentError);
         this.state = state.NORMAL;
+      } else if (this.state === state.DEPS) {
+        if (this.currentLineIsDependenciesListEnd()) {
+          this.state = state.NORMAL;
+        } else {
+          this.addDeps(this.currentLine);
+        }
       }
     }
     return this.postProcess(this.data).toJS();
+  }
+
+  currentLineIsDependenciesList(): boolean {
+    return this.currentLine.startsWith("#===Dependents for");
+  }
+
+  currentLineIsDependenciesListEnd(): boolean {
+    return this.currentLine.startsWith("#===End dependents for");
+  }
+
+  addDeps(line: string): void {
+    line = line.trim();
+    // ignore absolute files
+    if (line[0] === "/") return;
+    if (line[line.length - 1] === "\\") {
+      line = line.slice(0, line.length - 1);
+    }
+    // we only want to know about tex and bib files
+    if (!line.endsWith(".tex") && !line.endsWith(".bib")) return;
+    this.deps.push(line);
   }
 
   currentLineIsError(): boolean {
@@ -362,6 +395,7 @@ export class LatexParser {
     }
     const hashes: string[] = [];
     const hashEntry: Function = (entry) => entry.raw;
+    pll.deps = this.deps;
 
     let i: number = 0;
     while (i < data.length) {
