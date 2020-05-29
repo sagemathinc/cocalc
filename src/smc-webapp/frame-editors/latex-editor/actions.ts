@@ -669,8 +669,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.set_build_logs({ latex: output });
     // TODO: knitr complicates multifile a lot, so we do
     // not support it yet.
-    if (!this.knitr && this.parsed_output_log.files != null) {
-      this.set_switch_to_files(this.parsed_output_log.files);
+    if (!this.knitr && this.parsed_output_log.deps != null) {
+      this.set_switch_to_files(this.parsed_output_log.deps);
     }
     this.check_for_fatal_error();
     this.update_gutters();
