@@ -61,8 +61,8 @@ exports.is_ctrl_enter  = (e) -> e.which is 13 and e.ctrlKey
 exports.is_escape      = (e) -> e.which is 27
 
 base_url_lib = require("./misc/base-url")
-exports.APP_BASE_URL = exports.APP_BASE_URL
-exports.BASE_URL = exports.BASE_URL
+exports.APP_BASE_URL = base_url_lib.APP_BASE_URL
+exports.BASE_URL = base_url_lib.BASE_URL
 
 local_diff = exports.local_diff = (before, after) ->
     # Return object
