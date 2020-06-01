@@ -5,6 +5,8 @@
 
 import * as ms from "ms";
 import { analytics_cookie_name } from "smc-util/misc";
+import { PostgreSQL } from "./postgres/types";
+import { get_server_settings, pii_retention_to_future } from "./utils";
 import * as fs from "fs";
 import * as TS from "typescript";
 const UglifyJS = require("uglify-js");
@@ -13,8 +15,10 @@ import { is_valid_uuid_string, uuid } from "../smc-util/misc2";
 import * as cors from "cors";
 // this splits into { subdomain: "dev" or "", domain: "cocalc",  tld: "com" }
 const parseDomain = require("parse-domain");
-import { DNS } from "smc-util/theme";
-const pdDNS = parseDomain(DNS);
+interface DNSParsed {
+  tld: string;
+  domain: string;
+}
 
 // compiling analytics-script.ts and minifying it.
 export const analytics_js = UglifyJS.minify(
@@ -64,7 +68,8 @@ function analytics_rec(
   db: any,
   logger: any,
   token: string,
-  payload: object | undefined
+  payload: object | undefined,
+  pii_retention: number | false
 ): void {
   if (payload == null) return;
   if (!is_valid_uuid_string(token)) return;
@@ -73,6 +78,7 @@ function analytics_rec(
   // sanitize data (limits size and number of characters)
   const rec_data = sanitize(payload);
   dbg("rec_data", rec_data);
+  const expire = pii_retention_to_future(pii_retention);
 
   if (rec_data.account_id != null) {
     // dbg("update analytics", rec_data.account_id);
@@ -83,6 +89,7 @@ function analytics_rec(
       set: {
         "account_id       :: UUID": rec_data.account_id,
         "account_id_time  :: TIMESTAMP": new Date(),
+        "expire           :: TIMESTAMP": expire,
       },
     });
   } else {
@@ -92,10 +99,44 @@ function analytics_rec(
         "token     :: UUID": token,
         "data      :: JSONB": rec_data,
         "data_time :: TIMESTAMP": new Date(),
+        "expire    :: TIMESTAMP": expire,
       },
       conflict: "token",
     });
   }
+}
+
+// could throw an error
+function check_cors(
+  origin: string | undefined,
+  dns_parsed: DNSParsed
+): boolean {
+  // no origin, e.g. when loaded as usual in a script tag
+  if (origin == null) return true;
+
+  const origin_parsed = parseDomain(origin);
+  if (origin_parsed == null) {
+    // This happens, e.g., when origin is https://localhost, which happens with cocalc-docker.
+    return true;
+  }
+  if (
+    origin_parsed.tld === dns_parsed.tld &&
+    origin_parsed.domain === dns_parsed.domain
+  ) {
+    return true;
+  }
+  if (origin_parsed.tld === "com") {
+    if (
+      origin_parsed.domain === "cocalc" ||
+      origin_parsed.domain === "sagemath"
+    ) {
+      return true;
+    }
+  }
+  if (origin_parsed.tld === "org" && origin_parsed.domain === "sagemath") {
+    return true;
+  }
+  return false;
 }
 
 /*
@@ -112,53 +153,36 @@ The query param "fqd" (fully qualified domain) can be set to true or false (defa
 It controls if the bounce back URL mentions the domain.
 */
 
-export function setup_analytics_js(
+export async function setup_analytics_js(
   router: any,
-  database: any,
+  database: PostgreSQL,
   logger: any,
   base_url: string
-): void {
-  const dbg = create_log("analytics_js", logger);
+): Promise<void> {
+  const dbg = create_log("analytics_js/cors", logger);
+
+  // we only get the DNS once at startup – i.e. hub restart required upon changing DNS!
+  const settings = await get_server_settings(database);
+  const DNS = settings.dns;
+  const dns_parsed = parseDomain(DNS);
+  const pii_retention = settings.pii_retention;
 
   // CORS-setup: allow access from other trusted (!) domains
   const analytics_cors = {
     credentials: true,
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "*"],
-    origin(origin, cb) {
-      dbg(`analytics_cors origin='${origin}'`);
-      // no origin, e.g. when loaded as usual in a script tag
-      if (origin == null) {
-        cb(null, true);
-        return;
-      }
-
-      let allow = false;
+    origin: function (origin, cb) {
+      dbg(`check origin='${origin}'`);
       try {
-        const pd = parseDomain(origin);
-        if (pd == null) {
-          // This happens, e.g., when origin is https://localhost, which happens with cocalc-docker.
+        if (check_cors(origin, dns_parsed)) {
           cb(null, true);
-          return;
-        }
-        if (pd.tld === "com") {
-          if (pd.domain === "cocalc" || pd.domain === "sagemath") {
-            allow = true;
-          }
-        } else if (pd.tld === "org" && pd.domain === "sagemath") {
-          allow = true;
-        } else if (pd.tld === pdDNS.tld && pd.domain === pdDNS.domain) {
-          allow = true;
+        } else {
+          cb(`origin="${origin}" is not allowed`, false);
         }
       } catch (e) {
         cb(e);
         return;
-      }
-
-      if (allow) {
-        cb(null, true);
-      } else {
-        cb("CORS: not allowed", false);
       }
     },
   };
@@ -181,15 +205,16 @@ export function setup_analytics_js(
     // write response script
     // this only runs once, hence no caching
     res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
-    //analytics_cookie(res)
+    //analytics_cookie(DNS, res)
+    const DOMAIN = `${dns_parsed.domain}.${dns_parsed.tld}`;
     res.write(`var NAME = '${analytics_cookie_name}';\n`);
     res.write(`var ID = '${uuid()}';\n`);
-    res.write(`var DOMAIN = '${pdDNS.domain}.${pdDNS.tld}';\n`);
+    res.write(`var DOMAIN = '${DOMAIN}';\n`);
     //  BASE_URL
     if (req.query.fqd === "false") {
       res.write(`var PREFIX = '${base_url}';\n`);
     } else {
-      const prefix = `//${DNS}${base_url}`;
+      const prefix = `//${DOMAIN}${base_url}`;
       res.write(`var PREFIX = '${prefix}';\n\n`);
     }
     res.write(analytics_js);
@@ -203,7 +228,7 @@ export function setup_analytics_js(
   ) {
     // in case user was already here, do not set a cookie
     if (!req.cookies[analytics_cookie_name]) {
-      analytics_cookie(res);
+      analytics_cookie(DNS, res);
     }
     res.header("Content-Type", "image/png");
     res.header("Content-Length", PNG_1x1.length);
@@ -223,7 +248,7 @@ export function setup_analytics_js(
         `/analytics.js -- TOKEN=${token} -- DATA=${JSON.stringify(req.body)}`
       );
       // record it, there is no need for a callback
-      analytics_rec(database, logger, token, req.body);
+      analytics_rec(database, logger, token, req.body, pii_retention);
     }
     res.end();
   });
@@ -232,7 +257,7 @@ export function setup_analytics_js(
   router.options("/analytics.js", cors(analytics_cors));
 }
 
-function analytics_cookie(res): void {
+function analytics_cookie(DNS: string, res): void {
   // set the cookie (TODO sign it?)
   const analytics_token = uuid();
   res.cookie(analytics_cookie_name, analytics_token, {
