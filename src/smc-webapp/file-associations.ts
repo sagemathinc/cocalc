@@ -102,7 +102,6 @@ const codemirror_associations: { [ext: string]: string } = {
 export interface FileSpec {
   editor?: string;
   binary?: boolean;
-  [];
   icon: string;
   opts: {
     mode?: string;
