@@ -3,6 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+
+// IMPORTANT: Currently not used since CodeMirror can now use native browser spellcheck!
+
 /*
 Spell check setting.  The options are:
 

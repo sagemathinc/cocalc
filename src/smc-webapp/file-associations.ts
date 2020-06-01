@@ -102,12 +102,14 @@ const codemirror_associations: { [ext: string]: string } = {
 export interface FileSpec {
   editor?: string;
   binary?: boolean;
+  [];
   icon: string;
   opts: {
     mode?: string;
     indent_unit?: number;
     tab_size?: number;
     spaces_instead_of_tabs?: boolean;
+    spellcheck?: boolean;
   };
   name: string;
   exclude_from_menu?: boolean;
@@ -156,7 +158,7 @@ file_associations["noext-dockerfile"] = {
 file_associations["tex"] = {
   editor: "latex",
   icon: "cc-icon-tex-file",
-  opts: { mode: "stex2", indent_unit: 2, tab_size: 2 },
+  opts: { mode: "stex2", indent_unit: 2, tab_size: 2, spellcheck: true },
   name: "LaTeX",
 };
 
@@ -167,6 +169,7 @@ file_associations["rnw"] = {
     mode: codemirror_associations["rnw"],
     indent_unit: 4,
     tab_size: 4,
+    spellcheck: true,
   },
   name: "R Knitr Rnw",
 };
@@ -178,31 +181,42 @@ file_associations["rtex"] = {
     mode: codemirror_associations["rtex"],
     indent_unit: 4,
     tab_size: 4,
+    spellcheck: true,
   },
   name: "R Knitr Rtex",
 };
 
 file_associations["html"] = {
   icon: "fa-file-code-o",
-  opts: { indent_unit: 4, tab_size: 4, mode: "htmlmixed" },
+  opts: { indent_unit: 4, tab_size: 4, mode: "htmlmixed", spellcheck: true },
   name: "html",
 };
 
 file_associations["md"] = file_associations["markdown"] = {
   icon: "cc-icon-markdown",
-  opts: { indent_unit: 4, tab_size: 4, mode: codemirror_associations["md"] },
+  opts: {
+    indent_unit: 4,
+    tab_size: 4,
+    mode: codemirror_associations["md"],
+    spellcheck: true,
+  },
   name: "markdown",
 };
 
 file_associations["rmd"] = {
   icon: "cc-icon-r",
-  opts: { indent_unit: 4, tab_size: 4, mode: codemirror_associations["rmd"] },
+  opts: {
+    indent_unit: 4,
+    tab_size: 4,
+    mode: codemirror_associations["rmd"],
+    spellcheck: true,
+  },
   name: "RMarkdown",
 };
 
 file_associations["rst"] = {
   icon: "fa-file-code-o",
-  opts: { indent_unit: 4, tab_size: 4, mode: "rst" },
+  opts: { indent_unit: 4, tab_size: 4, mode: "rst", spellcheck: true },
   name: "ReST",
 };
 
@@ -216,7 +230,7 @@ file_associations["java"] = {
 file_associations["mediawiki"] = file_associations["wiki"] = {
   editor: "html-md",
   icon: "fa-file-code-o",
-  opts: { indent_unit: 4, tab_size: 4, mode: "mediawiki" },
+  opts: { indent_unit: 4, tab_size: 4, mode: "mediawiki", spellcheck: true },
   name: "MediaWiki",
 };
 
@@ -237,7 +251,7 @@ file_associations["yml"] = file_associations["yaml"] = {
 file_associations["pug"] = file_associations["jade"] = {
   editor: "codemirror",
   icon: "fa-code",
-  opts: { mode: "text/x-pug", indent_unit: 2, tab_size: 2 },
+  opts: { mode: "text/x-pug", indent_unit: 2, tab_size: 2, spellcheck: true },
   name: "PUG",
 };
 

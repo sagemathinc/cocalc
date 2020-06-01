@@ -248,10 +248,14 @@ export class Actions<
   // Init spellchecking whenever syncstring saves -- only used in derived classes, where
   // spelling makes sense...
   protected _init_spellcheck(): void {
+    // We are disabling this since CodeMirror now provides native spell checking.
+    // I'm not deleting the code YET just in case we need to switch back.
+    /*
     this._spellcheck_is_supported = true;
     this._syncstring.on("save-to-disk", (time) =>
       this.update_misspelled_words(time)
     );
+    */
   }
 
   protected _init_syncstring(): void {
