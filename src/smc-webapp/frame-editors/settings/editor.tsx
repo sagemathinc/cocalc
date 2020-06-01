@@ -57,6 +57,9 @@ export class Settings extends Component<Props, {}> {
         // we could delete it like so -- this.props.actions.set_settings({[key]:null});
       }
     });
+    if (v.length == 0) {
+      v.push(<div>This editor currently has no configurable settings.</div>);
+    }
     return v;
   }
 

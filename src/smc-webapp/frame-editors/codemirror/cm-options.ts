@@ -38,14 +38,7 @@ export function cm_options(
   if (!key) {
     key = `noext-${path_split(filename).tail}`.toLowerCase();
   }
-  const default_opts =
-    (file_associations[key] != null
-      ? file_associations[key].opts
-      : undefined) != null
-      ? file_associations[key] != null
-        ? file_associations[key].opts
-        : undefined
-      : {};
+  const default_opts = file_associations[key]?.opts ?? {};
 
   let theme = editor_settings.get("theme");
   // if we do not know the theme, fallback to default
@@ -81,7 +74,12 @@ export function cm_options(
     style_active_line: editor_settings.get("style_active_line", true),
     bindings: editor_settings.get("bindings"),
     theme: theme,
+    spellcheck: false,
+    inputStyle: "contenteditable",
   });
+  // Regarding inputStyle above, this is required for spellcheck to work,
+  // and will soon be the default anyways.  It's already the default on mobile.
+
   if (opts.mode == null) {
     // to satisfy typescript
     throw Error("mode must be specified");
@@ -292,6 +290,7 @@ export function cm_options(
   }
 
   const options: any = {
+    spellcheck: opts.spellcheck,
     firstLineNumber: opts.first_line_number,
     autofocus: false,
     mode: { name: opts.mode, globalVars: true },
@@ -354,6 +353,8 @@ export function cm_options(
     //    cm.options.theme.replace...
     options.theme = "default";
   }
+
+  options.inputStyle = "contenteditable";
 
   return options;
 }
