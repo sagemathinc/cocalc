@@ -992,9 +992,10 @@ export class SyncTable extends EventEmitter {
         await callback2(this.client.query, {
           query,
           options: [{ set: true }], // force it to be a set query
-          timeout: 30,
+          timeout: 120, // give it some time (especially if it is long)
         });
         this.last_save = value; // success -- don't have to save this stuff anymore...
+        throw Error("break for fun");
       } catch (err) {
         dbg("db query failed", err);
         if (is_fatal(err.toString())) {
@@ -1002,11 +1003,17 @@ export class SyncTable extends EventEmitter {
           this.close(true);
           throw err;
         }
+        // NOTE: we do not show entire log since the number
+        // of entries in the query can be very large and just
+        // converting them all to text could use a lot of memory (?).
         console.warn(
           `_save('${this.table}') set query error:`,
           err,
-          " query=",
-          query
+          " queries: ",
+          query[0],
+          "...",
+          query.length - 1,
+          " omitted"
         );
         return true;
       }
