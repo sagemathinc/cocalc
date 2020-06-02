@@ -995,7 +995,6 @@ export class SyncTable extends EventEmitter {
           timeout: 120, // give it some time (especially if it is long)
         });
         this.last_save = value; // success -- don't have to save this stuff anymore...
-        throw Error("break for fun");
       } catch (err) {
         dbg("db query failed", err);
         if (is_fatal(err.toString())) {
