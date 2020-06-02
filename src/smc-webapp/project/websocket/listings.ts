@@ -323,6 +323,11 @@ export class Listings extends EventEmitter {
     if ((this.state as State) == "closed") return;
 
     this.table.on("change", async (keys: string[]) => {
+      if (this.state != "ready") {
+        // don't do anything if being initialized or already closed,
+        // since code below will break in weird ways.
+        return;
+      }
       // handle changes to directory listings and deleted files lists
       const paths: string[] = [];
       const deleted_paths: string[] = [];

@@ -21,7 +21,15 @@ import { remove_jupyter_backend } from "../jupyter/jupyter";
 // Update directory listing only when file changes stop for at least this long.
 // This is important since we don't want to fire off dozens of changes per second,
 // e.g., if a logfile is being updated.
-const WATCH_DEBOUNCE_MS = 2000;
+const WATCH_DEBOUNCE_MS = 1500;
+
+// See https://github.com/sagemathinc/cocalc/issues/4623
+// for one reason to put a slight delay in; basically,
+// a change could be to delete and then create a file quickly,
+// and that confuses our file deletion detection.   A light delay
+// is OK given our application.  No approach like this can
+// ever be perfect, of course.
+const DELAY_ON_CHANGE_MS = 50;
 
 // Watch directories for which some client has shown interest recently:
 const INTEREST_THRESH_SECONDS = WATCH_TIMEOUT_MS / 1000;
@@ -275,6 +283,7 @@ class ListingsTable {
     );
     this.watchers[path].on("change", async () => {
       try {
+        await delay(DELAY_ON_CHANGE_MS);
         await this.compute_listing(path);
       } catch (err) {
         this.log(`compute_listing("${path}") error: "${err}"`);

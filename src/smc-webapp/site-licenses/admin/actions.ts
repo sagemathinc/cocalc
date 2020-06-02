@@ -43,12 +43,24 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
     }
     try {
       this.setState({ loading: true });
-      const x = await query({
-        query: {
-          matching_site_licenses: [
-            {
-              search,
-              id: null,
+      const matching_ids = (
+        await query({
+          query: {
+            matching_site_licenses: [{ search, id: null }],
+          },
+        })
+      )?.query.matching_site_licenses;
+      const site_licenses: SiteLicense[] = [];
+      if (matching_ids != null) {
+        // The above query just gives us back a bunch of id's; now we need
+        // to get the actual data about those licenses, which we do in
+        // *one single call to the backend* which does matching_ids.length
+        // queries (but packaged as one for efficiency reasons).
+        const queries: any[] = []; // one for each license id
+        for (const { id } of matching_ids) {
+          queries.push({
+            site_licenses: {
+              id,
               title: null,
               description: null,
               info: null,
@@ -62,10 +74,17 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
               run_limit: null,
               apply_limit: null,
             },
-          ],
-        },
-      });
-      this.setState({ site_licenses: x?.query.matching_site_licenses });
+          });
+        }
+        const result = await query({ query: queries });
+        for (const x of result.query) {
+          const site_license = x.site_licenses;
+          if (site_license != null) {
+            site_licenses.push(site_license);
+          }
+        }
+      }
+      this.setState({ site_licenses });
       await this.update_usage_stats();
     } catch (err) {
       this.set_error(err);
