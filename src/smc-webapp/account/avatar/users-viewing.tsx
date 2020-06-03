@@ -69,7 +69,7 @@ export const UsersViewing: React.FC<Props> = (props) => {
         path: props.path,
         max_age_s: props.max_age_s,
       }),
-    [file_use]
+    [file_use, props.project_id, props.path, props.max_age_s]
   );
 
   // so we can exclude ourselves from list of faces
