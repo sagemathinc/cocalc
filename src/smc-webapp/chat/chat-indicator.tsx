@@ -50,7 +50,7 @@ export const ChatIndicator: React.FC<Props> = ({
     () =>
       !!redux.getStore("file_use")?.get_file_info(project_id, path)
         ?.is_unseenchat,
-    [file_use]
+    [file_use, project_id, path]
   );
 
   const toggle_chat = debounce(
@@ -96,7 +96,11 @@ export const ChatIndicator: React.FC<Props> = ({
           <span
             style={{ marginLeft: "5px", marginRight: "5px", color: "#428bca" }}
           >
-            <VideoChatButton project_id={project_id} path={path} button={false} />
+            <VideoChatButton
+              project_id={project_id}
+              path={path}
+              button={false}
+            />
           </span>
         )}
         <Tip

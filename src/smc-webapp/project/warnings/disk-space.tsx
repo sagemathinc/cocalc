@@ -19,7 +19,7 @@ export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
       is_commercial
         ? redux.getStore("projects").get_total_project_quotas(project_id)
         : undefined,
-    [project]
+    [project, is_commercial]
   );
 
   const actions = useActions(project_id);

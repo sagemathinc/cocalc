@@ -44,7 +44,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
   // https://github.com/sagemathinc/cocalc/issues/3669
   const project_users = useMemo(
     () => project_map.getIn([project_id, "users"], Map()),
-    ["project_map"]
+    ["project_map", project_id]
   );
 
   const log_container_ref = useRef(null);
