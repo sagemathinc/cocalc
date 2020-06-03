@@ -48,7 +48,7 @@ export const ChatLog: React.FC<ChatLogProps> = (props) => {
       m = m.filter((message) => search_matches(message, search_terms));
     }
     return m.keySeq().sort().toJS();
-  }, [messages, search]);
+  }, [messages, search, props.project_id, props.file_path]);
 
   function get_user_name(account_id: string): string {
     if (props.user_map == null) return "Unknown";
