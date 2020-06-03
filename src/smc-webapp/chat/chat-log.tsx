@@ -24,8 +24,8 @@ interface ChatLogProps {
   user_map?: Map<string, Map<string, any>>; // immutable js map {collaborators} --> account info
   account_id: string;
   project_id?: string; // used to render links more effectively
-  file_path?: string; // used to render links
-  font_size?: number;
+  path?: string;
+  font_size: number;
   actions?: ChatActions;
   show_heads?: boolean;
   focus_end?(e: any): void;
@@ -48,7 +48,7 @@ export const ChatLog: React.FC<ChatLogProps> = (props) => {
       m = m.filter((message) => search_matches(message, search_terms));
     }
     return m.keySeq().sort().toJS();
-  }, [messages, search, props.project_id, props.file_path]);
+  }, [messages, search, props.project_id, props.path]);
 
   function get_user_name(account_id: string): string {
     if (props.user_map == null) return "Unknown";
@@ -75,7 +75,7 @@ export const ChatLog: React.FC<ChatLogProps> = (props) => {
         message={message}
         date={date}
         project_id={props.project_id}
-        file_path={props.file_path}
+        path={props.path}
         font_size={props.font_size}
         actions={props.actions}
         saved_mesg={
@@ -139,7 +139,7 @@ export const ChatLog: React.FC<ChatLogProps> = (props) => {
         row_count={sorted_dates.length}
         row_renderer={row_renderer}
         row_key={row_key}
-        cache_id={`${props.project_id}${props.file_path}`}
+        cache_id={`${props.project_id}${props.path}`}
         on_scroll={on_scroll}
       />
     </>

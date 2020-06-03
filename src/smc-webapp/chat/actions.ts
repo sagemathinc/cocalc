@@ -198,13 +198,6 @@ export class ChatActions extends Actions<ChatState> {
     }
   }
 
-  public set_to_last_input(): void {
-    if (this.store == null) return;
-    const input = this.store.get("last_sent");
-    if (!input || input.trim().length == 0) return;
-    this.setState({ input });
-  }
-
   public set_input(input: string): void {
     this.setState({ input });
   }

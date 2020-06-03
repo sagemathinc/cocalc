@@ -2,8 +2,12 @@
 Markdown editor
 
 Stage 1 -- enough to replace current chat input:
-  - [ ] @mentions (via completion dialog) -the collabs on this project
   - [ ] use this component for editing past chats
+     - [ ] shift+enter to submit isn't working
+     - [ ] image upload doesn't set link properly
+  - [ ] different border when focused
+  - [ ] @mentions (via completion dialog) -the collabs on this project
+     - get rid of the "enable_mentions" account pref flag and data -- always have it
   - [x] editor themes
   - [x] markdown syntax highlighting via codemirror
   - [x] spellcheck
@@ -27,8 +31,7 @@ Stage 2 -- stretch goal challenges:
 ---
   - [ ] "Move" versus "Copy" when dragging/dropping?
   - [ ] improve move and delete to be aware of images (?).
-  - [ ] bonus: don't insert the link inside of an existing link tag...
-  - [ ] border when focused
+  - [ ] make upload link an immutable span of text?  Unclear, since user wants to edit the width and maybe style.  Hmmm... Unclear.
   - [ ] integrated preview
   - [ ] directions and links
   - [ ] hashtags
@@ -88,6 +91,7 @@ interface Props {
   placeholder?: string;
   height?: string;
   extraHelp?: string | JSX.Element;
+  fontSize?: number;
 }
 export const MarkdownInput: React.FC<Props> = ({
   project_id,
@@ -105,6 +109,7 @@ export const MarkdownInput: React.FC<Props> = ({
   placeholder,
   height,
   extraHelp,
+  fontSize,
 }) => {
   // @ts-ignore
   const deleteme = [project_id, path, enableUpload, enableMentions];
@@ -113,7 +118,7 @@ export const MarkdownInput: React.FC<Props> = ({
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
   const theme = useRedux(["account", "editor_settings", "theme"]);
   const bindings = useRedux(["account", "editor_settings", "bindings"]);
-  const fontSize = useRedux(["account", "font_size"]);
+  const defaultFontSize = useRedux(["account", "font_size"]);
 
   const dropzone_ref = useRef<Dropzone>(null);
   const upload_close_preview_ref = useRef<Function>(null);
@@ -168,6 +173,8 @@ export const MarkdownInput: React.FC<Props> = ({
       "style",
       "height:100%; font-family:sans-serif !important;padding:6px 12px"
     );
+
+    cm.current.focus();
 
     // clean up
     return () => {
@@ -315,9 +322,7 @@ export const MarkdownInput: React.FC<Props> = ({
     // TODO: make depend on the options
     // TODO: make clicking on drag and drop thing pop up dialog
     return (
-      <div
-        style={{ color: "#767676", fontSize: "12.5px", marginBottom: "5px" }}
-      >
+      <div style={{ fontSize: "12.5px", marginBottom: "5px" }}>
         Shift+Enter to send.
         {render_mention_instructions()}
         Use{" "}
@@ -379,7 +384,11 @@ export const MarkdownInput: React.FC<Props> = ({
     <div>
       {value != "" ? render_instructions() : undefined}
       <div
-        style={{ ...STYLE, ...style, ...{ fontSize: `${fontSize}px`, height } }}
+        style={{
+          ...STYLE,
+          ...style,
+          ...{ fontSize: `${fontSize ? fontSize : defaultFontSize}px`, height },
+        }}
       >
         <textarea
           style={{ display: "none" }}

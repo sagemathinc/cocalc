@@ -99,7 +99,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   const saved_mesg = useRedux(["saved_mesg"], project_id, path);
   const messages = useRedux(["messages"], project_id, path);
 
-  const input_ref = useRef<HTMLTextAreaElement>(null);
   const log_container_ref = useRef<WindowedList>(null);
 
   const project_map = useRedux(["projects", "project_map"]);
@@ -107,7 +106,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
     // the immutable.Map() default is because of admins:
     // https://github.com/sagemathinc/cocalc/issues/3669
     return project_map.getIn([project_id, "users"], immutable.Map());
-  }, [project_map]);
+  }, [project_map, project_id]);
   const enable_mentions = useMemo(
     () => project_users.size > 1 && other_settings.get("allow_mentions"),
     [project_users, other_settings]
@@ -275,7 +274,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   function on_send(): void {
     scroll_to_bottom(log_container_ref, true);
     actions.send_chat();
-    input_ref.current?.focus?.();
   }
 
   function on_clear(): void {
@@ -294,7 +292,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             user_map={user_map}
             project_id={project_id}
             font_size={font_size}
-            file_path={path != null ? path_split(path).head : undefined}
+            path={path}
             actions={actions}
             saved_mesg={saved_mesg}
             search={search}
@@ -313,15 +311,12 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               project_id={project_id}
               path={path}
               input={input}
-              input_ref={input_ref}
               enable_mentions={enable_mentions}
-              project_users={project_users}
-              user_store={redux.getStore("users")}
               on_clear={on_clear}
               on_send={on_send}
-              on_set_to_last_input={() => actions.set_to_last_input()}
               account_id={account_id}
               height={INPUT_HEIGHT}
+              onChange={(value) => actions.set_input(value)}
             />
           </div>
           <div

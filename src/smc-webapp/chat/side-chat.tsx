@@ -1,6 +1,5 @@
 import { Map } from "immutable";
 import { debounce } from "lodash";
-import { path_split } from "smc-util/misc";
 import { DISCORD_INVITE } from "smc-util/theme";
 
 import {
@@ -53,7 +52,6 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
   );
 
   const log_container_ref = useRef(null);
-  const input_ref = useRef(null);
 
   const other_settings = useRedux(["account", "other_settings"]);
   const account_id = useRedux(["account", "account_id"]);
@@ -77,10 +75,6 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
     scroll_to_bottom(log_container_ref, true);
     actions.submit_user_mentions();
     actions.send_chat();
-    if (input_ref.current != null) {
-      // TODO -- looks bad
-      (input_ref.current as any).focus();
-    }
   }
 
   function on_clear(): void {
@@ -215,7 +209,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
           user_map={user_map}
           project_id={project_id}
           font_size={font_size}
-          file_path={path != null ? path_split(path).head : undefined}
+          path={path}
           actions={actions}
           show_heads={false}
           search={search}
@@ -236,22 +230,19 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
             project_id={project_id}
             path={path}
             input={input}
-            input_ref={input_ref}
             enable_mentions={
               project_users.size > 1
                 ? other_settings.get("allow_mentions")
                 : undefined
             }
-            project_users={project_users}
-            user_store={redux.getStore("users")}
             on_clear={on_clear}
             on_send={() => {
               send_chat();
               analytics_event("side_chat", "send_chat", "keyboard");
             }}
-            on_set_to_last_input={() => actions.set_to_last_input()}
             account_id={account_id}
             height={INPUT_HEIGHT}
+            onChange={(value) => actions.set_input(value)}
           />
           <div
             style={{

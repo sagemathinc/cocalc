@@ -12,23 +12,41 @@ interface Props {
   project_id: string;
   path: string;
   input: string;
-  input_ref: React.RefObject<HTMLTextAreaElement>;
   enable_mentions: boolean;
-  project_users: any;
-  user_store: any;
   on_paste?: (e) => void;
   on_send: () => void;
   on_clear: () => void;
-  on_set_to_last_input: () => void;
   account_id: string;
   height?: string;
+  onChange: (string) => void;
+  font_size?: number;
 }
 
 export const ChatInput: React.FC<Props> = (props) => {
-  // const font_size = useRedux(["account", "font_size"]);
-  // const mentions_input_ref = useRef<MentionsInput>(null);
-  // const input_ref = useRef<HTMLTextAreaElement>(null);
   const actions = useActions(props.project_id, props.path);
+  return (
+    <MarkdownInput
+      project_id={props.project_id}
+      path={props.path}
+      value={props.input}
+      enableUpload={true}
+      onUploadStart={() => actions?.set_uploading(true)}
+      onUploadEnd={() => actions?.set_uploading(false)}
+      enableMentions={props.enable_mentions}
+      onChange={props.onChange}
+      onShiftEnter={props.on_send}
+      onEscape={props.on_clear}
+      height={props.height}
+      placeholder={"Type a message..."}
+      extraHelp={
+        IS_MOBILE
+          ? "Click the date to edit chats."
+          : "Double click to edit chats."
+      }
+      fontSize={props.font_size}
+    />
+  );
+
   /*function render_user_suggestion(entry: {
     id: string;
     display: string;
@@ -42,28 +60,6 @@ export const ChatInput: React.FC<Props> = (props) => {
       </span>
     );
   }*/
-
-  return (
-    <MarkdownInput
-      project_id={props.project_id}
-      path={props.path}
-      value={props.input}
-      enableUpload={true}
-      onUploadStart={() => actions.set_uploading(true)}
-      onUploadEnd={() => actions.set_uploading(false)}
-      enableMentions={props.enable_mentions}
-      onChange={(value) => actions.set_input(value)}
-      onShiftEnter={props.on_send}
-      onEscape={props.on_clear}
-      height={props.height}
-      placeholder={"Type a message..."}
-      extraHelp={
-        IS_MOBILE
-          ? "Click the date to edit chats."
-          : "Double click to edit chats."
-      }
-    />
-  );
 
   /*
   if (!props.enable_mentions) {
