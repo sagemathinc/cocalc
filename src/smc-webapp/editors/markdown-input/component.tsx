@@ -2,12 +2,12 @@
 Markdown editor
 
 Stage 1 -- enough to replace current chat input:
-  - [ ] use this component for editing past chats
-     - [ ] shift+enter to submit isn't working
-     - [ ] image upload doesn't set link properly
-  - [ ] different border when focused
   - [ ] @mentions (via completion dialog) -the collabs on this project
      - get rid of the "enable_mentions" account pref flag and data -- always have it
+  - [ ] main input at bottom feels SLOW (even though editing messages is fast)
+  - [x] different border when focused
+  - [x] scroll into view when focused
+  - [x] use this component for editing past chats
   - [x] editor themes
   - [x] markdown syntax highlighting via codemirror
   - [x] spellcheck
@@ -66,13 +66,20 @@ import {
   useEffect,
   useRef,
   useRedux,
+  useState,
   redux,
 } from "../../app-framework";
 import { Dropzone, FileUploadWrapper } from "../../file-upload";
 import { alert_message } from "../../alerts";
 
-const STYLE: React.CSSProperties = {
+const BLURED_STYLE: React.CSSProperties = {
   border: "1px solid rgb(204,204,204)", // focused will be rgb(112, 178, 230);
+};
+
+const FOCUSED_STYLE: React.CSSProperties = {
+  outline: "none !important",
+  boxShadow: "0px 0px 5px  #719ECE",
+  border: "1px solid #719ECE",
 };
 
 interface Props {
@@ -88,6 +95,7 @@ interface Props {
   onShiftEnter?: () => void;
   onEscape?: () => void;
   onBlur?: () => void;
+  onFocus?: () => void;
   placeholder?: string;
   height?: string;
   extraHelp?: string | JSX.Element;
@@ -106,6 +114,7 @@ export const MarkdownInput: React.FC<Props> = ({
   onShiftEnter,
   onEscape,
   onBlur,
+  onFocus,
   placeholder,
   height,
   extraHelp,
@@ -123,6 +132,7 @@ export const MarkdownInput: React.FC<Props> = ({
   const dropzone_ref = useRef<Dropzone>(null);
   const upload_close_preview_ref = useRef<Function>(null);
   const current_uploads_ref = useRef<{ [name: string]: boolean } | null>(null);
+  const [is_focused, set_is_focused] = useState<boolean>(true);
 
   useEffect(() => {
     // initialize the codemirror editor
@@ -160,8 +170,14 @@ export const MarkdownInput: React.FC<Props> = ({
     });
 
     if (onBlur != null) {
-      cm.current.on("blur", () => onBlur());
+      cm.current.on("blur", onBlur);
     }
+    if (onFocus != null) {
+      cm.current.on("focus", onFocus);
+    }
+
+    cm.current.on("blur", () => set_is_focused(false));
+    cm.current.on("focus", () => set_is_focused(true));
 
     if (enableUpload) {
       // as any because the @types for codemirror are WRONG in this case.
@@ -385,7 +401,7 @@ export const MarkdownInput: React.FC<Props> = ({
       {value != "" ? render_instructions() : undefined}
       <div
         style={{
-          ...STYLE,
+          ...(is_focused ? FOCUSED_STYLE : BLURED_STYLE),
           ...style,
           ...{ fontSize: `${fontSize ? fontSize : defaultFontSize}px`, height },
         }}

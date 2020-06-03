@@ -94,6 +94,9 @@ export const ChatLog: React.FC<ChatLogProps> = (props) => {
         }
         include_avatar_col={props.show_heads}
         get_user_name={get_user_name}
+        scroll_into_view={() =>
+          props.windowed_list_ref?.current?.scrollToRow(i)
+        }
       />
     );
   }

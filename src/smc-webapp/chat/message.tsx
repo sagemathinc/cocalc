@@ -54,6 +54,7 @@ interface Props {
 
   set_scroll?: Function;
   include_avatar_col?: boolean;
+  scroll_into_view: () => void; // call to scroll this message into view
 }
 
 export const Message: React.FC<Props> = (props) => {
@@ -178,7 +179,7 @@ export const Message: React.FC<Props> = (props) => {
           <Button
             onClick={on_send}
             bsStyle="success"
-            style={{ marginLeft: "10px", marginTop: "-5px" }}
+            style={{ marginLeft: "10px" }}
             className="small"
           >
             Save
@@ -193,6 +194,7 @@ export const Message: React.FC<Props> = (props) => {
       // no editing functionality of not in a project with a path.
       return;
     }
+    props.scroll_into_view();
     props.actions.set_editing(props.message, true);
   }
 
