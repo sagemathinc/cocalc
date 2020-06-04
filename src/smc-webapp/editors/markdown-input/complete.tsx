@@ -13,9 +13,9 @@ TODO:
  - goal is support vscode like functionality, eventually, in addition to jupyter autocomplete and @mentions.
 */
 
-declare const $: any;
+import { React, useEffect, useRef, useState } from "../../app-framework";
 
-import { React, useEffect, useRef } from "../../app-framework";
+import { Dropdown, Menu } from "antd";
 
 export interface Item {
   elt?: JSX.Element;
@@ -23,9 +23,9 @@ export interface Item {
 }
 
 interface Props {
-  items: Item[];
-  onSelect?: (value: string) => void;
-  onCancel?: () => void;
+  items: Item[]; // we assume at least one item
+  onSelect: (value: string) => void;
+  onCancel: () => void;
   style?: React.CSSProperties;
 }
 
@@ -38,52 +38,76 @@ export const Complete: React.FC<Props> = ({
   onCancel,
   style,
 }) => {
-  const node_ref = useRef(null);
+  const [selected, set_selected] = useState<number>(0);
+  const selected_ref = useRef<number>(selected);
+  useEffect(() => {
+    selected_ref.current = selected;
+  }, [selected]);
 
-  function select(item: string): void {
-    onSelect?.(item);
+  function select(item?: string): void {
+    onSelect(item ?? items[selected_ref.current]?.value ?? items[0]?.value);
   }
 
   function render_item({ elt, value }: Item): JSX.Element {
-    return (
-      <li key={value}>
-        <a role="menuitem" tabIndex={-1} onClick={() => select(value)}>
-          {elt ? elt : value}
-        </a>
-      </li>
-    );
+    return <Menu.Item key={value}>{elt ? elt : value}</Menu.Item>;
   }
 
   useEffect(() => {
-    $(window).on("keypress", onKeyDown);
-    $(node_ref.current).find("a:first").focus();
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("click", onCancel);
+    // blur the codemirror or it gets some of the keyboard
+    (document.activeElement as any).blur();
     return () => {
-      $(window).off("keypress", onKeyDown);
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("click", onCancel);
     };
   }, []);
 
-  useEffect(() => {
-    $(node_ref.current).find("a:first").focus();
-  });
-
   function onKeyDown(e: any): void {
-    if (e.keyCode === 27) {
-      onCancel?.();
-    }
-    if (e.keyCode !== 13) {
-      return;
-    }
     e.preventDefault();
     e.stopPropagation();
-    // TODO
-    //$(node_ref.current).find("a:focus").click();
+    switch (e.keyCode) {
+      case 27:
+        onCancel();
+        break;
+      case 13:
+        select();
+        break;
+      case 38: // up arrow
+        set_selected(
+          selected_ref.current == 0
+            ? items.length - 1
+            : selected_ref.current - 1
+        );
+        break;
+      case 40: // down arrow
+        set_selected(
+          selected_ref.current == items.length - 1
+            ? 0
+            : selected_ref.current + 1
+        );
+        break;
+    }
   }
 
+  const menu = (
+    <Menu
+      selectedKeys={[items[selected]?.value]}
+      onClick={(e) => select(e.key)}
+      style={{
+        ...{
+          border: "1px solid lightgrey",
+        },
+        ...style,
+      }}
+    >
+      {items.map(render_item)}
+    </Menu>
+  );
+
   return (
-    <div className="dropdown open" style={style} ref={node_ref}>
-      <ul className="dropdown-menu cocalc-complete" onKeyDown={onKeyDown}>
-        {items.map(render_item)}
-      </ul>
-    </div>
+    <Dropdown overlay={menu} visible={true}>
+      <span />
+    </Dropdown>
   );
 };

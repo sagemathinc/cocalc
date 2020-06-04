@@ -84,6 +84,8 @@ const FOCUSED_STYLE: React.CSSProperties = {
   border: "1px solid #719ECE",
 };
 
+const PADDING_TOP = 6;
+
 interface Props {
   project_id: string;
   path: string;
@@ -139,11 +141,7 @@ export const MarkdownInput: React.FC<Props> = ({
 
   const [mentions, set_mentions] = useState<undefined | Item[]>(undefined);
   const [mentions_offset, set_mentions_offset] = useState<
-    | undefined
-    | {
-        left: number;
-        top: number;
-      }
+    undefined | React.CSSProperties
   >(undefined);
 
   const handle_mentions_scroll_ref = useRef<
@@ -204,7 +202,7 @@ export const MarkdownInput: React.FC<Props> = ({
     const e: any = cm.current.getWrapperElement();
     e.setAttribute(
       "style",
-      "height:100%; font-family:sans-serif !important;padding:6px 12px"
+      `height:100%; font-family:sans-serif !important;padding:${PADDING_TOP}px 12px`
     );
 
     if (enableMentions) {
@@ -426,7 +424,16 @@ export const MarkdownInput: React.FC<Props> = ({
   function show_mentions() {
     console.log("show_mentions");
     if (cm.current == null) return;
-    set_mentions([{ value: "@foo" }, { value: "@bar" }]);
+    set_mentions([
+      { value: "@foo" },
+      { value: "@bar" },
+      { value: "@hsnyder" },
+      { value: "@wstein" },
+      { value: "@foo2" },
+      { value: "@bar2" },
+      { value: "@hsnyder2" },
+      { value: "@wstein2" },
+    ]);
 
     if (handle_mentions_scroll_ref.current != null) {
       cm.current.off("scroll", handle_mentions_scroll_ref.current);
@@ -435,7 +442,7 @@ export const MarkdownInput: React.FC<Props> = ({
       if (cm == null) return;
       const pos = cm.cursorCoords(cm.getCursor(), "local");
       const scrollOffset = cm.getScrollInfo().top;
-      const top = pos.bottom - scrollOffset;
+      const top = pos.bottom - scrollOffset + PADDING_TOP;
       // gutter is empty right now, but let's include this in case
       // we implement line number support...
       const gutter = $(cm.getGutterElement()).width() ?? 0;
@@ -463,6 +470,15 @@ export const MarkdownInput: React.FC<Props> = ({
         onSelect={(value) => {
           console.log("selected ", value);
           close_mentions();
+          if (cm.current == null) return;
+          const cur = cm.current.getCursor();
+          // TODO: make this atomic and have metadata about account id.
+          cm.current.replaceRange(
+            value,
+            { line: cur.line, ch: cur.ch - 1 },
+            cur
+          );
+          cm.current.focus();
         }}
         style={mentions_offset}
       />
