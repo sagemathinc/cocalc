@@ -457,22 +457,30 @@ export async function send_email(opts: Opts): Promise<void> {
   const pw_reset_smtp =
     opts.category == "password_reset" &&
     opts.settings.password_reset_override == "smtp";
+
+  const email_verify_smtp =
+    opts.category == "verify" &&
+    opts.settings.password_reset_override == "smtp";
+
   const email_backend = opts.settings.email_backend ?? "sendgrid";
 
   try {
-    // this is a password reset email, and we send it via smtp
-    if (pw_reset_smtp) {
+    // this is a password reset or email verification token email
+    // and we send it via smtp because the override is enabled
+    if (pw_reset_smtp || email_verify_smtp) {
       dbg("initializing PW SMTP server...");
       await init_pw_reset_smtp_server(opts);
 
-      //const ts = new Date().toISOString();
-      dbg("sending PW reset via SMTP server ...");
+      const html =
+        opts.category == "verify" ? opts.body : password_reset_body(opts);
+
+      dbg(`sending email category=${opts.category} via SMTP server ...`);
       const info = await smtp_pw_reset_server.sendMail({
         from: opts.settings.password_reset_smtp_from,
         replyTo: opts.settings.password_reset_smtp_from,
         to: opts.to,
         subject: opts.subject,
-        html: password_reset_body(opts),
+        html,
       });
 
       message = `password reset email sent via SMTP: ${info.messageId}`;
