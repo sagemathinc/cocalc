@@ -44,6 +44,8 @@ COMPUPTE_IMAGES = require("./custom-software/init").NAME
 
 {has_internet_access} = require('./upgrades/upgrade-utils')
 
+{CUSTOM_IMG_PREFIX} = require('custom-software/util')
+
 ###
 TODO:  This entire file should be broken into many small files/components,
 which are in the projects/ subdirectory.
@@ -706,6 +708,15 @@ class ProjectsStore extends Store
     # course (will be undefined if not a student project)
     get_course_info: (project_id) =>
         return @getIn(['project_map', project_id, 'course'])
+
+    get_by_compute_image: (csi) =>
+        by_csi = (val) =>
+            ci = val.get("compute_image")
+            if ci.startsWith(CUSTOM_IMG_PREFIX)
+                return ci.split("/")[1] == csi
+            else
+                return false
+        return @get('project_map').filter(by_csi).valueSeq()
 
     # If a course payment is required for this project from the signed in user, returns time when
     # it will be required; otherwise, returns undefined.
