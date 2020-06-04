@@ -284,6 +284,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             project_id={project_id}
             path={path}
             windowed_list_ref={log_container_ref}
+            show_heads={true}
           />
           {is_preview && render_preview_message()}
         </div>

@@ -20,8 +20,8 @@ type MessageMap = Map<string, any>;
 interface ChatLogProps {
   project_id: string; // used to render links more effectively
   path: string;
+  show_heads: boolean;
   windowed_list_ref?: React.RefObject<WindowedList>;
-  show_heads?: boolean;
 }
 
 export const ChatLog: React.FC<ChatLogProps> = React.memo(
@@ -55,25 +55,16 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
     function render_message(date: string, i: number): JSX.Element | undefined {
       const message: MessageMap | undefined = messages.get(date);
       if (message === undefined) return;
-      const first: Map<string, any> = message.get("history", List()).first();
-      const last_editor_name: string = get_user_name(
-        first != null ? first.get("author_id") : undefined
-      );
-      const sender_name = get_user_name(message.get("sender_id"));
       return (
         <Message
           key={date}
           account_id={account_id}
-          history={message.get("history")}
           user_map={user_map}
           message={message}
-          date={date}
           project_id={project_id}
           path={path}
           font_size={font_size}
           actions={actions}
-          sender_name={sender_name}
-          editor_name={last_editor_name}
           is_prev_sender={is_prev_message_sender(i, sorted_dates, messages)}
           is_next_sender={is_next_message_sender(i, sorted_dates, messages)}
           show_avatar={

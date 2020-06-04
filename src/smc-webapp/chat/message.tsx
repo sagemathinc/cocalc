@@ -3,13 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// standard non-CoCalc libraries
-import { List, Map } from "immutable";
+import { Map } from "immutable";
 const { IS_TOUCH } = require("../feature");
 
-// CoCalc libraries
 import { Avatar } from "../account/avatar/avatar";
-import { path_split, smiley } from "smc-util/misc";
+import { is_different, path_split, smiley } from "smc-util/misc";
 import {
   is_editing,
   message_colors,
@@ -37,26 +35,34 @@ interface Props {
 
   get_user_name: (account_id: string) => string;
   message: Map<string, any>; // immutable.js message object
-  history?: List<any>;
   account_id: string;
-  date?: string;
-  sender_name?: string;
-  editor_name?: string;
   user_map?: Map<string, any>;
   project_id?: string; // improves relative links if given
   path?: string;
   font_size: number;
-  show_avatar?: boolean;
   is_prev_sender?: boolean;
   is_next_sender?: boolean;
-  show_heads?: boolean;
+  show_avatar?: boolean;
+  include_avatar_col?: boolean;
 
   set_scroll?: Function;
-  include_avatar_col?: boolean;
   scroll_into_view: () => void; // call to scroll this message into view
 }
 
-export const Message: React.FC<Props> = (props) => {
+function areEqual(prevProps, nextProps): boolean {
+  return !is_different(prevProps, nextProps, [
+    "message",
+    "user_map",
+    "font_size",
+    "show_avatar",
+    "include_avatar_col",
+    "is_prev_sender",
+    "is_next_sender",
+  ]);
+}
+
+export const Message: React.FC<Props> = React.memo((props) => {
+  console.log("Message ", props.include_avatar_col, props.show_avatar);
   const [edited_message, set_edited_message] = useState(
     newest_content(props.message)
   );
@@ -79,6 +85,12 @@ export const Message: React.FC<Props> = (props) => {
     props.message,
     props.account_id,
   ]);
+
+  const editor_name = useMemo(() => {
+    return props.get_user_name(
+      props.message.get("history")?.first()?.get("author_id")
+    );
+  }, [props.message]);
 
   function render_toggle_history() {
     const verb = show_history ? "Hide" : "Show";
@@ -128,7 +140,7 @@ export const Message: React.FC<Props> = (props) => {
         history_size !== props.message.get("history").size &&
         new_changes
       ) {
-        text = `${props.editor_name} has updated this message. Esc to discard your changes and see theirs`;
+        text = `${editor_name} has updated this message. Esc to discard your changes and see theirs`;
       } else {
         if (IS_TOUCH) {
           text = "You are now editing ...";
@@ -146,12 +158,12 @@ export const Message: React.FC<Props> = (props) => {
         // Multiple editors
         text = `${other_editors.size} people are editing this message`;
       } else if (newest_content(props.message).trim() === "") {
-        text = `Deleted by ${props.editor_name}`;
+        text = `Deleted by ${editor_name}`;
       }
     }
 
     if (text == null) {
-      text = `Last edit by ${props.editor_name}`;
+      text = `Last edit by ${editor_name}`;
     }
 
     if (
@@ -160,7 +172,7 @@ export const Message: React.FC<Props> = (props) => {
       newest_content(props.message).trim() !== ""
     ) {
       const edit = "Last edit ";
-      const name = ` by ${props.editor_name}`;
+      const name = ` by ${editor_name}`;
       return (
         <span className="small">
           {edit}
@@ -189,7 +201,11 @@ export const Message: React.FC<Props> = (props) => {
   }
 
   function edit_message() {
-    if (props.project_id == null || props.path == null || props.actions==null) {
+    if (
+      props.project_id == null ||
+      props.path == null ||
+      props.actions == null
+    ) {
       // no editing functionality of not in a project with a path.
       return;
     }
@@ -197,14 +213,9 @@ export const Message: React.FC<Props> = (props) => {
     props.actions.set_editing(props.message, true);
   }
 
-  // All the columns
   function avatar_column() {
+    let account = props.user_map?.get(props.message.get("sender_id"))?.toJS?.();
     let margin_top, marginLeft, marginRight, textAlign;
-
-    let account = props.user_map
-      ?.get(props.message.get("sender_id"))
-      ?.to_JS?.();
-
     if (props.is_prev_sender) {
       margin_top = "5px";
     } else {
@@ -230,8 +241,6 @@ export const Message: React.FC<Props> = (props) => {
       width: "4%",
     };
 
-    // TODO: do something better when we don't know the user
-    // (or when sender account_id is bogus)
     return (
       <Col key={0} sm={1} style={style}>
         <div>
@@ -296,8 +305,12 @@ export const Message: React.FC<Props> = (props) => {
 
     return (
       <Col key={1} xs={10} sm={9}>
-        {!props.is_prev_sender && !is_viewers_message && props.sender_name ? (
-          <Name sender_name={props.sender_name} />
+        {!props.is_prev_sender &&
+        !is_viewers_message &&
+        props.message.get("sender_id") ? (
+          <Name
+            sender_name={props.get_user_name(props.message.get("sender_id"))}
+          />
         ) : undefined}
         <div
           style={message_style}
@@ -331,7 +344,10 @@ export const Message: React.FC<Props> = (props) => {
         {show_history && (
           <div>
             <HistoryTitle />
-            <History history={props.history} user_map={props.user_map} />
+            <History
+              history={props.message.get("history")}
+              user_map={props.user_map}
+            />
             <HistoryFooter />
           </div>
         )}
@@ -398,4 +414,4 @@ export const Message: React.FC<Props> = (props) => {
       <Row>{cols}</Row>
     </Grid>
   );
-};
+}, areEqual);

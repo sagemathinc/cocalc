@@ -203,6 +203,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
           project_id={project_id}
           path={path}
           windowed_list_ref={log_container_ref}
+          show_heads={false}
         />
       </div>
       <div
