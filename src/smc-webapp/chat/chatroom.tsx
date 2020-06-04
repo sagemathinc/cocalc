@@ -4,7 +4,6 @@
  */
 
 // standard non-CoCalc libraries
-import * as immutable from "immutable";
 import { debounce } from "lodash";
 import { useDebounce } from "use-debounce";
 const { IS_MOBILE } = require("../feature");
@@ -32,7 +31,6 @@ import {
   useEffect,
   useRef,
   useRedux,
-  useMemo,
 } from "../app-framework";
 import { Icon, Loading, Tip, SearchInput } from "../r_misc";
 import { Col, Row, Well } from "../antd-bootstrap";
@@ -75,7 +73,6 @@ interface Props {
 
 export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   const actions = useActions(project_id, path);
-  const other_settings = useRedux(["account", "other_settings"]);
 
   const is_uploading = useRedux(["is_uploading"], project_id, path);
   const is_saving = useRedux(["is_saving"], project_id, path);
@@ -97,17 +94,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   const messages = useRedux(["messages"], project_id, path);
 
   const log_container_ref = useRef<WindowedList>(null);
-
-  const project_map = useRedux(["projects", "project_map"]);
-  const project_users = useMemo(() => {
-    // the immutable.Map() default is because of admins:
-    // https://github.com/sagemathinc/cocalc/issues/3669
-    return project_map.getIn([project_id, "users"], immutable.Map());
-  }, [project_map, project_id]);
-  const enable_mentions = useMemo(
-    () => project_users.size > 1 && other_settings.get("allow_mentions"),
-    [project_users, other_settings]
-  );
 
   useEffect(() => {
     scroll_to_bottom(log_container_ref);
@@ -299,7 +285,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               project_id={project_id}
               path={path}
               input={input}
-              enable_mentions={enable_mentions}
               on_clear={on_clear}
               on_send={on_send}
               height={INPUT_HEIGHT}

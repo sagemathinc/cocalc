@@ -62,7 +62,6 @@ function areEqual(prevProps, nextProps): boolean {
 }
 
 export const Message: React.FC<Props> = React.memo((props) => {
-  console.log("Message ", props.include_avatar_col, props.show_avatar);
   const [edited_message, set_edited_message] = useState(
     newest_content(props.message)
   );
@@ -383,7 +382,6 @@ export const Message: React.FC<Props> = React.memo((props) => {
         project_id={props.project_id}
         path={props.path}
         input={edited_message}
-        enable_mentions={true /* TODO */}
         on_clear={on_clear}
         on_send={on_send}
         height={INPUT_HEIGHT}

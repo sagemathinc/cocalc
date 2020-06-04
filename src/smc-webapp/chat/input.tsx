@@ -12,7 +12,6 @@ interface Props {
   project_id: string;
   path: string;
   input: string;
-  enable_mentions: boolean;
   on_paste?: (e) => void;
   on_send: () => void;
   on_clear: () => void;
@@ -31,7 +30,7 @@ export const ChatInput: React.FC<Props> = (props) => {
       enableUpload={true}
       onUploadStart={() => actions?.set_uploading(true)}
       onUploadEnd={() => actions?.set_uploading(false)}
-      enableMentions={props.enable_mentions}
+      enableMentions={true}
       onChange={props.onChange}
       onShiftEnter={props.on_send}
       onEscape={props.on_clear}
@@ -118,8 +117,4 @@ export const ChatInput: React.FC<Props> = (props) => {
     </div>
   );
   */
-};
-
-ChatInput.defaultProps = {
-  enable_mentions: true,
 };

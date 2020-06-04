@@ -1,4 +1,3 @@
-import { Map } from "immutable";
 import { debounce } from "lodash";
 import { DISCORD_INVITE } from "smc-util/theme";
 
@@ -7,7 +6,6 @@ import {
   React,
   useActions,
   useEffect,
-  useMemo,
   useRedux,
   useRef,
 } from "../app-framework";
@@ -42,17 +40,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
 
   const project_map = useRedux(["projects", "project_map"]);
 
-  // the immutable.Map() default below is because of admins viewing
-  //  side chat, where their project_map has no info
-  // https://github.com/sagemathinc/cocalc/issues/3669
-  const project_users = useMemo(
-    () => project_map.getIn([project_id, "users"], Map()),
-    ["project_map", project_id]
-  );
-
   const log_container_ref = useRef(null);
-
-  const other_settings = useRedux(["account", "other_settings"]);
 
   // The act of opening/displaying the chat marks it as seen...
   // since this happens when the user shows it.
@@ -221,11 +209,6 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
             project_id={project_id}
             path={path}
             input={input}
-            enable_mentions={
-              project_users.size > 1
-                ? other_settings.get("allow_mentions")
-                : undefined
-            }
             on_clear={on_clear}
             on_send={() => {
               send_chat();

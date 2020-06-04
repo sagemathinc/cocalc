@@ -3,8 +3,9 @@ Markdown editor
 
 Stage 1 -- enough to replace current chat input:
   - [ ] @mentions (via completion dialog) -the collabs on this project
-     - get rid of the "enable_mentions" account pref flag and data -- always have it
-  - [ ] main input at bottom feels SLOW (even though editing messages is fast)
+     - [x] get rid of the "enable_mentions" account pref flag and data -- always have it
+     - [ ] write new better more generic completions widget support
+  - [x] main input at bottom feels SLOW (even though editing messages is fast)
   - [x] different border when focused
   - [x] scroll into view when focused
   - [x] use this component for editing past chats
@@ -30,7 +31,7 @@ Stage 1 -- enough to replace current chat input:
 Stage 2 -- stretch goal challenges:
 ---
   - [ ] "Move" versus "Copy" when dragging/dropping?
-  - [ ] improve move and delete to be aware of images (?).
+  - [ ] improve file move and delete to be aware of images (?).
   - [ ] make upload link an immutable span of text?  Unclear, since user wants to edit the width and maybe style.  Hmmm... Unclear.
   - [ ] integrated preview
   - [ ] directions and links
@@ -71,6 +72,7 @@ import {
 } from "../../app-framework";
 import { Dropzone, FileUploadWrapper } from "../../file-upload";
 import { alert_message } from "../../alerts";
+import { Complete, Item } from "./complete";
 
 const BLURED_STYLE: React.CSSProperties = {
   border: "1px solid rgb(204,204,204)", // focused will be rgb(112, 178, 230);
@@ -101,6 +103,7 @@ interface Props {
   extraHelp?: string | JSX.Element;
   fontSize?: number;
 }
+
 export const MarkdownInput: React.FC<Props> = ({
   project_id,
   path,
@@ -130,9 +133,22 @@ export const MarkdownInput: React.FC<Props> = ({
   const defaultFontSize = useRedux(["account", "font_size"]);
 
   const dropzone_ref = useRef<Dropzone>(null);
-  const upload_close_preview_ref = useRef<Function>(null);
+  const upload_close_preview_ref = useRef<Function | null>(null);
   const current_uploads_ref = useRef<{ [name: string]: boolean } | null>(null);
   const [is_focused, set_is_focused] = useState<boolean>(true);
+
+  const [mentions, set_mentions] = useState<undefined | Item[]>(undefined);
+  const [mentions_offset, set_mentions_offset] = useState<
+    | undefined
+    | {
+        left: number;
+        top: number;
+      }
+  >(undefined);
+
+  const handle_mentions_scroll_ref = useRef<
+    ((instance: CodeMirror.Editor) => void) | null
+  >(null);
 
   useEffect(() => {
     // initialize the codemirror editor
@@ -144,6 +160,7 @@ export const MarkdownInput: React.FC<Props> = ({
     if (onEscape != null) {
       extraKeys["Esc"] = () => onEscape();
     }
+
     const options = {
       inputStyle: "contenteditable" as "contenteditable", // needed for spellcheck to work!
       spellcheck: true,
@@ -190,7 +207,16 @@ export const MarkdownInput: React.FC<Props> = ({
       "height:100%; font-family:sans-serif !important;padding:6px 12px"
     );
 
+    if (enableMentions) {
+      cm.current.on("change", (_cm, changeObj) => {
+        if (changeObj.text[0] == "@") {
+          show_mentions();
+        }
+      });
+    }
+
     cm.current.focus();
+    (window as any).cm = cm;
 
     // clean up
     return () => {
@@ -396,6 +422,53 @@ export const MarkdownInput: React.FC<Props> = ({
       : render_desktop_instructions();
   }
 
+  // Show the mentions popup selector.
+  function show_mentions() {
+    console.log("show_mentions");
+    if (cm.current == null) return;
+    set_mentions([{ value: "@foo" }, { value: "@bar" }]);
+
+    if (handle_mentions_scroll_ref.current != null) {
+      cm.current.off("scroll", handle_mentions_scroll_ref.current);
+    }
+    handle_mentions_scroll_ref.current = (cm) => {
+      if (cm == null) return;
+      const pos = cm.cursorCoords(cm.getCursor(), "local");
+      const scrollOffset = cm.getScrollInfo().top;
+      const top = pos.bottom - scrollOffset;
+      // gutter is empty right now, but let's include this in case
+      // we implement line number support...
+      const gutter = $(cm.getGutterElement()).width() ?? 0;
+      const left = pos.left + gutter;
+      set_mentions_offset({ left, top });
+    };
+    cm.current.on("scroll", handle_mentions_scroll_ref.current);
+    handle_mentions_scroll_ref.current(cm.current);
+  }
+
+  function close_mentions() {
+    set_mentions(undefined);
+    if (handle_mentions_scroll_ref.current != null) {
+      cm.current?.off("scroll", handle_mentions_scroll_ref.current);
+      handle_mentions_scroll_ref.current = null;
+    }
+  }
+
+  function render_mentions_popup() {
+    if (mentions == null) return;
+    return (
+      <Complete
+        items={mentions}
+        onCancel={close_mentions}
+        onSelect={(value) => {
+          console.log("selected ", value);
+          close_mentions();
+        }}
+        style={mentions_offset}
+      />
+    );
+  }
+
   let body: JSX.Element = (
     <div>
       {value != "" ? render_instructions() : undefined}
@@ -406,6 +479,7 @@ export const MarkdownInput: React.FC<Props> = ({
           ...{ fontSize: `${fontSize ? fontSize : defaultFontSize}px`, height },
         }}
       >
+        {render_mentions_popup()}
         <textarea
           style={{ display: "none" }}
           ref={textarea_ref}
