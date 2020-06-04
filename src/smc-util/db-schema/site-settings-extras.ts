@@ -172,41 +172,42 @@ export const EXTRAS: SettingsExtras = {
     to_val: to_bool,
     show: only_for_smtp,
   },
+  // bad name, historic baggage, used in smc-hub/email.ts
   password_reset_override: {
-    name: "Password reset backend",
+    name: "Override email backend",
     desc:
-      "If 'default', it uses the usual email backend to send password resets. If 'smtp', an additional SMTP config shows up",
+      "For 'smtp', password reset and email verification emails are sent via the 'Secondary SMTP' configuration",
     default: "default",
     valid: ["default", "smtp"],
   },
   password_reset_smtp_server: {
-    name: "PW reset SMTP server",
+    name: "Secondary SMTP server",
     desc: "hostname sending password reset emails",
     default: "",
     show: only_for_password_reset_smtp,
   },
   password_reset_smtp_from: {
-    name: "PW reset FROM",
+    name: "Secondary SMTP FROM",
     desc: "This sets the FROM and REPLYTO email address",
     default: "",
     valid: is_valid_email_address,
     show: only_for_password_reset_smtp,
   },
   password_reset_smtp_login: {
-    name: "PW reset SMTP username",
+    name: "Secondary SMTP username",
     desc: "username, PLAIN auth",
     default: "",
     show: only_for_password_reset_smtp,
   },
   password_reset_smtp_password: {
-    name: "PW reset SMTP password",
+    name: "Secondary SMTP password",
     desc: "password, PLAIN auth",
     default: "",
     show: only_for_password_reset_smtp,
     password: true,
   },
   password_reset_smtp_port: {
-    name: "PW reset SMTP port",
+    name: "Secondary SMTP port",
     desc: "Usually: For secure==true use port 465, otherwise port 587 or 25",
     default: "465",
     to_val: to_int,
@@ -214,7 +215,7 @@ export const EXTRAS: SettingsExtras = {
     show: only_for_password_reset_smtp,
   },
   password_reset_smtp_secure: {
-    name: "PW reset SMTP secure",
+    name: "Secondary SMTP secure",
     desc: "Usually 'true'",
     default: "true",
     valid: only_booleans,

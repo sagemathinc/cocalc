@@ -100,6 +100,8 @@ export const file_extensions = tuple([
   "xml",
   "cml" /* that's xml */,
   "kml" /* geodata keyhole markup, also xml */,
+  "xsl",
+  "ptx",
   "c",
   "c++",
   "cc",
@@ -138,6 +140,8 @@ export const ext2syntax: Readonly<Ext2Syntax> = Object.freeze({
   xml: "xml",
   cml: "xml",
   kml: "xml",
+  xsl: "xml",
+  ptx: "xml",
   bib: "bibtex", // via biber --tool
 } as Ext2Syntax);
 

@@ -94,6 +94,7 @@ const codemirror_associations: { [ext: string]: string } = {
   cml: "xml", // http://www.xml-cml.org/, e.g. used by avogadro
   kml: "xml", // https://de.wikipedia.org/wiki/Keyhole_Markup_Language
   xsl: "xml",
+  ptx: "xml", // https://pretextbook.org/
   v: "verilog",
   vh: "verilog",
   "": "text",
