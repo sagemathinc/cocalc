@@ -25,12 +25,11 @@ import * as LS from "../misc/local-storage";
 import { QueryParams } from "../misc/query-params";
 import { launch_share } from "./share";
 import { launch_custom_software_image } from "./custom-image";
-import { launch_binder } from "./binder";
 
 export const NAME = "launch-actions";
 const LS_KEY = NAME;
 
-type LaunchTypes = "csi" | "share" | "binder" | undefined;
+type LaunchTypes = "csi" | "share" | undefined;
 
 interface LaunchData {
   launch?: string;
@@ -95,9 +94,6 @@ export function launch() {
   actions.setState(data);
   try {
     switch (type) {
-      case "binder":
-        launch_binder(launch, data.filepath, data.urlpath);
-        return;
       case "csi":
         launch_custom_software_image(launch);
         return;
