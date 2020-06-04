@@ -41,7 +41,6 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
   const is_uploading = useRedux(["is_uploading"], project_id, path);
 
   const project_map = useRedux(["projects", "project_map"]);
-  const user_map = useRedux(["users", "user_map"]);
 
   // the immutable.Map() default below is because of admins viewing
   //  side chat, where their project_map has no info
@@ -54,8 +53,6 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
   const log_container_ref = useRef(null);
 
   const other_settings = useRedux(["account", "other_settings"]);
-  const account_id = useRedux(["account", "account_id"]);
-  const font_size = useRedux(["account", "font_size"]);
 
   // The act of opening/displaying the chat marks it as seen...
   // since this happens when the user shows it.
@@ -203,16 +200,9 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
         style={{ backgroundColor: "#fff", paddingLeft: "15px", flex: 1 }}
       >
         <ChatLog
-          windowed_list_ref={log_container_ref}
-          messages={messages}
-          account_id={account_id}
-          user_map={user_map}
           project_id={project_id}
-          font_size={font_size}
           path={path}
-          actions={actions}
-          show_heads={false}
-          search={search}
+          windowed_list_ref={log_container_ref}
         />
       </div>
       <div
@@ -240,7 +230,6 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
               send_chat();
               analytics_event("side_chat", "send_chat", "keyboard");
             }}
-            account_id={account_id}
             height={INPUT_HEIGHT}
             onChange={(value) => actions.set_input(value)}
           />

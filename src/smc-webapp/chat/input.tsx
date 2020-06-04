@@ -16,7 +16,6 @@ interface Props {
   on_paste?: (e) => void;
   on_send: () => void;
   on_clear: () => void;
-  account_id: string;
   height?: string;
   onChange: (string) => void;
   font_size?: number;

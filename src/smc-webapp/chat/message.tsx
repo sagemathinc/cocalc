@@ -25,6 +25,7 @@ import { Button, Col, Grid, Row } from "../antd-bootstrap";
 
 import { HistoryTitle, HistoryFooter, History } from "./history";
 import { ChatInput } from "./input";
+import { ChatActions } from "./actions";
 
 import { Time } from "./time";
 import { Name } from "./name";
@@ -32,9 +33,8 @@ import { Name } from "./name";
 const BLANK_COLUMN = <Col key={2} xs={2} sm={2}></Col>;
 
 interface Props {
-  actions?: any;
+  actions?: ChatActions;
 
-  focus_end?: (e) => void;
   get_user_name: (account_id: string) => string;
   message: Map<string, any>; // immutable.js message object
   history?: List<any>;
@@ -50,7 +50,6 @@ interface Props {
   is_prev_sender?: boolean;
   is_next_sender?: boolean;
   show_heads?: boolean;
-  saved_mesg?: string;
 
   set_scroll?: Function;
   include_avatar_col?: boolean;
@@ -190,7 +189,7 @@ export const Message: React.FC<Props> = (props) => {
   }
 
   function edit_message() {
-    if (props.project_id == null || props.path == null) {
+    if (props.project_id == null || props.path == null || props.actions==null) {
       // no editing functionality of not in a project with a path.
       return;
     }
@@ -341,6 +340,7 @@ export const Message: React.FC<Props> = (props) => {
   }
 
   function on_send(): void {
+    if (props.actions == null) return;
     const mesg = edited_message_ref.current;
     if (mesg !== newest_content(props.message)) {
       props.actions.send_edit(props.message, mesg);
@@ -351,6 +351,7 @@ export const Message: React.FC<Props> = (props) => {
 
   function on_clear(): void {
     set_edited_message(newest_content(props.message));
+    if (props.actions == null) return;
     props.actions.set_editing(props.message, false);
   }
 
@@ -369,7 +370,6 @@ export const Message: React.FC<Props> = (props) => {
         enable_mentions={true /* TODO */}
         on_clear={on_clear}
         on_send={on_send}
-        account_id={props.account_id}
         height={INPUT_HEIGHT}
         onChange={(value) => {
           edited_message_ref.current = value;

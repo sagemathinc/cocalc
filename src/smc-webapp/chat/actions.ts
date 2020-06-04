@@ -202,10 +202,6 @@ export class ChatActions extends Actions<ChatState> {
     this.setState({ input });
   }
 
-  public saved_message(saved_mesg): void {
-    this.setState({ saved_mesg });
-  }
-
   public set_is_preview(is_preview): void {
     this.setState({ is_preview });
   }

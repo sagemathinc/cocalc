@@ -75,8 +75,6 @@ interface Props {
 
 export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   const actions = useActions(project_id, path);
-  const font_size = useRedux(["account", "font_size"]);
-  const account_id = useRedux(["account", "account_id"]);
   const other_settings = useRedux(["account", "other_settings"]);
 
   const is_uploading = useRedux(["is_uploading"], project_id, path);
@@ -96,7 +94,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   const [preview] = useDebounce(input, 250);
 
   const search = useRedux(["search"], project_id, path);
-  const saved_mesg = useRedux(["saved_mesg"], project_id, path);
   const messages = useRedux(["messages"], project_id, path);
 
   const log_container_ref = useRef<WindowedList>(null);
@@ -111,8 +108,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
     () => project_users.size > 1 && other_settings.get("allow_mentions"),
     [project_users, other_settings]
   );
-
-  const user_map = useRedux(["users", "user_map"]);
 
   useEffect(() => {
     scroll_to_bottom(log_container_ref);
@@ -286,17 +281,9 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
         {!IS_MOBILE ? render_button_row() : undefined}
         <div className="smc-vfill" style={CHAT_LOG_STYLE}>
           <ChatLog
-            windowed_list_ref={log_container_ref}
-            messages={messages}
-            account_id={account_id}
-            user_map={user_map}
             project_id={project_id}
-            font_size={font_size}
             path={path}
-            actions={actions}
-            saved_mesg={saved_mesg}
-            search={search}
-            show_heads={true}
+            windowed_list_ref={log_container_ref}
           />
           {is_preview && render_preview_message()}
         </div>
@@ -314,7 +301,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               enable_mentions={enable_mentions}
               on_clear={on_clear}
               on_send={on_send}
-              account_id={account_id}
               height={INPUT_HEIGHT}
               onChange={(value) => actions.set_input(value)}
             />

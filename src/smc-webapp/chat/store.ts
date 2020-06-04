@@ -30,7 +30,6 @@ export interface ChatState {
   messages?: immutable.Map<any, any>;
   offset?: number; // information about where on screen the chat editor is located
   position?: number; // more info about where chat editor is located
-  saved_mesg?: string; // The message state before saving and edited message. Potentially broken with mutiple edits
   use_saved_position?: boolean; //   whether or not to maintain last saved scroll position (used when unmounting then remounting, e.g., due to tab change)
   saved_position?: number;
   search: string;
@@ -53,7 +52,6 @@ export class ChatStore extends Store<ChatState> {
       messages: undefined,
       offset: undefined,
       position: undefined,
-      saved_mesg: undefined,
       use_saved_position: undefined,
       saved_position: undefined,
       search: "",
