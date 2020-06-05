@@ -73,6 +73,7 @@ export function change_filename_extension(
 }
 
 // Like Python splitlines.
+// WARNING -- this is actually NOT like Python splitlines, since it just deletes whitespace lines. TODO: audit usage and fix.
 export function splitlines(s: string): string[] {
   const r = s.match(/[^\r\n]+/g);
   return r ? r : [];

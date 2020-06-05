@@ -3,11 +3,11 @@ Markdown editor
 
 Stage 1 -- enough to replace current chat input:
   - [ ] @mentions (via completion dialog) -the collabs on this project
+     - [ ] type to search/restrict from list of collabs
      - [x] get rid of the "enable_mentions" account pref flag and data -- always have it
      - [x] write new better more generic completions widget support
      - [x] insert mention code in editor on select
-     - [ ] store metadata and use on submit.
-     - [ ] type to search/restrict from list of collabs
+     - [x]  use on submit.
   - [x] main input at bottom feels SLOW (even though editing messages is fast)
   - [x] different border when focused
   - [x] scroll into view when focused
@@ -223,6 +223,8 @@ export const MarkdownInput: React.FC<Props> = ({
       submitMentionsRef.current = () => {
         const mentions: { account_id: string; description: string }[] = [];
         if (cm.current == null) return;
+        // Get lines here, since we modify the doc as we go below.
+        const lines = cm.current.getValue().split("\n");
         for (const mark of cm.current.getAllMarks()) {
           const { account_id } = (mark as any).attributes;
           if (account_id == null) continue;
@@ -231,10 +233,7 @@ export const MarkdownInput: React.FC<Props> = ({
             from,
             to
           )}</span>`;
-          const description = trunc(
-            cm.current.getRange(to, { line: to.line + 1, ch: 0 }).trim(),
-            80
-          );
+          const description = trunc(lines[from.line].trim(), 160);
           cm.current.replaceRange(text, from, to);
           mentions.push({ account_id, description });
         }
@@ -520,7 +519,6 @@ export const MarkdownInput: React.FC<Props> = ({
         items={mentions}
         onCancel={close_mentions}
         onSelect={(account_id) => {
-          console.log("selected ", account_id);
           const text =
             "@" +
             trunc_middle(redux.getStore("users").get_name(account_id), 64);
