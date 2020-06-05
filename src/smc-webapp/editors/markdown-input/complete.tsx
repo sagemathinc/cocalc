@@ -8,9 +8,9 @@ I started with a copy of jupyter/complete.tsx, and will rewrite it
 to be much more generically usable here, then hopefully use this
 for jupyter, code editors, (etc.'s) complete.
 
-TODO:
- - redo the html using antd rather than css styles from bootstrap, e.g., maybe https://ant.design/components/popover/
- - goal is support vscode like functionality, eventually, in addition to jupyter autocomplete and @mentions.
+TODOS:
+ - I didn't make it scroll selected item into view when you're
+   using the keyboard to navigate.
 */
 
 import { React, useEffect, useRef, useState } from "../../app-framework";
@@ -20,6 +20,7 @@ import { Dropdown, Menu } from "antd";
 export interface Item {
   elt?: JSX.Element;
   value: string;
+  search?: string; // useful for clients
 }
 
 interface Props {
@@ -43,9 +44,18 @@ export const Complete: React.FC<Props> = ({
   useEffect(() => {
     selected_ref.current = selected;
   }, [selected]);
+  const selected_keys_ref = useRef<string>();
 
-  function select(item?: string): void {
-    onSelect(item ?? items[selected_ref.current]?.value ?? items[0]?.value);
+  function select(key?: string): void {
+    if (key == null) {
+      key = selected_keys_ref.current;
+    }
+    if (key == null) {
+      // best too just cancel.
+      onCancel();
+    } else {
+      onSelect(key);
+    }
   }
 
   function render_item({ elt, value }: Item): JSX.Element {
@@ -55,8 +65,6 @@ export const Complete: React.FC<Props> = ({
   useEffect(() => {
     document.addEventListener("keydown", onKeyDown);
     document.addEventListener("click", onCancel);
-    // blur the codemirror or it gets some of the keyboard
-    (document.activeElement as any).blur();
     return () => {
       document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("click", onCancel);
@@ -64,8 +72,6 @@ export const Complete: React.FC<Props> = ({
   }, []);
 
   function onKeyDown(e: any): void {
-    e.preventDefault();
-    e.stopPropagation();
     switch (e.keyCode) {
       case 27:
         onCancel();
@@ -74,34 +80,35 @@ export const Complete: React.FC<Props> = ({
         select();
         break;
       case 38: // up arrow
-        set_selected(
-          selected_ref.current == 0
-            ? items.length - 1
-            : selected_ref.current - 1
-        );
+        if (selected_ref.current >= 1) {
+          set_selected(selected_ref.current - 1);
+        }
         break;
       case 40: // down arrow
-        set_selected(
-          selected_ref.current == items.length - 1
-            ? 0
-            : selected_ref.current + 1
-        );
+        set_selected(selected_ref.current + 1);
         break;
     }
   }
 
+  // The bottom margin wrapper below is so the current
+  // line is not obscured if antd makes the menu *above*
+  // the current line instead of below it.
+  selected_keys_ref.current =
+    items[selected % (items.length ? items.length : 1)]?.value;
   const menu = (
-    <Menu
-      selectedKeys={[items[selected]?.value]}
-      onClick={(e) => select(e.key)}
-      style={{
-        border: "1px solid lightgrey",
-        maxHeight: "100vh",
-        overflow: "auto",
-      }}
-    >
-      {items.map(render_item)}
-    </Menu>
+    <div style={{ marginBottom: "15px" }}>
+      <Menu
+        selectedKeys={[selected_keys_ref.current]}
+        onClick={(e) => select(e.key)}
+        style={{
+          border: "1px solid lightgrey"}}
+          maxHeight: "45vh", // so can always position menu above/below current line not obscuring it.
+          overflow: "auto",
+        }}*/
+      >
+        {items.map(render_item)}
+      </Menu>
+    </div>
   );
 
   return (

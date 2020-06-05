@@ -58,6 +58,7 @@ const AUX_FILE_EXT = "upload";
 
 import { join } from "path";
 import * as CodeMirror from "codemirror";
+type EventHandlerFunction = (cm: CodeMirror.Editor) => void;
 
 import { aux_file, len, path_split, trunc_middle, trunc } from "smc-util/misc2";
 import { timestamp_cmp, cmp } from "smc-util/misc";
@@ -153,6 +154,12 @@ export const MarkdownInput: React.FC<Props> = ({
   const [mentions_offset, set_mentions_offset] = useState<
     undefined | { left: number; top: number }
   >(undefined);
+  const [mentions_search, set_mentions_search] = useState<string>("");
+  const mentions_cursor_ref = useRef<{
+    cursor: EventHandlerFunction;
+    change: EventHandlerFunction;
+    from: { line: number; ch: number };
+  }>();
 
   useEffect(() => {
     // initialize the codemirror editor
@@ -162,8 +169,18 @@ export const MarkdownInput: React.FC<Props> = ({
       extraKeys["Shift-Enter"] = () => onShiftEnter();
     }
     if (onEscape != null) {
-      extraKeys["Esc"] = () => onEscape();
+      extraKeys["Esc"] = () => {
+        if (mentions_cursor_ref.current == null) {
+          onEscape();
+        }
+      };
     }
+    extraKeys["Enter"] = (cm) => {
+      // We only allow enter when mentions isn't in use
+      if (mentions_cursor_ref.current == null) {
+        cm.execCommand("newlineAndIndent");
+      }
+    };
 
     const options = {
       inputStyle: "contenteditable" as "contenteditable", // needed for spellcheck to work!
@@ -243,8 +260,6 @@ export const MarkdownInput: React.FC<Props> = ({
     }
 
     cm.current.focus();
-    // TODO: for debugging/dev
-    (window as any).cm = cm.current;
 
     // clean up
     return () => {
@@ -489,15 +504,17 @@ export const MarkdownInput: React.FC<Props> = ({
           <Avatar account_id={account_id} size={24} /> {name}
         </span>
       );
-      v.push({ value: account_id, elt });
+      v.push({ value: account_id, elt, search: name.toLowerCase() });
     }
     if (v.length == 0) {
       // nobody to mention.
       return;
     }
     set_mentions(v);
+    set_mentions_search("");
 
-    const pos = cm.current.cursorCoords(cm.current.getCursor(), "local");
+    const cursor = cm.current.getCursor();
+    const pos = cm.current.cursorCoords(cursor, "local");
     const scrollOffset = cm.current.getScrollInfo().top;
     const top = pos.bottom - scrollOffset + PADDING_TOP;
     // gutter is empty right now, but let's include this in case
@@ -505,28 +522,64 @@ export const MarkdownInput: React.FC<Props> = ({
     const gutter = $(cm.current.getGutterElement()).width() ?? 0;
     const left = pos.left + gutter;
     set_mentions_offset({ left, top });
+
+    let last_cursor = cursor;
+    mentions_cursor_ref.current = {
+      from: { line: cursor.line, ch: cursor.ch - 1 },
+      cursor: (cm) => {
+        const pos = cm.getCursor();
+        if (pos.line != last_cursor.line) {
+          cm.setCursor(last_cursor);
+        } else {
+          last_cursor = pos;
+        }
+      },
+      change: (cm) => {
+        const search = cm.getRange(cursor, { line: cursor.line + 1, ch: 0 });
+        set_mentions_search(search.trim().toLowerCase());
+      },
+    };
+    cm.current.on("cursorActivity", mentions_cursor_ref.current.cursor);
+    cm.current.on("change", mentions_cursor_ref.current.change);
   }
 
   function close_mentions() {
     set_mentions(undefined);
-    cm.current?.focus();
+    if (cm.current != null) {
+      if (mentions_cursor_ref.current != null) {
+        cm.current.off("cursorActivity", mentions_cursor_ref.current.cursor);
+        cm.current.off("change", mentions_cursor_ref.current.change);
+        mentions_cursor_ref.current = undefined;
+      }
+      cm.current.focus();
+    }
   }
 
   function render_mentions_popup() {
     if (mentions == null || mentions_offset == null) return;
+
+    const items: Item[] = [];
+    for (const item of mentions) {
+      if (item.search?.indexOf(mentions_search) != -1) {
+        items.push(item);
+      }
+    }
+    if (items.length == 0) {
+      items.push(mentions[0]); // ensure at least one
+    }
+
     return (
       <Complete
-        items={mentions}
+        items={items}
         onCancel={close_mentions}
         onSelect={(account_id) => {
+          if (mentions_cursor_ref.current == null) return;
           const text =
             "@" +
             trunc_middle(redux.getStore("users").get_name(account_id), 64);
-          close_mentions();
           if (cm.current == null) return;
           const to = cm.current.getCursor();
-          // TODO: make this atomic and have metadata about account id.
-          const from = { line: to.line, ch: to.ch - 1 }; // todo: need to save this
+          const from = mentions_cursor_ref.current.from;
           cm.current.replaceRange(text + " ", from, to);
           cm.current.markText(
             from,
@@ -537,6 +590,7 @@ export const MarkdownInput: React.FC<Props> = ({
               attributes: { account_id },
             } as CodeMirror.TextMarkerOptions /* @types are out of date */
           );
+          close_mentions(); // must be after use of mentions_cursor_ref above.
           cm.current.focus();
         }}
         offset={mentions_offset}
