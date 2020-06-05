@@ -15,6 +15,7 @@ history                 = require('./history')
 
 {QueryParams} = require('./misc/query-params')
 {COCALC_FULLSCREEN, COCALC_MINIMAL} = require('./fullscreen')
+init_csi = require("./custom-software/init").init
 
 # Ephemeral websockets mean a browser that kills the websocket whenever
 # the page is backgrounded.  So far, it seems that maybe all mobile devices
@@ -274,6 +275,8 @@ class PageActions extends Actions
 {parse_target} = require("./history2")
 redux.createStore('page', {active_top_tab: parse_target(window.cocalc_target).page})
 redux.createActions('page', PageActions)
+init_csi()
+
 ###
     name: 'page'
 

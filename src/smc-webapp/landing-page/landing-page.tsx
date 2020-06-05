@@ -378,7 +378,7 @@ class LandingPage extends Component<Props & reduxProps, State> {
             <div style={{ color: "#666", fontSize: "16pt", marginTop: "5px" }}>
               <RunAnonymously
                 show_terms={this.state.show_terms}
-                launch={this.props.launch}
+                armed_launch={!!this.props.type}
               />
               <br />
               {this.render_support()}

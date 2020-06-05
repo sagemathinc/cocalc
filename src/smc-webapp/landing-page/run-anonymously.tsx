@@ -14,11 +14,11 @@ import { webapp_client } from "../webapp-client";
 
 interface Props {
   show_terms: boolean;
-  launch?: string;
+  armed_launch: boolean;
 }
 
 export const RunAnonymously: React.FC<Props> = (params) => {
-  const { show_terms, launch } = params;
+  const { show_terms, armed_launch } = params;
   const allow_anon = useRedux(["customize", "allow_anonymous_sign_in"]) ?? true;
   if (!allow_anon) return null;
 
@@ -27,8 +27,9 @@ export const RunAnonymously: React.FC<Props> = (params) => {
 
   const run_anonymously = (e) => {
     e.preventDefault();
-    console.log("anonymously");
-    do_anonymous_setup(webapp_client, launch);
+    // do not create a default project if launching a custom image or a share
+    // this will be done by the usual launch actions
+    do_anonymous_setup(webapp_client, !armed_launch);
   };
 
   return (

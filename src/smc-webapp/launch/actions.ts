@@ -102,7 +102,7 @@ export function store() {
   }
 }
 
-export function launch() {
+export async function launch() {
   const data: LaunchData | undefined = LS.del<LaunchData>(LS_KEY);
   // console.log("launch-actions data=", data);
   if (data == null) return;

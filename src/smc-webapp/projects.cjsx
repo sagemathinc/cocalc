@@ -189,6 +189,8 @@ class ProjectsActions extends Actions
         # not been recently called. There's no big *harm* if it is out of date (since quotas will
         # just get removed when the project is started), but it could be mildly confusing.
         total = redux.getStore('account').get_total_upgrades()
+        # anonymous users: total is undefined
+        return if not total?
         applied = store.get_total_upgrades_you_have_applied()
         to_upgrade = {}
         for quota in ['member_host', 'network']

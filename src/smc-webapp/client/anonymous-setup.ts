@@ -9,8 +9,6 @@ import { QueryParams } from "../misc/query-params";
 const { APP_BASE_URL, get_cookie } = require("../misc_page");
 import { WelcomeFile } from "./welcome-file";
 import { WebappClient } from "./client";
-import { CSILauncher } from "../launch/custom-image";
-import { is_csi_launchvalue } from "../launch/actions";
 
 /*
 If the anonymous query param is set at all (doesn't matter to what) during
@@ -54,7 +52,7 @@ async function setup_default_project(log) {
 
 export async function do_anonymous_setup(
   client: WebappClient,
-  csi_launch?: string
+  create_project: boolean
 ): Promise<void> {
   function log(..._args): void {
     // uncomment to debug...
@@ -82,9 +80,7 @@ export async function do_anonymous_setup(
       await once(client, "signed_in");
     }
 
-    if (csi_launch != null && is_csi_launchvalue(csi_launch)) {
-      await new CSILauncher(csi_launch).launch();
-    } else {
+    if (create_project) {
       await setup_default_project(log);
     }
   } catch (err) {

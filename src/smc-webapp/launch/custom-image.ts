@@ -16,6 +16,7 @@ import {
   custom_image_name,
   NAME as CUSTOM_SOFTWARE_NAME,
 } from "../custom-software/util";
+import { init } from "../custom-software/init";
 import { alert_message } from "../alerts";
 
 export class CSILauncher {
@@ -54,13 +55,14 @@ export class CSILauncher {
   }
 
   private async get_csi_table() {
+    init();
     return await retry_until_success({
       f: async () => {
         const cst = redux.getTable(CUSTOM_SOFTWARE_NAME);
-        if (cst == null)
+        if (cst?._table?.value == null)
           throw new Error("custom software table not yet available...");
         // what is this doing?
-        await once(cst._table, "connected");
+        //await once(cst._table, "connected");
         return cst;
       },
     });

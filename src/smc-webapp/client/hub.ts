@@ -391,7 +391,7 @@ export class HubClient {
         QueryParams.remove("auth_token");
         this.client.account_client.sign_in_using_auth_token(auth_token);
       } else if (should_do_anonymous_setup()) {
-        do_anonymous_setup(this.client);
+        do_anonymous_setup(this.client, true);
       }
     });
 
