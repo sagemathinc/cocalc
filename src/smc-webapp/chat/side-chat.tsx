@@ -42,6 +42,8 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
 
   const log_container_ref = useRef(null);
 
+  const submitMentionsRef = useRef<Function>();
+
   // The act of opening/displaying the chat marks it as seen...
   // since this happens when the user shows it.
   useEffect(() => {
@@ -57,9 +59,9 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
   }
 
   function send_chat(): void {
+    const value = submitMentionsRef.current?.();
+    actions.send_chat(value);
     scroll_to_bottom(log_container_ref, true);
-    actions.submit_user_mentions();
-    actions.send_chat();
   }
 
   function on_clear(): void {
@@ -216,6 +218,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
             }}
             height={INPUT_HEIGHT}
             onChange={(value) => actions.set_input(value)}
+            submitMentionsRef={submitMentionsRef}
           />
           <div
             style={{

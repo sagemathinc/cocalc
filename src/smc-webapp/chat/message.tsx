@@ -91,6 +91,8 @@ export const Message: React.FC<Props> = React.memo((props) => {
     );
   }, [props.message]);
 
+  const submitMentionsRef = useRef<Function>();
+
   function render_toggle_history() {
     const verb = show_history ? "Hide" : "Show";
     return (
@@ -356,7 +358,7 @@ export const Message: React.FC<Props> = React.memo((props) => {
 
   function on_send(): void {
     if (props.actions == null) return;
-    const mesg = edited_message_ref.current;
+    const mesg = submitMentionsRef.current?.() ?? edited_message_ref.current;
     if (mesg !== newest_content(props.message)) {
       props.actions.send_edit(props.message, mesg);
     } else {
@@ -383,6 +385,7 @@ export const Message: React.FC<Props> = React.memo((props) => {
         path={props.path}
         input={edited_message}
         on_clear={on_clear}
+        submitMentionsRef={submitMentionsRef}
         on_send={on_send}
         height={INPUT_HEIGHT}
         onChange={(value) => {

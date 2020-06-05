@@ -5,7 +5,7 @@ Stage 1 -- enough to replace current chat input:
   - [ ] @mentions (via completion dialog) -the collabs on this project
      - [x] get rid of the "enable_mentions" account pref flag and data -- always have it
      - [x] write new better more generic completions widget support
-     - [ ] insert mention code in editor on select
+     - [x] insert mention code in editor on select
      - [ ] store metadata and use on submit.
      - [ ] type to search/restrict from list of collabs
   - [x] main input at bottom feels SLOW (even though editing messages is fast)
@@ -77,6 +77,7 @@ import { Avatar } from "../../account/avatar/avatar";
 import { Dropzone, FileUploadWrapper } from "../../file-upload";
 import { alert_message } from "../../alerts";
 import { Complete, Item } from "./complete";
+import { submit_mentions } from "./mentions";
 
 const BLURED_STYLE: React.CSSProperties = {
   border: "1px solid rgb(204,204,204)", // focused will be rgb(112, 178, 230);
@@ -102,6 +103,7 @@ interface Props {
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
   enableMentions?: boolean;
+  submitMentionsRef?: any;
   style?: React.CSSProperties;
   onShiftEnter?: () => void;
   onEscape?: () => void;
@@ -121,6 +123,7 @@ export const MarkdownInput: React.FC<Props> = ({
   onUploadStart,
   onUploadEnd,
   enableMentions,
+  submitMentionsRef,
   style,
   onChange,
   onShiftEnter,
@@ -216,8 +219,29 @@ export const MarkdownInput: React.FC<Props> = ({
       });
     }
 
+    if (submitMentionsRef != null) {
+      submitMentionsRef.current = () => {
+        const mentions: string[] = [];
+        if (cm.current == null) return;
+        for (const mark of cm.current.getAllMarks()) {
+          const { account_id } = (mark as any).attributes;
+          if (account_id == null) continue;
+          const { from, to } = mark.find();
+          const text = `<span class="user-mention" account-id=${account_id} >${cm.current.getRange(
+            from,
+            to
+          )}</span>`;
+          cm.current.replaceRange(text, from, to);
+          mentions.push(account_id);
+        }
+        submit_mentions(mentions);
+        return cm.current.getValue();
+      };
+    }
+
     cm.current.focus();
-    (window as any).cm = cm;
+    // TODO: for debugging/dev
+    (window as any).cm = cm.current;
 
     // clean up
     return () => {
@@ -502,15 +526,15 @@ export const MarkdownInput: React.FC<Props> = ({
           // TODO: make this atomic and have metadata about account id.
           const from = { line: to.line, ch: to.ch - 1 }; // todo: need to save this
           cm.current.replaceRange(text + " ", from, to);
-          const marker = cm.current.markText(
+          cm.current.markText(
             from,
             { line: to.line, ch: to.ch + text.length - 1 },
             {
               atomic: true,
               css: MENTION_CSS,
-            }
+              attributes: { account_id },
+            } as CodeMirror.TextMarkerOptions /* @types are out of date */
           );
-          (marker as any).account_id = account_id;
           cm.current.focus();
         }}
         offset={mentions_offset}

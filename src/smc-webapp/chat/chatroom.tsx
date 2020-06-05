@@ -93,6 +93,8 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   const search = useRedux(["search"], project_id, path);
   const messages = useRedux(["messages"], project_id, path);
 
+  const submitMentionsRef = useRef<Function>();
+
   const log_container_ref = useRef<WindowedList>(null);
 
   useEffect(() => {
@@ -253,8 +255,9 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   }
 
   function on_send(): void {
+    const value = submitMentionsRef.current?.();
     scroll_to_bottom(log_container_ref, true);
-    actions.send_chat();
+    actions.send_chat(value);
   }
 
   function on_clear(): void {
@@ -289,6 +292,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               on_send={on_send}
               height={INPUT_HEIGHT}
               onChange={(value) => actions.set_input(value)}
+              submitMentionsRef={submitMentionsRef}
             />
           </div>
           <div

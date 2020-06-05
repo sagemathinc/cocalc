@@ -18,6 +18,7 @@ interface Props {
   height?: string;
   onChange: (string) => void;
   font_size?: number;
+  submitMentionsRef: any;
 }
 
 export const ChatInput: React.FC<Props> = (props) => {
@@ -31,6 +32,7 @@ export const ChatInput: React.FC<Props> = (props) => {
       onUploadStart={() => actions?.set_uploading(true)}
       onUploadEnd={() => actions?.set_uploading(false)}
       enableMentions={true}
+      submitMentionsRef={props.submitMentionsRef}
       onChange={props.onChange}
       onShiftEnter={props.on_send}
       onEscape={props.on_clear}
