@@ -569,9 +569,17 @@ class exports.Client extends EventEmitter
             patches   : patches
         return await callback2(@call, {message:mesg})
 
+    # NOTE: returns false if the listings table isn't connected.
     is_deleted: (filename, project_id) => # project_id is ignored, of course
-        listings = get_listings_table();
-        return listings.is_deleted(filename)
+        try
+            listings = get_listings_table();
+            return listings.is_deleted(filename)
+        catch
+            # is_deleted can raise an exception if the table is
+            # not yet initialized, in which case we fall back
+            # to actually looking.  We have to use existsSync
+            # because is_deleted is not an async function.
+            return not fs.existsSync(join(process.env.HOME, filename))
 
     set_deleted: (filename, project_id) => # project_id is ignored
         listings = get_listings_table();
