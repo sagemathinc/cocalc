@@ -23,7 +23,7 @@ import {
   MainCapabilities,
   LIBRARY_INDEX_FILE,
 } from "../smc-webapp/project_configuration";
-import { parser2tool, Tool as FormatTool } from "../smc-util/code-formatter";
+import { syntax2tool, Tool as FormatTool } from "../smc-util/code-formatter";
 import { copy } from "../smc-util/misc2";
 
 // we prefix the environment PATH by default bin paths pointing into it in order to pick up locally installed binaries.
@@ -158,13 +158,19 @@ async function library(): Promise<boolean> {
 async function formatting(): Promise<Capabilities> {
   const status: Promise<boolean>[] = [];
   const tools = new Array(
-    ...new Set(Object.keys(parser2tool).map((k) => parser2tool[k]))
+    ...new Set(Object.keys(syntax2tool).map((k) => syntax2tool[k]))
   );
   tools.push("yapf3", "black", "autopep8");
+  const tidy = have("tidy");
   for (const tool of tools) {
     if (tool === ("formatR" as FormatTool)) {
       // TODO special case. must check for package "formatR" in "R" -- for now just test for R
       status.push(have("R"));
+    } else if (
+      tool === ("html-tidy" as FormatTool) ||
+      tool === ("xml-tidy" as FormatTool)
+    ) {
+      // tidy, already covered
     } else {
       status.push(have(tool));
     }
@@ -172,6 +178,7 @@ async function formatting(): Promise<Capabilities> {
   const results = await Promise.all(status);
   const ret: Capabilities = {};
   tools.map((tool, idx) => (ret[tool] = results[idx]));
+  ret["tidy"] = await tidy;
   // just for testing
   // ret['yapf'] = false;
   // prettier always available, because it is a js library dependency
