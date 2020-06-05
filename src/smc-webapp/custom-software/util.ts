@@ -3,9 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { join as path_join } from "path";
 import { COLORS } from "../r_misc";
 
 export const RESET_ICON = "redo-alt";
+
+export const NAME = "compute_images";
 
 export const CUSTOM_IMG_PREFIX = "custom/";
 
@@ -42,4 +45,15 @@ export function props2img() {
   if (this.props.images == null) return null;
   const img = this.props.images.get(compute_image2basename(ci));
   return img;
+}
+
+// derive the actual compute image name (which will be set in the DB) from the selected ID.
+export function custom_image_name(id: string): string {
+  let tag: string;
+  if (id.indexOf(":") >= 0) {
+    [id, tag] = id.split(":");
+  } else {
+    tag = "latest";
+  }
+  return path_join(CUSTOM_IMG_PREFIX, id, tag);
 }

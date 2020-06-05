@@ -9,11 +9,8 @@
 import { COCALC_MINIMAL } from "../fullscreen";
 const { redux, Store, Actions, Table } = require("../app-framework");
 import { Map as iMap } from "immutable";
-import { CUSTOM_IMG_PREFIX } from "./util";
-import { join as path_join } from "path";
+import { NAME } from "./util";
 const { capitalize } = require("smc-util/misc");
-
-export const NAME = "compute_images";
 
 // this must match db-schema.compute_images → field type → allowed values
 // official image names are "default", "exp", or a timestamp-string
@@ -39,17 +36,6 @@ export type ComputeImages = iMap<string, ComputeImage>;
 
 interface ComputeImagesState {
   images?: ComputeImages;
-}
-
-// derive the actual compute image name (which will be set in the DB) from the selected ID.
-export function custom_image_name(id: string): string {
-  let tag: string;
-  if (id.indexOf(":") >= 0) {
-    [id, tag] = id.split(":");
-  } else {
-    tag = "latest";
-  }
-  return path_join(CUSTOM_IMG_PREFIX, id, tag);
 }
 
 class ComputeImagesStore extends Store<ComputeImagesState> {}

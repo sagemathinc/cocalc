@@ -9,9 +9,8 @@ import { WELL_STYLE } from "./sign-up";
 import { UNIT } from "../r_misc";
 const { Button, Checkbox, FormGroup, Well } = require("react-bootstrap");
 const { TermsOfService } = require("../customize");
-
-//import { do_anonymous_setup } from "../client/anonymous-setup";
-//import { get_webapp_client } from "../webapp-client";
+import { do_anonymous_setup } from "../client/anonymous-setup";
+import { webapp_client } from "../webapp-client";
 
 interface Props {
   show_terms: boolean;
@@ -29,9 +28,7 @@ export const RunAnonymously: React.FC<Props> = (params) => {
   const run_anonymously = (e) => {
     e.preventDefault();
     console.log("anonymously");
-    //do_anonymous_setup(get_webapp_client(), launch);
-    //console.log(do_anonymous_setup, launch);
-    console.log(launch);
+    do_anonymous_setup(webapp_client, launch);
   };
 
   return (

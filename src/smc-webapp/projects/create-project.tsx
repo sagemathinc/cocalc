@@ -10,11 +10,8 @@ import { analytics_event } from "../tracker";
 
 import { Component, React, ReactDOM, redux } from "../app-framework";
 
-import {
-  ComputeImages,
-  ComputeImageTypes,
-  custom_image_name,
-} from "../custom-software/init";
+import { ComputeImages, ComputeImageTypes } from "../custom-software/init";
+import { custom_image_name } from "../custom-software/util";
 
 import { delay } from "awaiting";
 

@@ -15,7 +15,7 @@ import { retry_until_success, once } from "smc-util/async-utils";
 import {
   custom_image_name,
   NAME as CUSTOM_SOFTWARE_NAME,
-} from "../custom-software/init";
+} from "../custom-software/util";
 import { alert_message } from "../alerts";
 
 export class CSILauncher {
