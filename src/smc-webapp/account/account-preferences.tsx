@@ -82,12 +82,12 @@ export class AccountPreferences extends Component<Props> {
         <Row>
           <Col xs={12} md={6}>
             {this.render_account_settings()}
-            {this.render_other_settings()}
             <ProfileSettings
               email_address={this.props.email_address}
               first_name={this.props.first_name}
               last_name={this.props.last_name}
             />
+            {this.render_other_settings()}
           </Col>
           <Col xs={12} md={6}>
             <EditorSettings

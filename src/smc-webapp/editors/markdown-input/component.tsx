@@ -59,7 +59,7 @@ const AUX_FILE_EXT = "upload";
 import { join } from "path";
 import * as CodeMirror from "codemirror";
 
-import { aux_file, len, path_split, trunc_middle } from "smc-util/misc2";
+import { aux_file, len, path_split, trunc_middle, trunc } from "smc-util/misc2";
 import { timestamp_cmp, cmp } from "smc-util/misc";
 
 import { IS_MOBILE } from "../../feature";
@@ -221,7 +221,7 @@ export const MarkdownInput: React.FC<Props> = ({
 
     if (submitMentionsRef != null) {
       submitMentionsRef.current = () => {
-        const mentions: string[] = [];
+        const mentions: { account_id: string; description: string }[] = [];
         if (cm.current == null) return;
         for (const mark of cm.current.getAllMarks()) {
           const { account_id } = (mark as any).attributes;
@@ -231,10 +231,14 @@ export const MarkdownInput: React.FC<Props> = ({
             from,
             to
           )}</span>`;
+          const description = trunc(
+            cm.current.getRange(to, { line: to.line + 1, ch: 0 }).trim(),
+            80
+          );
           cm.current.replaceRange(text, from, to);
-          mentions.push(account_id);
+          mentions.push({ account_id, description });
         }
-        submit_mentions(mentions);
+        submit_mentions(project_id, path, mentions);
         return cm.current.getValue();
       };
     }
