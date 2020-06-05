@@ -69,6 +69,7 @@ import { Actions, project_redux_name, redux } from "./app-framework";
 
 import { ProjectStore, ProjectStoreState } from "./project_store";
 import { ProjectEvent } from "./project/history/types";
+import { DEFAULT_COMPUTE_IMAGE } from "../smc-util/compute-images";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%';
@@ -110,6 +111,7 @@ export const QUERIES = {
       last_edited: null,
       last_saved: null,
       counter: null,
+      compute_image: null,
     },
   },
 };
@@ -2726,6 +2728,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const project_id = this.project_id;
     const id = client_db.sha1(project_id, path);
 
+    const projects_store = redux.getStore("projects");
+    const compute_image =
+      projects_store.get_project(project_id).compute_image ??
+      DEFAULT_COMPUTE_IMAGE;
+
     const table = this.redux.getProjectTable(project_id, "public_paths");
     let obj: undefined | immutable.Map<string, any> = table._table.get(id);
 
@@ -2735,6 +2742,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         project_id,
         path,
         created: now,
+        compute_image,
       });
     }
     if (obj == null) return; // make typescript happy
@@ -2744,6 +2752,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     obj = obj.delete("counter");
 
     obj = obj.set("last_edited", now);
+    obj = obj.set("compute_image", compute_image);
 
     for (const k in opts) {
       if (opts[k] != null) {

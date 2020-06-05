@@ -97,6 +97,11 @@ Table({
       desc:
         "Random token that must be passed in as query parameter to see this share; this increases security.  Only used for unlisted shares.",
     },
+    compute_image: {
+      type: "string",
+      desc:
+        "The underlying compute image, which defines the associated software stack. e.g. 'default', 'custom/some-id/latest', ...",
+    },
   },
   rules: {
     primary_key: "id",
@@ -125,6 +130,8 @@ Table({
           created: null,
           last_saved: null,
           counter: null,
+          // don't use DEFAULT_COMPUTE_IMAGE, because old shares without that val set will always be "default"!
+          compute_image: "default",
         },
       },
       set: {
@@ -140,6 +147,7 @@ Table({
           license: true,
           last_edited: true,
           created: true,
+          compute_image: true,
         },
         required_fields: {
           id: true,
@@ -181,6 +189,7 @@ Table({
           created: null,
           last_saved: null,
           counter: null,
+          compute_image: null,
         },
       },
     },
