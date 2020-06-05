@@ -53,8 +53,15 @@ misc        = require('smc-util/misc')
 smc_version = require('smc-util/smc-version')
 misc_node   = require('smc-util-node/misc_node')
 
+# I'm disabling memwatch because this code is in typescript, and gets
+# compiled and cached at runtime, and as of now, that completely breaks
+# multiuser cocalc (e.g. cocalc-docker), since the cache has very
+# restrictive permissions.  Plus I never look at the information
+# that this logs
+###
 memory      = require('smc-util-node/memory')
 memory.init(winston.debug)
+###
 
 {to_json, from_json, defaults, required}   = require('smc-util/misc')
 
