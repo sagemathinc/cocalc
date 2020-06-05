@@ -310,7 +310,7 @@ class exports.Client extends EventEmitter
             cb          : opts.cb
 
     # Cancel an outstanding changefeed query.
-    query_cancel: (opts) =>
+    _query_cancel: (opts) =>
         opts = defaults opts,
             id : required           # changefeed id
             cb : undefined
@@ -324,6 +324,10 @@ class exports.Client extends EventEmitter
                 timeout : 30
                 socket  : socket
                 cb      : opts.cb
+
+    # ASYNC version
+    query_cancel: (id) =>
+        return await callback2(@_query_cancel, {id:id})
 
     sync_table: (query, options, throttle_changes=undefined) =>
         return synctable2.synctable(query, options, @, throttle_changes)
