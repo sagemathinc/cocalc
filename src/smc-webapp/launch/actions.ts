@@ -24,12 +24,32 @@ import { redux, Actions, Store } from "../app-framework";
 import * as LS from "../misc/local-storage";
 import { QueryParams } from "../misc/query-params";
 import { launch_share } from "./share";
-import { launch_custom_software_image } from "./custom-image";
+import { CSILauncher } from "./custom-image";
 
 export const NAME = "launch-actions";
 const LS_KEY = NAME;
 
-type LaunchTypes = "csi" | "share" | undefined;
+export type LaunchTypes = "csi" | "share" | undefined;
+
+export function is_csi_launchvalue(launch: string) {
+  return (
+    typeof launch === "string" &&
+    launch.split("/")[0] === ("csi" as LaunchTypes)
+  );
+}
+
+export function launch_action_description(
+  type: NonNullable<LaunchTypes>
+): string {
+  switch (type) {
+    case "csi":
+      return "Run Custom Software Image";
+    case "share":
+      return "Open shared file";
+    default:
+      return type;
+  }
+}
 
 interface LaunchData {
   launch?: string;
@@ -95,7 +115,7 @@ export function launch() {
   try {
     switch (type) {
       case "csi":
-        launch_custom_software_image(launch);
+        new CSILauncher(launch).launch();
         return;
       case "share":
         launch_share(launch);

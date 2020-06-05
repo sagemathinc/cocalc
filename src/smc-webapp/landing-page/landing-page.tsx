@@ -26,12 +26,17 @@ import { SiteDescription, Footer } from "../customize";
 
 import { SignUp } from "./sign-up";
 import { SignIn } from "./sign-in";
+import { RunAnonymously } from "./run-anonymously";
 import { ForgotPassword } from "./forgot-password";
 import { ResetPassword } from "./reset-password";
 import { Connecting } from "./connecting";
 
 import { QueryParams } from "../misc/query-params";
-import { NAME as LAUNCH_ACTIONS_NAME } from "../launch/actions";
+import {
+  NAME as LAUNCH_ACTIONS_NAME,
+  launch_action_description,
+  LaunchTypes,
+} from "../launch/actions";
 
 const DESC_FONT = "sans-serif";
 
@@ -69,6 +74,7 @@ interface Props {
 interface reduxProps {
   get_api_key?: string;
 
+  site_name?: string;
   is_commercial?: boolean;
   _is_configured?: boolean;
   logo_square?: string;
@@ -80,17 +86,32 @@ interface reduxProps {
 
   sign_in_email_address?: string;
 
-  type?: string;
+  type?: LaunchTypes;
   launch?: string;
 }
 
-class LandingPage extends Component<Props & reduxProps> {
+interface State {
+  show_terms: boolean;
+}
+
+class LandingPage extends Component<Props & reduxProps, State> {
+  constructor(props) {
+    super(props);
+    const show_terms =
+      props.terms_of_service?.length > 0 ||
+      props.terms_of_service_url?.length > 0;
+    this.state = {
+      show_terms,
+    };
+  }
+
   static reduxProps() {
     return {
       page: {
         get_api_key: rtypes.string,
       },
       customize: {
+        site_name: rtypes.bool,
         is_commercial: rtypes.bool,
         _is_configured: rtypes.bool,
         logo_square: rtypes.string,
@@ -157,12 +178,12 @@ class LandingPage extends Component<Props & reduxProps> {
     if (this.props.type == null) {
       return;
     }
+    const descr = launch_action_description(this.props.type);
     return (
-      <Row>
-        <h3>
-          Launch Action: <code>{this.props.type}</code> for{" "}
-          <code>{this.props.launch}</code>
-        </h3>
+      <Row syle={{ marginBottom: "20px", textAlign: "center" }}>
+        <h4>
+          {descr}: <code>{this.props.launch}</code>
+        </h4>
       </Row>
     );
   }
@@ -324,8 +345,21 @@ class LandingPage extends Component<Props & reduxProps> {
             />
           </div>
         </Row>
+        <Row
+          style={{
+            color: COLORS.GRAY,
+            fontSize: "16pt",
+            margin: "15px 0",
+            textAlign: "center",
+          }}
+        >
+          <Col sm={12}>
+            <b>Create a new account</b> below on the left or <b>sign in</b> with
+            an existing account above.
+          </Col>
+        </Row>
         <Row style={{ minHeight: "60vh" }}>
-          <Col sm={6}>
+          <Col md={6}>
             <SignUp
               sign_up_error={this.props.sign_up_error}
               strategies={this.props.strategies}
@@ -340,10 +374,12 @@ class LandingPage extends Component<Props & reduxProps> {
               email_signup={this.props.email_signup}
             />
           </Col>
-          <Col sm={6}>
+          <Col md={6}>
             <div style={{ color: "#666", fontSize: "16pt", marginTop: "5px" }}>
-              Create a new account to the left or sign in with an existing
-              account above.
+              <RunAnonymously
+                show_terms={this.state.show_terms}
+                launch={this.props.launch}
+              />
               <br />
               {this.render_support()}
               <br />

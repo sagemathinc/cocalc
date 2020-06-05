@@ -35,6 +35,11 @@ const ERROR_STYLE: React.CSSProperties = {
   marginBottom: "5px",
 };
 
+export const WELL_STYLE: React.CSSProperties = {
+  marginTop: "10px",
+  borderColor: COLORS.LANDING.LOGIN_BAR_BG,
+};
+
 interface Props {
   strategies?: List<PassportStrategy>;
   email_signup?: boolean;
@@ -292,12 +297,8 @@ export class SignUp extends React.Component<Props, State> {
   }
 
   render(): Rendered {
-    const well_style = {
-      marginTop: "10px",
-      borderColor: COLORS.LANDING.LOGIN_BAR_BG,
-    };
     return (
-      <Well style={well_style}>
+      <Well style={WELL_STYLE}>
         <AccountCreationEmailInstructions />
         {this.render_question()}
         {this.render_terms()}
