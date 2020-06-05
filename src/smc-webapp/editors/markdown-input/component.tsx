@@ -4,7 +4,10 @@ Markdown editor
 Stage 1 -- enough to replace current chat input:
   - [ ] @mentions (via completion dialog) -the collabs on this project
      - [x] get rid of the "enable_mentions" account pref flag and data -- always have it
-     - [ ] write new better more generic completions widget support
+     - [x] write new better more generic completions widget support
+     - [ ] insert mention code in editor on select
+     - [ ] store metadata and use on submit.
+     - [ ] type to search/restrict from list of collabs
   - [x] main input at bottom feels SLOW (even though editing messages is fast)
   - [x] different border when focused
   - [x] scroll into view when focused
@@ -56,8 +59,8 @@ const AUX_FILE_EXT = "upload";
 import { join } from "path";
 import * as CodeMirror from "codemirror";
 
-import { aux_file, len, path_split } from "smc-util/misc2";
-//import { emoticons } from "smc-util/misc";
+import { aux_file, len, path_split, trunc_middle } from "smc-util/misc2";
+import { timestamp_cmp, cmp } from "smc-util/misc";
 
 import { IS_MOBILE } from "../../feature";
 import { A } from "../../r_misc";
@@ -70,6 +73,7 @@ import {
   useState,
   redux,
 } from "../../app-framework";
+import { Avatar } from "../../account/avatar/avatar";
 import { Dropzone, FileUploadWrapper } from "../../file-upload";
 import { alert_message } from "../../alerts";
 import { Complete, Item } from "./complete";
@@ -85,6 +89,9 @@ const FOCUSED_STYLE: React.CSSProperties = {
 };
 
 const PADDING_TOP = 6;
+
+const MENTION_CSS =
+  "color:#7289da; background:rgba(114,137,218,.1); border-radius: 3px; padding: 0 2px;";
 
 interface Props {
   project_id: string;
@@ -141,12 +148,8 @@ export const MarkdownInput: React.FC<Props> = ({
 
   const [mentions, set_mentions] = useState<undefined | Item[]>(undefined);
   const [mentions_offset, set_mentions_offset] = useState<
-    undefined | React.CSSProperties
+    undefined | { left: number; top: number }
   >(undefined);
-
-  const handle_mentions_scroll_ref = useRef<
-    ((instance: CodeMirror.Editor) => void) | null
-  >(null);
 
   useEffect(() => {
     // initialize the codemirror editor
@@ -420,67 +423,97 @@ export const MarkdownInput: React.FC<Props> = ({
       : render_desktop_instructions();
   }
 
-  // Show the mentions popup selector.
+  // Show the mentions popup selector.   We *do* allow mentioning ourself,
+  // since Discord and Github both do, and maybe it's just one of those
+  // "symmetry" things (like liking your own post) that people feel is right.
   function show_mentions() {
-    console.log("show_mentions");
     if (cm.current == null) return;
-    set_mentions([
-      { value: "@foo" },
-      { value: "@bar" },
-      { value: "@hsnyder" },
-      { value: "@wstein" },
-      { value: "@foo2" },
-      { value: "@bar2" },
-      { value: "@hsnyder2" },
-      { value: "@wstein2" },
-    ]);
+    const users = redux
+      .getStore("projects")
+      .getIn(["project_map", project_id, "users"]);
+    const last_active = redux
+      .getStore("projects")
+      .getIn(["project_map", project_id, "last_active"]);
+    if (users == null || last_active == null) return; // e.g., for an admin
 
-    if (handle_mentions_scroll_ref.current != null) {
-      cm.current.off("scroll", handle_mentions_scroll_ref.current);
+    const project_users: {
+      account_id: string;
+      last_active: Date | undefined;
+    }[] = [];
+    for (const [account_id] of users) {
+      project_users.push({
+        account_id,
+        last_active: last_active.get(account_id),
+      });
     }
-    handle_mentions_scroll_ref.current = (cm) => {
-      if (cm == null) return;
-      const pos = cm.cursorCoords(cm.getCursor(), "local");
-      const scrollOffset = cm.getScrollInfo().top;
-      const top = pos.bottom - scrollOffset + PADDING_TOP;
-      // gutter is empty right now, but let's include this in case
-      // we implement line number support...
-      const gutter = $(cm.getGutterElement()).width() ?? 0;
-      const left = pos.left + gutter;
-      set_mentions_offset({ left, top });
-    };
-    cm.current.on("scroll", handle_mentions_scroll_ref.current);
-    handle_mentions_scroll_ref.current(cm.current);
+    project_users.sort((a, b) => {
+      if (a == null || b == null) return cmp(a.account_id, b.account_id);
+      if (a == null && b != null) return 1;
+      if (a != null && b == null) return -1;
+      return timestamp_cmp(a, b, "last_active");
+    });
+
+    const users_store = redux.getStore("users");
+    const v: Item[] = [];
+    for (const { account_id } of project_users) {
+      const name = trunc_middle(users_store.get_name(account_id), 64);
+      const elt = (
+        <span>
+          <Avatar account_id={account_id} size={24} /> {name}
+        </span>
+      );
+      v.push({ value: account_id, elt });
+    }
+    if (v.length == 0) {
+      // nobody to mention.
+      return;
+    }
+    set_mentions(v);
+
+    const pos = cm.current.cursorCoords(cm.current.getCursor(), "local");
+    const scrollOffset = cm.current.getScrollInfo().top;
+    const top = pos.bottom - scrollOffset + PADDING_TOP;
+    // gutter is empty right now, but let's include this in case
+    // we implement line number support...
+    const gutter = $(cm.current.getGutterElement()).width() ?? 0;
+    const left = pos.left + gutter;
+    set_mentions_offset({ left, top });
   }
 
   function close_mentions() {
     set_mentions(undefined);
-    if (handle_mentions_scroll_ref.current != null) {
-      cm.current?.off("scroll", handle_mentions_scroll_ref.current);
-      handle_mentions_scroll_ref.current = null;
-    }
+    cm.current?.focus();
   }
 
   function render_mentions_popup() {
-    if (mentions == null) return;
+    if (mentions == null || mentions_offset == null) return;
     return (
       <Complete
         items={mentions}
         onCancel={close_mentions}
-        onSelect={(value) => {
-          console.log("selected ", value);
+        onSelect={(account_id) => {
+          console.log("selected ", account_id);
+          const text =
+            "@" +
+            trunc_middle(redux.getStore("users").get_name(account_id), 64);
           close_mentions();
           if (cm.current == null) return;
-          const cur = cm.current.getCursor();
+          const to = cm.current.getCursor();
           // TODO: make this atomic and have metadata about account id.
-          cm.current.replaceRange(
-            value,
-            { line: cur.line, ch: cur.ch - 1 },
-            cur
+          const from = { line: to.line, ch: to.ch - 1 }; // todo: need to save this
+          cm.current.replaceRange(text + " ", from, to);
+          const marker = cm.current.markText(
+            from,
+            { line: to.line, ch: to.ch + text.length - 1 },
+            {
+              atomic: true,
+              css: MENTION_CSS,
+            }
           );
+          (marker as any).account_id = account_id;
           cm.current.focus();
         }}
-        style={mentions_offset}
+        offset={mentions_offset}
       />
     );
   }

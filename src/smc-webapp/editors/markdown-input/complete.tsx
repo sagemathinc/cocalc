@@ -26,7 +26,7 @@ interface Props {
   items: Item[]; // we assume at least one item
   onSelect: (value: string) => void;
   onCancel: () => void;
-  style?: React.CSSProperties;
+  offset: { left: number; top: number };
 }
 
 // WARNING: Complete closing when clicking outside the complete box
@@ -36,7 +36,7 @@ export const Complete: React.FC<Props> = ({
   items,
   onSelect,
   onCancel,
-  style,
+  offset,
 }) => {
   const [selected, set_selected] = useState<number>(0);
   const selected_ref = useRef<number>(selected);
@@ -95,10 +95,9 @@ export const Complete: React.FC<Props> = ({
       selectedKeys={[items[selected]?.value]}
       onClick={(e) => select(e.key)}
       style={{
-        ...{
-          border: "1px solid lightgrey",
-        },
-        ...style,
+        border: "1px solid lightgrey",
+        maxHeight: "100vh",
+        overflow: "auto",
       }}
     >
       {items.map(render_item)}
@@ -106,8 +105,12 @@ export const Complete: React.FC<Props> = ({
   );
 
   return (
-    <Dropdown overlay={menu} visible={true}>
-      <span />
-    </Dropdown>
+    <div style={{ position: "relative" }}>
+      <div style={{ ...offset, position: "absolute" }}>
+        <Dropdown overlay={menu} visible={true}>
+          <span />
+        </Dropdown>
+      </div>
+    </div>
   );
 };
