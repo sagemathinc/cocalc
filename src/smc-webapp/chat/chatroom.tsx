@@ -305,21 +305,21 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           >
             <div style={{ flex: 1 }} />
             <Button
-              onClick={() => actions.set_is_preview(true)}
-              bsStyle="info"
-              style={{ height: "47.5px" }}
-              disabled={is_preview}
-            >
-              Preview
-            </Button>
-            <div style={{ height: "5px" }} />
-            <Button
               onClick={on_send_button_click}
               disabled={input.trim() === "" || is_uploading}
               bsStyle="success"
               style={{ height: "47.5px" }}
             >
               Send
+            </Button>
+            <div style={{ height: "5px" }} />
+            <Button
+              onClick={() => actions.set_is_preview(true)}
+              bsStyle="info"
+              style={{ height: "47.5px" }}
+              disabled={is_preview}
+            >
+              Preview
             </Button>
           </div>
         </div>
