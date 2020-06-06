@@ -241,8 +241,11 @@ export const MarkdownInput: React.FC<Props> = ({
         const mentions: { account_id: string; description: string }[] = [];
         if (cm.current == null) return;
         // Get lines here, since we modify the doc as we go below.
-        const lines = cm.current.getValue().split("\n");
-        for (const mark of cm.current.getAllMarks()) {
+        const doc = (cm.current.getDoc() as any).linkedDoc();
+        doc.unlinkDoc(cm.current.getDoc());
+        const marks = cm.current.getAllMarks();
+        marks.reverse();
+        for (const mark of marks) {
           const { account_id } = (mark as any).attributes;
           if (account_id == null) continue;
           const { from, to } = mark.find();
@@ -250,12 +253,12 @@ export const MarkdownInput: React.FC<Props> = ({
             from,
             to
           )}</span>`;
-          const description = trunc(lines[from.line].trim(), 160);
-          cm.current.replaceRange(text, from, to);
+          const description = trunc(cm.current.getLine(from.line).trim(), 160);
+          doc.replaceRange(text, from, to);
           mentions.push({ account_id, description });
         }
         submit_mentions(project_id, path, mentions);
-        return cm.current.getValue();
+        return doc.getValue();
       };
     }
 
@@ -477,7 +480,7 @@ export const MarkdownInput: React.FC<Props> = ({
       .getStore("projects")
       .getIn(["project_map", project_id, "last_active"]);
     if (users == null || last_active == null) return; // e.g., for an admin
-
+    const my_account_id = redux.getStore("account").get("account_id");
     const project_users: {
       account_id: string;
       last_active: Date | undefined;
@@ -489,6 +492,13 @@ export const MarkdownInput: React.FC<Props> = ({
       });
     }
     project_users.sort((a, b) => {
+      // always push self to bottom...
+      if (a.account_id == my_account_id) {
+        return 1;
+      }
+      if (b.account_id == my_account_id) {
+        return -1;
+      }
       if (a == null || b == null) return cmp(a.account_id, b.account_id);
       if (a == null && b != null) return 1;
       if (a != null && b == null) return -1;

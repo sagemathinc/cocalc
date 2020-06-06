@@ -26,7 +26,6 @@ export interface ChatState {
   input: string; // content of the input box
   message_plain_text: string; // What the user sees in the chat box eg. stripped of internal mention markup
   is_preview?: boolean; // currently displaying preview of the main input chat
-  last_sent?: string; // last sent message
   messages?: immutable.Map<any, any>;
   offset?: number; // information about where on screen the chat editor is located
   position?: number; // more info about where chat editor is located
@@ -48,7 +47,6 @@ export class ChatStore extends Store<ChatState> {
       input: "",
       message_plain_text: "",
       is_preview: undefined,
-      last_sent: undefined,
       messages: undefined,
       offset: undefined,
       position: undefined,

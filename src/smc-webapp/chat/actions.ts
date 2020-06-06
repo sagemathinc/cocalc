@@ -135,7 +135,7 @@ export class ChatActions extends Actions<ChatState> {
     });
     // NOTE: we clear search, since it's very confusing to send a message and not
     // even see it (if it doesn't match search).
-    this.setState({ last_sent: input, search: "", input: "" });
+    this.setState({ search: "", input: "" });
     // NOTE: further that annoyingly the search box isn't controlled so the input
     // isn't cleared, which is also confusing. todo -- fix.
     user_tracking("send_chat", {
