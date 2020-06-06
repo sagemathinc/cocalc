@@ -56,7 +56,7 @@ interface Props {
   is_current: boolean;
   is_public: boolean;
   value?: string; // if defined and is_public, use this static value and editor is read-only
-  misspelled_words: Set<string>;
+  misspelled_words: Set<string> | string; // **or** show these words as not spelled correctly
   resize: number;
   gutters: string[];
   gutter_markers: Map<string, any>;
@@ -143,7 +143,25 @@ export class CodemirrorEditor extends Component<Props, State> {
     this.cm.refresh();
   }
 
-  cm_highlight_misspelled_words(words: Set<string>): void {
+  cm_highlight_misspelled_words(words: Set<string> | string): void {
+    if (words == "browser") {
+      // just ensure browser spellcheck is enabled
+      this.cm.setOption("spellcheck", true);
+      (this.cm as any).spellcheck_highlight([]);
+      return;
+    }
+    if (words == "disabled") {
+      // disabled
+      this.cm.setOption("spellcheck", false);
+      (this.cm as any).spellcheck_highlight([]);
+      return;
+    }
+    if (typeof words == "string") {
+      // not supported yet
+      console.warn("unsupported words option", words);
+      return;
+    }
+    this.cm.setOption("spellcheck", false);
     (this.cm as any).spellcheck_highlight(words.toJS());
   }
 
@@ -302,6 +320,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       this.init_new_codemirror();
     }
 
+    ///(window as any).cm = this.cm;
     if (props.editor_state != null) {
       codemirror_state.set_state(this.cm, props.editor_state.toJS() as any);
     }
