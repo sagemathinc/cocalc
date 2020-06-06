@@ -101,10 +101,10 @@ export const Complete: React.FC<Props> = ({
         selectedKeys={[selected_keys_ref.current]}
         onClick={(e) => select(e.key)}
         style={{
-          border: "1px solid lightgrey"}}
+          border: "1px solid lightgrey",
           maxHeight: "45vh", // so can always position menu above/below current line not obscuring it.
           overflow: "auto",
-        }}*/
+        }}
       >
         {items.map(render_item)}
       </Menu>
