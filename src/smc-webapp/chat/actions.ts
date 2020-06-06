@@ -3,11 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { fromJS, List } from "immutable";
+import { fromJS } from "immutable";
 
 import { SyncDB } from "smc-util/sync/editor/db";
 import { user_tracking } from "../user-tracking";
-import { original_path } from "smc-util/misc";
 
 import { Actions } from "../app-framework";
 import { webapp_client } from "../webapp-client";
@@ -113,9 +112,17 @@ export class ChatActions extends Actions<ChatState> {
     }
   }
 
-  public send_chat(content): void {
-    if (this.syncdb == null) {
+  public send_chat(input?: string): void {
+    if (this.syncdb == null || this.store == null) {
       // WARNING: give an error or try again later?
+      return;
+    }
+    if (input == null) {
+      input = this.store.get("input");
+    }
+    input = input.trim();
+    if (input.length == 0 || this.store.get("is_uploading")) {
+      // do not send while uploading or there is nothing to send.
       return;
     }
     const sender_id = this.redux.getStore("account").get_account_id();
@@ -123,12 +130,12 @@ export class ChatActions extends Actions<ChatState> {
     this.syncdb.set({
       sender_id,
       event: "chat",
-      history: [{ author_id: sender_id, content, date: time_stamp }],
+      history: [{ author_id: sender_id, content: input, date: time_stamp }],
       date: time_stamp,
     });
     // NOTE: we clear search, since it's very confusing to send a message and not
     // even see it (if it doesn't match search).
-    this.setState({ last_sent: content, search: "", input: "" });
+    this.setState({ search: "", input: "" });
     // NOTE: further that annoyingly the search box isn't controlled so the input
     // isn't cleared, which is also confusing. todo -- fix.
     user_tracking("send_chat", {
@@ -193,17 +200,8 @@ export class ChatActions extends Actions<ChatState> {
     }
   }
 
-  public set_to_last_input(): void {
-    if (this.store == null) return;
-    this.setState({ input: this.store.get("last_sent") });
-  }
-
-  public set_input(input): void {
+  public set_input(input: string): void {
     this.setState({ input });
-  }
-
-  public saved_message(saved_mesg): void {
-    this.setState({ saved_mesg });
   }
 
   public set_is_preview(is_preview): void {
@@ -214,65 +212,15 @@ export class ChatActions extends Actions<ChatState> {
     this.setState({ use_saved_position });
   }
 
-  public set_unsent_user_mentions(
-    user_mentions = List(),
-    message_plain_text = ""
-  ): void {
-    this.setState({
-      unsent_user_mentions: user_mentions,
-      message_plain_text,
-    });
-  }
-
-  public submit_user_mentions(): void {
-    const CONTEXT_SIZE = 80;
-    const account_store = this.redux.getStore("account");
-    const store = this.store;
-    if (account_store == null || store == null) {
-      return;
-    }
-    store.get("unsent_user_mentions").map((mention) => {
-      const end_of_mention_index =
-        mention.get("plainTextIndex") + mention.get("display")?.length;
-      const end_of_context_index = end_of_mention_index + CONTEXT_SIZE;
-
-      // Add relevant ellipses depending on size of full message
-      let description = "";
-      if (mention.get("plainTextIndex") != 0) {
-        description = "... ";
-      }
-      description += store
-        .get("message_plain_text")
-        .slice(end_of_mention_index, end_of_context_index)
-        .trim();
-      if (end_of_context_index < store.get("message_plain_text").length) {
-        description += " ...";
-      }
-
-      // TODO: this is just naively assuming that no errors happen.
-      // What if there is a network blip?
-      // Then we would just loose the mention, which is no good. Do better.
-      webapp_client.query_client.query({
-        query: {
-          mentions: {
-            project_id: store.get("project_id"),
-            path: original_path(store.get("path")),
-            target: mention.get("id"),
-            priority: 2,
-            description,
-            source: account_store.get_account_id(),
-          },
-        },
-      });
-    });
-    this.setState({ unsent_user_mentions: List() });
-  }
-
   public save_scroll_state(position, height, offset): void {
     if (height == 0) {
       // height == 0 means chat room is not rendered
       return;
     }
     this.setState({ saved_position: position, height, offset });
+  }
+
+  public set_uploading(is_uploading: boolean): void {
+    this.setState({ is_uploading });
   }
 }

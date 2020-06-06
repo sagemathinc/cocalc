@@ -15,6 +15,8 @@ require('codemirror/addon/comment/comment.js')
 require('codemirror/addon/dialog/dialog.js')
 require('codemirror/addon/dialog/dialog.css')
 
+require('codemirror/addon/display/placeholder.js')
+
 require('codemirror/addon/search/searchcursor.js')
 require('codemirror/addon/search/jump-to-line.js')
 require('codemirror/addon/search/matchesonscrollbar.js')

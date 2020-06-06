@@ -3,6 +3,7 @@ Drag'n'Drop file upload area
 */
 
 import * as Dropzone from "dropzone";
+export { Dropzone };
 import {
   DropzoneComponent,
   DropzoneComponentHandlers,
@@ -141,17 +142,25 @@ export const FileUpload: React.FC<FileUploadProps> = (props) => {
   );
 };
 
+export interface DropzoneRef {
+  current: Dropzone | null;
+}
+
 interface FileUploadWrapperProps {
   project_id: string; // The project to upload files to
   dest_path: string; // The path for files to be sent
   config?: object; // All supported dropzone.js config options
-  event_handlers: { complete?: Function; sending?: Function };
+  event_handlers: {
+    complete?: Function;
+    sending?: Function;
+    removedfile?: Function;
+  };
   preview_template?: Function; // See http://www.dropzonejs.com/#layout
   show_upload?: boolean; // Whether or not to show upload area
   on_close?: Function;
   disabled?: boolean;
   style?: React.CSSProperties; // css styles to apply to the containing div
-  dropzone_ref?: { current: Dropzone | null }; // gets set to underlying Dropzone instance
+  dropzone_ref?: DropzoneRef; // gets set to underlying Dropzone instance
   close_preview_ref?: { current: Function | null }; // set to function to close the preview
 }
 
@@ -176,6 +185,8 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
           preview_template()
         ),
         maxFilesize: MAX_FILE_SIZE_MB,
+        forceChunking: true,
+        addRemoveLinks: props.event_handlers.removedfile != null,
         chunking: true,
         chunkSize: CHUNK_SIZE_MB * 1000 * 1000,
         retryChunks: true, // might as well since it's a little more robust.
@@ -272,11 +283,16 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
     );
   }
 
-  function close_preview() {
+  // If remove_all is true, then all files are also removed
+  // from the dropzone.  This is true by default if there is
+  // no "removedfile" handler, and false otherwise.
+  function close_preview(
+    remove_all: boolean = props.event_handlers.removedfile == null
+  ) {
     if (typeof props.on_close === "function") {
       props.on_close();
     }
-    if (dropzone.current != null) {
+    if (remove_all && dropzone.current != null) {
       dropzone.current.removeAllFiles();
     }
     set_files([]);
@@ -303,7 +319,9 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
       <div style={style}>
         <div className="close-button pull-right">
           <span
-            onClick={close_preview}
+            onClick={() => {
+              close_preview();
+            }}
             className="close-button-x"
             style={{
               cursor: "pointer",

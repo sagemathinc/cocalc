@@ -756,26 +756,124 @@ or
 
 
 */
+function useReduxTopLevelStore(path: string[]) {
+  const [value, set_value] = React.useState(() =>
+    redux._redux_store.getState().getIn(path)
+  );
+
+  React.useEffect(() => {
+    const store = redux.getStore(path[0]);
+    const subpath = path.slice(1);
+    let last_value = value;
+    const f = (obj) => {
+      const new_value = obj.getIn(subpath);
+      if (last_value !== new_value) {
+        /*
+        console.log("useReduxTopLevelStore change ", {
+          name: path[0],
+          path: JSON.stringify(path),
+          new_value,
+          last_value,
+        });
+        */
+        last_value = new_value;
+        set_value(new_value);
+      }
+    };
+    store.on("change", f);
+    return () => {
+      store.removeListener("change", f);
+    };
+  }, []);
+
+  return value;
+}
+
+function useReduxProjectStore(path: string[], project_id: string) {
+  const [value, set_value] = React.useState(() =>
+    redux
+      .getProjectStore(project_id)
+      .getIn(path as [string, string, string, string, string])
+  );
+
+  React.useEffect(() => {
+    const store = redux.getProjectStore(project_id);
+    let last_value = value;
+    const f = (obj) => {
+      const new_value = obj.getIn(path);
+      if (last_value !== new_value) {
+        /*
+        console.log("useReduxProjectStore change ", {
+          path: JSON.stringify(path),
+          new_value,
+          last_value,
+        });
+        */
+        last_value = new_value;
+        set_value(new_value);
+      }
+    };
+    store.on("change", f);
+    return () => {
+      store.removeListener("change", f);
+    };
+  }, []);
+
+  return value;
+}
+
+function useReduxEditorStore(
+  path: string[],
+  project_id: string,
+  filename: string,
+  is_public?: boolean
+) {
+  const [value, set_value] = React.useState(() =>
+    redux
+      .getEditorStore(project_id, filename, is_public)
+      .getIn(path as [string, string, string, string, string])
+  );
+
+  React.useEffect(() => {
+    const store = redux.getEditorStore(project_id, filename, is_public);
+    let last_value = value;
+    const f = (obj) => {
+      const new_value = obj.getIn(path);
+      if (last_value !== new_value) {
+        /*
+        console.log("useReduxEditorStore change ", {
+          path: JSON.stringify(path),
+          filename,
+          new_value,
+          last_value,
+        });
+        */
+        last_value = new_value;
+        set_value(new_value);
+      }
+    };
+    store.on("change", f);
+    return () => {
+      store.removeListener("change", f);
+    };
+  }, []);
+
+  return value;
+}
+
 export function useRedux(
   path: string[],
   project_id?: string,
   filename?: string, // for editing a file in project
   is_public?: boolean
 ) {
-  if (project_id != null) {
-    return useSelector((_) => {
-      if (filename == null) {
-        const s: ProjectStore = redux.getProjectStore(project_id);
-        return s.getIn(path as any);
-      } else {
-        return redux._redux_store
-          .getState()
-          .getIn([redux_name(project_id, filename, is_public)].concat(path));
-      }
-    });
-  } else {
-    return useSelector((_) => redux._redux_store.getState().getIn(path));
+  if (project_id == null) {
+    return useReduxTopLevelStore(path);
   }
+  if (filename == null) {
+    return useReduxProjectStore(path, project_id);
+  }
+  return useReduxEditorStore(path, project_id, filename, is_public);
 }
 
 /*
@@ -812,4 +910,30 @@ export function useActions(name_or_project_id: string, path?: string) {
       return redux.getEditorActions(name_or_project_id, path);
     }
   }, [name_or_project_id, path]);
+}
+
+export function useStore(name: "account"): AccountStore;
+export function useStore(name: "projects"): any;
+export function useStore(name: "billing"): any;
+export function useStore(name: "page"): any;
+export function useStore(name: "admin-users"): AdminUsersStore;
+export function useStore(name: "admin-site-licenses"): SiteLicensesStore;
+export function useStore(name: "mentions"): MentionsStore;
+export function useStore(name: "file_use"): FileUseStore | undefined;
+// If it is none of the explicitly named ones... it's a project.
+export function useStore(name_or_project_id: string): ProjectStore;
+// Or an editor store (any for now)
+export function useStore(name_or_project_id: string, path: string): any;
+export function useStore(name_or_project_id: string, path?: string): any {
+  return React.useMemo(() => {
+    if (path == null) {
+      if (is_valid_uuid_string(name_or_project_id)) {
+        return redux.getProjectStore(name_or_project_id);
+      } else {
+        return redux.getStore(name_or_project_id);
+      }
+    } else {
+      return redux.getEditorStore(name_or_project_id, path);
+    }
+  }, [name_or_project_id, path]) as any;
 }

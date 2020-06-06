@@ -3,227 +3,145 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// standard non-CoCalc libraries
-import * as immutable from "immutable";
-const { IS_MOBILE, IS_TOUCH } = require("../feature");
+import { Map } from "immutable";
+const { IS_TOUCH } = require("../feature");
 
-// CoCalc libraries
 import { Avatar } from "../account/avatar/avatar";
-import { is_different, smiley } from "smc-util/misc";
-
-// have to rewrite buttons like SaveButton in antd before we can
-// switch to antd buttons.
-import { Button } from "react-bootstrap";
-
+import { is_different, path_split, smiley } from "smc-util/misc";
 import {
   is_editing,
   message_colors,
   newest_content,
   sender_is_viewer,
+  INPUT_HEIGHT,
 } from "./utils";
 import { Markdown } from "./markdown";
 
-import { React, ReactDOM, Component, rtypes } from "../app-framework";
-import { Icon, TimeAgo, Tip } from "../r_misc";
-import { Col, FormGroup, FormControl, Grid, Row } from "../antd-bootstrap";
+import { React, useMemo, useRef, useState } from "../app-framework";
+import { Icon, Space, TimeAgo, Tip } from "../r_misc";
+import { Button, Col, Grid, Row } from "../antd-bootstrap";
 
 import { HistoryTitle, HistoryFooter, History } from "./history";
+import { ChatInput } from "./input";
+import { ChatActions } from "./actions";
 
 import { Time } from "./time";
 import { Name } from "./name";
 
 const BLANK_COLUMN = <Col key={2} xs={2} sm={2}></Col>;
 
-interface MessageProps {
-  actions?: any;
+interface Props {
+  actions?: ChatActions;
 
-  focus_end?(e: any): void; // TODO: type
-  get_user_name: Function; // // TODO: this was optional but no existence checks
-
-  message: immutable.Map<string, any>; // immutable.js message object
-  history?: immutable.List<any>;
+  get_user_name: (account_id: string) => string;
+  message: Map<string, any>; // immutable.js message object
   account_id: string;
-  date?: string;
-  sender_name?: string;
-  editor_name?: string;
-  user_map?: immutable.Map<string, any>;
-  project_id?: string; // optional -- improves relative links if given
-  file_path?: string; // optional -- (used by renderer; path containing the chat log)
-  font_size?: number;
-  show_avatar?: boolean;
+  user_map?: Map<string, any>;
+  project_id?: string; // improves relative links if given
+  path?: string;
+  font_size: number;
   is_prev_sender?: boolean;
   is_next_sender?: boolean;
-  show_heads?: boolean;
-  saved_mesg?: string;
+  show_avatar?: boolean;
+  include_avatar_col?: boolean;
 
   set_scroll?: Function;
-  include_avatar_col?: boolean;
+  scroll_into_view: () => void; // call to scroll this message into view
 }
 
-interface MessageState {
-  edited_message: any;
-  history_size: number;
-  show_history: boolean;
-  new_changes: boolean;
+function areEqual(prevProps, nextProps): boolean {
+  return !is_different(prevProps, nextProps, [
+    "message",
+    "user_map",
+    "font_size",
+    "show_avatar",
+    "include_avatar_col",
+    "is_prev_sender",
+    "is_next_sender",
+  ]);
 }
 
-export class Message extends Component<MessageProps, MessageState> {
-  public static propTypes = {
-    actions: rtypes.object,
+export const Message: React.FC<Props> = React.memo((props) => {
+  const [edited_message, set_edited_message] = useState(
+    newest_content(props.message)
+  );
+  // We have to use a ref because of trickiness involving
+  // stale closures when submitting the message.
+  const edited_message_ref = useRef(edited_message);
 
-    focus_end: rtypes.func,
-    get_user_name: rtypes.func,
+  const [show_history, set_show_history] = useState(false);
 
-    message: rtypes.immutable.Map.isRequired, // immutable.js message object
-    history: rtypes.immutable.List,
-    account_id: rtypes.string.isRequired,
-    date: rtypes.string,
-    sender_name: rtypes.string,
-    editor_name: rtypes.string,
-    user_map: rtypes.immutable.Map,
-    project_id: rtypes.string, // optional -- improves relative links if given
-    file_path: rtypes.string, // optional -- (used by renderer; path containing the chat log)
-    font_size: rtypes.number,
-    show_avatar: rtypes.bool,
-    is_prev_sender: rtypes.bool,
-    is_next_sender: rtypes.bool,
-    show_heads: rtypes.bool,
-    saved_mesg: rtypes.string,
-  };
-  constructor(props: MessageProps, context: any) {
-    super(props, context);
-    this.state = {
-      edited_message: newest_content(this.props.message),
-      history_size: this.props.message.get("history").size,
-      show_history: false,
-      new_changes: false,
-    };
-  }
+  const new_changes = useMemo(
+    () => edited_message !== newest_content(props.message),
+    [props.message] /* note -- edited_message is a function of props.message */
+  );
 
-  shouldComponentUpdate(nextProps, nextState) {
+  const history_size = useMemo(() => props.message.get("history").size, [
+    props.message,
+  ]);
+
+  const isEditing = useMemo(() => is_editing(props.message, props.account_id), [
+    props.message,
+    props.account_id,
+  ]);
+
+  const editor_name = useMemo(() => {
+    return props.get_user_name(
+      props.message.get("history")?.first()?.get("author_id")
+    );
+  }, [props.message]);
+
+  const submitMentionsRef = useRef<Function>();
+
+  function render_toggle_history() {
+    const verb = show_history ? "Hide" : "Show";
     return (
-      is_different(this.props, nextProps, [
-        "message",
-        "user_map",
-        "account_id",
-        "show_avatar",
-        "is_prev_sender",
-        "is_next_sender",
-        "editor_name",
-        "saved_mesg",
-        "sender_name",
-      ]) ||
-      is_different(this.state, nextState, [
-        "edited_message",
-        "show_history",
-        "new_changes",
-      ])
+      <span>
+        <Space />
+        <span
+          className="small"
+          style={{
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }}
+          onClick={() => toggle_history_chat(!show_history)}
+        >
+          <Tip
+            title="Message History"
+            tip={`${verb} history of editing of this message.`}
+          >
+            <Icon name="history" /> {verb} History
+          </Tip>
+        </span>
+      </span>
     );
   }
 
-  componentWillReceiveProps(newProps) {
-    if (this.state.history_size !== this.props.message.get("history").size) {
-      this.setState({ history_size: this.props.message.get("history").size });
-    }
-    let changes = false;
-    if (this.state.edited_message === newest_content(this.props.message)) {
-      let edited_message = "";
-      const history = newProps.message.get("history");
-      if (history != null && history.first() != null) {
-        edited_message = history.first().get("content") || "";
-      }
-      this.setState({ edited_message });
-    } else {
-      changes = true;
-    }
-    this.setState({ new_changes: changes });
+  function toggle_history_chat(show: boolean) {
+    set_show_history(show);
+    props.set_scroll?.();
   }
 
-  componentDidMount() {
-    if (this.refs.editedMessage) {
-      this.setState({ edited_message: this.props.saved_mesg });
-    }
-  }
-
-  componentDidUpdate() {
-    if (this.refs.editedMessage) {
-      this.props.actions.saved_message(
-        ReactDOM.findDOMNode(this.refs.editedMessage).value
-      );
-    }
-  }
-
-  toggle_history() {
-    // No history for mobile, since right now messages in mobile are too clunky
-    if (!IS_MOBILE) {
-      if (!this.state.show_history) {
-        return (
-          <span
-            className="small"
-            style={{ marginLeft: "10px", cursor: "pointer" }}
-            onClick={() => this.toggle_history_chat(true)}
-          >
-            <Tip
-              title="Message History"
-              tip="Show history of editing of this message."
-            >
-              <Icon name="history" /> Edited
-            </Tip>
-          </span>
-        );
-      } else {
-        return (
-          <span
-            className="small"
-            style={{ marginLeft: "10px", cursor: "pointer" }}
-            onClick={() => this.toggle_history_chat(false)}
-          >
-            <Tip
-              title="Message History"
-              tip="Hide history of editing of this message."
-            >
-              <Icon name="history" /> Hide History
-            </Tip>
-          </span>
-        );
-      }
-    }
-  }
-
-  toggle_history_chat = (bool: boolean) => {
-    this.setState({ show_history: bool });
-    this.props.set_scroll != null && this.props.set_scroll();
-  };
-
-  editing_status() {
+  function editing_status(is_editing: boolean) {
     let text;
-    const other_editors = this.props.message
+    const other_editors = props.message
       .get("editing")
-      .remove(this.props.account_id)
+      .remove(props.account_id)
       .keySeq();
-    // TODO: is this used?
-    //const current_user =
-    //  this.props.user_map.get(this.props.account_id).get("first_name") +
-    //  " " +
-    //  this.props.user_map.get(this.props.account_id).get("last_name");
-    if (is_editing(this.props.message, this.props.account_id)) {
-      // let color; // TODO: is this used?
+    if (is_editing) {
       if (other_editors.size === 1) {
         // This user and someone else is also editing
-        text = `${this.props.get_user_name(
+        text = `${props.get_user_name(
           other_editors.first()
         )} is also editing this!`;
-        // color = "#E55435";
       } else if (other_editors.size > 1) {
         // Multiple other editors
         text = `${other_editors.size} other users are also editing this!`;
-        // color = "#E55435";
       } else if (
-        this.state.history_size !== this.props.message.get("history").size &&
-        this.state.new_changes
+        history_size !== props.message.get("history").size &&
+        new_changes
       ) {
-        text = `${this.props.editor_name} has updated this message. Esc to discard your changes and see theirs`;
-        // color = "#E55435";
+        text = `${editor_name} has updated this message. Esc to discard your changes and see theirs`;
       } else {
         if (IS_TOUCH) {
           text = "You are now editing ...";
@@ -234,39 +152,33 @@ export class Message extends Component<MessageProps, MessageState> {
     } else {
       if (other_editors.size === 1) {
         // One person is editing
-        text = `${this.props.get_user_name(
+        text = `${props.get_user_name(
           other_editors.first()
         )} is editing this message`;
       } else if (other_editors.size > 1) {
         // Multiple editors
         text = `${other_editors.size} people are editing this message`;
-      } else if (newest_content(this.props.message).trim() === "") {
-        text = `Deleted by ${this.props.editor_name}`;
+      } else if (newest_content(props.message).trim() === "") {
+        text = `Deleted by ${editor_name}`;
       }
     }
 
     if (text == null) {
-      text = `Last edit by ${this.props.editor_name}`;
+      text = `Last edit by ${editor_name}`;
     }
 
     if (
-      !is_editing(this.props.message, this.props.account_id) &&
+      !is_editing &&
       other_editors.size === 0 &&
-      newest_content(this.props.message).trim() !== ""
+      newest_content(props.message).trim() !== ""
     ) {
       const edit = "Last edit ";
-      const name = ` by ${this.props.editor_name}`;
+      const name = ` by ${editor_name}`;
       return (
         <span className="small">
           {edit}
           <TimeAgo
-            date={
-              new Date(
-                this.props.message.get("history").first() != null
-                  ? this.props.message.get("history").first().get("date")
-                  : undefined
-              )
-            }
+            date={new Date(props.message.get("history").first()?.get("date"))}
           />
           {name}
         </span>
@@ -275,11 +187,11 @@ export class Message extends Component<MessageProps, MessageState> {
     return (
       <span className="small">
         {text}
-        {is_editing(this.props.message, this.props.account_id) ? (
+        {is_editing ? (
           <Button
-            onClick={this.save_edit}
+            onClick={on_send}
             bsStyle="success"
-            style={{ marginLeft: "10px", marginTop: "-5px" }}
+            style={{ marginLeft: "10px" }}
             className="small"
           >
             Save
@@ -289,57 +201,29 @@ export class Message extends Component<MessageProps, MessageState> {
     );
   }
 
-  edit_message = () => {
-    this.props.actions.set_editing(this.props.message, true);
-  };
-
-  on_keydown = (e) => {
-    if (e.keyCode === 27) {
-      // ESC
-      e.preventDefault();
-      this.setState({
-        edited_message: newest_content(this.props.message),
-      });
-      this.props.actions.set_editing(this.props.message, false);
-    } else if (e.keyCode === 13 && e.shiftKey) {
-      // 13: enter key
-      const mesg = ReactDOM.findDOMNode(this.refs.editedMessage).value;
-      if (mesg !== newest_content(this.props.message)) {
-        this.props.actions.send_edit(this.props.message, mesg);
-      } else {
-        this.props.actions.set_editing(this.props.message, false);
-      }
+  function edit_message() {
+    if (
+      props.project_id == null ||
+      props.path == null ||
+      props.actions == null
+    ) {
+      // no editing functionality of not in a project with a path.
+      return;
     }
-  };
+    props.scroll_into_view();
+    props.actions.set_editing(props.message, true);
+  }
 
-  save_edit = () => {
-    const mesg = ReactDOM.findDOMNode(this.refs.editedMessage).value;
-    if (mesg !== newest_content(this.props.message)) {
-      this.props.actions.send_edit(this.props.message, mesg);
-    } else {
-      this.props.actions.set_editing(this.props.message, false);
-    }
-  };
-
-  // All the columns
-  avatar_column() {
+  function avatar_column() {
+    let account = props.user_map?.get(props.message.get("sender_id"))?.toJS?.();
     let margin_top, marginLeft, marginRight, textAlign;
-
-    let account =
-      this.props.user_map != null
-        ? this.props.user_map.get(this.props.message.get("sender_id"))
-        : undefined;
-    if (account != null) {
-      account = account.toJS();
-    }
-
-    if (this.props.is_prev_sender) {
+    if (props.is_prev_sender) {
       margin_top = "5px";
     } else {
       margin_top = "15px";
     }
 
-    if (sender_is_viewer(this.props.account_id, this.props.message)) {
+    if (sender_is_viewer(props.account_id, props.message)) {
       textAlign = "left";
       marginRight = "11px";
     } else {
@@ -358,12 +242,10 @@ export class Message extends Component<MessageProps, MessageState> {
       width: "4%",
     };
 
-    // TODO: do something better when we don't know the user
-    // (or when sender account_id is bogus)
     return (
       <Col key={0} sm={1} style={style}>
         <div>
-          {account != null && this.props.show_avatar ? (
+          {account != null && props.show_avatar ? (
             <Avatar size={32} account_id={account.account_id} />
           ) : undefined}
         </div>
@@ -371,18 +253,18 @@ export class Message extends Component<MessageProps, MessageState> {
     );
   }
 
-  content_column() {
+  function content_column() {
     let borderRadius, marginBottom, marginTop: any;
-    let value = newest_content(this.props.message);
+    let value = newest_content(props.message);
 
     const is_viewers_message = sender_is_viewer(
-      this.props.account_id,
-      this.props.message
+      props.account_id,
+      props.message
     );
 
     const { background, color, lighten, message_class } = message_colors(
-      this.props.account_id,
-      this.props.message
+      props.account_id,
+      props.message
     );
 
     // smileys, just for fun.
@@ -391,27 +273,23 @@ export class Message extends Component<MessageProps, MessageState> {
       wrap: ['<span class="smc-editor-chat-smiley">', "</span>"],
     });
 
-    const font_size = `${this.props.font_size}px`;
+    const font_size = `${props.font_size}px`;
 
-    if (this.props.show_avatar) {
+    if (props.show_avatar) {
       marginBottom = "1vh";
     } else {
       marginBottom = "3px";
     }
 
-    if (!this.props.is_prev_sender && is_viewers_message) {
+    if (!props.is_prev_sender && is_viewers_message) {
       marginTop = "17px";
     }
 
-    if (
-      !this.props.is_prev_sender &&
-      !this.props.is_next_sender &&
-      !this.state.show_history
-    ) {
+    if (!props.is_prev_sender && !props.is_next_sender && !show_history) {
       borderRadius = "10px 10px 10px 10px";
-    } else if (!this.props.is_prev_sender) {
+    } else if (!props.is_prev_sender) {
       borderRadius = "10px 10px 5px 5px";
-    } else if (!this.props.is_next_sender) {
+    } else if (!props.is_next_sender) {
       borderRadius = "5px 5px 10px 10px";
     }
 
@@ -428,49 +306,48 @@ export class Message extends Component<MessageProps, MessageState> {
 
     return (
       <Col key={1} xs={10} sm={9}>
-        {!this.props.is_prev_sender &&
+        {!props.is_prev_sender &&
         !is_viewers_message &&
-        this.props.sender_name ? (
-          <Name sender_name={this.props.sender_name} />
+        props.message.get("sender_id") ? (
+          <Name
+            sender_name={props.get_user_name(props.message.get("sender_id"))}
+          />
         ) : undefined}
         <div
           style={message_style}
           className="smc-chat-message"
-          onDoubleClick={this.edit_message}
+          onDoubleClick={edit_message}
         >
           <span style={lighten}>
-            <Time
-              message={this.props.message}
-              edit={this.edit_message.bind(this)}
-            />
+            <Time message={props.message} edit={edit_message.bind(this)} />
           </span>
-          {!is_editing(this.props.message, this.props.account_id) ? (
+          {!isEditing ? (
             <Markdown
               value={value}
-              project_id={this.props.project_id}
-              file_path={this.props.file_path}
+              project_id={props.project_id}
+              file_path={
+                props.path != null ? path_split(props.path).head : undefined
+              }
               className={message_class}
             />
           ) : undefined}
-          {is_editing(this.props.message, this.props.account_id)
-            ? this.render_input()
-            : undefined}
-          <span style={lighten}>
-            {this.props.message.get("history").size > 1 ||
-            this.props.message.get("editing").size > 0
-              ? this.editing_status()
+          {isEditing ? render_input() : undefined}
+          <span>
+            {props.message.get("history").size > 1 ||
+            props.message.get("editing").size > 0
+              ? editing_status(isEditing)
               : undefined}
-            {this.props.message.get("history").size > 1
-              ? this.toggle_history()
+            {props.message.get("history").size > 1
+              ? render_toggle_history()
               : undefined}
           </span>
         </div>
-        {this.state.show_history && (
+        {show_history && (
           <div>
             <HistoryTitle />
             <History
-              history={this.props.history}
-              user_map={this.props.user_map}
+              history={props.message.get("history")}
+              user_map={props.user_map}
             />
             <HistoryFooter />
           </div>
@@ -479,49 +356,63 @@ export class Message extends Component<MessageProps, MessageState> {
     );
   }
 
-  // All the render methods
-
-  render_input() {
-    return (
-      <div>
-        <FormGroup>
-          <FormControl
-            style={{ fontSize: this.props.font_size }}
-            autoFocus={true}
-            rows={4}
-            componentClass="textarea"
-            ref="editedMessage"
-            onKeyDown={this.on_keydown}
-            value={this.state.edited_message}
-            onChange={(e: any) =>
-              this.setState({ edited_message: e.target.value })
-            }
-            onFocus={this.props.focus_end}
-          />
-        </FormGroup>
-      </div>
-    );
+  function on_send(): void {
+    if (props.actions == null) return;
+    const mesg = submitMentionsRef.current?.() ?? edited_message_ref.current;
+    if (mesg !== newest_content(props.message)) {
+      props.actions.send_edit(props.message, mesg);
+    } else {
+      props.actions.set_editing(props.message, false);
+    }
   }
 
-  render() {
-    let cols;
-    if (this.props.include_avatar_col) {
-      cols = [this.avatar_column(), this.content_column(), BLANK_COLUMN];
-      // mirror right-left for sender's view
-      if (sender_is_viewer(this.props.account_id, this.props.message)) {
-        cols = cols.reverse();
-      }
-    } else {
-      cols = [this.content_column(), BLANK_COLUMN];
-      // mirror right-left for sender's view
-      if (sender_is_viewer(this.props.account_id, this.props.message)) {
-        cols = cols.reverse();
-      }
+  function on_clear(): void {
+    set_edited_message(newest_content(props.message));
+    if (props.actions == null) return;
+    props.actions.set_editing(props.message, false);
+  }
+
+  // All the render methods
+  function render_input() {
+    if (props.project_id == null || props.path == null) {
+      // should never get into this position
+      // when null.
+      return;
     }
     return (
-      <Grid>
-        <Row>{cols}</Row>
-      </Grid>
+      <ChatInput
+        project_id={props.project_id}
+        path={props.path}
+        input={edited_message}
+        on_clear={on_clear}
+        submitMentionsRef={submitMentionsRef}
+        on_send={on_send}
+        height={INPUT_HEIGHT}
+        onChange={(value) => {
+          edited_message_ref.current = value;
+          set_edited_message(value);
+        }}
+      />
     );
   }
-}
+
+  let cols;
+  if (props.include_avatar_col) {
+    cols = [avatar_column(), content_column(), BLANK_COLUMN];
+    // mirror right-left for sender's view
+    if (sender_is_viewer(props.account_id, props.message)) {
+      cols = cols.reverse();
+    }
+  } else {
+    cols = [content_column(), BLANK_COLUMN];
+    // mirror right-left for sender's view
+    if (sender_is_viewer(props.account_id, props.message)) {
+      cols = cols.reverse();
+    }
+  }
+  return (
+    <Grid>
+      <Row>{cols}</Row>
+    </Grid>
+  );
+}, areEqual);

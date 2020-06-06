@@ -179,17 +179,6 @@ export class OtherSettings extends Component<Props> {
     );
   }
 
-  private render_allow_mentions(): Rendered {
-    return (
-      <Checkbox
-        checked={!!this.props.other_settings.get("allow_mentions")}
-        onChange={(e) => this.on_change("allow_mentions", e.target.checked)}
-      >
-        Allow mentioning others in chats (disable to work around a bug)
-      </Checkbox>
-    );
-  }
-
   private render_dark_mode(): Rendered {
     return (
       <Checkbox
@@ -227,7 +216,6 @@ export class OtherSettings extends Component<Props> {
         {this.render_mask_files()}
         {this.render_no_free_warnings()}
         {this.render_first_steps()}
-        {this.render_allow_mentions()}
         {this.render_dark_mode()}
         {this.render_new_filenames()}
         {this.render_default_file_sort()}

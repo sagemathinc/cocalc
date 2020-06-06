@@ -8,6 +8,7 @@ Utility functions useful for frame-tree editors.
 */
 
 import { path_split, separate_file_extension } from "smc-util/misc2";
+export { aux_file } from "smc-util/misc2";
 
 export function parse_path(
   path: string
@@ -29,12 +30,3 @@ export function raw_url(project_id: string, path: string): string {
   return `${window.app_base_url}/${project_id}/raw/${path}`;
 }
 
-export function aux_file(path: string, ext: string): string {
-  const s = path_split(path);
-  s.tail += "." + ext;
-  if (s.head) {
-    return s.head + "/." + s.tail;
-  } else {
-    return "." + s.tail;
-  }
-}
