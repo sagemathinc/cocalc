@@ -55,7 +55,7 @@ const codemirror_associations: { [ext: string]: string } = {
   ls: "text/x-livescript",
   lua: "lua",
   m: "text/x-octave",
-  md: "yaml-formatter", // See https://codemirror.net/mode/yaml-frontmatter/index.html; this is really "a YAML frontmatter at the start of a file, switching to " github flavored markdown after that.
+  md: "yaml-frontmatter", // See https://codemirror.net/mode/yaml-frontmatter/index.html; this is really "a YAML frontmatter at the start of a file, switching to " github flavored markdown after that.
   ml: "text/x-ocaml",
   mysql: "text/x-sql",
   patch: "text/x-diff",
@@ -109,7 +109,7 @@ export interface FileSpec {
     indent_unit?: number;
     tab_size?: number;
     spaces_instead_of_tabs?: boolean;
-    spellcheck?: boolean;
+    spellcheck?: boolean; // Use browser spellcheck by default
   };
   name: string;
   exclude_from_menu?: boolean;
@@ -158,7 +158,7 @@ file_associations["noext-dockerfile"] = {
 file_associations["tex"] = {
   editor: "latex",
   icon: "cc-icon-tex-file",
-  opts: { mode: "stex2", indent_unit: 2, tab_size: 2, spellcheck: true },
+  opts: { mode: "stex2", indent_unit: 2, tab_size: 2 },
   name: "LaTeX",
 };
 
@@ -169,7 +169,6 @@ file_associations["rnw"] = {
     mode: codemirror_associations["rnw"],
     indent_unit: 4,
     tab_size: 4,
-    spellcheck: true,
   },
   name: "R Knitr Rnw",
 };
@@ -181,14 +180,13 @@ file_associations["rtex"] = {
     mode: codemirror_associations["rtex"],
     indent_unit: 4,
     tab_size: 4,
-    spellcheck: true,
   },
   name: "R Knitr Rtex",
 };
 
 file_associations["html"] = {
   icon: "fa-file-code-o",
-  opts: { indent_unit: 4, tab_size: 4, mode: "htmlmixed", spellcheck: true },
+  opts: { indent_unit: 4, tab_size: 4, mode: "htmlmixed" },
   name: "html",
 };
 

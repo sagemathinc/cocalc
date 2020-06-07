@@ -26,6 +26,14 @@ function save(cm) {
   (CodeMirror as any).commands.save(cm);
 }
 
+export function default_opts(filename) {
+  let key = filename_extension_notilde(filename).toLowerCase();
+  if (!key) {
+    key = `noext-${path_split(filename).tail}`.toLowerCase();
+  }
+  return file_associations[key]?.opts ?? {};
+}
+
 export function cm_options(
   filename: string, // extension determines editor mode
   editor_settings: Map<string, any>,
@@ -34,12 +42,6 @@ export function cm_options(
   frame_tree_actions: any = undefined,
   frame_id: string = ""
 ): object {
-  let key = filename_extension_notilde(filename).toLowerCase();
-  if (!key) {
-    key = `noext-${path_split(filename).tail}`.toLowerCase();
-  }
-  const default_opts = file_associations[key]?.opts ?? {};
-
   let theme = editor_settings.get("theme");
   // if we do not know the theme, fallback to default
   if (EDITOR_COLOR_SCHEMES[theme] == null) {
@@ -49,7 +51,8 @@ export function cm_options(
     theme = "default";
   }
 
-  const opts = defaults(default_opts, {
+  const opts = defaults(default_opts(filename), {
+    spellcheck: false,
     undoDepth: 0, // we use our own sync-aware undo.
     mode: "txt",
     show_trailing_whitespace: editor_settings.get(
@@ -74,11 +77,7 @@ export function cm_options(
     style_active_line: editor_settings.get("style_active_line", true),
     bindings: editor_settings.get("bindings"),
     theme: theme,
-    spellcheck: false,
-    inputStyle: "contenteditable",
   });
-  // Regarding inputStyle above, this is required for spellcheck to work,
-  // and will soon be the default anyways.  It's already the default on mobile.
 
   if (opts.mode == null) {
     // to satisfy typescript
@@ -243,7 +242,7 @@ export function cm_options(
 
       for (const cmd in keybindings) {
         const keys = keybindings[cmd];
-        for (key of keys.split(" ")) {
+        for (const key of keys.split(" ")) {
           f(key, cmd);
         }
       }
@@ -291,6 +290,7 @@ export function cm_options(
 
   const options: any = {
     spellcheck: opts.spellcheck,
+    inputStyle: "contenteditable",
     firstLineNumber: opts.first_line_number,
     autofocus: false,
     mode: { name: opts.mode, globalVars: true },

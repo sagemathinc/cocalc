@@ -193,8 +193,15 @@ export const MarkdownInput: React.FC<Props> = ({
       lineWrapping: true,
     };
     cm.current = CodeMirror.fromTextArea(node, options);
+    // UNCOMMENT FOR DEBUGGING ONLY
+    // (window as any).cm = cm.current;
     cm.current.setValue(value);
-    cm.current.on("change", (editor) => {
+    cm.current.on("change", (editor, change) => {
+      if (change.origin == "setValue") {
+        // Since this is a controlled component, firing onChange for this
+        // could lead to an infinite loop and randomly crash the browser.
+        return;
+      }
       if (current_uploads_ref.current != null) {
         // IMPORTANT: we do NOT report the latest version back while
         // uploading files.  Otherwise, if more than one is being
@@ -285,9 +292,19 @@ export const MarkdownInput: React.FC<Props> = ({
   }, [bindings]);
 
   useEffect(() => {
-    if (cm.current == null || cm.current.getValue() === value) return;
-    cm.current.setValue(value);
+    if (cm.current == null || cm.current.getValue() === value) {
+      return;
+    }
     if (value == "") {
+      // Important -- we *ONLY* set our value to the value prop
+      // if it is to clear the input, which is the only case
+      // where setting the value from outside is used (e.g. for chat).
+      // This is not a realtime sync editing widget, and also
+      // setting the value on any change may lead to an infinite
+      // loop and hang (it actually won't because we test for that
+      // in the change handler).  Also, setValue will mess with the cursor
+      // (we could use my setValueNoJump plugin to get around that).
+      cm.current.setValue(value);
       if (upload_close_preview_ref.current != null) {
         upload_close_preview_ref.current(true);
       }

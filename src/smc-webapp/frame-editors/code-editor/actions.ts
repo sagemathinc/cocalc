@@ -66,6 +66,8 @@ import { AvailableFeatures } from "../../project_configuration";
 
 import { apply_patch } from "smc-util/sync/editor/generic/util";
 
+import { default_opts } from "../codemirror/cm-options";
+
 const copypaste = require("smc-webapp/copy-paste-buffer");
 const { open_new_tab } = require("smc-webapp/misc_page");
 
@@ -76,9 +78,7 @@ import {
   Exts as FormatterExts,
   Tool as FormatterTool,
 } from "smc-util/code-formatter";
-import {
-  Config as FormatterConfig,
-} from "smc-project/formatters/prettier";
+import { Config as FormatterConfig } from "smc-project/formatters/prettier";
 import { SHELLS } from "./editor";
 
 interface gutterMarkerParams {
@@ -109,7 +109,7 @@ export interface CodeEditorState {
   local_view_state: any; // Generic use of Actions below makes this entirely befuddling...
   reload: Map<string, any>;
   resize: number;
-  misspelled_words: Set<string>;
+  misspelled_words: Set<string> | string;
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
   is_saving: boolean;
@@ -248,14 +248,10 @@ export class Actions<
   // Init spellchecking whenever syncstring saves -- only used in derived classes, where
   // spelling makes sense...
   protected _init_spellcheck(): void {
-    // We are disabling this since CodeMirror now provides native spell checking.
-    // I'm not deleting the code YET just in case we need to switch back.
-    /*
     this._spellcheck_is_supported = true;
     this._syncstring.on("save-to-disk", (time) =>
       this.update_misspelled_words(time)
     );
-    */
   }
 
   protected _init_syncstring(): void {
@@ -1759,8 +1755,8 @@ export class Actions<
 
     // hash combines state of file with spell check setting.
     // TODO: store /type fail.
-    const lang = (this.store.get("settings") as Map<string, any>).get("spell");
-    if (!lang) {
+    const lang: string | undefined = this.store.getIn(["settings", "spell"]);
+    if (lang == null) {
       // spell check configuration not yet initialized
       return;
     }
@@ -1771,15 +1767,19 @@ export class Actions<
     }
     this._update_misspelled_words_last_hash = hash;
     try {
-      const words: string[] = await misspelled_words({
+      const words: string[] | string = await misspelled_words({
         project_id: this.project_id,
         path: this.get_spellcheck_path(),
         lang,
         time,
       });
-      const x = Set(words);
-      if (!x.equals(this.store.get("misspelled_words"))) {
-        this.setState({ misspelled_words: x });
+      if (typeof words == "string") {
+        this.setState({ misspelled_words: words });
+      } else {
+        const x = Set(words);
+        if (!x.equals(this.store.get("misspelled_words"))) {
+          this.setState({ misspelled_words: x });
+        }
       }
     } catch (err) {
       this.set_error(err);
@@ -2120,7 +2120,11 @@ export class Actions<
     if (this._spellcheck_is_supported) {
       if (!settings.get("spell")) {
         // ensure spellcheck is a possible setting, if necessary.
-        this.set_settings({ spell: "default" });
+        // Use browser spellcheck **by default** if that option is
+        // is configured, otherwise default backend spellcheck.
+        this.set_settings({
+          spell: default_opts(this.path).spellcheck ? "browser" : "default",
+        });
       }
       // initial spellcheck
       this.update_misspelled_words();
