@@ -23,7 +23,7 @@ the "Open in CoCalc" link on the share server, with minimal friction.
 import { redux, Actions, Store } from "../app-framework";
 import * as LS from "../misc/local-storage";
 import { QueryParams } from "../misc/query-params";
-import { launch_share } from "./share";
+import { ShareLauncher } from "./share";
 import { CSILauncher } from "./custom-image";
 
 export const NAME = "launch-actions";
@@ -119,7 +119,7 @@ export async function launch() {
         new CSILauncher(image_id).launch();
         return;
       case "share":
-        launch_share(launch);
+        new ShareLauncher(launch).launch();
         return;
       default:
         console.warn(`launch type "${type}" unknown`);
