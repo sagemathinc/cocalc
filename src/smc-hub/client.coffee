@@ -1523,12 +1523,12 @@ class exports.Client extends EventEmitter
         # The version of the client...
         @smc_version = mesg.version
         @dbg('mesg_version')("client.smc_version=#{mesg.version}")
-        {version} = require('./server-settings')(@database)
+        {version} = require('./server-settings').get_server_settings(@database)
         if mesg.version < version.version_recommended_browser ? 0
             @push_version_update()
 
     push_version_update: =>
-        {version} = require('./server-settings')(@database)
+        {version} = require('./server-settings').get_server_settings(@database)
         @push_to_client(message.version(version:version.version_recommended_browser, min_version:version.version_min_browser))
         if version.version_min_browser and @smc_version < version.version_min_browser
             # Client is running an unsupported bad old version.

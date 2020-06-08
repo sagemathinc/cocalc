@@ -16,47 +16,41 @@ Rewrite of proxy.coffee todo list:
 - [ ] refactor code into multiple files
 */
 
-let init_smc_version, jupyter_server_port, target_parse_req;
-import Cookies from "cookies"; // https://github.com/jed/cookies
-import async from "async";
-const winston = require("./winston-metrics").get_logger("proxy");
-import http_proxy from "http-proxy";
-import url from "url";
-import http from "http";
-import mime from "mime";
-import ms from "ms";
-import misc from "smc-util/misc";
+import * as Cookies from "cookies"; // https://github.com/jed/cookies
+import * as async from "async";
+const winston = require("../winston-metrics").get_logger("proxy");
+import * as http_proxy from "http-proxy";
+import * as url from "url";
+import * as http from "http";
+import * as mime from "mime";
+import * as ms from "ms";
+import * as misc from "smc-util/misc";
 const { defaults, required } = misc;
-import theme from "smc-util/theme";
+import * as theme from "smc-util/theme";
 const { DOMAIN_NAME } = theme;
 import { VERSION_COOKIE_NAME } from "smc-util/consts";
-import hub_projects from "./projects";
-import auth from "./auth";
-import access from "./access";
+const hub_projects = require("../projects");
+import * as auth from "../auth";
+const access = require("../access");
 import { once } from "smc-util/async-utils";
+import { get_server_settings } from "../server-settings";
 
 const DEBUG2 = false;
 
-// async
-let server_settings = undefined;
+let server_settings;
 
-let _init_smc_version = (init_smc_version = async function (db) {
+export async function init_smc_version(db): Promise<void> {
   winston.debug("init_smc_version: ");
   if (db.is_standby) {
     return;
   }
-  server_settings = require("./server-settings")(db);
+  server_settings = get_server_settings(db);
   if (server_settings.table._state === "init") {
     winston.debug("init_smc_version: Waiting for init to finish");
     await once(server_settings.table, "init");
   }
-  return winston.debug(
-    "init_smc_version: Table now ready!",
-    server_settings.version
-  );
-});
-
-export { _init_smc_version as init_smc_version };
+  winston.debug("init_smc_version: Table now ready!", server_settings.version);
+}
 
 export function version_check(req, res, base_url) {
   const c = new Cookies(req);
@@ -97,20 +91,20 @@ export function version_check(req, res, base_url) {
 // passing anything along via the proxy.
 // Nov'19: actually two cookies due to same-site changes. See https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
 //         also, there was no base_url support. no clue why...
-export function strip_remember_me_cookie(cookie) {
+export function strip_remember_me_cookie(cookie, base_url: string) {
   if (cookie == null) {
     return { cookie, remember_me: undefined };
   } else {
-    const v = [];
+    const v: string[] = [];
     let remember_me = undefined;
-    for (let c of cookie.split(";")) {
+    for (const c of cookie.split(";")) {
       const z = c.split("=");
-      if (z[0].trim() === auth.remember_me_cookie_name("", false)) {
+      if (z[0].trim() === auth.remember_me_cookie_name(base_url, false)) {
         remember_me = z[1].trim();
         // fallback, "true" for legacy variant
       } else if (
         remember_me == null &&
-        z[0].trim() === auth.remember_me_cookie_name("", true)
+        z[0].trim() === auth.remember_me_cookie_name(base_url, true)
       ) {
         remember_me = z[1].trim();
       } else {
@@ -121,13 +115,27 @@ export function strip_remember_me_cookie(cookie) {
   }
 }
 
-let _target_parse_req = (target_parse_req = function (remember_me, url) {
+export function target_parse_req(
+  remember_me: string,
+  url: string
+): {
+  key: string;
+  type: "port" | "raw" | "server";
+  project_id: string;
+  port_number: string;
+  internal_url?: string;
+} {
   let port;
   const v = url.split("/");
   const project_id = v[1];
   const type = v[2]; // 'port' or 'raw' or 'server'
+  if (type != "port" && type != "raw" && type != "server") {
+    throw Error(
+      `type=("${type}") must be one of port, raw, or server -- url="${url}"`
+    );
+  }
   let key = remember_me + project_id + type;
-  let internal_url = undefined; // if defined, this is the UTL called
+  let internal_url: string | undefined = undefined; // if defined, this is the UTL called
   if (type === "port") {
     key += v[3];
     port = v[3];
@@ -137,28 +145,32 @@ let _target_parse_req = (target_parse_req = function (remember_me, url) {
     internal_url = v.slice(4).join("/");
   }
   return { key, type, project_id, port_number: port, internal_url };
-});
+}
 
-export { _target_parse_req as target_parse_req };
-
-let _jupyter_server_port = (jupyter_server_port = function (opts) {
+export function jupyter_server_port(opts) {
   opts = defaults(opts, {
     project_id: required, // assumed valid and that all auth already done
     compute_server: required,
     database: required,
     cb: required,
   }); // cb(err, port)
-  return hub_projects
+  hub_projects
     .new_project(opts.project_id, opts.database, opts.compute_server)
     .jupyter_port({
       cb: opts.cb,
     });
-});
+}
 
-export { _jupyter_server_port as jupyter_server_port };
+type Database = any;
+type ComputeServer = any;
 
-export async function init_http_proxy_server(opts) {
-  let public_raw;
+export async function init_http_proxy_server(opts: {
+  database: Database;
+  compute_server: ComputeServer;
+  base_url: string;
+  port: number;
+  host: string;
+}) {
   opts = defaults(opts, {
     database: required,
     compute_server: required,
@@ -177,20 +189,21 @@ export async function init_http_proxy_server(opts) {
   // Checks for access to project, and in case of write access,
   // also touch's project thus recording that user is interested
   // in this project (which sets the last_active time).
-  const _remember_me_check_for_access_to_project = function (opts) {
+  function _remember_me_check_for_access_to_project(opts) {
     opts = defaults(opts, {
       project_id: required,
       remember_me: required,
       type: "write", // 'read' or 'write'
       cb: required,
     }); // cb(err, has_access)
-    const dbg = (m) =>
-      winston.debug(`_remember_me_check_for_access_to_project: ${m}`);
-    let account_id = undefined;
-    let email_address = undefined;
+    const dbg = (m) => {
+      winston.debug(`remember_me_check_for_access_to_project: ${m}`);
+    };
+    let account_id: string | undefined = undefined;
+    let email_address: string | undefined = undefined;
     let has_access = false;
-    let hash = undefined;
-    return async.series(
+    let hash: string | undefined = undefined;
+    async.series(
       [
         function (cb) {
           dbg("get remember_me message");
@@ -204,18 +217,18 @@ export async function init_http_proxy_server(opts) {
             cb(msg);
             return;
           }
-          return database.get_remember_me({
+          database.get_remember_me({
             hash,
             cache: true,
             cb: (err, signed_in_mesg) => {
               if (err || signed_in_mesg == null) {
                 cb(`unable to get remember_me from db -- ${err}`);
-                return dbg(`failed to get remember_me -- ${err}`);
+                dbg(`failed to get remember_me -- ${err}`);
               } else {
                 ({ account_id } = signed_in_mesg);
                 ({ email_address } = signed_in_mesg);
                 dbg(`account_id=${account_id}, email_address=${email_address}`);
-                return cb();
+                cb();
               }
             },
           });
@@ -223,22 +236,22 @@ export async function init_http_proxy_server(opts) {
         function (cb) {
           dbg(`check if user has ${opts.type} access to project`);
           if (opts.type === "write") {
-            return access.user_has_write_access_to_project({
+            access.user_has_write_access_to_project({
               database,
               project_id: opts.project_id,
               account_id,
               cb: (err, result) => {
                 dbg(`got: ${err}, ${result}`);
                 if (err) {
-                  return cb(err);
+                  cb(err);
                 } else if (!result) {
-                  return cb("User does not have write access to project.");
+                  cb("User does not have write access to project.");
                 } else {
                   has_access = true;
                   // Record that user is going to actively access
                   // this project.  This is important since it resets
                   // the idle timeout.
-                  return database.touch({
+                  database.touch({
                     account_id,
                     project_id: opts.project_id,
                     cb,
@@ -247,19 +260,19 @@ export async function init_http_proxy_server(opts) {
               },
             });
           } else {
-            return access.user_has_read_access_to_project({
+            access.user_has_read_access_to_project({
               project_id: opts.project_id,
               account_id,
               database,
               cb: (err, result) => {
                 dbg(`got: ${err}, ${result}`);
                 if (err) {
-                  return cb(err);
+                  cb(err);
                 } else if (!result) {
-                  return cb("User does not have read access to project.");
+                  cb("User does not have read access to project.");
                 } else {
                   has_access = true;
-                  return cb();
+                  cb();
                 }
               },
             });
@@ -268,10 +281,10 @@ export async function init_http_proxy_server(opts) {
       ],
       (err) => opts.cb(err, has_access)
     );
-  };
+  }
 
   let _remember_me_cache = {};
-  const remember_me_check_for_access_to_project = function (opts) {
+  function remember_me_check_for_access_to_project(opts) {
     opts = defaults(opts, {
       project_id: required,
       remember_me: required,
@@ -285,7 +298,7 @@ export async function init_http_proxy_server(opts) {
       return;
     }
     // get the answer, cache it, return answer
-    return _remember_me_check_for_access_to_project({
+    _remember_me_check_for_access_to_project({
       project_id: opts.project_id,
       remember_me: opts.remember_me,
       type: opts.type,
@@ -310,20 +323,20 @@ export async function init_http_proxy_server(opts) {
         }
         // not having access lasts 10 seconds -- maybe they weren't logged in yet..., so don't
         // have things broken forever!
-        return opts.cb(err, has_access);
+        opts.cb(err, has_access);
       },
     });
-  };
+  }
 
-  const _target_cache = {};
+  const target_cache = {};
 
-  const invalidate_target_cache = function (remember_me, url) {
+  function invalidate_target_cache(remember_me, url) {
     const { key } = target_parse_req(remember_me, url);
     winston.debug(`invalidate_target_cache: ${url}`);
-    return delete _target_cache[key];
-  };
+    delete target_cache[key];
+  }
 
-  const target = function (remember_me, url, cb) {
+  function target(remember_me, url, cb) {
     const {
       key,
       type,
@@ -332,7 +345,7 @@ export async function init_http_proxy_server(opts) {
       internal_url,
     } = target_parse_req(remember_me, url);
 
-    let t = _target_cache[key];
+    let t = target_cache[key];
     if (t != null) {
       cb(false, t, internal_url);
       return;
@@ -342,10 +355,14 @@ export async function init_http_proxy_server(opts) {
     dbg(`url=${url}`);
 
     const tm = misc.walltime();
-    let host = undefined;
-    let port = undefined;
-    let project = undefined;
-    return async.series(
+    let host: string | undefined = undefined;
+    let port: number | string | undefined = undefined;
+    let project: {
+      host: string;
+      _kubernetes?: boolean;
+      status: ({ cb: Function }) => void;
+    };
+    async.series(
       [
         function (cb) {
           if (remember_me == null) {
@@ -361,7 +378,7 @@ export async function init_http_proxy_server(opts) {
           //    access_type = 'write'
           const access_type = "write";
 
-          return remember_me_check_for_access_to_project({
+          remember_me_check_for_access_to_project({
             project_id,
             remember_me,
             type: access_type,
@@ -369,16 +386,14 @@ export async function init_http_proxy_server(opts) {
               dbg(
                 `finished remember_me_check_for_access_to_project (mark: ${misc.walltime(
                   tm
-                )}) -- ${err}`
+                )}) -- ${err ? err : ''}`
               );
               if (err) {
-                return cb(err);
+                cb(err);
               } else if (!has_access) {
-                return cb(
-                  `user does not have ${access_type} access to this project`
-                );
+                cb(`user does not have ${access_type} access to this project`);
               } else {
-                return cb();
+                cb();
               }
             },
           });
@@ -393,11 +408,11 @@ export async function init_http_proxy_server(opts) {
                 )}) -- ${err}`
               );
               if (err) {
-                return cb(err);
+                cb(err);
               } else {
                 project = _project;
                 ({ host } = project);
-                return cb();
+                cb();
               }
             },
           }),
@@ -407,16 +422,16 @@ export async function init_http_proxy_server(opts) {
             cb();
             return;
           }
-          return project.status({
+          project.status({
             cb(err, status) {
               if (err) {
-                return cb(err);
+                cb(err);
               } else {
                 if (!status.ip) {
-                  return cb("must wait for project to start");
+                  cb("must wait for project to start");
                 } else {
                   host = status.ip; // actual ip of the pod
-                  return cb();
+                  cb();
                 }
               }
             },
@@ -427,26 +442,26 @@ export async function init_http_proxy_server(opts) {
           if (type === "port" || type === "server") {
             if (port_number === "jupyter") {
               dbg("determine jupyter_server_port");
-              return jupyter_server_port({
+              jupyter_server_port({
                 project_id,
                 compute_server,
                 database,
                 cb(err, jupyter_port) {
                   dbg(`got jupyter_port=${jupyter_port}, err=${err}`);
                   if (err) {
-                    return cb(err);
+                    cb(err);
                   } else {
                     port = jupyter_port;
-                    return cb();
+                    cb();
                   }
                 },
               });
             } else {
               port = port_number;
-              return cb();
+              cb();
             }
           } else if (type === "raw") {
-            return compute_server.project({
+            compute_server.project({
               project_id,
               cb(err, project) {
                 dbg(
@@ -455,22 +470,22 @@ export async function init_http_proxy_server(opts) {
                   )}) -- ${err}`
                 );
                 if (err) {
-                  return cb(err);
+                  cb(err);
                 } else {
-                  return project.status({
+                  project.status({
                     cb(err, status) {
                       dbg(
                         `project.status finished (mark: ${misc.walltime(tm)})`
                       );
                       if (err) {
-                        return cb(err);
+                        cb(err);
                       } else if (!status["raw.port"]) {
-                        return cb(
+                        cb(
                           "raw port not available -- project might not be opened or running"
                         );
                       } else {
                         port = status["raw.port"];
-                        return cb();
+                        cb();
                       }
                     },
                   });
@@ -478,7 +493,7 @@ export async function init_http_proxy_server(opts) {
               },
             });
           } else {
-            return cb(`unknown url type -- ${type}`);
+            cb(`unknown url type -- ${type}`);
           }
         },
       ],
@@ -489,46 +504,58 @@ export async function init_http_proxy_server(opts) {
           )}): host=${host}; port=${port}; type=${type} -- ${err}`
         );
         if (err) {
-          return cb(err);
+          cb(err);
         } else {
           t = { host, port };
-          _target_cache[key] = t;
+          target_cache[key] = t;
           cb(false, t, internal_url);
-          // Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
-          // but also if a new user is granted permission to the project they didn't have, or the project server
-          // is restarted, this should be reflected.  Since there are dozens (at least) of hubs,
-          // and any could cause a project restart at any time, we just timeout this.
-          // This helps enormously when there is a burst of requests.
-          // Also if project restarts the raw port will change and we don't want to have
-          // fix this via getting an error.
+          /*
+          Set a ttl time bomb on this cache entry. The idea is to
+          keep the cache not too big, but also if a new user is granted
+          permission to the project they didn't have, or the project server
+          is restarted, this should be reflected.  Since there are
+          dozens (at least) of hubs, and any could cause a project
+          restart at any time, we just timeout this.
+          This helps enormously when there is a burst of requests.
+          Also if project restarts the raw port will change and we
+          don't want to have fix this via getting an error.
 
-          // Also, if the project stops and starts, the host=ip address could change, so
-          // we need to timeout so we see that...
-          return setTimeout(() => delete _target_cache[key], 30 * 1000);
+          Also, if the project stops and starts, the host=ip address
+          could change, so we need to timeout so we see that...
+          */
+          setTimeout(() => delete target_cache[key], 30 * 1000);
         }
       }
     );
-  };
+  }
 
-  //proxy = http_proxy.createProxyServer(ws:true)
   const proxy_cache = {};
+
+  function remove_from_cache(t: string, remember_me, req_url, proxy): void {
+    delete proxy_cache[t];
+    invalidate_target_cache(remember_me, req_url);
+    proxy.close();
+  }
+
   const http_proxy_server = http.createServer(function (req, res) {
+    if (typeof req.url != "string") {
+      throw Error("req url must be a string");
+    }
     const tm = misc.walltime();
-    const { query, pathname } = url.parse(req.url, true);
-    const req_url = req.url.slice(base_url.length); // strip base_url for purposes of determining project location/permissions
+    const { query } = url.parse(req.url, true);
+    // strip base_url for purposes of determining project location/permissions
+    const req_url = req.url.slice(base_url.length);
     if (req_url === "/alive") {
       res.end("");
       return;
     }
 
-    //buffer = http_proxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
-
-    const dbg = function (m) {
+    function dbg(m) {
       //# for low level debugging
       if (DEBUG2) {
-        return winston.debug(`http_proxy_server(${req_url}): ${m}`);
+        winston.debug(`http_proxy_server(${req_url}): ${m}`);
       }
-    };
+    }
     dbg("got request");
 
     if (exports.version_check(req, res, base_url)) {
@@ -536,11 +563,14 @@ export async function init_http_proxy_server(opts) {
       return;
     }
 
-    // Before doing anything further with the request on to the proxy, we remove **all** cookies whose
-    // name contains "remember_me", to prevent the project backend from getting at
-    // the user's session cookie, since one project shouldn't be able to get
-    // access to any user's account.
-    const x = exports.strip_remember_me_cookie(req.headers["cookie"]);
+    /* Before doing anything further with the request on to the
+       proxy, we remove **all** cookies whose name contains "remember_me",
+       to prevent the project backend from getting at the user's session
+       cookie, since one project shouldn't be able to get access to any
+       user's account.
+    */
+    winston.debug("cookies", req.headers["cookie"]);
+    const x = strip_remember_me_cookie(req.headers["cookie"], base_url);
     const { remember_me } = x;
     req.headers["cookie"] = x.cookie;
 
@@ -549,7 +579,7 @@ export async function init_http_proxy_server(opts) {
       public_raw(req_url, query, res, function (err, is_public) {
         if (err || !is_public) {
           res.writeHead(500, { "Content-Type": "text/html" });
-          return res.end(
+          res.end(
             `Please login to <a target='_blank' href='${DOMAIN_NAME}'>${DOMAIN_NAME}</a> with cookies enabled, then refresh this page.`
           );
         }
@@ -558,14 +588,14 @@ export async function init_http_proxy_server(opts) {
       return;
     }
 
-    return target(remember_me, req_url, function (err, location, internal_url) {
+    target(remember_me, req_url, function (err, location, internal_url) {
       dbg(`got target: ${misc.walltime(tm)}`);
       if (err) {
-        return public_raw(req_url, query, res, function (err, is_public) {
+        public_raw(req_url, query, res, function (err, is_public) {
           if (err || !is_public) {
             winston.debug(`proxy denied -- ${err}`);
             res.writeHead(500, { "Content-Type": "text/html" });
-            return res.end(
+            res.end(
               `Access denied. Please login to <a target='_blank' href='${DOMAIN_NAME}'>${DOMAIN_NAME}</a> as a user with access to this project, then refresh this page.`
             );
           }
@@ -589,20 +619,14 @@ export async function init_http_proxy_server(opts) {
           dbg(`created new proxy: ${misc.walltime(tm)}`);
           // setup error handler, so that if something goes wrong with this proxy (it will,
           // e.g., on project restart), we properly invalidate it.
-          const remove_from_cache = function () {
-            delete proxy_cache[t];
-            invalidate_target_cache(remember_me, req_url);
-            return proxy.close();
-          };
-
           proxy.on("error", function (e) {
             dbg(`http proxy error event -- ${e}`);
-            return remove_from_cache();
+            remove_from_cache(t, remember_me, req_url, proxy);
           });
 
           proxy.on("close", () =>
             // only happens with websockets, but...
-            remove_from_cache()
+            remove_from_cache(t, remember_me, req_url, proxy)
           );
 
           // Always clear after 5 minutes.  This is fine since the proxy is just used
@@ -618,7 +642,7 @@ export async function init_http_proxy_server(opts) {
         if (internal_url != null) {
           req.url = internal_url;
         }
-        return proxy.web(req, res);
+        proxy.web(req, res);
       }
     });
   });
@@ -630,22 +654,24 @@ export async function init_http_proxy_server(opts) {
   const _ws_proxy_servers = {};
   http_proxy_server.on("upgrade", function (req, socket, head) {
     // Strip remember_me cookie from req used for websocket upgrade.
-    req.headers["cookie"] = exports.strip_remember_me_cookie(
-      req.headers["cookie"]
+    req.headers["cookie"] = strip_remember_me_cookie(
+      req.headers["cookie"],
+      base_url
     ).cookie;
 
     const req_url = req.url.slice(base_url.length); // strip base_url for purposes of determining project location/permissions
-    const dbg = (m) =>
+    const dbg = (m) => {
       winston.debug(`http_proxy_server websocket(${req_url}): ${m}`);
+    };
 
     if (exports.version_check(req, undefined, base_url)) {
       dbg("websocket upgrade -- version check failed");
       return;
     }
 
-    return target(undefined, req_url, function (err, location, internal_url) {
+    target(undefined, req_url, function (err, location, internal_url) {
       if (err) {
-        return dbg(`websocket upgrade error -- ${err}`);
+        dbg(`websocket upgrade error -- ${err}`);
       } else {
         dbg(
           `websocket upgrade success -- ws://${location.host}:${location.port}`
@@ -662,7 +688,7 @@ export async function init_http_proxy_server(opts) {
           proxy.on("error", function (e) {
             dbg(`websocket proxy error, so clearing cache -- ${e}`);
             delete _ws_proxy_servers[t];
-            return invalidate_target_cache(undefined, req_url);
+            invalidate_target_cache(undefined, req_url);
           });
           _ws_proxy_servers[t] = proxy;
         } else {
@@ -671,20 +697,19 @@ export async function init_http_proxy_server(opts) {
         if (internal_url != null) {
           req.url = internal_url;
         }
-        return proxy.ws(req, socket, head);
+        proxy.ws(req, socket, head);
       }
     });
   });
 
   const public_raw_paths_cache = {};
 
-  return (public_raw = function (req_url, query, res, cb) {
+  function public_raw(req_url, query, res, cb) {
     // Determine if the requested path is public (and not too big).
     // If so, send content to the client and cb(undefined, true)
     // If not, cb(undefined, false)
     // req_url = /9627b34f-fefd-44d3-88ba-5b1fc1affef1/raw/a.html
     const x = req_url.split("?");
-    const params = x[1];
     const v = x[0].split("/");
     if (v[2] !== "raw") {
       cb(undefined, false);
@@ -699,7 +724,7 @@ export async function init_http_proxy_server(opts) {
     winston.debug(`public_raw: project_id=${project_id}, path=${path}`);
     let public_paths = undefined;
     let is_public = false;
-    return async.series(
+    async.series(
       [
         function (cb) {
           // Get a list of public paths in the project, or use the cached list
@@ -709,20 +734,20 @@ export async function init_http_proxy_server(opts) {
           // too long, since the project user may add/remove public paths at any time.
           public_paths = public_raw_paths_cache[project_id];
           if (public_paths != null) {
-            return cb();
+            cb();
           } else {
-            return database.get_public_paths({
+            database.get_public_paths({
               project_id,
               cb(err, paths) {
                 if (err) {
-                  return cb(err);
+                  cb(err);
                 } else {
                   public_paths = public_raw_paths_cache[project_id] = paths;
                   setTimeout(
                     () => delete public_raw_paths_cache[project_id],
                     3 * 60 * 1000
                   ); // cache a few seconds
-                  return cb();
+                  cb();
                 }
               },
             });
@@ -732,33 +757,33 @@ export async function init_http_proxy_server(opts) {
           //winston.debug("public_raw -- path_is_in_public_paths(#{path}, #{misc.to_json(public_paths)})")
           if (!misc.path_is_in_public_paths(path, public_paths)) {
             // The requested path is not public, so nothing to do.
-            return cb();
+            cb();
           } else {
             // The requested path *is* public, so we get the file
             // from one (of the potentially many) compute servers
             // that has the file -- (right now this is implemented
             // via sending/receiving JSON messages and using base64
             // encoding, but that could change).
-            return compute_server.project({
+            compute_server.project({
               project_id,
               cb(err, project) {
                 if (err) {
                   cb(err);
                   return;
                 }
-                return project.read_file({
+                project.read_file({
                   path,
                   maxsize: 40000000, // 40MB for now
                   cb(err, data) {
                     if (err) {
-                      return cb(err);
+                      cb(err);
                     } else {
                       if (query.download != null) {
                         res.setHeader("Content-disposition", "attachment");
                       }
                       const filename = path.slice(path.lastIndexOf("/") + 1);
                       // see https://www.npmjs.com/package/mime
-                      const mime_type = mime.lookup(filename);
+                      const mime_type = mime.getType(filename);
                       res.setHeader("Content-Type", mime_type);
                       const timeout = ms("10 minutes");
                       res.setHeader(
@@ -772,7 +797,7 @@ export async function init_http_proxy_server(opts) {
                       res.write(data);
                       res.end();
                       is_public = true;
-                      return cb();
+                      cb();
                     }
                   },
                 });
@@ -783,5 +808,5 @@ export async function init_http_proxy_server(opts) {
       ],
       (err) => cb(err, is_public)
     );
-  });
+  }
 }

@@ -26,7 +26,6 @@ fs             = require('fs')
 path_module    = require('path')
 underscore     = require('underscore')
 {EventEmitter} = require('events')
-mime           = require('mime')
 winston        = require('./winston-metrics').get_logger('hub')
 memory         = require('smc-util-node/memory')
 
@@ -54,7 +53,7 @@ base_url   = require('./base-url')
 {handle_mentions_loop} = require('./mentions/handle')
 
 local_hub_connection = require('./local_hub_connection')
-hub_proxy            = require('./proxy')
+hub_proxy            = require('./proxy/proxy')
 
 MetricsRecorder = require('./metrics-recorder')
 
@@ -73,6 +72,8 @@ catch
 # registers the hub with the database periodically
 hub_register = require('./hub_register')
 
+{get_server_settings} = require('./server-settings')
+
 # How frequently to register with the database that this hub is up and running,
 # and also report number of connected clients
 REGISTER_INTERVAL_S = 20
@@ -81,7 +82,7 @@ init_smc_version = (db, cb) ->
     if db.is_standby
         cb()
         return
-    server_settings = require('./server-settings')(db)
+    server_settings = get_server_settings(db)
     if server_settings.table._state == 'init'
         server_settings.table.once('init', => cb())
     else

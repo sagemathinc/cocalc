@@ -89,7 +89,7 @@ exports.all_local_hubs = () ->
 
 server_settings = undefined
 init_server_settings = (database) ->
-    server_settings = require('./server-settings')(database)
+    server_settings = require('./server-settings').get_server_settings(database)
     server_settings.table.on 'change', () ->
         winston.debug("local_hub_connection (version might have changed) -- checking on clients")
         for x in exports.all_local_hubs()

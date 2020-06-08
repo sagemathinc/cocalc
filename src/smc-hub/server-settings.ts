@@ -27,7 +27,7 @@ interface ServerSettings {
 
 let server_settings: ServerSettings | undefined = undefined;
 
-module.exports = function (db) {
+export function get_server_settings(db) {
   if (server_settings != null) {
     return server_settings;
   }
@@ -64,4 +64,4 @@ module.exports = function (db) {
   table.on("change", update);
   table.on("init", update);
   return server_settings;
-};
+}

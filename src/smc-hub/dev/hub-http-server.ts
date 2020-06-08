@@ -20,7 +20,7 @@ since all as the same user anyways.
 const proxy_cache = {};
 const websocket_proxy_cache = {};
 
-const hub_proxy = require("../proxy");
+const hub_proxy = require("../proxy/proxy");
 
 import { createProxyServer } from "http-proxy";
 import { callback_opts } from "smc-util/async-utils";

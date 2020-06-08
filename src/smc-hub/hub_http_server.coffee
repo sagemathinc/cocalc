@@ -57,7 +57,7 @@ exports.init_express_http_server = (opts) ->
     if opts.database.is_standby
         server_settings = undefined
     else
-        server_settings = require('./server-settings')(opts.database)
+        server_settings = require('./server-settings').get_server_settings(opts.database)
 
     # Create an express application
     router = express.Router()
