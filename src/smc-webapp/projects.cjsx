@@ -531,6 +531,7 @@ class ProjectsActions extends Actions
     clear_project_upgrades: (project_id) =>
         misc.assert_uuid(project_id)
         await @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
+        await @remove_site_license_from_project(project_id)
 
     # **THIS IS AN ASYNC FUNCTION!**
     # Use a site license key to upgrade a project.  This only has an
