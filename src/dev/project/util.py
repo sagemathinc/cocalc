@@ -28,8 +28,8 @@ def base_url(port=None, write=True):
         port = get_ports()['hub']
     else:
         write_base_url = False
-    base_url = "/{project_id}/port/{port}".format(
-        project_id=project_id, port=port)
+    base_url = "/{project_id}/port/{port}".format(project_id=project_id,
+                                                  port=port)
     if write_base_url:
         open("../../data/base_url", 'w').write(base_url)
     return base_url
@@ -50,7 +50,13 @@ def get_ports():
     path = join(P, 'ports')
     if not os.path.exists(path):
         os.mkdir(path)
-    ports = {'hub': 0, 'hub-api': 0, 'hub-share': 0, 'hub-share-2': 0}
+    ports = {
+        'hub': 0,
+        'hub-api': 0,
+        'hub-share': 0,
+        'hub-share-2': 0,
+        'proxy': 0
+    }
     for x in ports.keys():
         file = join(path, x)
         if os.path.exists(file):
