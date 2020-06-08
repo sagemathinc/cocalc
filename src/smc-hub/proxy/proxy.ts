@@ -3,37 +3,49 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// HTTP Proxy Server, which passes requests directly onto various
-// servers running in projects
+/*
+This is the HTTP Proxy Server, which passes requests directly onto various
+servers running in projects.
+
+Development note:
+
+*/
 
 /*
 Rewrite of proxy.coffee todo list:
 
-- [ ] get it to compile
-- [ ] get it to work
-- [ ] get rid of all callbacks
-- [ ] add typing
+- [x] get it to compile
+- [x] get it to work
+- [ ] get rid of callbacks
+- [ ] add full typing
 - [ ] refactor code into multiple files
 */
 
 import * as Cookies from "cookies"; // https://github.com/jed/cookies
-import * as async from "async";
+import { series } from "async";
 const winston = require("../winston-metrics").get_logger("proxy");
-import * as http_proxy from "http-proxy";
-import * as url from "url";
-import * as http from "http";
-import * as mime from "mime";
 import * as ms from "ms";
-import * as misc from "smc-util/misc";
-const { defaults, required } = misc;
-import * as theme from "smc-util/theme";
-const { DOMAIN_NAME } = theme;
+import { createProxyServer } from "http-proxy";
+import { parse as parse_url } from "url";
+import { createServer } from "http";
+import { getType } from "mime";
+import {
+  is_valid_uuid_string,
+  len,
+  path_is_in_public_paths,
+  walltime,
+  defaults,
+  required,
+} from "smc-util/misc";
+import { DOMAIN_NAME } from "smc-util/theme";
 import { VERSION_COOKIE_NAME } from "smc-util/consts";
-const hub_projects = require("../projects");
-import * as auth from "../auth";
-const access = require("../access");
+import { generate_hash, remember_me_cookie_name } from "../auth";
 import { once } from "smc-util/async-utils";
 import { get_server_settings } from "../server-settings";
+const hub_projects = require("../projects");
+const access = require("../access");
+
+import { Database, ComputeServer } from "./types";
 
 const DEBUG2 = false;
 
@@ -99,12 +111,12 @@ export function strip_remember_me_cookie(cookie, base_url: string) {
     let remember_me = undefined;
     for (const c of cookie.split(";")) {
       const z = c.split("=");
-      if (z[0].trim() === auth.remember_me_cookie_name(base_url, false)) {
+      if (z[0].trim() === remember_me_cookie_name(base_url, false)) {
         remember_me = z[1].trim();
         // fallback, "true" for legacy variant
       } else if (
         remember_me == null &&
-        z[0].trim() === auth.remember_me_cookie_name(base_url, true)
+        z[0].trim() === remember_me_cookie_name(base_url, true)
       ) {
         remember_me = z[1].trim();
       } else {
@@ -135,7 +147,8 @@ export function target_parse_req(
     );
   }
   let key = remember_me + project_id + type;
-  let internal_url: string | undefined = undefined; // if defined, this is the UTL called
+  // if defined, this is the UTL called
+  let internal_url: string | undefined = undefined;
   if (type === "port") {
     key += v[3];
     port = v[3];
@@ -160,9 +173,6 @@ export function jupyter_server_port(opts) {
       cb: opts.cb,
     });
 }
-
-type Database = any;
-type ComputeServer = any;
 
 export async function init_http_proxy_server(opts: {
   database: Database;
@@ -203,13 +213,13 @@ export async function init_http_proxy_server(opts: {
     let email_address: string | undefined = undefined;
     let has_access = false;
     let hash: string | undefined = undefined;
-    async.series(
+    series(
       [
         function (cb) {
           dbg("get remember_me message");
           const x = opts.remember_me.split("$");
           try {
-            hash = auth.generate_hash(x[0], x[1], x[2], x[3]);
+            hash = generate_hash(x[0], x[1], x[2], x[3]);
           } catch (error) {
             const err = error;
             const msg = `unable to generate hash from remember_me cookie = '${opts.remember_me}' -- ${err}`;
@@ -305,7 +315,7 @@ export async function init_http_proxy_server(opts: {
       cb(err, has_access) {
         // if cache gets huge for some *weird* reason (should never happen under normal conditions),
         // just reset it to avoid any possibility of DOS-->RAM crash attack
-        if (misc.len(_remember_me_cache) >= 100000) {
+        if (len(_remember_me_cache) >= 100000) {
           _remember_me_cache = {};
         }
 
@@ -337,13 +347,13 @@ export async function init_http_proxy_server(opts: {
   }
 
   function target(remember_me, url, cb) {
-    const {
-      key,
-      type,
-      project_id,
-      port_number,
-      internal_url,
-    } = target_parse_req(remember_me, url);
+    let x;
+    try {
+      x = target_parse_req(remember_me, url);
+    } catch (err) {
+      cb(err);
+    }
+    const { key, type, project_id, port_number, internal_url } = x;
 
     let t = target_cache[key];
     if (t != null) {
@@ -354,7 +364,7 @@ export async function init_http_proxy_server(opts: {
     const dbg = (m) => winston.debug(`target(${key}): ${m}`);
     dbg(`url=${url}`);
 
-    const tm = misc.walltime();
+    const tm = walltime();
     let host: string | undefined = undefined;
     let port: number | string | undefined = undefined;
     let project: {
@@ -362,7 +372,7 @@ export async function init_http_proxy_server(opts: {
       _kubernetes?: boolean;
       status: ({ cb: Function }) => void;
     };
-    async.series(
+    series(
       [
         function (cb) {
           if (remember_me == null) {
@@ -384,9 +394,9 @@ export async function init_http_proxy_server(opts: {
             type: access_type,
             cb(err, has_access) {
               dbg(
-                `finished remember_me_check_for_access_to_project (mark: ${misc.walltime(
+                `finished remember_me_check_for_access_to_project (mark: ${walltime(
                   tm
-                )}) -- ${err ? err : ''}`
+                )}) -- ${err ? err : ""}`
               );
               if (err) {
                 cb(err);
@@ -403,7 +413,7 @@ export async function init_http_proxy_server(opts: {
             project_id,
             cb(err, _project) {
               dbg(
-                `first compute_server.project finished (mark: ${misc.walltime(
+                `first compute_server.project finished (mark: ${walltime(
                   tm
                 )}) -- ${err}`
               );
@@ -465,7 +475,7 @@ export async function init_http_proxy_server(opts: {
               project_id,
               cb(err, project) {
                 dbg(
-                  `second compute_server.project finished (mark: ${misc.walltime(
+                  `second compute_server.project finished (mark: ${walltime(
                     tm
                   )}) -- ${err}`
                 );
@@ -474,9 +484,7 @@ export async function init_http_proxy_server(opts: {
                 } else {
                   project.status({
                     cb(err, status) {
-                      dbg(
-                        `project.status finished (mark: ${misc.walltime(tm)})`
-                      );
+                      dbg(`project.status finished (mark: ${walltime(tm)})`);
                       if (err) {
                         cb(err);
                       } else if (!status["raw.port"]) {
@@ -499,7 +507,7 @@ export async function init_http_proxy_server(opts: {
       ],
       function (err) {
         dbg(
-          `all finished (mark: ${misc.walltime(
+          `all finished (mark: ${walltime(
             tm
           )}): host=${host}; port=${port}; type=${type} -- ${err}`
         );
@@ -537,12 +545,12 @@ export async function init_http_proxy_server(opts: {
     proxy.close();
   }
 
-  const http_proxy_server = http.createServer(function (req, res) {
+  const http_proxy_server = createServer(function (req, res) {
     if (typeof req.url != "string") {
       throw Error("req url must be a string");
     }
-    const tm = misc.walltime();
-    const { query } = url.parse(req.url, true);
+    const tm = walltime();
+    const { query } = parse_url(req.url, true);
     // strip base_url for purposes of determining project location/permissions
     const req_url = req.url.slice(base_url.length);
     if (req_url === "/alive") {
@@ -589,7 +597,7 @@ export async function init_http_proxy_server(opts: {
     }
 
     target(remember_me, req_url, function (err, location, internal_url) {
-      dbg(`got target: ${misc.walltime(tm)}`);
+      dbg(`got target: ${walltime(tm)}`);
       if (err) {
         public_raw(req_url, query, res, function (err, is_public) {
           if (err || !is_public) {
@@ -606,17 +614,17 @@ export async function init_http_proxy_server(opts: {
         if (proxy_cache[t] != null) {
           // we already have the proxy server for this remote location in the cache, so use it.
           proxy = proxy_cache[t];
-          dbg(`using cached proxy object: ${misc.walltime(tm)}`);
+          dbg(`using cached proxy object: ${walltime(tm)}`);
         } else {
           dbg("make a new proxy server connecting to this remote location");
-          proxy = http_proxy.createProxyServer({
+          proxy = createProxyServer({
             ws: false,
             target: t,
             timeout: 7000,
           });
           // and cache it.
           proxy_cache[t] = proxy;
-          dbg(`created new proxy: ${misc.walltime(tm)}`);
+          dbg(`created new proxy: ${walltime(tm)}`);
           // setup error handler, so that if something goes wrong with this proxy (it will,
           // e.g., on project restart), we properly invalidate it.
           proxy.on("error", function (e) {
@@ -635,9 +643,6 @@ export async function init_http_proxy_server(opts: {
           // properly called, but the proxy is not working due to network issues.
           setTimeout(remove_from_cache, 5 * 60 * 1000);
         }
-
-        //proxy.on 'proxyRes', (res) ->
-        //    dbg("(mark: #{misc.walltime(tm)}) got response from the target")
 
         if (internal_url != null) {
           req.url = internal_url;
@@ -680,7 +685,7 @@ export async function init_http_proxy_server(opts: {
         let proxy = _ws_proxy_servers[t];
         if (proxy == null) {
           dbg(`websocket upgrade ${t} -- not using cache`);
-          proxy = http_proxy.createProxyServer({
+          proxy = createProxyServer({
             ws: true,
             target: t,
             timeout: 0,
@@ -716,7 +721,7 @@ export async function init_http_proxy_server(opts: {
       return;
     }
     const project_id = v[1];
-    if (!misc.is_valid_uuid_string(project_id)) {
+    if (!is_valid_uuid_string(project_id)) {
       cb(undefined, false);
       return;
     }
@@ -724,7 +729,7 @@ export async function init_http_proxy_server(opts: {
     winston.debug(`public_raw: project_id=${project_id}, path=${path}`);
     let public_paths = undefined;
     let is_public = false;
-    async.series(
+    series(
       [
         function (cb) {
           // Get a list of public paths in the project, or use the cached list
@@ -754,8 +759,8 @@ export async function init_http_proxy_server(opts: {
           }
         },
         function (cb) {
-          //winston.debug("public_raw -- path_is_in_public_paths(#{path}, #{misc.to_json(public_paths)})")
-          if (!misc.path_is_in_public_paths(path, public_paths)) {
+          //winston.debug("public_raw -- path_is_in_public_paths(#{path}, #{to_json(public_paths)})")
+          if (!path_is_in_public_paths(path, public_paths)) {
             // The requested path is not public, so nothing to do.
             cb();
           } else {
@@ -783,7 +788,7 @@ export async function init_http_proxy_server(opts: {
                       }
                       const filename = path.slice(path.lastIndexOf("/") + 1);
                       // see https://www.npmjs.com/package/mime
-                      const mime_type = mime.getType(filename);
+                      const mime_type = getType(filename);
                       res.setHeader("Content-Type", mime_type);
                       const timeout = ms("10 minutes");
                       res.setHeader(
