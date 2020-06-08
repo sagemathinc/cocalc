@@ -40,7 +40,7 @@ import {
 import { DOMAIN_NAME } from "smc-util/theme";
 import { VERSION_COOKIE_NAME } from "smc-util/consts";
 import { generate_hash, remember_me_cookie_name } from "../auth";
-import { once } from "smc-util/async-utils";
+import { callback2, once } from "smc-util/async-utils";
 import { get_server_settings } from "../server-settings";
 const hub_projects = require("../projects");
 const access = require("../access");
@@ -128,7 +128,7 @@ export function strip_remember_me_cookie(cookie, base_url: string) {
 }
 
 export function target_parse_req(
-  remember_me: string,
+  remember_me: string | undefined,
   url: string
 ): {
   key: string;
@@ -142,9 +142,9 @@ export function target_parse_req(
   const project_id = v[1];
   const type = v[2]; // 'port' or 'raw' or 'server'
   if (type != "port" && type != "raw" && type != "server") {
-    throw Error(
-      `type=("${type}") must be one of port, raw, or server -- url="${url}"`
-    );
+    const err = `type=("${type}") must be one of port, raw, or server -- url="${url}"`;
+    winston.debug(err);
+    throw Error(err);
   }
   let key = remember_me + project_id + type;
   // if defined, this is the UTL called
@@ -160,18 +160,13 @@ export function target_parse_req(
   return { key, type, project_id, port_number: port, internal_url };
 }
 
-export function jupyter_server_port(opts) {
-  opts = defaults(opts, {
-    project_id: required, // assumed valid and that all auth already done
-    compute_server: required,
-    database: required,
-    cb: required,
-  }); // cb(err, port)
-  hub_projects
-    .new_project(opts.project_id, opts.database, opts.compute_server)
-    .jupyter_port({
-      cb: opts.cb,
-    });
+export async function jupyter_server_port(opts: {
+  project_id: string; // assumed valid and that all auth already done
+  compute_server: ComputeServer;
+  database: Database;
+}): Promise<number> {
+  const project = hub_projects.new_project(opts);
+  return await callback2(project.jupyter_port, {});
 }
 
 export async function init_http_proxy_server(opts: {
@@ -192,9 +187,9 @@ export async function init_http_proxy_server(opts: {
 
   winston.debug("init_http_proxy_server");
 
-  winston.debug("init_smc_version: start...");
+  winston.debug("init_http_proxy_server -- init_smc_version: start...");
   await init_smc_version(opts.database);
-  winston.debug("init_smc_version: done");
+  winston.debug("init_http_proxy_server -- init_smc_version: done");
 
   // Checks for access to project, and in case of write access,
   // also touch's project thus recording that user is interested
@@ -340,8 +335,19 @@ export async function init_http_proxy_server(opts: {
 
   const target_cache = {};
 
-  function invalidate_target_cache(remember_me, url) {
-    const { key } = target_parse_req(remember_me, url);
+  function invalidate_target_cache(
+    remember_me: string | undefined,
+    url: string
+  ): void {
+    let x;
+    try {
+      x = target_parse_req(remember_me, url);
+    } catch (err) {
+      winston.debug(`invalidate_target_cache err: ${err}`);
+      // in case of invalid remember_me or url -- nothing
+      return;
+    }
+    const { key } = x;
     winston.debug(`invalidate_target_cache: ${url}`);
     delete target_cache[key];
   }
@@ -352,6 +358,7 @@ export async function init_http_proxy_server(opts: {
       x = target_parse_req(remember_me, url);
     } catch (err) {
       cb(err);
+      return;
     }
     const { key, type, project_id, port_number, internal_url } = x;
 
@@ -447,25 +454,23 @@ export async function init_http_proxy_server(opts: {
             },
           });
         },
-        function (cb) {
+        async function (cb) {
           //dbg("determine the port")
           if (type === "port" || type === "server") {
             if (port_number === "jupyter") {
               dbg("determine jupyter_server_port");
-              jupyter_server_port({
-                project_id,
-                compute_server,
-                database,
-                cb(err, jupyter_port) {
-                  dbg(`got jupyter_port=${jupyter_port}, err=${err}`);
-                  if (err) {
-                    cb(err);
-                  } else {
-                    port = jupyter_port;
-                    cb();
-                  }
-                },
-              });
+              try {
+                port = await jupyter_server_port({
+                  project_id,
+                  compute_server,
+                  database,
+                });
+              } catch (err) {
+                cb(err);
+                return;
+              }
+              dbg(`got jupyter_port=${port}`);
+              cb();
             } else {
               port = port_number;
               cb();
@@ -539,7 +544,12 @@ export async function init_http_proxy_server(opts: {
 
   const proxy_cache = {};
 
-  function remove_from_cache(t: string, remember_me, req_url, proxy): void {
+  function remove_from_cache(
+    t: string,
+    remember_me: string | undefined,
+    req_url: string,
+    proxy
+  ): void {
     delete proxy_cache[t];
     invalidate_target_cache(remember_me, req_url);
     proxy.close();
