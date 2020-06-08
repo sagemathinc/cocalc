@@ -115,7 +115,8 @@ export async function launch() {
   try {
     switch (type) {
       case "csi":
-        new CSILauncher(launch).launch();
+        const image_id = launch.split("/")[1];
+        new CSILauncher(image_id).launch();
         return;
       case "share":
         launch_share(launch);

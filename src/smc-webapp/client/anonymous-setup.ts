@@ -9,6 +9,9 @@ import { QueryParams } from "../misc/query-params";
 const { APP_BASE_URL, get_cookie } = require("../misc_page");
 import { WelcomeFile } from "./welcome-file";
 import { WebappClient } from "./client";
+import { NAME as LAUNCH_NAME } from "../launch/actions";
+
+export const ANON_PROJECT_TITLE =  "Welcome to CoCalc!"
 
 /*
 If the anonymous query param is set at all (doesn't matter to what) during
@@ -32,28 +35,16 @@ async function setup_default_project(log) {
   const actions = redux.getActions("projects");
   log("creating project");
   const project_id = await actions.create_project({
-    title: "Welcome to CoCalc!",
+    title: ANON_PROJECT_TITLE,
     start: true,
     description: "",
   });
   log("opening project");
   actions.open_project({ project_id, switch_to: true });
-
-  const launch_actions = redux.getStore("launch-actions");
-  if (launch_actions != null && launch_actions.get("launch")) {
-    console.log(
-      "anonymous setup: do nothing further since there is a launch action"
-    );
-    return;
-  }
-
   await new WelcomeFile(project_id).open();
 }
 
-export async function do_anonymous_setup(
-  client: WebappClient,
-  create_project: boolean
-): Promise<void> {
+export async function do_anonymous_setup(client: WebappClient): Promise<void> {
   function log(..._args): void {
     // uncomment to debug...
     // console.log("do_anonymous_setup", ..._args);
@@ -80,7 +71,10 @@ export async function do_anonymous_setup(
       await once(client, "signed_in");
     }
 
-    if (create_project) {
+    // "share" and "custom software images" create projects on their own!
+    const launch_store = redux.getStore(LAUNCH_NAME);
+    const need_project = !launch_store.get("type");
+    if (need_project) {
       await setup_default_project(log);
     }
   } catch (err) {

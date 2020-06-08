@@ -376,10 +376,7 @@ class LandingPage extends Component<Props & reduxProps, State> {
           </Col>
           <Col md={6}>
             <div style={{ color: "#666", fontSize: "16pt", marginTop: "5px" }}>
-              <RunAnonymously
-                show_terms={this.state.show_terms}
-                armed_launch={!!this.props.type}
-              />
+              <RunAnonymously show_terms={this.state.show_terms} />
               <br />
               {this.render_support()}
               <br />

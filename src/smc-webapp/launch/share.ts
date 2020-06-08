@@ -52,6 +52,9 @@ import { webapp_client } from "../webapp-client";
 import { callback2, once } from "smc-util/async-utils";
 import { len, uuid } from "smc-util/misc";
 import { alert_message } from "../alerts";
+import { ANON_PROJECT_TITLE } from "../client/anonymous-setup";
+import { DEFAULT_COMPUTE_IMAGE } from "../../smc-util/compute-images";
+import { CSILauncher } from "../launch/custom-image";
 
 interface ShareInfo {
   id: string;
@@ -59,6 +62,7 @@ interface ShareInfo {
   path: string;
   description?: string;
   license?: string;
+  compute_image: string;
 }
 
 export async function launch_share(launch: string): Promise<void> {
@@ -87,6 +91,7 @@ export async function launch_share(launch: string): Promise<void> {
           path: null,
           description: null,
           license: null,
+          compute_image: null,
         },
       },
     })
@@ -101,6 +106,10 @@ export async function launch_share(launch: string): Promise<void> {
   if (public_path.path.endsWith("/")) {
     public_path.path = public_path.path.slice(0, public_path.path.length - 1);
   }
+
+  // the compute image's default is "default" (from the time before this field existed)
+  // don't change it to DEFAULT_COMPUTE_IMAGE
+  public_path.compute_image = public_path.compute_image ?? "default";
 
   // What is our relationship to this public_path?
   const relationship: Relationship = await get_relationship_to_share(
@@ -203,43 +212,56 @@ function open_share_as_collaborator(project_id: string, path: string): void {
   });
 }
 
-async function anonymous_project_id(max_time_s: number = 30): Promise<string> {
-  // Anonymous users should have precisely one project, so
-  // we copy the files to that project.  The issue is just
-  // that the project is being created at almost the exact
-  // same time that this launch action is being handled.
-  // So we'll try waiting for there to be a project for up to
-  // 30 seconds, then give up.
-  for (let t = 0; t < max_time_s; t++) {
-    const account_store = redux.getStore("account");
-    const projects_store = redux.getStore("projects");
-    if (
-      account_store != null &&
-      projects_store != null &&
-      account_store.get("is_anonymous")
-    ) {
-      const project_map = projects_store.get("project_map");
-      if (project_map != null && project_map.size > 0) {
-        for (const x of project_map) {
-          return x[0];
-        }
+async function create_and_setup_project(info: ShareInfo, title): Promise<void> {
+  const target_project_id = await (async function () {
+    try {
+      if (
+        info.compute_image === "default" ||
+        info.compute_image === DEFAULT_COMPUTE_IMAGE
+      ) {
+        const csi = new CSILauncher(info.compute_image);
+        return csi.launch();
+      } else {
+        // this is the default project
+        const actions = redux.getActions("projects");
+        console.log("creating anonymous project");
+        const project_id = await actions.create_project({
+          title,
+          start: true,
+          description: "",
+        });
+        console.log("opening project");
+        actions.open_project({ project_id, switch_to: true });
+        return project_id;
       }
+    } catch (err) {
+      throw Error(`unable to create project ${err} -- something is wrong`);
+    }
+  })();
+
+  // Change the project title and description to be related to the share, since
+  // this is very likely the only way it is used (opening this project).
+  set_project_metadata(target_project_id, info);
+  await open_share_in_project(info.project_id, info.path, target_project_id);
+}
+
+async function open_share_in_the_anonymous_project(
+  info: ShareInfo,
+  max_time_s: number = 30
+): Promise<void> {
+  // We wait until the anonymous user exists and then create a project
+  // (default project creation is intercepted in client/anonymous-setup)
+  const t0 = new Date().getTime();
+  while ((new Date().getTime() - t0) / 1000 < max_time_s) {
+    const account_store = redux.getStore("account");
+    if (account_store != null && account_store.get("is_anonymous")) {
+      create_and_setup_project(info, ANON_PROJECT_TITLE);
     }
     await delay(1000);
   }
   throw Error(
-    `unable to determine anonymous project after waiting ${max_time_s} seconds -- something is wrong`
+    `unable to get anonymous user after waiting ${max_time_s} seconds -- something is wrong`
   );
-}
-
-async function open_share_in_the_anonymous_project(
-  info: ShareInfo
-): Promise<void> {
-  const target_project_id = await anonymous_project_id();
-  // Change the project title and description to be related to the share, since
-  // this is very likely the only way it is used (opening this project).
-  await open_share_in_project(info.project_id, info.path, target_project_id);
-  set_project_metadata(target_project_id, info);
 }
 
 async function open_share_in_project(
@@ -308,14 +330,7 @@ async function open_share_in_project(
 
 async function open_share_in_a_new_project(info: ShareInfo): Promise<void> {
   // Create a new project
-  const actions = redux.getActions("projects");
-  const target_project_id = await actions.create_project({
-    title: "Share", // gets changed in a moment by set_project_metadata
-    start: true,
-    description: "",
-  });
-  set_project_metadata(target_project_id, info);
-  await open_share_in_project(info.project_id, info.path, target_project_id);
+  create_and_setup_project(info, "Share");
 }
 
 function set_project_metadata(project_id: string, info: ShareInfo): void {

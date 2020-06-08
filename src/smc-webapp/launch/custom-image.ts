@@ -24,13 +24,14 @@ export class CSILauncher {
   private actions;
   private custom_software_table;
 
-  constructor(launch: string) {
+  constructor(image_id: string) {
     // processing e.g. "?launch=csi/opencv-machine-learning",
     // where the ID is a valid docker ID (lowercase, dashes)
-    this.image_id = launch.split("/")[1];
+    this.image_id = image_id;
   }
 
-  async launch() {
+  // returns project_id or if there is a problem, undefined
+  async launch(): string | undefined {
     this.custom_software_table = await this.get_csi_table();
     if (!this.custom_software_table._table.value.has(this.image_id)) {
       alert_message({
@@ -49,8 +50,9 @@ export class CSILauncher {
 
     if (project_id != null) {
       this.actions.open_project({ project_id, switch_to: true });
+      return project_id;
     } else {
-      this.create_project();
+      return this.create_project();
     }
   }
 
@@ -61,7 +63,7 @@ export class CSILauncher {
         const cst = redux.getTable(CUSTOM_SOFTWARE_NAME);
         if (cst?._table?.value == null)
           throw new Error("custom software table not yet available...");
-        // what is this doing?
+        // what is this doing? do we need it?
         //await once(cst._table, "connected");
         return cst;
       },
@@ -102,7 +104,7 @@ export class CSILauncher {
     }
   }
 
-  private async create_project(): Promise<void> {
+  private async create_project(): Promise<string> {
     const token = uuid();
 
     const title =
@@ -110,7 +112,7 @@ export class CSILauncher {
       this.image_id;
 
     // TODO pick the proper title from the custom image table
-    this.actions.create_project({
+    const project_id = await this.actions.create_project({
       title,
       image: custom_image_name(this.image_id),
       token,
@@ -134,5 +136,7 @@ export class CSILauncher {
       });
 
     analytics_event("create_project", "launch_csi");
+
+    return project_id;
   }
 }
