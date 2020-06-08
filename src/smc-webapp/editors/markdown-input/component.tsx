@@ -253,7 +253,10 @@ export const MarkdownInput: React.FC<Props> = ({
         const marks = cm.current.getAllMarks();
         marks.reverse();
         for (const mark of marks) {
-          const { account_id } = (mark as any).attributes;
+          if (mark == null) continue;
+          const { attributes } = mark as any;
+          if (attributes == null) continue; // some other sort of mark?
+          const { account_id } = attributes;
           if (account_id == null) continue;
           const { from, to } = mark.find();
           const text = `<span class="user-mention" account-id=${account_id} >${cm.current.getRange(

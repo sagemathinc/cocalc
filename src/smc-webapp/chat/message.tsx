@@ -188,14 +188,13 @@ export const Message: React.FC<Props> = React.memo((props) => {
       <span className="small">
         {text}
         {is_editing ? (
-          <Button
-            onClick={on_send}
-            bsStyle="success"
-            style={{ marginLeft: "10px" }}
-            className="small"
-          >
-            Save
-          </Button>
+          <span style={{ margin: "10px 10px 0 10px", display: "inline-block" }}>
+            <Button onClick={on_cancel}>Cancel</Button>
+            <Space />
+            <Button onClick={on_send} bsStyle="success">
+              Save (shift+enter)
+            </Button>
+          </span>
         ) : undefined}
       </span>
     );
@@ -366,7 +365,7 @@ export const Message: React.FC<Props> = React.memo((props) => {
     }
   }
 
-  function on_clear(): void {
+  function on_cancel(): void {
     set_edited_message(newest_content(props.message));
     if (props.actions == null) return;
     props.actions.set_editing(props.message, false);
@@ -384,7 +383,6 @@ export const Message: React.FC<Props> = React.memo((props) => {
         project_id={props.project_id}
         path={props.path}
         input={edited_message}
-        on_clear={on_clear}
         submitMentionsRef={submitMentionsRef}
         on_send={on_send}
         height={INPUT_HEIGHT}

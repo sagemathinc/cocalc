@@ -260,10 +260,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
     actions.send_chat(value);
   }
 
-  function on_clear(): void {
-    actions.set_input("");
-  }
-
   function render_body(): JSX.Element {
     return (
       <div className="smc-vfill" style={GRID_STYLE}>
@@ -288,7 +284,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               project_id={project_id}
               path={path}
               input={input}
-              on_clear={on_clear}
               on_send={on_send}
               height={INPUT_HEIGHT}
               onChange={(value) => actions.set_input(value)}
