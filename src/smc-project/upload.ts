@@ -11,7 +11,7 @@ Upload form handler
 // not the total size of the file...
 const MAX_FILE_SIZE_MB = 10000;
 
-import { appendFile, mkdir, rename, readFile, unlink } from "fs";
+import { appendFile, mkdir, copyFile, rename, readFile, unlink } from "fs";
 import { join } from "path";
 import { IncomingForm } from "formidable";
 import { callback } from "awaiting";
@@ -98,7 +98,7 @@ async function handle_chunk_data(index, total, chunk, dest): Promise<void> {
   const temp = dest + ".partial-upload";
   if (index === 0) {
     // move chunk to the temp file
-    await callback(rename, chunk, temp);
+    await moveFile(chunk, temp);
   } else {
     // append chunk to the temp file
     const data = await callback(readFile, chunk);
@@ -107,7 +107,7 @@ async function handle_chunk_data(index, total, chunk, dest): Promise<void> {
   }
   // if it's the last chunk, move temp to actual file.
   if (index === total - 1) {
-    await callback(rename, temp, dest);
+    await moveFile(temp, dest);
   }
 }
 
@@ -116,4 +116,18 @@ function form_parse(form, req, cb): void {
   form.parse(req, (err, fields, files) => {
     cb(err, { fields, files });
   });
+}
+
+async function moveFile(src: string, dest: string): Promise<void> {
+  try {
+    await callback(rename, src, dest);
+  } catch (_) {
+    // in some cases, e.g., cocalc-docker, this happens:
+    //   "EXDEV: cross-device link not permitted"
+    // so we just try again the slower way.  This is slightly
+    // inefficient, maybe, but more robust than trying to determine
+    // if we are doing a cross device rename.
+    await callback(copyFile, src, dest);
+    await callback(unlink, src);
+  }
 }
