@@ -54,6 +54,7 @@ import { alert_message } from "../alerts";
 import { ANON_PROJECT_TITLE } from "../client/anonymous-setup";
 import { DEFAULT_COMPUTE_IMAGE } from "../../smc-util/compute-images";
 import { CSILauncher } from "../launch/custom-image";
+import { CUSTOM_IMG_PREFIX } from "../custom-software/util";
 
 type Relationship =
   | "collaborator" // user is a collaborator on the shared project (so just directly open the shared project)
@@ -218,33 +219,50 @@ export class ShareLauncher {
     });
   }
 
+  private async create_target_project({
+    title,
+    compute_image,
+  }): Promise<string> {
+    try {
+      if (
+        compute_image === "default" ||
+        compute_image === DEFAULT_COMPUTE_IMAGE
+      ) {
+        // this is the default project
+        const actions = redux.getActions("projects");
+        console.log("creating anonymous default image project");
+        const project_id = await actions.create_project({
+          title,
+          start: true,
+          description: "",
+        });
+        actions.open_project({ project_id, switch_to: true });
+        return project_id;
+      } else {
+        console.log("creating anonymous custom software project");
+        // compute_image is like "custom/[image id]/latest"
+        if (!compute_image.startsWith(CUSTOM_IMG_PREFIX)) {
+          throw new Error(`unable to handle compute_image='${compute_image}'`);
+        }
+        const image_id = compute_image.split("/")[1];
+        const csi = new CSILauncher(image_id);
+        const project_id = await csi.launch();
+        if (project_id == null) {
+          throw new Error(`image ${compute_image} does not exist`);
+        }
+        return project_id;
+      }
+    } catch (err) {
+      throw Error(`unable to create project -- ${err} -- something is wrong`);
+    }
+  }
+
   private async create_and_setup_project(title): Promise<void> {
     const { compute_image, project_id, path } = this.info;
-    const target_project_id = await (async function () {
-      try {
-        if (
-          compute_image === "default" ||
-          compute_image === DEFAULT_COMPUTE_IMAGE
-        ) {
-          const csi = new CSILauncher(compute_image);
-          return csi.launch();
-        } else {
-          // this is the default project
-          const actions = redux.getActions("projects");
-          console.log("creating anonymous project");
-          const project_id = await actions.create_project({
-            title,
-            start: true,
-            description: "",
-          });
-          console.log("opening project");
-          actions.open_project({ project_id, switch_to: true });
-          return project_id;
-        }
-      } catch (err) {
-        throw Error(`unable to create project ${err} -- something is wrong`);
-      }
-    })();
+    const target_project_id = await this.create_target_project({
+      title,
+      compute_image,
+    });
 
     // Change the project title and description to be related to the share, since
     // this is very likely the only way it is used (opening this project).
