@@ -115,7 +115,6 @@ interface JupyterEditorProps {
   edit_attachments?: string;
   edit_cell_metadata?: immutable.Map<any, any>;
   editor_settings?: immutable.Map<any, any>;
-  raw_ipynb?: immutable.Map<any, any>;
   metadata?: immutable.Map<any, any>;
   trust?: boolean;
   kernel_info?: immutable.Map<any, any>;
@@ -157,7 +156,6 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         insert_image: rtypes.string, // show insert image dialog
         edit_attachments: rtypes.string,
         edit_cell_metadata: rtypes.immutable.Map,
-        raw_ipynb: rtypes.immutable.Map,
         metadata: rtypes.immutable.Map,
         trust: rtypes.bool,
         kernel_info: rtypes.immutable.Map,
@@ -512,11 +510,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_raw_editor() {
-    if (
-      this.props.raw_ipynb == null ||
-      this.props.cm_options == null ||
-      this.props.font_size == null
-    ) {
+    if (this.props.cm_options == null || this.props.font_size == null) {
       return <Loading />;
     }
     return (
@@ -524,7 +518,6 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         name={this.props.name}
         actions={this.props.actions}
         font_size={this.props.font_size}
-        raw_ipynb={this.props.raw_ipynb}
         cm_options={this.props.cm_options.get("options")}
       />
     );
