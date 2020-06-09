@@ -164,7 +164,11 @@ export class Actions extends BaseActions<X11EditorState> {
     this.client.close();
     delete this.client;
     if (this.channel !== undefined) {
-      this.channel.end();
+      try {
+        this.channel.end();
+      } catch (_) {
+        // this can throw an error, but we don't care.
+      }
       delete this.channel;
     }
     super.close();
