@@ -537,7 +537,12 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
       <DropdownMenu
         key={"switch-to-file"}
         button={true}
-        style={{ top: "-9px", height: button_height() }}
+        style={{
+          top: props.is_full
+            ? "-7.5px"
+            : "-6.5px" /* this is obviously lazy crappy code */,
+          height: button_height(),
+        }}
         title={path_split(props.path).tail}
         onClick={(key) => {
           props.actions.switch_to_file(key, props.id);
