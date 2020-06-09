@@ -779,8 +779,6 @@ export class Actions<
     // default path
     let path = this.path;
 
-    this.set_frame_tree({ id, type, path });
-
     if (this._cm[id] && type != "cm") {
       // Make sure to clear cm cache in case switching type away,
       // in case the component unmount doesn't do this.
@@ -808,7 +806,15 @@ export class Actions<
     if (!font_size) {
       font_size = get_default_font_size();
     }
-    this.set_font_size(id, font_size);
+    this.set_frame_tree({
+      id,
+      type,
+      path,
+      title: undefined,
+      connection_status: undefined,
+      is_paused: undefined,
+      font_size,
+    });
 
     this.store.emit("new-frame", { id, type });
   }
