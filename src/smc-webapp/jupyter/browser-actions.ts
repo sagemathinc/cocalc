@@ -525,6 +525,7 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   public toggle_cell_line_numbers(id: string): void {
+    if (this._state === "closed") return;
     const cells = this.store.get("cells");
     const cell = cells.get(id);
     if (cell == null) throw Error(`no cell with id ${id}`);
