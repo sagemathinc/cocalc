@@ -16,6 +16,7 @@ this (?), it might be fine.
 */
 
 import { React, useEffect, useRedux } from "../app-framework";
+import useInterval from "use-interval";
 import { Map } from "immutable";
 import { JSONEditor } from "./json-editor";
 import { JupyterActions } from "./browser-actions";
@@ -45,6 +46,19 @@ export const RawEditor: React.FC<Props> = ({
   useEffect(() => {
     actions.set_raw_ipynb();
   }, [cells, cell_list, metadata, kernels]);
+
+  // We setup an interval to be certain that the
+  // raw ipynb has every chance to be set, since there
+  // are cases where none of cells, cell_list, metadata, kernels
+  // change, raw_ipynb isn't set yet, and calling
+  // set_raw_ipynb *once* initially is not sufficient
+  // (just because things weren't setup completely yet).
+  // See https://github.com/sagemathinc/cocalc/issues/4579
+  useInterval(() => {
+    if (raw_ipynb == null) {
+      actions.set_raw_ipynb();
+    }
+  }, 5000);
 
   if (raw_ipynb == null) {
     return <Loading />;
