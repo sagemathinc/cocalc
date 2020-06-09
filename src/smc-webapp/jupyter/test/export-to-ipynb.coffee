@@ -17,7 +17,7 @@ describe 'tests exporting the most basic ipynb file -- ', ->
 
     it 'by directly calling export_to_ipynb', ->
         ipynb = export_to_ipynb(cell_list:actions.store.get('cell_list'), cells:actions.store.get('cells'), kernelspec:{})
-        expect(ipynb).toEqual({ cells: [ { cell_type: 'code', execution_count: 0, metadata: { collapsed: false }, outputs: [], source: [] } ], metadata: { kernelspec: {} }, nbformat: 4, nbformat_minor: 0 })
+        expect(ipynb).toEqual({ cells: [ { cell_type: 'code', execution_count: 0, metadata: { collapsed: false }, outputs: [], source: [] } ], metadata: { kernelspec: {} }, nbformat: 4, nbformat_minor: 4 })
 
     it 'by calling function in the store', ->
         ipynb = export_to_ipynb(cell_list:actions.store.get('cell_list'), cells:actions.store.get('cells'))

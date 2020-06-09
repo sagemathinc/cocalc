@@ -14,7 +14,6 @@ interface Props {
   input: string;
   on_paste?: (e) => void;
   on_send: () => void;
-  on_clear: () => void;
   height?: string;
   onChange: (string) => void;
   font_size?: number;
@@ -35,7 +34,6 @@ export const ChatInput: React.FC<Props> = (props) => {
       submitMentionsRef={props.submitMentionsRef}
       onChange={props.onChange}
       onShiftEnter={props.on_send}
-      onEscape={props.on_clear}
       height={props.height}
       placeholder={"Type a message..."}
       extraHelp={

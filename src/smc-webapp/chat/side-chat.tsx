@@ -64,10 +64,6 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
     scroll_to_bottom(log_container_ref, true);
   }
 
-  function on_clear(): void {
-    actions.set_input("");
-  }
-
   function render_add_collab() {
     if (!add_collab) {
       return;
@@ -211,7 +207,6 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
             project_id={project_id}
             path={path}
             input={input}
-            on_clear={on_clear}
             on_send={() => {
               send_chat();
               analytics_event("side_chat", "send_chat", "keyboard");
