@@ -47,8 +47,28 @@ import { path_split, trunc_middle } from "smc-util/misc2";
 
 import { ConnectionStatus, EditorSpec, EditorDescription } from "./types";
 
-// TODO:
-// import { Actions } from "../code-editor/actions";
+import { Actions } from "../code-editor/actions";
+
+// Certain special frame editors (e.g., for latex) have extra
+// actions that are not defined in the base code editor actions.
+// In all cases, we check these are actually defined before calling
+// them to avoid a runtime stacktrace.
+interface FrameActions extends Actions {
+  zoom_page_width?: (id: string) => void;
+  zoom_page_height?: (id: string) => void;
+  sync?: (id: string, editor_actions: EditorActions) => void;
+  show_table_of_contents?: (id: string) => void;
+  build?: (id: string, boolean) => void;
+  force_build?: (id: string) => void;
+  clean?: (id: string) => void;
+  word_count?: (time: number, force: boolean) => void;
+  close_and_halt?: (id: string) => void;
+}
+
+interface EditorActions extends Actions {
+  download?: (id: string) => void;
+  restart?: () => void;
+}
 
 import { AvailableFeatures } from "../../project_configuration";
 
@@ -101,20 +121,16 @@ const ICON_STYLE: CSS.Properties = {
   display: "inline-block",
 };
 
-const close_style: CSS.Properties | undefined = (function () {
-  if (IS_TOUCH) {
-    return undefined;
-  } else {
-    return {
+const close_style: CSS.Properties | undefined = IS_TOUCH
+  ? undefined
+  : {
       background: "transparent",
       borderColor: "transparent",
     };
-  }
-})();
 
 interface Props {
-  actions: any; // TODO -- see above Actions;
-  editor_actions: any; // TODO -- see above Actions;
+  actions: FrameActions;
+  editor_actions: EditorActions;
   path: string;
   project_id: string; // assumed to not change for now
   active_id: string;
@@ -177,37 +193,6 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     props.actions.name,
     "switch_to_files",
   ]);
-
-  /*
-  static reduxProps({ editor_actions, actions }) {
-    const name = editor_actions.name;
-    if (name == null) throw Error("editor_actions must have name attribute");
-    const name2 = actions.name;
-    if (name2 == null) throw Error("actions must have name attribute");
-
-    // The code below is a bit confusing because name may or
-    // may not equal name2, and if they *are* equal and we were
-    // to just make an object with the same key twice, the values
-    // obviously wouldn't be merged.
-    const spec: any = {
-      [name]: {
-        read_only: rtypes.bool,
-        has_unsaved_changes: rtypes.bool,
-        has_uncommitted_changes: rtypes.bool,
-        is_saving: rtypes.bool,
-        is_public: rtypes.bool,
-      },
-    };
-    if (name == name2) {
-      spec[name2].switch_to_files = rtypes.immutable.List;
-    } else {
-      spec[name2] = {
-        switch_to_files: rtypes.immutable.List,
-      };
-    }
-    return spec;
-  }
-  */
 
   /*
   shouldComponentUpdate(next, state): boolean {
@@ -500,7 +485,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
         key={"text-width"}
         title={"Zoom to page width"}
         bsSize={button_size()}
-        onClick={() => props.actions.zoom_page_width(props.id)}
+        onClick={() => props.actions.zoom_page_width?.(props.id)}
       >
         <Icon name={"arrows-alt-h"} />
       </Button>
@@ -513,7 +498,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
         key={"text-height"}
         title={"Zoom to page height"}
         bsSize={button_size()}
-        onClick={() => props.actions.zoom_page_height(props.id)}
+        onClick={() => props.actions.zoom_page_height?.(props.id)}
       >
         <Icon name={"arrows-alt-v"} />
       </Button>
@@ -530,7 +515,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
         key={"sync"}
         title={"Synchronize views (alt+enter)"}
         bsSize={button_size()}
-        onClick={() => props.actions.sync(props.id, props.editor_actions)}
+        onClick={() => props.actions.sync?.(props.id, props.editor_actions)}
       >
         <Icon name={"fab fa-staylinked"} />{" "}
         {labels ? <VisibleMDLG>Sync</VisibleMDLG> : undefined}
@@ -578,7 +563,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
         key={"download"}
         title={"Download this file"}
         bsSize={button_size()}
-        onClick={() => props.editor_actions.download(props.id)}
+        onClick={() => props.editor_actions.download?.(props.id)}
       >
         <Icon name={"cloud-download"} />{" "}
         {labels ? <VisibleMDLG>Download</VisibleMDLG> : undefined}
@@ -770,7 +755,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
       <Button
         key={"undo"}
         title={"Undo last thing you did"}
-        onClick={() => props.editor_actions.undo()}
+        onClick={() => props.editor_actions.undo(props.id)}
         disabled={read_only}
         bsSize={button_size()}
       >
@@ -787,7 +772,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
       <Button
         key={"redo"}
         title={"Redo last thing you undid"}
-        onClick={() => props.editor_actions.redo()}
+        onClick={() => props.editor_actions.redo(props.id)}
         disabled={read_only}
         bsSize={button_size()}
       >
@@ -814,7 +799,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
       <Button
         key={"auto-indent"}
         title={"Automatically format selected code"}
-        onClick={() => props.editor_actions.auto_indent()}
+        onClick={() => props.editor_actions.auto_indent(props.id)}
         disabled={read_only}
         bsSize={button_size()}
       >
@@ -936,7 +921,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
         key={"restart"}
         title={"Restart service"}
         bsSize={button_size()}
-        onClick={() => props.editor_actions.restart()}
+        onClick={() => props.editor_actions.restart?.()}
       >
         <Icon name="sync" />{" "}
         {labels ? <VisibleMDLG>Restart</VisibleMDLG> : undefined}
@@ -982,21 +967,21 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
   }
 
   function render_format(): Rendered {
-    if (!is_visible("format")) return;
-    let desc = props.editor_actions.has_format_support(
-      props.id,
-      props.available_features
-    );
-    if (!desc) return;
-    if (desc === true) {
-      desc = "Canonically format the entire document.";
+    if (
+      !is_visible("format") ||
+      !props.editor_actions.has_format_support(
+        props.id,
+        props.available_features
+      )
+    ) {
+      return;
     }
     return (
       <Button
         key={"format"}
         bsSize={button_size()}
         onClick={() => props.editor_actions.format(props.id)}
-        title={desc}
+        title={"Canonically format the entire document."}
       >
         <Icon name={FORMAT_SOURCE_ICON} />{" "}
         <VisibleMDLG>{show_labels() ? "Format" : undefined}</VisibleMDLG>
@@ -1010,7 +995,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
       <Button
         key={"contents"}
         bsSize={button_size()}
-        onClick={() => props.actions.show_table_of_contents(props.id)}
+        onClick={() => props.actions.show_table_of_contents?.(props.id)}
         title={"Show the Table of Contents"}
       >
         <Icon name={"align-right"} />{" "}
@@ -1028,7 +1013,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
         key={"build"}
         disabled={!!props.status}
         bsSize={button_size()}
-        onClick={() => props.actions.build(props.id, false)}
+        onClick={() => props.actions.build?.(props.id, false)}
         title={"Build project"}
       >
         <Icon name={"play-circle"} /> <VisibleMDLG>Build</VisibleMDLG>
@@ -1045,7 +1030,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
         key={"force-build"}
         disabled={!!props.status}
         bsSize={button_size()}
-        onClick={() => props.actions.force_build(props.id)}
+        onClick={() => props.actions.force_build?.(props.id)}
         title={"Force rebuild entire project"}
       >
         <Icon name={"play"} /> <VisibleMDLG>Force Rebuild</VisibleMDLG>
@@ -1061,7 +1046,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
       <Button
         key={"clean"}
         bsSize={button_size()}
-        onClick={() => props.actions.clean(props.id)}
+        onClick={() => props.actions.clean?.(props.id)}
         title={"Clean auxiliary build files"}
       >
         <Icon name={"trash"} />{" "}
@@ -1078,7 +1063,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
       <Button
         key={"word_count"}
         bsSize={button_size()}
-        onClick={() => props.actions.word_count(0, true)}
+        onClick={() => props.actions.word_count?.(0, true)}
         title={"Runs texcount"}
       >
         <Icon name={"file-alt"} /> <VisibleMDLG>Count words</VisibleMDLG>
@@ -1383,7 +1368,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
         <Button
           onClick={() => {
             set_close_and_halt_confirm(false);
-            props.actions.close_and_halt(props.id);
+            props.actions.close_and_halt?.(props.id);
           }}
           style={{
             marginLeft: "20px",
