@@ -756,7 +756,7 @@ or
 
 
 */
-function useReduxTopLevelStore(path: string[]) {
+export function useReduxNamedStore(path: string[]) {
   const [value, set_value] = React.useState(() =>
     redux._redux_store.getState().getIn(path)
   );
@@ -769,7 +769,7 @@ function useReduxTopLevelStore(path: string[]) {
       const new_value = obj.getIn(subpath);
       if (last_value !== new_value) {
         /*
-        console.log("useReduxTopLevelStore change ", {
+        console.log("useReduxNamedStore change ", {
           name: path[0],
           path: JSON.stringify(path),
           new_value,
@@ -784,7 +784,7 @@ function useReduxTopLevelStore(path: string[]) {
     return () => {
       store.removeListener("change", f);
     };
-  }, []);
+  }, [path[0]]);
 
   return value;
 }
@@ -868,7 +868,7 @@ export function useRedux(
   is_public?: boolean
 ) {
   if (project_id == null) {
-    return useReduxTopLevelStore(path);
+    return useReduxNamedStore(path);
   }
   if (filename == null) {
     return useReduxProjectStore(path, project_id);
