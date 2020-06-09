@@ -47,7 +47,7 @@ describe("tests exporting the most basic ipynb file -- ", () => {
       ],
       metadata: { kernelspec: {} },
       nbformat: 4,
-      nbformat_minor: 0,
+      nbformat_minor: 4,
     });
   });
   it("by calling function in the store", () => {
@@ -85,7 +85,7 @@ describe("tests exporting the most basic ipynb file -- ", () => {
       ],
       metadata: { kernelspec: {} },
       nbformat: 4,
-      nbformat_minor: 0,
+      nbformat_minor: 4,
     });
   });
 });

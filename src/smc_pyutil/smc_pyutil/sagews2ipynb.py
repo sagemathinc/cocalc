@@ -38,7 +38,7 @@ class Worksheet(sagews2pdf.Worksheet):
                 }
             },
             "nbformat": 4,
-            "nbformat_minor": 0
+            "nbformat_minor": 4
         }
         obj['cells'] = self.ipynb_cells()
         return obj
