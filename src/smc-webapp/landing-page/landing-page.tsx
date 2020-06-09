@@ -18,25 +18,23 @@ import {
   Rendered,
 } from "../app-framework";
 
-import { Row, Col } from "../antd-bootstrap";
-
+import { Row, Col, Alert } from "../antd-bootstrap";
 import { UNIT, COLORS } from "../r_misc";
-
 import { SiteDescription, Footer } from "../customize";
-
 import { SignUp } from "./sign-up";
 import { SignIn } from "./sign-in";
 import { RunAnonymously } from "./run-anonymously";
 import { ForgotPassword } from "./forgot-password";
 import { ResetPassword } from "./reset-password";
 import { Connecting } from "./connecting";
-
 import { QueryParams } from "../misc/query-params";
 import {
   NAME as LAUNCH_ACTIONS_NAME,
   launch_action_description,
   LaunchTypes,
 } from "../launch/actions";
+import { NAME as ComputeImageStoreName } from "../custom-software/util";
+import { ComputeImages, launchcode2display } from "../custom-software/init";
 
 const DESC_FONT = "sans-serif";
 
@@ -88,6 +86,7 @@ interface reduxProps {
 
   type?: LaunchTypes;
   launch?: string;
+  images?: ComputeImages;
 }
 
 interface State {
@@ -127,6 +126,9 @@ class LandingPage extends Component<Props & reduxProps, State> {
       [LAUNCH_ACTIONS_NAME]: {
         type: rtypes.string,
         launch: rtypes.string,
+      },
+      [ComputeImageStoreName]: {
+        images: rtypes.immutable,
       },
     };
   }
@@ -175,15 +177,49 @@ class LandingPage extends Component<Props & reduxProps, State> {
   }
 
   private render_launch_action(): Rendered {
-    if (this.props.type == null) {
+    if (
+      this.props.type == null ||
+      this.props.launch == null ||
+      this.props.images == null
+    ) {
       return;
     }
     const descr = launch_action_description(this.props.type);
-    return (
-      <Row syle={{ marginBottom: "20px", textAlign: "center" }}>
-        <h4>
+    if (descr == null) return;
+    let message;
+    let bsStyle: "info" | "danger" = "info";
+
+    if (this.props.type == "csi") {
+      const display = launchcode2display(this.props.images, this.props.launch);
+
+      if (display == null) {
+        bsStyle = "danger";
+        message = (
+          <>
+            Custom Software Image <code>{this.props.launch}</code> does not
+            exist!
+          </>
+        );
+      } else {
+        message = (
+          <>
+            {descr} "{display}"
+          </>
+        );
+      }
+    } else {
+      message = (
+        <>
           {descr}: <code>{this.props.launch}</code>
-        </h4>
+        </>
+      );
+    }
+
+    return (
+      <Row style={{ marginBottom: "20px", textAlign: "center" }}>
+        <Alert bsStyle={bsStyle} banner={true} style={{ width: "100%" }}>
+          <b>Launch action:</b> {message}
+        </Alert>
       </Row>
     );
   }
@@ -375,7 +411,7 @@ class LandingPage extends Component<Props & reduxProps, State> {
             />
           </Col>
           <Col md={6}>
-            <div style={{ color: "#666", fontSize: "16pt", marginTop: "5px" }}>
+            <div style={{ color: COLORS.GRAY, marginTop: "5px" }}>
               <RunAnonymously show_terms={this.state.show_terms} />
               <br />
               {this.render_support()}

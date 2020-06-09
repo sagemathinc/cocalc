@@ -40,14 +40,14 @@ export function is_csi_launchvalue(launch: string) {
 
 export function launch_action_description(
   type: NonNullable<LaunchTypes>
-): string {
+): string|undefined {
   switch (type) {
     case "csi":
       return "Run Custom Software Image";
     case "share":
-      return "Open shared file";
+      return "Open Shared File";
     default:
-      return type;
+      return undefined;
   }
 }
 

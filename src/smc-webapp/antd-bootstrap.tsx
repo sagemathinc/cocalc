@@ -312,6 +312,7 @@ export function Alert(props: {
   key?: string;
   bsStyle?: ButtonStyle;
   style?: React.CSSProperties;
+  banner?: boolean;
   children?: any;
 }) {
   let type: "success" | "info" | "warning" | "error" | undefined = undefined;
@@ -330,7 +331,12 @@ export function Alert(props: {
     type = "success";
   }
   return (
-    <antd.Alert message={props.children} type={type} style={props.style} />
+    <antd.Alert
+      message={props.children}
+      type={type}
+      style={props.style}
+      banner={props.banner}
+    />
   );
 }
 

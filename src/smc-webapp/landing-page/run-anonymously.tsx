@@ -35,7 +35,7 @@ export const RunAnonymously: React.FC<Props> = (params) => {
     <Well style={WELL_STYLE}>
       <div>
         Alternatively, {show_terms && "accept the Terms of Service and "}
-        run {site_name} without creating an account.
+        evaluate {site_name}.
       </div>
 
       <form
@@ -43,7 +43,7 @@ export const RunAnonymously: React.FC<Props> = (params) => {
         onSubmit={run_anonymously}
       >
         {show_terms && (
-          <FormGroup style={{ fontSize: "12pt", margin: "20px" }}>
+          <FormGroup style={{ margin: "20px" }}>
             <Checkbox onChange={(e) => set_anon_checkbox(e.target.checked)}>
               <TermsOfService />
             </Checkbox>
@@ -57,7 +57,7 @@ export const RunAnonymously: React.FC<Props> = (params) => {
           type={"submit"}
           block
         >
-          Run Anonymously
+          Run {site_name} Now and Sign-up Later
         </Button>
       </form>
     </Well>

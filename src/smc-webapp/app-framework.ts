@@ -43,6 +43,9 @@ import { FileUseStore } from "./file-use/store";
 import { FileUseActions } from "./file-use/actions";
 export { TypedMap } from "./app-framework/TypedMap";
 
+import { NAME_TYPE as ComputeImageStoreType} from "./custom-software/util";
+import { ComputeImagesStore } from "./custom-software/init";
+
 // Only import the types
 declare type ProjectStore = import("./project_store").ProjectStore;
 declare type ProjectActions = import("./project_actions").ProjectActions;
@@ -264,6 +267,7 @@ export class AppRedux {
   getStore(name: "file_use"): FileUseStore | undefined;
   getStore(name: "customize"): any;
   getStore(name: "users"): any;
+  getStore(name: ComputeImageStoreType): ComputeImagesStore;
   getStore<State>(name: string): Store<State>;
   getStore<State, C extends Store<State>>(name: string): C | undefined;
   getStore<State, C extends Store<State>>(name: string): C | undefined {

@@ -112,6 +112,7 @@ export class SignUp extends React.Component<Props, State> {
           style={{ textAlign: "center" }}
           disabled={!this.state.terms_checkbox}
         />
+        <hr style={{ marginTop: 10, marginBottom: 10 }} />
         Or sign up via email
         <br />
       </div>

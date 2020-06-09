@@ -38,7 +38,19 @@ interface ComputeImagesState {
   images?: ComputeImages;
 }
 
-class ComputeImagesStore extends Store<ComputeImagesState> {}
+export class ComputeImagesStore extends Store<ComputeImagesState> {}
+
+export function launchcode2display(
+  images: ComputeImages,
+  launch: string
+): string | undefined {
+  // launch expected to be "csi/some-id/..."
+  const id = launch.split("/")[1];
+  if (!id) return undefined;
+  const img = images.get(id);
+  if (img == null) return undefined;
+  return img.get("display") || id2name(id);
+}
 
 class ComputeImagesActions<ComputeImagesState> extends Actions<
   ComputeImagesState
