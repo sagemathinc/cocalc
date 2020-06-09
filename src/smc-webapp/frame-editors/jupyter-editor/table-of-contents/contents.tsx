@@ -53,11 +53,11 @@ export const TableOfContents: React.FC<Props> = React.memo(
       }
     }
 
-    async function jump_to_cell(id:string): Promise<void> {
-      actions.jump_to_cell(id);
+    async function jump_to_cell(id: string, align): Promise<void> {
+      actions.jump_to_cell(id, align);
       // stupid hack due to rendering/windowing delays...
       await delay(100);
-      actions.jump_to_cell(id);
+      actions.jump_to_cell(id, align);
     }
 
     if (contents == null) {
@@ -66,14 +66,14 @@ export const TableOfContents: React.FC<Props> = React.memo(
 
     const v: JSX.Element[] = [];
     // todo: make better use of immutable.js, etc.
-    for (let { id, level, value, icon, number } of contents.toJS()) {
+    for (let { id, level, value, icon, number, align } of contents.toJS()) {
       if (number != null) {
         value = `${number.join(".")}.  ${value}`;
       }
       v.push(
         <div
           key={id}
-          onClick={() => jump_to_cell(id)}
+          onClick={() => jump_to_cell(id, align)}
           style={{ cursor: "pointer", paddingLeft: `${level * 2}em` }}
         >
           {render_header(level, value, icon)}
