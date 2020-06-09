@@ -265,6 +265,11 @@ class Project
             args.push('--network')
             args.push(1)
 
+        if @_env
+            args.push('--env')
+            env64 = Buffer.from(JSON.stringify(@_env)).toString('base64')
+            args.push(env64)
+
         args.push(@project_id)
         dbg("args=#{misc.to_safe_str(args)}")
         smc_compute
