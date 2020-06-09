@@ -29,7 +29,7 @@ const {
 interface CSProps {
   images?: ComputeImages;
   // this should be Partial<State> ?
-  setParentState: (obj: any) => void;
+  setParentState: (obj : {image_selected?:string; title_text?:string; image_type?: ComputeImageTypes}) => void;
   image_type: ComputeImageTypes;
   image_selected?: string;
   // toggles form true → false after first edit

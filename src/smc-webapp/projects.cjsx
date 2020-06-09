@@ -1713,7 +1713,7 @@ exports.ProjectsPage = ProjectsPage = rclass
             <Row>
                 <Col sm={12} style={marginTop:'1ex'}>
                     <VisibleMDLG>
-                        <div style={maxWidth:'50%', float:'right'}>
+                        <div style={maxWidth:'50%', float:'right', paddingLeft:'30px'}>
                             <UpgradeStatus />
                         </div>
                     </VisibleMDLG>
