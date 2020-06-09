@@ -57,7 +57,7 @@ export const RunAnonymously: React.FC<Props> = (params) => {
           type={"submit"}
           block
         >
-          Run {site_name} Now and Sign-up Later
+          Run {site_name} now and sign up later
         </Button>
       </form>
     </Well>

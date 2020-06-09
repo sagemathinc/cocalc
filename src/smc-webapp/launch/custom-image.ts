@@ -11,7 +11,7 @@
 import { redux } from "../app-framework";
 import { analytics_event } from "../tracker";
 import { uuid } from "smc-util/misc2";
-import { retry_until_success, once } from "smc-util/async-utils";
+import { retry_until_success } from "smc-util/async-utils";
 import {
   custom_image_name,
   NAME as CUSTOM_SOFTWARE_NAME,
@@ -76,8 +76,8 @@ export class CSILauncher {
         const projects_table = redux.getTable("projects");
         if (projects_table == null)
           throw new Error("Projects Table not yet available...");
-        // what is this doing?
-        await once(projects_table._table, "connected");
+        // what is this doing?  do we need it?
+        // await once(projects_table._table, "connected");
         const actions = redux.getActions("projects");
         if (actions == null)
           throw new Error("Projects Actions not yet available...");

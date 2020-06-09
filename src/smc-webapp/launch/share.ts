@@ -157,9 +157,9 @@ export class ShareLauncher {
         await this.open_share_in_a_new_project();
         alert_message({
           type: "info",
-          title: `Shared content opened in a new project - ${info.description}`,
+          title: `Shared content opened in a project - ${info.description}`,
           message:
-            "You can edit and run this share in this new project.  You may want to upgrade this project or copy files to another one of your projects.",
+            "You can edit and run this share in this project.  You may want to upgrade this project or copy files to another one of your projects.",
           block: true,
         });
         break;
@@ -266,8 +266,8 @@ export class ShareLauncher {
 
     // Change the project title and description to be related to the share, since
     // this is very likely the only way it is used (opening this project).
-    this.set_project_metadata(target_project_id);
     await this.open_share_in_project(project_id, path, target_project_id);
+    this.set_project_metadata(target_project_id);
   }
 
   private async open_share_in_the_anonymous_project(
@@ -285,7 +285,7 @@ export class ShareLauncher {
           }
         },
       });
-      this.create_and_setup_project(ANON_PROJECT_TITLE);
+      await this.create_and_setup_project(ANON_PROJECT_TITLE);
     } catch {
       throw Error(
         `unable to get anonymous user after waiting ${max_time_s} seconds -- something is wrong`
@@ -359,7 +359,7 @@ export class ShareLauncher {
 
   private async open_share_in_a_new_project(): Promise<void> {
     // Create a new project
-    this.create_and_setup_project("Share");
+    await this.create_and_setup_project("Share");
   }
 
   private set_project_metadata(project_id: string): void {
