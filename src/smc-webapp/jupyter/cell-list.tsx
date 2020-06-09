@@ -189,7 +189,6 @@ export class CellList extends Component<CellListProps> {
   }
 
   private async scroll_cell_list(scroll: Scroll): Promise<void> {
-    if (!this.use_windowed_list) return;
     let list = this.windowed_list_ref.current;
     if (list == null) return;
     const info = list.get_scroll();
@@ -340,7 +339,7 @@ export class CellList extends Component<CellListProps> {
     return (
       <WindowedList
         ref={this.windowed_list_ref}
-        overscan_row_count={10}
+        overscan_row_count={this.use_windowed_list ? 40 : 200}
         estimated_row_size={DEFAULT_ROW_SIZE}
         row_key={(index) => this.props.cell_list.get(index)}
         row_count={this.props.cell_list.size}
@@ -354,7 +353,8 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  private render_list_of_cells_directly(): Rendered[] {
+  /*
+  private render_list_of_cells_directly() {
     const v: Rendered[] = [];
     let index: number = 0;
     this.props.cell_list.forEach((id: string) => {
@@ -373,6 +373,7 @@ export class CellList extends Component<CellListProps> {
 
     return v;
   }
+  */
 
   private render_list_of_cells(): Rendered | Rendered[] {
     const style: React.CSSProperties = {
@@ -380,15 +381,11 @@ export class CellList extends Component<CellListProps> {
       paddingLeft: "5px",
     };
 
-    if (this.use_windowed_list) {
-      return (
-        <div className="smc-vfill" style={style}>
-          {this.render_list_of_cells_using_windowed_list()}
-        </div>
-      );
-    } else {
-      return <div style={style}>{this.render_list_of_cells_directly()}</div>;
-    }
+    return (
+      <div className="smc-vfill" style={style}>
+        {this.render_list_of_cells_using_windowed_list()}
+      </div>
+    );
   }
 
   public render(): Rendered {
