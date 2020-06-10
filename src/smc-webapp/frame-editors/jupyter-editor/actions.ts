@@ -287,7 +287,7 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     const actions = this.get_frame_actions(id);
     if (actions == null) return;
     actions.set_cur_id(cell_id);
-    actions.scroll(align == "top" ? "cell top" : "cell center");
+    actions.scroll(align == "top" ? "cell top" : "cell visible");
     await delay(5);
     if (this._state === "closed") return;
     actions.focus();
