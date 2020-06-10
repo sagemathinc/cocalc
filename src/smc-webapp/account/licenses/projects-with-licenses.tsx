@@ -17,7 +17,7 @@ function open_project(project_id: string): void {
   redux.getProjectActions(project_id).set_active_tab("settings");
 }
 
-export const ProjectsWithLicenses: React.FC<> = () => {
+export const ProjectsWithLicenses: React.FC = () => {
   const project_map: Map<string, any> = useRedux(["projects", "project_map"]);
   const all_projects_have_been_loaded = useRedux([
     "projects",
