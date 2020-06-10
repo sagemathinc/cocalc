@@ -1355,12 +1355,9 @@ ProjectList = rclass
         if not project?
             return
         return <ProjectRow
-                     project  = {project}
-                     images   = {@props.images}
-                     user_map = {@props.user_map}
-                     index    = {index}
-                     key      = {index}
-                     redux    = {redux} />
+                     project_id  = {project.project_id}
+                     key = {project.project_id}
+                     index    = {index} />
 
     render_list: ->
         return <WindowedList
