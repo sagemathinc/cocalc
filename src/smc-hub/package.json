@@ -33,7 +33,6 @@
     "expiring-lru-cache": "^2.1.0",
     "express": "^4.17.1",
     "express-session": "^1.10.4",
-    "formidable": "^1.2.2",
     "http-proxy": "^1.18.1",
     "immutable": "^3.8.2",
     "jquery": "^3.5.1",

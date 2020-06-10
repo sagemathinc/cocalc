@@ -15,7 +15,6 @@ async        = require('async')
 cookieParser = require('cookie-parser')
 body_parser  = require('body-parser')
 express      = require('express')
-formidable   = require('formidable')
 http_proxy   = require('http-proxy')
 http         = require('http')
 winston      = require('winston')
@@ -318,16 +317,6 @@ exports.init_express_http_server = (opts) ->
                 else
                     res.header("Content-Type", "application/json")
                     res.send(JSON.stringify(stats, null, 1))
-
-    ###
-    # Stripe webhooks -- not done
-    router.post '/stripe', (req, res) ->
-        form = new formidable.IncomingForm()
-        form.parse req, (err, fields, files) ->
-            # record and act on the webhook here -- see https://stripe.com/docs/webhooks
-            # winston.debug("STRIPE: webhook -- #{err}, #{misc.to_json(fields)}")
-        res.send('')
-    ###
 
     # Get the http server and return it.
     if opts.base_url
