@@ -1346,9 +1346,7 @@ ProjectList = rclass
         user_map : undefined
 
     render_load_all_projects_button: ->
-        return <LoadAllProjects
-                    done = {@props.load_all_projects_done}
-                    redux = {redux} />
+        return <LoadAllProjects />
 
     render_project: (index) ->
         if index == @props.projects.length
@@ -1689,44 +1687,4 @@ exports.ProjectsPage = ProjectsPage = rclass
         </Col>
         # note above -- anonymous accounts can't have old projects.
 
-LoadAllProjects = rclass
-    displayName: "LoadAllProjects"
-
-    propTypes:
-        done  : rtypes.bool
-        redux : rtypes.object
-
-    componentDidMount: ->
-        @mounted = true
-
-    componentWillUnmount: ->
-        @mounted = false
-
-    load: ->
-        @setState(loading : true)
-        await @props.redux.getActions('projects').load_all_projects()
-        if not @mounted
-            return
-        @setState(loading : false)
-
-    render_loading: ->
-        if this.state?.loading
-            return <Loading />
-
-    render_button: ->
-        <Button
-            onClick={@load}
-            bsStyle='info'
-            bsSize='large'
-            style={width:'100%', fontSize:'18pt'}>
-            {@render_loading()}
-            Load any older projects...
-        </Button>
-
-    render: ->
-        if @props.done
-            return <span/>
-        <div>
-            {@render_button()}
-        </div>
-
+{LoadAllProjects} = require('./projects/load-all')
