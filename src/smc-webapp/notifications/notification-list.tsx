@@ -10,7 +10,7 @@ import { MentionRow } from "./mentions/mention-row";
 
 import { NoNewNotifications } from "./no-new-notifications";
 
-const { ProjectTitle } = require("../projects");
+import { ProjectTitle } from "../projects/project-title";
 
 const { Panel } = require("react-bootstrap");
 

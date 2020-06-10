@@ -4,7 +4,7 @@ import { getManagedLicenses } from "./util";
 
 import { LicenseYouManage } from "./license-you-manage";
 
-export const ManagedLicenses: React.FC<> = () => {
+export const ManagedLicenses: React.FC = () => {
   const [licenses, setLicenses] = useState<string[] | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
 

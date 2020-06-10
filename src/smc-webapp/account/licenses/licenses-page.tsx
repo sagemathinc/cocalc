@@ -8,7 +8,7 @@ import { ManagedLicenses } from "./managed-licenses";
 import { ProjectsWithLicenses } from "./projects-with-licenses";
 import { AboutLicenses } from "./about-licenses";
 
-export const LicensesPage: React.FC<> = () => {
+export const LicensesPage: React.FC = () => {
   return (
     <div>
       <AboutLicenses />

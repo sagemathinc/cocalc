@@ -18,13 +18,12 @@ json_stable = require("json-stable-stringify")
 
 misc = require('smc-util/misc')
 {required, defaults} = misc
-{html_to_text} = require('./misc_page')
 {SiteName, PolicyPricingPageUrl} = require('./customize')
 
 markdown = require('./markdown')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, FormControl, FormGroup, InputGroup, Alert, Checkbox, Label} = require('react-bootstrap')
-{VisibleMDLG, ErrorDisplay, Icon, Loading, LoginLink, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, A} = require('./r_misc')
+{VisibleMDLG, ErrorDisplay, Icon, Loading, LoginLink, Saving, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, A} = require('./r_misc')
 {WindowedList} = require("./r_misc/windowed-list")
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
 {UsersViewing} = require('./account/avatar/users-viewing')
@@ -37,8 +36,6 @@ ZERO_QUOTAS = fromPairs(Object.keys(PROJECT_UPGRADES.params).map(((x) -> [x, 0])
 { reuseInFlight } = require("async-await-utils/hof")
 
 {UpgradeStatus} = require('./upgrades/status')
-
-COMPUPTE_IMAGES = require("./custom-software/init").NAME
 
 {ResetProjectsConfirmation} = require('./account/upgrades/reset-projects')
 
@@ -1086,66 +1083,9 @@ switch_to_project = (project_id) =>
         await once(redux.getTable('projects')._table, "connected")
 
 
-ProjectsSearch = rclass
-    displayName : 'Projects-ProjectsSearch'
 
-    propTypes :
-        search : rtypes.string.isRequired
-
-    getDefaultProps: ->
-        search             : ''
-        open_first_project : undefined
-
-    getInitialState: ->
-        search : @props.search
-
-    clear_and_focus_search_input: ->
-        @refs.projects_search.clear_and_focus_search_input()
-
-    debounce_set_search: underscore.debounce(((value) -> @actions('projects').setState(search: value)), 300)
-
-    set_search: (value) ->
-        @setState(search:value)
-        @debounce_set_search(value)
-
-    render: ->
-        <SearchInput
-            ref         = 'projects_search'
-            autoFocus   = {true}
-            value       = {@state.search}
-            on_change   = {@set_search}
-            placeholder = 'Search for projects...'
-            on_submit   = {(_, opts)=>@props.open_first_project(not opts.ctrl_down)}
-        />
-
-HashtagGroup = rclass
-    displayName : 'Projects-HashtagGroup'
-
-    propTypes :
-        hashtags          : rtypes.array.isRequired
-        toggle_hashtag    : rtypes.func.isRequired
-        selected_hashtags : rtypes.object
-
-    getDefaultProps: ->
-        selected_hashtags : {}
-
-    handle_tag_click: (tag) ->
-        return (e) =>
-            @props.toggle_hashtag(tag)
-            analytics_event('projects_page', 'clicked_hashtag', tag)
-
-    render_hashtag: (tag) ->
-        color = 'info'
-        if @props.selected_hashtags and @props.selected_hashtags[tag]
-            color = 'warning'
-        <Button key={tag} onClick={this.handle_tag_click(tag)} bsSize='small' bsStyle={color}>
-            {misc.trunc(tag, 60)}
-        </Button>
-
-    render: ->
-        <ButtonGroup style={maxHeight:'18ex', overflowY:'auto', overflowX:'hidden',     border: '1px solid lightgrey', padding: '5px', background: '#fafafa', borderRadius: '5px'}>
-            {@render_hashtag(tag) for tag in @props.hashtags}
-        </ButtonGroup>
+{ProjectsSearch} = require('./projects/search')
+{Hashtags} = require('./projects/hashtags')
 
 ProjectsListingDescription = rclass
     displayName : 'Projects-ProjectsListingDescription'
@@ -1406,9 +1346,7 @@ ProjectList = rclass
         user_map : undefined
 
     render_load_all_projects_button: ->
-        return <LoadAllProjects
-                    done = {@props.load_all_projects_done}
-                    redux = {redux} />
+        return <LoadAllProjects />
 
     render_project: (index) ->
         if index == @props.projects.length
@@ -1500,6 +1438,9 @@ exports.ProjectsPage = ProjectsPage = rclass
         deleted           : false
         search            : ''
         selected_hashtags : {}
+
+    getInitialState: ->
+        clear_and_focus_search : 0
 
     componentWillReceiveProps: (next) ->
         if not @props.project_map?
@@ -1649,7 +1590,7 @@ exports.ProjectsPage = ProjectsPage = rclass
 
     clear_filters_and_focus_search_input: ->
         @actions('projects').setState(selected_hashtags:{})
-        @refs.search.clear_and_focus_search_input()
+        @setState(clear_and_focus_search : @state.clear_and_focus_search + 1)
 
     render_new_project_creator: ->
         n = @project_list().length
@@ -1701,10 +1642,10 @@ exports.ProjectsPage = ProjectsPage = rclass
             </Row>
             <Row>
                 <Col sm={4}>
-                    <ProjectsSearch ref="search" search={@props.search} open_first_project={@open_first_project} />
+                    <ProjectsSearch clear_and_focus_search={@state.clear_and_focus_search} default_search={@props.search} open_first_project={@open_first_project} />
                 </Col>
                 <Col sm={8}>
-                    <HashtagGroup
+                    <Hashtags
                         hashtags          = {@hashtags()}
                         selected_hashtags = {@props.selected_hashtags[@filter()]}
                         toggle_hashtag    = {@toggle_hashtag} />
@@ -1713,7 +1654,7 @@ exports.ProjectsPage = ProjectsPage = rclass
             <Row>
                 <Col sm={12} style={marginTop:'1ex'}>
                     <VisibleMDLG>
-                        <div style={maxWidth:'50%', float:'right'}>
+                        <div style={maxWidth:'50%', float:'right', paddingLeft:'30px'}>
                             <UpgradeStatus />
                         </div>
                     </VisibleMDLG>
@@ -1746,91 +1687,4 @@ exports.ProjectsPage = ProjectsPage = rclass
         </Col>
         # note above -- anonymous accounts can't have old projects.
 
-LoadAllProjects = rclass
-    displayName: "LoadAllProjects"
-
-    propTypes:
-        done  : rtypes.bool
-        redux : rtypes.object
-
-    componentDidMount: ->
-        @mounted = true
-
-    componentWillUnmount: ->
-        @mounted = false
-
-    load: ->
-        @setState(loading : true)
-        await @props.redux.getActions('projects').load_all_projects()
-        if not @mounted
-            return
-        @setState(loading : false)
-
-    render_loading: ->
-        if this.state?.loading
-            return <Loading />
-
-    render_button: ->
-        <Button
-            onClick={@load}
-            bsStyle='info'
-            bsSize='large'
-            style={width:'100%', fontSize:'18pt'}>
-            {@render_loading()}
-            Load any older projects...
-        </Button>
-
-    render: ->
-        if @props.done
-            return <span/>
-        <div>
-            {@render_button()}
-        </div>
-
-
-ProjectTitle = rclass
-    displayName: 'Projects-ProjectTitle'
-
-    reduxProps:
-        projects :
-            project_map : rtypes.immutable
-
-    propTypes:
-        project_id   : rtypes.string.isRequired
-        handle_click : rtypes.func
-        style        : rtypes.object
-
-    shouldComponentUpdate: (nextProps) ->
-        nextProps.project_map?.get(@props.project_id)?.get('title') != @props.project_map?.get(@props.project_id)?.get('title')
-
-    handle_click: (e) ->
-        if @props.handle_click?
-            @props.handle_click(e)
-        else
-            # fallback behavior
-            redux.getActions('projects').open_project(project_id : @props.project_id)
-
-    render: ->
-        if not @props.project_map?
-            return <Loading />
-        title = @props.project_map?.get(@props.project_id)?.get('title')
-        if title?
-            <a onClick={@handle_click} style={@props.style} role='button'>{html_to_text(title)}</a>
-        else
-            <span style={@props.style}>(Private project)</span>
-
-exports.ProjectTitle = rclass
-    propTypes:
-        project_id   : rtypes.string.isRequired
-        handle_click : rtypes.func
-        style        : rtypes.object
-    render: ->
-        # wrapped this way because of this hard to debug issue:
-        #   https://github.com/sagemathinc/cocalc/issues/4310
-        <Redux redux={redux}>
-            <ProjectTitle
-                project_id={@props.project_id}
-                handle_click={@props.handle_click}
-                style={@props.style}
-                />
-        </Redux>
+{LoadAllProjects} = require('./projects/load-all')

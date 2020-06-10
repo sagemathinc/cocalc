@@ -829,9 +829,10 @@ function useReduxEditorStore(
   is_public?: boolean
 ) {
   const [value, set_value] = React.useState(() =>
+    // the editor itself might not be defined hence the ?. below:
     redux
       .getEditorStore(project_id, filename, is_public)
-      .getIn(path as [string, string, string, string, string])
+      ?.getIn(path as [string, string, string, string, string])
   );
 
   React.useEffect(() => {
