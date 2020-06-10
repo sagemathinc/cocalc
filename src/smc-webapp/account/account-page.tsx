@@ -11,7 +11,7 @@ and configuration.
 */
 
 import { local_storage_length } from "smc-util/misc";
-import immutable from "immutable";
+import * as immutable from "immutable";
 import {
   React,
   rclass,
@@ -19,7 +19,6 @@ import {
   redux,
   Rendered,
   Component,
-  TypedMap,
 } from "../app-framework";
 import { Col, Row, Tab, Tabs } from "../antd-bootstrap";
 
@@ -39,7 +38,6 @@ import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { Icon, Loading } from "../r_misc";
 import { SignOut } from "../account/sign-out";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
-import { PassportStrategy } from "./passport-types";
 
 // All provided via redux
 interface Props {
@@ -56,7 +54,7 @@ interface Props {
   // from the account store
   account_id?: string;
   active_page?: string;
-  strategies?: immutable.List<TypedMap<PassportStrategy>>;
+  strategies?;
   sign_up_error?: immutable.Map<string, string>;
   sign_in_error?: string;
   signing_in?: boolean;

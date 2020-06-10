@@ -354,7 +354,8 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  /*
+  // This is needed for **the share server**, which can't
+  // do windowing.
   private render_list_of_cells_directly() {
     const v: Rendered[] = [];
     let index: number = 0;
@@ -374,13 +375,21 @@ export class CellList extends Component<CellListProps> {
 
     return v;
   }
-  */
 
   private render_list_of_cells(): Rendered | Rendered[] {
     const style: React.CSSProperties = {
       backgroundColor: "#fff",
       paddingLeft: "5px",
     };
+
+    if (this.props.actions == null) {
+      // e.g., the share server uses this:
+      return (
+        <div className="smc-vfill" style={style}>
+          {this.render_list_of_cells_directly()}
+        </div>
+      );
+    }
 
     return (
       <div className="smc-vfill" style={style}>

@@ -8,7 +8,15 @@ Create a new project
 */
 import { analytics_event } from "../tracker";
 
-import { Component, React, ReactDOM, redux } from "../app-framework";
+import {
+  React,
+  ReactDOM,
+  redux,
+  useEffect,
+  useIsMountedRef,
+  useRef,
+  useState,
+} from "../app-framework";
 
 import {
   ComputeImages,
@@ -16,25 +24,24 @@ import {
   custom_image_name,
 } from "../custom-software/init";
 
-import { delay } from "awaiting";
+import { callback, delay } from "awaiting";
 
 import { CustomSoftware } from "../custom-software/selector";
 
-const {
-  Row,
-  Col,
+import {
   Well,
   Button,
   ButtonToolbar,
   FormControl,
   FormGroup,
   Alert,
-  ErrorDisplay,
-} = require("react-bootstrap");
+} from "../antd-bootstrap";
 
-import { Icon, Space } from "../r_misc";
+import { Row, Col } from "antd";
 
-const misc = require("smc-util/misc");
+import { A, ErrorDisplay, Icon, Space } from "../r_misc";
+
+import { uuid } from "smc-util/misc";
 
 const official: ComputeImageTypes = "official";
 const custom: ComputeImageTypes = "custom";
@@ -47,126 +54,112 @@ interface Props {
 
 type EditState = "edit" | "view" | "saving";
 
-interface State {
-  state: EditState;
-  show_advanced: boolean;
-  title_text: string;
-  error: string;
-  image_type: ComputeImageTypes;
-  image_selected?: string;
-  // toggles form true → false after first edit
-  title_prefill: boolean;
-}
+export const NewProjectCreator: React.FC<Props> = ({
+  start_in_edit_mode,
+  default_value,
+  images,
+}: Props) => {
+  // view --> edit --> saving --> view
+  const [state, set_state] = useState<EditState>(
+    start_in_edit_mode ? "edit" : "view"
+  );
+  const [title_text, set_title_text] = useState<string>(default_value ?? "");
+  const [error, set_error] = useState<string>("");
+  const [show_advanced, set_show_advanced] = useState<boolean>(false);
+  const [image_selected, set_image_selected] = useState<string | undefined>(
+    undefined
+  );
+  const [image_type, set_image_type] = useState<ComputeImageTypes>(official);
+  // title_prefill toggles form true → false after first edit
+  const [title_prefill, set_title_prefill] = useState<boolean>(true);
 
-const INIT_STATE: Readonly<State> = Object.freeze({
-  state: "view" as EditState,
-  title_text: "",
-  error: "",
-  show_advanced: false,
-  image_selected: undefined,
-  image_type: official,
-  title_prefill: true,
-});
+  const new_project_title_ref = useRef(null);
 
-export class NewProjectCreator extends Component<Props, State> {
-  private is_mounted: boolean = false;
+  useEffect(() => {
+    select_text();
+  }, []);
 
-  constructor(props) {
-    super(props);
-    this.state = Object.assign({}, INIT_STATE, {
-      // view --> edit --> saving --> view
-      state: props.start_in_edit_mode ? "edit" : "view",
-      title_text: props.default_value ? props.default_value : "",
-    });
-  }
+  const is_mounted_ref = useIsMountedRef();
 
-  componentDidMount() {
-    this.is_mounted = true;
-    this.select_text();
-  }
-
-  componentWillUnmount() {
-    this.is_mounted = false;
-  }
-
-  private async select_text(): Promise<void> {
+  async function select_text(): Promise<void> {
     // wait for next render loop so the title actually is in the DOM...
     await delay(1);
-    const text = ReactDOM.findDOMNode(this.refs.new_project_title);
-    if (text == null) return;
-    text.select();
+    ReactDOM.findDOMNode(new_project_title_ref.current)?.select();
   }
 
-  start_editing() {
-    this.setState({
-      state: "edit",
-      title_text: this.props.default_value ? this.props.default_value : "",
-    });
-    this.select_text();
+  function start_editing(): void {
+    set_state("edit");
+    set_title_text(default_value ?? "");
+    select_text();
   }
 
-  cancel_editing = () => {
-    if (!this.is_mounted) return;
-    this.setState(Object.assign({}, INIT_STATE, { state: "view" }));
-  };
+  function cancel_editing(): void {
+    if (!is_mounted_ref.current) return;
+    set_state("view");
+    set_title_text(default_value ?? "");
+    set_error("");
+    set_show_advanced(false);
+    set_image_selected(undefined);
+    set_image_type(official);
+    set_title_prefill(true);
+  }
 
-  toggle_editing = () => {
-    if (this.state.state === "view") {
-      this.start_editing();
+  function toggle_editing(): void {
+    if (state === "view") {
+      start_editing();
     } else {
-      this.cancel_editing();
+      cancel_editing();
     }
-  };
+  }
 
-  create_project = () => {
-    const token = misc.uuid();
-    this.setState({ state: "saving" });
+  async function create_project(): Promise<void> {
+    set_state("saving");
     const actions = redux.getActions("projects");
-    const compute_image: string =
-      this.state.image_type == custom && this.state.image_selected != null
-        ? custom_image_name(this.state.image_selected)
+    const image: string =
+      image_type == custom && image_selected != null
+        ? custom_image_name(image_selected)
         : "default";
+    const token = uuid();
     actions.create_project({
-      title: this.state.title_text,
-      image: compute_image,
+      title: title_text,
+      image,
       token,
-      start: false, // definitely do NOT want to start, due to apply_default_upgrades
+      start: false, // do NOT want to start, due to apply_default_upgrades
     });
-    redux
-      .getStore("projects")
-      .wait_until_project_created(token, 30, async (err, project_id) => {
-        if (err != undefined) {
-          if (this.is_mounted) {
-            this.setState({
-              state: "edit",
-              error: `Error creating project -- ${err}`,
-            });
-          }
-        } else {
-          // We also update the customer billing information so apply_default_upgrades works.
-          const billing_actions = redux.getActions("billing");
-          if (billing_actions != null) {
-            try {
-              await billing_actions.update_customer();
-              await actions.apply_default_upgrades({ project_id }); // see issue #4192
-            } catch (err) {
-              // Ignore error coming from this -- it's merely a convenience to
-              // upgrade the project on creation; user could always do it manually,
-              // and nothing in the UI suggests it will happen.
-            }
-          }
-          // switch_to=true is perhaps suggested by #4088
-          actions.open_project({ project_id, switch_to: true });
-          if (this.is_mounted) {
-            this.cancel_editing();
-          }
-        }
-      });
-    analytics_event("create_project", "created_new_project");
-  };
 
-  render_info_alert() {
-    if (this.state.state === "saving") {
+    let project_id: string;
+    try {
+      project_id = await callback(
+        redux.getStore("projects").wait_until_project_created,
+        token,
+        30
+      );
+    } catch (err) {
+      if (!is_mounted_ref.current) return;
+      set_state("edit");
+      set_error(`Error creating project -- ${err}`);
+      return;
+    }
+    // We also update the customer billing information so apply_default_upgrades works.
+    const billing_actions = redux.getActions("billing");
+    if (billing_actions != null) {
+      try {
+        await billing_actions.update_customer();
+        await actions.apply_default_upgrades({ project_id }); // see issue #4192
+      } catch (err) {
+        // Ignore error coming from this -- it's merely a convenience to
+        // upgrade the project on creation; user could always do it manually,
+        // and nothing in the UI guarantees it will happen.
+      }
+    }
+    // switch_to=true is perhaps suggested by #4088
+    actions.open_project({ project_id, switch_to: true });
+    cancel_editing();
+    analytics_event("create_project", "created_new_project");
+  }
+
+  function render_info_alert(): JSX.Element | undefined {
+    if (state === "saving") {
       return (
         <div style={{ marginTop: "30px" }}>
           <Alert bsStyle="info">
@@ -178,31 +171,27 @@ export class NewProjectCreator extends Component<Props, State> {
     }
   }
 
-  render_error() {
-    if (this.state.error) {
+  function render_error(): JSX.Element | undefined {
+    if (error) {
       return (
         <div style={{ marginTop: "30px" }}>
-          <ErrorDisplay
-            error={this.state.error}
-            onClose={() => this.setState({ error: "" })}
-          />
+          <ErrorDisplay error={error} onClose={() => set_error("")} />
         </div>
       );
     }
   }
 
-  render_new_project_button() {
+  function render_new_project_button(): JSX.Element {
     return (
       <Row>
-        <Col sm={4}>
+        <Col xs={24}>
           <Button
             cocalc-test={"create-project"}
             bsStyle={"success"}
-            active={this.state.state !== "view"}
-            disabled={this.state.state !== "view"}
-            block
-            type={"submit"}
-            onClick={this.toggle_editing}
+            bsSize={"large"}
+            disabled={state !== "view"}
+            onClick={toggle_editing}
+            style={{ width: "100%" }}
           >
             <Icon name="plus-circle" /> Create New Project...
           </Button>
@@ -211,140 +200,149 @@ export class NewProjectCreator extends Component<Props, State> {
     );
   }
 
-  create_disabled() {
+  function create_disabled() {
     return (
       // no name of new project
-      this.state.title_text === "" ||
+      title_text === "" ||
       // currently saving (?)
-      this.state.state === "saving" ||
+      state === "saving" ||
       // user wants a custom image, but hasn't selected one yet
-      (this.state.image_type === custom && this.state.image_selected == null)
+      (image_type === custom && image_selected == null)
     );
   }
 
-  set_title = (text: string) => {
-    this.setState({ title_text: text, title_prefill: false });
-  };
+  function set_title(text: string): void {
+    set_title_text(text);
+    set_title_prefill(false);
+  }
 
-  input_on_change = (): void => {
-    const text = ReactDOM.findDOMNode(this.refs.new_project_title).value;
-    this.set_title(text);
-  };
+  function input_on_change(): void {
+    const text = ReactDOM.findDOMNode(new_project_title_ref.current)?.value;
+    set_title(text);
+  }
 
-  handle_keypress = (e) => {
+  function handle_keypress(e): void {
     if (e.keyCode === 27) {
-      this.cancel_editing();
-    } else if (e.keyCode === 13 && this.state.title_text !== "") {
-      this.create_project();
+      cancel_editing();
+    } else if (e.keyCode === 13 && title_text !== "") {
+      create_project();
     }
-  };
+  }
 
-  render_advanced() {
-    if (!this.state.show_advanced) return;
+  function customer_software_set_state(obj: {
+    image_selected?: string;
+    title_text?: string;
+    image_type?: ComputeImageTypes;
+  }): void {
+    if (obj.image_selected != null) {
+      set_image_selected(obj.image_selected);
+    }
+    if (obj.title_text != null) {
+      set_title_text(obj.title_text);
+    }
+    if (obj.image_type != null) {
+      set_image_type(obj.image_type);
+    }
+  }
+
+  function render_advanced() {
+    if (!show_advanced) return;
     return (
       <CustomSoftware
-        setParentState={(obj) => this.setState(obj)}
-        images={this.props.images}
-        image_selected={this.state.image_selected}
-        image_type={this.state.image_type}
-        title_prefill={this.state.title_prefill}
+        setParentState={customer_software_set_state}
+        images={images}
+        image_selected={image_selected}
+        image_type={image_type}
+        title_prefill={title_prefill}
       />
     );
   }
 
-  render_advanced_toggle() {
-    if (this.state.show_advanced) return;
+  function render_advanced_toggle(): JSX.Element | undefined {
+    if (show_advanced) return;
     return (
-      <div>
+      <div style={{ margin: "10px 0 0" }}>
         <a
-          onClick={() => this.setState({ show_advanced: true })}
+          onClick={() => set_show_advanced(true)}
           style={{ cursor: "pointer" }}
         >
-          Advanced…
+          <b>Software environment...</b>
         </a>
       </div>
     );
   }
 
-  render_input_section() {
+  function render_input_section(): JSX.Element | undefined {
     return (
       <Well style={{ backgroundColor: "#FFF" }}>
         <Row>
-          <Col sm={6}>
+          <Col sm={12}>
             <FormGroup>
               <FormControl
-                ref="new_project_title"
+                ref={new_project_title_ref}
                 type="text"
                 placeholder="Project title"
-                disabled={this.state.state === "saving"}
-                value={this.state.title_text}
-                onChange={this.input_on_change}
-                onKeyDown={this.handle_keypress}
+                disabled={state === "saving"}
+                value={title_text}
+                onChange={input_on_change}
+                onKeyDown={handle_keypress}
                 autoFocus
               />
             </FormGroup>
-            {this.render_advanced_toggle()}
+            {render_advanced_toggle()}
           </Col>
-          <Col sm={6}>
-            <div style={{ color: "#666" }}>
-              A <b>project</b> is your own, private computational workspace that
-              you can share with others.
-              <br />
-              <br />
-              You can easily change the project's title at any time in project
-              settings.
+          <Col sm={12}>
+            <div style={{ color: "#666", marginLeft: "30px" }}>
+              A <A href="https://doc.cocalc.com/project.html">project</A> is an
+              isolated private computational workspace that you can share with
+              others. You can easily change the project's title at any time in
+              project settings.
             </div>
           </Col>
         </Row>
-        {this.render_advanced()}
+        {render_advanced()}
         <Row>
-          <Col sm={12} style={{ marginTop: "10px" }}>
+          <Col sm={24} style={{ marginTop: "10px" }}>
             <ButtonToolbar>
+              <Button disabled={state === "saving"} onClick={cancel_editing}>
+                Cancel
+              </Button>
               <Button
-                disabled={this.create_disabled()}
-                onClick={() => this.create_project()}
+                disabled={create_disabled()}
+                onClick={() => create_project()}
                 bsStyle="success"
               >
                 Create Project
-              </Button>
-              <Button
-                disabled={this.state.state === "saving"}
-                onClick={this.cancel_editing}
-              >
-                Cancel
               </Button>
             </ButtonToolbar>
           </Col>
         </Row>
         <Row>
-          <Col sm={12}>
-            {this.render_error()}
-            {this.render_info_alert()}
+          <Col sm={24}>
+            {render_error()}
+            {render_info_alert()}
           </Col>
         </Row>
       </Well>
     );
   }
 
-  render_project_creation() {
+  function render_project_creation(): JSX.Element | undefined {
+    if (state == "view") return;
     return (
-      <Row>
-        <Col sm={12}>
+      <Row style={{ width: "100%", paddingBottom: "20px" }}>
+        <Col sm={24}>
           <Space />
-          {this.render_input_section()}
+          {render_input_section()}
         </Col>
       </Row>
     );
   }
 
-  render() {
-    return (
-      <div>
-        {this.render_new_project_button()}
-        {this.state.state !== "view"
-          ? this.render_project_creation()
-          : undefined}
-      </div>
-    );
-  }
-}
+  return (
+    <div>
+      {render_new_project_button()}
+      {render_project_creation()}
+    </div>
+  );
+};
