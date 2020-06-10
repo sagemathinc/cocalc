@@ -373,10 +373,11 @@ start_server = (tcp_port, raw_port, cb) ->
         cb(err)
     )
 
-# The reason for base 64 and json is to have one command-line compatible block of data
-# That can be handled easily under all circumstances.
-set_extra_env = (env64) ->
+# Contains additional environment variables. Base 64 encoded JSON of {[key:string]:string}.
+set_extra_env = ->
+    return if not process.env.COCALC_EXTRA_ENV
     try
+        env64 = process.env.COCALC_EXTRA_ENV
         raw = Buffer.from(env64, 'base64').toString('utf8')
         data = JSON.parse(raw)
         if typeof data == 'object'
@@ -387,7 +388,7 @@ set_extra_env = (env64) ->
                 process.env[k] = v
     catch err
         # we report and ignore errors
-        winston.debug("ERROR set_extra_env: #{err}")
+        winston.debug("ERROR set_extra_env -- cannot process '#{process.env.COCALC_EXTRA_ENV}' -- #{err}")
 
 program.usage('[?] [options]')
     .option('--tcp_port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
@@ -395,7 +396,6 @@ program.usage('[?] [options]')
     .option('--console_port <n>', 'port to find console server on (optional; uses port file if not given); if this is set we assume some other system is managing the console server and do not try to start it -- just assume it is listening on this port always', ((n)->parseInt(n)), 0)
     .option('--kucalc', "Running in the kucalc environment")
     .option('--test_firewall', 'Abort and exit w/ code 99 if internal GCE information is accessible')
-    .option('--env', "Set additional environmen variables. Base 64 encoded JSON of {[key:string]:string}.")
     .parse(process.argv)
 
 if program.kucalc
@@ -412,7 +412,7 @@ else
     winston.debug("NOT running in kucalc")
     kucalc.IN_KUCALC = false
 
-set_extra_env(program.env)
+set_extra_env()
 
 start_server program.tcp_port, program.raw_port, (err) ->
     if err
