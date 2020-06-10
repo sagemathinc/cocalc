@@ -200,15 +200,16 @@ export class CellList extends Component<CellListProps> {
     }
 
     // supported scroll positions are in types.ts
-    if (scroll === "cell visible") {
+    if (scroll.startsWith("cell ")) {
+      const align = scroll === "cell top" ? "start" : "top";
       if (this.props.cur_id == null) return;
       const n = this.props.cell_list.indexOf(this.props.cur_id);
       if (n == -1) return;
-      list.ensure_row_is_visible(n, "top");
+      list.ensure_row_is_visible(n, align);
       await delay(5); // needed due to shift+enter causing output
       list = this.windowed_list_ref.current;
       if (list == null) return;
-      list.ensure_row_is_visible(n, "top");
+      list.ensure_row_is_visible(n, align);
     }
     if (info == null) return;
 
