@@ -18,7 +18,7 @@ import { Icon, TimeAgo, PathLink, r_join, Space, Tip } from "../../r_misc";
 const { User } = require("../../users");
 import { file_actions } from "../../project_store";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { ProjectTitle } = require("../../projects");
+import { ProjectTitle } from "../../projects/project-title";
 import { file_associations } from "../../file-associations";
 import { SystemProcess } from "./system-process";
 import { UserMap } from "smc-webapp/todo-types";

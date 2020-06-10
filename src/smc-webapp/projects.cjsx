@@ -18,7 +18,6 @@ json_stable = require("json-stable-stringify")
 
 misc = require('smc-util/misc')
 {required, defaults} = misc
-{html_to_text} = require('./misc_page')
 {SiteName, PolicyPricingPageUrl} = require('./customize')
 
 markdown = require('./markdown')
@@ -1731,50 +1730,3 @@ LoadAllProjects = rclass
             {@render_button()}
         </div>
 
-
-ProjectTitle = rclass
-    displayName: 'Projects-ProjectTitle'
-
-    reduxProps:
-        projects :
-            project_map : rtypes.immutable
-
-    propTypes:
-        project_id   : rtypes.string.isRequired
-        handle_click : rtypes.func
-        style        : rtypes.object
-
-    shouldComponentUpdate: (nextProps) ->
-        nextProps.project_map?.get(@props.project_id)?.get('title') != @props.project_map?.get(@props.project_id)?.get('title')
-
-    handle_click: (e) ->
-        if @props.handle_click?
-            @props.handle_click(e)
-        else
-            # fallback behavior
-            redux.getActions('projects').open_project(project_id : @props.project_id)
-
-    render: ->
-        if not @props.project_map?
-            return <Loading />
-        title = @props.project_map?.get(@props.project_id)?.get('title')
-        if title?
-            <a onClick={@handle_click} style={@props.style} role='button'>{html_to_text(title)}</a>
-        else
-            <span style={@props.style}>(Private project)</span>
-
-exports.ProjectTitle = rclass
-    propTypes:
-        project_id   : rtypes.string.isRequired
-        handle_click : rtypes.func
-        style        : rtypes.object
-    render: ->
-        # wrapped this way because of this hard to debug issue:
-        #   https://github.com/sagemathinc/cocalc/issues/4310
-        <Redux redux={redux}>
-            <ProjectTitle
-                project_id={@props.project_id}
-                handle_click={@props.handle_click}
-                style={@props.style}
-                />
-        </Redux>
