@@ -24,7 +24,6 @@ markdown = require('./markdown')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, FormControl, FormGroup, InputGroup, Alert, Checkbox, Label} = require('react-bootstrap')
 {VisibleMDLG, ErrorDisplay, Icon, Loading, LoginLink, Saving, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, A} = require('./r_misc')
-{WindowedList} = require("./r_misc/windowed-list")
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
 {UsersViewing} = require('./account/avatar/users-viewing')
 {recreate_users_table} = require('./users')
@@ -1331,54 +1330,7 @@ ProjectsListingDescription = rclass
             {@render_alert_message()}
         </div>
 
-ProjectList = rclass
-    displayName : 'Projects-ProjectList'
-
-    propTypes :
-        projects    : rtypes.array.isRequired
-        images      : rtypes.immutable.Map
-        user_map    : rtypes.immutable.Map
-        redux       : rtypes.object
-        load_all_projects_done : rtypes.bool
-
-    getDefaultProps: ->
-        projects : []
-        user_map : undefined
-
-    render_load_all_projects_button: ->
-        return <LoadAllProjects />
-
-    render_project: (index) ->
-        if index == @props.projects.length
-            return @render_load_all_projects_button()
-        project = @props.projects[index]
-        if not project?
-            return
-        return <ProjectRow
-                     project_id  = {project.project_id}
-                     key = {project.project_id}
-                     index    = {index} />
-
-    render_list: ->
-        return <WindowedList
-              overscan_row_count={3}
-              estimated_row_size={90}
-              row_count={@props.projects.length + 1}
-              row_renderer={(x)=>@render_project(x.index)}
-              row_key={(index) => @props.projects[index]?.project_id ? 'button'}
-              cache_id={'projects'}
-        />
-
-    render: ->
-        if @props.nb_projects == 0
-            <Alert bsStyle='info'>
-                You have not created any projects yet.
-                Click on "Create a new project" above to start working with <SiteName/>!
-            </Alert>
-        else
-            <div className={"smc-vfill"}>
-                {@render_list()}
-            </div>
+{ProjectList} = require('./projects/project-list')
 
 parse_project_tags = (project) ->
     project_information = (project.title + ' ' + project.description).toLowerCase()
@@ -1534,7 +1486,7 @@ exports.ProjectsPage = ProjectsPage = rclass
     visible_projects: ->
         selected_hashtags = underscore.intersection(misc.keys(@props.selected_hashtags[@filter()]), @hashtags())
         words = misc.split(@props.search.toLowerCase()).concat(selected_hashtags)
-        return (project for project in @project_list() when project_is_in_filter(project, @props.hidden, @props.deleted) and @matches(project, words))
+        return (project.project_id for project in @project_list() when project_is_in_filter(project, @props.hidden, @props.deleted) and @matches(project, words))
 
 
     toggle_hashtag: (tag) ->
@@ -1562,10 +1514,10 @@ exports.ProjectsPage = ProjectsPage = rclass
         <div style={projects_title_styles}><Icon name='thumb-tack' /> Projects </div>
 
     open_first_project: (switch_to=true) ->
-        project = @visible_projects()[0]
-        if project?
+        project_id= @visible_projects()?[0]
+        if project_id?
             @actions('projects').setState(search : '')
-            @actions('projects').open_project(project_id: project.project_id, switch_to: switch_to)
+            @actions('projects').open_project(project_id: project_id, switch_to: switch_to)
     ###
     # Consolidate the next two functions.
     ###
@@ -1603,7 +1555,6 @@ exports.ProjectsPage = ProjectsPage = rclass
             default_value={if @props.search then @props.search else 'Untitled'}
             images = {@props.images}
         />
-
 
     render: ->
         if not @props.project_map?
@@ -1674,14 +1625,10 @@ exports.ProjectsPage = ProjectsPage = rclass
             <Row className="smc-vfill">
                 <Col sm={12} className="smc-vfill">
                     <ProjectList
-                        projects    = {visible_projects}
-                        user_map    = {@props.user_map}
-                        images      = {@props.images}
-                        load_all_projects_done = {@props.is_anonymous or @props.load_all_projects_done}
-                        redux       = {redux} />
+                        projects= {visible_projects}
+                    />
                 </Col>
             </Row>
         </Col>
         # note above -- anonymous accounts can't have old projects.
 
-{LoadAllProjects} = require('./projects/load-all')

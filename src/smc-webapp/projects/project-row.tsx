@@ -177,6 +177,10 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
     wordWrap: "break-word",
   };
 
+  if (project == null) {
+    return <></>;
+  }
+
   return (
     <Well style={project_row_styles} onMouseDown={handle_mouse_down}>
       <Row>
