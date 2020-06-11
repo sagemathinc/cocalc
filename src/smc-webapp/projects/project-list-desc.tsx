@@ -64,7 +64,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
   function render_span(query: string): JSX.Element {
     return (
       <span>
-        whose title, description or users contain <strong>{query}</strong>
+        whose title, description, state or users match <strong>{query}</strong>
         <Space />
         <Space />
         <Button
@@ -130,12 +130,12 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     if (query !== "" || deleted || hidden) {
       return (
         <Alert bsStyle="warning" style={{ fontSize: "1.3em" }}>
-          Only showing
+          Only showing the {visible_projects.length}
           <Space />
           <strong>{`${deleted ? "deleted " : ""}${
             hidden ? "hidden " : ""
           }`}</strong>
-          projects
+          {plural(visible_projects.length, "project")}
           <Space />
           {query !== "" ? render_span(query) : undefined}
           {render_projects_actions_toolbar()}
