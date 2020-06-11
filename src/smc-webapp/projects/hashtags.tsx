@@ -4,7 +4,7 @@
  */
 
 import { Tag } from "antd";
-import { Map } from "immutable";
+import { Set } from "immutable";
 import { trunc } from "smc-util/misc";
 
 import { React } from "../app-framework";
@@ -24,7 +24,7 @@ const STYLE: React.CSSProperties = {
 interface Props {
   hashtags: string[];
   toggle_hashtag: (tag: string) => void;
-  selected_hashtags?: Map<string, boolean>;
+  selected_hashtags?: Set<string>;
 }
 
 export const Hashtags: React.FC<Props> = ({
@@ -33,7 +33,7 @@ export const Hashtags: React.FC<Props> = ({
   selected_hashtags,
 }) => {
   const HashTag: React.FC<{ tag: string }> = ({ tag }) => {
-    let checked: boolean = !!selected_hashtags?.get(tag);
+    let checked: boolean = !!selected_hashtags?.has(tag);
     return (
       <CheckableTag
         checked={checked}

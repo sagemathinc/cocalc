@@ -6,7 +6,7 @@
 // ensure this is loaded -- temporary!
 require("../projects");
 
-import { Map } from "immutable";
+import { Map, Set } from "immutable";
 
 import { DISCORD_INVITE } from "smc-util/theme";
 import {
@@ -31,6 +31,7 @@ import { ProjectsSearch } from "./search";
 import { Hashtags } from "./hashtags";
 import { ProjectsListingDescription } from "./project-list-desc";
 import { ProjectList } from "./project-list";
+import { get_visible_projects, get_visible_hashtags } from "./util";
 
 const PROJECTS_TITLE_STYLE: React.CSSProperties = {
   color: "#666",
@@ -63,29 +64,33 @@ export const ProjectsPage: React.FC = () => {
   }, [hidden, deleted]);
   const search: string = useRedux(["projects", "search"]);
 
-  const selected_hashtags: Map<string, Map<string, boolean>> = useRedux([
+  const selected_hashtags: Map<string, Set<string>> = useRedux([
     "projects",
     "selected_hashtags",
   ]);
 
   const project_map: Map<string, any> = useRedux(["projects", "project_map"]);
+  const user_map = useRedux(["users", "user_map"]);
   const visible_projects: string[] = useMemo(
-    () => project_map?.keySeq().toJS() ?? [],
-    /* () => store.get_visible_projects()*/
-    [project_map, filter, selected_hashtags, search]
+    () =>
+      get_visible_projects(
+        project_map,
+        user_map,
+        selected_hashtags?.get(filter),
+        search,
+        "user_last_active"
+      ),
+    [project_map, user_map, filter, selected_hashtags, search]
   );
   const all_projects: string[] = useMemo(
     () => project_map?.keySeq().toJS() ?? [],
     [project_map?.size]
   );
 
-  const visible_hashtags: string[] = ["foo", "bar"];
-  /*useMemo(() => store.get_visible_hashtags(filter), [
-    project_map,
-    search,
-    filter,
-  ]);
-*/
+  const visible_hashtags: string[] = useMemo(
+    () => get_visible_hashtags(project_map, visible_projects),
+    [visible_projects, project_map]
+  );
 
   /*
   reduxProps: {

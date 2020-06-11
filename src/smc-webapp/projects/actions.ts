@@ -1,4 +1,5 @@
 import { redux } from "../app-framework";
+import { Map, Set } from "immutable";
 
 export class AllProjectsActions {
   private actions: any;
@@ -7,18 +8,17 @@ export class AllProjectsActions {
     this.actions = actions;
   }
 
-  public toggle_hashtag(tag: string, filter: string) {
-    let selected_hashtags = this.actions.store.get("selected_hashtags");
-    if (!selected_hashtags[filter]) {
-      selected_hashtags[filter] = {};
-    }
-    if (selected_hashtags[filter][tag]) {
-      // disable the hashtag
-      delete selected_hashtags[filter][tag];
+  public toggle_hashtag(filter: string, tag: string): void {
+    let selected_hashtags =
+      redux.getStore("projects").get("selected_hashtags") ??
+      Map<string, Set<string>>();
+    let hashtags = selected_hashtags.get(filter) ?? Set<string>();
+    if (hashtags.get(tag)) {
+      hashtags = hashtags.delete(tag);
     } else {
-      // enable the hashtag
-      selected_hashtags[filter][tag] = true;
+      hashtags = hashtags.add(tag);
     }
+    selected_hashtags = selected_hashtags.set(filter, hashtags);
     this.actions.setState({ selected_hashtags });
   }
 }
