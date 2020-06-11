@@ -1,4 +1,4 @@
-import { Set as immutableSet } from "immutable";
+import { Set as immutableSet, Map as immutableMap } from "immutable";
 import {
   parse_hashtags,
   search_match,
@@ -65,6 +65,8 @@ export function get_visible_projects(
   user_map,
   hashtags: immutableSet<string> | undefined,
   search: string,
+  deleted: boolean,
+  hidden: boolean,
   sort_by: "user_last_active" | "last_edited" | "title" | "state"
 ): string[] {
   const visible_projects: string[] = [];
@@ -78,7 +80,10 @@ export function get_visible_projects(
     search + " " + hashtags_to_string(hashtags?.toJS())
   );
   project_map.forEach((project, project_id) => {
-    if (search_match(get_search_info(project_id, project, user_map), words)) {
+    if (
+      search_match(get_search_info(project_id, project, user_map), words) &&
+      project_is_in_filter(project, deleted, hidden)
+    ) {
       visible_projects.push(project_id);
     }
   });
@@ -161,4 +166,18 @@ export function get_visible_hashtags(project_map, visible_projects): string[] {
     }
   }
   return Array.from(tags).sort() as string[];
+}
+
+// Returns true if the project should be visible with the given filters selected
+function project_is_in_filter(
+  project: immutableMap<string, any>,
+  deleted: boolean,
+  hidden: boolean
+): boolean {
+  const { account_id } = webapp_client;
+  if (account_id == null) return true;
+  return (
+    !!project.get("deleted") == deleted &&
+    !!project.getIn(["users", account_id, "hide"]) == hidden
+  );
 }

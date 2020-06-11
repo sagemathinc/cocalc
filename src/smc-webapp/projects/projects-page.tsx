@@ -57,8 +57,8 @@ export const ProjectsPage: React.FC = () => {
     "projects",
     "load_all_projects_done",
   ]);
-  const hidden = useRedux(["projects", "hidden"]);
-  const deleted = useRedux(["projects", "deleted"]);
+  const hidden = !!useRedux(["projects", "hidden"]);
+  const deleted = !!useRedux(["projects", "deleted"]);
   const filter = useMemo(() => {
     return `${!!hidden}-${!!deleted}`;
   }, [hidden, deleted]);
@@ -78,9 +78,11 @@ export const ProjectsPage: React.FC = () => {
         user_map,
         selected_hashtags?.get(filter),
         search,
+        deleted,
+        hidden,
         "user_last_active"
       ),
-    [project_map, user_map, filter, selected_hashtags, search]
+    [project_map, user_map, deleted, hidden, filter, selected_hashtags, search]
   );
   const all_projects: string[] = useMemo(
     () => project_map?.keySeq().toJS() ?? [],
