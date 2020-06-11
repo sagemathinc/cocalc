@@ -30,7 +30,9 @@ export const ProjectsListingDescription: React.FC<Props> = ({
   const hidden = useRedux(["projects", "hidden"]);
   const search: string | undefined = useRedux(["projects", "search"]);
   const selected_hashtags = useRedux(["projects", "selected_hashtags"]);
-  const selected_hashtags_for_filter: { [tag]: boolean } = useMemo(() => {
+  const selected_hashtags_for_filter: {
+    [tag: string]: boolean;
+  } = useMemo(() => {
     const filter = `${!!hidden}-${!!deleted}`;
     return selected_hashtags?.get(filter)?.toJS() ?? {};
   }, [selected_hashtags, deleted, hidden]);
@@ -114,7 +116,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
   function render_alert_message(): JSX.Element | undefined {
     let query = (search ?? "").toLowerCase();
     const hashtags_string = (() => {
-      const result = [];
+      const result: string[] = [];
       for (const name in selected_hashtags_for_filter) {
         result.push(name);
       }
