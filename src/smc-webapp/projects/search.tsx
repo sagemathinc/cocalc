@@ -10,21 +10,17 @@ import {
   useActions,
   useRef,
   useState,
+  useStore,
 } from "../app-framework";
 import { SearchInput } from "../r_misc";
 
 interface Props {
-  default_search: string;
-  open_first_project?: (boolean) => void;
-  clear_and_focus_search: number; // when this changes, we clear and focus the search box.
+  clear_and_focus_search?: number; // when this changes, we clear and focus the search box.
 }
 
-export const ProjectsSearch: React.FC<Props> = ({
-  default_search,
-  open_first_project,
-  clear_and_focus_search,
-}) => {
-  const [search, set_search] = useState<string>(default_search);
+export const ProjectsSearch: React.FC<Props> = ({ clear_and_focus_search }) => {
+  const store = useStore("projects");
+  const [search, set_search] = useState<string>(store.get("search") ?? "");
   const projects_search_ref = useRef<any>(null);
   const actions = useActions("projects");
 
@@ -46,7 +42,9 @@ export const ProjectsSearch: React.FC<Props> = ({
         debounce_set_search(value);
       }}
       placeholder="Search for projects..."
-      on_submit={(_, opts) => open_first_project?.(!opts.ctrl_down)}
+      on_submit={(_, opts) =>
+        actions.open_first_visible_project?.(!opts.ctrl_down)
+      }
     />
   );
 };
