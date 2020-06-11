@@ -20,11 +20,15 @@ import { handle_share_css } from "./handle-share-css";
 import { handle_share_listing } from "./handle-share-listing";
 import { handle_user_request } from "./handle-user-request";
 import { handle_path_request } from "./handle-path-request";
+import { handle_open_request } from "./handle-open-request";
 
 import * as util from "./util";
 
 import { Database, Logger } from "./types";
 import { PostgreSQL } from "../postgres/types";
+
+// catch async/await errors
+const wrap = (fn) => (...args) => fn(...args).catch(args[2]);
 
 export function share_router(opts: {
   database: Database;
@@ -149,6 +153,21 @@ export function share_router(opts: {
       base_url,
     });
   });
+
+  router.get(
+    "/open/:schema/:spec*?",
+    wrap(async (req, res) => {
+      log_ip(req);
+      await ready();
+      if (!req.params.schema) throw Error("Invalid 'schema'");
+      if (!req.params.spec) throw Error("Missing 'spec' parameter!");
+      handle_open_request({
+        base_url,
+        req,
+        res,
+      });
+    })
+  );
 
   router.get("/:id/*?", async (req, res) => {
     log_ip(req);
