@@ -19,6 +19,7 @@ const STYLE: React.CSSProperties = {
   padding: "5px",
   background: "#fafafa",
   borderRadius: "5px",
+  marginBottom: "15px",
 };
 
 interface Props {
@@ -46,6 +47,10 @@ export const Hashtags: React.FC<Props> = ({
       </CheckableTag>
     );
   };
+
+  if (hashtags.length == 0) {
+    return <></>;
+  }
 
   return (
     <div style={STYLE}>

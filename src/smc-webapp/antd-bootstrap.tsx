@@ -233,7 +233,7 @@ export function Col(props: {
       props2["offset"] = 2 * props[p + "Offset"]; // loss of info
     }
   }
-  for (const p of ["className", "onClick"]) {
+  for (const p of ["className", "onClick", "style"]) {
     props2[p] = props[p];
   }
   return <antd.Col {...props2}>{props.children}</antd.Col>;
