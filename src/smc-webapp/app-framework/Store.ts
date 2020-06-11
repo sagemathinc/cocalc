@@ -54,7 +54,7 @@ export class Store<State> extends EventEmitter {
     this.wait = this.wait.bind(this);
     this.name = name;
     this.redux = redux;
-    this.setMaxListeners(150);
+    this.setMaxListeners(1000);
   }
 
   protected setup_selectors(): void {

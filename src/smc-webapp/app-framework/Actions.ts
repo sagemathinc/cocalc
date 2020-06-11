@@ -22,7 +22,7 @@ export class Actions<T> {
     if (this.redux.getStore(this.name) == undefined) {
       return; // No op
     }
-    this.redux._set_state({ [this.name]: obj });
+    this.redux._set_state({ [this.name]: obj }, this.name);
   };
 
   destroy = (): void => {

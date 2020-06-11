@@ -104,6 +104,7 @@ export class AppRedux {
   private _stores: ClassMap<any, Store<any>>;
   private _actions: ClassMap<any, Actions<any>>;
   private _last_state: redux_state;
+  private changed_stores: Set<string> = new Set([]);
 
   constructor() {
     this._redux_store_change = this._redux_store_change.bind(this);
@@ -134,6 +135,7 @@ export class AppRedux {
 
   // Only used by tests to completely reset the global redux instance
   __reset(): void {
+    this.changed_stores.clear();
     this._tables = {};
     this._redux_store = createReduxStore(redux_app);
     this._stores = {};
@@ -146,13 +148,15 @@ export class AppRedux {
     if (this._last_state == null) {
       this._last_state = immutable.Map();
     }
-    for (const name in this._stores) {
+    for (const name of this.changed_stores) {
       const store = this._stores[name];
+      if (store == null) continue;
       const s = state.get(name);
       if (this._last_state.get(name) !== s) {
         store._handle_store_change(s);
       }
     }
+    this.changed_stores.clear();
   }
 
   show_state(): void {
@@ -164,7 +168,8 @@ export class AppRedux {
     return this._redux_store.subscribe(this.show_state);
   }
 
-  _set_state(change): void {
+  _set_state(change, store_name: string): void {
+    this.changed_stores.add(store_name);
     this._redux_store.dispatch(action_set_state(change));
   }
 
@@ -239,13 +244,13 @@ export class AppRedux {
       // Put into store. WARNING: New set_states CAN OVERWRITE THESE FUNCTIONS
       let C = immutable.Map(S as {});
       C = C.delete("redux"); // No circular pointing
-      this._set_state({ [name]: C });
+      this._set_state({ [name]: C }, name);
     }
     if (typeof S.getInitialState === "function") {
       init = S.getInitialState();
     }
     if (init != null) {
-      this._set_state({ [name]: init });
+      this._set_state({ [name]: init }, name);
     }
     return S;
   }
@@ -766,6 +771,12 @@ export function useReduxNamedStore(path: string[]) {
     const subpath = path.slice(1);
     let last_value = value;
     const f = (obj) => {
+      if (!f.is_mounted) {
+        // CRITICAL: even after removing the change listener, sometimes f gets called;
+        // I don't know why EventEmitter has those semantics, but it definitely does.
+        // That's why we *also* maintain this is_mounted flag.
+        return;
+      }
       const new_value = obj.getIn(subpath);
       if (last_value !== new_value) {
         /*
@@ -780,8 +791,10 @@ export function useReduxNamedStore(path: string[]) {
         set_value(new_value);
       }
     };
+    f.is_mounted = true;
     store.on("change", f);
     return () => {
+      f.is_mounted = false;
       store.removeListener("change", f);
     };
   }, [path[0]]);
@@ -800,6 +813,7 @@ function useReduxProjectStore(path: string[], project_id: string) {
     const store = redux.getProjectStore(project_id);
     let last_value = value;
     const f = (obj) => {
+      if (!f.is_mounted) return; // see comment for useReduxNamedStore
       const new_value = obj.getIn(path);
       if (last_value !== new_value) {
         /*
@@ -813,8 +827,10 @@ function useReduxProjectStore(path: string[], project_id: string) {
         set_value(new_value);
       }
     };
+    f.is_mounted = true;
     store.on("change", f);
     return () => {
+      f.is_mounted = false;
       store.removeListener("change", f);
     };
   }, []);
@@ -839,6 +855,7 @@ function useReduxEditorStore(
     const store = redux.getEditorStore(project_id, filename, is_public);
     let last_value = value;
     const f = (obj) => {
+      if (!f.is_mounted) return; // see comment for useReduxNamedStore
       const new_value = obj.getIn(path);
       if (last_value !== new_value) {
         /*
@@ -853,8 +870,10 @@ function useReduxEditorStore(
         set_value(new_value);
       }
     };
+    f.is_mounted = true;
     store.on("change", f);
     return () => {
+      f.is_mounted = false;
       store.removeListener("change", f);
     };
   }, []);
