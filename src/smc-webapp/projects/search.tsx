@@ -16,9 +16,13 @@ import { SearchInput } from "../r_misc";
 
 interface Props {
   clear_and_focus_search?: number; // when this changes, we clear and focus the search box.
+  on_submit?: (switch_to: boolean) => void;
 }
 
-export const ProjectsSearch: React.FC<Props> = ({ clear_and_focus_search }) => {
+export const ProjectsSearch: React.FC<Props> = ({
+  clear_and_focus_search,
+  on_submit,
+}) => {
   const store = useStore("projects");
   const [search, set_search] = useState<string>(store.get("search") ?? "");
   const projects_search_ref = useRef<any>(null);
@@ -42,9 +46,7 @@ export const ProjectsSearch: React.FC<Props> = ({ clear_and_focus_search }) => {
         debounce_set_search(value);
       }}
       placeholder="Search for projects..."
-      on_submit={(_, opts) =>
-        actions.open_first_visible_project?.(!opts.ctrl_down)
-      }
+      on_submit={(_, opts) => on_submit?.(!opts.ctrl_down)}
     />
   );
 };

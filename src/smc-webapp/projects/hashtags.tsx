@@ -3,10 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Tag } from "antd";
+import { Map } from "immutable";
 import { trunc } from "smc-util/misc";
+
 import { React } from "../app-framework";
 import { analytics_event } from "../tracker";
-import { Tag } from "antd";
 const { CheckableTag } = Tag;
 
 const STYLE: React.CSSProperties = {
@@ -22,7 +24,7 @@ const STYLE: React.CSSProperties = {
 interface Props {
   hashtags: string[];
   toggle_hashtag: (tag: string) => void;
-  selected_hashtags?: { [tag: string]: boolean };
+  selected_hashtags?: Map<string, boolean>;
 }
 
 export const Hashtags: React.FC<Props> = ({
@@ -31,7 +33,7 @@ export const Hashtags: React.FC<Props> = ({
   selected_hashtags,
 }) => {
   const HashTag: React.FC<{ tag: string }> = ({ tag }) => {
-    let checked: boolean = selected_hashtags != null && selected_hashtags[tag];
+    let checked: boolean = !!selected_hashtags?.get(tag);
     return (
       <CheckableTag
         checked={checked}

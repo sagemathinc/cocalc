@@ -14,7 +14,6 @@ React Component for displaying the entire page on a mobile device.
 # SMC Pages
 # SMELL: Page UI's are mixed with their store/state.
 # So we have to require them even though they aren't used
-{ProjectsPage} = require('./projects')
 {ProjectPage}  = require('./project_page')
 {FileUsePage}  = require('./file-use/page')
 {Support}      = require('./support')

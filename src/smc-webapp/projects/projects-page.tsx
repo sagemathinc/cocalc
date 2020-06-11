@@ -3,17 +3,28 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { List } from "immutable";
+// ensure this is loaded -- temporary!
+require("../projects");
+
+import { Map } from "immutable";
 
 import { DISCORD_INVITE } from "smc-util/theme";
-import { React, useActions, useState } from "../app-framework";
+import {
+  React,
+  redux,
+  useActions,
+  useRedux,
+  useState,
+  // useStore,
+  useMemo,
+} from "../app-framework";
 import { A, Icon, Loading, LoginLink, VisibleMDLG } from "../r_misc";
 import { Row, Col } from "../antd-bootstrap";
 
 import { UsersViewing } from "../account/avatar/users-viewing";
 import { UpgradeStatus } from "../upgrades/status";
+import { SiteName } from "../customize";
 
-import { ProjectList } from "./project-list";
 import { NewProjectCreator } from "./create-project";
 import { ProjectsFilterButtons } from "./projects-filter-buttons";
 import { ProjectsSearch } from "./search";
@@ -24,7 +35,7 @@ import { ProjectList } from "./project-list";
 const PROJECTS_TITLE_STYLE: React.CSSProperties = {
   color: "#666",
   fontSize: "24px",
-  fontWeight: "500",
+  fontWeight: 500,
   marginBottom: "1ex",
 };
 
@@ -36,31 +47,45 @@ const LOADING_STYLE: React.CSSProperties = {
 
 export const ProjectsPage: React.FC = () => {
   const actions = useActions("projects");
-  const store = useStore("projects");
+  //const store = useStore("projects");
   const [clear_and_focus_search, set_clear_and_focus_search] = useState<number>(
     0
   );
 
-  const project_map = useRedux(["projects", "project_map"]);
-  const filter = useRedux(["projects", "filter"]); // todo: computed property
-  const search = useRedux(["projects", "search"]);
-  const selected_hashtags = useRedux(["projects", "selected_hashtags"]);
-  const visible_projects = useMemo(() => store.get_visible_projects(), [
-    project_map,
-    filter,
-    selected_hashtags,
-    search,
+  const load_all_projects_done = useRedux([
+    "projects",
+    "load_all_projects_done",
   ]);
-  const all_projects: List<string> = useMemo(() => {
-    return List<string>(project_map.keySeq());
-  }, [project_map]);
-  const visible_hashtags = useMemo(() => store.get_visible_hashtags(), [
-    project_map,
-    visible_projects,
-  ]);
+  const hidden = useRedux(["projects", "hidden"]);
+  const deleted = useRedux(["projects", "deleted"]);
   const filter = useMemo(() => {
     return `${!!hidden}-${!!deleted}`;
   }, [hidden, deleted]);
+  const search: string = useRedux(["projects", "search"]);
+
+  const selected_hashtags: Map<string, Map<string, boolean>> = useRedux([
+    "projects",
+    "selected_hashtags",
+  ]);
+
+  const project_map: Map<string, any> = useRedux(["projects", "project_map"]);
+  const visible_projects: string[] = useMemo(
+    () => project_map?.keySeq().toJS() ?? [],
+    /* () => store.get_visible_projects()*/
+    [project_map, filter, selected_hashtags, search]
+  );
+  const all_projects: string[] = useMemo(
+    () => project_map?.keySeq().toJS() ?? [],
+    [project_map?.size]
+  );
+
+  const visible_hashtags: string[] = ["foo", "bar"];
+  /*useMemo(() => store.get_visible_hashtags(filter), [
+    project_map,
+    search,
+    filter,
+  ]);
+*/
 
   /*
   reduxProps: {
@@ -321,7 +346,6 @@ export const ProjectsPage: React.FC = () => {
       <NewProjectCreator
         start_in_edit_mode={n === 0}
         default_value={search ?? "Untitled"}
-        images={images}
       />
     );
   }
@@ -371,13 +395,22 @@ export const ProjectsPage: React.FC = () => {
       </Row>
       <Row>
         <Col sm={4}>
-          <ProjectsSearch clear_and_focus_search={clear_and_focus_search} />
+          <ProjectsSearch
+            clear_and_focus_search={clear_and_focus_search}
+            on_submit={(switch_to: boolean) => {
+              const project_id = visible_projects[0];
+              if (project_id != null) {
+                actions.setState({ search: "" });
+                actions.open_project({ project_id, switch_to });
+              }
+            }}
+          />
         </Col>
         <Col sm={8}>
           <Hashtags
             hashtags={visible_hashtags}
-            selected_hashtags={selected_hashtags.get(filter)}
-            toggle_hashtag={(tag) => actions.toggle_hashtag(tag)}
+            selected_hashtags={selected_hashtags?.get(filter)}
+            toggle_hashtag={(tag) => actions.toggle_hashtag(filter, tag)}
           />
         </Col>
       </Row>
@@ -403,7 +436,7 @@ export const ProjectsPage: React.FC = () => {
       </Row>
       <Row className="smc-vfill">
         <Col sm={12} className="smc-vfill">
-          <ProjectList projects={visible_projects} />
+          <ProjectList visible_projects={visible_projects} />
         </Col>
       </Row>
     </Col>

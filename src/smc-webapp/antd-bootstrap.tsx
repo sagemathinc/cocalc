@@ -221,8 +221,8 @@ export function Col(props: {
   lgOffset?: number;
   style?: React.CSSProperties;
   className?: string;
-  children?: any;
   onClick?;
+  children?: any;
 }) {
   const props2: any = {};
   for (const p of ["xs", "sm", "md", "lg"]) {
@@ -233,7 +233,9 @@ export function Col(props: {
       props2["offset"] = 2 * props[p + "Offset"]; // loss of info
     }
   }
-  props2.onClick = props.onClick;
+  for (const p of ["className", "onClick"]) {
+    props2[p] = props[p];
+  }
   return <antd.Col {...props2}>{props.children}</antd.Col>;
 }
 

@@ -14,7 +14,7 @@ export const ProjectsFilterButtons: React.FC = () => {
   const actions = useActions("projects");
 
   function render_deleted_button(): JSX.Element {
-    const style = deleted ? "warning" : "default";
+    const style = deleted ? "warning" : undefined;
     return (
       <Button
         onClick={() => {
@@ -31,7 +31,7 @@ export const ProjectsFilterButtons: React.FC = () => {
   }
 
   function render_hidden_button(): JSX.Element {
-    const style = hidden ? "warning" : "default";
+    const style = hidden ? "warning" : undefined;
     return (
       <Button
         onClick={() => {

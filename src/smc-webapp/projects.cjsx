@@ -987,6 +987,9 @@ store.setMaxListeners(1000)
 
 # Register projects actions
 actions = redux.createActions('projects', ProjectsActions)
+require('./projects/actions')
+require('./projects/store')
+
 
 # This require defines a jQuery plugin that depends on the above actions being defined.
 # This will go away when we get rid of use of jQuery and instead 100% use react.
@@ -1079,7 +1082,7 @@ switch_to_project = (project_id) =>
         _project_tables[project_id] = pt
         await once(redux.getTable('projects')._table, "connected")
 
-
+###
 
 {ProjectsSearch} = require('./projects/search')
 {Hashtags} = require('./projects/hashtags')
@@ -1103,11 +1106,4 @@ parse_project_search_string = (project, user_map) ->
             if info?
                 search += (' ' + info.get('first_name') + ' ' + info.get('last_name') + ' ').toLowerCase()
     return search
-
-# Returns true if the project should be visible with the given filters selected
-project_is_in_filter = (project, hidden, deleted) ->
-    account_id = webapp_client.account_id
-    if not account_id?
-        throw Error('project page should not get rendered until after user sign-in and account info is set')
-    return !!project.deleted == deleted and !!project.users?[account_id]?.hide == hidden
-
+###

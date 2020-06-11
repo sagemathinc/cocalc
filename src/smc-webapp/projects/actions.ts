@@ -1,15 +1,14 @@
-class ProjectsActions {
-  public open_first_visible_project(switch_to: boolean = true): void {
-    const project_id = visible_projects[0]; // todo -- have to get from store...
-    if (project_id != null) {
-      this.setState({ search: "" });
-      this.open_project({ project_id, switch_to });
-    }
+import { redux } from "../app-framework";
+
+export class AllProjectsActions {
+  private actions: any;
+
+  constructor(actions) {
+    this.actions = actions;
   }
 
-  public   toggle_hashtag(tag:string) {
-    const { selected_hashtags } = this.props;
-    const filter = this.filter();
+  public toggle_hashtag(tag: string, filter: string) {
+    let selected_hashtags = this.actions.store.get("selected_hashtags");
     if (!selected_hashtags[filter]) {
       selected_hashtags[filter] = {};
     }
@@ -20,6 +19,16 @@ class ProjectsActions {
       // enable the hashtag
       selected_hashtags[filter][tag] = true;
     }
-    actions.setState({ selected_hashtags });
-  },
+    this.actions.setState({ selected_hashtags });
+  }
 }
+
+function init() {
+  const actions: any = redux.getActions("projects");
+  const rewrite: any = new AllProjectsActions(actions);
+  for (const x of ["toggle_hashtag"]) {
+    actions[x] = rewrite[x].bind(rewrite);
+  }
+}
+
+init();

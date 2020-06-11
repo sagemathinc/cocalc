@@ -16,6 +16,7 @@ import {
   useIsMountedRef,
   useRef,
   useState,
+  useRedux,
 } from "../app-framework";
 
 import {
@@ -49,7 +50,6 @@ const custom: ComputeImageTypes = "custom";
 interface Props {
   start_in_edit_mode?: boolean;
   default_value?: string;
-  images?: ComputeImages;
 }
 
 type EditState = "edit" | "view" | "saving";
@@ -57,8 +57,11 @@ type EditState = "edit" | "view" | "saving";
 export const NewProjectCreator: React.FC<Props> = ({
   start_in_edit_mode,
   default_value,
-  images,
 }: Props) => {
+  const images: ComputeImages | undefined = useRedux([
+    "compute_images",
+    "images",
+  ]);
   // view --> edit --> saving --> view
   const [state, set_state] = useState<EditState>(
     start_in_edit_mode ? "edit" : "view"
