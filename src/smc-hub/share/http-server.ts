@@ -10,6 +10,7 @@ the main share server.
 */
 
 import * as express from "express";
+import * as minifyHTML from "express-minify-html-2";
 import * as http from "http";
 
 // import * as hub_register from "../hub_register";
@@ -22,6 +23,28 @@ const share = require("./share");
 const { virtual_hosts } = require("./virtual-hosts");
 
 import { Database, Logger } from "./types";
+
+function init_minify(app) {
+  const htmlMinifier = {
+    removeComments: true,
+    removeCommentsFromCDATA: true,
+    collapseWhitespace: true,
+    collapseBooleanAttributes: true,
+    conservativeCollapse: true,
+    removeAttributeQuotes: true,
+    removeEmptyAttributes: true,
+    minifyCSS: true,
+    minifyJS: true,
+  };
+
+  const mini_mw = minifyHTML({
+    override: true,
+    exception_url: false,
+    htmlMinifier,
+  });
+
+  app.use(mini_mw);
+}
 
 export async function init(opts: {
   database: Database;
@@ -52,6 +75,7 @@ export async function init(opts: {
   });
 
   app.use(vhost);
+  init_minify(app);
 
   router.get("/alive", function (_req, res): void {
     if (!hub_register.database_is_working()) {

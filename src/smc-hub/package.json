@@ -32,6 +32,7 @@
     "engine.io": "^3.3.2",
     "expiring-lru-cache": "^2.1.0",
     "express": "^4.17.1",
+    "express-minify-html-2": "^1.0.1",
     "express-session": "^1.10.4",
     "http-proxy": "^1.18.1",
     "immutable": "^3.8.2",
