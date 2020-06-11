@@ -24,6 +24,7 @@ Notes:
 * All time related units are seconds or UTC.
 * Some values have human readable string counterparts, they are `*_h`.
 '''
+from __future__ import absolute_import, division
 import os
 from os.path import join
 from json import load
@@ -32,6 +33,7 @@ from datetime import datetime
 import psutil as ps
 from dateutil.parser import parse as date_parser
 from collections import defaultdict
+from six.moves import range
 
 # byte -> ki(lo/bi)byte; see IEC 80000-13:2008
 KBMB = 1024.

@@ -2,6 +2,8 @@
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
 # License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
+from __future__ import absolute_import
+from __future__ import print_function
 import json, os
 
 SMC = os.environ['SMC']
@@ -54,7 +56,7 @@ def main():
         to_int = 'port' in name
         read(name.split('/')[-1], os.path.join(SMC, name), to_int=to_int)
 
-    print(json.dumps(status))
+    print((json.dumps(status)))
 
 
 if __name__ == "__main__":

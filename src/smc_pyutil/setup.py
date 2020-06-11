@@ -9,6 +9,7 @@
 
 # CRITICAL: I don't know any other way to ensure the permissions are
 # right on the templates than this
+from __future__ import absolute_import
 import os
 from os.path import join
 path = os.path.dirname(os.path.realpath(__file__))
@@ -40,7 +41,7 @@ d.parse_command_line()
 # credits to http://stackoverflow.com/a/17329493
 python2_nosite = '/usr/local/bin/python2-nosite'
 # don't overwrite for local smc-in-smc development
-if 'user' not in d.command_options.get("install", {}).keys():
+if 'user' not in list(d.command_options.get("install", {}).keys()):
     # check, if python2_nosite exists and is executable
     if os.path.isfile(python2_nosite) and os.access(python2_nosite, os.X_OK):
         import sys

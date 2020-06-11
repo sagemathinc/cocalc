@@ -3,9 +3,12 @@
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
 # License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
+from __future__ import absolute_import
+from __future__ import print_function
 import argparse, codecs, json, os
 
-import sagews2pdf
+from . import sagews2pdf
+from six.moves import range
 
 
 def ipynb_string_list(s):
@@ -61,10 +64,10 @@ class Worksheet(sagews2pdf.Worksheet):
 def sagews_to_pdf(filename):
     base = os.path.splitext(filename)[0]
     ipynb = base + ".ipynb"
-    print("converting: %s --> %s" % (filename, ipynb))
+    print(("converting: %s --> %s" % (filename, ipynb)))
     W = Worksheet(filename)
     codecs.open(ipynb, 'w', 'utf8').write(json.dumps(W.ipynb(), indent=1))
-    print("Created", ipynb)
+    print(("Created", ipynb))
 
 
 def main():

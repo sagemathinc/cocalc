@@ -1,6 +1,7 @@
 #!/usr/bin/python
 from __future__ import print_function
 
+from __future__ import absolute_import
 import os, sys, time
 
 if not 'SMC' in os.environ:
@@ -42,7 +43,7 @@ def main():
             sys.exit(1)
 
     # Update the ~/.snapshots path symlinks
-    from update_snapshots import update_snapshots
+    from .update_snapshots import update_snapshots
     update_snapshots()
 
 

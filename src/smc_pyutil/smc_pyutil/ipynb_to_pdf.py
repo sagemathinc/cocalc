@@ -8,14 +8,16 @@ faster and more reliable, but potentially doesn't "look" as good,
 depending on your tastes.  It also has a dependency on chromium.
 """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import os, sys, time
 from subprocess import check_call
 
 
 def ipynb_to_pdf(path):
     t = time.time()
-    print("-" * 70)
-    print("Convert %s..." % path)
+    print(("-" * 70))
+    print(("Convert %s..." % path))
     if not path.endswith('.ipynb'):
         raise ValueError("every path must end in '.ipynb' but '%s' does not" %
                          (path))
@@ -33,8 +35,8 @@ def ipynb_to_pdf(path):
         "--virtual-time-budget=10000", html
     ])
     os.unlink(html)
-    print("Converted %s to %s in %s seconds" % (path, pdf, time.time() - t))
-    print("-" * 70)
+    print(("Converted %s to %s in %s seconds" % (path, pdf, time.time() - t)))
+    print(("-" * 70))
 
 
 def main():

@@ -6,6 +6,7 @@
 # project HTTP API.
 
 
+from __future__ import absolute_import
 def get_syncdoc_history(path, patches=False):
     """
     Get the history of all edits to the given file.  The path

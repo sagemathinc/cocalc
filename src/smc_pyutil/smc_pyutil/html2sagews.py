@@ -6,8 +6,9 @@
 
 from __future__ import print_function, unicode_literals
 
+from __future__ import absolute_import
 import sys
-import urllib
+import six.moves.urllib.request, six.moves.urllib.parse, six.moves.urllib.error
 import base64
 
 
@@ -28,7 +29,7 @@ def extract(in_fn, out_fn):
     base64str = href.split(',', 1)
     if len(base64str) <= 1:
         raise Exception("unable to parse href data")
-    data = base64.b64decode(urllib.unquote(base64str[1]))
+    data = base64.b64decode(six.moves.urllib.parse.unquote(base64str[1]))
     open(out_fn, 'w').write(data)
 
 

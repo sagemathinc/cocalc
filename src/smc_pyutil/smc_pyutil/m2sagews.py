@@ -14,6 +14,7 @@ Authors:
 """
 
 from __future__ import print_function
+from __future__ import absolute_import
 import sys
 import os
 import codecs
@@ -78,7 +79,7 @@ class M2SageWS(object):
                     fout.write(cell)
 
         self.output = output()
-        self.output.next()
+        next(self.output)
 
     def kernel(self):
         """

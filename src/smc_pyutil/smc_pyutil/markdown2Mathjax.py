@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from __future__ import print_function
+from six.moves import map
+from six.moves import range
 __version_info__ = (0, 3, 9)
 __version__ = '.'.join(map(str, __version_info__))
 __author__ = "Matthew Young"
@@ -146,7 +150,7 @@ def reconstructMath(processedString,
     #Make html substitutions.
     if htmlSafe:
         safeAmp = re.compile("&(?!(?:amp;|lt;|gt;))")
-        for i in xrange(len(codeblocks)):
+        for i in range(len(codeblocks)):
             codeblocks[i] = safeAmp.sub("&amp;", codeblocks[i])
             codeblocks[i] = codeblocks[i].replace("<", "&lt;")
             codeblocks[i] = codeblocks[i].replace(">", "&gt;")
@@ -154,7 +158,7 @@ def reconstructMath(processedString,
     outString = ''
     scan = placeholder_re.scanner(processedString)
     post = 0
-    for i in xrange(len(codeblocks)):
+    for i in range(len(codeblocks)):
         inBlock = int(codeblocks[i][0])
         match = scan.search()
         if not match:

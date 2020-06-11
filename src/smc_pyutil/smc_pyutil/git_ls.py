@@ -18,7 +18,10 @@ For each file, we compute the following information:
          - sha
 """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import json, os, subprocess, sys, uuid
+import six
 
 
 def getmtime(name):
@@ -106,7 +109,7 @@ def gitls(path, time, start, limit, hidden, directories_first, git_aware=True):
 
     # Fill in other OS information about each file
     #for obj in result:
-    for name, info in files.iteritems():
+    for name, info in six.iteritems(files):
         if os.path.isdir(name):
             info['isdir'] = True
         else:
@@ -126,7 +129,7 @@ def gitls(path, time, start, limit, hidden, directories_first, git_aware=True):
             git_path = ['.']
         else:
             git_path = [
-                name for name, info in files.iteritems()
+                name for name, info in six.iteritems(files)
                 if not info.get('isdir', False)
             ]
         log = subprocess.Popen(
@@ -196,7 +199,7 @@ def main():
     if os.path.abspath(args.path) == os.path.join(os.environ['HOME'],
                                                   '.snapshots'):
         # When getting a listing for the .snapshots directory, update it to show the latest version.
-        from update_snapshots import update_snapshots
+        from .update_snapshots import update_snapshots
         update_snapshots()
 
     r = gitls(path=args.path,
@@ -206,7 +209,7 @@ def main():
               hidden=args.hidden,
               directories_first=args.directories_first,
               git_aware=args.git)
-    print(json.dumps(r, separators=(',', ':')))
+    print((json.dumps(r, separators=(',', ':'))))
 
 
 if __name__ == "__main__":

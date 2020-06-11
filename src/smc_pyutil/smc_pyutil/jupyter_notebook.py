@@ -18,6 +18,8 @@
 # The views and conclusions contained in the software and documentation are those of the authors and should not be interpreted as representing official policies, either expressed or implied, of the SageMath Project.
 ######################################################################
 
+from __future__ import absolute_import
+from __future__ import print_function
 import json, os, random, signal, sys, time
 
 
@@ -39,9 +41,9 @@ def server_setup():
     DAEMON_FILE = os.path.join(DATA, "daemon.json")
 
     if len(sys.argv) == 1:
-        print(
+        print((
             "Usage: %s [start/stop/status] normal Jupyter notebook options..."
-            % sys.argv[0])
+            % sys.argv[0]))
         print(
             "If start or stop is given, then runs as a daemon; otherwise, runs in the foreground."
         )
@@ -129,7 +131,7 @@ def action(mode):
             s = info
         else:
             s = {'status': 'stopped'}
-        print(json.dumps(s))
+        print((json.dumps(s)))
         return
 
     elif mode == 'start':
@@ -143,7 +145,7 @@ def action(mode):
         info = is_daemon_running()
         if info:
             # already running -- nothing to do
-            print(json.dumps(info))
+            print((json.dumps(info)))
             return
 
         # The below approach to finding the PID is *HIDEOUS* and could in theory break.
@@ -168,8 +170,8 @@ def action(mode):
             tries += 1
             #sys.stderr.write("tries... %s\n"%tries); sys.stderr.flush()
             if tries >= 20:
-                print(
-                    json.dumps({"error": "Failed to find pid of subprocess."}))
+                print((
+                    json.dumps({"error": "Failed to find pid of subprocess."})))
                 sys.exit(1)
 
             c = "ps -u`whoami` -o pid,cmd|grep 'jupyter-notebook'"

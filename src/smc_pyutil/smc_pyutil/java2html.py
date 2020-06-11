@@ -3,6 +3,8 @@
 # License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 # java2html.py - used by java edit mode
 
+from __future__ import absolute_import
+from __future__ import print_function
 import os, sys, errno
 
 
@@ -24,7 +26,7 @@ def java2html(path):
         output += '\n' + child_stdout.read()
         sys.stdout.flush()
         sys.stderr.flush()
-        print(output.replace('\n', '<br/>'))
+        print((output.replace('\n', '<br/>')))
     finally:
         pass
 

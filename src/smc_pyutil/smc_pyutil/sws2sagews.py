@@ -2,15 +2,17 @@
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
 # License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
+from __future__ import absolute_import
+import six
 MARKERS = {'cell': u"\uFE20", 'output': u"\uFE21"}
 
-import cPickle, json, os, sys
+import six.moves.cPickle, json, os, sys
 
 from uuid import uuid4
 
 
 def uuid():
-    return unicode(uuid4())
+    return six.text_type(uuid4())
 
 
 def process_html(html):
@@ -93,7 +95,7 @@ def output_messages(output):
         messages.extend(process_output(output))
         output = ''
 
-    return MARKERS['output'].join(unicode(json.dumps(x)) for x in messages)
+    return MARKERS['output'].join(six.text_type(json.dumps(x)) for x in messages)
 
 
 def migrate_input(s):
@@ -135,9 +137,9 @@ def sws_body_to_sagews(body):
                 output = body[k2 + 4:k3]
                 i = k3 + 4
 
-        html = unicode(html.strip(), encoding='utf8')
-        input = unicode(migrate_input(input.strip()), encoding='utf8')
-        output = unicode(output.strip(), encoding='utf8')
+        html = six.text_type(html.strip(), encoding='utf8')
+        input = six.text_type(migrate_input(input.strip()), encoding='utf8')
+        output = six.text_type(output.strip(), encoding='utf8')
 
         if html:
             out += MARKERS['cell'] + uuid() + 'i' + MARKERS['cell'] + u'\n'
@@ -250,7 +252,7 @@ def sws_to_sagews(filename):
     meta = {}
     if fmt_2011:
         try:
-            meta = cPickle.loads(
+            meta = six.moves.cPickle.loads(
                 t.extractfile('sage_worksheet/worksheet_conf.pickle').read())
         except KeyError:
             if INLINE_MATH['open'] in body:

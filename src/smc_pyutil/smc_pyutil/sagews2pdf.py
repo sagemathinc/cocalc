@@ -12,7 +12,10 @@ CONTRIBUTORS:
 
 """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
+import six
 reload(sys)
 sys.setdefaultencoding('utf8')
 
@@ -194,13 +197,13 @@ FOOTER = """
 # This will work fine inside KuCalc.
 BASE_URL = 'https://proxy'
 
-import argparse, base64, cPickle, json, os, shutil, sys, textwrap, HTMLParser, tempfile, urllib
+import argparse, base64, six.moves.cPickle, json, os, shutil, sys, textwrap, six.moves.html_parser, tempfile, six.moves.urllib.request, six.moves.urllib.parse, six.moves.urllib.error
 from uuid import uuid4
 
 
 def escape_path(s):
     # see http://stackoverflow.com/questions/946170/equivalent-javascript-functions-for-pythons-urllib-quote-and-urllib-unquote
-    s = urllib.quote(unicode(s).encode('utf-8'), safe='~@#$&()*!+=:;,.?/\'')
+    s = six.moves.urllib.parse.quote(six.text_type(s).encode('utf-8'), safe='~@#$&()*!+=:;,.?/\'')
     return s.replace('#', '%23').replace("?", '%3F')
 
 
@@ -244,7 +247,7 @@ def thread_map(callable, inputs, nb_threads=1):
     If an exception is raised by any thread, a RuntimeError exception
     is instead raised.
     """
-    print "Doing the following in parallel:\n%s" % ('\n'.join(inputs))
+    print("Doing the following in parallel:\n%s" % ('\n'.join(inputs)))
     from multiprocessing.pool import ThreadPool
     tp = ThreadPool(nb_threads)
     exceptions = []
@@ -252,7 +255,7 @@ def thread_map(callable, inputs, nb_threads=1):
     def callable_wrap(x):
         try:
             return callable(x)
-        except Exception, msg:
+        except Exception as msg:
             exceptions.append(msg)
 
     results = tp.map(callable_wrap, inputs)
@@ -264,9 +267,9 @@ def thread_map(callable, inputs, nb_threads=1):
 # create a subclass and override the handler methods
 
 
-class Parser(HTMLParser.HTMLParser):
+class Parser(six.moves.html_parser.HTMLParser):
     def __init__(self, cmds):
-        HTMLParser.HTMLParser.__init__(self)
+        six.moves.html_parser.HTMLParser.__init__(self)
         self.result = ''
         self._commands = cmds
         self._dont_close_img = False
@@ -372,7 +375,7 @@ class Parser(HTMLParser.HTMLParser):
 
 
 def sanitize_math_input(s):
-    from markdown2Mathjax import sanitizeInput
+    from .markdown2Mathjax import sanitizeInput
     # it's critical that $$ be first!
     delims = [('$$', '$$'), ('\\(', '\\)'), ('\\[', '\\]'),
               ('\\begin{equation}', '\\end{equation}'),
@@ -392,9 +395,9 @@ def sanitize_math_input(s):
 
 
 def reconstruct_math(s, tmp):
-    print "s ='%r'" % s
-    print "tmp = '%r'" % tmp
-    from markdown2Mathjax import reconstructMath
+    print("s ='%r'" % s)
+    print("tmp = '%r'" % tmp)
+    from .markdown2Mathjax import reconstructMath
     while len(tmp) > 1:
         s = reconstructMath(s, tmp[-1][0][1], equation_delims=tmp[-1][1])
         del tmp[-1]
@@ -476,9 +479,9 @@ class Cell(object):
                         self.output.append(json.loads(x))
                     except ValueError:
                         try:
-                            print "**WARNING:** Unable to de-json '%s'" % x
+                            print("**WARNING:** Unable to de-json '%s'" % x)
                         except:
-                            print "Unable to de-json some output"
+                            print("Unable to de-json some output")
         else:
             self.output = self.output_uuid = ''
 
@@ -500,7 +503,7 @@ class Cell(object):
             return ""
 
     def latex_output(self):
-        print "BASE_URL", BASE_URL
+        print("BASE_URL", BASE_URL)
         s = ''
         if 'o' in self.input_codes:  # hide output
             return s
@@ -548,8 +551,8 @@ class Cell(object):
                         if os.path.abspath(src) != os.path.abspath(filename):
                             try:
                                 shutil.copyfile(src, filename)
-                            except Exception, msg:
-                                print msg
+                            except Exception as msg:
+                                print(msg)
                         img = filename
                     else:
                         # Get the file from remote server
@@ -700,7 +703,7 @@ def sagews_to_pdf(filename,
         pdf = base + ".pdf"
     else:
         pdf = outfile
-    print "converting: %s --> %s" % (filename, pdf)
+    print("converting: %s --> %s" % (filename, pdf))
     W = Worksheet(filename)
     try:
         if work_dir is None:
@@ -709,7 +712,7 @@ def sagews_to_pdf(filename,
             if not os.path.exists(work_dir):
                 os.makedirs(work_dir)
         if not remove_tmpdir:
-            print "Temporary directory retained: %s" % work_dir
+            print("Temporary directory retained: %s" % work_dir)
         cur = os.path.abspath('.')
         os.chdir(work_dir)
         from codecs import open
@@ -724,12 +727,12 @@ def sagews_to_pdf(filename,
                    shell=True)
         if os.path.exists('tmp.pdf'):
             shutil.move('tmp.pdf', os.path.join(cur, pdf))
-            print "Created", os.path.join(cur, pdf)
+            print("Created", os.path.join(cur, pdf))
     finally:
         if work_dir and remove_tmpdir:
             shutil.rmtree(work_dir)
         else:
-            print "Leaving latex files in '%s'" % work_dir
+            print("Leaving latex files in '%s'" % work_dir)
 
 
 def main():

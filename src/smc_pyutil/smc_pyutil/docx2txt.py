@@ -10,8 +10,12 @@ Part of Python's docx module - http://github.com/mikemaccana/python-docx
 See LICENSE for licensing information.
 """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import logging
 from lxml import etree
+import six
+from six.moves import range
 try:
     from PIL import Image
 except ImportError:
@@ -382,14 +386,14 @@ def table(contents,
             'type': str(twunit)
         })
     tableprops.append(tablewidth)
-    if len(borders.keys()):
+    if len(list(borders.keys())):
         tableborders = makeelement('tblBorders')
         for b in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']:
-            if b in borders.keys() or 'all' in borders.keys():
-                k = 'all' if 'all' in borders.keys() else b
+            if b in list(borders.keys()) or 'all' in list(borders.keys()):
+                k = 'all' if 'all' in list(borders.keys()) else b
                 attrs = {}
                 for a in borders[k].keys():
-                    attrs[a] = unicode(borders[k][a])
+                    attrs[a] = six.text_type(borders[k][a])
                 borderelem = makeelement(b, attributes=attrs)
                 tableborders.append(borderelem)
         tableprops.append(tableborders)
@@ -465,7 +469,7 @@ def table(contents,
                 if isinstance(c, etree._Element):
                     cell.append(c)
                 else:
-                    if celstyle and 'align' in celstyle[i].keys():
+                    if celstyle and 'align' in list(celstyle[i].keys()):
                         align = celstyle[i]['align']
                     else:
                         align = 'left'
@@ -763,7 +767,7 @@ def AdvSearch(document, search, bs=3):
                         if found:
                             break
                         if s + l <= len(searchels):
-                            e = range(s, s + l)
+                            e = list(range(s, s + l))
                             txtsearch = ''
                             for k in e:
                                 txtsearch += searchels[k].text
@@ -851,7 +855,7 @@ def advReplace(document, search, replace, bs=3):
                         if found:
                             break
                         if s + l <= len(searchels):
-                            e = range(s, s + l)
+                            e = list(range(s, s + l))
                             #print "elems:", e
                             txtsearch = ''
                             for k in e:
@@ -871,7 +875,7 @@ def advReplace(document, search, replace, bs=3):
                                               replace)
                                     log.debug("Matched text: %s", txtsearch)
                                     log.debug("Matched text (splitted): %s",
-                                              map(lambda i: i.text, searchels))
+                                              [i.text for i in searchels])
                                     log.debug("Matched at position: %s",
                                               match.start())
                                     log.debug("matched in elements: %s", e)
@@ -1119,7 +1123,7 @@ def main():
         else:
             newfilename = sys.argv[2]
         if os.path.exists(newfilename):
-            print("WARNING: %s already exists; doing nothing." % newfilename)
+            print(("WARNING: %s already exists; doing nothing." % newfilename))
             sys.exit(0)
         document = opendocx(sys.argv[1])
         newfile = open(newfilename, 'w')

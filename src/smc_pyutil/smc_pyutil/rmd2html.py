@@ -4,6 +4,7 @@
 
 # rmd2html.py - used by rmd edit mode
 
+from __future__ import absolute_import
 import os, sys, subprocess, errno
 from subprocess import PIPE
 

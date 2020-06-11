@@ -2,6 +2,8 @@
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
 # License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
+from __future__ import absolute_import
+from __future__ import print_function
 import os, platform, shutil, sys
 
 PLATFORM = platform.system().lower()
@@ -33,7 +35,7 @@ def new_file(path):
 
 def main():
     if len(sys.argv) == 1:
-        print("""
+        print(("""
     This script is called like so:
 
          %s  path/to/file.tex  another/path/to/a/file.tex  ....
@@ -42,7 +44,7 @@ def main():
     If path/to/file.tex does not exist, it is created (including the directory that contains it),
     and if there is a file $HOME/templates/default.tex or /projects/templates/[platform]/default.tex (for tex extension),
     then that template file is set to the initial contents. """ %
-              (sys.argv[0]))
+              (sys.argv[0])))
         sys.exit(1)
 
     for x in sys.argv[1:]:
