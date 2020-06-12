@@ -421,7 +421,7 @@ if (!DISABLE_TS_LOADER_OPTIMIZATIONS) {
       //     TSC_WATCHFILE=UseFsEventsWithFallbackDynamicPolling
       // in package.json's watch. See
       //  https://blog.johnnyreilly.com/2019/05/typescript-and-high-cpu-usage-watch.html
-      async: false,
+      async: true,
     })
   );
 }

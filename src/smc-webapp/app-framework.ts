@@ -290,6 +290,12 @@ export class AppRedux {
     return (tables[name] = table);
   }
 
+  // Set the table; we assume that the table being overwritten
+  // has been cleaned up properly somehow...
+  setTable(name: string, table: Table): void {
+    this._tables[name] = table;
+  }
+
   removeTable(name: string): void {
     if (this._tables[name] != null) {
       if (this._tables[name]._table != null) {

@@ -141,7 +141,7 @@ export const ProjectsPage: React.FC = () => {
         <Col sm={4}>
           {" "}
           <div style={PROJECTS_TITLE_STYLE}>
-            <Icon name="thumb-tack" /> Projects{" "}
+            <Icon name="edit" /> Projects{" "}
           </div>
         </Col>
         <Col sm={4}>
