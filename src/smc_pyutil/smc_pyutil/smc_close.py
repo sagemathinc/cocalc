@@ -2,8 +2,7 @@
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
 # License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
-from __future__ import absolute_import
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 MAX_FILES = 100
 
 import json, os, sys
@@ -58,8 +57,8 @@ def process(paths):
     if v:
         mesg = {'event': 'close', 'paths': v}
         print((prefix +
-              '\x1b]49;%s\x07' % json.dumps(mesg, separators=(',', ':')) +
-              postfix))
+               '\x1b]49;%s\x07' % json.dumps(mesg, separators=(',', ':')) +
+               postfix))
 
 
 def main():

@@ -12,10 +12,9 @@ CONTRIBUTORS:
 
 """
 
-from __future__ import absolute_import
-from __future__ import print_function
+from __future__ import absolute_import, print_function
+from .py23 import text_type, HTMLParser, quote
 import sys
-import six
 reload(sys)
 sys.setdefaultencoding('utf8')
 
@@ -197,13 +196,13 @@ FOOTER = """
 # This will work fine inside KuCalc.
 BASE_URL = 'https://proxy'
 
-import argparse, base64, six.moves.cPickle, json, os, shutil, sys, textwrap, six.moves.html_parser, tempfile, six.moves.urllib.request, six.moves.urllib.parse, six.moves.urllib.error
+import argparse, base64, json, os, shutil, sys, textwrap, tempfile
 from uuid import uuid4
 
 
 def escape_path(s):
     # see http://stackoverflow.com/questions/946170/equivalent-javascript-functions-for-pythons-urllib-quote-and-urllib-unquote
-    s = six.moves.urllib.parse.quote(six.text_type(s).encode('utf-8'), safe='~@#$&()*!+=:;,.?/\'')
+    s = quote(text_type(s).encode('utf-8'), safe='~@#$&()*!+=:;,.?/\'')
     return s.replace('#', '%23').replace("?", '%3F')
 
 
@@ -213,8 +212,13 @@ def wrap(s, c=90):
 
 # used in texifyHTML and then again, in tex_escape
 # they're mapped to macros, defined in the latex preamble
-relational_signs = [('gt', 'gt'), ('lt', 'lt'), ('ge', 'gequal'),
-                    ('le', 'lequal'), ('ne', 'notequal')]
+relational_signs = [
+    ('gt', 'gt'),
+    ('lt', 'lt'),
+    ('ge', 'gequal'),
+    ('le', 'lequal'),
+    ('ne', 'notequal'),
+]
 
 
 def tex_escape(s):
@@ -267,9 +271,9 @@ def thread_map(callable, inputs, nb_threads=1):
 # create a subclass and override the handler methods
 
 
-class Parser(six.moves.html_parser.HTMLParser):
+class Parser(HTMLParser):
     def __init__(self, cmds):
-        six.moves.html_parser.HTMLParser.__init__(self)
+        HTMLParser.__init__(self)
         self.result = ''
         self._commands = cmds
         self._dont_close_img = False

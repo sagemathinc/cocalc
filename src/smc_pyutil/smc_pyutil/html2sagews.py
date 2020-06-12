@@ -4,11 +4,10 @@
 
 # this script converts an html-exported sagews file back to sagews
 
-from __future__ import print_function, unicode_literals
+from __future__ import print_function, unicode_literals, absolute_import
 
-from __future__ import absolute_import
 import sys
-import six.moves.urllib.request, six.moves.urllib.parse, six.moves.urllib.error
+from .py23 import unquote
 import base64
 
 
@@ -29,7 +28,7 @@ def extract(in_fn, out_fn):
     base64str = href.split(',', 1)
     if len(base64str) <= 1:
         raise Exception("unable to parse href data")
-    data = base64.b64decode(six.moves.urllib.parse.unquote(base64str[1]))
+    data = base64.b64decode(unquote(base64str[1]))
     open(out_fn, 'w').write(data)
 
 

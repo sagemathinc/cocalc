@@ -3,16 +3,15 @@
 # License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
 from __future__ import absolute_import
-import six
-MARKERS = {'cell': u"\uFE20", 'output': u"\uFE21"}
-
-import six.moves.cPickle, json, os, sys
-
+import json, os, sys
+from .py23 import cPickle, text_type
 from uuid import uuid4
+
+MARKERS = {'cell': u"\uFE20", 'output': u"\uFE21"}
 
 
 def uuid():
-    return six.text_type(uuid4())
+    return text_type(uuid4())
 
 
 def process_html(html):
@@ -95,7 +94,7 @@ def output_messages(output):
         messages.extend(process_output(output))
         output = ''
 
-    return MARKERS['output'].join(six.text_type(json.dumps(x)) for x in messages)
+    return MARKERS['output'].join(text_type(json.dumps(x)) for x in messages)
 
 
 def migrate_input(s):
@@ -137,9 +136,9 @@ def sws_body_to_sagews(body):
                 output = body[k2 + 4:k3]
                 i = k3 + 4
 
-        html = six.text_type(html.strip(), encoding='utf8')
-        input = six.text_type(migrate_input(input.strip()), encoding='utf8')
-        output = six.text_type(output.strip(), encoding='utf8')
+        html = text_type(html.strip(), encoding='utf8')
+        input = text_type(migrate_input(input.strip()), encoding='utf8')
+        output = text_type(output.strip(), encoding='utf8')
 
         if html:
             out += MARKERS['cell'] + uuid() + 'i' + MARKERS['cell'] + u'\n'
@@ -200,7 +199,7 @@ def sws_to_sagews(filename):
 
     OUTPUT:
     - creates a file foo[-n].sagews  and returns the name of the output file
-    
+
     .. NOTE::
 
         sws files from around 2009 are bzip2 archives with the following layout:
@@ -252,7 +251,7 @@ def sws_to_sagews(filename):
     meta = {}
     if fmt_2011:
         try:
-            meta = six.moves.cPickle.loads(
+            meta = cPickle.loads(
                 t.extractfile('sage_worksheet/worksheet_conf.pickle').read())
         except KeyError:
             if INLINE_MATH['open'] in body:

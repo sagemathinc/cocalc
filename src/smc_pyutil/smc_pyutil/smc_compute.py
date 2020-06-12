@@ -21,10 +21,10 @@
 #
 ###############################################################################
 
-# used in naming streams -- changing this would break all existing data...
 from __future__ import absolute_import, print_function, division
-import six
-from six.moves import range
+from .py23 import iteritems
+
+# used in naming streams -- changing this would break all existing data...
 TO = "-to-"
 
 # appended to end of snapshot name to make it persistent (never automatically deleted)
@@ -181,13 +181,13 @@ def thread_map(callable, inputs):
 
 class Project(object):
     def __init__(
-            self,
-            project_id,  # v4 uuid string
-            dev=False,  # if true, use special devel mode where everything run as same user (no sudo needed); totally insecure!
-            projects=PROJECTS,
-            single=False,
-            kucalc=False,
-            kubernetes=False):
+        self,
+        project_id,  # v4 uuid string
+        dev=False,  # if true, use special devel mode where everything run as same user (no sudo needed); totally insecure!
+        projects=PROJECTS,
+        single=False,
+        kucalc=False,
+        kubernetes=False):
         self._dev = dev
         self._single = single
         self._kucalc = kucalc
@@ -661,15 +661,18 @@ spec:
       nfs:
          server: {nfs_server_ip}
          path: "/{project_id}"
-""".format(pod_name=pod_name,
-           project_id=self.project_id,
-           nfs_server_ip=nfs_server_ip,
-           registry=KUBERNETES_REGISTRY,
-           cores=max(1, cores),
-           memory=max(1000, memory),
-           cpu_shares=max(50, cpu_shares),  # TODO: this must be less than cores or won't start, but UI doesn't restrict that
-           network=network_label,
-           node_selector=node_selector)
+""".format(
+            pod_name=pod_name,
+            project_id=self.project_id,
+            nfs_server_ip=nfs_server_ip,
+            registry=KUBERNETES_REGISTRY,
+            cores=max(1, cores),
+            memory=max(1000, memory),
+            cpu_shares=max(
+                50, cpu_shares
+            ),  # TODO: this must be less than cores or won't start, but UI doesn't restrict that
+            network=network_label,
+            node_selector=node_selector)
 
         # TODO: should use tempfile module
         path = "/tmp/project-{project_id}-{random}.yaml".format(
@@ -1011,7 +1014,7 @@ spec:
 
         # Fill in other OS information about each file
         #for obj in result:
-        for name, info in six.iteritems(files):
+        for name, info in iteritems(files):
             if os.path.isdir(os.path.join(abspath, name)):
                 info['isdir'] = True
             else:
@@ -1112,7 +1115,7 @@ spec:
             os.chdir(self.project_path)
 
             def makedirs(
-                    name
+                name
             ):  # modified from os.makedirs to chown each newly created path segment
                 head, tail = os.path.split(name)
                 if not tail:
@@ -1137,7 +1140,7 @@ spec:
             makedirs(path)
 
     def mkdir(
-            self, path
+        self, path
     ):  # relative path in project; must resolve to be under PROJECTS_PATH/project_id
         log = self._log("mkdir")
         log("ensuring path %s exists", path)
@@ -1152,17 +1155,17 @@ spec:
             self.makedirs(abspath)
 
     def copy_path(
-            self,
-            path,  # relative path to copy; must resolve to be under PROJECTS_PATH/project_id
-            target_hostname='localhost',  # list of hostnames (foo or foo:port) to copy files to
-            target_project_id="",  # project_id of destination for files; must be open on destination machine
-            target_path=None,  # path into project; defaults to path above.
-            overwrite_newer=False,  # if True, newer files in target are copied over (otherwise, uses rsync's --update)
-            delete_missing=False,  # if True, delete files in dest path not in source, **including** newer files
-            backup=False,  # if True, create backup files with a tilde
-            exclude_history=False,  # if True, don't copy .sage-history files.
-            timeout=None,
-            bwlimit=None,
+        self,
+        path,  # relative path to copy; must resolve to be under PROJECTS_PATH/project_id
+        target_hostname='localhost',  # list of hostnames (foo or foo:port) to copy files to
+        target_project_id="",  # project_id of destination for files; must be open on destination machine
+        target_path=None,  # path into project; defaults to path above.
+        overwrite_newer=False,  # if True, newer files in target are copied over (otherwise, uses rsync's --update)
+        delete_missing=False,  # if True, delete files in dest path not in source, **including** newer files
+        backup=False,  # if True, create backup files with a tilde
+        exclude_history=False,  # if True, don't copy .sage-history files.
+        timeout=None,
+        bwlimit=None,
     ):
         """
         Copy a path (directory or file) from one project to another.

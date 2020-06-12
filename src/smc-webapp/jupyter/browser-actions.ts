@@ -22,6 +22,7 @@ import { NBGraderActions } from "./nbgrader/actions";
 import { CellToolbarName } from "./types";
 import { exec } from "../frame-editors/generic/client";
 import { open_popup_window } from "../misc-page";
+import { IPYNB2PDF } from "../misc/commands";
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -471,7 +472,7 @@ export class JupyterActions extends JupyterActions0 {
       });
       await this.syncdb.commit();
       await exec({
-        command: "cc-ipynb-to-pdf",
+        command: IPYNB2PDF,
         args: [this.path],
         project_id: this.project_id,
       });

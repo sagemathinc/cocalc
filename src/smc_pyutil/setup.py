@@ -1,4 +1,3 @@
-
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
 # License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
@@ -39,13 +38,53 @@ d.parse_command_line()
 # setuptools version in .local/lib/python-packages (or, any other locally installed python lib)
 # setting sys.executable changes the she-bang #!... at the top of these scripts
 # credits to http://stackoverflow.com/a/17329493
-python2_nosite = '/usr/local/bin/python2-nosite'
+python3_nosite = '/usr/local/bin/python3-nosite'
 # don't overwrite for local smc-in-smc development
 if 'user' not in list(d.command_options.get("install", {}).keys()):
-    # check, if python2_nosite exists and is executable
-    if os.path.isfile(python2_nosite) and os.access(python2_nosite, os.X_OK):
+    # check, if python3_nosite exists and is executable
+    if os.path.isfile(python3_nosite) and os.access(python3_nosite, os.X_OK):
         import sys
-        sys.executable = python2_nosite
+        sys.executable = python3_nosite
+
+# names for console scripts
+# history: "smc" was based on the old name "SageMathCloud".
+# Then, we switched to "cc" as a shortcut for CoCalc, but it's similar to the C compiler.
+# Using "cocalc-*" is easier to discover and remember.
+
+cs = [
+    'open                 = smc_pyutil.smc_open:main',
+    'close                = smc_pyutil.smc_close:main',
+    # only the newest prefix
+    'cocalc-top          = smc_pyutil.cocalc_top:main',
+]
+
+for prefix in ['smc', 'cc', 'cocalc']:
+    add = cs.append
+    add('%s-sagews2pdf = smc_pyutil.sagews2pdf:main' % prefix)
+    add('%s-sws2sagews = smc_pyutil.sws2sagews:main' % prefix)
+    add('%s-docx2txt   = smc_pyutil.docx2txt:main' % prefix)
+    add('%s-open       = smc_pyutil.smc_open:main' % prefix)
+    add('%s-new-file   = smc_pyutil.new_file:main' % prefix)
+    add('%s-status     = smc_pyutil.status:main' % prefix)
+    add('%s-jupyter    = smc_pyutil.jupyter_notebook:main' % prefix)
+    add('%s-jupyter-no-output= smc_pyutil.jupyter_delete_output:main' % prefix)
+    add('%s-ipynb2sagews = smc_pyutil.ipynb2sagews:main' % prefix)
+    add('%s-ls           = smc_pyutil.git_ls:main' % prefix)
+    add('%s-compute      = smc_pyutil.smc_compute:main' % prefix)
+    add('%s-start        = smc_pyutil.start_smc:main' % prefix)
+    add('%s-stop         = smc_pyutil.stop_smc:main' % prefix)
+    add('%s-html2sagews  = smc_pyutil.html2sagews:main' % prefix)
+    add('%s-rmd2html     = smc_pyutil.rmd2html:main' % prefix)
+    add('%s-m2sagews     = smc_pyutil.m2sagews:main' % prefix)
+    add('%s-sagews2ipynb = smc_pyutil.sagews2ipynb:main' % prefix)
+
+    # only cc and cocalc prefixes
+    if prefix != 'smc':
+        add('%s-ipynb-to-pdf = smc_pyutil.ipynb_to_pdf:main' % prefix)
+        add('%s-close        = smc_pyutil.smc_close:main' % prefix)
+        add('%s-jupyterlab   = smc_pyutil.jupyter_lab:main' % prefix)
+        add('%s-jupyter-classic-open = smc_pyutil.jupyter_notebook:prepare_file_for_open'
+            % prefix)
 
 setup(
     name='smc_pyutil',
@@ -62,62 +101,13 @@ setup(
     classifiers=[
         'License :: OSI Approved :: GPLv3',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.5',
         'Topic :: Mathematics :: Server',
     ],
     keywords='server mathematics cloud',
-    scripts=['smc_pyutil/bin/smc-sage-server'],
-    entry_points={
-        'console_scripts': [
-            'open                 = smc_pyutil.smc_open:main',
-            'close                = smc_pyutil.smc_close:main',
-            # START deprecated smc-*
-            'smc-sagews2pdf       = smc_pyutil.sagews2pdf:main',
-            'smc-sws2sagews       = smc_pyutil.sws2sagews:main',
-            'smc-docx2txt         = smc_pyutil.docx2txt:main',
-            'smc-open             = smc_pyutil.smc_open:main',
-            'smc-new-file         = smc_pyutil.new_file:main',
-            'smc-status           = smc_pyutil.status:main',
-            'smc-jupyter          = smc_pyutil.jupyter_notebook:main',
-            'smc-jupyter-no-output= smc_pyutil.jupyter_delete_output:main',
-            'smc-ipynb2sagews     = smc_pyutil.ipynb2sagews:main',
-            'smc-ls               = smc_pyutil.git_ls:main',
-            'smc-compute          = smc_pyutil.smc_compute:main',
-            'smc-start            = smc_pyutil.start_smc:main',
-            'smc-stop             = smc_pyutil.stop_smc:main',
-            'smc-update-snapshots = smc_pyutil.update_snapshots:update_snapshots',
-            'smc-top              = smc_pyutil.smc_top:main',
-            'smc-git              = smc_pyutil.smc_git:main',
-            'smc-html2sagews      = smc_pyutil.html2sagews:main',
-            'smc-rmd2html         = smc_pyutil.rmd2html:main',
-            'smc-java2html        = smc_pyutil.java2html:main',
-            'smc-m2sagews         = smc_pyutil.m2sagews:main',
-            'smc-sagews2ipynb     = smc_pyutil.sagews2ipynb:main',
-            # END deprecated smc-*
-            'cc-sagews2pdf       = smc_pyutil.sagews2pdf:main',
-            'cc-sws2sagews       = smc_pyutil.sws2sagews:main',
-            'cc-docx2txt         = smc_pyutil.docx2txt:main',
-            'cc-open             = smc_pyutil.smc_open:main',
-            'cc-close            = smc_pyutil.smc_close:main',
-            'cc-new-file         = smc_pyutil.new_file:main',
-            'cc-status           = smc_pyutil.status:main',
-            'cc-jupyter          = smc_pyutil.jupyter_notebook:main',
-            'cc-jupyterlab       = smc_pyutil.jupyter_lab:main',
-            'cc-jupyter-no-output= smc_pyutil.jupyter_delete_output:main',
-            'cc-jupyter-classic-open = smc_pyutil.jupyter_notebook:prepare_file_for_open',
-            'cc-ipynb2sagews     = smc_pyutil.ipynb2sagews:main',
-            'cc-ls               = smc_pyutil.git_ls:main',
-            'cc-compute          = smc_pyutil.smc_compute:main',
-            'cc-start            = smc_pyutil.start_smc:main',
-            'cc-stop             = smc_pyutil.stop_smc:main',
-            'cc-update-snapshots = smc_pyutil.update_snapshots:update_snapshots',
-            'cc-top              = smc_pyutil.smc_top:main',
-            'cc-git              = smc_pyutil.smc_git:main',
-            'cc-html2sagews      = smc_pyutil.html2sagews:main',
-            'cc-rmd2html         = smc_pyutil.rmd2html:main',
-            'cc-java2html        = smc_pyutil.java2html:main',
-            'cc-m2sagews         = smc_pyutil.m2sagews:main',
-            'cc-sagews2ipynb     = smc_pyutil.sagews2ipynb:main',
-            'cc-ipynb-to-pdf     = smc_pyutil.ipynb_to_pdf:main'
-        ]
-    },
-    include_package_data=True)
+    scripts=[
+        'smc_pyutil/bin/smc-sage-server', 'smc_pyutil/bin/cocalc-python3-clean'
+    ],
+    entry_points={'console_scripts': cs},
+    include_package_data=True,
+)

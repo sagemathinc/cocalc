@@ -18,17 +18,16 @@ For each file, we compute the following information:
          - sha
 """
 
-from __future__ import absolute_import
-from __future__ import print_function
+from __future__ import absolute_import, print_function
+from .py23 import iteritems
 import json, os, subprocess, sys, uuid
-import six
+
 
 
 def getmtime(name):
     try:
-        return os.lstat(
-            name
-        ).st_mtime  # use lstat instead of stat or getmtime so this works on broken symlinks!
+        # use lstat instead of stat or getmtime so this works on broken symlinks!
+        return os.lstat(name).st_mtime
     except:
         # This should never happen, but we include this just in case
         # to avoid really buggy UI behavior.
@@ -67,9 +66,9 @@ def gitls(path, time, start, limit, hidden, directories_first, git_aware=True):
     if not hidden:
         listdir = [x for x in listdir if not x.startswith('.')]
     if path.endswith('.snapshots') or path.endswith('.snapshots/'):
+        # exists due to broken symlinks when snaps vanish
         all = [(x, getmtime(x)) for x in reversed(sorted(listdir))
-               if os.path.exists(x)
-               ]  # exists due to broken symlinks when snaps vanish
+               if os.path.exists(x)]
         files = dict([(name, {
             'name': name,
             'mtime': mtime
@@ -109,7 +108,7 @@ def gitls(path, time, start, limit, hidden, directories_first, git_aware=True):
 
     # Fill in other OS information about each file
     #for obj in result:
-    for name, info in six.iteritems(files):
+    for name, info in iteritems(files):
         if os.path.isdir(name):
             info['isdir'] = True
         else:
@@ -129,7 +128,7 @@ def gitls(path, time, start, limit, hidden, directories_first, git_aware=True):
             git_path = ['.']
         else:
             git_path = [
-                name for name, info in six.iteritems(files)
+                name for name, info in iteritems(files)
                 if not info.get('isdir', False)
             ]
         log = subprocess.Popen(
@@ -195,12 +194,6 @@ def main():
     args = parser.parse_args()
     if isinstance(args.path, list):
         args.path = args.path[0]
-
-    if os.path.abspath(args.path) == os.path.join(os.environ['HOME'],
-                                                  '.snapshots'):
-        # When getting a listing for the .snapshots directory, update it to show the latest version.
-        from .update_snapshots import update_snapshots
-        update_snapshots()
 
     r = gitls(path=args.path,
               time=args.time,

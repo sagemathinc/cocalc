@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-from __future__ import print_function
-from six.moves import map
-from six.moves import range
+from __future__ import absolute_import, print_function
 __version_info__ = (0, 3, 9)
 __version__ = '.'.join(map(str, __version_info__))
 __author__ = "Matthew Young"
