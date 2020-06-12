@@ -4,12 +4,14 @@
  */
 
 import { AppRedux } from "../app-framework";
+import { bind_methods } from "../../smc-util/misc2";
 
 // NOTE: it is intentional that there is no get method.  Instead, get data
 // from stores.  The table will set stores (via creating actions) as
 // needed when it changes.
 export class Actions<T> {
   constructor(public name: string, protected redux: AppRedux) {
+    bind_methods(this); // see comment in Store.ts.
     if (this.name == null) {
       throw Error("name must be defined");
     }

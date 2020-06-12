@@ -1,6 +1,10 @@
 import { redux } from "../app-framework";
 import { Map, Set } from "immutable";
 
+export const create_project_tokens: {
+  [token: string]: { project_id?: string; err?: Error };
+} = {};
+
 export class AllProjectsActions {
   private actions: any;
 
@@ -23,7 +27,7 @@ export class AllProjectsActions {
   }
 }
 
-function init() {
+export function init() {
   const actions: any = redux.getActions("projects");
   const rewrite: any = new AllProjectsActions(actions);
   for (const x of ["toggle_hashtag"]) {
@@ -31,4 +35,3 @@ function init() {
   }
 }
 
-init();

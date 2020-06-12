@@ -46,7 +46,6 @@ const LOADING_STYLE: React.CSSProperties = {
 
 export const ProjectsPage: React.FC = () => {
   const actions = useActions("projects");
-  //const store = useStore("projects");
   const [clear_and_focus_search, set_clear_and_focus_search] = useState<number>(
     0
   );

@@ -557,7 +557,20 @@ export function unreachable(x: never) {
   throw new Error(`All types should be exhausted, but I got ${x}`);
 }
 
-export function bind_methods(obj: any, method_names: string[]): void {
+// Bind all or specified methods of the object to this.  If method_names
+// is not given binds all methods.  Use this instead of tons of binds.
+// For example, in a base class constructor, you can do
+//       bind_methods(this);
+// and every method will always be bound even for derived classes
+// (assuming they call super!).
+export function bind_methods(
+  obj: object,
+  method_names: undefined | string[] = undefined
+): void {
+  if (method_names === undefined) {
+    method_names = Object.getOwnPropertyNames(Object.getPrototypeOf(obj));
+    method_names.splice(method_names.indexOf("constructor"), 1);
+  }
   for (const method_name of method_names) {
     obj[method_name] = obj[method_name].bind(obj);
   }
@@ -641,7 +654,6 @@ export function history_path(path: string): string {
 export function tuple<T extends string[]>(o: T) {
   return o;
 }
-
 
 export function aux_file(path: string, ext: string): string {
   const s = path_split(path);

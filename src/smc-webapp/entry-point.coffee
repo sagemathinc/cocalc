@@ -28,8 +28,10 @@ require('./system_notifications')
 
 require('./launch/actions')
 
-# Makes some things work. Like the save button
+# Various jquery plugins:
 require('./jquery_plugins')
+# Another jquery plugin:
+require('./process-links')
 
 ###
 # Initialize app stores, actions, etc.

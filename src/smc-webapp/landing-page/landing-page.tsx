@@ -174,7 +174,6 @@ class LandingPage extends Component<Props & reduxProps> {
       !this.props.get_api_key
     ) {
       // Just assume user will be signing in.
-      // CSS of this looks like crap for a moment; worse than nothing. So disabling unless it can be fixed!!
       return <Connecting />;
     }
 

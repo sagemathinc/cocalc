@@ -29,7 +29,7 @@ import { Table, TableConstructor } from "./app-framework/Table";
 import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 
 // Relative import is temporary, until I figure this out -- needed for *project*
-import { keys, is_valid_uuid_string } from "../smc-util/misc2";
+import { bind_methods, keys, is_valid_uuid_string } from "../smc-util/misc2";
 
 import { AdminUsersActions } from "./admin/users/actions";
 import { AdminUsersStore } from "./admin/users/store";
@@ -107,25 +107,7 @@ export class AppRedux {
   private changed_stores: Set<string> = new Set([]);
 
   constructor() {
-    this._redux_store_change = this._redux_store_change.bind(this);
-    this.show_state = this.show_state.bind(this);
-    this.log_states = this.log_states.bind(this);
-    this._set_state = this._set_state.bind(this);
-    this.createActions = this.createActions.bind(this);
-    this.getActions = this.getActions.bind(this);
-    this.createStore = this.createStore.bind(this);
-    this.getStore = this.getStore.bind(this);
-    this.createTable = this.createTable.bind(this);
-    this.removeTable = this.removeTable.bind(this);
-    this.removeStore = this.removeStore.bind(this);
-    this.removeActions = this.removeActions.bind(this);
-    this.getTable = this.getTable.bind(this);
-    this.getProjectStore = this.getProjectStore.bind(this);
-    this.getProjectActions = this.getProjectActions.bind(this);
-    this.getProjectTable = this.getProjectTable.bind(this);
-    this.removeProjectReferences = this.removeProjectReferences.bind(this);
-    this.getEditorStore = this.getEditorStore.bind(this);
-    this.getEditorActions = this.getEditorActions.bind(this);
+    bind_methods(this);
     this._tables = {};
     this._redux_store = createReduxStore(redux_app);
     this._stores = {};
