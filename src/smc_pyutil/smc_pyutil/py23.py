@@ -33,3 +33,10 @@ else:
     from urllib import unquote, quote
     from HTMLParser import HTMLParser
     import cPickle
+
+
+def py2decodestr(s):
+    if PY3:
+        return s
+    else:
+        return s.decode('utf8')

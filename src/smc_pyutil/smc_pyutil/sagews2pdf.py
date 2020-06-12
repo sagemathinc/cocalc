@@ -13,10 +13,12 @@ CONTRIBUTORS:
 """
 
 from __future__ import absolute_import, print_function
-from .py23 import text_type, HTMLParser, quote
+from .py23 import text_type, HTMLParser, quote, py2decodestr, PY2
 import sys
-reload(sys)
-sys.setdefaultencoding('utf8')
+if PY2:
+    # this is a python 2 hack, conciously used to handle the particular situation here, that's all
+    reload(sys)
+    sys.setdefaultencoding('utf8')
 
 MARKERS = {'cell': u"\uFE20", 'output': u"\uFE21"}
 
@@ -161,7 +163,7 @@ sensitive=true}
 """
 
 # this is part of the preamble above, although this time full of utf8 chars
-COMMON += ur"""
+COMMON += text_type(r"""
 % mathjax has \lt and \gt
 \newcommand{\lt}{<}
 \newcommand{\gt}{>}
@@ -181,12 +183,12 @@ COMMON += ur"""
   {â}{{\^a}}1 {ê}{{\^e}}1 {î}{{\^i}}1 {ô}{{\^o}}1 {û}{{\^u}}1
   {Â}{{\^A}}1 {Ê}{{\^E}}1 {Î}{{\^I}}1 {Ô}{{\^O}}1 {Û}{{\^U}}1
   {œ}{{\oe}}1 {Œ}{{\OE}}1 {æ}{{\ae}}1 {Æ}{{\AE}}1 {ß}{{\ss}}1
-  {ã}{{\~a}}1 {Ã}{{\~A}}1 {õ}{{\~o}}1 {Õ}{{\~O}}1
   {ç}{{\c c}}1 {Ç}{{\c C}}1 {ø}{{\o}}1 {å}{{\r a}}1 {Å}{{\r A}}1
+  {ã}{{\~a}}1 {Ã}{{\~A}}1 {õ}{{\~o}}1 {Õ}{{\~O}}1
   {€}{{\EUR}}1 {£}{{\pounds}}1
 }
 
-"""
+""")
 
 FOOTER = """
 %configuration={"latex_command":"xelatex -synctex=1 -interact=nonstopmode 'tmp.tex'"}
@@ -590,8 +592,8 @@ class Cell(object):
                         width = min(1, 1.2 * data.get('width', 0.5))
                         #print "width = ", width
                         if 'data-url' in data:
-                            data_url = data[
-                                'data-url']  # 'data:image/png;base64,iVBOR...'
+                            # 'data:image/png;base64,iVBOR...'
+                            data_url = data['data-url']
                             i = data_url.find('/')
                             j = data_url.find(";")
                             k = data_url.find(',')
@@ -599,8 +601,8 @@ class Cell(object):
                             image_data = data_url[k + 1:]
                             assert data_url[j + 1:k] == 'base64'
                             filename = str(uuid4()) + "." + image_ext
-                            open(filename,
-                                 'w').write(base64.b64decode(image_data))
+                            b64 = base64.b64decode(image_data)
+                            open(filename, 'w').write(b64)
                             s += '\\includegraphics[width=%s\\textwidth]{%s}\n' % (
                                 width, filename)
 
@@ -625,7 +627,7 @@ class Worksheet(object):
             self._filename = None
         if filename is not None:
             self._default_title = filename
-            self._init_from(open(filename).read().decode('utf8'))
+            self._init_from(py2decodestr(open(filename).read()))
         elif s is not None:
             self._init_from(s)
         else:
@@ -653,10 +655,10 @@ class Worksheet(object):
         top = top.format(timestamp=str(datetime.utcnow()))
         s = top + ENGINE + STYLES[style]
         s += COMMON
-        s += ur"\title{%s}" % tex_escape(title) + u"\n"
-        s += ur"\author{%s}" % tex_escape(author) + u"\n"
+        s += text_type(r"\title{%s}" % tex_escape(title) + u"\n")
+        s += text_type(r"\author{%s}" % tex_escape(author) + u"\n")
         if date:
-            s += ur"\date{%s}" % tex_escape(date) + u"\n"
+            s += text_type(r"\date{%s}" % tex_escape(date) + u"\n")
         s += u"\\begin{document}\n"
         s += u"\\maketitle\n"
         #if self._filename:
@@ -846,11 +848,14 @@ def main():
         else:
             work_dir = None
 
+        title = py2decodestr(args.title)
+        author = py2decodestr(args.author)
+
         from subprocess import CalledProcessError
         try:
             sagews_to_pdf(filename,
-                          title=args.title.decode('utf8'),
-                          author=args.author.decode('utf8'),
+                          title=title,
+                          author=author,
                           date=args.date,
                           outfile=args.outfile,
                           contents=args.contents,

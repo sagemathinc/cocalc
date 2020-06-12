@@ -4,7 +4,7 @@
 
 from __future__ import absolute_import
 import json, os, sys
-from .py23 import cPickle, text_type
+from .py23 import cPickle, text_type, PY3
 from uuid import uuid4
 
 MARKERS = {'cell': u"\uFE20", 'output': u"\uFE21"}
@@ -104,6 +104,7 @@ def migrate_input(s):
 
 
 def sws_body_to_sagews(body):
+    # body is already an utf8 string
 
     out = u""
     i = 0
@@ -136,9 +137,9 @@ def sws_body_to_sagews(body):
                 output = body[k2 + 4:k3]
                 i = k3 + 4
 
-        html = text_type(html.strip(), encoding='utf8')
-        input = text_type(migrate_input(input.strip()), encoding='utf8')
-        output = text_type(output.strip(), encoding='utf8')
+        html = html.strip()
+        input = migrate_input(input.strip())
+        output = output.strip()
 
         if html:
             out += MARKERS['cell'] + uuid() + 'i' + MARKERS['cell'] + u'\n'
@@ -246,6 +247,8 @@ def sws_to_sagews(filename):
     if data_files:
         out += MARKERS['cell'] + uuid() + 'ai' + MARKERS[
             'cell'] + u'\n%%hide\n%%auto\nDATA="%s/"\n' % data_path
+    if PY3:
+        body = body.decode('utf8')
     out += sws_body_to_sagews(body)
 
     meta = {}
@@ -266,14 +269,14 @@ def sws_to_sagews(filename):
     outfile = base + '.sagews'
     if os.path.exists(outfile):
         sys.stderr.write(
-            "%s: Warning --Sagemath cloud worksheet '%s' already exists.  Not overwriting.\n"
+            "%s: Warning -- Sage Worksheet '%s' already exists.  Not overwriting.\n"
             % (sys.argv[0], outfile))
         sys.stderr.flush()
     else:
-        sys.stdout.write("%s: Creating Sagemath cloud worksheet '%s'\n" %
+        sys.stdout.write("%s: Creating Sage Worksheet '%s'\n" %
                          (sys.argv[0], outfile))
         sys.stdout.flush()
-        open(outfile, 'w').write(out.encode('utf8'))
+        open(outfile, 'wb').write(out.encode('utf8'))
 
 
 def main():

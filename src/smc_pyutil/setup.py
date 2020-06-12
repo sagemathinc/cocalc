@@ -69,13 +69,10 @@ for prefix in ['smc', 'cc', 'cocalc']:
     add('%s-jupyter    = smc_pyutil.jupyter_notebook:main' % prefix)
     add('%s-jupyter-no-output= smc_pyutil.jupyter_delete_output:main' % prefix)
     add('%s-ipynb2sagews = smc_pyutil.ipynb2sagews:main' % prefix)
-    add('%s-ls           = smc_pyutil.git_ls:main' % prefix)
     add('%s-compute      = smc_pyutil.smc_compute:main' % prefix)
     add('%s-start        = smc_pyutil.start_smc:main' % prefix)
     add('%s-stop         = smc_pyutil.stop_smc:main' % prefix)
     add('%s-html2sagews  = smc_pyutil.html2sagews:main' % prefix)
-    add('%s-rmd2html     = smc_pyutil.rmd2html:main' % prefix)
-    add('%s-m2sagews     = smc_pyutil.m2sagews:main' % prefix)
     add('%s-sagews2ipynb = smc_pyutil.sagews2ipynb:main' % prefix)
 
     # only cc and cocalc prefixes
