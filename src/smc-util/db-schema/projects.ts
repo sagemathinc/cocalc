@@ -53,6 +53,7 @@ Table({
           compute_image: DEFAULT_COMPUTE_IMAGE,
           addons: null,
           created: null,
+          env: null,
         },
       },
       set: {
@@ -69,6 +70,7 @@ Table({
           compute_image: true,
           course: true,
           site_license: true,
+          env: true,
         },
 
         before_change(database, old_val, new_val, account_id, cb) {
@@ -272,6 +274,10 @@ Table({
     lti_data: {
       type: "map",
       desc: "extra information related to LTI",
+    },
+    env: {
+      type: "map",
+      desc: "Additional environment variables (TS: {[key:string]:string})",
     },
   },
 });

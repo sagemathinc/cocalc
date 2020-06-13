@@ -1333,6 +1333,8 @@ class ProjectClient extends EventEmitter
                     else
                         opts.cb()
             return
+        locals =
+            env: {}
         async.series([
             (cb) =>
                 if opts.set_quotas
@@ -1344,10 +1346,19 @@ class ProjectClient extends EventEmitter
             (cb) =>
                 @open(cb : cb)
             (cb) =>
+                @compute_server.database.get_project_extra_env
+                    project_id : @project_id
+                    cb         : (err, env) =>
+                        if err
+                            cb(err)
+                        else
+                            locals.env = Buffer.from(JSON.stringify(env)).toString('base64')
+                            cb()
+            (cb) =>
                 dbg("issuing the start command")
                 @_action
                     action : "start"
-                    args   : ['--base_url', @compute_server._base_url]
+                    args   : ['--base_url', @compute_server._base_url, '--extra_env', locals.env]
                     cb     : cb
             (cb) =>
                 dbg("waiting until running")
