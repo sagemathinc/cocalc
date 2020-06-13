@@ -35,7 +35,11 @@ import { AdminUsersActions } from "./admin/users/actions";
 import { AdminUsersStore } from "./admin/users/store";
 import { SiteLicensesActions } from "./site-licenses/admin/actions";
 import { SiteLicensesStore } from "./site-licenses/admin/store";
-
+import { ProjectsActions } from "./projects/actions";
+import { ProjectsStore } from "./projects/store";
+import { CustomizeStore } from "./customize";
+import { BillingActions } from "./billing/actions";
+import { BillingStore } from "./billing/store";
 import { AccountStore, AccountActions } from "./account";
 
 import { MentionsActions, MentionsStore } from "./notifications";
@@ -179,8 +183,8 @@ export class AppRedux {
   }
 
   getActions(name: "account"): AccountActions;
-  getActions(name: "projects"): any;
-  getActions(name: "billing"): any;
+  getActions(name: "projects"): ProjectsActions;
+  getActions(name: "billing"): BillingActions;
   getActions(name: "page"): any;
   getActions(name: "admin-users"): AdminUsersActions;
   getActions(name: "admin-site-licenses"): SiteLicensesActions;
@@ -242,14 +246,14 @@ export class AppRedux {
   }
 
   getStore(name: "account"): AccountStore;
-  getStore(name: "projects"): any;
-  getStore(name: "billing"): any;
+  getStore(name: "projects"): ProjectsStore;
+  getStore(name: "billing"): BillingStore;
   getStore(name: "page"): any;
   getStore(name: "admin-users"): AdminUsersStore;
   getStore(name: "admin-site-licenses"): SiteLicensesStore;
   getStore(name: "mentions"): MentionsStore;
   getStore(name: "file_use"): FileUseStore | undefined;
-  getStore(name: "customize"): any;
+  getStore(name: "customize"): CustomizeStore;
   getStore(name: "users"): any;
   getStore<State>(name: string): Store<State>;
   getStore<State, C extends Store<State>>(name: string): C | undefined;
@@ -892,8 +896,8 @@ it's one of the other named actions or undefined.
 */
 
 export function useActions(name: "account"): AccountActions;
-export function useActions(name: "projects"): any;
-export function useActions(name: "billing"): any;
+export function useActions(name: "projects"): ProjectsActions;
+export function useActions(name: "billing"): BillingActions;
 export function useActions(name: "page"): any;
 export function useActions(name: "admin-users"): AdminUsersActions;
 export function useActions(name: "admin-site-licenses"): SiteLicensesActions;
@@ -921,8 +925,8 @@ export function useActions(name_or_project_id: string, path?: string) {
 }
 
 export function useStore(name: "account"): AccountStore;
-export function useStore(name: "projects"): any;
-export function useStore(name: "billing"): any;
+export function useStore(name: "projects"): ProjectsStore;
+export function useStore(name: "billing"): BillingStore;
 export function useStore(name: "page"): any;
 export function useStore(name: "admin-users"): AdminUsersStore;
 export function useStore(name: "admin-site-licenses"): SiteLicensesStore;

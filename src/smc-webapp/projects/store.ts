@@ -1,4 +1,9 @@
-import { List, Map } from "immutable";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { List, Map, Set } from "immutable";
 import { redux, Store } from "../app-framework";
 import { webapp_client } from "../webapp-client";
 import {
@@ -10,7 +15,6 @@ import {
   map_sum,
   months_before,
 } from "smc-util/misc";
-import { create_project_tokens } from "./actions";
 
 import { PROJECT_UPGRADES } from "smc-util/schema";
 import { fromPairs } from "lodash";
@@ -21,8 +25,12 @@ const ZERO_QUOTAS = fromPairs(
 import { Upgrades } from "smc-util/upgrades/types";
 import { has_internet_access } from "../upgrades/upgrade-utils";
 
-interface State {
-  project_map: Map<string, Map<string, any>> | undefined;
+import { WebsocketState } from "../project/websocket/websocket-state";
+
+export type ProjectMap = Map<string, Map<string, any>>;
+
+export interface State {
+  project_map: ProjectMap | undefined;
   open_projects: List<string>; // the opened projects in *tab* order
 
   search: string;
@@ -30,13 +38,21 @@ interface State {
   hidden: boolean;
   selected_hashtags: Map<string, Set<string>>;
 
-  load_all_projects_done: boolean;
+  all_projects_have_been_loaded : boolean;
 
-  public_project_titles: Map<string, any>; // TODO: deprecate public projects completely -- it's probably broken and share server replaces it.
+  public_project_titles: Map<string, any>;
+
+  project_websockets: Map<string, WebsocketState>;
 }
 
 // Define projects store
-class ProjectsStore extends Store<State> {
+export class ProjectsStore extends Store<State> {
+  // Return true if the given project_id is of a project that is
+  // currently known.
+  public has_project(project_id: string): boolean {
+    return this.get("project_map")?.has(project_id) ?? false;
+  }
+
   /*
   Given an array of objects with an account_id field, sort it
   by the corresponding last_active timestamp for these users
@@ -84,16 +100,18 @@ class ProjectsStore extends Store<State> {
     return this.getIn(["project_map", project_id, "last_active"]);
   }
 
-  public get_title(project_id: string): string | undefined {
-    return this.getIn(["project_map", project_id, "title"]);
+  public get_title(project_id: string): string {
+    return this.getIn(["project_map", project_id, "title"]) ?? "No Title";
   }
 
   public get_state(project_id: string): string | undefined {
     return this.getIn(["project_map", project_id, "state", "state"]);
   }
 
-  public get_description(project_id: string): string | undefined {
-    return this.getIn(["project_map", project_id, "description"]);
+  public get_description(project_id: string): string {
+    return (
+      this.getIn(["project_map", project_id, "description"]) ?? "No Description"
+    );
   }
 
   public get_created(project_id: string): Date | undefined {
@@ -247,44 +265,13 @@ class ProjectsStore extends Store<State> {
     });
   }
 
-  public wait_until_project_created(
-    token: string,
-    timeout: number,
-    cb: (err?, project_id?: string) => void
-  ): void {
-    this.wait<undefined | { err?; project_id?: string }>({
-      until: () => {
-        const x = create_project_tokens[token];
-        if (x == null) {
-          return;
-        }
-        const { project_id, err } = x;
-        if (err) {
-          return { err };
-        } else if (project_id) {
-          if (this.get("project_map")?.has(project_id)) {
-            return { project_id };
-          }
-        }
-      },
-      timeout,
-      cb: (err, x) => {
-        if (err) {
-          return cb(err);
-        } else {
-          return cb(x?.err, x?.project_id);
-        }
-      },
-    });
-  }
-
   // Returns the total amount of upgrades that this user has allocated
   // across all their projects.
-  public get_total_upgrades_you_have_applied() {
+  public get_total_upgrades_you_have_applied(): Upgrades | undefined {
     if (this.get("project_map") == null) {
       return;
     }
-    let total = {};
+    let total: Upgrades = {};
     this.get("project_map")?.map((project) => {
       const upgrades = project
         .getIn(["users", webapp_client.account_id, "upgrades"])
@@ -307,7 +294,7 @@ class ProjectsStore extends Store<State> {
   }
 
   /*
-  Get the individual users contributions to the project's upgrades
+  Get the individual users's contributions to the project's upgrades
   mapping (or undefined) =
       memory  :
           account_id         : 1000
@@ -356,7 +343,7 @@ class ProjectsStore extends Store<State> {
       const object = info.upgrades != null ? info.upgrades : {};
       for (let prop in object) {
         const val = object[prop];
-        upgrades[prop] = (upgrades[prop] != null ? upgrades[prop] : 0) + val;
+        upgrades[prop] = (upgrades[prop] ?? 0) + val;
       }
     }
 
@@ -558,12 +545,14 @@ const init_store = {
   hidden: false,
   selected_hashtags: Map<string, Set<string>>(),
 
-  load_all_projects_done: false,
+  all_projects_have_been_loaded: false,
 
   public_project_titles: Map<string, any>(),
+
+  project_websockets: Map<string, WebsocketState>(),
 };
 
-const store = redux.createStore("projects", ProjectsStore, init_store);
+export const store = redux.createStore("projects", ProjectsStore, init_store);
 
 // Every time a project actions gets created or useRedux(['projects', ...]),
 // there is a new listener on the projects store, and there can be

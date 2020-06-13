@@ -2322,7 +2322,7 @@ exports.map_diff = function (a, b) {
 
 // compare the values in a map a by the values of b
 // or just by b if b is a number, using func(a, b)
-map_comp_fn = function (func, fallback) {
+function map_comp_fn(func, fallback) {
   return (a, b) => {
     const c = {};
     if (typeof b === "number") {
@@ -2338,7 +2338,7 @@ map_comp_fn = function (func, fallback) {
     }
     return c;
   };
-};
+}
 
 exports.map_limit = exports.map_min = map_comp_fn(Math.min, Number.MAX_VALUE);
 exports.map_max = map_comp_fn(Math.max, Number.MIN_VALUE);

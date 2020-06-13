@@ -217,12 +217,13 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       }
       if (this.is_unmounted) return;
 
-      // Get the current collaborators/owners of the project that contains the course.
+      // Get the current collaborators/owners of the project that
+      // contains the course.
       const users = this.props.redux
         .getStore("projects")
         .get_users(this.props.project_id);
       // Make a map with keys the email or account_id is already part of the course.
-      const already_added = users.toJS(); // start with collabs on project
+      const already_added = users?.toJS() ?? {}; // start with collabs on project
       // also track **which** students are already part of the course
       const existing_students: any = {};
       existing_students.account = {};

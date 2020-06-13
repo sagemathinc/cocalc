@@ -14,7 +14,7 @@ import { Loading } from "../r_misc";
 import { Button } from "../antd-bootstrap";
 
 export const LoadAllProjects: React.FC = React.memo(() => {
-  const done = useRedux(["projects", "load_all_projects_done"]);
+  const done = useRedux(["projects", "all_projects_have_been_loaded"]);
   const [loading, set_loading] = useState<boolean>(false);
   const is_mounted_ref = useIsMountedRef();
   const actions = useActions("projects");

@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// ensure this is loaded -- temporary!
-require("../projects");
+// ensure redux stuff (actions and store) are initialized:
+import "./actions";
 
 import { Map, Set } from "immutable";
 
@@ -14,7 +14,6 @@ import {
   useActions,
   useRedux,
   useState,
-  // useStore,
   useMemo,
 } from "../app-framework";
 import { Icon, Loading, LoginLink, VisibleMDLG } from "../r_misc";
@@ -50,9 +49,9 @@ export const ProjectsPage: React.FC = () => {
     0
   );
 
-  const load_all_projects_done = useRedux([
+  const all_projects_have_been_loaded = useRedux([
     "projects",
-    "load_all_projects_done",
+    "all_projects_have_been_loaded",
   ]);
   const hidden = !!useRedux(["projects", "hidden"]);
   const deleted = !!useRedux(["projects", "deleted"]);
@@ -92,14 +91,14 @@ export const ProjectsPage: React.FC = () => {
   );
 
   function clear_filters_and_focus_search_input(): void {
-    actions.setState({ selected_hashtags: {} });
+    actions.setState({ selected_hashtags: Map<string, Set<string>>() });
     set_clear_and_focus_search(clear_and_focus_search + 1);
   }
 
   function render_new_project_creator() {
     // TODO: move this into NewProjectCreator and don't have any props
     const n = all_projects.length;
-    if (n === 0 && !load_all_projects_done) {
+    if (n === 0 && !all_projects_have_been_loaded) {
       // In this case we always trigger a full load,
       // so better wait for it to finish before
       // rendering the new project creator... since

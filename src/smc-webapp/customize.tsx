@@ -60,7 +60,7 @@ defaults._is_configured = false; // will be true after set via call to server
 //   _is_configured: any;
 // }
 
-class CustomizeStore extends Store<any> {
+export class CustomizeStore extends Store<any> {
   async until_configured(): Promise<void> {
     if (this.get("_is_configured")) return;
     await callback2(this.wait, { until: () => this.get("_is_configured") });

@@ -5,12 +5,12 @@
 
 import { redux } from "../app-framework";
 import { analytics_event } from "../tracker";
-import { uuid } from "smc-util/misc2";
 import { retry_until_success, once } from "smc-util/async-utils";
 import {
   custom_image_name,
   NAME as CUSTOM_SOFTWARE_NAME,
 } from "../custom-software/init";
+import { alert_message } from "../alerts";
 
 export async function launch_custom_software_image(
   launch: string
@@ -53,26 +53,21 @@ export async function launch_custom_software_image(
     },
   });
 
-  const token = uuid();
-
   // TODO pick the proper title from the custom image table
-  actions.create_project({
-    title: image_id,
-    image: custom_image_name(image_id),
-    token,
-  });
-
-  // if we have project actions, we can assume project store also exists?
-  redux
-    .getStore("projects")
-    .wait_until_project_created(token, 30, (err, project_id) => {
-      if (err != null) {
-        console.error(`Error creating project -- ${err}`);
-      } else {
-        actions.apply_default_upgrades({ project_id });
-        actions.open_project({ project_id, switch_to: true });
-      }
+  let project_id: string;
+  try {
+    project_id = await actions.create_project({
+      title: image_id,
+      image: custom_image_name(image_id),
     });
-
+  } catch (err) {
+    alert_message({
+      type: "error",
+      message: `Error creating project -- ${err}`,
+    });
+    return;
+  }
+  actions.apply_default_upgrades({ project_id });
+  actions.open_project({ project_id, switch_to: true });
   analytics_event("create_project", "launch_csi");
 }

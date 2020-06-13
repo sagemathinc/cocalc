@@ -156,7 +156,7 @@ FullProjectsNav = rclass
         num_ghost_tabs : 0
 
     on_sort_end: ({oldIndex, newIndex}) ->
-        @actions('projects').move_project_tab({old_index:oldIndex, new_index:newIndex, open_projects:@props.open_projects})
+        @actions('projects').move_project_tab({old_index:oldIndex, new_index:newIndex})
 
     render_project_tabs: ->
         v = []

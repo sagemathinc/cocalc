@@ -71,14 +71,14 @@ export const load_all_projects = reuseInFlight(async () => {
   if (all_projects_have_been_loaded) {
     return;
   }
-  all_projects_have_been_loaded = true; // used internally in this file only
+  all_projects_have_been_loaded = true; // used internally in this file only to be optimally fast.
   redux.removeTable("projects");
   redux.createTable("projects", ProjectsAllTable);
   await once(redux.getTable("projects")._table, "connected");
   redux
     .getActions("projects")
-    ?.setState({ all_projects_have_been_loaded: true });
-}); // used by client code
+    ?.setState({ all_projects_have_been_loaded: true }); // used by client code
+});
 
 async function load_recent_projects(): Promise<void> {
   redux.createTable("projects", ProjectsTable);
