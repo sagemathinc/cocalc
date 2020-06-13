@@ -542,6 +542,46 @@ export class ProjectsStore extends Store<State> {
     };
     return this.get("project_map")?.filter(by_csi).valueSeq();
   }
+
+  public get_project_select_list(
+    current_project_id: string,
+    show_hidden: boolean = true
+  ): undefined | { id: string; title: string }[] {
+    let map = this.get("project_map");
+    if (map == null) {
+      return;
+    }
+    const { account_id } = webapp_client;
+    let list: { id: string; title: string }[] = [];
+    if (current_project_id != null && map.has(current_project_id)) {
+      list.push({
+        id: current_project_id,
+        title: map.getIn([current_project_id, "title"]),
+      });
+      map = map.delete(current_project_id);
+    }
+    const v = map.valueSeq();
+    v.sort(function (a, b) {
+      if (a.get("last_edited") < b.get("last_edited")) {
+        return 1;
+      } else if (a.get("last_edited") > b.get("last_edited")) {
+        return -1;
+      }
+      return 0;
+    });
+    const others: { id: string; title: string }[] = [];
+    for (let i of v) {
+      // Deleted projects have a map node " 'deleted': true ". Standard projects do not have this property.
+      if (
+        !i.get("deleted") &&
+        (show_hidden || !i.get("users").get(account_id).get("hide"))
+      ) {
+        others.push({ id: i.get("project_id"), title: i.get("title") });
+      }
+    }
+    list = list.concat(others);
+    return list;
+  }
 }
 
 // WARNING: A lot of code relies on the assumption project_map is
