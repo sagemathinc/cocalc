@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-require("./project-upgrades-table");
+import "./project-upgrades-table";
 import { Map } from "immutable";
 import { round1, plural } from "smc-util/misc";
 import { redux, rclass, rtypes, Component, React } from "../../app-framework";

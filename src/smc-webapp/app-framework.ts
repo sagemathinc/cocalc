@@ -47,7 +47,6 @@ import { FileUseStore } from "./file-use/store";
 import { FileUseActions } from "./file-use/actions";
 export { TypedMap } from "./app-framework/TypedMap";
 
-// Only import the types
 declare type ProjectStore = import("./project_store").ProjectStore;
 declare type ProjectActions = import("./project_actions").ProjectActions;
 
@@ -343,13 +342,16 @@ export class AppRedux {
     });
   }
 
-  // getProject... is safe to call any time. All structures will be created if they don't exist
+  // getProject... is safe to call any time. All structures will be created
+  // if they don't exist
   getProjectStore = (project_id: string): ProjectStore => {
     if (!is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectStore: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
+      // Right now importing project_store breaks the share server,
+      // so we don't yet.
       return require("./project_store").init(project_id, this);
     } else {
       return this.getStore(project_redux_name(project_id)) as any;
@@ -442,8 +444,7 @@ const computed = (rtype) => {
   return clone;
 };
 
-// For backward compatibility
-const rtypes = require("smc-util/opts").types;
+const rtypes = require("smc-util/opts").types
 
 /*
 Used by Provider to map app state to component props
@@ -706,6 +707,12 @@ function UNSAFE_NONNULLABLE<T>(arg: T): NonNullable<T> {
   return arg as any;
 }
 export { UNSAFE_NONNULLABLE };
+
+// I'm explicitly disabling using typing with ReactDOM on purpose,
+// because it's basically impossibly to use, and I'll probably get
+// rid of all uses of ReactDOM.findDOMNode anyways.
+//import * as ReactDOM from "react-dom";
+//export { ReactDOM };
 export const ReactDOM = require("react-dom");
 
 if (DEBUG) {

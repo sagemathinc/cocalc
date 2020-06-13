@@ -220,9 +220,11 @@ class MarkdownInput0 extends Component<
                 rows={this.props.rows != null ? this.props.rows : 4}
                 placeholder={this.props.placeholder}
                 value={this.state.value}
-                onChange={() =>
-                  this.set_value(ReactDOM.findDOMNode(this.refs.input).value)
-                }
+                onChange={() => {
+                  const value = ReactDOM.findDOMNode(this.refs.input)?.value;
+                  if (value == null) return;
+                  this.set_value(value);
+                }}
                 onKeyDown={this.keydown}
               />
             </FormGroup>

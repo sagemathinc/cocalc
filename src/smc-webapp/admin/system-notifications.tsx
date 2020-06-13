@@ -90,7 +90,7 @@ class SystemNotifications extends Component<Props, State> {
             componentClass="textarea"
             onChange={() =>
               this.setState({
-                mesg: ReactDOM.findDOMNode(this.refs.input).value,
+                mesg: ReactDOM.findDOMNode(this.refs.input)?.value,
               })
             }
           />

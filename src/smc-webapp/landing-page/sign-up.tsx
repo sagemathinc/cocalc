@@ -74,10 +74,10 @@ export class SignUp extends React.Component<Props, State> {
     return redux
       .getActions("account")
       .create_account(
-        ReactDOM.findDOMNode(this.refs.first_name).value,
-        ReactDOM.findDOMNode(this.refs.last_name).value,
-        ReactDOM.findDOMNode(this.refs.email).value,
-        ReactDOM.findDOMNode(this.refs.password).value,
+        ReactDOM.findDOMNode(this.refs.first_name)?.value,
+        ReactDOM.findDOMNode(this.refs.last_name)?.value,
+        ReactDOM.findDOMNode(this.refs.email)?.value,
+        ReactDOM.findDOMNode(this.refs.password)?.value,
         this.state.user_token
       );
   };
@@ -215,7 +215,7 @@ export class SignUp extends React.Component<Props, State> {
   }
 
   question_blur() {
-    const question: string = ReactDOM.findDOMNode(this.refs.question).value;
+    const question: string = ReactDOM.findDOMNode(this.refs.question)?.value;
     if (!question) return;
     try {
       // We store the question in localStorage.
