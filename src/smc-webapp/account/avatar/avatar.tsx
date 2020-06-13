@@ -10,6 +10,7 @@ import { webapp_client } from "../../webapp-client";
 import { React, redux, useRedux } from "../../app-framework";
 import { Loading, Space } from "../../r_misc";
 import { avatar_fontcolor } from "./font-color";
+import { ProjectTitle } from "../../projects/project-title";
 
 const CIRCLE_OUTER_STYLE = {
   textAlign: "center",
@@ -143,7 +144,6 @@ export const Avatar: React.FC<Props> = (props) => {
     }
     switch (viewing_what()) {
       case "projects":
-        var { ProjectTitle } = require("../../projects"); // MUST be imported here (until gets refactored in typescript).
         return (
           <span>
             {name} last seen at{" "}

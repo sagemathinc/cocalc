@@ -15,11 +15,9 @@ IDEAS FOR LATER:
 
 */
 
+import { React, ReactDOM } from "../../app-framework";
 import { analytics_event } from "../../tracker";
 import { ProjectActions } from "../../project_actions";
-import * as React from "react";
-import * as ReactDOM from "react-dom";
-
 const {
   Button,
   FormControl,
@@ -281,9 +279,9 @@ export class MiniTerminal extends React.Component<Props, State> {
                 placeholder="Terminal command..."
                 onChange={(e) => {
                   e.preventDefault();
-                  this.setState({
-                    input: (ReactDOM.findDOMNode(this.refs.input) as any).value,
-                  });
+                  const input = ReactDOM.findDOMNode(this.refs.input)?.value;
+                  if (input == null) return;
+                  this.setState({ input });
                 }}
                 onKeyDown={this.keydown}
               />

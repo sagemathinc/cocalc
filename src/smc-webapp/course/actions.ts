@@ -8,8 +8,6 @@
 // the Configuration page, and that always resends email invites.
 export const EMAIL_REINVITE_DAYS = 6;
 
-import { Map } from "immutable";
-
 // CoCalc libraries
 import { SyncDB } from "smc-util/sync/editor/db/sync";
 import { SyncDBRecord } from "./types";
@@ -31,6 +29,7 @@ import { AssignmentsActions } from "./assignments/actions";
 import { HandoutsActions } from "./handouts/actions";
 import { ConfigurationActions } from "./configuration/actions";
 import { ExportActions } from "./export/actions";
+import { ProjectsStore } from "../projects/store";
 
 // React libraries
 import { Actions, TypedMap } from "../app-framework";
@@ -219,10 +218,10 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // important that this be bound...
-  public handle_projects_store_update(state: Map<string, any>): void {
+  public handle_projects_store_update(projects_store: ProjectsStore): void {
     const store = this.redux.getStore<CourseState, CourseStore>(this.name);
     if (store == null) return; // not needed yet.
-    let users = state.getIn([
+    let users = projects_store.getIn([
       "project_map",
       store.get("course_project_id"),
       "users",

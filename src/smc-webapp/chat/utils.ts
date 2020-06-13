@@ -112,7 +112,7 @@ export function message_colors(
 export async function scroll_to_bottom(
   log_container_ref: { current: any },
   force: boolean = false
-): void {
+): Promise<void> {
   if (
     !log_container_ref.current ||
     (!force && log_container_ref.current.chat_manual_scroll) ||

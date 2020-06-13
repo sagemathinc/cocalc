@@ -5,10 +5,7 @@
 
 import { FormGroup, FormControl, Well } from "react-bootstrap";
 import { Button } from "../antd-bootstrap";
-//import { callback2 } from "smc-util/async-utils";
 import { alert_message } from "../alerts";
-//import { user_search } from "../frame-editors/generic/client";
-//const { webapp_client } = require("../webapp_client");
 import * as humanizeList from "humanize-list";
 import {
   React,
@@ -25,7 +22,8 @@ import { copy, deep_copy, keys, unreachable } from "smc-util/misc2";
 
 import { site_settings_conf } from "smc-util/schema";
 import { ON_PREM_DEFAULT_QUOTAS } from "smc-util/upgrade-spec";
-const MAX_UPGRADES = require("smc-util/upgrade-spec").upgrades.max_per_project;
+import { upgrades } from "smc-util/upgrade-spec";
+const MAX_UPGRADES = upgrades.max_per_project;
 
 const FIELD_DEFAULTS = {
   default_quotas: ON_PREM_DEFAULT_QUOTAS,
@@ -47,7 +45,7 @@ import {
   Space /*, Tip*/,
 } from "../r_misc";
 
-const smc_version = require("smc-util/smc-version");
+import * as smc_version from "smc-util/smc-version";
 
 type State = "view" | "load" | "edit" | "save" | "error";
 
@@ -218,7 +216,8 @@ class SiteSettingsComponent extends Component<
   private on_json_entry_change(name) {
     const e = copy(this.state.edited);
     try {
-      const new_val = ReactDOM.findDOMNode(this.refs[name]).value;
+      const new_val = ReactDOM.findDOMNode(this.refs[name])?.value;
+      if (new_val == null) return;
       JSON.parse(new_val); // does it throw?
       e[name] = new_val;
       this.setState({ edited: e });
@@ -300,7 +299,7 @@ class SiteSettingsComponent extends Component<
 
   private on_change_entry(name, val?) {
     const e = copy(this.state.edited);
-    e[name] = val ?? ReactDOM.findDOMNode(this.refs[name]).value;
+    e[name] = val ?? ReactDOM.findDOMNode(this.refs[name])?.value;
     return this.setState({ edited: e });
   }
 
@@ -506,7 +505,8 @@ class SiteSettingsComponent extends Component<
   private async send_test_email(
     type: "password_reset" | "invite_email" | "mention" | "verification"
   ): Promise<void> {
-    const email = ReactDOM.findDOMNode(this.refs.test_email).value;
+    const email = ReactDOM.findDOMNode(this.refs.test_email)?.value;
+    if (email == null) return;
     console.log(`sending test email "${type}" to ${email}`);
     // saving info
     await this.store();

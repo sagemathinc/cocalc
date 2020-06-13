@@ -160,6 +160,7 @@ export function Well(props: {
   children?: any;
   className?: string;
   onDoubleClick?;
+  onMouseDown?;
 }) {
   let style: React.CSSProperties = {
     ...{ backgroundColor: "white", border: "1px solid #e3e3e3" },
@@ -170,6 +171,7 @@ export function Well(props: {
       style={style}
       className={props.className}
       onDoubleClick={props.onDoubleClick}
+      onMouseDown={props.onMouseDown}
     >
       {props.children}
     </antd.Card>
@@ -219,6 +221,7 @@ export function Col(props: {
   lgOffset?: number;
   style?: React.CSSProperties;
   className?: string;
+  onClick?;
   children?: any;
 }) {
   const props2: any = {};
@@ -229,6 +232,9 @@ export function Col(props: {
     if (props[p + "Offset"] != null) {
       props2["offset"] = 2 * props[p + "Offset"]; // loss of info
     }
+  }
+  for (const p of ["className", "onClick", "style"]) {
+    props2[p] = props[p];
   }
   return <antd.Col {...props2}>{props.children}</antd.Col>;
 }

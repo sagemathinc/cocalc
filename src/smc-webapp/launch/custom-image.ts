@@ -10,7 +10,6 @@
 
 import { redux } from "../app-framework";
 import { analytics_event } from "../tracker";
-import { uuid } from "smc-util/misc2";
 import { retry_until_success } from "smc-util/async-utils";
 import {
   custom_image_name,
@@ -31,7 +30,7 @@ export class CSILauncher {
   }
 
   // returns project_id or if there is a problem, undefined
-  async launch(): string | undefined {
+  async launch(): Promise<string | undefined> {
     this.custom_software_table = await this.get_csi_table();
     if (!this.custom_software_table._table.value.has(this.image_id)) {
       alert_message({
@@ -44,7 +43,7 @@ export class CSILauncher {
     }
 
     // this is mimicing what's going on in projects/create-project.tsx
-    this.actions = await this.get_project_actions();
+    this.actions = await this.get_projects_actions();
 
     const project_id = await this.find_project();
 
@@ -70,7 +69,7 @@ export class CSILauncher {
     });
   }
 
-  private async get_project_actions() {
+  private async get_projects_actions() {
     return await retry_until_success({
       f: async () => {
         const projects_table = redux.getTable("projects");
@@ -89,54 +88,43 @@ export class CSILauncher {
   private async find_project(): Promise<string | undefined> {
     await this.actions.load_all_projects();
     const store = redux.getStore("projects");
-    const projs = store.get_by_compute_image(this.image_id);
-    if (projs.isEmpty()) {
+    const projs = store.get_projects_with_compute_image(this.image_id);
+    if (projs == null || projs.isEmpty()) {
       return undefined;
     } else {
-      // return the one with the highest (newest) created timestamp
+      // return the project_id with the highest (newest) created timestamp
       const project = projs
         .sortBy((p) => {
           const created = p.get("created");
           return created != null ? created.getTime() : 0;
         })
         .last();
-      return project.get("project_id");
+      if (project == null) return;
+      return (project as any).get("project_id");
     }
   }
 
-  private async create_project(): Promise<string> {
-    const token = uuid();
-
+  private async create_project(): Promise<string | undefined> {
     const title =
       this.custom_software_table._table.get(this.image_id).get("display") ||
       this.image_id;
 
-    // TODO pick the proper title from the custom image table
-    const project_id = await this.actions.create_project({
-      title,
-      image: custom_image_name(this.image_id),
-      token,
-    });
-
-    // if we have project actions, we can assume project store also exists?
-    redux
-      .getStore("projects")
-      .wait_until_project_created(token, 30, (err, project_id) => {
-        if (err != null) {
-          alert_message({
-            type: "error",
-            title: "Unable to create project.",
-            message: `The error is "${err}".`,
-            block: true,
-          });
-        } else {
-          this.actions.apply_default_upgrades({ project_id });
-          this.actions.open_project({ project_id, switch_to: true });
-        }
+    let project_id: string;
+    try {
+      project_id = await this.actions.create_project({
+        title,
+        image: custom_image_name(this.image_id),
       });
-
+    } catch (err) {
+      alert_message({
+        type: "error",
+        message: `Error creating project -- ${err}`,
+      });
+      return;
+    }
+    this.actions.apply_default_upgrades({ project_id });
+    this.actions.open_project({ project_id, switch_to: true });
     analytics_event("create_project", "launch_csi");
-
     return project_id;
   }
 }

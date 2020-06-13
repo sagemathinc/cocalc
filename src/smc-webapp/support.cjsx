@@ -162,17 +162,12 @@ class SupportActions extends Actions
         account    = @redux.getStore('account')
         account_id = account.get_account_id() # null if not authenticated
         project_id = @project_id()
-        project    = @projects()?.get_project(project_id)
 
         @set(state: STATE.CREATING)
 
         if misc.is_valid_uuid_string(project_id)
-            u = @projects().get_upgrades_to_project(project_id)
-            # console.log("PID", project, u)
-            # sum up upgrades for each category
-            proj_upgrades = _.mapObject(u, (v, k) -> misc.sum(_.values(v)))
-            proj_settings = @projects().get_project(project_id).settings
-            quotas = misc.map_sum(proj_upgrades, proj_settings)
+            proj_upgrades = @projects().get_total_project_upgrades(project_id)
+            quotas = @projects().get_total_project_quotas(project_id)
         else
             proj_upgrades = null
             quotas = {}
@@ -200,7 +195,6 @@ class SupportActions extends Actions
             user_agent : navigator?.userAgent
             mobile     : feature.get_mobile() ? false
             internet   : (quotas?.network ? 0) > 0
-            hostname   : project?.host?.host ? 'unknown'
             course     : course ? 'no'
             quotas     : JSON.stringify(quotas)
 

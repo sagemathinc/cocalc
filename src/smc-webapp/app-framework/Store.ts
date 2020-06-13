@@ -15,6 +15,7 @@ import { TypedMap } from "./TypedMap";
 import { TypedCollectionMethods } from "./immutable-types";
 import { callback2 } from "../../smc-util/async-utils";
 import { defaults, required, top_sort } from "../../smc-util/misc";
+import { bind_methods } from "../../smc-util/misc2";
 // Relative import is temporary, until I figure this out -- needed for *project*
 // import { fill } from "../../smc-util/fill";
 // fill does not even compile for the backend project (using the fill from the fill
@@ -47,14 +48,14 @@ export class Store<State> extends EventEmitter {
 
   constructor(name: string, redux: AppRedux) {
     super();
-    this._handle_store_change = this._handle_store_change.bind(this);
-    this.getState = this.getState.bind(this);
-    this.get = this.get.bind(this);
-    this.getIn = this.getIn.bind(this);
-    this.wait = this.wait.bind(this);
+    // This binds all methods, even in derived classes (as long as they don't overload
+    // constructor and not call super); there is some runtime cost, but it is worth it
+    // to avoid bugs in Store/Actions, which are often used with the assumption that
+    // this binding happened.
+    bind_methods(this);
     this.name = name;
     this.redux = redux;
-    this.setMaxListeners(150);
+    this.setMaxListeners(1000);
   }
 
   protected setup_selectors(): void {
@@ -173,13 +174,8 @@ export class Store<State> extends EventEmitter {
     cb: (err?: string, result?: T) => any; // cb(undefined, until(store)) on success and cb('timeout') on failure due to timeout
     throttle_ms?: number; // in ms -- throttles the call to until(store)
     timeout?: number; // in seconds -- set to 0 to disable (DANGEROUS since until will get run for a long time)
-  }): this | undefined {
+  }): void {
     let timeout_ref;
-    /*
-    let { until, cb, throttle_ms, timeout } = fill(opts, {
-      timeout: 30
-    });
-    */
     opts = defaults(opts, {
       until: required,
       throttle_ms: undefined,
@@ -198,14 +194,14 @@ export class Store<State> extends EventEmitter {
       return;
     }
     // Setup a listener
-    const listener = (): unknown => {
+    const listener = (): void => {
       x = until(this);
       if (x) {
         if (timeout_ref) {
           clearTimeout(timeout_ref);
         }
         this.removeListener("change", listener);
-        return async.nextTick(() => cb(undefined, x));
+        async.nextTick(() => cb(undefined, x));
       }
     };
     // If we want a timeout (the default), setup a timeout
@@ -217,7 +213,7 @@ export class Store<State> extends EventEmitter {
       };
       timeout_ref = setTimeout(timeout_error, timeout * 1000);
     }
-    return this.on("change", listener);
+    this.on("change", listener);
   }
 
   public async async_wait<T>(opts: {

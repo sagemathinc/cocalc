@@ -10,7 +10,6 @@ const { SCHEMA } = require("../../schema");
 // TODO: document them here!
 export function parse_query(query) {
   query = deep_copy(query);
-  // TODO: convert this to Typescript...
   if (typeof query === "string") {
     // name of a table -- get all fields
     const s = SCHEMA[query];

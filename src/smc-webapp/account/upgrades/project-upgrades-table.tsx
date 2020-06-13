@@ -8,8 +8,7 @@ import { webapp_client } from "../../webapp-client";
 import { rclass, redux, rtypes, Component, React } from "../../app-framework";
 import { ErrorDisplay, UpgradeAdjustor, r_join } from "../../r_misc";
 import { PROJECT_UPGRADES } from "smc-util/schema";
-//import { ProjectTitle } from "../../projects";
-const { ProjectTitle } = require("../../projects");
+import { ProjectTitle } from "../../projects/project-title";
 import { Button, Row, Col, Panel } from "../../antd-bootstrap";
 import { ResetProjectsConfirmation } from "./reset-projects";
 import { plural, is_string, len, round1 } from "smc-util/misc";
@@ -144,7 +143,6 @@ class ProjectUpgradesTable extends Component<reduxProps, State> {
         <Col sm={4}>
           <ProjectTitle
             project_id={project_id}
-            project_map={this.props.project_map}
             handle_click={(e) => this.open_project_settings(e, project_id)}
           />
         </Col>

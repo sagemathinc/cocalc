@@ -32,11 +32,20 @@ export type ProjectEvent =
   | MiniTermEvent
   | CollaboratorEvent
   | X11Event
-  | SetEvent
+  | SetTitleEvent
+  | SetDescriptionEvent
   | { event: "open_project" }
   | SystemEvent;
 
-export type SetEvent = { event: "set" };
+export type SetTitleEvent = {
+  event: "set";
+  title: string;
+};
+
+export type SetDescriptionEvent = {
+  event: "set";
+  description: string;
+};
 
 export type X11Event = {
   event: "x11";

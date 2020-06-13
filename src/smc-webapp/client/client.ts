@@ -25,7 +25,7 @@ import { version } from "smc-util/smc-version";
 export type AsyncCall = (opts: object) => Promise<any>;
 
 export interface WebappClient extends EventEmitter {
-  public account_id?: string;
+  account_id?: string;
 
   stripe: StripeClient;
   project_collaborators: ProjectCollaborators;

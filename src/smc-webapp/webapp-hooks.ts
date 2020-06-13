@@ -26,12 +26,10 @@ import { reset_password_key } from "./client/password-reset";
 let first_login = true;
 
 // load more of the app now that user is logged in.
-// TODO: Check for side effects otherwise this is unecessary...
-// projects.cjsx definitely has side effects
 const load_app = (cb) =>
   (require as any).ensure([], function () {
     require("./account/account-page"); // initialize react-related account page
-    require("./projects.cjsx"); // initialize project listing
+    require("./projects/actions"); // initialize projects list
     cb();
   });
 

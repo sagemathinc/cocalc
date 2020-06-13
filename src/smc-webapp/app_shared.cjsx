@@ -11,7 +11,7 @@
 misc = require('smc-util/misc')
 
 {InfoPage} = require('./info/info')
-{ProjectsPage} = require('./projects')
+{ProjectsPage} = require('./projects/projects-page')
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account/account-page')
 {FileUsePage} = require('./file-use/page')
