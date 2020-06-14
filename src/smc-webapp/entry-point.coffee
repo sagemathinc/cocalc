@@ -24,7 +24,7 @@ init_buttonbars()
 require('./redux_server_stats')
 
 # Systemwide notifications that are broadcast to all users (and set by admins)
-require('./system_notifications')
+require('./system-notifications')
 
 require('./launch/actions')
 

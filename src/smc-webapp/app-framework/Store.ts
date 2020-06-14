@@ -16,12 +16,6 @@ import { TypedCollectionMethods } from "./immutable-types";
 import { callback2 } from "../../smc-util/async-utils";
 import { defaults, required, top_sort } from "../../smc-util/misc";
 import { bind_methods } from "../../smc-util/misc2";
-// Relative import is temporary, until I figure this out -- needed for *project*
-// import { fill } from "../../smc-util/fill";
-// fill does not even compile for the backend project (using the fill from the fill
-// module breaks starting projects).
-// NOTE: a basic requirement of "redux app framework" is that it can fully run
-// on the backend (e.g., in a project) under node.js.
 
 export type StoreConstructorType<T, C = Store<T>> = new (
   name: string,
