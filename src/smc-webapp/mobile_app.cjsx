@@ -140,7 +140,6 @@ Page = rclass
                 /> if @props.is_logged_in}
                 <ConnectionIndicator
                     on_click = {@close_menu}
-                    actions  = {@actions('page')}
                 />
             </Nav>
         </div>

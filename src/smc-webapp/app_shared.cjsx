@@ -177,75 +177,13 @@ exports.NavTab = rclass
         </NavItem>
 
 exports.NotificationBell = require('./app/notification-bell').NotificationBell
-
-exports.ConnectionIndicator = rclass
-    displayName : 'ConnectionIndicator'
-
-    propTypes :
-        actions       : rtypes.object
-        status        : rtypes.string
-        on_click      : rtypes.func
-
-    reduxProps :
-        page :
-            connection_status : rtypes.string
-        account :
-            mesg_info         : rtypes.immutable.Map
-
-    shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['connection_status', 'status', 'mesg_info'])
-
-    render_connection_status: ->
-        if @props.connection_status == 'connected'
-            icon_style = {marginRight: '16px', fontSize: '13pt', display: 'inline'}
-            if (@props.mesg_info?.get('enqueued') ? 0) > 5  # serious backlog of data!
-                icon_style.color = 'red'
-            else if (@props.mesg_info?.get('count') ? 0) > 1 # worrisome amount
-                icon_style.color = '#08e'
-            else if (@props.mesg_info?.get('count') ? 0) > 0 # working well but doing something minimal
-                icon_style.color = '#00c'
-            else
-                icon_style.color = 'grey'
-            <div style={padding:'9px'}>
-                <Icon name='wifi' style={icon_style}/>
-            </div>
-        else if @props.connection_status == 'connecting'
-            <div style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', overflow:'hidden'}>
-                connecting...
-            </div>
-        else if @props.connection_status == 'disconnected'
-            <div style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', overflow:'hidden'}>
-                disconnected
-            </div>
-
-    connection_click: ->
-        @props.actions.show_connection(true)
-        @props.on_click?()
-        document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
-        user_tracking("top_nav", {name:"connection"})
-
-    render: ->
-        outer_styles =
-            color      : '#666'
-            fontSize   : '10pt'
-            lineHeight : '10pt'
-            cursor     : 'pointer'
-            float      : 'left'
-        inner_styles =
-            paddingTop : '3px'
-
-        <NavItem style={outer_styles} onClick={@connection_click}>
-            <div style={inner_styles} >
-                {@render_connection_status()}
-            </div>
-        </NavItem>
+exports.ConnectionIndicator = require('./app/connection-indicator').ConnectionIndicator
 
 bytes_to_str = (bytes) ->
     x = Math.round(bytes / 1000)
     if x < 1000
         return x + "K"
     return x/1000 + "M"
-
 
 MessageInfo = rclass
     propTypes :

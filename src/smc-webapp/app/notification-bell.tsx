@@ -8,6 +8,7 @@ import { COLORS } from "smc-util/theme";
 import { user_tracking } from "../user-tracking";
 import { Icon } from "../r_misc";
 import { NavItem } from "react-bootstrap";
+import { blur_active_element } from "./util";
 
 interface Props {
   count: number;
@@ -51,10 +52,7 @@ export const NotificationBell: React.FC<Props> = React.memo(
 
     function handle_navitem_click() {
       page_actions.toggle_show_file_use();
-      if (document.activeElement != null) {
-        // otherwise, it'll be highlighted even when closed again
-        (document.activeElement as any).blur?.();
-      }
+      blur_active_element();
       on_click?.();
       if (!active) {
         user_tracking("top_nav", { name: "file_use" });

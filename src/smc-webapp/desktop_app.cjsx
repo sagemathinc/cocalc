@@ -264,7 +264,7 @@ Page = rclass
             {@render_support()}
             {@render_account_tab() if logged_in}
             {@render_bell()}
-            {<ConnectionIndicator actions={@actions('page')}/> if not @props.is_anonymous}
+            {<ConnectionIndicator /> if not @props.is_anonymous}
         </Nav>
 
     render_project_nav_button: ->
