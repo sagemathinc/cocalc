@@ -20,6 +20,7 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
           marginRight: "16px",
           fontSize: "13pt",
           display: "inline",
+          color: "grey",
         };
         if (mesg_info?.get("enqueued") ?? 0 > 6) {
           // serious backlog of data!
@@ -30,8 +31,6 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
         } else if (mesg_info?.get("count") ?? 0 > 0) {
           // working well but doing something minimal
           icon_style.color = "#00c";
-        } else {
-          icon_style.color = "grey";
         }
         return (
           <div style={{ padding: "9px" }}>
@@ -76,18 +75,18 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
       user_tracking("top_nav", { name: "connection" });
     }
 
-    const outer_styles = {
-      color: "#666",
-      fontSize: "10pt",
-      lineHeight: "10pt",
-      cursor: "pointer",
-      float: "left",
-    };
-    const inner_styles = { paddingTop: "3px" };
-
     return (
-      <NavItem style={outer_styles} onClick={connection_click}>
-        <div style={inner_styles}>{render_connection_status()}</div>
+      <NavItem
+        style={{
+          color: "#666",
+          fontSize: "10pt",
+          lineHeight: "10pt",
+          cursor: "pointer",
+          float: "left",
+        }}
+        onClick={connection_click}
+      >
+        <div style={{ paddingTop: "3px" }}>{render_connection_status()}</div>
       </NavItem>
     );
   }
