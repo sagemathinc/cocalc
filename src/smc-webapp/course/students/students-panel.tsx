@@ -1600,9 +1600,11 @@ class Student extends Component<StudentProps, StudentState> {
   render_more_panel() {
     return (
       <Row>
-        <Card title={this.render_panel_header()}>
-          {this.render_more_info()}
-        </Card>
+        <Col xs={24}>
+          <Card title={this.render_panel_header()}>
+            {this.render_more_info()}
+          </Card>
+        </Col>
       </Row>
     );
   }
