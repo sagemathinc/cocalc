@@ -71,7 +71,7 @@ export async function get_listing(
         stats = await callback(lstat, dir + "/" + entry.name);
       }
       entry.mtime = stats.mtime.valueOf() / 1000;
-      if (file.isDirectory()) {
+      if (stats.isDirectory()) {
         entry.isdir = true;
         const v = await callback(readdir, dir + "/" + entry.name);
         if (hidden) {
