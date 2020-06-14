@@ -16,6 +16,12 @@ import { path_to_file, should_open_in_foreground } from "smc-util/misc";
 import { React, useRedux, useActions } from "../../app-framework";
 import { delay } from "awaiting";
 
+const DESC_STYLE: React.CSSProperties = {
+  color: "#666",
+  marginBottom: "5px",
+  border: 0,
+};
+
 export const ProjectSearchBody: React.FC<{ project_id: string }> = ({
   project_id,
 }) => {
@@ -282,8 +288,8 @@ const ProjectSearchResultLine: React.FC<{
     <div style={{ wordWrap: "break-word" }}>
       <a onClick={click_filename} href="">
         <strong>{filename}</strong>
+        <pre style={DESC_STYLE}>{description}</pre>
       </a>
-      <span style={{ color: "#666" }}> {description}</span>
     </div>
   );
 };
