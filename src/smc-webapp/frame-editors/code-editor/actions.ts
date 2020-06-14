@@ -1533,7 +1533,7 @@ export class Actions<
     focus?: boolean,
     id?: string // if given scroll this particular frame
   ): Promise<void> {
-    if (this._syncstring == null) {
+    if (this._syncstring == null || this._syncstring.is_fake) {
       // give up -- don't even have a syncstring...
       // A derived class that doesn't use a syncstring
       // might overload programmatical_goto_line to make

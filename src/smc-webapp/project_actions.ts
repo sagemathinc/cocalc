@@ -1099,7 +1099,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // If the given path is open, and editor supports going to line,
   // moves to the given line.
   // Otherwise, does nothing.
-  public goto_line(path, line): void {
+  public goto_line(path, line, cursor?: boolean, focus?: boolean): void {
     const a: any = redux.getEditorActions(this.project_id, path);
     if (a == null) {
       // try non-react editor
@@ -1112,7 +1112,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
     } else {
       if (typeof a.programmatical_goto_line === "function") {
-        a.programmatical_goto_line(line);
+        a.programmatical_goto_line(line, cursor, focus);
       }
     }
   }

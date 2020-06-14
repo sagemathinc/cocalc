@@ -676,16 +676,11 @@ exports.normalized_path_join = function (...parts) {
 };
 
 // Takes a path string and file name and gives the full path to the file
-exports.path_to_file = function (path, file, line_number) {
+exports.path_to_file = function (path, file) {
   if (path === "") {
     return file;
   }
-  path = path + "/" + file;
-  if (!line_number) {
-    return path;
-  }
-  //path += "#L#{line_number}" # TODO: THIS IS BROKEN IN PRODUCTION FOR SOME REASON!!!!!
-  return path;
+  return path + "/" + file;
 };
 
 const { hidden_meta_file } = require("./misc2");
