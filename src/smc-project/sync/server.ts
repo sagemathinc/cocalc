@@ -458,6 +458,9 @@ async function synctable_channel0(
   if (query?.syncstrings != null) {
     const path = query?.syncstrings[0]?.path;
     if (client.is_deleted(path)) {
+      logger.debug(
+        `synctable_channel -- refusing to open "${path}" since it is marked as deleted`
+      );
       throw Error(`${path} is deleted`);
     }
   }

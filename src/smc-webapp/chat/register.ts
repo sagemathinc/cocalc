@@ -7,6 +7,7 @@ import { redux_name } from "../app-framework";
 import { webapp_client } from "../webapp-client";
 import { alert_message } from "../alerts";
 import { register_file_editor } from "../file-editors";
+import { startswith, path_split } from "smc-util/misc2";
 
 import { ChatStore } from "./store";
 import { ChatActions } from "./actions";
@@ -21,6 +22,11 @@ export function init(path: string, redux, project_id: string): string {
   const actions = redux.createActions(name, ChatActions);
   const store = redux.createStore(name, ChatStore);
   actions.setState({ project_id, path });
+
+  if (startswith(path_split(path).tail, ".")) {
+    // Sidechat being opened -- ensure chat isn't marked as deleted:
+    redux.getProjectStore(project_id)?.get_listings()?.undelete(path);
+  }
 
   const syncdb = webapp_client.sync_client.sync_db({
     project_id,
