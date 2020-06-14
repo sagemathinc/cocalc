@@ -107,6 +107,7 @@ export function Button(props: {
   className?: string;
   href?: string;
   target?: string;
+  title?: string;
 }) {
   // The span is needed inside below, otherwise icons and labels get squashed together
   // due to button having word-spacing 0.
@@ -132,6 +133,7 @@ export function Button(props: {
       danger={danger}
       ghost={ghost}
       loading={loading}
+      title={props.title}
     >
       <span>{props.children}</span>
     </antd.Button>

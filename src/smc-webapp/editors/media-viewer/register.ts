@@ -8,7 +8,8 @@ Handle viewing images and videos
 */
 
 import { MediaViewer } from "./viewer";
-import { register_file_editor } from "../../project_file";
+//import { register_file_editor } from "../../project_file";
+const { register_file_editor } = require("../../project_file");
 import { IMAGE_EXTS, VIDEO_EXTS, AUDIO_EXTS } from "../../file-associations";
 
 for (const is_public of [true, false]) {

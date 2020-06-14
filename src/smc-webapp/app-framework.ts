@@ -54,12 +54,6 @@ import { ComputeImagesStore } from "./custom-software/init";
 declare type ProjectStore = import("./project_store").ProjectStore;
 declare type ProjectActions = import("./project_actions").ProjectActions;
 
-export const COLOR = {
-  BG_RED: "#d9534f", // the red bootstrap color of the button background
-  FG_RED: "#c9302c", // red used for text
-  FG_BLUE: "#428bca", // blue used for text
-};
-
 const action_set_state = function (change) {
   return {
     type: "SET_STATE",

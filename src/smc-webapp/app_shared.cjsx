@@ -3,7 +3,7 @@
 # License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
 #########################################################################
 
-{React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store, COLOR} = require('./app-framework')
+{React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store} = require('./app-framework')
 {Button, Col, Row, Modal, NavItem} = require('react-bootstrap')
 {Icon, Space, Tip} = require('./r_misc')
 {COLORS} = require('smc-util/theme')
@@ -176,74 +176,7 @@ exports.NavTab = rclass
             </div>
         </NavItem>
 
-exports.NotificationBell = rclass
-    displayName: 'NotificationBell'
-
-    propTypes :
-        count    : rtypes.number
-        active   : rtypes.bool
-        on_click : rtypes.func
-
-    getDefaultProps: ->
-        active : false
-
-    shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['count', 'active'])
-
-    on_click: (e) ->
-        @actions('page').toggle_show_file_use()
-        document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
-        @props.on_click?()
-        if !@props.active
-            user_tracking("top_nav", {name:"file_use"})
-
-    notification_count: ->
-        count_styles =
-            fontSize   : '10pt'
-            color      : COLOR.FG_RED
-            position   : 'absolute'
-            left       : '16px'
-            top        : '11px'
-            fontWeight : 700
-            background : 'transparent'
-        if @props.count > 9
-            count_styles.left         = '15.8px'
-            count_styles.background   = COLORS.GRAY_L
-            count_styles.borderRadius = '50%'
-            count_styles.border       = '2px solid lightgrey'
-        if @props.count > 0
-            <span style={count_styles}>{@props.count}</span>
-
-    render: ->
-        outer_style =
-            position    : 'relative'
-            float       : 'left'
-
-        if @props.active
-            outer_style.backgroundColor = ACTIVE_BG_COLOR
-
-        inner_style =
-            padding  : '10px'
-            fontSize : '17pt'
-            cursor   : 'pointer'
-
-        clz = ''
-        bell_style = {}
-        if @props.count > 0
-            clz = 'smc-bell-notification'
-            bell_style = {color: COLOR.FG_RED}
-
-        <NavItem
-            ref       = {'bell'}
-            style     = {outer_style}
-            onClick   = {@on_click}
-            className = {'active' if @props.active}
-        >
-            <div style={inner_style}>
-                <Icon name='bell-o' className={clz} style={bell_style} />
-                {@notification_count()}
-            </div>
-        </NavItem>
+exports.NotificationBell = require('./app/notification-bell').NotificationBell
 
 exports.ConnectionIndicator = rclass
     displayName : 'ConnectionIndicator'

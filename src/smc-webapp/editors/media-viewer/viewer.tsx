@@ -87,15 +87,7 @@ const RenderMedia: React.FC<{ path: string; url: string }> = ({
         />
       );
     case "audio":
-      return (
-        <audio
-          src={url}
-          autoPlay={true}
-          controls={true}
-          loop={false}
-          volume={0.5}
-        />
-      );
+      return <audio src={url} autoPlay={true} controls={true} loop={false} />;
     default:
       // should never happen
       return (

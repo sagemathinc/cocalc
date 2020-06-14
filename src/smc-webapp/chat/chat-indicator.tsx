@@ -6,7 +6,8 @@
 import { debounce } from "lodash";
 import { filename_extension } from "smc-util/misc2";
 import { analytics_event } from "../tracker";
-import { React, redux, COLOR, useRedux, useMemo } from "../app-framework";
+import { React, redux, useRedux, useMemo } from "../app-framework";
+import { COLORS } from "smc-util/theme";
 import { Icon, Tip, Space } from "../r_misc";
 import { UsersViewing } from "../account/avatar/users-viewing";
 import { VideoChatButton } from "./video/launch-button";
@@ -74,7 +75,7 @@ export const ChatIndicator: React.FC<Props> = ({
       return;
     }
 
-    const color = is_new_chat ? COLOR.FG_RED : COLOR.FG_BLUE;
+    const color = is_new_chat ? COLORS.FG_RED : COLORS.FG_BLUE;
     const action = is_chat_open ? "Hide" : "Show";
     const title = (
       <span>
