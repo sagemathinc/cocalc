@@ -581,10 +581,10 @@ function get_methods(obj: object): string[] {
 // (assuming they call super if they overload the constructor!).
 // Do this for classes that don't get created in a tight inner
 // loop and for which you want 'safer' semantics.
-export function bind_methods(
-  obj: object,
+export function bind_methods<T extends object>(
+  obj: T,
   method_names: undefined | string[] = undefined
-): void {
+): T {
   if (method_names === undefined) {
     method_names = get_methods(obj);
     method_names.splice(method_names.indexOf("constructor"), 1);
@@ -592,6 +592,7 @@ export function bind_methods(
   for (const method_name of method_names) {
     obj[method_name] = obj[method_name].bind(obj);
   }
+  return obj;
 }
 
 export function human_readable_size(bytes: number | null | undefined): string {

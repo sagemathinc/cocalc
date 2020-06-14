@@ -318,7 +318,7 @@ export const Message: React.FC<Props> = React.memo((props) => {
           onDoubleClick={edit_message}
         >
           <span style={lighten}>
-            <Time message={props.message} edit={edit_message.bind(this)} />
+            <Time message={props.message} edit={edit_message} />
           </span>
           {!isEditing ? (
             <Markdown

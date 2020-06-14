@@ -35,17 +35,16 @@ export const title_style: React.CSSProperties = Object.freeze({
   color: COLORS.GRAY,
 });
 
-export function props2img() {
-  if (this.props.project_map == null) return null;
-  const ci = this.props.project_map.getIn([
-    this.props.project_id,
-    "compute_image",
-  ]);
+export function props2img(props: {
+  project_map?;
+  project_id: string;
+  images?;
+}) {
+  if (props.project_map == null) return null;
+  const ci = props.project_map.getIn([props.project_id, "compute_image"]);
   if (ci == null) return null;
   if (!ci.startsWith(CUSTOM_IMG_PREFIX)) return null;
-  if (this.props.images == null) return null;
-  const img = this.props.images.get(compute_image2basename(ci));
-  return img;
+  return props.images?.get(compute_image2basename(ci));
 }
 
 // derive the actual compute image name (which will be set in the DB) from the selected ID.

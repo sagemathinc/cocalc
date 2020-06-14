@@ -34,8 +34,6 @@
  *  limitations under the License.
  */
 
-declare var $: any;
-
 export const tex2jax = {
   config: {
     inlineMath: [
@@ -103,8 +101,8 @@ export const tex2jax = {
   },
 
   createPatterns: function () {
-    let starts: string[] = [],
-      parts: string[] = [],
+    let starts= [],
+      parts= [],
       i,
       m,
       config = this.config;
@@ -139,7 +137,7 @@ export const tex2jax = {
     }
     this.start = new RegExp(parts.join("|"), "g");
     this.skipTags = new RegExp("^(" + config.skipTags.join("|") + ")$", "i");
-    const ignore: string[] = [];
+    const ignore = [];
     if (config.ignoreClass) {
       ignore.push(config.ignoreClass);
     }

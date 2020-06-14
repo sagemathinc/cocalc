@@ -80,14 +80,14 @@ export function debug_transform<T extends (...args: any[]) => any>(
     case "verbose":
       composed_rclass = function <
         T extends {
-          render: (...args: any[]) => JSX.Element;
+          render: (...args: any[]) => any;
           displayName?: string;
         }
       >(x: T): T & { _render: T["render"] } {
         (x as any)._render = x.render;
-        x.render = function (): JSX.Element {
+        x.render = function () {
           console.log(x.displayName);
-          return this._render();
+          return (this as any)._render();
         };
         return rclass(x);
       };

@@ -13,6 +13,7 @@ import {
 } from "../../generic/test/util";
 
 describe("CodeEditor - testing actions...", function () {
+  // @ts-ignore
   this.timeout(10000);
   let editor;
 

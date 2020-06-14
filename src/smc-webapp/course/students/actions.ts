@@ -49,7 +49,7 @@ export class StudentsActions {
       this.course_actions.syncdb.set(y);
     }
     this.course_actions.syncdb.commit();
-    async function f(student_id: string): Promise<void> {
+    const f: (student_id: string) => Promise<void> = async (student_id) => {
       let store = this.get_store();
       await callback2(store.wait, {
         until: (store: CourseStore) => store.get_student(student_id),
@@ -62,14 +62,14 @@ export class StudentsActions {
           store.getIn(["students", student_id, "project_id"]),
         timeout: 60,
       });
-    }
+    };
 
     const id = this.course_actions.set_activity({
       desc: `Creating ${students.length} student projects (do not close the course until done)`,
     });
 
     try {
-      await map(student_ids, PARALLEL_LIMIT, f.bind(this));
+      await map(student_ids, PARALLEL_LIMIT, f);
     } catch (err) {
       if (this.course_actions.is_closed()) return;
       this.course_actions.set_error(
@@ -105,7 +105,7 @@ export class StudentsActions {
   public async delete_all_students(): Promise<void> {
     const store = this.get_store();
     const students = store.get_students().valueSeq().toArray();
-    await map(students, PARALLEL_LIMIT, this.do_delete_student.bind(this));
+    await map(students, PARALLEL_LIMIT, this.do_delete_student);
     await this.course_actions.student_projects.configure_all_projects();
   }
 

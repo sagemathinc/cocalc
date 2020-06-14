@@ -30,6 +30,7 @@ import { HandoutsActions } from "./handouts/actions";
 import { ConfigurationActions } from "./configuration/actions";
 import { ExportActions } from "./export/actions";
 import { ProjectsStore } from "../projects/store";
+import { bind_methods } from "smc-util/misc2";
 
 // React libraries
 import { Actions, TypedMap } from "../app-framework";
@@ -63,14 +64,14 @@ export class CourseActions extends Actions<CourseState> {
       throw Error("BUG: name and redux must be defined");
     }
 
-    this.shared_project = new SharedProjectActions(this);
-    this.activity = new ActivityActions(this);
-    this.students = new StudentsActions(this);
-    this.student_projects = new StudentProjectsActions(this);
-    this.assignments = new AssignmentsActions(this);
-    this.handouts = new HandoutsActions(this);
-    this.configuration = new ConfigurationActions(this);
-    this.export = new ExportActions(this);
+    this.shared_project = bind_methods(new SharedProjectActions(this));
+    this.activity = bind_methods(new ActivityActions(this));
+    this.students = bind_methods(new StudentsActions(this));
+    this.student_projects = bind_methods(new StudentProjectsActions(this));
+    this.assignments = bind_methods(new AssignmentsActions(this));
+    this.handouts = bind_methods(new HandoutsActions(this));
+    this.configuration = bind_methods(new ConfigurationActions(this));
+    this.export = bind_methods(new ExportActions(this));
   }
 
   public get_store(): CourseStore {

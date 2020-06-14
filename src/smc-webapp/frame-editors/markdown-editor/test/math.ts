@@ -12,6 +12,7 @@ import {
 } from "../../generic/test/util";
 
 describe("Markdown - test rendering of math", function () {
+  // @ts-ignore
   this.timeout(5000);
 
   describe("open file, set various math content and observe the result", function () {

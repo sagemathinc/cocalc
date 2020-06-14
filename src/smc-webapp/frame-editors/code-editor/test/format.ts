@@ -6,6 +6,7 @@
 import { TestEditor, describe, it, expect } from "../../generic/test/util";
 
 describe("CodeEditor - tests related to the format bar", function () {
+  // @ts-ignore
   this.timeout(10000);
 
   describe("checks that there is no format bar when editing a txt file", function () {
