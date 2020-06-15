@@ -40,3 +40,9 @@ def py2decodestr(s):
         return s
     else:
         return s.decode('utf8')
+
+def py2encodestr(s):
+    if PY3:
+        return s
+    else:
+        return s.encode('utf8')

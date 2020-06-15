@@ -14,7 +14,7 @@ from __future__ import absolute_import, print_function
 
 import logging
 from lxml import etree
-from .py23 import text_type
+from .py23 import text_type, py2encodestr
 try:
     from PIL import Image
 except ImportError:
@@ -1114,7 +1114,7 @@ def main():
     # Make explicit unicode version
     newparatextlist = []
     for paratext in paratextlist:
-        newparatextlist.append(paratext.encode("utf-8"))
+        newparatextlist.append(py2encodestr(paratext))
 
     ## Print our documnts test with two newlines under each paragraph
     newfile.write('\n\n'.join(newparatextlist))
