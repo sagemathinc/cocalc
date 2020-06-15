@@ -34,7 +34,7 @@
  *  limitations under the License.
  */
 
-export const tex2jax = {
+exports.tex2jax = {
   config: {
     inlineMath: [
       // The start/stop pairs for in-line math
@@ -101,8 +101,8 @@ export const tex2jax = {
   },
 
   createPatterns: function () {
-    let starts= [],
-      parts= [],
+    let starts = [],
+      parts = [],
       i,
       m,
       config = this.config;
