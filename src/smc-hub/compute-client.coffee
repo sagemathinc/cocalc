@@ -13,9 +13,9 @@ if process.env.DEVEL
 
 
 # id='eb5c61ae-b37c-411f-9509-10adb51eb90b';require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);global.s=s; s.project(project_id:id,cb:(e,p)->global.p=p;cidonsole.log(e)))
-# 
+#
 # Another example with database on local host
-# 
+#
 # id='7fffd5b4-d140-4a34-a960-9f71fa7fc54b';require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);global.t=s; s.project(project_id:id,cb:(e, p)->global.p=p))
 
 # obviously don't want to trigger this too quickly, since it may mean file loss.

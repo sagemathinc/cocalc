@@ -22,7 +22,7 @@
 ###############################################################################
 
 from __future__ import absolute_import, print_function, division
-from .py23 import iteritems
+from smc_pyutil.py23 import iteritems
 
 # used in naming streams -- changing this would break all existing data...
 TO = "-to-"
