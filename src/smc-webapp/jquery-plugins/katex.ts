@@ -41,6 +41,7 @@ function is_macro_definition(s: string): boolean {
 }
 
 function katex_plugin(): void {
+  // @ts-ignore
   const elt = $(this);
 
   // Run Mathjax's processor on this DOM node.
@@ -51,6 +52,7 @@ function katex_plugin(): void {
 
   // Select all the math and try to use katex on each part.
   elt.find("script").each(function () {
+    // @ts-ignore
     const node = $(this);
     if (
       (node[0] as any).type == "math/tex" ||

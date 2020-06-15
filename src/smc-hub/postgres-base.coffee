@@ -44,7 +44,7 @@ required = defaults.required
 
 {SCHEMA, client_db} = require('smc-util/schema')
 
-exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created']
+exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created', 'env']
 exports.PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJECT_COLUMNS)
 
 {read_db_password_from_disk} = require('./utils')

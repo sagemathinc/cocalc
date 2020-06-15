@@ -199,7 +199,6 @@ export class Passports extends React.Component<Props> {
         <div style={{ display: "flex" }}>
           {strategies.map((strategy) => this.render_strategy(strategy))}
         </div>
-        <hr style={{ marginTop: 10, marginBottom: 10 }} />
       </div>
     );
   }

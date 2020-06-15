@@ -36,11 +36,8 @@ import {
 
 import { ProjectConfiguration } from "./project_configuration";
 import { ProjectLogMap } from "./project/history/types";
-
 import { alert_message } from "./alerts";
-
 import { Listings, listings } from "./project/websocket/listings";
-
 import { deleted_file_variations } from "smc-util/delete-files";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };

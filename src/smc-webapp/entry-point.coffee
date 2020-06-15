@@ -24,12 +24,14 @@ init_buttonbars()
 require('./redux_server_stats')
 
 # Systemwide notifications that are broadcast to all users (and set by admins)
-require('./system_notifications')
+require('./system-notifications')
 
 require('./launch/actions')
 
-# Makes some things work. Like the save button
+# Various jquery plugins:
 require('./jquery_plugins')
+# Another jquery plugin:
+require('./process-links')
 
 ###
 # Initialize app stores, actions, etc.

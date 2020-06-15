@@ -459,7 +459,7 @@ class Project(object):
         if changed:
             open(bashrc, 'w').write(s)
 
-    def dev_env(self):
+    def dev_env(self, extra_env=None):
         os.environ[
             'PATH'] = "{salvus_root}/smc-project/bin:{salvus_root}/smc_pyutil/smc_pyutil:{path}".format(
                 salvus_root=os.environ['SALVUS_ROOT'], path=os.environ['PATH'])
@@ -479,13 +479,15 @@ class Project(object):
         # to listen on localhost since that is where
         # the hub is running
         os.environ['SMC_PROXY_HOST'] = 'localhost'
+        if extra_env:
+            os.environ['COCALC_EXTRA_ENV'] = extra_env
 
     def start(self, cores, memory, cpu_shares, base_url, ephemeral_state,
-              ephemeral_disk, member, network):
+              ephemeral_disk, member, network, extra_env):
         if self._kubernetes:
             return self.kubernetes_start(cores, memory, cpu_shares, base_url,
                                          ephemeral_state, ephemeral_disk,
-                                         member, network)
+                                         member, network, extra_env)
 
         # start can be prevented by massive logs in ~/.smc; if project not stopped via stop, then they will still be there.
         self.remove_smc_path()
@@ -495,9 +497,8 @@ class Project(object):
         self.remove_snapshots_path()
         self.create_user()
         self.create_smc_path()
-        self.chown(
-            self.project_path, False
-        )  # Sometimes /projects/[project_id] doesn't have group/owner equal to that of the project.
+        # Sometimes /projects/[project_id] doesn't have group/owner equal to that of the project.
+        self.chown(self.project_path, False)
 
         os.environ['SMC_BASE_URL'] = base_url
 
@@ -516,7 +517,7 @@ class Project(object):
         if 'COCALC_SECRET_TOKEN' in os.environ:
             del os.environ['COCALC_SECRET_TOKEN']
         if self._dev:
-            self.dev_env()
+            self.dev_env(extra_env)
             os.chdir(self.project_path)
             self.cmd("smc-local-hub start")
 
@@ -528,6 +529,7 @@ class Project(object):
             while not started():
                 time.sleep(0.1)
                 i += 1
+                import sys
                 sys.stdout.flush()
                 if i >= 100:
                     return
@@ -556,6 +558,8 @@ class Project(object):
                     os.environ['COCALC_SECRET_TOKEN'] = os.path.join(
                         self.smc_path, 'secret_token')
                     os.environ['COCALC_PROJECT_ID'] = self.project_id
+                    if extra_env:
+                        os.environ['COCALC_EXTRA_ENV'] = extra_env
                     os.environ['USER'] = os.environ['USERNAME'] = os.environ[
                         'LOGNAME'] = os.environ[
                             'COCALC_USERNAME'] = self.username
@@ -606,7 +610,8 @@ class Project(object):
             delay = min(KUBECTL_MAX_DELAY_S, delay * 1.3)
 
     def kubernetes_start(self, cores, memory, cpu_shares, base_url,
-                         ephemeral_state, ephemeral_disk, member, network):
+                         ephemeral_state, ephemeral_disk, member, network,
+                         extra_env):
         log = self._log("kubernetes_start")
         if self.kubernetes_state()["state"] == 'running':
             log("already running")
@@ -633,6 +638,8 @@ spec:
       env:
         - name: COCALC_PROJECT_ID
           value: "{project_id}"
+        - name: COCALC_EXTRA_ENV
+          value: "{extra_env}"
       ports:
         - containerPort: 6000
           name: "local-hub"
@@ -672,7 +679,8 @@ spec:
                 50, cpu_shares
             ),  # TODO: this must be less than cores or won't start, but UI doesn't restrict that
             network=network_label,
-            node_selector=node_selector)
+            node_selector=node_selector,
+            extra_env=extra_env)
 
         # TODO: should use tempfile module
         path = "/tmp/project-{project_id}-{random}.yaml".format(
@@ -713,13 +721,13 @@ spec:
             self.cmd(cmd)
 
     def restart(self, cores, memory, cpu_shares, base_url, ephemeral_state,
-                ephemeral_disk, member, network):
+                ephemeral_disk, member, network, extra_env):
         log = self._log("restart")
         log("first stop")
         self.stop(ephemeral_state, ephemeral_disk)
         log("then start")
         self.start(cores, memory, cpu_shares, base_url, ephemeral_state,
-                   ephemeral_disk, member, network)
+                   ephemeral_disk, member, network, extra_env)
 
     def get_memory(self, s):
         return 0  # no longer supported
@@ -1419,6 +1427,12 @@ def main():
         default=False,
         action="store_const",
         const=True)
+    parser_start.add_argument(
+        "--extra_env",
+        help=
+        "base64 encded JSON string of a {[key:string]:string} map of additional environment variables",
+        type=str,
+        default='')
     f(parser_start)
 
     parser_status = subparsers.add_parser(
@@ -1558,6 +1572,12 @@ def main():
         default=False,
         action="store_const",
         const=True)
+    parser_restart.add_argument(
+        "--extra_env",
+        help=
+        "base64 encded JSON string of a {[key:string]:string} map of additional environment variables",
+        type=str,
+        default='')
     f(parser_restart)
 
     # directory listing

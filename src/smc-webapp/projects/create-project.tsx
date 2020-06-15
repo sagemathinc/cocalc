@@ -16,15 +16,13 @@ import {
   useIsMountedRef,
   useRef,
   useState,
+  useRedux,
 } from "../app-framework";
 
-import {
-  ComputeImages,
-  ComputeImageTypes,
-  custom_image_name,
-} from "../custom-software/init";
+import { ComputeImages, ComputeImageTypes } from "../custom-software/init";
+import { custom_image_name } from "../custom-software/util";
 
-import { callback, delay } from "awaiting";
+import { delay } from "awaiting";
 
 import { CustomSoftware } from "../custom-software/selector";
 
@@ -41,15 +39,12 @@ import { Row, Col } from "antd";
 
 import { A, ErrorDisplay, Icon, Space } from "../r_misc";
 
-import { uuid } from "smc-util/misc";
-
 const official: ComputeImageTypes = "official";
 const custom: ComputeImageTypes = "custom";
 
 interface Props {
   start_in_edit_mode?: boolean;
   default_value?: string;
-  images?: ComputeImages;
 }
 
 type EditState = "edit" | "view" | "saving";
@@ -57,8 +52,11 @@ type EditState = "edit" | "view" | "saving";
 export const NewProjectCreator: React.FC<Props> = ({
   start_in_edit_mode,
   default_value,
-  images,
 }: Props) => {
+  const images: ComputeImages | undefined = useRedux([
+    "compute_images",
+    "images",
+  ]);
   // view --> edit --> saving --> view
   const [state, set_state] = useState<EditState>(
     start_in_edit_mode ? "edit" : "view"
@@ -119,21 +117,13 @@ export const NewProjectCreator: React.FC<Props> = ({
       image_type == custom && image_selected != null
         ? custom_image_name(image_selected)
         : "default";
-    const token = uuid();
-    actions.create_project({
-      title: title_text,
-      image,
-      token,
-      start: false, // do NOT want to start, due to apply_default_upgrades
-    });
-
     let project_id: string;
     try {
-      project_id = await callback(
-        redux.getStore("projects").wait_until_project_created,
-        token,
-        30
-      );
+      project_id = await actions.create_project({
+        title: title_text,
+        image,
+        start: false, // do NOT want to start, due to apply_default_upgrades
+      });
     } catch (err) {
       if (!is_mounted_ref.current) return;
       set_state("edit");

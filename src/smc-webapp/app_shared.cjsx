@@ -3,7 +3,7 @@
 # License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
 #########################################################################
 
-{React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store, COLOR} = require('./app-framework')
+{React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store} = require('./app-framework')
 {Button, Col, Row, Modal, NavItem} = require('react-bootstrap')
 {Icon, Space, Tip} = require('./r_misc')
 {COLORS} = require('smc-util/theme')
@@ -11,7 +11,7 @@
 misc = require('smc-util/misc')
 
 {InfoPage} = require('./info/info')
-{ProjectsPage} = require('./projects')
+{ProjectsPage} = require('./projects/projects-page')
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account/account-page')
 {FileUsePage} = require('./file-use/page')
@@ -176,143 +176,14 @@ exports.NavTab = rclass
             </div>
         </NavItem>
 
-exports.NotificationBell = rclass
-    displayName: 'NotificationBell'
-
-    propTypes :
-        count    : rtypes.number
-        active   : rtypes.bool
-        on_click : rtypes.func
-
-    getDefaultProps: ->
-        active : false
-
-    shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['count', 'active'])
-
-    on_click: (e) ->
-        @actions('page').toggle_show_file_use()
-        document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
-        @props.on_click?()
-        if !@props.active
-            user_tracking("top_nav", {name:"file_use"})
-
-    notification_count: ->
-        count_styles =
-            fontSize   : '10pt'
-            color      : COLOR.FG_RED
-            position   : 'absolute'
-            left       : '16px'
-            top        : '11px'
-            fontWeight : 700
-            background : 'transparent'
-        if @props.count > 9
-            count_styles.left         = '15.8px'
-            count_styles.background   = COLORS.GRAY_L
-            count_styles.borderRadius = '50%'
-            count_styles.border       = '2px solid lightgrey'
-        if @props.count > 0
-            <span style={count_styles}>{@props.count}</span>
-
-    render: ->
-        outer_style =
-            position    : 'relative'
-            float       : 'left'
-
-        if @props.active
-            outer_style.backgroundColor = ACTIVE_BG_COLOR
-
-        inner_style =
-            padding  : '10px'
-            fontSize : '17pt'
-            cursor   : 'pointer'
-
-        clz = ''
-        bell_style = {}
-        if @props.count > 0
-            clz = 'smc-bell-notification'
-            bell_style = {color: COLOR.FG_RED}
-
-        <NavItem
-            ref       = {'bell'}
-            style     = {outer_style}
-            onClick   = {@on_click}
-            className = {'active' if @props.active}
-        >
-            <div style={inner_style}>
-                <Icon name='bell-o' className={clz} style={bell_style} />
-                {@notification_count()}
-            </div>
-        </NavItem>
-
-exports.ConnectionIndicator = rclass
-    displayName : 'ConnectionIndicator'
-
-    propTypes :
-        actions       : rtypes.object
-        status        : rtypes.string
-        on_click      : rtypes.func
-
-    reduxProps :
-        page :
-            connection_status : rtypes.string
-        account :
-            mesg_info         : rtypes.immutable.Map
-
-    shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['connection_status', 'status', 'mesg_info'])
-
-    render_connection_status: ->
-        if @props.connection_status == 'connected'
-            icon_style = {marginRight: '16px', fontSize: '13pt', display: 'inline'}
-            if (@props.mesg_info?.get('enqueued') ? 0) > 5  # serious backlog of data!
-                icon_style.color = 'red'
-            else if (@props.mesg_info?.get('count') ? 0) > 1 # worrisome amount
-                icon_style.color = '#08e'
-            else if (@props.mesg_info?.get('count') ? 0) > 0 # working well but doing something minimal
-                icon_style.color = '#00c'
-            else
-                icon_style.color = 'grey'
-            <div style={padding:'9px'}>
-                <Icon name='wifi' style={icon_style}/>
-            </div>
-        else if @props.connection_status == 'connecting'
-            <div style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', overflow:'hidden'}>
-                connecting...
-            </div>
-        else if @props.connection_status == 'disconnected'
-            <div style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', overflow:'hidden'}>
-                disconnected
-            </div>
-
-    connection_click: ->
-        @props.actions.show_connection(true)
-        @props.on_click?()
-        document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
-        user_tracking("top_nav", {name:"connection"})
-
-    render: ->
-        outer_styles =
-            color      : '#666'
-            fontSize   : '10pt'
-            lineHeight : '10pt'
-            cursor     : 'pointer'
-            float      : 'left'
-        inner_styles =
-            paddingTop : '3px'
-
-        <NavItem style={outer_styles} onClick={@connection_click}>
-            <div style={inner_styles} >
-                {@render_connection_status()}
-            </div>
-        </NavItem>
+exports.NotificationBell = require('./app/notification-bell').NotificationBell
+exports.ConnectionIndicator = require('./app/connection-indicator').ConnectionIndicator
 
 bytes_to_str = (bytes) ->
     x = Math.round(bytes / 1000)
     if x < 1000
         return x + "K"
     return x/1000 + "M"
-
 
 MessageInfo = rclass
     propTypes :

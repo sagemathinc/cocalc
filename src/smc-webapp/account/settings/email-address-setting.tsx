@@ -172,11 +172,15 @@ export class EmailAddressSetting extends Component<Props, State> {
               ref="password"
               value={this.state.password}
               placeholder={password_label}
-              onChange={() =>
-                this.setState({
-                  password: ReactDOM.findDOMNode(this.refs.password).value,
-                })
-              }
+              onChange={() => {
+                const password = ReactDOM.findDOMNode(this.refs.password)
+                  ?.value;
+                if (password != null) {
+                  this.setState({
+                    password,
+                  });
+                }
+              }}
             />
           </FormGroup>
         </form>

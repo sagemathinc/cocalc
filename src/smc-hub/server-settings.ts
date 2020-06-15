@@ -60,6 +60,10 @@ module.exports = function (db) {
       const recomm = all["version_recommended_browser"] || 0;
       pub[field] = version[field] = all[field] = Math.min(minver, recomm);
     }
+
+    // finally, signal the front end if it allows users to anonymously sign in
+    // this is currently derived from the existence of the sign up token
+    pub["allow_anonymous_sign_in"] = !all["account_creation_token"];
   };
   table.on("change", update);
   table.on("init", update);

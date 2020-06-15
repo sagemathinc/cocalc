@@ -373,6 +373,23 @@ start_server = (tcp_port, raw_port, cb) ->
         cb(err)
     )
 
+# Contains additional environment variables. Base 64 encoded JSON of {[key:string]:string}.
+set_extra_env = ->
+    return if not process.env.COCALC_EXTRA_ENV
+    try
+        env64 = process.env.COCALC_EXTRA_ENV
+        raw = Buffer.from(env64, 'base64').toString('utf8')
+        data = JSON.parse(raw)
+        if typeof data == 'object'
+            for k, v of data
+                if typeof v != 'string'
+                    winston.debug("set_extra_env: ignoring key #{k}, value is not a string")
+                    continue
+                process.env[k] = v
+    catch err
+        # we report and ignore errors
+        winston.debug("ERROR set_extra_env -- cannot process '#{process.env.COCALC_EXTRA_ENV}' -- #{err}")
+
 program.usage('[?] [options]')
     .option('--tcp_port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
     .option('--raw_port <n>', 'RAW server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
@@ -395,6 +412,7 @@ else
     winston.debug("NOT running in kucalc")
     kucalc.IN_KUCALC = false
 
+set_extra_env()
 
 start_server program.tcp_port, program.raw_port, (err) ->
     if err

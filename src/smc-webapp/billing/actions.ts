@@ -21,7 +21,7 @@ import { BillingStoreState } from "./store";
 
 require("./store"); // ensure 'billing' store is created so can set this.store below.
 
-class BillingActions extends Actions<BillingStoreState> {
+export class BillingActions extends Actions<BillingStoreState> {
   private store: Store<BillingStoreState>;
   private last_subscription_attempt?: any;
   private stripe: StripeClient;

@@ -35,6 +35,11 @@ const ERROR_STYLE: React.CSSProperties = {
   marginBottom: "5px",
 };
 
+export const WELL_STYLE: React.CSSProperties = {
+  marginTop: "10px",
+  borderColor: COLORS.LANDING.LOGIN_BAR_BG,
+};
+
 interface Props {
   strategies?: List<PassportStrategy>;
   email_signup?: boolean;
@@ -74,10 +79,10 @@ export class SignUp extends React.Component<Props, State> {
     return redux
       .getActions("account")
       .create_account(
-        ReactDOM.findDOMNode(this.refs.first_name).value,
-        ReactDOM.findDOMNode(this.refs.last_name).value,
-        ReactDOM.findDOMNode(this.refs.email).value,
-        ReactDOM.findDOMNode(this.refs.password).value,
+        ReactDOM.findDOMNode(this.refs.first_name)?.value,
+        ReactDOM.findDOMNode(this.refs.last_name)?.value,
+        ReactDOM.findDOMNode(this.refs.email)?.value,
+        ReactDOM.findDOMNode(this.refs.password)?.value,
         this.state.user_token
       );
   };
@@ -107,6 +112,7 @@ export class SignUp extends React.Component<Props, State> {
           style={{ textAlign: "center" }}
           disabled={!this.state.terms_checkbox}
         />
+        <hr style={{ marginTop: 10, marginBottom: 10 }} />
         Or sign up via email
         <br />
       </div>
@@ -215,7 +221,7 @@ export class SignUp extends React.Component<Props, State> {
   }
 
   question_blur() {
-    const question: string = ReactDOM.findDOMNode(this.refs.question).value;
+    const question: string = ReactDOM.findDOMNode(this.refs.question)?.value;
     if (!question) return;
     try {
       // We store the question in localStorage.
@@ -292,12 +298,8 @@ export class SignUp extends React.Component<Props, State> {
   }
 
   render(): Rendered {
-    const well_style = {
-      marginTop: "10px",
-      borderColor: COLORS.LANDING.LOGIN_BAR_BG,
-    };
     return (
-      <Well style={well_style}>
+      <Well style={WELL_STYLE}>
         <AccountCreationEmailInstructions />
         {this.render_question()}
         {this.render_terms()}

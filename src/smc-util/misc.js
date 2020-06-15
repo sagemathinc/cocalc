@@ -676,16 +676,11 @@ exports.normalized_path_join = function (...parts) {
 };
 
 // Takes a path string and file name and gives the full path to the file
-exports.path_to_file = function (path, file, line_number) {
+exports.path_to_file = function (path, file) {
   if (path === "") {
     return file;
   }
-  path = path + "/" + file;
-  if (!line_number) {
-    return path;
-  }
-  //path += "#L#{line_number}" # TODO: THIS IS BROKEN IN PRODUCTION FOR SOME REASON!!!!!
-  return path;
+  return path + "/" + file;
 };
 
 const { hidden_meta_file } = require("./misc2");
@@ -2322,7 +2317,7 @@ exports.map_diff = function (a, b) {
 
 // compare the values in a map a by the values of b
 // or just by b if b is a number, using func(a, b)
-map_comp_fn = function (func, fallback) {
+function map_comp_fn(func, fallback) {
   return (a, b) => {
     const c = {};
     if (typeof b === "number") {
@@ -2338,7 +2333,7 @@ map_comp_fn = function (func, fallback) {
     }
     return c;
   };
-};
+}
 
 exports.map_limit = exports.map_min = map_comp_fn(Math.min, Number.MAX_VALUE);
 exports.map_max = map_comp_fn(Math.max, Number.MIN_VALUE);

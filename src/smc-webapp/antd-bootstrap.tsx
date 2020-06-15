@@ -107,6 +107,7 @@ export function Button(props: {
   className?: string;
   href?: string;
   target?: string;
+  title?: string;
 }) {
   // The span is needed inside below, otherwise icons and labels get squashed together
   // due to button having word-spacing 0.
@@ -132,6 +133,7 @@ export function Button(props: {
       danger={danger}
       ghost={ghost}
       loading={loading}
+      title={props.title}
     >
       <span>{props.children}</span>
     </antd.Button>
@@ -221,8 +223,8 @@ export function Col(props: {
   lgOffset?: number;
   style?: React.CSSProperties;
   className?: string;
-  children?: any;
   onClick?;
+  children?: any;
 }) {
   const props2: any = {};
   for (const p of ["xs", "sm", "md", "lg"]) {
@@ -233,7 +235,9 @@ export function Col(props: {
       props2["offset"] = 2 * props[p + "Offset"]; // loss of info
     }
   }
-  props2.onClick = props.onClick;
+  for (const p of ["className", "onClick", "style"]) {
+    props2[p] = props[p];
+  }
   return <antd.Col {...props2}>{props.children}</antd.Col>;
 }
 
@@ -316,6 +320,7 @@ export function Alert(props: {
   key?: string;
   bsStyle?: ButtonStyle;
   style?: React.CSSProperties;
+  banner?: boolean;
   children?: any;
 }) {
   let type: "success" | "info" | "warning" | "error" | undefined = undefined;
@@ -334,7 +339,12 @@ export function Alert(props: {
     type = "success";
   }
   return (
-    <antd.Alert message={props.children} type={type} style={props.style} />
+    <antd.Alert
+      message={props.children}
+      type={type}
+      style={props.style}
+      banner={props.banner}
+    />
   );
 }
 

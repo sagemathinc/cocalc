@@ -8,8 +8,6 @@
 // the Configuration page, and that always resends email invites.
 export const EMAIL_REINVITE_DAYS = 6;
 
-import { Map } from "immutable";
-
 // CoCalc libraries
 import { SyncDB } from "smc-util/sync/editor/db/sync";
 import { SyncDBRecord } from "./types";
@@ -31,6 +29,8 @@ import { AssignmentsActions } from "./assignments/actions";
 import { HandoutsActions } from "./handouts/actions";
 import { ConfigurationActions } from "./configuration/actions";
 import { ExportActions } from "./export/actions";
+import { ProjectsStore } from "../projects/store";
+import { bind_methods } from "smc-util/misc2";
 
 // React libraries
 import { Actions, TypedMap } from "../app-framework";
@@ -64,14 +64,14 @@ export class CourseActions extends Actions<CourseState> {
       throw Error("BUG: name and redux must be defined");
     }
 
-    this.shared_project = new SharedProjectActions(this);
-    this.activity = new ActivityActions(this);
-    this.students = new StudentsActions(this);
-    this.student_projects = new StudentProjectsActions(this);
-    this.assignments = new AssignmentsActions(this);
-    this.handouts = new HandoutsActions(this);
-    this.configuration = new ConfigurationActions(this);
-    this.export = new ExportActions(this);
+    this.shared_project = bind_methods(new SharedProjectActions(this));
+    this.activity = bind_methods(new ActivityActions(this));
+    this.students = bind_methods(new StudentsActions(this));
+    this.student_projects = bind_methods(new StudentProjectsActions(this));
+    this.assignments = bind_methods(new AssignmentsActions(this));
+    this.handouts = bind_methods(new HandoutsActions(this));
+    this.configuration = bind_methods(new ConfigurationActions(this));
+    this.export = bind_methods(new ExportActions(this));
   }
 
   public get_store(): CourseStore {
@@ -219,10 +219,10 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // important that this be bound...
-  public handle_projects_store_update(state: Map<string, any>): void {
+  public handle_projects_store_update(projects_store: ProjectsStore): void {
     const store = this.redux.getStore<CourseState, CourseStore>(this.name);
     if (store == null) return; // not needed yet.
-    let users = state.getIn([
+    let users = projects_store.getIn([
       "project_map",
       store.get("course_project_id"),
       "users",

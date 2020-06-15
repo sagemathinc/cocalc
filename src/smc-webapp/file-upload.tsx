@@ -42,6 +42,16 @@ to upload 32MB, then the user isn't going to upload a very big file anyways,
 given TIMEOUT_M.
 */
 
+const UPLOAD_OPTIONS = {
+  maxFilesize: MAX_FILE_SIZE_MB,
+  forceChunking: true,
+  chunking: true,
+  chunkSize: CHUNK_SIZE_MB * 1000 * 1000,
+  retryChunks: true, // might as well since it's a little more robust.
+  timeout: 1000 * 100, // matches what cloudflare imposes on us; this
+  // is *per chunk*, so much longer uploads should still work.
+};
+
 const DROPSTYLE: React.CSSProperties = {
   border: "2px solid #ccc",
   boxShadow: "4px 4px 2px #bbb",
@@ -134,7 +144,7 @@ export const FileUpload: React.FC<FileUploadProps> = (props) => {
             previewTemplate: ReactDOMServer.renderToStaticMarkup(
               dropzone_template()
             ),
-            maxFilesize: MAX_FILE_SIZE_MB,
+            ...UPLOAD_OPTIONS,
           }}
         />
       </div>
@@ -184,14 +194,8 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
         previewTemplate: ReactDOMServer.renderToStaticMarkup(
           preview_template()
         ),
-        maxFilesize: MAX_FILE_SIZE_MB,
-        forceChunking: true,
         addRemoveLinks: props.event_handlers.removedfile != null,
-        chunking: true,
-        chunkSize: CHUNK_SIZE_MB * 1000 * 1000,
-        retryChunks: true, // might as well since it's a little more robust.
-        timeout: 1000 * 100, // matches what cloudflare imposes on us; this
-        // is *per chunk*, so much longer uploads should still work.
+        ...UPLOAD_OPTIONS,
       },
       true
     );

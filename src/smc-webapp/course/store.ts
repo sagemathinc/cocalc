@@ -802,10 +802,12 @@ export class CourseStore extends Store<CourseState> {
 
   public get_upgrade_plan(upgrade_goal: UpgradeGoal) {
     const account_store: any = this.redux.getStore("account");
+    const project_map = this.redux.getStore("projects").get("project_map");
+    if (project_map == null) throw Error("not fully loaded");
     const plan = project_upgrades.upgrade_plan({
       account_id: account_store.get_account_id(),
       purchased_upgrades: account_store.get_total_upgrades(),
-      project_map: this.redux.getStore("projects").get("project_map"),
+      project_map,
       student_project_ids: set(
         this.get_student_project_ids({
           include_deleted: true,

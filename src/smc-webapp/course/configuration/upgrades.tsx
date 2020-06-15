@@ -203,7 +203,9 @@ class StudentProjectUpgrades extends Component<
             value={val}
             onChange={() => {
               const u = this.state.upgrades;
-              u[quota] = ReactDOM.findDOMNode(this.refs[ref]).value;
+              const value = ReactDOM.findDOMNode(this.refs[ref])?.value;
+              if (value == null) return;
+              u[quota] = value;
               this.setState({ upgrades: u });
               this.update_plan();
             }}
@@ -448,7 +450,8 @@ class StudentProjectUpgrades extends Component<
 
   save_admin_upgrade = (e) => {
     e.preventDefault();
-    const s = ReactDOM.findDOMNode(this.refs.admin_input).value;
+    const s = ReactDOM.findDOMNode(this.refs.admin_input)?.value;
+    if (s == null) return;
     const quotas = JSON.parse(s);
     // This console.log is intentional... because admin upgrade is only
     // for really advanced users (i.e., William).

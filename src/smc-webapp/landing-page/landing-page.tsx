@@ -18,20 +18,23 @@ import {
   Rendered,
 } from "../app-framework";
 
-import { Row, Col } from "../antd-bootstrap";
-
+import { Row, Col, Alert } from "../antd-bootstrap";
 import { UNIT, COLORS } from "../r_misc";
-
 import { SiteDescription, Footer } from "../customize";
-
 import { SignUp } from "./sign-up";
 import { SignIn } from "./sign-in";
+import { RunAnonymously } from "./run-anonymously";
 import { ForgotPassword } from "./forgot-password";
 import { ResetPassword } from "./reset-password";
 import { Connecting } from "./connecting";
-
 import { QueryParams } from "../misc/query-params";
-import { NAME as LAUNCH_ACTIONS_NAME } from "../launch/actions";
+import {
+  NAME as LAUNCH_ACTIONS_NAME,
+  launch_action_description,
+  LaunchTypes,
+} from "../launch/actions";
+import { NAME as ComputeImageStoreName } from "../custom-software/util";
+import { ComputeImages, launchcode2display } from "../custom-software/init";
 
 const DESC_FONT = "sans-serif";
 
@@ -69,6 +72,7 @@ interface Props {
 interface reduxProps {
   get_api_key?: string;
 
+  site_name?: string;
   is_commercial?: boolean;
   _is_configured?: boolean;
   logo_square?: string;
@@ -80,17 +84,33 @@ interface reduxProps {
 
   sign_in_email_address?: string;
 
-  type?: string;
+  type?: LaunchTypes;
   launch?: string;
+  images?: ComputeImages;
 }
 
-class LandingPage extends Component<Props & reduxProps> {
+interface State {
+  show_terms: boolean;
+}
+
+class LandingPage extends Component<Props & reduxProps, State> {
+  constructor(props) {
+    super(props);
+    const show_terms =
+      props.terms_of_service?.length > 0 ||
+      props.terms_of_service_url?.length > 0;
+    this.state = {
+      show_terms,
+    };
+  }
+
   static reduxProps() {
     return {
       page: {
         get_api_key: rtypes.string,
       },
       customize: {
+        site_name: rtypes.bool,
         is_commercial: rtypes.bool,
         _is_configured: rtypes.bool,
         logo_square: rtypes.string,
@@ -106,6 +126,9 @@ class LandingPage extends Component<Props & reduxProps> {
       [LAUNCH_ACTIONS_NAME]: {
         type: rtypes.string,
         launch: rtypes.string,
+      },
+      [ComputeImageStoreName]: {
+        images: rtypes.immutable,
       },
     };
   }
@@ -154,15 +177,49 @@ class LandingPage extends Component<Props & reduxProps> {
   }
 
   private render_launch_action(): Rendered {
-    if (this.props.type == null) {
+    if (
+      this.props.type == null ||
+      this.props.launch == null ||
+      this.props.images == null
+    ) {
       return;
     }
+    const descr = launch_action_description(this.props.type);
+    if (descr == null) return;
+    let message;
+    let bsStyle: "info" | "danger" = "info";
+
+    if (this.props.type == "csi") {
+      const display = launchcode2display(this.props.images, this.props.launch);
+
+      if (display == null) {
+        bsStyle = "danger";
+        message = (
+          <>
+            Custom Software Image <code>{this.props.launch}</code> does not
+            exist!
+          </>
+        );
+      } else {
+        message = (
+          <>
+            {descr} "{display}"
+          </>
+        );
+      }
+    } else {
+      message = (
+        <>
+          {descr}: <code>{this.props.launch}</code>
+        </>
+      );
+    }
+
     return (
-      <Row>
-        <h3>
-          Launch Action: <code>{this.props.type}</code> for{" "}
-          <code>{this.props.launch}</code>
-        </h3>
+      <Row style={{ marginBottom: "20px", textAlign: "center" }}>
+        <Alert bsStyle={bsStyle} banner={true} style={{ width: "100%" }}>
+          <b>Launch action:</b> {message}
+        </Alert>
       </Row>
     );
   }
@@ -174,7 +231,6 @@ class LandingPage extends Component<Props & reduxProps> {
       !this.props.get_api_key
     ) {
       // Just assume user will be signing in.
-      // CSS of this looks like crap for a moment; worse than nothing. So disabling unless it can be fixed!!
       return <Connecting />;
     }
 
@@ -324,8 +380,21 @@ class LandingPage extends Component<Props & reduxProps> {
             />
           </div>
         </Row>
+        <Row
+          style={{
+            color: COLORS.GRAY,
+            fontSize: "16pt",
+            margin: "15px 0",
+            textAlign: "center",
+          }}
+        >
+          <Col sm={12}>
+            <b>Create a new account</b> below on the left or <b>sign in</b> with
+            an existing account above.
+          </Col>
+        </Row>
         <Row style={{ minHeight: "60vh" }}>
-          <Col sm={6}>
+          <Col md={6}>
             <SignUp
               sign_up_error={this.props.sign_up_error}
               strategies={this.props.strategies}
@@ -340,10 +409,9 @@ class LandingPage extends Component<Props & reduxProps> {
               email_signup={this.props.email_signup}
             />
           </Col>
-          <Col sm={6}>
-            <div style={{ color: "#666", fontSize: "16pt", marginTop: "5px" }}>
-              Create a new account to the left or sign in with an existing
-              account above.
+          <Col md={6}>
+            <div style={{ color: COLORS.GRAY, marginTop: "5px" }}>
+              <RunAnonymously show_terms={this.state.show_terms} />
               <br />
               {this.render_support()}
               <br />

@@ -15,7 +15,6 @@ misc_page = require('./misc_page')
 # CoCalc Pages
 # SMELL: Page UI's are mixed with their store/state.
 # So we have to require them even though they aren't used
-{ProjectsPage} = require('./projects')
 {ProjectPage}  = require('./project_page')
 {FileUsePage}  = require('./file-use/page')
 {Support}      = require('./support')
@@ -265,7 +264,7 @@ Page = rclass
             {@render_support()}
             {@render_account_tab() if logged_in}
             {@render_bell()}
-            {<ConnectionIndicator actions={@actions('page')}/> if not @props.is_anonymous}
+            {<ConnectionIndicator /> if not @props.is_anonymous}
         </Nav>
 
     render_project_nav_button: ->

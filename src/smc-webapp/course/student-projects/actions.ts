@@ -101,7 +101,7 @@ export class StudentProjectsActions {
     const student = s.get_student(student_id);
     if (student == null) return; // no such student..
 
-    let site_name = redux.getStore("customize").site_name;
+    let site_name = redux.getStore("customize").get("site_name");
     if (!site_name) {
       site_name = SITE_NAME;
     }
@@ -556,7 +556,7 @@ export class StudentProjectsActions {
       if (upgrades == null) continue;
       // avoid race if projects are being created *right* when we
       // try to upgrade them.
-      if (!s.get_project(project_id)) continue;
+      if (!s.has_project(project_id)) continue;
       await a.apply_upgrades_to_project(project_id, upgrades, false);
     }
     this.course_actions.set_activity({ id });

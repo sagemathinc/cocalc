@@ -16,6 +16,7 @@ import {
 const CONTENT = "This is some text.\nThis is also text.";
 
 describe("CodeEditor - basic tests", function () {
+  // @ts-ignore
   this.timeout(10000);
 
   let editor;

@@ -25,6 +25,7 @@ interface Position {
 
 function mouse_draggable(): void {
   // the element that is being dragged around.
+  // @ts-ignore
   const elt = $(this);
 
   // dragpos = the position that the user just dragged the document to
