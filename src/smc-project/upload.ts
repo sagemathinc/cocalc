@@ -11,7 +11,7 @@ Upload form handler
 // not the total size of the file...
 const MAX_FILE_SIZE_MB = 10000;
 
-import { appendFile, mkdir, copyFile, rename, readFile, unlink } from "fs";
+import { appendFile, mkdir, rename, readFile, unlink } from "fs";
 import { join } from "path";
 import { IncomingForm } from "formidable";
 import { callback } from "awaiting";
@@ -44,8 +44,10 @@ export function upload_endpoint(
     // See http://stackoverflow.com/questions/14022353/how-to-change-upload-path-when-use-formidable-with-express-in-node-js
     // Important to set maxFileSize, since the default is 200MB!
     // See https://stackoverflow.com/questions/13374238/how-to-limit-upload-file-size-in-express-js
+    // Critical this uploadDir is inside of the user home dir; see
+    // https://github.com/sagemathinc/cocalc/issues/4659
     const options = {
-      uploadDir: join(process.env.HOME ?? "/home/user", req.query.dest_dir),
+      uploadDir: join(process.env.HOME ?? "/home/user", ".smc/tmp"),
       keepExtensions: true,
       maxFileSize: MAX_FILE_SIZE_MB * 1024 * 1024,
     };
@@ -97,6 +99,12 @@ export function upload_endpoint(
 async function handle_chunk_data(index, total, chunk, dest): Promise<void> {
   const temp = dest + ".partial-upload";
   if (index === 0) {
+    if (total == 1) {
+      // common special case (smaller files); just do this directly
+      // to avoid two moves...
+      await moveFile(chunk, dest);
+      return;
+    }
     // move chunk to the temp file
     await moveFile(chunk, temp);
   } else {
@@ -118,16 +126,10 @@ function form_parse(form, req, cb): void {
   });
 }
 
+// This movefile only works on the same device.  See
+// https://github.com/sagemathinc/cocalc/issues/4659
+// where I made it more general, but then hit some
+// subtle flush issues.
 async function moveFile(src: string, dest: string): Promise<void> {
-  try {
-    await callback(rename, src, dest);
-  } catch (_) {
-    // in some cases, e.g., cocalc-docker, this happens:
-    //   "EXDEV: cross-device link not permitted"
-    // so we just try again the slower way.  This is slightly
-    // inefficient, maybe, but more robust than trying to determine
-    // if we are doing a cross device rename.
-    await callback(copyFile, src, dest);
-    await callback(unlink, src);
-  }
+  await callback(rename, src, dest);
 }
