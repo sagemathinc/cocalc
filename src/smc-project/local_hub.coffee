@@ -382,8 +382,8 @@ set_extra_env = ->
         data = JSON.parse(raw)
         if typeof data == 'object'
             for k, v of data
-                if typeof v != 'string'
-                    winston.debug("set_extra_env: ignoring key #{k}, value is not a string")
+                if typeof v != 'string' or v.length == 0
+                    winston.debug("set_extra_env: ignoring key #{k}, value is not a string or length 0")
                     continue
                 process.env[k] = v
     catch err
