@@ -25,7 +25,7 @@
     "expect": "^26.0.1",
     "express": "^4.17.1",
     "express-rate-limit": "^3.4.0",
-    "formidable": "^2.0.0-canary.20200504.1",
+    "formidable": "^1.2.2",
     "fs-extra": "^9.0.0",
     "googlediff": "^0.1.0",
     "json-stable-stringify": "^1.0.1",
