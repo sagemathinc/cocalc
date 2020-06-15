@@ -41,9 +41,11 @@ def server_setup():
     DAEMON_FILE = os.path.join(DATA, "daemon.json")
 
     if len(sys.argv) == 1:
-        print(("Usage: %s [start/stop/status] normal Jupyter lab options..." % sys.argv[
-            0]))
-        print("If start or stop is given, then runs as a daemon; otherwise, runs in the foreground.")
+        print("Usage: %s [start/stop/status] normal Jupyter lab options..." %
+              sys.argv[0])
+        print(
+            "If start or stop is given, then runs as a daemon; otherwise, runs in the foreground."
+        )
         sys.exit(1)
 
     mode = sys.argv[1]
@@ -99,7 +101,7 @@ def command():
     #     is suddenly needed, at least for cocalc-docker.
 
     cmd = "jupyter lab --port-retries=0 --no-browser --NotebookApp.iopub_data_rate_limit=2000000 --NotebookApp.iopub_msg_rate_limit=50 --NotebookApp.mathjax_url=/static/mathjax/MathJax.js %s --ip=%s --port=%s --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.allow_remote_access=True" % (
-       base, ip, port)
+        base, ip, port)
     return cmd, base, port
 
 
@@ -137,7 +139,7 @@ def action(mode):
             s = info
         else:
             s = {'status': 'stopped'}
-        print((json.dumps(s)))
+        print(json.dumps(s))
         return
 
     elif mode == 'start':
@@ -151,7 +153,7 @@ def action(mode):
         info = is_daemon_running()
         if info:
             # already running -- nothing to do
-            print((json.dumps(info)))
+            print(json.dumps(info))
             return
 
         # The below approach to finding the PID is *HIDEOUS* and could in theory break.
@@ -176,9 +178,9 @@ def action(mode):
             tries += 1
             #sys.stderr.write("tries... %s\n"%tries); sys.stderr.flush()
             if tries >= 20:
-                print((json.dumps({
-                    "error": "Failed to find pid of subprocess."
-                })))
+                print(
+                    (json.dumps({"error":
+                                 "Failed to find pid of subprocess."})))
                 sys.exit(1)
 
             c = "ps -u`whoami` -o pid,cmd|grep 'jupyter-lab' |grep port={port}".format(

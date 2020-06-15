@@ -1319,11 +1319,11 @@ def main():
             if len(out) == 1:
                 if not out[0]:
                     out[0] = {}
-                print((json.dumps(out[0])))
+                print(json.dumps(out[0]))
             else:
                 if not out:
                     out = {}
-                print((json.dumps(out)))
+                print(json.dumps(out))
             if errors:
                 sys.exit(1)
 

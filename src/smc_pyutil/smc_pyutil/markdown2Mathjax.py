@@ -39,8 +39,8 @@ def sanitizeInput(string,
     """
     #Check placeholder is valid.
     if not markdown_safe(placeholder):
-        raise ValueError(
-            "Placeholder %s altered by markdown processing." % placeholder)
+        raise ValueError("Placeholder %s altered by markdown processing." %
+                         placeholder)
     #really what we want is a reverse markdown function, but as that's too much work, this will do
     inline_left = re.compile("(?<!\\\\)" + re.escape(inline_delims[0]))
     inline_right = re.compile("(?<!\\\\)" + re.escape(inline_delims[1]))

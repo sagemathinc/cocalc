@@ -41,6 +41,7 @@ def py2decodestr(s):
     else:
         return s.decode('utf8')
 
+
 def py2encodestr(s):
     if PY3:
         return s

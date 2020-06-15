@@ -57,7 +57,7 @@ def main():
         to_int = 'port' in name
         read(name.split('/')[-1], os.path.join(SMC, name), to_int=to_int)
 
-    print((json.dumps(status)))
+    print(json.dumps(status))
 
 
 if __name__ == "__main__":

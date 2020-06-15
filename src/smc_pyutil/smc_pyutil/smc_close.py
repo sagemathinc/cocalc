@@ -56,9 +56,8 @@ def process(paths):
 
     if v:
         mesg = {'event': 'close', 'paths': v}
-        print((prefix +
-               '\x1b]49;%s\x07' % json.dumps(mesg, separators=(',', ':')) +
-               postfix))
+        ser = json.dumps(mesg, separators=(',', ':'))
+        print(prefix + '\x1b]49;%s\x07' % ser + postfix)
 
 
 def main():

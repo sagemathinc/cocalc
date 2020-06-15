@@ -62,10 +62,10 @@ class Worksheet(sagews2pdf.Worksheet):
 def sagews_to_pdf(filename):
     base = os.path.splitext(filename)[0]
     ipynb = base + ".ipynb"
-    print(("converting: %s --> %s" % (filename, ipynb)))
+    print("converting: %s --> %s" % (filename, ipynb))
     W = Worksheet(filename)
     codecs.open(ipynb, 'w', 'utf8').write(json.dumps(W.ipynb(), indent=1))
-    print(("Created", ipynb))
+    print("Created", ipynb)
 
 
 def main():

@@ -1098,7 +1098,7 @@ def main():
         else:
             newfilename = sys.argv[2]
         if os.path.exists(newfilename):
-            print(("WARNING: %s already exists; doing nothing." % newfilename))
+            print("WARNING: %s already exists; doing nothing." % newfilename)
             sys.exit(0)
         document = opendocx(sys.argv[1])
         newfile = open(newfilename, 'w')
