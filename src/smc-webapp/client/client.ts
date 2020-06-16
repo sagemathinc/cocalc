@@ -2,7 +2,7 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-
+import { bind_methods } from "smc-util/misc2";
 import { EventEmitter } from "events";
 import { delay } from "awaiting";
 import { alert_message } from "../alerts";
@@ -145,31 +145,34 @@ class Client extends EventEmitter implements WebappClient {
 
     this.dbg = this.dbg.bind(this);
 
-    this.hub_client = new HubClient(this);
+    this.hub_client = bind_methods(new HubClient(this));
     this.is_signed_in = this.hub_client.is_signed_in.bind(this.hub_client);
     this.is_connected = this.hub_client.is_connected.bind(this.hub_client);
     this.call = this.hub_client.call.bind(this.hub_client);
     this.async_call = this.hub_client.async_call.bind(this.hub_client);
     this.latency = this.hub_client.latency.bind(this.hub_client);
 
-    this.stripe = new StripeClient(this.call.bind(this));
-    this.project_collaborators = new ProjectCollaborators(
-      this.async_call.bind(this)
+    this.stripe = bind_methods(new StripeClient(this.call.bind(this)));
+    this.project_collaborators = bind_methods(
+      new ProjectCollaborators(this.async_call.bind(this))
     );
-    this.support_tickets = new SupportTickets(this.async_call.bind(this));
-    this.query_client = new QueryClient(this);
-    this.time_client = new TimeClient(this);
-    this.account_client = new AccountClient(this);
-    this.project_client = new ProjectClient(this);
-    this.sync_client = new SyncClient(this);
-    this.admin_client = new AdminClient(this.async_call.bind(this));
-    this.users_client = new UsersClient(
-      this.call.bind(this),
-      this.async_call.bind(this)
+    this.support_tickets = bind_methods(
+      new SupportTickets(this.async_call.bind(this))
     );
-    this.tracking_client = new TrackingClient(this);
-    this.file_client = new FileClient(this.async_call.bind(this));
-    this.idle_client = new IdleClient(this);
+    this.query_client = bind_methods(new QueryClient(this));
+    this.time_client = bind_methods(new TimeClient(this));
+    this.account_client = bind_methods(new AccountClient(this));
+    this.project_client = bind_methods(new ProjectClient(this));
+    this.sync_client = bind_methods(new SyncClient(this));
+    this.admin_client = bind_methods(
+      new AdminClient(this.async_call.bind(this))
+    );
+    this.users_client = bind_methods(
+      new UsersClient(this.call.bind(this), this.async_call.bind(this))
+    );
+    this.tracking_client = bind_methods(new TrackingClient(this));
+    this.file_client = bind_methods(new FileClient(this.async_call.bind(this)));
+    this.idle_client = bind_methods(new IdleClient(this));
 
     // Expose a public API as promised by WebappClient
     this.server_time = this.time_client.server_time.bind(this.time_client);
@@ -218,6 +221,8 @@ class Client extends EventEmitter implements WebappClient {
 
     this.init_prom_client();
     this.init_global_cocalc();
+
+    bind_methods(this);
   }
 
   private async init_global_cocalc(): Promise<void> {
