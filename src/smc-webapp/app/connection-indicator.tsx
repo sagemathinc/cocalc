@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React, useActions, useRedux } from "../app-framework";
 import { blur_active_element } from "./util";
 import { user_tracking } from "../user-tracking";
@@ -91,3 +96,4 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
     );
   }
 );
+

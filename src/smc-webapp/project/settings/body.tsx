@@ -28,6 +28,7 @@ import { ProjectControl } from "./project-control";
 import { Customer, ProjectMap, UserMap } from "smc-webapp/todo-types";
 import { Project } from "./types";
 import { SSHPanel } from "./ssh";
+import { Environment } from "./environment";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 
 const { webapp_client } = require("../../webapp_client");
@@ -216,6 +217,10 @@ export const Body = rclass<ReactProps>(
                   account_id={this.props.account_id}
                 />
               ) : undefined}
+              <Environment
+                key="environment"
+                project_id={this.props.project_id}
+              />
               <ProjectCapabilities
                 name={this.props.name}
                 key={"capabilities"}

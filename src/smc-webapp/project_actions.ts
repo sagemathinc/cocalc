@@ -2929,12 +2929,29 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ free_warning_closed: true });
   }
 
-  async set_compute_image(new_image: string): Promise<void> {
+  async set_compute_image(compute_image: string): Promise<void> {
     await client_query({
       query: {
         projects: {
           project_id: this.project_id,
-          compute_image: new_image,
+          compute_image,
+        },
+      },
+    });
+  }
+
+  async set_environment(env: object): Promise<void> {
+    if (typeof env != "object") {
+      throw Error("env must be an object");
+    }
+    for (const key in env) {
+      env[key] = `${env[key]}`;
+    }
+    await client_query({
+      query: {
+        projects: {
+          project_id: this.project_id,
+          env,
         },
       },
     });

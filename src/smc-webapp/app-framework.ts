@@ -47,7 +47,7 @@ import { FileUseStore } from "./file-use/store";
 import { FileUseActions } from "./file-use/actions";
 export { TypedMap } from "./app-framework/TypedMap";
 
-import { NAME_TYPE as ComputeImageStoreType} from "./custom-software/util";
+import { NAME_TYPE as ComputeImageStoreType } from "./custom-software/util";
 import { ComputeImagesStore } from "./custom-software/init";
 
 // Only import the types
@@ -443,7 +443,7 @@ const computed = (rtype) => {
   return clone;
 };
 
-const rtypes = require("smc-util/opts").types
+const rtypes = require("smc-util/opts").types;
 
 /*
 Used by Provider to map app state to component props
@@ -766,6 +766,10 @@ export function useReduxNamedStore(path: string[]) {
 
   React.useEffect(() => {
     const store = redux.getStore(path[0]);
+    if (store == null) {
+      // TODO: I could make it return undefined until the store is created.
+      throw Error(`store ${path[0]} must exist!`);
+    }
     const subpath = path.slice(1);
     let last_value = value;
     const f = (obj) => {

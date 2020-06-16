@@ -30,7 +30,7 @@ Draggable = require('react-draggable')
 {OOMWarning} = require('./project/warnings/oom')
 {RamWarning} = require('./project/warnings/ram')
 {DiskSpaceWarning} = require('./project/warnings/disk-space')
-{KioskModeBanner} = require('./app_shared2')
+{KioskModeBanner} = require('./app/kiosk-mode-banner')
 
 project_file = require('./project_file')
 {file_associations} = require('./file-associations')
