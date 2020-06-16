@@ -40,6 +40,9 @@ d.parse_command_line()
 # setuptools version in .local/lib/python-packages (or, any other locally installed python lib)
 # setting sys.executable changes the she-bang #!... at the top of these scripts
 # credits to http://stackoverflow.com/a/17329493
+# NOTE: the logic below does not work right now, because the nosite variant is not available
+#       during the build process. however, maybe there is a way to use the included
+#       cocalc-python3-clean script at some point in the future ...
 python3_nosite = '/usr/local/bin/python3-nosite'
 # don't overwrite for local smc-in-smc development
 if 'user' not in list(d.command_options.get("install", {}).keys()):
