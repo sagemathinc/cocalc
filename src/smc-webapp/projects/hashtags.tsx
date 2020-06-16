@@ -8,7 +8,6 @@ import { Set } from "immutable";
 import { trunc } from "smc-util/misc";
 
 import { React } from "../app-framework";
-import { analytics_event } from "../tracker";
 const { CheckableTag } = Tag;
 
 const STYLE: React.CSSProperties = {
@@ -40,7 +39,6 @@ export const Hashtags: React.FC<Props> = ({
         checked={checked}
         onChange={() => {
           toggle_hashtag(tag);
-          analytics_event("projects_page", "clicked_hashtag", tag);
         }}
       >
         {trunc(tag, 40)}

@@ -8,7 +8,7 @@
 // File, Edit, etc....
 
 import { React, Component, rclass, rtypes, Rendered } from "../app-framework";
-import { analytics_event } from "../tracker";
+import { user_activity } from "../tracker";
 import * as immutable from "immutable";
 import { ButtonGroup, SelectCallback } from "react-bootstrap";
 import { Icon, r_join, DropdownMenu, MenuItem, MenuDivider } from "../r_misc";
@@ -333,7 +333,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     this.props.actions.set_kernel(kernel_name);
     this.focus();
     this.props.actions.set_default_kernel(kernel_name);
-    analytics_event("cocal_jupyter", "change kernel", kernel_name);
+    user_activity("cocal_jupyter", "change kernel", kernel_name);
   }
 
   private render_kernel_item(kernel: any): Rendered {

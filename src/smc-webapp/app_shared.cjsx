@@ -18,7 +18,6 @@ misc = require('smc-util/misc')
 {NotificationPage} = require('./notifications')
 {AdminPage} = require('./admin')
 {show_announce_end} = require('./account')
-{analytics_event} = require('./tracker')
 {user_tracking} = require('./user-tracking')
 {KioskModeBanner} = require('./app/kiosk-mode-banner')
 {Connecting} = require('./landing-page/connecting')
@@ -132,12 +131,6 @@ exports.NavTab = rclass
 
         if @props.name?
             @actions('page').set_active_tab(@props.name)
-            if @props.is_project
-                analytics_event('top_nav', 'opened_a_project');
-            else
-                analytics_event('top_nav', @props.name)
-        else if @props.label?
-            analytics_event('top_nav', @props.label)
 
     render: ->
         is_active = @props.active_top_tab == @props.name

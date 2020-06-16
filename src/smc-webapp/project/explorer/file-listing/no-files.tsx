@@ -5,7 +5,6 @@
 
 import * as React from "react";
 import { Rendered } from "../../../app-framework";
-import { analytics_event } from "../../../tracker";
 import { Icon } from "../../../r_misc/icon";
 import { ProjectActions } from "../../../project_actions";
 
@@ -48,19 +47,12 @@ export class NoFiles extends React.PureComponent<Props> {
   handle_click = () => {
     if (this.props.file_search.length === 0) {
       this.props.actions.toggle_new(true);
-      analytics_event("project_file_listing", "listing_create_button", "empty");
     } else if (
       this.props.file_search[this.props.file_search.length - 1] === "/"
     ) {
       this.props.create_folder();
-      analytics_event(
-        "project_file_listing",
-        "listing_create_button",
-        "folder"
-      );
     } else {
       this.props.create_file();
-      analytics_event("project_file_listing", "listing_create_button", "file");
     }
   };
 

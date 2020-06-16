@@ -10,7 +10,6 @@ import * as immutable from "immutable";
 import { rtypes, rclass } from "../../app-framework";
 import { Icon, Loading, LoginLink } from "../../r_misc";
 import { DirectorySelector } from "../directory-selector";
-import { analytics_event } from "../../tracker";
 import { file_actions, ProjectActions } from "../../project_store";
 const misc = require("smc-util/misc");
 const {
@@ -158,7 +157,6 @@ export const ActionBox = rclass<ReactProps>(
       });
       this.props.actions.set_all_files_unchecked();
       this.props.actions.set_file_action();
-      analytics_event("project_file_listing", "compress item");
     };
 
     render_compress = (): JSX.Element => {
@@ -211,7 +209,6 @@ export const ActionBox = rclass<ReactProps>(
       this.props.actions.set_file_action();
       this.props.actions.set_all_files_unchecked();
       this.props.actions.fetch_directory_listing();
-      analytics_event("project_file_listing", "delete item");
     };
 
     render_delete_warning(): JSX.Element | undefined {
@@ -293,7 +290,6 @@ export const ActionBox = rclass<ReactProps>(
             src: checked[0],
             dest: misc.path_to_file(rename_dir, destination),
           });
-          analytics_event("project_file_listing", "rename item");
           break;
         case "duplicate":
           this.props.actions.copy_paths({
@@ -301,7 +297,6 @@ export const ActionBox = rclass<ReactProps>(
             dest: misc.path_to_file(rename_dir, destination),
             only_contents: true,
           });
-          analytics_event("project_file_listing", "duplicate item");
           break;
       }
       this.props.actions.set_file_action();
@@ -423,7 +418,6 @@ export const ActionBox = rclass<ReactProps>(
       });
       this.props.actions.set_file_action();
       this.props.actions.set_all_files_unchecked();
-      analytics_event("project_file_listing", "move item");
     };
 
     valid_move_input = (): boolean => {
@@ -576,13 +570,11 @@ export const ActionBox = rclass<ReactProps>(
           overwrite_newer,
           delete_missing: delete_extra_files,
         });
-        analytics_event("project_file_listing", "copy between projects");
       } else {
         this.props.actions.copy_paths({
           src: paths,
           dest: destination_directory,
         });
-        analytics_event("project_file_listing", "copy within a project");
       }
 
       this.props.actions.set_file_action();
@@ -738,7 +730,6 @@ export const ActionBox = rclass<ReactProps>(
         log: true,
       });
       this.props.actions.set_file_action();
-      analytics_event("project_file_listing", "download item");
     };
 
     download_multiple_click = (): void => {
@@ -764,7 +755,6 @@ export const ActionBox = rclass<ReactProps>(
       });
       this.props.actions.set_all_files_unchecked();
       this.props.actions.set_file_action();
-      analytics_event("project_file_listing", "download item");
     };
 
     render_download_single(single_item: string): JSX.Element {

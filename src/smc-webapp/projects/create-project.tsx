@@ -6,7 +6,6 @@
 /*
 Create a new project
 */
-import { analytics_event } from "../tracker";
 
 import {
   React,
@@ -145,7 +144,6 @@ export const NewProjectCreator: React.FC<Props> = ({
     // switch_to=true is perhaps suggested by #4088
     actions.open_project({ project_id, switch_to: true });
     cancel_editing();
-    analytics_event("create_project", "created_new_project");
   }
 
   function render_info_alert(): JSX.Element | undefined {
