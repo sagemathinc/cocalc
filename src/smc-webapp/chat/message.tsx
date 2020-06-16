@@ -19,7 +19,8 @@ import { Markdown } from "./markdown";
 
 import { React, useMemo, useRef, useState } from "../app-framework";
 import { Icon, Space, TimeAgo, Tip } from "../r_misc";
-import { Button, Col, Grid, Row } from "../antd-bootstrap";
+import { Button } from "../antd-bootstrap";
+import { Row, Col } from "antd";
 
 import { HistoryTitle, HistoryFooter, History } from "./history";
 import { ChatInput } from "./input";
@@ -28,7 +29,7 @@ import { ChatActions } from "./actions";
 import { Time } from "./time";
 import { Name } from "./name";
 
-const BLANK_COLUMN = <Col key={2} xs={2} sm={2}></Col>;
+const BLANK_COLUMN = <Col key={"blankcolumn"} xs={2}></Col>;
 
 interface Props {
   actions?: ChatActions;
@@ -215,37 +216,21 @@ export const Message: React.FC<Props> = React.memo((props) => {
 
   function avatar_column() {
     let account = props.user_map?.get(props.message.get("sender_id"))?.toJS?.();
-    let margin_top, marginLeft, marginRight, textAlign;
-    if (props.is_prev_sender) {
-      margin_top = "5px";
-    } else {
-      margin_top = "15px";
+    let style: React.CSSProperties = {};
+    if (!props.is_prev_sender) {
+      style.marginTop = "22px";
     }
-
     if (sender_is_viewer(props.account_id, props.message)) {
-      textAlign = "left";
-      marginRight = "11px";
+      style.marginLeft = "15px";
     } else {
-      textAlign = "right";
-      marginLeft = "11px";
+      style.marginRight = "15px";
     }
-
-    const style = {
-      display: "inline-block",
-      marginTop: margin_top,
-      marginLeft,
-      marginRight,
-      padding: "0px",
-      textAlign,
-      verticalAlign: "middle",
-      width: "4%",
-    };
 
     return (
-      <Col key={0} sm={1} style={style}>
-        <div>
+      <Col key={0} xs={4}>
+        <div style={style}>
           {account != null && props.show_avatar ? (
-            <Avatar size={32} account_id={account.account_id} />
+            <Avatar size={40} account_id={account.account_id} />
           ) : undefined}
         </div>
       </Col>
@@ -304,7 +289,7 @@ export const Message: React.FC<Props> = React.memo((props) => {
     };
 
     return (
-      <Col key={1} xs={10} sm={9}>
+      <Col key={1} xs={18}>
         {!props.is_prev_sender &&
         !is_viewers_message &&
         props.message.get("sender_id") ? (
@@ -408,9 +393,5 @@ export const Message: React.FC<Props> = React.memo((props) => {
       cols = cols.reverse();
     }
   }
-  return (
-    <Grid>
-      <Row>{cols}</Row>
-    </Grid>
-  );
+  return <Row>{cols}</Row>;
 }, areEqual);
