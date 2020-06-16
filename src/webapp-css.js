@@ -4,11 +4,11 @@
  */
 
 // definition of the common css for webpack
-// used via webpack.config.coffee to add entries to index.html
+
+// note, there is also webapp-lib/_inc_head.pug, which loads CSS from the /res/
+// endpoint, which is used across all pages. most importantly, this loads bootstrap 3.x
 
 import "jquery/jquery-ui/css/humanity/jquery-ui.css";
-
-import "bootstrap-3.3.0/css/bootstrap.min.css";
 
 // Font Awesome
 // This would be the new CSS version.
