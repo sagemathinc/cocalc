@@ -1,7 +1,9 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
 # License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
-# -*- coding: utf-8 -*-
+
 """
 Open and modify Microsoft Word 2007 docx files (called 'OpenXML' and
 'Office OpenXML' by Microsoft)

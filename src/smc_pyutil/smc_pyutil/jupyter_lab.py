@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 ######################################################################
 # This is a daemon-ization script for the Jupyter Lab server, for running
