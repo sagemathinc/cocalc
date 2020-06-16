@@ -15,7 +15,6 @@ import * as misc from "smc-util/misc";
 import { webapp_client } from "./webapp-client";
 
 const {
-  analytics_event,
   APP_BASE_URL,
   should_load_target_url,
   get_cookie,
@@ -56,7 +55,6 @@ const signed_in = function (mesg) {
   console.log(`Signed into ${mesg.hub} at ${new Date()}`);
   if (first_login) {
     first_login = false;
-    analytics_event("account", "signed_in"); // user signed in
     if (!should_load_target_url()) {
       load_app(() => require("./history").load_target("projects"));
     }
