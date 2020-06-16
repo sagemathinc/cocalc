@@ -9,7 +9,6 @@
 // testing: app?launch=csi/course-calculate-20
 
 import { redux } from "../app-framework";
-import { analytics_event } from "../tracker";
 import { retry_until_success } from "smc-util/async-utils";
 import {
   custom_image_name,
@@ -124,7 +123,6 @@ export class CSILauncher {
     }
     this.actions.apply_default_upgrades({ project_id });
     this.actions.open_project({ project_id, switch_to: true });
-    analytics_event("create_project", "launch_csi");
     return project_id;
   }
 }

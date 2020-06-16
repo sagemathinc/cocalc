@@ -23,7 +23,6 @@ import {
   CUSTOM_IMG_PREFIX,
 } from "../../custom-software/util";
 import { async } from "async";
-import { analytics_event } from "../../tracker";
 import {
   ButtonToolbar,
   Button,
@@ -153,14 +152,12 @@ export const ProjectControl = rclass<ReactProps>(
       redux
         .getActions("projects")
         .restart_project(this.props.project.get("project_id"));
-      analytics_event("project_settings", "restart project");
     };
 
     stop_project = () => {
       redux
         .getActions("projects")
         .stop_project(this.props.project.get("project_id"));
-      analytics_event("project_settings", "stop project");
     };
 
     render_stop_button(commands): Rendered {
@@ -311,7 +308,6 @@ export const ProjectControl = rclass<ReactProps>(
       const actions = redux.getProjectActions(
         this.props.project.get("project_id")
       );
-      analytics_event("project_settings", "change compute image");
       try {
         await actions.set_compute_image(new_image);
         this.restart_project();

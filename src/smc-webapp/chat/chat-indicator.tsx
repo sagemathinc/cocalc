@@ -5,7 +5,6 @@
 
 import { debounce } from "lodash";
 import { filename_extension } from "smc-util/misc2";
-import { analytics_event } from "../tracker";
 import { React, redux, useRedux, useMemo } from "../app-framework";
 import { COLORS } from "smc-util/theme";
 import { Icon, Tip, Space } from "../r_misc";
@@ -59,10 +58,8 @@ export const ChatIndicator: React.FC<Props> = ({
       const a = redux.getProjectActions(project_id);
       if (is_chat_open) {
         a.close_chat({ path });
-        analytics_event("side_chat", "close");
       } else {
         a.open_chat({ path });
-        analytics_event("side_chat", "open");
       }
     },
     1000,

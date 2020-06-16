@@ -34,7 +34,6 @@ IS_MOBILE = feature.IS_MOBILE
 
 misc = require('smc-util/misc')
 misc_page = require('./misc_page')
-{analytics_event} = require('./tracker')
 
 # Ensure CodeMirror is available and configured
 require('./codemirror/codemirror')
@@ -1440,7 +1439,6 @@ class CodeMirrorEditor extends FileEditor
         else
             @snippets_dialog.show(lang)
         @snippets_dialog.set_handler(@example_insert_handler)
-        analytics_event('editor_assistant', @ext, lang)
 
     example_insert_handler: (insert) =>
         # insert : {lang: string, descr: string, code: string[]}

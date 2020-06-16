@@ -4,7 +4,6 @@
  */
 
 import * as React from "react";
-import { analytics_event } from "../../tracker";
 import { TERM_MODE_CHAR } from "./file-listing";
 import { Icon, SearchInput } from "../../r_misc";
 import { ProjectActions } from "smc-webapp/project_store";
@@ -75,7 +74,6 @@ export class SearchBar extends React.Component<Props, State> {
 
     this._id = (this._id != undefined ? this._id : 0) + 1;
     const id = this._id;
-    analytics_event("project_file_listing", "exec file search miniterm", input);
     webapp_client.exec({
       project_id: this.props.project_id,
       command: input0,

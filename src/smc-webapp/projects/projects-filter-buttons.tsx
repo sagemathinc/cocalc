@@ -4,7 +4,7 @@
  */
 
 import { React, useRedux, useActions } from "../app-framework";
-import { analytics_event } from "../tracker";
+import { user_activity } from "../tracker";
 import { Button, ButtonGroup } from "../antd-bootstrap";
 import { Icon } from "../r_misc";
 
@@ -19,7 +19,7 @@ export const ProjectsFilterButtons: React.FC = () => {
       <Button
         onClick={() => {
           actions.display_deleted_projects(!deleted);
-          analytics_event("projects_page", "clicked_deleted_filter");
+          user_activity("projects_page", "clicked_deleted_filter");
         }}
         bsStyle={style}
         cocalc-test={"deleted-filter"}
@@ -36,7 +36,7 @@ export const ProjectsFilterButtons: React.FC = () => {
       <Button
         onClick={() => {
           actions.display_hidden_projects(!hidden);
-          analytics_event("projects_page", "clicked_hidden_filter");
+          user_activity("projects_page", "clicked_hidden_filter");
         }}
         bsStyle={style}
         cocalc-test={"hidden-filter"}
