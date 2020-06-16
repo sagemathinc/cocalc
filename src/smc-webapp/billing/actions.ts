@@ -40,6 +40,10 @@ export class BillingActions extends Actions<BillingStoreState> {
   }
 
   public async update_customer(): Promise<void> {
+    const is_commercial = redux
+      .getStore("customize")
+      .get("is_commercial", false);
+    if (!is_commercial) return;
     this.setState({ action: "Updating billing information" });
     try {
       const resp = await this.stripe.get_customer();
