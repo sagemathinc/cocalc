@@ -290,7 +290,6 @@ export function cm_options(
 
   const options: any = {
     spellcheck: opts.spellcheck,
-    inputStyle: "contenteditable",
     firstLineNumber: opts.first_line_number,
     autofocus: false,
     mode: { name: opts.mode, globalVars: true },
@@ -354,7 +353,14 @@ export function cm_options(
     options.theme = "default";
   }
 
-  options.inputStyle = "contenteditable";
+  if (options.spellcheck) {
+    // Note -- using contenteditable is NOT without negative consequences. See
+    //   https://github.com/sagemathinc/cocalc/issues/4663
+    // However, it's worth it for the option of browser spellchecking, and
+    // for our main application (chat input) the line number issue doesn't
+    // matter since we don't have line numbers there...
+    options.inputStyle = "contenteditable";
+  }
 
   return options;
 }
