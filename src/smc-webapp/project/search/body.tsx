@@ -14,6 +14,13 @@ import { Alert, Row, Col, Button, Checkbox, Well } from "../../antd-bootstrap";
 import { Icon, Loading, SearchInput, Space } from "../../r_misc";
 import { path_to_file, should_open_in_foreground } from "smc-util/misc";
 import { React, useRedux, useActions } from "../../app-framework";
+import { delay } from "awaiting";
+
+const DESC_STYLE: React.CSSProperties = {
+  color: "#666",
+  marginBottom: "5px",
+  border: 0,
+};
 
 export const ProjectSearchBody: React.FC<{ project_id: string }> = ({
   project_id,
@@ -261,20 +268,28 @@ const ProjectSearchResultLine: React.FC<{
 }> = ({ project_id, filename, description, line_number, most_recent_path }) => {
   const actions = useActions(project_id);
 
-  function click_filename(e): void {
+  async function click_filename(e): Promise<void> {
     e.preventDefault();
-    actions.open_file({
-      path: path_to_file(most_recent_path, filename, line_number),
+    const path = path_to_file(most_recent_path, filename);
+    await actions.open_file({
+      path,
       foreground: should_open_in_foreground(e),
     });
+    await delay(200);
+    actions.goto_line(path, line_number, true, true);
+    // We really have to try again, since there
+    // is no telling how long until the editor
+    // is sufficiently initialized for this to work.
+    await delay(1000);
+    actions.goto_line(path, line_number, true, true);
   }
 
   return (
     <div style={{ wordWrap: "break-word" }}>
       <a onClick={click_filename} href="">
         <strong>{filename}</strong>
+        <pre style={DESC_STYLE}>{description}</pre>
       </a>
-      <span style={{ color: "#666" }}> {description}</span>
     </div>
   );
 };

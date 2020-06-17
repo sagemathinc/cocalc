@@ -4,7 +4,6 @@
  */
 
 import * as React from "react";
-import { analytics_event } from "../../tracker";
 import * as misc from "smc-util/misc";
 import { Icon } from "../../r_misc";
 import { redux } from "../../app-framework";
@@ -26,7 +25,6 @@ export class SSHPanel extends React.Component<Props> {
   add_ssh_key = (opts) => {
     opts.project_id = this.props.project.get("project_id");
     redux.getActions("projects").add_ssh_key_to_project(opts);
-    analytics_event("project_settings", "add project ssh key");
   };
 
   delete_ssh_key = (fingerprint) => {
@@ -34,7 +32,6 @@ export class SSHPanel extends React.Component<Props> {
       fingerprint,
       project_id: this.props.project.get("project_id"),
     });
-    analytics_event("project_settings", "remove project ssh key");
   };
 
   render_ssh_notice() {

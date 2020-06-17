@@ -31,12 +31,17 @@ export class FileClient {
     ).history;
   }
 
-  // Returns true if the given file in the given project is currently marked as deleted.
+  // Returns true if the given file in the given project is currently
+  // marked as deleted.
   public is_deleted(filename: string, project_id: string): boolean {
     return !!redux
       .getProjectStore(project_id)
       ?.get_listings()
       ?.is_deleted(filename);
+  }
+
+  public undelete(filename: string, project_id: string): void {
+    redux.getProjectStore(project_id)?.get_listings()?.undelete(filename);
   }
 
   public set_deleted(_filename, _project_id): void {

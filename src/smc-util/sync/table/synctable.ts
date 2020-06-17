@@ -193,6 +193,14 @@ export class SyncTable extends EventEmitter {
 
   /* PUBLIC API */
 
+  // is_ready is true if the table has been initialized and not yet closed.
+  // It might *not* be currently connected, due to a temporary network
+  // disconnect.   When is_ready is true you can read and write to this table,
+  // but there is no guarantee things aren't temporarily stale.
+  public is_ready(): boolean {
+    return this.value != null && this.state !== "closed";
+  }
+
   /*
   Return true if there are changes to this synctable that
   have NOT been confirmed as saved to the backend database.
@@ -992,7 +1000,7 @@ export class SyncTable extends EventEmitter {
         await callback2(this.client.query, {
           query,
           options: [{ set: true }], // force it to be a set query
-          timeout: 30,
+          timeout: 120, // give it some time (especially if it is long)
         });
         this.last_save = value; // success -- don't have to save this stuff anymore...
       } catch (err) {
@@ -1002,11 +1010,17 @@ export class SyncTable extends EventEmitter {
           this.close(true);
           throw err;
         }
+        // NOTE: we do not show entire log since the number
+        // of entries in the query can be very large and just
+        // converting them all to text could use a lot of memory (?).
         console.warn(
           `_save('${this.table}') set query error:`,
           err,
-          " query=",
-          query
+          " queries: ",
+          query[0],
+          "...",
+          query.length - 1,
+          " omitted"
         );
         return true;
       }

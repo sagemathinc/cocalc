@@ -266,7 +266,8 @@ export class Actions extends BaseActions<LatexEditorState> {
         if (typeof cmd === "string") {
           // #3159
           if (cmd.length > 0) {
-            this.setState({ build_command: cmd });
+            const build_command = this.sanitize_build_cmd_str(cmd);
+            this.setState({ build_command });
             return;
           }
         } else if (cmd.size > 0) {
@@ -274,7 +275,7 @@ export class Actions extends BaseActions<LatexEditorState> {
           // set; however, it's possible it isn't in case this is
           // an old document that had the build_command set before
           // we implemented output directory support.
-          const build_command: List<string> = this.ensure_output_directory(cmd);
+          const build_command: List<string> = this.sanitize_build_cmd(cmd);
           this.setState({ build_command });
           return;
         }
@@ -306,16 +307,44 @@ export class Actions extends BaseActions<LatexEditorState> {
     return `-output-directory=${dir}`;
   }
 
-  private ensure_output_directory(cmd: List<string>): List<string> {
+  private sanitize_build_cmd_str(cmd: string): string {
+    // this is when users manually set the command
+    // we ignore the output directory part, only focus on setting -deps for latexmk
+    if (!cmd.trim().startsWith("latexmk")) return cmd;
+    // -dependents- or -deps- ← don't shows the dependency list, we remove these
+    // surrounded with spaces, to reduce changes of wrong matches
+    for (const bad of [" -dependents- ", " -deps- "]) {
+      if (cmd.indexOf(bad) !== -1) {
+        cmd = cmd.replace(bad, " ");
+      }
+    }
+    if (cmd.indexOf(" -deps ") !== -1) return cmd;
+    const cmdl = cmd.split(" ");
+    // assume latexmk -pdf [insert here] ...
+    cmdl.splice(2, 0, "-deps");
+    return cmdl.join(" ");
+  }
+
+  private sanitize_build_cmd(cmd: List<string>): List<string> {
     const has_output_dir = cmd.some(
       (x) => x.indexOf("-output-directory=") != -1
     );
     if (!has_output_dir && this.output_directory != null) {
       // no output directory option.
-      return cmd.splice(cmd.size - 2, 0, this.output_directory_cmd_flag());
-    } else {
-      return cmd;
+      cmd = cmd.splice(cmd.size - 2, 0, this.output_directory_cmd_flag());
     }
+    // -dependents- or -deps- ← don't shows the dependency list, we remove these
+    for (const bad of ["-dependents-", "-deps-"]) {
+      const idx = cmd.indexOf(bad);
+      if (idx !== -1) {
+        cmd = cmd.delete(idx);
+      }
+    }
+    // and then we make sure -deps or -dependents exists
+    if (!cmd.some((x) => x === "-deps" || x === "-dependents")) {
+      cmd = cmd.splice(3, 0, "-deps");
+    }
+    return cmd;
   }
 
   // disable the output directory for pythontex and sagetex.
@@ -669,8 +698,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.set_build_logs({ latex: output });
     // TODO: knitr complicates multifile a lot, so we do
     // not support it yet.
-    if (!this.knitr && this.parsed_output_log.files != null) {
-      this.set_switch_to_files(this.parsed_output_log.files);
+    if (!this.knitr && this.parsed_output_log.deps != null) {
+      this.set_switch_to_files(this.parsed_output_log.deps);
     }
     this.check_for_fatal_error();
     this.update_gutters();

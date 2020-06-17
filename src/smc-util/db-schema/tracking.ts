@@ -37,6 +37,10 @@ Table({
       type: "timestamp",
       desc: "when the account id was set",
     },
+    expire: {
+      type: "timestamp",
+      desc: "future date, when the entry will be deleted",
+    },
   },
 });
 

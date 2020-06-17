@@ -10,12 +10,12 @@ Indicator about whether or not file or path is publicly shared.
 import { Map } from "immutable";
 
 import { containing_public_path } from "smc-util/misc";
+import { COLORS } from "smc-util/theme";
 
 import {
   React,
   rclass,
   rtypes,
-  COLOR,
   Component,
   Rendered,
   redux,
@@ -81,7 +81,7 @@ class ShareIndicator extends Component<Props> {
       <div
         style={{
           cursor: "pointer",
-          color: COLOR.FG_BLUE,
+          color: COLORS.FG_BLUE,
           marginLeft: "5px",
           marginRight: "5px",
         }}

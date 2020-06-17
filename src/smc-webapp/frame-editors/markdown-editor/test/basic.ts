@@ -29,6 +29,7 @@ describe("Markdown - basic tests", function () {
   });
 
   describe("set content, and save to disk", function () {
+    // @ts-ignore
     this.timeout(5000);
     it("wait for the file to finishing loading", async function () {
       await editor.wait_until_loaded();
@@ -64,6 +65,7 @@ describe("Markdown - basic tests", function () {
       expect(rendered).to.have.string(RENDERED);
     });
 
+    // @ts-ignore
     this.timeout(5000);
     it("saves the file to disk", async function () {
       editor.actions.update_save_status();

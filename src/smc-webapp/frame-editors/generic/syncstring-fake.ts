@@ -13,6 +13,7 @@ import { delay } from "awaiting";
 
 export class FakeSyncstring extends EventEmitter {
   _string_id: string = "";
+  public readonly is_fake = true;
 
   constructor() {
     super();

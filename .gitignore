@@ -25,6 +25,8 @@ out
 
 src/cocalc-testcafe/package-lock.json
 
+src/tsconfig.tsbuildinfo
+
 src/static/
 src/static.git/
 src/webapp-lib/policies/_static_pricing_page.html

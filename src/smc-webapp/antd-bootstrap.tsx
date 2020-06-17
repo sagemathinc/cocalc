@@ -107,6 +107,7 @@ export function Button(props: {
   className?: string;
   href?: string;
   target?: string;
+  title?: string;
 }) {
   // The span is needed inside below, otherwise icons and labels get squashed together
   // due to button having word-spacing 0.
@@ -132,13 +133,17 @@ export function Button(props: {
       danger={danger}
       ghost={ghost}
       loading={loading}
+      title={props.title}
     >
       <span>{props.children}</span>
     </antd.Button>
   );
 }
 
-export function ButtonGroup(props: any) {
+export function ButtonGroup(props: {
+  style?: React.CSSProperties;
+  children?: any;
+}) {
   return (
     <antd.Button.Group style={props.style}>{props.children}</antd.Button.Group>
   );
@@ -149,15 +154,30 @@ export function ButtonToolbar(props: any) {
 }
 
 export function Grid(props: any) {
-  return <div>{props.children}</div>;
+  return <div style={{ padding: "0 8px" }}>{props.children}</div>;
 }
 
-export function Well(props: { style?: React.CSSProperties; children?: any }) {
+export function Well(props: {
+  style?: React.CSSProperties;
+  children?: any;
+  className?: string;
+  onDoubleClick?;
+  onMouseDown?;
+}) {
   let style: React.CSSProperties = {
     ...{ backgroundColor: "white", border: "1px solid #e3e3e3" },
     ...props.style,
   };
-  return <antd.Card style={style}>{props.children}</antd.Card>;
+  return (
+    <antd.Card
+      style={style}
+      className={props.className}
+      onDoubleClick={props.onDoubleClick}
+      onMouseDown={props.onMouseDown}
+    >
+      {props.children}
+    </antd.Card>
+  );
 }
 
 export function Checkbox(props: any) {
@@ -202,6 +222,8 @@ export function Col(props: {
   mdOffset?: number;
   lgOffset?: number;
   style?: React.CSSProperties;
+  className?: string;
+  onClick?;
   children?: any;
 }) {
   const props2: any = {};
@@ -212,6 +234,9 @@ export function Col(props: {
     if (props[p + "Offset"] != null) {
       props2["offset"] = 2 * props[p + "Offset"]; // loss of info
     }
+  }
+  for (const p of ["className", "onClick", "style"]) {
+    props2[p] = props[p];
   }
   return <antd.Col {...props2}>{props.children}</antd.Col>;
 }
@@ -295,6 +320,7 @@ export function Alert(props: {
   key?: string;
   bsStyle?: ButtonStyle;
   style?: React.CSSProperties;
+  banner?: boolean;
   children?: any;
 }) {
   let type: "success" | "info" | "warning" | "error" | undefined = undefined;
@@ -313,7 +339,12 @@ export function Alert(props: {
     type = "success";
   }
   return (
-    <antd.Alert message={props.children} type={type} style={props.style} />
+    <antd.Alert
+      message={props.children}
+      type={type}
+      style={props.style}
+      banner={props.banner}
+    />
   );
 }
 

@@ -205,11 +205,14 @@ export class APIKeySetting extends Component<{}, ComponentState> {
           ref="password"
           placeholder="Current password"
           value={this.state.password}
-          onChange={() =>
-            this.setState({
-              password: ReactDOM.findDOMNode(this.refs.password).value,
-            })
-          }
+          onChange={() => {
+            const password = ReactDOM.findDOMNode(this.refs.password)?.value;
+            if (password != null) {
+              this.setState({
+                password,
+              });
+            }
+          }}
         />
         {this.render_button(
           "get",

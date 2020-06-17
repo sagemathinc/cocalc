@@ -89,6 +89,10 @@ const COLORS = {
   BS_BG_INFO: "#d9edf7",
   BS_BG_DANGER: "#f2dede",
   BS_BG_WARNING: "#fcf8e3",
+  // These were inexplicably in app-framework.ts, so I moved them here.
+  BG_RED: "#d9534f", // the red bootstrap color of the button background
+  FG_RED: "#c9302c", // red used for text
+  FG_BLUE: "#428bca", // blue used for text
 };
 
 // The definitions below add semantic meaning by using the colors

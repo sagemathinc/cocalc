@@ -16,7 +16,7 @@ import { Loading } from "../r_misc/loading";
 
 interface ReactProps {
   project: any;
-  none?: React.ComponentType<any>;
+  none?: JSX.Element;
 }
 
 interface ReduxProps {
@@ -49,7 +49,7 @@ export const ProjectUsers = rclass<ReactProps>(
         user_array = [];
       }
 
-      let other: { account_id: string; last_active?: number }[] = [];
+      let other: { account_id: string; last_active?: Date }[] = [];
       for (const account_id of user_array) {
         if (account_id !== this.props.account_id) {
           other.push({ account_id });

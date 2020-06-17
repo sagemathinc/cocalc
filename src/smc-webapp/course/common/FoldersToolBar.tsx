@@ -121,8 +121,9 @@ class MultipleAddSearch extends Component<
   add_button_clicked = (e) => {
     e.preventDefault();
     if (this.state.selected_items.length === 0) {
-      const first_entry = ReactDOM.findDOMNode(this.refs.selector).firstChild
+      const first_entry = ReactDOM.findDOMNode(this.refs.selector)?.firstChild
         .value;
+      if (first_entry == null) return;
       this.props.add_selected([first_entry]);
     } else {
       this.props.add_selected(this.state.selected_items);

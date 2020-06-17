@@ -7,9 +7,9 @@ declare var $: any;
 import { throttle } from "lodash";
 import { delay } from "awaiting";
 import { redux } from "../app-framework";
-import { APP_LOGO_WHITE } from "../art";
 import { IS_TOUCH } from "../feature";
 import { WebappClient } from "./client";
+import { disconnect_from_all_projects } from "../project/websocket/connect";
 
 export class IdleClient {
   private notification_is_visible: boolean = false;
@@ -81,10 +81,10 @@ export class IdleClient {
       // We actually disconnect 15s after appearing to
       // so that if the user sees the idle banner and immediately
       // dismisses it, then the experience is less disruptive.
-      this.delayed_disconnect = setTimeout(
-        () => this.client.hub_client.disconnect(),
-        15 * 1000
-      );
+      this.delayed_disconnect = setTimeout(() => {
+        this.client.hub_client.disconnect();
+        disconnect_from_all_projects();
+      }, 15 * 1000);
     }
   }
 
@@ -125,6 +125,9 @@ export class IdleClient {
       }
       html += `<h4>${description}</h4>`;
     } else {
+      // We have to import this here since art can *ONLY* be imported
+      // when this is loaded in webpack.
+      const { APP_LOGO_WHITE } = require("../art");
       html += `<img class="logo-square" src="${APP_LOGO_WHITE}"><h3>${description}</h3>`;
     }
 

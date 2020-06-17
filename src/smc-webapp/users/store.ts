@@ -67,7 +67,7 @@ class UsersStore extends Store<UsersState> {
           (left = this.get_last_active(user.account_id)) != null ? left : 0;
       }
     }
-    return users.sort(function (a, b) {
+    return users.sort((a, b) => {
       const c = cmp(b.last_active, a.last_active);
       if (c) {
         return c;

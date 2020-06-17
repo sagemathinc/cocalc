@@ -153,8 +153,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
         return;
       case "signed_in":
         this.redux.getActions("page").set_active_tab("projects");
-        const { analytics_event, track_conversion } = require("../misc_page");
-        analytics_event("account", "create_account"); // user created an account
+        const { track_conversion } = require("../misc_page");
         track_conversion("create_account");
         return;
       default:
@@ -236,18 +235,9 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     // disable redirection from main index page to landing page
     // (existence of cookie signals this is a known client)
     // note: similar code is in account.coffee → signed_in
-    let { APP_BASE_URL, analytics_event } = require("../misc_page");
+    let { APP_BASE_URL } = require("../misc_page");
     const exp = server_days_ago(-30).toGMTString();
     document.cookie = `${APP_BASE_URL}has_remember_me=false; expires=${exp} ;path=/`;
-
-    // record this event
-    let evt = "sign_out";
-    if (everywhere) {
-      evt += "_everywhere";
-    }
-
-    analytics_event("account", evt); // user explicitly signed out.
-
     // Send a message to the server that the user explicitly
     // requested to sign out.  The server must clean up resources
     // and *invalidate* the remember_me cookie for this client.

@@ -277,14 +277,17 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     this.build_revealjs_slideshow();
   }
 
-  public async jump_to_cell(cell_id: string): Promise<void> {
+  public async jump_to_cell(
+    cell_id: string,
+    align: "center" | "top" = "top"
+  ): Promise<void> {
     // Open or focus a notebook viewer and scroll to the given cell.
-    const id = this.show_focused_frame_of_type("jupyter_cell_notebook");
     if (this._state === "closed") return;
+    const id = this.show_focused_frame_of_type("jupyter_cell_notebook");
     const actions = this.get_frame_actions(id);
     if (actions == null) return;
     actions.set_cur_id(cell_id);
-    actions.scroll("cell visible");
+    actions.scroll(align == "top" ? "cell top" : "cell visible");
     await delay(5);
     if (this._state === "closed") return;
     actions.focus();

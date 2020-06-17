@@ -21,7 +21,7 @@ import { BillingStoreState } from "./store";
 
 require("./store"); // ensure 'billing' store is created so can set this.store below.
 
-class BillingActions extends Actions<BillingStoreState> {
+export class BillingActions extends Actions<BillingStoreState> {
   private store: Store<BillingStoreState>;
   private last_subscription_attempt?: any;
   private stripe: StripeClient;
@@ -40,6 +40,10 @@ class BillingActions extends Actions<BillingStoreState> {
   }
 
   public async update_customer(): Promise<void> {
+    const is_commercial = redux
+      .getStore("customize")
+      .get("is_commercial", false);
+    if (!is_commercial) return;
     this.setState({ action: "Updating billing information" });
     try {
       const resp = await this.stripe.get_customer();

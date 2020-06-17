@@ -14,6 +14,7 @@ const langs = require("langs");
 
 export const DICTS: string[] = [
   "default",
+  "browser",
   "disabled",
   "af",
   "am",
@@ -167,6 +168,9 @@ export function dict_desc(dict: string): string {
   }
   if (dict == "disabled") {
     return "Disabled (no spell check)";
+  }
+  if (dict == "browser") {
+    return "Browser (your browser's spell check)";
   }
   const country = dict.slice(0, 2);
   const other = dict.slice(3);

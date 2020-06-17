@@ -27,6 +27,8 @@ import {
   RunNotebookOptions,
 } from "../../jupyter/nbgrader/api";
 
+import { reuseInFlight } from "async-await-utils/hof";
+
 export class API {
   private conn: any;
   private project_id: string;
@@ -34,6 +36,7 @@ export class API {
   constructor(conn: string, project_id: string) {
     this.conn = conn;
     this.project_id = project_id;
+    this.listing = reuseInFlight(this.listing.bind(this));
   }
 
   async call(mesg: object, timeout_ms: number): Promise<any> {

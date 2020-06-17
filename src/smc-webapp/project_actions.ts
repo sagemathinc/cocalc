@@ -13,7 +13,6 @@ import * as os_path from "path";
 
 import { client_db } from "smc-util/schema";
 
-const { reuseInFlight } = require("async-await-utils/hof");
 import {
   ConfigurationAspect,
   Configuration,
@@ -69,6 +68,7 @@ import { Actions, project_redux_name, redux } from "./app-framework";
 
 import { ProjectStore, ProjectStoreState } from "./project_store";
 import { ProjectEvent } from "./project/history/types";
+import { DEFAULT_COMPUTE_IMAGE } from "../smc-util/compute-images";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%';
@@ -110,6 +110,7 @@ export const QUERIES = {
       last_edited: null,
       last_saved: null,
       counter: null,
+      compute_image: null,
     },
   },
 };
@@ -200,107 +201,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   constructor(a, b) {
     super(a, b);
     this.new_filename_generator = new NewFilenames("", false);
-    this.destroy = this.destroy.bind(this);
-    this._ensure_project_is_open = this._ensure_project_is_open.bind(this);
-    this.get_store = this.get_store.bind(this);
-    this.clear_all_activity = this.clear_all_activity.bind(this);
-    this.toggle_library = this.toggle_library.bind(this);
-    this.set_url_to_path = this.set_url_to_path.bind(this);
-    this._url_in_project = this._url_in_project.bind(this);
-    this.push_state = this.push_state.bind(this);
-    this.move_file_tab = this.move_file_tab.bind(this);
-    this.close_tab = this.close_tab.bind(this);
-    this.set_active_tab = this.set_active_tab.bind(this);
-    this.add_a_ghost_file_tab = this.add_a_ghost_file_tab.bind(this);
-    this.clear_ghost_file_tabs = this.clear_ghost_file_tabs.bind(this);
-    this.set_next_default_filename = this.set_next_default_filename.bind(this);
-    this.set_activity = this.set_activity.bind(this);
-    this.log = this.log.bind(this);
-    this.log_opened_time = this.log_opened_time.bind(this);
-    this.save_file = this.save_file.bind(this);
-    this.save_all_files = this.save_all_files.bind(this);
-    this.open_file = this.open_file.bind(this);
-    this.get_scroll_saver_for = this.get_scroll_saver_for.bind(this);
-    this.goto_line = this.goto_line.bind(this);
-    this._set_chat_state = this._set_chat_state.bind(this);
-    this.open_chat = this.open_chat.bind(this);
-    this.close_chat = this.close_chat.bind(this);
-    this.set_chat_width = this.set_chat_width.bind(this);
-    this.flag_file_activity = this.flag_file_activity.bind(this);
-    this.convert_sagenb_worksheet = this.convert_sagenb_worksheet.bind(this);
-    this.convert_docx_file = this.convert_docx_file.bind(this);
-    this.close_all_files = this.close_all_files.bind(this);
-    this.close_file = this.close_file.bind(this);
-    this.foreground_project = this.foreground_project.bind(this);
-    this.open_directory = this.open_directory.bind(this);
-    this.set_current_path = this.set_current_path.bind(this);
-    this.set_file_search = this.set_file_search.bind(this);
-    this.fetch_directory_listing = this.fetch_directory_listing.bind(this);
-    this.set_sorted_file_column = this.set_sorted_file_column.bind(this);
-    this.increment_selected_file_index = this.increment_selected_file_index.bind(
-      this
-    );
-    this.decrement_selected_file_index = this.decrement_selected_file_index.bind(
-      this
-    );
-    this.zero_selected_file_index = this.zero_selected_file_index.bind(this);
-    this.clear_selected_file_index = this.clear_selected_file_index.bind(this);
-    this.set_most_recent_file_click = this.set_most_recent_file_click.bind(
-      this
-    );
-    this.set_selected_file_range = this.set_selected_file_range.bind(this);
-    this.set_file_checked = this.set_file_checked.bind(this);
-    this.set_file_list_checked = this.set_file_list_checked.bind(this);
-    this.set_file_list_unchecked = this.set_file_list_unchecked.bind(this);
-    this.set_all_files_unchecked = this.set_all_files_unchecked.bind(this);
-    this._suggest_duplicate_filename = this._suggest_duplicate_filename.bind(
-      this
-    );
-    this.set_file_action = this.set_file_action.bind(this);
-    this.show_file_action_panel = this.show_file_action_panel.bind(this);
-    this.get_from_web = this.get_from_web.bind(this);
-    this._finish_exec = this._finish_exec.bind(this);
-    this.zip_files = this.zip_files.bind(this);
-    this._convert_to_displayed_path = this._convert_to_displayed_path.bind(
-      this
-    );
-    this.init_library = this.init_library.bind(this);
-    this.init_configuration = reuseInFlight(this.init_configuration.bind(this));
-    this.copy_from_library = this.copy_from_library.bind(this);
-    this.set_library_is_copying = this.set_library_is_copying.bind(this);
-    this.copy_paths = this.copy_paths.bind(this);
-    this.copy_paths_between_projects = this.copy_paths_between_projects.bind(
-      this
-    );
-    this.delete_files = this.delete_files.bind(this);
-    this.download_file = this.download_file.bind(this);
-    this.print_file = this.print_file.bind(this);
-    this.show_upload = this.show_upload.bind(this);
-    this._absolute_path = this._absolute_path.bind(this);
-    this.create_folder = this.create_folder.bind(this);
-    this.create_file = this.create_file.bind(this);
-    this.set_public_path = this.set_public_path.bind(this);
-    this.toggle_search_checkbox_subdirectories = this.toggle_search_checkbox_subdirectories.bind(
-      this
-    );
-    this.toggle_search_checkbox_case_sensitive = this.toggle_search_checkbox_case_sensitive.bind(
-      this
-    );
-    this.toggle_search_checkbox_hidden_files = this.toggle_search_checkbox_hidden_files.bind(
-      this
-    );
-    this.toggle_search_checkbox_git_grep = this.toggle_search_checkbox_git_grep.bind(
-      this
-    );
-    this.process_search_results = this.process_search_results.bind(this);
-    this.search = this.search.bind(this);
-    this.load_target = this.load_target.bind(this);
-    this.close_free_warning = this.close_free_warning.bind(this);
-    this.ask_filename = this.ask_filename.bind(this);
-
     this._log_open_time = {};
     this._activity_indicator_timers = {};
-
     this.open_files = new OpenFiles(this);
   }
 
@@ -1197,7 +1099,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // If the given path is open, and editor supports going to line,
   // moves to the given line.
   // Otherwise, does nothing.
-  public goto_line(path, line): void {
+  public goto_line(path, line, cursor?: boolean, focus?: boolean): void {
     const a: any = redux.getEditorActions(this.project_id, path);
     if (a == null) {
       // try non-react editor
@@ -1210,7 +1112,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
     } else {
       if (typeof a.programmatical_goto_line === "function") {
-        a.programmatical_goto_line(line);
+        a.programmatical_goto_line(line, cursor, focus);
       }
     }
   }
@@ -1865,18 +1767,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     let basename: string = "";
 
     switch (action) {
-      case "move":
-        const checked_files = store.get("checked_files").toArray();
-        (this.redux.getActions("projects") as any).fetch_directory_tree(
-          this.project_id,
-          { exclusions: checked_files }
-        );
-        break;
-      case "copy":
-        (this.redux.getActions("projects") as any).fetch_directory_tree(
-          this.project_id
-        );
-        break;
       case "duplicate":
         if (get_basename != undefined) {
           basename = get_basename();
@@ -2726,6 +2616,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const project_id = this.project_id;
     const id = client_db.sha1(project_id, path);
 
+    const projects_store = redux.getStore("projects");
+    const compute_image =
+      projects_store.getIn(["project_map", project_id, "compute_image"]) ??
+      DEFAULT_COMPUTE_IMAGE;
+
     const table = this.redux.getProjectTable(project_id, "public_paths");
     let obj: undefined | immutable.Map<string, any> = table._table.get(id);
 
@@ -2735,6 +2630,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         project_id,
         path,
         created: now,
+        compute_image,
       });
     }
     if (obj == null) return; // make typescript happy
@@ -2744,6 +2640,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     obj = obj.delete("counter");
 
     obj = obj.set("last_edited", now);
+    obj = obj.set("compute_image", compute_image);
 
     for (const k in opts) {
       if (opts[k] != null) {
@@ -3032,12 +2929,29 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ free_warning_closed: true });
   }
 
-  async set_compute_image(new_image: string): Promise<void> {
+  async set_compute_image(compute_image: string): Promise<void> {
     await client_query({
       query: {
         projects: {
           project_id: this.project_id,
-          compute_image: new_image,
+          compute_image,
+        },
+      },
+    });
+  }
+
+  async set_environment(env: object): Promise<void> {
+    if (typeof env != "object") {
+      throw Error("env must be an object");
+    }
+    for (const key in env) {
+      env[key] = `${env[key]}`;
+    }
+    await client_query({
+      query: {
+        projects: {
+          project_id: this.project_id,
+          env,
         },
       },
     });

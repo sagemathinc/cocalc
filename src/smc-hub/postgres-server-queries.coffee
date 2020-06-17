@@ -2601,6 +2601,18 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             jsonb_merge : {settings: opts.settings}
             cb          : opts.cb
 
+    get_project_extra_env: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @_query
+            query : "SELECT env FROM projects"
+            where : 'project_id = $::UUID' : opts.project_id
+            cb    : one_result 'env', (err, env) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, env ? {})
 
     ###
     Stats

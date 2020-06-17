@@ -1,7 +1,7 @@
 import { React } from "../../app-framework";
 import { A } from "../../r_misc";
 
-export const AboutLicenses: React.FC<> = () => {
+export const AboutLicenses: React.FC = () => {
   return (
     <div>
       <h3>About</h3>

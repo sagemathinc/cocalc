@@ -214,7 +214,7 @@ function process_media_tags(e, opts: Options2) {
 }
 
 $.fn.process_smc_links = function (opts: Options = {}) {
-  this.each(function () {
+  this.each(() => {
     const e = $(this);
     // part #1: process <a> anchor tags
     process_anchor_tags(e, opts);

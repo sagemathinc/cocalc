@@ -38,7 +38,7 @@ export class ResetPassword extends Component<Props, State> {
       .getActions("account")
       .reset_password(
         this.props.reset_key,
-        ReactDOM.findDOMNode(this.refs.password).value
+        ReactDOM.findDOMNode(this.refs.password)?.value
       );
     this.setState({ resetting: false });
   }

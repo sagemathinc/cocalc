@@ -147,27 +147,6 @@ exports.render_static_footer = ->
     {Footer} = require('smc-webapp/customize')
     <Footer />
 
-
-exports.MessageDisplay = MessageDisplay = rclass
-    displayName : 'Misc-MessageDisplay'
-
-    propTypes :
-        message : rtypes.string
-        onClose : rtypes.func
-
-    render: ->
-        <Row style={backgroundColor:'white', margin:'1ex', padding:'1ex', border:'1px solid lightgray', dropShadow:'3px 3px 3px lightgray', borderRadius:'3px'}>
-            <Col md={8} xs={8}>
-                <span style={color:'gray', marginRight:'1ex'}>{@props.message}</span>
-            </Col>
-            <Col md={4} xs={4}>
-                <Button className='pull-right' onClick={@props.onClose} bsSize='small'>
-                    <Icon name='times' />
-                </Button>
-            </Col>
-        </Row>
-
-
 help_text =
   backgroundColor: 'white'
   padding        : '10px'

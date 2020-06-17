@@ -3,7 +3,8 @@
 # License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
 #########################################################################
 
-{Col, Row, Panel, Table, Tab, Tabs, Modal, Button} = require('react-bootstrap')
+{ Panel, Table, Tab, Tabs, Modal, Button} = require('react-bootstrap')
+{ Col, Row } = require("./antd-bootstrap")
 {redux, Redux, rclass, rtypes, React, Actions, Store} = require('./app-framework')
 {Loading, Markdown} = require('./r_misc')
 {HelpEmailLink, SiteName} = require('./customize')
@@ -242,11 +243,13 @@ ComputeEnvironment = rclass
     componentDidMount: ->
         @props.actions.load()
 
-    shouldComponentUpdate: (props) ->
+    shouldComponentUpdate: (props, state) ->
         if props.selected_lang != @props.selected_lang  # tab change
             return true
+        if state.show_version_popup != @state.show_version_popup
+            return true
         # Otherwise, only update if neither is defined -- if both defined, no further updates needed.
-        # Without this, if you wwitch to the "i CoCalc" page in prod, then
+        # Without this, if you switch to the "i CoCalc" page in prod, then
         # click "Help" and try to type it's a total disaster.
         return not @props.inventory? or not @props.components?
 
@@ -268,6 +271,7 @@ ComputeEnvironment = rclass
 
     version_information_popup: ->
         lang_info          = @props.inventory['language_exes'][@state.inventory_idx]
+        return if not lang_info?
         version            = @props.inventory[@props.selected_lang]?[@state.inventory_idx]?[@state.component_idx] ? '?'
         # we're optimistic and treat 'description' as markdown,
         # but in reality it might be plaintext, Rst or HTML
@@ -283,6 +287,12 @@ ComputeEnvironment = rclass
         style_descr =
             maxHeight   : '12rem'
             overflowY   : 'auto'
+        jupyter_kernel = switch lang_info.lang
+            when 'julia'  then 'julia-1.4'
+            when 'python' then 'python3'
+            when 'octave' then 'octave'
+            when 'R'      then 'ir'
+            else lang_info.lang
 
         <Modal
             key        = {'modal'}
@@ -324,9 +334,8 @@ ComputeEnvironment = rclass
                         <a target='_blank' rel="noopener" href={jupyter_bridge_url}>Jupyter Bridge</a>.
                         E.g. for Anaconda:
                         <pre>
-                            %auto
-                            anaconda3 = jupyter('anaconda3')
-                            %default_mode anaconda3
+                            kernel = jupyter('{jupyter_kernel}')
+                            %default_mode kernel
                         </pre>
                     </li>
                     <li style={li_style}>or run it in a Terminal ("Files" → "Terminal")</li>
@@ -362,6 +371,7 @@ ComputeEnvironment = rclass
             activeKey={@props.selected_lang}
             onSelect={((key) => @props.actions.setState(selected_lang:key))}
             animation={false}
+            style={width: "100%"}
             id={"about-compute-environment-tabs"}
         >
             {@render_control_tabs()}
@@ -412,7 +422,6 @@ ComputeEnvironment = rclass
 
     render: ->
         <Row>
-            <hr/>
             <h3>Software and Programming Libraries Details</h3>
             {
                 if @props.inventory? and @props.components?

@@ -7,15 +7,11 @@ import * as React from "react";
 import memoizeOne from "memoize-one";
 
 import { ProjectActions } from "../../../project_actions";
-import { analytics_event } from "../../../tracker";
-
 import { CopyButton } from "./copy-button";
 import { PublicButton } from "./public-button";
 import { FileCheckbox } from "./file-checkbox";
 import { generate_click_for } from "./utils";
-
 import { COLORS, TimeAgo, Tip, Icon } from "../../../r_misc";
-
 const { Button, Row, Col } = require("react-bootstrap");
 const misc = require("smc-util/misc");
 const { project_tasks } = require("../../../project_tasks");
@@ -185,11 +181,6 @@ export class FileRow extends React.Component<Props, State> {
     if (foreground) {
       this.props.actions.set_file_search("");
     }
-    analytics_event(
-      "project_file_listing",
-      "clicked_file_row",
-      misc.filename_extension(this.full_path())
-    );
   };
 
   handle_download_click = (e) => {

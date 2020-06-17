@@ -155,10 +155,10 @@ const InfoPageElement = rclass<{}>(
               ) : undefined}
             </Row>
             <Row>
-              <ComputeEnvironment />
+              <hr />
             </Row>
+            <ComputeEnvironment />
           </Col>
-          <Col sm={1} md={2}></Col>
           <Col xs={12} sm={12} md={12}>
             <Footer />
           </Col>

@@ -4,10 +4,9 @@
  */
 
 import { Map } from "immutable";
-
 import * as humanizeList from "humanize-list";
-
 import { PROJECT_UPGRADES } from "smc-util/schema";
+import { Upgrades } from "smc-util/upgrades/types";
 
 import {
   rclass,
@@ -27,8 +26,6 @@ interface Props {
   stripe_customer?: Map<string, any>;
   project_map?: Map<string, any>;
 }
-
-type QuotaMap = { [quota: string]: number };
 
 class UpgradeStatus extends Component<Props, {}> {
   static reduxProps() {
@@ -51,7 +48,7 @@ class UpgradeStatus extends Component<Props, {}> {
     visit_billing_page();
   }
 
-  render_unused_mesg(total: QuotaMap, used: QuotaMap): Rendered {
+  render_unused_mesg(total: Upgrades, used: Upgrades): Rendered {
     let mesg: string;
     let f: (event: any) => void;
     if (len(total) == 0) {

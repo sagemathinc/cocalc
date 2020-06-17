@@ -15,11 +15,9 @@ IDEAS FOR LATER:
 
 */
 
-import { analytics_event } from "../../tracker";
+import { React, ReactDOM } from "../../app-framework";
+import { user_activity } from "../../tracker";
 import { ProjectActions } from "../../project_actions";
-import * as React from "react";
-import * as ReactDOM from "react-dom";
-
 const {
   Button,
   FormControl,
@@ -119,7 +117,7 @@ export class MiniTerminal extends React.Component<Props, State> {
     this._id = this._id + 1;
     const id = this._id;
     const start_time = new Date().getTime();
-    analytics_event("mini_terminal", "exec", input);
+    user_activity("mini_terminal", "exec", input);
     webapp_client.exec({
       project_id: this.props.project_id,
       command: input0,
@@ -281,9 +279,9 @@ export class MiniTerminal extends React.Component<Props, State> {
                 placeholder="Terminal command..."
                 onChange={(e) => {
                   e.preventDefault();
-                  this.setState({
-                    input: (ReactDOM.findDOMNode(this.refs.input) as any).value,
-                  });
+                  const input = ReactDOM.findDOMNode(this.refs.input)?.value;
+                  if (input == null) return;
+                  this.setState({ input });
                 }}
                 onKeyDown={this.keydown}
               />

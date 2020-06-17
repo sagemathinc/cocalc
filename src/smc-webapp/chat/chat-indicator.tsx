@@ -5,13 +5,11 @@
 
 import { debounce } from "lodash";
 import { filename_extension } from "smc-util/misc2";
-import { analytics_event } from "../tracker";
-import { React, redux, COLOR, useRedux, useMemo } from "../app-framework";
+import { React, redux, useRedux, useMemo } from "../app-framework";
+import { COLORS } from "smc-util/theme";
 import { Icon, Tip, Space } from "../r_misc";
-//import { VideoChatButton } from "../video-chat";
-const { VideoChatButton } = require("../video-chat");
-//import { UsersViewing } from "../other-users";
-const { UsersViewing } = require("../other-users");
+import { UsersViewing } from "../account/avatar/users-viewing";
+import { VideoChatButton } from "./video/launch-button";
 
 const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "14pt",
@@ -52,7 +50,7 @@ export const ChatIndicator: React.FC<Props> = ({
     () =>
       !!redux.getStore("file_use")?.get_file_info(project_id, path)
         ?.is_unseenchat,
-    [file_use]
+    [file_use, project_id, path]
   );
 
   const toggle_chat = debounce(
@@ -60,10 +58,8 @@ export const ChatIndicator: React.FC<Props> = ({
       const a = redux.getProjectActions(project_id);
       if (is_chat_open) {
         a.close_chat({ path });
-        analytics_event("side_chat", "close");
       } else {
         a.open_chat({ path });
-        analytics_event("side_chat", "open");
       }
     },
     1000,
@@ -76,7 +72,7 @@ export const ChatIndicator: React.FC<Props> = ({
       return;
     }
 
-    const color = is_new_chat ? COLOR.FG_RED : COLOR.FG_BLUE;
+    const color = is_new_chat ? COLORS.FG_RED : COLORS.FG_BLUE;
     const action = is_chat_open ? "Hide" : "Show";
     const title = (
       <span>
@@ -98,7 +94,11 @@ export const ChatIndicator: React.FC<Props> = ({
           <span
             style={{ marginLeft: "5px", marginRight: "5px", color: "#428bca" }}
           >
-            <VideoChatButton project_id={project_id} path={path} short={true} />
+            <VideoChatButton
+              project_id={project_id}
+              path={path}
+              button={false}
+            />
           </span>
         )}
         <Tip

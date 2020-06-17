@@ -36,13 +36,6 @@ interface Props {
 }
 
 export class CustomSoftwareInfo extends Component<Props, {}> {
-  private props2img;
-
-  constructor(props) {
-    super(props);
-    this.props2img = props2img.bind(this);
-  }
-
   render_path = (path) => {
     if (!this.props.project_is_running) return null;
     if (path.length === 0) return null;
@@ -125,7 +118,7 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
   };
 
   render = () => {
-    const img = this.props2img();
+    const img = props2img(this.props);
     if (img == null) return null;
     const path = img.get("path", "");
 

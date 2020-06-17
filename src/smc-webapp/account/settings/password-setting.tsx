@@ -159,7 +159,8 @@ export class PasswordSetting extends Component<{}, State> {
               value={this.state.new_password}
               placeholder="New password"
               onChange={() => {
-                const x = ReactDOM.findDOMNode(this.refs.new_password).value;
+                const x = ReactDOM.findDOMNode(this.refs.new_password)?.value;
+                if (x == null) return;
                 this.setState({ new_password: x });
               }}
             />

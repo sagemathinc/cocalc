@@ -66,6 +66,12 @@ export function cm_options(
     // actually looks at the existence of keys rather than existance of values.
   };
 
+  if (options.mode?.name == "gfm2") {
+    // browser native spellcheck now supported!
+    options.spellcheck = true;
+    options.inputStyle = "contenteditable";
+  }
+
   if (IS_TOUCH) {
     const { extra_alt_keys } = require("mobile/codemirror");
     extra_alt_keys(options.extraKeys, undefined, editor_settings);

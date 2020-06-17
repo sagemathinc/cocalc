@@ -15,7 +15,6 @@ misc_page = require('./misc_page')
 # CoCalc Pages
 # SMELL: Page UI's are mixed with their store/state.
 # So we have to require them even though they aren't used
-{ProjectsPage} = require('./projects')
 {ProjectPage}  = require('./project_page')
 {FileUsePage}  = require('./file-use/page')
 {Support}      = require('./support')
@@ -279,7 +278,7 @@ Page = rclass
             {@render_global_information_toggle()}
             {@render_mentions_button()}
             {@render_bell()}
-            {<ConnectionIndicator actions={@actions('page')}/> if not @props.is_anonymous}
+            {<ConnectionIndicator /> if not @props.is_anonymous}
             <FullscreenButton />
         </Nav>
 
@@ -332,7 +331,14 @@ Page = rclass
             # Don't show the login screen or top navbar for a second while creating
             # their anonymous account, since that would just be ugly/confusing/and annoying.
             # Have to use above style to *hide* the crash warning.
-            return <div style={style}><h1 style={margin:'auto', color:'#666'}><Loading/></h1></div>
+            loading_anon =
+                <div style={margin:'auto', textAlign:'center'}>
+                    <h1 style={color:COLORS.GRAY}><Loading/></h1>
+                    <div style={color:COLORS.GRAY_L, width:'50vw'}>
+                        Please give {@props.site_name} a couple of seconds to start your project and prepare a file...
+                    </div>
+                </div>
+            return <div style={style}>{loading_anon}</div>
 
 
         <React.Fragment>

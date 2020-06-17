@@ -5,7 +5,7 @@ import { A } from "../../r_misc";
 import { SSHKeyAdder } from "./ssh-key-adder";
 import { SSHKeyList } from "./ssh-key-list";
 
-export const SSHKeysPage: React.FC<> = () => {
+export const SSHKeysPage: React.FC = () => {
   const ssh_keys: Map<string, any> | undefined = useRedux([
     "account",
     "ssh_keys",

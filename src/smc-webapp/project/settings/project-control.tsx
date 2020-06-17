@@ -23,7 +23,6 @@ import {
   CUSTOM_IMG_PREFIX,
 } from "../../custom-software/util";
 import { async } from "async";
-import { analytics_event } from "../../tracker";
 import {
   ButtonToolbar,
   Button,
@@ -153,14 +152,12 @@ export const ProjectControl = rclass<ReactProps>(
       redux
         .getActions("projects")
         .restart_project(this.props.project.get("project_id"));
-      analytics_event("project_settings", "restart project");
     };
 
     stop_project = () => {
       redux
         .getActions("projects")
         .stop_project(this.props.project.get("project_id"));
-      analytics_event("project_settings", "stop project");
     };
 
     render_stop_button(commands): Rendered {
@@ -311,7 +308,6 @@ export const ProjectControl = rclass<ReactProps>(
       const actions = redux.getProjectActions(
         this.props.project.get("project_id")
       );
-      analytics_event("project_settings", "change compute image");
       try {
         await actions.set_compute_image(new_image);
         this.restart_project();
@@ -330,18 +326,30 @@ export const ProjectControl = rclass<ReactProps>(
     }
 
     render_compute_image_items() {
-      return COMPUTE_IMAGES.entrySeq().map((entry) => {
-        const [name, data] = entry;
-        return (
-          <MenuItem
-            key={name}
-            eventKey={name}
-            onSelect={this.set_compute_image.bind(this)}
-          >
-            {data.get("title")}
-          </MenuItem>
-        );
-      });
+      // we want "Default", "Previous", ... to come first
+      // then the timestamps in newest-first
+      // and then the exotic ones
+      const sorter = (a, b): number => {
+        const o1 = a.get("order", 0);
+        const o2 = b.get("order", 0);
+        if (o1 == o2) {
+          return a.get("title") < b.get("title") ? 1 : -1;
+        }
+        return o1 > o2 ? 1 : -1;
+      };
+      return COMPUTE_IMAGES.sort(sorter)
+        .entrySeq()
+        .map(([name, data]) => {
+          return (
+            <MenuItem
+              key={name}
+              eventKey={name}
+              onSelect={this.set_compute_image.bind(this)}
+            >
+              {data.get("title")}
+            </MenuItem>
+          );
+        });
     }
 
     render_select_compute_image_row() {

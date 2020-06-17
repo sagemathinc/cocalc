@@ -53,8 +53,15 @@ misc        = require('smc-util/misc')
 smc_version = require('smc-util/smc-version')
 misc_node   = require('smc-util-node/misc_node')
 
+# I'm disabling memwatch because this code is in typescript, and gets
+# compiled and cached at runtime, and as of now, that completely breaks
+# multiuser cocalc (e.g. cocalc-docker), since the cache has very
+# restrictive permissions.  Plus I never look at the information
+# that this logs
+###
 memory      = require('smc-util-node/memory')
 memory.init(winston.debug)
+###
 
 {to_json, from_json, defaults, required}   = require('smc-util/misc')
 
@@ -366,6 +373,26 @@ start_server = (tcp_port, raw_port, cb) ->
         cb(err)
     )
 
+# Contains additional environment variables. Base 64 encoded JSON of {[key:string]:string}.
+set_extra_env = ->
+    if not process.env.COCALC_EXTRA_ENV
+        winston.debug("set_extra_env: nothing provided")
+        return
+    try
+        env64 = process.env.COCALC_EXTRA_ENV
+        raw = Buffer.from(env64, 'base64').toString('utf8')
+        winston.debug("set_extra_env: #{raw}")
+        data = JSON.parse(raw)
+        if typeof data == 'object'
+            for k, v of data
+                if typeof v != 'string' or v.length == 0
+                    winston.debug("set_extra_env: ignoring key #{k}, value is not a string or length 0")
+                    continue
+                process.env[k] = v
+    catch err
+        # we report and ignore errors
+        winston.debug("ERROR set_extra_env -- cannot process '#{process.env.COCALC_EXTRA_ENV}' -- #{err}")
+
 program.usage('[?] [options]')
     .option('--tcp_port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
     .option('--raw_port <n>', 'RAW server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
@@ -388,6 +415,7 @@ else
     winston.debug("NOT running in kucalc")
     kucalc.IN_KUCALC = false
 
+set_extra_env()
 
 start_server program.tcp_port, program.raw_port, (err) ->
     if err

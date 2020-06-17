@@ -10,7 +10,6 @@ $ = window.$
 {IS_MOBILE} = require('./feature')
 misc        = require('smc-util/misc')
 {dmp}       = require('smc-util/sync/editor/generic/util')
-buttonbar   = require('./buttonbar')
 markdown    = require('./markdown')
 theme       = require('smc-util/theme')
 {QueryParams} = require('./misc/query-params')
@@ -61,9 +60,9 @@ exports.is_enter       = (e) -> e.which is 13 and not e.shiftKey
 exports.is_ctrl_enter  = (e) -> e.which is 13 and e.ctrlKey
 exports.is_escape      = (e) -> e.which is 27
 
-{join} = require('path')
-exports.APP_BASE_URL = window?.app_base_url ? ''
-exports.BASE_URL = if window? then "#{window.location.protocol}//#{join(window.location.hostname, window.app_base_url ? '')}" else theme.DOMAIN_NAME
+base_url_lib = require("./misc/base-url")
+exports.APP_BASE_URL = base_url_lib.APP_BASE_URL
+exports.BASE_URL = base_url_lib.BASE_URL
 
 local_diff = exports.local_diff = (before, after) ->
     # Return object
@@ -1005,8 +1004,6 @@ exports.define_codemirror_extensions = () ->
         CodeMirror.registerHelper("hint", "stex", tex_hint)
 
 
-    EDIT_COMMANDS = buttonbar.commands
-
     CodeMirror.defineExtension 'get_edit_mode', (opts) ->
         opts = defaults opts, {}
         cm = @
@@ -1077,6 +1074,14 @@ exports.define_codemirror_extensions = () ->
                     return src.slice(0,i) + src.slice(i+left.length,j) + src.slice(j+right.length)
 
         selections = cm.listSelections()
+
+        # TODO: can't be at top level because misc_page gets imported by
+        # share server; fix will be moving these extension definitions
+        # to their own module, when refactoring this file.
+        buttonbar = require('./editors/editor-button-bar')
+        EDIT_COMMANDS = buttonbar.commands
+        FONT_FACES = buttonbar.FONT_FACES
+
         #selections.reverse()
         for selection in selections
             mode = canonical_mode(cm.getModeAt(selection.head).name)
@@ -1653,8 +1658,6 @@ exports.define_codemirror_extensions = () ->
     #CodeMirror.defineExtension 'setLine', (n, value) ->
     #    @replaceRange()
 
-FONT_FACES = buttonbar.FONT_FACES
-
 cm_start_end = (selection) ->
     {head, anchor} = selection
     start = head
@@ -1742,7 +1745,7 @@ exports.load_coffeescript_compiler = (cb) ->
 
 # Convert html to text safely using jQuery (see http://api.jquery.com/jquery.parsehtml/)
 
-exports.html_to_text = (html) -> $($.parseHTML(html)).text()
+exports.html_to_text = require('./misc-page').html_to_text
 
 exports.language = () ->
     (if navigator?.languages then navigator?.languages[0] else (navigator?.language or navigator?.userLanguage))
@@ -1823,27 +1826,6 @@ return _sanitize_html_lib html,
         allowedAttributes: _sanitize_html_allowedAttributes
 ###
 
-# `analytics` is a generalized wrapper for reporting data to google analytics, pwiki, parsley, ...
-# for now, it either does nothing or works with GA
-# this API basically allows to send off events by name and category
-
-exports.analytics = (type, args...) ->
-    # GoogleAnalyticsObject contains the possibly customized function name of GA.
-    # It's a good idea to call it differently from the default 'ga' to avoid name clashes...
-    if window.GoogleAnalyticsObject?
-        ga = window[window.GoogleAnalyticsObject]
-        if ga?
-            switch type
-                when 'event', 'pageview'
-                    ga('send', type, args...)
-                else
-                    console.warn("unknown analytics event '#{type}'")
-
-exports.analytics_pageview = (args...) ->
-    exports.analytics('pageview', args...)
-
-exports.analytics_event = (args...) ->
-    exports.analytics('event', args...)
 
 # conversion tracking (commercial only)
 exports.track_conversion = (type, amount) ->
@@ -1897,15 +1879,6 @@ exports.set_cookie = (name, value, days) ->
         date.setTime(date.getTime() + (days*24*60*60*1000))
         expires = "; expires=" + date.toUTCString()
     document.cookie = name + "=" + value + expires + "; path=/"
-
-# see http://stackoverflow.com/questions/3169786/clear-text-selection-with-javascript
-exports.clear_selection = ->
-    if window.getSelection?().empty?
-        window.getSelection().empty() # chrome
-    else if window.getSelection?().removeAllRanges?
-        window.getSelection().removeAllRanges() # firefox
-    else
-        document.selection?.empty?()
 
 # returns true, if a target page should be loaded
 exports.should_load_target_url = ->

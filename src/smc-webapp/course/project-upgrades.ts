@@ -9,10 +9,9 @@ Functions for determining various things about applying upgrades to a project.
 WARNING: This should stay as simple typescript with no crazy dependencies for easy node.js unit testing.
 */
 
-import { Map } from "immutable";
 import * as misc from "smc-util/misc";
+import { ProjectMap } from "../projects/store";
 
-type ProjectMap = Map<any, any>;
 interface ExistenceMap {
   [keys: string]: boolean;
 }

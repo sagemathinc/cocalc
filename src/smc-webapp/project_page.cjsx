@@ -19,7 +19,7 @@ feature = require('./feature')
 Draggable = require('react-draggable')
 
 # CoCalc Libraries
-{SideChat}         = require('./side_chat')
+{SideChat}         = require('./chat/side-chat')
 {Explorer}         = require('./project/explorer')
 {ProjectNew}       = require('./project/new')
 {ProjectLog}       = require('./project/history')
@@ -27,8 +27,10 @@ Draggable = require('react-draggable')
 {ProjectSettings}  = require('./project/settings')
 {DeletedFile}      = require('./project/deleted-file')
 {ProjectStore}     = require('./project_store')
-{DiskSpaceWarning, RamWarning, OOMWarning} = require('./project_warnings')
-{KioskModeBanner} = require('./app_shared2')
+{OOMWarning} = require('./project/warnings/oom')
+{RamWarning} = require('./project/warnings/ram')
+{DiskSpaceWarning} = require('./project/warnings/disk-space')
+{KioskModeBanner} = require('./app/kiosk-mode-banner')
 
 project_file = require('./project_file')
 {file_associations} = require('./file-associations')
@@ -192,9 +194,8 @@ ProjectContentViewer = rclass
 
     render_side_chat: (path) ->
         <SideChat
-            path       = {misc.meta_file(path, 'chat')}
-            redux      = {redux}
             project_id = {@props.project_id}
+            path       = {misc.meta_file(path, 'chat')}
             />
 
     render_drag_bar: (path) ->

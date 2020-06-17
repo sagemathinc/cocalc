@@ -239,7 +239,6 @@ class Project
                     opts.cb?(err, {})
             return
 
-
         if opts.at_most_one
             if @_command_cbs[opts.action]?
                 @_command_cbs[opts.action].push(opts.cb)

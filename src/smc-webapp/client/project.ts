@@ -191,7 +191,12 @@ export class ProjectClient {
       if (opts.cb == null) {
         throw err;
       } else {
-        opts.cb(err.message);
+        if (!err.message) {
+          // Important since err.message can be falsey, e.g., for Error(''), but toString will never be falsey.
+          opts.cb(err.toString());
+        } else {
+          opts.cb(err.message);
+        }
         return { stdout: "", stderr: err.message, exit_code: 1, time: 0 }; // should be ignored; this is just to make typescript happy.
       }
     }

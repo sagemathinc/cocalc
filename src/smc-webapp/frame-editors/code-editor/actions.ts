@@ -66,6 +66,8 @@ import { AvailableFeatures } from "../../project_configuration";
 
 import { apply_patch } from "smc-util/sync/editor/generic/util";
 
+import { default_opts } from "../codemirror/cm-options";
+
 const copypaste = require("smc-webapp/copy-paste-buffer");
 const { open_new_tab } = require("smc-webapp/misc_page");
 
@@ -76,9 +78,7 @@ import {
   Exts as FormatterExts,
   Tool as FormatterTool,
 } from "smc-util/code-formatter";
-import {
-  Config as FormatterConfig,
-} from "smc-project/formatters/prettier";
+import { Config as FormatterConfig } from "smc-project/formatters/prettier";
 import { SHELLS } from "./editor";
 
 interface gutterMarkerParams {
@@ -109,7 +109,7 @@ export interface CodeEditorState {
   local_view_state: any; // Generic use of Actions below makes this entirely befuddling...
   reload: Map<string, any>;
   resize: number;
-  misspelled_words: Set<string>;
+  misspelled_words: Set<string> | string;
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
   is_saving: boolean;
@@ -779,8 +779,6 @@ export class Actions<
     // default path
     let path = this.path;
 
-    this.set_frame_tree({ id, type, path });
-
     if (this._cm[id] && type != "cm") {
       // Make sure to clear cm cache in case switching type away,
       // in case the component unmount doesn't do this.
@@ -808,7 +806,15 @@ export class Actions<
     if (!font_size) {
       font_size = get_default_font_size();
     }
-    this.set_font_size(id, font_size);
+    this.set_frame_tree({
+      id,
+      type,
+      path,
+      title: undefined,
+      connection_status: undefined,
+      is_paused: undefined,
+      font_size,
+    });
 
     this.store.emit("new-frame", { id, type });
   }
@@ -1527,7 +1533,7 @@ export class Actions<
     focus?: boolean,
     id?: string // if given scroll this particular frame
   ): Promise<void> {
-    if (this._syncstring == null) {
+    if (this._syncstring == null || this._syncstring.is_fake) {
       // give up -- don't even have a syncstring...
       // A derived class that doesn't use a syncstring
       // might overload programmatical_goto_line to make
@@ -1755,8 +1761,8 @@ export class Actions<
 
     // hash combines state of file with spell check setting.
     // TODO: store /type fail.
-    const lang = (this.store.get("settings") as Map<string, any>).get("spell");
-    if (!lang) {
+    const lang: string | undefined = this.store.getIn(["settings", "spell"]);
+    if (lang == null) {
       // spell check configuration not yet initialized
       return;
     }
@@ -1767,15 +1773,19 @@ export class Actions<
     }
     this._update_misspelled_words_last_hash = hash;
     try {
-      const words: string[] = await misspelled_words({
+      const words: string[] | string = await misspelled_words({
         project_id: this.project_id,
         path: this.get_spellcheck_path(),
         lang,
         time,
       });
-      const x = Set(words);
-      if (!x.equals(this.store.get("misspelled_words"))) {
-        this.setState({ misspelled_words: x });
+      if (typeof words == "string") {
+        this.setState({ misspelled_words: words });
+      } else {
+        const x = Set(words);
+        if (!x.equals(this.store.get("misspelled_words"))) {
+          this.setState({ misspelled_words: x });
+        }
       }
     } catch (err) {
       this.set_error(err);
@@ -2116,7 +2126,11 @@ export class Actions<
     if (this._spellcheck_is_supported) {
       if (!settings.get("spell")) {
         // ensure spellcheck is a possible setting, if necessary.
-        this.set_settings({ spell: "default" });
+        // Use browser spellcheck **by default** if that option is
+        // is configured, otherwise default backend spellcheck.
+        this.set_settings({
+          spell: default_opts(this.path).spellcheck ? "browser" : "default",
+        });
       }
       // initial spellcheck
       this.update_misspelled_words();

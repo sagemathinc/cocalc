@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+// IMPORTANT: Currently not used since CodeMirror can now use native browser spellcheck!
+
 /*
 Spell check setting.  The options are:
 
@@ -61,13 +63,24 @@ export class SpellCheck extends Component<Props, {}> {
     );
   }
 
+  private render_updates() {
+    switch (this.props.value) {
+      case "browser":
+        return " (updates immediately)";
+      case "disabled":
+        return "";
+      default:
+        return " (updates on save to disk)";
+    }
+  }
+
   render(): Rendered {
     const style = { fontSize: "11pt", paddingRight: "10px" };
     if (this.props.available) {
       return (
         <div>
           <span style={style}>
-            <b>Spellcheck language</b> for this file (updates on save):
+            <b>Spellcheck language</b> for this file{this.render_updates()}:
           </span>
           {this.render_dropdown()}
         </div>

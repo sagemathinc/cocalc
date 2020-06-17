@@ -26,7 +26,7 @@ require("./jupyter/nbviewer/register").register(webapp_client)
 
 require('./tasks/register')
 
-require('./media-viewer/register')
+require('./editors/media-viewer/register')
 
 # Public editors
 #require('./public/editor_image')

@@ -40,7 +40,6 @@ export const {
   Octicon,
   Footer,
   render_static_footer,
-  MessageDisplay,
   HelpIcon,
   is_different_date,
   TimeAgoElement,

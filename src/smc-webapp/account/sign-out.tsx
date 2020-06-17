@@ -48,7 +48,7 @@ export class SignOut extends Component<Props> {
     }
     if (store.get("is_anonymous")) {
       title +=
-        "\n Everything you have done using this TEMPORARY ACCOUNT will be immediately deleted!  If you would like to save your work, click cancel and sign up above.";
+        "\n Everything you have done using this TEMPORARY ACCOUNT will be immediately deleted!  If you would like to save your work to a new account, click cancel and sign up below.";
     }
     return (
       <Popconfirm
