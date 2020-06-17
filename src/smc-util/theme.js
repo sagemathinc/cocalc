@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Theme configuration file for CoCalc
 
 Copyright 2017, SageMath, Inc. -- ALL RIGHTS RESERVED
@@ -80,7 +85,12 @@ const COLORS = {
   BS_GREEN: "#5CB85C",
   BS_GREEN_D: "#449d44",
   BS_GREEN_DD: "#398439",
-  BS_RED: "#dc3545"
+  BS_RED: "#dc3545",
+
+  // These were inexplicably in app-framework.ts, so I moved them here.
+  BG_RED: "#d9534f", // the red bootstrap color of the button background
+  FG_RED: "#c9302c", // red used for text
+  FG_BLUE: "#428bca", // blue used for text
 };
 
 // The definitions below add semantic meaning by using the colors
@@ -94,7 +104,7 @@ COLORS.TOP_BAR = {
   TEXT_ACTIVE: COLORS.GRAY_D,
   X: COLORS.GRAY,
   X_HOVER: COLORS.GRAY_L,
-  SIGN_IN_BG: COLORS.YELL_L
+  SIGN_IN_BG: COLORS.YELL_L,
 };
 
 // landing page

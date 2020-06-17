@@ -1,23 +1,7 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2017, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-##############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 $              = window.$
 underscore = _ = require('underscore')
@@ -187,7 +171,7 @@ exports.Library = rclass ({name}) ->
     thumbnail: ->
         return null if (not @props.library_selected.get('thumbnail')?) or (not @props.project_id)
 
-        img_path = webapp_client.read_file_from_project
+        img_path = webapp_client.project_client.read_file
             project_id : @props.project_id
             path       : @props.library_selected.get('thumbnail')
 

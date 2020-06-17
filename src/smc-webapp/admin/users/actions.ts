@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { fromJS, List } from "immutable";
 
 import { Actions, redux } from "../../app-framework";
@@ -34,7 +39,7 @@ export class AdminUsersActions extends Actions<StoreState> {
     const result = await user_search({
       query: store.get("query"),
       admin: true,
-      limit: 100
+      limit: 100,
     });
 
     if (result == null) {
@@ -42,13 +47,13 @@ export class AdminUsersActions extends Actions<StoreState> {
       return;
     }
 
-    result.sort(function(a, b) {
+    result.sort(function (a, b) {
       return -cmp(user_sort_key(a), user_sort_key(b));
     });
     this.set_status("");
 
     this.setState({
-      result: fromJS(result) as List<ImmutableUser>
+      result: fromJS(result) as List<ImmutableUser>,
     });
   }
 

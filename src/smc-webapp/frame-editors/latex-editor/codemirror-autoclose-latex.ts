@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Make it so Codemirror has an option to automatically close LaTeX environments.
 
 Inspired a little bit by
@@ -17,7 +22,7 @@ declare module "codemirror" {
 
 import { splitlines } from "smc-util/misc2";
 
-CodeMirror.defineOption("autoCloseLatex", false, function(cm, val, old) {
+CodeMirror.defineOption("autoCloseLatex", false, function (cm, val, old) {
   if (old) {
     cm.removeKeyMap("autoCloseLatex");
   }
@@ -26,9 +31,9 @@ CodeMirror.defineOption("autoCloseLatex", false, function(cm, val, old) {
   }
   const map = {
     name: "autoCloseLatex",
-    Enter: function(cm) {
+    Enter: function (cm) {
       return auto_close_latex(cm);
-    }
+    },
   };
   cm.addKeyMap(map);
 });
@@ -43,7 +48,7 @@ interface Selection {
   anchor: Position;
 }
 
-function auto_close_latex(cm): void {
+function auto_close_latex(cm) {
   if (cm.getOption("disableInput")) {
     return CodeMirror.Pass;
   }
@@ -52,7 +57,7 @@ function auto_close_latex(cm): void {
   let did_subs: boolean = false;
   let extra_lines: number = 0;
 
-  const no_op = function(pos: Position): void {
+  const no_op = function (pos: Position): void {
     replacements.push("\n");
     const new_pos: Position = { line: pos.line + 1, ch: 0 };
     extra_lines += 1;
@@ -77,7 +82,7 @@ function auto_close_latex(cm): void {
     }
     const next_token: CodeMirror.Token = cm.getTokenAt({
       line: pos.line,
-      ch: pos.ch + 1
+      ch: pos.ch + 1,
     });
     if (next_token.start !== tok.start) {
       //has to be end of line.
@@ -111,7 +116,7 @@ function auto_close_latex(cm): void {
     replacements.push(`${middle}\n${end}\n`);
     const new_pos: Position = {
       line: pos.line + extra_lines + 1,
-      ch: middle.length
+      ch: middle.length,
     };
     extra_lines += splitlines(replacements[replacements.length - 1]).length + 1;
     selections.push({ head: new_pos, anchor: new_pos });
@@ -129,7 +134,7 @@ function auto_close_latex(cm): void {
 }
 
 // See http://latex.wikia.com/wiki/List_of_LaTeX_environments for inspiration.
-var extra_content = function(environment: string): string {
+var extra_content = function (environment: string): string {
   switch (environment) {
     case "enumerate":
     case "itemize":

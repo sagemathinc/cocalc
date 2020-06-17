@@ -1,6 +1,9 @@
-/**
- * Component that shows a warning message if has_uncommitted_changes is true for more than a few seconds.
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
+
+// Component that shows a warning message if has_uncommitted_changes is true for more than a few seconds.
 
 import * as React from "react";
 
@@ -16,19 +19,20 @@ const STYLE: React.CSSProperties = {
   fontWeight: "bold",
   marginLeft: "5px",
   marginRight: "-5px",
-  borderRadius: "3px"
+  borderRadius: "3px",
+  whiteSpace: "nowrap",
 };
 
 /**
-* Shows `NOT saved!` if `has_uncommitted_changes` is true for ~delay_ms time.
-* Shows nothing if `has_uncommitted_changes` is false
-*
-* Does not work with changes to `delay_ms`
-*/
-export function UncommittedChanges({
+ * Shows `NOT saved!` if `has_uncommitted_changes` is true for ~delay_ms time.
+ * Shows nothing if `has_uncommitted_changes` is false
+ *
+ * Does not work with changes to `delay_ms`
+ */
+export const UncommittedChanges: React.FC<Props> = ({
   has_uncommitted_changes,
-  delay_ms = 5000
-}: Props) {
+  delay_ms = 5000,
+}) => {
   const [show_error, set_error] = React.useState(false);
 
   // A new interval is created iff has_uncommitted_changes or delay_ms change
@@ -52,4 +56,4 @@ export function UncommittedChanges({
   } else {
     return <span />; // TODO: return undefined?
   }
-}
+};

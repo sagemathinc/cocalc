@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Conversion from Markdown *to* HTML, trying not to horribly mangle math.
 */
 
@@ -12,7 +17,7 @@ import { math_escape, math_unescape } from "smc-util/markdown-utils";
 
 const { remove_math, replace_math } = require("smc-util/mathjax-utils"); // from project Jupyter
 
-const checkboxes = function(s) {
+const checkboxes = function (s) {
   s = misc.replace_all(s, "[ ]", "<i class='fa fa-square-o'></i>");
   return misc.replace_all(s, "[x]", "<i class='fa fa-check-square-o'></i>");
 };
@@ -20,7 +25,7 @@ const checkboxes = function(s) {
 const OPTIONS: MarkdownIt.Options = {
   html: true,
   typographer: false,
-  linkify: true
+  linkify: true,
 };
 
 const markdown_it = new MarkdownIt(OPTIONS);
@@ -66,7 +71,7 @@ function process(
   if (mode == "frontmatter") {
     const md_frontmatter = new MarkdownIt(OPTIONS).use(
       MarkdownItFrontMatter,
-      fm => {
+      (fm) => {
         frontmatter = fm;
       }
     );

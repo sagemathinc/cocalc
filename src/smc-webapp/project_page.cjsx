@@ -1,23 +1,7 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 $ = window.$
 
@@ -30,19 +14,23 @@ feature = require('./feature')
 {Button, Nav, NavItem, NavDropdown, MenuItem, Alert, Col, Row} = require('react-bootstrap')
 {SortableContainer, SortableElement} = require('react-sortable-hoc')
 {delay} = require('awaiting')
+{webapp_client} = require('./webapp_client')
 
 Draggable = require('react-draggable')
 
 # CoCalc Libraries
-{SideChat}         = require('./side_chat')
+{SideChat}         = require('./chat/side-chat')
 {Explorer}         = require('./project/explorer')
 {ProjectNew}       = require('./project/new')
 {ProjectLog}       = require('./project/history')
-{ProjectSearch}    = require('./project_search')
+{ProjectSearch}    = require('./project/search/search')
 {ProjectSettings}  = require('./project/settings')
+{DeletedFile}      = require('./project/deleted-file')
 {ProjectStore}     = require('./project_store')
-{DiskSpaceWarning, RamWarning, OOMWarning} = require('./project_warnings')
-{KioskModeBanner} = require('./app_shared2')
+{OOMWarning} = require('./project/warnings/oom')
+{RamWarning} = require('./project/warnings/ram')
+{DiskSpaceWarning} = require('./project/warnings/disk-space')
+{KioskModeBanner} = require('./app/kiosk-mode-banner')
 
 project_file = require('./project_file')
 {file_associations} = require('./file-associations')
@@ -50,9 +38,11 @@ project_file = require('./project_file')
 {React, ReactDOM, rclass, redux, rtypes, Redux, Fragment} = require('./app-framework')
 {DeletedProjectWarning, ErrorBoundary, Icon, Loading, Space} = require('./r_misc')
 
-{ChatIndicator} = require('./chat-indicator')
+{ChatIndicator} = require('./chat/chat-indicator')
 
-{ShareIndicator} = require('./share-indicator')
+{ShareIndicator} = require('./share/share-indicator')
+
+{TrialBanner} = require('./project/trial-banner')
 
 {FileTab, DEFAULT_FILE_TAB_STYLES} = require('./project/file-tab')
 {file_tab_labels} = require('./project/file-tab-labels')
@@ -84,123 +74,6 @@ GhostTab = (props) ->
 SortableFileTab = SortableElement(FileTab)
 SortableNav = SortableContainer(NavWrapper)
 
-FreeProjectWarning = rclass ({name}) ->
-    displayName : 'FreeProjectWarning'
-
-    reduxProps:
-        account :
-            other_settings : rtypes.immutable.Map
-            is_anonymous   : rtypes.bool
-        projects :
-            # get_total_project_quotas relys on this data
-            # Will be removed by #1084
-            project_map                       : rtypes.immutable.Map
-            get_total_project_quotas          : rtypes.func
-            date_when_course_payment_required : rtypes.func
-        "#{name}" :
-            free_warning_extra_shown : rtypes.bool
-            free_warning_closed      : rtypes.bool
-            project_log              : rtypes.immutable
-
-    propTypes:
-        project_id : rtypes.string
-
-    shouldComponentUpdate: (next) ->
-        return @props.free_warning_extra_shown            != next.free_warning_extra_shown or  \
-            @props.free_warning_closed                    != next.free_warning_closed or   \
-            @props.project_map?.get(@props.project_id)    != next.project_map?.get(@props.project_id) or \
-            @props.other_settings?.get('no_free_warnings') != next.other_settings?.get('no_free_warnings')
-
-    extra: (host, internet) ->
-        {PolicyPricingPageUrl} = require('./customize')
-        if not @props.free_warning_extra_shown
-            return null
-        <div>
-            {<span>This project runs on a heavily loaded server that may be unavailable during peak hours and is rebooted at least once a day.
-            <br/> Upgrade your project to run on a members-only server for more reliability and faster code execution.</span> if host}
-
-            {<span><br/> This project does not have external network access, so you cannot install software or download data from external websites.</span> if internet}
-            <ul>
-                <li style={lineHeight: '32px'}>Upgrade <em>this</em> project in <a style={cursor:'pointer'} onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')}>Project Settings</a></li>
-                <li style={lineHeight: '32px'}>Visit <a style={cursor:'pointer'} onClick={=>@actions('page').set_active_tab('account');@actions('account').set_active_tab('billing')}>Billing</a> to <em>subscribe</em> to a plan</li>
-            </ul>
-        </div>
-
-    render_dismiss: ->
-        return  # disabled
-        dismiss_styles =
-            cursor     : 'pointer'
-            display    : 'inline-block'
-            float      : 'right'
-            fontWeight : 700
-            top        : -4
-            fontSize   : "13pt"
-            color      : 'grey'
-            position   : 'relative'
-            height     : 0
-        <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
-
-    render_learn_more: (color) ->
-        <Fragment>
-            {' '}&mdash;{' '}
-            <a
-                href   = "https://doc.cocalc.com/trial.html"
-                target = "_blank"
-                style  = {fontWeight : 'bold', color:color, cursor:'pointer'}
-            >
-                more info
-            </a>
-            {'...'}
-        </Fragment>
-        #<a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={color:'white', cursor:'pointer'}> learn more...</a>
-
-    render: ->
-        if @props.other_settings?.get('no_free_warnings')
-            return null
-        if not require('./customize').commercial
-            return null
-        if @props.is_anonymous
-            # No need to provide all these warnings and scare anonymous users, who are just
-            # playing around for the first time (and probably wouldn't read this, and should
-            # assume strong limitations since they didn't even make an account).
-            return null
-        if @props.free_warning_closed
-            return null
-        pay = @props.date_when_course_payment_required(@props.project_id)
-        if pay
-            return null
-        quotas = @props.get_total_project_quotas(@props.project_id)
-        if not quotas?
-            return null
-        host = not quotas.member_host
-        internet = not quotas.network
-        if not host and not internet
-            return null
-
-        font_size = Math.min(18, 10 + (@props.project_log?.size ? 0) / 30)
-        styles =
-            padding      : "5px 10px"
-            marginBottom : 0
-            fontSize     : "#{font_size}pt"
-
-        if host and font_size > 11
-            styles.color      = 'white'
-            styles.background = 'red'
-
-        if host and internet
-            mesg = <span>Upgrade this project. It is on an <b>unpaid trial server</b> and has no internet access.  Expect poor performance and no email notifications.</span>
-        else if host
-            mesg = <span>Upgrade this project. It is on an <b>unpaid trial server</b>.   Expect poor performance and no email notifications.</span>
-        else if internet
-            mesg = <span>This project does not have access to the internet.  No installs, external resources or email notifications.</span>
-
-        <Alert bsStyle='warning' style={styles}>
-            <Icon name='exclamation-triangle' style={float:'right', marginTop: '3px'}/>
-            <Icon name='exclamation-triangle' /> {mesg}
-            {@render_learn_more(styles.color)}
-            {@render_dismiss()}
-            {@extra(host, internet)}
-        </Alert>
 
 # is_public below -- only show this tab if this is true
 
@@ -321,9 +194,8 @@ ProjectContentViewer = rclass
 
     render_side_chat: (path) ->
         <SideChat
-            path       = {misc.meta_file(path, 'chat')}
-            redux      = {redux}
             project_id = {@props.project_id}
+            path       = {misc.meta_file(path, 'chat')}
             />
 
     render_drag_bar: (path) ->
@@ -356,6 +228,12 @@ ProjectContentViewer = rclass
 
 
     render_editor_tab: ->
+        if webapp_client.file_client.is_deleted(@props.file_path, @props.project_id)
+            return <DeletedFile
+                     project_id = {@props.project_id}
+                     path       = {@props.file_path}
+                     onOpen     = {=> @setState(counter : @state.counter+1)}/>
+
         if feature.IS_MOBILE
             # Side chat is not supported at all on mobile.
             is_chat_open = false
@@ -406,7 +284,7 @@ ProjectContentViewer = rclass
             when 'log'
                 <ProjectLog name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)} />
             when 'search'
-                <ProjectSearch name={@props.project_name} />
+                <ProjectSearch project_id={@props.project_id} />
             when 'settings'
                 <ProjectSettings project_id={@props.project_id} name={@props.project_name} group={@props.group} />
             else  # @props.active_tab_name = "editor-<filename>"
@@ -616,7 +494,6 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             />
         return v
 
-
     render_project_content: (active_path, group) ->
         v = []
         if @props.active_project_tab.slice(0, 7) != 'editor-'  # fixed tab
@@ -656,11 +533,12 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             overflow      : 'auto'
         if not @props.fullscreen
             style.paddingTop = '3px'
+
         <div className='container-content' style={style}>
             <DiskSpaceWarning project_id={@props.project_id} />
             <RamWarning project_id={@props.project_id} />
             <OOMWarning project_id={@props.project_id} name={name} />
-            <FreeProjectWarning project_id={@props.project_id} name={name} />
+            <TrialBanner project_id={@props.project_id} name={name} />
             {@render_file_tabs(group == 'public') if not @props.fullscreen}
             {<DeletedProjectWarning /> if project?.get('deleted')}
             {@render_project_content(active_path, group)}
@@ -771,7 +649,7 @@ exports.MobileProjectPage = rclass ({name}) ->
         <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1, overflow:'auto'}>
             {<DeletedProjectWarning /> if project?.get('deleted')}
             <DiskSpaceWarning project_id={@props.project_id} />
-            <FreeProjectWarning project_id={@props.project_id} name={name} />
+            <TrialBanner project_id={@props.project_id} name={name} />
             {<div className="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
                 <Nav bsStyle="pills" className="smc-file-tabs-fixed-mobile" style={float:'left'}>
                     {[<FileTab

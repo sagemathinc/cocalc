@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 X11 Window frame.
 */
 
@@ -12,7 +17,7 @@ import {
   ReactDOM,
   Rendered,
   rclass,
-  rtypes
+  rtypes,
 } from "../../app-framework";
 
 import { debounce } from "underscore";
@@ -52,8 +57,8 @@ class X11Component extends Component<Props, {}> {
         windows: rtypes.immutable.Map,
         x11_is_idle: rtypes.bool,
         disabled: rtypes.bool,
-        config_unknown: rtypes.bool
-      }
+        config_unknown: rtypes.bool,
+      },
     };
   }
 
@@ -119,7 +124,7 @@ class X11Component extends Component<Props, {}> {
       "is_current",
       "x11_is_idle",
       "disabled",
-      "config_unknown"
+      "config_unknown",
     ]);
   }
 
@@ -136,7 +141,7 @@ class X11Component extends Component<Props, {}> {
         }
       },
       max_time: 60000,
-      max_delay: 150
+      max_delay: 150,
     });
     this.insert_window_in_dom(this.props);
     this.disable_browser_context_menu();
@@ -154,7 +159,7 @@ class X11Component extends Component<Props, {}> {
     // See https://stackoverflow.com/questions/10864249/disabling-right-click-context-menu-on-a-html-canvas
     // NOTE: this would probably make sense in DOM mode instead of canvas mode;
     // if we switch, disable this...
-    $(node).bind("contextmenu", function() {
+    $(node).bind("contextmenu", function () {
       return false;
     });
   }
@@ -202,7 +207,7 @@ class X11Component extends Component<Props, {}> {
       // will never happen -- to satisfy typescript
       return;
     }
-    wids.forEach(wid => {
+    wids.forEach((wid) => {
       client.insert_child_in_dom(wid);
     });
     this.measure_size();
@@ -267,7 +272,7 @@ class X11Component extends Component<Props, {}> {
         style={{
           borderBottom: "1px solid lightgrey",
           background: TAB_BAR_GREY,
-          display: "inline-flex"
+          display: "inline-flex",
         }}
       >
         {this.render_window_tabs()}
@@ -323,7 +328,7 @@ class X11Component extends Component<Props, {}> {
           position: "absolute",
           height: 0,
           width: 0,
-          top: 0
+          top: 0,
         }}
         aria-multiline="false"
         autoCorrect="off"
@@ -332,7 +337,7 @@ class X11Component extends Component<Props, {}> {
         tabIndex={0}
         ref="focus"
         onBlur={() => this.textarea_blur()}
-        onPaste={e => this.on_paste(e)}
+        onPaste={(e) => this.on_paste(e)}
       />
     );
   }
@@ -358,7 +363,7 @@ class X11Component extends Component<Props, {}> {
           height: "100%",
           cursor: "pointer",
           zIndex: 1,
-          opacity: 0.7
+          opacity: 0.7,
         }}
       >
         Idle

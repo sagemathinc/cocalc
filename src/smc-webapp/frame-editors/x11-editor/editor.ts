@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Top-level React component for an X Window
 */
 
@@ -24,8 +29,8 @@ export const x11 = {
     "edit_init_script", */
     "close_and_halt",
     "help",
-    "connection_status"
-  ])
+    "connection_status",
+  ]),
 };
 
 export const launcher = {
@@ -33,17 +38,17 @@ export const launcher = {
   name: "Applications",
   icon: "server",
   component: Launcher,
-  buttons: set([])
+  buttons: set([]),
 };
 
 const EDITOR_SPEC = {
   x11,
   terminal,
-  launcher
+  launcher,
 };
 
 export const Editor = createEditor({
   format_bar: false,
   editor_spec: EDITOR_SPEC,
-  display_name: "X11"
+  display_name: "X11",
 });

@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 Multiplexing mode -- exactly like the original CodeMirror multiplexingMode,
 https://codemirror.net/demo/multiplex.html,

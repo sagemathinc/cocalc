@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import * as misc from "smc-util/misc";
 
@@ -14,7 +19,7 @@ export class TimeElapsed extends React.Component<Props> {
   }
 
   static defaultProps = {
-    interval_s: 1
+    interval_s: 1,
   };
 
   clear(): void {

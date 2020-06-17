@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Component that shows rendered HTML in an iFrame, so safe and no mangling needed...
 */
 
@@ -8,7 +13,7 @@ import { is_safari } from "../generic/browser";
 import {
   change_filename_extension,
   is_different,
-  list_alternatives
+  list_alternatives,
 } from "smc-util/misc2";
 import { throttle } from "underscore";
 import { Component, React, ReactDOM, Rendered } from "../../app-framework";
@@ -17,7 +22,7 @@ import * as CSS from "csstype";
 
 const STYLE: CSS.Properties = {
   overflowY: "auto",
-  width: "100%"
+  width: "100%",
 };
 
 interface PropTypes {
@@ -40,7 +45,7 @@ export class IFrameHTML extends Component<PropTypes, {}> {
     return is_different(this.props, next, [
       "reload",
       "font_size",
-      "derived_file_types"
+      "derived_file_types",
     ]);
   }
 
@@ -63,9 +68,7 @@ export class IFrameHTML extends Component<PropTypes, {}> {
     if (elt == null) {
       return;
     }
-    const scroll = $(elt)
-      .contents()
-      .scrollTop();
+    const scroll = $(elt).contents().scrollTop();
     this.props.actions.save_editor_state(this.props.id, { scroll });
   }
 

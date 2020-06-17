@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * CoCalc's Xpra HTML Client
  *
  * ---
@@ -27,7 +32,7 @@ import {
   hexUUID,
   calculateDPI,
   keyboardLayout,
-  timestamp
+  timestamp,
 } from "./util";
 
 import { EventEmitter } from "events";
@@ -58,7 +63,7 @@ function createConfiguration(defaults = {}, append = {}) {
       username: "",
       password: "",
       zlib: true,
-      lz4: true
+      lz4: true,
     },
     defaults,
     append
@@ -112,7 +117,7 @@ export class Client {
       warn: this.log("warn", 30),
       log: this.log("log", 20),
       info: this.log("info", 20),
-      debug: this.log("debug", 10)
+      debug: this.log("debug", 10),
     };
   }
 
@@ -297,7 +302,7 @@ export class Client {
         this.send(
           "logging",
           level,
-          args.map(str => {
+          args.map((str) => {
             return unescape(encodeURIComponent(String(str)));
           })
         );
@@ -396,7 +401,7 @@ export class Client {
       const canvases = [surface.renderer.canvas, surface.renderer.drawCanvas];
       const rects = [
         [w / scale, 0, canvases[0].width, canvases[0].height],
-        [0, h / scale, canvases[0].width, canvases[0].height]
+        [0, h / scale, canvases[0].width, canvases[0].height],
       ];
       for (const rect of rects) {
         for (const canvas of canvases) {
@@ -433,7 +438,7 @@ export class Client {
         const props = Object.assign({}, properties || {}, {
           "encodings.rgb_formats": this.clientCapabilities[
             "encodings.rgb_formats"
-          ]
+          ],
         });
 
         this.send("map-window", wid, x, y, w, h, props);
@@ -460,7 +465,7 @@ export class Client {
           metadata,
           properties,
           send: this.send,
-          is_overlay: false
+          is_overlay: false,
         });
         this.surfaces[wid] = surface;
 
@@ -517,7 +522,7 @@ export class Client {
           metadata,
           properties,
           send: this.send,
-          is_overlay: true
+          is_overlay: true,
         });
 
         this.surfaces[wid] = surface;
@@ -661,12 +666,12 @@ export class Client {
           expire_timeout,
           icon,
           actions,
-          hints
+          hints,
         });
       }
     );
 
-    bus.on("notify_close", notificationId => {
+    bus.on("notify_close", (notificationId) => {
       bus.emit("notification:destroy", notificationId);
     });
 
@@ -693,7 +698,7 @@ export class Client {
     );
 
     // TODO: figure out args, etc.
-    bus.on("open-url", url => bus.emit("system:url", url));
+    bus.on("open-url", (url) => bus.emit("system:url", url));
 
     bus.on("bell", () => bus.emit("system:bell"));
 

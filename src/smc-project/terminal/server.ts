@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Terminal server
 */
 
@@ -44,7 +49,7 @@ export async function terminal(
     last_truncate_time: new Date().valueOf(),
     truncating: 0,
     last_exit: 0,
-    options: options != null ? options : {}
+    options: options != null ? options : {},
   };
 
   async function init_term() {
@@ -101,7 +106,7 @@ export async function terminal(
       }
     }, 15000);
 
-    term.on("data", function(data): void {
+    term.on("data", function (data): void {
       //logger.debug("terminal: term --> browsers", name, data);
       handle_backend_messages(data);
       terminals[name].history += data;
@@ -205,7 +210,7 @@ export async function terminal(
     }
 
     // Whenever term ends, we just respawn it.
-    term.on("exit", async function() {
+    term.on("exit", async function () {
       logger.debug("terminal", name, "EXIT -- spawning again");
       const now = new Date().getTime();
       if (now - terminals[name].last_exit <= 15000) {
@@ -262,7 +267,7 @@ export async function terminal(
     }
   }
 
-  channel.on("connection", function(spark: any): void {
+  channel.on("connection", function (spark: any): void {
     // Now handle the connection
     logger.debug(
       "terminal channel",
@@ -281,15 +286,15 @@ export async function terminal(
     spark.write(terminals[name].history);
     // have history, so do not ignore commands now.
     spark.write({ cmd: "no-ignore" });
-    spark.on("close", function() {
+    spark.on("close", function () {
       delete terminals[name].client_sizes[spark.id];
       resize();
     });
-    spark.on("end", function() {
+    spark.on("end", function () {
       delete terminals[name].client_sizes[spark.id];
       resize();
     });
-    spark.on("data", function(data) {
+    spark.on("data", function (data) {
       //logger.debug("terminal: browser --> term", name, JSON.stringify(data));
       if (typeof data === "string") {
         try {
@@ -304,7 +309,7 @@ export async function terminal(
           case "size":
             terminals[name].client_sizes[spark.id] = {
               rows: data.rows,
-              cols: data.cols
+              cols: data.cols,
             };
             try {
               resize();
@@ -340,7 +345,7 @@ export async function terminal(
               }
             }
             // broadcast message to all other clients telling them to close.
-            channel.forEach(function(spark0, id, _) {
+            channel.forEach(function (spark0, id, _) {
               if (id !== spark.id) {
                 spark0.write({ cmd: "close" });
               }

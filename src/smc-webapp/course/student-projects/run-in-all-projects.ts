@@ -1,4 +1,7 @@
-/* Run a shell command (mini terminal) in projects with given id. */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import { start_project, exec } from "../../frame-editors/generic/client";
 
@@ -37,7 +40,7 @@ export async function run_in_all_projects(
         project_id,
         stdout: "",
         stderr: err.toString(),
-        exit_code: -1
+        exit_code: -1,
       };
     }
     v.push(result);

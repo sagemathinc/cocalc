@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Component that shows all the scores for all problems and notebooks in a given assignment.
 */
 
@@ -8,6 +13,7 @@ import { React, Rendered, Component, redux } from "../../app-framework";
 import { NotebookScores, Score } from "../../jupyter/nbgrader/autograde";
 import { get_nbgrader_score } from "../store";
 import { CourseActions } from "../actions";
+import { autograded_filename } from "../util";
 
 interface Props {
   nbgrader_scores: { [ipynb: string]: NotebookScores | string };
@@ -52,7 +58,7 @@ export class NbgraderScores extends Component<Props, State> {
   ): Rendered {
     return (
       <div key={filename} style={{ marginBottom: "5px" }}>
-        {this.render_filename_link(filename)}
+        {this.render_filename_links(filename)}
         {this.render_scores_for_file(filename, scores)}
       </div>
     );
@@ -67,14 +73,24 @@ export class NbgraderScores extends Component<Props, State> {
     );
   }
 
-  private render_filename_link(filename: string): Rendered {
+  private render_filename_links(filename: string): Rendered {
+    const filename2 = autograded_filename(filename);
     return (
-      <a
-        style={{ fontFamily: "monospace" }}
-        onClick={() => this.open_filename(filename)}
-      >
-        {filename}
-      </a>
+      <div style={{ fontSize: "12px" }}>
+        <a
+          style={{ fontFamily: "monospace" }}
+          onClick={() => this.open_filename(filename)}
+        >
+          {filename}
+        </a>
+        <br />
+        <a
+          style={{ fontFamily: "monospace" }}
+          onClick={() => this.open_filename(filename2)}
+        >
+          {filename2}
+        </a>
+      </div>
     );
   }
 
@@ -101,7 +117,7 @@ export class NbgraderScores extends Component<Props, State> {
           border: "1px solid lightgray",
           width: "100%",
           borderRadius: "3px",
-          borderCollapse: "collapse"
+          borderCollapse: "collapse",
         }}
       >
         <thead>
@@ -146,7 +162,7 @@ export class NbgraderScores extends Component<Props, State> {
       fontSize: "14px",
       border: "1px solid lightgrey",
       display: "inline-block",
-      padding: "1px"
+      padding: "1px",
     };
     if (
       this.state.editing_score_filename == filename &&
@@ -158,7 +174,7 @@ export class NbgraderScores extends Component<Props, State> {
           autoFocus
           type="input"
           defaultValue={value}
-          onBlur={e => this.stop_editing_score((e.target as any).value)}
+          onBlur={(e) => this.stop_editing_score((e.target as any).value)}
           style={style}
         />
       );
@@ -169,7 +185,7 @@ export class NbgraderScores extends Component<Props, State> {
           onClick={() =>
             this.setState({
               editing_score_filename: filename,
-              editing_score_id: id
+              editing_score_id: id,
             })
           }
         >
@@ -192,7 +208,7 @@ export class NbgraderScores extends Component<Props, State> {
     }
     this.setState({
       editing_score_filename: undefined,
-      editing_score_id: undefined
+      editing_score_id: undefined,
     });
   }
 
@@ -230,9 +246,7 @@ export class NbgraderScores extends Component<Props, State> {
           <>
             <Icon name="exclamation-triangle" />{" "}
           </>
-        ) : (
-          undefined
-        )}
+        ) : undefined}
         {this.state.show_all ? "Less" : "More..."}
       </a>
     );

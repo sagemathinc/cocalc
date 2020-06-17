@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Render a public path using the express static server.
 */
 
@@ -52,7 +57,7 @@ export function render_static_path(opts: {
     return;
   }
   const target = os_path.join(dir, decodeURI(pathname));
-  fs.access(target, fs.constants.R_OK, function(err) {
+  fs.access(target, fs.constants.R_OK, function (err) {
     if (err != null) {
       res.sendStatus(404);
       return;
@@ -60,7 +65,7 @@ export function render_static_path(opts: {
     const s_static: Function = get_serve_static(dir);
     const s_index: Function = get_serve_index(dir);
     req.url = path === "" ? "/" : path;
-    s_static(req, res, function(err) {
+    s_static(req, res, function (err) {
       if (err) {
         finalhandler(err);
       } else {

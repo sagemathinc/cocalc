@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { shallow } from "enzyme";
 import { SkinnyError } from "../skinny-error";
@@ -17,9 +22,6 @@ test("test interaction", () => {
 
   const evt = new MouseEvent("click");
 
-  rendered
-    .children()
-    .first()
-    .simulate("click", evt);
+  rendered.children().first().simulate("click", evt);
   expect(mock_on_close.mock.calls.length).toBe(1);
 });

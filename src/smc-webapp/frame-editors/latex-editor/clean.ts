@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * Clean up all aux files.
  */
 
@@ -20,7 +25,7 @@ const EXTENSIONS: string[] = [
   "-concordance.tex",
   ".pytxcode",
   ".pgf-plot.gnuplot",
-  ".pgf-plot.table"
+  ".pgf-plot.table",
 ];
 
 export async function clean(
@@ -41,7 +46,7 @@ export async function clean(
     command: "latexmk",
     args: latexmk_args,
     project_id: project_id,
-    path: directory
+    path: directory,
   });
   if (output) {
     logger(output.stdout + "\n" + output.stderr + "\n");
@@ -52,7 +57,7 @@ export async function clean(
     // this looks weird, but in case of .rnw/.rtex, Knitr generates the .tex file
     exts = exts.concat(".tex");
   }
-  let files = exts.map(ext => `${base}${ext}`);
+  let files = exts.map((ext) => `${base}${ext}`);
 
   // for PythonTeX, we need to derive the cache directory path
   // https://github.com/sagemathinc/cocalc/issues/3228
@@ -68,7 +73,7 @@ export async function clean(
     command: "rm",
     args: args,
     project_id: project_id,
-    path: directory
+    path: directory,
   });
   if (output) {
     logger(output.stdout + "\n" + output.stderr + "\n");

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /* A pretty simple API wrapping antd's much more complicated
    date picking api.  Use this if you just need to pick
    a date and time easily.  For more complicated applications,
@@ -25,7 +30,7 @@ export function DateTimePicker(props: {
     format: "LLL",
     placeholder: props.placeholder,
     onChange: props.onChange,
-    style: props.style
+    style: props.style,
   };
   if (props.open != null) {
     props2.open = props.open;
@@ -36,7 +41,7 @@ export function DateTimePicker(props: {
     props2.value = null;
   }
   if (props.onFocus != null || props.onBlur != null) {
-    props2.onOpenChange = status => {
+    props2.onOpenChange = (status) => {
       if (status && props.onFocus != null) {
         props.onFocus();
       } else if (!status && props.onBlur != null) {

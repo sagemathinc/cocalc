@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { client_db } from "../../../../schema";
 
 export function a_txt() {
@@ -23,9 +28,9 @@ export function a_txt() {
           doctype: '{"type":"string"}',
           read_only: false,
           deleted: false,
-          save: { state: "done", error: "", hash: 0, time: 1546626249624 }
-        }
-      ]
-    }
+          save: { state: "done", error: "", hash: 0, time: 1546626249624 },
+        },
+      ],
+    },
   };
 }

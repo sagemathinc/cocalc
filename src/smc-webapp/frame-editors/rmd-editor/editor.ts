@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Top-level react component for editing R markdown documents
 */
 
@@ -34,8 +39,8 @@ const EDITOR_SPEC = {
       "copy",
       "undo",
       "redo",
-      "format"
-    ])
+      "format",
+    ]),
   },
 
   iframe: {
@@ -53,8 +58,8 @@ const EDITOR_SPEC = {
       "time_travel",
       "reload",
       "decrease_font_size",
-      "increase_font_size"
-    ])
+      "increase_font_size",
+    ]),
   },
 
   // By default, only html is generated. This viewer is still there in case the user explicitly tells RMarkdown to generate a PDF
@@ -70,7 +75,7 @@ const EDITOR_SPEC = {
     renderer: "canvas",
     path(path) {
       return derive_rmd_output_filename(path, "pdf");
-    }
+    },
   },
 
   markdown: {
@@ -85,19 +90,19 @@ const EDITOR_SPEC = {
       "increase_font_size",
       "save",
       "time_travel",
-      "reload"
-    ])
+      "reload",
+    ]),
   },
 
   terminal,
 
   time_travel,
 
-  settings: SETTINGS_SPEC
+  settings: SETTINGS_SPEC,
 };
 
 export const Editor = createEditor({
   format_bar: true,
   editor_spec: EDITOR_SPEC,
-  display_name: "RmdEditor"
+  display_name: "RmdEditor",
 });

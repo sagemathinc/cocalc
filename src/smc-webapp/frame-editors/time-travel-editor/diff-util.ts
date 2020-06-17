@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Compute a line-level diff between two strings, which
 // is useful when showing a diff between two states.
 import { dmp } from "smc-util/sync/editor/generic/util";
@@ -29,7 +34,7 @@ interface Patch {
   start2: number;
   length1: number;
   length2: number;
-  diffs: ([-1 | 0 | 1, string])[];
+  diffs: [-1 | 0 | 1, string][];
 }
 
 function process_line_diff(
@@ -96,7 +101,7 @@ export function set_cm_line_diff(
   // as it conflicts with the red/green diff coloring
   cm.setOption("theme", "default");
   cm.setOption("lineNumbers", false);
-  cm.setOption("showTrailingSpace", false);
+  cm.setOption("showTrailingSpace" as any, false);
   cm.setOption("gutters", ["cocalc-history-diff-gutter"]);
 
   // highlight the lines based on type

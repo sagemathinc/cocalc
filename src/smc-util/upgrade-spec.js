@@ -1,36 +1,16 @@
-//##############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
-
 /*
-IMPORTANT: If you change this file, also update this date, which appears in webapp-lib/policies/pricing.pug
-*/
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// IMPORTANT: If you change this file, also update this date, which appears in webapp-lib/policies/pricing.pug
 
 exports.CURRENT_DATE = "August 2019";
 
-/*
-Define upgrades to projects.
-
-NOTE: Technically upgrades.subscription should be called upgrades.plans, to better
-corresponding to what stripe does...
-*/
+// Define upgrades to projects.
+//
+// NOTE: Technically upgrades.subscription should be called upgrades.plans, to better
+// corresponding to what stripe does...
 
 // NOTE: This script ./upgrade-spec.coffee is copied into the Docker container
 // in k8s/smc-project/manager/, so if you move or rename this script, you must
@@ -49,7 +29,7 @@ exports.DEFAULT_QUOTAS = {
   network: 0,
   member_host: 0,
   ephemeral_state: 0,
-  ephemeral_disk: 0
+  ephemeral_disk: 0,
 };
 
 upgrades.max_per_project = {
@@ -62,7 +42,7 @@ upgrades.max_per_project = {
   mintime: 24 * 3600 * 90,
   member_host: 1,
   ephemeral_state: 1,
-  ephemeral_disk: 1
+  ephemeral_disk: 1,
 };
 
 // this is only for on-prem kubernetes setups
@@ -72,7 +52,7 @@ exports.ON_PREM_DEFAULT_QUOTAS = {
   mem: 1000,
   cpu: 1,
   cpu_oc: 10, // overcommitment ratio 10:1
-  mem_oc: 5 // overcommitment ratio 5:1
+  mem_oc: 5, // overcommitment ratio 5:1
 };
 
 // In the params listed below you *MUST* define all of display, display_unit,
@@ -87,7 +67,7 @@ upgrades.params = {
     pricing_unit: "GB",
     pricing_factor: 1 / 1000,
     input_type: "number",
-    desc: "The maximum amount of disk space (in MB) that a project may use."
+    desc: "The maximum amount of disk space (in MB) that a project may use.",
   },
   memory: {
     display: "Shared RAM",
@@ -98,7 +78,7 @@ upgrades.params = {
     pricing_factor: 1 / 1000,
     input_type: "number",
     desc:
-      "Upper bound on RAM that all processes in a project may use in total (shared with other projects; not guaranteed)."
+      "Upper bound on RAM that all processes in a project may use in total (shared with other projects; not guaranteed).",
   },
   memory_request: {
     display: "Dedicated RAM",
@@ -108,7 +88,7 @@ upgrades.params = {
     pricing_unit: "GB",
     pricing_factor: 1 / 1000,
     input_type: "number",
-    desc: "Guaranteed minimum amount of RAM that is dedicated to your project."
+    desc: "Guaranteed minimum amount of RAM that is dedicated to your project.",
   },
   cores: {
     display: "Shared CPU",
@@ -119,7 +99,7 @@ upgrades.params = {
     pricing_factor: 1,
     input_type: "number",
     desc:
-      "Upper bound on the number of shared CPU cores that your project may use (shared with other projects; not guaranteed)."
+      "Upper bound on the number of shared CPU cores that your project may use (shared with other projects; not guaranteed).",
   },
   cpu_shares: {
     display: "Dedicated CPU",
@@ -130,7 +110,7 @@ upgrades.params = {
     pricing_factor: 1 / 1024,
     input_type: "number",
     desc:
-      "Guaranteed minimum number of CPU cores that are dedicated to your project."
+      "Guaranteed minimum number of CPU cores that are dedicated to your project.",
   },
   mintime: {
     display: "Idle Timeout",
@@ -141,7 +121,7 @@ upgrades.params = {
     pricing_factor: 1 / 86400,
     input_type: "number",
     desc:
-      "If the project is not used for this long, then it will be automatically stopped."
+      "If the project is not used for this long, then it will be automatically stopped.",
   },
   network: {
     display: "Internet Access",
@@ -152,7 +132,7 @@ upgrades.params = {
     pricing_factor: 1,
     input_type: "checkbox",
     desc:
-      "Full internet access enables a project to connect to the computers outside of CoCalc, download software packages, etc."
+      "Full internet access enables a project to connect to the computers outside of CoCalc, download software packages, etc.",
   },
   member_host: {
     display: "Member Hosting",
@@ -163,7 +143,7 @@ upgrades.params = {
     pricing_factor: 1,
     input_type: "checkbox",
     desc:
-      "Runs this project on a machine hosting less projects, aside from the free projects, and without random reboots."
+      "Runs this project on a machine hosting less projects, aside from the free projects, and without random reboots.",
   },
   ephemeral_state: {
     display: "Ephemeral State",
@@ -173,7 +153,7 @@ upgrades.params = {
     pricing_unit: "project",
     pricing_factor: 1,
     input_type: "checkbox",
-    desc: ""
+    desc: "",
   },
   ephemeral_disk: {
     display: "Ephemeral Disk",
@@ -182,8 +162,8 @@ upgrades.params = {
     pricing_unit: "project",
     pricing_factor: 1,
     input_type: "checkbox",
-    desc: ""
-  }
+    desc: "",
+  },
 };
 
 upgrades.field_order = [
@@ -194,7 +174,7 @@ upgrades.field_order = [
   "memory",
   "memory_request",
   "cores",
-  "cpu_shares"
+  "cpu_shares",
 ];
 
 // live_subscriptions is an array of arrays.  Each array should have length a divisor of 12.
@@ -207,15 +187,15 @@ upgrades.live_subscriptions = [
     "xsmall_premium_course",
     "small_premium_course",
     "medium_premium_course",
-    "large_premium_course"
+    "large_premium_course",
   ],
   ["xsmall_course2", "small_course2", "medium_course2", "large_course2"],
   [
     "xsmall_basic_course",
     "small_basic_course",
     "medium_basic_course",
-    "large_basic_course"
-  ]
+    "large_basic_course",
+  ],
 ];
 
 /* OLD
@@ -227,7 +207,7 @@ upgrades.live_subscriptions = [['standard', 'premium', 'professional'],
 upgrades.dedicated_vms = [
   "dedicated_small",
   "dedicated_medium",
-  "dedicated_large"
+  "dedicated_large",
 ];
 
 upgrades.period_names = {
@@ -235,7 +215,7 @@ upgrades.period_names = {
   year: "year",
   month4: "4 months",
   week: "week",
-  year1: "year"
+  year1: "year",
 };
 
 const subscription = (upgrades.subscription = {});
@@ -247,7 +227,7 @@ subscription.professional = {
   statement: "COCALC PRO",
   price: {
     month: 99,
-    year: 999
+    year: 999,
   },
   cancel_at_period_end: false,
   benefits: {
@@ -258,8 +238,8 @@ subscription.professional = {
     memory: 3000 * 20,
     memory_request: 1000 * 4,
     mintime: 24 * 3600 * 20,
-    network: 10 * 20
-  }
+    network: 10 * 20,
+  },
 };
 
 subscription.premium = {
@@ -269,7 +249,7 @@ subscription.premium = {
   statement: "COCALC PREMIUM",
   price: {
     month: 49,
-    year: 499
+    year: 499,
   },
   cancel_at_period_end: false,
   benefits: {
@@ -280,8 +260,8 @@ subscription.premium = {
     memory: 3000 * 8,
     memory_request: 1000 * 2,
     mintime: 24 * 3600 * 8,
-    network: 10 * 8
-  }
+    network: 10 * 8,
+  },
 };
 
 subscription.standard = {
@@ -291,7 +271,7 @@ subscription.standard = {
   statement: "COCALC STANDARD",
   price: {
     month: 7,
-    year: 79
+    year: 79,
   },
   cancel_at_period_end: false,
   benefits: {
@@ -302,8 +282,8 @@ subscription.standard = {
     memory: 3000,
     memory_request: 0,
     mintime: 24 * 3600,
-    network: 20
-  }
+    network: 20,
+  },
 };
 
 subscription.professional2 = {
@@ -313,7 +293,7 @@ subscription.professional2 = {
   statement: "COCALC PRO",
   price: {
     month: 149,
-    year: 1499
+    year: 1499,
   },
   cancel_at_period_end: false,
   benefits: {
@@ -324,8 +304,8 @@ subscription.professional2 = {
     memory: 3000 * 20,
     memory_request: 1000 * 4,
     mintime: 24 * 3600 * 20,
-    network: 80
-  }
+    network: 80,
+  },
 };
 
 subscription.premium2 = {
@@ -335,7 +315,7 @@ subscription.premium2 = {
   statement: "COCALC PREMIUM",
   price: {
     month: 79,
-    year: 799
+    year: 799,
   },
   cancel_at_period_end: false,
   benefits: {
@@ -346,8 +326,8 @@ subscription.premium2 = {
     memory: 3000 * 8,
     memory_request: 1000 * 2,
     mintime: 24 * 3600 * 8,
-    network: 32
-  }
+    network: 32,
+  },
 };
 
 subscription.standard2 = {
@@ -357,7 +337,7 @@ subscription.standard2 = {
   statement: "COCALC STANDARD",
   price: {
     month: 14,
-    year: 149
+    year: 149,
   },
   cancel_at_period_end: false,
   benefits: {
@@ -368,8 +348,8 @@ subscription.standard2 = {
     memory: 4000,
     memory_request: 0,
     mintime: 24 * 3600,
-    network: 8
-  }
+    network: 8,
+  },
 };
 
 subscription.large_course = {
@@ -379,7 +359,7 @@ subscription.large_course = {
   price: {
     week: 199,
     month4: 999,
-    year1: 2499
+    year1: 2499,
   },
   cancel_at_period_end: true,
   benefits: {
@@ -389,8 +369,8 @@ subscription.large_course = {
     memory: 0,
     memory_request: 0,
     member_host: 250,
-    network: 250
-  }
+    network: 250,
+  },
 };
 
 subscription.large_course2 = {
@@ -400,7 +380,7 @@ subscription.large_course2 = {
   price: {
     week: 399,
     month4: 1999,
-    year1: 4999
+    year1: 4999,
   },
   cancel_at_period_end: true,
   benefits: {
@@ -411,8 +391,8 @@ subscription.large_course2 = {
     mintime: 25 * 24 * 3600,
     memory_request: 0,
     member_host: 250,
-    network: 250
-  }
+    network: 250,
+  },
 };
 
 subscription.medium_course = {
@@ -422,7 +402,7 @@ subscription.medium_course = {
   price: {
     week: 79,
     month4: 399,
-    year1: 999
+    year1: 999,
   },
   cancel_at_period_end: true,
   benefits: {
@@ -432,8 +412,8 @@ subscription.medium_course = {
     memory: 0,
     memory_request: 0,
     member_host: 70,
-    network: 70
-  }
+    network: 70,
+  },
 };
 
 subscription.medium_course2 = {
@@ -443,7 +423,7 @@ subscription.medium_course2 = {
   price: {
     week: 159,
     month4: 799,
-    year1: 1999
+    year1: 1999,
   },
   cancel_at_period_end: true,
   benefits: {
@@ -454,8 +434,8 @@ subscription.medium_course2 = {
     mintime: 7 * 24 * 3600,
     memory_request: 0,
     member_host: 70,
-    network: 70
-  }
+    network: 70,
+  },
 };
 
 subscription.xsmall_course = {
@@ -465,7 +445,7 @@ subscription.xsmall_course = {
   price: {
     week: 19,
     month4: 99,
-    year1: 249
+    year1: 249,
   },
   cancel_at_period_end: true,
   benefits: {
@@ -475,8 +455,8 @@ subscription.xsmall_course = {
     memory: 0,
     memory_request: 0,
     member_host: 10,
-    network: 10
-  }
+    network: 10,
+  },
 };
 
 subscription.xsmall_course2 = {
@@ -486,7 +466,7 @@ subscription.xsmall_course2 = {
   price: {
     week: 39,
     month4: 199,
-    year1: 499
+    year1: 499,
   },
   cancel_at_period_end: true,
   benefits: {
@@ -497,8 +477,8 @@ subscription.xsmall_course2 = {
     mintime: 24 * 3600,
     memory_request: 0,
     member_host: 10,
-    network: 10
-  }
+    network: 10,
+  },
 };
 
 subscription.small_course = {
@@ -508,7 +488,7 @@ subscription.small_course = {
   price: {
     week: 39,
     month4: 199,
-    year1: 499
+    year1: 499,
   },
   cancel_at_period_end: true,
   benefits: {
@@ -518,8 +498,8 @@ subscription.small_course = {
     memory: 0,
     memory_request: 0,
     member_host: 25,
-    network: 25
-  }
+    network: 25,
+  },
 };
 
 subscription.small_course2 = {
@@ -529,7 +509,7 @@ subscription.small_course2 = {
   price: {
     week: 79,
     month4: 399,
-    year1: 999
+    year1: 999,
   },
   cancel_at_period_end: true,
   benefits: {
@@ -540,8 +520,8 @@ subscription.small_course2 = {
     mintime: 60 * 3600,
     memory_request: 0,
     member_host: 25,
-    network: 25
-  }
+    network: 25,
+  },
 };
 
 /*
@@ -555,7 +535,7 @@ subscription.xsmall_basic_course = {
   price: {
     week: 29,
     month4: 149,
-    year1: 349
+    year1: 349,
   },
   cancel_at_period_end: true,
   benefits: {
@@ -565,8 +545,8 @@ subscription.xsmall_basic_course = {
     memory: 0,
     memory_request: 0,
     member_host: 10,
-    network: 10
-  }
+    network: 10,
+  },
 };
 
 subscription.small_basic_course = {
@@ -576,7 +556,7 @@ subscription.small_basic_course = {
   price: {
     week: 59,
     month4: 299,
-    year1: 799
+    year1: 799,
   },
   cancel_at_period_end: true,
   benefits: {
@@ -586,8 +566,8 @@ subscription.small_basic_course = {
     memory: 0,
     memory_request: 0,
     member_host: 25,
-    network: 25
-  }
+    network: 25,
+  },
 };
 
 subscription.medium_basic_course = {
@@ -597,7 +577,7 @@ subscription.medium_basic_course = {
   price: {
     week: 119,
     month4: 599,
-    year1: 1499
+    year1: 1499,
   },
   cancel_at_period_end: true,
   benefits: {
@@ -607,8 +587,8 @@ subscription.medium_basic_course = {
     memory: 0,
     memory_request: 0,
     member_host: 70,
-    network: 70
-  }
+    network: 70,
+  },
 };
 
 subscription.large_basic_course = {
@@ -618,7 +598,7 @@ subscription.large_basic_course = {
   price: {
     week: 299,
     month4: 1499,
-    year1: 3499
+    year1: 3499,
   },
   cancel_at_period_end: true,
   benefits: {
@@ -628,8 +608,8 @@ subscription.large_basic_course = {
     memory: 0,
     memory_request: 0,
     member_host: 250,
-    network: 250
-  }
+    network: 250,
+  },
 };
 
 /*
@@ -643,7 +623,7 @@ subscription.xsmall_premium_course = {
   price: {
     week: 79,
     month4: 399,
-    year1: 999
+    year1: 999,
   },
   cancel_at_period_end: true,
   benefits: {
@@ -654,8 +634,8 @@ subscription.xsmall_premium_course = {
     memory: 10 * 3 * 1000,
     memory_request: 0,
     member_host: 10,
-    network: 10
-  }
+    network: 10,
+  },
 };
 
 subscription.small_premium_course = {
@@ -665,7 +645,7 @@ subscription.small_premium_course = {
   price: {
     week: 159,
     month4: 799,
-    year1: 1999
+    year1: 1999,
   },
   cancel_at_period_end: true,
   benefits: {
@@ -676,8 +656,8 @@ subscription.small_premium_course = {
     memory: 25 * 3 * 1000,
     memory_request: 0,
     member_host: 25,
-    network: 25
-  }
+    network: 25,
+  },
 };
 
 subscription.medium_premium_course = {
@@ -687,7 +667,7 @@ subscription.medium_premium_course = {
   price: {
     week: 319,
     month4: 1599,
-    year1: 3999
+    year1: 3999,
   },
   cancel_at_period_end: true,
   benefits: {
@@ -698,8 +678,8 @@ subscription.medium_premium_course = {
     memory: 70 * 3 * 1000,
     memory_request: 0,
     member_host: 70,
-    network: 70
-  }
+    network: 70,
+  },
 };
 
 subscription.large_premium_course = {
@@ -709,7 +689,7 @@ subscription.large_premium_course = {
   price: {
     week: 799,
     month4: 3999,
-    year1: 9999
+    year1: 9999,
   },
   cancel_at_period_end: true,
   benefits: {
@@ -720,8 +700,8 @@ subscription.large_premium_course = {
     memory: 3 * 250 * 1000,
     memory_request: 0,
     member_host: 250,
-    network: 250
-  }
+    network: 250,
+  },
 };
 
 /*
@@ -732,7 +712,7 @@ subscription.student_course = {
   statement: "COCALC STUDENT",
   desc: "Student Course",
   price: {
-    month4: 14
+    month4: 14,
   },
   cancel_at_period_end: true,
   benefits: {
@@ -743,8 +723,8 @@ subscription.student_course = {
     memory_request: 0,
     member_host: 2,
     mintime: 7600,
-    network: 2
-  }
+    network: 2,
+  },
 };
 
 /*
@@ -756,14 +736,14 @@ subscription.dedicated_small = {
   desc: "Dedicated VM (small)",
   statement: "COCALC VM SMALL",
   price: {
-    month: 199
+    month: 199,
   },
   cancel_at_period_end: false,
   benefits: {
     cpu_shares: 4 * 1024,
     disk_quota: 1000 * 200,
-    memory_request: 1000 * 15
-  }
+    memory_request: 1000 * 15,
+  },
 };
 
 subscription.dedicated_medium = {
@@ -772,14 +752,14 @@ subscription.dedicated_medium = {
   desc: "Dedicated VM (medium)",
   statement: "COCALC VM MEDIUM",
   price: {
-    month: 499
+    month: 499,
   },
   cancel_at_period_end: false,
   benefits: {
     cpu_shares: 8 * 1024,
     disk_quota: 1000 * 400,
-    memory_request: 1000 * 52
-  }
+    memory_request: 1000 * 52,
+  },
 };
 
 subscription.dedicated_large = {
@@ -788,12 +768,12 @@ subscription.dedicated_large = {
   desc: "Dedicated VM (large)",
   statement: "COCALC VM LARGE",
   price: {
-    month: 999
+    month: 999,
   },
   cancel_at_period_end: false,
   benefits: {
     cpu_shares: 16 * 1024,
     disk_quota: 1000 * 600,
-    memory_request: 1000 * 104
-  }
+    memory_request: 1000 * 104,
+  },
 };

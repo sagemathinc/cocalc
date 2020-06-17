@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Nice async/await interface to doing basic queries.
 
 import { callback } from "awaiting";
@@ -17,6 +22,7 @@ interface QueryOpts {
   one?: boolean; // if true get back one result; if false get list of all results.
   order_by?: string;
   limit?: number;
+  params?: any[];
 }
 
 export async function query(opts: QueryOpts): Promise<any> {
@@ -30,7 +36,8 @@ export async function query(opts: QueryOpts): Promise<any> {
     opts.query,
     opts.jsonb_set,
     opts.order_by,
-    opts.limit
+    opts.limit,
+    opts.params
   );
 }
 
@@ -44,6 +51,7 @@ function all_query(
   jsonb_set,
   order_by,
   limit,
+  params,
   cb
 ): void {
   db._query({
@@ -55,7 +63,8 @@ function all_query(
     jsonb_set,
     order_by,
     limit,
-    cb: all_results(cb)
+    params,
+    cb: all_results(cb),
   });
 }
 
@@ -69,6 +78,7 @@ function one_query(
   jsonb_set,
   order_by,
   limit,
+  params,
   cb
 ): void {
   db._query({
@@ -80,6 +90,7 @@ function one_query(
     jsonb_set,
     order_by,
     limit,
-    cb: one_result(cb)
+    params,
+    cb: one_result(cb),
   });
 }

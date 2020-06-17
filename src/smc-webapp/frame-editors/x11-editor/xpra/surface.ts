@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * CoCalc's Xpra HTML Client
  *
  * ---
@@ -51,7 +56,7 @@ export class Surface {
     metadata,
     properties,
     send,
-    is_overlay
+    is_overlay,
   }) {
     this.parent = parent;
     this.is_overlay = is_overlay;

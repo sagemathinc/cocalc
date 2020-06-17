@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { TypedMap } from "../../../app-framework";
 
@@ -15,7 +20,7 @@ const row_style: React.CSSProperties = {
   color: "#666",
   backgroundColor: "#fafafa",
   border: "1px solid #eee",
-  borderRadius: "4px"
+  borderRadius: "4px",
 };
 
 const inner_icon_style = { marginright: "10px" };
@@ -27,7 +32,7 @@ export class ListingHeader extends React.Component<Props> {
     return (
       <a
         href=""
-        onClick={e => {
+        onClick={(e) => {
           e.preventDefault();
           return this.props.sort_by(column_name);
         }}
@@ -43,9 +48,7 @@ export class ListingHeader extends React.Component<Props> {
                 : "caret-down"
             }
           />
-        ) : (
-          undefined
-        )}
+        ) : undefined}
       </a>
     );
   }

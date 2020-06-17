@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 
 Variations:  Instead of making this class really complicated
 with many different ways to do sync (e.g, changefeeds, project
@@ -43,23 +48,22 @@ import { copy, is_array, is_object, len } from "../../misc2";
 const misc = require("../../misc");
 const schema = require("../../schema");
 
+export type Query = any; // todo
+export type QueryOptions = any[]; // todo
+
 // What we need the client below to implement so we can use
 // it to support a table.
 export interface Client extends EventEmitter {
   is_project: () => boolean;
   dbg: (str: string) => Function;
-  query: (opts: {
-    query: any;
-    options?: any[];
-    timeout?: number;
-    cb?: Function;
-  }) => void;
+  query: Function;
   query_cancel: Function;
   server_time: Function;
-  alert_message: Function;
+  alert_message?: Function;
   is_connected: () => boolean;
   is_signed_in: () => boolean;
   touch_project: (opts: any) => void;
+  set_connected?: Function;
 }
 
 export interface VersionedChange {
@@ -81,15 +85,15 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { Changefeed } from "./changefeed";
 import { parse_query, to_key } from "./util";
 
-type State = "disconnected" | "connected" | "closed";
+export type State = "disconnected" | "connected" | "closed";
 
 export class SyncTable extends EventEmitter {
   private changefeed?: Changefeed;
-  private query: any;
+  private query: Query;
   private client_query: any;
   private primary_keys: string[];
-  private options: any[];
-  public client: Client;
+  private options: QueryOptions;
+  public readonly client: Client;
   private throttle_changes?: number;
   private throttled_emit_changes?: Function;
   private last_server_time: number = 0;
@@ -115,7 +119,7 @@ export class SyncTable extends EventEmitter {
 
   // disconnected <--> connected --> closed
   private state: State;
-  private table: string;
+  public table: string;
   private schema: any;
   private emit_change: Function;
   public reference_count: number = 0;
@@ -188,6 +192,14 @@ export class SyncTable extends EventEmitter {
   }
 
   /* PUBLIC API */
+
+  // is_ready is true if the table has been initialized and not yet closed.
+  // It might *not* be currently connected, due to a temporary network
+  // disconnect.   When is_ready is true you can read and write to this table,
+  // but there is no guarantee things aren't temporarily stale.
+  public is_ready(): boolean {
+    return this.value != null && this.state !== "closed";
+  }
 
   /*
   Return true if there are changes to this synctable that
@@ -469,9 +481,14 @@ export class SyncTable extends EventEmitter {
     return new_val;
   }
 
-  private touch_project(): void {
-    if (this.project_id !== undefined) {
-      this.client.touch_project({ project_id: this.project_id });
+  private async touch_project(): Promise<void> {
+    if (this.project_id != null) {
+      try {
+        await this.client.touch_project(this.project_id);
+      } catch (err) {
+        // not fatal
+        console.warn("touch_project -- ", this.project_id, err);
+      }
     }
   }
 
@@ -520,7 +537,7 @@ export class SyncTable extends EventEmitter {
       obj: this,
       until,
       timeout,
-      change_event: "change-no-throttle"
+      change_event: "change-no-throttle",
     });
   }
 
@@ -592,7 +609,7 @@ export class SyncTable extends EventEmitter {
       do_emit_changes,
       this.throttle_changes
     );
-    this.emit_change = changed_keys => {
+    this.emit_change = (changed_keys) => {
       //console.log("emit_change", changed_keys);
       this.dbg("emit_change")(changed_keys);
       //console.log("#{this.table} -- queue changes", changed_keys)
@@ -740,10 +757,10 @@ export class SyncTable extends EventEmitter {
   private changefeed_options() {
     return {
       do_query: query_function(this.client.query, this.table),
-      query_cancel: this.client.query_cancel,
+      query_cancel: this.client.query_cancel.bind(this.client),
       options: this.options,
       query: this.query,
-      table: this.table
+      table: this.table,
     };
   }
 
@@ -830,7 +847,7 @@ export class SyncTable extends EventEmitter {
     if (this.primary_keys.length === 1) {
       // very common case
       const pk = this.primary_keys[0];
-      this.obj_to_key = obj => {
+      this.obj_to_key = (obj) => {
         if (obj == null) {
           return;
         }
@@ -842,7 +859,7 @@ export class SyncTable extends EventEmitter {
       };
     } else {
       // compound primary key
-      this.obj_to_key = obj => {
+      this.obj_to_key = (obj) => {
         if (obj == null) {
           return;
         }
@@ -983,7 +1000,7 @@ export class SyncTable extends EventEmitter {
         await callback2(this.client.query, {
           query,
           options: [{ set: true }], // force it to be a set query
-          timeout: 30
+          timeout: 120, // give it some time (especially if it is long)
         });
         this.last_save = value; // success -- don't have to save this stuff anymore...
       } catch (err) {
@@ -993,11 +1010,17 @@ export class SyncTable extends EventEmitter {
           this.close(true);
           throw err;
         }
+        // NOTE: we do not show entire log since the number
+        // of entries in the query can be very large and just
+        // converting them all to text could use a lot of memory (?).
         console.warn(
           `_save('${this.table}') set query error:`,
           err,
-          " query=",
-          query
+          " queries: ",
+          query[0],
+          "...",
+          query.length - 1,
+          " omitted"
         );
         return true;
       }
@@ -1546,7 +1569,7 @@ export class SyncTable extends EventEmitter {
       // throw Error("key must not be null");
     }
     const cur_val = this.value.get(key);
-    if (action === "update") {
+    if (action === "update" && cur_val != null) {
       // For update actions, we shallow *merge* in the change.
       // For insert action, we just replace the whole thing.
       new_val = cur_val.merge(new_val);
@@ -1595,5 +1618,26 @@ export class SyncTable extends EventEmitter {
         `the synctable "${this.table}" must not be closed -- ${desc}`
       );
     }
+  }
+
+  // **WARNING:** Right now this *barely* works at all... due to
+  // barely being implemented since I mostly haven't needed it.
+  // It will delete the object from the database, but if some
+  // client still has the object, they can end up just writing
+  // it back.
+  public async delete(obj): Promise<void> {
+    // Table spec must have set.delete = true.
+    // This function does a direct database query to delete
+    // the entry with primary key described by obj from
+    // the database.  That will have the side effect slightly
+    // later of removing the object from this table.  This
+    // thus works differently than making changes or
+    // creating new entries, at least right now (since
+    // implementing this properly is a lot of work but
+    // not used much).
+
+    const query = { [this.table]: obj };
+    const options = [{ delete: true }];
+    await callback2(this.client.query, { query, options });
   }
 }

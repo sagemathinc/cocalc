@@ -1,9 +1,14 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React, Component, Rendered } from "../app-framework";
 import { CoCalcLogo } from "./cocalc-logo";
 import { IsPublicFunction } from "./types";
-import { SITE_NAME } from "smc-util/theme";
 import { r_join } from "../r_misc/r_join";
 import { SiteSearch } from "./search";
+import { Settings } from "smc-hub/share/settings";
 
 interface TopBarProps {
   viewer?: string;
@@ -13,19 +18,16 @@ interface TopBarProps {
   site_name?: string;
   is_public: IsPublicFunction;
   launch_path?: string;
+  settings: Settings;
 }
 
 export class TopBar extends Component<TopBarProps> {
-  static defaultProps = {
-    site_name: SITE_NAME
-  };
-
   private render_logo(top: string): Rendered {
     return (
       <span style={{ marginRight: "10px" }}>
         <a href={top} style={{ textDecoration: "none" }}>
-          <CoCalcLogo base_url={this.props.base_url} /> {this.props.site_name}{" "}
-          Shared Files
+          <CoCalcLogo base_url={this.props.base_url} /> {this.props.settings.site_name}{" "}
+          Public Files
         </a>
       </span>
     );
@@ -42,7 +44,14 @@ export class TopBar extends Component<TopBarProps> {
 
   public render(): Rendered {
     // TODO: break up this long function!
-    const { viewer, path, launch_path, project_id, site_name, is_public } = this.props;
+    const {
+      viewer,
+      path,
+      launch_path,
+      project_id,
+      site_name,
+      is_public,
+    } = this.props;
     let path_component: Rendered | Rendered[], top: string;
     let project_link: Rendered = undefined;
     if (path === "/") {
@@ -61,10 +70,7 @@ export class TopBar extends Component<TopBarProps> {
       v.reverse();
       for (i = 0; i < v.length; i++) {
         const val = v[i];
-        const segment_path = v
-          .slice(i)
-          .reverse()
-          .join("/");
+        const segment_path = v.slice(i).reverse().join("/");
         if (t && (!project_id || is_public(project_id, segment_path))) {
           const href = `${t}?viewer=share`;
           segments.push(
@@ -98,7 +104,9 @@ export class TopBar extends Component<TopBarProps> {
         // friction from asking questions -- which kills like 80% of users -- with friction
         // for existing users).  Also note that path has the leading slash so that's why
         // it isn't "share/" below.
-        const cocalc_url = `${top}/../app?anonymous=true&launch=share${launch_path ? launch_path : path}`;
+        const cocalc_url = `${top}/../app?anonymous=true&launch=share${
+          launch_path ? launch_path : path
+        }`;
         project_link = (
           <a
             target="_blank"
@@ -121,7 +129,7 @@ export class TopBar extends Component<TopBarProps> {
         key="top"
         style={{
           padding: "5px 5px 0px 5px",
-          background: "#efefef"
+          background: "#efefef",
         }}
       >
         {this.render_logo(top)}
@@ -130,7 +138,7 @@ export class TopBar extends Component<TopBarProps> {
           style={{
             paddingLeft: "15px",
             borderLeft: "1px solid black",
-            marginLeft: "15px"
+            marginLeft: "15px",
           }}
         >
           {path_component}

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { enable, disable } from "darkreader";
 
 import { AccountStore } from "./store";
@@ -12,7 +17,7 @@ export function init_dark_mode(account_store: AccountStore): void {
       enable({
         brightness: 100,
         contrast: 90,
-        sepia: 10
+        sepia: 10,
       });
     } else {
       disable();

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Session management
 
 Initially only the simplest possible client-side implementation.
@@ -11,6 +16,7 @@ import { AppRedux } from "./app-framework";
 import { COCALC_MINIMAL } from "./fullscreen";
 import { callback2 } from "../smc-util/async-utils";
 import * as LS from "./misc/local-storage";
+import { bind_methods } from "smc-util/misc2";
 
 exports.session_manager = (name, redux) => {
   const sm = new SessionManager(name, redux);
@@ -38,19 +44,12 @@ class SessionManager {
   private _initialized: boolean;
 
   constructor(name: string, redux: AppRedux) {
-    // important: run init in any case in order to run @load_url_target,
-    // but do not actually create a session if @name is '' or null/undefined
-    this.init_local_storage = this.init_local_storage.bind(this);
-    this.save = this.save.bind(this);
-    this.close_project = this.close_project.bind(this);
-    this._save_to_local_storage = this._save_to_local_storage.bind(this);
-    this._save_to_local_storage_closed = this._save_to_local_storage_closed.bind(
-      this
-    );
-    this.restore = this.restore.bind(this);
-    this._restore_project = this._restore_project.bind(this);
-    this._restore_all = this._restore_all.bind(this);
-    this._load_from_local_storage = this._load_from_local_storage.bind(this);
+    /* IMPORTANT: run some code below ALWAYS in order to run
+       this.load_url_target to load what the user's browser URL
+       is requesting, but do not actually create a session if
+       this.name==''.
+    */
+    bind_methods(this);
 
     // init attributes
     this.name = name;
@@ -101,7 +100,7 @@ class SessionManager {
       await callback2(this.redux.getStore("account").wait, {
         until(store) {
           return store.get("editor_settings") != null;
-        }
+        },
       });
 
       // minimal mode doesn't init any projects
@@ -114,7 +113,7 @@ class SessionManager {
             // wait for some data
             return store.get("project_map") != null;
           }
-        }
+        },
       });
 
       // we're done -- restore session
@@ -188,11 +187,11 @@ class SessionManager {
     delete this._state_closed[project_id];
     if (open_files != null && !this._ignore) {
       const project = this.redux.getProjectActions(project_id);
-      open_files.map(path =>
+      open_files.map((path) =>
         project.open_file({
           path,
           foreground: false,
-          foreground_project: false
+          foreground_project: false,
         })
       );
     }
@@ -250,12 +249,12 @@ function get_session_state(redux: AppRedux): State[] {
   redux
     .getStore("projects")
     .get("open_projects")
-    .forEach(project_id => {
+    .forEach((project_id) => {
       state.push({
         [project_id]: redux
           .getProjectStore(project_id)
           .get("open_files_order")
-          .toJS()
+          .toJS(),
       });
       return true;
     });
@@ -264,7 +263,7 @@ function get_session_state(redux: AppRedux): State[] {
 
 // reset_first is currently not used.  If true, then you get *exactly* the
 // saved session; if not set (the default) the current state and the session are merged.
-const restore_session_state = function(
+function restore_session_state(
   redux: AppRedux,
   state: State[],
   reset_first?: boolean
@@ -277,36 +276,36 @@ const restore_session_state = function(
     return;
   }
 
-  // TODO how to type this a "PageAction" such that close_project_tab is known?
+  // TODO: won't need the any once init_app.coffee is rewritten in typescript.
   const page = redux.getActions("page") as any;
 
   if (reset_first) {
     redux
       .getStore("projects")
       .get("open_projects")
-      .map(project_id => page.close_project_tab(project_id));
+      .map((project_id) => page.close_project_tab(project_id));
   }
 
   const projects = redux.getActions("projects");
-  state.map(x => {
+  state.map((x) => {
     for (project_id in x) {
       const paths = x[project_id];
       // restore_session false, b/c we only want to see the tabs from the session
       projects.open_project({
         project_id,
         switch_to: false,
-        restore_session: false
+        restore_session: false,
       });
       if (paths.length > 0) {
         const project = redux.getProjectActions(project_id);
-        paths.map(path =>
+        paths.map((path) => {
           project.open_file({
             path,
             foreground: false,
-            foreground_project: false
-          })
-        );
+            foreground_project: false,
+          });
+        });
       }
     }
   });
-};
+}

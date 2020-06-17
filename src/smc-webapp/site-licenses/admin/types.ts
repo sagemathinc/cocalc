@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Map, Set } from "immutable";
 import { TypedMap } from "../../app-framework";
 
@@ -19,10 +24,10 @@ export const upgrade_fields: upgrade_fields_type[] = [
   "memory",
   "memory_request",
   "cores",
-  "cpu_shares"
+  "cpu_shares",
 ];
 
-export type Upgrades = { [field: upgrade_fields_type]: number };
+export type Upgrades = { [field in upgrade_fields_type]: number };
 
 export interface SiteLicense {
   id: string;
@@ -61,13 +66,13 @@ export type license_field_names =
   | "created"
   | "last_used"
   | "managers"
-  | "restricted"
+  // | "restricted" // hide for now since not implemented at all
   | "upgrades"
-  | "run_limit"
-  | "apply_limit";
+  | "run_limit";
+// | "apply_limit" // hide for now since not implemented at all
 
 export const license_fields: {
-  [field: license_field_names]: license_field_type;
+  [field in license_field_names]: license_field_type;
 } = {
   id: "readonly",
   title: "string",
@@ -80,23 +85,33 @@ export const license_fields: {
   managers: "account_id[]",
   // restricted: "boolean",  // hide for now since not implemented at all
   upgrades: "upgrades",
-  run_limit: "number"
-  //apply_limit: "number"
+  run_limit: "number",
+  //apply_limit: "number" // hide for now since not implemented at all
 };
 
 // export const source_fields = ["expires", "activates", "created", "last_used"];
+
+export type ManagerInfo = TypedMap<{
+  license_id: string;
+  account_id: string;
+  email_address?: string;
+  first_name?: string;
+  last_name?: string;
+  created?: Date;
+  last_active?: Date;
+}>;
 
 export interface SiteLicensesState {
   view?: boolean; // if true, open for viewing/editing
   error?: string;
   loading?: boolean;
   creating?: boolean;
-  site_licenses?: SiteLicense[];
+  site_licenses?: SiteLicense[]; // licenses that match the search
   editing?: Set<string>; // id's of site licenses that are currently being edited.
   saving?: Set<string>; // id's of site licenses that are currently being saved to the backend.
-  show_projects?: Set<string>; // id's where we should show the projects that are using the license.
+  show_projects?: Map<string, Date | "now">; // id's where we should show the projects that are using the license and what cutoff date
   edits?: Map<string, TypedMap<SiteLicense>>;
   search?: string;
-  matches_search?: Set<string> | undefined; // id's of licenses that match search
   usage_stats?: Map<string, number>; // {license_id:number of running projects using that license}
+  manager_info?: ManagerInfo; // if given, show more info about this manager
 }

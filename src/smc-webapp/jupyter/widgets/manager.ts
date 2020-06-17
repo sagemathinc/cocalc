@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 
 
 */
@@ -7,7 +12,7 @@ import * as base from "@jupyter-widgets/base";
 import * as phosphor_controls from "@jupyter-widgets/controls";
 import {
   IpywidgetsState,
-  ModelState
+  ModelState,
 } from "smc-util/sync/editor/generic/ipywidgets-state";
 import { once } from "smc-util/async-utils";
 import { Comm } from "./comm";
@@ -281,7 +286,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       model_module,
       model_name,
       model_id,
-      model_module_version
+      model_module_version,
     });
 
     // Initialize the model

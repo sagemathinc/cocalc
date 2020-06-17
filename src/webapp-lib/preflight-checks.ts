@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 ES6 support https://www.w3schools.com/js/js_versions.asp
 Firefox: 54
 Edge: 14
@@ -17,7 +22,7 @@ interface ISpecs {
 }
 
 /* credits: https://stackoverflow.com/a/38080051/54236 */
-const get_spec = function(): ISpecs {
+const get_spec = function (): ISpecs {
   const mstr = /(opera|chrome|safari|firefox|msie|trident(?=\/))\/?\s*(\d+)/i;
   const ua = navigator.userAgent;
   let tem: RegExpMatchArray | null;
@@ -32,7 +37,7 @@ const get_spec = function(): ISpecs {
       return {
         name: tem[1].replace("OPR", "Opera") as NAMES,
         version: parseInt(tem[2]),
-        buildID: ""
+        buildID: "",
       };
   }
   M = M[2] ? [M[1], M[2]] : [navigator.appName, navigator.appVersion, "-?"];
@@ -45,7 +50,7 @@ const get_spec = function(): ISpecs {
     try {
       const vers = navigator.appVersion.match(/\bChrome\/([0-9.]+)\b/);
       if (vers != null) {
-        buildID = vers[1].split(".").map(x => parseInt(x));
+        buildID = vers[1].split(".").map((x) => parseInt(x));
       }
     } catch {
       console.log(`Unable to extract buildID from ${navigator.appVersion}`);
@@ -54,7 +59,7 @@ const get_spec = function(): ISpecs {
   return {
     name: M[0] as NAMES,
     version: parseInt(M[1]),
-    buildID
+    buildID,
   };
 };
 
@@ -104,10 +109,10 @@ function preflight_check(): void {
   const ff60esr =
     spec.name === "Firefox" &&
     spec.version == 60 &&
-    (spec.buildID !== undefined &&
-      typeof spec.buildID === "string" &&
-      spec.buildID.length >= 8 &&
-      spec.buildID.slice(0, 8) >= "20180903");
+    spec.buildID !== undefined &&
+    typeof spec.buildID === "string" &&
+    spec.buildID.length >= 8 &&
+    spec.buildID.slice(0, 8) >= "20180903";
 
   // 69 to 61 have issues, and 65 up until beta8 exhibits similar issues.
   // 65 resolved in beta9. upstream: https://bugzilla.mozilla.org/show_bug.cgi?id=1514688
@@ -117,41 +122,11 @@ function preflight_check(): void {
     ((59 <= spec.version && spec.version <= 61) || spec.version == 66) &&
     !ff60esr;
 
-  // https://bugs.chromium.org/p/chromium/issues/detail?id=1006243
-  const buggyCh77 =
-    spec.name === "Chrome" &&
-    spec.version == 77 &&
-    (spec.buildID !== undefined &&
-      Array.isArray(spec.buildID) &&
-      spec.buildID[2] <= 3865 &&
-      spec.buildID[3] < 114);
-
-  // This is set to be accessible globally, since this bug is still widely deployed (e.g.,
-  // all ChromeOS users), right now it is used elsewhere to display a message
-  // that is likely to be visible when the actual bug happens.
-  // See https://github.com/sagemathinc/cocalc/issues/4136
-  (window as any).buggyCh77 = buggyCh77;
-
   if (oldFF || oldIE || oldEdge || oldSafari || oldOpera || oldChrome) {
     const msg = `
       <h2>CoCalc does not support ${spec.name} version ${spec.version}.</h2>
       <div>
           <p>We recommend that you use the newest version of <a target="_blank" rel="noopener" href='https://google.com/chrome'>Google Chrome</a>.</p>
-      </div>`;
-    halt_and_catch_fire(msg);
-  } else if (false && buggyCh77) {
-    // spec.buildID must be a number[] because buggyCh77 is true.
-    // Trying to use Typescript type inference in this case didn't work...
-    const id = (spec.buildID as number[]).join(".");
-    const msg = `
-      <h2>There is a signficant bug using CoCalc with ${spec.name} version ${id}.</h2>
-      <div>
-          <p style="font-weight:bold">
-             You may have problems using CoCalc with your current browser, because of
-             <a href="https://bugs.chromium.org/p/chromium/issues/detail?id=1006243">Chrome issue #1006243</a>.
-          </p>
-          <p>Update to at least Chrome/Chromium version 77 with subrelease <code>77.0.3865.114</code>.
-          </p>
       </div>`;
     halt_and_catch_fire(msg);
   } else if (buggyFF) {

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 We define a mapping from plans to the upgrades provided by a license.
 
 NOTES:
@@ -12,7 +17,7 @@ import { Upgrades } from "./types";
 import { capitalize } from "smc-util/misc2";
 
 interface Product {
-  upgrades: Upgrades;
+  upgrades: Partial<Upgrades>;
   desc?: string;
 }
 
@@ -43,9 +48,9 @@ function compute_presets() {
       memory: 0,
       memory_request: 0,
       cores: 0,
-      cpu_shares: 0
+      cpu_shares: 0,
     },
-    desc: "Basic plan"
+    desc: "Basic plan",
   };
 
   for (const x of upgrades.live_subscriptions) {
@@ -95,7 +100,7 @@ function compute_presets() {
 }
 
 function scaled_product(sub: any, num_people: number, desc: string): Product {
-  const upgrades: Upgrades = {};
+  const upgrades: Partial<Upgrades> = {};
   for (const field in sub.benefits) {
     if (field.indexOf("disk") != -1) {
       upgrades[field] = 0;
@@ -111,6 +116,6 @@ function scaled_product(sub: any, num_people: number, desc: string): Product {
   }
   return {
     upgrades,
-    desc
+    desc,
   };
 }

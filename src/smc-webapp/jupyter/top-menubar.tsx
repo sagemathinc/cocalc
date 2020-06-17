@@ -1,11 +1,14 @@
 /*
-The Menu bar across the top
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-File, Edit, etc....
-*/
+// The Menu bar across the top
+//
+// File, Edit, etc....
 
 import { React, Component, rclass, rtypes, Rendered } from "../app-framework";
-import { analytics_event } from "../tracker";
+import { user_activity } from "../tracker";
 import * as immutable from "immutable";
 import { ButtonGroup, SelectCallback } from "react-bootstrap";
 import { Icon, r_join, DropdownMenu, MenuItem, MenuDivider } from "../r_misc";
@@ -27,11 +30,11 @@ type MenuItemName =
 const TITLE_STYLE: React.CSSProperties = {
   color: "#666",
   border: 0,
-  backgroundColor: "rgb(247,247,247)"
+  backgroundColor: "rgb(247,247,247)",
 };
 const SELECTED_STYLE: React.CSSProperties = {
   color: "#2196F3",
-  fontWeight: "bold"
+  fontWeight: "bold",
 };
 
 interface TopMenubarProps {
@@ -72,11 +75,11 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         trust: rtypes.bool,
         toolbar: rtypes.bool,
         cell_toolbar: rtypes.string,
-        read_only: rtypes.bool
+        read_only: rtypes.bool,
       },
       page: {
-        fullscreen: rtypes.string
-      }
+        fullscreen: rtypes.string,
+      },
     };
   }
 
@@ -102,7 +105,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     if (this.props.backend_kernel_info != null) {
       const ext = this.props.backend_kernel_info.getIn([
         "language_info",
-        "file_extension"
+        "file_extension",
       ]);
       if (ext != null) {
         const m = capitalize(
@@ -110,7 +113,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         );
         script_entry = {
           name: ">nbconvert script",
-          display: `${m} (${ext})...`
+          display: `${m} (${ext})...`,
         };
       }
     }
@@ -161,11 +164,12 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
       ">nbconvert markdown",
       ">nbconvert rst",
       ">nbconvert tex",
-      ">nbconvert pdf",
+      ">nbconvert chromium pdf",
+      ">nbconvert latex pdf",
       ">nbconvert sagews",
       ">nbconvert asciidoc",
       "",
-      trust
+      trust,
     ];
     if (this.props.fullscreen !== "kiosk") {
       names.push("");
@@ -174,7 +178,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
 
     return this.render_menu({
       heading: "File",
-      names
+      names,
     });
   }
 
@@ -213,8 +217,8 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         "",
         "find and replace",
         "",
-        `${cell_type !== "markdown" ? "<" : ""}insert image`
-      ]
+        `${cell_type !== "markdown" ? "<" : ""}insert image`,
+      ],
     }); // disable if not markdown
   }
 
@@ -223,17 +227,17 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     const shownb = {
       normal: ">view notebook normal",
       raw: ">view notebook raw",
-      json: ">view notebook json"
+      json: ">view notebook json",
     };
 
     shownb[this.props.view_mode] = {
       name: shownb[this.props.view_mode],
-      style: SELECTED_STYLE
+      style: SELECTED_STYLE,
     };
 
     const toolbar = {
       name: "toggle toolbar",
-      display: this.props.toolbar ? "Hide Toolbar" : "Show Toolbar"
+      display: this.props.toolbar ? "Hide Toolbar" : "Show Toolbar",
     };
 
     const cell_toolbars: any = [];
@@ -243,7 +247,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
       "slideshow",
       "attachments",
       "tags",
-      "create_assignment"
+      "create_assignment",
     ]) {
       const item_name = `>cell toolbar ${name}`;
       if (
@@ -264,19 +268,19 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         toolbar,
         "toggle all line numbers",
         "",
-        "<Cell Toolbar..."
+        "<Cell Toolbar...",
       ]
         .concat(cell_toolbars)
         .concat([
           "",
           "zoom in",
-          "zoom out"
+          "zoom out",
           /* "",
           "<Show Notebook as...",
           shownb.normal,
           shownb.raw
           shownb.json */
-        ])
+        ]),
     });
   }
 
@@ -284,7 +288,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     return this.render_menu({
       heading: "Insert",
       names: ["insert cell above", "insert cell below"],
-      disabled: this.props.read_only
+      disabled: this.props.read_only,
     });
   }
 
@@ -317,8 +321,8 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         "",
         "<Format code...",
         ">format cells",
-        ">format all cells"
-      ]
+        ">format all cells",
+      ],
     });
   }
 
@@ -329,7 +333,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     this.props.actions.set_kernel(kernel_name);
     this.focus();
     this.props.actions.set_default_kernel(kernel_name);
-    analytics_event("cocal_jupyter", "change kernel", kernel_name);
+    user_activity("cocal_jupyter", "change kernel", kernel_name);
   }
 
   private render_kernel_item(kernel: any): Rendered {
@@ -355,7 +359,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
       return;
     }
     const kernels = this.props.kernels.toJS();
-    return kernels.map(kernel => this.render_kernel_item(kernel));
+    return kernels.map((kernel) => this.render_kernel_item(kernel));
   }
 
   private render_kernel(): Rendered {
@@ -368,15 +372,16 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
       ">confirm restart kernel and run all cells",
       ">confirm restart kernel and run all cells without halting on error",
       "",
-      "<Change kernel..."
+      "<Change kernel...",
     ]
       .concat((items as any) || [])
-      .concat(["", "refresh kernels"]);
+      .concat(["", "refresh kernels"])
+      .concat(["", "custom kernel"]);
 
     return this.render_menu({
       heading: "Kernel",
       names,
-      disabled: this.props.read_only
+      disabled: this.props.read_only,
     });
   }
 
@@ -523,7 +528,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         key={heading}
         id={heading}
         disabled={opts.disabled}
-        onClick={key => {
+        onClick={(key) => {
           const name = command_names[key];
           if (name == null) return;
           this.handle_command(name);
@@ -594,7 +599,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
           backgroundColor: "rgb(247,247,247)",
           border: "1px solid #e7e7e7",
           minHeight: "34px",
-          paddingTop: "4px"
+          paddingTop: "4px",
         }}
       >
         <ButtonGroup>

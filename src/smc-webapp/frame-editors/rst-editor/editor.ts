@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Top-level react component for editing markdown documents
 */
 
@@ -31,8 +36,8 @@ const EDITOR_SPEC = {
       "copy",
       "undo",
       "redo",
-      "reload"
-    ])
+      "reload",
+    ]),
   },
   rst: {
     short: "View",
@@ -45,7 +50,7 @@ const EDITOR_SPEC = {
       "increase_font_size",
       "save",
       "time_travel",
-      "reload"
+      "reload",
     ]),
     path(path) {
       return aux_file(path, "html");
@@ -53,19 +58,19 @@ const EDITOR_SPEC = {
     fullscreen_style: {
       // set via jquery
       "max-width": "900px",
-      margin: "auto"
-    }
+      margin: "auto",
+    },
   },
 
   terminal,
 
   settings: SETTINGS_SPEC,
 
-  time_travel
+  time_travel,
 };
 
 export const Editor = createEditor({
   format_bar: true,
   editor_spec: EDITOR_SPEC,
-  display_name: "RstEditor"
+  display_name: "RstEditor",
 });

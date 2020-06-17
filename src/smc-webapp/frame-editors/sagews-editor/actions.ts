@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Sage Worksheet Editor Actions
 */
 import { Map } from "immutable";
@@ -29,8 +34,8 @@ export class SageWorksheetActions extends Actions<SageWorksheetEditorState> {
   _init2(): void {
     this.setState({ cells: {} });
 
-    this._syncstring.on("change", keys => {
-      keys.forEach(value => {
+    this._syncstring.on("change", (keys) => {
+      keys.forEach((value) => {
         const id = value.get("id");
         if (id) {
           let cells = this.store.get("cells");

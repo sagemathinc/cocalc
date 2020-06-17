@@ -1,4 +1,9 @@
-import { create } from "./types";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { Table } from "./types";
 
 /*
 This is a virtual table to make it simple from clients to
@@ -13,28 +18,29 @@ they didn't edit it.
 
 const LIMIT = 1000;
 
-export const file_use_times = create({
+Table({
+  name: "file_use_times",
   fields: {
     project_id: {
       type: "uuid",
-      desc: "id of a project"
+      desc: "id of a project",
     },
     account_id: {
       type: "uuid",
-      desc: "id of a user"
+      desc: "id of a user",
     },
     path: {
       type: "string",
-      desc: "path to a specific file in the project"
+      desc: "path to a specific file in the project",
     },
     edit_times: {
       type: "array",
-      desc: `array of times (as ms since epoch) when the file was edited by the given account_id, sorted from newest to oldest. At most ${LIMIT} values are returned.`
+      desc: `array of times (as ms since epoch) when the file was edited by the given account_id, sorted from newest to oldest. At most ${LIMIT} values are returned.`,
     },
     access_times: {
       type: "array",
-      desc: `array of times (as ms since epoch) when the file was accessed by the given account_id, sorted from newest to oldest.   At most ${LIMIT} values are returned.`
-    }
+      desc: `array of times (as ms since epoch) when the file was accessed by the given account_id, sorted from newest to oldest.   At most ${LIMIT} values are returned.`,
+    },
   },
   rules: {
     virtual: true, // don't make an actual table
@@ -43,13 +49,13 @@ export const file_use_times = create({
     primary_key: ["project_id", "path"],
     user_query: {
       get: {
-        options: [{ limit: LIMIT }],    // todo -- add an option to trim the number of results by lowering resolution?
+        options: [{ limit: LIMIT }], // todo -- add an option to trim the number of results by lowering resolution?
         fields: {
           project_id: null,
           account_id: null,
           path: null,
           access_times: null,
-          edit_times: null
+          edit_times: null,
         },
         // Actual query is implemented using this code below rather than an actual query directly.
         async instead_of_query(database, opts, cb): Promise<void> {
@@ -79,7 +85,7 @@ export const file_use_times = create({
               path,
               limit,
               access_times,
-              edit_times
+              edit_times,
             });
             if (access_times) {
               obj.access_times = x.access_times;
@@ -91,8 +97,8 @@ export const file_use_times = create({
           } catch (err) {
             cb(err);
           }
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+  },
 });

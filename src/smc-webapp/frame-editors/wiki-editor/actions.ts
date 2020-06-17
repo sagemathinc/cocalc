@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Media wiki Editor Actions
 */
 
@@ -42,11 +47,11 @@ export class Actions extends MarkdownActions {
         direction: "col",
         type: "node",
         first: {
-          type: "cm"
+          type: "cm",
         },
         second: {
-          type: "html"
-        }
+          type: "html",
+        },
       };
     }
   }
@@ -66,7 +71,7 @@ export class Actions extends MarkdownActions {
     }
     try {
       print_html({
-        src: raw_url(this.project_id, aux_file(this.path, "html"))
+        src: raw_url(this.project_id, aux_file(this.path, "html")),
       });
     } catch (err) {
       this.set_error(err);

@@ -1,196 +1,42 @@
 //- the main html template for the static pages (shares some _inc_* files with app.pug)
 
-mixin start_button
+mixin _start_button_anon_2(startup='jupyter')
+  a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run #{NAME} Now
+
+mixin start_button_2(startup='jupyter')
   p.cc-create-account-btn
-    a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=true") Run CoCalc Now
-  p #[a(href=PREFIX + "app") sign in or create an account]
+    if ANONYMOUS_SIGNUP
+      +_start_button_anon_2(startup)
+      a.btn.btn-default.btn-lg(href=PREFIX + "app") Sign In
+    else
+      a.btn.btn-success.btn-lg(href=PREFIX + "app") Sign in to #{NAME}
 
-mixin start_button_2
-  p.cc-create-account-btn
-    a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=true") Run CoCalc Now
-    a.btn.btn-default.btn-lg(href=PREFIX + "app") Sign In
-
-
-mixin start_button_2sm
-  p.cc-create-account-btn
-    a.btn.btn-success.btn-sm(href=PREFIX + "app?anonymous=true") Run CoCalc!
-    a.btn.btn-default.btn-sm(href=PREFIX + "app") Sign In
-
-mixin start_button_3
-  p.cc-create-account-btn
-    a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=true") Run CoCalc Now
-
-//- mixin start_free
-//-   -
-//-     var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS
-//-     var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
-//-     var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
-//-   div.col-sm-12.center
-//-     h2 Start free, upgrade later
-//-   div.col-sm-6.col-sm-offset-3.center
-//-     p.
-//-        A new project runs under a free plan (unlimited trial) has a quota of #{free_memory_gb} GB memory and #{free_disk_gb} GB of disk space.
-//-        Purchasing #[a(href=PREFIX + "policies/pricing.html") a subscription] and upgrading your projects makes hosting more robust and increases its quotas.
-
-
-mixin start_free
-  div.col-sm-12.center
-    div.col-sm-6.col-sm-offset-3.center
-      p.
-        start free, upgrade later
-
-mixin start_free_banner
-  div(style="margin-top: 6rem").darkbg
+mixin sign_in_buttons(startup='jupyter')
+  div(style="margin-top: 1rem")
     div.container
       div.col-sm-12.center
-        +start_button_2
-      +start_free
+        +start_button_2(startup)
 
+mixin cocalc-rectangular
+  span(style="color:black;")
+    img(src=LOGO_RECTANGULAR_URL style="height: 3rem; width: auto;")
 
-mixin video-player
-  div.video-player.fit
-    div.video-overlay.
-      #[span(style="font-size:300%") &#9654;]
-      #[br/]
-      click to play
-    video(loop).fit
-      block
+mixin organization
+  if !!ORGANIZATION_NAME
+    if !!ORGANIZATION_URL
+      a(href=ORGANIZATION_URL) #{ORGANIZATION_NAME}
+    else if !!CONTACT_EMAIL
+      a(href='mailto:'+CONTACT_EMAIL) #{ORGANIZATION_NAME}
+    else
+      span #{ORGANIZATION_NAME}
 
-mixin nbgrader-support
-  a.anchor#a-nbgrader
-  div.container.space#nbgrader
-    div.row
-      div.col-md-12
-        h2 #[i.fa.fa-graduation-cap] NBGrader support
-      div.col-md-6
-        img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter-nbgrader-overview.png").fit
-      div.col-md-6
-        div.
-          #{NAME}'s Jupyter Notebooks fully support #[strong automatic] and #[strong manual grading]!
-        div.
-          The teacher's notebook contains exercise cells for students and test cells, some of which students can also run to get immediate feedback.
-          Once collected, you tell #{NAME} to automatically run the full test suite across all student notebooks and tabulate the results.
-        div.
-          Learn more about #[a(href="https://doc.cocalc.com/teaching-nbgrader.html") NBGrader in #{NAME}].
-
-
-mixin available-tools
-  a.anchor#a-available-tools
-  div.space#available-tools
-    div.container.space
-      div.row
-        div.col-md-12.center
-          h2 #[i.fa.fa-tools] Available tools
-
-        div.col-sm-3
-          div.row
-            div.col-md-4.col-md-offset-4.center
-              a(href=PREFIX + "doc/jupyter-notebook.html")
-                img(data-src=require("webapp-lib/assets/jupyter-logo.svg")).fit-shrink
-          h3.center.
-            #[a(href=PREFIX + "doc/jupyter-notebook.html") Jupyter Notebooks]
-          p.
-            #{NAME}'s own #[a(href=PREFIX + "doc/jupyter-notebook.html") Jupyter Notebook] implementation
-            offers real-time synchronization, time-travel, automatic grading, side-chat, and more.
-
-        div.col-sm-3
-          div.row
-            div.col-md-4.col-md-offset-4.center
-              a(href="https://doc.cocalc.com/sagews.html")
-                img(data-src="https://www.sagemath.org/pix/sage-sticker-1x1_inch-small.png").fit-shrink
-          h3.center.
-            #[a(href="https://doc.cocalc.com/sagews.html") Sage Worksheets]
-          p.
-            #[a(href="https://doc.cocalc.com/sagews.html") Sage Worksheets] are similar to Jupyter Notebooks,
-            but made to work well with #[a(href="https://www.sagemath.org") SageMath].
-
-        div.col-sm-3
-          div.row
-            div.col-md-6.col-md-offset-3.center
-              a(href=PREFIX + "doc/latex-editor.html")
-                img(data-src=require("webapp-lib/assets/latex-logo.svg") style="padding: 10px 0").fit-shrink
-          h3.center.
-            #[a(href=PREFIX + "doc/latex-editor.html") LaTeX Editor]
-          p.
-            A full #[a(href=PREFIX + "doc/latex-editor.html") LaTeX editor]
-            supporting preview rendering, forward/inverse search, error reporting,
-            and #[a(href="https://doc.cocalc.com/latex.html") more].
-
-        div.col-sm-3
-          div.row
-            div.col-md-4.col-md-offset-4.center
-              a(href=PREFIX + "doc/terminal.html")
-                img(data-src=require("webapp-lib/assets/linux-logo.svg")).fit-shrink
-          h3.center.
-            #[a(href=PREFIX + "doc/terminal.html") Linux Terminal]
-          p.
-            Access all powerful tools in a #[a(href=PREFIX + "doc/linux.html") full Linux environment].
-
-
-mixin software-environment-table(lang)
-  -
-    var components = htmlWebpackPlugin.options.components[lang] || {}
-    var inventory  = htmlWebpackPlugin.options.inventory[lang] || {}
-    var envs       = htmlWebpackPlugin.options.inventory['language_exes'] || {}
-
-  div.container
-    div.row#software-env-top
-      ul
-        for env, idx in envs
-          if env.lang == lang
-            li
-              b
-                a(href=env.url)= env.name
-                = ': '
-              = env.doc
-
-    div.row
-      table.table
-        tr
-          th
-          each val, iidx in inventory
-            th.software= envs[iidx].name
-        each cval, cidx in components
-          tr
-            td
-              if cval
-                b
-                  if cval.url
-                    a(href=cval.url)= cval.name
-                  else
-                    = cval.name
-                br/
-                span= cval.summary
-              else
-                b= cidx
-            each ival, iidx in inventory
-              td.version
-                if inventory[iidx][cidx]
-                  = inventory[iidx][cidx]
-                else
-                  = ''
 
 doctype html
-
--
-  var NAME          = htmlWebpackPlugin.options.title;
-  var URL           = htmlWebpackPlugin.options.theme.DOMAIN_NAME;
-  var COMPANY_NAME  = htmlWebpackPlugin.options.theme.COMPANY_NAME;
-  var COMPANY_EMAIL = htmlWebpackPlugin.options.theme.COMPANY_EMAIL;
-  var PREFIX        = htmlWebpackPlugin.options.PREFIX;
-  var subtitle      = null;
-  var navbar_active = null;
-  function navbar_highlight(what) {
-    return (navbar_active == what ? 'active' : '');
-  };
-  function subnavbar_highlight(what) {
-    return (subnavbar_active == what ? 'active' : '');
-  };
 
 block vars
 
 -
-  var fulltitle = htmlWebpackPlugin.options.title;
+  var fulltitle = NAME;
   if (subtitle) {fulltitle += " - " + subtitle};
 
 html.no-js(lang="en")
@@ -206,9 +52,8 @@ html.no-js(lang="en")
   body
     style
       :sass
-        @import "smc-webapp/_colors.sass"
-        @import "webapp-lib/_base.sass"
-
+        @import "../smc-webapp/_colors.sass"
+        @import "../webapp-lib/_base.sass"
 
     script.
       function toggle_menu(menu) {
@@ -223,8 +68,8 @@ html.no-js(lang="en")
       div.container
         div.navbar-header
           a(href=PREFIX + "index.html")
-            img.icon(alt=htmlWebpackPlugin.options.title src=require('!file-loader?mimetype=image/svg+xml!cocalc-icon.svg'))
-            img.name(alt=htmlWebpackPlugin.options.title src=require('!file-loader?mimetype=image/svg+xml!cocalc-font-dark.svg'))
+            img.icon(alt=NAME src=LOGO_SQUARE_URL)
+            +cocalc-rectangular
           div.navbar-menu(onclick="toggle_menu(this)")
             div.bar1
             div.bar2
@@ -232,80 +77,19 @@ html.no-js(lang="en")
 
         div.collapse.navbar-collapse
           ul.nav.navbar-nav.navbar-right
-            //- li
-            //-   a(href=PREFIX + "#a-explore") Explore
+            if TOS_URL != ''
+              li: a(target="_blank" rel='noopener' href=TOS_URL) Terms of Service
 
-            li(class=navbar_highlight('share'))
-              a(href=PREFIX + "share/") Shared Files
+            if HELP_EMAIL != ''
+              li: a(href="mailto:"+HELP_EMAIL) Help
 
-            li(class=navbar_highlight('features'))
-              a(href=PREFIX + "doc/index.html") Features
-
-            if htmlWebpackPlugin.options.COMP_ENV
-              li(class=navbar_highlight('software'))
-                a(href=PREFIX + "doc/software.html") Software
-
-            li(class=navbar_highlight('pricing'))
-              a(href=PREFIX + "policies/pricing.html") Pricing
-
-            li(class=navbar_highlight("policies"))
-              a(href=PREFIX + "policies/index.html") Policies
-
-            li
-              a.documentation(href="https://doc.cocalc.com/") Doc
-
-            li
-              a.get-started(href=PREFIX + "app") Sign In
+            li: a.sharedfiles(href=PREFIX + "share/") Public Files
+            li: a.documentation(href="https://doc.cocalc.com/") Doc
+            li: a.get-started(href=PREFIX + "app") Sign In
 
         //- that line is below the logo, on the left
         div.navbar-descr.hide-md-screen.
-          #{htmlWebpackPlugin.options.description}
-
-        if navbar_active == 'features' || navbar_active == 'index'
-          div.collapse.navbar-collapse
-            ul.nav.navbar-nav.navbar-right.features
-              li(class=subnavbar_highlight('jupyter'))
-                a(href=PREFIX + "doc/jupyter-notebook.html") Jupyter
-              li(class=subnavbar_highlight('latex'))
-                a(href=PREFIX + "doc/latex-editor.html") LaTeX
-              li(class=subnavbar_highlight('linux'))
-                a(href=PREFIX + "doc/linux.html") Linux
-              li(class=subnavbar_highlight('python'))
-                a(href=PREFIX + "doc/python.html") Python
-              li(class=subnavbar_highlight('r'))
-                a(href=PREFIX + "doc/r-statistical-software.html") R Stats
-              li(class=subnavbar_highlight('teaching'))
-                a(href=PREFIX + "doc/teaching.html") Teaching
-              li(class=subnavbar_highlight('terminal'))
-                a(href=PREFIX + "doc/terminal.html") Terminal
-              li(class=subnavbar_highlight('x11'))
-                a(href=PREFIX + "doc/x11.html") X11
-              li
-                a.documentation(href="https://doc.cocalc.com/api/") API
-
-        if navbar_active == 'software'
-          div.collapse.navbar-collapse
-            ul.nav.navbar-nav.navbar-right.software
-              li(class=subnavbar_highlight('software-executables'))
-                a(href=PREFIX + "doc/software-executables.html") Executables
-              li(class=subnavbar_highlight('software-python'))
-                a(href=PREFIX + "doc/software-python.html") Python
-              li(class=subnavbar_highlight('software-r'))
-                a(href=PREFIX + "doc/software-r.html") R Statistics
-              li(class=subnavbar_highlight('software-julia'))
-                a(href=PREFIX + "doc/software-julia.html") Julia
-
-        if navbar_active == 'policies'
-          div.collapse.navbar-collapse
-            ul.nav.navbar-nav.navbar-right.policies
-              li(class=subnavbar_highlight('copyright'))
-                a(href=PREFIX + "policies/copyright.html") Copyright
-              li(class=subnavbar_highlight('privacy'))
-                a(href=PREFIX + "policies/privacy.html") Privacy
-              li(class=subnavbar_highlight('terms'))
-                a(href=PREFIX + "policies/terms.html") Terms
-              li(class=subnavbar_highlight('thirdparties'))
-                a(href=PREFIX + "policies/thirdparties.html") Third Parties
+          #{DESCRIPTION}
 
     div#content
       block content
@@ -321,5 +105,3 @@ html.no-js(lang="en")
     noscript
       style.
         html.no-js { display: block; }
-
-    include _inc_analytics.pug

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Determine function that does query.
 */
 
@@ -39,7 +44,7 @@ export function query_function(
       opts2.standby = true;
       opts2.changes = false;
       let cb_called: boolean = false;
-      opts2.cb = async function(err, resp): Promise<void> {
+      opts2.cb = async function (err, resp): Promise<void> {
         opts.cb(err, resp);
         if (!err) {
           read_done = true;
@@ -68,7 +73,7 @@ export function query_function(
       const opts2 = copy(opts);
       opts2.standby = false;
       opts2.changes = true;
-      opts2.cb = function(err, change): void {
+      opts2.cb = function (err, change): void {
         if (read_done) {
           opts.cb(err, change);
         } else {

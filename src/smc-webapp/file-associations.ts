@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Mapping from file extension to what editor edits it.
 
 This is mainly used to support editor.coffee, which is legacy.
@@ -11,6 +16,7 @@ const codemirror_associations: { [ext: string]: string } = {
   adb: "ada",
   c: "text/x-c",
   "c++": "text/x-c++src",
+  cob: "text/x-cobol",
   cql: "text/x-sql",
   cpp: "text/x-c++src",
   cc: "text/x-c++src",
@@ -49,7 +55,7 @@ const codemirror_associations: { [ext: string]: string } = {
   ls: "text/x-livescript",
   lua: "lua",
   m: "text/x-octave",
-  md: "yaml-frontmatter",
+  md: "yaml-frontmatter", // See https://codemirror.net/mode/yaml-frontmatter/index.html; this is really "a YAML frontmatter at the start of a file, switching to " github flavored markdown after that.
   ml: "text/x-ocaml",
   mysql: "text/x-sql",
   patch: "text/x-diff",
@@ -87,10 +93,11 @@ const codemirror_associations: { [ext: string]: string } = {
   xml: "xml",
   cml: "xml", // http://www.xml-cml.org/, e.g. used by avogadro
   kml: "xml", // https://de.wikipedia.org/wiki/Keyhole_Markup_Language
-  xsl: "xsl",
+  xsl: "xml",
+  ptx: "xml", // https://pretextbook.org/
   v: "verilog",
   vh: "verilog",
-  "": "text"
+  "": "text",
 };
 
 export interface FileSpec {
@@ -102,6 +109,7 @@ export interface FileSpec {
     indent_unit?: number;
     tab_size?: number;
     spaces_instead_of_tabs?: boolean;
+    spellcheck?: boolean; // Use browser spellcheck by default
   };
   name: string;
   exclude_from_menu?: boolean;
@@ -118,7 +126,7 @@ const MODE_TO_ICON: { [mode: string]: string } = {
   "text/typescript-jsx": "fab fa-node-js", // would be nice to have proper TS...
   "text/x-rustsrc": "cog",
   r: "cc-icon-r",
-  rmd: "cc-icon-r"
+  rmd: "cc-icon-r",
 };
 
 for (const ext in codemirror_associations) {
@@ -135,7 +143,7 @@ for (const ext in codemirror_associations) {
     editor: "codemirror",
     icon,
     opts: { mode },
-    name
+    name,
   };
 }
 
@@ -144,14 +152,14 @@ file_associations["noext-dockerfile"] = {
   editor: "codemirror",
   icon: "fa-ship",
   opts: { mode: "dockerfile", indent_unit: 2, tab_size: 2 },
-  name: "Dockerfile"
+  name: "Dockerfile",
 };
 
 file_associations["tex"] = {
   editor: "latex",
   icon: "cc-icon-tex-file",
   opts: { mode: "stex2", indent_unit: 2, tab_size: 2 },
-  name: "LaTeX"
+  name: "LaTeX",
 };
 
 file_associations["rnw"] = {
@@ -160,9 +168,9 @@ file_associations["rnw"] = {
   opts: {
     mode: codemirror_associations["rnw"],
     indent_unit: 4,
-    tab_size: 4
+    tab_size: 4,
   },
-  name: "R Knitr Rnw"
+  name: "R Knitr Rnw",
 };
 
 file_associations["rtex"] = {
@@ -171,75 +179,85 @@ file_associations["rtex"] = {
   opts: {
     mode: codemirror_associations["rtex"],
     indent_unit: 4,
-    tab_size: 4
+    tab_size: 4,
   },
-  name: "R Knitr Rtex"
+  name: "R Knitr Rtex",
 };
 
 file_associations["html"] = {
   icon: "fa-file-code-o",
   opts: { indent_unit: 4, tab_size: 4, mode: "htmlmixed" },
-  name: "html"
+  name: "html",
 };
 
 file_associations["md"] = file_associations["markdown"] = {
   icon: "cc-icon-markdown",
-  opts: { indent_unit: 4, tab_size: 4, mode: codemirror_associations["md"] },
-  name: "markdown"
+  opts: {
+    indent_unit: 4,
+    tab_size: 4,
+    mode: codemirror_associations["md"],
+    spellcheck: true,
+  },
+  name: "markdown",
 };
 
 file_associations["rmd"] = {
   icon: "cc-icon-r",
-  opts: { indent_unit: 4, tab_size: 4, mode: codemirror_associations["rmd"] },
-  name: "RMarkdown"
+  opts: {
+    indent_unit: 4,
+    tab_size: 4,
+    mode: codemirror_associations["rmd"],
+    spellcheck: true,
+  },
+  name: "RMarkdown",
 };
 
 file_associations["rst"] = {
   icon: "fa-file-code-o",
-  opts: { indent_unit: 4, tab_size: 4, mode: "rst" },
-  name: "ReST"
+  opts: { indent_unit: 4, tab_size: 4, mode: "rst", spellcheck: true },
+  name: "ReST",
 };
 
 file_associations["java"] = {
   editor: "codemirror",
   icon: "fa-file-code-o",
   opts: { indent_unit: 4, tab_size: 4, mode: "text/x-java" },
-  name: "Java"
+  name: "Java",
 };
 
 file_associations["mediawiki"] = file_associations["wiki"] = {
   editor: "html-md",
   icon: "fa-file-code-o",
-  opts: { indent_unit: 4, tab_size: 4, mode: "mediawiki" },
-  name: "MediaWiki"
+  opts: { indent_unit: 4, tab_size: 4, mode: "mediawiki", spellcheck: true },
+  name: "MediaWiki",
 };
 
 file_associations["sass"] = {
   editor: "codemirror",
   icon: "fa-file-code-o",
   opts: { mode: "text/x-sass", indent_unit: 2, tab_size: 2 },
-  name: "SASS"
+  name: "SASS",
 };
 
 file_associations["yml"] = file_associations["yaml"] = {
   editor: "codemirror",
   icon: "fa-code",
   opts: { mode: "yaml", indent_unit: 2, tab_size: 2 },
-  name: "YAML"
+  name: "YAML",
 };
 
 file_associations["pug"] = file_associations["jade"] = {
   editor: "codemirror",
   icon: "fa-code",
-  opts: { mode: "text/x-pug", indent_unit: 2, tab_size: 2 },
-  name: "PUG"
+  opts: { mode: "text/x-pug", indent_unit: 2, tab_size: 2, spellcheck: true },
+  name: "PUG",
 };
 
 file_associations["css"] = {
   editor: "codemirror",
   icon: "fa-file-code-o",
   opts: { mode: "css", indent_unit: 4, tab_size: 4 },
-  name: "CSS"
+  name: "CSS",
 };
 
 for (const m of ["noext-makefile", "noext-gnumakefile", "make", "build"]) {
@@ -250,9 +268,9 @@ for (const m of ["noext-makefile", "noext-gnumakefile", "make", "build"]) {
       mode: "makefile",
       indent_unit: 4,
       tab_size: 4,
-      spaces_instead_of_tabs: false
+      spaces_instead_of_tabs: false,
     },
-    name: "Makefile"
+    name: "Makefile",
   };
 }
 
@@ -260,7 +278,7 @@ file_associations["term"] = {
   editor: "terminal",
   icon: "fa-terminal",
   opts: {},
-  name: "Terminal"
+  name: "Terminal",
 };
 
 // This is just for the "Create" menu in files.
@@ -268,14 +286,14 @@ file_associations["x11"] = {
   editor: "x11",
   icon: "fa-window-restore",
   opts: {},
-  name: "X11 Desktop"
+  name: "X11 Desktop",
 };
 
 file_associations["ipynb"] = {
   editor: "ipynb",
   icon: "cc-icon-ipynb",
   opts: {},
-  name: "Jupyter Notebook"
+  name: "Jupyter Notebook",
 };
 
 // verilog files
@@ -283,7 +301,7 @@ file_associations["v"] = file_associations["vh"] = {
   editor: "codemirror",
   icon: "fa-microchip",
   opts: { mode: "verilog", indent_unit: 2, tab_size: 2 },
-  name: "Verilog"
+  name: "Verilog",
 };
 
 for (const ext of ["png", "jpg", "jpeg", "gif", "svg", "bmp"]) {
@@ -293,7 +311,7 @@ for (const ext of ["png", "jpg", "jpeg", "gif", "svg", "bmp"]) {
     opts: {},
     name: ext,
     binary: true,
-    exclude_from_menu: true
+    exclude_from_menu: true,
   };
 }
 
@@ -306,7 +324,7 @@ export const IMAGE_EXTS = Object.freeze([
   "gif",
   "apng",
   "svg",
-  "ico"
+  "ico",
 ]) as ReadonlyArray<string>;
 
 export const VIDEO_EXTS = Object.freeze([
@@ -316,7 +334,7 @@ export const VIDEO_EXTS = Object.freeze([
   "mkv",
   "ogv",
   "ogm",
-  "3gp"
+  "3gp",
 ]) as ReadonlyArray<string>;
 
 export const AUDIO_EXTS = Object.freeze([
@@ -328,7 +346,7 @@ export const AUDIO_EXTS = Object.freeze([
   "asnd",
   "aif",
   "au",
-  "snd"
+  "snd",
 ]) as ReadonlyArray<string>;
 
 file_associations["pdf"] = {
@@ -337,42 +355,42 @@ file_associations["pdf"] = {
   opts: {},
   name: "pdf",
   binary: true,
-  exclude_from_menu: true
+  exclude_from_menu: true,
 };
 
 file_associations["tasks"] = {
   editor: "tasks",
   icon: "fa-tasks",
   opts: {},
-  name: "to do list"
+  name: "to do list",
 };
 
 file_associations["course"] = {
   editor: "course",
   icon: "fa-graduation-cap",
   opts: {},
-  name: "course"
+  name: "course",
 };
 
 file_associations["sage-chat"] = {
   editor: "chat",
   icon: "fa-comment",
   opts: {},
-  name: "chat"
+  name: "chat",
 };
 
 file_associations["sage-git"] = {
   editor: "git",
   icon: "fa-git-square",
   opts: {},
-  name: "git"
+  name: "git",
 };
 
 file_associations["sage-template"] = {
   editor: "template",
   icon: "fa-clone",
   opts: {},
-  name: "template"
+  name: "template",
 };
 
 file_associations["sage-history"] = {
@@ -380,7 +398,7 @@ file_associations["sage-history"] = {
   icon: "fa-history",
   opts: {},
   name: "sage history",
-  exclude_from_menu: true
+  exclude_from_menu: true,
 };
 
 // For tar, see http://en.wikipedia.org/wiki/Tar_%28computing%29
@@ -388,7 +406,7 @@ const archive_association = {
   editor: "archive",
   icon: "fa-file-archive-o",
   opts: {},
-  name: "archive"
+  name: "archive",
 };
 
 // Fallback for any type not otherwise explicitly specified
@@ -396,7 +414,7 @@ file_associations[""] = {
   editor: "codemirror",
   icon: "fa-file-code-o",
   opts: { mode: "text", indent_unit: 4, tab_size: 4 },
-  name: ""
+  name: "",
 };
 
 for (const ext of "zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip".split(
@@ -414,5 +432,5 @@ file_associations["sagews"] = {
   icon: "cc-icon-sagemath-file",
   opts: { mode: "sagews" },
   name: "sagews",
-  exclude_from_menu: true
+  exclude_from_menu: true,
 };

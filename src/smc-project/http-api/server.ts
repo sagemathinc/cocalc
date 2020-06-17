@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Express HTTP API server
 
 This is meant to be used from within the project via localhost, both
@@ -99,7 +104,7 @@ function rate_limit(server: express.Application): void {
   // set up rate limiter -- maximum of 50 requests per minute
   const limiter = new RateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
-    max: MAX_REQUESTS_PER_MINUTE
+    max: MAX_REQUESTS_PER_MINUTE,
   });
   // apply rate limiter to all requests
   server.use(limiter);

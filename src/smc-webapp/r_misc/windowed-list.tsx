@@ -1,15 +1,26 @@
 /*
-Windowed List, based on react-window:
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-- automatically handles rows changing sizes, which I guess solves this problem?  https://github.com/bvaughn/react-window/issues/6
+/* WARNING/TODO:
 
-- handles maintaining sroll position between unmount/mount
-
-- We use react-window instead of react-virtualized, since react-window is
-  enough for our needs, is faster, is smaller, and seems to work better.
-  I did implement everything first using react-virtualized, but react-window
-  is definitely faster, and the overscan seems to work much better.
+   scroll_to_index does basically NOTHING right now.
+   This is due to an API change in react-window,
+   which I just found by installing @types/react-window.
 */
+
+// Windowed List, based on react-window:
+//
+// - automatically handles rows changing sizes, which I guess solves this problem?  https://github.com/bvaughn/react-window/issues/6
+//
+// - handles maintaining sroll position between unmount/mount
+//
+// - We use react-window instead of react-virtualized, since react-window is
+//   enough for our needs, is faster, is smaller, and seems to work better.
+//   I did implement everything first using react-virtualized, but react-window
+//   is definitely faster, and the overscan seems to work much better.
+
 import { delay } from "awaiting";
 
 // The ResizeObserver polyfill in the resize-observer package is
@@ -23,7 +34,7 @@ if (ResizeObserver == null) {
 }
 const SHRINK_THRESH: number = 10;
 
-import { VariableSizeList as List } from "react-window";
+import { VariableSizeList as List, ListOnScrollProps } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
 
 import { React, Component, Rendered } from "../app-framework";
@@ -42,7 +53,7 @@ interface Props {
   scroll_to_index?: number; // moves to this row during next render (but doesn't get stuck there!)
   scroll_top?: number;
   cache_id?: string; // if set, the measured cell sizes and scroll position are preserved between unmount/mounts
-  on_scroll?: (scroll_top: number) => void;
+  on_scroll?: (info: ListOnScrollProps) => void;
   use_is_scrolling?: boolean;
   hide_resize?: boolean;
   render_info?: boolean; // if true, record RenderInfo; also makes isVisible available for row_renderer.
@@ -52,12 +63,6 @@ interface Props {
 interface State {
   scroll_to_index?: number;
   scroll_top?: number;
-}
-
-interface ScrollInfo {
-  scrollDirection: "forward" | "backward";
-  scrollOffset: number;
-  scrollUpdateWasRequested: boolean;
 }
 
 interface RenderInfo {
@@ -70,7 +75,7 @@ interface RenderInfo {
 // TODO: this should be an LRU cache, to avoid a longterm memory leak.
 const scroll_cache: {
   [cache_id: string]: {
-    info: ScrollInfo;
+    info: ListOnScrollProps;
     row_heights_cache: { [key: string]: number };
   };
 } = {};
@@ -94,14 +99,14 @@ export class WindowedList extends Component<Props, State> {
   } = {
     scrollDirection: "forward",
     scrollOffset: 0,
-    scrollUpdateWasRequested: false
+    scrollUpdateWasRequested: false,
   };
 
   public render_info: RenderInfo = {
     overscanStartIndex: 0,
     overscanStopIndex: 0,
     visibleStartIndex: 0,
-    visibleStopIndex: 0
+    visibleStopIndex: 0,
   };
   private ensure_visible?: { row: number; align: string };
 
@@ -218,7 +223,7 @@ export class WindowedList extends Component<Props, State> {
   }
 
   // Last scroll info
-  public get_scroll(): ScrollInfo | undefined {
+  public get_scroll(): ListOnScrollProps | undefined {
     if (this.props.cache_id == null) {
       throw Error("you must set the cache_id before using get_scroll");
     }
@@ -341,14 +346,14 @@ export class WindowedList extends Component<Props, State> {
     if (!this.is_mounted) return;
     this.setState({
       scroll_to_index: undefined,
-      scroll_top: undefined
+      scroll_top: undefined,
     });
   }
 
   public render(): Rendered {
-    let on_scroll: undefined | Function = undefined;
+    let on_scroll: undefined | ((info: ListOnScrollProps) => void) = undefined;
     if (this.props.cache_id != null || this.props.on_scroll != null) {
-      on_scroll = info => {
+      on_scroll = (info: ListOnScrollProps): void => {
         this.scroll_info = info;
         if (this.props.on_scroll != null) {
           this.props.on_scroll(info);
@@ -356,14 +361,14 @@ export class WindowedList extends Component<Props, State> {
         if (this.props.cache_id != null) {
           scroll_cache[this.props.cache_id as string] = {
             info,
-            row_heights_cache: this.row_heights_cache
+            row_heights_cache: this.row_heights_cache,
           };
         }
       };
     }
 
     const save_render_info = this.props.render_info
-      ? info => {
+      ? (info) => {
           this.render_info = info;
         }
       : undefined;
@@ -387,7 +392,6 @@ export class WindowedList extends Component<Props, State> {
                 estimatedItemSize={this.props.estimated_row_size}
                 itemSize={this.row_height.bind(this)}
                 itemCount={this.props.row_count}
-                scrollToIndex={this.state.scroll_to_index}
                 initialScrollOffset={this.state.scroll_top}
                 onScroll={on_scroll}
                 useIsScrolling={this.props.use_is_scrolling}
@@ -428,11 +432,11 @@ function create_row_component(windowed_list: WindowedList) {
         <div
           style={{
             display: "flex",
-            flexDirection: "column"
+            flexDirection: "column",
           }}
           data-key={key}
           data-index={index}
-          ref={node => {
+          ref={(node) => {
             if (node == null) return;
             (windowed_list as any).cell_refs[key] = $(node);
             (windowed_list as any).resize_observer.observe(node);
@@ -442,7 +446,7 @@ function create_row_component(windowed_list: WindowedList) {
             key,
             index,
             isScrolling,
-            isVisible
+            isVisible,
           })}
         </div>
       );

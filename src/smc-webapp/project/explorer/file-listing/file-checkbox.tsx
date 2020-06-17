@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 
 import { ProjectActions } from "../../../project_actions";
@@ -14,7 +19,7 @@ interface Props {
 }
 
 export class FileCheckbox extends React.PureComponent<Props> {
-  handle_click = e => {
+  handle_click = (e) => {
     e.stopPropagation(); // so we don't open the file
     const full_name = misc.path_to_file(
       this.props.current_path,

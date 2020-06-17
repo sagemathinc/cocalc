@@ -1,28 +1,13 @@
-//#############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import { Map } from "immutable";
 import { TypedMap } from "../app-framework/TypedMap";
 import { StudentsMap } from "./store";
 import { AssignmentCopyStep } from "./types";
+import { separate_file_extension } from "smc-util/misc2";
 
 // Pure functions used in the course manager
 
@@ -37,7 +22,7 @@ export function STEPS(peer: boolean): AssignmentCopyStep[] {
       "collect",
       "peer_assignment",
       "peer_collect",
-      "return_graded"
+      "return_graded",
     ];
   } else {
     return ["assignment", "collect", "return_graded"];
@@ -197,7 +182,7 @@ export function compute_match_list(opts) {
     list: required, // list of objects<M>
     search_key: required, // M.search_key property to match over
     search: required, // matches to M.search_key
-    ignore_case: true
+    ignore_case: true,
   });
   let { list, search, search_key, ignore_case } = opts;
   if (!search) {
@@ -207,7 +192,7 @@ export function compute_match_list(opts) {
 
   let num_omitted = 0;
   const words = misc.split(search);
-  const matches = x => {
+  const matches = (x) => {
     let k;
     if (ignore_case) {
       k =
@@ -244,14 +229,14 @@ export function order_list<T extends { deleted: boolean }>(opts: {
     list: required,
     compare_function: required,
     reverse: false,
-    include_deleted: false
+    include_deleted: false,
   });
   let { list, compare_function, include_deleted } = opts;
 
-  const x = list.filter(x => x.deleted);
+  const x = list.filter((x) => x.deleted);
   const sorted_deleted = x.sort(compare_function);
 
-  const y = list.filter(x => !x.deleted);
+  const y = list.filter((x) => !x.deleted);
   list = y.sort(compare_function);
 
   if (opts.reverse) {
@@ -265,10 +250,10 @@ export function order_list<T extends { deleted: boolean }>(opts: {
   return { list, deleted: x, num_deleted: sorted_deleted.length };
 }
 
-const sort_on_string_field = field => (a, b) =>
+const sort_on_string_field = (field) => (a, b) =>
   misc.cmp(a[field].toLowerCase(), b[field].toLowerCase());
 
-const sort_on_numerical_field = field => (a, b) =>
+const sort_on_numerical_field = (field) => (a, b) =>
   misc.cmp(a[field] * -1, b[field] * -1);
 
 export enum StudentField {
@@ -276,7 +261,7 @@ export enum StudentField {
   first_name = "first_name",
   last_name = "last_name",
   last_active = "last_active",
-  hosting = "hosting"
+  hosting = "hosting",
 }
 
 export function pick_student_sorter<T extends { column_name: StudentField }>(
@@ -301,4 +286,9 @@ export function assignment_identifier(
   student_id: string
 ): string {
   return assignment_id + student_id;
+}
+
+export function autograded_filename(filename: string): string {
+  const { name, ext } = separate_file_extension(filename);
+  return name + "_autograded." + ext;
 }

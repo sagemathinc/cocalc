@@ -1,6 +1,9 @@
 /*
-This is a renderer using pdf.js.
-*/
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// This is a renderer using pdf.js.
 
 // We render pages within a window of this many pixels around
 // the top of the visible page.  Making this bigger makes it
@@ -24,7 +27,7 @@ import {
   ReactDOM,
   rclass,
   rtypes,
-  Rendered
+  Rendered,
 } from "../../app-framework";
 import { getDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import { Page, PAGE_GAP } from "./pdfjs-page";
@@ -83,7 +86,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       pages: [],
       scrollTop: scroll,
       missing: false,
-      restored_scroll: false
+      restored_scroll: false,
     };
   }
 
@@ -94,8 +97,8 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         zoom_page_height: rtypes.string,
         sync: rtypes.string,
         scroll_pdf_into_view: rtypes.object,
-        custom_pdf_error_message: rtypes.string
-      }
+        custom_pdf_error_message: rtypes.string,
+      },
     };
   }
 
@@ -115,13 +118,13 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         "scroll_pdf_into_view",
         "is_current",
         "status",
-        "derived_file_types"
+        "derived_file_types",
       ]) ||
       is_different(this.state, next_state, [
         "loaded",
         "scrollTop",
         "missing",
-        "restored_scroll"
+        "restored_scroll",
       ]) ||
       is_different(this.state.doc, next_state.doc, ["fingerprint"])
     );
@@ -144,7 +147,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       <div
         style={{
           fontSize: "20pt",
-          color: "#666"
+          color: "#666",
         }}
       >
         Missing PDF -- {this.render_status()}
@@ -202,7 +205,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         doc: doc,
         loaded: true,
         pages: pages,
-        missing: false
+        missing: false,
       });
     } catch (err) {
       // This is normal if the PDF is being modified *as* it is being loaded...
@@ -366,7 +369,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
 
   focus_on_click(): void {
     const scroll = $(ReactDOM.findDOMNode(this.refs.scroll));
-    scroll.on("click", evt => this.scroll_click(evt, scroll));
+    scroll.on("click", (evt) => this.scroll_click(evt, scroll));
   }
 
   async zoom_page_width(): Promise<void> {
@@ -440,7 +443,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       ) {
         sync_highlight = {
           y: this.props.scroll_pdf_into_view.y,
-          until: seconds_ago(-HIGHLIGHT_TIME_S)
+          until: seconds_ago(-HIGHLIGHT_TIME_S),
         };
       } else {
         sync_highlight = undefined;
@@ -479,7 +482,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       return (
         <div
           style={{
-            visibility: this.state.restored_scroll ? "visible" : "hidden"
+            visibility: this.state.restored_scroll ? "visible" : "hidden",
           }}
         >
           {this.render_pages()}
@@ -523,7 +526,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         style={{
           backgroundColor: "white",
           margin: "15px",
-          overflowY: "auto"
+          overflowY: "auto",
         }}
       >
         There is no rendered PDF file available. {this.render_other_viewers()}
@@ -550,7 +553,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
           width: "100%",
           cursor: "default",
           textAlign: "center",
-          backgroundColor: !this.state.loaded ? "white" : undefined
+          backgroundColor: !this.state.loaded ? "white" : undefined,
         }}
         onScroll={throttle(() => this.on_scroll(), 150)}
         ref={"scroll"}

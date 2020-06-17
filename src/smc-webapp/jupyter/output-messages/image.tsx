@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { delay } from "awaiting";
 import { React, Component, Rendered } from "smc-webapp/app-framework";
 import { get_blob_url } from "../server-urls";
@@ -46,7 +51,7 @@ export class Image extends Component<ImageProps, ImageState> {
   };
 
   img_click(): void {
-    this.setState(state => {
+    this.setState((state) => {
       return { zoomed: !state.zoomed };
     });
   }
@@ -56,7 +61,7 @@ export class Image extends Component<ImageProps, ImageState> {
       src,
       width: this.props.width,
       height: this.props.height,
-      onClick: this.img_click
+      onClick: this.img_click,
     };
     if (this.props.width == null && this.props.height == null) {
       const cursor = this.state.zoomed ? "zoom-out" : "zoom-in";

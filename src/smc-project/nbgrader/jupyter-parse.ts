@@ -1,8 +1,15 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { readFile } from "fs";
 import { callback } from "awaiting";
 
 // Strip output and attachments from all cells.
-export async function jupyter_strip_notebook(ipynb_path: string): Promise<string> {
+export async function jupyter_strip_notebook(
+  ipynb_path: string
+): Promise<string> {
   // Load the file
   const contents = (await callback(readFile, ipynb_path)).toString();
 

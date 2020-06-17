@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 
 Get browser name *and* version:
 
@@ -28,6 +33,6 @@ export function get_browser(): { name: string; version: string } {
   }
   return {
     name: M[0],
-    version: M[1]
+    version: M[1],
   };
 }

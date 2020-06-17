@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 This module will handle setting the codemirror options for various kernels.
 */
 
@@ -55,11 +60,17 @@ export function cm_options(
     readOnly: read_only,
     indentWithTabs: !editor_settings.spaces_instead_of_tabs,
     showCursorWhenSelecting: true,
-    extraKeys: {}
+    extraKeys: {},
     // NOTE: "keyMap" and other properties listed below must not appear here as "undefined"
     // that is, the key should only exist if the value exists. I'm guessing Codemirror
     // actually looks at the existence of keys rather than existance of values.
   };
+
+  if (options.mode?.name == "gfm2") {
+    // browser native spellcheck now supported!
+    options.spellcheck = true;
+    options.inputStyle = "contenteditable";
+  }
 
   if (IS_TOUCH) {
     const { extra_alt_keys } = require("mobile/codemirror");

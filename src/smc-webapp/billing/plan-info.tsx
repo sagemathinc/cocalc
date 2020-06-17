@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { PROJECT_UPGRADES } from "smc-util/schema";
 import { plural, capitalize } from "smc-util/misc";
 
@@ -110,7 +115,7 @@ export class PlanInfo extends Component<Props> {
     const { benefits } = plan_data;
 
     const style = {
-      cursor: this.props.on_click != null ? "pointer" : undefined
+      cursor: this.props.on_click != null ? "pointer" : undefined,
     };
 
     return (
@@ -124,8 +129,8 @@ export class PlanInfo extends Component<Props> {
       >
         <Space />
         {PROJECT_UPGRADES.field_order
-          .filter(name => benefits[name])
-          .map(name =>
+          .filter((name) => benefits[name])
+          .map((name) =>
             this.render_plan_info_line(
               name,
               benefits[name] != null ? benefits[name] : 0,

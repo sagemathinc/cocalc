@@ -1,23 +1,7 @@
-//##############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import * as misc from "smc-util/misc";
 
@@ -29,7 +13,7 @@ import {
   rclass,
   redux,
   TypedMap,
-  Rendered
+  Rendered,
 } from "../../app-framework";
 
 import { Button } from "react-bootstrap";
@@ -40,8 +24,8 @@ import { WindowedList } from "../../r_misc/windowed-list";
 import { LogSearch } from "./search";
 import { LogEntry } from "./log-entry";
 import { ProjectLogMap, EventRecord } from "./types";
-import { ProjectActions } from "smc-webapp/project_store";
-import { UserMap } from "smc-webapp/todo-types";
+import { ProjectActions } from "../../project_store";
+import { UserMap } from "../../todo-types";
 
 interface ReactProps {
   project_id: string;
@@ -69,11 +53,11 @@ export const ProjectLog = rclass<ReactProps>(
         [name]: {
           project_log: rtypes.immutable,
           project_log_all: rtypes.immutable,
-          search: rtypes.string
+          search: rtypes.string,
         },
         users: {
-          user_map: rtypes.immutable
-        }
+          user_map: rtypes.immutable,
+        },
       };
     };
 

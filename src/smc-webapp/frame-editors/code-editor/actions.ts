@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Code Editor Actions
 */
 
@@ -18,7 +23,7 @@ import {
   prettier,
   syncstring,
   syncdb2,
-  syncstring2
+  syncstring2,
 } from "../generic/client";
 
 import { SyncDB } from "smc-util/sync/editor/db";
@@ -31,7 +36,7 @@ import {
   filename_extension,
   history_path,
   len,
-  uuid
+  uuid,
 } from "smc-util/misc2";
 import { print_code } from "../frame-tree/print-code";
 import {
@@ -40,7 +45,7 @@ import {
   FrameTree,
   ImmutableFrameTree,
   SetMap,
-  ErrorStyles
+  ErrorStyles,
 } from "../frame-tree/types";
 import { SettingsObject } from "../settings/types";
 import { misspelled_words } from "./spell-check";
@@ -58,22 +63,22 @@ import { TerminalManager } from "../terminal-editor/terminal-manager";
 import { CodeEditorManager, CodeEditor } from "./code-editor-manager";
 
 import { AvailableFeatures } from "../../project_configuration";
-import {
-  ext2parser,
-  parser2tool,
-  format_parser_for_extension
-} from "smc-util/code-formatter";
 
 import { apply_patch } from "smc-util/sync/editor/generic/util";
+
+import { default_opts } from "../codemirror/cm-options";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 const { open_new_tab } = require("smc-webapp/misc_page");
 
-import { Options as FormatterOptions } from "smc-project/formatters/prettier";
 import {
-  Parser as FormatterParser,
-  Exts as FormatterExts
+  ext2syntax,
+  syntax2tool,
+  Syntax as FormatterSyntax,
+  Exts as FormatterExts,
+  Tool as FormatterTool,
 } from "smc-util/code-formatter";
+import { Config as FormatterConfig } from "smc-project/formatters/prettier";
 import { SHELLS } from "./editor";
 
 interface gutterMarkerParams {
@@ -104,7 +109,7 @@ export interface CodeEditorState {
   local_view_state: any; // Generic use of Actions below makes this entirely befuddling...
   reload: Map<string, any>;
   resize: number;
-  misspelled_words: Set<string>;
+  misspelled_words: Set<string> | string;
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
   is_saving: boolean;
@@ -199,7 +204,7 @@ export class Actions<
       gutter_markers: Map(),
       cursors: Map(),
       settings: fromJS(this._default_settings()),
-      complete: Map()
+      complete: Map(),
     });
 
     if ((this as any)._init2) {
@@ -219,7 +224,7 @@ export class Actions<
     try {
       const data: string = await public_get_text_file({
         project_id: this.project_id,
-        path: this.path
+        path: this.path,
       });
       this.setState({ value: data });
     } catch (err) {
@@ -244,7 +249,7 @@ export class Actions<
   // spelling makes sense...
   protected _init_spellcheck(): void {
     this._spellcheck_is_supported = true;
-    this._syncstring.on("save-to-disk", time =>
+    this._syncstring.on("save-to-disk", (time) =>
       this.update_misspelled_words(time)
     );
   }
@@ -258,13 +263,13 @@ export class Actions<
         before_change_hook: () => this.set_syncstring_to_codemirror(),
         after_change_hook: () => this.set_codemirror_to_syncstring(),
         fake: true,
-        patch_interval: 500
+        patch_interval: 500,
       });
     } else if (this.doctype == "syncstring") {
       this._syncstring = syncstring2({
         project_id: this.project_id,
         path: this.path,
-        cursors: true
+        cursors: true,
       });
     } else if (this.doctype == "syncdb") {
       if (
@@ -278,13 +283,13 @@ export class Actions<
         project_id: this.project_id,
         path: this.path,
         primary_keys: this.primary_keys,
-        string_cols: this.string_cols
+        string_cols: this.string_cols,
       });
     } else {
       throw Error(`invalid doctype="${this.doctype}"`);
     }
 
-    this._syncstring.once("ready", err => {
+    this._syncstring.once("ready", (err) => {
       if (err) {
         this.set_error(
           `Fatal error opening file -- ${err}\nFix this, then try opening the file again.`
@@ -323,7 +328,7 @@ export class Actions<
       "after-change",
       this.set_codemirror_to_syncstring.bind(this)
     );
-    this._syncstring.once("load-time-estimate", est => {
+    this._syncstring.once("load-time-estimate", (est) => {
       return this.setState({ load_time_estimate: est });
     });
 
@@ -333,7 +338,7 @@ export class Actions<
       this.set_reload("save_to_disk");
     });
 
-    this._syncstring.once("error", err => {
+    this._syncstring.once("error", (err) => {
       this.set_error(
         `Fatal error opening ${this.path} -- ${err}\nFix this, then try opening the file again.`
       );
@@ -343,11 +348,11 @@ export class Actions<
       this.close();
     });
 
-    this._syncstring.on("has-uncommitted-changes", has_uncommitted_changes =>
+    this._syncstring.on("has-uncommitted-changes", (has_uncommitted_changes) =>
       this.setState({ has_uncommitted_changes })
     );
 
-    this._syncstring.on("has-unsaved-changes", has_unsaved_changes => {
+    this._syncstring.on("has-unsaved-changes", (has_unsaved_changes) => {
       this.setState({ has_unsaved_changes });
     });
   }
@@ -369,9 +374,9 @@ export class Actions<
       path: aux,
       primary_keys,
       string_cols,
-      file_use_interval: 0 // disable file use,, since syncdb is an auxiliary file
+      file_use_interval: 0, // disable file use,, since syncdb is an auxiliary file
     });
-    this._syncdb.once("error", err => {
+    this._syncdb.once("error", (err) => {
       this.set_error(
         `Fatal error opening config "${aux}" -- ${err}.\nFix this, then try opening the file again.`
       );
@@ -422,7 +427,7 @@ export class Actions<
       hash = this._syncstring.hash_of_saved_version();
     }
     this.setState({
-      reload: reload.set(type, hash)
+      reload: reload.set(type, hash),
     });
   }
 
@@ -435,7 +440,7 @@ export class Actions<
   set_resize(): void {
     if (!this.store.get("visible")) return;
     this.setState({
-      resize: this.store.get("resize", 0) + 1
+      resize: this.store.get("resize", 0) + 1,
     });
   }
 
@@ -567,7 +572,7 @@ export class Actions<
       local = local.set(coerced_key, fromJS(value));
     }
     this.setState({
-      local_view_state: local
+      local_view_state: local,
     });
     this._save_local_view_state();
   }
@@ -614,7 +619,7 @@ export class Actions<
     // We delete full_id to de-maximize if in full screen mode,
     // so the active_id frame is visible.
     this.setState({
-      local_view_state: local.set("active_id", active_id).delete("full_id")
+      local_view_state: local.set("active_id", active_id).delete("full_id"),
     });
     this._save_local_view_state();
     this.focus(active_id);
@@ -641,7 +646,7 @@ export class Actions<
   _get_active_id(): string {
     let id: string | undefined = this.store.getIn([
       "local_view_state",
-      "active_id"
+      "active_id",
     ]);
     if (!id) {
       id = tree_ops.get_some_leaf_id(this._get_tree());
@@ -653,7 +658,7 @@ export class Actions<
   _get_tree(): ImmutableFrameTree {
     let tree: ImmutableFrameTree | undefined = this.store.getIn([
       "local_view_state",
-      "frame_tree"
+      "frame_tree",
     ]);
     if (tree == null) {
       // Worrisome rare race condition when frame_tree not yet initialized.
@@ -774,8 +779,6 @@ export class Actions<
     // default path
     let path = this.path;
 
-    this.set_frame_tree({ id, type, path });
-
     if (this._cm[id] && type != "cm") {
       // Make sure to clear cm cache in case switching type away,
       // in case the component unmount doesn't do this.
@@ -803,7 +806,15 @@ export class Actions<
     if (!font_size) {
       font_size = get_default_font_size();
     }
-    this.set_font_size(id, font_size);
+    this.set_frame_tree({
+      id,
+      type,
+      path,
+      title: undefined,
+      connection_status: undefined,
+      is_paused: undefined,
+      font_size,
+    });
 
     this.store.emit("new-frame", { id, type });
   }
@@ -867,6 +878,23 @@ export class Actions<
     type = type;
   }
 
+  // Close all frames that have the given path.
+  // This will not close anything if path == this.path;
+  // this is only for when *other* files are open in frames.
+  // Returns number of frames closed.
+  close_frames_with_path(path: string): number {
+    if (path == this.path) return 0;
+    let n = 0;
+    for (const id in this._get_leaf_ids()) {
+      const leaf = this._get_frame_node(id);
+      if (path == leaf?.get("path")) {
+        this.close_frame(id);
+        n += 1;
+      }
+    }
+    return n;
+  }
+
   // Returns id of new frame, if a frame is created.
   public split_frame(
     direction: FrameDirection,
@@ -899,7 +927,7 @@ export class Actions<
         }
         this.store.emit("new-frame", {
           id: new_id,
-          type
+          type,
         });
 
         return new_id;
@@ -951,7 +979,7 @@ export class Actions<
       editor_state = editor_state.set(id, fromJS(new_editor_state));
     }
     this.setState({
-      local_view_state: local.set("editor_state", editor_state)
+      local_view_state: local.set("editor_state", editor_state),
     });
     this._save_local_view_state();
   }
@@ -983,7 +1011,7 @@ export class Actions<
     // TOOD: this is probably naive and slow too...
     let cursors: Map<string, List<Map<string, any>>> = Map();
     this._syncstring.get_cursors().forEach((info, account_id) => {
-      info.get("locs").forEach(loc => {
+      info.get("locs").forEach((loc) => {
         loc = loc.set("time", info.get("time"));
         const locs = cursors.get(account_id, List()).push(loc);
         cursors = cursors.set(account_id, locs);
@@ -1025,7 +1053,7 @@ export class Actions<
       cursors.map((user, _) => {
         const locs = user.get("locs");
         if (!locs) return;
-        locs.map(loc => {
+        locs.map((loc) => {
           const y = loc.get("y");
           if (y != null) {
             omit_lines[y] = true;
@@ -1047,7 +1075,11 @@ export class Actions<
   }
 
   async save(explicit: boolean): Promise<void> {
-    if (this.is_public || !this.store.get("is_loaded")) {
+    if (
+      this.is_public ||
+      !this.store.get("is_loaded") ||
+      this._syncstring == null
+    ) {
       return;
     }
     // TODO: Maybe just move this to some explicit menu of actions, which also includes
@@ -1074,7 +1106,7 @@ export class Actions<
           string_id: this._syncstring ? this._syncstring._string_id : "",
           path: this.path,
           project_id: this.project_id,
-          error: "Error saving file -- has_unsaved_changes"
+          error: "Error saving file -- has_unsaved_changes",
         });
       }
     } finally {
@@ -1116,13 +1148,13 @@ export class Actions<
     } else {
       this._get_project_actions().open_file({
         path: history_path(opts.path || this.path),
-        foreground: true
+        foreground: true,
       });
     }
   }
 
   help(type: string): void {
-    const url: string = (function() {
+    const url: string = (function () {
       switch (type) {
         case "terminal":
           return "https://doc.cocalc.com/terminal.html";
@@ -1248,20 +1280,20 @@ export class Actions<
 
   _get_most_recent_cm_id(): string | undefined {
     return this._get_most_recent_active_frame_id(
-      node => node.get("type").slice(0, 2) == "cm"
+      (node) => node.get("type").slice(0, 2) == "cm"
     );
   }
 
   _get_most_recent_terminal_id(): string | undefined {
     return this._get_most_recent_active_frame_id(
-      node => node.get("type").slice(0, 8) == "terminal"
+      (node) => node.get("type").slice(0, 8) == "terminal"
     );
   }
 
   // TODO: might also specify args.
   _get_most_recent_shell_id(command: string | undefined): string | undefined {
     return this._get_most_recent_active_frame_id(
-      node =>
+      (node) =>
         node.get("type").slice(0, 8) == "terminal" &&
         node.get("command") == command
     );
@@ -1346,7 +1378,10 @@ export class Actions<
     }
   }
 
-  set_syncstring_to_codemirror(id?: string, do_not_exit_undo_mode?: boolean): void {
+  set_syncstring_to_codemirror(
+    id?: string,
+    do_not_exit_undo_mode?: boolean
+  ): void {
     const cm = this._get_cm(id);
     if (!cm) {
       return;
@@ -1498,7 +1533,7 @@ export class Actions<
     focus?: boolean,
     id?: string // if given scroll this particular frame
   ): Promise<void> {
-    if (this._syncstring == null) {
+    if (this._syncstring == null || this._syncstring.is_fake) {
       // give up -- don't even have a syncstring...
       // A derived class that doesn't use a syncstring
       // might overload programmatical_goto_line to make
@@ -1530,7 +1565,7 @@ export class Actions<
       // to this file (rather than a frame in some other frame tree).
       const full_id: string | undefined = this.store.getIn([
         "local_view_state",
-        "full_id"
+        "full_id",
       ]);
       if (full_id && full_id != cm_id) {
         this.unset_frame_full();
@@ -1695,7 +1730,7 @@ export class Actions<
         value: cm.getValue(),
         options: cm.options,
         path: this.path,
-        font_size: node != null ? node.get("font_size") : undefined
+        font_size: node != null ? node.get("font_size") : undefined,
       });
     } catch (err) {
       this.set_error(err);
@@ -1726,8 +1761,8 @@ export class Actions<
 
     // hash combines state of file with spell check setting.
     // TODO: store /type fail.
-    const lang = (this.store.get("settings") as Map<string, any>).get("spell");
-    if (!lang) {
+    const lang: string | undefined = this.store.getIn(["settings", "spell"]);
+    if (lang == null) {
       // spell check configuration not yet initialized
       return;
     }
@@ -1738,15 +1773,19 @@ export class Actions<
     }
     this._update_misspelled_words_last_hash = hash;
     try {
-      const words: string[] = await misspelled_words({
+      const words: string[] | string = await misspelled_words({
         project_id: this.project_id,
         path: this.get_spellcheck_path(),
         lang,
-        time
+        time,
       });
-      const x = Set(words);
-      if (!x.equals(this.store.get("misspelled_words"))) {
-        this.setState({ misspelled_words: x });
+      if (typeof words == "string") {
+        this.setState({ misspelled_words: words });
+      } else {
+        const x = Set(words);
+        if (!x.equals(this.store.get("misspelled_words"))) {
+          this.setState({ misspelled_words: x });
+        }
       }
     } catch (err) {
       this.set_error(err);
@@ -1774,9 +1813,9 @@ export class Actions<
       // format bar only makes sense when some cm is there...
       return;
     }
-    await callback_opts(opts => cm.edit_selection(opts))({
+    await callback_opts((opts) => cm.edit_selection(opts))({
       cmd,
-      args
+      args,
     });
     if (this._state !== "closed") {
       cm.focus();
@@ -1802,7 +1841,7 @@ export class Actions<
     const info = new GutterMarker({
       line: opts.line,
       gutter_id: opts.gutter_id,
-      component: opts.component
+      component: opts.component,
     });
     this.setState({ gutter_markers: gutter_markers.set(opts.id, info) });
   }
@@ -1847,7 +1886,7 @@ export class Actions<
       return;
     }
     this.setState({
-      gutter_markers: gutter_markers.set(id, info.set("handle", handle))
+      gutter_markers: gutter_markers.set(id, info.set("handle", handle)),
     });
   }
 
@@ -1865,19 +1904,28 @@ export class Actions<
     }
   }
 
-  public format_support_for_extension(
+  public format_support_for_syntax(
     available_features: AvailableFeatures,
-    ext: string
-  ): false | string {
+    syntax: FormatterSyntax
+  ): false | FormatterTool {
+    if (syntax == null) return false;
+    // first, check if there exists a tool for that syntax
+    const tool: FormatterTool = syntax2tool[syntax];
+    if (tool == null) return false;
+    // if so, check if this formatting tool is available in that project
     const formatting = available_features.get("formatting");
     if (formatting == null || formatting == false) return false;
     // Now formatting is either "true" or a map itself.
-    const parser = ext2parser[ext];
-    if (parser == null) return false;
-    const tool = parser2tool[parser];
-    if (tool == null) return false;
     if (formatting !== true && !formatting.get(tool)) return false;
     return tool;
+  }
+
+  public format_support_for_extension(
+    available_features: AvailableFeatures,
+    ext: string
+  ): false | FormatterTool {
+    const syntax = ext2syntax[ext];
+    return this.format_support_for_syntax(available_features, syntax);
   }
 
   // Not an action, but works to make code clean
@@ -1926,16 +1974,16 @@ export class Actions<
     // Definitely have format support
     cm.focus();
     const ext = filename_extension(this.path).toLowerCase() as FormatterExts;
-    const parser: FormatterParser = format_parser_for_extension(ext);
-    const options: FormatterOptions = {
-      parser,
+    const syntax: FormatterSyntax = ext2syntax[ext];
+    const config: FormatterConfig = {
+      syntax,
       tabWidth: cm.getOption("tabSize") as number,
-      useTabs: cm.getOption("indentWithTabs") as boolean
+      useTabs: cm.getOption("indentWithTabs") as boolean,
     };
 
     this.set_status("Running code formatter...");
     try {
-      const patch = await prettier(this.project_id, this.path, options);
+      const patch = await prettier(this.project_id, this.path, config);
       if (patch != null) {
         // Apply the patch.
         // NOTE: old backends that haven't restarted just return {status:'ok'}
@@ -1993,7 +2041,7 @@ export class Actions<
 
   _get_most_recent_active_frame_id_of_type(type: string): string | undefined {
     return this._get_most_recent_active_frame_id(
-      node => node.get("type") == type
+      (node) => node.get("type") == type
     );
   }
 
@@ -2078,13 +2126,17 @@ export class Actions<
     if (this._spellcheck_is_supported) {
       if (!settings.get("spell")) {
         // ensure spellcheck is a possible setting, if necessary.
-        this.set_settings({ spell: "default" });
+        // Use browser spellcheck **by default** if that option is
+        // is configured, otherwise default backend spellcheck.
+        this.set_settings({
+          spell: default_opts(this.path).spellcheck ? "browser" : "default",
+        });
       }
       // initial spellcheck
       this.update_misspelled_words();
     }
 
-    this._syncstring.on("settings-change", settings => {
+    this._syncstring.on("settings-change", (settings) => {
       this.setState({ settings: settings });
     });
   }
@@ -2168,7 +2220,7 @@ export class Actions<
   // super class!
   public async show(): Promise<void> {
     this.setState({
-      visible: true
+      visible: true,
     });
 
     await delay(0); // wait until next render loop
@@ -2190,7 +2242,7 @@ export class Actions<
     // only that one is visible, or all are visible.
     const full_id: string | undefined = this.store.getIn([
       "local_view_state",
-      "full_id"
+      "full_id",
     ]);
     if (full_id != null) {
       this.refresh(full_id);

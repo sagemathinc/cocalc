@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import memoizeOne from "memoize-one";
 
@@ -41,7 +46,7 @@ function compute_row_style(bordered, color): React.CSSProperties {
     backgroundColor: color,
     borderStyle: "solid",
     borderColor: bordered ? COLORS.BLUE_BG : color,
-    margin: "1px 1px 1px 1px"
+    margin: "1px 1px 1px 1px",
   };
 }
 
@@ -50,7 +55,7 @@ const directory_style: React.CSSProperties = {
   whiteSpace: "pre-wrap",
   wordWrap: "break-word",
   overflowWrap: "break-word",
-  verticalAlign: "sub"
+  verticalAlign: "sub",
 };
 
 function compute_link_style(mask): React.CSSProperties {
@@ -78,7 +83,7 @@ export class DirectoryRow extends React.Component<Props, State> {
 
   handle_mouse_down = () => {
     this.setState({
-      selection_at_last_mouse_down: (window.getSelection() || "").toString()
+      selection_at_last_mouse_down: (window.getSelection() || "").toString(),
     });
   };
 
@@ -217,7 +222,7 @@ export class DirectoryRow extends React.Component<Props, State> {
               style={{
                 marginLeft: "3px",
                 fontSize: "14pt",
-                verticalAlign: "sub"
+                verticalAlign: "sub",
               }}
             />
           </a>

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // navbar flex layout
 @import "_vars.sass"
 
@@ -10,6 +15,13 @@ body
 div#content
   flex: 1 1 auto
   overflow: auto
+
+dl > dd
+  margin-bottom: 1em
+
+ol.list > li,
+ul.list > li
+  margin-bottom: 0.3em
 
 nav#nav-main
   flex: 0 0 auto
@@ -48,6 +60,7 @@ img.rounded
 
 .firstline
   margin-top: 0
+  font-weight: bold
 
 div.spacing
   margin-top: 4rem !important
@@ -88,7 +101,8 @@ nav.navbar.navbar-default
   .get-started
     color        : $COL_BS_GREEN_DD
     font-weight  : bold
-  .documentation
+  .documentation,
+  .sharedfiles
     color        : $COL_BLUE_DOC
     font-weight  : bold
   .navbar-header
@@ -139,16 +153,48 @@ div.intro
     @media (max-width: 767px)
       width      : 30%
 
+
 body
   div.container
     > footer
       margin-top     : 6rem
-    > div.row#top
-      padding       : 5rem 0 5rem 0
-      @media (min-width: 992px)
-        padding     : 5rem 0 5rem 0
     > div#software-env-top
       margin         : 2rem 0 5rem 0
+
+#top
+  background-color  : #c7d9f5
+  &.nobg
+    background-color: transparent
+  padding          : 3rem 0 0 0
+  .descr
+    color          : $COL_GRAY
+    font-size      : 2rem
+  @media (max-width: $width-md)
+    padding        : 3rem 0 0 0
+  > div
+    margin-bottom  : 1rem
+
+  .headline
+    font-family: 'Roboto-Slab', 'Roboto Slab', serif
+    font-size: 250%
+    line-height: 175%
+    margin: 1rem auto
+    font-weight: bold
+    @media (max-width: $width-md)
+      font-size: 150%
+      line-height: 125%
+      text-align: center
+      width: 75%
+    &.headline2
+      font-weight: normal
+      font-size: 200%
+      margin: 0.5rem auto
+      @media (max-width: $width-md)
+        font-size: 125%
+
+  .subheadline
+    font-size: 125%
+    width: 100%
 
 /* adds offset for a.anchor#a-name links, better visibility */
 a.anchor
@@ -168,6 +214,9 @@ td.version
   font-size        : 24px
   line-height      : 1.5
   font-weight      : bold
+.cc-btn
+  white-space: nowrap
+  margin-right     : 1rem
 .cc-create-account-btn
   white-space: nowrap
   > a
@@ -224,7 +273,8 @@ nav.navbar.navbar-default
   .navbar-nav.policies>li>a
     font-size: 1.5rem
     padding: 5px 10px
-    &.documentation
+    &.documentation,
+    &.sharedfiles
       color: $COL_BLUE_DOC
 
 div.navbar-menu

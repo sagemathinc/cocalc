@@ -1,0 +1,23 @@
+{
+  "license-header-manager.excludeExtensions": [".sh", ".py"],
+  "license-header-manager.additionalCommentStyles": [
+    {
+      "extension": ".coffee",
+      "commentStart": "#########################################################################",
+      "commentMiddle": "#",
+      "commentEnd": "#########################################################################"
+    },
+    {
+      "extension": ".cjsx",
+      "commentStart": "#########################################################################",
+      "commentMiddle": "#",
+      "commentEnd": "#########################################################################"
+    },
+    {
+      "extension": ".tsx",
+      "commentStart": "/*",
+      "commentMiddle": " * ",
+      "commentEnd": " */"
+    }
+  ]
+}

@@ -1,9 +1,14 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import {
   filename_extension_notilde,
   meta_file,
   path_split,
   defaults,
-  required
+  required,
 } from "smc-util/misc";
 
 import { React } from "./app-framework";
@@ -53,7 +58,7 @@ const file_editors: {
   [is_public: string]: { [ext: string]: FileEditorSpec };
 } = {
   true: {}, // true = is_public
-  false: {} // false = not public
+  false: {}, // false = not public
 };
 
 export function icon(ext: string): string | undefined {
@@ -83,7 +88,7 @@ export function register_file_editor(opts: FileEditorInfo): void {
     init: undefined, // function
     remove: undefined,
     icon: "file-o",
-    save: undefined
+    save: undefined,
   }); // optional; If given, doing opts.save(path, redux, project_id) should save the document.
 
   if (typeof opts.ext === "string") {
@@ -104,7 +109,7 @@ export function register_file_editor(opts: FileEditorInfo): void {
       generator: opts.generator,
       init: opts.init,
       remove: opts.remove,
-      save: opts.save
+      save: opts.save,
     };
   }
 }

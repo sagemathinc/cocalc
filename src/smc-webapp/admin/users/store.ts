@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { List } from "immutable";
 
 import { Store, TypedMap, redux } from "../../app-framework";
@@ -19,7 +24,7 @@ export const initial_state: StoreState = {
   state: "edit",
   status: "",
   query: "",
-  result: List([])
+  result: List([]),
 };
 
 export class AdminUsersStore extends Store<StoreState> {}

@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 Password reset and change functionality.
 ###
@@ -37,6 +42,9 @@ exports.forgot_password = (opts) ->
     opts.mesg.email_address = misc.lower_email_address(opts.mesg.email_address)
 
     id = null
+    locals =
+        settings : undefined
+
     async.series([
         (cb) ->
             # Record this password reset attempt in our database
@@ -100,9 +108,29 @@ exports.forgot_password = (opts) ->
                 ttl           : 60*60
                 cb            : (err, _id) ->
                     id = _id; cb(err)
+
+        (cb) =>
+            opts.database.get_server_settings_cached
+                cb: (err, settings) =>
+                    if err
+                        cb(err)
+                    else
+                        locals.settings = settings
+                        cb()
+
         (cb) ->
             # send an email to opts.mesg.email_address that has a password reset link
-            {DOMAIN_NAME, HELP_EMAIL, SITE_NAME} = require('smc-util/theme')
+            theme = require('smc-util/theme')
+
+            dns         = locals.settings.dns or theme.DNS
+            DOMAIN_NAME = "https://#{dns}"
+            HELP_EMAIL  = locals.settings.help_email ? theme.HELP_EMAIL
+            SITE_NAME   = locals.settings.site_name  ? theme.SITE_NAME
+
+            base_url      = require('./base-url').base_url()
+            path          = require('path').join('/', base_url, '/app')
+            RESET_URL     = "#{DOMAIN_NAME}#{path}?forgot=#{id}"
+
             body = """
                 <div>Hello,</div>
                 <div>&nbsp;</div>
@@ -110,27 +138,25 @@ exports.forgot_password = (opts) ->
                 Somebody just requested to change the password of your #{SITE_NAME} account.
                 If you requested this password change, please click this link:</div>
                 <div>&nbsp;</div>
-                <div style="text-align: center;">
-                <span style="font-size:12px;"><b>
-                  <a href="#{DOMAIN_NAME}/app?forgot=#{id}">#{DOMAIN_NAME}/app?forgot=#{id}</a>
-                </b></span>
+                <div style="text-align: center; font-size: 120%;">
+                  <b><a href="#{RESET_URL}">#{RESET_URL}</a></b>
                 </div>
                 <div>&nbsp;</div>
                 <div>If you don't want to change your password, ignore this message.</div>
                 <div>&nbsp;</div>
                 <div>In case of problems, email
-                <a href="mailto:#{HELP_EMAIL}">#{HELP_EMAIL}</a> immediately
-                (or just reply to this email).
+                <a href="mailto:#{HELP_EMAIL}">#{HELP_EMAIL}</a> immediately!
                 <div>&nbsp;</div>
                 """
 
             email.send_email
-                subject : "#{SITE_NAME} Password Reset"
-                body    : body
-                from    : "CoCalc Help <#{HELP_EMAIL}>"
-                to      : opts.mesg.email_address
-                category: "password_reset"
-                cb      : cb
+                subject  : "#{SITE_NAME} Password Reset"
+                body     : body
+                from     : "CoCalc Help <#{HELP_EMAIL}>"
+                to       : opts.mesg.email_address
+                category : "password_reset"
+                settings : locals.settings
+                cb       : cb
     ], opts.cb)
 
 exports.reset_forgot_password = (opts) ->

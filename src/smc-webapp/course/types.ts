@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { NotebookScores } from "../jupyter/nbgrader/autograde";
 
 export interface SyncDBRecordBase {
@@ -11,6 +16,9 @@ export interface SyncDBRecordSettings {
   shared_project_id?: string;
   pay?: string;
   site_license_id?: string;
+  nbgrader_grade_in_instructor_project?: boolean;
+  nbgrader_cell_timeout_ms?: number;
+  nbgrader_timeout_ms?: number;
 }
 
 // This is closely related to store.AssignmentRecord...

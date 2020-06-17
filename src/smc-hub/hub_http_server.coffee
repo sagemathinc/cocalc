@@ -1,27 +1,9 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
-###
-The Hub's HTTP Server
-###
+# The Hub's HTTP Server
 
 fs           = require('fs')
 path_module  = require('path')
@@ -33,7 +15,6 @@ async        = require('async')
 cookieParser = require('cookie-parser')
 body_parser  = require('body-parser')
 express      = require('express')
-formidable   = require('formidable')
 http_proxy   = require('http-proxy')
 http         = require('http')
 winston      = require('winston')
@@ -43,7 +24,6 @@ winston      = require('./winston-metrics').get_logger('hub_http_server')
 misc         = require('smc-util/misc')
 {defaults, required} = misc
 {DNS}        = require('smc-util/theme')
-
 misc_node    = require('smc-util-node/misc_node')
 hub_register = require('./hub_register')
 auth         = require('./auth')
@@ -54,11 +34,14 @@ MetricsRecorder  = require('./metrics-recorder')
 {http_message_api_v1} = require('./api/handler')
 {setup_analytics_js} = require('./analytics')
 
+open_cocalc = require('./open-cocalc-server')
+
 # Rendering stripe invoice server side to PDF in memory
 {stripe_render_invoice} = require('./stripe/invoice')
 
 SMC_ROOT    = process.env.SMC_ROOT
 STATIC_PATH = path_module.join(SMC_ROOT, 'static')
+WEBAPP_RES_PATH = path_module.join(SMC_ROOT, 'webapp-lib', 'resources')
 
 
 exports.init_express_http_server = (opts) ->
@@ -69,7 +52,6 @@ exports.init_express_http_server = (opts) ->
         compute_server : required
         cookie_options : undefined   # they're for the new behavior (legacy fallback implemented below)
     winston.debug("initializing express http server")
-    winston.debug("MATHJAX_URL = ", misc_node.MATHJAX_URL)
 
     if opts.database.is_standby
         server_settings = undefined
@@ -134,42 +116,22 @@ exports.init_express_http_server = (opts) ->
         res.write('''
                   User-agent: *
                   Allow: /share
-                  Disallow: /projects/*
-                  Disallow: /*/raw/
-                  Disallow: /*/port/
-                  Disallow: /haproxy
+                  Disallow: /*
                   ''')
         res.end()
 
     # setup the /analytics.js endpoint
     setup_analytics_js(router, opts.database, winston, opts.base_url)
 
+    open_cocalc.setup_open_cocalc(app:app, router:router, db:opts.database, cacheLongTerm:cacheLongTerm, base_url:opts.base_url)
+
     # The /static content
     router.use '/static',
         express.static(STATIC_PATH, setHeaders: cacheLongTerm)
 
-    router.use '/policies',
-        express.static(path_module.join(STATIC_PATH, 'policies'), {maxAge: 0})
-    router.use '/doc',
-        express.static(path_module.join(STATIC_PATH, 'doc'), {maxAge: 0})
-
-    handle_root = (req, res) ->
-        # for convenicnece, a simple heuristic checks for the presence of the remember_me cookie
-        # that's not a security issue b/c the hub will do the heavy lifting
-        # TODO code in comments is a heuristic looking for the remember_me cookie, while when deployed the haproxy only
-        # looks for the has_remember_me value (set by the client in accounts).
-        # This could be done in different ways, it's not clear what works best.
-        #remember_me = req.cookies[opts.base_url + 'remember_me']
-        has_remember_me = req.cookies[auth.remember_me_cookie_name(opts.base_url, false)] \
-                        or req.cookies[auth.remember_me_cookie_name(opts.base_url, true)]
-        if has_remember_me == 'true' # and remember_me?.split('$').length == 4 and not req.query.signed_out?
-            res.redirect(opts.base_url + '/app')
-        else
-            #res.cookie(opts.base_url + 'has_remember_me', 'false', { maxAge: 60*60*1000, httpOnly: false })
-            res.sendFile(path_module.join(STATIC_PATH, 'index.html'), {maxAge: 0})
-
-    router.get '/', handle_root
-    router.get '/index.html', handle_root
+    # This is webapp-lib/resources !
+    router.use '/res',
+        express.static(WEBAPP_RES_PATH, setHeaders: cacheLongTerm)
 
     router.get '/app', (req, res) ->
         #res.cookie(opts.base_url + 'has_remember_me', 'true', { maxAge: 60*60*1000, httpOnly: false })
@@ -248,17 +210,6 @@ exports.init_express_http_server = (opts) ->
                     res.status(400).send(error:err)  # Bad Request
                 else
                     res.send(resp)
-
-    # HTTP-POST-based user queries
-    require('./user-query').init(router, opts.base_url, opts.database)
-
-    # HTTP-POST-based user API
-    require('./user-api').init
-        router         : router
-        base_url       : opts.base_url
-        database       : opts.database
-        compute_server : opts.compute_server
-        logger         : winston
 
     # stripe invoices:  /invoice/[invoice_id].pdf
     stripe_connections = require('./stripe/connect').get_stripe()
@@ -339,7 +290,11 @@ exports.init_express_http_server = (opts) ->
 
     if server_settings?
         router.get '/customize', (req, res) ->
-            res.json(server_settings.pub)
+            if req.query.type == 'embed'
+                res.header("Content-Type", "text/javascript")
+                res.send("window.CUSTOMIZE = Object.freeze(#{JSON.stringify(server_settings.pub)})")
+            else
+                res.json(server_settings.pub)
 
     # Save other paths in # part of URL then redirect to the single page app.
     router.get ['/projects*', '/help*', '/settings*', '/admin*', '/dashboard*', '/notifications*'], (req, res) ->
@@ -347,7 +302,7 @@ exports.init_express_http_server = (opts) ->
         q = url.parse(req.url, true).search || "" # gives exactly "?key=value,key=..."
         res.redirect(opts.base_url + "/app#" + req.path.slice(1) + q)
 
-    # Return global status information about smc
+    # Return global status information about CoCalc
     router.get '/stats', (req, res) ->
         if not hub_register.database_is_working()
             res.json({error:"not connected to database"})
@@ -363,16 +318,6 @@ exports.init_express_http_server = (opts) ->
                     res.header("Content-Type", "application/json")
                     res.send(JSON.stringify(stats, null, 1))
 
-    ###
-    # Stripe webhooks -- not done
-    router.post '/stripe', (req, res) ->
-        form = new formidable.IncomingForm()
-        form.parse req, (err, fields, files) ->
-            # record and act on the webhook here -- see https://stripe.com/docs/webhooks
-            # winston.debug("STRIPE: webhook -- #{err}, #{misc.to_json(fields)}")
-        res.send('')
-    ###
-
     # Get the http server and return it.
     if opts.base_url
         app.use(opts.base_url, router)
@@ -386,4 +331,3 @@ exports.init_express_http_server = (opts) ->
         dev.init_share_server(app, opts.database, opts.base_url, winston);
 
     return {http_server:http_server, express_router:router}
-

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Simple http server that serves share server, is used for local
 development (cc-in-cc), the Docker image, and in production for
 the main share server.
@@ -43,12 +48,12 @@ export async function init(opts: {
     database: opts.database,
     share_path: opts.share_path,
     base_url: opts.base_url,
-    logger: opts.logger
+    logger: opts.logger,
   });
 
   app.use(vhost);
 
-  router.get("/alive", function(_req, res): void {
+  router.get("/alive", function (_req, res): void {
     if (!hub_register.database_is_working()) {
       // this will stop haproxy from routing traffic to us
       // until db connection starts working again.
@@ -68,7 +73,7 @@ export async function init(opts: {
       database: opts.database,
       path: opts.share_path,
       logger: opts.logger,
-      base_url: opts.base_url
+      base_url: opts.base_url,
     });
   }
 

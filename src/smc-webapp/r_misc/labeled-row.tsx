@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 const { Col, Row } = require("react-bootstrap");
 
@@ -14,7 +19,7 @@ export function LabeledRow({
   style,
   label,
   className,
-  label_cols = 4
+  label_cols = 4,
 }: Props) {
   return (
     <Row style={style} className={className}>

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 
 import { ProjectActions } from "../../../project_actions";
@@ -18,16 +23,16 @@ const row_style: React.CSSProperties = {
   color: COLORS.GRAY_L,
   position: "absolute",
   bottom: 0,
-  fontSize: "110%"
+  fontSize: "110%",
 };
 
 const link_style: React.CSSProperties = {
   cursor: "pointer",
-  color: COLORS.GRAY
+  color: COLORS.GRAY,
 };
 
 const library_comment_style: React.CSSProperties = {
-  fontSize: "80%"
+  fontSize: "80%",
 };
 
 export class FirstSteps extends React.PureComponent<Props> {

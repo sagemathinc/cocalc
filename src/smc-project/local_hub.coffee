@@ -1,8 +1,9 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
-
-CoCalc: Collaborative web-based SageMath, Jupyter, LaTeX and Terminals.
-Copyright 2015, SageMath, Inc., GPL v3.
-
 local_hub -- a node.js program that runs as a regular user, and
              coordinates and maintains the connections between
              the global hubs and *all* projects running as
@@ -24,6 +25,8 @@ uuid    = require('uuid')
 winston = require('winston')
 request = require('request')
 program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
+
+init_gitconfig = require('./gitconfig').init_gitconfig
 
 BUG_COUNTER = 0
 
@@ -50,8 +53,15 @@ misc        = require('smc-util/misc')
 smc_version = require('smc-util/smc-version')
 misc_node   = require('smc-util-node/misc_node')
 
+# I'm disabling memwatch because this code is in typescript, and gets
+# compiled and cached at runtime, and as of now, that completely breaks
+# multiuser cocalc (e.g. cocalc-docker), since the cache has very
+# restrictive permissions.  Plus I never look at the information
+# that this logs
+###
 memory      = require('smc-util-node/memory')
 memory.init(winston.debug)
+###
 
 {to_json, from_json, defaults, required}   = require('smc-util/misc')
 
@@ -152,7 +162,7 @@ init_info_json = (cb) ->  # NOTE: cb should only be required to guarantee info.j
         project_id : project_id
         location   : {host:host, username:username, port:port, path:'.'}
         base_url   : base_url
-    exports.client = hub_client = new Client(INFO.project_id)
+    exports.client = hub_client = new Client(INFO.project_id, winston.debug)
     fs.writeFile filename, misc.to_json(INFO), (err) ->
         if err
             winston.debug("Writing 'info.json' -- #{err}")
@@ -304,9 +314,14 @@ start_server = (tcp_port, raw_port, cb) ->
     the_secret_token = undefined
     if program.console_port
         console_sessions.set_port(program.console_port)
+
     # We run init_info_json to determine the INFO variable.
     # However, we do NOT wait for the cb of init_info_json to be called, since we don't care in this process that the file info.json was written.
     init_info_json()
+
+    # setup some files to help users working with Git
+    # this is an async function, but we don't wait for it -- no need
+    init_gitconfig(winston)
 
     async.series([
         (cb) ->
@@ -358,6 +373,26 @@ start_server = (tcp_port, raw_port, cb) ->
         cb(err)
     )
 
+# Contains additional environment variables. Base 64 encoded JSON of {[key:string]:string}.
+set_extra_env = ->
+    if not process.env.COCALC_EXTRA_ENV
+        winston.debug("set_extra_env: nothing provided")
+        return
+    try
+        env64 = process.env.COCALC_EXTRA_ENV
+        raw = Buffer.from(env64, 'base64').toString('utf8')
+        winston.debug("set_extra_env: #{raw}")
+        data = JSON.parse(raw)
+        if typeof data == 'object'
+            for k, v of data
+                if typeof v != 'string' or v.length == 0
+                    winston.debug("set_extra_env: ignoring key #{k}, value is not a string or length 0")
+                    continue
+                process.env[k] = v
+    catch err
+        # we report and ignore errors
+        winston.debug("ERROR set_extra_env -- cannot process '#{process.env.COCALC_EXTRA_ENV}' -- #{err}")
+
 program.usage('[?] [options]')
     .option('--tcp_port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
     .option('--raw_port <n>', 'RAW server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
@@ -380,6 +415,7 @@ else
     winston.debug("NOT running in kucalc")
     kucalc.IN_KUCALC = false
 
+set_extra_env()
 
 start_server program.tcp_port, program.raw_port, (err) ->
     if err

@@ -1,3 +1,7 @@
+
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
+
 ###
 # To do development on this, install it locally:
 #   pip install --user --upgrade smc_pyutil/
@@ -111,7 +115,8 @@ setup(
             'cc-rmd2html         = smc_pyutil.rmd2html:main',
             'cc-java2html        = smc_pyutil.java2html:main',
             'cc-m2sagews         = smc_pyutil.m2sagews:main',
-            'cc-sagews2ipynb     = smc_pyutil.sagews2ipynb:main'
+            'cc-sagews2ipynb     = smc_pyutil.sagews2ipynb:main',
+            'cc-ipynb-to-pdf     = smc_pyutil.ipynb_to_pdf:main'
         ]
     },
     include_package_data=True)

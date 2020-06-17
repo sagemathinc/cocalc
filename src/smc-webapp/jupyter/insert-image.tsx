@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Modal for inserting an image
 */
 
@@ -6,7 +11,7 @@ import { React, Component, Rendered } from "../app-framework";
 
 import { Icon } from "../r_misc";
 const { Button, Modal } = require("react-bootstrap"); // TODO: import types
-const { SMC_Dropzone } = require("../smc-dropzone"); // TODO: import types
+import { FileUpload } from "../file-upload";
 import { JupyterActions } from "./browser-actions";
 
 const TMP = ".smc/tmp"; // TODO: maybe .smc will change...
@@ -47,10 +52,11 @@ export class InsertImage extends Component<InsertImageProps> {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <SMC_Dropzone
+          <FileUpload
             project_id={this.props.project_id}
             current_path={TMP}
             dropzone_handler={{ addedfile: this.add_file.bind(this) }}
+            show_header={true}
           />
         </Modal.Body>
 

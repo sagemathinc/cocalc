@@ -1,11 +1,16 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Use synctex to go back and forth between latex files and pdfs.
 */
 
 import {
   path_split,
   splitlines,
-  change_filename_extension
+  change_filename_extension,
 } from "smc-util/misc2";
 import { exec, ExecOutput, project_api } from "../generic/client";
 
@@ -19,13 +24,12 @@ function exec_synctex(
   args: string[]
 ): Promise<ExecOutput> {
   return exec({
-    allow_post: true, // synctex is FAST.
     timeout: 5,
     command: "synctex",
     args: args,
     project_id: project_id,
     path,
-    err_on_exit: true
+    err_on_exit: true,
   });
 }
 
@@ -43,7 +47,7 @@ export async function pdf_to_tex(opts: {
   const output = await exec_synctex(opts.project_id, path, [
     "edit",
     "-o",
-    `${opts.page}:${opts.x}:${opts.y}:${tail}`
+    `${opts.page}:${opts.x}:${opts.y}:${tail}`,
   ]);
   const info = parse_synctex_output(output.stdout);
   if (info.Input != null) {
@@ -64,7 +68,7 @@ export async function tex_to_pdf(opts: {
   column: number; // 1-based column
   dir: string; // directory that contains the synctex file
   knitr: boolean;
-  source_dir:string;
+  source_dir: string;
 }): Promise<SyncTex> {
   if (opts.knitr) {
     opts.tex_path = change_filename_extension(opts.tex_path, "Rnw");
@@ -78,7 +82,7 @@ export async function tex_to_pdf(opts: {
     "-i",
     `${opts.line}:${opts.column}:${HOME}/${opts.source_dir}/${opts.tex_path}`,
     "-o",
-    path_split(opts.pdf_path).tail
+    path_split(opts.pdf_path).tail,
   ]);
   return parse_synctex_output(output.stdout);
 }

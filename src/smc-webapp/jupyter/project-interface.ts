@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 The public interface for the backend functionality that runs in the project.
 
 This is only used on the backend.  However it is included in some of the
@@ -62,6 +67,7 @@ export interface ExecOpts {
   id?: string;
   stdin?: StdinFunction;
   halt_on_error?: boolean;
+  timeout_ms?: number;
 }
 
 export interface CodeExecutionEmitterInterface extends EventEmitterInterface {

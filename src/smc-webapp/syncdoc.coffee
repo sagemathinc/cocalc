@@ -1,23 +1,7 @@
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2014 -- 2016, SageMath, Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Gener@al Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 SAVE_DEBOUNCE_MS = 1500
 
@@ -91,7 +75,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
         @project_id  = @opts.project_id
         @filename    = @opts.filename
         @connect     = @_connect
-        @_syncstring = webapp_client.sync_string2
+        @_syncstring = webapp_client.sync_client.sync_string
             project_id    : @project_id
             path          : @filename
             cursors       : opts.cursors
@@ -234,7 +218,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @filename = '.smc/root' + @filename
 
         id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
-        @_syncstring = webapp_client.sync_string2
+        @_syncstring = webapp_client.sync_client.sync_string
             id         : id
             project_id : @project_id
             path       : @filename

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const path = require("path");
 const this_file: string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
@@ -12,10 +17,7 @@ import { get_project_id } from "./get_project_id";
 import { get_project_status } from "./get_project_status";
 import { api_project_exec } from "./api_project_exec";
 
-export const api_session = async function(
-  creds: Creds,
-  opts: Opts
-): Promise<PassFail> {
+export const api_session = async function (creds: Creds, opts: Opts): Promise<PassFail> {
   const pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
@@ -47,8 +49,8 @@ export const api_session = async function(
     ags = await get_project_status(creds, opts, api_key, project_id);
     pfcounts.add(ags);
 
-    const command: string = 'julia -v';
-    const wanted_output: string = 'julia version 1.2.0\n';
+    const command: string = "julia -v";
+    const wanted_output: string = "julia version 1.2.0\n";
     ags = await api_project_exec(creds, opts, api_key, project_id, command, wanted_output);
     pfcounts.add(ags);
 

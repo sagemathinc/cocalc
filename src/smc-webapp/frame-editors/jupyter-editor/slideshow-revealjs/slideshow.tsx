@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Frame for showing the notebook as a slideshow for presentations.
 
 TODO:
@@ -20,7 +25,7 @@ import {
   Rendered,
   Component,
   rclass,
-  rtypes
+  rtypes,
 } from "../../../app-framework";
 
 import { Loading } from "../../../r_misc";
@@ -39,8 +44,8 @@ class Slideshow extends Component<Props, {}> {
   static reduxProps({ name }) {
     return {
       [name]: {
-        slideshow: rtypes.immutable.Map
-      }
+        slideshow: rtypes.immutable.Map,
+      },
     };
   }
 

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const { writeFile, readFile, unlink } = require("fs");
 const tmp = require("tmp");
 const { execute_code } = require("smc-util-node/execute-code");
@@ -44,7 +49,7 @@ async function tidy(input_path) {
     "no",
     "--drop-empty-paras",
     "no",
-    input_path
+    input_path,
   ];
 
   return await callback_opts(execute_code)({
@@ -52,7 +57,7 @@ async function tidy(input_path) {
     args: args,
     err_on_exit: false,
     bash: false,
-    timeout: 15
+    timeout: 15,
   });
 }
 

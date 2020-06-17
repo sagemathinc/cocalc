@@ -1,30 +1,40 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { SyncDoc, SyncOpts0, SyncOpts } from "../generic/sync-doc";
 import { from_str, DBDocument } from "./doc";
 import { Document, DocType } from "../generic/types";
 
-export interface SyncDBOpts extends SyncOpts0 {
-  from_str: (str: string) => Document;
-  doctype: DocType;
+export interface SyncDBOpts0 extends SyncOpts0 {
   primary_keys: string[];
   string_cols: string[];
 }
 
+export interface SyncDBOpts extends SyncDBOpts0 {
+  from_str: (str: string) => Document;
+  doctype: DocType;
+}
+
 export class SyncDB extends SyncDoc {
-  constructor(opts: SyncDBOpts) {
-    if (opts.primary_keys == null || opts.primary_keys.length <= 0) {
+  constructor(opts: SyncDBOpts0) {
+    // Typescript question -- What is the right way to do this?
+    const opts1: SyncDBOpts = (opts as unknown) as SyncDBOpts;
+    if (opts1.primary_keys == null || opts1.primary_keys.length <= 0) {
       throw Error("primary_keys must have length at least 1");
     }
-    // TS question -- What is the right way to do this?
-    opts.from_str = str => from_str(str, opts.primary_keys, opts.string_cols);
-    opts.doctype = {
+    opts1.from_str = (str) =>
+      from_str(str, opts1.primary_keys, opts1.string_cols);
+    opts1.doctype = {
       type: "db",
       patch_format: 1,
       opts: {
-        primary_keys: opts.primary_keys,
-        string_cols: opts.string_cols
-      }
+        primary_keys: opts1.primary_keys,
+        string_cols: opts1.string_cols,
+      },
     };
-    super(opts as SyncOpts);
+    super(opts1 as SyncOpts);
   }
 
   get_one(arg?) {

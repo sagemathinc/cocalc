@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 interface Sub {
   from: number;
   to: number;
@@ -2298,5 +2303,5 @@ const TRANSLATIONS = {
   Join: "⋈",
   Vdash: "⊩",
   Vert: "‖",
-  Vvdash: "⊪"
+  Vvdash: "⊪",
 };

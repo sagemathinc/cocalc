@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Range slider to select two versions in order to see the diff between them.
 
 Uses https://github.com/tajo/react-range
@@ -46,7 +51,7 @@ export class RangeSlider extends Component<Props> {
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          boxShadow: "0px 2px 6px #AAA"
+          boxShadow: "0px 2px 6px #AAA",
         }}
       >
         <div
@@ -60,7 +65,7 @@ export class RangeSlider extends Component<Props> {
             fontFamily: "Arial,Helvetica Neue,Helvetica,sans-serif",
             padding: "4px",
             borderRadius: "4px",
-            backgroundColor: "rgb(66, 139, 202)"
+            backgroundColor: "rgb(66, 139, 202)",
           }}
         >
           <TimeAgo date={date} />
@@ -69,7 +74,7 @@ export class RangeSlider extends Component<Props> {
           style={{
             height: "16px",
             width: "5px",
-            backgroundColor: isDragged ? "rgb(66, 139, 202)" : "#CCC"
+            backgroundColor: isDragged ? "rgb(66, 139, 202)" : "#CCC",
           }}
         />
       </div>
@@ -84,7 +89,7 @@ export class RangeSlider extends Component<Props> {
           ...props.style,
           height: "6px",
           width: "100%",
-          backgroundColor: "#ccc"
+          backgroundColor: "#ccc",
         }}
       >
         {children}
@@ -107,7 +112,7 @@ export class RangeSlider extends Component<Props> {
           height: "72px",
           paddingTop: "48px",
           width: "90%",
-          margin: "auto"
+          margin: "auto",
         }}
       >
         <Range

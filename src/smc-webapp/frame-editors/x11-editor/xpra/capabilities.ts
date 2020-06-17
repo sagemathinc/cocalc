@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * CoCalc's Xpra HTML Client
  *
  * ---
@@ -23,20 +28,20 @@ import { supportsWebp, calculateColorGamut, calculateScreens } from "./util";
 const platformMap = {
   Win: {
     type: "win32",
-    name: "Microsoft Windows"
+    name: "Microsoft Windows",
   },
   Mac: {
     type: "darwin",
-    name: "Mac OSX"
+    name: "Mac OSX",
   },
   Linux: {
     type: "linux",
-    name: "Linux"
+    name: "Linux",
   },
   X11: {
     type: "posix",
-    name: "Posix"
-  }
+    name: "Posix",
+  },
 };
 
 function getPlatform(): {
@@ -46,14 +51,14 @@ function getPlatform(): {
   platform: string;
 } {
   const { appVersion, oscpu, cpuClass } = navigator as any;
-  const found = Object.keys(platformMap).find(k => appVersion.includes(k));
+  const found = Object.keys(platformMap).find((k) => appVersion.includes(k));
 
   return Object.assign(
     {
       type: "unknown",
       name: "unknown",
       processor: oscpu || cpuClass || "unknown", // unlikely to work with modern browsers
-      platform: appVersion
+      platform: appVersion,
     },
     found ? platformMap[found] : {}
   );
@@ -62,7 +67,7 @@ function getPlatform(): {
 function getBrowser(): { name: string; agent: string } {
   return {
     name: "Chrome", // TODO
-    agent: navigator.userAgent
+    agent: navigator.userAgent,
   };
 }
 
@@ -71,7 +76,7 @@ function getEncodingCapabilities(config, soundCodecs) {
     "hmac",
     "hmac+md5",
     "xor",
-    ...Object.keys(forge.md.algorithms).map(hash => `hmac+${hash}`)
+    ...Object.keys(forge.md.algorithms).map((hash) => `hmac+${hash}`),
   ];
 
   const detectedEncodings = ["jpeg", "png", "rgb", "rgb32"]; // "h264", "vp8+webm", "h264+mp4", "mpeg4+mp4"
@@ -114,7 +119,7 @@ function getEncodingCapabilities(config, soundCodecs) {
       "mpeg4+mp4": ["YUV420P"],
       "h264+mp4": ["YUV420P"],
       "vp8+webm": ["YUV420P"],
-      webp: ["BGRX", "BGRA"]
+      webp: ["BGRX", "BGRA"],
     },
     "encoding.h264.YUV420P.profile": "baseline",
     "encoding.h264.YUV420P.level": "2.1",
@@ -128,7 +133,7 @@ function getEncodingCapabilities(config, soundCodecs) {
     "encoding.h264.score-delta": -20,
     "encoding.h264+mp4.score-delta": 50,
     "encoding.mpeg4+mp4.score-delta": 50,
-    "encoding.vp8+webm.score-delta": 50
+    "encoding.vp8+webm.score-delta": 50,
 
     // 'encoding.scrolling.min-percent' : 30,
     // 'encoding.min-speed': 80,
@@ -141,7 +146,7 @@ function getClientCapabilities(config) {
   const keycodes = Object.keys(CHARCODE_TO_NAME).reduce(
     (result, c) => [
       ...result,
-      [parseInt(c, 10), CHARCODE_TO_NAME[c], parseInt(c, 10), 0, 0]
+      [parseInt(c, 10), CHARCODE_TO_NAME[c], parseInt(c, 10), 0, 0],
     ],
     []
   );
@@ -182,7 +187,7 @@ function getClientCapabilities(config) {
       "decorations",
       "override-redirect",
       //"tray",
-      "modal"
+      "modal",
       //"opacity"
       // 'shadow', 'desktop',
     ],
@@ -219,7 +224,7 @@ function getClientCapabilities(config) {
     // Notifications
     notifications: config.notifications,
     "notifications.close": true,
-    "notifications.actions": true
+    "notifications.actions": true,
   };
 }
 
@@ -270,7 +275,7 @@ export function getCapabilities(config, soundCodecs) {
       rencode: false,
       bencode: true,
       yaml: false,
-      "open-url": true
+      "open-url": true,
     },
     client,
     encoding,

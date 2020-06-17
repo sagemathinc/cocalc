@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { CompressedPatch, Document } from "../generic/types";
 import { apply_patch, make_patch } from "../generic/util";
 
@@ -53,4 +58,3 @@ export class StringDocument implements Document {
     return this.value.length;
   }
 }
-

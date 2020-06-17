@@ -1,10 +1,14 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Actions involving working with handouts.
 */
 
 import { CourseActions, PARALLEL_LIMIT } from "../actions";
 import { CourseStore } from "../store";
-import { callback2 } from "smc-util/async-utils";
 import { webapp_client } from "../../webapp-client";
 import { redux } from "../../app-framework";
 import { uuid, mswalltime } from "smc-util/misc";
@@ -32,7 +36,7 @@ export class HandoutsActions {
         project_id: this.get_store().get("course_project_id"),
         command: "mkdir",
         args: ["-p", path],
-        err_on_exit: true
+        err_on_exit: true,
       });
     } catch (err) {
       this.course_actions.set_error(`error creating assignment: ${err}`);
@@ -43,7 +47,7 @@ export class HandoutsActions {
       path,
       target_path,
       table: "handouts",
-      handout_id: uuid()
+      handout_id: uuid(),
     });
   }
 
@@ -51,7 +55,7 @@ export class HandoutsActions {
     this.course_actions.set({
       deleted: true,
       handout_id,
-      table: "handouts"
+      table: "handouts",
     });
   }
 
@@ -59,7 +63,7 @@ export class HandoutsActions {
     this.course_actions.set({
       deleted: false,
       handout_id,
-      table: "handouts"
+      table: "handouts",
     });
   }
 
@@ -68,7 +72,7 @@ export class HandoutsActions {
     this.course_actions.set({
       [name]: val,
       table: "handouts",
-      handout_id: handout.get("handout_id")
+      handout_id: handout.get("handout_id"),
     });
   }
 
@@ -83,12 +87,12 @@ export class HandoutsActions {
   ): void {
     const { student, handout } = this.course_actions.resolve({
       handout_id,
-      student_id
+      student_id,
     });
     if (student == null || handout == null) return;
     const obj: SyncDBRecordHandout = {
       table: "handouts",
-      handout_id: handout.get("handout_id")
+      handout_id: handout.get("handout_id"),
     };
     const h = this.course_actions.get_one(obj);
     if (h == null) return;
@@ -108,7 +112,7 @@ export class HandoutsActions {
   private handout_start_copy(handout_id: string, student_id: string): boolean {
     const obj: any = {
       table: "handouts",
-      handout_id
+      handout_id,
     };
     const x = this.course_actions.get_one(obj);
     if (x == null) {
@@ -167,7 +171,7 @@ export class HandoutsActions {
       return;
     }
     const id = this.course_actions.set_activity({
-      desc: "Copying handout to a student"
+      desc: "Copying handout to a student",
     });
     const finish = (err?) => {
       this.course_actions.clear_activity(id);
@@ -179,14 +183,14 @@ export class HandoutsActions {
     const { store, student, handout } = this.course_actions.resolve({
       student_id,
       handout_id,
-      finish
+      finish,
     });
     if (!student || !handout) return;
 
     const student_name = store.get_student_name(student_id);
     this.course_actions.set_activity({
       id,
-      desc: `Copying handout to ${student_name}`
+      desc: `Copying handout to ${student_name}`,
     });
     let student_project_id: string | undefined = student.get("project_id");
     const course_project_id = store.get("course_project_id");
@@ -195,19 +199,23 @@ export class HandoutsActions {
       if (student_project_id == null) {
         this.course_actions.set_activity({
           id,
-          desc: `${student_name}'s project doesn't exist, so creating it.`
+          desc: `${student_name}'s project doesn't exist, so creating it.`,
         });
         student_project_id = await this.course_actions.student_projects.create_student_project(
           student_id
         );
       }
 
+      if (student_project_id == null) {
+        throw Error("bug -- student project should have been created");
+      }
+
       this.course_actions.set_activity({
         id,
-        desc: `Copying files to ${student_name}'s project`
+        desc: `Copying files to ${student_name}'s project`,
       });
 
-      await callback2(webapp_client.copy_path_between_projects, {
+      await webapp_client.project_client.copy_path_between_projects({
         src_project_id: course_project_id,
         src_path,
         target_project_id: student_project_id,
@@ -215,7 +223,6 @@ export class HandoutsActions {
         overwrite_newer: !!overwrite, // default is "false"
         delete_missing: !!overwrite, // default is "false"
         backup: !!!overwrite, // default is "true"
-        exclude_history: true
       });
       finish();
     } catch (err) {
@@ -244,7 +251,7 @@ export class HandoutsActions {
     };
     const { store, handout } = this.course_actions.resolve({
       handout_id,
-      finish
+      finish,
     });
     if (!handout) return;
 
@@ -268,7 +275,7 @@ export class HandoutsActions {
   public open_handout(handout_id: string, student_id: string): void {
     const { handout, student } = this.course_actions.resolve({
       handout_id,
-      student_id
+      student_id,
     });
     if (student == null || handout == null) return;
     const student_project_id = student.get("project_id");
@@ -294,7 +301,7 @@ export class HandoutsActions {
   ): Promise<void> {
     // Get the path of the handout
     const { handout, store } = this.course_actions.resolve({
-      handout_id
+      handout_id,
     });
     if (handout == null) {
       throw Error("no such handout");

@@ -1,8 +1,12 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React, Rendered } from "../app-framework";
 
 import { AccountCreationToken } from "./account-creation-token";
 import { SiteSettings } from "./site-settings";
-import { StripeAPIKeys } from "./stripe-api-keys";
 //import { SubscriptionManager } from "./subscription-manager";
 import { SystemNotifications } from "./system-notifications";
 import { UserSearch } from "./users/user-search";
@@ -14,7 +18,7 @@ export function AdminPage(): Rendered {
       style={{
         overflowY: "scroll",
         overflowX: "hidden",
-        padding: "30px 45px"
+        padding: "30px 45px",
       }}
     >
       <h3>Administration</h3>
@@ -24,8 +28,6 @@ export function AdminPage(): Rendered {
       <SiteLicenses />
       <hr />
       <SiteSettings />
-      <hr />
-      <StripeAPIKeys />
       <hr />
       <AccountCreationToken />
       <hr />

@@ -1,42 +1,39 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-/*
-CoCalc: Collaborative Calculation in the Cloud
-Copyright (C) 2016, Sagemath Inc.
----
 
-Site Customize -- dynamically customize the look of CoCalc for the client.
-*/
+// Site Customize -- dynamically customize the look of CoCalc for the client.
 
 import { redux, Redux, rclass, rtypes, Store } from "./app-framework";
 import * as React from "react";
-import { Loading } from "./r_misc";
+import {
+  Loading,
+  Space,
+  smc_version,
+  build_date,
+  smc_git_rev,
+  UNIT,
+} from "./r_misc";
 
 // import { SiteSettings as SiteSettingsConfig } from "smc-util/db-schema/site-defaults";
-import { callback2 } from "smc-util/async-utils";
-const schema = require("smc-util/schema");
+import { callback2, retry_until_success } from "smc-util/async-utils";
 const misc = require("smc-util/misc");
-const theme = require("smc-util/theme");
+import * as theme from "smc-util/theme";
+import { site_settings_conf } from "smc-util/db-schema/site-defaults";
+
+export { TermsOfService } from "./customize/terms-of-service";
 
 import {
   KUCALC_DISABLED,
   KUCALC_COCALC_COM,
-  KUCALC_ON_PREMISES
+  KUCALC_ON_PREMISES,
 } from "smc-util/db-schema/site-defaults";
-
-// make it true if starts with y
-function convert_to_boolean(c): boolean {
-  return (c[0] != null ? c[0].toLowerCase() : undefined) === "y";
-}
 
 // this sets UI modes for using a kubernetes based back-end
 // 'yes' (historic value) equals 'cocalc.com'
-function validate_kucalc(k): string {
+function validate_kucalc(k?): string {
+  if (k == null) return KUCALC_DISABLED;
   const val = k.trim().toLowerCase();
   if ([KUCALC_DISABLED, KUCALC_COCALC_COM, KUCALC_ON_PREMISES].includes(val)) {
     return val;
@@ -46,14 +43,14 @@ function validate_kucalc(k): string {
 }
 
 const result: any[] = [];
-for (const k in schema.site_settings_conf) {
-  const v = schema.site_settings_conf[k];
-  result.push([k, v.default]);
+for (const k in site_settings_conf) {
+  const v = site_settings_conf[k];
+  const value: any =
+    typeof v.to_val === "function" ? v.to_val(v.default) : v.default;
+  result.push([k, value]);
 }
 const defaults = misc.dict(result);
-defaults.is_commercial = convert_to_boolean(defaults.commercial);
-// commercial setups do have the SSH gateway
-defaults.have_ssh_gateway = convert_to_boolean(defaults.commercial);
+defaults.is_commercial = defaults.commercial;
 defaults._is_configured = false; // will be true after set via call to server
 
 // TODO type the store. it's an extension of what's in SiteSettings
@@ -63,7 +60,7 @@ defaults._is_configured = false; // will be true after set via call to server
 //   _is_configured: any;
 // }
 
-class CustomizeStore extends Store<any> {
+export class CustomizeStore extends Store<any> {
   async until_configured(): Promise<void> {
     if (this.get("_is_configured")) return;
     await callback2(this.wait, { until: () => this.get("_is_configured") });
@@ -72,33 +69,74 @@ class CustomizeStore extends Store<any> {
   get_iframe_comm_hosts(): string[] {
     const hosts = this.get("iframe_comm_hosts");
     if (hosts == null) return [];
-    // ATTN: if you change this regex, also change smc-util/db-schema/site-defaults.ts
-    return hosts.match(/[a-zA-Z0-9.-]+/g) || [];
+    return hosts.toJS();
   }
 }
 
 redux.createStore("customize", CustomizeStore, defaults);
 const actions = redux.createActions("customize");
-actions.setState({ is_commercial: true }); // really simple way to have a default value -- gets changed below once the $?.get returns.
+// really simple way to have a default value -- gets changed below once the $?.get returns.
+actions.setState({ is_commercial: true, ssh_gateway: true });
 
 // If we are running in the browser, then we customize the schema.  This also gets run on the backend
 // to generate static content, which can't be customized.
 export let commercial: boolean = defaults.is_commercial;
-if (typeof $ !== "undefined" && $ != undefined) {
-  $.get((window as any).app_base_url + "/customize", function(obj, status) {
-    if (status === "success") {
-      obj.commercial =
-        obj.commercial != undefined ? obj.commercial : defaults.commercial;
-      obj.is_commercial = commercial = convert_to_boolean(obj.commercial);
-      obj.have_ssh_gateway =
-        obj.ssh_gateway != undefined
-          ? convert_to_boolean(obj.ssh_gateway)
-          : defaults.have_ssh_gateway;
-      obj.kucalc = validate_kucalc(obj.kucalc);
-      obj._is_configured = true;
-      actions.setState(obj);
-    }
+
+// for now, not used (this was the old approach)
+// in the future we might want to reload the configuration, though
+export function reload_configuration() {
+  retry_until_success({
+    f: async () => {
+      try {
+        const obj = await $.get((window as any).app_base_url + "/customize");
+        process_customize(obj);
+      } catch (err) {
+        const msg = `$.get /customize failed -- retrying`;
+        console.warn(msg);
+        throw new Error(msg);
+      }
+    },
+    start_delay: 2000,
+    max_delay: 15000,
   });
+}
+
+// BACKEND injected by jsdom-support.ts
+if (typeof $ !== "undefined" && $ != undefined && global["BACKEND"] !== true) {
+  // the app.html page already loads the configuration, this is just a failsafe
+  const data = global["CUSTOMIZE"];
+  if (data != null) {
+    process_customize(Object.assign({}, data));
+  } else {
+    reload_configuration();
+  }
+}
+
+function process_customize(obj) {
+  // TODO make this a to_val function in site_settings_conf.kucalc
+  obj.kucalc = validate_kucalc(obj.kucalc);
+  obj.is_cocalc_com = obj.kucalc == KUCALC_COCALC_COM;
+
+  for (const k in site_settings_conf) {
+    const v = site_settings_conf[k];
+    obj[k] = obj[k] ?? v.default;
+    if (typeof v.to_val === "function") {
+      obj[k] = v.to_val(obj[k]);
+    }
+  }
+  set_customize(obj);
+}
+
+// "obj" are the already processed values from the database
+// this function is also used by hub-landing!
+export function set_customize(obj) {
+  // console.log('set_customize obj=\n', JSON.stringify(obj, null, 2));
+
+  // set some special cases, backwards compatibility
+  commercial = obj.is_commercial = obj.commercial;
+
+  obj._is_configured = true;
+  actions.setState(obj);
 }
 
 interface Props0 {
@@ -108,6 +146,7 @@ interface Props0 {
 
 interface ReduxProps {
   help_email: string;
+  _is_configured: boolean;
 }
 
 const HelpEmailLink0 = rclass<Props0>(
@@ -115,8 +154,9 @@ const HelpEmailLink0 = rclass<Props0>(
     public static reduxProps() {
       return {
         customize: {
-          help_email: rtypes.string
-        }
+          help_email: rtypes.string,
+          _is_configured: rtypes.bool,
+        },
       };
     }
 
@@ -126,20 +166,30 @@ const HelpEmailLink0 = rclass<Props0>(
         style.color = this.props.color;
       }
 
-      if (this.props.help_email) {
-        return (
-          <a
-            href={`mailto:${this.props.help_email}`}
-            target="_blank"
-            style={style}
-          >
-            {this.props.text != undefined
-              ? this.props.text
-              : this.props.help_email}
-          </a>
-        );
+      if (this.props._is_configured) {
+        if (this.props.help_email?.length > 0) {
+          return (
+            <a
+              href={`mailto:${this.props.help_email}`}
+              target="_blank"
+              style={style}
+            >
+              {this.props.text != undefined
+                ? this.props.text
+                : this.props.help_email}
+            </a>
+          );
+        } else {
+          return (
+            <span>
+              <em>
+                {"["}not configured{"]"}
+              </em>
+            </span>
+          );
+        }
       } else {
-        return <Loading />;
+        return <Loading style={{ display: "inline" }} />;
       }
     }
   }
@@ -167,8 +217,8 @@ const SiteName0 = rclass<{}>(
     public static reduxProps() {
       return {
         customize: {
-          site_name: rtypes.string
-        }
+          site_name: rtypes.string,
+        },
       };
     }
 
@@ -176,7 +226,7 @@ const SiteName0 = rclass<{}>(
       if (this.props.site_name) {
         return <span>{this.props.site_name}</span>;
       } else {
-        return <Loading />;
+        return <Loading style={{ display: "inline" }} />;
       }
     }
   }
@@ -200,8 +250,8 @@ const SiteDescription0 = rclass<{ style?: React.CSSProperties }>(
     public static reduxProps() {
       return {
         customize: {
-          site_description: rtypes.string
-        }
+          site_description: rtypes.string,
+        },
       };
     }
 
@@ -213,7 +263,7 @@ const SiteDescription0 = rclass<{ style?: React.CSSProperties }>(
       if (this.props.site_description != undefined) {
         return <span style={style}>{this.props.site_description}</span>;
       } else {
-        return <Loading />;
+        return <Loading style={{ display: "inline" }} />;
       }
     }
   }
@@ -227,50 +277,75 @@ export function SiteDescription({ style }: { style?: React.CSSProperties }) {
   );
 }
 
-// TODO also make this configurable? Needed in the <Footer/> and maybe elsewhere …
-export const CompanyName = function CompanyName() {
-  return <span>{theme.COMPANY_NAME}</span>;
-};
-
-interface ReactProps {
-  style: React.CSSProperties;
+// This generalizes the above in order to pick any selected string value
+interface CustomizeStringProps {
+  name: string;
 }
-
-interface ReduxProps {
+interface CustomizeStringReduxProps {
+  site_name: string;
+  site_description: string;
   terms_of_service: string;
+  account_creation_email_instructions: string;
+  help_email: string;
+  logo_square: string;
+  logo_rectangular: string;
+  splash_image: string;
+  index_info_html: string;
+  terms_of_service_url: string;
+  organization_name: string;
+  organization_email: string;
+  organization_url: string;
+  google_analytics: string;
 }
 
-const TermsOfService0 = rclass<ReactProps>(
-  class TermsOfService extends React.Component<ReactProps & ReduxProps> {
+const CustomizeStringElement = rclass<CustomizeStringProps>(
+  class CustomizeStringComponent extends React.Component<
+    CustomizeStringReduxProps & CustomizeStringProps
+  > {
     public static reduxProps = () => {
       return {
         customize: {
-          terms_of_service: rtypes.string
-        }
+          site_name: rtypes.string,
+          site_description: rtypes.string,
+          terms_of_service: rtypes.string,
+          account_creation_email_instructions: rtypes.string,
+          help_email: rtypes.string,
+          logo_square: rtypes.string,
+          logo_rectangular: rtypes.string,
+          splash_image: rtypes.string,
+          index_info_html: rtypes.string,
+          terms_of_service_url: rtypes.string,
+          organization_name: rtypes.string,
+          organization_email: rtypes.string,
+          organization_url: rtypes.string,
+          google_analytics: rtypes.string,
+        },
       };
     };
 
+    shouldComponentUpdate(next) {
+      if (this.props[this.props.name] == null) return true;
+      return this.props[this.props.name] != next[this.props.name];
+    }
+
     render() {
-      if (this.props.terms_of_service == undefined) {
-        return <div></div>;
-      }
-      return (
-        <div
-          style={this.props.style}
-          dangerouslySetInnerHTML={{ __html: this.props.terms_of_service }}
-        ></div>
-      );
+      return <span>{this.props[this.props.name]}</span>;
     }
   }
 );
 
-export function TermsOfService(props: { style: React.CSSProperties }) {
+export function CustomizeString({ name }: CustomizeStringProps) {
   return (
     <Redux>
-      <TermsOfService0 style={props.style} />
+      <CustomizeStringElement name={name} />
     </Redux>
   );
 }
+
+// TODO also make this configurable? Needed in the <Footer/> and maybe elsewhere …
+export const CompanyName = function CompanyName() {
+  return <span>{theme.COMPANY_NAME}</span>;
+};
 
 interface AccountCreationEmailInstructionsProps {
   account_creation_email_instructions: string;
@@ -283,8 +358,8 @@ const AccountCreationEmailInstructions0 = rclass<{}>(
     public static reduxProps = () => {
       return {
         customize: {
-          account_creation_email_instructions: rtypes.string
-        }
+          account_creation_email_instructions: rtypes.string,
+        },
       };
     };
 
@@ -302,6 +377,61 @@ export function AccountCreationEmailInstructions() {
   return (
     <Redux>
       <AccountCreationEmailInstructions0 />
+    </Redux>
+  );
+}
+
+interface FooterRedux {
+  site_name: string;
+  organization_name: string;
+  terms_of_service_url: string;
+}
+
+const FooterElement = rclass<{}>(
+  class FooterComponent extends React.Component<FooterRedux> {
+    public static reduxProps = () => {
+      return {
+        customize: {
+          site_name: rtypes.string,
+          organization_name: rtypes.string,
+          terms_of_service_url: rtypes.string,
+        },
+      };
+    };
+    render() {
+      const on = this.props.organization_name;
+      const orga = on.length > 0 ? on : theme.COMPANY_NAME;
+      const tos = this.props.terms_of_service_url;
+      const TOSurl = tos.length > 0 ? tos : PolicyTOSPageUrl;
+      const yt =
+        `Version ${smc_version} @ ${build_date}` +
+        ` | ${smc_git_rev.slice(0, 8)}`;
+      const style: React.CSSProperties = {
+        fontSize: "small",
+        color: "gray",
+        textAlign: "center",
+        padding: `${2 * UNIT}px 0`,
+      };
+      return (
+        <footer style={style}>
+          <hr />
+          <Space />
+          <SiteName /> by {orga} &middot;{" "}
+          <a target="_blank" rel="noopener" href={TOSurl}>
+            Terms of Service
+          </a>{" "}
+          &middot; <HelpEmailLink /> &middot;{" "}
+          <span title={yt}>&copy; {misc.YEAR}</span>
+        </footer>
+      );
+    }
+  }
+);
+
+export function Footer() {
+  return (
+    <Redux>
+      <FooterElement />
     </Redux>
   );
 }

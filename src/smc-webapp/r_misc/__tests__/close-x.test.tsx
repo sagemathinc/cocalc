@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { shallow } from "enzyme";
 import { CloseX } from "../close-x";
@@ -23,7 +28,7 @@ describe("smoke test close-x", () => {
     const close_mock = jest.fn();
     const custom_style: React.CSSProperties = {
       marginTop: "3px",
-      marginBottom: "12px"
+      marginBottom: "12px",
     };
     const rendered = shallow(
       <CloseX on_close={close_mock} style={custom_style} />

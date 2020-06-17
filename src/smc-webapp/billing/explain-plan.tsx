@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React, Component, Rendered } from "../app-framework";
 const { HelpEmailLink, SiteName } = require("../customize");
 import { A } from "../r_misc";
@@ -75,9 +80,9 @@ export class ExplainPlan extends Component<Props> {
               </b>{" "}
               for one or more course plans. You distribute the quota upgrades to
               all projects of the course via the configuration frame of the
-              course management file.
-              Course packages start immediately after purchase, last for the indicated
-              period, and do <b>not auto-renew</b> when they end.
+              course management file. Course packages start immediately after
+              purchase, last for the indicated period, and do{" "}
+              <b>not auto-renew</b> when they end.
             </li>
 
             <li>
@@ -97,13 +102,13 @@ export class ExplainPlan extends Component<Props> {
           </p>
           <p>
             However, we find that many data and computational science courses
-            run better with the additional RAM and CPU found in the
-            standard or premium plans.
+            run better with the additional RAM and CPU found in the standard or
+            premium plans.
           </p>
           <h4>Custom Course Plans</h4>
           <p>
-            In addition to the plans listed on this page, we offer the
-            following on a custom basis:
+            In addition to the plans listed on this page, we offer the following
+            on a custom basis:
           </p>
           <ul style={{ paddingLeft: "20px" }}>
             <li>start on a specified date after payment</li>

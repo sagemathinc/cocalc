@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 interface Help {
   [key: string]: string;
 }
@@ -14,7 +19,7 @@ const LINKS: { [key: string]: Help } = {
     SageMath: "http://doc.sagemath.org/",
     "scikit-learn": "https://scikit-learn.org/stable/",
     statsmodels: "https://www.statsmodels.org/stable/",
-    tensorflow: "https://www.tensorflow.org/learn"
+    tensorflow: "https://www.tensorflow.org/learn",
   },
   r: {
     R: "https://www.r-project.org/",
@@ -23,17 +28,17 @@ const LINKS: { [key: string]: Help } = {
     tidyverse: "https://www.tidyverse.org/",
     ggplot2: "https://ggplot2.tidyverse.org/",
     dplyr: "https://dplyr.tidyverse.org",
-    "data.table": "https://github.com/Rdatatable/data.table/wiki"
+    "data.table": "https://github.com/Rdatatable/data.table/wiki",
   },
   bash: {
     Bash: "https://tiswww.case.edu/php/chet/bash/bashtop.html",
-    "Linux Tutorial": "https://ryanstutorials.net/linuxtutorial/"
+    "Linux Tutorial": "https://ryanstutorials.net/linuxtutorial/",
   },
   julia: {
     "Julia Documentation": "https://docs.julialang.org/en/stable/",
     Plots: "https://docs.juliaplots.org/latest/",
     DataFrames: "https://juliadata.github.io/DataFrames.jl/stable/",
-    JuMP: "http://www.juliaopt.org/JuMP.jl/stable/"
+    JuMP: "http://www.juliaopt.org/JuMP.jl/stable/",
   },
   octave: {
     Octave: "https://www.gnu.org/software/octave/",
@@ -41,19 +46,20 @@ const LINKS: { [key: string]: Help } = {
       "https://www.gnu.org/software/octave/doc/interpreter/",
     "Octave Tutorial":
       "https://en.wikibooks.org/wiki/Octave_Programming_Tutorial",
-    "Octave FAQ": "http://wiki.octave.org/FAQ"
+    "Octave FAQ": "http://wiki.octave.org/FAQ",
   },
   postgresql: {
     PostgreSQL: "https://www.postgresql.org/docs/",
-    "PostgreSQL Jupyter Kernel": "https://github.com/bgschiller/postgres_kernel"
+    "PostgreSQL Jupyter Kernel":
+      "https://github.com/bgschiller/postgres_kernel",
   },
   scala: {
-    "Scala Documentation": "https://docs.scala-lang.org/"
+    "Scala Documentation": "https://docs.scala-lang.org/",
   },
   singular: {
     "Singular Manual":
-      "https://www.singular.uni-kl.de/index.php/singular-manual.html"
-  }
+      "https://www.singular.uni-kl.de/index.php/singular-manual.html",
+  },
 };
 
 // "lang" is coming from kernel_info.get("language")

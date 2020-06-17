@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { ErrorDisplay } from "smc-webapp/r_misc";
 import { AccessErrors } from "./access-errors";
@@ -17,7 +22,7 @@ export function FetchDirectoryErrors({
   quotas,
   is_commercial,
   public_view,
-  is_logged_in
+  is_logged_in,
 }: Props): JSX.Element {
   switch (error) {
     case "not_public":

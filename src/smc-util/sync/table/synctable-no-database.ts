@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Make a SyncTable which does not use a changefeed or the central
 database at all.
 
@@ -66,8 +71,8 @@ class ClientNoDatabase extends EventEmitter {
     return this.client.is_project();
   }
 
-  public touch_project(opts): void {
-    this.client.touch_project(opts);
+  public async touch_project(project_id: string): Promise<void> {
+    await this.client.touch_project(project_id);
   }
 
   public is_connected(): boolean {

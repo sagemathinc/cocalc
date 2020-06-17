@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Class that handles output messages generated for evaluation of code
 for a particular cell.
 
@@ -46,7 +51,7 @@ export class OutputHandler extends EventEmitter {
       // messages are saved and made available.
       report_started_ms: undefined, // If no messages for this many ms, then we update via set to indicate
       // that cell is being run.
-      dbg: undefined
+      dbg: undefined,
     });
     const { cell } = this._opts;
     cell.output = null;
@@ -121,13 +126,13 @@ export class OutputHandler extends EventEmitter {
       this.message({
         data: {
           "text/markdown":
-            "<font color='red'>**Jupyter Kernel terminated:**</font> This might be caused by running out of memory or hitting a bug in some library (e.g., forking too many processes, trying to access invalid memory, etc.). Consider restarting or upgrading your project or running the relevant code directly in a terminal to track down the cause, as [explained here](https://github.com/sagemathinc/cocalc/wiki/KernelTerminated)."
-        }
+            "<font color='red'>**Jupyter Kernel terminated:**</font> This might be caused by running out of memory or hitting a bug in some library (e.g., forking too many processes, trying to access invalid memory, etc.). Consider restarting or upgrading your project or running the relevant code directly in a terminal to track down the cause, as [explained here](https://github.com/sagemathinc/cocalc/wiki/KernelTerminated).",
+        },
       });
     } else {
       this.message({
         text: `${err}`,
-        name: "stderr"
+        name: "stderr",
       });
     }
     this.done();
@@ -264,7 +269,7 @@ export class OutputHandler extends EventEmitter {
     // This weird thing below sets this._stdin_cb, then
     // waits for this._stdin_cb to be called, which happens
     // when cell_changed gets called.
-    return await callback(cb => (this._stdin_cb = cb));
+    return await callback((cb) => (this._stdin_cb = cb));
   }
 
   // Call this when the cell changes; only used for stdin right now.

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /* Port to Typescript of what this does:
      nbgrader/nbgrader/preprocessors/clearsolutions.py
 
@@ -16,7 +21,7 @@ const STUBS: { [language: string]: string[] } = {
   matlab: "% YOUR CODE HERE\nerror('No Answer Given!')".split("\n"),
   octave: "% YOUR CODE HERE\nerror('No Answer Given!')".split("\n"),
   java: ["// YOUR CODE HERE"],
-  markdown: ["YOUR ANSWER HERE"]
+  markdown: ["YOUR ANSWER HERE"],
 };
 
 const begin_solution_delimiter = "BEGIN SOLUTION";

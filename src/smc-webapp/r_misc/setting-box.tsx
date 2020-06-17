@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { Icon } from "./icon";
 import { CloseX2 } from "./close-x2";
@@ -19,7 +24,7 @@ export function SettingBox({
   title_el,
   close,
   children,
-  show_header = true
+  show_header = true,
 }: Props) {
   function render_header() {
     if (!show_header) {

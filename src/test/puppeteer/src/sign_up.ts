@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const path = require("path");
 const this_file: string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
@@ -10,10 +15,7 @@ import { Page } from "puppeteer";
 
 const LONG_TIMEOUT = 70000; // msec
 
-export const sign_up = async function(
-  creds: Creds,
-  opts: Opts
-): Promise<PassFail> {
+export const sign_up = async function (creds: Creds, opts: Opts): Promise<PassFail> {
   let browser;
   const pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {

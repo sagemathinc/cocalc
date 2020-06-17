@@ -1,8 +1,14 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import * as jsonic from "jsonic";
 import { React, Rendered, Component, TypedMap } from "../../app-framework";
 import { DebounceInput } from "react-debounce-input";
 import { SiteLicense } from "./types";
 import { actions } from "./actions";
-import { Button, ButtonGroup } from "../../antd-bootstrap";
+import { Button } from "../../antd-bootstrap";
 import { Alert, Row, Col } from "antd";
 import { license_fields, license_field_type } from "./types";
 import {
@@ -10,27 +16,39 @@ import {
   is_date,
   merge,
   replace_all,
-  plural
+  plural,
 } from "smc-util/misc2";
-import { CopyToClipBoard, DateTimePicker, TimeAgo, Icon } from "../../r_misc";
+import { hours_ago, days_ago, weeks_ago, months_ago } from "smc-util/misc";
+import {
+  A,
+  CopyToClipBoard,
+  DateTimePicker,
+  TimeAgo,
+  Icon,
+  Space,
+} from "../../r_misc";
 import { Checkbox } from "../../antd-bootstrap";
 import {
   DisplayUpgrades,
   EditUpgrades,
-  scale_by_display_factors
+  scale_by_display_factors,
 } from "./upgrades";
 import { Projects } from "../../admin/users/projects";
-import { DisplayManagers, EditManagers } from "./managers";
+import { Managers } from "./managers";
+import { UserMap } from "../../todo-types";
+import { ManagerInfo } from "./types";
 
 const BACKGROUNDS = ["white", "#f8f8f8"];
 
 interface Props {
   editing?: boolean;
   saving?: boolean;
-  show_projects?: boolean;
+  show_projects?: Date | "now";
   license: TypedMap<SiteLicense>;
   edits?: TypedMap<SiteLicense>;
   usage_stats?: number; // for now this is just the number of projects running right now with the license; later it might have hourly/daily/weekly, active, etc.
+  user_map?: UserMap;
+  manager_info?: ManagerInfo;
 }
 
 function format_as_label(field: string): string {
@@ -44,13 +62,13 @@ function format_as_label(field: string): string {
 
 const STATUS_STYLE: React.CSSProperties = {
   display: "inline-block",
-  marginBottom: "5px"
+  marginBottom: "5px",
 };
 
 export const INPUT_STYLE: React.CSSProperties = {
   border: "1px solid lightgrey",
   borderRadius: "3px",
-  padding: "0 5px"
+  padding: "0 5px",
 };
 
 export class License extends Component<Props> {
@@ -86,7 +104,7 @@ export class License extends Component<Props> {
           style={{
             borderBottom: "1px solid lightgrey",
             backgroundColor,
-            padding: this.props.editing ? "5px 0" : undefined
+            padding: this.props.editing ? "5px 0" : undefined,
           }}
         >
           <Col span={4}>{format_as_label(field)}</Col>
@@ -105,14 +123,14 @@ export class License extends Component<Props> {
     let x: Rendered | string = undefined;
     const type: license_field_type = license_fields[field];
     if (this.props.editing) {
-      const onChange = new_val => this.on_change(field, new_val);
+      const onChange = (new_val) => this.on_change(field, new_val);
       switch (type) {
         case "string":
           x = (
             <DebounceInput
               style={merge({ width: "50ex" }, INPUT_STYLE)}
               value={val != null ? val : ""}
-              onChange={e => onChange((e.target as any).value)}
+              onChange={(e) => onChange((e.target as any).value)}
             />
           );
           if (field == "title") {
@@ -127,7 +145,7 @@ export class License extends Component<Props> {
               style={merge({ width: "100%" }, INPUT_STYLE)}
               rows={5}
               value={val != null ? val : ""}
-              onChange={e => onChange((e.target as any).value)}
+              onChange={(e) => onChange((e.target as any).value)}
             />
           );
           if (field == "description") {
@@ -155,11 +173,11 @@ export class License extends Component<Props> {
           break;
         case "account_id[]":
           x = (
-            <EditManagers
+            <Managers
               managers={val}
-              onChange={onChange}
+              user_map={this.props.user_map}
               license_id={this.props.license.get("id")}
-              license_field={field}
+              manager_info={this.props.manager_info}
             />
           );
           break;
@@ -167,7 +185,7 @@ export class License extends Component<Props> {
           x = (
             <Checkbox
               checked={!!val}
-              onChange={e => onChange((e.target as any).checked)}
+              onChange={(e) => onChange((e.target as any).checked)}
             />
           );
           break;
@@ -187,27 +205,44 @@ export class License extends Component<Props> {
               <DebounceInput
                 style={merge({ width: "100%" }, INPUT_STYLE)}
                 value={val != null ? val : "0"}
-                onChange={e => onChange((e.target as any).value)}
+                onChange={(e) => onChange((e.target as any).value)}
               />{" "}
               (0 = no limit)
             </span>
           );
           break;
         case "map":
+          let value: string = "";
+          if (val) {
+            if (typeof val != "string") {
+              value = JSON.stringify(val, undefined, 2);
+            } else {
+              value = val;
+            }
+          }
           x = (
-            <DebounceInput
-              element="textarea"
-              forceNotifyByEnter={false}
-              placeholder={
-                '{"invoice_id":"some-structured-JSON-data", "stripe_id": "more-data"}'
-              }
-              style={merge({ width: "100%" }, INPUT_STYLE)}
-              rows={4}
-              value={
-                typeof val == "string" ? val : JSON.stringify(val, undefined, 2)
-              }
-              onChange={e => onChange((e.target as any).value)}
-            />
+            <div>
+              <DebounceInput
+                element="textarea"
+                forceNotifyByEnter={false}
+                placeholder={
+                  '{"invoice_id":"some-structured-JSON-data", "stripe_id": "more-data"}'
+                }
+                style={merge({ width: "100%" }, INPUT_STYLE)}
+                rows={4}
+                value={value}
+                onChange={(e) => onChange((e.target as any).value)}
+                onBlur={() =>
+                  onChange(JSON.stringify(jsonic(value), undefined, 2))
+                }
+              />
+              <br />
+              Input forgivingly parsed using{" "}
+              <A href="https://github.com/rjrodger/jsonic/blob/master/README.md">
+                jsonic
+              </A>
+              ; deleting fields is not implemented.
+            </div>
           );
           break;
         case "readonly":
@@ -225,10 +260,10 @@ export class License extends Component<Props> {
             <div
               style={{
                 whiteSpace: "pre",
-                background: val ? undefined : "yellow"
+                background: val ? undefined : "yellow",
               }}
             >
-              {val ? val : "Please enter a description"}
+              {val ? val : "Enter a description"}
             </div>
           );
           break;
@@ -237,10 +272,10 @@ export class License extends Component<Props> {
             <div
               style={{
                 whiteSpace: "pre",
-                background: val ? undefined : "yellow"
+                background: val ? undefined : "yellow",
               }}
             >
-              {val ? val : "Please enter a title"}
+              {val ? val : "Enter a title"}
             </div>
           );
           break;
@@ -254,8 +289,8 @@ export class License extends Component<Props> {
             if (!val) {
               x = (
                 <span style={{ background: "yellow" }}>
-                  <Icon name="warning" /> Never expires -- you should probably
-                  set an expiration date
+                  <Icon name="warning" /> Never expires -- set an expiration
+                  date
                 </span>
               );
             } else if (val <= new Date()) {
@@ -263,7 +298,7 @@ export class License extends Component<Props> {
                 <span
                   style={{
                     background: "darkred",
-                    color: "white"
+                    color: "white",
                   }}
                 >
                   Expired {x}
@@ -278,11 +313,11 @@ export class License extends Component<Props> {
                 <div
                   style={{
                     background: "darkred",
-                    color: "white"
+                    color: "white",
                   }}
                 >
-                  <Icon name="warning" /> Never actives -- please set an
-                  activation date!
+                  <Icon name="warning" /> Never actives -- set an activation
+                  date!
                 </div>
               );
             } else if (val > new Date()) {
@@ -290,7 +325,7 @@ export class License extends Component<Props> {
                 <div
                   style={{
                     background: "darkred",
-                    color: "white"
+                    color: "white",
                   }}
                 >
                   Will activate {x}
@@ -302,7 +337,14 @@ export class License extends Component<Props> {
           }
           break;
         case "account_id[]":
-          x = <DisplayManagers managers={val} />;
+          x = (
+            <Managers
+              managers={val}
+              user_map={this.props.user_map}
+              license_id={this.props.license.get("id")}
+              manager_info={this.props.manager_info}
+            />
+          );
           break;
         case "upgrades":
           x = <DisplayUpgrades upgrades={val} />;
@@ -325,16 +367,16 @@ export class License extends Component<Props> {
         x = (
           <div
             style={{
-              background: "yellow"
+              background: "yellow",
             }}
           >
-            <Icon name="warning" /> No limit -- you should probably set a limit
+            <Icon name="warning" /> No limit -- set a limit
           </div>
         );
       }
     }
 
-    if (field == "run_limit" && this.props.usage_stats) {
+    if (field == "run_limit") {
       x = (
         <Row>
           <Col md={8}>{x}</Col>
@@ -346,37 +388,98 @@ export class License extends Component<Props> {
     return x;
   }
 
+  private render_show_projects_title(): Rendered {
+    if (!this.props.show_projects) return <span />;
+    if (this.props.show_projects == "now")
+      return <span>Currently running projects upgraded with this license</span>;
+    return (
+      <span>
+        Projects that ran upgraded with this license since{" "}
+        <TimeAgo date={this.props.show_projects} />
+      </span>
+    );
+  }
+
   private render_projects(): Rendered {
     if (!this.props.show_projects) return;
     return (
       <div style={{ marginTop: "30px" }}>
+        <Button
+          style={{ float: "right", margin: "5px" }}
+          onClick={() => actions.hide_projects(this.props.license.get("id"))}
+        >
+          Close
+        </Button>
         <Projects
           license_id={this.props.license.get("id")}
-          title={"Running projects upgraded with this license"}
+          title={this.render_show_projects_title()}
+          cutoff={this.props.show_projects}
         />
       </div>
     );
   }
 
   private render_usage_stats(run_limit): Rendered {
-    if (!this.props.usage_stats) return;
     const style: React.CSSProperties = { fontStyle: "italic" };
-    if (run_limit && this.props.usage_stats >= run_limit) {
+    if (
+      run_limit &&
+      this.props.usage_stats &&
+      this.props.usage_stats >= run_limit
+    ) {
       // hitting the limit -- make it clearer!
       style.color = "red";
       style.fontWeight = "bold";
     }
     return (
-      <a
-        onClick={() =>
-          actions.toggle_show_projects(this.props.license.get("id"))
-        }
-        style={style}
-      >
-        {this.props.usage_stats} running{" "}
-        {plural(this.props.usage_stats, "project")} currently using this
-        license...
-      </a>
+      <span>
+        <span style={style}>
+          {this.props.usage_stats ?? 0} running{" "}
+          {plural(this.props.usage_stats, "project")} currently using this
+          license.
+        </span>
+        <br />
+        Projects using license:{" "}
+        <a
+          onClick={() =>
+            actions.show_projects(this.props.license.get("id"), "now")
+          }
+        >
+          now
+        </a>
+        ; during the last{" "}
+        <a
+          onClick={() =>
+            actions.show_projects(this.props.license.get("id"), hours_ago(1))
+          }
+        >
+          hour
+        </a>
+        ,{" "}
+        <a
+          onClick={() =>
+            actions.show_projects(this.props.license.get("id"), days_ago(1))
+          }
+        >
+          {" "}
+          day
+        </a>
+        ,{" "}
+        <a
+          onClick={() =>
+            actions.show_projects(this.props.license.get("id"), weeks_ago(1))
+          }
+        >
+          week
+        </a>{" "}
+        or{" "}
+        <a
+          onClick={() =>
+            actions.show_projects(this.props.license.get("id"), months_ago(1))
+          }
+        >
+          month
+        </a>
+      </span>
     );
   }
 
@@ -385,13 +488,14 @@ export class License extends Component<Props> {
     const id = this.props.license.get("id");
     if (this.props.editing) {
       buttons = (
-        <ButtonGroup>
+        <>
           <Button
             onClick={() => actions.cancel_editing(id)}
             disabled={this.props.saving}
           >
             Cancel
           </Button>
+          <Space />
           <Button
             disabled={
               this.props.edits == null ||
@@ -403,7 +507,7 @@ export class License extends Component<Props> {
           >
             <Icon name={"save"} /> {this.props.saving ? "Saving..." : "Save"}
           </Button>
-        </ButtonGroup>
+        </>
       );
     } else {
       buttons = <Button onClick={() => actions.start_editing(id)}>Edit</Button>;
@@ -488,7 +592,7 @@ export class License extends Component<Props> {
         style={{
           border: "1px solid lightgrey",
           borderRadius: "5px",
-          padding: "10px"
+          padding: "10px",
         }}
       >
         {this.render_buttons()}

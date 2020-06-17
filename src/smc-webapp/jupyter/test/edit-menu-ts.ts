@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Tests of editing the cells in a notebook
 */
 import {
@@ -7,7 +12,7 @@ import {
   after,
   it,
   expect,
-  TestEditor
+  TestEditor,
 } from "../../frame-editors/generic/test/util";
 import { JupyterStore } from "../store";
 import { JupyterActions } from "../project-actions";
@@ -221,7 +226,7 @@ describe("creates and splits cells in various ways", () => {
     expect(store.getIn(["cells", list.get(0), "output"])).to.equal(undefined);
     expect(store.getIn(["cells", list.get(1), "input"])).to.equal("123");
     expect(store.getIn(["cells", list.get(1), "output"]).toJS()).to.deep.equal([
-      { foo: "bar" }
+      { foo: "bar" },
     ]);
   });
   it("verifies that cursor is now in the second cell", () =>

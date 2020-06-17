@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const { writeFile, readFile, unlink } = require("fs");
 const tmp = require("tmp");
 const { callback } = require("awaiting");
@@ -9,7 +14,7 @@ interface ParserOptions {
 }
 
 function close(proc, cb): void {
-  proc.on("close", code => cb(undefined, code));
+  proc.on("close", (code) => cb(undefined, code));
 }
 
 // ref: https://github.com/rust-lang/rustfmt ... but the configuration comes with project specific toml files
@@ -21,7 +26,7 @@ function run_rustfmt(input_path: string) {
 function cleanup_error(out: string, tmpfn: string): string {
   return out
     .split("\n")
-    .filter(line => line.indexOf(tmpfn) < 0)
+    .filter((line) => line.indexOf(tmpfn) < 0)
     .join("\n");
 }
 
@@ -50,14 +55,14 @@ export async function rust_format(
     let stdout: string = "";
     let stderr: string = "";
     // read data as it is produced.
-    formatter.stdout.on("data", data => (stdout += data.toString()));
-    formatter.stderr.on("data", data => (stderr += data.toString()));
+    formatter.stdout.on("data", (data) => (stdout += data.toString()));
+    formatter.stderr.on("data", (data) => (stderr += data.toString()));
     // wait for subprocess to close.
     const code = await callback(close, formatter);
     if (code >= 1) {
       stdout = cleanup_error(stdout, input_path);
       stderr = cleanup_error(stderr, input_path);
-      const err_msg = [stdout, stderr].filter(x => !!x).join("\n");
+      const err_msg = [stdout, stderr].filter((x) => !!x).join("\n");
       logger.debug(`rustfmt error: ${err_msg}`);
       throw Error(err_msg);
     }

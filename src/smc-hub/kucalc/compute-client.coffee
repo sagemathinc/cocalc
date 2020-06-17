@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 Compute client for use in Kubernetes cluster by the hub.
 
@@ -28,7 +33,7 @@ underscore = require('underscore')
 
 misc = require('smc-util/misc')
 {defaults, required} = misc
-{site_license_hook} = require('../postgres/site-license-hook')
+{site_license_hook} = require('../postgres/site-license/hook')
 
 
 exports.get_json = get_json = (url, cb) ->

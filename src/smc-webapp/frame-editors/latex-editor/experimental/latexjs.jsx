@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * decaffeinate suggestions:
  * DS207: Consider shorter variations of null checks
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
@@ -27,10 +32,10 @@ import { Loading } from "smc-webapp/r_misc";
 const generator = new HtmlGenerator({
   bare: true,
   hyphenate: true,
-  languagePatterns: require("hyphenation.en-us")
+  languagePatterns: require("hyphenation.en-us"),
 });
 
-const latexjs = function(latex) {
+const latexjs = function (latex) {
   generator.reset();
   return parse(latex, { generator });
 };
@@ -48,7 +53,7 @@ export let LaTeXJS = rclass({
     reload: rtypes.number,
     font_size: rtypes.number,
     value: rtypes.string,
-    editor_state: rtypes.immutable.Map
+    editor_state: rtypes.immutable.Map,
   }, // only used for initial render
 
   shouldComponentUpdate(next) {
@@ -59,7 +64,7 @@ export let LaTeXJS = rclass({
       "font_size",
       "read_only",
       "value",
-      "reload_images"
+      "reload_images",
     ]);
   },
 
@@ -131,9 +136,9 @@ export let LaTeXJS = rclass({
           padding: "15px",
           overflowY: "scroll",
           width: "100%",
-          zoom: (this.props.font_size && 16) / 16
+          zoom: (this.props.font_size && 16) / 16,
         }}
       />
     );
-  }
+  },
 });

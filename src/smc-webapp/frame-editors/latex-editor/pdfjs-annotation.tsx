@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Render the annotation layer on top of a page.
 
 The page itself could be rendered with either SVG or Canvas.
@@ -105,7 +110,7 @@ export class AnnotationLayer extends Component<Props, State> {
             width: width * scale,
             height: height * scale,
             border: border,
-            cursor: "pointer"
+            cursor: "pointer",
           }}
         />
       );
@@ -126,7 +131,7 @@ export class AnnotationLayer extends Component<Props, State> {
     return (
       <div
         style={{
-          position: "absolute"
+          position: "absolute",
         }}
       >
         {v}
@@ -137,7 +142,7 @@ export class AnnotationLayer extends Component<Props, State> {
   render_sync_highlight(scale: number, width: number, y: number): Rendered {
     return (
       <div
-        onDoubleClick={e => e.stopPropagation()}
+        onDoubleClick={(e) => e.stopPropagation()}
         key={"sync"}
         style={{
           position: "absolute",
@@ -147,7 +152,7 @@ export class AnnotationLayer extends Component<Props, State> {
           opacity: 0.35,
           background: "yellow",
           border: "1px solid grey",
-          boxShadow: "3px 3px 3px 0px #ddd"
+          boxShadow: "3px 3px 3px 0px #ddd",
         }}
       />
     );

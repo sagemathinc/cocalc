@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 React component that describes the output of a cell
 */
 
@@ -33,7 +38,7 @@ export class CellOutput extends Component<CellOutputProps> {
       "scrolled",
       "exec_count",
       "state",
-      "metadata"
+      "metadata",
     ]) {
       if (nextProps.cell.get(field) !== this.props.cell.get(field)) {
         return true;
@@ -62,8 +67,9 @@ export class CellOutput extends Component<CellOutputProps> {
     let exec_count = undefined;
     const output = this.props.cell.get("output");
     if (output != null) {
-      output.forEach(x => {
-        if (x.has("exec_count")) {
+      output.forEach((x) => {
+        if (x?.has("exec_count")) {
+          // NOTE: The ? -- I hit a case where x was undefined **in production**, so it can happen.
           exec_count = x.get("exec_count");
           return false;
         }
@@ -114,7 +120,7 @@ export class CellOutput extends Component<CellOutputProps> {
         // include all the new more output messages.
         let n = output.size - 1;
         const more = output.get(`${n}`);
-        this.props.more_output.get("mesg_list").forEach(mesg => {
+        this.props.more_output.get("mesg_list").forEach((mesg) => {
           output = output.set(`${n}`, mesg);
           n += 1;
         });
@@ -173,7 +179,7 @@ export class CellOutput extends Component<CellOutputProps> {
           display: "flex",
           flexDirection: "row",
           alignItems: "stretch",
-          minHeight
+          minHeight,
         }}
         cocalc-test="cell-output"
       >

@@ -1,5 +1,8 @@
-WARNING: This is signficantly out of date!
+WARNING: This is VERY (very!) out of date!
 ============================================
+
+WARNING: This gets more and more out of date all the time.  It's
+actively very very wrong.  It was right in maybe 2014.
 
 SMC's README_ gives a very high level overview of its architecture.  However,
 it doesn't really explain much about the implementation details--what
@@ -282,7 +285,7 @@ element like::
       <MyWidget name="baz" />
     </div>
 
-and so on.  
+and so on.
 
 .. note:
     Simple React components that are stateless can also be implemented as
@@ -955,7 +958,7 @@ In principle the scheme supports other web services embedded in SMC as well.
 .. |redux.createStore()| replace:: ``redux.createStore()``
 .. _redux.createStore(): http://redux.js.org/docs/api/createStore.html
 .. |ReactDOM.render()| replace:: ``ReactDOM.render()``
-.. _ReactDOM.render(): https://facebook.github.io/react/docs/react-dom.html#render 
+.. _ReactDOM.render(): https://facebook.github.io/react/docs/react-dom.html#render
 .. |<Redux> component| replace ``<Redux>`` component
 .. _<Redux> component: redux-component_
 

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 # Example usage
 
 ```ts
@@ -169,7 +174,10 @@ export function createTypedMap<OuterProps extends Record<string, any>>(
      * produce an error when using Flow or TypeScript.
      */
     get<K extends keyof TProps>(key: K): TProps[K];
-    get<K extends keyof TProps, NSV>(key: K, notSetValue: NSV): NonNullable<TProps[K]> | NSV;
+    get<K extends keyof TProps, NSV>(
+      key: K,
+      notSetValue: NSV
+    ): NonNullable<TProps[K]> | NSV;
     get<K extends keyof TProps, NSV>(
       key: K,
       notSetValue?: NSV

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { AppRedux } from "../../app-framework";
 import { MentionsStore, MentionsState } from "./store";
 import { MentionsActions } from "./actions";
@@ -9,7 +14,7 @@ export function init(redux: AppRedux) {
     return;
   }
   redux.createStore<MentionsState, MentionsStore>(redux_name, MentionsStore, {
-    filter: "unread"
+    filter: "unread",
   });
   redux.createActions<MentionsState, MentionsActions>(
     redux_name,

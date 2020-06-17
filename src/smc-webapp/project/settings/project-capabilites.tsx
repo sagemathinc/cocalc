@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { sortBy, keys } from "lodash";
 import { SettingBox, A, Icon, Loading } from "smc-webapp/r_misc";
@@ -6,6 +11,7 @@ import { Project } from "./types";
 import { Map } from "immutable";
 import * as misc from "smc-util/misc2";
 import { Button } from "antd";
+import { ReloadOutlined } from "@ant-design/icons";
 
 const { CUSTOM_SOFTWARE_HELP_URL } = require("../../custom-software/util");
 const { COLORS } = require("smc-util/theme");
@@ -30,8 +36,8 @@ export const ProjectCapabilities = rclass<ReactProps>(
         [name]: {
           configuration: rtypes.immutable,
           configuration_loading: rtypes.bool,
-          available_features: rtypes.object
-        }
+          available_features: rtypes.object,
+        },
       };
     }
 
@@ -40,7 +46,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
         "project",
         "configuration",
         "configuration_loading",
-        "available_features"
+        "available_features",
       ]);
     }
 
@@ -53,11 +59,13 @@ export const ProjectCapabilities = rclass<ReactProps>(
         ["jupyter_lab", "Jupyter Lab"],
         ["library", "Library of documents"],
         ["x11", "Graphical applications"],
-        ["latex", "LaTeX editor"]
+        ["latex", "LaTeX editor"],
       ];
       const features: JSX.Element[] = [];
       let any_nonavail = false;
-      for (const [key, display] of Array.from(sortBy(feature_map, f => f[1]))) {
+      for (const [key, display] of Array.from(
+        sortBy(feature_map, (f) => f[1])
+      )) {
         const available = avail[key];
         any_nonavail = !available;
         const color = available ? COLORS.BS_GREEN_D : COLORS.BS_RED;
@@ -104,7 +112,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
 
       const r_formatters: JSX.Element[] = [];
       let any_nonavail = false;
-      for (const tool of sortBy(keys(formatter), x => x)) {
+      for (const tool of sortBy(keys(formatter), (x) => x)) {
         const available = formatter[tool];
         const color = available ? COLORS.BS_GREEN_D : COLORS.BS_RED;
         const icon = available ? "check-square" : "minus-square";
@@ -200,9 +208,9 @@ export const ProjectCapabilities = rclass<ReactProps>(
       return (
         <Button
           onClick={() => this.reload()}
-          icon={"reload"}
+          icon={<ReloadOutlined />}
           disabled={this.props.configuration_loading}
-          style={{ float: "right", marginTop: "-7.5px" }}  // that compensates for bootstrap's 15px's all over the place...
+          style={{ float: "right", marginTop: "-7.5px" }} // that compensates for bootstrap's 15px's all over the place...
         >
           Refresh
         </Button>

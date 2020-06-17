@@ -1,28 +1,10 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
-###
-HTTP Proxy Server, which passes requests directly onto http
-servers running on project vm's
-###
+# HTTP Proxy Server, which passes requests directly onto http
+# servers running on project vm's
 
 Cookies = require('cookies')            # https://github.com/jed/cookies
 async   = require('async')
@@ -164,10 +146,17 @@ exports.init_http_proxy_server = (opts) ->
             (cb) ->
                 dbg("get remember_me message")
                 x    = opts.remember_me.split('$')
-                hash = auth.generate_hash(x[0], x[1], x[2], x[3])
+                try
+                    hash = auth.generate_hash(x[0], x[1], x[2], x[3])
+                catch err
+                    msg = "unable to generate hash from remember_me cookie = '#{opts.remember_me}' -- #{err}"
+                    dbg(msg)
+                    cb(msg)
+                    return
                 database.get_remember_me
-                    hash : hash
-                    cb   : (err, signed_in_mesg) =>
+                    hash  : hash
+                    cache : true
+                    cb    : (err, signed_in_mesg) =>
                         if err or not signed_in_mesg?
                             cb("unable to get remember_me from db -- #{err}")
                             dbg("failed to get remember_me -- #{err}")

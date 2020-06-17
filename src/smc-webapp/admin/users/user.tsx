@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Display of basic information about a user, with link to get more information about that user.
 */
 
@@ -51,7 +56,7 @@ const MORE: More[] = [
   "activity",
   "impersonate",
   "password",
-  "ban"
+  "ban",
 ];
 
 export class UserResult extends Component<Props, State> {
@@ -184,7 +189,7 @@ export class UserResult extends Component<Props, State> {
           fontSize: "10pt",
           color: "white",
           paddingLeft: "5px",
-          background: "red"
+          background: "red",
         }}
       >
         BANNED
@@ -208,7 +213,7 @@ export class UserResult extends Component<Props, State> {
               style={{
                 fontSize: "9px",
                 overflowX: "scroll",
-                whiteSpace: "nowrap"
+                whiteSpace: "nowrap",
               }}
             >
               {this.props.account_id}

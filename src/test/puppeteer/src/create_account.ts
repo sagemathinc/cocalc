@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // use the GUI to create an account
 
 const path = require("path");
@@ -16,7 +21,7 @@ import { sign_up } from "./sign_up";
 // provide program version for "-V" | "--version" arg
 program.version("1.0.0");
 
-const cli_parse = function() {
+const cli_parse = function () {
   try {
     // command line processing
     // -p option without arg uses the following path
@@ -58,7 +63,7 @@ const cli_parse = function() {
   }
 };
 
-const run_tests = async function() {
+const run_tests = async function () {
   // as of 2019-09-27, axios POST to CoCalc docker API fails
   // with "certificate has expired"
   // UNLESS the following setting is used

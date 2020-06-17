@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { DBDocument, from_str } from "../doc";
 import { fromJS } from "immutable";
 
@@ -5,7 +10,7 @@ describe("create a DBDocument with one primary key, and call methods on it", () 
   let doc: DBDocument;
   const records = fromJS([
     { key: "cocalc", value: "sagemath" },
-    { key: "cloud", value: "collaboration" }
+    { key: "cloud", value: "collaboration" },
   ]);
 
   it("creates the db-doc", () => {
@@ -39,7 +44,7 @@ describe("create a DBDocument with one primary key, and call methods on it", () 
     const doc2 = doc
       .set([
         { key: "new", value: "value" },
-        { key: "cloud", value: "computing" }
+        { key: "cloud", value: "computing" },
       ])
       .delete({ key: "cocalc" });
     const patch = doc.make_patch(doc2);
@@ -47,7 +52,10 @@ describe("create a DBDocument with one primary key, and call methods on it", () 
       -1,
       [{ key: "cocalc" }],
       1,
-      [{ key: "new", value: "value" }, { key: "cloud", value: "computing" }]
+      [
+        { key: "new", value: "value" },
+        { key: "cloud", value: "computing" },
+      ],
     ]);
     expect(doc.apply_patch(patch).is_equal(doc2)).toBe(true);
 
@@ -62,8 +70,8 @@ describe("create a DBDocument with one primary key, and call methods on it", () 
       1,
       [
         { key: "cocalc", value: "sagemath" },
-        { key: "cloud", value: "collaboration" }
-      ]
+        { key: "cloud", value: "collaboration" },
+      ],
     ]);
     expect(doc2.apply_patch(patch2).is_equal(doc)).toBe(true);
   });
@@ -86,10 +94,10 @@ describe("create a DBDocument with one primary key, and call methods on it", () 
   it("tests get", () => {
     expect(doc.get({}).toJS()).toEqual([
       { key: "cocalc", value: "sagemath" },
-      { key: "cloud", value: "collaboration" }
+      { key: "cloud", value: "collaboration" },
     ]);
     expect(doc.get({ key: "cloud" }).toJS()).toEqual([
-      { key: "cloud", value: "collaboration" }
+      { key: "cloud", value: "collaboration" },
     ]);
 
     // can only search on primary keys
@@ -106,14 +114,14 @@ describe("create a DBDocument with one primary key, and call methods on it", () 
   it("tests set changing a field", () => {
     const doc2 = doc.set({ key: "cloud", value: "computing" });
     expect(doc2.get({ key: "cloud" }).toJS()).toEqual([
-      { key: "cloud", value: "computing" }
+      { key: "cloud", value: "computing" },
     ]);
   });
 
   it("tests set adding a new field", () => {
     const doc2 = doc.set({ key: "cloud", other: [1, 2, 3] });
     expect(doc2.get({ key: "cloud" }).toJS()).toEqual([
-      { key: "cloud", other: [1, 2, 3], value: "collaboration" }
+      { key: "cloud", other: [1, 2, 3], value: "collaboration" },
     ]);
   });
 });
@@ -130,7 +138,7 @@ describe("test various types of patches", () => {
     );
     expect(patch).toEqual([
       1,
-      [{ key: "cocalc", value: "a different string" }]
+      [{ key: "cocalc", value: "a different string" }],
     ]);
 
     // And deleting that field:
@@ -154,9 +162,21 @@ describe("test various types of patches", () => {
       [
         {
           key: "cocalc",
-          value: [[[[0, "a "], [1, "different "], [0, "string"]], 0, 0, 8, 18]]
-        }
-      ]
+          value: [
+            [
+              [
+                [0, "a "],
+                [1, "different "],
+                [0, "string"],
+              ],
+              0,
+              0,
+              8,
+              18,
+            ],
+          ],
+        },
+      ],
     ]);
 
     // And deleting that field, is the same still:
@@ -192,7 +212,7 @@ describe("test various types of patches", () => {
     // using the two steps we did above:
     expect(patch3).toEqual([
       1,
-      [{ key: "cocalc", value: { five: null, one: null, two: "two" } }]
+      [{ key: "cocalc", value: { five: null, one: null, two: "two" } }],
     ]);
     // And confirm this patch "works":
     expect(doc.apply_patch(patch3).is_equal(doc3)).toBe(true);
@@ -244,9 +264,9 @@ describe("test conversion to and *from* strings", () => {
           number: 389,
           map: { lat: 5, long: 7 },
           list: ["milk", "cookies", { a: true }],
-          boolean: true
+          boolean: true,
         },
-        { key: [1, { a: 5 }], number: 37 }
+        { key: [1, { a: 5 }], number: 37 },
       ])
     );
 
@@ -281,18 +301,18 @@ describe("test using a compound primary key", () => {
       {
         table: "accounts",
         id: 123,
-        name: "CoCalc User"
+        name: "CoCalc User",
       },
-      { table: "projects", id: 123, title: "Test project" }
+      { table: "projects", id: 123, title: "Test project" },
     ])
   );
 
   it("tests searches", () => {
     expect(doc.get({ table: "accounts", id: 123 }).toJS()).toEqual([
-      { id: 123, name: "CoCalc User", table: "accounts" }
+      { id: 123, name: "CoCalc User", table: "accounts" },
     ]);
     expect(doc.get({ table: "projects", id: 123 }).toJS()).toEqual([
-      { id: 123, table: "projects", title: "Test project" }
+      { id: 123, table: "projects", title: "Test project" },
     ]);
 
     // type does matter
@@ -302,11 +322,11 @@ describe("test using a compound primary key", () => {
   it("tests doing a set of two records (one change and one create)", () => {
     const doc2 = doc.set([
       { table: "accounts", id: 123, name: "CoCalc Sage" },
-      { table: "accounts", id: 124, name: "Sage Math" }
+      { table: "accounts", id: 124, name: "Sage Math" },
     ]);
     expect(doc2.get({ table: "accounts" }).toJS()).toEqual([
       { id: 123, name: "CoCalc Sage", table: "accounts" },
-      { id: 124, name: "Sage Math", table: "accounts" }
+      { id: 124, name: "Sage Math", table: "accounts" },
     ]);
   });
 });

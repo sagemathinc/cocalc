@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 User sign in
 
@@ -352,6 +357,7 @@ exports.record_sign_in = (opts) ->
         email_address    : undefined
         account_id       : undefined
         remember_me      : false
+
     if not opts.successful
         record_sign_in_fail
             email : opts.email_address

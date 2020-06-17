@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Internal Libraries
 import { Actions, redux } from "../app-framework";
 
@@ -10,13 +15,11 @@ export class MarkdownWidgetActions extends Actions<MarkdownWidgetStoreState> {
     return redux.getStore(info.name) as any;
   }
 
-  clear = id => {
+  clear = (id) => {
     if (id == undefined) {
       return;
     }
-    const open_inputs = this.get_store()
-      .get("open_inputs")
-      .delete(id);
+    const open_inputs = this.get_store().get("open_inputs").delete(id);
     this.setState({ open_inputs });
   };
 
@@ -24,9 +27,7 @@ export class MarkdownWidgetActions extends Actions<MarkdownWidgetStoreState> {
     if (id == undefined) {
       return;
     }
-    const open_inputs = this.get_store()
-      .get("open_inputs")
-      .set(id, value);
+    const open_inputs = this.get_store().get("open_inputs").set(id, value);
     this.setState({ open_inputs });
   };
 }

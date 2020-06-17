@@ -1,23 +1,7 @@
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, SageMath, Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 misc = require('smc-util/misc')
 
@@ -68,15 +52,13 @@ class MDActions extends Actions
             project_id : project_id
             file_path  : misc.path_split(path).head
 
-        webapp_client.public_get_text_file
-            project_id : project_id
-            path       : path
-            timeout    : 60
-            cb         : (err, content) =>
-                if err
-                    @setState(error: err)
-                else
-                    @setState(content: content)
+       try
+            content = await webapp_client.project_client.public_get_text_file
+                            project_id : project_id
+                            path       : path
+            @setState(content: content)
+        catch err
+            @setState(error: err)
 
 require('../project_file').register_file_editor
     ext       : 'md'
@@ -98,5 +80,3 @@ require('../project_file').register_file_editor
         name = redux_name(project_id, path)
         redux.removeStore(name)
         redux.removeActions(name)
-
-

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Widget rendering.
 */
 
@@ -6,7 +11,7 @@ const $ = require("jquery");
 
 import { Map, Set, List, fromJS } from "immutable";
 
-import { Tabs, Tab } from "react-bootstrap";
+import { Tabs, Tab } from "../../antd-bootstrap";
 
 import {
   React,
@@ -14,7 +19,7 @@ import {
   Component,
   Rendered,
   rclass,
-  rtypes
+  rtypes,
 } from "smc-webapp/app-framework";
 import { JupyterActions } from "../browser-actions";
 
@@ -54,8 +59,8 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
   public static reduxProps({ name }) {
     return {
       [name]: {
-        widget_model_ids: rtypes.immutable.Set
-      }
+        widget_model_ids: rtypes.immutable.Set,
+      },
     };
   }
 
@@ -261,7 +266,7 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
   // {event:"click"} when button is clicked.
   handle_phosphor_custom_events(model_id: string): void {
     if (this.view == null) return;
-    this.view.send = content => {
+    this.view.send = (content) => {
       if (!this.mounted || this.props.actions == null) return;
       const data = { method: "custom", content };
       this.props.actions.send_comm_message_to_kernel(model_id, data);
@@ -345,8 +350,9 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
     const v: Rendered[] = [];
     let i = 0;
     for (const model_id of this.state.react_view.toJS()) {
+      const key = `${i}`;
       v.push(
-        <Tab eventKey={i} key={i} title={this.model.attributes._titles[i]}>
+        <Tab eventKey={key} key={key} title={this.model.attributes._titles[i]}>
           <Widget
             value={fromJS({ model_id })}
             actions={this.props.actions}
@@ -359,8 +365,8 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
 
     return (
       <Tabs
-        activeKey={this.model.attributes.selected_index}
-        onSelect={selected_index => {
+        activeKey={`${this.model.attributes.selected_index}`}
+        onSelect={(selected_index) => {
           if (this.model) {
             this.model.set_state({ selected_index });
           }

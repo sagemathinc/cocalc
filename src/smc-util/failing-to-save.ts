@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
    If we are having repeated hash mismatches when trying to save a particular path,
    then this function will return true.  This can be used by the caller to
    reconnect and fix everything.  This is basically a stupid workaround for a subtle

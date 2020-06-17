@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Sorted list of patches applied to a starting string/object.
 */
 
@@ -103,7 +108,7 @@ export class SortedPatchList extends EventEmitter {
         } else {
           // (1) adding a snapshot or (2) a timestamp collision -- remove duplicate
           // remove patch with same timestamp from the sorted list of patches
-          this.patches = this.patches.filter(y => y.time.valueOf() !== t);
+          this.patches = this.patches.filter((y) => y.time.valueOf() !== t);
           this.emit("overwrite", t);
         }
       }
@@ -448,7 +453,7 @@ export class SortedPatchList extends EventEmitter {
   public versions(): Date[] {
     // Compute and cache result,then return it; result gets cleared when new patches added.
     if (this.versions_cache == null) {
-      this.versions_cache = this.patches.map(x => x.time);
+      this.versions_cache = this.patches.map((x) => x.time);
     }
     return this.versions_cache;
   }
@@ -457,7 +462,7 @@ export class SortedPatchList extends EventEmitter {
   public show_history({
     milliseconds,
     trunc,
-    log
+    log,
   }: {
     milliseconds?: boolean;
     trunc?: number;

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const path = require("path");
 const this_file: string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
@@ -9,10 +14,10 @@ import axios from "axios";
 import { expect } from "chai";
 
 function sleep(ms: number = 0): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export const api_create_file = async function(
+export const api_create_file = async function (
   creds: Creds,
   opts: Opts,
   file_path: string,
@@ -23,8 +28,7 @@ export const api_create_file = async function(
   const pfcounts: PassFail = new PassFail();
   try {
     const tm_start = process.hrtime.bigint();
-    const url: string =
-      creds.url.replace(/\/app.*/, "") + "/api/v1/write_text_file_to_project";
+    const url: string = creds.url.replace(/\/app.*/, "") + "/api/v1/write_text_file_to_project";
     debuglog("url ", url);
     debuglog("writing ", file_path);
 

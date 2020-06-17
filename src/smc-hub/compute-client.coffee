@@ -1,23 +1,7 @@
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 require('coffee2-cache')
 
@@ -28,27 +12,19 @@ if process.env.DEVEL
     DEVEL = true
 
 
-###
-
-id='eb5c61ae-b37c-411f-9509-10adb51eb90b';require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);global.s=s; s.project(project_id:id,cb:(e,p)->global.p=p;cidonsole.log(e)))
-
-Another example with database on local host
-
-id='7fffd5b4-d140-4a34-a960-9f71fa7fc54b';require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);global.t=s; s.project(project_id:id,cb:(e, p)->global.p=p))
-
-###
+# id='eb5c61ae-b37c-411f-9509-10adb51eb90b';require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);global.s=s; s.project(project_id:id,cb:(e,p)->global.p=p;cidonsole.log(e)))
+# 
+# Another example with database on local host
+# 
+# id='7fffd5b4-d140-4a34-a960-9f71fa7fc54b';require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);global.t=s; s.project(project_id:id,cb:(e, p)->global.p=p))
 
 # obviously don't want to trigger this too quickly, since it may mean file loss.
 AUTOMATIC_FAILOVER_TIME_S = 60*3   # NOTE: actual failover is actually disabled below; instead this is the timeout for giving up on getting status.
 
 SERVER_STATUS_TIMEOUT_S = 7  # 7 seconds
 
-#################################################################
-#
 # compute-client -- a node.js client that connects to a TCP server
 # that is used by the hubs to organize compute nodes
-#
-#################################################################
 
 # IMPORTANT: see schema.coffee for some important information about the project states.
 STATES = require('smc-util/schema').COMPUTE_STATES
@@ -68,7 +44,7 @@ misc_node   = require('smc-util-node/misc_node')
 message     = require('smc-util/message')
 misc        = require('smc-util/misc')
 
-{site_license_hook} = require('./postgres/site-license-hook')
+{site_license_hook} = require('./postgres/site-license/hook')
 
 # Set the log level
 try
@@ -1357,6 +1333,8 @@ class ProjectClient extends EventEmitter
                     else
                         opts.cb()
             return
+        locals =
+            env: {}
         async.series([
             (cb) =>
                 if opts.set_quotas
@@ -1368,10 +1346,19 @@ class ProjectClient extends EventEmitter
             (cb) =>
                 @open(cb : cb)
             (cb) =>
+                @compute_server.database.get_project_extra_env
+                    project_id : @project_id
+                    cb         : (err, env) =>
+                        if err
+                            cb(err)
+                        else
+                            locals.env = Buffer.from(JSON.stringify(env)).toString('base64')
+                            cb()
+            (cb) =>
                 dbg("issuing the start command")
                 @_action
                     action : "start"
-                    args   : ['--base_url', @compute_server._base_url]
+                    args   : ['--base_url', @compute_server._base_url, '--extra_env', locals.env]
                     cb     : cb
             (cb) =>
                 dbg("waiting until running")
@@ -2054,7 +2041,7 @@ class ProjectClient extends EventEmitter
                             if err
                                 opts.cb(err)
                             else
-                                opts.cb(undefined, new Buffer(resp.base64, 'base64'))
+                                opts.cb(undefined, Buffer.from(resp.base64, 'base64'))
 
     get_quotas: (opts) =>
         opts = defaults opts,
@@ -2217,4 +2204,3 @@ class ProjectClient extends EventEmitter
                 quotas.cb = cb
                 @set_quotas(quotas)
         ], (err) => opts.cb(err))
-

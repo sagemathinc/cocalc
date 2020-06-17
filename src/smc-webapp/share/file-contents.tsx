@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Render the contents of a file.   This is typically used
 for smaller files for which we can reasonably do this.
 A lot of sophisticated code in CoCalc's main smc-webapp
@@ -50,9 +55,9 @@ export function default_to_raw(ext: string): boolean {
 // just be embedded via html (e.g., NOT an image).
 export function has_special_viewer(ext: string): boolean {
   return (
-    ext === "md" ||
     ext === "ipynb" ||
     ext === "sagews" ||
+    extensions.md.has(ext) ||
     extensions.codemirror[ext] ||
     extensions.html.has(ext)
   );
@@ -103,7 +108,7 @@ export class FileContents extends Component<Props> {
       );
     } else if (extensions.audio.has(ext)) {
       elt = <audio src={src} autoPlay={true} controls={true} loop={false} />;
-    } else if (ext === "md" && this.props.highlight) {
+    } else if (extensions.md.has(ext) && this.props.highlight) {
       // WARNING: slow if big!
       elt = <Markdown value={this.props.content} />;
     } else if (extensions.html.has(ext)) {

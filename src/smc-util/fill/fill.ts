@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Assign } from "utility-types";
 import { Restrict, Optionals } from "./types";
 
@@ -5,7 +10,7 @@ import { Restrict, Optionals } from "./types";
  * Given an object: T with some optional parameters
  * and defaults: a subset of optional parameters from T.
  *
- * Explicitly setting a default to `undefined`is not recommended
+ * Explicitly setting a default to `undefined` is not recommended
  *
  * @return T except provided defaults are guaranteed
  *

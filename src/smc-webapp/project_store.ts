@@ -1,28 +1,8 @@
 /*
- * decaffeinate suggestions:
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-//##############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2015 -- 2016, SageMath, Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+
 let wrapped_editors;
 
 // TODO: we should refactor our code to now have these window/document references
@@ -32,15 +12,17 @@ let wrapped_editors;
 declare let window, document;
 if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
-  wrapped_editors = require("./editor_react_wrapper");
+  wrapped_editors = require("./editors/react-wrapper");
 }
 import * as immutable from "immutable";
 
 import * as misc from "smc-util/misc";
+import { startswith } from "smc-util/misc2";
+
 import { QUERIES, FILE_ACTIONS, ProjectActions } from "./project_actions";
 import {
   Available as AvailableFeatures,
-  isMainConfiguration
+  isMainConfiguration,
 } from "./project_configuration";
 import { derive_rmd_output_filename } from "./frame-editors/rmd-editor/utils";
 import {
@@ -49,11 +31,14 @@ import {
   redux,
   Store,
   AppRedux,
-  TypedMap
+  TypedMap,
 } from "./app-framework";
 
 import { ProjectConfiguration } from "./project_configuration";
 import { ProjectLogMap } from "./project/history/types";
+import { alert_message } from "./alerts";
+import { Listings, listings } from "./project/websocket/listings";
+import { deleted_file_variations } from "smc-util/delete-files";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -67,7 +52,7 @@ const MASKED_FILE_EXTENSIONS = {
   rnw: ["tex", "NODOT-concordance.tex"],
   rtex: ["tex", "NODOT-concordance.tex"],
   rmd: ["pdf", "html", "nb.html", "md", "NODOT_files"],
-  sage: ["sage.py"]
+  sage: ["sage.py"],
 };
 
 export interface ProjectStoreState {
@@ -76,8 +61,8 @@ export interface ProjectStoreState {
   history_path: string;
   open_files: immutable.Map<string, immutable.Map<string, any>>;
   open_files_order: immutable.List<string>;
-  public_paths?: any; // immutable.List,
-  directory_listings: any; // immutable,
+  public_paths?: immutable.List<string>;
+  directory_listings: immutable.Map<string, any>; // immutable,
   show_upload: boolean;
   create_file_alert: boolean;
   displayed_listing?: any; // computed(object),
@@ -89,7 +74,6 @@ export interface ProjectStoreState {
   // Project Page
   active_project_tab: string;
   free_warning_closed: boolean; // Makes bottom height update
-  free_warning_extra_shown: boolean;
   num_ghost_file_tabs: number;
 
   // Project Files
@@ -151,6 +135,7 @@ export interface ProjectStoreState {
 export class ProjectStore extends Store<ProjectStoreState> {
   public project_id: string;
   private previous_runstate: string | undefined;
+  private listings: Listings | undefined;
 
   // Function to call to initialize one of the tables in this store.
   // This is purely an optimization, so project_log, project_log_all and public_paths
@@ -188,6 +173,9 @@ export class ProjectStore extends Store<ProjectStoreState> {
     const projects_store = this.redux.getStore("projects");
     if (projects_store !== undefined) {
       projects_store.removeListener("change", this._projects_store_change);
+    }
+    if (this.listings != null) {
+      this.listings.close();
     }
   };
 
@@ -239,7 +227,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
       // Project Page
       active_project_tab: "files",
       free_warning_closed: false, // Makes bottom height update
-      free_warning_extra_shown: false,
       num_ghost_file_tabs: 0,
 
       // Project Files
@@ -254,7 +241,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         column_name:
           redux
             .getStore("account")
-            ?.getIn(["other_settings", "default_file_sort"]) ?? "time"
+            ?.getIn(["other_settings", "default_file_sort"]) ?? "time",
       }),
 
       // Project New
@@ -269,7 +256,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       // Project Settings
       stripped_public_paths: this.selectors.stripped_public_paths.fn,
 
-      other_settings: undefined
+      other_settings: undefined,
     };
   };
 
@@ -277,13 +264,13 @@ export class ProjectStore extends Store<ProjectStoreState> {
     other_settings: {
       fn: () => {
         return (this.redux.getStore("account") as any).get("other_settings");
-      }
+      },
     },
 
     get_public_path_id: {
       fn: () => {
         const project_id = this.project_id;
-        return function(path) {
+        return function (path) {
           // (this exists because rethinkdb doesn't have compound primary keys)
           const { SCHEMA, client_db } = require("smc-util/schema");
           return SCHEMA.public_paths.user_query.set.fields.id(
@@ -291,7 +278,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
             client_db
           );
         };
-      }
+      },
     },
 
     // cached pre-processed file listing, which should always be up to date when
@@ -305,7 +292,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         "file_search",
         "other_settings",
         "show_hidden",
-        "show_masked"
+        "show_masked",
       ] as const,
       fn: () => {
         const search_escape_char = "/";
@@ -415,7 +402,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
           listing,
           public: {},
           path: this.get("current_path"),
-          file_map: map
+          file_map: map,
         };
 
         _compute_public_files(
@@ -425,7 +412,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         );
 
         return x;
-      }
+      },
     },
 
     stripped_public_paths: {
@@ -445,7 +432,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
             })()
           );
         }
-      }
+      },
     },
 
     library_docs_sorted: {
@@ -457,7 +444,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
           const search = misc.search_split(this.get("library_search"));
           // Using JSON of the doc is pretty naive but it's fast enough
           // and I don't want to spend much time on this!
-          docs = docs.filter(doc =>
+          docs = docs.filter((doc) =>
             misc.search_match(JSON.stringify(doc.toJS()).toLowerCase(), search)
           );
         }
@@ -465,7 +452,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         if (docs != null) {
           // sort by a triplet: idea is to have the docs sorted by their category,
           // where some categories have weights (e.g. "introduction" comes first, no matter what)
-          const sortfn = function(doc) {
+          const sortfn = function (doc) {
             return [
               metadata.getIn(["categories", doc.get("category"), "weight"]) ||
                 0,
@@ -473,13 +460,13 @@ export class ProjectStore extends Store<ProjectStoreState> {
                 .getIn(["categories", doc.get("category"), "name"])
                 .toLowerCase(),
               (doc.get("title") && doc.get("title").toLowerCase()) ||
-                doc.get("id")
+                doc.get("id"),
             ];
           };
           return docs.sortBy(sortfn);
         }
-      }
-    }
+      },
+    },
   };
   // Returns the cursor positions for the given project_id/path, if that
   // file is opened, and supports cursors and is either old (and ...) or
@@ -499,7 +486,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
     }
   };
 
-  is_file_open = path => {
+  is_file_open = (path) => {
     return this.getIn(["open_files", path]) != null;
   };
 
@@ -512,12 +499,12 @@ export class ProjectStore extends Store<ProjectStoreState> {
     return {
       item:
         listing != null
-          ? listing.find(val => val.get("name") === name)
-          : undefined
+          ? listing.find((val) => val.get("name") === name)
+          : undefined,
     };
   };
 
-  get_raw_link = path => {
+  get_raw_link = (path) => {
     let url = document.URL;
     url = url.slice(0, url.indexOf("/projects/"));
     return `${url}/${this.project_id}/raw/${misc.encode_path(path)}`;
@@ -535,6 +522,101 @@ export class ProjectStore extends Store<ProjectStoreState> {
     if (!isMainConfiguration(conf)) return true;
     const disabled_ext = conf.disabled_ext;
     return !disabled_ext.includes(ext);
+  }
+
+  public has_file_been_viewed(path: string): boolean {
+    // note that component is NOT an immutable.js object:
+    return this.getIn(["open_files", path, "component"])?.Editor != null;
+  }
+
+  private close_deleted_file(path: string): void {
+    const cur = this.get("current_path");
+    if (path == cur || startswith(cur, path + "/")) {
+      // we are deleting the current directory, so let's cd to HOME.
+      const actions = redux.getProjectActions(this.project_id);
+      if (actions != null) {
+        actions.set_current_path("");
+      }
+    }
+    const all_paths = deleted_file_variations(path);
+    for (const file of this.get("open_files").keys()) {
+      if (all_paths.indexOf(file) != -1 || startswith(file, path + "/")) {
+        if (!this.has_file_been_viewed(file)) {
+          // Hasn't even been viewed yet; when user clicks on the tab
+          // they get a dialog to undelete the file.
+          continue;
+        }
+        const actions = redux.getProjectActions(this.project_id);
+        if (actions != null) {
+          actions.close_tab(file);
+          alert_message({
+            type: "info",
+            message: `Closing '${file}' since it was deleted or moved.`,
+          });
+        }
+      } else {
+        const actions: any = redux.getEditorActions(this.project_id, file);
+        if (actions?.close_frames_with_path != null) {
+          // close subframes with given path.
+          if (actions.close_frames_with_path(path)) {
+            alert_message({
+              type: "info",
+              message: `Closed '${path}' in '${file}' since it was deleted or moved.`,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  private async close_deleted_files(paths: string[]): Promise<void> {
+    for (const path of paths) {
+      if (this.listings == null) return; // won't happen
+      const deleted = await this.listings.get_deleted(path);
+      if (deleted != null) {
+        for (let filename of deleted) {
+          if (path != "") {
+            filename = path + "/" + filename;
+          }
+          this.close_deleted_file(filename);
+        }
+      }
+    }
+  }
+
+  public get_listings(): Listings {
+    if (this.listings == null) {
+      this.listings = listings(this.project_id);
+      this.listings.on("deleted", this.close_deleted_files.bind(this));
+      this.listings.on("change", async (paths) => {
+        let directory_listings = this.get("directory_listings");
+        for (const path of paths) {
+          if (this.listings == null) return; // won't happen
+          let files;
+          if (this.listings.get_missing(path)) {
+            try {
+              files = immutable.fromJS(
+                await this.listings.get_listing_directly(path)
+              );
+            } catch (err) {
+              console.warn(
+                `WARNING: problem getting directory listing ${err}; falling back`
+              );
+              files = await this.listings.get_for_store(path);
+            }
+          } else {
+            files = await this.listings.get_for_store(path);
+          }
+          directory_listings = directory_listings.set(path, files);
+        }
+        const actions = redux.getProjectActions(this.project_id);
+        actions.setState({ directory_listings });
+      });
+    }
+    if (this.listings == null) {
+      throw Error("bug");
+    }
+    return this.listings;
   }
 }
 
@@ -576,13 +658,13 @@ function _compute_file_masks(listing): void {
   // mask compiled files, e.g. mask 'foo.class' when 'foo.java' exists
   // the general outcome of this function is to set for some file entry objects
   // in "listing" the attribute <file>.mask=true
-  const filename_map = misc.dict(listing.map(item => [item.name, item])); // map filename to file
+  const filename_map = misc.dict(listing.map((item) => [item.name, item])); // map filename to file
   for (const file of listing) {
     // note: never skip already masked files, because of rnw/rtex->tex
 
     const ext = misc.filename_extension(file.name).toLowerCase();
     // some extensions like Rmd modify the basename during compilation
-    const filename = (function() {
+    const filename = (function () {
       switch (ext) {
         case "rmd":
           // converts .rmd to .rmd, but the basename changes!
@@ -667,7 +749,7 @@ function _compute_public_files(data, public_paths, current_path) {
 }
 
 function _sort_on_string_field(field) {
-  return function(a, b) {
+  return function (a, b) {
     return misc.cmp(
       a[field] !== undefined ? a[field].toLowerCase() : "",
       b[field] !== undefined ? b[field].toLowerCase() : ""
@@ -676,11 +758,15 @@ function _sort_on_string_field(field) {
 }
 
 function _sort_on_numerical_field(field, factor = 1) {
-  return (a, b) =>
-    misc.cmp(
+  return (a, b) => {
+    const c = misc.cmp(
       (a[field] != null ? a[field] : -1) * factor,
       (b[field] != null ? b[field] : -1) * factor
     );
+    if (c) return c;
+    // break ties using the name, so well defined.
+    return misc.cmp(a.name, b.name) * factor;
+  };
 }
 
 export function init(project_id: string, redux: AppRedux): ProjectStore {
@@ -705,7 +791,7 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
   store._init();
 
   const queries = misc.deep_copy(QUERIES);
-  const create_table = function(table_name, q) {
+  const create_table = function (table_name, q) {
     //console.log("create_table", table_name)
     return class P extends Table {
       constructor(a, b) {

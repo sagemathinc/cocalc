@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // given email address, password, and project name in creds file,
 // copy front-end test files to home directory of the project
 
@@ -9,15 +14,7 @@ const program = require("commander");
 import chalk from "chalk";
 import * as fs from "fs";
 import * as yaml from "js-yaml";
-import {
-  Creds,
-  Opts,
-  InstallOpts,
-  ExtChromePath,
-  PassFail,
-  TestGetString,
-  TestFiles
-} from "./types";
+import { Creds, Opts, InstallOpts, ExtChromePath, PassFail, TestGetString, TestFiles } from "./types";
 import { time_log2, num_log } from "./time_log";
 import { get_api_key } from "./get_api_key";
 import { api_create_file } from "./api_create_file";
@@ -27,18 +24,14 @@ import { get_project_id } from "./get_project_id";
 // provide program version for "-V" | "--version" arg
 program.version("1.0.0");
 
-const cli_parse = function() {
+const cli_parse = function () {
   try {
     // command line processing
     // -p option without arg uses the following path
     program
       .option("-c, --creds <file>", "credentials file", "./creds")
       .option("-H, --no-headless", "show browser (requires X11)", false)
-      .option(
-        "-i, --install-path <folder>",
-        "path to files to upload",
-        "test_files"
-      )
+      .option("-i, --install-path <folder>", "path to files to upload", "test_files")
       .option("-j, --create-project", "create project for tests")
       .option("-p, --path-to-chrome [chromepath]")
       .option("-m, --csv-log <file>", "timing log file", "./log.csv")
@@ -69,10 +62,7 @@ const cli_parse = function() {
   }
 };
 
-const install_api_session = async function(
-  creds: Creds,
-  iopts: InstallOpts
-): Promise<PassFail> {
+const install_api_session = async function (creds: Creds, iopts: InstallOpts): Promise<PassFail> {
   const pfcounts: PassFail = new PassFail();
   try {
     const tm_start = process.hrtime.bigint();
@@ -101,9 +91,7 @@ const install_api_session = async function(
       const file_name: string = TestFiles[key];
       const file_path: string = path.join(iopts.install_folder, file_name);
       const text: string = fs.readFileSync(file_path, "utf8");
-      pfcounts.add(
-        await api_create_file(creds, opts, file_name, api_key, project_id, text)
-      );
+      pfcounts.add(await api_create_file(creds, opts, file_name, api_key, project_id, text));
     }
 
     // for writing text file
@@ -119,7 +107,7 @@ const install_api_session = async function(
   return pfcounts;
 };
 
-const run_tests = async function() {
+const run_tests = async function () {
   // as of 2019-09-27, axios POST to CoCalc docker API fails
   // with "certificate has expired"
   // UNLESS the following setting is used

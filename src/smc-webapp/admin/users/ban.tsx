@@ -1,15 +1,18 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React, Component, Rendered } from "smc-webapp/app-framework";
 
 import { Button } from "react-bootstrap";
 
 import { Icon, ErrorDisplay } from "smc-webapp/r_misc";
 
-const { webapp_client } = require("../../webapp_client");
-
-import { callback2 } from "smc-util/async-utils";
+import { webapp_client }  from "../../webapp-client";
 
 interface Props {
-  account_id?: string;
+  account_id: string;
   banned?: boolean;
 }
 
@@ -35,10 +38,10 @@ export class Ban extends Component<Props, State> {
   async do_request(): Promise<void> {
     this.setState({ running: true });
     try {
-      await callback2(webapp_client.admin_ban_user, {
-        account_id: this.props.account_id,
-        ban: !this.state.banned
-      });
+      await webapp_client.admin_client.admin_ban_user(
+        this.props.account_id,
+        !this.state.banned
+      );
       this.setState({ running: false, banned: !this.state.banned });
     } catch (err) {
       if (!this.mounted) return;

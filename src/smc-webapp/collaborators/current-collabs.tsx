@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { redux, rtypes, rclass } from "../app-framework";
 import { Well, Button, ButtonToolbar, Row, Col } from "react-bootstrap";
@@ -28,11 +33,11 @@ export const CurrentCollaboratorsPanel = rclass<ReactProps>(
     static reduxProps() {
       return {
         account: {
-          get_account_id: rtypes.func
+          get_account_id: rtypes.func,
         },
         projects: {
-          sort_by_activity: rtypes.func
-        }
+          sort_by_activity: rtypes.func,
+        },
       };
     }
     constructor(props) {
@@ -153,7 +158,7 @@ export const CurrentCollaboratorsPanel = rclass<ReactProps>(
             maxHeight: "20em",
             overflowY: "auto",
             overflowX: "hidden",
-            marginBottom: "0"
+            marginBottom: "0",
           }}
         >
           {this.render_users()}

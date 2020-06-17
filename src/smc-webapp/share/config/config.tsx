@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Configure how a path is shared.
 
 This is used by the frontend client to configure how a path
@@ -23,7 +28,7 @@ import {
   Col,
   FormGroup,
   FormControl,
-  Radio
+  Radio,
 } from "react-bootstrap";
 
 import {
@@ -32,7 +37,7 @@ import {
   Component,
   Rendered,
   rclass,
-  rtypes
+  rtypes,
 } from "../../app-framework";
 
 const { open_new_tab } = require("../../misc_page");
@@ -88,17 +93,15 @@ class Configure extends Component<Props, State> {
   public static reduxProps(): object {
     return {
       customize: {
-        is_commercial: rtypes.bool
-      }
+        is_commercial: rtypes.bool,
+      },
     };
   }
 
   private render_how_shared_heading(): Rendered {
     return (
       <div style={{ color: "#444", fontSize: "15pt" }}>
-        How the {this.props.isdir ? "directory" : "file"}{" "}
-        <span style={{ fontFamily: "monospace" }}>"{this.props.path}"</span> is
-        shared
+       Public or Private?
       </div>
     );
   }
@@ -121,12 +124,12 @@ class Configure extends Component<Props, State> {
       // this.props.public is suppose to work in this state
       this.props.set_public_path({
         unlisted: false,
-        disabled: false
+        disabled: false,
       });
     } else if (state === "public_unlisted") {
       this.props.set_public_path({
         unlisted: true,
-        disabled: false
+        disabled: false,
       });
     }
   }
@@ -161,7 +164,7 @@ class Configure extends Component<Props, State> {
           <Space />
           <i>Public (listed)</i> - on the{" "}
           <a href={share_server_url()} target="_blank">
-            public share server
+            public Google-indexed server
           </a>
           .
         </Radio>
@@ -201,7 +204,7 @@ class Configure extends Component<Props, State> {
       >
         <Icon name="eye-slash" />
         <Space />
-        <i>Public (unlisted)</i> - Only people with the link can view this.
+        <i>Public (unlisted)</i> - only people with the link can view this.
       </Radio>
     );
   }
@@ -217,7 +220,7 @@ class Configure extends Component<Props, State> {
       >
         <Icon name="lock" />
         <Space />
-        <i>Private</i> - Only collaborators on this project can view this.
+        <i>Private</i> - only collaborators on this project can view this.
       </Radio>
     );
   }
@@ -365,12 +368,12 @@ class Configure extends Component<Props, State> {
     return (
       <div style={{ color: "#555", fontSize: "12pt" }}>
         <a href={SHARE_HELP_URL} target="_blank" rel="noopener">
-          You share
+          You make
         </a>{" "}
         files or directories{" "}
         <a href={server} target="_blank" rel="noopener">
           <b>
-            <i>to the world</i>,
+            <i>public to the world</i>,
           </b>
         </a>{" "}
         either indexed by search engines (listed), or only visible with the link

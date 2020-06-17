@@ -1,8 +1,13 @@
 /*
-Frame that displays the log for a Jupyter Notebook
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
+Frame that displays the raw JSON for a Jupyter Notebook
 */
 
-import { React, Rendered, Component } from "../../app-framework";
+import { React } from "../../app-framework";
 
 import { RawEditor } from "../../jupyter/raw-editor";
 
@@ -17,16 +22,17 @@ interface Props {
   editor_settings: Map<string, any>;
 }
 
-export class RawIPynb extends Component<Props, {}> {
-  public render(): Rendered {
-    return (
-      <RawEditor
-        name={this.props.actions.jupyter_actions.name}
-        actions={this.props.actions.jupyter_actions}
-        font_size={this.props.font_size}
-        raw_ipynb={Map({ foo: "bar" })}
-        cm_options={fromJS(cm_options("a.json", this.props.editor_settings))}
-      />
-    );
-  }
-}
+export const RawIPynb: React.FC<Props> = ({
+  actions,
+  font_size,
+  editor_settings,
+}) => {
+  return (
+    <RawEditor
+      name={actions.jupyter_actions.name}
+      actions={actions.jupyter_actions}
+      font_size={font_size}
+      cm_options={fromJS(cm_options("a.json", editor_settings))}
+    />
+  );
+};

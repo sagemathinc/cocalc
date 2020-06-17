@@ -1,3 +1,12 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
+ * license
+ */
+
 import { Set } from "immutable";
 import { delay } from "awaiting";
 
@@ -37,7 +46,7 @@ export class NotebookFrameActions {
     bind_methods(this, [
       "update_cur_id",
       "syncdb_before_change",
-      "syncdb_after_change"
+      "syncdb_after_change",
     ]);
 
     // General frame tree editor actions:
@@ -463,7 +472,7 @@ export class NotebookFrameActions {
     sel_ids = Set(v.slice(endpoint0, endpoint1 + 1));
     this.setState({
       sel_ids,
-      cur_id: id
+      cur_id: id,
     });
   }
 
@@ -485,7 +494,7 @@ export class NotebookFrameActions {
 
   public select_all_cells(): void {
     this.setState({
-      sel_ids: this.jupyter_actions.store.get_cell_list().toSet()
+      sel_ids: this.jupyter_actions.store.get_cell_list().toSet(),
     });
   }
 
@@ -564,10 +573,14 @@ export class NotebookFrameActions {
     this.call_input_editor_method(id, "set_cursor", pos);
   }
 
-  // Call this to save the state of the current Codemirror editor
-  // before it is used for evaluation or other purposes.
-  public save_input_editor(): void {
-    const id = this.store.get("cur_id");
+  // Call this to save the state of the current (or specified)
+  // Codemirror editor before it is used for evaluation or
+  // other purposes.
+  public save_input_editor(id?: string): void {
+    if (id == null) {
+      id = this.store.get("cur_id");
+      if (id == null) return;
+    }
     if (this.input_editors[id] == null) return;
     this.call_input_editor_method(id, "save");
   }
@@ -656,7 +669,7 @@ export class NotebookFrameActions {
         this.jupyter_actions.set_cell_type(cur_id, cell_type);
       }
     } else {
-      return sel_ids.forEach(id => {
+      return sel_ids.forEach((id) => {
         this.jupyter_actions.set_cell_type(id, cell_type);
       });
     }

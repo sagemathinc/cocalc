@@ -1,31 +1,9 @@
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
-
-####################################################################
-#
-# misc JS functionality that only makes sense on the node side (not on
-# the client)
-#
-####################################################################
+# misc JS functionality that only makes sense on the node side (not on the client)
 
 assert  = require('assert')
 fs      = require('fs')
@@ -42,49 +20,43 @@ exports.SALVUS_HOME = exports.SMC_ROOT = SMC_ROOT = process.env.SMC_ROOT
 
 exports.WEBAPP_LIB = 'webapp-lib' # was 'static' in the old days, contains js libraries
 
-###
-Asynchronous JSON functionality: these are slower but block the main thread *less*.
+# Asynchronous JSON functionality: these are slower but block the main thread *less*.
+# 
+# - to_json_async - convert object to JSON string without blocking.
+#   This uses https://github.com/ckknight/async-json
+# 
+# - from_json_async - convert JSON string to object/etc., without blocking,
+#   though 2x times as slow as JSON.parse.  This uses https://github.com/bjouhier/i-json
+# 
+# TESTS:
+# 
+# m=require('misc_node');s=JSON.stringify({x:Buffer.alloc(10000000).toString('hex')}); d=new Date(); m.from_json_async(string: s, chunk_size:10000, cb: (e, r) -> console.log(e, new Date() - d)); new Date() - d
 
-- to_json_async - convert object to JSON string without blocking.
-  This uses https://github.com/ckknight/async-json
+# exports.to_json_async = (opts) ->
+#     opts = defaults opts,
+#         obj        : required    # Javascript object to convert to a JSON string
+#         cb         : required    # cb(err, JSON string)
+# 
+# ijson = require('i-json')
+# exports.from_json_async = (opts) ->
+#     opts = defaults opts,
+#         string     : required   # string in JSON format
+#         chunk_size : 50000      # size of chunks to parse -- affects how long this blocks the main thread
+#         cb         : required
+#     p = ijson.createParser()
+#     s = opts.string
+#     f = (i, cb) ->
+#         #t = misc.mswalltime()
+#         p.update(s.slice(i*opts.chunk_size, (i+1)*opts.chunk_size))
+#         #console.log("update: #{misc.mswalltime(t)}")
+#         setTimeout(cb, 0)
+#     async.mapSeries [0...s.length/opts.chunk_size], f, (err) ->
+#         opts.cb(err, p.result())
 
-- from_json_async - convert JSON string to object/etc., without blocking,
-  though 2x times as slow as JSON.parse.  This uses https://github.com/bjouhier/i-json
-
-TESTS:
-
-m=require('misc_node');s=JSON.stringify({x:new Buffer(10000000).toString('hex')}); d=new Date(); m.from_json_async(string: s, chunk_size:10000, cb: (e, r) -> console.log(e, new Date() - d)); new Date() - d
-###
-
-###
-exports.to_json_async = (opts) ->
-    opts = defaults opts,
-        obj        : required    # Javascript object to convert to a JSON string
-        cb         : required    # cb(err, JSON string)
-
-ijson = require('i-json')
-exports.from_json_async = (opts) ->
-    opts = defaults opts,
-        string     : required   # string in JSON format
-        chunk_size : 50000      # size of chunks to parse -- affects how long this blocks the main thread
-        cb         : required
-    p = ijson.createParser()
-    s = opts.string
-    f = (i, cb) ->
-        #t = misc.mswalltime()
-        p.update(s.slice(i*opts.chunk_size, (i+1)*opts.chunk_size))
-        #console.log("update: #{misc.mswalltime(t)}")
-        setTimeout(cb, 0)
-    async.mapSeries [0...s.length/opts.chunk_size], f, (err) ->
-        opts.cb(err, p.result())
-###
-
-######################################################################
 # Our TCP messaging system.  We send a message by first
 # sending the length, then the bytes of the actual message.  The code
 # in this section is used by:
 #       * hub -- to communicate with sage_server and console_server
-######################################################################
 
 # Extend the socket object so that listens to all data coming in on this socket
 # and fires a 'mesg' event, along with the JSON object or blob in the message
@@ -150,13 +122,13 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
             cb?("write_mesg(type='#{type}': data must be defined")
             return
         send = (s) ->
-            buf = new Buffer(4)
+            buf = Buffer.alloc(4)
             # This line was 4 hours of work.  It is absolutely
             # *critical* to change the (possibly a string) s into a
             # buffer before computing its length and sending it!!
             # Otherwise unicode characters will cause trouble.
             if typeof(s) == "string"
-                s = Buffer(s)
+                s = Buffer.from(s)
             buf.writeInt32BE(s.length, 0)
             if not socket.writable
                 cb?("socket not writable")
@@ -176,7 +148,7 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
             when 'blob'
                 assert(data.uuid?, "data object *must* have a uuid attribute")
                 assert(data.blob?, "data object *must* have a blob attribute")
-                send(Buffer.concat([new Buffer('b'), new Buffer(data.uuid), new Buffer(data.blob)]))
+                send(Buffer.concat([Buffer.from('b'),  Buffer.from(data.uuid), Buffer.from(data.blob)]))
             else
                 cb?("unknown message type '#{type}'")
 
@@ -350,7 +322,7 @@ exports.sha1 = (data) ->
         # CRITICAL: Code below assumes data is a Buffer; it will seem to work on a string, but give
         # the wrong result where wrong means that it doesn't agree with the frontend version defined
         # in misc.
-        data = new Buffer(data)
+        data = Buffer.from(data)
     sha1sum = crypto.createHash('sha1')
     sha1sum.update(data)
     return sha1sum.digest('hex')
@@ -691,4 +663,3 @@ if exports.SALVUS_HOME?
         if token.length > 0
             ga = token
     exports.GOOGLE_ANALYTICS = ga
-

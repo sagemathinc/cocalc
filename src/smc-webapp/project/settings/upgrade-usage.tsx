@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { ProjectsActions } from "smc-webapp/todo-types";
 import { QuotaConsole } from "./quota-console";
@@ -46,8 +51,8 @@ class UpgradeUsage extends React.Component<Props, State> {
     return {
       customize: {
         is_commercial: rtypes.bool,
-        kucalc: rtypes.string
-      }
+        kucalc: rtypes.string,
+      },
     };
   }
 

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { delay } from "awaiting";
 
 export async function open_file_use_entry(
@@ -35,6 +40,6 @@ export async function open_file_use_entry(
     path: path,
     foreground: true,
     foreground_project: true,
-    chat: show_chat
+    chat: show_chat,
   });
 }

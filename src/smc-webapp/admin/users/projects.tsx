@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Show a table with links to recently used projects (with most recent first) that
 
  - account_id: have a given account_id as collaborator; here we
@@ -25,6 +30,8 @@ import { Row, Col } from "react-bootstrap";
 
 const { Panel } = require("react-bootstrap"); // fighting with stupid typescript declarations!
 
+import { Button } from "antd";
+
 interface Project {
   project_id: string;
   title: string;
@@ -37,12 +44,15 @@ interface Project {
 interface Props {
   account_id?: string; // one of account_id or license_id must be given; see comments above
   license_id?: string;
-  title?: string; // Defaults to "Projects"
+  cutoff?: "now" | Date; // if given, and showing projects for a license, show projects that ran back to cutoff.
+  title?: string | Rendered; // Defaults to "Projects"
 }
 
 interface State {
   status?: string;
-  projects?: Project[];
+  number?: number; // number of projects -- only used for license_id
+  projects?: Project[]; // actual information about the projects
+  load_projects?: boolean;
 }
 
 function project_sort_key(
@@ -66,17 +76,30 @@ export class Projects extends Component<Props, State> {
 
   componentWillMount(): void {
     this.mounted = true;
-    this.search();
+    this.update_search();
   }
 
   componentWillUnmount(): void {
     this.mounted = false;
   }
 
+  componentDidUpdate(prevProps) {
+    if (this.props.cutoff != prevProps.cutoff) {
+      this.setState({ load_projects: false });
+      this.update_search();
+    }
+  }
+
   status_mesg(s: string): void {
     this.setState({
-      status: s
+      status: s,
     });
+  }
+
+  private get_cutoff(): undefined | Date {
+    return !this.props.cutoff || this.props.cutoff == "now"
+      ? undefined
+      : this.props.cutoff;
   }
 
   private query() {
@@ -90,13 +113,14 @@ export class Projects extends Component<Props, State> {
               description: null,
               users: null,
               last_active: null,
-              last_edited: null
-            }
-          ]
+              last_edited: null,
+            },
+          ],
         },
-        options: [{ account_id: this.props.account_id }]
+        options: [{ account_id: this.props.account_id }],
       };
     } else if (this.props.license_id) {
+      const cutoff = this.get_cutoff();
       return {
         query: {
           projects_using_site_license: [
@@ -107,26 +131,36 @@ export class Projects extends Component<Props, State> {
               description: null,
               users: null,
               last_active: null,
-              last_edited: null
-            }
-          ]
-        }
+              last_edited: null,
+              cutoff,
+            },
+          ],
+        },
       };
     } else {
       throw Error("account_id or license_id must be specified");
     }
   }
 
-  async search(): Promise<void> {
-    this.status_mesg("Searching...");
+  async update_search(): Promise<void> {
+    try {
+      if (this.props.account_id || this.state.load_projects) {
+        await this.load_projects();
+      } else {
+        await this.load_number();
+      }
+    } catch (err) {
+      this.status_mesg(`ERROR -- ${err}`);
+    }
+  }
+
+  // Load the projects
+  async load_projects(): Promise<void> {
+    this.status_mesg("Loading projects...");
     const q = this.query();
     const table = keys(q.query)[0];
     const projects: Project[] = (await query(q)).query[table];
     if (!this.mounted) {
-      return;
-    }
-    if (!projects) {
-      this.status_mesg("ERROR");
       return;
     }
     projects.sort(
@@ -137,10 +171,63 @@ export class Projects extends Component<Props, State> {
         )
     );
     this.status_mesg("");
-    this.setState({ projects: projects });
+    this.setState({ projects: projects, number: projects.length });
+  }
+
+  // Load the number of projects
+  async load_number(): Promise<void> {
+    this.status_mesg("Counting projects...");
+    const cutoff = this.get_cutoff();
+    const q = {
+      query: {
+        number_of_projects_using_site_license: {
+          license_id: this.props.license_id,
+          number: null,
+          cutoff,
+        },
+      },
+    };
+    const { number } = (
+      await query(q)
+    ).query.number_of_projects_using_site_license;
+    if (!this.mounted) {
+      return;
+    }
+    this.status_mesg("");
+    this.setState({ number });
+  }
+
+  private render_load_projects_button(): Rendered {
+    if (this.props.account_id || this.state.load_projects) return;
+    if (this.state.number != null && this.state.number == 0) {
+      return <div>No projects</div>;
+    }
+
+    return (
+      <Button onClick={() => this.click_load_projects_button()}>
+        Show {this.state.number != null ? `${this.state.number} ` : ""}project
+        {this.state.number != 1 ? "s" : ""}...
+      </Button>
+    );
+  }
+
+  private click_load_projects_button(): void {
+    this.setState({ load_projects: true });
+    this.load_projects();
+  }
+
+  render_number_of_projects(): Rendered {
+    if (this.state.number == null) {
+      return;
+    }
+    return <span>({this.state.number})</span>;
   }
 
   render_projects(): Rendered {
+    if (this.props.license_id != null && !this.state.load_projects) {
+      return this.render_load_projects_button();
+    }
+
     if (!this.state.projects) {
       return <Loading />;
     }
@@ -212,10 +299,15 @@ export class Projects extends Component<Props, State> {
   }
 
   render(): Rendered {
-    const title = (
-      <span style={{ fontWeight: "bold", color: "#666" }}>
-        {this.props.title}
+    const content = this.state.status ? (
+      this.state.status
+    ) : (
+      <span>
+        {this.props.title} {this.render_number_of_projects()}
       </span>
+    );
+    const title = (
+      <span style={{ fontWeight: "bold", color: "#666" }}>{content}</span>
     );
     return <Panel header={title}>{this.render_projects()}</Panel>;
   }

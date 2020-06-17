@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Take a sagews file and produce a structured object representation of it.
 
 Why?
@@ -76,7 +81,7 @@ export function parse_sagews(sagews: string): Cell[] {
     const cell: Cell = {
       type: "cell",
       pos,
-      id
+      id,
     };
     if (flags) {
       cell.flags = flags;
@@ -98,7 +103,7 @@ export function parse_sagews(sagews: string): Cell[] {
       type: "cell",
       pos: 0,
       id: "",
-      input: sagews
+      input: sagews,
     });
   }
 

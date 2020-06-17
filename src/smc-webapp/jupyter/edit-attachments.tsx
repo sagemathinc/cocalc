@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Modal for editing attachments that are attached to a markdown cell
 */
 
@@ -12,7 +17,7 @@ const ROW_STYLE: React.CSSProperties = {
   display: "flex",
   border: "1px solid #ddd",
   padding: "7px",
-  borderRadius: "3px"
+  borderRadius: "3px",
 };
 
 interface EditAttachmentsProps {
@@ -66,7 +71,7 @@ export class EditAttachments extends Component<EditAttachmentsProps> {
     if (v.length === 0) {
       return (
         <span>
-          There are no attachments. To attach images, use Edit -> Insert Image.
+          There are no attachments. To attach images, use Edit &rarr; Insert Image.
         </span>
       );
     }

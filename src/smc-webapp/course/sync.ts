@@ -1,27 +1,9 @@
-//#############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
-
 /*
-Describes how the client course editor syncs with the database
-*/
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// Describes how the client course editor syncs with the database
 
 import { fromJS } from "immutable";
 import { callback2 } from "smc-util/async-utils";
@@ -49,16 +31,15 @@ export function create_sync_db(
   const path = store.get("course_filename");
   actions.setState({ loading: true });
 
-  const syncdb = webapp_client.sync_db2({
+  const syncdb = webapp_client.sync_client.sync_db({
     project_id,
     path,
     primary_keys: ["table", "handout_id", "student_id", "assignment_id"],
     string_cols: ["note", "description", "title", "email_invite"],
     change_throttle: 500, // helps when doing a lot of assign/collect, etc.
-    save_interval: 3000
-  }); // wait at least 3s between saving changes to backend
+  });
 
-  syncdb.once("error", err => {
+  syncdb.once("error", (err) => {
     if (!actions.is_closed()) {
       actions.set_error(err);
     }
@@ -71,12 +52,12 @@ export function create_sync_db(
       settings: {
         title: store.get("course_filename").slice(0, i),
         description: "No description",
-        allow_collabs: true
+        allow_collabs: true,
       },
       assignments: {},
       students: {},
       handouts: {},
-      loading: false
+      loading: false,
     };
     for (const x of syncdb.get().toJS()) {
       if (x.table === "settings") {
@@ -96,7 +77,7 @@ export function create_sync_db(
     if (!actions.is_closed()) {
       (actions as any).setState(t); // TODO: as any since t is an object, not immutable.js map...
     }
-    syncdb.on("change", changes => {
+    syncdb.on("change", (changes) => {
       if (!actions.is_closed()) {
         actions.syncdb_change(changes);
       }
@@ -118,7 +99,7 @@ export function create_sync_db(
         until(p_store) {
           return p_store.get_users(project_id) != null;
         },
-        timeout: 60
+        timeout: 60,
       });
     } catch (err) {
       return; // something is very broken (or maybe admin view)...

@@ -1,15 +1,20 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import * as misc from "smc-util/misc";
 import { Alert } from "antd";
 
 const ERROR_TEXT_STYLE: React.CSSProperties = {
   marginRight: "1ex",
-  whiteSpace: "pre-line"
+  whiteSpace: "pre-line",
 };
 
 const BODY_STYLE: React.CSSProperties = {
   overflowX: "auto",
-  marginRight: "10px"
+  marginRight: "10px",
 };
 
 interface Props {

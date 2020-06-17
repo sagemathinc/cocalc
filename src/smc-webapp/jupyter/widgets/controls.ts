@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { WidgetModel, WidgetView } from "@jupyter-widgets/base";
 
 export class ReactModel extends WidgetModel {
@@ -8,7 +13,7 @@ export class ReactModel extends WidgetModel {
 
   defaults() {
     return {
-      ...super.defaults()
+      ...super.defaults(),
     };
   }
 

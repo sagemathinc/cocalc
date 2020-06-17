@@ -1,8 +1,13 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { ProjectActions } from "../../project_actions";
 
 const a_style: React.CSSProperties = {
-  cursor: "pointer"
+  cursor: "pointer",
 };
 
 interface Props {
@@ -10,11 +15,12 @@ interface Props {
   actions: ProjectActions;
   default_value?: string;
 }
-// TODO: Should this be r_misc.PathLink??
+// NOTE: This just happens to have the same name as r_misc.PathLink
+// but is a different thing used for a different purpose...
 export const PathLink = React.memo(function PathLink({
   path,
   actions,
-  default_value = "home directory of project"
+  default_value = "home directory of project",
 }: Props): JSX.Element {
   const handle_click = React.useCallback(
     function handle_click() {

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Component that manages rendering all the gutter markers associated to a Codemirror editor.
 */
 
@@ -49,7 +54,7 @@ export class GutterMarkers extends Component<Props, {}> {
         codemirror={this.props.codemirror}
         line={line}
         gutter_id={info.gutter_id}
-        set_handle={handle => this.props.set_handle(id, handle)}
+        set_handle={(handle) => this.props.set_handle(id, handle)}
       >
         {info.component}
       </GutterMarker>

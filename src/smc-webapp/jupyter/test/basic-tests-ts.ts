@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Just run some very basic startup tests.
 */
 
@@ -8,7 +13,7 @@ import {
   after,
   it,
   expect,
-  TestEditor
+  TestEditor,
 } from "../../frame-editors/generic/test/util";
 import { JupyterStore } from "../store";
 import { JupyterActions } from "../actions";
@@ -85,12 +90,12 @@ describe("test cursors positions (a minimal not very good test) -- ", () => {
   it("sets cursor locs", async () => {
     actions.set_cur_id(list[0]);
     actions.set_mode("edit");
-    await new Promise(resolve =>
+    await new Promise((resolve) =>
       actions.syncdb.once("cursor_activity", () => {
         const cursors = actions.syncdb.get_cursors().toJS();
         expect(cursors[actions._account_id].locs).to.deep.equal([
           { id: list[0], x: 0, y: 0 },
-          { id: list[0], x: 2, y: 1 }
+          { id: list[0], x: 2, y: 1 },
         ]);
         resolve();
       })
@@ -101,7 +106,7 @@ describe("test cursors positions (a minimal not very good test) -- ", () => {
     doc._users.push(doc._users[0]);
     actions.set_cursor_locs([
       { id: list[0], x: 0, y: 0 },
-      { id: list[0], x: 2, y: 1 }
+      { id: list[0], x: 2, y: 1 },
     ]);
   });
 });

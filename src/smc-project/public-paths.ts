@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Monitoring of public paths in a running project.
 */
 
@@ -16,7 +21,7 @@ export function monitor(client) {
 interface Client {
   dbg: Function;
   client_id: Function;
-  sync_table2: Function;
+  sync_table: Function;
   query: Function;
 }
 
@@ -45,9 +50,9 @@ class MonitorPublicPaths {
       project_id: this.client.client_id(),
       path: null,
       last_edited: null,
-      disabled: null
+      disabled: null,
     };
-    this.table = this.client.sync_table2({ public_paths: [pattern] });
+    this.table = this.client.sync_table({ public_paths: [pattern] });
     this.update_loop(); // do not await!
   }
 
@@ -92,7 +97,7 @@ class MonitorPublicPaths {
         work.push({
           id,
           path: info.get("path"),
-          last_edited
+          last_edited,
         });
       }
     });
@@ -108,7 +113,7 @@ class MonitorPublicPaths {
   }): Promise<void> {
     const { id, path, last_edited } = opts;
     //const d = this.dbg(`update_path('${path}')`);
-    const d = function(..._args) {}; // too verbose...
+    const d = function (..._args) {}; // too verbose...
     // If any file in the given path was modified after last_edited,
     // update last_edited to when the path was modified.
     let changed: boolean = false; // don't know yet
@@ -135,7 +140,7 @@ class MonitorPublicPaths {
         "-exec",
         "false",
         "{}",
-        "+"
+        "+",
       ];
       try {
         await callback(execFile, "find", args);

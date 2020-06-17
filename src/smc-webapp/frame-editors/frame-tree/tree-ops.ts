@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Binary tree operations
 */
 
@@ -17,7 +22,7 @@ export function set(tree: ImmutableFrameTree, obj: any): ImmutableFrameTree {
     return tree;
   }
   let done = false;
-  var process = function(node) {
+  var process = function (node) {
     if (node == null || done) {
       return node;
     }
@@ -53,7 +58,7 @@ export function set_leafs(
     // nothing to do
     return tree;
   }
-  var process = function(node) {
+  var process = function (node) {
     if (node == null) {
       return node;
     }
@@ -85,7 +90,7 @@ function generate_id(): string {
 
 // Ensure every node of the tree has an id set.
 export function assign_ids(tree: ImmutableFrameTree): ImmutableFrameTree {
-  var process = function(node) {
+  var process = function (node) {
     if (node == null) {
       return node;
     }
@@ -129,7 +134,7 @@ function walk(tree: ImmutableFrameTree, f: Function): void {
 // Return map from leaf ids to true
 export function get_leaf_ids(tree: ImmutableFrameTree): SetMap {
   const ids = {};
-  walk(tree, function(node) {
+  walk(tree, function (node) {
     if (exports.is_leaf(node)) {
       ids[node.get("id")] = true;
     }
@@ -300,7 +305,7 @@ export function split_leaf(
   first?: boolean // if true, new leaf is left or top instead of right or bottom.
 ): ImmutableFrameTree {
   let done = false;
-  var process = function(node) {
+  var process = function (node) {
     if (node == null || done) {
       return node;
     }

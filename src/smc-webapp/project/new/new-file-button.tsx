@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 
 import { Button } from "antd";
@@ -22,7 +27,7 @@ export const NewFileButton = React.memo(function NewFileButton({
   className,
   disabled,
   loading,
-  children
+  children,
 }: Props) {
   let displayed_icon = <Icon name={icon} />;
 

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Register the Jupyter notebook frame tree editor
 */
 
@@ -14,7 +19,7 @@ export function register_cocalc_jupyter(): void {
     ext: "ipynb",
     component: Editor,
     Actions: JupyterEditorActions,
-    is_public: false
+    is_public: false,
   });
 }
 

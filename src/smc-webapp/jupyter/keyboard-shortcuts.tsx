@@ -1,21 +1,25 @@
 /*
-The keyboard shortcuts and command listing dialog, which:
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-  - lets you search through all available commands
-  - see and change the keyboard shortcuts for those commands\
-*/
+// The keyboard shortcuts and command listing dialog, which:
+//
+//   - lets you search through all available commands
+//   - see and change the keyboard shortcuts for those commands\
 
 import { React, Component, Rendered } from "../app-framework";
 import { Map } from "immutable";
 import * as json from "json-stable-stringify";
 import * as misc from "smc-util/misc";
 import { Button, Modal, Grid, Row, Col } from "react-bootstrap";
-import { Icon, SearchInput, r_join } from "../r_misc";
+import { A, Icon, SearchInput, r_join } from "../r_misc";
 import { commands, CommandDescription, KeyboardCommand } from "./commands";
 import { evt_to_obj, keyCode_to_chr } from "./keyboard";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
+const { ShowSupportLink } = require("../support");
 
 // See http://xahlee.info/comp/unicode_computing_symbols.html
 const SYMBOLS = {
@@ -28,7 +32,7 @@ const SYMBOLS = {
   tab: "↹",
   down: "⬇",
   up: "⬆",
-  backspace: "⌫"
+  backspace: "⌫",
 };
 
 function shortcut_to_string(shortcut: KeyboardCommand): string {
@@ -98,7 +102,7 @@ export class KeyboardShortcut extends Component<KeyboardShortcutProps> {
 
 const SHORTCUTS_STYLE: React.CSSProperties = {
   border: "1px solid transparent",
-  paddingRight: "10px"
+  paddingRight: "10px",
 };
 
 interface ShortcutsProps {
@@ -124,7 +128,7 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
       add: false,
       value: "",
       taken: false,
-      shortcut: undefined
+      shortcut: undefined,
     };
   }
 
@@ -178,7 +182,7 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
       add: false,
       taken: false,
       value: "",
-      shortcut: undefined
+      shortcut: undefined,
     });
   };
 
@@ -191,7 +195,7 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
       add: false,
       taken: false,
       value: "",
-      shortcut: undefined
+      shortcut: undefined,
     });
   };
 
@@ -211,7 +215,7 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
     this.setState({
       value: shortcut_to_string(shortcut),
       shortcut,
-      taken
+      taken,
     });
   };
 
@@ -298,7 +302,7 @@ function capitalize_each_word(s: string): string {
 const COMMAND_STYLE = {
   cursor: "pointer",
   borderTop: "1px solid #ccc",
-  padding: "5px 0 5px 10px"
+  padding: "5px 0 5px 10px",
 };
 
 interface CommandProps {
@@ -389,7 +393,7 @@ const COMMAND_LIST_STYLE: React.CSSProperties = {
   border: "1px solid #ccc",
   borderRadius: "3px",
   overflowY: "scroll",
-  maxHeight: "50vh"
+  maxHeight: "50vh",
 };
 
 interface CommandListProps {
@@ -484,7 +488,7 @@ export class KeyboardShortcuts extends Component<
         this.props.frame_actions,
         this.props.editor_actions
       ),
-      taken: {}
+      taken: {},
     };
     for (const name in obj.commands) {
       const val = obj.commands[name];
@@ -571,7 +575,7 @@ export class KeyboardShortcuts extends Component<
       <Modal show={true} onHide={this.close} bsSize="large">
         <Modal.Header closeButton>
           <Modal.Title>
-            <Icon name="keyboard-o" /> Commands and keyboard shortcuts
+            <Icon name="keyboard-o" /> Jupyter commands and keyboard shortcuts
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
@@ -602,6 +606,14 @@ export class KeyboardShortcuts extends Component<
           </Grid>
         </Modal.Body>
         <Modal.Footer>
+          <span style={{ float: "left", margin: "5px 0 0 25px" }}>
+            NOTE: Shortcut customization is{" "}
+            <A href="https://github.com/sagemathinc/cocalc/issues/3242">
+              not implemented
+            </A>
+            ; however, it is easy for us to{" "}
+            <ShowSupportLink text={"add new shortcuts and commands."} />{" "}
+          </span>
           <Button onClick={this.close}>Close</Button>
         </Modal.Footer>
       </Modal>

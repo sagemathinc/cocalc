@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Apply various transformations to url's before downloading a file using the "+ New" from web thing:
 This is useful, since people often post a link to a page that *hosts* raw content, but isn't raw
 content, e.g., ipython nbviewer, trac patches, github source files (or repos?), etc.
@@ -22,7 +27,7 @@ export function transform_get_url(
     "http://nbviewer.jupyter.org/urls/": "https://",
     "https://nbviewer.jupyter.org/url/": "http://", // download from original source
     "https://nbviewer.jupyter.org/urls/": "https://",
-    [COCALC_SHARE_SERVER]: COCALC_SHARE_SERVER + "raw/" // always download as raw
+    [COCALC_SHARE_SERVER]: COCALC_SHARE_SERVER + "raw/", // always download as raw
   };
   if (startswith(url, "https://github.com/")) {
     if (url.indexOf("/blob/") !== -1) {

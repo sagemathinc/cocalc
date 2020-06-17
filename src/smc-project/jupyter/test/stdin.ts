@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Test backend part of interactive input.
 */
 
@@ -19,63 +24,63 @@ function stdin_func(expected_prompt, expected_password, value) {
   return stdin;
 }
 
-describe("get input using the python2 kernel -- ", function() {
+describe("get input using the python2 kernel -- ", function () {
   this.timeout(10000);
   let kernel: common.JupyterKernel;
 
-  it("creates a python2 kernel", function() {
+  it("creates a python2 kernel", function () {
     kernel = common.kernel("test-python2");
   });
 
-  it("reading input - no prompt", async function() {
+  it("reading input - no prompt", async function () {
     const out = await kernel.execute_code_now({
       code: "print(input())",
-      stdin: stdin_func("", false, "cocalc")
+      stdin: stdin_func("", false, "cocalc"),
     });
     expect(common.output(out)).toEqual("cocalc\n");
   });
 
-  it("reading input - different return", async function() {
+  it("reading input - different return", async function () {
     const out = await kernel.execute_code_now({
       code: "print(input())",
-      stdin: stdin_func("", false, "sage")
+      stdin: stdin_func("", false, "sage"),
     });
     expect(common.output(out)).toEqual("sage\n");
   });
 
-  it("reading raw_input - no prompt", async function() {
+  it("reading raw_input - no prompt", async function () {
     const out = await kernel.execute_code_now({
       code: "print(raw_input())",
-      stdin: stdin_func("", false, "cocalc")
+      stdin: stdin_func("", false, "cocalc"),
     });
     expect(common.output(out)).toEqual('"cocalc"\n');
   });
 
-  it("reading input - prompt", async function() {
+  it("reading input - prompt", async function () {
     const out = await kernel.execute_code_now({
       code: 'print(input("prompt"))',
-      stdin: stdin_func("prompt", false, "cocalc")
+      stdin: stdin_func("prompt", false, "cocalc"),
     });
     expect(common.output(out)).toEqual("cocalc\n");
   });
 
-  it("reading raw_input - prompt", async function() {
+  it("reading raw_input - prompt", async function () {
     const out = await kernel.execute_code_now({
       code: 'print(raw_input("prompt"))',
-      stdin: stdin_func("prompt", false, "cocalc")
+      stdin: stdin_func("prompt", false, "cocalc"),
     });
     expect(common.output(out)).toEqual('"cocalc"\n');
   });
 
-  it("reading a password", async function() {
+  it("reading a password", async function () {
     const out = await kernel.execute_code_now({
       code: 'import getpass; print(getpass.getpass("password?"))',
-      stdin: stdin_func("password?", true, "cocalc")
+      stdin: stdin_func("password?", true, "cocalc"),
     });
     expect(common.output(out)).toEqual('"cocalc"\n');
   });
 
-  return it("closes the kernel", function() {
+  return it("closes the kernel", function () {
     kernel.close();
   });
 });

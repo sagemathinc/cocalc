@@ -1,10 +1,12 @@
-/* Show information to user about unused upgrades */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import { Map } from "immutable";
-
 import * as humanizeList from "humanize-list";
-
 import { PROJECT_UPGRADES } from "smc-util/schema";
+import { Upgrades } from "smc-util/upgrades/types";
 
 import {
   rclass,
@@ -12,7 +14,7 @@ import {
   Rendered,
   Component,
   React,
-  redux
+  redux,
 } from "../app-framework";
 
 import { len } from "smc-util/misc2";
@@ -25,17 +27,15 @@ interface Props {
   project_map?: Map<string, any>;
 }
 
-type QuotaMap = { [quota: string]: number };
-
 class UpgradeStatus extends Component<Props, {}> {
   static reduxProps() {
     return {
       account: {
-        stripe_customer: rtypes.immutable.Map
+        stripe_customer: rtypes.immutable.Map,
       },
       projects: {
-        project_map: rtypes.immutable.Map
-      }
+        project_map: rtypes.immutable.Map,
+      },
     };
   }
 
@@ -48,7 +48,7 @@ class UpgradeStatus extends Component<Props, {}> {
     visit_billing_page();
   }
 
-  render_unused_mesg(total: QuotaMap, used: QuotaMap): Rendered {
+  render_unused_mesg(total: Upgrades, used: Upgrades): Rendered {
     let mesg: string;
     let f: (event: any) => void;
     if (len(total) == 0) {

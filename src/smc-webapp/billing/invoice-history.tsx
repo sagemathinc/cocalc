@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const { Panel } = require("react-bootstrap");
 import { Component, React, Rendered } from "../app-framework";
 import { Icon, Loading } from "../r_misc";
@@ -21,7 +26,7 @@ export class InvoiceHistory extends Component<Props> {
   }
 
   private render_invoice({
-    index: idx
+    index: idx,
   }: {
     index: number;
   }): Rendered | undefined {
@@ -47,7 +52,7 @@ export class InvoiceHistory extends Component<Props> {
           estimated_row_size={size}
           row_count={size}
           row_renderer={this.render_invoice.bind(this)}
-          row_key={idx => `${idx}`}
+          row_key={(idx) => `${idx}`}
           cache_id={"invoices"}
         />
       </div>

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Manage codemirror gutters that provide messages and other info from the backend LEAN.
 */
 
@@ -72,7 +77,7 @@ function message_component(
         border: `2px solid ${color}`,
         borderRadius: "3px",
         width: "700px",
-        maxWidth: "80%"
+        maxWidth: "80%",
       }}
       delayShow={0}
       allow_touch={true}

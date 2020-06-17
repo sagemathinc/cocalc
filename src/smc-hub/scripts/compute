@@ -3,5 +3,5 @@
 import os, sys
 os.chdir(os.path.split(os.path.realpath(__file__))[0] + '/..')
 cmd = "node run/compute.js %s"%(' '.join(["%s"%x for x in sys.argv[1:]]))
-print cmd
+print (cmd)
 os.system(cmd)

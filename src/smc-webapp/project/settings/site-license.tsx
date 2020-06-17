@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // NOTE: some code here is similar to code in
 // src/smc-webapp/course/configuration/upgrades.tsx
 
@@ -26,7 +31,7 @@ export class SiteLicense extends Component<Props, State> {
   constructor(props) {
     super(props);
     this.state = {
-      site_license_ids: ""
+      site_license_ids: "",
     };
   }
 
@@ -44,7 +49,7 @@ export class SiteLicense extends Component<Props, State> {
       } catch (err) {
         alert_message({
           type: "error",
-          message: `Unable to add license key -- ${err}`
+          message: `Unable to add license key -- ${err}`,
         });
         return;
       }
@@ -65,7 +70,7 @@ export class SiteLicense extends Component<Props, State> {
           style={LICENSE_STYLE}
           type="text"
           value={this.state.site_license_ids}
-          onChange={e => this.setState({ site_license_ids: e.target.value })}
+          onChange={(e) => this.setState({ site_license_ids: e.target.value })}
         />
         <ButtonGroup>
           {" "}
@@ -106,13 +111,13 @@ export class SiteLicense extends Component<Props, State> {
   public render(): Rendered {
     return (
       <div>
-        <h4>Licenses</h4>
+        <h4><Icon name="key"/> Licenses</h4>
         {this.render_current_licenses()}
         <br />
         <Button
           onClick={() => {
             this.setState({
-              show_site_license: true
+              show_site_license: true,
             });
           }}
           disabled={this.state.show_site_license}

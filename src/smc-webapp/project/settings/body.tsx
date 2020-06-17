@@ -1,20 +1,24 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
-import { analytics_event } from "../../tracker";
 const misc = require("smc-util/misc");
 import {
   Icon,
   NonMemberProjectWarning,
-  NoNetworkProjectWarning
+  NoNetworkProjectWarning,
 } from "../../r_misc";
 import { redux, rtypes, rclass } from "../../app-framework";
 import { JupyterServerPanel } from "../plain-jupyter-server";
 import { JupyterLabServerPanel } from "../jupyterlab-server";
 import {
   AddCollaboratorsPanel,
-  CurrentCollaboratorsPanel
+  CurrentCollaboratorsPanel,
 } from "../../collaborators";
 
-import { TitleDescriptionBox } from "./title-description-box";
+import { AboutBox } from "./about-box";
 import { UpgradeUsage } from "./upgrade-usage";
 import { HideDeleteBox } from "./hide-delete-box";
 import { SagewsControl } from "./sagews-control";
@@ -23,6 +27,7 @@ import { ProjectControl } from "./project-control";
 import { Customer, ProjectMap, UserMap } from "smc-webapp/todo-types";
 import { Project } from "./types";
 import { SSHPanel } from "./ssh";
+import { Environment } from "./environment";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 
 const { webapp_client } = require("../../webapp_client");
@@ -40,11 +45,15 @@ interface ReactProps {
 }
 
 interface ReduxProps {
+  // from account
   get_total_upgrades: Function;
   groups: string[];
 
+  // from customize
   kucalc: string;
+  ssh_gateway: boolean;
 
+  // from projects
   get_course_info: Function;
   get_total_upgrades_you_have_applied: Function;
   get_upgrades_you_applied_to_project: Function;
@@ -53,6 +62,7 @@ interface ReduxProps {
   compute_images: Map<string, any>;
   all_projects_have_been_loaded: boolean;
 
+  // context specific
   configuration: Map<string, any>;
   available_features: object;
 }
@@ -63,10 +73,11 @@ export const Body = rclass<ReactProps>(
       return {
         account: {
           get_total_upgrades: rtypes.func,
-          groups: rtypes.array
+          groups: rtypes.array,
         },
         customize: {
-          kucalc: rtypes.string
+          kucalc: rtypes.string,
+          ssh_gateway: rtypes.bool,
         },
         projects: {
           get_course_info: rtypes.func,
@@ -75,12 +86,12 @@ export const Body = rclass<ReactProps>(
           get_total_project_quotas: rtypes.func,
           get_upgrades_to_project: rtypes.func,
           compute_images: rtypes.immutable.Map,
-          all_projects_have_been_loaded: rtypes.bool
+          all_projects_have_been_loaded: rtypes.bool,
         },
         [name]: {
           configuration: rtypes.immutable,
-          available_features: rtypes.object
-        }
+          available_features: rtypes.object,
+        },
       };
     }
 
@@ -93,7 +104,7 @@ export const Body = rclass<ReactProps>(
           "compute_images",
           "configuration",
           "available_features",
-          "all_projects_have_been_loaded"
+          "all_projects_have_been_loaded",
         ]) ||
         (props.customer != undefined &&
           !props.customer.equals(this.props.customer))
@@ -145,9 +156,7 @@ export const Body = rclass<ReactProps>(
               account_id={webapp_client.account_id}
               email_address={this.props.email_address}
             />
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           {commercial &&
           total_project_quotas != undefined &&
           !total_project_quotas.network ? (
@@ -158,18 +167,17 @@ export const Body = rclass<ReactProps>(
                 upgrades_you_applied_to_all_projects
               }
             />
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           <h1 style={{ marginTop: "0px" }}>
             <Icon name="wrench" /> Project Settings
           </h1>
           <Row>
             <Col sm={6}>
-              <TitleDescriptionBox
+              <AboutBox
                 project_id={id}
                 project_title={this.props.project.get("title") || ""}
                 description={this.props.project.get("description") || ""}
+                created={this.props.project.get("created")}
                 actions={redux.getActions("projects")}
               />
               <UpgradeUsage
@@ -199,16 +207,19 @@ export const Body = rclass<ReactProps>(
                 project={this.props.project}
                 actions={redux.getActions("projects")}
               />
-              {this.props.kucalc === KUCALC_COCALC_COM ? (
+              {this.props.ssh_gateway ||
+              this.props.kucalc === KUCALC_COCALC_COM ? (
                 <SSHPanel
                   key="ssh-keys"
                   project={this.props.project}
                   user_map={this.props.user_map}
                   account_id={this.props.account_id}
                 />
-              ) : (
-                undefined
-              )}
+              ) : undefined}
+              <Environment
+                key="environment"
+                project_id={this.props.project_id}
+              />
               <ProjectCapabilities
                 name={this.props.name}
                 key={"capabilities"}
@@ -224,32 +235,22 @@ export const Body = rclass<ReactProps>(
               <AddCollaboratorsPanel
                 key="new-collabs"
                 project={this.props.project}
-                on_invite={() =>
-                  analytics_event("project_settings", "add collaborator")
-                }
                 allow_urls={allow_urls}
               />
-              <ProjectControl
-                key="control"
-                project={this.props.project}
-              />
+              <ProjectControl key="control" project={this.props.project} />
               <SagewsControl key="worksheet" project={this.props.project} />
               {have_jupyter_notebook ? (
                 <JupyterServerPanel
                   key="jupyter"
                   project_id={this.props.project_id}
                 />
-              ) : (
-                undefined
-              )}
+              ) : undefined}
               {have_jupyter_lab ? (
                 <JupyterLabServerPanel
                   key="jupyterlab"
                   project_id={this.props.project_id}
                 />
-              ) : (
-                undefined
-              )}
+              ) : undefined}
             </Col>
           </Row>
         </div>

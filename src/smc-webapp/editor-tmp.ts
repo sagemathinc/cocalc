@@ -1,9 +1,14 @@
-import * as  misc from "smc-util/misc";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import * as misc from "smc-util/misc";
 import { file_associations } from "./file-associations";
 
 // Given a text file (defined by content), try to guess
 // what the extension should be.
-const guess_file_extension_type = function(content) {
+const guess_file_extension_type = function (content) {
   content = $.trim(content);
   const i = content.indexOf("\n");
   const first_line = content.slice(0, i).toLowerCase();
@@ -31,7 +36,7 @@ export function file_options(filename, content) {
   let x;
   let ext = misc.filename_extension_notilde(filename);
   if (ext != undefined) {
-    ext = ext.toLowerCase()
+    ext = ext.toLowerCase();
   }
   if (ext == null && content != null) {
     // no recognized extension, but have contents

@@ -1,34 +1,17 @@
-//##############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016 -- 2017, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
-
 /*
-BUG:
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
- - this code is buggy since the SearchInput component below is NOT controlled,
-   but some of the code assumes it is, which makes no sense.
-   E.g., there is a clear_search prop that is passed in, which is
-   nonsense, because the state of the search is local to the
-   SearchInput. That's why the calls to clear
-   the search in all the code below are all broken.
-
-*/
+// BUG:
+//
+//  - this code is buggy since the SearchInput component below is NOT controlled,
+//    but some of the code assumes it is, which makes no sense.
+//    E.g., there is a clear_search prop that is passed in, which is
+//    nonsense, because the state of the search is local to the
+//    SearchInput. That's why the calls to clear
+//    the search in all the code below are all broken.
+//
 
 import * as underscore from "underscore";
 import * as immutable from "immutable";
@@ -44,12 +27,10 @@ import {
   Button,
   ButtonGroup,
   FormControl,
-  FormGroup
+  FormGroup,
 } from "../../antd-bootstrap";
 
 import { Card, Row, Col } from "antd";
-
-import { callback2 } from "smc-util/async-utils";
 
 const SEARCH_STYLE = { marginBottom: "0px" };
 
@@ -82,7 +63,7 @@ class MultipleAddSearch extends Component<
     super(props);
     this.state = {
       selected_items: [], // currently selected options
-      show_selector: false
+      show_selector: false,
     };
   }
 
@@ -94,7 +75,7 @@ class MultipleAddSearch extends Component<
         "search_results",
         "item_name",
         "is_searching",
-        "none_found"
+        "none_found",
       ]) ||
       !underscore.isEqual(newState.selected_items, this.state.selected_items)
     );
@@ -103,7 +84,7 @@ class MultipleAddSearch extends Component<
   componentWillReceiveProps(newProps) {
     return this.setState({
       show_selector:
-        newProps.search_results != null && newProps.search_results.size > 0
+        newProps.search_results != null && newProps.search_results.size > 0,
     });
   }
 
@@ -130,18 +111,19 @@ class MultipleAddSearch extends Component<
     } else {
       // Waiting for user to start a search
       return (
-        <Button onClick={e => (this.refs.search_input as any).submit(e)}>
+        <Button onClick={(e) => (this.refs.search_input as any).submit(e)}>
           <Icon name="search" />
         </Button>
       );
     }
   }
 
-  add_button_clicked = e => {
+  add_button_clicked = (e) => {
     e.preventDefault();
     if (this.state.selected_items.length === 0) {
-      const first_entry = ReactDOM.findDOMNode(this.refs.selector).firstChild
+      const first_entry = ReactDOM.findDOMNode(this.refs.selector)?.firstChild
         .value;
+      if (first_entry == null) return;
       this.props.add_selected([first_entry]);
     } else {
       this.props.add_selected(this.state.selected_items);
@@ -149,7 +131,7 @@ class MultipleAddSearch extends Component<
     return this.clear_and_focus_search_input();
   };
 
-  change_selection = e => {
+  change_selection = (e) => {
     const v: string[] = [];
     for (const option of e.target.selectedOptions) {
       v.push(option.label);
@@ -162,7 +144,7 @@ class MultipleAddSearch extends Component<
       return;
     }
     const v: any[] = [];
-    this.props.search_results.map(item => {
+    this.props.search_results.map((item) => {
       return v.push(
         <option key={item} value={item} label={item}>
           {item}
@@ -233,11 +215,17 @@ class MultipleAddSearch extends Component<
 
   private render_create_new_assignment(): Rendered {
     if (!this.search) return;
-    const target = this.search.trim();
+    let target = this.search.trim();
+    while (target[target.length - 1] == "/") {
+      // strip trailing /'s; people's fingers may want to type them
+      // if they think of assignments as directories (which they should).
+      target = target.slice(0, target.length - 1);
+    }
     if (!target) return;
+
     return (
       <Card style={{ margin: "15px 0" }} title={"Create assignment"}>
-        Create new folder and assignment named '{target}'?
+        Create '{target}'?
         <br />
         <br />
         <Button onClick={() => this.clear_and_focus_search_input()}>
@@ -245,7 +233,7 @@ class MultipleAddSearch extends Component<
         </Button>
         <Space />
         <Button
-          bsStyle="default"
+          bsStyle="primary"
           onClick={() => {
             this.props.add_selected([target]);
             this.props.clear_search();
@@ -265,7 +253,7 @@ class MultipleAddSearch extends Component<
           ref="search_input"
           default_value=""
           placeholder={`Add ${this.props.item_name} by folder name (enter to see available folders)...`}
-          on_submit={search => {
+          on_submit={(search) => {
             this.props.do_search(search);
             this.search = search;
           }}
@@ -296,8 +284,8 @@ function filter_results(
   // Omit any currently assigned directory or subdirectories of them.
   const paths_to_omit: string[] = [];
 
-  const active_items = all_items.filter(val => !val.get("deleted"));
-  active_items.map(val => {
+  const active_items = all_items.filter((val) => !val.get("deleted"));
+  active_items.map((val) => {
     const path = val.get("path");
     if (path) {
       // path might not be set in case something went wrong (this has been hit in production)
@@ -320,7 +308,7 @@ function filter_results(
     return false;
   }
 
-  directories = directories.filter(x => !should_omit(x));
+  directories = directories.filter((x) => !should_omit(x));
   directories.sort();
   return directories;
 }
@@ -329,7 +317,7 @@ interface FoldersToolbarProps {
   search?: string;
   search_change: (search_value: string) => void; // search_change(current_search_value)
   num_omitted?: number;
-  project_id?: string;
+  project_id: string;
   items: immutable.Map<string, any>;
   add_folders: (folders: string[]) => void; // add_folders (Iterable<T>)
   item_name: string;
@@ -362,13 +350,13 @@ export class FoldersToolbar extends Component<
       add_search_results: immutable.List([]),
       none_found: false,
       last_add_search: "",
-      err: undefined
+      err: undefined,
     };
   }
 
   static defaultProps = {
     item_name: "item",
-    plural_item_name: "items"
+    plural_item_name: "items",
   };
 
   private async do_add_search(search): Promise<void> {
@@ -382,9 +370,9 @@ export class FoldersToolbar extends Component<
 
     let resp;
     try {
-      resp = await callback2(webapp_client.find_directories, {
+      resp = await webapp_client.project_client.find_directories({
         project_id: this.props.project_id,
-        query: `*${search}*`
+        query: `*${search}*`,
       });
       // Disregard the results of this search of a new one was already submitted
       if (this.is_unmounted || this.state.last_add_search !== search) {
@@ -395,20 +383,21 @@ export class FoldersToolbar extends Component<
       this.setState({
         add_is_searching: false,
         err,
-        add_search_results: undefined
+        add_search_results: undefined,
       });
+      return;
     }
 
     if (resp.directories.length === 0) {
       this.setState({
         add_is_searching: false,
         add_search_results: immutable.List([]),
-        none_found: true
+        none_found: true,
       });
       return;
     }
 
-    this.setState(function(state, props) {
+    this.setState(function (state, props) {
       let merged;
       const filtered_results = filter_results(
         resp.directories,
@@ -429,12 +418,12 @@ export class FoldersToolbar extends Component<
       return {
         add_is_searching: false,
         add_search_results: merged,
-        none_found: false
+        none_found: false,
       };
     });
   }
 
-  submit_selected = path_list => {
+  submit_selected = (path_list) => {
     if (path_list != null) {
       // If nothing is selected and the user clicks the button to "Add handout (etc)" then
       // path_list is undefined, hence don't do this.
@@ -448,7 +437,7 @@ export class FoldersToolbar extends Component<
   private clear_add_search(): void {
     this.setState({
       add_search_results: immutable.List([]),
-      none_found: false
+      none_found: false,
     });
   }
 
@@ -475,9 +464,7 @@ export class FoldersToolbar extends Component<
                   : this.props.item_name}
                 )
               </h5>
-            ) : (
-              undefined
-            )}
+            ) : undefined}
           </Col>
           <Col md={10}>
             <MultipleAddSearch

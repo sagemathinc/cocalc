@@ -1,7 +1,9 @@
 /*
-Time travel actions.
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-*/
+// Time travel actions.
 
 import { List, Map } from "immutable";
 import { ButtonGroup } from "react-bootstrap";
@@ -11,7 +13,7 @@ import {
   Component,
   Rendered,
   rclass,
-  rtypes
+  rtypes,
 } from "../../app-framework";
 import { Loading } from "../../r_misc";
 
@@ -35,7 +37,7 @@ import { SyncDoc } from "smc-util/sync/editor/generic/sync-doc";
 const TasksHistoryViewer = require("../../tasks/history-viewer").HistoryViewer;
 import {
   HistoryViewer as JupyterHistoryViewer,
-  to_ipynb
+  to_ipynb,
 } from "../../jupyter/history-viewer";
 //import { SageWorksheetHistory } from "./sagews";
 import { SagewsCodemirror } from "./sagews-codemirror";
@@ -69,8 +71,8 @@ class TimeTravel extends Component<Props> {
         loading: rtypes.bool,
         has_full_history: rtypes.bool,
         docpath: rtypes.string,
-        docext: rtypes.string
-      }
+        docext: rtypes.string,
+      },
     };
   }
 
@@ -400,7 +402,7 @@ class TimeTravel extends Component<Props> {
         style={{
           background: this.props.is_current ? "#fafafa" : "#ddd",
           borderBottom: "1px solid #ccc",
-          marginLeft: "5px"
+          marginLeft: "5px",
         }}
       >
         {this.render_changes_mode()}

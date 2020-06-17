@@ -1,5 +1,10 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { PostgreSQL } from "./types";
-import { site_license_hook } from "./site-license-hook";
+import { site_license_hook } from "./site-license/hook";
 
 export async function project_action_request_pre_hook(
   db: PostgreSQL,

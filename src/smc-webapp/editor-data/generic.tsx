@@ -1,13 +1,11 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-/*
-"Editor" (really a read-only simple viewer) for generic data files
 
-See https://github.com/sagemathinc/cocalc/issues/2462
-*/
+// "Editor" (really a read-only simple viewer) for generic data files
+//
+// See https://github.com/sagemathinc/cocalc/issues/2462
 
 import { React, Component, Rendered } from "../app-framework";
 const { register_file_editor } = require("../project_file");
@@ -15,7 +13,7 @@ const { register_file_editor } = require("../project_file");
 import { Well } from "react-bootstrap";
 
 import { Markdown } from "../r_misc";
-const { webapp_client } = require("../webapp_client");
+import { webapp_client } from "../webapp-client";
 
 import { keys, filename_extension } from "smc-util/misc2";
 
@@ -61,7 +59,7 @@ This is a data file that contains the state of your Octave workspace.
 Read more: [Saving-Data-on-Unexpected-Exits](https://www.gnu.org/software/octave/doc/v4.2.1/Saving-Data-on-Unexpected-Exits.html).\
 `,
   "noext-a.out":
-    "This is a binary executable, which you can run in a Terminal by typing ./a.out."
+    "This is a binary executable, which you can run in a Terminal by typing ./a.out.",
 };
 
 interface Props {
@@ -85,9 +83,9 @@ class DataGeneric extends Component<Props, {}> {
   }
 
   render() {
-    const src = webapp_client.read_file_from_project({
+    const src = webapp_client.project_client.read_file({
       project_id: this.props.project_id,
-      path: this.props.path
+      path: this.props.path,
     });
     return (
       <Well style={{ margin: "15px", fontSize: "12pt" }}>
@@ -108,5 +106,5 @@ class DataGeneric extends Component<Props, {}> {
 register_file_editor({
   ext: keys(INFO),
   icon: "question",
-  component: DataGeneric
+  component: DataGeneric,
 });

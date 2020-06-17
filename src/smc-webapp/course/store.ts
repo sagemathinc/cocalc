@@ -1,23 +1,7 @@
-//#############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 // React libraries
 import { Store } from "../app-framework";
@@ -140,6 +124,9 @@ export type CourseSettingsRecord = TypedMap<{
   title: string;
   upgrade_goal: Map<any, any>;
   site_license_id?: string;
+  nbgrader_grade_in_instructor_project?: boolean;
+  nbgrader_cell_timeout_ms?: number;
+  nbgrader_timeout_ms?: number;
 }>;
 
 export const CourseSetting = createTypedMap<CourseSettingsRecord>();
@@ -362,7 +349,7 @@ export class CourseStore extends Store<CourseState> {
     if (users == null) return student_id;
     return [
       users.get_last_name(account_id),
-      users.get_first_name(account_id)
+      users.get_first_name(account_id),
     ].join(" ");
   }
 
@@ -481,7 +468,7 @@ export class CourseStore extends Store<CourseState> {
         v.push(assignment);
       }
     }
-    const f = function(a: AssignmentRecord) {
+    const f = function (a: AssignmentRecord) {
       return [a.get("due_date", 0), a.get("path", "")];
     };
     v.sort((a, b) => misc.cmp_array(f(a), f(b)));
@@ -567,7 +554,7 @@ export class CourseStore extends Store<CourseState> {
         student_id,
         assignment_id,
         peer_assignment: false,
-        peer_collect: false
+        peer_collect: false,
       };
     }
 
@@ -596,7 +583,7 @@ export class CourseStore extends Store<CourseState> {
       student_id,
       assignment_id,
       peer_assignment,
-      peer_collect
+      peer_collect,
     };
   }
 
@@ -614,7 +601,7 @@ export class CourseStore extends Store<CourseState> {
       "assignments",
       assignment_id,
       `last_${step}`,
-      student_id
+      student_id,
     ]);
     if (x == null) {
       return false;
@@ -741,7 +728,7 @@ export class CourseStore extends Store<CourseState> {
     return {
       status: status != null ? status.toJS() : undefined,
       student_id,
-      handout_id
+      handout_id,
     };
   }
 
@@ -792,7 +779,7 @@ export class CourseStore extends Store<CourseState> {
 
     const info = {
       handout: 0,
-      not_handout: 0
+      not_handout: 0,
     };
 
     const status = handout.get("status");
@@ -815,22 +802,24 @@ export class CourseStore extends Store<CourseState> {
 
   public get_upgrade_plan(upgrade_goal: UpgradeGoal) {
     const account_store: any = this.redux.getStore("account");
+    const project_map = this.redux.getStore("projects").get("project_map");
+    if (project_map == null) throw Error("not fully loaded");
     const plan = project_upgrades.upgrade_plan({
       account_id: account_store.get_account_id(),
       purchased_upgrades: account_store.get_total_upgrades(),
-      project_map: this.redux.getStore("projects").get("project_map"),
+      project_map,
       student_project_ids: set(
         this.get_student_project_ids({
-          include_deleted: true
+          include_deleted: true,
         })
       ),
       deleted_project_ids: set(
         this.get_student_project_ids({
           include_deleted: true,
-          deleted_only: true
+          deleted_only: true,
         })
       ),
-      upgrade_goal
+      upgrade_goal,
     });
     return plan;
   }

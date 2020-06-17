@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Top-level react component for editing code.
 */
 
@@ -24,7 +29,7 @@ export const SHELLS = {
   lua: "lua",
   ml: "ocaml",
   pl: "perl",
-  rb: "ruby"
+  rb: "ruby",
 };
 
 export const cm = {
@@ -32,7 +37,7 @@ export const cm = {
   name: "Source Code",
   icon: "code",
   component: CodemirrorEditor,
-  buttons: function(path: string): { [name: string]: true } {
+  buttons: function (path: string): { [name: string]: true } {
     const buttons: any = set([
       "print",
       "decrease_font_size",
@@ -47,22 +52,22 @@ export const cm = {
       "copy",
       "undo",
       "redo",
-      "shell"
+      "shell",
     ]);
     const ext = filename_extension(path);
     buttons.format = FORMAT.includes(ext);
     return buttons;
-  }
+  },
 };
 
 const EDITOR_SPEC = {
   cm,
   terminal,
-  time_travel
+  time_travel,
 };
 
 export const Editor = createEditor({
   format_bar: false,
   editor_spec: EDITOR_SPEC,
-  display_name: "CodeEditor"
+  display_name: "CodeEditor",
 });

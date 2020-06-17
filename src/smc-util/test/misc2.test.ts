@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as misc2 from "../misc2";
 
 describe("path_split", () => {
@@ -14,7 +19,7 @@ describe("path_split", () => {
   test("abspath", () =>
     expect(ps("/HOME/USER/DIR")).toEqual({
       head: "/HOME/USER",
-      tail: "DIR"
+      tail: "DIR",
     }));
 
   test("ROOT", () => expect(ps("/")).toEqual({ head: "", tail: "" }));

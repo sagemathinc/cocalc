@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Exporting from our in-memory sync-friendly format to ipynb
 */
 
@@ -18,14 +23,14 @@ export function export_to_ipynb(opts: any) {
     kernelspec: {}, // official jupyter will give an error on load without properly giving this (and ask to select a kernel)
     language_info: undefined,
     blob_store: undefined,
-    more_output: undefined
+    more_output: undefined,
   }); // optional map id --> list of additional output messages to replace last output message.
 
   const ipynb = {
     cells: opts.cell_list.toJS().map((id: string) => cell_to_ipynb(id, opts)),
     metadata: opts.metadata ? opts.metadata.toJS() || {} : {},
     nbformat: 4,
-    nbformat_minor: 0
+    nbformat_minor: 4,
   };
 
   ipynb.metadata.kernelspec = opts.kernelspec;
@@ -44,7 +49,7 @@ function cell_to_ipynb(id: string, opts: any) {
   const obj: any = {
     cell_type: (left = cell.get("cell_type")) != null ? left : "code",
     source: diff_friendly((left1 = cell.get("input")) != null ? left1 : ""),
-    metadata
+    metadata,
   };
 
   // Handle any extra metadata (mostly user defined) that we don't handle in a special
@@ -164,7 +169,7 @@ function ipynb_outputs(
         `${n}`,
         immutable.fromJS({
           text: "WARNING: Some output was deleted.\n",
-          name: "stderr"
+          name: "stderr",
         })
       );
     } else {

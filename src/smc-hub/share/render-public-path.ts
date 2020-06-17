@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Render a public path
 */
 
@@ -93,7 +98,7 @@ export async function render_public_path(opts: {
       files: files,
       viewer: opts.viewer,
       path: opts.path,
-      views: opts.views
+      views: opts.views,
     });
     // NOTE: last true is because we never index directory listings -- instead we want
     // users to find specific files by their content and name
@@ -151,7 +156,7 @@ export async function render_public_path(opts: {
     highlight,
     authors: opts.authors,
     base_url: opts.base_url,
-    views: opts.views
+    views: opts.views,
   });
   const subtitle = path_to_title(opts.path);
   opts.react(opts.res, component, subtitle, noindex);

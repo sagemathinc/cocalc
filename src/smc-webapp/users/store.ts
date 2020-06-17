@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Store, redux } from "../app-framework";
 import { UsersState } from "./types";
 import { actions } from "./actions";
@@ -62,7 +67,7 @@ class UsersStore extends Store<UsersState> {
           (left = this.get_last_active(user.account_id)) != null ? left : 0;
       }
     }
-    return users.sort(function(a, b) {
+    return users.sort((a, b) => {
       const c = cmp(b.last_active, a.last_active);
       if (c) {
         return c;
@@ -78,5 +83,5 @@ class UsersStore extends Store<UsersState> {
 
 // Register user store
 export const store = redux.createStore("users", UsersStore, {
-  user_map: fromJS({})
+  user_map: fromJS({}),
 });

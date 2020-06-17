@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Server directory listing through the HTTP server and Websocket API.
 
 {files:[..., {size:?,name:?,mtime:?,isdir:?}]}
@@ -31,16 +36,14 @@ export interface ListingEntry {
   error?: string;
 }
 
-// Switch to this once we switch to node10, which has the withFileTypes option.
-// TEST FIRST!
-export async function get_listing_node10(
+export async function get_listing(
   path: string,
   hidden: boolean = false
 ): Promise<ListingEntry[]> {
   const dir = HOME + "/" + path;
   const files: ListingEntry[] = [];
   let file: Dirent;
-  for (file of await callback(readdir, { withFileTypes: true }, dir)) {
+  for (file of await callback(readdir, dir, { withFileTypes: true })) {
     if (!hidden && file.name[0] === ".") {
       continue;
     }
@@ -68,7 +71,7 @@ export async function get_listing_node10(
         stats = await callback(lstat, dir + "/" + entry.name);
       }
       entry.mtime = stats.mtime.valueOf() / 1000;
-      if (file.isDirectory()) {
+      if (stats.isDirectory()) {
         entry.isdir = true;
         const v = await callback(readdir, dir + "/" + entry.name);
         if (hidden) {
@@ -93,70 +96,6 @@ export async function get_listing_node10(
   return files;
 }
 
-export async function get_listing(
-  path: string,
-  hidden: boolean = false
-): Promise<ListingEntry[]> {
-  const dir = HOME + "/" + path;
-  const files: ListingEntry[] = [];
-  let name: string;
-  for (name of await callback(readdir, dir)) {
-    if (!hidden && name[0] === ".") {
-      continue;
-    }
-    let entry: ListingEntry;
-    try {
-      // I don't actually know if file can fail to be JSON-able with node.js -- is there
-      // even a string in Node.js that cannot be dumped to JSON?  With python
-      // this definitely was a problem, but I can't find the examples now.  Users
-      // sometimes create "insane" file names via bugs in C programs...
-      JSON.stringify(name);
-      entry = { name };
-    } catch (err) {
-      entry = { name: "????", error: "Cannot display bad binary filename. " };
-    }
-
-    let stats: Stats;
-    try {
-      stats = await callback(lstat, dir + "/" + entry.name);
-      if (stats.isSymbolicLink()) {
-        entry.issymlink = true;
-        try {
-          stats = await callback(stat, dir + "/" + entry.name);
-        } catch (err) {
-          // broken link -- just report info about the link itself...
-        }
-      }
-      entry.mtime = stats.mtime.valueOf() / 1000;
-      if (stats.isDirectory()) {
-        entry.isdir = true;
-        try {
-          const v = await callback(readdir, dir + "/" + entry.name);
-          if (hidden) {
-            entry.size = v.length;
-          } else {
-            // only count non-hidden files
-            entry.size = 0;
-            for (const x of v) {
-              if (x[0] != ".") {
-                entry.size += 1;
-              }
-            }
-          }
-        } catch (err) {
-          // just ignore -- no size info.
-        }
-      } else {
-        entry.size = stats.size;
-      }
-    } catch (err) {
-      entry.error = `${entry.error ? entry.error : ""}${err}`;
-    }
-    files.push(entry);
-  }
-  return files;
-}
-
 export function directory_listing_router(express): any {
   const base = "/.smc/directory_listing/";
   const router = express.Router();
@@ -164,7 +103,7 @@ export function directory_listing_router(express): any {
 }
 
 function directory_listing_http_server(base, router): void {
-  router.get(base + "*", async function(req, res) {
+  router.get(base + "*", async function (req, res) {
     // decodeURIComponent because decodeURI(misc.encode_path('asdf/te #1/')) != 'asdf/te #1/'
     // https://github.com/sagemathinc/cocalc/issues/2400
     const path = decodeURIComponent(req.path.slice(base.length).trim());

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 HTTP server for getting various information from Jupyter, without
 having to go through the websocket connection and messaging.  This is
 useful, e.g., for big images, general info about all available
@@ -14,7 +19,7 @@ const BASE = "/.smc/jupyter/";
 
 function jupyter_kernel_info_handler(router): void {
   // we are only actually using this to serve up the logo.
-  router.get(BASE + "kernelspecs/*", async function(req, res): Promise<void> {
+  router.get(BASE + "kernelspecs/*", async function (req, res): Promise<void> {
     try {
       const kernel_data = await get_kernel_data();
       let path = req.path.slice((BASE + "kernelspecs/").length).trim();

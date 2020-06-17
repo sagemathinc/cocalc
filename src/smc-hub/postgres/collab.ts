@@ -1,4 +1,7 @@
-/* Adding (and later removing) collaborators to/from projects. */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import { PostgreSQL } from "./types";
 
@@ -47,7 +50,7 @@ async function verify_write_access_to_projects(
       !(await callback2(db.user_is_in_project_group, {
         project_id,
         account_id,
-        groups
+        groups,
       }))
     ) {
       throw Error(

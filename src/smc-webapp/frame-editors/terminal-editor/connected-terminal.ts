@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Wrapper object around xterm.js's Terminal, which adds
 extra support for being connected to:
   - a backend project via a websocket
@@ -107,7 +112,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       "update_settings",
       "connect",
       "_handle_data_from_project",
-      "touch"
+      "touch",
     ]);
 
     this.actions = actions;
@@ -344,7 +349,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   init_title(): void {
-    this.terminal.onTitleChange(title => {
+    this.terminal.onTitleChange((title) => {
       if (title != null) {
         this.actions.set_title(this.id, title);
       }
@@ -372,7 +377,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       return;
     }
     this.keyhandler_initialized = true;
-    this.terminal.attachCustomKeyEventHandler(event => {
+    this.terminal.attachCustomKeyEventHandler((event) => {
       //console.log("key", event);
       // record that terminal is being actively used.
       this.last_active = new Date().valueOf();
@@ -522,7 +527,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     if (this.state === "closed") {
       return;
     }
-    const g = cb => {
+    const g = (cb) => {
       const f = async () => {
         x.dispose();
         if (this.resize_after_no_ignore !== undefined) {
@@ -656,7 +661,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   init_terminal_data(): void {
-    this.terminal.onData(data => {
+    this.terminal.onData((data) => {
       if (this.ignore_terminal_data) {
         return;
       }
@@ -715,7 +720,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
     if (
       this.last_geom !== undefined &&
-      (this.last_geom.rows === rows && this.last_geom.cols === cols)
+      this.last_geom.rows === rows &&
+      this.last_geom.cols === cols
     ) {
       return;
     }

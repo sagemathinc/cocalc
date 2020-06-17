@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 # this tests kucalc's quota function
 #
 # after any change to quota.ts, be a good citizen and run this test or even extend it
@@ -180,16 +185,16 @@ describe 'default quota', ->
                     member_host    : true
                     network        : true
                     memory_request : 3210
-                    disk_quota     : 3000 # settings are already > max
+                    disk_quota     : 3000 # settings are already near max
                     cores          : 2
-                    mintime        : 24*3600*40
+                    mintime        : 24*3600*50
                     cpu_shares     : 1024 * 0.5
             user2:
                 upgrades:
                     member_host    : true
                     network        : true
                     cores          : 2
-                    mintime        : 24*3600*40
+                    mintime        : 24*3600*50
 
         exp =
             network         : true
@@ -199,8 +204,33 @@ describe 'default quota', ->
             cpu_request     : .5 + 0.1
             cpu_limit       : 3
             privileged      : false
-            idle_timeout    : 24*3600*90  # 1800 secs free
-            disk_quota      : 20000
+            idle_timeout    : 24*3600*(Math.min(90, 50+50) + 33) - 1800 # 1800 secs free
+            disk_quota      : 22000
+        expect(quota(settings, users)).toEqual(exp)
+
+    it 'admin upgrades can move user upgrades beyond the limit', ->
+        settings =
+            memory   : 5000
+
+        users =
+            user1:
+                upgrades:
+                    member_host    : true
+                    network        : true
+                    memory         : 15000
+                    memory_request : 2000
+
+        exp =
+            network         : true
+            member_host     : true
+            memory_limit    : 20000
+            cpu_limit       : 1
+            cpu_request     : 0.05
+            disk_quota      : 3000
+            idle_timeout    : 1800
+            memory_request  : 2000
+            privileged      : false
+
         expect(quota(settings, users)).toEqual(exp)
 
     it 'does not allow privileged updates for users', ->
@@ -392,7 +422,7 @@ describe 'default quota', ->
             idle_timeout    : 9999
             disk_quota      : 5432
 
-    it 'derfaults capped by lower max_upgrades', ->
+    it 'defaults capped by lower max_upgrades', ->
         site_settings =
             max_upgrades:
                 member_host    : false
@@ -494,7 +524,7 @@ describe 'default quota', ->
         expect(q1).toEqual
             network         : true
             member_host     : false
-            memory_request  : 500   # OC 1:5 of 1515mb
+            memory_request  : 500   # OC 1:2 of 2000mb
             memory_limit    : 2000  # default
             cpu_request     : 0.55  # OC 1:4 of 2.2, not at maximum
             cpu_limit       : 2     # default limited by max_upgrades

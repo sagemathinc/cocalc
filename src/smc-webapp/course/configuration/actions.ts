@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Actions involving configuration of the course.
 */
 
@@ -71,7 +76,7 @@ export class ConfigurationActions {
   public async set_course_info(pay: string = ""): Promise<void> {
     this.set({
       pay,
-      table: "settings"
+      table: "settings",
     });
     await this.course_actions.student_projects.set_all_student_project_course_info(
       pay
@@ -80,7 +85,7 @@ export class ConfigurationActions {
 
   public async configure_host_project(): Promise<void> {
     const id = this.course_actions.set_activity({
-      desc: "Configuring host project."
+      desc: "Configuring host project.",
     }); // Set license key if known; remove if not.
     try {
       const store = this.course_actions.get_store();
@@ -92,9 +97,6 @@ export class ConfigurationActions {
           course_project_id,
           site_license_id
         );
-      } else {
-        // ensure no license set
-        await actions.remove_site_license_from_project(course_project_id);
       }
     } catch (err) {
       this.course_actions.set_error(`Error configuring host project - ${err}`);
@@ -116,5 +118,26 @@ export class ConfigurationActions {
         student_id
       );
     }
+  }
+
+  public set_nbgrader_grade_in_instructor_project(value: boolean): void {
+    this.set({
+      nbgrader_grade_in_instructor_project: value,
+      table: "settings",
+    });
+  }
+
+  public set_nbgrader_cell_timeout_ms(value: number): void {
+    this.set({
+      nbgrader_cell_timeout_ms: value,
+      table: "settings",
+    });
+  }
+
+  public set_nbgrader_timeout_ms(value: number): void {
+    this.set({
+      nbgrader_timeout_ms: value,
+      table: "settings",
+    });
   }
 }

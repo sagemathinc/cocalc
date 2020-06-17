@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 This loads code to generally improve the chances things will work when actually
 launched.  This is run during the build process as a test.
 Also, running this module populates ~/.ts-node-cache, which improves

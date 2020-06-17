@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Do some tests with **all** of the kernels we officially support in CoCalc.
 
 Obviously, this test file should take a while to run, since it starts
@@ -57,32 +62,32 @@ const EXEC_TESTS: TestKernel[] = [
     tests: [
       {
         input: "print(1/3,4/3)",
-        output: "0.3333333333333333 1.3333333333333333\n"
-      }
-    ]
+        output: "0.3333333333333333 1.3333333333333333\n",
+      },
+    ],
   },
   {
     kernel: "anaconda5",
     tests: [
       {
         input: "print(1/3,4/3)",
-        output: "0.3333333333333333 1.3333333333333333\n"
-      }
-    ]
+        output: "0.3333333333333333 1.3333333333333333\n",
+      },
+    ],
   },
   {
     kernel: "bash",
-    tests: [{ input: "echo 'foo bar'", output: "foo bar\n" }]
+    tests: [{ input: "echo 'foo bar'", output: "foo bar\n" }],
   },
   {
     kernel: "gap",
-    tests: [{ input: "1/3 + 4/3", output: "5/3" }]
+    tests: [{ input: "1/3 + 4/3", output: "5/3" }],
   },
   {
     kernel: "haskell",
     tests: [
-      { input: "1/3 + 4/3", output: '{"text/plain":"1.6666666666666665"}' }
-    ]
+      { input: "1/3 + 4/3", output: '{"text/plain":"1.6666666666666665"}' },
+    ],
   },
   {
     kernel: "ir",
@@ -90,9 +95,9 @@ const EXEC_TESTS: TestKernel[] = [
       {
         input: "1/3 + 4/3",
         output:
-          '{"text/html":"1.66666666666667","text/latex":"1.66666666666667","text/markdown":"1.66666666666667","text/plain":"[1] 1.666667"}'
-      }
-    ]
+          '{"text/html":"1.66666666666667","text/latex":"1.66666666666667","text/markdown":"1.66666666666667","text/plain":"[1] 1.666667"}',
+      },
+    ],
   },
   {
     kernel: "ir-sage",
@@ -100,61 +105,61 @@ const EXEC_TESTS: TestKernel[] = [
       {
         input: "1/3 + 4/3",
         output:
-          '{"text/html":"1.66666666666667","text/latex":"1.66666666666667","text/markdown":"1.66666666666667","text/plain":"[1] 1.666667"}'
-      }
-    ]
+          '{"text/html":"1.66666666666667","text/latex":"1.66666666666667","text/markdown":"1.66666666666667","text/plain":"[1] 1.666667"}',
+      },
+    ],
   },
   {
     kernel: "julia",
     tests: [
-      { input: "1/3 + 4/3", output: '{"text/plain":"1.6666666666666665"}' }
-    ]
+      { input: "1/3 + 4/3", output: '{"text/plain":"1.6666666666666665"}' },
+    ],
   },
   {
     kernel: "octave",
-    tests: [{ input: "1/3 + 4/3", output: "ans =  1.6667\n" }]
+    tests: [{ input: "1/3 + 4/3", output: "ans =  1.6667\n" }],
   },
   {
     kernel: "pari_jupyter",
     tests: [{ input: "1/3 + 4/3", output: '{"text/plain":"5/3"}' }],
-    timeout: 20000
+    timeout: 20000,
   },
   {
     kernel: "python2",
-    tests: [{ input: "print(1/3,4/3)", output: "(0, 1)\n" }]
+    tests: [{ input: "print(1/3,4/3)", output: "(0, 1)\n" }],
   },
   {
     kernel: "python2-ubuntu",
-    tests: [{ input: "print(1/3,4/3)", output: "(0, 1)\n" }]
+    tests: [{ input: "print(1/3,4/3)", output: "(0, 1)\n" }],
   },
   {
     kernel: "python3",
     tests: [
       {
         input: "print(1/3,4/3)",
-        output: "0.3333333333333333 1.3333333333333333\n"
-      }
-    ]
+        output: "0.3333333333333333 1.3333333333333333\n",
+      },
+    ],
   },
   {
     kernel: "sage-8.2",
     tests: [{ input: "1/3 + 4/3", output: '{"text/plain":"5/3"}' }],
-    timeout: 60000
+    timeout: 60000,
   },
   {
     kernel: "sage-8.3",
     tests: [{ input: "1/3 + 4/3", output: '{"text/plain":"5/3"}' }],
-    timeout: 60000
+    timeout: 60000,
   },
   {
     kernel: "sage-develop",
     tests: [{ input: "1/3 + 4/3", output: '{"text/plain":"5/3"}' }],
-    timeout: 60000
+    timeout: 60000,
   },
   {
     kernel: "sagemath",
     tests: [{ input: "1/3 + 4/3", output: '{"text/plain":"5/3"}' }],
-    timeout: 60000
+    timeout: 60000,
   },
   {
     /* Rant here: https://github.com/sagemathinc/cocalc/issues/3071 */
@@ -163,44 +168,44 @@ const EXEC_TESTS: TestKernel[] = [
       {
         input: "2 + 3",
         output:
-          '{"text/plain":"5\\n   skipping text from `(` error at token `)`\\n"}'
-      }
+          '{"text/plain":"5\\n   skipping text from `(` error at token `)`\\n"}',
+      },
     ],
-    timeout: 30000
+    timeout: 30000,
   },
   {
     kernel: "vpython",
     tests: [
       {
         input: "print(1/3,4/3)",
-        output: "0.3333333333333333 1.3333333333333333\n"
-      }
-    ]
-  }
+        output: "0.3333333333333333 1.3333333333333333\n",
+      },
+    ],
+  },
 ];
 
 for (const test of EXEC_TESTS) {
   if (ONLY && ONLY != test.kernel) {
     continue;
   }
-  describe(`tests the "${test.kernel}" kernel -- `, function() {
+  describe(`tests the "${test.kernel}" kernel -- `, function () {
     before(common.default_kernel_path);
     after(common.custom_kernel_path);
     this.timeout(test.timeout ? test.timeout : 20000);
 
     let kernel: common.JupyterKernel;
 
-    it(`creates the "${test.kernel}" kernel`, function() {
+    it(`creates the "${test.kernel}" kernel`, function () {
       kernel = common.kernel(test.kernel);
     });
 
     for (const { input, output } of test.tests) {
-      it(`evaluates "${input}"`, async function() {
+      it(`evaluates "${input}"`, async function () {
         expect(await common.exec(kernel, input)).toBe(output);
       });
     }
 
-    it(`closes the ${test.kernel} kernel`, function() {
+    it(`closes the ${test.kernel} kernel`, function () {
       kernel.close();
     });
   });

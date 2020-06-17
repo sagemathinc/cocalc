@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { EventEmitter } from "events";
 import { Map as iMap } from "immutable";
 
@@ -63,9 +68,9 @@ export class IpywidgetsState extends EventEmitter {
           string_id: this.syncdoc.get_string_id(),
           model_id: null,
           type: null,
-          data: null
-        }
-      ]
+          data: null,
+        },
+      ],
     };
     this.table = await this.create_synctable(query, this.table_options, 0);
 
@@ -73,7 +78,7 @@ export class IpywidgetsState extends EventEmitter {
 
     this.set_state("ready");
 
-    this.table.on("change", keys => {
+    this.table.on("change", (keys) => {
       this.emit("change", keys);
     });
   }
@@ -93,7 +98,7 @@ export class IpywidgetsState extends EventEmitter {
     const key: string = JSON.stringify([
       this.syncdoc.get_string_id(),
       model_id,
-      type
+      type,
     ]);
     const record = this.table.get(key);
     if (record == null) {

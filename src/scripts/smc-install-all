@@ -62,7 +62,7 @@ assistant() {
 colors() {
     # generating color scheme
     cd $SMC_ROOT
-    scripts/update_color_scheme.coffee
+    nodejs scripts/update-color-scheme.js
 }
 
 react_static() {
@@ -71,10 +71,16 @@ react_static() {
     update_react_static
 }
 
+webapp_res_setup() {
+    cd $SMC_ROOT
+    python3 webapp-lib/resources/setup.py
+}
+
 # run extras in the background
 assistant &
 colors &
 react_static &
+webapp_res_setup &
 
 wait # for all background processes to finish
 echo "ALL DONE"

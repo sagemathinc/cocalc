@@ -1,27 +1,9 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016 -- 2017, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
-#
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
-###
-PostgreSQL -- basic queries and database interface
-###
+# PostgreSQL -- basic queries and database interface
 
 exports.DEBUG = true
 
@@ -40,6 +22,9 @@ EventEmitter = require('events')
 
 fs      = require('fs')
 async   = require('async')
+escapeString = require('sql-string-escape')
+validator = require('validator')
+{callback2} = require('smc-util/async-utils')
 
 pg      = require('pg').native    # You might have to do: "apt-get install libpq5 libpq-dev"
 if not pg?
@@ -59,7 +44,7 @@ required = defaults.required
 
 {SCHEMA, client_db} = require('smc-util/schema')
 
-exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created']
+exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created', 'env']
 exports.PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJECT_COLUMNS)
 
 {read_db_password_from_disk} = require('./utils')
@@ -75,10 +60,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             connect         : true
             password        : undefined
             pool            : undefined   # IGNORED for now.
-            cache_expiry    : 3000  # expire cached queries after this many milliseconds
+            cache_expiry    : 5000  # expire cached queries after this many milliseconds
                                     # keep this very short; it's just meant to reduce impact of a bunch of
                                     # identical permission checks in a single user query.
-            cache_size      : 100   # cache this many queries; use @_query(cache:true, ...) to cache result
+            cache_size      : 300   # cache this many queries; use @_query(cache:true, ...) to cache result
             concurrent_warn : 500
             ensure_exists   : true  # ensure database exists on startup (runs psql in a shell)
             timeout_ms      : DEFAULT_TIMEOUS_MS # **IMPORTANT: if *any* query takes this long, entire connection is terminated and recreated!**
@@ -394,6 +379,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             ['state']
         )
 
+    async_query: (opts) =>
+        return await callback2(@_query.bind(@), opts)
+
     _query: (opts) =>
         opts  = defaults opts,
             query     : undefined    # can give select and table instead
@@ -669,12 +657,27 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             opts.query += " WHERE #{WHERE.join(' AND ')}"
 
         if opts.order_by?
+            if opts.order_by.indexOf("'") >= 0
+                err = "ERROR -- detected ' apostrophe in order_by='#{opts.order_by}'"
+                dbg(err)
+                opts.cb?(err)
+                return
             opts.query += " ORDER BY #{opts.order_by} "
 
         if opts.limit?
+            if not validator.isInt('' + opts.limit, min:0)
+                err = "ERROR -- opts.limit = '#{opts.limit}' is not an integer"
+                dbg(err)
+                opts.cb?(err)
+                return
             opts.query += " LIMIT #{opts.limit} "
 
         if opts.offset?
+            if not validator.isInt('' + opts.offset, min:0)
+                err = "ERROR -- opts.offset = '#{opts.offset}' is not an integer"
+                dbg(err)
+                opts.cb?(err)
+                return
             opts.query += " OFFSET #{opts.offset} "
 
 
@@ -1071,13 +1074,18 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                         desc += " UNIQUE"
                     if info.pg_check
                         desc += " " + info.pg_check
+                    # Disable the safety_checks since we know these are
+                    # fine and they can be hit, e.g., when adding a column
+                    # named "deleted"...
                     switch task.action
                         when 'alter'
                             @_query
+                                safety_check : false
                                 query : "ALTER TABLE #{quote_field(table)} ALTER COLUMN #{col} TYPE #{desc} USING #{col}::#{type}"
                                 cb    : cb
                         when 'add'
                             @_query
+                                safety_check : false
                                 query : "ALTER TABLE #{quote_field(table)} ADD COLUMN #{col} #{desc}"
                                 cb    : cb
                         else
@@ -1243,6 +1251,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             query : "SELECT COUNT(*) FROM #{opts.table}"
             cb    : count_result(opts.cb)
 
+    # sanitize strings before inserting them into a query string
+    sanitize: (s) =>
+        escapeString(s)
+
 ###
 Other misc functions
 ###
@@ -1273,7 +1285,7 @@ exports.pg_type = pg_type = (info) ->
             return 'JSONB'
         when 'integer'
             return 'INTEGER'
-        when 'number', 'double', 'float'
+        when 'number'
             return 'DOUBLE PRECISION'
         when 'array'
             throw Error("pg_type: you must specify the array type explicitly (info=#{misc.to_json(info)})")

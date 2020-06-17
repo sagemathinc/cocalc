@@ -4,50 +4,28 @@
 //- h1 or h2 -> signal **where** and then a div#name element in the parent signals the **name**.
 //- the corresponding anchor link is then a.anchor#a-name
 
-//- development:
-//- webpack-staticpages: cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; scripts/update_react_static; CC_STATICPAGES=true SOURCE_MAP=false webpack --debug --output-pathinfo --progress --colors
-//- webpack-watch-staticpages: env CC_STATICPAGES=true NODE_ENV=development webpack --debug --output-pathinfo --progress --colors --watch --watch-poll=1000
-
 extends _base.pug
 
 block vars
-  - var subtitle = htmlWebpackPlugin.options.description;
+  - var subtitle = DESCRIPTION;
   - var navbar_active = 'index';
 
 block header
-  - var recent_times = htmlWebpackPlugin.options.SCHEMA.RECENT_TIMES
-  - var stat_times_keys = htmlWebpackPlugin.options.SCHEMA.RECENT_TIMES_KEY
-  - var stat_times = JSON.stringify([stat_times_keys.last_hour, stat_times_keys.last_day, stat_times_keys.last_week, stat_times_keys.last_month])
-  script(type="text/javascript").
-    window.stat_times = !{stat_times};
   script(type="text/javascript")
     include:coffee-script index.coffee
-  meta(name="description" content=htmlWebpackPlugin.options.description)
-  link(href="https://fonts.googleapis.com/css?family=Roboto+Slab&display=swap" rel="stylesheet")
+  meta(name="description" content=DESCRIPTION)
 
 block content
 
   //- CSS: overwrites styles defined in the header
   style
     :sass
-      @import "smc-webapp/_colors.sass"
-      @import "webapp-lib/_vars.sass"
+      @import "../smc-webapp/_colors.sass"
+      @import "../webapp-lib/_vars.sass"
       body > div.space
         margin-top       : 5rem
       p
         font-size        : 13pt
-      div#top
-        padding          : 7rem 0 3rem 0
-        .descr
-          color          : $COL_GRAY
-          font-size      : 2rem
-        @media (max-width: $width-md)
-          padding        : 3rem 0 0 0
-        > div
-          margin-bottom  : 2rem
-      #statstable td,
-      #statstable th
-        text-align       : right
       blockquote.blockquote
         font-size        : 16px
         img
@@ -71,12 +49,6 @@ block content
             > h2, h3
               margin-bottom : 2rem
       .left,
-      #statstable td.left
-        text-align     : left
-      #explore
-        background-color : $COL_BLUE_LLL
-        div > h3
-          white-space    : nowrap
       #included > div
         padding          : 0
       .ff-only
@@ -85,218 +57,32 @@ block content
         .ff-only
           display: block
 
-      #top
-        background-color  : #c7d9f5
-
-
-      .headline
-        font-family: 'Roboto Slab', serif
-        font-size: 250%
-        line-height: 175%
-        @media (max-width: $width-md)
-          font-size: 150%
-          line-height: 125%
-          text-align: center
-          width: 75%
-          margin: 0 auto 2rem auto
-
-      .subheadline
-        font-size: 125%
-        width: 100%
-        text-align: left
-
-
-  //- a.anchor#a-top
-  //- div.container
-  //-   div.row.intro#top
-  //-     div.col-md-4.col-md-offset-4.center
-  //-       a(href="app?anonymous=true")
-  //-         img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg')).shrink-small
-  //-     div.col-md-12.center.descr
-  //-       p #{htmlWebpackPlugin.options.description}
-  //-     div.col-md-12.center
-  //-       +start_button_2
-
-
-  a.anchor#a-top
   div.space#top
     div.container
       div.row.intro
-        div.col-md-6.center
-          p.headline.
-            It's time to ditch Maple, Mathematica and Matlab!
-          div.container.subheadline.
-            Save weeks of class time troubleshooting software and make your TA's more effective.
-          div.center.spacing.hide-md-screen
-            +start_button_2
-        div.col-md-6.center
-          a(href="app?anonymous=true")
-            img(src="https://storage.googleapis.com/cocalc-extra/cocalc-screenshot-20200128-nq8.png").shadow.shrink-small-75.rounded
-      div.row.show-md-screen
-        div.col-md-12.center.show-md-screen
-          +start_button_2
-
-  div.container
-    div.row.spacing2
-      div.col-md-4
-        p.center
-          img(src="https://storage.googleapis.com/cocalc-extra/laptop-desk-clean.jpg").shrink-small
-      div.col-md-8
-        h2.firstline
-          strong Zero setup #[small all you need is a web browser]
-        p.
-          It takes less time to run a Jupyter Notebook than grabbing a cup of coffee!
-        br.
-        div
-          +start_button_3
-
-    div.row.spacing2
-      div.col-md-4
-        p.center
-          img(src="https://storage.googleapis.com/cocalc-extra/collab-workplace.jpg").shrink-small
-      div.col-md-8
-        h2.firstline
-          strong Collaborate #[small in real time]
-        p.
-          Stop sending each other code. Work in the same place from anywhere.
-        p.
-          Use #[a(href="https://doc.cocalc.com/chat.html") math friendly chat with notifications].
-
-    div.row.spacing2
-      div.col-md-4
-        p.center
-          img(src="https://storage.googleapis.com/cocalc-extra/classroom-computer.jpg").shrink-small
-      div.col-md-8
-        h2.firstline
-          strong #[a(href="./doc/teaching.html") Teach a course]
-        p.
-          Take away the pain of teaching with technology.
-        p.
-          Let us show you how.
-        a.btn.btn-default.btn-lg.cc-create-account-btn(href=htmlWebpackPlugin.options.theme.LIVE_DEMO_REQUEST target="_blank" rel="noopener") Request a live demo
-      div.col-md-12.center.spacing
-        +start_button_2
-
-
-  +available-tools
-
-  //- a.anchor#a-explore
-  //- div.space#explore
-  //-   div.container.spacing2
-  //-     div.row
-  //-       div.col-md-12.center
-  //-         h1 #[i.fa.fa-lightbulb] Explore #{NAME}
-  //-       div.col-md-3.col-sm-6
-  //-         h3 #[i.fa.fa-archive] Projects
-  //-         div.
-  //-           #{NAME} #[strong #[a(href="https://doc.cocalc.com/project.html") projects]] are your personal, private workspaces.
-  //-           They contains your files, computational worksheets, and data.
-  //-       div.col-md-3.col-sm-6
-  //-         h3 #[i.fa.fa-users] Collaboration
-  //-         div.
-  //-           #[a(href="https://doc.cocalc.com/project-settings.html#about-collaborators") Invite collaborators]
-  //-           into your project to work as a team.
-  //-           Any changes are synchronized in real time for everyone.
-  //-       div.clearfix.visible-sm-block
-  //-       div.col-md-3.col-sm-6
-  //-         h3 #[i.fa.fa-graduation-cap] Teaching
-  //-         div.
-  //-           #{NAME} is made for #[a(href="./doc/teaching.html") teaching].
-  //-           It manages all files and helps you with grading.
-  //-           If a student requires assistance, you can jump directly into the file while they're working.
-  //-       div.col-md-3.col-sm-6
-  //-         h3 #[i.fa.fa-file-alt] Authoring
-  //-         div.
-  //-           Write scientific documents online in a #[strong #[a(href="./doc/latex-editor.html") full LaTeX editor]].
-
-  a.anchor#a-unique
-  div.space#unique
-    div.container
-      div.row
+        div.col-sm-6.center
+          div.row
+            div.col-sm-4.col-sm-offset-4
+              img(src=LOGO_SQUARE_URL).fit
+            div.col-sm-12
+              p.headline
+                | #{NAME}
+              p.headline.headline2
+                | #{DESCRIPTION}
+              div.subheadline
+                | An instance of #[a(href="https://cocalc.com") CoCalc]
+                if !!ORGANIZATION_NAME
+                  | , hosted by
+                  |
+                  +organization
+                |.
+        div.col-sm-6.center
+          img(src=SPLASH_IMG).shadow.shrink-small-75.rounded
         div.col-md-12.center
-          h1 #[i.fa.fa-exclamation-circle] Unique Features
-        div.col-md-6
-          h2 #[img(src=require("webapp-lib/assets/jupyter-logo.svg"), style="width:30px")] Native Jupyter Notebooks
-          div.
-            This is a #[strong #[a(href="./doc/jupyter-notebook.html") fully compatible rewrite]] of the classical #[a(href="http://jupyter.org/") Jupyter Notebook].
-            It is tightly integrated into #{NAME} and adds real-time collaboration,
-            time-travel history and more.
-          p.
-            #[a(href="https://doc.cocalc.com/jupyter.html") Native Jupyter documentation]
-          br/
-          div
-            img(data-src=require("webapp-lib/assets/cocalc-jupyter2-20170508.png")).fit
-        div.col-md-6
-          h2 #[i.fa.fa-comment] Chat rooms
-          div.
-            #[a(href="https://doc.cocalc.com/chat.html") #[strong Stand-alone] chat rooms and #[strong side-by-side] chat] for each file
-            give you the ability to discuss your work with your collegues.
-            Collaborators who are not online will be notified about new messages the next time they sign in.
-            Chat supports markdown formatting, Latex formulas and @mentioning a collaborator.
-          p.
-            #[a(href="https://doc.cocalc.com/chat.html") Chat documentation]
-          br/
-          div
-            img(data-src=require("webapp-lib/assets/smc-side-chat-20170508.png")).fit
-      div.row
-        div.col-md-6
-          h2 #[i.fa.fa-history] Time-Travel
-          div.
-            All your changes are recorded in fine detail.
-            You can go back and forth in time across hundreds of changes to recover your previous edits.
-          p.
-            #[a(href="https://doc.cocalc.com/time-travel.html") Time-travel documentation]
-          br/
-          div
-            +video-player
-              source(src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter2-timetravel-20170515-3x.webm" type="video/webm; codecs=vp9")
-              source(src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter2-timetravel-20170515-3x.mp4" type="video/mp4")
-        div.col-md-6
-          h2 #[i.fa.fa-camera-retro] Backups
-          div.
-            Every couple of minutes, all files are saved in consistent read-only snapshots.
-            This means we can recover previous versions of your files
-            in case they got corrupted or accidentally deleted.
-          p.
-            #[a(href="https://doc.cocalc.com/project-files.html#snapshot-backups") Snapshot backup documentation]
-          br/
-          div
-            img(data-src=require("webapp-lib/assets/cocalc-backup-1.png")).fit
+          +sign_in_buttons
 
-  a.anchor#a-authoring
-  div.space#authoring
-    div.container
-      div.row
-        div.col-md-12.center
-          h1 #[i.fa.fa-file-alt] Authoring
-        div.col-md-6
-          h2 LaTeX Editor
-          div.
-            #{NAME} includes a full #[strong #[a(href="./doc/latex-editor.html") LaTeX editor]] with
-            #[strong side-by-side] preview and forward/inverse search.
-            This allows you to not only do computations online,
-            but also create scientific documents for their dissemination.
-          div.
-            Additionally, there is support for:
-            #[a(href="./doc/latex-editor.html#a-sagetex") SageTeX, PythonTeX and R's Knitr].
-          br/
-          div
-            img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-latex-editor-2019.png").fit
-        div.col-md-6
-          h2 Markdown/HTML/Rmd
-          div.
-            Conveniently edit
-            #[a(href="https://en.wikipedia.org/wiki/Markdown") Markdown] #[code .md]
-            or HTML documents
-            with side-by-side live preview, showing LaTeX formulas and embedded graphics.
-          div.
-            #{NAME} also supports
-            #[a(href="https://rmarkdown.rstudio.com/") RMarkdown] #[code .Rmd] files
-            to include #[a(href="https://www.r-project.org/") R] and
-            #[a(href="https://www.python.org/") Python] calculations and plots.
-          br/
-          div
-            img(data-src="https://storage.googleapis.com/cocalc-extra/smc-mdhtml-20170516.png").fit
-
-  div
-    +start_free_banner
+  if INDEX_INFO != ''
+    div.space
+      div.container
+        div.row
+          div.col-md-6.col-md-offset-3 !{INDEX_INFO}

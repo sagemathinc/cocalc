@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Component, React, Rendered } from "../app-framework";
 import { ComputeImages, ComputeImage, ComputeImageTypes } from "./init";
 const { SiteName, CompanyName, HelpEmailLink } = require("../customize");
@@ -18,13 +23,13 @@ const {
   ControlLabel,
   ListGroup,
   ListGroupItem,
-  Radio
+  Radio,
 } = require("react-bootstrap");
 
 interface CSProps {
   images?: ComputeImages;
   // this should be Partial<State> ?
-  setParentState: (obj: any) => void;
+  setParentState: (obj : {image_selected?:string; title_text?:string; image_type?: ComputeImageTypes}) => void;
   image_type: ComputeImageTypes;
   image_selected?: string;
   // toggles form true → false after first edit
@@ -36,7 +41,7 @@ interface CSState {
 }
 
 const CS_INIT_STATE: Readonly<CSState> = Object.freeze({
-  search_img: ""
+  search_img: "",
 });
 
 const cs_list_style: Readonly<React.CSSProperties> = Object.freeze({
@@ -45,7 +50,7 @@ const cs_list_style: Readonly<React.CSSProperties> = Object.freeze({
   overflowY: "scroll" as "scroll",
   border: `1px solid ${COLORS.GRAY_LL}`,
   borderRadius: "5px",
-  marginBottom: "0px"
+  marginBottom: "0px",
 });
 
 const entries_item_style: Readonly<React.CSSProperties> = Object.freeze({
@@ -53,7 +58,7 @@ const entries_item_style: Readonly<React.CSSProperties> = Object.freeze({
   margin: "2px 0px",
   padding: "5px",
   border: "none",
-  textAlign: "left" as "left"
+  textAlign: "left" as "left",
 });
 
 export class CustomSoftware extends Component<CSProps, CSState> {
@@ -86,11 +91,11 @@ export class CustomSoftware extends Component<CSProps, CSState> {
     })();
 
     const entries: Rendered[] = this.props.images
-      .filter(img => img.get("type", "") === custom)
+      .filter((img) => img.get("type", "") === custom)
       .filter(search_hit)
-      .sortBy(img => img.get("display", "").toLowerCase())
+      .sortBy((img) => img.get("display", "").toLowerCase())
       .entrySeq()
-      .map(e => {
+      .map((e) => {
         const [id, img] = e;
         const display = img.get("display", "");
         return (
@@ -134,7 +139,7 @@ export class CustomSoftware extends Component<CSProps, CSState> {
             autoFocus={false}
             value={this.state.search_img}
             on_escape={() => this.setState({ search_img: "" })}
-            on_change={val => this.search(val)}
+            on_change={(val) => this.search(val)}
             style={{ flex: "1" }}
           />
         </div>

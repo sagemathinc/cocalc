@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Map } from "immutable";
 import { is_different } from "smc-util/misc2";
 import { Component, React, rclass, rtypes } from "../../app-framework";
@@ -22,8 +27,8 @@ class LatexWordCount extends Component<ILatexWordCount, {}> {
   static reduxProps({ name }) {
     return {
       [name]: {
-        word_count: rtypes.string
-      }
+        word_count: rtypes.string,
+      },
     };
   }
 
@@ -45,7 +50,7 @@ class LatexWordCount extends Component<ILatexWordCount, {}> {
           padding: "5px 15px",
           fontSize: "10pt",
           whiteSpace: "pre-wrap",
-          fontFamily: "monospace"
+          fontFamily: "monospace",
         }}
       >
         {this.props.word_count}
