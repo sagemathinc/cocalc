@@ -4,11 +4,8 @@
  */
 
 const { Button } = require("react-bootstrap");
-
 import { Icon, VisibleMDLG } from "smc-webapp/r_misc";
-
-import { React, Rendered, Component } from "../../app-framework";
-
+import { React } from "../../app-framework";
 import { UncommittedChanges } from "../../r_misc";
 
 interface Props {
@@ -20,51 +17,63 @@ interface Props {
   no_labels?: boolean;
   size?: string;
   onClick?: Function;
+  show_uncommitted_changes?: boolean;
+  set_show_uncommitted_changes?: Function;
 }
 
-export class SaveButton extends Component<Props, {}> {
-  render(): Rendered {
-    const disabled: boolean =
-      !this.props.has_unsaved_changes ||
-      !!this.props.read_only ||
-      !!this.props.is_public;
+const SaveButtonFC: React.FC<Props> = (props: Props) => {
+  const {
+    has_unsaved_changes,
+    has_uncommitted_changes,
+    read_only,
+    is_public,
+    is_saving,
+    no_labels,
+    size,
+    onClick,
+    show_uncommitted_changes,
+    set_show_uncommitted_changes,
+  } = props;
 
-    let label: string = "";
-    if (!this.props.no_labels) {
-      if (this.props.is_public) {
-        label = "Public";
-      } else if (this.props.read_only) {
-        label = "Readonly";
+  function make_label() {
+    if (!no_labels) {
+      if (is_public) {
+        return "Public";
+      } else if (read_only) {
+        return "Readonly";
       } else {
-        label = "Save";
+        return "Save";
       }
     } else {
-      label = "";
+      return "";
     }
-
-    let icon: string;
-    if (this.props.is_saving) {
-      icon = "arrow-circle-o-left";
-    } else {
-      icon = "save";
-    }
-
-    // The funny style in the icon below is because the width changes
-    // slightly depending on which icon we are showing.
-    return (
-      <Button
-        title={"Save file to disk"}
-        bsStyle={"success"}
-        bsSize={this.props.size}
-        disabled={disabled}
-        onClick={this.props.onClick}
-      >
-        <Icon name={icon} style={{ width: "15px", display: "inline-block" }} />{" "}
-        <VisibleMDLG>{label}</VisibleMDLG>
-        <UncommittedChanges
-          has_uncommitted_changes={this.props.has_uncommitted_changes}
-        />
-      </Button>
-    );
   }
-}
+
+  const disabled: boolean = !has_unsaved_changes || !!read_only || !!is_public;
+  const label = make_label();
+  const icon = is_saving ? "arrow-circle-o-left" : "save";
+
+  // The funny style in the icon below is because the width changes
+  // slightly depending on which icon we are showing.
+  // whiteSpace:"nowrap" due to https://github.com/sagemathinc/cocalc/issues/4434
+  return (
+    <Button
+      title={"Save file to disk"}
+      bsStyle={"success"}
+      bsSize={size}
+      disabled={disabled}
+      onClick={onClick}
+      style={{ whiteSpace: "nowrap" }}
+    >
+      <Icon name={icon} style={{ width: "15px", display: "inline-block" }} />{" "}
+      <VisibleMDLG>{label}</VisibleMDLG>
+      <UncommittedChanges
+        has_uncommitted_changes={has_uncommitted_changes}
+        show_uncommitted_changes={show_uncommitted_changes}
+        set_show_uncommitted_changes={set_show_uncommitted_changes}
+      />
+    </Button>
+  );
+};
+
+export const SaveButton = React.memo(SaveButtonFC);
