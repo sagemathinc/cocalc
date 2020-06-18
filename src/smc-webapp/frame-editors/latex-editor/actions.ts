@@ -695,6 +695,10 @@ export class Actions extends BaseActions<LatexEditorState> {
       return;
     }
     this.set_status("");
+    // resetting parsed_output_log is ok, even if we do two passes.
+    // the reason is that in pythontex or sagetex there is a merge *after* this step.
+    // therefore, resetting this here will get rid of then stale errors related to
+    // missing tokens, because pythontex or sagetex just computed them.
     this.parsed_output_log = output.parse = new LatexParser(output.stdout, {
       ignoreDuplicates: true,
     }).parse();
