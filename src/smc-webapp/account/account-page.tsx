@@ -21,15 +21,10 @@ import {
   Component,
 } from "../app-framework";
 import { Col, Row, Tab, Tabs } from "../antd-bootstrap";
-
 import { LandingPage } from "../landing-page/landing-page";
-
 import { AccountPreferences } from "./account-preferences";
-
 import { BillingPage } from "../billing/billing-page";
-
 import { UpgradesPage } from "./upgrades/upgrades-page";
-
 import { LicensesPage } from "./licenses/licenses-page";
 
 //import { SupportPage } from "../support";
@@ -152,6 +147,8 @@ class AccountPage extends Component<Props> {
         // TODO: rewrite support in typescript...
         (redux.getActions("support") as any).load_support_tickets();
         break;
+      case "signout":
+        return;
     }
     redux.getActions("account").set_active_tab(key);
     redux.getActions("account").push_state(`/${key}`);
@@ -323,6 +320,16 @@ class AccountPage extends Component<Props> {
     );
   }
 
+  private render_signout(): Rendered {
+    return (
+      <Tab
+        key="signout"
+        eventKey="signout"
+        title={<SignOut everywhere={false} highlight={true} />}
+      ></Tab>
+    );
+  }
+
   private render_logged_in_view(): Rendered {
     if (!this.props.account_id) {
       return this.render_loading_view();
@@ -332,24 +339,16 @@ class AccountPage extends Component<Props> {
         <div style={{ margin: "5% 10%" }}>{this.render_account_settings()}</div>
       );
     }
-    const tabs: Rendered[] = [this.render_account_tab()].concat(
-      this.render_special_tabs()
-    );
+    const tabs: Rendered[] = [this.render_account_tab()]
+      .concat(this.render_special_tabs())
+      .concat(this.render_signout());
     return (
       <Row>
         <Col md={12}>
-          <div style={{ marginTop: "1rem" }}>
-            <SignOut
-              everywhere={false}
-              highlight={true}
-              style={{ position: "absolute", right: 0, zIndex: 1 }}
-            />
-          </div>
           <Tabs
             activeKey={this.props.active_page ?? "account"}
             onSelect={this.handle_select.bind(this)}
             animation={false}
-            style={{ paddingTop: "1em" }}
           >
             {tabs}
           </Tabs>
@@ -360,7 +359,7 @@ class AccountPage extends Component<Props> {
 
   public render(): Rendered {
     return (
-      <div style={{ overflow: "auto", paddingLeft: "8%", paddingRight: "8%" }}>
+      <div style={{ overflow: "auto", paddingLeft: "5%", paddingRight: "5%" }}>
         {this.props.is_logged_in
           ? this.render_logged_in_view()
           : this.render_landing_page()}
