@@ -18,6 +18,9 @@ import { FrameTree } from "../frame-tree/types";
 
 interface MarkdownEditorState extends CodeEditorState {
   custom_pdf_error_message: string; // currently used only in rmd editor, but we could easily add pdf output to the markdown editor
+  build_log: string; // for Rmd
+  build_err: string; // for Rmd
+  build_exit: number; // for Rmd
 }
 
 export class Actions extends CodeEditorActions<MarkdownEditorState> {

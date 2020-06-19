@@ -15,6 +15,7 @@ import { convert } from "./rmd-converter";
 import { markdown_to_html_frontmatter } from "../../markdown";
 import { FrameTree } from "../frame-tree/types";
 import { redux } from "../../app-framework";
+import { ExecOutput } from "../generic/client";
 import { path_split } from "smc-util/misc2";
 import { derive_rmd_output_filename } from "./utils";
 import {
@@ -137,6 +138,14 @@ export class RmdActions extends Actions {
     });
   }
 
+  private set_log(output?: ExecOutput | undefined): void {
+    this.setState({
+      build_err: output?.stderr.trim(),
+      build_log: output?.stdout.trim(),
+      build_exit: output?.exit_code,
+    });
+  }
+
   async _run_rmd_converter(time?: number): Promise<void> {
     // TODO: should only run knitr if at least one frame is visible showing preview?
     // maybe not, since might want to show error.
@@ -147,7 +156,9 @@ export class RmdActions extends Actions {
     }
     this.set_status("Running RMarkdown...");
     this.set_error("");
+    this.setState({ build_log: "", build_err: "" });
     let markdown = "";
+    let output: ExecOutput | undefined = undefined;
     try {
       const md: string = this._syncstring.to_str();
       let frontmatter = "";
@@ -158,16 +169,24 @@ export class RmdActions extends Actions {
       } else {
         return;
       }
-      await convert(
+      output = await convert(
         this.project_id,
         this.path,
         frontmatter,
         time || this._last_save_time
       );
-      this.reload();
-      await this._check_produced_files();
+      this.set_log(output);
+      if (output.exit_code != 0) {
+        this.set_error(
+          "Error compiling RMarkdown. Please check the Build Log!"
+        );
+      } else {
+        this.reload();
+        await this._check_produced_files();
+      }
     } catch (err) {
       this.set_error(err, "monospace");
+      this.set_log(output);
       return;
     } finally {
       this.set_status("");
