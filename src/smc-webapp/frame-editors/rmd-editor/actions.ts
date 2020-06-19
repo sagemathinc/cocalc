@@ -17,6 +17,10 @@ import { FrameTree } from "../frame-tree/types";
 import { redux } from "../../app-framework";
 import { path_split } from "smc-util/misc2";
 import { derive_rmd_output_filename } from "./utils";
+import {
+  Actions as BaseActions,
+  CodeEditorState,
+} from "../code-editor/actions";
 
 const custom_pdf_error_message: string = `
 To create a PDF document from R Markdown, you specify the \`pdf_document\` output format in the
@@ -42,6 +46,8 @@ output: html_document
 
 export class RmdActions extends Actions {
   private _last_save_time: number = 0;
+  private is_building: boolean = false;
+  private run_rmd_converter: Function;
 
   _init2(): void {
     super._init2(); // that's the one in markdown-editor/actions.ts
@@ -54,15 +60,41 @@ export class RmdActions extends Actions {
   }
 
   _init_rmd_converter(): void {
-    const run_debounced = debounce(() => this._run_rmd_converter(), 5 * 1000, {
-      leading: true,
-      trailing: true,
-    });
+    this.run_rmd_converter = debounce(
+      (time?: number) => this._run_rmd_converter(time),
+      5 * 1000,
+      {
+        leading: true,
+        trailing: true,
+      }
+    );
     this._syncstring.on("save-to-disk", (time) => {
       this._last_save_time = time;
-      run_debounced();
+      this.run_rmd_converter();
     });
     this._syncstring.once("ready", () => this._run_rmd_converter());
+  }
+
+  async build(id: string): Promise<void> {
+    console.log("build", id);
+    if (id) {
+      const cm = this._get_cm(id);
+      if (cm) {
+        cm.focus();
+      }
+    }
+    if (this.is_building) {
+      return;
+    }
+    this.is_building = true;
+    try {
+      const actions = this.redux.getEditorActions(this.project_id, this.path);
+      await (actions as BaseActions<CodeEditorState>).save(false);
+      // we don't use this._last_save_time but instead a new timestamp
+      await this.run_rmd_converter(new Date().valueOf());
+    } finally {
+      this.is_building = false;
+    }
   }
 
   async _check_produced_files(): Promise<void> {
@@ -132,8 +164,7 @@ export class RmdActions extends Actions {
         frontmatter,
         time || this._last_save_time
       );
-      this.set_reload("iframe");
-      this.set_reload("pdfjs_canvas");
+      this.reload();
       await this._check_produced_files();
     } catch (err) {
       this.set_error(err, "monospace");
@@ -155,10 +186,23 @@ export class RmdActions extends Actions {
           type: "cm",
         },
         second: {
-          type: "iframe",
+          type: "node",
+          direction: "row",
+          first: { type: "iframe" },
+          second: { type: "build" },
+          pos: 0.8,
         },
       };
     }
+  }
+
+  reload(_id?: string, hash?: number) {
+    // what is id supposed to be used for?
+    // the html editor, which also has an iframe, calls somehow super.reload
+    hash = hash || new Date().getTime();
+    ["iframe", "pdfjs_canvas", "markdown"].forEach((viewer) =>
+      this.set_reload(viewer, hash)
+    );
   }
 
   // Never delete trailing whitespace for markdown files.
