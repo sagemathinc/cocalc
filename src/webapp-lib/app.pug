@@ -21,6 +21,8 @@ html(lang="en")
       div.banner-error
         div.message#cc-message
 
+    div#cocalc-error-report-startup
+
     div#smc-startup-banner-status
       | Initializing ...
 
@@ -35,42 +37,9 @@ html(lang="en")
     else
         script(type="text/javascript" src="base_url.js")
 
-    //- first, load the customize endpoint → check if any images are customized and render banner accordingly. also use the proper name.
-    //- if the endpoint doesn't work, we have a problem. report back accordingly…
-    script.
-      function error() {
-        document.body.innerHTML = "<h1 style='text-align:center;margin-top:10vh'>Initialization problem. Please try again in a minute ...</h1>";
-        window.stop();
-      }
-
-      function style() {
-        const NAME = CUSTOMIZE.site_name || 'CoCalc';
-        const HELP_EMAIL = CUSTOMIZE.help_email || 'help@cocalc.com';
-        document.title = NAME;
-        const msg = document.getElementById("cc-message");
-        if (msg == null) { // happens when loading is very quick and message is already removed
-          return;
-        }
-        msg.innerHTML += "Timeout while loading " + NAME + ".";
-        msg.innerHTML += '<br/>';
-        msg.innerHTML += 'Try hitting shift and reload the page, restart your browser, or <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/connectivity-issues.html">follow these steps</a>. ';
-        msg.innerHTML += 'If the problem persists, email <a href="mailto:' + HELP_EMAIL + '" target="_blank" rel="noopener">' + HELP_EMAIL + '</a>.';
-        if (CUSTOMIZE.logo_square || CUSTOMIZE.logo_rectangular) {
-          const banner = document.getElementById("cc-banner2");
-          banner.style.display = 'block';
-          banner.innerHTML = '<img class="logo-square" src="'+CUSTOMIZE.logo_square+'">'
-          banner.innerHTML += '<img class="logo-rectangular" src="'+CUSTOMIZE.logo_rectangular+'">'
-        } else {
-          const banner = document.getElementById("cc-banner1");
-          banner.style.display = 'block';
-        }
-      }
-
-      const customizeScript = document.createElement("script");
-      customizeScript.onerror = error;
-      customizeScript.onload = style;
-      document.head.appendChild(customizeScript);
-      customizeScript.src = '#{BASE_URL}' + "/customize?type=embed";
+    // initialize app, expecially configuration
+    script(type="text/javascript")
+      include:typescript app-init.ts
 
     script(type="text/javascript").
         window.webapp_initial_start_time = (new Date()).getTime();

@@ -37,6 +37,8 @@ window.MathJax = MathJaxConfig
 $ = window.$
 $("#smc-startup-banner")?.remove()
 $('#smc-startup-banner-status')?.remove()
+$('#cocalc-error-report-startup')?.remove()
+
 $ ->
     try
         $(parent).trigger('initialize:frame')
