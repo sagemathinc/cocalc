@@ -161,6 +161,7 @@ export class RmdActions extends Actions {
     }
     this._last_build_rmd = this._syncstring.to_str();
     this.set_status("Running RMarkdown...");
+    this.setState({ building: true });
     this.set_error("");
     this.setState({ build_log: "", build_err: "" });
     let markdown = "";
@@ -196,6 +197,7 @@ export class RmdActions extends Actions {
       return;
     } finally {
       this.set_status("");
+      this.setState({ building: false });
     }
     this.setState({ value: markdown });
   }

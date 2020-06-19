@@ -13,6 +13,7 @@ import { Button } from "smc-webapp/antd-bootstrap";
 interface BuildLogProps {
   name: string;
   actions: any;
+  font_size: number;
 }
 
 const STYLE_LOADING: React.CSSProperties = {
@@ -34,7 +35,6 @@ const STYLE_OUTER: React.CSSProperties = {
 
 const STYLE_LOG: React.CSSProperties = {
   flex: "1 1 auto",
-  fontSize: "11px",
 };
 
 const STYLE_PRE: React.CSSProperties = {
@@ -47,7 +47,6 @@ const STYLE_PRE: React.CSSProperties = {
 
 const STYLE_ERR: React.CSSProperties = {
   ...STYLE_LOG,
-  fontSize: "11px",
   fontWeight: "bold",
   backgroundColor: COLORS.ATND_BG_RED_L,
 };
@@ -62,14 +61,21 @@ const BuildLogFC: React.FC<BuildLogProps> = (props) => {
     /*project_id,*/
     /*path,*/
     /*reload,*/
-    /*font_size,*/
+    font_size: font_size_orig,
   } = props;
 
-  const status = useRedux([name, "status"]);
+  const font_size = 0.8 * font_size_orig;
+
+  const status = useRedux([name, "building"]);
   const build_log = useRedux([name, "build_log"]) || "";
   const build_err = useRedux([name, "build_err"]) || "";
   const have_err = (useRedux([name, "build_exit"]) || 0) != 0;
   const [show_stdout, set_show_stdout] = React.useState(false);
+
+  function style(type: "log" | "err") {
+    const style = type == "log" ? STYLE_LOG : STYLE_ERR;
+    return { ...{ fontSize: `${font_size}px` }, ...style };
+  }
 
   function stderr(): Rendered {
     if (!have_err) return;
@@ -77,7 +83,7 @@ const BuildLogFC: React.FC<BuildLogProps> = (props) => {
       <h4 style={STYLE_HEADER}>Error output</h4>
     ) : undefined;
     return (
-      <div style={STYLE_ERR}>
+      <div style={style("err")}>
         {header}
         <pre style={STYLE_PRE}>
           <Ansi>{build_err}</Ansi>
@@ -90,7 +96,7 @@ const BuildLogFC: React.FC<BuildLogProps> = (props) => {
     if (!build_log) return;
     if (!have_err || show_stdout) {
       return (
-        <div style={STYLE_LOG}>
+        <div style={style("log")}>
           {show_stdout && <h4 style={STYLE_HEADER}>Standard output</h4>}
           <pre style={STYLE_PRE}>
             <Ansi>{build_log}</Ansi>
@@ -116,7 +122,7 @@ const BuildLogFC: React.FC<BuildLogProps> = (props) => {
   }
 
   if (status) {
-    return <Loading style={STYLE_LOADING} text={status} />;
+    return <Loading style={STYLE_LOADING} text={"Running rmarkdown::render ..."} />;
   } else if (!build_log && !build_err) {
     return (
       <div style={{ margin: "1rem" }}>

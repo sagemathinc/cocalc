@@ -102,7 +102,7 @@ const EDITOR_SPEC = {
     icon: "gears",
     component: BuildLog,
     style: { background: "#525659" },
-    buttons: set(["build"]),
+    buttons: set(["build", "decrease_font_size", "increase_font_size"]),
   },
 
   terminal,
