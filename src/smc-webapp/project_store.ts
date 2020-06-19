@@ -42,6 +42,8 @@ import { deleted_file_variations } from "smc-util/delete-files";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
+const MASKED_FILENAMES = ["__pycache__"];
+
 const MASKED_FILE_EXTENSIONS = {
   py: ["pyc"],
   java: ["class"],
@@ -660,6 +662,11 @@ function _compute_file_masks(listing): void {
   // in "listing" the attribute <file>.mask=true
   const filename_map = misc.dict(listing.map((item) => [item.name, item])); // map filename to file
   for (const file of listing) {
+    // mask certain known directories
+    if (MASKED_FILENAMES.indexOf(file.name) >= 0) {
+      filename_map[file.name].mask = true;
+    }
+
     // note: never skip already masked files, because of rnw/rtex->tex
 
     const ext = misc.filename_extension(file.name).toLowerCase();
@@ -678,7 +685,7 @@ function _compute_file_masks(listing): void {
 
     for (let mask_ext of MASKED_FILE_EXTENSIONS[ext] ?? []) {
       // check each possible compiled extension
-      var bn; // derived basename
+      let bn; // derived basename
       // some uppercase-strings have special meaning
       if (misc.startswith(mask_ext, "NODOT")) {
         bn = basename.slice(0, -1); // exclude the trailing dot
