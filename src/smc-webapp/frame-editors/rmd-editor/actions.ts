@@ -47,6 +47,7 @@ output: html_document
 
 export class RmdActions extends Actions {
   private _last_save_time: number = 0;
+  private _last_build_rmd: string = "";
   private is_building: boolean = false;
   private run_rmd_converter: Function;
 
@@ -73,11 +74,15 @@ export class RmdActions extends Actions {
       this._last_save_time = time;
       this.run_rmd_converter();
     });
+    this._syncstring.on("after-change", () => {
+      if (this._last_build_rmd != this._syncstring.to_str()) {
+        this.build();
+      }
+    });
     this._syncstring.once("ready", () => this._run_rmd_converter());
   }
 
-  async build(id: string): Promise<void> {
-    console.log("build", id);
+  async build(id?: string): Promise<void> {
     if (id) {
       const cm = this._get_cm(id);
       if (cm) {
@@ -154,6 +159,7 @@ export class RmdActions extends Actions {
       // fire this at any time.
       return;
     }
+    this._last_build_rmd = this._syncstring.to_str();
     this.set_status("Running RMarkdown...");
     this.set_error("");
     this.setState({ build_log: "", build_err: "" });
