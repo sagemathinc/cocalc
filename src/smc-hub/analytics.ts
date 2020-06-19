@@ -16,8 +16,8 @@ import * as cors from "cors";
 // this splits into { subdomain: "dev" or "", domain: "cocalc",  tld: "com" }
 const parseDomain = require("parse-domain");
 interface DNSParsed {
-  tld: string;
-  domain: string;
+  tld?: string;
+  domain?: string;
 }
 
 // compiling analytics-script.ts and minifying it.
@@ -119,6 +119,10 @@ function check_cors(
     // This happens, e.g., when origin is https://localhost, which happens with cocalc-docker.
     return true;
   }
+  // the configured DNS name is not ok
+  if (dns_parsed.tld == null || dns_parsed.domain == null) {
+    return false;
+  }
   if (
     origin_parsed.tld === dns_parsed.tld &&
     origin_parsed.domain === dns_parsed.domain
@@ -166,6 +170,13 @@ export async function setup_analytics_js(
   const DNS = settings.dns;
   const dns_parsed = parseDomain(DNS);
   const pii_retention = settings.pii_retention;
+
+  if (dns_parsed.tld == null || dns_parsed.domain == null) {
+    dbg(
+      `WARNING: the configured domain name ${DNS} cannot be parsed properly. ` +
+        `Please fix it in Admin → Site Settings!`
+    );
+  }
 
   // CORS-setup: allow access from other trusted (!) domains
   const analytics_cors = {

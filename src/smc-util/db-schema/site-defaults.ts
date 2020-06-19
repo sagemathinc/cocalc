@@ -6,6 +6,7 @@
 // Default settings to customize a given site, typically a private install of CoCalc.
 
 const { is_valid_email_address } = require("smc-util/misc");
+const { DNS } = require("../theme");
 
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 
@@ -241,6 +242,8 @@ export const site_settings_conf: SiteSettings = {
     desc: "DNS for your server, e.g. cocalc.universe.edu",
     default: "",
     show: not_cocalc_com,
+    // to make sure if dns isn't set, this falls back to a known name
+    to_val: (val) => val || DNS,
   },
   google_analytics: {
     name: "Google Analytics",
