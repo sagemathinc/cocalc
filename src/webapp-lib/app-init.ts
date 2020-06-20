@@ -56,7 +56,8 @@ function error_msg({ msg, lineNo, columnNo, url, stack, show_explanation }) {
   const explanation = show_explanation
     ? `<div>
 Please report the full error, your browser and operating system to ${email()}.
-In the mean time, try switching to another browser or upating it to a newer version.
+In the mean time, try switching to another browser or upating to the
+latest version of your browser.
 </div>`
     : "";
   return `<div><strong>Application Error:</strong> <code>${msg} @ ${lineNo}/${columnNo} of ${url}</code></div>
@@ -66,6 +67,46 @@ ${stack}
 </pre>`;
 }
 
+/* We do "delete window.onerror" below for the follwoing reason.
+
+When I merged this, the following always results in nonstop 100% cpu usage:
+
+1. Open cocalc
+2. Open a project.
+3. Boom!
+
+With the profiler on, it's this onerror that is being called repeatedly.
+Maybe there is a bug in it that causes it to call itself and crash things.
+That seems likely.  I've thus rewritten it so that is impossible, e.g., by
+making it so that if it is triggered, it disables itself after running once.
+*/
+
+function handle_window_error(msg, url, lineNo, columnNo, error) {
+  delete window.onerror;
+  let errorbox = document.getElementById("cocalc-error-report-startup");
+  let show_explanation = true;
+  if (errorbox == null) {
+    // app did startup, hence the banner is removed from the DOM
+    // instead, check if there is the react error report banner and insert it there!
+    errorbox = document.getElementById("cocalc-error-report-react");
+    show_explanation = false;
+    if (errorbox == null) return;
+  }
+  errorbox.style.display = "block";
+  const stack = error != null ? error.stack : "<no stacktrace>";
+  errorbox.innerHTML = error_msg({
+    msg,
+    lineNo,
+    columnNo,
+    url,
+    stack,
+    show_explanation,
+  });
+}
+
+window.onerror = handle_window_error;
+
+/*
 window.onerror = function (msg, url, lineNo, columnNo, error) {
   let errorbox = document.getElementById("cocalc-error-report-startup");
   let show_explanation = true;
@@ -87,3 +128,4 @@ window.onerror = function (msg, url, lineNo, columnNo, error) {
     show_explanation,
   });
 };
+*/
