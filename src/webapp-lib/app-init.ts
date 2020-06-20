@@ -82,7 +82,15 @@ making it so that if it is triggered, it disables itself after running once.
 */
 
 function handle_window_error(msg, url, lineNo, columnNo, error) {
-  delete window.onerror;
+  if (error == null) {
+    // Sometimes this window.onerror gets called with error null.
+    // We ignore that here.  E.g., this happens when you open
+    // a project sometimes with this input:
+    // {msg: "ResizeObserver loop limit exceeded", url: "https://cocalc.com/45f...44a1-b842-6eaf5ee07f8f/files/?session=default", lineNo: 0, columnNo: 0, error: null}
+    return;
+  }
+  console.log("handle_window_error", { msg, url, lineNo, columnNo, error });
+  window.onerror = null;
   let errorbox = document.getElementById("cocalc-error-report-startup");
   let show_explanation = true;
   if (errorbox == null) {
@@ -105,27 +113,3 @@ function handle_window_error(msg, url, lineNo, columnNo, error) {
 }
 
 window.onerror = handle_window_error;
-
-/*
-window.onerror = function (msg, url, lineNo, columnNo, error) {
-  let errorbox = document.getElementById("cocalc-error-report-startup");
-  let show_explanation = true;
-  if (errorbox == null) {
-    // app did startup, hence the banner is removed from the DOM
-    // instead, check if there is the react error report banner and insert it there!
-    errorbox = document.getElementById("cocalc-error-report-react");
-    show_explanation = false;
-    if (errorbox == null) return;
-  }
-  errorbox.style.display = "block";
-  const stack = error != null ? error.stack : "<no stacktrace>";
-  errorbox.innerHTML = error_msg({
-    msg,
-    lineNo,
-    columnNo,
-    url,
-    stack,
-    show_explanation,
-  });
-};
-*/
