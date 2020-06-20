@@ -10,6 +10,8 @@ import * as React from "react";
 interface Props {
   has_uncommitted_changes?: boolean;
   delay_ms?: number; // Default = 5000
+  show_uncommitted_changes?: boolean;
+  set_show_uncommitted_changes?: any;
 }
 
 const STYLE: React.CSSProperties = {
@@ -29,27 +31,41 @@ const STYLE: React.CSSProperties = {
  *
  * Does not work with changes to `delay_ms`
  */
-export const UncommittedChanges: React.FC<Props> = ({
-  has_uncommitted_changes,
-  delay_ms = 5000,
-}) => {
-  const [show_error, set_error] = React.useState(false);
+const UncommittedChangesFC = (props: Props) => {
+  const {
+    has_uncommitted_changes,
+    show_uncommitted_changes,
+    set_show_uncommitted_changes,
+    delay_ms = 5000,
+  } = props;
+  const init = has_uncommitted_changes && (show_uncommitted_changes ?? false);
+  const [show_error, set_error] = React.useState(init);
 
   // A new interval is created iff has_uncommitted_changes or delay_ms change
   // So error is only set to true when the prop doesn't change for ~delay_ms time
   React.useEffect(() => {
-    set_error(false);
-
+    if (!init) {
+      set_error(init);
+    }
     const interval_id = setInterval(() => {
-      if (has_uncommitted_changes) {
-        set_error(true);
+      if (
+        show_uncommitted_changes != null &&
+        set_show_uncommitted_changes != null
+      ) {
+        const next = has_uncommitted_changes;
+        set_show_uncommitted_changes(next);
+        set_error(next);
+      } else {
+        if (has_uncommitted_changes) {
+          set_error(true);
+        }
       }
     }, delay_ms + 10);
 
     return function cleanup() {
       clearInterval(interval_id);
     };
-  }, [has_uncommitted_changes, delay_ms]);
+  }, [has_uncommitted_changes, delay_ms, show_uncommitted_changes, init]);
 
   if (show_error) {
     return <span style={STYLE}>NOT saved!</span>;
@@ -57,3 +73,5 @@ export const UncommittedChanges: React.FC<Props> = ({
     return <span />; // TODO: return undefined?
   }
 };
+
+export const UncommittedChanges = React.memo(UncommittedChangesFC);
