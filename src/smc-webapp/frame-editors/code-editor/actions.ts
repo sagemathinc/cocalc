@@ -112,6 +112,7 @@ export interface CodeEditorState {
   misspelled_words: Set<string> | string;
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
+  show_uncommitted_changes: boolean;
   is_saving: boolean;
   is_loaded: boolean;
   gutter_markers: GutterMarkers;
@@ -200,6 +201,7 @@ export class Actions<
       misspelled_words: Set(),
       has_unsaved_changes: false,
       has_uncommitted_changes: false,
+      show_uncommitted_changes: false,
       is_saving: false,
       gutter_markers: Map(),
       cursors: Map(),
@@ -348,12 +350,21 @@ export class Actions<
       this.close();
     });
 
-    this._syncstring.on("has-uncommitted-changes", (has_uncommitted_changes) =>
-      this.setState({ has_uncommitted_changes })
+    this._syncstring.on(
+      "has-uncommitted-changes",
+      (has_uncommitted_changes) => {
+        this.setState({ has_uncommitted_changes });
+        if (!has_uncommitted_changes) {
+          this.set_show_uncommitted_changes(false);
+        }
+      }
     );
 
     this._syncstring.on("has-unsaved-changes", (has_unsaved_changes) => {
       this.setState({ has_unsaved_changes });
+      if (!has_unsaved_changes) {
+        this.set_show_uncommitted_changes(false);
+      }
     });
   }
 
@@ -2519,5 +2530,9 @@ export class Actions<
       }
       if (match) return id;
     }
+  }
+
+  public set_show_uncommitted_changes(val: boolean): void {
+    this.setState({ show_uncommitted_changes: val });
   }
 }

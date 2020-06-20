@@ -68,9 +68,6 @@ require("script-loader!datetimepicker/bootstrap-datetimepicker.min.js");
 require("script-loader!term/term.js");
 require("script-loader!term/color_themes.js");
 
-// Make html look nice
-require("script-loader!jsbeautify/beautify-html.min.js");
-
 // after this lib.js package, the real smc.js app starts loading
 window.smcLoadStatus("Starting main application ...");
 

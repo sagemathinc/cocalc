@@ -4,7 +4,6 @@
  */
 
 import * as React from "react";
-import { analytics_event } from "../../tracker";
 const misc = require("smc-util/misc");
 import {
   Icon,
@@ -236,9 +235,6 @@ export const Body = rclass<ReactProps>(
               <AddCollaboratorsPanel
                 key="new-collabs"
                 project={this.props.project}
-                on_invite={() =>
-                  analytics_event("project_settings", "add collaborator")
-                }
                 allow_urls={allow_urls}
               />
               <ProjectControl key="control" project={this.props.project} />

@@ -5,7 +5,6 @@
 
 import * as React from "react";
 import { Project } from "./types";
-import { analytics_event } from "smc-webapp/tracker";
 import { Icon, SettingBox, DeletedProjectWarning } from "smc-webapp/r_misc";
 import { Button, Well, Alert, ButtonToolbar, Row, Col } from "react-bootstrap";
 import { ProjectsActions } from "smc-webapp/todo-types";
@@ -40,23 +39,12 @@ export class HideDeleteBox extends React.Component<Props, State> {
       this.props.project.get("project_id")
     );
     this.hide_delete_conf();
-    if (this.props.project.get("deleted")) {
-      analytics_event("project_settings", "undelete project");
-    } else {
-      analytics_event("project_settings", "delete project");
-    }
   };
 
   toggle_hide_project = (): void => {
     this.props.actions.toggle_hide_project(
       this.props.project.get("project_id")
     );
-    const user = this.props.project.getIn(["users", webapp_client.account_id]);
-    if (user && user.get("hide")) {
-      analytics_event("project_settings", "unhide project");
-    } else {
-      analytics_event("project_settings", "hide project");
-    }
   };
 
   user_has_applied_upgrades(account_id: string, project: Project) {

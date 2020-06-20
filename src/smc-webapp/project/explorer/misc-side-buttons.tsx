@@ -5,7 +5,6 @@
 
 import * as React from "react";
 import { HiddenSM, Icon, Tip } from "../../r_misc";
-import { analytics_event } from "../../tracker";
 import { ProjectActions } from "smc-webapp/project_store";
 const { Button, ButtonGroup, ButtonToolbar } = require("react-bootstrap");
 
@@ -88,7 +87,6 @@ export class MiscSideButtons extends React.Component<Props> {
 
   handle_library_click = (_e: React.MouseEvent): void => {
     this.props.actions.toggle_library();
-    analytics_event("project_file_listing", "toggle library");
   };
 
   render_library_button(): JSX.Element | undefined {
@@ -103,16 +101,11 @@ export class MiscSideButtons extends React.Component<Props> {
     );
   }
 
-  handle_upload_click = (_e: React.MouseEvent): void => {
-    analytics_event("project_file_listing", "clicked upload");
-  };
-
   render_upload_button(): JSX.Element {
     return (
       <Button
         bsSize="small"
         className="upload-button"
-        onClick={this.handle_upload_click}
       >
         <Icon name="upload" /> <HiddenSM>Upload</HiddenSM>
       </Button>

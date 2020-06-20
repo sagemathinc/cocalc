@@ -7,13 +7,11 @@ import { Map as iMap, List as iList } from "immutable";
 import { FileUseInfo } from "./info";
 import { Alert, Button, Col, Row } from "react-bootstrap";
 import { Component, React, Rendered } from "../app-framework";
-import { analytics_event } from "../tracker";
 import { SearchInput, WindowedList, Icon } from "../r_misc";
 import { FileUseActions } from "./actions";
 import { open_file_use_entry } from "./util";
 
 const {
-  filename_extension,
   search_match,
   search_split,
 } = require("smc-util/misc");
@@ -145,11 +143,6 @@ export class FileUseViewer extends Component<Props, State> {
       x.get("path"),
       x.get("show_chat", false),
       this.props.redux
-    );
-    analytics_event(
-      "file_notifications",
-      "open from search",
-      filename_extension(x.get("path"))
     );
   }
 

@@ -4,20 +4,12 @@
  */
 
 import { Component, React, Rendered } from "../app-framework";
-
-import { analytics_event } from "../tracker";
-
 const { User } = require("../users");
 import { Icon, TimeAgo, r_join } from "../r_misc";
-
 import { FileUseIcon } from "./icon";
-
 import { Map as iMap } from "immutable";
-
 const { Col, Grid, Row } = require("react-bootstrap");
-
 const misc = require("smc-util/misc");
-
 import { open_file_use_entry } from "./util";
 
 // Arbitrary constants:
@@ -97,11 +89,6 @@ export class FileUseInfo extends Component<Props, {}> {
       x.get("path"),
       x.get("show_chat", false),
       this.props.redux
-    );
-    analytics_event(
-      "file_notifications",
-      "open from click",
-      misc.filename_extension(x.get("path"))
     );
   }
 

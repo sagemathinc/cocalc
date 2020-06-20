@@ -185,6 +185,10 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     props.editor_actions.name,
     "has_uncommitted_changes",
   ]);
+  const show_uncommitted_changes: boolean = useRedux([
+    props.editor_actions.name,
+    "show_uncommitted_changes",
+  ]);
   const is_saving: boolean = useRedux([props.editor_actions.name, "is_saving"]);
   const is_public: boolean = useRedux([props.editor_actions.name, "is_public"]);
 
@@ -943,6 +947,10 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
         key="save"
         has_unsaved_changes={has_unsaved_changes}
         has_uncommitted_changes={has_uncommitted_changes}
+        show_uncommitted_changes={show_uncommitted_changes}
+        set_show_uncommitted_changes={
+          props.editor_actions.set_show_uncommitted_changes
+        }
         read_only={read_only}
         is_public={is_public}
         is_saving={is_saving}

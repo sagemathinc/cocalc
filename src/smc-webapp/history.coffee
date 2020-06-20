@@ -6,54 +6,54 @@
 $ = window.$
 
 # Code related to the history and URL in the browser bar.
-# 
+#
 # The URI schema is as follows:
-# 
+#
 #     Overall help:
 #        https://cocalc.com/help
-# 
+#
 #     Overall settings:
 #        https://cocalc.com/settings
-# 
+#
 #     Account settings (default):
 #        https://cocalc.com/settings/account
-# 
+#
 #     Billing:
 #        https://cocalc.com/settings/billing
-# 
+#
 #     Upgrades:
 #        https://cocalc.com/settings/upgrades
-# 
+#
 #     Support:
 #        https://cocalc.com/settings/support
-# 
+#
 #     Projects page:
 #        https://cocalc.com/projects/
-# 
+#
 #     Specific project:
 #        https://cocalc.com/projects/project-id/
-# 
+#
 #     Create new file page (in given directory):
 #        https://cocalc.com/projects/project-id/new/path/to/dir
-# 
+#
 #     Search (in given directory):
 #        https://cocalc.com/projects/project-id/search/path/to/dir
-# 
+#
 #     Settings:
 #        https://cocalc.com/projects/project-id/settings
-# 
+#
 #     Log:
 #        https://cocalc.com/projects/project-id/log
-# 
+#
 #     Directory listing (must have slash at end):
 #       https://cocalc.com/projects/project-id/files/path/to/dir/
-# 
+#
 #     Open file:
 #       https://cocalc.com/projects/project-id/files/path/to/file
-# 
+#
 #     (From before) raw http:
 #       https://cocalc.com/projects/project-id/raw/path/...
-# 
+#
 #     (From before) proxy server (supports websockets and ssl) to a given port.
 #       https://cocalc.com/projects/project-id/port/<number>/.
 
@@ -101,8 +101,6 @@ exports.set_url = (url) ->
         return
     last_full_url = full_url
     window.history.pushState("", "", full_url)
-    {analytics_pageview} = require('./misc_page')
-    analytics_pageview(window.location.pathname)
 
 # Now load any specific page/project/previous state
 exports.load_target = load_target = (target, ignore_kiosk=false, change_history=true) ->

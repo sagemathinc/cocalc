@@ -18,6 +18,8 @@ const VIEWERS: ReadonlyArray<string> = [
 
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
+import { normalize as path_normalize } from "path";
+import { union } from "lodash";
 
 import { fromJS, List, Map } from "immutable";
 import { once } from "smc-util/async-utils";
@@ -518,8 +520,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  clean(): void {
-    this.build_action("clean");
+  async clean(): Promise<void> {
+    await this.build_action("clean");
   }
 
   async run_build(time: number, force: boolean): Promise<void> {
@@ -597,7 +599,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     } finally {
       this.set_status("");
     }
-    this.parsed_output_log = output.parse = knitr_errors(output).toJS();
+    output.parse = knitr_errors(output).toJS();
+    this.merge_parsed_output_log(output.parse);
     this.set_build_logs({ knitr: output });
     this.update_gutters();
     this.setState({ knitr_error: output.parse?.errors?.length > 0 });
@@ -692,6 +695,10 @@ export class Actions extends BaseActions<LatexEditorState> {
       return;
     }
     this.set_status("");
+    // resetting parsed_output_log is ok, even if we do two passes.
+    // the reason is that in pythontex or sagetex there is a merge *after* this step.
+    // therefore, resetting this here will get rid of then stale errors related to
+    // missing tokens, because pythontex or sagetex just computed them.
     this.parsed_output_log = output.parse = new LatexParser(output.stdout, {
       ignoreDuplicates: true,
     }).parse();
@@ -709,6 +716,27 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
+  // this *merges* errors from log into an eventually already existing this.parsed_output_log
+  // the whole point is to keep latex errors while we add additional errors from
+  // pythontex, sagetex, etc.
+  private merge_parsed_output_log(log: IProcessedLatexLog) {
+    // easy case, never supposed to happen
+    if (this.parsed_output_log == null) {
+      this.parsed_output_log = log;
+      return;
+    }
+    for (const key of ["errors", "warnings", "typesetting", "all"]) {
+      const existing = this.parsed_output_log[key];
+      log[key].forEach((error) => existing.push(error));
+    }
+    for (const key of ["files", "deps"]) {
+      this.parsed_output_log[key] = union(
+        this.parsed_output_log[key],
+        log[key]
+      );
+    }
+  }
+
   private async update_gutters_soon(): Promise<void> {
     await delay(500);
     if (this._state == "closed") return;
@@ -716,6 +744,8 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   private update_gutters(): void {
+    // if we pass in a parsed log, we don't clean the gutters
+    // it is meant to add to what we already have, e.g. for PythonTeX
     if (this.parsed_output_log == null) return;
     this.clear_gutters();
     update_gutters({
@@ -731,10 +761,14 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   private set_gutter(path: string, line: number, component: any): void {
-    if (this.canonical_paths[path] != null) {
-      path = this.canonical_paths[path];
+    const canon_path = this.get_canonical_path(path);
+    if (canon_path != null) {
+      path = canon_path;
     }
-    const actions = this.redux.getEditorActions(this.project_id, path);
+    const actions = this.redux.getEditorActions(
+      this.project_id,
+      path_normalize(path)
+    );
     if (actions == null) {
       return; // file not open
     }
@@ -743,6 +777,13 @@ export class Actions extends BaseActions<LatexEditorState> {
       component,
       gutter_id: "Codemirror-latex-errors",
     });
+  }
+
+  // transform a relative path like file.tex or ./x/name.tex
+  // to the canonical path
+  private get_canonical_path(path: string): string {
+    const norm = path_normalize(path);
+    return this.canonical_paths[norm];
   }
 
   private async set_switch_to_files(files: string[]): Promise<void> {
@@ -756,6 +797,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       switch_to_files = [];
     }
 
+    // if we're not in the home directory, prefix it to all relative paths
     let files1: string[];
     const dir = path_split(this.path).head;
     if (dir == "") {
@@ -771,15 +813,18 @@ export class Actions extends BaseActions<LatexEditorState> {
       }
     }
 
-    const files2 = await (await project_api(this.project_id)).canonical_paths(
-      files1
-    );
+    // get canonical path names for each file
+    const api = await project_api(this.project_id);
+    const files2 = await api.canonical_paths(files1);
+
+    // record all relative paths
     for (let i = 0; i < files2.length; i++) {
-      const path = files2[i];
-      if (!path.startsWith("/")) {
-        switch_to_files.push(path);
-        this.relative_paths[path] = files[i];
-        this.canonical_paths[files[i]] = path;
+      const canon_path = files2[i];
+      if (!canon_path.startsWith("/")) {
+        switch_to_files.push(canon_path);
+        const relnorm_path = path_normalize(files[i]);
+        this.relative_paths[canon_path] = relnorm_path;
+        this.canonical_paths[relnorm_path] = canon_path;
       }
     }
     // sort and make unique.
@@ -873,10 +918,8 @@ export class Actions extends BaseActions<LatexEditorState> {
 
     if (output != null) {
       // process any errors
-      this.parsed_output_log = output.parse = sagetex_errors(
-        path_split(this.path).tail,
-        output
-      ).toJS();
+      output.parse = sagetex_errors(path_split(this.path).tail, output).toJS();
+      this.merge_parsed_output_log(output.parse);
       this.set_build_logs({ sagetex: output });
       // there is no line information in the sagetex errors (and no concordance info either),
       // hence we can't update the gutters.
@@ -899,9 +942,9 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.get_output_directory()
       );
       // Now run latex again, since we had to run pythontex, which changes
-      // the inserted snippets. This +1 forces re-running latex... but still dedups
-      // it in case of multiple users.
-      await this.run_latex(time + 1, force);
+      // the inserted snippets. This +2 forces re-running latex... but still dedups
+      // it in case of multiple users. (+1 is for sagetex)
+      await this.run_latex(time + 2, force);
     } catch (err) {
       this.set_error(err);
       // this.setState({ pythontex_error: true });
@@ -911,10 +954,8 @@ export class Actions extends BaseActions<LatexEditorState> {
       this.set_status("");
     }
     // this is similar to how knitr errors are processed
-    this.parsed_output_log = output.parse = pythontex_errors(
-      path_split(this.path).tail,
-      output
-    ).toJS();
+    output.parse = pythontex_errors(path_split(this.path).tail, output).toJS();
+    this.merge_parsed_output_log(output.parse);
     this.set_build_logs({ pythontex: output });
     this.update_gutters();
   }
@@ -1099,22 +1140,22 @@ export class Actions extends BaseActions<LatexEditorState> {
     const now: number = server_time().valueOf();
     switch (action) {
       case "build":
-        this.run_build(now, false);
+        await this.run_build(now, false);
         return;
       case "latex":
-        this.run_latex(now, false);
+        await this.run_latex(now, false);
         return;
       case "bibtex":
-        this.run_bibtex(now, false);
+        await this.run_bibtex(now, false);
         return;
       case "sagetex":
-        this.run_sagetex(now, false);
+        await this.run_sagetex(now, false);
         return;
       case "pythontex":
-        this.run_pythontex(now, false);
+        await this.run_pythontex(now, false);
         return;
       case "clean":
-        this.run_clean();
+        await this.run_clean();
         return;
       default:
         this.set_error(`unknown build action '${action}'`);

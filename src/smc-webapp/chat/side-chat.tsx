@@ -9,7 +9,7 @@ import {
   useRedux,
   useRef,
 } from "../app-framework";
-import { analytics_event } from "../tracker";
+import { user_activity } from "../tracker";
 import { A, Icon, Loading, SearchInput } from "../r_misc";
 import { Button } from "../antd-bootstrap";
 import { ProjectUsers } from "../projects/project-users";
@@ -209,7 +209,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
             input={input}
             on_send={() => {
               send_chat();
-              analytics_event("side_chat", "send_chat", "keyboard");
+              user_activity("side_chat", "send_chat", "keyboard");
             }}
             height={INPUT_HEIGHT}
             onChange={(value) => actions.set_input(value)}
@@ -227,7 +227,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
               style={{ height: INPUT_HEIGHT }}
               onClick={() => {
                 send_chat();
-                analytics_event("side_chat", "send_chat", "click");
+                user_activity("side_chat", "send_chat", "click");
               }}
               disabled={input.trim() === "" || is_uploading}
               bsStyle="success"

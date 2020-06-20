@@ -634,6 +634,11 @@ export class Actions extends BaseActions<X11EditorState> {
   }
 
   set_physical_keyboard(layout: string, variant: string): void {
+    if (this.client == null) {
+      // better to ignore if client isn't configured yet.
+      // I saw this once when testing. (TODO: could be more careful.)
+      return;
+    }
     this.client.set_physical_keyboard(layout, variant);
   }
 

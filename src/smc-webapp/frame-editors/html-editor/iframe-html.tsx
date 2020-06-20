@@ -16,7 +16,14 @@ import {
   list_alternatives,
 } from "smc-util/misc2";
 import { throttle } from "underscore";
-import { Component, React, ReactDOM, Rendered } from "../../app-framework";
+import {
+  Component,
+  React,
+  ReactDOM,
+  Rendered,
+  redux,
+} from "../../app-framework";
+import { DEFAULT_FONT_SIZE } from "smc-util/db-schema/defaults";
 
 import * as CSS from "csstype";
 
@@ -151,6 +158,15 @@ export class IFrameHTML extends Component<PropTypes, {}> {
     elt.contentDocument.location.reload(true);
   }
 
+  base_font_size(): number {
+    const account = redux.getStore("account");
+    if (account != null) {
+      return account.get("font_size", DEFAULT_FONT_SIZE);
+    } else {
+      return DEFAULT_FONT_SIZE;
+    }
+  }
+
   set_iframe_style(font_size?: number): void {
     const elt = ReactDOM.findDOMNode(this.refs.iframe);
     if (elt == null) {
@@ -159,7 +175,12 @@ export class IFrameHTML extends Component<PropTypes, {}> {
     const j = $(elt);
     j.css("opacity", 1);
     const body = j.contents().find("body");
-    body.css("zoom", (font_size != null ? font_size : 16) / 16);
+    const base = this.base_font_size();
+    const scale = (font_size != null ? font_size : base) / base;
+    // don't use "zoom: ...", which is not a standard property
+    // https://github.com/sagemathinc/cocalc/issues/4438
+    body.css("transform", `scale(${scale})`);
+    body.css("transform-origin", "0 0");
     if (this.props.is_fullscreen && this.props.fullscreen_style != null) {
       body.css(this.props.fullscreen_style);
     }

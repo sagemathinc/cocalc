@@ -15,10 +15,7 @@ import {
   useRedux,
 } from "../app-framework";
 import { ProjectUsers } from "./project-users";
-import { analytics_event } from "../tracker";
-
 const { AddCollaborators } = require("../collaborators/add-to-project");
-
 import { Row, Col, Well } from "../antd-bootstrap";
 import { Icon, Markdown, ProjectState, Space, TimeAgo } from "../r_misc";
 import { id2name } from "../custom-software/init";
@@ -157,7 +154,6 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
       switch_to: !(e.which === 2 || e.ctrlKey || e.metaKey),
     });
     e.preventDefault();
-    analytics_event("projects_page", "opened_a_project");
     user_tracking("open_project", { how: "projects_page", project_id });
   }
 

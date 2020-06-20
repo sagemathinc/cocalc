@@ -4,7 +4,7 @@ import { debounce } from "lodash";
 import { React, useState, useRedux, useRef } from "../../app-framework";
 
 import { Icon, Tip } from "../../r_misc";
-import { analytics_event } from "../../tracker";
+import { user_activity } from "../../tracker";
 import { VideoChat } from "./video-chat";
 
 //import { Button } from "../../antd-bootstrap";
@@ -44,10 +44,10 @@ export const VideoChatButton: React.FC<Props> = ({
       if (video_chat.current.we_are_chatting()) {
         // we are chatting, so stop chatting
         video_chat.current.stop_chatting();
-        analytics_event("side_chat", "stop_video");
+        user_activity("side_chat", "stop_video");
       } else {
         video_chat.current.start_chatting(); // not chatting, so start
-        analytics_event("side_chat", "start_video");
+        user_activity("side_chat", "start_video");
       }
     },
     750,
@@ -137,10 +137,7 @@ export const VideoChatButton: React.FC<Props> = ({
     );
   } else {
     return (
-      <span
-        style={{ ...style, height: "30px" }}
-        onClick={click_video_button}
-      >
+      <span style={{ ...style, height: "30px" }} onClick={click_video_button}>
         {icon}
       </span>
     );

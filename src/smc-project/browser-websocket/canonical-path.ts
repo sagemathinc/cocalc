@@ -15,12 +15,14 @@ import { resolve } from "path";
 
 export function canonical_paths(paths: string[]): string[] {
   const v: string[] = [];
+
+  const { HOME } = process.env;
+  if (HOME == null) {
+    throw Error("HOME environment variable must be defined");
+  }
+
   for (let path of paths) {
     path = resolve(path);
-    const { HOME } = process.env;
-    if (HOME == null) {
-      throw Error("HOME environment variable must be defined");
-    }
     if (path.startsWith(HOME)) {
       v.push(path.slice(HOME.length + 1));
     } else {
