@@ -13,6 +13,7 @@ import {
   Rendered,
   redux,
   useEffect,
+  useForceUpdate,
   useRedux,
   useRef,
   useState,
@@ -153,10 +154,14 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
   const buttons_ref = useRef<
     { [button_name: string]: true } | null | undefined
   >(null);
+
+  const force_update = useForceUpdate();
+
   useEffect(() => {
     // clear button cache whenever type changes; otherwise,
     // the buttons at the top wouldn't change.
     buttons_ref.current = null;
+    force_update();
   }, [props.type]);
 
   const [close_and_halt_confirm, set_close_and_halt_confirm] = useState<
