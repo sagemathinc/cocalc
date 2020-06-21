@@ -7,6 +7,7 @@ import * as React from "react";
 import { rtypes, redux, rclass, Rendered } from "../../app-framework";
 import {
   COLORS,
+  CopyToClipBoard,
   Loading,
   ProjectState,
   TimeAgo,
@@ -527,7 +528,10 @@ export const ProjectControl = rclass<ReactProps>(
             {this.render_action_buttons()}
           </LabeledRow>
           <LabeledRow key="project_id" label="Project id">
-            <pre>{this.props.project.get("project_id")}</pre>
+            <CopyToClipBoard
+              value={this.props.project.get("project_id")}
+              style={{ display: "inline-block", width: "50ex", margin: 0 }}
+            />
           </LabeledRow>
           {this.render_select_compute_image_row()}
         </SettingBox>
