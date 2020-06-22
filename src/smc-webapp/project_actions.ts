@@ -771,19 +771,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  private async open_word_document(opts): Promise<void> {
+  public async open_word_document(path): Promise<void> {
     // Microsoft Word Document
     alert_message({
       type: "info",
-      message: `Opening converted plain text file instead of '${opts.path}...`,
+      message: `Opening converted plain text file instead of '${path}...`,
     });
     try {
-      const path: string = await this.convert_docx_file(opts.path);
+      const converted: string = await this.convert_docx_file(path);
       await this.open_file({
-        path,
-        foreground: opts.foreground,
-        foreground_project: opts.foreground_project,
-        chat: opts.chat,
+        path: converted,
+        foreground: true,
+        foreground_project: true,
       });
     } catch (err) {
       alert_message({
@@ -958,11 +957,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
       await this.open_sagenb_worksheet(opts);
-      return;
-    }
-
-    if (!is_public && ext === "docx") {
-      await this.open_word_document(opts);
       return;
     }
 
