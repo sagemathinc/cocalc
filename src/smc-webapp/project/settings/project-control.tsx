@@ -7,6 +7,7 @@ import * as React from "react";
 import { rtypes, redux, rclass, Rendered } from "../../app-framework";
 import {
   COLORS,
+  CopyToClipBoard,
   Loading,
   ProjectState,
   TimeAgo,
@@ -129,13 +130,15 @@ export const ProjectControl = rclass<ReactProps>(
     }
 
     render_idle_timeout() {
-      // get_idle_timeout_horizon depends on the project object, so this will update properly....
+      // get_idle_timeout_horizon depends on the project object, so this
+      // will update properly....
       const date = redux
         .getStore("projects")
         .get_idle_timeout_horizon(this.props.project.get("project_id"));
-      if (!date) {
-        // e.g., viewing as admin...
-        return;
+      if (date == null) {
+        // e.g., viewing as admin where the info about idle timeout
+        // horizon simply isn't known.
+        return <span style={{ color: "#666" }}>(not available)</span>;
       }
       return (
         <span style={{ color: "#666" }}>
@@ -503,16 +506,13 @@ export const ProjectControl = rclass<ReactProps>(
       );
     }
 
-    rowstyle(delim?) {
-      const style: React.CSSProperties = {
-        marginBottom: "5px",
+    private rowstyle(delim?): React.CSSProperties | undefined {
+      if (!delim) return;
+      return {
+        borderBottom: "1px solid #ddd",
+        borderTop: "1px solid #ddd",
         paddingBottom: "10px",
       };
-      if (delim) {
-        style.borderBottom = "1px solid #ccc";
-        style.borderTop = "1px solid #ccc";
-      }
-      return style;
     }
 
     render() {
@@ -528,7 +528,10 @@ export const ProjectControl = rclass<ReactProps>(
             {this.render_action_buttons()}
           </LabeledRow>
           <LabeledRow key="project_id" label="Project id">
-            <pre>{this.props.project.get("project_id")}</pre>
+            <CopyToClipBoard
+              value={this.props.project.get("project_id")}
+              style={{ display: "inline-block", width: "50ex", margin: 0 }}
+            />
           </LabeledRow>
           {this.render_select_compute_image_row()}
         </SettingBox>

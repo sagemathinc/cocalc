@@ -21,7 +21,7 @@ interface Props {
   set_show_uncommitted_changes?: Function;
 }
 
-const SaveButtonFC: React.FC<Props> = (props: Props) => {
+export const SaveButton: React.FC<Props> = React.memo((props: Props) => {
   const {
     has_unsaved_changes,
     has_uncommitted_changes,
@@ -74,6 +74,4 @@ const SaveButtonFC: React.FC<Props> = (props: Props) => {
       />
     </Button>
   );
-};
-
-export const SaveButton = React.memo(SaveButtonFC);
+});
