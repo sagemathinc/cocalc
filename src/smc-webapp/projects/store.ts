@@ -353,16 +353,20 @@ export class ProjectsStore extends Store<State> {
 
   // The timestap (in server time) when this project will
   // idle timeout if not edited by anybody.
-  public get_idle_timeout_horizon(project_id: string): Date {
+  public get_idle_timeout_horizon(project_id: string): Date | undefined {
     // time when last edited in server time
     const last_edited = this.getIn(["project_map", project_id, "last_edited"]);
+
+    // It can be undefined, e.g., for admin viewing a project they are not a collab on, since
+    // the project isn't in the project_map.  See https://github.com/sagemathinc/cocalc/issues/4686
+    // Using right now in that case is a good approximation.
+    if (last_edited == null) return;
+
     // mintime = time in seconds project can stay unused
-    let mintime = this.getIn([
-      "project_map",
-      project_id,
-      "settings",
-      "mintime",
-    ]);
+    // (0 is probably wrong but better than this being "undefined".)
+    let mintime =
+      this.getIn(["project_map", project_id, "settings", "mintime"]) ?? 0;
+
     // contribution from users
     this.getIn(["project_map", project_id, "users"])?.map((info) => {
       mintime += info?.getIn(["upgrades", "mintime"]) ?? 0;

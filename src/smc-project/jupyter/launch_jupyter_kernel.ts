@@ -1,8 +1,3 @@
-/*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
- */
-
 // This file allows you to run a jupyter kernel via `launch_jupyter_kernel`.
 // You have to provide the kernel name and (optionally) launch options for execa [1].
 //

@@ -8,16 +8,29 @@
     /* bootstrap 3.3 has this line height. fix it, if it changes! */
     line-height: 1.42857143;
     text-align: center;
-    position: fixed;
     left: 0;
     right: 0;
     top: 100px;
-    margin: auto;
+    margin: 100px auto 0 auto;
     max-width: 100%;
     max-height: 100%;
     font-family: sans-serif;
     font-size: 26px;
     color: white;
+}
+
+#cocalc-error-report-startup {
+    clear: both;
+    display: none;
+    font-size: 15px;
+    margin: 0 auto 0 auto;
+    width: 90vw;
+    padding: 10px;
+    border: 3px solid red;
+    border-radius: 5px;
+}
+#cocalc-error-report-startup pre {
+    font-size: 10px;
 }
 
 #smc-startup-banner-status {

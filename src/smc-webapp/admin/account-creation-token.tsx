@@ -120,7 +120,7 @@ export class AccountCreationToken extends Component<{}, State> {
     // see https://github.com/sagemathinc/cocalc/issues/333
     return (
       <div style={{ color: COLORS.GRAY }}>
-        Not supported since at last one "public" passport strategy is enabled.
+        Not supported! At least one "public" passport strategy is enabled.
       </div>
     );
   }
