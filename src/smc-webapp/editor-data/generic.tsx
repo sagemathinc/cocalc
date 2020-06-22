@@ -65,7 +65,7 @@ interface Props {
   path: string;
 }
 
-function DataGeneric(props: Props) {
+const DataGeneric: React.FC<Props> = React.memo((props) => {
   const { project_id, path } = props;
   const ext = filename_extension(path);
   const src = webapp_client.project_client.read_file({ project_id, path });
@@ -113,10 +113,10 @@ function DataGeneric(props: Props) {
       {render_hint()}
     </Well>
   );
-}
+});
 
 register_file_editor({
   ext: keys(INFO),
   icon: "question",
-  component: React.memo(DataGeneric),
+  component: DataGeneric,
 });
