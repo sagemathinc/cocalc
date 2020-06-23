@@ -5,8 +5,12 @@
 
 // Default settings to customize a given site, typically a private install of CoCalc.
 
-import { is_valid_email_address } from "smc-util/misc";
-import { DNS } from "../theme";
+// The following two requires *should* be imports for better
+// typing info.  Unfortunately, this currently breaks starting projects.
+//import { is_valid_email_address } from "smc-util/misc";
+//import { DNS } from "../theme";
+const { is_valid_email_address } = require("smc-util/misc");
+const { DNS } = require("../theme");
 
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 
