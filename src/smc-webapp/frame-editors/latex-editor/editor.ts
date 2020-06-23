@@ -86,7 +86,13 @@ const EDITOR_SPEC = {
     name: "Build Control and Log",
     icon: "terminal",
     component: Build,
-    buttons: set(["build", "force_build", "clean"]),
+    buttons: set([
+      "build",
+      "force_build",
+      "clean",
+      "decrease_font_size",
+      "increase_font_size",
+    ]),
   },
 
   pdf_embed: {

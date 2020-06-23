@@ -24,6 +24,32 @@ const ENGINES: Engine[] = [
   "LuaTex",
 ];
 
+// cmd could be undefined -- https://github.com/sagemathinc/cocalc/issues/3290
+function build_command_string(cmd: string | List<string>): string {
+  let s: string;
+  if (cmd == null) {
+    // cmd is not initialized, see actions._init_config
+    return "";
+  } else if (typeof cmd === "string") {
+    s = cmd;
+  } else {
+    const v: string[] = [];
+    cmd.forEach(function (t: string) {
+      if (split(t).length > 1) {
+        // some minimal escape for now...
+        if (t.indexOf("'") === -1) {
+          t = `'${t}'`;
+        } else {
+          t = `"${t}"`;
+        }
+      }
+      v.push(t);
+    });
+    s = v.join(" ");
+  }
+  return s;
+}
+
 interface Props {
   actions: Actions;
   filename: string;
@@ -31,39 +57,19 @@ interface Props {
   knitr: boolean;
 }
 
-export const BuildCommand: React.FC<Props> = (props: Props) => {
+export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
   const { actions, filename, build_command: build_command_orig, knitr } = props;
-  const [build_command, set_build_command] = React.useState<string>(ENGINES[0]);
+  const [build_command_prev, set_build_command_prev] = React.useState(
+    build_command_orig
+  );
+  const [build_command, set_build_command] = React.useState<string>(
+    build_command_string(build_command_orig)
+  );
   const [focus, set_focus] = React.useState<boolean>(false);
 
-  if (!focus && build_command_orig != build_command) {
+  if (!focus && build_command_prev != build_command_orig) {
+    set_build_command_prev(build_command_orig);
     set_build_command(build_command_string(build_command_orig));
-  }
-
-  // cmd could be undefined -- https://github.com/sagemathinc/cocalc/issues/3290
-  function build_command_string(cmd: string | List<string>): string {
-    let s: string;
-    if (cmd == null) {
-      // cmd is not initialized, see actions._init_config
-      return "";
-    } else if (typeof cmd === "string") {
-      s = cmd;
-    } else {
-      const v: string[] = [];
-      cmd.forEach(function (t: string) {
-        if (split(t).length > 1) {
-          // some minimal escape for now...
-          if (t.indexOf("'") === -1) {
-            t = `'${t}'`;
-          } else {
-            t = `"${t}"`;
-          }
-        }
-        v.push(t);
-      });
-      s = v.join(" ");
-    }
-    return s;
   }
 
   function select_engine(engine: Engine): void {
@@ -185,4 +191,4 @@ export const BuildCommand: React.FC<Props> = (props: Props) => {
   } else {
     return render_form();
   }
-};
+});

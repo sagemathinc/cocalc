@@ -7,16 +7,11 @@
 Show the last latex build log, i.e., output from last time we ran the LaTeX build process.
 */
 
-import { ButtonGroup, Button } from "react-bootstrap";
 import { path_split } from "smc-util/misc2";
-import {
-  React,
-  Rendered,
-  useRedux,
-} from "../../app-framework";
+import { React, Rendered, useRedux } from "../../app-framework";
 //import { BuildLogs } from "./actions";
 import { BuildCommand } from "./build-command";
-import { Icon, Loading } from "smc-webapp/r_misc";
+import { Loading } from "smc-webapp/r_misc";
 
 interface IBuildSpec {
   button: boolean;
@@ -97,10 +92,6 @@ interface Props {
   reload: number;
   font_size: number;
   status: string;
-}
-
-function should_memoize(prev, next) {
-  return prev.status != next.status || prev.font_size != next.font_size;
 }
 
 // should memoize function used at the end
@@ -219,33 +210,6 @@ export const Build: React.FC<Props> = React.memo((props) => {
     }
   }
 
-  function render_build_action_button(
-    action: string,
-    spec: IBuildSpec
-  ): Rendered {
-    return (
-      <Button
-        key={spec.label}
-        title={spec.tip}
-        onClick={() => actions.build_action(action)}
-        disabled={!!status}
-      >
-        <Icon name={spec.icon} /> {spec.label}
-      </Button>
-    );
-  }
-
-  function render_buttons() {
-    const v: Rendered[] = [];
-    for (const action in BUILD_SPECS) {
-      const spec: IBuildSpec = BUILD_SPECS[action];
-      if (spec.button) {
-        v.push(render_build_action_button(action, spec));
-      }
-    }
-    return <ButtonGroup>{v}</ButtonGroup>;
-  }
-
   return (
     <div
       className={"smc-vfill"}
@@ -256,7 +220,6 @@ export const Build: React.FC<Props> = React.memo((props) => {
       }}
     >
       {render_build_command()}
-      {render_buttons()}
       {render_status()}
       {render_log("latex")}
       {render_log("sagetex")}
@@ -266,4 +229,4 @@ export const Build: React.FC<Props> = React.memo((props) => {
       {render_clean()}
     </div>
   );
-}, should_memoize);
+});
