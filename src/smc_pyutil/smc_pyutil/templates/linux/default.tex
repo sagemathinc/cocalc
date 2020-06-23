@@ -2,18 +2,7 @@
 
 % set font encoding for PDFLaTeX, XeLaTeX, or LuaTeX
 \usepackage{ifxetex,ifluatex}
-\newif\ifxetexorluatex
-\ifxetex
-  \xetexorluatextrue
-\else
-  \ifluatex
-    \xetexorluatextrue
-  \else
-    \xetexorluatexfalse
-  \fi
-\fi
-
-\ifxetexorluatex
+\if\ifxetex T\else\ifluatex T\else F\fi\fi T%
   \usepackage{fontspec}
 \else
   \usepackage[T1]{fontenc}
@@ -30,7 +19,14 @@
 % http://doc.sagemath.org/html/en/tutorial/sagetex.html
 % \usepackage{sagetex}
 
+% Enable PythonTeX to run Python – https://ctan.org/pkg/pythontex
+% \usepackage{pythontex}
+
 \begin{document}
 \maketitle
+
+
+
+
 
 \end{document}

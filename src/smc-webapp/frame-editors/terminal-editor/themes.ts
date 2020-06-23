@@ -1,11 +1,16 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Our predefined terminal color themes.
 */
 
 import { ITheme, Terminal } from "xterm";
 
 export function background_color(theme_name: string): string {
-  let t = color_themes[theme_name];
+  const t = color_themes[theme_name];
   if (t == null) {
     // should never happen
     return "white";
@@ -48,7 +53,7 @@ export function setTheme(terminal: Terminal, theme_name: string): void {
     brightBlue: colors[12],
     brightMagenta: colors[13],
     brightCyan: colors[14],
-    brightWhite: colors[15]
+    brightWhite: colors[15],
   };
   terminal.setOption("theme", theme);
 }
@@ -74,8 +79,8 @@ const color_themes = {
       "#586e75",
       "#002b36",
       "#eee8d5",
-      "#002b36"
-    ]
+      "#002b36",
+    ],
   },
   "solarized-light": {
     comment: "Solarized light",
@@ -97,8 +102,8 @@ const color_themes = {
       "#93a1a1",
       "#fdf6e3",
       "#073642",
-      "#fdf6e3"
-    ]
+      "#fdf6e3",
+    ],
   },
   "low-contrast": {
     comment: "Low contrast dark",
@@ -120,8 +125,8 @@ const color_themes = {
       "#6bc1d0",
       "#cdcdcd",
       "#cdcdcd",
-      "#343434"
-    ]
+      "#343434",
+    ],
   },
   "raven-dark": {
     comment: "Raven dark",
@@ -143,8 +148,8 @@ const color_themes = {
       "#5ec7d4",
       "#feffff",
       "#a6a7aa",
-      "#32312e"
-    ]
+      "#32312e",
+    ],
   },
   default: {
     comment: "Default black on white",
@@ -166,8 +171,8 @@ const color_themes = {
       "#34e2e2",
       "#eeeeec",
       "#000000",
-      "#ffffff"
-    ]
+      "#ffffff",
+    ],
   },
   mono: {
     comment: "Monochrome dark",
@@ -189,8 +194,8 @@ const color_themes = {
       "#c4c4c4",
       "#dedede",
       "#b0b0b0",
-      "#282828"
-    ]
+      "#282828",
+    ],
   },
   tango: {
     comment: "Tango light",
@@ -212,8 +217,8 @@ const color_themes = {
       "#34e2e2",
       "#eeeeec",
       "#000000",
-      "#ffffff"
-    ]
+      "#ffffff",
+    ],
   },
   infred: {
     comment: "Infinite red dark",
@@ -235,8 +240,8 @@ const color_themes = {
       "#d7d9fc",
       "#e2e2e2",
       "#f2f2f2",
-      "#101010"
-    ]
+      "#101010",
+    ],
   },
   "raven-light": {
     comment: "Raven light",
@@ -258,14 +263,14 @@ const color_themes = {
       "#007793",
       "#00020e",
       "#69717a",
-      "#faf0e6"
-    ]
-  }
+      "#faf0e6",
+    ],
+  },
 };
 
 // Use theme_desc for UI to select a theme.
 
 export const theme_desc = {};
-for (let name in color_themes) {
+for (const name in color_themes) {
   theme_desc[name] = color_themes[name].comment;
 }

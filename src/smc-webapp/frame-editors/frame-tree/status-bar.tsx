@@ -1,11 +1,16 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Show a minimal status bar at the bottom of the screen when status is set in the store.
 
 Very simple for now.  We should obviously add more later, e.g., number of lines of the file...
 */
 
 import { React, Component, Rendered } from "../../app-framework";
-const { Space } = require("smc-webapp/r_misc");
+import { Space } from "smc-webapp/r_misc";
 
 interface Props {
   status: string;
@@ -30,7 +35,7 @@ export class StatusBar extends Component<Props, {}> {
           color: "#666",
           padding: "0 5px",
           fontSize: "9pt",
-          background: "#fff"
+          background: "#fff",
         }}
       >
         {this.props.status}

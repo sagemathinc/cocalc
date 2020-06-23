@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
    If we are having repeated hash mismatches when trying to save a particular path,
    then this function will return true.  This can be used by the caller to
    reconnect and fix everything.  This is basically a stupid workaround for a subtle
@@ -16,8 +21,8 @@ interface PathState {
 
 function is_failing(x: PathState): boolean {
   const cutoff = new Date().getTime() - THRESHOLD.interval_s * 1000;
-  const failures : number[] = []
-  let t : number;
+  const failures: number[] = [];
+  let t: number;
   for (t of x.failures) {
     if (t >= cutoff) {
       failures.push(t);
@@ -32,7 +37,7 @@ function is_failing(x: PathState): boolean {
   }
 }
 
-const state: { [key:string]: PathState } = {};
+const state: { [key: string]: PathState } = {};
 
 export function failing_to_save(
   path: string,

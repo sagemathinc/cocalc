@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 //##############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -12,11 +17,9 @@ to a syncdoc editing session, and provides code evaluation that
 may be used to enhance the experience of document editing.
 */
 
-
 const stringify = require("json-stable-stringify");
 
 import { callback } from "awaiting";
-import { reuseInFlight } from "async-await-utils/hof";
 import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "../../table/synctable";
 import { to_key } from "../../table/util";
@@ -27,7 +30,7 @@ const {
   from_json,
   to_json,
   copy_without,
-  copy_with
+  copy_with,
 } = require("../../../misc");
 
 type State = "init" | "ready" | "closed";
@@ -51,9 +54,6 @@ export class Evaluator {
   private last_call_time: Date = new Date(0);
 
   constructor(syncdoc: SyncDoc, client: Client, create_synctable: Function) {
-    this.ensure_sage_session_running = reuseInFlight(
-      this.ensure_sage_session_running
-    );
     this.syncdoc = syncdoc;
     this.client = client;
     this.create_synctable = create_synctable;
@@ -106,9 +106,9 @@ export class Evaluator {
           string_id: this.syncdoc.get_string_id(),
           input: null,
           time: null,
-          user_id: null
-        }
-      ]
+          user_id: null,
+        },
+      ],
     };
     this.inputs_table = await this.create_synctable(
       query,
@@ -124,9 +124,9 @@ export class Evaluator {
           string_id: this.syncdoc.get_string_id(),
           output: null,
           time: null,
-          number: null
-        }
-      ]
+          number: null,
+        },
+      ],
     };
     this.outputs_table = await this.create_synctable(
       query,
@@ -175,12 +175,12 @@ export class Evaluator {
     // make time be congruent to our uid
     this.last_call_time = time;
 
-    let user_id: number = this.syncdoc.get_my_user_id();
+    const user_id: number = this.syncdoc.get_my_user_id();
     const obj = {
       string_id: this.syncdoc.get_string_id(),
       time,
       user_id,
-      input: copy_without(opts, "cb")
+      input: copy_without(opts, "cb"),
     };
     dbg(JSON.stringify(obj));
     this.inputs_table.set(obj);
@@ -200,7 +200,7 @@ export class Evaluator {
     // to sort it out.
     let mesg_number = 0;
 
-    const send = mesg => {
+    const send = (mesg) => {
       dbg("send", mesg);
       if (mesg.done) {
         this.outputs_table.removeListener("change", handle_output);
@@ -214,7 +214,7 @@ export class Evaluator {
       // console.log("handle_output #{to_json(keys)}")
       dbg("handle_output", keys);
       this.assert_not_closed();
-      for (let key of keys) {
+      for (const key of keys) {
         const t = from_json(key);
         if (t[1].valueOf() != time.valueOf()) {
           dbg("not our eval", t[1].valueOf(), time.valueOf());
@@ -284,7 +284,7 @@ export class Evaluator {
     // connected... maybe we could use that instead?
     let output_line = MARKERS.output;
 
-    let hook = mesg => {
+    const hook = (mesg) => {
       dbg(`processing mesg '${to_json(mesg)}'`);
       let content = this.syncdoc.to_str();
       let i = content.indexOf(MARKERS.output + output_uuid);
@@ -312,9 +312,7 @@ export class Evaluator {
 
       dbg("browser client didn't maintain sync promptly. fixing");
       dbg(
-        `sage_execute_code: i=${i}, n=${n}, output_line.length=${
-          output_line.length
-        }`
+        `sage_execute_code: i=${i}, n=${n}, output_line.length=${output_line.length}`
       );
       dbg(`output_line='${output_line}', sync_line='${content.slice(i, n)}'`);
       const x = content.slice(0, i);
@@ -336,7 +334,7 @@ export class Evaluator {
       this.syncdoc.commit();
     };
 
-    return mesg => {
+    return (mesg) => {
       setTimeout(() => hook(mesg), 5000);
     };
   }
@@ -382,8 +380,8 @@ export class Evaluator {
         number,
         output: {
           error: "must specify both program and input",
-          done: true
-        }
+          done: true,
+        },
       });
       this.outputs_table.save();
       return;
@@ -404,8 +402,8 @@ export class Evaluator {
           number,
           output: {
             error: `no program '${x.program}'`,
-            done: true
-          }
+            done: true,
+          },
         });
         this.outputs_table.save();
         return;
@@ -421,10 +419,10 @@ export class Evaluator {
       hook = this.execute_sage_code_hook(x.input.output_uuid);
     } else {
       // no op
-      hook = _ => {};
+      hook = (_) => {};
     }
 
-    f(x.input, output => {
+    f(x.input, (output) => {
       this.assert_not_closed();
 
       dbg(`got output='${to_json(output)}'; id=${to_json(id)}`);
@@ -441,8 +439,8 @@ export class Evaluator {
 
     const dbg = this.dbg("init_project_evaluator");
     dbg("init");
-    this.inputs_table.on("change", keys => {
-      for (let key of keys) {
+    this.inputs_table.on("change", (keys) => {
+      for (const key of keys) {
         this.handle_input_change(key);
       }
     });
@@ -466,16 +464,14 @@ export class Evaluator {
     }
   }
 
-  // NOTE: this is reuseInFlight'd
-  private async ensure_sage_session_running(): Promise<void> {
+  private ensure_sage_session_exists(): void {
     if (this.sage_session != null) return;
-    this.dbg("ensure_sage_session_running")();
-    // This happens only in the project, where client
+    this.dbg("ensure_sage_session_exists")();
+    // This code only runs in the project, where client
     // has a sage_session method.
     this.sage_session = (this.client as any).sage_session({
-      path: this.syncdoc.get_path()
+      path: this.syncdoc.get_path(),
     });
-    await callback(this.sage_session.init_socket)
   }
 
   // Runs only in the project
@@ -487,10 +483,20 @@ export class Evaluator {
     // TODO: input also may have -- uuid, output_uuid, timeout
     if (input.event === "execute_code") {
       input = copy_with(input, ["code", "data", "preparse", "event", "id"]);
+      dbg(
+        "ensure sage session is running, so we can actually execute the code"
+      );
     }
-    dbg("ensure sage session is running");
-    await this.ensure_sage_session_running();
-    dbg("send code to sage", to_json(input));
+    await this.ensure_sage_session_exists();
+    if (input.event === "execute_code") {
+      // We only need to actually create the socket, which makes a running process,
+      // if we are going to execute code.  The other events, e.g., 'status' don't
+      // need a running sage session.
+      if (!this.sage_session.is_running()) {
+        await callback(this.sage_session.init_socket);
+      }
+    }
+    dbg("send call to backend sage session manager", to_json(input));
     this.sage_session.call({ input, cb });
   }
 

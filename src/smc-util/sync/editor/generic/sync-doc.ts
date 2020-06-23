@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 SyncDoc -- the core class for editing with a synchronized document.
 
 This code supports both string-doc and db-doc, for editing both
@@ -13,7 +18,8 @@ in projects, and behaves slightly differently in each case.
    the backend for more than this long then---on reconnect---do
    extra work to ensure that all snapshots are up to date (in
    case snapshots were made when we were offline), and mark the
-   sent field of patches that weren't saved. */
+   sent field of patches that weren't saved.   I.e., we rebase
+   all offline changes. */
 const OFFLINE_THRESH_S = 5 * 60; // 5 minutes.
 
 /* How often the local hub will autosave this file to disk if
@@ -45,7 +51,7 @@ import {
   cancel_scheduled,
   once,
   retry_until_success,
-  reuse_in_flight_methods
+  reuse_in_flight_methods,
 } from "../../../async-utils";
 
 import { wait } from "../../../async-wait";
@@ -55,7 +61,7 @@ import {
   endswith,
   filename_extension,
   keys,
-  uuid
+  uuid,
 } from "../../../misc2";
 
 import { Evaluator } from "./evaluator";
@@ -65,7 +71,7 @@ const {
   hash_string,
   is_date,
   ISO_to_Date,
-  minutes_ago
+  minutes_ago,
 } = require("../../../misc");
 
 const schema = require("../../../schema");
@@ -78,7 +84,7 @@ import {
   DocType,
   Document,
   Patch,
-  FileWatcher
+  FileWatcher,
 } from "./types";
 
 import { SortedPatchList } from "./sorted-patch-list";
@@ -182,11 +188,11 @@ export class SyncDoc extends EventEmitter {
   private before_change?: Document;
 
   private last_user_change: Date = minutes_ago(60);
+  private last_save_to_disk_time: Date = new Date(0);
 
   private last_snapshot: Date | undefined;
   private snapshot_interval: number;
 
-  private deleted: boolean | undefined;
   private users: string[];
 
   private settings: Map<string, any> = Map();
@@ -225,7 +231,7 @@ export class SyncDoc extends EventEmitter {
       this.string_id = opts.string_id;
     }
 
-    for (let field of [
+    for (const field of [
       "project_id",
       "path",
       "client",
@@ -237,7 +243,7 @@ export class SyncDoc extends EventEmitter {
       "from_patch_str",
       "persistent",
       "data_server",
-      "ephemeral"
+      "ephemeral",
     ]) {
       if (opts[field] != undefined) {
         this[field] = opts[field];
@@ -250,7 +256,7 @@ export class SyncDoc extends EventEmitter {
       "save_to_disk",
       "load_from_disk",
       "handle_patch_update_queue",
-      "sync_remote_and_doc"
+      "sync_remote_and_doc",
     ]);
 
     if (this.change_throttle) {
@@ -317,7 +323,7 @@ export class SyncDoc extends EventEmitter {
     } = {
       string_id: this.string_id,
       user_id: this.my_user_id,
-      locs
+      locs,
     };
     if (!side_effect) {
       x.time = this.client.server_time();
@@ -340,7 +346,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     if (!this.file_use_interval || !this.client.is_user()) {
-      // file_use_interval has to be set, and we only do
+      // file_use_interval has to be nonzero, and we only do
       // this for browser user.
       return;
     }
@@ -358,7 +364,7 @@ export class SyncDoc extends EventEmitter {
         // edited if there was an actual change record in the
         // patches log, by this user, since last time.
         let user_is_active: boolean = false;
-        for (let tm in this.my_patches) {
+        for (const tm in this.my_patches) {
           if (new Date(parseInt(tm)) > this.last_user_change) {
             user_is_active = true;
             break;
@@ -373,11 +379,11 @@ export class SyncDoc extends EventEmitter {
         project_id: this.project_id,
         path: this.path,
         action,
-        ttl: this.file_use_interval
+        ttl: this.file_use_interval,
       });
     };
     this.throttled_file_use = throttle(file_use, this.file_use_interval, {
-      leading: true
+      leading: true,
     });
 
     this.on("user-change", this.throttled_file_use as any);
@@ -616,12 +622,12 @@ export class SyncDoc extends EventEmitter {
     if (this.undo_state != null) {
       return this.undo_state;
     }
-    const my_times = keys(this.my_patches).map(x => new Date(parseInt(x)));
+    const my_times = keys(this.my_patches).map((x) => new Date(parseInt(x)));
     my_times.sort(cmp_Date);
     return (this.undo_state = {
       my_times,
       pointer: my_times.length,
-      without: []
+      without: [],
     });
   }
 
@@ -713,7 +719,7 @@ export class SyncDoc extends EventEmitter {
       path: this.path,
       init,
       read_only,
-      last_active: this.client.server_time()
+      last_active: this.client.server_time(),
     });
     await this.syncstring_table.save();
   }
@@ -756,7 +762,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   private init_table_close_handlers(): void {
-    for (let x of ["syncstring", "patches", "cursors"]) {
+    for (const x of ["syncstring", "patches", "cursors"]) {
       const t = this[`${x}_table`];
       if (t != null) {
         t.on("close", () => this.close());
@@ -890,9 +896,9 @@ export class SyncDoc extends EventEmitter {
           string_id: this.string_id,
           project_id: this.project_id,
           path: this.path,
-          doctype: JSON.stringify(this.doctype)
-        }
-      }
+          doctype: JSON.stringify(this.doctype),
+        },
+      },
     });
     dbg("wrote syncstring to db - done.");
   }
@@ -934,7 +940,6 @@ export class SyncDoc extends EventEmitter {
           string_id: this.string_id,
           project_id: this.project_id,
           path: this.path,
-          deleted: null,
           users: null,
           last_snapshot: null,
           snapshot_interval: null,
@@ -945,9 +950,9 @@ export class SyncDoc extends EventEmitter {
           last_file_change: null,
           doctype: null,
           archived: null,
-          settings: null
-        }
-      ]
+          settings: null,
+        },
+      ],
     };
 
     dbg("getting table...");
@@ -957,7 +962,7 @@ export class SyncDoc extends EventEmitter {
         string_id: this.string_id,
         project_id: this.project_id,
         path: this.path,
-        doctype: JSON.stringify(this.doctype)
+        doctype: JSON.stringify(this.doctype),
       });
       await this.syncstring_table.save();
     } else {
@@ -974,16 +979,16 @@ export class SyncDoc extends EventEmitter {
     // and we have to wait until
     // after they have been pulled from blob storage before
     // we init the patch table, load from disk, etc.
-    function is_not_archived(): boolean {
+    const is_not_archived: () => boolean = () => {
       const ss = this.syncstring_table_get_one();
       if (ss != null) {
         return !ss.get("archived");
       } else {
         return false;
       }
-    }
+    };
     dbg("waiting for syncstring to be not archived");
-    await this.syncstring_table.wait(is_not_archived.bind(this), 120);
+    await this.syncstring_table.wait(is_not_archived, 120);
   }
 
   // Used for internal debug logging
@@ -1036,7 +1041,7 @@ export class SyncDoc extends EventEmitter {
       await retry_until_success({
         f: this.init_load_from_disk.bind(this),
         max_delay: 10000,
-        desc: "syncdoc -- load_from_disk"
+        desc: "syncdoc -- load_from_disk",
       });
       log("done loading from disk");
       this.assert_not_closed("init_all -- load from disk");
@@ -1050,11 +1055,6 @@ export class SyncDoc extends EventEmitter {
     if (this.client.is_project()) {
       log("init autosave");
       this.init_project_autosave();
-    } else {
-      // Ensure file is undeleted when explicitly open.
-      log("undelete");
-      await this.undelete();
-      this.assert_not_closed("init_all -- after undelete");
     }
     this.update_has_unsaved_changes();
     log("done");
@@ -1086,7 +1086,7 @@ export class SyncDoc extends EventEmitter {
       }
     }
 
-    function is_init_and_not_archived(t: SyncTable): any {
+    const is_init_and_not_archived = (t: SyncTable) => {
       this.assert_not_closed("is_init_and_not_archived");
       const tbl = t.get_one();
       if (tbl == null) {
@@ -1103,7 +1103,7 @@ export class SyncDoc extends EventEmitter {
         dbg("not init yet");
         return false;
       }
-    }
+    };
     dbg("waiting for init...");
     const init = await this.syncstring_table.wait(
       is_init_and_not_archived.bind(this),
@@ -1194,15 +1194,15 @@ export class SyncDoc extends EventEmitter {
       {
         patches_delete: {
           id: [this.string_id],
-          dummy: null
-        }
+          dummy: null,
+        },
       },
       {
         syncstrings_delete: {
           project_id: this.project_id,
-          path: this.path
-        }
-      }
+          path: this.path,
+        },
+      },
     ];
     const v: Promise<any>[] = [];
     for (let i = 0; i < queries.length; i++) {
@@ -1215,7 +1215,7 @@ export class SyncDoc extends EventEmitter {
     try {
       await callback2(this.client.path_access, {
         path: this.path,
-        mode: "w"
+        mode: "w",
       });
       // no error -- it is NOT read only
       return false;
@@ -1252,7 +1252,7 @@ export class SyncDoc extends EventEmitter {
         // the path exists
         dbg("path exists -- stat file");
         const stats = await callback2(this.client.path_stat, {
-          path: this.path
+          path: this.path,
         });
         if (stats.ctime > last_changed) {
           dbg("disk file changed more recently than edits, so loading");
@@ -1289,7 +1289,7 @@ export class SyncDoc extends EventEmitter {
       sent: null,
       // (optional) timestamp of previous patch sent
       // from this session
-      prev: null
+      prev: null,
     };
     if (this.doctype.patch_format != null) {
       (query as any).format = this.doctype.patch_format;
@@ -1324,7 +1324,7 @@ export class SyncDoc extends EventEmitter {
       { leading: true, trailing: true }
     );
 
-    this.patches_table.on("has-uncommitted-changes", val => {
+    this.patches_table.on("has-uncommitted-changes", (val) => {
       this.emit("has-uncommitted-changes", val);
     });
 
@@ -1381,7 +1381,7 @@ export class SyncDoc extends EventEmitter {
 
   private async init_evaluator(): Promise<void> {
     const dbg = this.dbg("init_evaluator");
-    const ext = filename_extension(this.path)
+    const ext = filename_extension(this.path);
     if (ext !== "sagews") {
       dbg("done -- only use init_evaluator for sagews");
       return;
@@ -1398,8 +1398,8 @@ export class SyncDoc extends EventEmitter {
 
   private async init_ipywidgets(): Promise<void> {
     const dbg = this.dbg("init_evaluator");
-    const ext = filename_extension(this.path)
-    if (ext != 'sage-jupyter2') {
+    const ext = filename_extension(this.path);
+    if (ext != "sage-jupyter2") {
       dbg("done -- only use ipywidgets for jupyter");
       return;
     }
@@ -1411,7 +1411,6 @@ export class SyncDoc extends EventEmitter {
     );
     await this.ipywidgets_state.init();
     dbg("done");
-
   }
 
   private async init_cursors(): Promise<void> {
@@ -1431,9 +1430,9 @@ export class SyncDoc extends EventEmitter {
           string_id: this.string_id,
           user_id: null,
           locs: null,
-          time: null
-        }
-      ]
+          time: null,
+        },
+      ],
     };
     // We make cursors an ephemeral table, since there is no
     // need to persist it to the database, obviously!
@@ -1469,7 +1468,7 @@ export class SyncDoc extends EventEmitter {
 
     this.set_cursor_locs = debounce(this.set_cursor_locs.bind(this), 2000, {
       leading: true,
-      trailing: true
+      trailing: true,
     });
     dbg("done");
   }
@@ -1478,7 +1477,7 @@ export class SyncDoc extends EventEmitter {
     if (this.state === "closed") {
       return;
     }
-    for (let k of keys) {
+    for (const k of keys) {
       const u = JSON.parse(k);
       if (u == null) {
         continue;
@@ -1530,7 +1529,7 @@ export class SyncDoc extends EventEmitter {
       string_id: this.string_id,
       project_id: this.project_id,
       path: this.path,
-      settings: obj
+      settings: obj,
     });
     await this.syncstring_table.save();
   }
@@ -1554,6 +1553,10 @@ export class SyncDoc extends EventEmitter {
   public async save(): Promise<void> {
     const dbg = this.dbg("save");
     dbg();
+    if (this.client.is_deleted(this.path, this.project_id)) {
+      dbg("not saving because deleted");
+      return;
+    }
     // We just keep trying while syncdoc is ready and there
     // are changes that have not been saved (due to this.doc
     // changing during the while loop!).
@@ -1582,10 +1585,6 @@ export class SyncDoc extends EventEmitter {
       }
       dbg("Compute new patch and send it.");
       await this.sync_remote_and_doc();
-      dbg("Patch sent, now make a snapshot if we are due for one.");
-      if (this.get_state() === "ready") {
-        await this.snapshot_if_necessary();
-      }
       // Emit event since this syncstring was
       // changed locally (or we wouldn't have had
       // to save at all).
@@ -1610,15 +1609,6 @@ export class SyncDoc extends EventEmitter {
     return time;
   }
 
-  public async undelete(): Promise<void> {
-    this.assert_not_closed("undelete");
-    // Version with deleted set to false:
-    const x = this.syncstring_table_get_one().set("deleted", false);
-    // Now write that as new version to table.
-    this.syncstring_table.set(x);
-    await this.syncstring_table.save();
-  }
-
   private commit_patch(time: Date, patch: XPatch): void {
     this.assert_not_closed("commit_patch");
     const obj: any = {
@@ -1626,18 +1616,13 @@ export class SyncDoc extends EventEmitter {
       string_id: this.string_id,
       time,
       patch: JSON.stringify(patch),
-      user_id: this.my_user_id
+      user_id: this.my_user_id,
     };
 
     this.my_patches[time.valueOf()] = obj;
 
     if (this.doctype.patch_format != null) {
       obj.format = this.doctype.patch_format;
-    }
-    if (this.deleted) {
-      // file was deleted but now change is being made, so undelete it.
-      // TODO: maybe change to explicit user request!
-      this.undelete();
     }
     if (this.save_patch_prev != null) {
       // timestamp of last saved patch during this session
@@ -1682,7 +1667,7 @@ export class SyncDoc extends EventEmitter {
       time,
       patch: JSON.stringify(x.patch),
       snapshot,
-      user_id: x.user_id
+      user_id: x.user_id,
     };
     if (force) {
       /* CRITICAL: We are sending the patch/snapshot later, but
@@ -1698,17 +1683,60 @@ export class SyncDoc extends EventEmitter {
     x.snapshot = obj.snapshot;
     this.patches_table.set(obj, "none");
     await this.patches_table.save();
+    if (this.state != "ready") return;
+
     /* CRITICAL: Only save the snapshot time in the database
-       after the set in the patches table was saved
+       after the set in the patches table was definitely saved
        -- otherwise if the user refreshes their
        browser (or visits later) they lose all their
-       early work!
+       early work due to trying to apply patches
+       to a blank snapshot.  That would be VERY bad.
     */
+    if (!this.ephemeral) {
+      /*
+       PARANOID: We are extra paranoid and ensure the
+       snapshot is definitely stored in the database
+       before we change the syncstrings table's last_snapshot time.
+       Indeed, we do a query to the database itself
+       to ensure that the snapshot was really saved
+       before changing last_snapshot, since the above
+       patches_table.save only ensures that the snapshot
+       was (presumably) saved *from the browser to the project*.
+       We do give this several chances, since it might
+       take a little while for the project to save it.
+       */
+      let success: boolean = false;
+      for (let i = 0; i < 2; i++) {
+        const x = await callback2(this.client.query, {
+          query: {
+            patches: {
+              string_id: this.string_id,
+              time,
+              snapshot: null,
+            },
+          },
+        });
+        if (this.state != "ready") return;
+        if (x.query.patches == null || x.query.patches.snapshot != snapshot) {
+          await delay((i + 1) * 5000);
+        } else {
+          success = true;
+          break;
+        }
+      }
+      if (!success) {
+        throw Error(
+          "unable to confirm that snapshot was saved to the database"
+        );
+      }
+    }
+
+    if (this.state != "ready") return;
     this.syncstring_table.set({
       string_id: this.string_id,
       project_id: this.project_id,
       path: this.path,
-      last_snapshot: time
+      last_snapshot: time,
     });
     await this.syncstring_table.save();
     this.last_snapshot = time;
@@ -1717,11 +1745,20 @@ export class SyncDoc extends EventEmitter {
   // Have a snapshot every this.snapshot_interval patches, except
   // for the very last interval.
   private async snapshot_if_necessary(): Promise<void> {
+    const dbg = this.dbg("snapshot_if_necessary");
+    if (this.get_state() !== "ready") return;
+    const max_size = Math.floor(1.2 * MAX_FILE_SIZE_MB * 1000000);
+    const interval = this.snapshot_interval;
+    dbg("check if we need to make a snapshot:", { interval, max_size });
     const time = this.patch_list.time_of_unmade_periodic_snapshot(
-      this.snapshot_interval
+      interval,
+      max_size
     );
     if (time != null) {
+      dbg("yes, make a snapshot at time", time);
       await this.snapshot(time);
+    } else {
+      dbg("no need to make a snapshot yet");
     }
   }
 
@@ -1760,6 +1797,7 @@ export class SyncDoc extends EventEmitter {
     const user_id: number = x.get("user_id");
     const sent: Date = x.get("sent");
     const prev: Date | undefined = x.get("prev");
+    let size: number;
     if (patch == null) {
       /* Do **NOT** use misc.from_json, since we definitely
          do not want to unpack ISO timestamps as Date,
@@ -1769,18 +1807,27 @@ export class SyncDoc extends EventEmitter {
          See https://github.com/sagemathinc/cocalc/issues/1771
       */
       if (x.has("patch")) {
-        patch = JSON.parse(x.get("patch"));
+        const p: string = x.get("patch");
+        patch = JSON.parse(p);
+        size = p.length;
       } else {
         patch = [];
+        size = 2;
       }
+    } else {
+      const p = x.get("patch");
+      // Looking at other code, I think this JSON.stringify (which
+      // would be a waste of time) never gets called in practice.
+      size = p != null ? p.length : JSON.stringify(patch).length;
     }
 
-    const snapshot: string = x.get("snapshot");
     const obj: any = {
       time,
       user_id,
-      patch
+      patch,
+      size,
     };
+    const snapshot: string = x.get("snapshot");
     if (sent != null) {
       obj.sent = sent;
     }
@@ -1836,11 +1883,11 @@ export class SyncDoc extends EventEmitter {
     }
     const query = this.patch_table_query();
     const result = await callback2(this.client.query, {
-      query: { patches: [query] }
+      query: { patches: [query] },
     });
     const v: Patch[] = [];
     // process_patch assumes immutable objects
-    fromJS(result.query.patches).forEach(x => {
+    fromJS(result.query.patches).forEach((x) => {
       const p = this.process_patch(x, new Date(0), this.last_snapshot);
       if (p != null) {
         v.push(p);
@@ -1872,7 +1919,7 @@ export class SyncDoc extends EventEmitter {
     this.assert_not_closed("handle_offline");
     const now: Date = this.client.server_time();
     let oldest: Date | undefined = undefined;
-    for (let obj of data) {
+    for (const obj of data) {
       if (obj.sent) {
         // CRITICAL: ignore anything already processed! (otherwise, infinite loop)
         continue;
@@ -1890,13 +1937,17 @@ export class SyncDoc extends EventEmitter {
     }
     if (oldest) {
       //dbg("oldest=#{oldest}, so check whether any snapshots need to be recomputed")
-      for (let snapshot_time of this.patch_list.snapshot_times()) {
+      for (const snapshot_time of this.patch_list.snapshot_times()) {
         if (snapshot_time >= oldest) {
           //console.log("recomputing snapshot #{snapshot_time}")
           await this.snapshot(snapshot_time, true);
         }
       }
     }
+  }
+
+  public get_last_save_to_disk_time(): Date {
+    return this.last_save_to_disk_time;
   }
 
   private async handle_syncstring_save_state(
@@ -1915,6 +1966,7 @@ export class SyncDoc extends EventEmitter {
        latex compilation properly in case of a .tex file).
     */
     if (state === "done" && this.syncstring_save_state !== "done") {
+      this.last_save_to_disk_time = time;
       this.emit("save-to-disk", time);
     }
     const dbg = this.dbg("handle_syncstring_save_state");
@@ -1982,9 +2034,8 @@ export class SyncDoc extends EventEmitter {
       path: this.path,
       last_snapshot: this.last_snapshot,
       users: this.users,
-      deleted: this.deleted,
       doctype: JSON.stringify(this.doctype),
-      last_active: this.client.server_time()
+      last_active: this.client.server_time(),
     };
     this.syncstring_table.set(obj);
     await this.syncstring_table.save();
@@ -2020,12 +2071,6 @@ export class SyncDoc extends EventEmitter {
       this.emit("settings-change", settings);
     }
 
-    if (this.deleted != null && x.deleted && !this.deleted) {
-      // change to deleted
-      this.emit("deleted");
-    }
-    this.deleted = x.deleted;
-
     // Ensure that this client is in the list of clients
     const client_id: string = this.client.client_id();
     this.my_user_id = this.users.indexOf(client_id);
@@ -2036,7 +2081,7 @@ export class SyncDoc extends EventEmitter {
         string_id: this.string_id,
         project_id: this.project_id,
         path: this.path,
-        users: this.users
+        users: this.users,
       });
       await this.syncstring_table.save();
     }
@@ -2125,9 +2170,7 @@ export class SyncDoc extends EventEmitter {
     const dbg = this.dbg("handle_file_watcher_change");
     const time: number = ctime.valueOf();
     dbg(
-      `file_watcher: change, ctime=${time}, this.save_to_disk_start_ctime=${
-        this.save_to_disk_start_ctime
-      }, this.save_to_disk_end_ctime=${this.save_to_disk_end_ctime}`
+      `file_watcher: change, ctime=${time}, this.save_to_disk_start_ctime=${this.save_to_disk_start_ctime}, this.save_to_disk_end_ctime=${this.save_to_disk_end_ctime}`
     );
     if (
       this.save_to_disk_start_ctime == null ||
@@ -2146,17 +2189,8 @@ export class SyncDoc extends EventEmitter {
   private async handle_file_watcher_delete(): Promise<void> {
     const dbg = this.dbg("handle_file_watcher_delete");
     this.assert_is_ready("handle_file_watcher_delete");
-    dbg("delete: setting deleted=true and closing");
-    this.from_str("");
-    await this.save();
-    // NOTE: setting deleted=true must be done **after** setting
-    // document to blank above,
-    // since otherwise the set would set deleted=false.
-    this.syncstring_table.set(
-      this.syncstring_table_get_one().set("deleted", true)
-    );
-    // make sure deleted:true is saved:
-    await this.syncstring_table.save();
+    dbg("delete: set_deleted and closing");
+    await this.client.set_deleted(this.path, this.project_id);
     this.close();
   }
 
@@ -2164,7 +2198,7 @@ export class SyncDoc extends EventEmitter {
     const path = this.path;
     const dbg = this.dbg("load_from_disk");
     dbg();
-    let exists: boolean = await callback2(this.client.path_exists, { path });
+    const exists: boolean = await callback2(this.client.path_exists, { path });
     let size: number;
     if (!exists) {
       dbg("file no longer exists -- setting to blank");
@@ -2175,7 +2209,7 @@ export class SyncDoc extends EventEmitter {
       await this.update_if_file_is_read_only();
       const data = await callback2(this.client.path_read, {
         path,
-        maxsize_MB: MAX_FILE_SIZE_MB
+        maxsize_MB: MAX_FILE_SIZE_MB,
       });
       size = data.length;
       dbg(`got it -- length=${size}`);
@@ -2185,7 +2219,7 @@ export class SyncDoc extends EventEmitter {
       await this.set_save({
         state: "done",
         error: "",
-        hash: hash_string(data)
+        hash: hash_string(data),
       });
     }
     // save new version (just set via from_str) to database.
@@ -2321,6 +2355,10 @@ export class SyncDoc extends EventEmitter {
       return;
     }
     const dbg = this.dbg("save_to_disk");
+    if (this.client.is_deleted(this.path, this.project_id)) {
+      dbg("not saving to disk because deleted");
+      return;
+    }
     dbg("initiating the save");
     /* dbg(`live="${this.to_str()}"`);
     this.show_history({log:dbg});
@@ -2340,13 +2378,6 @@ export class SyncDoc extends EventEmitter {
       dbg("read only, so can't save to disk");
       // save should fail if file is read only and there are changes
       throw Error("can't save readonly file with changes to disk");
-    }
-
-    if (this.deleted) {
-      dbg("deleted, so don't save");
-      // nothing to do -- no need to attempt to save if file
-      // is already deleted
-      return;
     }
 
     // First make sure any changes are saved to the database.
@@ -2416,7 +2447,10 @@ export class SyncDoc extends EventEmitter {
     let last_err = undefined;
     const f = async () => {
       dbg("f");
-      if (this.state != "ready" || this.deleted) {
+      if (
+        this.state != "ready" ||
+        this.client.is_deleted(this.path, this.project_id)
+      ) {
         dbg("not ready or deleted - no longer trying to save.");
         return;
       }
@@ -2427,7 +2461,10 @@ export class SyncDoc extends EventEmitter {
         dbg("timed out after 15s");
         throw Error("timed out");
       }
-      if (this.state != "ready" || this.deleted) {
+      if (
+        this.state != "ready" ||
+        this.client.is_deleted(this.path, this.project_id)
+      ) {
         dbg("not ready or deleted - no longer trying to save.");
         return;
       }
@@ -2444,9 +2481,12 @@ export class SyncDoc extends EventEmitter {
     await retry_until_success({
       f,
       max_tries: 8,
-      desc: "wait_for_save_to_disk_done"
+      desc: "wait_for_save_to_disk_done",
     });
-    if (this.state != "ready" || this.deleted) {
+    if (
+      this.state != "ready" ||
+      this.client.is_deleted(this.path, this.project_id)
+    ) {
       return;
     }
     if (last_err && typeof this.client.log_error === "function") {
@@ -2454,7 +2494,7 @@ export class SyncDoc extends EventEmitter {
         string_id: this.string_id,
         path: this.path,
         project_id: this.project_id,
-        error: `Error saving file -- ${last_err}`
+        error: `Error saving file -- ${last_err}`,
       });
     }
   }
@@ -2550,7 +2590,7 @@ export class SyncDoc extends EventEmitter {
       this.set_save({
         state: "done",
         error: "",
-        hash: hash_string(data)
+        hash: hash_string(data),
       });
     } catch (err) {
       this.set_save({ state: "done", error: JSON.stringify(err) });
@@ -2576,7 +2616,7 @@ export class SyncDoc extends EventEmitter {
     if (this.patch_update_queue == null) {
       this.patch_update_queue = [];
     }
-    for (let key of changed_keys) {
+    for (const key of changed_keys) {
       this.patch_update_queue.push(key);
     }
 
@@ -2597,7 +2637,7 @@ export class SyncDoc extends EventEmitter {
       while (this.patch_update_queue.length > 0) {
         dbg("queue size = ", this.patch_update_queue.length);
         const v: Patch[] = [];
-        for (let key of this.patch_update_queue) {
+        for (const key of this.patch_update_queue) {
           const x = this.patches_table.get(key);
           if (x != null) {
             // may be null, e.g., when deleted.
@@ -2630,6 +2670,9 @@ export class SyncDoc extends EventEmitter {
           // due to synctable changes being emited on save.
           dbg("wait for next event loop");
           await delay(1);
+        } else {
+          dbg("Patch sent, now make a snapshot if we are due for one.");
+          await this.snapshot_if_necessary();
         }
       }
     } finally {

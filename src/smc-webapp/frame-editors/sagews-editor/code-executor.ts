@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { EventEmitter } from "events";
 
 interface ExecutionRequest {
@@ -16,7 +21,7 @@ export interface CodeExecutor {
   close(): void;
 }
 
-let MOCK = true;
+const MOCK = true;
 
 export function code_executor(req: ExecutionRequest): CodeExecutor {
   if (MOCK) {
@@ -80,7 +85,7 @@ class CodeExecutorMock extends CodeExecutorAbstract {
         break;
       default:
         this.emit("output", {
-          stderr: `Unknown mock code "${this.request.code}"`
+          stderr: `Unknown mock code "${this.request.code}"`,
         });
     }
     this._set_state("done");

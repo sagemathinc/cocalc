@@ -1,0 +1,65 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Doesn't show error before 5000ms: Should have no warning 1`] = `
+<UncommittedChanges
+  has_uncommitted_changes={true}
+>
+  <span />
+</UncommittedChanges>
+`;
+
+exports[`Setting it to true and letting it sit: Should now have a warning 1`] = `
+<UncommittedChanges
+  has_uncommitted_changes={true}
+>
+  <span
+    style={
+      Object {
+        "backgroundColor": "red",
+        "borderRadius": "3px",
+        "color": "white",
+        "fontWeight": "bold",
+        "marginLeft": "5px",
+        "marginRight": "-5px",
+        "padding": "5px",
+        "whiteSpace": "nowrap",
+      }
+    }
+  >
+    NOT saved!
+  </span>
+</UncommittedChanges>
+`;
+
+exports[`Setting it to true but switching it back early: Should still have no warning 1`] = `
+<UncommittedChanges
+  has_uncommitted_changes={false}
+>
+  <span />
+</UncommittedChanges>
+`;
+
+exports[`Setting it to true, waiting to trigger a warning, and then switching back: Should have no warning after committing changes 1`] = `
+<UncommittedChanges
+  has_uncommitted_changes={false}
+>
+  <span
+    style={
+      Object {
+        "backgroundColor": "red",
+        "borderRadius": "3px",
+        "color": "white",
+        "fontWeight": "bold",
+        "marginLeft": "5px",
+        "marginRight": "-5px",
+        "padding": "5px",
+        "whiteSpace": "nowrap",
+      }
+    }
+  >
+    NOT saved!
+  </span>
+</UncommittedChanges>
+`;
+
+exports[`Works without props: Should have no warning 1`] = `<span />`;

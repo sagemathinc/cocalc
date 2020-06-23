@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Component, React, Rendered } from "../app-framework";
 const { HelpEmailLink } = require("../customize");
 import { PROJECT_UPGRADES } from "smc-util/schema";
@@ -12,13 +17,14 @@ export class ProjectQuotaBoundsTable extends Component {
       <Panel
         header={
           <span>
-            Maximum possible quotas <strong>per project</strong> (if you need more, contact us at <HelpEmailLink />)
+            Maximum possible quotas <strong>per project</strong> (if you need
+            more, contact us at <HelpEmailLink />)
           </span>
         }
       >
         {PROJECT_UPGRADES.field_order
-          .filter(name => max[name])
-          .map(name => render_project_quota(name, max[name]))}
+          .filter((name) => max[name])
+          .map((name) => render_project_quota(name, max[name]))}
       </Panel>
     );
   }

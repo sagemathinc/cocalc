@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Jupyter Frame Editor Actions
 */
 
@@ -9,7 +14,7 @@ import { revealjs_slideshow_html } from "./slideshow-revealjs/nbconvert";
 
 import {
   create_jupyter_actions,
-  close_jupyter_actions
+  close_jupyter_actions,
 } from "./jupyter-actions";
 
 interface JupyterEditorState extends CodeEditorState {
@@ -53,7 +58,7 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
       this.get_frame_actions(id);
     });
 
-    for (let id in this._get_leaf_ids()) {
+    for (const id in this._get_leaf_ids()) {
       const node = this._get_frame_node(id);
       if (node == null) return;
       const type = node.get("type");
@@ -65,17 +70,17 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
 
   private init_changes_state(): void {
     const syncdb = this.jupyter_actions.syncdb;
-    syncdb.on("has-uncommitted-changes", has_uncommitted_changes =>
+    syncdb.on("has-uncommitted-changes", (has_uncommitted_changes) =>
       this.setState({ has_uncommitted_changes })
     );
-    syncdb.on("has-unsaved-changes", has_unsaved_changes => {
+    syncdb.on("has-unsaved-changes", (has_unsaved_changes) => {
       this.setState({ has_unsaved_changes });
     });
 
     const store = this.jupyter_actions.store;
-    let introspect = store.get('introspect');
+    let introspect = store.get("introspect");
     store.on("change", () => {
-      const i = store.get('introspect');
+      const i = store.get("introspect");
       if (i != introspect) {
         if (i != null) {
           this.show_introspect();
@@ -225,11 +230,11 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
   // Not an action, but works to make code clean
   has_format_support(id: string, available_features?): false | string {
     id = id;
-    const ext = this.jupyter_actions.store.get_kernel_ext();
+    const syntax = this.jupyter_actions.store.get_kernel_syntax();
     const markdown_only = "Format selected markdown cells using prettier.";
-    if (ext == null) return markdown_only;
+    if (syntax == null) return markdown_only;
     if (available_features == null) return markdown_only;
-    const tool = this.format_support_for_extension(available_features, ext);
+    const tool = this.format_support_for_syntax(available_features, syntax);
     if (!tool) return markdown_only;
     return `Format selected code cells using "${tool}", stopping on first error; formats markdown using prettier.`;
   }
@@ -272,14 +277,17 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     this.build_revealjs_slideshow();
   }
 
-  public async jump_to_cell(cell_id: string): Promise<void> {
+  public async jump_to_cell(
+    cell_id: string,
+    align: "center" | "top" = "top"
+  ): Promise<void> {
     // Open or focus a notebook viewer and scroll to the given cell.
-    const id = this.show_focused_frame_of_type("jupyter_cell_notebook");
     if (this._state === "closed") return;
+    const id = this.show_focused_frame_of_type("jupyter_cell_notebook");
     const actions = this.get_frame_actions(id);
     if (actions == null) return;
     actions.set_cur_id(cell_id);
-    actions.scroll("cell visible");
+    actions.scroll(align == "top" ? "cell top" : "cell visible");
     await delay(5);
     if (this._state === "closed") return;
     actions.focus();
@@ -302,16 +310,11 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
 
   // Either show the most recently focused introspect frame, or ceate one.
   public async show_introspect(): Promise<void> {
-     this.show_recently_focused_frame_of_type(
-      "introspect",
-      "row",
-      false,
-      2 / 3
-    );
+    this.show_recently_focused_frame_of_type("introspect", "row", false, 2 / 3);
   }
 
   // Close the most recently focused introspect frame, if there is one.
   public async close_introspect(): Promise<void> {
-     this.close_recently_focused_frame_of_type("introspect");
+    this.close_recently_focused_frame_of_type("introspect");
   }
 }

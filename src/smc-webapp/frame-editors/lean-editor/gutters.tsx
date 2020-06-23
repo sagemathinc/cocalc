@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Manage codemirror gutters that provide messages and other info from the backend LEAN.
 */
 
@@ -8,7 +13,7 @@ import { List } from "immutable";
 
 import * as React from "react";
 
-const { Icon, Tip } = require("smc-webapp/r_misc");
+import { Icon, Tip } from "smc-webapp/r_misc";
 
 import { RenderedMessage, message_color, message_icon } from "./lean-messages";
 
@@ -23,7 +28,7 @@ export function update_gutters(opts: {
   messages: List<any>;
   tasks: List<any>;
 }): void {
-  for (let message of opts.messages.toJS()) {
+  for (const message of opts.messages.toJS()) {
     opts.set_gutter(
       message.pos_line - 1,
       message_component(
@@ -68,10 +73,11 @@ function message_component(
       placement={"right"}
       stable={true}
       popover_style={{
-        marginLeft: "10px",
+        padding: 0,
         border: `2px solid ${color}`,
+        borderRadius: "3px",
         width: "700px",
-        maxWidth: "80%"
+        maxWidth: "80%",
       }}
       delayShow={0}
       allow_touch={true}

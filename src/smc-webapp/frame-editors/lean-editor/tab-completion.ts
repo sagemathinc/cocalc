@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Register a CodeMirror hinter for the mode with name 'lean'.
 
 */
@@ -19,13 +24,13 @@ interface CMCompletion {
 async function leanHint(
   cm: CodeMirror.Editor
 ): Promise<{ list: CMCompletion[]; from: any; to: any } | void> {
-  var cur = cm.getDoc().getCursor(),
+  const cur = cm.getDoc().getCursor(),
     token = cm.getTokenAt(cur);
 
   const set: any = {};
   const list: CMCompletion[] = [];
   function include(words: string[]): void {
-    for (let word of words) {
+    for (const word of words) {
       if (!set[word]) {
         set[word] = true;
         list.push({ text: word, displayText: `◇ ${word}` });
@@ -65,7 +70,7 @@ async function leanHint(
   return {
     list,
     from: CodeMirror.Pos(cur.line, token.start),
-    to: CodeMirror.Pos(cur.line, token.end)
+    to: CodeMirror.Pos(cur.line, token.end),
   };
 }
 

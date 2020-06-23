@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Router for public share server.
 */
 
@@ -9,6 +14,7 @@ import { callback } from "awaiting";
 import * as express from "express";
 import { get_public_paths, PublicPaths } from "./public-paths";
 import { AuthorInfo } from "./authors";
+import { SettingsDAO } from "./settings";
 
 import { handle_share_css } from "./handle-share-css";
 import { handle_share_listing } from "./handle-share-listing";
@@ -18,6 +24,7 @@ import { handle_path_request } from "./handle-path-request";
 import * as util from "./util";
 
 import { Database, Logger } from "./types";
+import { PostgreSQL } from "../postgres/types";
 
 export function share_router(opts: {
   database: Database;
@@ -28,6 +35,9 @@ export function share_router(opts: {
   let dbg;
 
   const author_info: AuthorInfo = new AuthorInfo(opts.database);
+  const settings_dao: SettingsDAO = new SettingsDAO(
+    (opts.database as any) as PostgreSQL
+  );
 
   const base_url: string = opts.base_url != null ? opts.base_url : "";
 
@@ -73,7 +83,7 @@ export function share_router(opts: {
     dbg("got_public_paths - initialized");
     const v = ready_queue;
     ready_queue = [];
-    for (let cb of v) {
+    for (const cb of v) {
       cb();
     }
   }
@@ -83,19 +93,19 @@ export function share_router(opts: {
   async function ready(): Promise<void> {
     if (public_paths != null) return;
     // wait until public_paths is ready.
-    await callback(cb => ready_queue.push(cb));
+    await callback((cb) => ready_queue.push(cb));
   }
 
   if (process.env.SMC_ROOT == null) {
     throw Error("process.env.SMC_ROOT must be defined");
   }
   const router = express.Router();
-  for (let name of ["favicon-32x32.png", "cocalc-icon.svg"]) {
+  for (const name of ["favicon-32x32.png", "cocalc-icon.svg"]) {
     router.use(
       `/${name}`,
       express.static(os_path.join(process.env.SMC_ROOT, `webapp-lib/${name}`), {
         immutable: true,
-        maxAge: 86000000
+        maxAge: 86000000,
       })
     );
   }
@@ -108,7 +118,7 @@ export function share_router(opts: {
   router.get("/", async (req, res) => {
     log_ip(req);
     await ready();
-    handle_share_listing({ public_paths, base_url, req, res });
+    handle_share_listing({ public_paths, base_url, settings_dao, req, res });
   });
 
   router.get("/users/:account_id", async (req, res) => {
@@ -117,9 +127,10 @@ export function share_router(opts: {
     handle_user_request({
       public_paths,
       author_info,
+      settings_dao,
       req,
       res,
-      base_url
+      base_url,
     });
   });
 
@@ -129,12 +140,13 @@ export function share_router(opts: {
     await ready();
     handle_path_request({
       author_info,
+      settings_dao,
       public_paths,
       req,
       res,
       viewer: "raw",
       path_to_files,
-      base_url
+      base_url,
     });
   });
 
@@ -143,11 +155,12 @@ export function share_router(opts: {
     await ready();
     handle_path_request({
       author_info,
+      settings_dao,
       public_paths,
       req,
       res,
       path_to_files,
-      base_url
+      base_url,
     });
   });
 

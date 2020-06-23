@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 SyncTable server channel -- used for supporting realtime sync
 between project and browser client.
 
@@ -29,7 +34,7 @@ import {
   synctable_no_changefeed,
   synctable_no_database,
   SyncTable,
-  VersionedChange
+  VersionedChange,
 } from "../smc-util/sync/table";
 
 import { init_syncdoc } from "./sync-doc";
@@ -41,6 +46,8 @@ import { once } from "../smc-util/async-utils";
 import { delay } from "awaiting";
 
 const { deep_copy, len } = require("../smc-util/misc2");
+
+import { register_listings_table } from "./listings";
 
 type Query = { [key: string]: any };
 
@@ -115,7 +122,7 @@ class SyncTableChannel {
     query,
     options,
     logger,
-    name
+    name,
   }: {
     client: Client;
     primus: Primus;
@@ -138,9 +145,7 @@ class SyncTableChannel {
     this.query_string = stringify(query); // used only for logging
     this.channel = primus.channel(this.name);
     this.log(
-      `creating new sync channel (persistent=${this.persistent}, ephemeral=${
-        this.ephemeral
-      })`
+      `creating new sync channel (persistent=${this.persistent}, ephemeral=${this.ephemeral})`
     );
   }
 
@@ -153,12 +158,12 @@ class SyncTableChannel {
     if (options == null) {
       return;
     }
-    for (let option of deep_copy(options)) {
+    for (const option of deep_copy(options)) {
       // deep_copy so do not mutate input options.
       if (typeof option != "object" || option == null) {
         throw Error("invalid options");
       }
-      for (let x of ["ephemeral", "persistent"]) {
+      for (const x of ["ephemeral", "persistent"]) {
         // options that are only for project websocket tables.
         if (option[x] != null) {
           this[x] = option[x];
@@ -201,7 +206,7 @@ class SyncTableChannel {
     // if the synctable closes, then the channel should also close.
     this.synctable.once("closed", this.close.bind(this));
 
-    if (this.query[this.synctable.table][0].string_id != null) {
+    if (this.query[this.synctable.get_table()][0].string_id != null) {
       register_synctable(this.query, this.synctable);
     }
     if (this.synctable.table === "syncstrings") {
@@ -230,7 +235,9 @@ class SyncTableChannel {
   }
 
   private decrement_connection_count(spark: Spark): number {
-    let m: undefined | number = this.connections_from_one_client[spark.conn.id];
+    const m: undefined | number = this.connections_from_one_client[
+      spark.conn.id
+    ];
     if (m === undefined) {
       return 0;
     }
@@ -248,9 +255,7 @@ class SyncTableChannel {
     const m = this.increment_connection_count(spark);
 
     this.log(
-      `new connection from (address=${spark.address.ip}, conn=${
-        spark.conn.id
-      }) -- ${spark.id} -- num_connections = ${n} (from this client = ${m})`
+      `new connection from (address=${spark.address.ip}, conn=${spark.conn.id}) -- ${spark.id} -- num_connections = ${n} (from this client = ${m})`
     );
 
     if (m > MAX_CONNECTIONS_FROM_ONE_CLIENT) {
@@ -287,7 +292,10 @@ class SyncTableChannel {
       spark.end();
       return;
     }
-    if (this.synctable != null && this.synctable.get_state() == "disconnected") {
+    if (
+      this.synctable != null &&
+      this.synctable.get_state() == "disconnected"
+    ) {
       // Because synctable is being initialized for the first time,
       // or it temporarily disconnected (e.g., lost hub), and is
       // trying to reconnect.  So just wait for it to connect.
@@ -298,7 +306,7 @@ class SyncTableChannel {
     // with table state.
     this.send_synctable_to_browser(spark);
 
-    spark.on("data", async mesg => {
+    spark.on("data", async (mesg) => {
       try {
         await this.handle_mesg_from_browser(spark, mesg);
       } catch (err) {
@@ -399,6 +407,10 @@ class SyncTableChannel {
     await this.synctable.close();
     delete this.synctable;
   }
+
+  public get_synctable(): SyncTable {
+    return this.synctable;
+  }
 }
 
 const synctable_channels: { [name: string]: SyncTableChannel } = {};
@@ -412,8 +424,8 @@ function channel_name(query: any, options: any[]): string {
   // project restart, etc.   We first make the options
   // as canonical as we can:
   const opts = {};
-  for (let x of options) {
-    for (let key in x) {
+  for (const x of options) {
+    for (const key in x) {
       opts[key] = x[key];
     }
   }
@@ -443,6 +455,15 @@ async function synctable_channel0(
 ): Promise<string> {
   const name = channel_name(query, options);
   logger.debug("synctable_channel", JSON.stringify(query), name);
+  if (query?.syncstrings != null) {
+    const path = query?.syncstrings[0]?.path;
+    if (client.is_deleted(path)) {
+      logger.debug(
+        `synctable_channel -- refusing to open "${path}" since it is marked as deleted`
+      );
+      throw Error(`${path} is deleted`);
+    }
+  }
   if (synctable_channels[name] === undefined) {
     synctable_channels[name] = new SyncTableChannel({
       client,
@@ -450,13 +471,20 @@ async function synctable_channel0(
       name,
       query,
       options,
-      logger
+      logger,
     });
     await synctable_channels[name].init();
+    if (query?.listings != null) {
+      register_listings_table(
+        synctable_channels[name].get_synctable(),
+        logger,
+        client.client_id()
+      );
+    }
   }
   return name;
 }
 
 export const synctable_channel = reuseInFlight(synctable_channel0, {
-  createKey
+  createKey,
 });

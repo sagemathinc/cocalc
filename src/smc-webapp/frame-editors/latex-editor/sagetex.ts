@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Run sagetex
 
 - TODO: this might be better done always as part of latexmk; not sure.
@@ -17,20 +22,20 @@ export async function sagetex_hash(
   project_id: string,
   path: string,
   time: number,
-  status: Function
+  status: Function,
+  output_directory: string | undefined
 ): Promise<string> {
   const { base, directory } = parse_path(path); // base, directory, filename
   const s = sagetex_file(base);
   status(`sha1sum ${s}`);
   const output = await exec({
-    allow_post: true, // very quick computation of sha1 hash
     timeout: 10,
     command: "sha1sum",
     args: [s],
     project_id: project_id,
-    path: directory,
+    path: output_directory || directory,
     err_on_exit: true,
-    aggregate: time
+    aggregate: time,
   });
   return output.stdout.split(" ")[0];
 }
@@ -39,21 +44,21 @@ export async function sagetex(
   project_id: string,
   path: string,
   hash: string,
-  status: Function
+  status: Function,
+  output_directory: string | undefined
 ): Promise<ExecOutput> {
   const { base, directory } = parse_path(path); // base, directory, filename
   const s = sagetex_file(base);
   status(`sage ${s}`);
   return exec({
-    allow_post: false, // definitely could take a long time to fully run sage
     timeout: 360,
     bash: true, // so timeout is enforced by ulimit
     command: "sage",
     args: [s],
     project_id: project_id,
-    path: directory,
+    path: output_directory || directory,
     err_on_exit: false,
-    aggregate: hash ? { value: hash } : undefined
+    aggregate: hash ? { value: hash } : undefined,
   });
 }
 
@@ -66,7 +71,7 @@ export async function sagetex(
  */
 
 export function sagetex_errors(
-  path: string,
+  file: string,
   output: BuildLog
 ): ProcessedLatexLog {
   const pll = new ProcessedLatexLog();
@@ -78,17 +83,17 @@ export function sagetex_errors(
     return pll;
   }
 
-  for (let line of output.stderr.split("\n")) {
+  for (const line of output.stderr.split("\n")) {
     if (line.trim().length > 0) {
       // we create an error and then we collect lines
       if (err == null) {
         err = {
           line: null,
-          file: path,
+          file,
           level: "error",
           message: line,
           content: "",
-          raw: ""
+          raw: "",
         };
         pll.errors.push(err);
         pll.all.push(err);

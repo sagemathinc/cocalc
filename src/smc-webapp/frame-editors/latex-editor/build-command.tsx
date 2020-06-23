@@ -1,30 +1,38 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Customization and selection of the build command.
 
 */
 
 import { List, fromJS } from "immutable";
 
-const { Loading } = require("smc-webapp/r_misc");
+import { Loading } from "smc-webapp/r_misc";
 
-import {
-  Alert,
-  MenuItem,
-  DropdownButton,
-  ButtonToolbar,
-  FormControl
-} from "react-bootstrap";
+import { Alert, FormControl } from "react-bootstrap";
+
+import { Menu, Dropdown, Button } from "antd";
+import { DownOutlined } from "@ant-design/icons";
 
 import { React, Rendered, Component } from "../../app-framework";
 
 import { split } from "smc-util/misc2";
 
 import { Engine, build_command } from "./latexmk";
+import { Actions } from "./actions";
 
-const ENGINES: Engine[] = ["PDFLaTeX", "PDFLaTeX (shell-escape)", "XeLaTeX", "LuaTex"];
+const ENGINES: Engine[] = [
+  "PDFLaTeX",
+  "PDFLaTeX (shell-escape)",
+  "XeLaTeX",
+  "LuaTex",
+];
 
 interface Props {
-  actions: any;
+  actions: Actions;
   filename: string;
   build_command: string | List<string>;
   knitr: boolean;
@@ -40,7 +48,7 @@ export class BuildCommand extends Component<Props, State> {
     super(props);
     this.state = {
       build_command: this.build_command_string(props.build_command),
-      focus: false
+      focus: false,
     };
   }
 
@@ -51,7 +59,7 @@ export class BuildCommand extends Component<Props, State> {
     if (next.build_command != this.props.build_command) {
       // set by another user or menu selection.
       this.setState({
-        build_command: this.build_command_string(next.build_command)
+        build_command: this.build_command_string(next.build_command),
       });
     }
   }
@@ -65,8 +73,8 @@ export class BuildCommand extends Component<Props, State> {
     } else if (typeof cmd === "string") {
       s = cmd;
     } else {
-      let v: string[] = [];
-      cmd.forEach(function(t: string) {
+      const v: string[] = [];
+      cmd.forEach(function (t: string) {
         if (split(t).length > 1) {
           // some minimal escape for now...
           if (t.indexOf("'") === -1) {
@@ -86,39 +94,39 @@ export class BuildCommand extends Component<Props, State> {
     const cmd: string[] = build_command(
       engine,
       this.props.filename,
-      this.props.knitr
+      this.props.knitr,
+      this.props.actions.output_directory
     );
     this.props.actions.set_build_command(cmd);
     this.setState({ build_command: this.build_command_string(fromJS(cmd)) });
   }
 
-  render_item(engine: string): Rendered {
+  render_item(engine: string): JSX.Element {
+    return <Menu.Item key={engine}>{engine}</Menu.Item>;
+  }
+
+  render_menu(): JSX.Element {
+    const v: JSX.Element[] = [];
+    for (const engine of ENGINES) {
+      v.push(this.render_item(engine));
+    }
     return (
-      <MenuItem
-        key={engine}
-        eventKey={engine}
-        onSelect={engine => this.select_engine(engine)}
+      <Menu
+        onClick={(e) => this.select_engine(e.key as Engine)}
+        style={{ maxHeight: "100vH", overflow: "scroll" }}
       >
-        {engine}
-      </MenuItem>
+        {v}
+      </Menu>
     );
   }
 
-  render_items(): Rendered[] {
-    const v: Rendered[] = [];
-    for (let engine of ENGINES) {
-      v.push(this.render_item(engine));
-    }
-    return v;
-  }
-
-  render_dropdown(): Rendered {
+  render_dropdown(): JSX.Element {
     return (
-      <ButtonToolbar>
-        <DropdownButton title="Engine" id="cc-latex-build-command" pullRight>
-          {this.render_items()}
-        </DropdownButton>
-      </ButtonToolbar>
+      <Dropdown overlay={this.render_menu()}>
+        <Button style={{ float: "right" }}>
+          Engine <DownOutlined />
+        </Button>
+      </Dropdown>
     );
   }
 
@@ -145,13 +153,15 @@ export class BuildCommand extends Component<Props, State> {
         style={{
           fontFamily: "monospace",
           fontSize: "12px",
-          textOverflow: "ellipsis"
+          textOverflow: "ellipsis",
         }}
         type="text"
         value={this.state.build_command}
-        onChange={e => this.handle_command_line_change((e.target as any).value)}
+        onChange={(e) =>
+          this.handle_command_line_change((e.target as any).value)
+        }
         onFocus={() => this.setState({ focus: true })}
-        onKeyDown={evt => {
+        onKeyDown={(evt) => {
           if (
             evt.keyCode == 13 ||
             ((evt.metaKey || evt.ctrlKey) &&

@@ -1,9 +1,26 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/* Use this component to make an anchor tag that
+   opens in a new tab in the right way, namely
+   with rel=noopener.  This avoids sharing cpu
+   with the main cocalc page.
+*/
+
 import * as React from "react";
 
-export function A(url, display) {
+interface AProps {
+  href: string;
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}
+
+export function A({ href, children, style }: AProps) {
   return (
-    <a href={url} target={"_blank"} rel={"noopener"}>
-      {display}
+    <a href={href} target={"_blank"} rel={"noopener"} style={style}>
+      {children}
     </a>
   );
 }

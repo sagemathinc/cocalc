@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Save and restore the scroll position of a cm editor in a JSON-friendly format,
 so it can be stored in local storage.
 
@@ -36,13 +41,16 @@ export function get_state(cm: CodeMirror.Editor): State | undefined {
   const state = {
     pos,
     sel: doc.listSelections(),
-    ver: VERSION
+    ver: VERSION,
   };
   //console.log 'get_state', info, state.pos
   return state;
 }
 
-export async function set_state(cm: CodeMirror.Editor, state: State): Promise<void> {
+export async function set_state(
+  cm: CodeMirror.Editor,
+  state: State
+): Promise<void> {
   if (state.ver < VERSION) {
     return; // ignore old version.
   }

@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
+
 from __future__ import print_function
 import argparse, os, sys, time
 from concurrent.futures import ThreadPoolExecutor
+
+# This install script is not the place to do type checking -- that should happen
+# only during development.
+os.environ['TS_TRANSPILE_ONLY'] = 'true'
 
 WORKERS = 3
 SRC = os.path.split(os.path.realpath(__file__))[0]
@@ -58,10 +65,7 @@ def install_project():
         c = f"npm --loglevel=warn --unsafe-perm=true --progress=false install --upgrade {pkg} -g"
         cmd(SUDO + c)
 
-    pkgs = [
-        './smc-project', './smc-webapp', './smc-util-node', './smc-util',
-        './cocalc-ui'
-    ]
+    pkgs = ['./smc-project', './smc-webapp', './smc-util-node', './smc-util']
 
     # TODO switch to use npm ci to install these (which doesn't exist for global installs, AFAIU)
     def build_op(pkg):
@@ -84,7 +88,7 @@ def install_project():
 
     # Pre-compile everything to Javascript, so that loading is much faster and more efficient.
     # This can easily save more than 2 seconds, given how big things have got.
-    cmd("cd /usr/lib/node_modules && coffee -c smc-util smc-util-node smc-webapp smc-project smc-project/jupyter smc-webapp/jupyter"
+    cmd("cd /usr/lib/node_modules && coffee -c smc-util smc-util-node smc-webapp smc-project smc-project/jupyter"
         )
 
 
@@ -94,6 +98,7 @@ def install_hub():
         'smc-hub',
         'smc-util-node',
         'smc-util',
+        'webapp-lib/resources'
     ]
 
     # npm ci for using pkg lock file
@@ -114,9 +119,7 @@ def install_webapp(*args):
         cmd("git submodule update --init")
         cmd("cd examples && env OUTDIR=../webapp-lib/examples make")
 
-        paths = [
-            'smc-webapp', 'smc-webapp/jupyter', '.', 'smc-util', 'cocalc-ui'
-        ]
+        paths = ['smc-webapp', '.', 'smc-util', 'webapp-lib/resources']
 
         # npm ci for using pkg lock file
         def build_op(path):
@@ -125,6 +128,9 @@ def install_webapp(*args):
         with ThreadPoolExecutor(max_workers=WORKERS) as executor:
             total = sum(_ for _ in executor.map(build_op, paths))
             print(f"TOTAL WEBAPP BUILD TIME: {total:.1f}s")
+
+        # this depends on running npm ci first, see above
+        cmd("python3 webapp-lib/resources/setup.py")
 
         # react static step must come *before* webpack step
         cmd("update_react_static")

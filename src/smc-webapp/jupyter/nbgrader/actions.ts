@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as immutable from "immutable";
 import { JupyterActions } from "../browser-actions";
 import { ImmutableMetadata, Metadata } from "./types";
@@ -9,6 +14,7 @@ import { set_checksum } from "./compute-checksums";
 import { delay } from "awaiting";
 import { once } from "smc-util/async-utils";
 import { path_split } from "smc-util/misc2";
+import { STUDENT_SUBDIR } from "../../course/assignments/actions";
 
 export class NBGraderActions {
   private jupyter_actions: JupyterActions;
@@ -33,7 +39,7 @@ export class NBGraderActions {
     let changed: boolean = false; // did something change.
     cells.forEach((cell, id: string): void => {
       if (cell == null) return;
-      let nbgrader = cell.getIn(["metadata", "nbgrader"]);
+      const nbgrader = cell.getIn(["metadata", "nbgrader"]);
       if (nbgrader == null || nbgrader.get("schema_version") === 3) return;
       // Doing this set
       // make the actual change via the syncdb mechanism (NOT updating cells directly; instead
@@ -65,7 +71,7 @@ export class NBGraderActions {
       if (nbgrader == null) throw Error("must not be null");
 
       // Merge in the requested changes.
-      for (let k in metadata) {
+      for (const k in metadata) {
         nbgrader[k] = metadata[k];
       }
 
@@ -77,7 +83,7 @@ export class NBGraderActions {
         // based on reading source code and actual ipynb files.
         nbgrader.schema_version = 3;
         // nbgrader schema_version=3 requires that all these are set:
-        for (let k of ["grade", "locked", "solution", "task"]) {
+        for (const k of ["grade", "locked", "solution", "task"]) {
           if (nbgrader[k] == null) {
             nbgrader[k] = false;
           }
@@ -88,7 +94,7 @@ export class NBGraderActions {
       id,
       metadata: { nbgrader },
       merge: true,
-      save
+      save,
     });
   }
 
@@ -108,8 +114,8 @@ export class NBGraderActions {
         "Validating the notebook will restart the kernel and run all cells in order, even those with errors.  This will ensure that all output is exactly what results from running all cells in order.",
       choices: [
         { title: "Cancel" },
-        { title: "Validate", style: "danger", default: true }
-      ]
+        { title: "Validate", style: "danger", default: true },
+      ],
     });
     if (choice === "Validate") {
       await this.jupyter_actions.restart();
@@ -121,22 +127,22 @@ export class NBGraderActions {
     const path = this.jupyter_actions.store.get("path");
     let { head, tail } = path_split(path);
     if (head == "") {
-      head = "student/";
+      head = `${STUDENT_SUBDIR}/`;
     } else {
-      head = head + "/student/";
+      head = `${head}/${STUDENT_SUBDIR}/`;
     }
     const target = head + tail;
     const choice = await this.jupyter_actions.confirm_dialog({
-      title: "Create student version?",
-      body: `Creating the student version of the notebook will make a new Jupyter notebook "${target}" that is ready to distribute to your students.  This process locks cells and writes metadata so parts of the notebook can't be accidentally edited or deleted; it removes solutions, and replaces them with code or text stubs saying (for example) "YOUR ANSWER HERE"; and it clears all outputs. Once done, you can easily inspect the resulting notebook to make sure everything looks right.   (This is analogous to 'nbgrader assign'.)`,
+      title: "Generate Student Version of Notebook",
+      body: `Generating the student version of the notebook will create a new Jupyter notebook "${target}" that is ready to distribute to your students.  This process locks cells and writes metadata so parts of the notebook can't be accidentally edited or deleted; it removes solutions, and replaces them with code or text stubs saying (for example) "YOUR ANSWER HERE"; and it clears all outputs. Once done, you can easily inspect the resulting notebook to make sure everything looks right.   (This is analogous to 'nbgrader assign'.)  The CoCalc course management system will *only* copy the ${STUDENT_SUBDIR} subdirectory that contains this generated notebook to students.`,
       choices: [
         { title: "Cancel" },
         {
           title: "Create or update student version",
           style: "success",
-          default: true
-        }
-      ]
+          default: true,
+        },
+      ],
     });
     if (choice === "Cancel") return;
     await this.assign(target);
@@ -204,7 +210,7 @@ export class NBGraderActions {
 
   private assign_clear_solutions(): void {
     const kernel_language: string = this.jupyter_actions.store.get_kernel_language();
-    this.jupyter_actions.store.get("cells").forEach(cell => {
+    this.jupyter_actions.store.get("cells").forEach((cell) => {
       if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
       const cell2 = clear_solution(cell, kernel_language);
       if (cell !== cell2) {
@@ -219,7 +225,7 @@ export class NBGraderActions {
   }
 
   private assign_clear_hidden_tests(): void {
-    this.jupyter_actions.store.get("cells").forEach(cell => {
+    this.jupyter_actions.store.get("cells").forEach((cell) => {
       // only care about test cells, which have: grade=true and solution=false.
       if (!cell.getIn(["metadata", "nbgrader", "grade"])) return;
       if (cell.getIn(["metadata", "nbgrader", "solution"])) return;
@@ -236,7 +242,7 @@ export class NBGraderActions {
   }
 
   private assign_clear_mark_regions(): void {
-    this.jupyter_actions.store.get("cells").forEach(cell => {
+    this.jupyter_actions.store.get("cells").forEach((cell) => {
       if (!cell.getIn(["metadata", "nbgrader", "task"])) return;
       const cell2 = clear_mark_regions(cell);
       if (cell !== cell2) {
@@ -251,7 +257,7 @@ export class NBGraderActions {
   }
 
   private assign_save_checksums(): void {
-    this.jupyter_actions.store.get("cells").forEach(cell => {
+    this.jupyter_actions.store.get("cells").forEach((cell) => {
       if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
       const cell2 = set_checksum(cell);
       if (cell !== cell2) {
@@ -260,7 +266,7 @@ export class NBGraderActions {
           id: cell.get("id"),
           metadata: { nbgrader: cell2.get("nbgrader") },
           merge: true,
-          save: false
+          save: false,
         });
       }
     });
@@ -271,15 +277,15 @@ export class NBGraderActions {
     // the editable and deletable metadata to false.
     // "metadata":{"nbgrader":{"locked":true,...
     //console.log("assign_lock_readonly_cells");
-    this.jupyter_actions.store.get("cells").forEach(cell => {
+    this.jupyter_actions.store.get("cells").forEach((cell) => {
       if (cell == null || !cell.getIn(["metadata", "nbgrader", "locked"]))
         return;
-      for (let key of ["editable", "deletable"]) {
+      for (const key of ["editable", "deletable"]) {
         this.jupyter_actions.set_cell_metadata({
           id: cell.get("id"),
           metadata: { [key]: false },
           merge: true,
-          save: false
+          save: false,
         });
       }
     });

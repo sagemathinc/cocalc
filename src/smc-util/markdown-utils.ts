@@ -1,11 +1,19 @@
-/* The markdown processor markedown-it seems to escape
-a bunch of characters that are relevant to later mathjax
-processing.  This is annoying, violates the Markdown spec
-(https://daringfireball.net/projects/markdown/syntax#backslash),
-and breaks things.  So we remove them first.
-*/
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-const {replace_all} = require('./misc')
+/*
+ * license
+ */
+
+// The markdown processor markedown-it seems to escape
+// a bunch of characters that are relevant to later mathjax
+// processing.  This is annoying, violates the Markdown spec
+// (https://daringfireball.net/projects/markdown/syntax#backslash),
+// and breaks things.  So we remove them first.
+
+const { replace_all } = require("./misc");
 
 const escape_map = "$()[]";
 const unescape_map =
@@ -24,4 +32,3 @@ export function math_unescape(s: string): string {
   }
   return s;
 }
-

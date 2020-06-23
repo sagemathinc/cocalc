@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 React component that renders the ordered list of cells
 **as a single codemirror editor document**
 
@@ -12,7 +17,7 @@ import * as immutable from "immutable";
 declare const CodeMirror: any; // TODO: type
 
 import { React, Component, ReactDOM, Rendered } from "../app-framework";
-import { Loading } from "../r_misc/loading";
+import { Loading } from "../r_misc";
 import * as syncstring from "../../smc-util/sync/editor/generic/util";
 import { JupyterActions } from "./browser-actions";
 import { NotebookMode } from "./types";
@@ -41,7 +46,7 @@ export class CellList extends Component<CellListProps> {
           fontSize: "32pt",
           color: "#888",
           textAlign: "center",
-          marginTop: "15px"
+          marginTop: "15px",
         }}
       >
         <Loading />
@@ -54,17 +59,15 @@ export class CellList extends Component<CellListProps> {
     cells: immutable.Map<string, any>
   ): string {
     const v: string[] = [];
-    cell_list.forEach(
-      (id: string): void => {
-        const cell = cells.get(id);
-        let s = `In[${id}] ${cell.get("input")}`;
-        const output = cell.get("output");
-        if (output != null) {
-          s += `\nOut[${id}] ${JSON.stringify(output)}`;
-        }
-        v.push(s);
+    cell_list.forEach((id: string): void => {
+      const cell = cells.get(id);
+      let s = `In[${id}] ${cell.get("input")}`;
+      const output = cell.get("output");
+      if (output != null) {
+        s += `\nOut[${id}] ${JSON.stringify(output)}`;
       }
-    );
+      v.push(s);
+    });
     return v.join("\n\n");
   }
 
@@ -133,7 +136,7 @@ export class CellList extends Component<CellListProps> {
       new_val = syncstring.three_way_merge({
         base: this.cm_last_remote,
         local,
-        remote
+        remote,
       });
     } else {
       new_val = remote;
@@ -165,7 +168,7 @@ export class CellList extends Component<CellListProps> {
     this.cm = CodeMirror.fromTextArea(node, options);
     $(this.cm.getWrapperElement()).css({
       height: "auto",
-      backgroundColor: "#f7f7f7"
+      backgroundColor: "#f7f7f7",
     });
     this.cm_merge_remote(this.props.cell_list, this.props.cells);
     this.cm_change = underscore.debounce(this.cm_save, 1000);
@@ -217,7 +220,7 @@ export class CellList extends Component<CellListProps> {
       backgroundColor: "#eee",
       height: "100%",
       overflowY: "auto",
-      overflowX: "hidden"
+      overflowX: "hidden",
     };
 
     return (
@@ -226,7 +229,7 @@ export class CellList extends Component<CellListProps> {
           style={{
             backgroundColor: "#fff",
             padding: "15px",
-            boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)"
+            boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)",
           }}
         >
           <textarea />

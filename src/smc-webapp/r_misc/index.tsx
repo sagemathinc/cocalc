@@ -1,7 +1,12 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 export { A } from "./A";
 export { Icon } from "./icon";
 export { Tip } from "./tip";
-export { Loading } from "./loading";
+export { Loading, Estimate as LoadingEstimate } from "./loading";
 export { r_join } from "./r_join";
 export { Space } from "./space";
 export { CloseX } from "./close-x";
@@ -17,6 +22,12 @@ export { NumberInput } from "./number-input";
 export { LabeledRow } from "./labeled-row";
 export { TimeElapsed } from "./time-elapsed";
 export { SettingBox } from "./setting-box";
+export { ProfileIcon } from "./profile-icon";
+export { DropdownMenu, MenuItem, MenuDivider } from "./dropdown-menu";
+export { WindowedList } from "./windowed-list";
+export { UncommittedChanges } from "./uncommited-changes";
+export { DateTimePicker } from "./date-time-picker";
+export { PathLink } from "./path-link";
 
 export const {
   MarkdownInput,
@@ -29,7 +40,6 @@ export const {
   Octicon,
   Footer,
   render_static_footer,
-  MessageDisplay,
   HelpIcon,
   is_different_date,
   TimeAgoElement,
@@ -39,10 +49,7 @@ export const {
   Markdown,
   ActivityDisplay,
   SaveButton,
-  PathLink,
-  DateTimePicker,
   Calendar,
-  DirectoryInput,
   DeletedProjectWarning,
   course_warning,
   CourseProjectExtraHelp,
@@ -63,5 +70,8 @@ export const {
   VisibleMDLG,
   VisibleLG,
   VisibleXSSM,
-  ErrorBoundary
+  ErrorBoundary,
+  smc_version,
+  build_date,
+  smc_git_rev,
 } = require("./old-coffee-code-index");

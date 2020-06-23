@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 Testing password reset, change, email_address change, etc. related functionality
 ###
@@ -207,8 +212,8 @@ describe 'tests sending a forgot password email --', ->
             cb : (err, resp) ->
                 expect(resp.error).toBe(false)
                 expect(api.last_email?.subject).toBe('CoCalc Password Reset')
-                i = api.last_email?.body.indexOf('#forgot-')
-                reset_code = api.last_email?.body.slice(i+'#forgot-'.length, i+'#forgot-'.length+36)
+                i = api.last_email?.body.indexOf('?forgot=')
+                reset_code = api.last_email?.body.slice(i+'?forgot='.length, i+'?forgot='.length+36)
                 expect(misc.is_valid_uuid_string(reset_code)).toBe(true)
                 done(err)
 

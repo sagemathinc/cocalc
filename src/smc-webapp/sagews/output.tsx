@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Rendering output part of a Sage worksheet cell
 */
 
@@ -11,8 +16,7 @@ import { FLAGS } from "smc-util/sagews";
 import { Stdout } from "../jupyter/output-messages/stdout";
 import { Stderr } from "../jupyter/output-messages/stderr";
 
-const { HTML, Markdown } = require("../r_misc");
-//import { HTML, Markdown } from '../r_misc';
+import { HTML, Markdown } from "../r_misc";
 
 import { fromJS } from "immutable";
 
@@ -84,9 +88,9 @@ export class CellOutput extends Component<Props> {
     if (extensions.image.has(ext)) {
       return <img key={key} src={src} />;
     } else if (extensions.video.has(ext)) {
-      return <video key={key} src={src} controls />;
+      return <video key={key} src={src} controls loop />;
     } else if (extensions.audio.has(ext)) {
-      return <audio src={src} autoPlay={true} controls={true} loop={false} />;
+      return <audio src={src} autoPlay={true} controls loop />;
     } else if (ext === "sage3d") {
       return this.render_3d(value.filename, key);
     } else {
@@ -132,24 +136,30 @@ export class CellOutput extends Component<Props> {
     );
   }
 
-  render_raw_input(val: { prompt: string; value: string }, key): Rendered {
+  render_raw_input(
+    val: { prompt: string; value: string | undefined },
+    key
+  ): Rendered {
     const { prompt, value } = val;
+    // sanitizing value, b/c we know the share server throws right here:
+    // TypeError: Cannot read property 'length' of undefined
+    const value_sani = value ?? "";
     return (
       <div key={key}>
         <b>{prompt}</b>
         <input
           style={{ padding: "0em 0.25em", margin: "0em 0.25em" }}
           type="text"
-          size={Math.max(47, value.length + 10)}
+          size={Math.max(47, value_sani.length + 10)}
           readOnly={true}
-          value={value}
+          value={value_sani}
         />
       </div>
     );
   }
 
   render_output_mesg(elts: Rendered[], mesg: object): void {
-    for (let type in mesg) {
+    for (const type in mesg) {
       let value: any = mesg[type];
       let f = this[`render_${type}`];
       if (f == null) {
@@ -162,7 +172,7 @@ export class CellOutput extends Component<Props> {
 
   render_output(): Rendered[] {
     const elts: Rendered[] = [];
-    for (let mesg of process_messages(this.props.output)) {
+    for (const mesg of process_messages(this.props.output)) {
       this.render_output_mesg(elts, mesg);
     }
     return elts;
@@ -186,9 +196,9 @@ function process_messages(output: OutputMessages): object[] {
   const v: string[] = keys(output);
   v.sort((a, b) => cmp(parseInt(a), parseInt(b)));
   let r: OutputMessage[] = [];
-  for (let a of v) {
+  for (const a of v) {
     const m = output[a];
-    for (let s of STRIP) {
+    for (const s of STRIP) {
       if (m[s] != null) {
         delete m[s];
       }

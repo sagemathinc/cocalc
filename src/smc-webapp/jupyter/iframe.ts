@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Efficient backend processing of iframe srcdoc's.
 
 MOTIVATION: Sage jmol.
@@ -10,10 +15,7 @@ export function is_likely_iframe(content: string): boolean {
   if (!content) {
     return false;
   }
-  content = content
-    .slice(0, 100)
-    .trim()
-    .toLowerCase();
+  content = content.slice(0, 100).trim().toLowerCase();
   return (
     misc.startswith(content, '<iframe srcdoc="') ||
     content.indexOf("<!doctype html>") >= 0 ||
@@ -38,11 +40,11 @@ const entity_map = {
   "'": "&#39;",
   "/": "&#x2F;",
   "`": "&#x60;",
-  "=": "&#x3D;"
+  "=": "&#x3D;",
 };
 
-var unescape = function(s: string) {
-  for (let k in entity_map) {
+var unescape = function (s: string) {
+  for (const k in entity_map) {
     const v = entity_map[k];
     s = misc.replace_all(s, v, k);
   }

@@ -11,16 +11,18 @@
   "author": "SageMath, Inc.",
   "license": "GPL-3.0",
   "dependencies": {
-    "async": "^1.4.2",
+    "@airbnb/node-memwatch": "^2.0.0",
+    "async": "^1.5.2",
     "coffee-cache": "^1.0.2",
     "coffee-register-cache": "0.0.0",
-    "coffeescript": "^2.1.0",
-    "jsdom": "^7.2.2",
-    "node-memwatch": "^1.0.1",
+    "coffeescript": "^2.5.1",
+    "jsdom": "^16.2.2",
+    "node-pre-gyp": "^0.14.0",
+    "nyc": "^15.0.1",
     "shell-escape": "^0.2.0",
-    "sqlite3": "^4.0.4",
-    "temp": "^0.8.3",
-    "winston": "^1.1.1"
+    "sqlite3": "^4.2.0",
+    "temp": "^0.9.1",
+    "winston": "^2.4.4"
   },
   "repository": {
     "type": "git",
@@ -29,7 +31,6 @@
   "devDependencies": {
     "coffee-coverage": "^3.0.1",
     "expect": "^1.12.2",
-    "istanbul": "^0.4.0",
-    "mocha": "^5.2.0"
+    "mocha": "^6.2.2"
   }
 }

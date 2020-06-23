@@ -1,23 +1,7 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016 -- 2019, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 {Actions, Store, redux, rtypes, computed} = require('./app-framework')
 {webapp_client}         = require('./webapp_client')
@@ -29,8 +13,9 @@ history                 = require('./history')
 
 {alert_message}         = require('./alerts')
 
-{QueryParams} = require('./misc_page2')
+{QueryParams} = require('./misc/query-params')
 {COCALC_FULLSCREEN, COCALC_MINIMAL} = require('./fullscreen')
+init_csi = require("./custom-software/init").init
 
 # Ephemeral websockets mean a browser that kills the websocket whenever
 # the page is backgrounded.  So far, it seems that maybe all mobile devices
@@ -218,6 +203,9 @@ class PageActions extends Actions
         if time > (redux.getStore('page').get('last_status_time') ? 0)
             @setState(connection_status : val, last_status_time : time)
 
+    set_connection_quality: (val) =>
+        @setState(connection_quality: val)
+
     set_new_version: (version) =>
         @setState(new_version : version)
 
@@ -285,8 +273,10 @@ class PageActions extends Actions
         false
 
 {parse_target} = require("./history2")
-redux.createStore('page', {active_top_tab: parse_target(window.smc_target).page})
+redux.createStore('page', {active_top_tab: parse_target(window.cocalc_target).page})
 redux.createActions('page', PageActions)
+init_csi()
+
 ###
     name: 'page'
 
@@ -300,6 +290,7 @@ redux.createActions('page', PageActions)
         ping                  : rtypes.number
         avgping               : rtypes.number
         connection_status     : rtypes.string
+        connection_quality    : rtypes.oneOf(["good", "bad", "flaky"])
         new_version           : rtypes.immutable.Map
         fullscreen            : rtypes.oneOf(['default', 'kiosk'])
         test                  : rtypes.string  # test query in the URL
@@ -396,7 +387,7 @@ webapp_client.on "connecting", () ->
         f()
     else
         window.setTimeout(f, CONNECTING_STATE_DELAY_MS)
-    attempt = webapp_client._num_attempts ? 1
+    attempt = webapp_client.hub_client.get_num_attempts()
     reconnect = (msg) ->
         # reset recent disconnects, and hope that after the reconnection the situation will be better
         recent_disconnects = []
@@ -404,7 +395,7 @@ webapp_client.on "connecting", () ->
         console.log("ALERT: connection unstable, notification + attempting to fix it -- #{attempt} attempts and #{num_recent_disconnects()} disconnects")
         if not recent_wakeup_from_standby()
             alert_message(msg)
-        webapp_client._fix_connection(true)
+        webapp_client.hub_client.fix_connection()
         # remove one extra reconnect added by the call above
         setTimeout((-> recent_disconnects.pop()), 500)
 
@@ -418,22 +409,21 @@ webapp_client.on "connecting", () ->
         {SITE_NAME} = require('smc-util/theme')
         SiteName = redux.getStore('customize').site_name ? SITE_NAME
         if (reconnection_warning == null) or (reconnection_warning < (+misc.minutes_ago(1)))
-            if get_browser() == 'chrome'
-                extra = " If your network is fine, close this browser tab and open a new tab (or use any browser besides Chrome v77, e.g., Firefox or Chrome 78 beta).  There is a major bug in Chrome v77; opening a new tab works around this bug."
-            else
-                extra = ''
             if num_recent_disconnects() >= 7 or attempt >= 20
+                redux.getActions('page').set_connection_quality("bad")
                 reconnect
                     type: "error"
                     timeout: 10
-                    message: "Your connection is unstable or #{SiteName} is temporarily not available." + extra
+                    message: "Your connection is unstable or #{SiteName} is temporarily not available."
             else if attempt >= 10
+                redux.getActions('page').set_connection_quality("flaky")
                 reconnect
                     type: "info"
                     timeout: 10
-                    message: "Your connection could be weak or the #{SiteName} service is temporarily unstable. Proceed with caution." + extra
+                    message: "Your connection could be weak or the #{SiteName} service is temporarily unstable. Proceed with caution."
     else
         reconnection_warning = null
+        redux.getActions('page').set_connection_quality("good")
 
 webapp_client.on 'new_version', (ver) ->
     redux.getActions('page').set_new_version(ver)
@@ -446,7 +436,7 @@ if COCALC_FULLSCREEN
         # (which is the only thing they should ever do!), and in that
         # case we record the project_id, so that we can make various
         # query optimizations elsewhere.
-        x = parse_target(window.smc_target)
+        x = parse_target(window.cocalc_target)
         if x.page == 'project' and x.target?
             kiosk_project_id = x.target.slice(0,36)
             if misc.is_valid_uuid_string(kiosk_project_id)
@@ -482,4 +472,4 @@ redux.getActions('page').set_session(session)
 get_api_key_query_value = QueryParams.get('get_api_key')
 if get_api_key_query_value
     redux.getActions('page').set_get_api_key(get_api_key_query_value)
-    redux.getActions('page').set_fullscreen('kiosk')
+    redux.getActions('page').set_fullscreen('default')

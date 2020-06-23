@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { Icon } from "./icon";
 const { Button, FormControl, FormGroup } = require("react-bootstrap");
@@ -27,7 +32,7 @@ export class TextInput extends React.Component<Props, State> {
     }
   }
 
-  saveChange = event => {
+  saveChange = (event) => {
     event.preventDefault();
     this.props.on_change(this.state.text);
   };
@@ -54,8 +59,10 @@ export class TextInput extends React.Component<Props, State> {
           ref="input"
           rows={this.props.rows}
           componentClass={this.props.type === "textarea" ? "textarea" : "input"}
-          value={this.state.text != undefined ? this.state.text : this.props.text}
-          onChange={e => this.setState({ text: e.target.value })}
+          value={
+            this.state.text != undefined ? this.state.text : this.props.text
+          }
+          onChange={(e) => this.setState({ text: e.target.value })}
           autoFocus={this.props.autoFocus}
         />
       </FormGroup>

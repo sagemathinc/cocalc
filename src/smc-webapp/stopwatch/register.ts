@@ -1,14 +1,19 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Register the time editor -- stopwatch
   - set the file extension, icon, react component,
     and how to init and remove the actions/store
 */
 
-let { register_file_editor } = require("../project_file");
+const { register_file_editor } = require("../project_file");
 import { redux_name, Store, AppRedux } from "../app-framework";
 import { alert_message } from "../alerts";
 
-let { EditorTime } = require("./editor");
+const { EditorTime } = require("./editor");
 import { TimeActions, StopwatchEditorState } from "./actions";
 
 import { syncdb2 as new_syncdb } from "../frame-editors/generic/client";
@@ -28,7 +33,9 @@ register_file_editor({
       return name; // already initialized
     }
 
-    const store: Store<StopwatchEditorState> = redux.createStore<StopwatchEditorState>(name);
+    const store: Store<StopwatchEditorState> = redux.createStore<
+      StopwatchEditorState
+    >(name);
     const actions = redux.createActions(name, TimeActions);
 
     actions._init(project_id, path);
@@ -37,11 +44,11 @@ register_file_editor({
       project_id,
       path,
       primary_keys: ["id"],
-      string_cols: ["label"]
+      string_cols: ["label"],
     });
     actions.syncdb = syncdb;
     actions.store = store;
-    syncdb.once("error", err => {
+    syncdb.once("error", (err) => {
       const message = `Stopwatch error '${path}' -- ${err}`;
       alert_message({ type: "error", message });
     });
@@ -49,13 +56,15 @@ register_file_editor({
     return name;
   },
 
-  remove(path: string, redux: AppRedux, project_id: string) : string {
+  remove(path: string, redux: AppRedux, project_id: string): string {
     const name = redux_name(project_id, path, this.is_public);
     const actions: InstanceType<typeof TimeActions> = redux.getActions(name);
     if (actions !== undefined && actions.syncdb !== undefined) {
       actions.syncdb.close();
     }
-    const store: Store<StopwatchEditorState> | undefined = redux.getStore<StopwatchEditorState>(name);
+    const store: Store<StopwatchEditorState> | undefined = redux.getStore<
+      StopwatchEditorState
+    >(name);
     if (store == undefined) {
       return name;
     }
@@ -64,5 +73,5 @@ register_file_editor({
     redux.removeStore(name);
     redux.removeActions(name);
     return name;
-  }
+  },
 });

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Billing actions.
 
 These are mainly for interfacing with Stripe.  They are
@@ -7,31 +12,26 @@ all async (no callbacks!).
 
 import { Map } from "immutable";
 import { redux, Actions, Store } from "../app-framework";
-import { callback2, reuse_in_flight_methods } from "smc-util/async-utils";
+import { reuse_in_flight_methods } from "smc-util/async-utils";
 import { server_minutes_ago, server_time } from "smc-util/misc";
 const { webapp_client } = require("../webapp_client");
-
-type StripeAction =
-  | "delete_source"
-  | "set_default_source"
-  | "create_source"
-  | "cancel_subscription"
-  | "create_subscription"
-  | "get_coupon";
+import { StripeClient } from "../client/stripe";
 
 import { BillingStoreState } from "./store";
 
 require("./store"); // ensure 'billing' store is created so can set this.store below.
 
-class BillingActions extends Actions<BillingStoreState> {
+export class BillingActions extends Actions<BillingStoreState> {
   private store: Store<BillingStoreState>;
   private last_subscription_attempt?: any;
+  private stripe: StripeClient;
 
   constructor(name: string, redux: any) {
     super(name, redux);
     const store = redux.getStore("billing");
     if (store == null) throw Error("bug -- billing store should be defined");
     this.store = store;
+    this.stripe = webapp_client.stripe;
     reuse_in_flight_methods(this, ["update_customer"]);
   }
 
@@ -40,10 +40,14 @@ class BillingActions extends Actions<BillingStoreState> {
   }
 
   public async update_customer(): Promise<void> {
+    const is_commercial = redux
+      .getStore("customize")
+      .get("is_commercial", false);
+    if (!is_commercial) return;
     this.setState({ action: "Updating billing information" });
     try {
-      const resp = await callback2(webapp_client.stripe_get_customer);
-      if (resp == null || !resp.stripe_publishable_key) {
+      const resp = await this.stripe.get_customer();
+      if (!resp.stripe_publishable_key) {
         this.setState({ no_stripe: true });
         throw Error(
           "WARNING: Stripe is not configured -- billing not available"
@@ -52,13 +56,13 @@ class BillingActions extends Actions<BillingStoreState> {
       this.setState({
         customer: resp.customer,
         loaded: true,
-        stripe_publishable_key: resp.stripe_publishable_key
+        stripe_publishable_key: resp.stripe_publishable_key,
       });
       if (resp.customer) {
-        // only call get_invoices if the customer already exists in the system!
+        // TODO: only call get_invoices if the customer already exists in the system!
         // FUTURE: -- this {limit:100} will change when we use webhooks and our own database of info...
-        const invoices = await callback2(webapp_client.stripe_get_invoices, {
-          limit: 100
+        const invoices = await this.stripe.get_invoices({
+          limit: 100,
         });
         this.setState({ invoices });
       }
@@ -70,25 +74,21 @@ class BillingActions extends Actions<BillingStoreState> {
     }
   }
 
-  // Call a webapp_client.stripe_[action] function with given opts, returning
+  // Call a webapp_client.stripe. function with given opts, returning
   // the result (which matters only for coupons?).
   // This is wrapped as an async call, and also sets the action and error
   // states of the Store so the UI can reflect what is happening.
-  // Also, update_customer gets called, to update the UI.
+  // Also, after update_customer gets called, to update the UI.
   // If there is an error, this also throws that error (so it is NOT just
   // reflected in the UI).
   private async stripe_action(
-    action: StripeAction,
+    f: Function,
     desc: string,
-    opts: object
+    ...args
   ): Promise<any> {
     this.setState({ action: desc });
-    const f: Function | undefined = webapp_client[`stripe_${action}`];
-    if (f == null) {
-      throw Error(`no such stripe action "${action}"`);
-    }
     try {
-      return await callback2(f, opts);
+      return await f.bind(this.stripe)(...args);
     } catch (err) {
       this.setState({ error: `${err}` });
       throw err;
@@ -103,31 +103,35 @@ class BillingActions extends Actions<BillingStoreState> {
   }
 
   public async delete_payment_method(card_id: string): Promise<void> {
-    await this.stripe_action("delete_source", "Deleting a payment method", {
+    await this.stripe_action(
+      this.stripe.delete_source,
+      "Deleting a payment method",
       card_id
-    });
+    );
   }
 
   public async set_as_default_payment_method(card_id: string): Promise<void> {
     await this.stripe_action(
-      "set_default_source",
+      this.stripe.set_default_source,
       "Setting payment method as default",
-      { card_id }
+      card_id
     );
   }
 
   public async submit_payment_method(token: string): Promise<void> {
     await this.stripe_action(
-      "create_source",
+      this.stripe.create_source,
       "Creating a new payment method (sending token)",
-      { token }
+      token
     );
   }
 
   public async cancel_subscription(subscription_id: string): Promise<void> {
-    await this.stripe_action("cancel_subscription", "Cancel a subscription", {
-      subscription_id
-    });
+    await this.stripe_action(
+      this.stripe.cancel_subscription,
+      "Cancel a subscription",
+      { subscription_id }
+    );
   }
 
   public async create_subscription(plan: string): Promise<void> {
@@ -140,7 +144,7 @@ class BillingActions extends Actions<BillingStoreState> {
       this.setState({
         action: "",
         error:
-          "Too many subscription attempts in the last minute.  Please **REFRESH YOUR BROWSER** THEN DOUBLE CHECK YOUR SUBSCRIPTION LIST."
+          "Too many subscription attempts in the last minute.  Please **REFRESH YOUR BROWSER** THEN DOUBLE CHECK YOUR SUBSCRIPTION LIST.",
       });
       return;
     }
@@ -153,10 +157,10 @@ class BillingActions extends Actions<BillingStoreState> {
     }
     const opts = {
       plan,
-      coupon_id: coupon != null ? coupon.id : undefined
+      coupon_id: coupon != null ? coupon.id : undefined,
     };
     await this.stripe_action(
-      "create_subscription",
+      this.stripe.create_subscription,
       "Create a subscription",
       opts
     );
@@ -166,9 +170,9 @@ class BillingActions extends Actions<BillingStoreState> {
   public async apply_coupon(coupon_id: string): Promise<any> {
     try {
       const coupon = await this.stripe_action(
-        "get_coupon",
+        this.stripe.get_coupon,
         `Applying coupon: ${coupon_id}`,
-        { coupon_id }
+        coupon_id
       );
       const applied_coupons = this.store
         .get("applied_coupons", Map<string, any>())
@@ -192,7 +196,7 @@ class BillingActions extends Actions<BillingStoreState> {
     this.setState({
       applied_coupons: this.store
         .get("applied_coupons", Map<string, any>())
-        .delete(coupon_id)
+        .delete(coupon_id),
     });
   }
 
@@ -205,17 +209,17 @@ class BillingActions extends Actions<BillingStoreState> {
     // delete payment methods
     const payment_methods = this.store.getIn(["customer", "sources", "data"]);
     if (payment_methods != null) {
-      for (let x of payment_methods.toJS()) {
+      for (const x of payment_methods.toJS()) {
         await this.delete_payment_method(x.id);
       }
     }
     const subscriptions = this.store.getIn([
       "customer",
       "subscriptions",
-      "data"
+      "data",
     ]);
     if (subscriptions != null) {
-      for (let x of subscriptions.toJS()) {
+      for (const x of subscriptions.toJS()) {
         await this.cancel_subscription(x.id);
       }
     }

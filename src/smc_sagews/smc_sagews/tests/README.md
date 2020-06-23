@@ -23,6 +23,14 @@
 
 ### Running the Tests
 
+>= 9.0
+
+[hsy] I'm running `sage -python -m pytest tests/` from within the smc_sagews directory.
+
+---
+
+pre 9.0
+
 Use `runtests.sh` to set up environment for doctests, otherwise they will be skipped.
 
 ```

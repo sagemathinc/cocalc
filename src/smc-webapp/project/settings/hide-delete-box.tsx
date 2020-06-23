@@ -1,6 +1,10 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { Project } from "./types";
-import { analytics_event } from "smc-webapp/tracker";
 import { Icon, SettingBox, DeletedProjectWarning } from "smc-webapp/r_misc";
 import { Button, Well, Alert, ButtonToolbar, Row, Col } from "react-bootstrap";
 import { ProjectsActions } from "smc-webapp/todo-types";
@@ -35,28 +39,17 @@ export class HideDeleteBox extends React.Component<Props, State> {
       this.props.project.get("project_id")
     );
     this.hide_delete_conf();
-    if (this.props.project.get("deleted")) {
-      analytics_event("project_settings", "undelete project");
-    } else {
-      analytics_event("project_settings", "delete project");
-    }
   };
 
   toggle_hide_project = (): void => {
     this.props.actions.toggle_hide_project(
       this.props.project.get("project_id")
     );
-    const user = this.props.project.getIn(["users", webapp_client.account_id]);
-    if (user.get("hide")) {
-      analytics_event("project_settings", "unhide project");
-    } else {
-      analytics_event("project_settings", "hide project");
-    }
   };
 
   user_has_applied_upgrades(account_id: string, project: Project) {
-    const upgrades = project.getIn(["users", account_id, "upgrades"]);
-    return upgrades ? upgrades.some(val => val > 0) : undefined;
+    const upgrades = project.getIn(["users", account_id]);
+    return upgrades ? upgrades.some((val) => val > 0) : undefined;
   }
 
   delete_message(): JSX.Element {
@@ -108,6 +101,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
         style={{ float: "right" }}
         onClick={onClick}
         disabled={disabled}
+        cocalc-test={is_deleted ? "undelete-project" : "delete-project"}
       >
         <Icon name="trash" /> {text}
       </Button>
@@ -127,18 +121,18 @@ export class HideDeleteBox extends React.Component<Props, State> {
             automatically. Undeleting the project will not automatically restore
             them. This will not affect upgrades other people have applied.
           </Alert>
-        ) : (
-          undefined
-        )}
+        ) : undefined}
         {!has_upgrades ? (
           <div style={{ marginBottom: "5px" }}>
             Are you sure you want to delete this project?
           </div>
-        ) : (
-          undefined
-        )}
+        ) : undefined}
         <ButtonToolbar>
-          <Button bsStyle="danger" onClick={this.toggle_delete_project}>
+          <Button
+            bsStyle="danger"
+            onClick={this.toggle_delete_project}
+            cocalc-test="please-delete-project"
+          >
             Yes, please delete this project
           </Button>
           <Button onClick={this.hide_delete_conf}>Cancel</Button>
@@ -162,6 +156,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
               bsStyle="warning"
               onClick={this.toggle_hide_project}
               style={{ float: "right" }}
+              cocalc-test={hidden ? "unhide-project" : "hide-project"}
             >
               <Icon name="eye-slash" /> {hidden ? "Unhide" : "Hide"} Project
             </Button>
@@ -181,9 +176,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
           <Row style={{ marginTop: "10px" }}>
             <Col sm={12}>{this.render_expanded_delete_info()}</Col>
           </Row>
-        ) : (
-          undefined
-        )}
+        ) : undefined}
         <hr />
         <Row style={{ color: "#666" }}>
           <Col sm={12}>

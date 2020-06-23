@@ -1,10 +1,15 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import {
   React,
   Component,
   Rendered,
   rtypes,
   redux,
-  rclass
+  rclass,
 } from "../app-framework";
 import { Icon } from "../r_misc/icon";
 import { Button, ButtonToolbar, Col, Row, Well } from "react-bootstrap";
@@ -12,6 +17,7 @@ import { AppliedCoupons, CoursePay } from "./types";
 import { STUDENT_COURSE_PRICE } from "./data";
 import { alert_message } from "../alerts";
 import { CouponAdder } from "./coupon-adder";
+import { AccountStore } from "../account";
 
 interface Props {
   project_id: string;
@@ -37,8 +43,8 @@ class PayCourseFee extends Component<Props, State> {
       billing: {
         applied_coupons: rtypes.immutable.Map.isRequired,
         coupon_error: rtypes.string,
-        course_pay: rtypes.immutable.Set.isRequired
-      }
+        course_pay: rtypes.immutable.Set.isRequired,
+      },
     };
   }
 
@@ -62,7 +68,7 @@ class PayCourseFee extends Component<Props, State> {
     // Wait until a members-only upgrade and network upgrade are available, due to buying it
     this.setState({ confirm: false });
     redux.getStore("account").wait({
-      until: store => {
+      until: (store: AccountStore) => {
         const upgrades = store.get_total_upgrades();
         // NOTE! If you make one available due to changing what is allocated it won't cause this function
         // we're in here to update, since we *ONLY* listen to changes on the account store.
@@ -70,27 +76,15 @@ class PayCourseFee extends Component<Props, State> {
           .getStore("projects")
           .get_total_upgrades_you_have_applied();
         return (
-          (upgrades.member_host != null ? upgrades.member_host : 0) -
-            ((applied != null ? applied.member_host : undefined) != null
-              ? applied != null
-                ? applied.member_host
-                : undefined
-              : 0) >
-            0 &&
-          (upgrades.network != null ? upgrades.network : 0) -
-            ((applied != null ? applied.network : undefined) != null
-              ? applied != null
-                ? applied.network
-                : undefined
-              : 0) >
-            0
+          (upgrades.member_host ?? 0) - (applied?.member_host ?? 0) > 0 &&
+          (upgrades.network ?? 0) - (applied?.network ?? 0) > 0
         );
       },
       timeout: 30, // wait up to 30 seconds
-      cb: err => {
+      cb: (err) => {
         if (err) {
           actions.setState({
-            error: `Error purchasing course subscription: ${err}`
+            error: `Error purchasing course subscription: ${err}`,
           });
         } else {
           // Upgrades now available -- apply a network and members only upgrades to the course project.
@@ -101,7 +95,7 @@ class PayCourseFee extends Component<Props, State> {
         }
         // Set in billing that done
         actions.set_is_paying_for_course(this.props.project_id, false);
-      }
+      },
     });
   }
 

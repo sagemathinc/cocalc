@@ -1,10 +1,15 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
-const { Col, FormControl, FormGroup, Row } = require("react-bootstrap");
+const { Col, Row, Input } = require("antd");
 
 interface Props {
   number: number;
-  min: number;
-  max: number;
+  min?: number;
+  max?: number;
   on_change: (n: number) => void;
   unit?: string;
   disabled?: boolean;
@@ -37,9 +42,9 @@ export class NumberInput extends React.Component<Props, State> {
         n = this.props.number;
       }
     }
-    if (n < this.props.min) {
+    if (this.props.min != null && n < this.props.min) {
       n = this.props.min;
-    } else if (n > this.props.max) {
+    } else if (this.props.max != null && n > this.props.max) {
       n = this.props.max;
     }
     this.setState({ number: n });
@@ -49,37 +54,36 @@ export class NumberInput extends React.Component<Props, State> {
   render() {
     const unit = this.props.unit != undefined ? `${this.props.unit}` : "";
     return (
-      <Row>
-        <Col xs={6}>
-          <form onSubmit={this.saveChange}>
-            <FormGroup>
-              <FormControl
-                type="text"
-                ref="input"
-                value={
-                  this.state.number != undefined
-                    ? this.state.number
-                    : this.props.number
-                }
-                onChange={e =>
-                  this.setState({
-                    number: e.target.value
-                  })
-                }
-                onBlur={this.saveChange}
-                onKeyDown={e => {
-                  if (e.keyCode === 27) {  // async setState, since it depends on props.
-                    this.setState((_, props) => {
-                      number: props.number;
-                    });
-                  }
-                }}
-                disabled={this.props.disabled}
-              />
-            </FormGroup>
-          </form>
+      <Row gutter={16}>
+        <Col xs={16}>
+          <Input
+            type="text"
+            ref="input"
+            value={
+              this.state.number != undefined
+                ? this.state.number
+                : this.props.number
+            }
+            onChange={(e) =>
+              this.setState({
+                number: e.target.value,
+              })
+            }
+            onBlur={this.saveChange}
+            onKeyDown={(e) => {
+              if (e.keyCode === 27) {
+                // async setState, since it depends on props.
+                this.setState((_, props) => {
+                  number: props.number;
+                });
+              } else if (e.keyCode === 13) {
+                this.saveChange();
+              }
+            }}
+            disabled={this.props.disabled}
+          />
         </Col>
-        <Col xs={6} className="lighten">
+        <Col xs={8} className="lighten">
           {unit}
         </Col>
       </Row>

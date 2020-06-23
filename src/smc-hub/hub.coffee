@@ -1,30 +1,12 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
-###
-This is the CoCalc Global HUB.  It runs as a daemon, sitting in the
-middle of the action, connected to potentially thousands of clients,
-many Sage sessions, and PostgreSQL database.  There are
-many HUBs running.
-###
+# This is the CoCalc Global HUB.  It runs as a daemon, sitting in the
+# middle of the action, connected to potentially thousands of clients,
+# many Sage sessions, and PostgreSQL database.  There are
+# many HUBs running.
 
 require('coffee2-cache')
 
@@ -64,7 +46,6 @@ underscore = require('underscore')
 misc    = require('smc-util/misc')
 {defaults, required} = misc
 message    = require('smc-util/message')     # message protocol between front-end and back-end
-client_lib = require('smc-util/client')
 client     = require('./client')
 sage       = require('./sage')               # sage server
 auth       = require('./auth')
@@ -79,6 +60,15 @@ MetricsRecorder = require('./metrics-recorder')
 
 # express http server -- serves some static/dynamic endpoints
 hub_http_server = require('./hub_http_server')
+
+try
+    {LTIService} = require('./lti/lti')
+catch
+    # silly stub
+    class LTIService
+        start: =>
+            throw new Error('NO LTI MODULE')
+
 
 # registers the hub with the database periodically
 hub_register = require('./hub_register')
@@ -360,6 +350,7 @@ init_compute_server = (cb) ->
             database : database
             dev      : program.dev
             single   : program.single
+            kubernetes : program.kubernetes
             base_url : BASE_URL
             cb       : f
 
@@ -389,6 +380,31 @@ blob_maintenance = (cb) ->
             database.blob_maintenance(cb:cb)
     ], cb)
 
+start_lti_service = (cb) ->
+    BASE_URL = base_url.init(program.base_url)
+    async.series([
+        (cb) ->
+            connect_to_database(error:99999, pool:5, cb:cb)
+        (cb) ->
+            init_compute_server(cb)
+        (cb) ->
+            lti_service = new LTIService(port:program.port, db:database, base_url:BASE_URL, compute_server:compute_server)
+            await lti_service.start()
+    ])
+
+start_landing_service = (cb) ->
+    BASE_URL = base_url.init(program.base_url)
+    {LandingServer} = require('./landing/landing.ts')
+    async.series([
+        (cb) ->
+            init_metrics(cb)
+        (cb) ->
+            connect_to_database(error:99999, pool:5, cb:cb)
+        (cb) ->
+            landing_server = new LandingServer(port:program.port, db:database, base_url:BASE_URL)
+            await landing_server.start()
+    ])
+
 update_stats = (cb) ->
     # This calculates and updates the statistics for the /stats endpoint.
     # It's important that we call this periodically, because otherwise the /stats data is outdated.
@@ -402,6 +418,29 @@ update_stats = (cb) ->
 init_update_stats = (cb) ->
     setInterval(update_stats, 60000)
     update_stats(cb)
+
+
+# async function
+update_site_license_usage_log = (cb) ->
+    # This calculates and updates the site_license_usage_log
+    # It's important that we call this periodically, if we want
+    # to be able to monitor site license usage. This is enabled
+    # by default only for dev mode (so for development).
+    async.series([
+        (cb) ->
+            connect_to_database(error:99999, pool:5, cb:cb)
+        (cb) ->
+            try
+                await database.update_site_license_usage_log()
+                cb()
+            catch err
+                cb(err)
+    ], (err) -> cb?(err))
+
+init_update_site_license_usage_log = (cb) ->
+    setInterval(update_site_license_usage_log, 30000)
+    update_site_license_usage_log(cb)
+
 
 stripe_sync = (dump_only, cb) ->
     dbg = (m) -> winston.debug("stripe_sync: #{m}")
@@ -418,6 +457,16 @@ stripe_sync = (dump_only, cb) ->
                 cb        : cb
     ], cb)
 
+init_metrics = (cb) ->
+    winston.debug("Initializing Metrics Recorder")
+    MetricsRecorder.init(winston, (err, mr) ->
+        if err?
+            cb(err)
+        else
+            metric_blocked = MetricsRecorder.new_counter('blocked_ms_total', 'accumulates the "blocked" time in the hub [ms]')
+            uncaught_exception_total =  MetricsRecorder.new_counter('uncaught_exception_total', 'counts "BUG"s')
+            cb()
+    )
 
 #############################################
 # Start everything running
@@ -430,12 +479,9 @@ exports.start_server = start_server = (cb) ->
     winston.debug("start_server")
 
     winston.debug("dev = #{program.dev}")
-    if program.dev
-        # So cookies work over http, which dev mode can allow (e.g., on localhost).
-        client.COOKIE_OPTIONS.secure = false
-    else
-        # Be very sure cookies do NOT work unless over https.  IMPORTANT.
-        client.COOKIE_OPTIONS.secure = true
+    # Be very sure cookies do NOT work unless over https.  IMPORTANT.
+    if not client.COOKIE_OPTIONS.secure
+        throw Error("client cookie options are not secure")
 
     BASE_URL = base_url.init(program.base_url)
     winston.debug("base_url='#{BASE_URL}'")
@@ -468,15 +514,7 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             if not program.port
                 cb(); return
-            winston.debug("Initializing Metrics Recorder")
-            MetricsRecorder.init(winston, (err, mr) ->
-                if err?
-                    cb(err)
-                else
-                    metric_blocked = MetricsRecorder.new_counter('blocked_ms_total', 'accumulates the "blocked" time in the hub [ms]')
-                    uncaught_exception_total =  MetricsRecorder.new_counter('uncaught_exception_total', 'counts "BUG"s')
-                    cb()
-            )
+            init_metrics(cb)
         (cb) ->
             # this defines the global (to this file) database variable.
             winston.debug("Connecting to the database.")
@@ -488,14 +526,6 @@ exports.start_server = start_server = (cb) ->
                     winston.debug("connected to database.")
                     cb()
         (cb) ->
-            winston.debug("mentions=#{program.mentions}")
-            if program.mentions
-                winston.debug("enabling handling of mentions...")
-                handle_mentions_loop(database)
-            else
-                winston.debug("not handling mentions");
-            cb()
-        (cb) ->
             if not program.port
                 cb(); return
             if not database.is_standby and (program.dev or program.update)
@@ -506,6 +536,14 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             # This must happen *AFTER* update_schema above.
             init_smc_version(database, cb)
+        (cb) ->
+            winston.debug("mentions=#{program.mentions}")
+            if program.mentions
+                winston.debug("enabling handling of mentions...")
+                handle_mentions_loop(database)
+            else
+                winston.debug("not handling mentions");
+            cb()
         (cb) ->
             if not program.port
                 cb(); return
@@ -550,6 +588,10 @@ exports.start_server = start_server = (cb) ->
             if not program.dev
                 cb(); return
             init_update_stats(cb)
+        (cb) ->
+            if not program.dev
+                cb(); return
+            init_update_site_license_usage_log(cb)
         (cb) ->
             if not program.port
                 cb(); return
@@ -707,8 +749,11 @@ command_line = () ->
         .option('--test', 'terminate after setting up the hub -- used to test if it starts up properly')
         .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
         .option('--single', 'if given, then run in LESS SAFE single-machine mode')
+        .option('--kubernetes', 'if given, then run in mode for cocalc-kubernetes (monolithic but in Kubernetes)')
         .option('--db_pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)
         .option('--db_concurrent_warn <n>', 'be very unhappy if number of concurrent db requests exceeds this (default: 300)', ((n)->parseInt(n)), 300)
+        .option('--lti', 'just start the LTI service')
+        .option('--landing', 'serve landing pages')
         .parse(process.argv)
 
         # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
@@ -762,6 +807,12 @@ command_line = () ->
                 else
                      console.log("User added to project.")
                 process.exit()
+        else if program.lti
+            console.log("LTI MODE")
+            start_lti_service()
+        else if program.landing
+            console.log("LANDING PAGE MODE")
+            start_landing_service()
         else
             console.log("Running hub; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
             # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
@@ -775,4 +826,3 @@ command_line = () ->
 
 if process.argv.length > 1
     command_line()
-

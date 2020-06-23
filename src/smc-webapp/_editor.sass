@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  *
  *Editor for files in a project
  */
@@ -475,7 +480,7 @@
 /* Undo various bootstrap madness (which makes scaling markdown very painful) */
 
 li
-  line-height : normal
+  line-height : inherit
 
 code
   font-size : inherit
@@ -639,12 +644,20 @@ h6 { font-size: 110% }
 .smc-message-from-viewer a:link,
 .smc-message-from-viewer a:visited,
 .smc-message-from-viewer .user-mention
-   color : #FFEB3B
+  color: #e8e8e8
+  background: rgba(114,137,218,.1)
+  border-radius: 3px
+  padding: 0 2px
 
 .smc-message-from-other .user-mention
-  color: #428bca
+  color: #7289da
+  background: rgba(114,137,218,.1)
+  border-radius: 3px
+  padding: 0 2px
 
 .smc-chat-message
+  overflow-x: auto
+  overflow-y: hidden
   img
     max-width: 100%
   blockquote
@@ -668,3 +681,6 @@ h6 { font-size: 110% }
 // makes code hard to read!  Very odd.
 .cm-property
     color: darkblue
+
+.CodeMirror pre.CodeMirror-placeholder
+    color: #999 !important;

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 This is just going to be a horible wrapper around the ancient complicated
 code to get this done for now.
 */
@@ -50,7 +55,7 @@ export class SagewsDiff extends Component<Props> {
 
     const opts0 = {
       allow_javascript_eval: false,
-      static_viewer: true
+      static_viewer: true,
     };
     this.worksheet = new SynchronizedWorksheet(this.view_doc, opts0);
 

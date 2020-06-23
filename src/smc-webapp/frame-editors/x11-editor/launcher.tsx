@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 X11 Window frame.
 */
 
@@ -7,11 +12,11 @@ import {
   Component,
   Rendered,
   rclass,
-  rtypes
+  rtypes,
 } from "../../app-framework";
 import { debounce, keys, sortBy } from "underscore";
 const { Button } = require("react-bootstrap");
-const { Icon } = require("r_misc");
+import { Icon } from "../../r_misc";
 import { APPS } from "./apps";
 import { is_different } from "smc-util/misc2";
 import { Actions } from "./actions";
@@ -44,8 +49,8 @@ export class LauncherComponent extends Component<Props, {}> {
   static reduxProps({ name }) {
     return {
       [name]: {
-        x11_apps: rtypes.object
-      }
+        x11_apps: rtypes.object,
+      },
     };
   }
 
@@ -88,7 +93,7 @@ export class LauncherComponent extends Component<Props, {}> {
     const available = this.props.x11_apps;
     if (available == null) return [];
     // hide those apps, where certainly know they're not available
-    return APP_KEYS.filter(app => {
+    return APP_KEYS.filter((app) => {
       const avail = available[app];
       return avail !== false;
     }).map(this.render_launcher);

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import {
   React,
   ReactDOM,
@@ -5,7 +10,7 @@ import {
   rtypes,
   rclass,
   redux,
-  Rendered
+  Rendered,
 } from "../app-framework";
 
 import {
@@ -13,14 +18,14 @@ import {
   ButtonToolbar,
   FormGroup,
   FormControl,
-  Well
+  Well,
 } from "react-bootstrap";
 
 import { Map } from "immutable";
 
 import { plural } from "smc-util/misc2";
 
-const { Icon, Loading } = require("../r_misc");
+import { Icon, Loading } from "../r_misc";
 
 interface Props {
   notifications?: Map<string, any>;
@@ -39,7 +44,7 @@ class SystemNotifications extends Component<Props, State> {
 
   static reduxProps(): any {
     return {
-      system_notifications: { notifications: rtypes.immutable }
+      system_notifications: { notifications: rtypes.immutable },
     };
   }
 
@@ -85,7 +90,7 @@ class SystemNotifications extends Component<Props, State> {
             componentClass="textarea"
             onChange={() =>
               this.setState({
-                mesg: ReactDOM.findDOMNode(this.refs.input).value
+                mesg: ReactDOM.findDOMNode(this.refs.input)?.value,
               })
             }
           />
@@ -107,7 +112,7 @@ class SystemNotifications extends Component<Props, State> {
     if (!this.state.mesg) return;
     (redux.getActions("system_notifications") as any).send_message({
       text: this.state.mesg.trim(),
-      priority: "high"
+      priority: "high",
     });
   }
 

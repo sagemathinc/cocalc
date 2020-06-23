@@ -1,42 +1,47 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Compute the codemirror options for file with given name,
 using the given editor settings.
 */
 
 import * as CodeMirror from "codemirror";
-const { file_associations } = require("smc-webapp/file-associations");
-const feature = require("smc-webapp/feature");
+import { file_associations } from "../../file-associations";
+import * as feature from "../../feature";
 import { path_split } from "smc-util/misc2";
 import { get_editor_settings } from "../generic/client";
-const { EDITOR_COLOR_SCHEMES } = require("../../r_account");
+import { EDITOR_COLOR_SCHEMES } from "../../account/editor-settings/color-schemes";
 
-const { filename_extension_notilde, defaults } = require("misc");
+import { filename_extension_notilde, defaults } from "smc-util/misc";
 
 import { extra_alt_keys } from "./mobile";
 import { Map } from "immutable";
 
 import { valid_indent } from "./util";
 
-export function cm_options(
-  filename: string, // extension determines editor mode
-  editor_settings: Map<string, any>,
-  gutters: string[], // array of extra gutters
-  actions: any,
-  frame_id: string
-): object {
+function save(cm) {
+  (CodeMirror as any).commands.save(cm);
+}
+
+export function default_opts(filename) {
   let key = filename_extension_notilde(filename).toLowerCase();
   if (!key) {
     key = `noext-${path_split(filename).tail}`.toLowerCase();
   }
-  const default_opts =
-    (file_associations[key] != null
-      ? file_associations[key].opts
-      : undefined) != null
-      ? file_associations[key] != null
-        ? file_associations[key].opts
-        : undefined
-      : {};
+  return file_associations[key]?.opts ?? {};
+}
 
+export function cm_options(
+  filename: string, // extension determines editor mode
+  editor_settings: Map<string, any>,
+  gutters: string[] = [], // array of extra gutters
+  editor_actions: any = undefined,
+  frame_tree_actions: any = undefined,
+  frame_id: string = ""
+): object {
   let theme = editor_settings.get("theme");
   // if we do not know the theme, fallback to default
   if (EDITOR_COLOR_SCHEMES[theme] == null) {
@@ -46,7 +51,8 @@ export function cm_options(
     theme = "default";
   }
 
-  let opts = defaults(default_opts, {
+  const opts = defaults(default_opts(filename), {
+    spellcheck: false,
     undoDepth: 0, // we use our own sync-aware undo.
     mode: "txt",
     show_trailing_whitespace: editor_settings.get(
@@ -70,8 +76,9 @@ export function cm_options(
     spaces_instead_of_tabs: editor_settings.get("spaces_instead_of_tabs", true),
     style_active_line: editor_settings.get("style_active_line", true),
     bindings: editor_settings.get("bindings"),
-    theme: theme
+    theme: theme,
   });
+
   if (opts.mode == null) {
     // to satisfy typescript
     throw Error("mode must be specified");
@@ -96,22 +103,28 @@ export function cm_options(
     },
     "Shift-Ctrl-L"(cm) {
       cm.align_assignments();
-    }
+    },
   };
 
   if (feature.IS_TOUCH) {
     // maybe should be IS_IPAD... ?
     // Better more external keyboard friendly shortcuts, motivated by iPad.
-    extra_alt_keys(extraKeys, actions, frame_id, opts);
+    extra_alt_keys(extraKeys, editor_actions, frame_id, opts);
   }
 
-  if (actions) {
-    const build = () => {
-      if (actions.build !== undefined) {
-        actions.build(frame_id);
+  if (frame_tree_actions != null) {
+    const build = (force = false) => {
+      if (force) {
+        if (frame_tree_actions.force_build !== undefined) {
+          frame_tree_actions.force_build(frame_id);
+        }
+        return;
+      }
+      if (frame_tree_actions.build !== undefined) {
+        frame_tree_actions.build(frame_id);
       } else {
         if (get_editor_settings().get("show_exec_warning")) {
-          actions.set_error(
+          frame_tree_actions.set_error(
             "You can evaluate code in a file with the extension 'sagews' or 'ipynb'.   Please create a Sage Worksheet or Jupyter notebook instead."
           );
         }
@@ -119,29 +132,29 @@ export function cm_options(
     };
 
     const actionKeys = {
-      "Cmd-S"() {
-        actions.save(true);
+      "Cmd-S"(cm) {
+        save(cm);
       },
-      "Alt-S"() {
-        actions.save(true);
+      "Alt-S"(cm) {
+        save(cm);
       },
-      "Ctrl-S"() {
-        actions.save(true);
+      "Ctrl-S"(cm) {
+        save(cm);
       },
       "Cmd-P"() {
-        actions.print();
+        editor_actions.print();
       },
       "Shift-Ctrl-."() {
-        actions.increase_font_size(frame_id);
+        frame_tree_actions.increase_font_size(frame_id);
       },
       "Shift-Ctrl-,"() {
-        actions.decrease_font_size(frame_id);
+        frame_tree_actions.decrease_font_size(frame_id);
       },
       "Shift-Cmd-."() {
-        actions.increase_font_size(frame_id);
+        frame_tree_actions.increase_font_size(frame_id);
       },
       "Shift-Cmd-,"() {
-        actions.decrease_font_size(frame_id);
+        frame_tree_actions.decrease_font_size(frame_id);
       },
       "Ctrl-L"(cm) {
         cm.execCommand("jumpToLine");
@@ -168,63 +181,73 @@ export function cm_options(
         cm.execCommand("findPrev");
       },
       "Shift-Cmd-F"() {
-        actions.format(frame_id);
+        editor_actions.format(frame_id);
       },
       "Shift-Ctrl-F"() {
-        actions.format(frame_id);
+        editor_actions.format(frame_id);
       },
       "Shift-Enter"() {
         build();
+      },
+      "Shift-Alt-Enter"() {
+        build(true);
+      },
+      "Shift-Alt-T"() {
+        build(true);
+      },
+      "Shift-Cmd-T"() {
+        build(true);
       },
       "Cmd-T"() {
         build();
       },
       "Alt-T"() {
         build();
-      }
+      },
     };
-    for (let k in actionKeys) {
+    for (const k in actionKeys) {
       const v = actionKeys[k];
       extraKeys[k] = v;
     }
     if (opts.bindings !== "emacs") {
-      extraKeys["Ctrl-P"] = () => actions.print(frame_id);
+      extraKeys["Ctrl-P"] = () => editor_actions.print(frame_id);
     }
-  }
+    if (frame_tree_actions.sync != null) {
+      extraKeys["Alt-Enter"] = () =>
+        frame_tree_actions.sync(frame_id, editor_actions);
+      extraKeys["Cmd-Enter"] = () =>
+        frame_tree_actions.sync(frame_id, editor_actions);
+    }
 
-  if (actions != null && actions.sync != null) {
-    extraKeys["Alt-Enter"] = () => actions.sync(frame_id);
-  }
+    if (!opts.read_only && opts.bindings !== "emacs") {
+      // emacs bindings really conflict with these
+      // Extra codemirror keybindings -- for some of our plugins
+      // inspired by http://www.door2windows.com/list-of-all-keyboard-shortcuts-for-sticky-notes-in-windows-7/
+      const keybindings = {
+        bold: "Cmd-B Ctrl-B",
+        italic: "Cmd-I Ctrl-I",
+        underline: "Cmd-U Ctrl-U",
+        comment: "Shift-Ctrl-3",
+        strikethrough: "Shift-Cmd-X Shift-Ctrl-X",
+        subscript: "Cmd-= Ctrl-=",
+        superscript: "Shift-Cmd-= Shift-Ctrl-=",
+      };
 
-  if (actions != null && !opts.read_only && opts.bindings !== "emacs") {
-    // emacs bindings really conflict with these
-    // Extra codemirror keybindings -- for some of our plugins
-    // inspired by http://www.door2windows.com/list-of-all-keyboard-shortcuts-for-sticky-notes-in-windows-7/
-    const keybindings = {
-      bold: "Cmd-B Ctrl-B",
-      italic: "Cmd-I Ctrl-I",
-      underline: "Cmd-U Ctrl-U",
-      comment: "Shift-Ctrl-3",
-      strikethrough: "Shift-Cmd-X Shift-Ctrl-X",
-      subscript: "Cmd-= Ctrl-=",
-      superscript: "Shift-Cmd-= Shift-Ctrl-="
-    };
+      // use a closure to bind cmd.
+      const f = (key, cmd) =>
+        (extraKeys[key] = (cm) => {
+          cm.edit_selection({ cmd });
+          return editor_actions.set_syncstring_to_codemirror();
+        });
 
-    // use a closure to bind cmd.
-    const f = (key, cmd) =>
-      (extraKeys[key] = cm => {
-        cm.edit_selection({ cmd });
-        return actions.set_syncstring_to_codemirror();
-      });
-
-    for (let cmd in keybindings) {
-      const keys = keybindings[cmd];
-      for (key of keys.split(" ")) {
-        f(key, cmd);
+      for (const cmd in keybindings) {
+        const keys = keybindings[cmd];
+        for (const key of keys.split(" ")) {
+          f(key, cmd);
+        }
       }
     }
   }
-
   if (opts.match_xml_tags) {
     extraKeys["Ctrl-J"] = "toMatchingTag";
   }
@@ -252,7 +275,7 @@ export function cm_options(
     "cc",
     "cpp",
     "h",
-    "bib"
+    "bib",
   ];
   if (tab2exts.includes(ext)) {
     opts.tab_size = opts.indent_unit = 2;
@@ -266,6 +289,7 @@ export function cm_options(
   }
 
   const options: any = {
+    spellcheck: opts.spellcheck,
     firstLineNumber: opts.first_line_number,
     autofocus: false,
     mode: { name: opts.mode, globalVars: true },
@@ -295,7 +319,7 @@ export function cm_options(
     showCursorWhenSelecting: true,
     extraKeys,
     cursorScrollMargin: 3,
-    viewportMargin: 10
+    viewportMargin: 10,
   };
 
   if (opts.match_xml_tags) {
@@ -303,8 +327,8 @@ export function cm_options(
   }
 
   if (opts.code_folding) {
-    extraKeys["Ctrl-Q"] = cm => cm.foldCodeSelectionAware();
-    extraKeys["Alt-Q"] = cm => cm.foldCodeSelectionAware();
+    extraKeys["Ctrl-Q"] = (cm) => cm.foldCodeSelectionAware();
+    extraKeys["Alt-Q"] = (cm) => cm.foldCodeSelectionAware();
     options.foldGutter = true;
     options.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"];
   } else {
@@ -312,7 +336,7 @@ export function cm_options(
   }
 
   if (gutters) {
-    for (let gutter_id of gutters) {
+    for (const gutter_id of gutters) {
       options.gutters.push(gutter_id);
     }
   }
@@ -329,10 +353,19 @@ export function cm_options(
     options.theme = "default";
   }
 
+  if (options.spellcheck) {
+    // Note -- using contenteditable is NOT without negative consequences. See
+    //   https://github.com/sagemathinc/cocalc/issues/4663
+    // However, it's worth it for the option of browser spellchecking, and
+    // for our main application (chat input) the line number issue doesn't
+    // matter since we don't have line numbers there...
+    options.inputStyle = "contenteditable";
+  }
+
   return options;
 }
 
-var tab_key = function(editor, spaces_instead_of_tabs) {
+var tab_key = function (editor, spaces_instead_of_tabs) {
   if (editor.somethingSelected()) {
     return (CodeMirror as any).commands.defaultTab(editor);
   } else {

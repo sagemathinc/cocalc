@@ -1,21 +1,20 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Show errors and warnings.
 */
 
 import { Map } from "immutable";
+import { sortBy } from "lodash";
 import { capitalize, is_different, path_split } from "smc-util/misc2";
-import {
-  Component,
-  React,
-  rclass,
-  rtypes,
-  Rendered
-} from "../../app-framework";
+import { React, Rendered, useRedux } from "../../app-framework";
 import { TypedMap } from "../../app-framework/TypedMap";
-
 import { BuildLogs } from "./actions";
-
-const { Icon, Loading } = require("smc-webapp/r_misc");
+import { Icon, Loading } from "smc-webapp/r_misc";
+import { COLORS } from "../../../smc-util/theme";
 
 function group_to_level(group: string): string {
   switch (group) {
@@ -39,37 +38,37 @@ export interface SpecDesc {
   warning: SpecItem;
 }
 
-export let SPEC: SpecDesc = {
+export const SPEC: SpecDesc = {
   error: {
     icon: "bug",
-    color: "#a00"
+    color: "#a00",
   },
   typesetting: {
     icon: "exclamation-circle",
-    color: "rgb(66, 139, 202)"
+    color: "rgb(66, 139, 202)",
   },
   warning: {
     icon: "exclamation-triangle",
-    color: "#fdb600"
-  }
+    color: "#fdb600",
+  },
 };
 
 const ITEM_STYLES = {
   warning: {
     borderLeft: `2px solid ${SPEC.warning.color}`,
     padding: "15px",
-    margin: "5px 0"
+    margin: "5px 0",
   },
   error: {
     borderLeft: `2px solid ${SPEC.error.color}`,
     padding: "15px",
-    margin: "5px 0"
+    margin: "5px 0",
   },
   typesetting: {
     borderLeft: `2px solid ${SPEC.typesetting.color}`,
     padding: "15px",
-    margin: "5px 0"
-  }
+    margin: "5px 0",
+  },
 };
 
 interface item {
@@ -85,78 +84,83 @@ interface ItemProps {
   item: TypedMap<item>;
 }
 
-class Item extends Component<ItemProps, {}> {
-  shouldComponentUpdate(props: ItemProps): boolean {
-    return this.props.item !== props.item;
-  }
+const ItemFC: React.FC<ItemProps> = (props) => {
+  const { actions, item } = props;
 
-  edit_source(e: React.SyntheticEvent<any>): void {
+  function edit_source(e: React.SyntheticEvent<any>): void {
     e.stopPropagation();
-    const line: number = parseInt(this.props.item.get("line"));
-    const filename = this.props.item.get("file");
-    if (!filename) return;
-    this.props.actions.open_code_editor({
-      line: line,
-      file: filename,
-      cursor: true,
-      focus: true,
-      direction: "col"
-    });
-    this.props.actions.synctex_tex_to_pdf(line, 0, filename);
+    if (!item.get("file")) return; // not known
+    const line: number = parseInt(item.get("line"));
+    let path = item.get("file");
+    const head = path_split(actions.path).head;
+    if (head != "") {
+      path = head + "/" + path;
+    }
+    if (!path) return;
+    actions.goto_line_in_file(line, path);
+    actions.synctex_tex_to_pdf(line, 0, item.get("file"));
   }
 
-  render_location(): React.ReactElement<any> | undefined {
-    if (!this.props.item.get("line")) {
+  function render_location(): React.ReactElement<any> | undefined {
+    if (!item.get("line")) {
       return;
     }
     // https://github.com/sagemathinc/cocalc/issues/3413
-    const file = this.props.item.get("file");
+    const file = item.get("file");
 
     if (file) {
       return (
         <div>
           <a
-            onClick={e => this.edit_source(e)}
+            onClick={(e) => edit_source(e)}
             style={{ cursor: "pointer", float: "right" }}
           >
-            Line {this.props.item.get("line")} of {path_split(file).tail}
+            Line {item.get("line")} of {file}
           </a>
         </div>
       );
     } else {
-      return <div>Line {this.props.item.get("line")}</div>;
+      return <div>Line {item.get("line")}</div>;
     }
   }
 
-  render_message(): React.ReactElement<any> | undefined {
-    const message = this.props.item.get("message");
+  function render_message(): React.ReactElement<any> | undefined {
+    const message = item.get("message");
     if (!message) {
       return;
     }
     return <div>{message}</div>;
   }
 
-  render_content(): React.ReactElement<any> | undefined {
-    const content = this.props.item.get("content");
+  function render_content(): React.ReactElement<any> | undefined {
+    const content = item.get("content");
     if (!content) {
       return;
     }
     return <pre>{content}</pre>;
   }
 
-  render(): React.ReactElement<any> {
-    return (
-      <div style={ITEM_STYLES[this.props.item.get("level")]}>
-        {this.render_location()}
-        {this.render_message()}
-        {this.render_content()}
-      </div>
-    );
-  }
+  return (
+    <div style={ITEM_STYLES[item.get("level")]}>
+      {render_location()}
+      {render_message()}
+      {render_content()}
+    </div>
+  );
+};
+
+const Item = React.memo(ItemFC, (prev, next) => prev.item === next.item);
+
+interface MsgGroup {
+  rendered: Rendered;
+  level: string;
+  group: string;
+  size: number;
 }
 
 interface ErrorsAndWarningsProps {
   id: string;
+  name: string;
   actions: any;
   editor_state: Map<string, any>;
   is_fullscreen: boolean;
@@ -164,56 +168,56 @@ interface ErrorsAndWarningsProps {
   path: string;
   reload: number;
   font_size: number;
-
-  // reduxProps:
-  build_logs: BuildLogs;
-  status: string;
-  knitr: boolean;
 }
 
-class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
-  static defaultProps = { build_logs: Map<string, any>(), status: "" };
+const ErrorsAndWarningsFC: React.FC<ErrorsAndWarningsProps> = (props) => {
+  const {
+    /*id,*/
+    name,
+    actions,
+    /*editor_state,*/
+    /*is_fullscreen,*/
+    /*project_id,*/
+    /*path,*/
+    /*reload,*/
+    /*font_size,*/
+  } = props;
 
-  static reduxProps({ name }) {
-    return {
-      [name]: {
-        build_logs: rtypes.immutable.Map,
-        status: rtypes.string,
-        knitr: rtypes.bool
-      }
-    };
+  const build_logs_next: BuildLogs =
+    useRedux([name, "build_logs"]) ?? Map<string, any>();
+  const [build_logs, set_build_logs] = React.useState<BuildLogs>(
+    Map<string, any>()
+  );
+
+  // only update if any parsed logs differ
+  for (const key of ["latex", "knitr", "pythontex", "sagetex"]) {
+    if (
+      build_logs_next.getIn([key, "parse"]) != build_logs.getIn([key, "parse"])
+    ) {
+      set_build_logs(build_logs_next);
+      break;
+    }
   }
 
-  shouldComponentUpdate(props): boolean {
-    return (
-      is_different(this.props, props, ["status", "font_size", "knitr"]) ||
-      this.props.build_logs.getIn(["latex", "parse"]) !=
-        props.build_logs.getIn(["latex", "parse"]) ||
-      this.props.build_logs.getIn(["knitr", "parse"]) !=
-        props.build_logs.getIn(["knitr", "parse"]) ||
-      this.props.build_logs.getIn(["pythontex", "parse"]) !=
-        props.build_logs.getIn(["pythontex", "parse"])||
-      this.props.build_logs.getIn(["sagetex", "parse"]) !=
-        props.build_logs.getIn(["sagetex", "parse"])
-    );
-  }
+  const status: string = useRedux([name, "status"]) ?? "";
+  const knitr: boolean = useRedux([name, "knitr"]);
 
-  render_status(): Rendered {
-    if (this.props.status) {
+  function render_status(): Rendered {
+    if (status) {
       return (
         <div
           style={{
             margin: "5px",
             right: 0,
             background: "white",
-            paddingLeft: "5px"
+            paddingLeft: "5px",
           }}
         >
           <Loading
-            text={this.props.status}
+            text={status}
             style={{
               fontSize: "10pt",
-              color: "#666"
+              color: COLORS.GRAY,
             }}
           />
         </div>
@@ -221,28 +225,33 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
     }
   }
 
-  render_item(item, key): Rendered {
-    return <Item key={key} item={item} actions={this.props.actions} />;
+  function render_item(item, key): Rendered {
+    return <Item key={key} item={item} actions={actions} />;
   }
 
-  render_group_content(content): Rendered {
+  function render_group_content(content): Rendered {
     if (content.size === 0) {
       return <div>None</div>;
     } else {
       const w: Rendered[] = [];
-      content.forEach(item => {
-        w.push(this.render_item(item, w.length));
+      content.forEach((item) => {
+        w.push(render_item(item, w.length));
       });
       return <div>{w}</div>;
     }
   }
 
-  render_group(tool: string, group: string): Rendered {
-    if (tool == "knitr" && !this.props.knitr) {
+  function render_group(
+    tool: string,
+    group: string,
+    num: number
+  ): MsgGroup | undefined {
+    if (tool == "knitr" && !knitr) {
       return undefined;
     }
-    const spec: SpecItem = SPEC[group_to_level(group)];
-    const content = this.props.build_logs.getIn([tool, "parse", group]);
+    const level = group_to_level(group);
+    const spec: SpecItem = SPEC[level];
+    const content = build_logs.getIn([tool, "parse", group]);
     if (!content) {
       return;
     }
@@ -252,48 +261,78 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
         {capitalize(group)} ({capitalize(tool)})
       </>
     );
-    return (
-      <div key={group}>
+    const rendered = (
+      <div key={`${group}-${num}`}>
         {content.size == 0 ? <h5>{header}</h5> : <h3>{header}</h3>}
-        {this.render_group_content(content)}
+        {render_group_content(content)}
       </div>
     );
+    return { rendered, level, group, size: content.size };
   }
 
-  render_hint(): Rendered {
-    if (this.props.status || this.props.build_logs.size > 0) {
+  // in particular, we want to show actual errors at the top
+  // (otherwise, e.g. sagetex errors are burried below typesetting warnings)
+  function priority(group: MsgGroup) {
+    if (group.size == 0) return 0;
+    // lower index number comes first
+    const grouporder = ["errors", "typesetting", "warnings"];
+    // see group_to_level
+    const level = { error: 100, warning: 10 }[group.level] ?? 0;
+    return -level + grouporder.indexOf(group.group);
+  }
+
+  function render_groups(): Rendered[] {
+    const groups: MsgGroup[] = [];
+    const add = (group) => {
+      if (group != null) groups.push(group);
+    };
+    ["errors", "typesetting", "warnings"].forEach((group) =>
+      add(render_group("latex", group, 0))
+    );
+    add(render_group("sagetex", "errors", 1));
+    ["errors", "warnings"].forEach((group) =>
+      add(render_group("knitr", group, 2))
+    );
+    add(render_group("pythontex", "errors", 3));
+
+    return sortBy(groups, priority).map((g) => g.rendered);
+  }
+
+  function render_hint(): Rendered {
+    if (status || build_logs.size > 0) {
       return;
     }
     return (
-      <div style={{ color: "#666" }}>
+      <div style={{ color: COLORS.GRAY }}>
         Click the <Icon name="play-circle" /> Build button or hit shift+enter to
         run LaTeX.
       </div>
     );
   }
 
-  render(): React.ReactElement<any> {
-    return (
-      <div
-        className={"smc-vfill"}
-        style={{
-          overflowY: "scroll",
-          padding: "5px 15px",
-          fontSize: "10pt"
-        }}
-      >
-        {this.render_hint()}
-        {this.render_status()}
-        {["errors", "typesetting", "warnings"].map(group =>
-          this.render_group("latex", group)
-        )}
-        {this.render_group("sagetex", "errors")}
-        {["errors", "warnings"].map(group => this.render_group("knitr", group))}
-        {this.render_group("pythontex", "errors")}
-      </div>
-    );
-  }
+  return (
+    <div
+      className={"smc-vfill"}
+      style={{
+        overflowY: "scroll",
+        padding: "5px 15px",
+        fontSize: "10pt",
+      }}
+    >
+      {render_hint()}
+      {render_status()}
+      {render_groups()}
+    </div>
+  );
+};
+
+function should_memoize(prev, next): boolean {
+  const props_diff = is_different(prev, next, ["status", "font_size", "knitr"]);
+  // if props are different → don't memoize
+  return !props_diff;
 }
 
-const tmp = rclass(ErrorsAndWarnings);
-export { tmp as ErrorsAndWarnings };
+export const ErrorsAndWarnings = React.memo(
+  ErrorsAndWarningsFC,
+  should_memoize
+);

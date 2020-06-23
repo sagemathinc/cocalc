@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * CoCalc's Xpra HTML Client
  *
  * ---
@@ -11,7 +16,7 @@
  * Copyright (c) 2018-2019 SageMath, Inc.
  * Licensed under MPL 2.0, see:
  * http://www.mozilla.org/MPL/2.0/
-*/
+ */
 /**
  * CoCalc Xpra Client
  */
@@ -21,7 +26,7 @@ import { Keyboard } from "./keyboard";
 
 function get_wheel_event_name(): string {
   const element = document.createElement("div");
-  for (let name of ["wheel", "mousewheel", "DOMMouseScroll"]) {
+  for (const name of ["wheel", "mousewheel", "DOMMouseScroll"]) {
     const n = `on${name}`;
     element.setAttribute(n, "return;");
     if (typeof element[n] === "function") {
@@ -109,7 +114,7 @@ function normalize_wheel(
     spinY,
     pixelX,
     pixelY,
-    deltaMode: ev.deltaMode || 0
+    deltaMode: ev.deltaMode || 0,
   };
 }
 
@@ -117,8 +122,8 @@ function getMouseButton(ev: MouseEvent): number {
   let button: number = ev.which
     ? Math.max(0, ev.which)
     : ev.button
-      ? Math.max(0, ev.button) + 1
-      : 0;
+    ? Math.max(0, ev.button) + 1
+    : 0;
 
   if (button === 4) {
     button = 8;
@@ -248,7 +253,7 @@ export class Mouse {
     x,
     y,
     buttons,
-    modifiers
+    modifiers,
   }: {
     ev: MouseEvent;
     wid: number;
@@ -262,14 +267,14 @@ export class Mouse {
     // and won't work without kernel support that is not allowed by
     // Docker for security reasons.  So we instead "send
     // synthetic click+release as many times as needed".
-    let wheel = normalize_wheel(ev);
+    const wheel = normalize_wheel(ev);
 
     const INCREMENT = 120;
     //clamp to prevent event floods:
-    let px = Math.min(INCREMENT*10, wheel.pixelX);
-    let py = Math.min(INCREMENT*10, wheel.pixelY);
-    let apx = Math.abs(px);
-    let apy = Math.abs(py);
+    const px = Math.min(INCREMENT * 10, wheel.pixelX);
+    const py = Math.min(INCREMENT * 10, wheel.pixelY);
+    const apx = Math.abs(px);
+    const apy = Math.abs(py);
 
     // Generate a single event if we can, or add to accumulators:
     if (apx >= 40 && apx <= 160) {
@@ -285,8 +290,8 @@ export class Mouse {
     // Send synthetic click+release as many times as needed:
     let wx = Math.abs(this.wheel_delta_x);
     let wy = Math.abs(this.wheel_delta_y);
-    let btn_x = this.wheel_delta_x >= 0 ? 6 : 7;
-    let btn_y = this.wheel_delta_y >= 0 ? 5 : 4;
+    const btn_x = this.wheel_delta_x >= 0 ? 6 : 7;
+    const btn_y = this.wheel_delta_y >= 0 ? 5 : 4;
 
     while (wx >= INCREMENT) {
       wx -= INCREMENT;

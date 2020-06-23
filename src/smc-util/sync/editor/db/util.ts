@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Well-defined JSON.stringify...
 const json_stable = require("json-stable-stringify");
 import * as immutable from "immutable";
@@ -22,7 +27,7 @@ export function to_key(s: any): string {
 */
 
 export function to_str(obj: any[]): string {
-  const v = obj.map(x => json_stable(x));
+  const v = obj.map((x) => json_stable(x));
   /* NOTE: It is *VERY* important to sort v!  Otherwise, the hash
      of this document, which is used by
      syncstring, isn't stable in terms of the value of the
@@ -69,10 +74,10 @@ export function map_merge_patch(obj1, obj2) {
 //  - we set the other vals of obj, accordingly.
 // So this is a shallow merge with the ability to *delete* keys.
 export function merge_set(
-  obj: immutable.Map<any,any>,
-  change: immutable.Map<any,any>
-): immutable.Map<any,any> {
-  change.forEach(function(v, k) {
+  obj: immutable.Map<any, any>,
+  change: immutable.Map<any, any>
+): immutable.Map<any, any> {
+  change.forEach(function (v, k) {
     if (v === null || v == null) {
       obj = obj.delete(k);
     } else {
@@ -83,8 +88,8 @@ export function merge_set(
 }
 
 export function nonnull_cols(
-  f: immutable.Map<any,any>
-): immutable.Map<any,any> {
+  f: immutable.Map<any, any>
+): immutable.Map<any, any> {
   // Yes, "!==" not "!=" below!
   return immutable.Map(f.filter((v, _) => v !== null));
 }

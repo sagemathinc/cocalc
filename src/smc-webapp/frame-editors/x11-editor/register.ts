@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Register the X Window editor
 */
 
@@ -10,5 +15,5 @@ register_file_editor({
   icon: "window-restore",
   ext: "x11",
   component: Editor,
-  Actions
+  Actions,
 });

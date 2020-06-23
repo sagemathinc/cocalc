@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { CompressedPatch, Patch } from "./types";
 
 const { diff_match_patch } = require("smc-util/dmp");
@@ -17,7 +22,7 @@ const Diff = diff_match_patch.Diff;
 
 function diffs_to_arrays(diffs: any[]): any[] {
   const v: any[] = [];
-  for (let d of diffs) {
+  for (const d of diffs) {
     v.push([d[0], d[1]]);
   }
   return v;
@@ -25,29 +30,29 @@ function diffs_to_arrays(diffs: any[]): any[] {
 
 function arrays_to_diffs(arrays: any[]): any[] {
   const v: any[] = [];
-  for (let x of arrays) {
+  for (const x of arrays) {
     v.push(new Diff(x[0], x[1]));
   }
   return v;
 }
 
 export function compress_patch(patch: CompressedPatch): CompressedPatch {
-  return patch.map(p => [
+  return patch.map((p) => [
     diffs_to_arrays(p.diffs),
     p.start1,
     p.start2,
     p.length1,
-    p.length2
+    p.length2,
   ]);
 }
 
 export function decompress_patch(patch: CompressedPatch): CompressedPatch {
-  return patch.map(p => ({
+  return patch.map((p) => ({
     diffs: arrays_to_diffs(p[0]),
     start1: p[1],
     start2: p[2],
     length1: p[3],
-    length2: p[4]
+    length2: p[4],
   }));
 }
 
@@ -73,7 +78,7 @@ export function apply_patch(
     return [s, false];
   }
   let clean = true;
-  for (let a of x[1]) {
+  for (const a of x[1]) {
     if (!a) {
       clean = false;
       break;

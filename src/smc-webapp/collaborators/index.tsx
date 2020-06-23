@@ -1,2 +1,7 @@
-export {AddCollaboratorsPanel} from './new-collabs';
-export {CurrentCollaboratorsPanel} from './current-collabs';
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+export { AddCollaboratorsPanel } from "./new-collabs";
+export { CurrentCollaboratorsPanel } from "./current-collabs";

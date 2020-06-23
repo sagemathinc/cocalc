@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * CoCalc's Xpra HTML Client
  *
  * ---
@@ -11,7 +16,7 @@
  * Copyright (c) 2018-2019 SageMath, Inc.
  * Licensed under MPL 2.0, see:
  * http://www.mozilla.org/MPL/2.0/
-*/
+ */
 /**
  * CoCalc Xpra HTML Client
  */
@@ -28,9 +33,8 @@ require("./lz4");
 let debug;
 if (DEBUG) {
   debug = console.log;
-
 } else {
-  debug = function(..._) {};
+  debug = function (..._) {};
 }
 
 // Inflates compressed data
@@ -73,11 +77,11 @@ function inflate(
 
 // Decodes a packet
 function decode(inflated: Uint8Array, rawQueue: Uint8Array[]): any[] {
-  let packet = bdecode(inflated);
+  const packet = bdecode(inflated);
   if (packet == null) {
     throw Error("unable to decode packet");
   }
-  for (let index in rawQueue) {
+  for (const index in rawQueue) {
     packet[index] = rawQueue[index];
   }
 
@@ -128,7 +132,7 @@ function parsePacket(
   const proto: Proto = {
     flags: header[1],
     padding: 0,
-    crypto: header[1] & 0x2
+    crypto: header[1] & 0x2,
   };
 
   if (proto.flags !== 0 && !proto.crypto) {

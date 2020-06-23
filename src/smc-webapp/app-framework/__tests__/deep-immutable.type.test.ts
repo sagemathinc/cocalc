@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { expectType } from "tsd";
 import * as immutable from "immutable";
 import { TypedMap } from "../TypedMap";
@@ -5,7 +10,7 @@ import { DeepImmutable } from "../immutable-types";
 
 test("Successfully converts a complex object", () => {
   interface State {
-    foo: { 
+    foo: {
       bar: string[];
       bar2?: { a?: number[]; b: number; c: number };
       map: immutable.Map<string, any>;
@@ -20,8 +25,8 @@ test("Successfully converts a complex object", () => {
       ArrayBuffer: ArrayBuffer;
     };
   }
-  let result: DeepImmutable<State> = "" as any;
-  
+  const result: DeepImmutable<State> = "" as any;
+
   type FullConvert = TypedMap<{
     foo: TypedMap<{
       bar: immutable.List<string>;
@@ -37,7 +42,7 @@ test("Successfully converts a complex object", () => {
       Promise: Promise<any>;
       ArrayBuffer: ArrayBuffer;
     }>;
-  }>
-  
+  }>;
+
   expectType<FullConvert>(result);
-})
+});

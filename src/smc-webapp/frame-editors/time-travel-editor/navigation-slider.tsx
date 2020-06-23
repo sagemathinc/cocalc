@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Component, React, Rendered } from "../../app-framework";
 
 import { TimeTravelActions } from "./actions";
@@ -20,7 +25,7 @@ export class NavigationSlider extends Component<Props> {
     if (version == null) return <div />;
     return (
       <input
-        style={{cursor:'pointer'}}
+        style={{ cursor: "pointer" }}
         type="range"
         min={0}
         max={max}

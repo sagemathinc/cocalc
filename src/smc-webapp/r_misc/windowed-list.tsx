@@ -1,15 +1,26 @@
 /*
-Windowed List, based on react-window:
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-- automatically handles rows changing sizes, which I guess solves this problem?  https://github.com/bvaughn/react-window/issues/6
+/* WARNING/TODO:
 
-- handles maintaining sroll position between unmount/mount
-
-- We use react-window instead of react-virtualized, since react-window is
-  enough for our needs, is faster, is smaller, and seems to work better.
-  I did implement everything first using react-virtualized, but react-window
-  is definitely faster, and the overscan seems to work much better.
+   scroll_to_index does basically NOTHING right now.
+   This is due to an API change in react-window,
+   which I just found by installing @types/react-window.
 */
+
+// Windowed List, based on react-window:
+//
+// - automatically handles rows changing sizes, which I guess solves this problem?  https://github.com/bvaughn/react-window/issues/6
+//
+// - handles maintaining sroll position between unmount/mount
+//
+// - We use react-window instead of react-virtualized, since react-window is
+//   enough for our needs, is faster, is smaller, and seems to work better.
+//   I did implement everything first using react-virtualized, but react-window
+//   is definitely faster, and the overscan seems to work much better.
+
 import { delay } from "awaiting";
 
 // The ResizeObserver polyfill in the resize-observer package is
@@ -23,7 +34,7 @@ if (ResizeObserver == null) {
 }
 const SHRINK_THRESH: number = 10;
 
-import { VariableSizeList as List } from "react-window";
+import { VariableSizeList as List, ListOnScrollProps } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
 
 import { React, Component, Rendered } from "../app-framework";
@@ -42,7 +53,7 @@ interface Props {
   scroll_to_index?: number; // moves to this row during next render (but doesn't get stuck there!)
   scroll_top?: number;
   cache_id?: string; // if set, the measured cell sizes and scroll position are preserved between unmount/mounts
-  on_scroll?: (scroll_top: number) => void;
+  on_scroll?: (info: ListOnScrollProps) => void;
   use_is_scrolling?: boolean;
   hide_resize?: boolean;
   render_info?: boolean; // if true, record RenderInfo; also makes isVisible available for row_renderer.
@@ -52,12 +63,6 @@ interface Props {
 interface State {
   scroll_to_index?: number;
   scroll_top?: number;
-}
-
-interface ScrollInfo {
-  scrollDirection: "forward" | "backward";
-  scrollOffset: number;
-  scrollUpdateWasRequested: boolean;
 }
 
 interface RenderInfo {
@@ -70,7 +75,7 @@ interface RenderInfo {
 // TODO: this should be an LRU cache, to avoid a longterm memory leak.
 const scroll_cache: {
   [cache_id: string]: {
-    info: ScrollInfo;
+    info: ListOnScrollProps;
     row_heights_cache: { [key: string]: number };
   };
 } = {};
@@ -80,6 +85,7 @@ export class WindowedList extends Component<Props, State> {
   private list_ref;
   private row_heights_cache: { [key: string]: number } = {};
   private row_heights_stale: { [key: string]: boolean } = {};
+  private row_heights_removed: { [key: string]: boolean } = {};
   public resize_observer: any; // ResizeObserver, but can't because that's only for the polyfill...
   private is_mounted: boolean = true;
   private _disable_refresh: boolean = false;
@@ -93,14 +99,14 @@ export class WindowedList extends Component<Props, State> {
   } = {
     scrollDirection: "forward",
     scrollOffset: 0,
-    scrollUpdateWasRequested: false
+    scrollUpdateWasRequested: false,
   };
 
   public render_info: RenderInfo = {
     overscanStartIndex: 0,
     overscanStopIndex: 0,
     visibleStartIndex: 0,
-    visibleStopIndex: 0
+    visibleStopIndex: 0,
   };
   private ensure_visible?: { row: number; align: string };
 
@@ -217,7 +223,7 @@ export class WindowedList extends Component<Props, State> {
   }
 
   // Last scroll info
-  public get_scroll(): ScrollInfo | undefined {
+  public get_scroll(): ListOnScrollProps | undefined {
     if (this.props.cache_id == null) {
       throw Error("you must set the cache_id before using get_scroll");
     }
@@ -229,22 +235,45 @@ export class WindowedList extends Component<Props, State> {
   private cell_resized(entries: any[]): void {
     let num_changed: number = 0;
     let min_index: number = 999999;
-    for (let entry of entries) {
-      // TODO: don't use jQuery, or just use https://github.com/souporserious/react-measure?
-      if (isNaN(entry.contentRect.height) || entry.contentRect.height === 0)
-        continue;
+    for (const entry of entries) {
       const elt = entry.target;
       const key = elt.getAttribute("data-key");
       if (key == null) continue;
-      const index = elt.getAttribute("data-index");
-      if (index != null) {
-        min_index = Math.min(min_index, parseInt(index));
+      if (isNaN(entry.contentRect.height) || entry.contentRect.height === 0) {
+        if (this.row_heights_cache[key] > 0) {
+          // A row was deleted (or isn't visible), so goes from a
+          // possibly big height to 0.
+          this.row_heights_removed[key] = true;
+        }
+        continue;
       }
+
+      const index = elt.getAttribute("data-index");
+      if (this.row_heights_removed[key]) {
+        delete this.row_heights_removed[key];
+        if (
+          Math.abs(this.row_heights_cache[key] - entry.contentRect.height) < 3
+        ) {
+          // Last time it changed it was removed, and now it is back but with
+          // a (significantly) different height
+          this.row_heights_cache[key] = entry.contentRect.height;
+          this.row_heights_stale[key] = true;
+          num_changed += 1;
+          if (index != null) {
+            min_index = Math.min(min_index, parseInt(index));
+          }
+          continue;
+        }
+      }
+
       const s = entry.contentRect.height - this.row_heights_cache[key];
       if (s == 0 || (s < 0 && -s <= SHRINK_THRESH)) {
         // not really changed or just disappeared from DOM or just shrunk a little,
         // ... so continue using what we have cached (or the default).
         continue;
+      }
+      if (index != null) {
+        min_index = Math.min(min_index, parseInt(index));
       }
       this.row_heights_stale[key] = true;
       num_changed += 1;
@@ -317,14 +346,14 @@ export class WindowedList extends Component<Props, State> {
     if (!this.is_mounted) return;
     this.setState({
       scroll_to_index: undefined,
-      scroll_top: undefined
+      scroll_top: undefined,
     });
   }
 
   public render(): Rendered {
-    let on_scroll: undefined | Function = undefined;
+    let on_scroll: undefined | ((info: ListOnScrollProps) => void) = undefined;
     if (this.props.cache_id != null || this.props.on_scroll != null) {
-      on_scroll = info => {
+      on_scroll = (info: ListOnScrollProps): void => {
         this.scroll_info = info;
         if (this.props.on_scroll != null) {
           this.props.on_scroll(info);
@@ -332,14 +361,14 @@ export class WindowedList extends Component<Props, State> {
         if (this.props.cache_id != null) {
           scroll_cache[this.props.cache_id as string] = {
             info,
-            row_heights_cache: this.row_heights_cache
+            row_heights_cache: this.row_heights_cache,
           };
         }
       };
     }
 
     const save_render_info = this.props.render_info
-      ? info => {
+      ? (info) => {
           this.render_info = info;
         }
       : undefined;
@@ -363,7 +392,6 @@ export class WindowedList extends Component<Props, State> {
                 estimatedItemSize={this.props.estimated_row_size}
                 itemSize={this.row_height.bind(this)}
                 itemCount={this.props.row_count}
-                scrollToIndex={this.state.scroll_to_index}
                 initialScrollOffset={this.state.scroll_top}
                 onScroll={on_scroll}
                 useIsScrolling={this.props.use_is_scrolling}
@@ -402,10 +430,13 @@ function create_row_component(windowed_list: WindowedList) {
       }
       return (
         <div
-          style={{ display: "flex", flexDirection: "column" }}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+          }}
           data-key={key}
           data-index={index}
-          ref={node => {
+          ref={(node) => {
             if (node == null) return;
             (windowed_list as any).cell_refs[key] = $(node);
             (windowed_list as any).resize_observer.observe(node);
@@ -415,7 +446,7 @@ function create_row_component(windowed_list: WindowedList) {
             key,
             index,
             isScrolling,
-            isVisible
+            isVisible,
           })}
         </div>
       );

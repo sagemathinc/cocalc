@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import * as misc from "smc-util/misc";
 
@@ -6,11 +11,13 @@ const { FormControl, FormGroup } = require("react-bootstrap");
 interface Props {
   options:
     | string[]
-    | { value: string; display: JSX.Element }[]
-    | { [keys: string]: JSX.Element };
+    | { value: string; display: JSX.Element | string }[]
+    | { [keys: string]: JSX.Element }
+    | Readonly<{ [keys: string]: string }>;
   disabled?: boolean;
   selected?: string;
   on_change?: (selected: string) => void;
+  style?: React.CSSProperties;
 }
 
 // If the first element is a string, we assume the rest to be a string
@@ -19,14 +26,14 @@ function isStringArrayHeuristic(a: any): a is string[] {
 }
 
 export class SelectorInput extends React.Component<Props> {
-  onChange = e => {
+  onChange = (e) => {
     if (this.props.on_change !== undefined) {
       this.props.on_change(e.target.value);
     }
   };
 
   render_options(): JSX.Element[] {
-    let result: JSX.Element[] = [];
+    const result: JSX.Element[] = [];
     if (Array.isArray(this.props.options)) {
       let x: any;
       if (isStringArrayHeuristic(this.props.options)) {
@@ -51,9 +58,9 @@ export class SelectorInput extends React.Component<Props> {
         return result;
       }
     } else {
-      let v = misc.keys(this.props.options);
+      const v = misc.keys(this.props.options);
       v.sort();
-      for (let value of v) {
+      for (const value of v) {
         const display = this.props.options[value];
         result.push(
           <option key={value} value={value}>
@@ -67,7 +74,7 @@ export class SelectorInput extends React.Component<Props> {
 
   render() {
     return (
-      <FormGroup>
+      <FormGroup style={this.props.style}>
         <FormControl
           value={this.props.selected}
           componentClass="select"

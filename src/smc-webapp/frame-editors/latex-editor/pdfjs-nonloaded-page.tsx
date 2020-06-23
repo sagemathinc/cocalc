@@ -1,10 +1,11 @@
-/* Render a single PDF page using SVG */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import { PDFPageProxy } from "pdfjs-dist/webpack";
 
 import { Component, React } from "../../app-framework";
-
-import { is_different } from "smc-util/misc2";
 
 interface Props {
   page: PDFPageProxy;
@@ -12,24 +13,17 @@ interface Props {
 }
 
 export class NonloadedPage extends Component<Props, {}> {
-  shouldComponentUpdate(next_props: Props) {
-    return (
-      is_different(this.props, next_props, ["scale"]) ||
-      this.props.page.version != next_props.page.version
-    );
-  }
-
   render() {
-    const viewport = this.props.page.getViewport(this.props.scale);
-    let width = viewport.width + "px";
-    let height = viewport.height + "px";
+    const viewport = this.props.page.getViewport({ scale: this.props.scale });
+    const width = viewport.width + "px";
+    const height = viewport.height + "px";
     return (
       <div
         style={{
           margin: "auto",
           background: "white",
           position: "relative",
-          display: "inline-block"
+          display: "inline-block",
         }}
       >
         <div style={{ width: width, height: height }} />

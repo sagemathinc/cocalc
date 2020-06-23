@@ -1,30 +1,12 @@
-//##############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
-
 /*
-Given a query, do some validation on it, and also possibly fill in fields
-in the query that are determined by functional calls in the schema.
-If validation fails, this returns an error message; if validation succeeds,
-it returns undefined.  The input query may be mutated in place.
-*/
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// Given a query, do some validation on it, and also possibly fill in fields
+// in the query that are determined by functional calls in the schema.
+// If validation fails, this returns an error message; if validation succeeds,
+// it returns undefined.  The input query may be mutated in place.
 
 let validate_client_query;
 const misc = require("./misc");

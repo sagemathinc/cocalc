@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Channels used for maybe nothing right now.
 
 I thought this would be useful, but it hasn't yet turned out to be.
@@ -43,19 +48,19 @@ export async function browser_symmetric_channel(
     local = new SymmetricChannel(channel);
     sync_tables[name] = {
       local,
-      channel
+      channel,
     };
   }
 
-  channel.on("connection", function(spark: any): void {
+  channel.on("connection", function (spark: any): void {
     // Now handle a connection
     logger.debug("sync", name, `conn from ${spark.address.ip} -- ${spark.id}`);
-    spark.on("end", function() {
+    spark.on("end", function () {
       logger.debug("sync", name, `closed ${spark.address.ip} -- ${spark.id}`);
     });
-    spark.on("data", function(data) {
+    spark.on("data", function (data) {
       local._data_from_spark(data);
-      channel.forEach(function(spark0, id) {
+      channel.forEach(function (spark0, id) {
         if (id !== spark.id) {
           spark0.write(data);
         }
@@ -96,4 +101,3 @@ export function symmetric_channel(name: string): SymmetricChannel {
   sync_tables[name] = { local };
   return local;
 }
-

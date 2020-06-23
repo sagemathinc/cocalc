@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 nbgrader functionality: the create assignment toolbar.
 <Form inline>
   <FormGroup controlId="formInlineName">
@@ -9,7 +14,7 @@ import {
   FormControl,
   FormGroup,
   ControlLabel,
-  Form
+  Form,
 } from "react-bootstrap";
 import { Map } from "immutable";
 
@@ -23,18 +28,20 @@ import { Metadata } from "./types";
 
 import { popup } from "../../frame-editors/frame-tree/print";
 
+import { debounce } from "lodash";
+
 import {
   CELLTYPE_INFO_LIST,
   CELLTYPE_INFO_MAP,
   value_to_state,
   state_to_value,
-  value_to_template_content
+  value_to_template_content,
 } from "./cell-types";
 
 const OPTIONS_CODE: Rendered[] = [];
 const OPTIONS_NOTCODE: Rendered[] = [];
 
-for (let x of CELLTYPE_INFO_LIST) {
+for (const x of CELLTYPE_INFO_LIST) {
   const option = (
     <option key={x.value} value={x.value}>
       {x.title}
@@ -53,6 +60,8 @@ interface CreateAssignmentProps {
 }
 
 export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
+  private focus_points: boolean = false;
+
   private select(value: string): void {
     if (value == "") {
       // clearing state
@@ -77,14 +86,19 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
 
     if (this.props.cell.get("input", "").trim() == "") {
       const language: string = this.props.actions.store.get_kernel_language();
-      const input = value_to_template_content(value, language);
+      const input = value_to_template_content(
+        value,
+        language,
+        this.props.cell.get("cell_type", "code")
+      );
       if (input != "") {
         this.props.actions.set_cell_input(this.props.cell.get("id"), input);
       }
     }
   }
 
-  private set_points(points: any): void {
+  private set_points = debounce((points) => {
+    this.focus_points = true;
     points = parseFloat(points);
     if (!Number.isFinite(points) || points < 0) {
       points = 0;
@@ -93,7 +107,7 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
       this.props.cell.get("id"),
       { points }
     );
-  }
+  }, 1000);
 
   private get_value(): string {
     const x = this.props.cell.getIn(["metadata", "nbgrader"], Map());
@@ -110,7 +124,7 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
     const locked: boolean = !!this.props.cell.getIn([
       "metadata",
       "nbgrader",
-      "locked"
+      "locked",
     ]);
     if (!locked) return;
     return <Icon name={"lock"} style={{ float: "left", padding: "5px" }} />;
@@ -120,21 +134,24 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
     const points: number | undefined = this.props.cell.getIn([
       "metadata",
       "nbgrader",
-      "points"
+      "points",
     ]);
     if (points == null) return;
+    const focus_points = this.focus_points;
+    this.focus_points = false;
     return (
       <FormGroup>
         <ControlLabel style={{ fontWeight: 400 }}>Points:</ControlLabel>
         <FormControl
           type="number"
+          autoFocus={focus_points}
           defaultValue={`${points}`}
-          onChange={e => this.set_points((e.target as any).value)}
+          onChange={(e) => this.set_points((e.target as any).value)}
           style={{
             color: "#666",
-            width: "64px",
+            width: "10ex",
             marginLeft: "5px",
-            fontSize: "14px"
+            fontSize: "14px",
           }}
         />
       </FormGroup>
@@ -153,7 +170,7 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
     const grade_id: string | undefined = this.props.cell.getIn([
       "metadata",
       "nbgrader",
-      "grade_id"
+      "grade_id",
     ]);
     if (grade_id == null) return;
     return (
@@ -165,13 +182,13 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
           spellCheck={false}
           type="input"
           value={grade_id}
-          onChange={e => this.set_grade_id((e.target as any).value)}
+          onChange={(e) => this.set_grade_id((e.target as any).value)}
           style={{
             width: `${grade_id.length <= 6 ? 64 : 180}px`,
             marginLeft: "10px",
             paddingLeft: "5px",
             color: "#666",
-            fontSize: "14px"
+            fontSize: "14px",
           }}
         />
       </FormGroup>
@@ -187,7 +204,7 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
       <FormControl
         componentClass="select"
         placeholder="select"
-        onChange={e => this.select((e as any).target.value)}
+        onChange={(e) => this.select((e as any).target.value)}
         value={this.get_value()}
         style={{ marginLeft: "15px" }}
       >

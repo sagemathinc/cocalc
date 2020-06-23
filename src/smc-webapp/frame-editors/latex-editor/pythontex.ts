@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Run PythonTeX
 */
 
@@ -22,7 +27,8 @@ export async function pythontex(
   path: string,
   time: number,
   force: boolean,
-  status: Function
+  status: Function,
+  output_directory: string | undefined
 ): Promise<ExecOutput> {
   const { base, directory } = parse_path(path);
   const args = ["--jobs", "2"];
@@ -33,15 +39,15 @@ export async function pythontex(
   status(`pythontex ${args.join(" ")}`);
   const aggregate = time && !force ? { value: time } : undefined;
   return exec({
-    allow_post: false, // definitely could take a long time to fully run this
     timeout: 360,
     bash: true, // timeout is enforced by ulimit
     command: "pythontex3",
     args: args.concat(base),
+    env: { MPLBACKEND: "Agg" }, // for python plots -- https://github.com/sagemathinc/cocalc/issues/4203
     project_id: project_id,
-    path: directory,
+    path: output_directory || directory,
     err_on_exit: false,
-    aggregate
+    aggregate,
   });
 }
 
@@ -63,14 +69,14 @@ PythonTeX:  pytex-test - 1 error(s), 0 warning(s)
 */
 
 export function pythontex_errors(
-  path: string,
+  file: string,
   output: BuildLog
 ): ProcessedLatexLog {
   const pll = new ProcessedLatexLog();
 
   let err: Error | undefined = undefined;
 
-  for (let line of output.stdout.split("\n")) {
+  for (const line of output.stdout.split("\n")) {
     if (line.search("PythonTeX stderr") > 0) {
       const hit = line.match(/line (\d+):/);
       let line_no: number | null = null;
@@ -79,11 +85,11 @@ export function pythontex_errors(
       }
       err = {
         line: line_no,
-        file: path,
+        file,
         level: "error",
         message: line,
         content: "",
-        raw: ""
+        raw: "",
       };
       pll.errors.push(err);
       pll.all.push(err);

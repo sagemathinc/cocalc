@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const { writeFile, readFile, unlink } = require("fs");
 const tmp = require("tmp");
 const { execute_code } = require("smc-util-node/execute-code");
@@ -44,7 +49,7 @@ async function tidy(input_path) {
     "no",
     "--drop-empty-paras",
     "no",
-    input_path
+    input_path,
   ];
 
   return await callback_opts(execute_code)({
@@ -52,7 +57,7 @@ async function tidy(input_path) {
     args: args,
     err_on_exit: false,
     bash: false,
-    timeout: 15
+    timeout: 15,
   });
 }
 
@@ -80,9 +85,7 @@ export async function html_format(
     } catch (e) {
       logger.debug(`Calling formatter raised ${e}`);
       throw new Error(
-        `HTML formatter broken or not available. Is '${
-          options.parser
-        }' installed?`
+        `HTML formatter broken or not available. Is '${options.parser}' installed?`
       );
     }
 
@@ -100,8 +103,8 @@ export async function html_format(
     }
 
     // all fine, we read from the temp file
-    let output: Buffer = await callback(readFile, input_path);
-    let s: string = output.toString("utf-8");
+    const output: Buffer = await callback(readFile, input_path);
+    const s: string = output.toString("utf-8");
     return s;
   } finally {
     // logger.debug(`html formatter done, unlinking ${input_path}`);

@@ -1,14 +1,17 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Frame that display a Jupyter notebook in the traditional way with input and output cells.
 */
 
-import { Loading } from "../../../r_misc/loading";
+import { Loading } from "../../../r_misc";
 
-import { React, Rendered, Component, redux } from "../../../app-framework";
+import { React, Rendered, Component } from "../../../app-framework";
 
 import { JupyterEditor } from "../../../jupyter/main";
-
-import { redux_name } from "../jupyter-actions";
 
 import { Map } from "immutable";
 import { JupyterEditorActions } from "../actions";
@@ -33,13 +36,8 @@ export class CellNotebook extends Component<Props, {}> {
   }
 
   render(): Rendered {
-    const name = redux_name(this.props.name);
-
     // Actions for the underlying Jupyter notebook state, kernel state, etc.
-    const jupyter_actions: JupyterActions = redux.getActions(name);
-    if (jupyter_actions == null) {
-      return <Loading />;
-    }
+    const jupyter_actions: JupyterActions = this.props.actions.jupyter_actions;
     // Actions specific to a particular frame view of the notebook
     // in the browser client.
     const frame_actions = this.props.actions.get_frame_actions(this.props.id);
@@ -51,7 +49,7 @@ export class CellNotebook extends Component<Props, {}> {
         actions={jupyter_actions}
         editor_actions={this.props.actions}
         frame_actions={frame_actions}
-        name={name}
+        name={jupyter_actions.name}
         is_focused={this.props.is_current}
         is_fullscreen={this.props.is_fullscreen}
         font_size={this.props.font_size}

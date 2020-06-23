@@ -1,18 +1,23 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { props2img, RESET_ICON } from "./util";
 import { ComputeImages } from "./init";
 //const misc = require("smc-util/misc");
 //import * as misc2 from "smc-util/misc2";
 // const { open_new_tab } = require("smc-webapp/misc_page");
-const {
+import {
   A,
   Icon,
-  COLORS
+  COLORS,
   //   Tip,
   //   HiddenXSSM,
   //   VisibleMDLG,
   //   VisibleXSSM
-} = require("../r_misc");
+} from "../r_misc";
 const { Button, Well, Row, Col, ButtonToolbar } = require("react-bootstrap");
 import { Available as AvailableFeatures } from "../project_configuration";
 import { ProjectMap } from "smc-webapp/todo-types";
@@ -31,15 +36,15 @@ const doc_tt = "https://doc.cocalc.com/time-travel.html";
 const title_style: React.CSSProperties = Object.freeze({
   fontWeight: "bold" as "bold",
   fontSize: "15pt",
-  paddingBottom: "20px"
+  paddingBottom: "20px",
 });
 
 const button_bar_style: React.CSSProperties = Object.freeze({
-  whiteSpace: "nowrap" as "nowrap"
+  whiteSpace: "nowrap" as "nowrap",
 });
 
 const info_style: React.CSSProperties = Object.freeze({
-  paddingBottom: "20px"
+  paddingBottom: "20px",
 });
 
 interface Props {
@@ -52,19 +57,12 @@ interface Props {
 }
 
 export class CustomSoftwareReset extends React.Component<Props, {}> {
-  private props2img;
-
-  constructor(props) {
-    super(props);
-    this.props2img = props2img.bind(this);
-  }
-
   reset = () => this.props.actions.custom_software_reset();
 
   cancel = () => this.props.actions.toggle_custom_software_reset(false);
 
   render = () => {
-    const img = this.props2img();
+    const img = props2img(this.props);
     if (img == null) return;
     const NAME = this.props.site_name || SITE_NAME;
 
@@ -86,8 +84,8 @@ export class CustomSoftwareReset extends React.Component<Props, {}> {
               Note, that this will overwrite any changes you did to these
               accompanying files, but does not modify or delete any other files.
               However, nothing is lost: you can still access the previous
-              version via {A(doc_snap, "Snapshot Backups")} or{" "}
-              {A(doc_tt, "TimeTravel")}.
+              version via <A href={doc_snap}>Snapshot Backups</A> or{" "}
+              <A href={doc_tt}>TimeTravel</A>.
             </p>
             <p>This action will also restart your project!</p>
           </Col>

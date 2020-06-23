@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 React component that describes the input of a cell
 */
 
@@ -8,8 +13,7 @@ import { React, Component, Rendered } from "../app-framework";
 import { Map, fromJS } from "immutable";
 import { Button, ButtonGroup } from "react-bootstrap";
 import { startswith, filename_extension } from "smc-util/misc";
-const { Markdown } = require("../r_misc");
-import { Icon } from "../r_misc/icon";
+import { Icon, Markdown } from "../r_misc";
 import { CodeMirror } from "./codemirror";
 import { InputPrompt } from "./prompt";
 import { Complete } from "./complete";
@@ -53,10 +57,7 @@ function href_transform(
 function markdown_post_hook(elt) {
   return elt.find(":header").each((_, h) => {
     h = $(h);
-    const hash = h
-      .text()
-      .trim()
-      .replace(/\s/g, "-");
+    const hash = h.text().trim().replace(/\s/g, "-");
     h.attr("id", hash).addClass("cocalc-jupyter-header");
     h.append(
       $("<a/>")
@@ -214,7 +215,13 @@ export class CellInput extends Component<CellInputProps> {
   }
 
   private render_markdown(): Rendered {
-    let value = this.props.cell.get("input", "").trim();
+    let value = this.props.cell.get("input");
+    if (typeof value != "string") {
+      // E.g., if it is null.  This shouldn't happen, but typescript doesn't
+      // guarantee it. I might have hit this in production...
+      value = "";
+    }
+    value = value.trim();
     if (value === "" && this.props.actions) {
       value = "Type *Markdown* and LaTeX: $\\alpha^2$";
     }
@@ -296,23 +303,23 @@ export class CellInput extends Component<CellInputProps> {
           zIndex: 1,
           right: "2px",
           width: "100%",
-          paddingLeft: "5px"
+          paddingLeft: "5px",
         }}
         className="pull-right hidden-xs"
       >
         <div
           style={{
-            color: "#999",
+            color: "#666",
             fontSize: "8pt",
             position: "absolute",
             right: "5px",
             lineHeight: 1.25,
             top: "1px",
-            textAlign: "right"
+            textAlign: "right",
           }}
         >
+          <span style={{ float: "right" }}>{this.render_cell_number()}</span>
           {this.render_cell_timing()}
-          {this.render_cell_number()}
         </div>
       </div>
     );
@@ -334,9 +341,9 @@ export class CellInput extends Component<CellInputProps> {
       <span
         style={{
           marginLeft: "3px",
-          paddingLeft: "3px",
+          padding: "0 3px",
           borderLeft: "1px solid #ccc",
-          borderBottom: "1px solid #ccc"
+          borderBottom: "1px solid #ccc",
         }}
       >
         {this.props.index + 1}
@@ -367,8 +374,9 @@ export class CellInput extends Component<CellInputProps> {
           style={{
             display: "flex",
             flexDirection: "row",
-            alignItems: "stretch"
+            alignItems: "stretch",
           }}
+          cocalc-test="cell-input"
         >
           {this.render_input_prompt(type)}
           {this.render_complete()}

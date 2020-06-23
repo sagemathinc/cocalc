@@ -1,28 +1,34 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import {
   TestEditor,
   describe,
   before,
   after,
   it,
-  expect
+  expect,
 } from "../../generic/test/util";
 
-describe("CodeEditor - frame splitting tests", function() {
+describe("CodeEditor - frame splitting tests", function () {
+  // @ts-ignore
   this.timeout(10000);
   let editor;
 
-  before(async function() {
+  before(async function () {
     editor = new TestEditor("txt");
     await editor.wait_until_loaded();
   });
 
-  after(function() {
+  after(function () {
     editor.delete();
   });
 
-  describe("split frame in various ways", function() {
-    it("verifies that there is only one frame", function() {
-      let frame_tree = editor.store
+  describe("split frame in various ways", function () {
+    it("verifies that there is only one frame", function () {
+      const frame_tree = editor.store
         .getIn(["local_view_state", "frame_tree"])
         .toJS();
       expect(frame_tree.type).to.equal("cm");
@@ -31,9 +37,9 @@ describe("CodeEditor - frame splitting tests", function() {
       expect(frame_tree.id).to.exist;
     });
 
-    it("splits in the row direction (so draws a horizontal split line) with default options", function() {
+    it("splits in the row direction (so draws a horizontal split line) with default options", function () {
       editor.actions.split_frame("row");
-      let frame_tree = editor.store
+      const frame_tree = editor.store
         .getIn(["local_view_state", "frame_tree"])
         .toJS();
       expect(frame_tree.type).to.equal("node");
@@ -42,9 +48,9 @@ describe("CodeEditor - frame splitting tests", function() {
       expect(frame_tree.second.type).to.equal("cm");
     });
 
-    it("resets to default state", function() {
+    it("resets to default state", function () {
       editor.actions.reset_frame_tree();
-      let frame_tree = editor.store
+      const frame_tree = editor.store
         .getIn(["local_view_state", "frame_tree"])
         .toJS();
       expect(frame_tree.type).to.equal("cm");
@@ -52,24 +58,24 @@ describe("CodeEditor - frame splitting tests", function() {
       expect(frame_tree.second).to.not.exist;
     });
 
-    it("splits in the col direction", function() {
+    it("splits in the col direction", function () {
       editor.actions.split_frame("col");
-      let frame_tree = editor.store
+      const frame_tree = editor.store
         .getIn(["local_view_state", "frame_tree"])
         .toJS();
       expect(frame_tree.type).to.equal("node");
       expect(frame_tree.direction).to.equal("col");
     });
 
-    it("splits first leaf, now in the row direction", function() {
+    it("splits first leaf, now in the row direction", function () {
       const id = editor.store.getIn([
         "local_view_state",
         "frame_tree",
         "first",
-        "id"
+        "id",
       ]);
       editor.actions.split_frame("row", id);
-      let frame_tree = editor.store
+      const frame_tree = editor.store
         .getIn(["local_view_state", "frame_tree"])
         .toJS();
       expect(frame_tree.first.direction).to.equal("row");
@@ -78,7 +84,7 @@ describe("CodeEditor - frame splitting tests", function() {
     });
 
     // continuing the test from above (with a nontrivial frame tree with 3 leafs...)
-    it("tests set_active_id", async function() {
+    it("tests set_active_id", async function () {
       const tree = editor.store
         .getIn(["local_view_state", "frame_tree"])
         .toJS();
@@ -87,10 +93,10 @@ describe("CodeEditor - frame splitting tests", function() {
       const leaf_ids = [
         tree.first.first.id,
         tree.first.second.id,
-        tree.second.id
+        tree.second.id,
       ];
       // Then set each in turn to be the active_id.
-      for (let id of leaf_ids) {
+      for (const id of leaf_ids) {
         await editor.actions.set_active_id(id);
         expect(editor.store.getIn(["local_view_state", "active_id"])).to.equal(
           id
@@ -121,7 +127,7 @@ describe("CodeEditor - frame splitting tests", function() {
       }
     });
 
-    it("tests close_frame", function() {
+    it("tests close_frame", function () {
       // from the above test, there are now 3 leafs.  The first has two leafs, and the second has one.
       // Let's close the second leaf.
       const tree = editor.store
@@ -143,9 +149,9 @@ describe("CodeEditor - frame splitting tests", function() {
       expect(tree3.id).to.equal(tree.first.second.id);
     });
 
-    describe("tests that closing frames makes the correct frame active -- two splits", function() {
+    describe("tests that closing frames makes the correct frame active -- two splits", function () {
       let t: any;
-      it("splits twice so that there are three frames total (looks like a 'T')", function() {
+      it("splits twice so that there are three frames total (looks like a 'T')", function () {
         editor.actions.split_frame("row");
         t = editor.store.getIn(["local_view_state", "frame_tree"]).toJS();
         editor.actions.split_frame("col", t.second.id);
@@ -173,33 +179,35 @@ describe("CodeEditor - frame splitting tests", function() {
         ));
     });
 
-    describe("tests that spitting frames makes the newly created frame active", function() {
+    describe("tests that spitting frames makes the newly created frame active", function () {
       it("resets the frame", () => editor.actions.reset_frame_tree());
       it("splits the frame along a row", () =>
         editor.actions.split_frame("row"));
-      it("verifies that the new bottom frame is active (not the top)", function() {
-        let t = editor.store.getIn(["local_view_state", "frame_tree"]).toJS();
+      it("verifies that the new bottom frame is active (not the top)", function () {
+        const t = editor.store.getIn(["local_view_state", "frame_tree"]).toJS();
         expect(editor.store.getIn(["local_view_state", "active_id"])).to.equal(
           t.second.id
         );
       });
     });
 
-    describe("tests close_frame by simulating a click on the close button", function() {
+    describe("tests close_frame by simulating a click on the close button", function () {
       it("resets the frame", () => editor.actions.reset_frame_tree());
       it("splits the frame along a row", () =>
         editor.actions.split_frame("row"));
-      it("clicks the close button on the TOP frame", function() {
-        let t = editor.store.getIn(["local_view_state", "frame_tree"]).toJS();
+      it("clicks the close button on the TOP frame", function () {
+        const t = editor.store.getIn(["local_view_state", "frame_tree"]).toJS();
         const elt = editor.actions._get_titlebar_jquery(t.first.id);
         const close_button = elt.find('button[title="Close this frame"]');
         close_button.click();
-        let t2 = editor.store.getIn(["local_view_state", "frame_tree"]).toJS();
+        const t2 = editor.store
+          .getIn(["local_view_state", "frame_tree"])
+          .toJS();
         expect(t2).to.contain({ id: t.second.id, type: "cm" });
       });
     });
 
-    describe("tests toggling set_frame_full", function() {
+    describe("tests toggling set_frame_full", function () {
       let t: any;
       it("resets the frame and split along a row", () => {
         editor.actions.reset_frame_tree();
@@ -217,7 +225,7 @@ describe("CodeEditor - frame splitting tests", function() {
         expect(editor.store.getIn(["local_view_state", "full_id"])).to.equal(
           t.second.id
         ));
-      it("Leaves fullscreen and sees that bottom frame is active again", function() {
+      it("Leaves fullscreen and sees that bottom frame is active again", function () {
         editor.actions.unset_frame_full();
         expect(editor.store.getIn(["local_view_state", "full_id"])).to.not
           .exist;
@@ -225,7 +233,7 @@ describe("CodeEditor - frame splitting tests", function() {
           t.second.id
         );
       });
-      it("Tries to fullscreen a non-existing frame and gets an error.", function() {
+      it("Tries to fullscreen a non-existing frame and gets an error.", function () {
         try {
           editor.actions.set_frame_full("cocalc");
           expect("this should").to.equal("not have worked!");
@@ -235,14 +243,14 @@ describe("CodeEditor - frame splitting tests", function() {
           );
         }
       });
-      it("Clicks the fullscreen button to enter fullscreen.", function() {
+      it("Clicks the fullscreen button to enter fullscreen.", function () {
         const elt = editor.actions._get_titlebar_jquery(t.second.id);
         elt.find('button[title="Show only this frame"]').click();
         expect(editor.store.getIn(["local_view_state", "full_id"])).to.equal(
           t.second.id
         );
       });
-      it("Clicks the unfullscreen button again to leave fullscreen.", function() {
+      it("Clicks the unfullscreen button again to leave fullscreen.", function () {
         const elt = editor.actions._get_titlebar_jquery(t.second.id);
         elt.find('button[title="Show all frames"]').click();
         expect(editor.store.getIn(["local_view_state", "full_id"])).to.not

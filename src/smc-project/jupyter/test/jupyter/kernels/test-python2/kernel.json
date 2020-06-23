@@ -1,11 +1,11 @@
 {
- "display_name": "Python 2 (Ubuntu Linux)",
- "argv": [
-  "/ext/bin/python2-ubuntu",
-  "-m",
-  "ipykernel",
-  "-f",
-  "{connection_file}"
- ],
- "language": "python"
+  "display_name": "Python 2 (Ubuntu Linux)",
+  "argv": [
+    "/ext/bin/python2-ubuntu",
+    "-m",
+    "ipykernel",
+    "-f",
+    "{connection_file}"
+  ],
+  "language": "python"
 }

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Got via `aspell dump dicts` on Ubuntu 18.04, after doing `apt-get install aspell-*`,
 and removing dups.  Maybe update this someday...
 */
@@ -9,6 +14,7 @@ const langs = require("langs");
 
 export const DICTS: string[] = [
   "default",
+  "browser",
   "disabled",
   "af",
   "am",
@@ -148,24 +154,27 @@ export const DICTS: string[] = [
   "uk",
   "uz",
   "xh",
-  "zu"
+  "zu",
 ];
 
 // Slightly more human readable discription of dict.
 export function dict_desc(dict: string): string {
-  if (dict == 'default') {
-    let lang = language();
-    if (lang == 'default') {
+  if (dict == "default") {
+    const lang = language();
+    if (lang == "default") {
       return lang;
     }
     return dict_desc(lang);
   }
-  if (dict == 'disabled') {
+  if (dict == "disabled") {
     return "Disabled (no spell check)";
   }
-  let country = dict.slice(0, 2);
-  let other = dict.slice(3);
-  if(!langs.has("1", country)) {
+  if (dict == "browser") {
+    return "Browser (your browser's spell check)";
+  }
+  const country = dict.slice(0, 2);
+  const other = dict.slice(3);
+  if (!langs.has("1", country)) {
     return dict;
   }
   let s: string = langs.where("1", country).name;

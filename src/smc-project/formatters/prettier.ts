@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Use Prettier to reformat the syncstring.
 
 This very nicely use the in-memory node module to prettyify code, by simply modifying the syncstring
@@ -12,7 +17,7 @@ something that is not supported on the frontend anyway.
 NOTE: for tex files, we use latexformat, rather than prettier.
 */
 
-declare var require: any;
+declare let require: any;
 
 const { math_escape, math_unescape } = require("../smc-util/markdown-utils");
 const prettier = require("prettier");
@@ -24,21 +29,29 @@ const { bib_format } = require("./bib-format");
 const { r_format } = require("./r-format");
 const { clang_format } = require("./clang-format");
 const { gofmt } = require("./gofmt");
+const { rust_format } = require("./rust-format");
 const misc = require("../smc-util/misc");
+const { make_patch } = require("../smc-util/sync/editor/generic/util");
 const { remove_math, replace_math } = require("../smc-util/mathjax-utils"); // from project Jupyter
 
 import { once } from "../smc-util/async-utils";
 
 import {
   Parser as FormatterParser,
-  Variant as FormatterVariant
+  Variant as FormatterVariant,
 } from "../smc-util/code-formatter";
 
-export interface Options {
+import { Syntax as FormatterSyntax } from "../smc-util/code-formatter";
+
+export interface Config {
   parser: FormatterParser;
   variant?: FormatterVariant;
   tabWidth?: number;
   useTabs?: boolean;
+}
+
+export interface Options extends Omit<Config, "syntax"> {
+  parser: FormatterSyntax; // TODO refactor this to tool
 }
 
 export async function run_prettier(
@@ -53,15 +66,15 @@ export async function run_prettier(
     return {
       status: "error",
       error: "document not fully opened",
-      phase: "format"
+      phase: "format",
     };
   }
   if (syncstring.get_state() != "ready") {
     await once(syncstring, "ready");
   }
   const doc = syncstring.get_doc();
-  let pretty, math;
-  let input = doc.to_str();
+  let pretty, math, input0;
+  let input = (input0 = doc.to_str());
   if (options.parser === "markdown" || options.parser === "rmd") {
     [input, math] = remove_math(math_escape(input));
   }
@@ -74,9 +87,11 @@ export async function run_prettier(
   if (options.parser === "markdown" || options.parser === "rmd") {
     pretty = math_unescape(replace_math(pretty, math));
   }
-  syncstring.from_str(pretty);
-  await syncstring.save();
-  return { status: "ok" };
+  // NOTE: the code used to make the change here on the backend.
+  // See https://github.com/sagemathinc/cocalc/issues/4335 for why
+  // that leads to confusion.
+  const patch = make_patch(input0, pretty);
+  return { status: "ok", patch };
 }
 
 export async function run_prettier_string(
@@ -90,9 +105,11 @@ export async function run_prettier_string(
   logger.debug(`run_prettier_string options="${misc.to_json(options)}"`);
   switch (options.parser) {
     case "latex":
+    case "latexindent":
       pretty = await latex_format(str, options);
       break;
     case "python":
+    case "yapf":
       pretty = await python_format(str, options, logger);
       break;
     case "r":
@@ -108,9 +125,10 @@ export async function run_prettier_string(
       }
       // either format R code, or just the code-snippets inside of Rmd
       pretty = await r_format(str, options, ext, logger);
+    case "formatR":
+      pretty = await r_format(str, options, logger);
       break;
     case "html-tidy":
-    case "tidy":
       pretty = await html_format(str, options, logger);
       break;
     case "xml-tidy":
@@ -125,6 +143,10 @@ export async function run_prettier_string(
       break;
     case "gofmt":
       pretty = await gofmt(str, options, logger);
+      break;
+    case "rust":
+    case "rustfmt":
+      pretty = await rust_format(str, options, logger);
       break;
     default:
       pretty = prettier.format(str, options);

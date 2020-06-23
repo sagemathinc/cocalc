@@ -1,6 +1,13 @@
-/* A Patch is an entry in the patches table, as represented
-   in memory locally here.
-*/
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
+ * license
+ */
+
+// A Patch is an entry in the patches table, as represented in memory locally here.
 
 import { SyncTable } from "../../table/synctable";
 
@@ -13,6 +20,7 @@ export interface Patch {
   snapshot?: string; // to_str() applied to the document at this point in time
   sent?: Date; // when patch actually sent, which may be later than when made
   prev?: Date; // timestamp of previous patch sent from this session
+  size: number; // size of the patch (by defn length of string representation)
 }
 
 export interface Document {
@@ -96,6 +104,9 @@ export interface Client extends EventEmitter {
 
   // account_id or project_id
   client_id: () => string;
+
+  is_deleted: (filename: string, project_id?: string) => boolean;
+  set_deleted: (filename: string, project_id?: string) => void;
 }
 
 export interface DocType {

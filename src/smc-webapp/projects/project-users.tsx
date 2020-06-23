@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Showing list of users of a project
 */
 import { Component, React, redux, rclass, rtypes } from "../app-framework";
@@ -11,7 +16,7 @@ import { Loading } from "../r_misc/loading";
 
 interface ReactProps {
   project: any;
-  none?: React.ComponentType<any>;
+  none?: JSX.Element;
 }
 
 interface ReduxProps {
@@ -24,11 +29,11 @@ export const ProjectUsers = rclass<ReactProps>(
     static reduxProps = () => {
       return {
         users: {
-          user_map: rtypes.immutable
+          user_map: rtypes.immutable,
         },
         account: {
-          account_id: rtypes.string
-        }
+          account_id: rtypes.string,
+        },
       };
     };
 
@@ -44,7 +49,7 @@ export const ProjectUsers = rclass<ReactProps>(
         user_array = [];
       }
 
-      let other: { account_id: string; last_active?: number }[] = [];
+      let other: { account_id: string; last_active?: Date }[] = [];
       for (const account_id of user_array) {
         if (account_id !== this.props.account_id) {
           other.push({ account_id });

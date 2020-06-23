@@ -1,22 +1,29 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Convert an *HTML* file (raw url or string content) to printable form.
 
 TODO: refactor with markdown print (?).
 */
 
 import { path_split } from "smc-util/misc2";
-
-//import { HTML } from 'smc-webapp/r_misc';
-const { HTML } = require("smc-webapp/r_misc");
-
+import { HTML } from "smc-webapp/r_misc";
 //import ReactDOMServer from "react-dom/server";
 const ReactDOMServer = require("react-dom/server");
-
 import { React, Redux, redux } from "../../app-framework";
+import { BASE_URL } from "../../misc/base-url";
+import { resource_links_string } from "smc-webapp/misc/resource-links";
 
 let BLOCKED: boolean | undefined = undefined;
 
-export function popup(url: string, width:number=800, height:number=640): any {
+export function popup(
+  url: string,
+  width: number = 800,
+  height: number = 640
+): any {
   const w: any = window.open(
     url,
     "_blank",
@@ -50,10 +57,12 @@ interface PrintOptions {
 
 export function print_html(opts: PrintOptions): void {
   if (!opts.src) opts.src = "";
-  let w: any = popup(opts.src);
+  const w: any = popup(opts.src);
   if (opts.src == "") {
     if (!opts.project_id || !opts.path) {
-      throw Error("BUG project_id and path must be specified if src not given.");
+      throw Error(
+        "BUG project_id and path must be specified if src not given."
+      );
     }
     write_content(w, opts);
   }
@@ -78,7 +87,7 @@ function write_content(w, opts: PrintOptions): void {
     const props = {
       value: opts.value,
       project_id: opts.project_id,
-      file_path: split.head
+      file_path: split.head,
     };
 
     const C = React.createElement(
@@ -96,31 +105,14 @@ function write_content(w, opts: PrintOptions): void {
   w.document.close();
 }
 
-function html_with_deps(
-  html: string,
-  title: string
-): string {
+function html_with_deps(html: string, title: string): string {
+  const links = resource_links_string(BASE_URL);
   return `\
 <html lang="en">
     <head>
         <title>${title}</title>
         <meta name="google" content="notranslate"/>
-        <link
-            rel         = "stylesheet"
-            href        = "https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css"
-            integrity   = "sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
-            crossOrigin = "anonymous" />
-
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.40.2/codemirror.min.css"
-            integrity="sha256-I8NyGs4wjbMuBSUE40o55W6k6P7tu/7G28/JGUUYCIs="
-            crossorigin="anonymous" />
-
-        <link
-            rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css"
-            integrity="sha256-V8SV2MO1FUb63Bwht5Wx9x6PVHNa02gv8BgH/uH3ung="
-            crossorigin="anonymous" />
-
+        ${links}
     </head>
     <body style='margin:7%'>
         ${html}

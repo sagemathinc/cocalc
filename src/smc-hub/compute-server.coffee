@@ -1,31 +1,11 @@
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 require('coffee2-cache')
 
-###
-
-compute-server -- runs on the compute nodes; is also imported as a module
-
-###
+# compute-server -- runs on the compute nodes; is also imported as a module
 
 CONF = '/projects/conf'
 SQLITE_FILE = undefined
@@ -38,6 +18,7 @@ STATES = require('smc-util/schema').COMPUTE_STATES
 
 net         = require('net')
 fs          = require('fs')
+os          = require('os')
 
 async       = require('async')
 winston     = require('winston')
@@ -68,13 +49,13 @@ TIMEOUT = 60*60
 
 if process.env.SMC_STORAGE?
     STORAGE = process.env.SMC_STORAGE
-else if misc.startswith(require('os').hostname(), 'compute')   # my official deploy: TODO -- should be moved to conf file.
+else if misc.startswith(os.hostname(), 'compute')   # my official deploy: TODO -- should be moved to conf file.
     STORAGE = 'storage0-us'
 else
     STORAGE = ''
     # TEMPORARY:
 
-
+USERNAME = os.userInfo().username
 
 #################################################################
 #
@@ -97,10 +78,16 @@ smc_compute = (opts) =>
         v = ['--dev', "--projects", PROJECT_PATH]
     else
         winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")
-        command = "sudo"
-        v = ["/usr/local/bin/smc-compute"]
+        if USERNAME != 'root'
+            command = "sudo"
+            v = ["/usr/local/bin/smc-compute"]
+        else
+            command = '/usr/local/bin/smc-compute'
+            v = []
     if program.single
         v.push("--single")
+    if program.kubernetes
+        v.push("--kubernetes")
 
     misc_node.execute_code
         command : command
@@ -252,7 +239,6 @@ class Project
                     opts.cb?(err, {})
             return
 
-
         if opts.at_most_one
             if @_command_cbs[opts.action]?
                 @_command_cbs[opts.action].push(opts.cb)
@@ -270,6 +256,13 @@ class Project
                 args.push('--ephemeral_state')
             if @_ephemeral_disk
                 args.push('--ephemeral_disk')
+
+        if @_network and (opts.action == 'start' or opts.action == 'restart')
+            # networking for kubernetes is set during start or restart action.
+            # TODO: similar for member hosting, etc., but we don't even have
+            # information about that here.
+            args.push('--network')
+            args.push(1)
 
         args.push(@project_id)
         dbg("args=#{misc.to_safe_str(args)}")
@@ -504,7 +497,7 @@ class Project
                     cb()
             ], (err) =>
                 if err
-                    dbg("error getting status -- #{err}")
+                    dbg("error getting state -- #{err}")
                 else
                     if result.state != before
                         @_state = result.state
@@ -717,6 +710,8 @@ handle_status_mesg = (mesg, socket, cb) ->
                     # http://stackoverflow.com/questions/11987495/linux-proc-loadavg
                     x = misc.split(data.toString())
                     # this is normalized based on number of procs
+                    # TODO: I just looked at the source code and
+                    # STATS.nproc is never updated, so this is silly.
                     status.load = (parseFloat(x[i])/STATS.nproc for i in [0..2])
                     v = x[3].split('/')
                     status.num_tasks   = parseInt(v[1])
@@ -940,9 +935,11 @@ start_tcp_server = (cb) ->
 
 # Initialize basic information about this node once and for all.
 # So far, not much -- just number of processors.
-STATS = {}
+STATS = {nproc:1}
 init_stats = (cb) =>
-    if DEV
+    if DEV or program.kubernetes
+        # not meaningful
+        cb()
         return
     misc_node.execute_code
         command : "nproc"
@@ -1028,9 +1025,17 @@ firewall = (opts) ->
     if opts.command == 'outgoing' and NO_OUTGOING_FIREWALL
         opts.cb()
         return
+    firewall_cmd = "#{process.env.SALVUS_ROOT}/scripts/smc_firewall.py"
+    if USERNAME != 'root'
+        command = 'sudo'
+        args = [firewall_cmd, opts.command].concat(opts.args)
+    else
+        command = firewall_cmd
+        args = [opts.command].concat(opts.args)
+
     misc_node.execute_code
-        command : 'sudo'
-        args    : ["#{process.env.SALVUS_ROOT}/scripts/smc_firewall.py", opts.command].concat(opts.args)
+        command : command
+        args    : args
         bash    : false
         timeout : 30
         path    : process.cwd()
@@ -1044,6 +1049,10 @@ init_firewall = (cb) ->
     dbg = (m) -> winston.debug("init_firewall: #{m}")
     if program.single
         dbg("running in single machine mode; not creating firewall")
+        cb()
+        return
+    if program.kubernetes
+        dbg("running as part of a Kubernetes cluster, so not compute server does not have to program the firewall")
         cb()
         return
     hostname = require("os").hostname()
@@ -1290,6 +1299,7 @@ try
         .option('--port [integer]',          'port to listen on (default: assigned by OS)', String, 0)
         .option('--address [string]',        'address to listen on (default: all interfaces)', String, '')
         .option('--single',                  'if given, assume no storage servers and everything is running on one VM')
+        .option('--kubernetes',              'if given, assumes running in cocalc-kubernetes, so projects are stored at /projects/home are NFS exported via a service called cocalc-kubernetes-server-nfs; projects run as pods in the cluster.  This is all taken care of by the smc-compute script, which gets the --kubernetes option.')
         .parse(process.argv)
 catch e
     # Stupid bug in the command module when loaded as a module.
@@ -1316,7 +1326,9 @@ main = () ->
 
     fs.exists CONF, (exists) ->
         if exists
-            fs.chmod(CONF, 0o700)     # just in case...
+            fs.chmod CONF, 0o700, (err) ->
+                if err
+                    winston.debug("WARNING: something went wrong fixing configuration directory permissions", err)
 
     daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
     daemon({max:999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null'}, start_server)

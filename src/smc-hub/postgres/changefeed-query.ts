@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Does the queries to update changefeeds, deduplicating across
 both all changefeeds and a small interval of time.
 */
@@ -78,7 +83,7 @@ class ThrottledTableQueue extends EventEmitter {
     if (this.process_timer != null) {
       clearTimeout(this.process_timer);
     }
-    for (let k in this.queue) {
+    for (const k in this.queue) {
       this.emit(k, "closed");
     }
     this.emit("closed");
@@ -124,7 +129,7 @@ class ThrottledTableQueue extends EventEmitter {
     const queue = copy(this.queue);
     this.queue = {};
 
-    for (let k in queue) {
+    for (const k in queue) {
       dbg(k);
       const { select, where } = queue[k];
 

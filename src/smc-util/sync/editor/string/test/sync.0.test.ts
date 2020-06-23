@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Client } from "./client-test";
 import { SyncString } from "../sync";
 import { once } from "../../../../async-utils";
@@ -114,12 +119,9 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
 
   it("set, then get, something from the settings field", async () => {
     await syncstring.set_settings({ foo: { bar: "none" } });
-    expect(
-      syncstring
-        .get_settings()
-        .get("foo")
-        .toJS()
-    ).toEqual({ bar: "none" });
+    expect(syncstring.get_settings().get("foo").toJS()).toEqual({
+      bar: "none",
+    });
   });
 
   it("verifies it has the full history already", () => {

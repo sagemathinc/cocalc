@@ -1,10 +1,8 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
+
 /*
 A banner across the top of a course that appears if the instructor is not paying in any way, so they
 know they should.
@@ -12,10 +10,10 @@ know they should.
 
 import { Component, React, redux } from "../app-framework";
 
-import { Alert } from "react-bootstrap";
+import { Alert } from "antd";
 import { CourseSettingsRecord } from "./store";
 import { CourseActions } from "./actions";
-const { Icon, Space } = require("../r_misc");
+import { Icon, Space } from "../r_misc";
 
 interface PayBannerProps {
   settings: CourseSettingsRecord;
@@ -51,12 +49,8 @@ export class PayBanner extends Component<PayBannerProps> {
     return false;
   }
 
-  show_configuration = () => {
-    return __guard__(this.get_actions(), x => x.set_tab("configuration"));
-  };
-
   render() {
-    let link, mesg, style;
+    let mesg, style;
     if (this.paid()) {
       return <span />;
     }
@@ -67,18 +61,18 @@ export class PayBanner extends Component<PayBannerProps> {
         background: "red",
         color: "white",
         fontSize: "16pt",
-        fontWeight: "bold"
+        fontWeight: "bold",
+        margin: "5px 15px",
       };
-      link = { color: "navajowhite" };
     } else {
       style = {
         fontSize: "12pt",
-        color: "#666"
+        color: "#666",
+        margin: "5px 15px",
       };
-      link = {};
     }
 
-    if (this.props.tab === "settings") {
+    if (this.props.tab === "configuration") {
       mesg = (
         <span>
           Please select either the student pay or institute pay option below.
@@ -87,31 +81,28 @@ export class PayBanner extends Component<PayBannerProps> {
     } else {
       mesg = (
         <span>
-          Please open the course{" "}
-          <a onClick={this.show_configuration} style={link}>
-            Configuration tab of this course
-          </a>{" "}
-          and select a pay option.
+          Please open the Configuration page for this course and select a pay
+          option.
         </span>
       );
     }
 
     return (
-      <Alert bsStyle="warning" style={style}>
-        <Icon
-          name="exclamation-triangle"
-          style={{ float: "right", marginTop: "3px" }}
-        />
-        <Icon name="exclamation-triangle" />
-        <Space />
-        {mesg}
-      </Alert>
+      <Alert
+        type="warning"
+        style={style}
+        message={
+          <div>
+            <Icon
+              name="exclamation-triangle"
+              style={{ float: "right", marginTop: "3px" }}
+            />
+            <Icon name="exclamation-triangle" />
+            <Space />
+            {mesg}
+          </div>
+        }
+      />
     );
   }
-}
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
 }

@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 """
 User (and project) client queries
 
@@ -22,6 +27,8 @@ underscore   = require('underscore')
 required = defaults.required
 
 {PROJECT_UPGRADES, SCHEMA} = require('smc-util/schema')
+
+{file_use_times} = require('./postgres/file-use-times')
 
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # Cancel all queued up queries by the given client
@@ -602,15 +609,17 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cb          : cb
 
     _user_set_query_main_query: (r, cb) =>
-        if r.instead_of_change_hook?
-            r.instead_of_change_hook(@, r.old_val, r.query, r.account_id, cb)
-        else if r.options.delete
+        r.dbg("_user_set_query_main_query")
+        if r.options.delete
             for primary_key in r.primary_keys
                 if not r.query[primary_key]?
                     cb("FATAL: delete query must set primary key")
                     return
             r.dbg("delete based on primary key")
             @_user_query_set_delete(r, cb)
+            return
+        if r.instead_of_change_hook?
+            r.instead_of_change_hook(@, r.old_val, r.query, r.account_id, cb)
         else
             if misc.len(r.json_fields) == 0
                 # easy case -- there are no jsonb merge fields; just do an upsert.
@@ -644,7 +653,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             project_id : undefined
             table      : required
             query      : required
-            options    : undefined     # {delete:true} is the only supported option
+            options    : undefined     # options=[{delete:true}] is the only supported nontrivial option here.
             cb         : required   # cb(err)
         if @is_standby
             opts.cb("set queries against standby not allowed")
@@ -777,13 +786,13 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     project_action: (opts) =>
         opts = defaults opts,
             project_id     : required
-            action_request : required   # action is a pair
+            action_request : required   # action is object {action:?, time:?}
             cb             : required
         if opts.action_request.action == 'test'
             # used for testing -- shouldn't trigger anything to happen.
             opts.cb()
             return
-        dbg = @_dbg("project_action(project_id=#{opts.project_id},action_request=#{misc.to_json(opts.action_request)})")
+        dbg = @_dbg("project_action(project_id='#{opts.project_id}',action_request=#{misc.to_json(opts.action_request)})")
         dbg()
         project = undefined
         action_request = misc.copy(opts.action_request)
@@ -960,39 +969,29 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         if r.client_query.get?.instead_of_query?
             return r
 
-        # Make sure there is the query that gets only things in this table that this user
+        # Sanity check: make sure there is something in the query
+        # that gets only things in this table that this user
         # is allowed to see, or at least a check_hook.
         if not r.client_query.get.pg_where? and not r.client_query.get.check_hook?
-            return {err: "FATAL: user get query not allowed for #{opts.table} (no getAll filter)"}
+            return {err: "FATAL: user get query not allowed for #{opts.table} (no getAll filter - pg_where or check_hook)"}
 
         # Apply default options to the get query (don't impact changefeed)
         # The user can overide these, e.g., if they were to want to explicitly increase a limit
         # to get more file use history.
-        r.delete_option = false  # will be true if an option is delete
         user_options = {}
         for x in opts.options
             for y, z of x
-                if y == 'delete'
-                    r.delete_option = z
-                else
-                    user_options[y] = true
+                user_options[y] = true
 
         if r.client_query.get.options?
             # complicated since options is a list of {opt:val} !
             for x in r.client_query.get.options
                 for y, z of x
-                    if y == 'delete'
-                        r.delete_option = z
-                    else
-                        if not user_options[y]
-                            opts.options.push(x)
-                            break
-
-        if opts.changes? and r.delete_option
-            return {err: "user_get_query -- if opts.changes is specified, then delete option must not be specified"}
+                    if not user_options[y]
+                        opts.options.push(x)
+                        break
 
         r.json_fields = @_json_fields(opts.table, opts.query)
-
         return r
 
     # _json_fields: map from field names to array of fields that should be parsed as timestamps
@@ -1133,7 +1132,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
         return where
 
-    _user_get_query_options: (delete_option, options, multi, schema_options) =>
+    _user_get_query_options: (options, multi, schema_options) =>
         r = {}
 
         if schema_options?
@@ -1177,11 +1176,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 cb(undefined, x)
         @_query(query_opts)
 
-    _user_get_query_query: (delete_option, table, user_query, remove_from_query) =>
-        if delete_option
-            return "DELETE FROM #{table}"
-        else
-            return "SELECT #{(quote_field(field) for field in @_user_get_query_columns(user_query, remove_from_query)).join(',')} FROM #{table}"
+    _user_get_query_query: (table, user_query, remove_from_query) =>
+        return "SELECT #{(quote_field(field) for field in @_user_get_query_columns(user_query, remove_from_query)).join(',')} FROM #{table}"
 
     _user_get_query_satisfied_by_obj: (user_query, obj, possible_time_fields) =>
         #dbg = @_dbg("_user_get_query_satisfied_by_obj)
@@ -1432,17 +1428,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         #dbg = @_dbg("user_get_query(id=#{id})")
         dbg = -> # Logging below is just too verbose, and turns out to not be useful...
         dbg("account_id='#{opts.account_id}', project_id='#{opts.project_id}', query=#{misc.to_json(opts.query)}, multi=#{opts.multi}, options=#{misc.to_json(opts.options)}, changes=#{misc.to_json(opts.changes)}")
-        {err, table, client_query, require_admin, delete_option, primary_keys, json_fields} = @_parse_get_query_opts(opts)
+        {err, table, client_query, require_admin, primary_keys, json_fields} = @_parse_get_query_opts(opts)
 
         if err
             dbg("error parsing query opts -- #{err}")
             opts.cb(err)
-            return
-        if client_query.get.instead_of_query?
-            # Custom version: instead of doing a full query, we instead
-            # call a function and that's it.
-            dbg("do instead_of_query instead")
-            client_query.get.instead_of_query(@, opts.query, opts.account_id, opts.cb)
             return
 
         _query_opts = {}  # this will be the input to the @_query command.
@@ -1471,8 +1461,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     _query_opts.where = where
                     cb(err)
             (cb) =>
-                _query_opts.query = @_user_get_query_query(delete_option, table, opts.query, client_query.get.remove_from_query)
-                x = @_user_get_query_options(delete_option, opts.options, opts.multi, client_query.options)
+                if client_query.get.instead_of_query?
+                    cb();
+                    return
+                _query_opts.query = @_user_get_query_query(table, opts.query, client_query.get.remove_from_query)
+                x = @_user_get_query_options(opts.options, opts.multi, client_query.options)
                 if x.err
                     dbg("error in get_query_options, #{x.err}")
                     cb(x.err)
@@ -1492,6 +1485,20 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 else
                     cb()
             (cb) =>
+
+                if client_query.get.instead_of_query?
+                    if opts.changes?
+                        cb("changefeeds are not supported for querying this table")
+                        return
+                    # Custom version: instead of doing a full query, we instead
+                    # call a function and that's it.
+                    dbg("do instead_of_query instead")
+                    opts1 = misc.copy_without(opts, ['cb', 'changes', 'table'])
+                    client_query.get.instead_of_query @, opts1, (err, result) =>
+                        locals.result = result
+                        cb(err)
+                    return
+
                 if _query_opts.only_changes
                     dbg("skipping query")
                     locals.result = undefined
@@ -1606,6 +1613,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             @_require_project_ids_in_groups(account_id, [obj.project_id], ['owner', 'collaborator'], cb)
         else
             cb("FATAL: only users and projects can access syncstrings")
+
+    # Other functions that are needed to implement various use queries,
+    # e.g., for virtual queries like file_use_times.
+    # ASYNC FUNCTION with no callback.
+    file_use_times: (opts) =>  # for docs, see where this is imported from.
+        return await file_use_times(@, opts)
 
 _last_awaken_time = {}
 awaken_project = (db, project_id, cb) ->

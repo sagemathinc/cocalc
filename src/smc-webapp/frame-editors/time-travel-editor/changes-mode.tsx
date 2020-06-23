@@ -1,8 +1,11 @@
-/* Toggle diff mode */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import { Rendered, Component, React } from "../../app-framework";
 
-import { Checkbox, Tooltip } from "cocalc-ui";
+import { Checkbox, Tooltip } from "antd";
 
 import { TimeTravelActions } from "./actions";
 

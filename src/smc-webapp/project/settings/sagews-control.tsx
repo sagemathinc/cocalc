@@ -1,9 +1,14 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
-import { Icon, MessageDisplay, SettingBox } from "smc-webapp/r_misc";
+import { Icon, SettingBox } from "smc-webapp/r_misc";
 import { Row, Col, Button } from "react-bootstrap";
 import { Project } from "./types";
-
-const { webapp_client } = require("../../webapp_client");
+import { alert_message } from "../../alerts";
+import { webapp_client } from "../../webapp-client";
 
 interface Props {
   project: Project;
@@ -11,7 +16,6 @@ interface Props {
 
 interface State {
   loading: boolean;
-  message: string;
 }
 
 export class SagewsControl extends React.Component<Props, State> {
@@ -21,7 +25,6 @@ export class SagewsControl extends React.Component<Props, State> {
     super(props);
     this.state = {
       loading: false,
-      message: ""
     };
   }
 
@@ -33,43 +36,33 @@ export class SagewsControl extends React.Component<Props, State> {
     return delete this._mounted;
   }
 
-  restart_worksheet = () => {
+  restart_worksheet = async () => {
     this.setState({ loading: true });
-    webapp_client.exec({
-      project_id: this.props.project.get("project_id"),
-      command: "smc-sage-server stop; smc-sage-server start",
-      timeout: 30,
-      cb: (err, _output) => {
-        if (!this._mounted) {
-          // see https://github.com/sagemathinc/cocalc/issues/1684
-          return;
-        }
-        this.setState({ loading: false });
-        if (err) {
-          this.setState({
-            message:
-              "Error trying to restart worksheet server. Try restarting the project server instead."
-          });
-        } else {
-          this.setState({
-            message:
-              "Worksheet server restarted. Restarted worksheets will use a new Sage session."
-          });
-        }
-      }
-    });
-  }
-
-  render_message() {
-    if (this.state.message) {
-      return (
-        <MessageDisplay
-          message={this.state.message}
-          onClose={() => this.setState({ message: "" })}
-        />
-      );
+    try {
+      await webapp_client.project_client.exec({
+        project_id: this.props.project.get("project_id"),
+        command: "smc-sage-server stop; smc-sage-server start",
+        timeout: 30,
+      });
+      if (!this._mounted) return;
+      alert_message({
+        type: "info",
+        message:
+          "Worksheet server restarted. Restarted worksheets will use a new Sage session.",
+      });
+    } catch (err) {
+      if (!this._mounted) return;
+      alert_message({
+        type: "error",
+        message:
+          "Error trying to restart worksheet server. Try restarting the project server instead.",
+      });
     }
-  }
+    if (this._mounted) {
+      // see https://github.com/sagemathinc/cocalc/issues/1684
+      this.setState({ loading: false });
+    }
+  };
 
   render() {
     return (
@@ -94,7 +87,6 @@ export class SagewsControl extends React.Component<Props, State> {
             </Button>
           </Col>
         </Row>
-        {this.render_message()}
       </SettingBox>
     );
   }

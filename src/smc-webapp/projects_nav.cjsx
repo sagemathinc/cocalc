@@ -1,23 +1,7 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-##############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 # External Libraries
 {SortableContainer, SortableElement} = require('react-sortable-hoc')
@@ -53,6 +37,8 @@ ProjectTab = rclass
         projects:
             public_project_titles : rtypes.immutable.Map
             project_websockets : rtypes.immutable.Map
+        account:
+            is_anonymous : rtypes.bool
 
     propTypes:
         project        : rtypes.immutable.Map
@@ -83,10 +69,30 @@ ProjectTab = rclass
         e.preventDefault()
         @actions('page').close_project_tab(@props.project_id)
 
-    # middle mouse click closes
+    # middle mouse click closes (?) -- evidently too confusing??
     onMouseDown: (e) ->
         #if e.button == 1
         #    @close_tab(e)
+
+    render_websocket_indicator: ->
+        if not @props.project?
+            # public project, so we know nothing, so better not show an indicator (we can't connect anyways).
+            return
+        <span style={{paddingRight:'5px'}}>
+            <WebsocketIndicator state={@props.project_websockets?.get(@props.project_id)} />
+        </span>
+
+    render_close_x: ->
+        if @props.is_anonymous
+            # you have one project and you can't close it.
+            return
+        <Icon
+            name        = 'times'
+            onClick     = {@close_tab}
+            onMouseOver = {(e)=>@setState(x_hovered:true)}
+            onMouseOut  = {(e)=>@actions('page').clear_ghost_tabs();@setState(x_hovered:false)}
+        />
+
 
     render: ->
         title  = @props.project?.get('title') ? @props.public_project_titles?.get(@props.project_id)
@@ -125,18 +131,11 @@ ProjectTab = rclass
             is_project     = {true}
         >
             <div style = {float:'right', whiteSpace:'nowrap', color:x_color}>
-                <span style={{paddingRight:'5px'}}>
-                    <WebsocketIndicator state={@props.project_websockets?.get(@props.project_id)} />
-                </span>
-                <Icon
-                    name        = 'times'
-                    onClick     = {@close_tab}
-                    onMouseOver = {(e)=>@setState(x_hovered:true)}
-                    onMouseOut  = {(e)=>@actions('page').clear_ghost_tabs();@setState(x_hovered:false)}
-                />
+                {@render_websocket_indicator()}
+                {@render_close_x()}
             </div>
             <div style={project_name_styles}>
-                <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small' always_update={true}>
+                <Tip title={title} tip={desc} placement='bottom' size='small' always_update={true}>
                     <Icon name={icon} />
                     <span style={marginLeft: 5, position:'relative'}>{misc.trunc(title,24)}</span>
                 </Tip>
@@ -157,7 +156,7 @@ FullProjectsNav = rclass
         num_ghost_tabs : 0
 
     on_sort_end: ({oldIndex, newIndex}) ->
-        @actions('projects').move_project_tab({old_index:oldIndex, new_index:newIndex, open_projects:@props.open_projects})
+        @actions('projects').move_project_tab({old_index:oldIndex, new_index:newIndex})
 
     render_project_tabs: ->
         v = []

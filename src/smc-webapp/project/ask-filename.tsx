@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Component, React, /* ReactDOM,*/ Rendered } from "../app-framework";
 const { file_options } = require("../editor");
 const {
@@ -6,9 +11,9 @@ const {
   ButtonToolbar,
   ControlLabel,
   Button,
-  Form
+  Form,
 } = require("react-bootstrap");
-const { SearchInput, SelectorInput, Icon } = require("../r_misc");
+import { SearchInput, SelectorInput, Icon } from "../r_misc";
 const { IS_TOUCH } = require("../feature");
 import { NewFilenameFamilies, NewFilenames } from "smc-webapp/project/utils";
 import { FileSpec } from "../file-associations";
@@ -59,7 +64,7 @@ export class AskNewFilename extends Component<Props, State> {
       name: name,
       ext: this.props.ext_selection,
       current_path: this.props.current_path,
-      switch_over: focus
+      switch_over: focus,
     });
   };
 

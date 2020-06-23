@@ -1,4 +1,7 @@
-/* Utility functions used by other code here. */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import { copy, keys, is_array, deep_copy } from "../../misc2";
 const { SCHEMA } = require("../../schema");
@@ -7,7 +10,6 @@ const { SCHEMA } = require("../../schema");
 // TODO: document them here!
 export function parse_query(query) {
   query = deep_copy(query);
-  // TODO: convert this to Typescript...
   if (typeof query === "string") {
     // name of a table -- get all fields
     const s = SCHEMA[query];
@@ -17,7 +19,7 @@ export function parse_query(query) {
     if (s.user_query.get == null)
       throw Error(`user_query.get not defined for query "${query}"`);
     const v = copy(s.user_query.get.fields);
-    for (let k in v) {
+    for (const k in v) {
       v[k] = null;
     }
     return { [query]: [v] };

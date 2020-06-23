@@ -1,18 +1,36 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 #smc-startup-banner {
     width: 350px;
     /* bootstrap 3.3 has this line height. fix it, if it changes! */
     line-height: 1.42857143;
     text-align: center;
-    position: fixed;
     left: 0;
     right: 0;
     top: 100px;
-    margin: auto;
-    max-width:100%;
-    max-height:100%;
+    margin: 100px auto 0 auto;
+    max-width: 100%;
+    max-height: 100%;
     font-family: sans-serif;
     font-size: 26px;
     color: white;
+}
+
+#cocalc-error-report-startup {
+    clear: both;
+    display: none;
+    font-size: 15px;
+    margin: 0 auto 0 auto;
+    width: 90vw;
+    padding: 10px;
+    border: 3px solid red;
+    border-radius: 5px;
+}
+#cocalc-error-report-startup pre {
+    font-size: 10px;
 }
 
 #smc-startup-banner-status {
@@ -31,61 +49,130 @@
 
 #smc-startup-banner img {
     vertical-align: middle;
-    width:  282px;   /* original 94px */
-    height: 231px;   /* original 77px */
+    width: 282px; /* original 94px */
+    height: 231px; /* original 77px */
+}
+#smc-startup-banner div {
+    width: 350px;
+    background-color: #4474c0;
+    border-radius: 5px;
+    padding: 5px;
+    margin-bottom: 5px;
 }
 #smc-startup-banner .banner-error {
-  width: 350px;
-  opacity: 0.0;
-  animation: banner-error ease-in 60s forwards;
-  float: left;
-  border-radius: 5px;
-  padding: 15px 0;
+    opacity: 0;
+    animation: banner-error ease-in 60s forwards;
+    float: left;
+}
+#smc-startup-banner .banner-error .message {
+    width: auto;
+    background-color: #bf1919;
 }
 #smc-startup-banner .banner-blink {
-  width: 350px;
-  border-radius: 5px;
-  padding: 15px 0;
-  background-color: #4474c0;
-  margin-bottom: 5px;
-  opacity: 1.0;
-  animation: banner-red 60s forwards;
+    background-color: #4474c0;
+    opacity: 1;
+    animation: banner-red 60s forwards;
 }
+#cc-banner2 {
+    background-color: 'white';
+}
+#cc-banner2 img.logo-square {
+    height: 200px;
+    width: auto;
+}
+#cc-banner2 img.logo-rectangular {
+    width: 200px;
+    height: auto;
+}
+
 @keyframes banner-red {
-    0% {background-color: #4474c0;}
-   95% {background-color: #4474c0;}
-  100% {background-color: #bf1919;}
+    0% {
+        background-color: #4474c0;
+    }
+    95% {
+        background-color: #4474c0;
+    }
+    100% {
+        background-color: #bf1919;
+    }
 }
 #smc-startup-banner .banner-blink img {
-  animation: banner-blink 60s forwards;
+    animation: banner-blink 60s forwards;
 }
 @keyframes banner-blink {
-     0% {opacity: 1.0;}
-     5% {opacity:  .1;}
-    10% {opacity: 1.0;}
-    15% {opacity:  .1;}
-    20% {opacity: 1.0;}
-    25% {opacity:  .1;}
-    30% {opacity: 1.0;}
-    35% {opacity:  .1;}
-    40% {opacity: 1.0;}
-    45% {opacity:  .1;}
-    50% {opacity: 1.0;}
-    55% {opacity:  .1;}
-    60% {opacity: 1.0;}
-    65% {opacity:  .2;}
-    70% {opacity: 1.0;}
-    80% {opacity:  .3;}
-    90% {opacity: 0.7;}
-    95% {opacity: 0.1;}
-   100% {opacity: 1.0;}
+    0% {
+        opacity: 1;
+    }
+    5% {
+        opacity: 0.1;
+    }
+    10% {
+        opacity: 1;
+    }
+    15% {
+        opacity: 0.1;
+    }
+    20% {
+        opacity: 1;
+    }
+    25% {
+        opacity: 0.1;
+    }
+    30% {
+        opacity: 1;
+    }
+    35% {
+        opacity: 0.1;
+    }
+    40% {
+        opacity: 1;
+    }
+    45% {
+        opacity: 0.1;
+    }
+    50% {
+        opacity: 1;
+    }
+    55% {
+        opacity: 0.1;
+    }
+    60% {
+        opacity: 1;
+    }
+    65% {
+        opacity: 0.2;
+    }
+    70% {
+        opacity: 1;
+    }
+    80% {
+        opacity: 0.3;
+    }
+    90% {
+        opacity: 0.7;
+    }
+    95% {
+        opacity: 0.1;
+    }
+    100% {
+        opacity: 1;
+    }
 }
 @keyframes banner-error {
- 95% {opacity: 0.0; background-color: #FFFFFF;}
-100% {opacity: 1.0; background-color: #bf1919;}
+    95% {
+        opacity: 0;
+        background-color: #ffffff;
+    }
+    100% {
+        opacity: 1;
+        background-color: #bf1919;
+    }
 }
 #smc-startup-banner .message {
     font-size: 14px;
+}
+#smc-startup-banner .ready {
+    background-color: #43a047;
 }
 #smc-startup-banner a {
     color: white;

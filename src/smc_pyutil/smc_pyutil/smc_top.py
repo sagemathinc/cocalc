@@ -1,25 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2015, CoCalc Authors
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
 # Authors:
 # Harald Schilly <hsy@sagemath.com>
@@ -162,7 +144,6 @@ class SmcTop(object):
     Usage: class-instantiation → call `<obj>.json()` for a serialization of it.
     Expected runtime is ~4 seconds, because it has to sample the CPU usage.
     """
-
     def __init__(self,
                  userid=None,
                  sample_interval=3.0,
@@ -189,7 +170,6 @@ class SmcTop(object):
         This uses kernel accounting (or cgroup accounting) directly.
         Calculating sums of the reported values might differ.
         """
-
         def add_human_readable(d, converter=mb2human):
             # list, because dict changes size
             for k, v in list(d.items()):

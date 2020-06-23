@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 A button that when clicked, shows a loading indicator until the backend
 Jupyter notebook server is running, then pops it up in a new tab.
 */
@@ -70,8 +75,10 @@ export class JupyterLabServerPanel extends Component<Props, {}> {
   }
 }
 
-export async function jupyterlab_server_url(project_id: string): Promise<string> {
-  let out = JSON.parse(
+export async function jupyterlab_server_url(
+  project_id: string
+): Promise<string> {
+  const out = JSON.parse(
     (await exec({ project_id, command: "cc-jupyterlab", args: ["status"] }))
       .stdout
   );

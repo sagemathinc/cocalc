@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { CompressedPatch, Document } from "../generic/types";
 import { apply_patch, make_patch } from "../generic/util";
 
@@ -25,32 +30,31 @@ export class StringDocument implements Document {
     return make_patch(this.value, other.value);
   }
 
-  public set(x : any) : StringDocument {
-    if (typeof x === 'string') {
+  public set(x: any): StringDocument {
+    if (typeof x === "string") {
       return new StringDocument(x);
     }
     throw Error("x must be a string");
   }
 
-  public get(_?: any) : any {
+  public get(_?: any): any {
     throw Error("get queries on strings don't have meaning");
   }
 
-  public get_one(_?: any) : any {
+  public get_one(_?: any): any {
     throw Error("get_one queries on strings don't have meaning");
   }
 
-  public delete(_?: any) : StringDocument {
+  public delete(_?: any): StringDocument {
     throw Error("delete on strings doesn't have meaning");
   }
 
-  public changes(_? : StringDocument) : any {
+  public changes(_?: StringDocument): any {
     // no-op (this is useful for other things, e.g., db-doc)
     return;
   }
 
-  public count() : number {
+  public count(): number {
     return this.value.length;
   }
-
 }

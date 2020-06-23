@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 This is a minimal viable implementation of coupons.
 
 TODO: Here is some "obvious" missing functionality.
@@ -27,7 +32,7 @@ import {
   FormControl,
   FormGroup,
   InputGroup,
-  Well
+  Well,
 } from "react-bootstrap";
 import { Component, React, Rendered, redux } from "../app-framework";
 import { Icon } from "../r_misc/icon";
@@ -103,9 +108,7 @@ export class CouponAdder extends Component<Props, State> {
         {this.render_well_header()}
         {this.props.applied_coupons.size > 0 ? (
           <CouponList applied_coupons={this.props.applied_coupons} />
-        ) : (
-          undefined
-        )}
+        ) : undefined}
         {(this.props.applied_coupons != null
           ? this.props.applied_coupons.size
           : undefined) === 0 ? (
@@ -117,7 +120,7 @@ export class CouponAdder extends Component<Props, State> {
                 type="text"
                 size={7}
                 placeholder={placeholder_text}
-                onChange={e =>
+                onChange={(e) =>
                   this.setState({ coupon_id: (e.target as any).value })
                 }
                 onKeyDown={this.key_down.bind(this)}
@@ -134,17 +137,13 @@ export class CouponAdder extends Component<Props, State> {
               </InputGroup.Button>
             </InputGroup>
           </FormGroup>
-        ) : (
-          undefined
-        )}
+        ) : undefined}
         {this.props.coupon_error ? (
           <SkinnyError
             error_text={this.props.coupon_error}
             on_close={() => redux.getActions("billing").clear_coupon_error()}
           />
-        ) : (
-          undefined
-        )}
+        ) : undefined}
       </Well>
     );
   }

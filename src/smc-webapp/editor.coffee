@@ -1,23 +1,7 @@
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2014--2016, SageMath, Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 $ = window.$
 
@@ -50,7 +34,6 @@ IS_MOBILE = feature.IS_MOBILE
 
 misc = require('smc-util/misc')
 misc_page = require('./misc_page')
-{analytics_event} = require('./tracker')
 
 # Ensure CodeMirror is available and configured
 require('./codemirror/codemirror')
@@ -111,45 +94,7 @@ exports.file_icon_class = file_icon_class = (ext) ->
 {sagews_decorator_modes} = require('./codemirror/custom-modes')
 misc_page.define_codemirror_extensions()
 
-# Given a text file (defined by content), try to guess
-# what the extension should be.
-guess_file_extension_type = (content) ->
-    content = $.trim(content)
-    i = content.indexOf('\n')
-    first_line = content.slice(0,i).toLowerCase()
-    if first_line.slice(0,2) == '#!'
-        # A script.  What kind?
-        if first_line.indexOf('python') != -1
-            return 'py'
-        if first_line.indexOf('bash') != -1 or first_line.indexOf('sh') != -1
-            return 'sh'
-    if first_line.indexOf('html') != -1
-        return 'html'
-    if first_line.indexOf('/*') != -1 or first_line.indexOf('//') != -1   # kind of a stretch
-        return 'c++'
-    return undefined
-
-exports.file_options = (filename, content) ->   # content may be undefined
-    ext = misc.filename_extension_notilde(filename)?.toLowerCase()
-    if not ext? and content?   # no recognized extension, but have contents
-        ext = guess_file_extension_type(content)
-    if ext == ''
-        x = file_associations["noext-#{misc.path_split(filename).tail}"]
-    else
-        x = file_associations[ext]
-    if not x?
-        x = file_associations['']
-        # Don't use the icon for this fallback, to give the icon selection below a chance to work;
-        # we do this so new react editors work.  All this code will go away someday.
-        delete x.icon
-    if not x.icon?
-        # Use the new react editor icons first, if they exist...
-        icon = require('./project_file').icon(ext)
-        if icon?
-            x.icon = 'fa-' + icon
-        else
-            x.icon = 'fa-file-code-o'
-    return x
+exports.file_options = require("./editor-tmp").file_options
 
 SEP = "\uFE10"
 
@@ -538,7 +483,9 @@ class CodeMirrorEditor extends FileEditor
                 showCursorWhenSelecting : true
                 extraKeys               : extraKeys
                 cursorScrollMargin      : 6
-                viewportMargin          : 10
+                viewportMargin          : 300 # larger than the default of 10 specifically so *sage worksheets* (which are the only thing that uses this)
+                                              # don't feel jumpy when re-rendering output.
+                                              # NOTE that in cocalc right now, no remaining non-sagews editors use this code.
 
             if opts.match_xml_tags
                 options.matchTags = {bothTags: true}
@@ -1210,7 +1157,7 @@ class CodeMirrorEditor extends FileEditor
                     if is_subdir or not pdf?
                         cb(); return
                     # pdf file exists -- show it in the UI
-                    url = webapp_client.read_file_from_project
+                    url = webapp_client.project_client.read_file
                         project_id  : @project_id
                         path        : pdf
                     dialog.find(".webapp-file-printing-link").attr('href', url).text(pdf).show()
@@ -1492,7 +1439,6 @@ class CodeMirrorEditor extends FileEditor
         else
             @snippets_dialog.show(lang)
         @snippets_dialog.set_handler(@example_insert_handler)
-        analytics_event('editor_assistant', @ext, lang)
 
     example_insert_handler: (insert) =>
         # insert : {lang: string, descr: string, code: string[]}
@@ -1612,7 +1558,7 @@ class CodeMirrorEditor extends FileEditor
 
         # not all textedit buttons are known
         textedit_only_show_known_buttons = (name) =>
-            EDIT_COMMANDS = require('./buttonbar').commands
+            EDIT_COMMANDS = require('./editors/editor-button-bar').commands
             {sagews_canonical_mode} = require('./misc_page')
             default_mode = @focused_codemirror()?.get_edit_mode() ? 'sage'
             mode = sagews_canonical_mode(name, default_mode)
@@ -1772,20 +1718,21 @@ class PublicHTML extends FileEditor
         @element = templates.find(".webapp-editor-static-html").clone()
         # ATTN: we can't set src='raw-path' because the sever might not run.
         # therefore we retrieve the content and set it directly.
+        @_load_content()
+
+    _load_content: () =>
         if not @content?
             @content = 'Loading...'
             # Now load the content from the backend...
-            webapp_client.public_get_text_file
-                project_id : @project_id
-                path       : @filename
-                timeout    : 60
-                cb         : (err, content) =>
-                    if err
-                        @content = "Error opening file -- #{err}"
-                    else
-                        @content = content
-                    if @iframe?
-                        @set_iframe()
+            try
+                content = await webapp_client.project_client.public_get_text_file
+                    project_id : @project_id
+                    path       : @filename
+                @content = content
+            catch err
+                @content = "Error opening file -- #{err}"
+            if @iframe?
+                @set_iframe()
 
     show: () =>
         if not @is_active()
@@ -1822,15 +1769,16 @@ class PublicCodeMirrorEditor extends CodeMirrorEditor
         super(project_id, filename, "Loading...", opts)
         @element.find('a[href="#save"]').hide()       # no need to even put in the button for published
         @element.find('a[href="#readonly"]').hide()   # ...
-        webapp_client.public_get_text_file
-            project_id : @project_id
-            path       : @filename
-            timeout    : 60
-            cb         : (err, content) =>
-                if err
-                    content = "Error opening file -- #{err}"
-                @_set(content)
-                cb?(err, @)
+        error = undefined
+        try
+            content = webapp_client.project_client.public_get_text_file
+                project_id : @project_id
+                path       : @filename
+        catch err
+            error = err
+            content = "Error opening file -- #{err}"
+        @_set(content)
+        cb?(error, @)
 
 class PublicSagews extends PublicCodeMirrorEditor
     constructor: (project_id, filename, content, opts) ->
@@ -1974,7 +1922,7 @@ class JupyterNBViewerEmbedded extends FileEditor
 exports.register_nonreact_editors = ->
 
     # Make non-react editors available in react rewrite
-    reg = require('./editor_react_wrapper').register_nonreact_editor
+    reg = require('./editors/react-wrapper').register_nonreact_editor
 
     # wrapper for registering private and public editors
     register = (is_public, cls, extensions) ->

@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 client.coffee -- A project viewed as a client for a hub.
 
@@ -27,9 +32,6 @@ fs     = require('fs')
 {callback2, once} = require("smc-util/async-utils");
 
 async   = require('async')
-winston = require('winston')
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 require('coffeescript/register')
 
@@ -54,23 +56,23 @@ kucalc = require('./kucalc')
 blobs = require('./blobs')
 
 {get_syncdoc} = require('./sync/sync-doc')
+{get_listings_table} = require('./sync/listings')
 
 {defaults, required} = misc
 
 DEBUG = false
-#DEBUG = true
-
 # Easy way to enable debugging in any project anywhere.
 DEBUG_FILE = process.env.HOME + '/.smc-DEBUG'
 if fs.existsSync(DEBUG_FILE)
-    winston.debug("'#{DEBUG_FILE}' exists, so enabling very verbose logging")
     DEBUG = true
-else
-    winston.debug("'#{DEBUG_FILE}' does not exist; minimal logging")
+else if kucalc.IN_KUCALC
+    # always make verbose in kucalc, since logs are taken care of by the k8s
+    # logging infrastructure...
+    DEBUG = true
 
 ALREADY_CREATED = false
 class exports.Client extends EventEmitter
-    constructor: (project_id) ->
+    constructor: (project_id, logger) ->
         super()
         if ALREADY_CREATED
             throw Error("BUG: Client already created!")
@@ -83,6 +85,7 @@ class exports.Client extends EventEmitter
         @_hub_client_sockets = {}
         @_changefeed_sockets = {}
         @_connected = false
+        @_logger = logger
 
         # Start listening for syncstrings that have been recently modified, so that we
         # can open them and provide filesystem and computational support.
@@ -91,14 +94,11 @@ class exports.Client extends EventEmitter
 
         if kucalc.IN_KUCALC
             kucalc.init(@)
-            # always make verbose in kucalc, since logs are taken care of by the k8s
-            # logging infrastructure...
-            DEBUG = true
 
     # use to define a logging function that is cleanly used internally
     dbg: (f, trunc=1000) =>
-        if DEBUG
-            return (m...) ->
+        if DEBUG and @_logger
+            return (m...) =>
                 switch m.length
                     when 0
                         s = ''
@@ -106,7 +106,7 @@ class exports.Client extends EventEmitter
                         s = m[0]
                     else
                         s = JSON.stringify(m)
-                winston.debug("Client.#{f}: #{misc.trunc_middle(s,trunc)}")
+                @_logger("Client.#{f}: #{misc.trunc_middle(s,trunc)}")
         else
             return (m) ->
 
@@ -310,7 +310,7 @@ class exports.Client extends EventEmitter
             cb          : opts.cb
 
     # Cancel an outstanding changefeed query.
-    query_cancel: (opts) =>
+    _query_cancel: (opts) =>
         opts = defaults opts,
             id : required           # changefeed id
             cb : undefined
@@ -325,7 +325,11 @@ class exports.Client extends EventEmitter
                 socket  : socket
                 cb      : opts.cb
 
-    sync_table2: (query, options, throttle_changes=undefined) =>
+    # ASYNC version
+    query_cancel: (id) =>
+        return await callback2(@_query_cancel, {id:id})
+
+    sync_table: (query, options, throttle_changes=undefined) =>
         return synctable2.synctable(query, options, @, throttle_changes)
 
     # We leave in the project_id for consistency with the browser UI.
@@ -350,34 +354,6 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             path : required
         return get_syncdoc(opts.path)
-    ###
-    sync_string2: (opts) =>
-        opts = defaults opts,
-            id                : undefined
-            path              : required
-            file_use_interval : 'default'
-            patch_interval    : 1000
-            save_interval     : 2000
-        opts.client = @
-        opts.project_id = @project_id
-        SyncString2 = require('smc-util/sync/editor/string/sync').SyncString;
-        return new SyncString2(opts)
-
-    sync_db2: (opts) =>
-        opts = defaults opts,
-            id                : undefined
-            path              : required
-            file_use_interval : 'default'
-            cursors           : false
-            patch_interval    : 1000
-            save_interval     : 2000
-            primary_keys      : required
-            string_cols       : []
-        opts.client = @
-        opts.project_id = @project_id
-        SyncDB2 = syncdb2.SyncDB;
-        return new SyncDB2(opts)
-    ###
 
     symmetric_channel: (name) =>
         return require('./browser-websocket/symmetric_channel').symmetric_channel(name)
@@ -581,9 +557,8 @@ class exports.Client extends EventEmitter
         opts.cb?('get_blob: not implemented')
 
 
-    # no-op
-    touch_project: (opts) =>
-        opts.cb?()
+    # no-op; assumed async api
+    touch_project: (project_id) =>
 
     # async
     get_syncdoc_history: (string_id, patches=false) =>
@@ -593,3 +568,19 @@ class exports.Client extends EventEmitter
             string_id : string_id
             patches   : patches
         return await callback2(@call, {message:mesg})
+
+    # NOTE: returns false if the listings table isn't connected.
+    is_deleted: (filename, project_id) => # project_id is ignored, of course
+        try
+            listings = get_listings_table();
+            return listings.is_deleted(filename)
+        catch
+            # is_deleted can raise an exception if the table is
+            # not yet initialized, in which case we fall back
+            # to actually looking.  We have to use existsSync
+            # because is_deleted is not an async function.
+            return not fs.existsSync(join(process.env.HOME, filename))
+
+    set_deleted: (filename, project_id) => # project_id is ignored
+        listings = get_listings_table();
+        await listings.set_deleted(filename)

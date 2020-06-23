@@ -1,32 +1,12 @@
-//##############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
-
 /*
- *
- * Library for working with JSON messages for Salvus.
- *
- * We use functions to work with messages to ensure some level of
- * consistency, defaults, and avoid errors from typos, etc.
- *
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
+
+// Library for working with JSON messages for Salvus.
+//
+// We use functions to work with messages to ensure some level of
+// consistency, defaults, and avoid errors from typos, etc.
 
 const doc_intro = `\
 ## Purpose
@@ -64,6 +44,8 @@ right), and look under \`Account Settings\`.
 With the \`API key\` dialogue, you can create a key,
 view a previously assigned key, generate a replacement key,
 and delete your key entirely.
+
+.. index:: API; get_api_key
 
 It is also possible to obtain an API key using a javascript-enabled automated web client.
 This option is useful for applications that embed CoCalc
@@ -120,7 +102,7 @@ const { required } = defaults;
 const _ = require("underscore");
 
 function message(obj) {
-  exports[obj.event] = function(opts, strict) {
+  exports[obj.event] = function (opts, strict) {
     if (opts == null) {
       opts = {};
     }
@@ -153,13 +135,13 @@ function message2(obj) {
   }
 
   // reassembling a version 1 message from a version 2 message
-  const mesg_v1 = _.mapObject(obj.fields, val => val.init);
+  const mesg_v1 = _.mapObject(obj.fields, (val) => val.init);
   mesg_v1.event = obj.event;
   // extracting description for the documentation
   const fdesc = _.mapObject(obj.fields, mk_desc);
   exports.documentation.events[obj.event] = {
     description: obj.desc != null ? obj.desc : "",
-    fields: fdesc
+    fields: fdesc,
   };
   // ... and the examples
   exports.examples[obj.event] = obj.examples;
@@ -174,13 +156,13 @@ exports.api_messages = {};
 // this holds the documentation for the message protocol
 exports.documentation = {
   intro: doc_intro,
-  events: {}
+  events: {},
 };
 
 // holds all the examples: list of expected in/out objects for each message
 exports.examples = {};
 
-const API = obj =>
+const API = (obj) =>
   // obj could be message version 1 or 2!
   (exports.api_messages[obj.event] = true);
 
@@ -190,7 +172,7 @@ const API = obj =>
 
 message({
   event: "compute_server_status",
-  status: undefined
+  status: undefined,
 });
 
 // Message for actions using a compute server
@@ -200,7 +182,7 @@ message({
   action: required, // open, save, ...
   args: undefined,
   param: undefined, // deprecate
-  id: undefined
+  id: undefined,
 });
 
 message({
@@ -208,7 +190,7 @@ message({
   project_id: required,
   state: required,
   time: required,
-  state_error: undefined
+  state_error: undefined,
 }); // error if there was one transitioning to this state
 
 //###########################################
@@ -224,7 +206,7 @@ message({
   session_uuid: undefined, // set by the hub -- client setting this will be ignored.
   params: undefined, // extra parameters that control the type of session
   id: undefined,
-  limits: undefined
+  limits: undefined,
 });
 
 // hub --> browser
@@ -233,7 +215,7 @@ message({
   id: undefined,
   session_uuid: undefined,
   limits: undefined,
-  data_channel: undefined
+  data_channel: undefined,
 }); // The data_channel is a single UTF-16
 // character; this is used for
 // efficiently sending and receiving
@@ -244,7 +226,7 @@ message({
 message({
   event: "session_reconnect",
   session_uuid: undefined, // at least one of session_uuid or data_channel must be defined
-  data_channel: undefined
+  data_channel: undefined,
 });
 
 //
@@ -256,7 +238,7 @@ message({
   type: required,
   project_id: required,
   session_uuid: required,
-  params: undefined
+  params: undefined,
 }); // extra parameters that control the type of session -- if we have to create a new one
 
 message({
@@ -264,14 +246,14 @@ message({
   id: undefined,
   session_uuid: required,
   data_channel: undefined, // used for certain types of sessions
-  history: undefined
+  history: undefined,
 }); // used for console/terminal sessions
 
 // sage_server&console_server --> hub
 message({
   event: "session_description",
   pid: required,
-  limits: undefined
+  limits: undefined,
 });
 
 // client <----> hub <--> sage_server
@@ -280,7 +262,7 @@ message({
   project_id: undefined,
   session_uuid: undefined,
   reason: undefined,
-  done: undefined
+  done: undefined,
 });
 
 message({
@@ -291,7 +273,7 @@ message({
   session_uuid: undefined,
   cell_id: undefined, // optional extra useful information about which cells is being executed
   preparse: true,
-  allow_cache: true
+  allow_cache: true,
 });
 
 // Output resulting from evaluating code that is displayed by the browser.
@@ -317,7 +299,7 @@ message({
   session_uuid: undefined, // the uuid of the session that produced this output
   once: undefined, // if given, message is transient; it is not saved by the worksheet, etc.
   clear: undefined, // if true, clears all output of the current cell before rendering message.
-  events: undefined
+  events: undefined,
 }); // {'event_name':'name of Python callable to call', ...} -- only for images right now
 
 // This message tells the client to execute the given Javascript code
@@ -334,11 +316,11 @@ message({
   code: required,
   obj: undefined,
   coffeescript: false,
-  cell_id: undefined
+  cell_id: undefined,
 }); // if set, eval scope contains an object cell that refers to the cell in the worksheet with this id.
 
 //###########################################
-// Information about several projects or accounts
+// Information about accounts
 //############################################
 
 API(
@@ -347,12 +329,12 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       account_ids: {
         init: required,
-        desc: "list of account_ids"
-      }
+        desc: "list of account_ids",
+      },
     },
     desc: `\
 Get first and last names for a list of account ids.
@@ -370,14 +352,14 @@ Example:
            "cc3cb7f1-14f6-4a18-a803-5034af8c0004":{"first_name":"John","last_name":"Smith"},
            "9b896055-920a-413c-9172-dfb4007a8e7f":{"first_name":"Jane","last_name":"Doe"}}}
 \`\`\`\
-`
+`,
   })
 );
 
 message({
   event: "usernames",
   id: undefined,
-  usernames: required
+  usernames: required,
 });
 
 //###########################################
@@ -391,39 +373,39 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
 
       first_name: {
-        init: required
+        init: undefined,
       },
       last_name: {
-        init: required
+        init: undefined,
       },
       email_address: {
-        init: required
+        init: undefined,
       },
       password: {
-        init: required,
-        desc: "must be between 6 and 64 characters in length"
+        init: undefined,
+        desc: "if given, must be between 6 and 64 characters in length",
       },
       agreed_to_terms: {
-        init: required,
-        desc: "must be true for request to succeed"
+        init: undefined,
+        desc: "must be true or user will get nagged",
       },
       token: {
         init: undefined, // only required when token is set.
-        desc: "account creation token - see src/dev/docker/README.md"
+        desc: "account creation token - see src/dev/docker/README.md",
       },
       get_api_key: {
         init: undefined,
         desc:
-          "if set to anything truth-ish, will create (if needed) and return api key with signed_in message"
+          "if set to anything truth-ish, will create (if needed) and return api key with signed_in message",
       },
       usage_intent: {
         init: undefined,
-        desc: "response to Cocalc usage intent at sign up"
-      }
+        desc: "response to Cocalc usage intent at sign up",
+      },
     },
     desc: `\
 Examples:
@@ -455,21 +437,21 @@ Attempting to create the same account a second time results in an error:
        "id":"2332be03-aa7d-49a6-933a-cd9824b7331a",
        "reason":{"email_address":"This e-mail address is already taken."}}
 \`\`\`\
-`
+`,
   })
 );
 
 message({
   event: "account_created",
   id: undefined,
-  account_id: required
+  account_id: required,
 });
 
 // hub --> client
 message({
   event: "account_creation_failed",
   id: undefined,
-  reason: required
+  reason: required,
 });
 
 // client --> hub
@@ -478,12 +460,12 @@ message2({
   fields: {
     id: {
       init: undefined,
-      desc: "A unique UUID for the query"
+      desc: "A unique UUID for the query",
     },
     account_id: {
       init: required,
-      desc: "account_id for account to be deleted"
-    }
+      desc: "account_id for account to be deleted",
+    },
   },
   desc: `\
 Example:
@@ -503,14 +485,14 @@ After successful \`delete_account\`, the owner of the deleted account
 will not be able to login, but will still be listed as collaborator
 or owner on projects which the user collaborated on or owned
 respectively.\
-`
+`,
 });
 
 // hub --> client
 message({
   event: "account_deleted",
   id: undefined,
-  error: undefined
+  error: undefined,
 });
 
 // client --> hub
@@ -520,20 +502,20 @@ message({
   email_address: required,
   password: required,
   remember_me: false,
-  get_api_key: undefined
+  get_api_key: undefined,
 }); // same as for create_account
 
 message({
   id: undefined,
   event: "sign_in_using_auth_token",
-  auth_token: required
+  auth_token: required,
 });
 
 // hub --> client
 message({
   id: undefined,
   event: "remember_me_failed",
-  reason: required
+  reason: required,
 });
 
 // client --> hub
@@ -541,7 +523,7 @@ message({
   id: undefined,
   event: "sign_in_failed",
   email_address: required,
-  reason: required
+  reason: required,
 });
 
 // hub --> client; sent in response to either create_account or log_in
@@ -552,22 +534,25 @@ message({
   hub: required, // ip address (on vpn) of hub user connected to.
   account_id: required, // uuid of user's account
   email_address: undefined, // email address they signed in under
+  // Alternatively, if email_address isn't set, there might be an lti_id.
+  // There might NOT be an lti_id either, if it is anonymous account!
+  lti_id: undefined,
   first_name: undefined,
   last_name: undefined,
-  api_key: undefined // user's api key, if requested in sign_in or create_account messages.
+  api_key: undefined, // user's api key, if requested in sign_in or create_account messages.
 });
 
 // client --> hub
 message({
   event: "sign_out",
   everywhere: false,
-  id: undefined
+  id: undefined,
 });
 
 // hub --> client
 message({
   event: "signed_out",
-  id: undefined
+  id: undefined,
 });
 
 // client --> hub
@@ -577,20 +562,20 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       account_id: {
         init: required,
-        desc: "account id of the account whose password is being changed"
+        desc: "account id of the account whose password is being changed",
       },
       old_password: {
         init: "",
-        desc: ""
+        desc: "",
       },
       new_password: {
         init: required,
-        desc: "must be between 6 and 64 characters in length"
-      }
+        desc: "must be between 6 and 64 characters in length",
+      },
     },
     desc: `\
 Given account_id and old password for an account, set a new password.
@@ -604,7 +589,7 @@ Example:
     https://cocalc.com/api/v1/change_password
   ==> {"event":"changed_password","id":"41ff89c3-348e-4361-ad1d-372b55e1544a"}
 \`\`\`\
-`
+`,
   })
 );
 
@@ -612,7 +597,7 @@ message({
   event: "send_verification_email",
   id: undefined,
   account_id: required,
-  only_verify: undefined
+  only_verify: undefined,
 }); // usually true, if false the full "welcome" email is sent
 
 // hub --> client
@@ -621,7 +606,7 @@ message({
 message({
   event: "changed_password",
   id: undefined,
-  error: undefined
+  error: undefined,
 });
 
 // client --> hub: "please send a password reset email"
@@ -630,12 +615,12 @@ message2({
   fields: {
     id: {
       init: undefined,
-      desc: "A unique UUID for the query"
+      desc: "A unique UUID for the query",
     },
     email_address: {
       init: required,
-      desc: "email address for account requesting password reset"
-    }
+      desc: "email address for account requesting password reset",
+    },
   },
   desc: `\
 Given the email address of an existing account, send password reset email.
@@ -649,14 +634,14 @@ Example:
        "id":"26ed294b-922b-47e1-8f3f-1e54d8c8e558",
        "error":false}
 \`\`\`\
-`
+`,
 });
 
 // hub --> client  "a password reset email was sent, or there was an error"
 message({
   event: "forgot_password_response",
   id: undefined,
-  error: false
+  error: false,
 });
 
 // client --> hub: "reset a password using this id code that was sent in a password reset email"
@@ -665,16 +650,16 @@ message2({
   fields: {
     id: {
       init: undefined,
-      desc: "A unique UUID for the query"
+      desc: "A unique UUID for the query",
     },
     reset_code: {
       init: required,
-      desc: "id code that was sent in a password reset email"
+      desc: "id code that was sent in a password reset email",
     },
     new_password: {
       init: required,
-      desc: "must be between 6 and 64 characters in length"
-    }
+      desc: "must be between 6 and 64 characters in length",
+    },
   },
   desc: `\
 Reset password, given reset code.
@@ -687,13 +672,13 @@ Example:
     https://cocalc.com/api/v1/reset_forgot_password
   ==> {"event":"reset_forgot_password_response","id":"85bd6027-644d-4859-9e17-5e835bd47570","error":false}
 \`\`\`\
-`
+`,
 });
 
 message({
   event: "reset_forgot_password_response",
   id: undefined,
-  error: false
+  error: false,
 });
 
 // client --> hub
@@ -703,24 +688,24 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       account_id: {
         init: required,
-        desc: "account_id for account whose email address is changed"
+        desc: "account_id for account whose email address is changed",
       },
       old_email_address: {
         init: "",
-        desc: "ignored -- deprecated"
+        desc: "ignored -- deprecated",
       },
       new_email_address: {
         init: required,
-        desc: ""
+        desc: "",
       },
       password: {
         init: "",
-        desc: ""
-      }
+        desc: "",
+      },
     },
     desc: `\
 Given the \`account_id\` for an account, set a new email address.
@@ -753,7 +738,7 @@ Fails if new email address is already in use.
 \`\`\`
 
 **Note:** \`account_id\` and \`password\` must match the \`id\` of the current login.\
-`
+`,
   })
 );
 
@@ -762,7 +747,7 @@ message({
   event: "changed_email_address",
   id: undefined,
   error: false, // some other error
-  ttl: undefined
+  ttl: undefined,
 }); // if user is trying to change password too often, this is time to wait
 
 // Unlink a passport auth for this account.
@@ -772,12 +757,12 @@ message2({
   fields: {
     strategy: {
       init: required,
-      desc: "passport strategy"
+      desc: "passport strategy",
     },
     id: {
       init: required,
-      desc: "numeric id for user and passport strategy"
-    }
+      desc: "numeric id for user and passport strategy",
+    },
   },
   desc: `\
 Unlink a passport auth for the account.
@@ -811,25 +796,25 @@ Unlink passport for that strategy and id.
 
 Note that success is returned regardless of whether or not passport was linked
 for the given strategy and id before issuing the API command.\
-`
+`,
 });
 
 message({
   event: "error",
   id: undefined,
-  error: undefined
+  error: undefined,
 });
 
 message({
   event: "success",
-  id: undefined
+  id: undefined,
 });
 
 // You need to reconnect.
 message({
   event: "reconnect",
   id: undefined,
-  reason: undefined
+  reason: undefined,
 }); // optional to make logs more informative
 
 //#####################################################################################
@@ -845,7 +830,7 @@ message({
   url: "/cookies",
   get: undefined, // name of a cookie to get
   set: undefined, // name of a cookie to set
-  value: undefined
+  value: undefined,
 }); // value to set cookie to
 
 /*
@@ -894,7 +879,7 @@ message({
   // to this project for this many seconds,
   // then it does the same thing as when
   // receiving a 'close_project' message.
-  ssh_public_key: required
+  ssh_public_key: required,
 }); // ssh key of the one UNIX user that is allowed to access this account (this is running the hub).
 
 // A project_server sends the project_opened message to the hub once
@@ -903,7 +888,7 @@ message({
 // project_server --> hub
 message({
   event: "project_opened",
-  id: required
+  id: required,
 });
 
 //#####################################################################
@@ -917,46 +902,46 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       project_id: {
         init: required,
-        desc: "id of project where command is to be executed"
+        desc: "id of project where command is to be executed",
       },
       path: {
         init: "",
-        desc: "path of working directory for the command"
+        desc: "path of working directory for the command",
       },
       command: {
         init: required,
-        desc: "command to be executed"
+        desc: "command to be executed",
       },
       args: {
         init: [],
-        desc: "command line options for the command"
+        desc: "command line options for the command",
       },
       timeout: {
         init: 10,
-        desc: "maximum allowed time, in seconds"
+        desc: "maximum allowed time, in seconds",
       },
       aggregate: {
         init: undefined,
         desc:
-          "If there are multiple attempts to run the given command with the same time, they are all aggregated and run only one time by the project; if requests comes in with a greater value (time, sequence number, etc.), they all run in  another group after the first one finishes.  Meant for compiling code on save."
+          "If there are multiple attempts to run the given command with the same time, they are all aggregated and run only one time by the project; if requests comes in with a greater value (time, sequence number, etc.), they all run in  another group after the first one finishes.  Meant for compiling code on save.",
       },
       max_output: {
         init: undefined,
-        desc: "maximum number of characters in the output"
+        desc: "maximum number of characters in the output",
       },
       bash: {
         init: false,
-        desc: "if true, args are ignored and command is run as a bash command"
+        desc: "if true, args are ignored and command is run as a bash command",
       },
       err_on_exit: {
         init: true,
         desc:
-          "if exit code is nonzero send error return message instead of the usual output"
-      }
+          "if exit code is nonzero send error return message instead of the usual output",
+      },
     },
     desc: `\
 Execute a shell command in a given project.
@@ -1028,8 +1013,10 @@ Notes:
   a path and command line arguments.
 - If option \`args\` is provided, options must be sent as a JSON object.
 - Argument \`path\` is optional. When provided, \`path\` is relative to home directory in target project
-  and specifies the working directory in which the command will be run.\
-`
+  and specifies the working directory in which the command will be run.
+- If the project is stopped or archived, this API call will cause it to be started. Starting the project can take
+  several seconds. In this case, the call may return a timeout error and will need to be repeated. \
+`,
   })
 );
 
@@ -1039,7 +1026,7 @@ message({
   id: required,
   stdout: required,
   stderr: required,
-  exit_code: required
+  exit_code: required,
 });
 
 //#####################################################################
@@ -1052,8 +1039,7 @@ message({
   event: "jupyter_port",
   port: undefined, // gets set in response
   id: undefined,
-  mathjax_url: undefined
-}); // e.g. '/static/mathjax-2.6.1/MathJax.js'
+});
 
 //############################################################################
 
@@ -1070,7 +1056,7 @@ message({
   id: undefined,
   project_id: required,
   path: required,
-  archive: "tar.bz2"
+  archive: "tar.bz2",
 });
 
 // The file_read_from_project message is sent by the project_server
@@ -1080,14 +1066,14 @@ message({
   event: "file_read_from_project",
   id: required,
   data_uuid: required, // The project_server will send the raw data of the file as a blob with this uuid.
-  archive: undefined
+  archive: undefined,
 }); // if defined, means that file (or directory) was archived (tarred up) and this string was added to end of filename.
 
 // hub --> client
 message({
   event: "temporary_link_to_file_read_from_project",
   id: required,
-  url: required
+  url: required,
 });
 
 // The client sends this message to the hub in order to read
@@ -1100,17 +1086,17 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       project_id: {
         init: required,
         desc:
-          "id of project containing file to be read (or array of project_id's)"
+          "id of project containing file to be read (or array of project_id's)",
       },
       path: {
         init: required,
-        desc: "path to file to be read in target project (or array of paths)"
-      }
+        desc: "path to file to be read in target project (or array of paths)",
+      },
     },
     desc: `\
 Read a text file in the project whose \`project_id\` is supplied.
@@ -1140,7 +1126,7 @@ Read a text file.
        "id":"481d6055-5609-450f-a229-480e518b2f84",
        "content":"hello"}
 \`\`\`\
-`
+`,
   })
 );
 
@@ -1148,7 +1134,7 @@ Read a text file.
 message({
   event: "text_file_read_from_project",
   id: required,
-  content: required
+  content: required,
 });
 
 // The write_file_to_project message is sent from the hub to the
@@ -1162,7 +1148,7 @@ message({
   id: required,
   project_id: required,
   path: required,
-  data_uuid: required
+  data_uuid: required,
 }); // hub sends raw data as a blob with this uuid immediately.
 
 // The client sends this message to the hub in order to write (or
@@ -1175,20 +1161,20 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       project_id: {
         init: required,
-        desc: "id of project where file is created"
+        desc: "id of project where file is created",
       },
       path: {
         init: required,
-        desc: "path to file, relative to home directory in destination project"
+        desc: "path to file, relative to home directory in destination project",
       },
       content: {
         init: required,
-        desc: "contents of the text file to be written"
-      }
+        desc: "contents of the text file to be written",
+      },
     },
     desc: `\
 Create a text file in the target project with the given \`project_id\`.
@@ -1209,7 +1195,7 @@ Create a text file.
     -d path=Assignments/A1/h1.txt \\
     https://cocalc.com/api/v1/write_text_file_to_project
 \`\`\`\
-`
+`,
   })
 );
 
@@ -1218,7 +1204,7 @@ Create a text file.
 // project_server --> hub
 message({
   event: "file_written_to_project",
-  id: required
+  id: required,
 });
 
 //###########################################
@@ -1232,25 +1218,25 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       title: {
         init: "",
-        desc: "project title"
+        desc: "project title",
       },
       description: {
         init: "",
-        desc: "project description"
+        desc: "project description",
       },
       image: {
         init: undefined,
-        desc: "(optional) image ID"
+        desc: "(optional) image ID",
       },
       start: {
         init: false,
         desc:
-          "start running the moment the project is created -- uses more resources, but possibly better user experience"
-      }
+          "start running the moment the project is created -- uses more resources, but possibly better user experience",
+      },
     },
     desc: `\
 Example:
@@ -1263,7 +1249,7 @@ Example:
         "id":"0b4df293-d518-45d0-8a3c-4281e501b85e",
         "project_id":"07897899-6bbb-4fbc-80a7-3586c43348d1"}
 \`\`\`\
-`
+`,
   })
 );
 
@@ -1271,7 +1257,7 @@ Example:
 message({
   event: "project_created",
   id: required,
-  project_id: required
+  project_id: required,
 });
 
 //# search ---------------------------
@@ -1283,26 +1269,26 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       query: {
         init: required,
         desc:
-          "comma separated list of email addresses or strings such as 'foo bar'"
+          "comma separated list of email addresses or strings such as 'foo bar'",
       },
       admin: {
         init: false,
         desc:
-          "if true and user is an admin, includes email addresses in result, and does more permissive search"
+          "if true and user is an admin, includes email addresses in result, and does more permissive search",
       },
       active: {
         init: "",
-        desc: "only include users active for this interval of time"
+        desc: "only include users active for this interval of time",
       },
       limit: {
         init: 20,
-        desc: "maximum number of results returned"
-      }
+        desc: "maximum number of results returned",
+      },
     },
     desc: `\
 There are two possible item types in the query list: email addresses
@@ -1370,7 +1356,7 @@ Email and string search types may be mixed in a single query:
     -d limit=4 \\
     https://cocalc.com/api/v1/user_search
 \`\`\`\
-`
+`,
   })
 );
 
@@ -1378,14 +1364,14 @@ Email and string search types may be mixed in a single query:
 message({
   event: "user_search_results",
   id: undefined,
-  results: required
+  results: required,
 }); // list of {first_name:, last_name:, account_id:, last_active:?, created:?, email_address:?} objects.; email_address only for admin
 
 // hub --> client
 message({
   event: "project_users",
   id: undefined,
-  users: required
+  users: required,
 }); // list of {account_id:?, first_name:?, last_name:?, mode:?, state:?}
 
 API(
@@ -1394,40 +1380,40 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       project_id: {
         init: required,
-        desc: "project_id of project into which user is invited"
+        desc: "project_id of project into which user is invited",
       },
       account_id: {
         init: required,
-        desc: "account_id of invited user"
+        desc: "account_id of invited user",
       },
       title: {
         init: undefined,
-        desc: "Title of the project"
+        desc: "Title of the project",
       },
       link2proj: {
         init: undefined,
-        desc: "The full URL link to the project"
+        desc: "The full URL link to the project",
       },
       replyto: {
         init: undefined,
-        desc: "Email address of user who is inviting someone"
+        desc: "Email address of user who is inviting someone",
       },
       replyto_name: {
         init: undefined,
-        desc: "Name of user who is inviting someone"
+        desc: "Name of user who is inviting someone",
       },
       email: {
         init: undefined,
-        desc: "Body of email user is sending (plain text or HTML)"
+        desc: "Body of email user is sending (plain text or HTML)",
       },
       subject: {
         init: undefined,
-        desc: "Subject line of invitation email"
-      }
+        desc: "Subject line of invitation email",
+      },
     },
     desc: `\
 Invite a user who already has a CoCalc account to
@@ -1444,7 +1430,7 @@ Example:
   ==> {"event":"success",
        "id":"e80fd64d-fd7e-4cbc-981c-c0e8c843deec"}
 \`\`\`\
-`
+`,
   })
 );
 
@@ -1454,18 +1440,18 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       project_id: {
         init: required,
         desc:
-          "project_id of project to add user to (can be an array to add multiple users to multiple projects)"
+          "project_id of project to add user to (can be an array to add multiple users to multiple projects)",
       },
       account_id: {
         init: required,
         desc:
-          "account_id of user (can be an array to add multiple users to multiple projects)"
-      }
+          "account_id of user (can be an array to add multiple users to multiple projects)",
+      },
     },
     desc: `\
 Directly add a user to a CoCalc project.
@@ -1489,7 +1475,7 @@ Example:
   ==> {"event":"success",
        "id":"e80fd64d-fd7e-4cbc-981c-c0e8c843deec"}
 \`\`\`\
-`
+`,
   })
 );
 
@@ -1499,16 +1485,16 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       project_id: {
         init: required,
-        desc: "project_id of project from which user is removed"
+        desc: "project_id of project from which user is removed",
       },
       account_id: {
         init: required,
-        desc: "account_id of removed user"
-      }
+        desc: "account_id of removed user",
+      },
     },
     desc: `\
 Remove a user from a CoCalc project.
@@ -1525,7 +1511,7 @@ Example:
   ==> {"event":"success",
        "id":"e80fd64d-fd7e-4cbc-981c-c0e8c843deec"}
 \`\`\`\
-`
+`,
   })
 );
 
@@ -1536,40 +1522,40 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       project_id: {
         init: required,
-        desc: "project_id of project into which users are invited"
+        desc: "project_id of project into which users are invited",
       },
       to: {
         init: required,
-        desc: "comma- or semicolon-delimited string of email addresses"
+        desc: "comma- or semicolon-delimited string of email addresses",
       },
       email: {
         init: required,
-        desc: "body of the email to be sent, may include HTML markup"
+        desc: "body of the email to be sent, may include HTML markup",
       },
       title: {
         init: required,
-        desc: "string that will be used for project title in the email"
+        desc: "string that will be used for project title in the email",
       },
       link2proj: {
         init: required,
-        desc: "URL for the target project"
+        desc: "URL for the target project",
       },
       replyto: {
         init: undefined,
-        desc: "Reply-To email address"
+        desc: "Reply-To email address",
       },
       replyto_name: {
         init: undefined,
-        desc: "Reply-To name"
+        desc: "Reply-To name",
       },
       subject: {
         init: undefined,
-        desc: "email Subject"
-      }
+        desc: "email Subject",
+      },
     },
     desc: `\
 Invite users who do not already have a CoCalc account
@@ -1614,14 +1600,14 @@ using exactly the email address 'someone@m.local'.\\n
 Then go to <a href='https://cocalc.com/projects/18955da4-4bfa-4afa-910c-7f2358c05eb8'>
 the project 'Team Project'</a>.</b><br/>
 \`\`\`\
-`
+`,
   })
 );
 
 message({
   event: "invite_noncloud_collaborators_resp",
   id: undefined,
-  mesg: required
+  mesg: required,
 });
 
 /*
@@ -1637,7 +1623,7 @@ message to that client.
 message({
   event: "version",
   version: undefined, // gets filled in by the hub
-  min_version: undefined
+  min_version: undefined,
 }); // if given, then client version must be at least min_version to be allowed to connect.
 
 //############################################
@@ -1653,7 +1639,7 @@ message({
   id: undefined,
   sha1: required, // the sha-1 hash of the blob that we just processed
   ttl: undefined, // ttl in seconds of the blob if saved; 0=infinite
-  error: undefined
+  error: undefined,
 }); // if not saving, a message explaining why.
 
 // remove the ttls from blobs in the blobstore.
@@ -1661,7 +1647,7 @@ message({
 message({
   event: "remove_blob_ttls",
   id: undefined,
-  uuids: required
+  uuids: required,
 }); // list of sha1 hashes of blobs stored in the blobstore
 
 // DEPRECATED -- used by bup_server
@@ -1670,13 +1656,13 @@ message({
   action: required, // open, save, snapshot, latest_snapshot, close
   project_id: undefined,
   param: undefined,
-  id: undefined
+  id: undefined,
 });
 
 message({
   event: "projects_running_on_server",
   id: undefined,
-  projects: undefined
+  projects: undefined,
 }); // for response
 
 /*
@@ -1689,7 +1675,7 @@ message({
   timeout: undefined,
   id: undefined,
   multi_response: false,
-  message: required
+  message: required,
 }); // arbitrary message
 
 //##########################################################
@@ -1703,55 +1689,55 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       src_project_id: {
         init: required,
-        desc: "id of source project"
+        desc: "id of source project",
       },
       src_path: {
         init: required,
-        desc: "relative path of directory or file in the source project"
+        desc: "relative path of directory or file in the source project",
       },
       target_project_id: {
         init: required,
-        desc: "id of target project"
+        desc: "id of target project",
       },
       target_path: {
         init: undefined,
-        desc: "defaults to src_path"
+        desc: "defaults to src_path",
       },
       overwrite_newer: {
         init: false,
-        desc: "overwrite newer versions of file at destination (destructive)"
+        desc: "overwrite newer versions of file at destination (destructive)",
       },
       delete_missing: {
         init: false,
-        desc: "delete files in dest that are missing from source (destructive)"
+        desc: "delete files in dest that are missing from source (destructive)",
       },
       backup: {
         init: false,
-        desc: "make ~ backup files instead of overwriting changed files"
+        desc: "make ~ backup files instead of overwriting changed files",
       },
       timeout: {
         init: undefined,
         desc:
-          'seconds to wait before reporting "error" (though copy could still succeed)'
+          'seconds to wait before reporting "error" (though copy could still succeed)',
       },
       exclude_history: {
         init: false,
-        desc: "if true, exclude all files of the form `*.sage-history`"
+        desc: "if true, exclude all files of the form `*.sage-history`",
       },
       wait_until_done: {
         init: true,
         desc:
-          "if false, the operation returns immediately with the copy_path_id for querying copy_path_status"
+          "if false, the operation returns immediately with the copy_path_id for querying copy_path_status",
       },
       scheduled: {
         init: undefined,
         desc:
-          "if set, the copy operation runs earliest after the given time and wait_until_done is false. Must be a `new Date(...)` parseable string."
-      }
+          "if set, the copy operation runs earliest after the given time and wait_until_done is false. Must be a `new Date(...)` parseable string.",
+      },
     },
     desc: `\
 Copy a file or directory from one project to another.
@@ -1793,7 +1779,7 @@ Folder \`A\` will be created in target project if it does not exist already.
   ==> {"event":"success",
        "id":"45d851ac-5ea0-4aea-9997-99a06c054a60"}
 \`\`\`\
-`
+`,
   })
 );
 
@@ -1802,7 +1788,7 @@ message({
   id: required,
   copy_path_id: undefined,
   note:
-    "Query copy_path_status with the copy_path_id to learn if the copy operation was successful."
+    "Query copy_path_status with the copy_path_id to learn if the copy operation was successful.",
 });
 
 API(
@@ -1811,38 +1797,38 @@ API(
     fields: {
       copy_path_id: {
         init: undefined,
-        desc: "A unique UUID for a copy path operation"
+        desc: "A unique UUID for a copy path operation",
       },
       src_project_id: {
         init: undefined,
-        desc: "Source of copy operation to filter on"
+        desc: "Source of copy operation to filter on",
       },
       target_project_id: {
         init: undefined,
-        desc: "Target of copy operation to filter on"
+        desc: "Target of copy operation to filter on",
       },
       src_path: {
         init: undefined,
-        desc: "(src/targ only) Source path of copy operation to filter on"
+        desc: "(src/targ only) Source path of copy operation to filter on",
       },
       limit: {
         init: 1000,
-        desc: "(src/targ only) maximum number of results  (max 1000)"
+        desc: "(src/targ only) maximum number of results  (max 1000)",
       },
       offset: {
         init: undefined,
-        desc: "(src/targ only) default 0; set this to a multiple of the limit"
+        desc: "(src/targ only) default 0; set this to a multiple of the limit",
       },
       pending: {
         init: true,
         desc:
-          "(src/targ only) true returns copy ops, which did not finish yet (default: true)"
+          "(src/targ only) true returns copy ops, which did not finish yet (default: true)",
       },
       failed: {
         init: false,
         desc:
-          "(src/targ only) if true, only show finished and failed copy ops (default: false)"
-      }
+          "(src/targ only) if true, only show finished and failed copy ops (default: false)",
+      },
     },
     desc: `\
 Retrieve status information about copy path operation(s).
@@ -1858,14 +1844,14 @@ Check for the field \`"finished"\`, containing the timestamp when the operation 
 There might also be an \`"error"\`!
 
 **Note:** You need to have read/write access to the associated src/target project.
-`
+`,
   })
 );
 
 message({
   event: "copy_path_status_response",
   id: required,
-  data: required
+  data: required,
 });
 
 API(
@@ -1874,15 +1860,15 @@ API(
     fields: {
       copy_path_id: {
         init: undefined,
-        desc: "A unique UUID for a scheduled future copy path operation"
-      }
+        desc: "A unique UUID for a scheduled future copy path operation",
+      },
     },
     desc: `\
 Delete a copy_path operation with the given \`copy_path_id\`.
 You need to have read/write access to the associated src/target project.
 
 **Note:** This will only remove entries which are *scheduled* and not yet completed.
-`
+`,
   })
 );
 
@@ -1902,7 +1888,7 @@ message({
   disk_quota: undefined, // disk quota in megabytes
   mintime: undefined, // time in **seconds** until idle projects are terminated
   network: undefined, // 1 or 0; if 1, full access to outside network
-  member_host: undefined
+  member_host: undefined,
 }); // 1 or 0; if 1, project will be run on a members-only machine
 
 /*
@@ -1912,20 +1898,20 @@ message({
   event: "print_to_pdf",
   id: undefined,
   path: required,
-  options: undefined
+  options: undefined,
 });
 
 message({
   event: "printed_to_pdf",
   id: undefined,
-  path: required
+  path: required,
 });
 
 /*
 Heartbeat message for connection from hub to project.
 */
 message({
-  event: "heartbeat"
+  event: "heartbeat",
 });
 
 /*
@@ -1936,8 +1922,8 @@ message2({
   fields: {
     id: {
       init: undefined,
-      desc: "A unique UUID for the query"
-    }
+      desc: "A unique UUID for the query",
+    },
   },
   desc: `\
 Test API connection, return time as ISO string when server responds to ping.
@@ -1972,13 +1958,13 @@ Using JSON format to provide request id:
     -d '{"id":"8ec4ac73-2595-42d2-ad47-0b9641043b46"}' https://cocalc.com/api/v1/ping
   ==> {"event":"pong","id":"8ec4ac73-2595-42d2-ad47-0b9641043b46","now":"2017-05-24T17:15:59.288Z"}
 \`\`\`\
-`
+`,
 });
 
 message({
   event: "pong",
   id: undefined,
-  now: undefined
+  now: undefined,
 }); // timestamp
 
 /*
@@ -1997,32 +1983,32 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       project_id: {
         init: required,
-        desc: "id of project containing public file to be read"
+        desc: "id of project containing public file to be read",
       },
       path: {
         init: required,
-        desc: "path of directory in target project"
+        desc: "path of directory in target project",
       },
       hidden: {
         init: false,
-        desc: "show hidden files"
+        desc: "show hidden files",
       },
       time: {
         init: false,
-        desc: "sort by timestamp, with newest first"
+        desc: "sort by timestamp, with newest first",
       },
       start: {
         init: 0,
-        desc: ""
+        desc: "",
       },
       limit: {
         init: -1,
-        desc: ""
-      }
+        desc: "",
+      },
     },
     desc: `\
 Given a project id and relative path (i.e. not beginning with a slash),
@@ -2048,14 +2034,14 @@ Security key may be blank.
        "result":{"files":[{"size":41,"name":"hello.txt","mtime":1496430932},
                           {"isdir":true,"name":"p2","mtime":1496461616}]}
 \`\`\`\
-`
+`,
   })
 );
 
 message({
   event: "public_directory_listing",
   id: undefined,
-  result: required
+  result: required,
 });
 
 // public request of contents of a text file in project
@@ -2065,16 +2051,16 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       project_id: {
         init: required,
-        desc: "id of project containing public file to be read"
+        desc: "id of project containing public file to be read",
       },
       path: {
         init: required,
-        desc: "path to file to be read in target project"
-      }
+        desc: "path to file to be read in target project",
+      },
     },
     desc: `\
 Read a public (shared) text file in the project whose id is supplied.
@@ -2106,14 +2092,14 @@ Attempt to read a file which is not public.
   ==> {"event":"error","id":"0288b7d0-dda9-4895-87ba-aa71929b2bfb",
        "error":"path 'Private/hello.txt' of project with id 'e49e86aa-192f-410b-8269-4b89fd934fba' is not public"}
 \`\`\`\
-`
+`,
   })
 );
 
 message({
   event: "public_text_file_contents",
   id: undefined,
-  data: required
+  data: required,
 });
 
 API(
@@ -2122,45 +2108,45 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       src_project_id: {
         init: required,
-        desc: "id of source project"
+        desc: "id of source project",
       },
       src_path: {
         init: required,
-        desc: "relative path of directory or file in the source project"
+        desc: "relative path of directory or file in the source project",
       },
       target_project_id: {
         init: required,
-        desc: "id of target project"
+        desc: "id of target project",
       },
       target_path: {
         init: undefined,
-        desc: "defaults to src_path"
+        desc: "defaults to src_path",
       },
       overwrite_newer: {
         init: false,
-        desc: "overwrite newer versions of file at destination (destructive)"
+        desc: "overwrite newer versions of file at destination (destructive)",
       },
       delete_missing: {
         init: false,
-        desc: "delete files in dest that are missing from source (destructive)"
+        desc: "delete files in dest that are missing from source (destructive)",
       },
       backup: {
         init: false,
-        desc: "make ~ backup files instead of overwriting changed files"
+        desc: "make ~ backup files instead of overwriting changed files",
       },
       timeout: {
         init: undefined,
         desc:
-          "how long to wait for the copy to complete before reporting error (though it could still succeed)"
+          "how long to wait for the copy to complete before reporting error (though it could still succeed)",
       },
       exclude_history: {
         init: false,
-        desc: "if true, exclude all files of the form `*.sage-history`"
-      }
+        desc: "if true, exclude all files of the form `*.sage-history`",
+      },
     },
     desc: `\
 Copy a file or directory from a public project to a target project.
@@ -2186,7 +2172,7 @@ Copy public file \`PUBLIC/doc.txt\` from source project to private file
   ==> {"event":"success",
        "id":"45d851ac-5ea0-4aea-9997-99a06c054a60"}
 \`\`\`\
-`
+`,
   })
 );
 
@@ -2196,12 +2182,12 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       error: {
         init: required,
-        desc: "error string"
-      }
+        desc: "error string",
+      },
     },
     desc: `\
 Log an error so that CoCalc support can look at it.
@@ -2227,7 +2213,7 @@ via the API and is intended for use by CoCalc support only:
   "account_id":"1c87a139-9e13-4cdd-b02c-e7d41dcfe921",
   "time":"2017-07-06T02:32:41.176Z"}]
 \`\`\`\
-`
+`,
   })
 );
 
@@ -2251,7 +2237,7 @@ message({
   build_date: undefined, // string
   smc_git_rev: undefined, // string
   uptime: undefined, // string
-  start_time: undefined
+  start_time: undefined,
 }); // timestamp
 
 /*
@@ -2264,7 +2250,7 @@ Stripe integration
 API(
   message({
     event: "stripe_get_customer",
-    id: undefined
+    id: undefined,
   })
 );
 
@@ -2273,7 +2259,7 @@ API(
     event: "stripe_customer",
     id: undefined,
     customer: undefined, // if user already has a stripe customer account, info about it.
-    stripe_publishable_key: undefined
+    stripe_publishable_key: undefined,
   })
 ); // if stripe is configured for this SMC instance, this is the public API key.
 
@@ -2282,7 +2268,7 @@ API(
   message({
     event: "stripe_create_source",
     id: undefined,
-    token: required
+    token: required,
   })
 );
 
@@ -2290,7 +2276,7 @@ API(
   message({
     event: "stripe_delete_source",
     card_id: required,
-    id: undefined
+    id: undefined,
   })
 );
 
@@ -2298,7 +2284,7 @@ API(
   message({
     event: "stripe_set_default_source",
     card_id: required,
-    id: undefined
+    id: undefined,
   })
 );
 
@@ -2307,7 +2293,7 @@ API(
     event: "stripe_update_source",
     card_id: required,
     info: required, // see https://stripe.com/docs/api/node#update_card, except we don't allow changing metadata
-    id: undefined
+    id: undefined,
   })
 );
 
@@ -2317,7 +2303,7 @@ API(
 API(
   message({
     event: "stripe_get_plans",
-    id: undefined
+    id: undefined,
   })
 );
 
@@ -2325,7 +2311,7 @@ API(
   message({
     event: "stripe_plans",
     id: undefined,
-    plans: required
+    plans: required,
   })
 ); // [{name:'Basic', projects:1, description:'...', price:'$10/month', trial_period:'30 days', ...}, ...]
 
@@ -2336,7 +2322,7 @@ API(
     id: undefined,
     plan: required, // name of plan
     quantity: 1,
-    coupon_id: undefined
+    coupon_id: undefined,
   })
 );
 
@@ -2346,7 +2332,7 @@ API(
     event: "stripe_cancel_subscription",
     id: undefined,
     subscription_id: required,
-    at_period_end: true
+    at_period_end: true,
   })
 );
 
@@ -2359,7 +2345,7 @@ API(
     quantity: undefined, // only give if changing
     projects: undefined, // change associated projects from what they were to new list
     plan: undefined, // change plan to this
-    coupon_id: undefined
+    coupon_id: undefined,
   })
 ); // apply a coupon to this subscription
 
@@ -2369,28 +2355,28 @@ API(
     id: undefined,
     limit: undefined, // between 1 and 100 (default: 10)
     ending_before: undefined, // see https://stripe.com/docs/api/node#list_charges
-    starting_after: undefined
+    starting_after: undefined,
   })
 );
 
 message({
   event: "stripe_subscriptions",
   id: undefined,
-  subscriptions: undefined
+  subscriptions: undefined,
 });
 
 API(
   message({
     event: "stripe_get_coupon",
     id: undefined,
-    coupon_id: required
+    coupon_id: required,
   })
 );
 
 message({
   event: "stripe_coupon",
   id: undefined,
-  coupon: undefined
+  coupon: undefined,
 });
 
 // charges
@@ -2400,14 +2386,14 @@ API(
     id: undefined,
     limit: undefined, // between 1 and 100 (default: 10)
     ending_before: undefined, // see https://stripe.com/docs/api/node#list_charges
-    starting_after: undefined
+    starting_after: undefined,
   })
 );
 
 message({
   event: "stripe_charges",
   id: undefined,
-  charges: undefined
+  charges: undefined,
 });
 
 // invoices
@@ -2417,14 +2403,14 @@ API(
     id: undefined,
     limit: undefined, // between 1 and 100 (default: 10)
     ending_before: undefined, // see https://stripe.com/docs/api/node#list_customer_invoices
-    starting_after: undefined
+    starting_after: undefined,
   })
 );
 
 message({
   event: "stripe_invoices",
   id: undefined,
-  invoices: undefined
+  invoices: undefined,
 });
 
 message({
@@ -2433,7 +2419,7 @@ message({
   email_address: undefined, // one of email or account_id must be given.
   account_id: undefined, // user who will be invoiced
   amount: undefined, // currently in US dollars  (if amount or desc not given, then only creates customer, not invoice)
-  description: undefined
+  description: undefined,
 });
 
 /*
@@ -2447,41 +2433,41 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       username: {
         init: undefined,
-        desc: "name on the ticket"
+        desc: "name on the ticket",
       },
       email_address: {
         init: required,
         desc:
-          "if there is no email_address in the account, there cannot be a ticket!"
+          "if there is no email_address in the account, there cannot be a ticket!",
       },
       subject: {
         init: required,
-        desc: "like an email subject"
+        desc: "like an email subject",
       },
       body: {
         init: required,
-        desc: "html or md formatted text"
+        desc: "html or md formatted text",
       },
       tags: {
         init: undefined,
-        desc: "a list of tags, like `['member']`"
+        desc: "a list of tags, like `['member']`",
       },
       account_id: {
         init: undefined,
-        desc: "account_id for the ticket"
+        desc: "account_id for the ticket",
       },
       location: {
         init: undefined,
-        desc: "from the URL, to know what the requester is talking about"
+        desc: "from the URL, to know what the requester is talking about",
       },
       info: {
         init: undefined,
-        desc: "additional data dict, like browser/OS"
-      }
+        desc: "additional data dict, like browser/OS",
+      },
     },
     desc: `\
 Open a CoCalc support ticket.
@@ -2531,7 +2517,7 @@ Example:
        "id":"abd649bf-ea2d-4952-b925-e44c6903945e",
        "url":"https://sagemathcloud.zendesk.com/requests/0123"}
 \`\`\`\
-`
+`,
   })
 );
 
@@ -2539,7 +2525,7 @@ message({
   // client ← hub
   event: "support_ticket_url",
   id: undefined,
-  url: required
+  url: required,
 });
 
 // client → hub
@@ -2549,8 +2535,8 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
-      }
+        desc: "A unique UUID for the query",
+      },
     },
     desc: `\
 Fetch information on support tickets for the user making the request.
@@ -2579,7 +2565,7 @@ curl -u sk_abcdefQWERTY090900000000:  -X POST \\
                    "status":"open",
                    "url":"https://sagemathcloud.zendesk.com/requests/0123"}]}
 \`\`\`\
-`
+`,
   })
 );
 
@@ -2587,7 +2573,7 @@ message({
   // client ← hub
   event: "support_tickets",
   id: undefined,
-  tickets: required
+  tickets: required,
 }); // json-list
 
 /*
@@ -2600,24 +2586,24 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       query: {
         init: required,
-        desc: "The actual query"
+        desc: "The actual query",
       },
       changes: {
         init: undefined,
-        desc: ""
+        desc: "",
       },
       multi_response: {
         init: false,
-        desc: ""
+        desc: "",
       },
       options: {
         init: undefined,
-        desc: ""
-      }
+        desc: "",
+      },
     },
     desc: `\
 This queries directly the database (sort of Facebook's GraphQL)
@@ -2851,19 +2837,19 @@ Within directory 'db-schema':
       // TODO: create real examples!  These are not done.
       [
         { id: "uuid", query: "example1-query" },
-        { id: "uuid", event: "query", response: "..." }
+        { id: "uuid", event: "query", response: "..." },
       ],
       [
         { id: "uuid", query: "example2-query" },
-        { id: "uuid", event: "query", response: "..." }
-      ]
-    ]
+        { id: "uuid", event: "query", response: "..." },
+      ],
+    ],
   })
 );
 
 message({
   event: "query_cancel",
-  id: undefined
+  id: undefined,
 });
 
 /*
@@ -2875,14 +2861,14 @@ message({
   event: "api_key",
   id: undefined,
   action: required, // 'get', 'delete', 'regenerate'
-  password: required
+  password: required,
 });
 
 // hub --> client
 message({
   event: "api_key_info",
   id: undefined,
-  api_key: required
+  api_key: required,
 });
 
 // client --> hub
@@ -2892,16 +2878,16 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       account_id: {
         init: required,
-        desc: "account_id for account to get an auth token for"
+        desc: "account_id for account to get an auth token for",
       },
       password: {
         init: required,
-        desc: "password for account to get token for"
-      }
+        desc: "password for account to get token for",
+      },
     },
     desc: `\
 .. index:: pair: Token; Authentication
@@ -2924,7 +2910,7 @@ You can now use the auth token to craft a URL like this:
     https://cocalc.com/app?auth_token=BQokikJOvBiI2HlWgH4olfQ2
 
 and provide that to a user.  When they visit that URL, they will be temporarily signed in as that user.\
-`
+`,
   })
 );
 
@@ -2932,7 +2918,7 @@ and provide that to a user.  When they visit that URL, they will be temporarily 
 message({
   event: "user_auth_token",
   id: undefined,
-  auth_token: required
+  auth_token: required,
 }); // 24 character string
 
 /*
@@ -2966,9 +2952,9 @@ message2({
   fields: {
     metrics: {
       init: required,
-      desc: "object containing the metrics"
-    }
-  }
+      desc: "object containing the metrics",
+    },
+  },
 });
 
 message2({
@@ -2977,9 +2963,9 @@ message2({
     interval_s: {
       init: required,
       desc:
-        "tells client that it should submit metrics to the hub every interval_s seconds"
-    }
-  }
+        "tells client that it should submit metrics to the hub every interval_s seconds",
+    },
+  },
 });
 
 // Info about available upgrades for a given user
@@ -2989,8 +2975,8 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
-      }
+        desc: "A unique UUID for the query",
+      },
     },
     desc: `\
 This request returns information on project upgrdes for the user
@@ -3025,7 +3011,7 @@ Example:
      "mintime":1733400,
      "network":372}}
 \`\`\`\
-`
+`,
   })
 );
 
@@ -3036,15 +3022,15 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       project_id: {
         init: required,
-        desc: "id of project to touch"
-      }
+        desc: "id of project to touch",
+      },
     },
     desc:
-      "Mark this project as being actively used by the user sending this message.  This keeps the project from idle timing out, among other things."
+      "Mark this project as being actively used by the user sending this message.  This keeps the project from idle timing out, among other things.",
   })
 );
 
@@ -3055,15 +3041,15 @@ API(
     fields: {
       id: {
         init: undefined,
-        desc: "A unique UUID for the query"
+        desc: "A unique UUID for the query",
       },
       project_id: {
         init: required,
-        desc: "id of project to disconnect from"
-      }
+        desc: "id of project to disconnect from",
+      },
     },
     desc:
-      "Disconnect the hub that gets this message from the project.   This is used entirely for internal debugging and development."
+      "Disconnect the hub that gets this message from the project.   This is used entirely for internal debugging and development.",
   })
 );
 
@@ -3073,7 +3059,7 @@ message({
   id: undefined,
   total: required, // total upgrades the user has purchased
   excess: required, // upgrades where the total allocated exceeds what user has purchased
-  available: required
+  available: required,
 }); // how much of each purchased upgrade is available
 
 // Remove *all* upgrades applied by the signed in user to any projects,
@@ -3082,7 +3068,7 @@ message({
 message({
   event: "remove_all_upgrades",
   projects: undefined, // optional array of project_id's.
-  id: undefined
+  id: undefined,
 });
 
 /*
@@ -3096,7 +3082,7 @@ message({
   code: required,
   data: undefined,
   cell_id: undefined, // if is a cell, which is being executed (so if client does not ack, output is still recorded)
-  preparse: true
+  preparse: true,
 });
 
 // project --> client
@@ -3104,34 +3090,34 @@ message({
   event: "sagews_output",
   id: required,
   path: required,
-  output: required
+  output: required,
 }); // the actual output message
 
 // client --> project
 message({
   event: "sagews_output_ack",
-  id: required
+  id: required,
 });
 
 // client --> project
 message({
   event: "sagews_interrupt",
   id: undefined,
-  path: required
+  path: required,
 });
 
 // client --> project
 message({
   event: "sagews_quit",
   id: undefined,
-  path: required
+  path: required,
 });
 
 // client --> project
 message({
   event: "sagews_start",
   id: undefined,
-  path: required
+  path: required,
 });
 
 // client --> hub
@@ -3140,7 +3126,7 @@ API(
     event: "get_syncdoc_history",
     id: undefined,
     string_id: required,
-    patches: undefined
+    patches: undefined,
   })
 );
 
@@ -3148,7 +3134,7 @@ API(
 message({
   event: "syncdoc_history",
   id: undefined,
-  history: required
+  history: required,
 });
 
 // client --> hub
@@ -3158,7 +3144,7 @@ message({
   event: "user_tracking",
   id: undefined,
   evt: required, // string -- the event being tracked (max length 80 characters)
-  value: required // map -- additional info about that event
+  value: required, // map -- additional info about that event
 });
 
 // Client <--> hub.
@@ -3174,12 +3160,12 @@ message({
   event: "admin_reset_password",
   id: undefined,
   email_address: required,
-  link: undefined
+  link: undefined,
 });
 
 message({
   event: "admin_ban_user",
   id: undefined,
   account_id: required,
-  ban: required // if true ban; if false, unban
+  ban: required, // if true ban; if false, unban
 });

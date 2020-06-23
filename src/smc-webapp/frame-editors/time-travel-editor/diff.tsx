@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Render a diff of two versions of a document for use in TimeTravel.
 
 NOTE: I did extensively test out using https://github.com/praneshr/react-diff-viewer.
@@ -39,19 +44,16 @@ export class Diff extends Component<Props> {
     if (textarea == null) return; // can't happen
     const options: any = cm_options(
       this.props.use_json ? "a.js" : this.props.path,
-      this.props.editor_settings,
-      [],
-      undefined,
-      ""
+      this.props.editor_settings
     );
     options.readOnly = true;
     this.cm = CodeMirror.fromTextArea(textarea, options);
     init_style_hacks(this.cm);
     set_cm_line_diff(this.cm, this.props.v0, this.props.v1);
-    const f = (v0:string, v1:string) : void => {
+    const f = (v0: string, v1: string): void => {
       if (this.cm == null) return;
       set_cm_line_diff(this.cm, v0, v1);
-    }
+    };
     this.update = debounce(f, 300);
   }
 
@@ -59,7 +61,7 @@ export class Diff extends Component<Props> {
     this.init_codemirror();
   }
 
-  public componentWillUnmount() : void {
+  public componentWillUnmount(): void {
     if (this.cm == null) return;
     $(this.cm.getWrapperElement()).remove();
     delete this.cm;

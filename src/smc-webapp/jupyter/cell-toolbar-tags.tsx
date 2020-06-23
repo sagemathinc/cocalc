@@ -1,11 +1,16 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 The tag editing toolbar functionality for cells.
 */
 
 import { Button, FormControl } from "react-bootstrap";
 import { React, Component } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
-const { Icon } = require("../r_misc");
+import { Icon } from "../r_misc";
 const misc = require("smc-util/misc");
 import { JupyterActions } from "./browser-actions";
 
@@ -15,7 +20,7 @@ const TAG_STYLE: React.CSSProperties = {
   background: "#5bc0de",
   borderRadius: "3px",
   color: "white",
-  display: "inline-block"
+  display: "inline-block",
 };
 
 interface TagsToolbarProps {
@@ -61,7 +66,7 @@ export class TagsToolbar extends Component<TagsToolbarProps, TagsToolbarState> {
         {misc
           .keys(tags.toJS())
           .sort()
-          .map(tag => this.render_tag(tag))}
+          .map((tag) => this.render_tag(tag))}
       </div>
     );
   }
@@ -76,7 +81,7 @@ export class TagsToolbar extends Component<TagsToolbarProps, TagsToolbarState> {
         onChange={(e: any) => this.setState({ input: e.target.value })}
         style={{ height: "34px" }}
         bsSize={"small"}
-        onKeyDown={e => {
+        onKeyDown={(e) => {
           if (e.which === 13) {
             this.add_tags();
             return;
@@ -87,7 +92,7 @@ export class TagsToolbar extends Component<TagsToolbarProps, TagsToolbarState> {
   }
 
   add_tags = () => {
-    for (let tag of misc.split(this.state.input)) {
+    for (const tag of misc.split(this.state.input)) {
       this.props.actions.add_tag(this.props.cell.get("id"), tag, false);
     }
     this.props.actions._sync();

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { callback } from "awaiting";
 import { redux } from "../app-framework";
 import { BillingStore } from "./store";
@@ -24,7 +29,7 @@ export async function load_stripe(): Promise<Stripe> {
       );
   }
   await callback(f);
-  const store : BillingStore = redux.getStore("billing");
+  const store: BillingStore = redux.getStore("billing");
   if (store == null) {
     throw Error("billing store not initialized");
   }

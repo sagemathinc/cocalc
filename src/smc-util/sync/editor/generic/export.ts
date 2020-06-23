@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { SortedPatchList } from "./sorted-patch-list";
 import { Patch } from "./types";
 
@@ -20,7 +25,7 @@ export function export_history(
 ): HistoryEntry[] {
   const patches: Patch[] = patch_list.export();
   const entries: HistoryEntry[] = [];
-  for (let x of patches) {
+  for (const x of patches) {
     const time_utc = x.time;
     let account_id = account_ids[x.user_id];
     if (account_id == null) {

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { path_split, separate_file_extension } from "smc-util/misc2";
 import { exec, raw_url_of_file } from "../../generic/client";
 
@@ -14,7 +19,7 @@ export async function revealjs_slideshow_html(
   const opts = {
     command,
     args,
-    project_id
+    project_id,
   };
   await exec(opts);
   const ext = ".slides.html";

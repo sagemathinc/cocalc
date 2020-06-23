@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * CoCalc's Xpra HTML Client
  *
  * ---
@@ -11,7 +16,7 @@
  * Copyright (c) 2018-2019 SageMath, Inc.
  * Licensed under MPL 2.0, see:
  * http://www.mozilla.org/MPL/2.0/
-*/
+ */
 /**
  * CoCalc Xpra Client
  */
@@ -27,14 +32,14 @@ import {
   NUMPAD_TO_NAME,
   KEY_TO_NAME,
   CHAR_TO_NAME,
-  DOM_KEY_LOCATION_RIGHT
+  DOM_KEY_LOCATION_RIGHT,
 } from "./constants";
 
 const modifierMap = {
   altKey: "alt",
   ctrlKey: "control",
   metaKey: "meta",
-  shiftKey: "shift"
+  shiftKey: "shift",
 };
 
 /**
@@ -76,10 +81,10 @@ export class Keyboard {
 
   process_modifier_keycodes(modifier_keycodes): void {
     // figure out "alt" and "meta" keys and altgr keys.
-    for (let mod in modifier_keycodes) {
-      let keys = modifier_keycodes[mod];
+    for (const mod in modifier_keycodes) {
+      const keys = modifier_keycodes[mod];
       for (let i = 0; i < keys.length; i++) {
-        let key = keys[i];
+        const key = keys[i];
         //the first value is usually the integer keycode,
         //the second one is the actual key name,
         //doesn't hurt to test both:
@@ -119,7 +124,7 @@ export class Keyboard {
 
   getEventModifiers(ev: KeyboardEvent | MouseEvent): string[] {
     const modifiers: string[] = [];
-    for (let key in modifierMap) {
+    for (const key in modifierMap) {
       if (ev[key]) {
         modifiers.push(modifierMap[key]);
       }

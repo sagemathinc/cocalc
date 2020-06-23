@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 Compute client for use in Kubernetes cluster by the hub.
 
@@ -28,6 +33,8 @@ underscore = require('underscore')
 
 misc = require('smc-util/misc')
 {defaults, required} = misc
+{site_license_hook} = require('../postgres/site-license/hook')
+
 
 exports.get_json = get_json = (url, cb) ->
     request.get url, (err, response, body) ->
@@ -258,6 +265,14 @@ class Project extends EventEmitter
                     opts.cb?(err)
                     delete opts.cb
 
+        if opts.action == 'start'
+            try
+                await site_license_hook(@database, @project_id)
+            catch err
+                # ignore - don't not start the project just because
+                # of a database issue/bug...
+                dbg("ERROR in site license hook #{err}")
+
         dbg("request action to happen")
         @active()
         @_query
@@ -391,6 +406,7 @@ class Project extends EventEmitter
             bwlimit           : undefined
             wait_until_done   : 'true'  # by default, wait until done. false only gives the ID to query the status later
             scheduled         : undefined # string, parseable by new Date()
+            public            : false     # if true, will use the share server files rather than start the source project running.
             cb                : undefined
 
         dbg = @dbg("copy_path('#{opts.path}', id='#{copy_id}')")
@@ -432,6 +448,7 @@ class Project extends EventEmitter
                         "target_project_id ::UUID"      : opts.target_project_id
                         "target_path       ::TEXT"      : opts.target_path
                         "overwrite_newer   ::BOOLEAN"   : opts.overwrite_newer
+                        "public            ::BOOLEAN"   : opts.public
                         "delete_missing    ::BOOLEAN"   : opts.delete_missing
                         "backup            ::BOOLEAN"   : opts.backup
                         "bwlimit           ::TEXT"      : opts.bwlimit

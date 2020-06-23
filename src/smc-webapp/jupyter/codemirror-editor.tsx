@@ -1,6 +1,9 @@
 /*
-Focused codemirror editor, which you can interactively type into.
-*/
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// Focused codemirror editor, which you can interactively type into.
 
 declare const $: any;
 
@@ -35,7 +38,7 @@ const FOCUSED_STYLE: React.CSSProperties = {
   border: "1px solid #cfcfcf",
   borderRadius: "2px",
   background: "#f7f7f7",
-  lineHeight: "1.21429em"
+  lineHeight: "1.21429em",
 };
 
 // Todo: the frame-editor/code-editor needs a similar treatment...?
@@ -145,10 +148,10 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       if (cache[this.key] == null) cache[this.key] = {};
       cache[this.key].sel = sel;
     }
-    const locs = sel.map(c => ({
+    const locs = sel.map((c) => ({
       x: c.anchor.ch,
       y: c.anchor.line,
-      id: this.props.id
+      id: this.props.id,
     }));
     this.props.actions.set_cursor_locs(locs, this.cm._setValueNoJump);
 
@@ -204,7 +207,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     return value;
   };
 
-  _cm_merge_remote = (remote: any): void => {
+  _cm_merge_remote = (remote: string): void => {
     if (this.cm == null) {
       return;
     }
@@ -218,7 +221,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     const new_val = three_way_merge({
       base: this._cm_last_remote,
       local,
-      remote
+      remote,
     });
     this._cm_last_remote = remote;
     this.cm.setValueNoJump(new_val);
@@ -361,7 +364,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       this.props.frame_actions.store.get("cur_id"),
       {
         x: 0,
-        y
+        y,
       }
     );
     this.props.frame_actions.scroll("cell visible");
@@ -390,6 +393,9 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     const top = pos.bottom;
     const { left } = pos;
     const gutter = $(this.cm.getGutterElement()).width();
+    // ensure that store has same version of cell as we're completing
+    this._cm_save();
+    // do the actual completion:
     try {
       const show_dialog: boolean = await this.props.actions.complete(
         this.cm.getValue(),
@@ -398,7 +404,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
         {
           top,
           left,
-          gutter
+          gutter,
         }
       );
       if (!show_dialog) {
@@ -456,7 +462,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       options0.readOnly = true;
     }
 
-    this.cm = CodeMirror(function(elt) {
+    this.cm = CodeMirror(function (elt) {
       if (node.parentNode == null) return;
       node.parentNode.replaceChild(elt, node);
     }, options0);
@@ -464,7 +470,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     this.cm.save = () => this.props.actions.save();
     if (this.props.actions != null && options0.keyMap === "vim") {
       this._vim_mode = true;
-      this.cm.on("vim-mode-change", async obj => {
+      this.cm.on("vim-mode-change", async (obj) => {
         if (obj.mode === "normal") {
           // The delay is because this must not be set when the general
           // keyboard handler for the whole editor gets called with escape.
@@ -472,7 +478,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
           // the #v1 release, as vim support is a bonus feature.
           await delay(0);
           this.props.frame_actions.setState({
-            cur_cell_vim_mode: "escape"
+            cur_cell_vim_mode: "escape",
           });
         } else {
           this.props.frame_actions.setState({ cur_cell_vim_mode: "edit" });
@@ -517,7 +523,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
         get_cursor_xy: () => {
           const pos = this.cm.getCursor();
           return { x: pos.ch, y: pos.line };
-        }
+        },
       };
       this.props.frame_actions.register_input_editor(this.props.id, editor);
     }
@@ -550,7 +556,17 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     ) {
       this._cm_refresh();
     }
-    if (nextProps.value !== this.props.value) {
+    // In some cases (e.g., tab completion when selecting via keyboard)
+    // nextProps.value and this.props.value are the same, but they
+    // do not equal this.cm.getValue().  The complete prop changes
+    // so the component updates, but without checking cm.getValue(),
+    // we would fail to update the cm editor, which would is
+    // a disaster.  May be root cause of
+    //    https://github.com/sagemathinc/cocalc/issues/3978
+    if (
+      nextProps.value !== this.props.value ||
+      (this.cm != null && nextProps.value != this.cm.getValue())
+    ) {
       this._cm_merge_remote(nextProps.value);
     }
     if (nextProps.is_focused && !this.props.is_focused) {
@@ -587,7 +603,6 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     // expose this option, so we have to bypass it in the dangerous
     // way below, which could break were CodeMirror to be refactored!
     // TODO: send them a PR to expose this.
-    (window as any).cm = this.cm;
     if (this.cm.display == null || this.cm.display.input == null) return;
     if (this.cm.display.input.textarea != null) {
       this.cm.display.input.textarea.focus({ preventScroll: true });
@@ -629,7 +644,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
             style={{
               width: "100%",
               backgroundColor: "#fff",
-              minHeight: "25px"
+              minHeight: "25px",
             }}
           >
             {this.props.value}

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Tests of editing the cells in a notebook
 */
 import {
@@ -7,7 +12,7 @@ import {
   after,
   it,
   expect,
-  TestEditor
+  TestEditor,
 } from "../../frame-editors/generic/test/util";
 import { JupyterStore } from "../store";
 import { JupyterActions } from "../project-actions";
@@ -129,7 +134,7 @@ describe("tests inserting several cells, selecting several, and cut/paste/copy t
   });
   it("put content in the 5 cells", () => {
     const object = store.get("cell_list").toJS();
-    for (let k in object) {
+    for (const k in object) {
       const id = object[k];
       actions.set_cell_input(id, `${k}`);
     }
@@ -221,7 +226,7 @@ describe("creates and splits cells in various ways", () => {
     expect(store.getIn(["cells", list.get(0), "output"])).to.equal(undefined);
     expect(store.getIn(["cells", list.get(1), "input"])).to.equal("123");
     expect(store.getIn(["cells", list.get(1), "output"]).toJS()).to.deep.equal([
-      { foo: "bar" }
+      { foo: "bar" },
     ]);
   });
   it("verifies that cursor is now in the second cell", () =>
@@ -278,7 +283,7 @@ describe("merge cell with cell above", () => {
     actions.set_cursor_locs([{ id, x: 3, y: 0 }]);
     actions.split_current_cell();
   });
-/*  it("now merge cells back together above", () => {
+  /*  it("now merge cells back together above", () => {
     actions.merge_cell_above();
     const list = store.get("cell_list");
     expect(list.size).to.equal(1);

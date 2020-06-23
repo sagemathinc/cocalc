@@ -1,13 +1,18 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Use synctex to go back and forth between latex files and pdfs.
 */
 
 import {
   path_split,
   splitlines,
-  change_filename_extension
+  change_filename_extension,
 } from "smc-util/misc2";
-import { exec, ExecOutput } from "../generic/client";
+import { exec, ExecOutput, project_api } from "../generic/client";
 
 interface SyncTex {
   [key: string]: string | number;
@@ -19,13 +24,12 @@ function exec_synctex(
   args: string[]
 ): Promise<ExecOutput> {
   return exec({
-    allow_post: true, // synctex is FAST.
     timeout: 5,
     command: "synctex",
     args: args,
     project_id: project_id,
-    path: path,
-    err_on_exit: true
+    path,
+    err_on_exit: true,
   });
 }
 
@@ -34,15 +38,26 @@ export async function pdf_to_tex(opts: {
   project_id: string;
   page: number; // 1-based page number
   x: number; // x-coordinate on page
-  y: number; // y-coordinate on page
+  y: number; // y-coordinate on page,
+  output_directory: string | undefined;
 }): Promise<SyncTex> {
-  let { head, tail } = path_split(opts.pdf_path);
-  let output = await exec_synctex(opts.project_id, head, [
+  const { head, tail } = path_split(opts.pdf_path);
+  const path: string =
+    opts.output_directory != null ? opts.output_directory : head;
+  const output = await exec_synctex(opts.project_id, path, [
     "edit",
     "-o",
-    `${opts.page}:${opts.x}:${opts.y}:${tail}`
+    `${opts.page}:${opts.x}:${opts.y}:${tail}`,
   ]);
-  return parse_synctex_output(output.stdout);
+  const info = parse_synctex_output(output.stdout);
+  if (info.Input != null) {
+    // Determine canonical path to source file
+    // Unfortunately, we use a roundtrip back to the project again for this (slightly more latency, but more robust).
+    info.Input = await (await project_api(opts.project_id)).canonical_path(
+      `${info.Input}`
+    );
+  }
+  return info;
 }
 
 export async function tex_to_pdf(opts: {
@@ -51,18 +66,23 @@ export async function tex_to_pdf(opts: {
   tex_path: string; // source tex file with given line/column
   line: number; // 1-based line number
   column: number; // 1-based column
+  dir: string; // directory that contains the synctex file
   knitr: boolean;
+  source_dir: string;
 }): Promise<SyncTex> {
-  let { head, tail } = path_split(opts.tex_path);
   if (opts.knitr) {
-    tail = change_filename_extension(tail, "Rnw");
+    opts.tex_path = change_filename_extension(opts.tex_path, "Rnw");
   }
-  let output = await exec_synctex(opts.project_id, head, [
+  // TODO: obviously this should happen once -- not constantly!
+  const HOME = await (await project_api(opts.project_id)).eval_code(
+    "process.env.HOME"
+  );
+  const output = await exec_synctex(opts.project_id, opts.dir, [
     "view",
     "-i",
-    `${opts.line}:${opts.column}:${tail}`,
+    `${opts.line}:${opts.column}:${HOME}/${opts.source_dir}/${opts.tex_path}`,
     "-o",
-    path_split(opts.pdf_path).tail
+    path_split(opts.pdf_path).tail,
   ]);
   return parse_synctex_output(output.stdout);
 }
@@ -100,8 +120,8 @@ function parse_synctex_output(output: string): SyncTex {
   const content = output.slice(i + BEGIN.length + 1, j - 1);
   const lines = splitlines(content);
   const parsed: SyncTex = {};
-  for (let line of lines) {
-    let [key, value] = line.split(":");
+  for (const line of lines) {
+    const [key, value] = line.split(":");
     if (value.match(matchOnlyNumberRe)) {
       parsed[key] = parseFloat(value);
     } else {

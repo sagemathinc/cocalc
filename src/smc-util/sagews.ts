@@ -1,23 +1,7 @@
-//##############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 /*
 Some functions for working with Sage worksheets (sagews files) --
@@ -32,7 +16,7 @@ Some functions for working with Sage worksheets (sagews files) --
 
 export const MARKERS = {
   cell: "\uFE20",
-  output: "\uFE21"
+  output: "\uFE21",
 };
 
 export const FLAGS = {
@@ -42,14 +26,14 @@ export const FLAGS = {
   interrupt: "c", // request execution of cell be interrupted
   this_session: "s", // if set, cell was executed during the current sage session.
   hide_input: "i", // hide input part of cell
-  hide_output: "o" // hide output part of cell
+  hide_output: "o", // hide output part of cell
 };
 
 export const ACTION_FLAGS = [
   FLAGS.execute,
   FLAGS.running,
   FLAGS.waiting,
-  FLAGS.interrupt
+  FLAGS.interrupt,
 ];
 
 export const ACTION_SESSION_FLAGS = [
@@ -57,7 +41,7 @@ export const ACTION_SESSION_FLAGS = [
   FLAGS.running,
   FLAGS.waiting,
   FLAGS.interrupt,
-  FLAGS.this_session
+  FLAGS.this_session,
 ];
 
 /*
@@ -81,7 +65,7 @@ export function uuids_of_linked_files(doc): string[] {
       j = doc.length;
     }
     const line = doc.slice(i, j);
-    for (let m of line.split(MARKERS.output).slice(1)) {
+    for (const m of line.split(MARKERS.output).slice(1)) {
       // Only bother to run the possibly slow JSON.parse on file messages; since
       // this function would block the global hub server, this is important.
       if (m.slice(0, 8) === '{"file":') {
@@ -137,10 +121,7 @@ export class SageWS {
   public remove_cell_flag(id, flag): void {
     const s = this.get_cell_flagstring(id);
     if (s != null && s.includes(flag)) {
-      this.set_cell_flagstring(
-        id,
-        s.replace(new RegExp(flag, "g"), "")
-      );
+      this.set_cell_flagstring(id, s.replace(new RegExp(flag, "g"), ""));
     }
   }
 

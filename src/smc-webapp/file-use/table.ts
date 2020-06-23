@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Table } from "../app-framework";
 
 import { FileUseStore } from "./store";
@@ -17,7 +22,7 @@ export class FileUseTable extends Table {
   }
 
   _change(table, _keys): void {
-    const store : FileUseStore | undefined = this.redux.getStore("file_use");
+    const store: FileUseStore | undefined = this.redux.getStore("file_use");
     if (store == null) throw Error("store must be defined");
     store.clear_cache();
 

@@ -1,9 +1,15 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Top-level react component for editing R markdown documents
 */
 
 import { RenderedMarkdown } from "../markdown-editor/rendered-markdown";
-import { set, change_filename_extension } from "smc-util/misc2";
+import { set } from "smc-util/misc2";
+import { derive_rmd_output_filename } from "./utils";
 import { createEditor } from "../frame-tree/editor";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { SETTINGS_SPEC } from "../settings/editor";
@@ -11,6 +17,8 @@ import { IFrameHTML } from "../html-editor/iframe-html";
 import { PDFJS } from "../latex-editor/pdfjs";
 import { pdfjs_buttons } from "../latex-editor/editor";
 import { terminal } from "../terminal-editor/editor";
+import { time_travel } from "../time-travel-editor/editor";
+import { BuildLog } from "./build-log";
 
 const EDITOR_SPEC = {
   cm: {
@@ -32,8 +40,9 @@ const EDITOR_SPEC = {
       "copy",
       "undo",
       "redo",
-      "format"
-    ])
+      "format",
+      "build",
+    ]),
   },
 
   iframe: {
@@ -43,7 +52,7 @@ const EDITOR_SPEC = {
     component: IFrameHTML,
     mode: "rmd",
     path(path) {
-      return change_filename_extension(path, "html");
+      return derive_rmd_output_filename(path, "html");
     },
     buttons: set([
       "print",
@@ -51,8 +60,8 @@ const EDITOR_SPEC = {
       "time_travel",
       "reload",
       "decrease_font_size",
-      "increase_font_size"
-    ])
+      "increase_font_size",
+    ]),
   },
 
   // By default, only html is generated. This viewer is still there in case the user explicitly tells RMarkdown to generate a PDF
@@ -67,8 +76,8 @@ const EDITOR_SPEC = {
     style: { background: "#525659" },
     renderer: "canvas",
     path(path) {
-      return change_filename_extension(path, "pdf");
-    }
+      return derive_rmd_output_filename(path, "pdf");
+    },
   },
 
   markdown: {
@@ -83,18 +92,28 @@ const EDITOR_SPEC = {
       "increase_font_size",
       "save",
       "time_travel",
-      "reload"
-    ])
+      "reload",
+    ]),
+  },
+
+  build: {
+    short: "Build Log",
+    name: "Build Log",
+    icon: "gears",
+    component: BuildLog,
+    style: { background: "#525659" },
+    buttons: set(["build", "decrease_font_size", "increase_font_size"]),
   },
 
   terminal,
 
-  settings: SETTINGS_SPEC
+  time_travel,
 
+  settings: SETTINGS_SPEC,
 };
 
 export const Editor = createEditor({
   format_bar: true,
   editor_spec: EDITOR_SPEC,
-  display_name: "RmdEditor"
+  display_name: "RmdEditor",
 });

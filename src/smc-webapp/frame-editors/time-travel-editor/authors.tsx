@@ -1,4 +1,7 @@
-/* Show the author of a patch */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import { Map } from "immutable";
 const { User } = require("../../users");
@@ -8,7 +11,7 @@ import {
   React,
   Rendered,
   rtypes,
-  rclass
+  rclass,
 } from "../../app-framework";
 import { TimeTravelActions } from "./actions";
 
@@ -25,8 +28,8 @@ class Authors extends Component<Props> {
   static reduxProps() {
     return {
       users: {
-        user_map: rtypes.immutable.Map
-      }
+        user_map: rtypes.immutable.Map,
+      },
     };
   }
 
@@ -74,7 +77,7 @@ class Authors extends Component<Props> {
       return <Loading />;
     }
     const v: Rendered[] = [];
-    for (let account_id of this.props.actions.get_account_ids(
+    for (const account_id of this.props.actions.get_account_ids(
       this.props.version0,
       this.props.version1
     )) {

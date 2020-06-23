@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const { writeFile, readFile, unlink } = require("fs");
 const tmp = require("tmp");
 const { callback } = require("awaiting");
@@ -13,7 +18,7 @@ interface ParserOptions {
 }
 
 function close(proc, cb): void {
-  proc.on("close", code => cb(undefined, code));
+  proc.on("close", (code) => cb(undefined, code));
 }
 
 function formatR(input_path: string, variant: Variant) {
@@ -70,8 +75,8 @@ export async function r_format(
     let stdout: string = "";
     let stderr: string = "";
     // read data as it is produced.
-    r_formatter.stdout.on("data", data => (stdout += data.toString()));
-    r_formatter.stderr.on("data", data => (stderr += data.toString()));
+    r_formatter.stdout.on("data", (data) => (stdout += data.toString()));
+    r_formatter.stderr.on("data", (data) => (stderr += data.toString()));
     // wait for subprocess to close.
 
     let code = await callback(close, r_formatter);
@@ -91,8 +96,8 @@ export async function r_format(
     }
 
     // all fine, we read from the temp file
-    let output: Buffer = await callback(readFile, input_path);
-    let s: string = output.toString("utf-8");
+    const output: Buffer = await callback(readFile, input_path);
+    const s: string = output.toString("utf-8");
 
     return s;
   } finally {

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { fromJS, List as iList, Map as iMap } from "immutable";
 import { Store } from "../app-framework";
 const { webapp_client } = require("../webapp_client");
@@ -66,7 +71,7 @@ export class FileUseStore extends Store<FileUseState> {
     return true;
   }
 
-  public clear_cache() : void {
+  public clear_cache(): void {
     delete this._cache;
   }
 
@@ -74,7 +79,7 @@ export class FileUseStore extends Store<FileUseState> {
     const s: string[] = [x.path];
     s.push(this._projects.get_title(x.project_id));
     if (x.users != null) {
-      for (let account_id in x.users) {
+      for (const account_id in x.users) {
         s.push(this._users.get_name(account_id));
         if (account_id === this._account_id) {
           s.push("you");
@@ -96,7 +101,7 @@ export class FileUseStore extends Store<FileUseState> {
     let newest_chat = 0;
     let you_last_seen = (you_last_read = you_last_chatseen = 0);
     let other_newest_edit_or_chat = 0;
-    for (let account_id in users) {
+    for (const account_id in users) {
       user = users[account_id];
       user.account_id = account_id;
       user.last_edited = Math.max(
@@ -126,7 +131,7 @@ export class FileUseStore extends Store<FileUseState> {
         other_newest_edit_or_chat = misc.max([
           other_newest_edit_or_chat,
           user.last_edited,
-          user.chat != null ? user.chat : 0
+          user.chat != null ? user.chat : 0,
         ]);
       }
       v.push(user);
@@ -213,7 +218,9 @@ export class FileUseStore extends Store<FileUseState> {
       this._update_cache();
     }
     const v = {};
-    for (let id in this._cache != null ? this._cache.file_use_map : undefined) {
+    for (const id in this._cache != null
+      ? this._cache.file_use_map
+      : undefined) {
       const x = (this._cache != null ? this._cache.file_use_map : undefined)[
         id
       ];
@@ -265,7 +272,7 @@ export class FileUseStore extends Store<FileUseState> {
     const w0: any[] = [];
     const w1: any[] = [];
     const w2: any[] = [];
-    for (let a of v) {
+    for (const a of v) {
       if (a.notify && a.is_unread) {
         w0.push(a);
       } else if (a.show_chat && a.is_unread) {
@@ -281,7 +288,7 @@ export class FileUseStore extends Store<FileUseState> {
     v = w0.concat(w1.concat(w2));
 
     let notify_count: number = 0;
-    for (let x of v) {
+    for (const x of v) {
       if (x.notify) {
         notify_count += 1;
       }
@@ -291,7 +298,7 @@ export class FileUseStore extends Store<FileUseState> {
       sorted_file_use_list: v,
       file_use_map,
       sorted_file_use_immutable_list: fromJS(v),
-      notify_count
+      notify_count,
     };
     require("browser").set_window_title();
     return v;
@@ -300,13 +307,13 @@ export class FileUseStore extends Store<FileUseState> {
   // See above for the definition of unread and unseen.
   get_all_unread(): any[] {
     return this.get_sorted_file_use_list().filter(
-      x => x != null && x.is_unread
+      (x) => x != null && x.is_unread
     );
   }
 
   get_all_unseen(): any[] {
     return this.get_sorted_file_use_list().filter(
-      x => x != null && x.is_unseen
+      (x) => x != null && x.is_unseen
     );
   }
 
@@ -351,7 +358,7 @@ export class FileUseStore extends Store<FileUseState> {
     const users = {};
     const now = webapp_client.server_time().valueOf();
     const cutoff = now - opts.max_age_s * 1000;
-    for (let _ in files) {
+    for (const _ in files) {
       const info = files[_];
       let user: any;
       for (user of info.users) {
@@ -366,7 +373,7 @@ export class FileUseStore extends Store<FileUseState> {
             // create array if necessary, then push data about it
             last_used: user.last_used != null ? user.last_used : 0,
             project_id: info.project_id,
-            path: info.path
+            path: info.path,
           });
         }
       }
@@ -390,12 +397,12 @@ export class FileUseStore extends Store<FileUseState> {
     }
     const users_map: iMap<string, any> = file_use.getIn([
       sha1(opts.project_id, opts.path),
-      "users"
+      "users",
     ]);
     if (users_map == null) {
       return users;
     }
-    users_map.forEach(function(info: iMap<string, any>, account_id: string) {
+    users_map.forEach(function (info: iMap<string, any>, account_id: string) {
       const timestamp = info.get("video");
       if (timestamp != null && timestamp.valueOf() >= cutoff) {
         users[account_id] = timestamp;

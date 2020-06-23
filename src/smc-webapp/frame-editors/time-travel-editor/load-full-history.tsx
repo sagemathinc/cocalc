@@ -1,4 +1,7 @@
-/* Show a revision version, both with a number and the time. */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import { Rendered, Component, React } from "../../app-framework";
 import { Button } from "react-bootstrap";
@@ -12,9 +15,11 @@ interface Props {
 export class LoadFullHistory extends Component<Props> {
   public render(): Rendered {
     return (
-      <Button onClick={() => this.props.actions.load_full_history()}
-        title={"Load the complete edit history for this file."}>
-        <Icon name="floppy-o"/> Load All
+      <Button
+        onClick={() => this.props.actions.load_full_history()}
+        title={"Load the complete edit history for this file."}
+      >
+        <Icon name="floppy-o" /> Load All
       </Button>
     );
   }

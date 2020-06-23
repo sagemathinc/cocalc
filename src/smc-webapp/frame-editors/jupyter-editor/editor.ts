@@ -1,16 +1,22 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Spec for editing Jupyter notebooks via a frame tree.
 */
 
 import { set } from "smc-util/misc2";
 import { createEditor } from "../frame-tree/editor";
 import { terminal } from "../terminal-editor/editor";
+import { time_travel } from "../time-travel-editor/editor";
 
 import { CellNotebook } from "./cell-notebook/cell-notebook";
+import { RawIPynb } from "./raw-ipynb";
 
 /*
 import { Log } from "./log";
-import { RawIPynb } from "./raw-ipynb";
 import { ObjectBrowser } from "./object-browser";
 import { KernelConfiguration } from "./kernel-configuration";
 import { Assistant } from "./assistant";
@@ -45,7 +51,7 @@ export const EDITOR_SPEC = {
       "undo",
       "redo",
       "format",
-      "show_table_of_contents"
+      "show_table_of_contents",
       /* ,
       "shell" -- disable for now since not fully implemented*/
     ]),
@@ -53,32 +59,40 @@ export const EDITOR_SPEC = {
       shell: {
         text: "Console",
         title:
-          "Open command line Jupyter console session attached to the same kernel as notebook"
-      }
-    }
+          "Open command line Jupyter console session attached to the same kernel as notebook",
+      },
+    },
   },
-  terminal,
   jupyter_slideshow_revealjs: {
     short: "Slideshow",
     name: "Slideshow (Reveal.js)",
     icon: "slideshare",
     component: Slideshow,
-    buttons: set(["build"])
+    buttons: set(["build"]),
   },
   jupyter_table_of_contents: {
     short: "Contents",
     name: "Table of Contents",
     icon: "align-right",
     component: TableOfContents,
-    buttons: set(["decrease_font_size", "increase_font_size"])
+    buttons: set(["decrease_font_size", "increase_font_size"]),
   },
   introspect: {
     short: "Introspect",
     name: "Introspection",
     icon: "info",
     component: Introspect,
-    buttons: set(["decrease_font_size", "increase_font_size"])
-  }
+    buttons: set(["decrease_font_size", "increase_font_size"]),
+  },
+  terminal,
+  time_travel,
+  jupyter_raw: {
+    short: "Raw",
+    name: "Raw JSON editor",
+    icon: "cc-icon-markdown",
+    component: RawIPynb,
+    buttons: set(["decrease_font_size", "increase_font_size"]),
+  },
 };
 /*,
   jupyter_singledoc_notebook: {
@@ -100,13 +114,6 @@ export const EDITOR_SPEC = {
     name: "Kernel Log",
     icon: "clipboard-list",
     component: Log,
-    buttons: set([])
-  },
-  jupyter_raw: {
-    short: "Raw",
-    name: "Raw JSON editor",
-    icon: "cc-icon-markdown",
-    component: RawIPynb,
     buttons: set([])
   },
   jupyter_object_browser: {
@@ -177,5 +184,5 @@ export const EDITOR_SPEC = {
 export const Editor = createEditor({
   format_bar: false,
   editor_spec: EDITOR_SPEC,
-  display_name: "JupyterNotebook"
+  display_name: "JupyterNotebook",
 });

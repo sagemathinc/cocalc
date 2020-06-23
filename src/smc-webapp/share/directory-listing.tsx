@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Show a directory listing
 */
 
@@ -29,7 +34,7 @@ export class DirectoryListing extends Component<DirectoryListingProps> {
   private render_listing(): Rendered[] {
     let i = 0;
     const v: Rendered[] = [];
-    for (let file of this.props.files) {
+    for (const file of this.props.files) {
       if (!this.props.hidden && file.name[0] === ".") {
         continue;
       }

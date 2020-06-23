@@ -1,6 +1,11 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 require("ts-node").register({
   project: __dirname + "/../tsconfig.json",
-  cacheDirectory: "/tmp"
+  cacheDirectory: "/tmp",
 });
 
 require("coffeescript/register");
@@ -15,7 +20,7 @@ const client = {
     return (...args) => {
       console.log(name, ...args);
     };
-  }
+  },
 };
 
 async function start() {
@@ -23,7 +28,7 @@ async function start() {
     await require("./server.ts").start_server({
       port: 8080,
       port_path: "/tmp/port",
-      client
+      client,
     });
   } catch (err) {
     console.log(`EXCEPTION -- ${err}`);

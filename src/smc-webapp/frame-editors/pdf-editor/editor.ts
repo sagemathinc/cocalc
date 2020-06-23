@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Spec for editing PDF documents.
 */
 
@@ -9,14 +14,14 @@ import { createEditor } from "../frame-tree/editor";
 import { PDFJS } from "../latex-editor/pdfjs";
 import { PDFEmbed } from "../latex-editor/pdf-embed";
 
-let pdfjs_buttons = set([
+const pdfjs_buttons = set([
   "reload",
   "print",
   "download",
   "decrease_font_size",
   "increase_font_size",
   "zoom_page_width",
-  "zoom_page_height"
+  "zoom_page_height",
 ]);
 
 export const EDITOR_SPEC = {
@@ -27,7 +32,7 @@ export const EDITOR_SPEC = {
     component: PDFJS,
     buttons: pdfjs_buttons,
     style: { background: "#525659" },
-    renderer: "canvas"
+    renderer: "canvas",
   },
 
   pdfjs_svg: {
@@ -37,7 +42,7 @@ export const EDITOR_SPEC = {
     component: PDFJS,
     buttons: pdfjs_buttons,
     style: { background: "#525659" },
-    renderer: "svg"
+    renderer: "svg",
   },
 
   pdf_embed: {
@@ -47,11 +52,10 @@ export const EDITOR_SPEC = {
     buttons: set(["reload", "print", "download"]),
     component: PDFEmbed,
   },
-
 };
 
 export const Editor = createEditor({
   format_bar: false,
   editor_spec: EDITOR_SPEC,
-  display_name: "PDFEditor"
+  display_name: "PDFEditor",
 });

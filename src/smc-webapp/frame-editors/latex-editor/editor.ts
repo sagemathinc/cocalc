@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Spec for editing LaTeX documents.
 */
 
@@ -14,17 +19,18 @@ import { ErrorsAndWarnings } from "./errors-and-warnings";
 import { LatexWordCount } from "./latex-word-count";
 import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";
+import { time_travel } from "../time-travel-editor/editor";
 
 import { pdf_path } from "./util";
 
-export let pdfjs_buttons = set([
+export const pdfjs_buttons = set([
   "print",
   "download",
   "decrease_font_size",
   "increase_font_size",
   "zoom_page_width",
   "zoom_page_height",
-  "sync"
+  "sync",
 ]);
 
 const EDITOR_SPEC = {
@@ -50,9 +56,10 @@ const EDITOR_SPEC = {
       "redo",
       "sync",
       "help",
-      "format"
+      "format",
+      "switch_to_file",
     ]),
-    gutters: ["Codemirror-latex-errors"]
+    gutters: ["Codemirror-latex-errors"],
   },
 
   pdfjs_canvas: {
@@ -63,7 +70,7 @@ const EDITOR_SPEC = {
     buttons: pdfjs_buttons,
     path: pdf_path,
     style: { background: "#525659" },
-    renderer: "canvas"
+    renderer: "canvas",
   },
 
   error: {
@@ -71,7 +78,7 @@ const EDITOR_SPEC = {
     name: "Errors and Warnings",
     icon: "bug",
     component: ErrorsAndWarnings,
-    buttons: set(["build"])
+    buttons: set(["build"]),
   },
 
   build: {
@@ -79,7 +86,7 @@ const EDITOR_SPEC = {
     name: "Build Control and Log",
     icon: "terminal",
     component: Build,
-    buttons: set(["build", "force_build", "clean"])
+    buttons: set(["build", "force_build", "clean"]),
   },
 
   pdf_embed: {
@@ -88,7 +95,7 @@ const EDITOR_SPEC = {
     icon: "file-pdf-o",
     buttons: set(["print", "save", "download"]),
     component: PDFEmbed,
-    path: pdf_path
+    path: pdf_path,
   },
 
   word_count: {
@@ -96,24 +103,16 @@ const EDITOR_SPEC = {
     name: "Word Count",
     icon: "file-alt",
     buttons: set(["word_count"]),
-    component: LatexWordCount
+    component: LatexWordCount,
   },
 
   terminal,
 
-  settings: SETTINGS_SPEC
+  settings: SETTINGS_SPEC,
+
+  time_travel,
 
   /*
-  pdfjs_svg: {
-    short: "PDF (svg)",
-    name: "PDF - SVG",
-    icon: "file-pdf-o",
-    component: PDFJS,
-    buttons: pdfjs_buttons,
-    path: pdf_path,
-    style: { background: "#525659" },
-    renderer: "svg"
-  }
 
     latexjs: {
         short: "Preview 1",
@@ -148,8 +147,8 @@ export const Editor = createEditor({
     strikethrough: true,
     SpecialChar: true,
     image: true,
-    unformat: true
+    unformat: true,
   }, // disabled until we can properly implement them!
   editor_spec: EDITOR_SPEC,
-  display_name: "LaTeXEditor"
+  display_name: "LaTeXEditor",
 });

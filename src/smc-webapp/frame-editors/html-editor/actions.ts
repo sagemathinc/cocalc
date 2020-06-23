@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 HTML Editor Actions
 */
 
@@ -31,13 +36,26 @@ export class Actions extends CodeEditorActions {
         direction: "col",
         type: "node",
         first: {
-          type: "cm"
+          type: "cm",
         },
         second: {
-          type: "iframe"
-        }
+          type: "iframe",
+        },
       };
     }
+  }
+
+  // https://github.com/sagemathinc/cocalc/issues/3984
+  reload(id: string) {
+    const node = this._get_frame_node(id);
+    if (!node) return;
+
+    if (node.get("type") !== "iframe") {
+      super.reload(id);
+      return;
+    }
+
+    this.set_reload("iframe", new Date().getTime());
   }
 
   print(id: string): void {
@@ -58,7 +76,7 @@ export class Actions extends CodeEditorActions {
           print_html({
             html: $(`#frame-${id}`).html(),
             project_id: this.project_id,
-            path: this.path
+            path: this.path,
           });
           break;
         default:

@@ -1,5 +1,13 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { AppRedux } from "../app-framework";
-declare var Primus;
+import { WebappClient } from "../client/client";
+import { bind_methods } from "../../smc-util/misc2";
+
+declare let Primus;
 
 export type TableConstructor<T extends Table> = new (name, redux) => T;
 
@@ -9,8 +17,12 @@ export abstract class Table {
   protected redux: AppRedux;
 
   // override in derived class to pass in options to the query -- these only impact initial query, not changefeed!
-  abstract options(): any[];
+  options(): any[] {
+    return [];
+  }
+
   abstract query(): void;
+
   protected abstract _change(table: any, keys: string[]): void;
 
   protected no_changefeed(): boolean {
@@ -18,32 +30,34 @@ export abstract class Table {
   }
 
   constructor(name, redux) {
-    this.set = this.set.bind(this);
-    if (this.options) {
-      this.options.bind(this);
-    }
+    bind_methods(this);
     this.name = name;
     this.redux = redux;
     if (typeof Primus === "undefined" || Primus === null) {
       // hack for now -- not running in browser (instead in testing server)
       return;
     }
+    // TODO: Unfortunately, we currently have to do this later import,
+    // due to circular imports:
+    const {
+      webapp_client,
+    }: { webapp_client: WebappClient } = require("../webapp-client");
     if (this.no_changefeed()) {
       // Create the table but with no changefeed.
-      this._table = require("../webapp_client").webapp_client.synctable_no_changefeed(
+      this._table = webapp_client.sync_client.synctable_no_changefeed(
         this.query(),
-        this.options ? this.options() : []
+        this.options()
       );
     } else {
       // Set up a changefeed
-      this._table = require("../webapp_client").webapp_client.sync_table2(
+      this._table = webapp_client.sync_client.sync_table(
         this.query(),
-        this.options ? this.options() : []
+        this.options()
       );
     }
     if (this._change != null) {
       // Call the _change method whenever there is a change.
-      this._table.on("change", keys => {
+      this._table.on("change", (keys) => {
         this._change(this._table, keys);
       });
     }
@@ -51,7 +65,7 @@ export abstract class Table {
 
   async set(
     changes: object,
-    merge?: "deep" | "shallow" | "none",
+    merge?: "deep" | "shallow" | "none", // The actual default is "deep" (see smc-util/sync/table/synctable.ts)
     cb?: (error?: string) => void
   ): Promise<void> {
     if (cb == null) {

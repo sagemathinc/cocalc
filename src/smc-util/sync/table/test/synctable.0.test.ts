@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { SyncTable } from "../synctable";
 import { once } from "../../../async-utils";
 import { ClientTest } from "./client-test";
@@ -9,18 +14,20 @@ describe("tests public API of a system_notifications SyncTable", () => {
       id: "123e4567-e89b-12d3-a456-426655440000",
       time: new Date(),
       text: "This is a message.",
-      priority: "low"
+      priority: "low",
     },
     {
       id: "123e4567-e89b-12d3-a456-426655440001",
       time: new Date(),
       text: "This is a second message.",
-      priority: "high"
-    }
+      priority: "high",
+    },
   ];
   const client = new ClientTest(notifications);
   const query = {
-    system_notifications: [{ id: null, time: null, text: null, priority: null }]
+    system_notifications: [
+      { id: null, time: null, text: null, priority: null },
+    ],
   };
 
   test("create the synctable", async () => {
@@ -37,7 +44,7 @@ describe("tests public API of a system_notifications SyncTable", () => {
     }
     expect(x.toJS()).toEqual({
       [notifications[0].id]: notifications[0],
-      [notifications[1].id]: notifications[1]
+      [notifications[1].id]: notifications[1],
     });
   });
 
@@ -120,8 +127,8 @@ describe("tests public API of a system_notifications SyncTable", () => {
     await p;
   });
 
-  test("a change event", async done => {
-    synctable.once("change", keys => {
+  test("a change event", async (done) => {
+    synctable.once("change", (keys) => {
       expect(keys).toEqual(["123e4567-e89b-12d3-a456-426655440001"]);
       done();
     });
@@ -149,7 +156,7 @@ describe("tests public API of a system_notifications SyncTable", () => {
     );
     expect(() => synctable.get()).toThrow("closed");
     expect(() => synctable.get_one()).toThrow("table not yet initialized");
-    expect(synctable.has_uncommitted_changes()).toBe(false) // does not throw
+    expect(synctable.has_uncommitted_changes()).toBe(false); // does not throw
     await synctable.close();
     try {
       await synctable.wait(() => true);
@@ -168,7 +175,7 @@ describe("tests public API of a system_notifications SyncTable", () => {
   test("try create synctable with an invalid query and get exception", () => {
     const invalid_query = {
       // invalid since missing id primary key.
-      system_notifications: [{ time: null, text: null, priority: null }]
+      system_notifications: [{ time: null, text: null, priority: null }],
     };
     expect(() => new SyncTable(invalid_query, [], client, 0)).toThrow(
       "primary key"
@@ -179,8 +186,8 @@ describe("tests public API of a system_notifications SyncTable", () => {
     const invalid_query = {
       // invalid since extra foo key.
       system_notifications: [
-        { id: null, foo: null, time: null, text: null, priority: null }
-      ]
+        { id: null, foo: null, time: null, text: null, priority: null },
+      ],
     };
     expect(() => new SyncTable(invalid_query, [], client, 0)).toThrow(
       "field in the schema"

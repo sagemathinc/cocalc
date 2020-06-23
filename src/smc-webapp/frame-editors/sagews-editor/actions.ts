@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Sage Worksheet Editor Actions
 */
 import { Map } from "immutable";
@@ -29,9 +34,9 @@ export class SageWorksheetActions extends Actions<SageWorksheetEditorState> {
   _init2(): void {
     this.setState({ cells: {} });
 
-    this._syncstring.on("change", keys => {
-      keys.forEach(value => {
-        let id = value.get("id");
+    this._syncstring.on("change", (keys) => {
+      keys.forEach((value) => {
+        const id = value.get("id");
         if (id) {
           let cells = this.store.get("cells");
           cells = cells.set(id, this._get_cell(id));
@@ -65,6 +70,6 @@ export class SageWorksheetActions extends Actions<SageWorksheetEditorState> {
     preparse?: boolean
   ): CodeExecutor {
     // todo: if cell_id is given, ensure is valid.
-    return code_executor({path: this.path, code, data, cell_id, preparse});
+    return code_executor({ path: this.path, code, data, cell_id, preparse });
   }
 }

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React, Rendered, Component } from "../app-framework";
 
 /* This is a TERRIBLE AD INFESTED DISASTER. It's way too embarassing to deploy. */
@@ -43,6 +48,11 @@ function cocalc_do_search(event) {
   }
 
   public render(): Rendered {
-    return <div style={{padding:'5px'}} dangerouslySetInnerHTML={{ __html: this.html() }} />;
+    return (
+      <div
+        style={{ padding: "5px" }}
+        dangerouslySetInnerHTML={{ __html: this.html() }}
+      />
+    );
   }
 }

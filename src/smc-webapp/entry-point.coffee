@@ -1,7 +1,10 @@
-###
-Complete 100% top-level react rewrite of CoCalc.
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
-Explicitly set FULLY_REACT=true in src/webapp-smc.coffee to switch to this.
+###
+# Global app initialization
 ###
 
 fullscreen = require('./fullscreen')
@@ -11,7 +14,7 @@ html = require('./console.html') + require('./editor.html') + require('./jupyter
 $('body').append(html)
 
 # deferred initialization of buttonbars until after global imports -- otherwise, the sagews sage mode bar might be blank
-{init_buttonbars} = require('./buttonbar')
+{init_buttonbars} = require('./editors/editor-button-bar')
 init_buttonbars()
 
 # Load/initialize Redux-based react functionality
@@ -21,24 +24,31 @@ init_buttonbars()
 require('./redux_server_stats')
 
 # Systemwide notifications that are broadcast to all users (and set by admins)
-require('./system_notifications')
+require('./system-notifications')
 
-require('./landing-actions')
+require('./launch/actions')
 
-# Makes some things work. Like the save button
+# Various jquery plugins:
 require('./jquery_plugins')
+# Another jquery plugin:
+require('./process-links')
 
+###
 # Initialize app stores, actions, etc.
+###
 require('./init_app')
-
-# Initialize the account store.
-require('./account')
+require('./account').init(redux)
+require('./webapp-hooks')
 
 if not fullscreen.COCALC_MINIMAL
     notifications = require('./notifications')
     notifications.init(redux)
 
 require('./widget-markdown-input/main').init(redux)
+
+# only enable iframe comms in minimal kiosk mode
+if fullscreen.COCALC_MINIMAL
+    require('./iframe-communication').init()
 
 mobile = require('./mobile_app')
 desktop = require('./desktop_app')

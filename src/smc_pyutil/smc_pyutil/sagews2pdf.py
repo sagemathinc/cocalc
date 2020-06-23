@@ -1,50 +1,8 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 """
-Copyright (c) 2014 -- 2016   SageMath, Inc..
-
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 CONTRIBUTORS:
 
   - William Stein   - maintainer and initial author
@@ -634,8 +592,8 @@ class Cell(object):
                             image_data = data_url[k + 1:]
                             assert data_url[j + 1:k] == 'base64'
                             filename = str(uuid4()) + "." + image_ext
-                            open(filename, 'w').write(
-                                base64.b64decode(image_data))
+                            open(filename,
+                                 'w').write(base64.b64decode(image_data))
                             s += '\\includegraphics[width=%s\\textwidth]{%s}\n' % (
                                 width, filename)
 
@@ -756,16 +714,14 @@ def sagews_to_pdf(filename,
         os.chdir(work_dir)
         from codecs import open
         open('tmp.tex', 'w', 'utf8').write(
-            W.latex(
-                title=title,
-                author=author,
-                date=date,
-                contents=contents,
-                style=style))  #.encode('utf8'))
+            W.latex(title=title,
+                    author=author,
+                    date=date,
+                    contents=contents,
+                    style=style))  #.encode('utf8'))
         from subprocess import check_call
-        check_call(
-            'latexmk -pdf -xelatex -f -interaction=nonstopmode tmp.tex',
-            shell=True)
+        check_call('latexmk -pdf -xelatex -f -interaction=nonstopmode tmp.tex',
+                   shell=True)
         if os.path.exists('tmp.pdf'):
             shutil.move('tmp.pdf', os.path.join(cur, pdf))
             print "Created", os.path.join(cur, pdf)
@@ -782,28 +738,30 @@ def main():
     parser = argparse.ArgumentParser(
         description="convert a sagews worksheet to a pdf file via latex",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        "filename", nargs='+', help="name of sagews file (required)", type=str)
-    parser.add_argument(
-        "--author",
-        dest="author",
-        help="author name for printout",
-        type=str,
-        default="")
-    parser.add_argument(
-        "--title",
-        dest="title",
-        help="title for printout",
-        type=str,
-        default="")
-    parser.add_argument(
-        "--date", dest="date", help="date for printout", type=str, default="")
-    parser.add_argument(
-        "--contents",
-        dest="contents",
-        help="include a table of contents 'true' or 'false'",
-        type=str,
-        default='true')
+    parser.add_argument("filename",
+                        nargs='+',
+                        help="name of sagews file (required)",
+                        type=str)
+    parser.add_argument("--author",
+                        dest="author",
+                        help="author name for printout",
+                        type=str,
+                        default="")
+    parser.add_argument("--title",
+                        dest="title",
+                        help="title for printout",
+                        type=str,
+                        default="")
+    parser.add_argument("--date",
+                        dest="date",
+                        help="date for printout",
+                        type=str,
+                        default="")
+    parser.add_argument("--contents",
+                        dest="contents",
+                        help="include a table of contents 'true' or 'false'",
+                        type=str,
+                        default='true')
     parser.add_argument(
         "--outfile",
         dest="outfile",
@@ -837,13 +795,12 @@ def main():
         "JSON format file that contains extra data useful in printing this worksheet, e.g., 3d plots",
         type=str,
         default='')
-    parser.add_argument(
-        "--style",
-        dest="style",
-        help="Styling of the LaTeX document",
-        type=str,
-        choices=['classic', 'modern'],
-        default="modern")
+    parser.add_argument("--style",
+                        dest="style",
+                        help="Styling of the LaTeX document",
+                        type=str,
+                        choices=['classic', 'modern'],
+                        default="modern")
     parser.add_argument(
         "--base_url",
         dest="base_url",
@@ -884,16 +841,15 @@ def main():
 
         from subprocess import CalledProcessError
         try:
-            sagews_to_pdf(
-                filename,
-                title=args.title.decode('utf8'),
-                author=args.author.decode('utf8'),
-                date=args.date,
-                outfile=args.outfile,
-                contents=args.contents,
-                remove_tmpdir=remove_tmpdir,
-                work_dir=work_dir,
-                style=args.style)
+            sagews_to_pdf(filename,
+                          title=args.title.decode('utf8'),
+                          author=args.author.decode('utf8'),
+                          date=args.date,
+                          outfile=args.outfile,
+                          contents=args.contents,
+                          remove_tmpdir=remove_tmpdir,
+                          work_dir=work_dir,
+                          style=args.style)
         # subprocess.check_call might throw
         except CalledProcessError as e:
             sys.stderr.write('CalledProcessError: %s\n' % e)

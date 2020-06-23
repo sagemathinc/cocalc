@@ -1,8 +1,9 @@
-import {
-  React,
-  Component,
-  Rendered
-} from "smc-webapp/app-framework";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { React, Component, Rendered } from "smc-webapp/app-framework";
 
 interface Props {
   account_id: string;

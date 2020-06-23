@@ -1,4 +1,11 @@
-// CoCalc, by SageMath, Inc., (c) 2016, 2017 -- License: AGPLv3
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
+ * CoCalc, by SageMath, Inc., (c) 2016, 2017 -- License: AGPLv3
+ */
 
 /*
 * Webpack configuration file
@@ -36,7 +43,7 @@ This webpack config file might look scary, but it only consists of a few moving 
       Some css is inserted, but it doesn't work and no styles are applied. In the end,
       it doesn't matter to load it one way or the other. Furthermore, as .js is even better,
       because the initial page load is instant and doesn't require to get the compiled css styles.
-   2. lib: this is a compilation of the essential js files in webapp-lib (via webapp-lib.coffee)
+   2. lib: this is a compilation of the essential js files in webapp-lib (via webapp-lib.js)
    3. smc: the core smc library. besides this, there are also chunks ([number]-hash.js) that are
       loaded later on demand (read up on `require.ensure`).
       For example, such a chunkfile contains latex completions, the data for the wizard, etc.
@@ -87,13 +94,8 @@ require("coffeescript/register");
 // So we can require Typescript code.
 require("ts-node").register();
 
-let cleanWebpackPlugin,
-  entries,
-  hashname,
-  MATHJAX_URL,
-  output_fn,
-  plugins,
-  publicPath;
+let cleanWebpackPlugin, entries, hashname, MATHJAX_URL, output_fn, publicPath;
+const plugins = [];
 const _ = require("lodash");
 const webpack = require("webpack");
 const path = require("path");
@@ -124,18 +126,32 @@ const PRODMODE = NODE_ENV !== DEVEL;
 const COMP_ENV =
   (process.env.CC_COMP_ENV || PRODMODE) &&
   fs.existsSync("webapp-lib/compute-components.json");
+const COMMERCIAL = !!COMP_ENV; // assume to be in the commercial setup, if we show the compute environment
 let { CDN_BASE_URL } = process.env; // CDN_BASE_URL must have a trailing slash
 const DEVMODE = !PRODMODE;
 const MINIFY = !!process.env.WP_MINIFY;
 const DEBUG = process.argv.includes("--debug");
 const { MEASURE } = process.env;
 const SOURCE_MAP = !!process.env.SOURCE_MAP;
-const STATICPAGES = !!process.env.CC_STATICPAGES; // special mode where just the landing page is built
 const date = new Date();
 const BUILD_DATE = date.toISOString();
 const BUILD_TS = date.getTime();
 const { GOOGLE_ANALYTICS } = misc_node;
 const CC_NOCLEAN = !!process.env.CC_NOCLEAN;
+
+// If True, do not run typescript compiler at all. Fast,
+// but obviously less safe.  This is designed for use, e.g.,
+// when trying to do a quick production build in an emergency,
+// when we already know the typescript all works.
+const TS_TRANSPILE_ONLY = !!process.env.TS_TRANSPILE_ONLY;
+
+// When building the static page or if the user explicitly sets
+// an env variable, we do not want to use the forking typescript
+// module instead.
+const DISABLE_TS_LOADER_OPTIMIZATIONS =
+  !!process.env.DISABLE_TS_LOADER_OPTIMIZATIONS ||
+  PRODMODE ||
+  TS_TRANSPILE_ONLY;
 
 // create a file base_url to set a base url
 const { BASE_URL } = misc_node;
@@ -167,6 +183,10 @@ console.log(`INPUT            = ${INPUT}`);
 console.log(`OUTPUT           = ${OUTPUT}`);
 console.log(`GOOGLE_ANALYTICS = ${GOOGLE_ANALYTICS}`);
 console.log(`CC_NOCLEAN       = ${CC_NOCLEAN}`);
+console.log(`TS_TRANSPILE_ONLY= ${TS_TRANSPILE_ONLY}`);
+console.log(
+  `DISABLE_TS_LOADER_OPTIMIZATIONS = ${DISABLE_TS_LOADER_OPTIMIZATIONS}`
+);
 
 // mathjax version → symlink with version info from package.json/version
 if (CDN_BASE_URL != null) {
@@ -186,7 +206,7 @@ console.log(`MATHJAX_LIB      = ${MATHJAX_LIB}`);
 if (!COMP_ENV) {
   for (let fn of [
     "webapp-lib/compute-components.json",
-    "webapp-lib/compute-inventory.json"
+    "webapp-lib/compute-inventory.json",
   ]) {
     if (fs.existsSync(fn)) {
       continue;
@@ -203,7 +223,7 @@ This file is part of ${TITLE}.
 It was compiled ${BUILD_DATE} at revision ${GIT_REV} and version ${SMC_VERSION}.
 See ${SMC_REPO} for its ${SMC_LICENSE} code.\
 `,
-  entryOnly: true
+  entryOnly: true,
 });
 
 // webpack plugin to do the linking after it's "done"
@@ -213,12 +233,12 @@ class MathjaxVersionedSymlink {
     const symto = path.resolve(__dirname, `${MATHJAX_LIB}`);
     console.log(`mathjax symlink: pointing to ${symto}`);
     const mksymlink = (dir, cb) =>
-      fs.access(dir, function(err) {
+      fs.access(dir, function (err) {
         if (err) {
           fs.symlink(symto, dir, cb);
         }
       });
-    const done = compilation =>
+    const done = (compilation) =>
       async.concat([MATHJAX_ROOT, misc_node.MATHJAX_NOVERS], mksymlink);
     const plugin = { name: "MathjaxVersionedSymlink" };
     compiler.hooks.done.tap(plugin, done);
@@ -233,7 +253,7 @@ if (!CC_NOCLEAN) {
   const CleanWebpackPlugin = require("clean-webpack-plugin");
   cleanWebpackPlugin = new CleanWebpackPlugin([OUTPUT], {
     verbose: true,
-    dry: false
+    dry: false,
   });
 }
 
@@ -248,8 +268,8 @@ const assetsPlugin = new AssetsPlugin({
     git_ref: GIT_REV,
     version: SMC_VERSION,
     built: BUILD_DATE,
-    timestamp: BUILD_TS
-  }
+    timestamp: BUILD_TS,
+  },
 });
 
 // https://www.npmjs.com/package/html-webpack-plugin
@@ -272,7 +292,7 @@ const htmlMinifyOpts = {
   minifyJS: true,
   minifyCSS: true,
   collapseWhitespace: true,
-  conservativeCollapse: true
+  conservativeCollapse: true,
 };
 
 // when base_url_html is set, it is hardcoded into the index page
@@ -302,167 +322,13 @@ const pug2app = new HtmlWebpackPlugin({
   hash: PRODMODE,
   template: path.join(INPUT, "app.pug"),
   minify: htmlMinifyOpts,
-  GOOGLE_ANALYTICS
+  GOOGLE_ANALYTICS,
+  COMMERCIAL,
 });
-
-// static html pages
-// they only depend on the css chunk
-const staticPages = [];
-// in the root directory (doc/ and policies/ is below)
-for (let [fn_in, fn_out] of [["index.pug", "index.html"]]) {
-  staticPages.push(
-    new HtmlWebpackPlugin({
-      date: BUILD_DATE,
-      title: TITLE,
-      description: DESCRIPTION,
-      BASE_URL: base_url_html,
-      theme,
-      COMP_ENV,
-      components: {}, // no data needed, empty is fine
-      inventory: {}, // no data needed, empty is fine
-      git_rev: GIT_REV,
-      mathjax: MATHJAX_URL,
-      filename: fn_out,
-      chunks: ["css"],
-      inject: "head",
-      hash: PRODMODE,
-      template: path.join(INPUT, fn_in),
-      minify: htmlMinifyOpts,
-      GOOGLE_ANALYTICS,
-      SCHEMA: require("smc-util/schema-static"),
-      PREFIX: fn_in === "index.pug" ? "" : "../"
-    })
-  );
-}
-
-// doc pages
-for (let dp of glob.sync("webapp-lib/doc/*.pug")) {
-  if (path.basename(dp)[0] === "_") {
-    continue;
-  }
-  if (path.basename(dp).indexOf("software-") === 0 && COMP_ENV) {
-    continue;
-  }
-  output_fn = `doc/${misc.change_filename_extension(
-    path.basename(dp),
-    "html"
-  )}`;
-  staticPages.push(
-    new HtmlWebpackPlugin({
-      filename: output_fn,
-      date: BUILD_DATE,
-      title: TITLE,
-      theme,
-      COMP_ENV,
-      components: {}, // no data needed, empty is fine
-      inventory: {}, // no data needed, empty is fine
-      template: dp,
-      chunks: ["css"],
-      inject: "head",
-      minify: htmlMinifyOpts,
-      GOOGLE_ANALYTICS,
-      SCHEMA: require("smc-util/schema-static"),
-      hash: PRODMODE,
-      BASE_URL: base_url_html,
-      PREFIX: "../"
-    })
-  );
-}
-
-// the following renders the policy pages
-for (let pp of glob.sync("webapp-lib/policies/*.pug")) {
-  if (path.basename(pp)[0] === "_") {
-    continue;
-  }
-  output_fn = `policies/${misc.change_filename_extension(
-    path.basename(pp),
-    "html"
-  )}`;
-  staticPages.push(
-    new HtmlWebpackPlugin({
-      filename: output_fn,
-      date: BUILD_DATE,
-      title: TITLE,
-      theme,
-      COMP_ENV,
-      components: {}, // no data needed, empty is fine
-      inventory: {}, // no data needed, empty is fine
-      template: pp,
-      chunks: ["css"],
-      inject: "head",
-      minify: htmlMinifyOpts,
-      GOOGLE_ANALYTICS,
-      SCHEMA: require("smc-util/schema"),
-      hash: PRODMODE,
-      BASE_URL: base_url_html,
-      PREFIX: "../"
-    })
-  );
-}
-
-// build pages for compute environment
-if (COMP_ENV) {
-  const components = JSON.parse(
-    fs.readFileSync("webapp-lib/compute-components.json", "utf8")
-  );
-  //console.log(JSON.stringify(Object.keys(components)))
-  const inventory = JSON.parse(
-    fs.readFileSync("webapp-lib/compute-inventory.json", "utf8")
-  );
-
-  staticPages.push(
-    new HtmlWebpackPlugin({
-      filename: "doc/software.html",
-      date: BUILD_DATE,
-      title: TITLE,
-      theme,
-      COMP_ENV,
-      components,
-      inventory,
-      template: "webapp-lib/doc/software.pug",
-      chunks: ["css"],
-      inject: "head",
-      minify: htmlMinifyOpts,
-      GOOGLE_ANALYTICS,
-      hash: PRODMODE,
-      BASE_URL: base_url_html,
-      PREFIX: "../"
-    })
-  );
-
-  // table of installed software packages and libraries
-  for (let infn of glob.sync("webapp-lib/doc/software-*.pug")) {
-    const sw_env = path
-      .basename(infn)
-      .split("-")[1]
-      .split(".")[0];
-    output_fn = `doc/software-${sw_env}.html`;
-    staticPages.push(
-      new HtmlWebpackPlugin({
-        filename: output_fn,
-        date: BUILD_DATE,
-        title: TITLE,
-        theme,
-        COMP_ENV,
-        components,
-        inventory,
-        sw_env,
-        template: infn,
-        chunks: ["css"],
-        inject: "head",
-        minify: htmlMinifyOpts,
-        GOOGLE_ANALYTICS,
-        hash: PRODMODE,
-        BASE_URL: base_url_html,
-        PREFIX: "../"
-      })
-    );
-  }
-}
 
 // global css loader configuration
 const cssConfig = JSON.stringify({
-  sourceMap: false
+  sourceMap: false,
 });
 
 // this is like C's #ifdef for the source code. It is particularly useful in the
@@ -470,20 +336,20 @@ const cssConfig = JSON.stringify({
 // mathjax is. The version&date is shown in the hover-title in the footer (year).
 const setNODE_ENV = new webpack.DefinePlugin({
   "process.env": {
-    NODE_ENV: JSON.stringify(NODE_ENV)
+    NODE_ENV: JSON.stringify(NODE_ENV),
   },
   MATHJAX_URL: JSON.stringify(MATHJAX_URL),
   SMC_VERSION: JSON.stringify(SMC_VERSION),
   SMC_GIT_REV: JSON.stringify(GIT_REV),
   BUILD_DATE: JSON.stringify(BUILD_DATE),
   BUILD_TS: JSON.stringify(BUILD_TS),
-  DEBUG: JSON.stringify(DEBUG)
+  DEBUG: JSON.stringify(DEBUG),
 });
 
 // Writes a JSON file containing the main webpack-assets and their filenames.
 const { StatsWriterPlugin } = require("webpack-stats-plugin");
 const statsWriterPlugin = new StatsWriterPlugin({
-  filename: "webpack-stats.json"
+  filename: "webpack-stats.json",
 });
 
 // https://webpack.js.org/guides/migrating/#uglifyjsplugin-minimize-loaders
@@ -498,56 +364,74 @@ const loaderOptions = new webpack.LoaderOptionsPlugin({
       minifyJS: true,
       minifyCSS: true,
       collapseWhitespace: true,
-      conservativeCollapse: true
-    }
-  } // absolutely necessary, also see above in module.loaders/.html
+      conservativeCollapse: true,
+    },
+  }, // absolutely necessary, also see above in module.loaders/.html
   //sassLoader:
   //    includePaths: [path.resolve(__dirname, 'src', 'scss')]
   //context: '/'
 });
 
 if (cleanWebpackPlugin != null) {
-  // This is just a horrible hack for now, to get around how
-  // slow the pug/static functionality is (remove this when use
-  // of pug is deprecated in favor of react).
-  plugins = [cleanWebpackPlugin];
+  plugins.push(cleanWebpackPlugin);
 }
-({
-  else: (plugins = [])
-});
 
-plugins = plugins.concat([setNODE_ENV, banner, loaderOptions]);
+plugins.push(...[setNODE_ENV, banner, loaderOptions]);
 
-if (STATICPAGES) {
-  plugins = plugins.concat(staticPages);
-  entries = { css: "webapp-css.coffee" };
-} else {
-  // ATTN don't alter or add names here, without changing the sorting function above!
-  entries = {
-    css: "webapp-css.coffee",
-    fill: "@babel/polyfill",
-    smc: "webapp-smc.coffee",
-    // code splitting: we take all of our vendor code and put it in a separate bundle (vendor.min.js)
-    // this way it will have better caching/cache hits since it changes infrequently
-    vendor: [
-      // local packages
-      "./webapp-lib/primus/primus-engine.min.js"
-      // npm packages are added to vendor code separately in splitChunks config below
-    ],
-    "pdf.worker": "./smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry"
-  };
-  plugins = plugins.concat([pug2app, mathjaxVersionedSymlink]);
+// ATTN don't alter or add names here, without changing the sorting function above!
+entries = {
+  css: "webapp-css.js",
+  fill: "@babel/polyfill",
+  smc: "webapp-cocalc.js",
+  // code splitting: we take all of our vendor code and put it in a separate bundle (vendor.min.js)
+  // this way it will have better caching/cache hits since it changes infrequently
+  vendor: [
+    // local packages
+    "./webapp-lib/primus/primus-engine.min.js",
+    // npm packages are added to vendor code separately in splitChunks config below
+  ],
+  "pdf.worker": "./smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry",
+};
+plugins.push(...[pug2app, mathjaxVersionedSymlink]);
+
+if (!DISABLE_TS_LOADER_OPTIMIZATIONS) {
+  console.log("Enabling ForkTsCheckerWebpackPlugin...");
+  if (process.env.TSC_WATCHDIRECTORY == null || process.env.TSC_WATCHFILE) {
+    console.log(
+      "To workaround performance issues with the default typescript watch, we set TSC_WATCH* env vars:"
+    );
+    // See https://github.com/TypeStrong/fork-ts-checker-webpack-plugin/issues/236
+    // This one seems to work well; others miss changes:
+    process.env.TSC_WATCHFILE = "UseFsEventsOnParentDirectory";
+    // Using "RecursiveDirectoryUsingFsWatchFile" for the directory is very inefficient on CoCalc.
+    process.env.TSC_WATCHDIRECTORY =
+      "RecursiveDirectoryUsingDynamicPriorityPolling";
+  }
+
+  const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
+  plugins.push(
+    new ForkTsCheckerWebpackPlugin({
+      // async false makes it much easy to see the error messages and
+      // be aware of when compilation is done,
+      // but is slower because it has to wait before showing them.
+      // We still benefit from parallel computing though.
+      // We could change this to async if there were some
+      // better way to display that output is pending and that it appeared...
+      // NOTE: it is very important to do
+      //     TSC_WATCHFILE=UseFsEventsWithFallbackDynamicPolling
+      // in package.json's watch. See
+      //  https://blog.johnnyreilly.com/2019/05/typescript-and-high-cpu-usage-watch.html
+      async: true,
+    })
+  );
 }
 
 if (DEVMODE) {
-  console.log("******************************************************");
-  console.log("WARNING! You might have to visit");
-  console.log("     https://cocalc.com/[project_id]/port/[...]/app");
-  console.log("in case the / static pages are currently not built via");
-  console.log("     npm run webpack-static");
-  console.log("******************************************************");
-} else {
-  plugins = plugins.concat(staticPages);
+  console.log(`\
+******************************************************
+*             You have to visit:                     *
+*   https://cocalc.com/[project_id]/port/[...]/app   *
+******************************************************`);
 }
 
 if (PRODMODE) {
@@ -555,15 +439,15 @@ if (PRODMODE) {
   plugins.push(new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 5 }));
 }
 
-plugins = plugins.concat([assetsPlugin, statsWriterPlugin]);
+plugins.push(...[assetsPlugin, statsWriterPlugin]);
 
 const UglifyJsPlugin = require("uglifyjs-webpack-plugin");
 const minimizer = new UglifyJsPlugin({
   uglifyOptions: {
     output: {
-      comments: new RegExp(`This file is part of ${TITLE}`, "g")
-    }
-  }
+      comments: new RegExp(`This file is part of ${TITLE}`, "g"),
+    },
+  },
 }); // to keep the banner inserted above
 
 // tuning generated filenames and the configs for the aux files loader.
@@ -591,9 +475,9 @@ if (CDN_BASE_URL != null) {
 if (MEASURE) {
   const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
   const bundleAnalyzerPlugin = new BundleAnalyzerPlugin({
-    analyzerMode: "static"
+    analyzerMode: "static",
   });
-  plugins = plugins.concat([bundleAnalyzerPlugin]);
+  plugins.push(...[bundleAnalyzerPlugin]);
 }
 
 module.exports = {
@@ -614,10 +498,10 @@ module.exports = {
         commons: {
           test: /[\\/]node_modules[\\/]/,
           name: "vendor",
-          chunks: "all"
-        }
-      }
-    }
+          chunks: "all",
+        },
+      },
+    },
   },
 
   entry: entries,
@@ -627,7 +511,7 @@ module.exports = {
     publicPath,
     filename: PRODMODE ? "[name]-[hash].cacheme.js" : "[name].nocache.js",
     chunkFilename: PRODMODE ? "[id]-[hash].cacheme.js" : "[id].nocache.js",
-    hashFunction: "sha256"
+    hashFunction: "sha256",
   },
 
   module: {
@@ -636,10 +520,22 @@ module.exports = {
       { test: /\.cjsx$/, loader: ["coffee-loader", "cjsx-loader"] },
       { test: [/node_modules\/prom-client\/.*\.js$/], loader: "babel-loader" },
       { test: [/latex-editor\/.*\.jsx?$/], loader: "babel-loader" },
-      // Note: ts-loader is not a very good webpack citizen https://github.com/TypeStrong/ts-loader/issues/552
-      // It just kind of does its own thing. See tsconfig.json for further congiration.
-      { test: /\.tsx$/, loader: "babel-loader!ts-loader" },
-      { test: /\.ts$/, loader: "ts-loader" },
+      // Note: see https://github.com/TypeStrong/ts-loader/issues/552
+      // for discussion of issues with ts-loader + webpack.
+      {
+        test: /\.tsx?$/,
+        use: {
+          loader: "ts-loader",
+          options:
+            TS_TRANSPILE_ONLY || DISABLE_TS_LOADER_OPTIMIZATIONS
+              ? { transpileOnly: TS_TRANSPILE_ONLY } // run as normal or not at all
+              : {
+                  // do not run typescript checker in same process...
+                  transpileOnly: !TS_TRANSPILE_ONLY,
+                  experimentalWatchApi: true,
+                },
+        },
+      },
       {
         test: /\.less$/,
         use: [
@@ -647,12 +543,12 @@ module.exports = {
           {
             loader: "css-loader",
             options: {
-              importLoaders: 2
-            }
+              importLoaders: 2,
+            },
           },
           "postcss-loader",
-          `less-loader?${cssConfig}`
-        ]
+          `less-loader?${cssConfig}`,
+        ],
       },
       {
         test: /\.scss$/i,
@@ -661,12 +557,12 @@ module.exports = {
           {
             loader: "css-loader",
             options: {
-              importLoaders: 2
-            }
+              importLoaders: 2,
+            },
           },
           "postcss-loader",
-          `sass-loader?${cssConfig}`
-        ]
+          `sass-loader?${cssConfig}`,
+        ],
       },
       {
         test: /\.sass$/i,
@@ -675,12 +571,12 @@ module.exports = {
           {
             loader: "css-loader",
             options: {
-              importLoaders: 2
-            }
+              importLoaders: 2,
+            },
           },
           "postcss-loader",
-          `sass-loader?${cssConfig}&indentedSyntax`
-        ]
+          `sass-loader?${cssConfig}&indentedSyntax`,
+        ],
       },
       { test: /\.png$/, loader: `file-loader?${pngconfig}` },
       { test: /\.ico$/, loader: `file-loader?${icoconfig}` },
@@ -689,20 +585,20 @@ module.exports = {
       {
         test: /\.html$/,
         include: [path.resolve(__dirname, "smc-webapp")],
-        use: ["raw-loader", "html-minify-loader?conservativeCollapse"]
+        use: ["raw-loader", "html-minify-loader?conservativeCollapse"],
       },
       { test: /\.hbs$/, loader: "handlebars-loader" },
       {
         test: /\.woff(2)?(\?[a-z0-9\.-=]+)?$/,
-        loader: `url-loader?${woffconfig}`
+        loader: `url-loader?${woffconfig}`,
       },
       {
         test: /\.ttf(\?[a-z0-9\.-=]+)?$/,
-        loader: "url-loader?limit=10000&mimetype=application/octet-stream"
+        loader: "url-loader?limit=10000&mimetype=application/octet-stream",
       },
       {
         test: /\.eot(\?[a-z0-9\.-=]+)?$/,
-        loader: `file-loader?name=${hashname}`
+        loader: `file-loader?name=${hashname}`,
       },
       // ---
       {
@@ -712,14 +608,14 @@ module.exports = {
           {
             loader: "css-loader",
             options: {
-              importLoaders: 1
-            }
+              importLoaders: 1,
+            },
           },
-          "postcss-loader"
-        ]
+          "postcss-loader",
+        ],
       },
-      { test: /\.pug$/, loader: "pug-loader" }
-    ]
+      { test: /\.pug$/, loader: "pug-loader" },
+    ],
   },
 
   resolve: {
@@ -733,7 +629,7 @@ module.exports = {
       ".coffee",
       ".cjsx",
       ".scss",
-      ".sass"
+      ".sass",
     ],
     modules: [
       path.resolve(__dirname),
@@ -742,11 +638,9 @@ module.exports = {
       path.resolve(__dirname, "smc-util/node_modules"),
       path.resolve(__dirname, "smc-webapp"),
       path.resolve(__dirname, "smc-webapp/node_modules"),
-      path.resolve(__dirname, "cocalc-ui"),
-      path.resolve(__dirname, "cocalc-ui/node_modules"),
-      path.resolve(__dirname, "node_modules")
-    ]
+      path.resolve(__dirname, "node_modules"),
+    ],
   },
 
-  plugins
+  plugins,
 };

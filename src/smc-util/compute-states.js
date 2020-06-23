@@ -1,40 +1,21 @@
-//##############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
-
 /*
-Compute related schema stuff (see compute.coffee)
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-Here's a picture of the finite state machine defined below:
-
-                    ----------[closing] ------- --------- [stopping] <--------
-                   \|/                        \|/                           |
-[archived] <-->  [closed] --> [opening] --> [opened] --> [starting] --> [running]
-                                             /|\                          /|\
-       [unarchiving]                          |                            |
-       [archiving]                           \|/                          \|/
-                                      [saving]  [pending]               [saving]
-
-The icon names below refer to font-awesome, and are used in the UI.
-
-*/
+// Compute related schema stuff (see compute.coffee)
+//
+// Here's a picture of the finite state machine defined below:
+//
+//                     ----------[closing] ------- --------- [stopping] <--------
+//                    \|/                        \|/                           |
+// [archived] <-->  [closed] --> [opening] --> [opened] --> [starting] --> [running]
+//                                              /|\                          /|\
+//        [unarchiving]                          |                            |
+//        [archiving]                           \|/                          \|/
+//                                       [saving]  [pending]               [saving]
+//
+// The icon names below refer to font-awesome, and are used in the UI.
 
 exports.COMPUTE_STATES = {
   archived: {
@@ -44,9 +25,9 @@ exports.COMPUTE_STATES = {
     display: "Archived", // displayed name for users
     stable: true,
     to: {
-      closed: "unarchiving"
+      closed: "unarchiving",
     },
-    commands: ["unarchive"]
+    commands: ["unarchive"],
   },
 
   unarchiving: {
@@ -56,7 +37,7 @@ exports.COMPUTE_STATES = {
     display: "Unarchiving",
     to: {},
     timeout: 30 * 60,
-    commands: ["status", "mintime"]
+    commands: ["status", "mintime"],
   },
 
   archiving: {
@@ -65,7 +46,7 @@ exports.COMPUTE_STATES = {
     display: "Archiving",
     to: {},
     timeout: 5 * 60,
-    commands: ["status", "mintime"]
+    commands: ["status", "mintime"],
   },
 
   closed: {
@@ -76,19 +57,19 @@ exports.COMPUTE_STATES = {
     stable: true,
     to: {
       open: "opening",
-      archived: "archiving"
+      archived: "archiving",
     },
-    commands: ["open", "move", "status", "destroy", "mintime", "archive"]
+    commands: ["open", "move", "status", "destroy", "mintime", "archive"],
   },
 
   opening: {
     desc:
-      "Project is being imported from ZFS streams; this may take several minutes depending on size and history.",
+      "Project is being imported; this may take several minutes depending on size and history.",
     icon: "gears",
     display: "Opening",
     to: {},
     timeout: 30 * 60,
-    commands: ["status", "mintime"]
+    commands: ["status", "mintime"],
   },
 
   closing: {
@@ -97,7 +78,7 @@ exports.COMPUTE_STATES = {
     display: "Closing",
     to: {},
     timeout: 5 * 60,
-    commands: ["status", "mintime"]
+    commands: ["status", "mintime"],
   },
 
   opened: {
@@ -108,7 +89,7 @@ exports.COMPUTE_STATES = {
     to: {
       start: "starting",
       close: "closing",
-      save: "saving"
+      save: "saving",
     },
     commands: [
       "start",
@@ -125,8 +106,8 @@ exports.COMPUTE_STATES = {
       "status",
       "migrate_live",
       "ephemeral_state",
-      "ephemeral_disk"
-    ]
+      "ephemeral_disk",
+    ],
   },
 
   pending: {
@@ -136,9 +117,9 @@ exports.COMPUTE_STATES = {
     display: "Pending",
     stable: true,
     to: {
-      stop: "stopping"
+      stop: "stopping",
     },
-    command: ["stop"]
+    command: ["stop"],
   },
 
   starting: {
@@ -146,7 +127,7 @@ exports.COMPUTE_STATES = {
     icon: "flash",
     display: "Starting",
     to: {
-      save: "saving"
+      save: "saving",
     },
     timeout: 60,
     commands: [
@@ -159,8 +140,8 @@ exports.COMPUTE_STATES = {
       "mintime",
       "disk_quota",
       "compute_quota",
-      "status"
-    ]
+      "status",
+    ],
   },
 
   stopping: {
@@ -168,7 +149,7 @@ exports.COMPUTE_STATES = {
     icon: "hand-stop-o",
     display: "Stopping",
     to: {
-      save: "saving"
+      save: "saving",
     },
     timeout: 60,
     commands: [
@@ -181,8 +162,8 @@ exports.COMPUTE_STATES = {
       "mintime",
       "disk_quota",
       "compute_quota",
-      "status"
-    ]
+      "status",
+    ],
   },
 
   running: {
@@ -192,7 +173,7 @@ exports.COMPUTE_STATES = {
     stable: true,
     to: {
       stop: "stopping",
-      save: "saving"
+      save: "saving",
     },
     commands: [
       "stop",
@@ -207,8 +188,8 @@ exports.COMPUTE_STATES = {
       "disk_quota",
       "compute_quota",
       "status",
-      "migrate_live"
-    ]
+      "migrate_live",
+    ],
   },
 
   saving: {
@@ -228,7 +209,7 @@ exports.COMPUTE_STATES = {
       "mintime",
       "disk_quota",
       "compute_quota",
-      "status"
-    ]
-  }
+      "status",
+    ],
+  },
 };

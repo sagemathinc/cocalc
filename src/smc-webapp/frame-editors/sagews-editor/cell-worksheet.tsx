@@ -1,5 +1,16 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Map } from "immutable";
-import { React, Component, Rendered, rtypes, rclass } from "../../app-framework";
+import {
+  React,
+  Component,
+  Rendered,
+  rtypes,
+  rclass,
+} from "../../app-framework";
 
 import { input_is_hidden, output_is_hidden } from "./flags";
 
@@ -17,8 +28,8 @@ class CellWorksheet extends Component<Props, {}> {
   static reduxProps({ name }) {
     return {
       [name]: {
-        cells: rtypes.immutable.Map
-      }
+        cells: rtypes.immutable.Map,
+      },
     };
   }
 

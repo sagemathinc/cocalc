@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { shallow } from "enzyme";
 import { CloseX } from "../close-x";
@@ -7,14 +12,14 @@ describe("smoke test close-x", () => {
     function nothing() {
       return undefined;
     }
-    let rendered = shallow(<CloseX on_close={nothing} />);
+    const rendered = shallow(<CloseX on_close={nothing} />);
     expect(rendered).toMatchSnapshot();
   });
 
   test("it calls close on click", () => {
     const close_mock = jest.fn();
 
-    let rendered = shallow(<CloseX on_close={close_mock} />);
+    const rendered = shallow(<CloseX on_close={close_mock} />);
     rendered.simulate("click");
     expect(close_mock.mock.calls.length).toBe(1);
   });
@@ -23,9 +28,9 @@ describe("smoke test close-x", () => {
     const close_mock = jest.fn();
     const custom_style: React.CSSProperties = {
       marginTop: "3px",
-      marginBottom: "12px"
+      marginBottom: "12px",
     };
-    let rendered = shallow(
+    const rendered = shallow(
       <CloseX on_close={close_mock} style={custom_style} />
     );
     expect(rendered.children().prop("style")).toBe(custom_style);

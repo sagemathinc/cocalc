@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Wrapper object around xterm.js's Terminal, which adds
 extra support for being connected to:
   - a backend project via a websocket
@@ -21,13 +26,17 @@ import { setTheme } from "./themes";
 import { project_websocket, touch, touch_project } from "../generic/client";
 import { Actions, CodeEditorState } from "../code-editor/actions";
 
-import { endswith, replace_all } from "smc-util/misc2";
+import { endswith, filename_extension, replace_all } from "smc-util/misc2";
 import { open_init_file } from "./init-file";
 
 import { ConnectionStatus } from "../frame-tree/types";
 
+import { file_associations } from "../../file-associations";
+
 declare const $: any;
 import { starts_with_cloud_url } from "smc-webapp/process-links";
+
+// import { debounce } from "lodash";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
@@ -42,7 +51,7 @@ interface Path {
 
 // todo: move to generic util if this works.
 function bind(that: any, v: string[]): void {
-  for (let f of v) {
+  for (const f of v) {
     that[f] = that[f].bind(that);
   }
 }
@@ -103,7 +112,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       "update_settings",
       "connect",
       "_handle_data_from_project",
-      "touch"
+      "touch",
     ]);
 
     this.actions = actions;
@@ -135,6 +144,13 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.init_settings();
     this.init_touch();
     this.set_connection_status("disconnected");
+
+    // The docs https://xtermjs.org/docs/api/terminal/classes/terminal/#resize say
+    // "It’s best practice to debounce calls to resize, this will help ensure that
+    //  the pty can respond to the resize event before another one occurs."
+    // We do NOT debounce, because it strangely breaks everything,
+    // as you can see by just resizing the window.
+    // this.terminal_resize = debounce(this.terminal_resize.bind(this), 2000);
   }
 
   private get_xtermjs_options(): any {
@@ -278,7 +294,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     if (endswith(this.path, ".term")) {
       touch_path(this.project_id, this.path); // no need to await
     }
-    for (let data of this.conn_write_buffer) {
+    for (const data of this.conn_write_buffer) {
       this.conn.write(data);
     }
     this.conn_write_buffer = [];
@@ -333,7 +349,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   init_title(): void {
-    this.terminal.onTitleChange(title => {
+    this.terminal.onTitleChange((title) => {
       if (title != null) {
         this.actions.set_title(this.id, title);
       }
@@ -361,7 +377,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       return;
     }
     this.keyhandler_initialized = true;
-    this.terminal.attachCustomKeyEventHandler(event => {
+    this.terminal.attachCustomKeyEventHandler((event) => {
       //console.log("key", event);
       // record that terminal is being actively used.
       this.last_active = new Date().valueOf();
@@ -422,13 +438,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     //console.log("handle_mesg", this.id, mesg);
     switch (mesg.cmd) {
       case "size":
-        if (typeof mesg.rows === "number" && typeof mesg.cols === "number") {
-          try {
-            this.resize(mesg.rows, mesg.cols);
-          } catch (err) {
-            // See https://github.com/sagemathinc/cocalc/issues/3536
-            console.warn(`ERROR resizing terminal -- ${err}`);
-          }
+        if (typeof mesg.rows == "number" && typeof mesg.cols == "number") {
+          this.terminal_resize({ rows: mesg.rows, cols: mesg.cols });
         }
         break;
       case "burst":
@@ -478,20 +489,49 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.actions.set_error("");
   }
 
+  // Try to resize terminal to given number of rows and columns.
+  // This should not throw an exception no matter how wrong the input
+  // actually is.
+  private terminal_resize(opts: { cols: number; rows: number }): void {
+    // console.log("terminal_resize", opts);
+    // terminal.resize only takes integers, hence the floor;
+    // we use floor to avoid cutting off a line halfway.
+    // See https://github.com/sagemathinc/cocalc/issues/4140
+    const { rows, cols } = opts;
+    if (!(rows >= 1) || !(cols >= 1)) {
+      // invalid measurement -- silently ignore
+      // Note -- NaN is not >= 0; see
+      // https://github.com/sagemathinc/cocalc/issues/4158
+      return;
+    }
+    if (rows == Infinity || cols == Infinity) {
+      // This also happens sometimes, evidently.  Just ignore it.
+      // https://github.com/sagemathinc/cocalc/issues/4266
+      return;
+    }
+    // Yes, this can throw an exception, thus breaking everything (resulting in
+    // a blank page for the user).  This is probably an upstream xterm.js bug,
+    // but we still have to work around it.
+    // The fix to https://github.com/sagemathinc/cocalc/issues/4140
+    // might now prevent this bug.
+    try {
+      this.terminal.resize(Math.floor(cols), Math.floor(rows));
+    } catch (err) {
+      console.warn("Error resizing terminal", err, rows, cols);
+    }
+  }
+
   // Stop ignoring terminal data... but ONLY once
   // the render buffer is also empty.
   async no_ignore(): Promise<void> {
     if (this.state === "closed") {
       return;
     }
-    const g = cb => {
+    const g = (cb) => {
       const f = async () => {
         x.dispose();
         if (this.resize_after_no_ignore !== undefined) {
-          this.terminal.resize(
-            this.resize_after_no_ignore.cols,
-            this.resize_after_no_ignore.rows
-          );
+          this.terminal_resize(this.resize_after_no_ignore);
           delete this.resize_after_no_ignore;
         }
         // cause render to actually appear now.
@@ -512,9 +552,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   close_request(): void {
-    this.actions.set_error(
-      "Another user closed one of your terminal sessions."
-    );
+    this.actions.set_error("You were removed from a terminal.");
     // If there is only one frame, we close the
     // entire editor -- otherwise, we close only
     // this frame.
@@ -528,6 +566,20 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
   }
 
+  private use_subframe(path: string): boolean {
+    const this_path = filename_extension(this.actions.path);
+    if (this_path == "term") {
+      // This is a .term tab, so always open the path in a new tab.
+      return false;
+    }
+    const ext = filename_extension(path);
+    // Open file in this tab of it can be edited as source code.
+    const a = file_associations[ext];
+    if (a == null || a.editor == "codemirror") return true;
+    if (this_path == "tex" && a.editor == "latex") return true;
+    return false;
+  }
+
   open_paths(paths: Path[]): void {
     if (!this.is_mounted) {
       return;
@@ -535,14 +587,18 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     const project_actions = this.actions._get_project_actions();
     let i = 0;
     let foreground = false;
-    for (let x of paths) {
+    for (const x of paths) {
       i += 1;
       if (i === paths.length) {
         foreground = true;
       }
       if (x.file != null) {
         const path = x.file;
-        project_actions.open_file({ path, foreground });
+        if (this.use_subframe(path)) {
+          this.actions.open_code_editor_frame(path);
+        } else {
+          project_actions.open_file({ path, foreground });
+        }
       }
       if (x.directory != null && foreground) {
         project_actions.open_directory(x.directory);
@@ -559,7 +615,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     if (!this.is_mounted) {
       return;
     }
-    for (let x of paths) {
+    for (const x of paths) {
       if (x.file != null) {
         this._close_path(x.file);
       }
@@ -579,7 +635,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       this.resize_after_no_ignore = { rows, cols };
       return;
     }
-    this.terminal.resize(cols, rows);
+    this.terminal_resize({ rows, cols });
   }
 
   pause(): void {
@@ -605,7 +661,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   init_terminal_data(): void {
-    this.terminal.onData(data => {
+    this.terminal.onData((data) => {
       if (this.ignore_terminal_data) {
         return;
       }
@@ -660,19 +716,12 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     const { rows, cols } = geom;
     if (this.ignore_terminal_data) {
       // during the initial render
-      //console.log('direct resize')
-      // Yes, this can throw an exception, thus breaking everything (resulting in
-      // a blank page for the user).  This is probably an upstream xterm.js bug,
-      // but we still have to work around it.
-      try {
-        this.terminal.resize(cols, rows);
-      } catch (err) {
-        console.warn("Error resizing terminal", err, rows, cols);
-      }
+      this.terminal_resize({ rows, cols });
     }
     if (
       this.last_geom !== undefined &&
-      (this.last_geom.rows === rows && this.last_geom.cols === cols)
+      this.last_geom.rows === rows &&
+      this.last_geom.cols === cols
     ) {
       return;
     }

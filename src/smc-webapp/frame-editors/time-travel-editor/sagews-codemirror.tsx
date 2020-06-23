@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 This is just going to be a horible wrapper around the ancient complicated
 code to get this done for now.
 */
@@ -46,7 +51,7 @@ export class SagewsCodemirror extends Component<Props> {
 
     const opts0 = {
       allow_javascript_eval: false,
-      static_viewer: true
+      static_viewer: true,
     };
     this.worksheet = new SynchronizedWorksheet(this.view_doc, opts0);
 
@@ -82,10 +87,7 @@ export class SagewsCodemirror extends Component<Props> {
 
   public render(): Rendered {
     return (
-      <div
-        className="smc-vfill"
-        style={{ overflow: "auto" }}
-      >
+      <div className="smc-vfill" style={{ overflow: "auto" }}>
         <div ref={this.div_ref} />
       </div>
     );

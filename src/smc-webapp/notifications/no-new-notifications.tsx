@@ -1,6 +1,11 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 
-const { Icon } = require("../r_misc");
+import { Icon } from "../r_misc";
 const { Well } = require("react-bootstrap");
 
 export function NoNewNotifications({ text, style }) {
@@ -14,5 +19,5 @@ export function NoNewNotifications({ text, style }) {
 
 const well_style: React.CSSProperties = {
   padding: "40px, 30px",
-  textAlign: "center"
+  textAlign: "center",
 };

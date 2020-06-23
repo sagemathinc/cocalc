@@ -1,25 +1,9 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2015 -- 2016, SageMath, Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 # Viewer for history of changes to a document
-###############################################################################
 
 $ = window.$
 
@@ -85,16 +69,14 @@ class exports.HistoryEditor extends FileEditor
             @_path = s.head + '/' + @_path
 
     init_syncstring: (cb) =>
-        webapp_client.open_existing_sync_document
-            project_id : @project_id
-            path       : @_path
-            persistent : @ext == 'ipynb' or @ext == 'sagews'  # ugly for now...
-            cb         : (err, syncstring) =>
-                if err
-                    cb?(err)
-                else
-                    @syncstring = syncstring
-                    @syncstring.once('ready', cb)
+        try
+            @syncstring = await webapp_client.sync_client.open_existing_sync_document
+                project_id : @project_id
+                path       : @_path
+                persistent : @ext == 'ipynb' or @ext == 'sagews'  # ugly for now...
+            @syncstring.once('ready', cb)
+        catch err
+            cb?(err)
 
     init_ui: =>
         @render_slider()
@@ -589,18 +571,17 @@ class exports.HistoryEditor extends FileEditor
             entry.user = @account_id_to_username(entry.account_id)
 
         path = @_path + '-timetravel.json'
-        webapp_client.write_text_file_to_project
-            project_id : @project_id
-            path       : path
-            content    : JSON.stringify(x, null, 2)
-            cb         : (err) =>
-                if err
-                    alert_message(type:'error', message:"Error exporting history to file -- #{err}", timeout:15)
-                else
-                    alert_message(type:'info', message:"Exported history to #{path}.", timeout:5)
-                    redux.getProjectActions(@project_id).open_file
-                        path       : path
-                        foreground : true
+        try
+            await webapp_client.project_client.write_text_file
+                project_id : @project_id
+                path       : path
+                content    : JSON.stringify(x, null, 2)
+            alert_message(type:'info', message:"Exported history to #{path}.", timeout:5)
+            redux.getProjectActions(@project_id).open_file
+                path       : path
+                foreground : true
+        catch err
+            alert_message(type:'error', message:"Error exporting history to file -- #{err}", timeout:15)
 
 
 # Compute a line-level diff between two strings, which

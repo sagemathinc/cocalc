@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 The Changes class is a useful building block
 for making changefeeds.  It lets you watch when given
 columns change in a given table, and be notified
@@ -135,7 +140,7 @@ export class Changes extends EventEmitter {
 
   public async insert(where): Promise<void> {
     const where0: { [field: string]: any } = {};
-    for (let k in where) {
+    for (const k in where) {
       const v = where[k];
       where0[`${k} = $`] = v;
     }
@@ -146,13 +151,13 @@ export class Changes extends EventEmitter {
         select: this.watch.concat(misc.keys(this.select)),
         table: this.table,
         where: where0,
-        one: false
+        one: false,
       });
     } catch (err) {
       this.fail(err); // this is game over
       return;
     }
-    for (let x of results) {
+    for (const x of results) {
       if (this.match_condition(x)) {
         misc.map_mutate_out_undefined(x);
         const change: ChangeEvent = { action: "insert", new_val: x };
@@ -227,7 +232,7 @@ export class Changes extends EventEmitter {
         select: this.watch,
         table: this.table,
         where,
-        one: true
+        one: true,
       });
     } catch (err) {
       this.fail(err);
@@ -291,7 +296,7 @@ export class Changes extends EventEmitter {
     // Not using lodash isEqual below, since we want equal Date objects
     // to compare as equal.  If JSON is randomly re-ordered, that's fine since
     // it is just slightly less efficienct.
-    for (let field in this_val) {
+    for (const field in this_val) {
       if (
         new_val[field] === undefined &&
         JSON.stringify(this_val[field]) != JSON.stringify(prev_val[field])
@@ -337,8 +342,8 @@ export class Changes extends EventEmitter {
       if (misc.is_array(val)) {
         if (op === "=" || op === "==") {
           // containment
-          f = function(x) {
-            for (let v of val) {
+          f = function (x) {
+            for (const v of val) {
               if (x === v) {
                 return true;
               }
@@ -347,8 +352,8 @@ export class Changes extends EventEmitter {
           };
         } else if (op === "!=" || op === "<>") {
           // not contained in
-          f = function(x) {
-            for (let v of val) {
+          f = function (x) {
+            for (const v of val) {
               if (x === v) {
                 return false;
               }
@@ -362,24 +367,24 @@ export class Changes extends EventEmitter {
         // Inputs to condition come back as JSON, which doesn't know
         // about timestamps, so we convert them to date objects.
         if (op == "=" || op == "==") {
-          f = x => new Date(x).valueOf() - val === 0;
+          f = (x) => new Date(x).valueOf() - val === 0;
         } else if (op == "!=" || op == "<>") {
-          f = x => new Date(x).valueOf() - val !== 0;
+          f = (x) => new Date(x).valueOf() - val !== 0;
         } else {
           g = misc.op_to_function(op);
-          f = x => g(new Date(x), val);
+          f = (x) => g(new Date(x), val);
         }
       } else {
         g = misc.op_to_function(op);
-        f = x => g(x, val);
+        f = (x) => g(x, val);
       }
       this.condition[field] = f;
     };
 
-    for (let obj of w) {
+    for (const obj of w) {
       let found: boolean, i: number, op: string;
       if (misc.is_object(obj)) {
-        for (let k in obj) {
+        for (const k in obj) {
           const val = obj[k];
           /*
           k should be of one of the following forms
@@ -436,7 +441,7 @@ export class Changes extends EventEmitter {
       if (this.condition == null) {
         return true;
       }
-      for (let field in this.condition) {
+      for (const field in this.condition) {
         const f = this.condition[field];
         if (!f(obj[field])) {
           //console.log 'failed due to field ', field

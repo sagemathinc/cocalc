@@ -1,29 +1,14 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 async = require('async')
 
 {Component, React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('../app-framework')
-{Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, Overlay, OverlayTrigger, Popover, Modal, Tooltip, Row, Well} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, Overlay, OverlayTrigger, Modal, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('../customize')
-{UpgradeRestartWarning} = require('../upgrade_restart_warning')
+{UpgradeRestartWarning} = require('../upgrade-restart-warning')
 copy_to_clipboard = require('copy-to-clipboard')
 {reportException} = require('../../webapp-lib/webapp-error-reporter')
 {PROJECT_UPGRADES} = require('smc-util/schema')
@@ -50,11 +35,9 @@ copy_to_clipboard = require('copy-to-clipboard')
 share_server = require('./share-server');
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
-smc_version = SMC_VERSION ? 'N/A'
-build_date  = BUILD_DATE  ? 'N/A'
-smc_git_rev = SMC_GIT_REV ? 'N/A'
-
-Combobox    = require('react-widgets/lib/Combobox')
+exports.smc_version = smc_version = SMC_VERSION ? 'N/A'
+exports.build_date  = build_date  = BUILD_DATE  ? 'N/A'
+exports.smc_git_rev = smc_git_rev = SMC_GIT_REV ? 'N/A'
 
 misc        = require('smc-util/misc')
 theme       = require('smc-util/theme')
@@ -159,56 +142,10 @@ exports.Octicon = rclass
             classNames.push('mega-octicon')
         return <span className={classNames.join(' ')} />
 
-exports.Footer = rclass
-    displayName : "Footer"
-
-    mixins: [ImmutablePureRenderMixin]
-
-    render: ->
-        # Have to re-import them here to deal with some sort of circular
-        # reference or something when doing the backend static
-        # rendering.  To see this run
-        #   ~/cocalc/src$ scripts/update_react_static
-        # This problem should just go away when all this code is
-        # refactored in typescript.
-        {HelpEmailLink, SiteName, CompanyName} = require('../customize')
-        <footer style={fontSize:"small",color:"gray",textAlign:"center",padding: "#{2*UNIT}px 0" }>
-            <hr/>
-            <Space/>
-            <SiteName/> by <CompanyName/>
-            {' '} &middot; {' '}
-            <a target="_blank" rel='noopener' href={PolicyIndexPageUrl}>Policies</a>
-            {' '} &middot; {' '}
-            <a target="_blank" rel='noopener' href={PolicyTOSPageUrl}>Terms of Service</a>
-            {' '} &middot; {' '}
-            <HelpEmailLink />
-            {' '} &middot; {' '}
-            <span title="Version #{smc_version} @ #{build_date} | #{smc_git_rev[..8]}">&copy; {misc.YEAR}</span>
-        </footer>
-
+# required for hub-landing -- in all other contexts import directly from customize
 exports.render_static_footer = ->
-    Footer = exports.Footer
+    {Footer} = require('smc-webapp/customize')
     <Footer />
-
-exports.MessageDisplay = MessageDisplay = rclass
-    displayName : 'Misc-MessageDisplay'
-
-    propTypes :
-        message : rtypes.string
-        onClose : rtypes.func
-
-    render: ->
-        <Row style={backgroundColor:'white', margin:'1ex', padding:'1ex', border:'1px solid lightgray', dropShadow:'3px 3px 3px lightgray', borderRadius:'3px'}>
-            <Col md={8} xs={8}>
-                <span style={color:'gray', marginRight:'1ex'}>{@props.message}</span>
-            </Col>
-            <Col md={4} xs={4}>
-                <Button className='pull-right' onClick={@props.onClose} bsSize='small'>
-                    <Icon name='times' />
-                </Button>
-            </Col>
-        </Row>
-
 
 help_text =
   backgroundColor: 'white'
@@ -288,12 +225,12 @@ exports.TimeAgoElement = rclass
         live              : rtypes.bool       # whether or not to auto-update
         time_ago_absolute : rtypes.bool
         date              : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
+        style             : rtypes.object
 
     getDefaultProps: ->
         popover   : true
         minPeriod : 45    # "minPeriod and maxPeriod now accept seconds not milliseconds. This matches the documentation."
         placement : 'top'
-        # critical to use minPeriod>>1000, or things will get really slow in the client!!
         # Also, given our custom formatter, anything more frequent than about 45s is pointless (since we don't show seconds)
         time_ago_absolute : false
 
@@ -543,6 +480,10 @@ exports.HTML = HTML = rclass
         highlight        : rtypes.immutable.Set
         content_editable : rtypes.bool     # if true, makes rendered HTML contenteditable
         reload_images    : rtypes.bool     # if true, after any update to component, force reloading of all images.
+        smc_image_scaling : rtypes.bool    # if true, after rendering run the smc_image_scaling pluging to handle smc-image-scaling= attributes, which
+                                           # are used in smc_sagews to rescale certain png images produced by other kernels (e.g., the R kernel).
+                                           # See https://github.com/sagemathinc/cocalc/issues/4421.  This functionality is NOT actually used at all right now,
+                                           # since it doesn't work on the share server anyways...
         highlight_code   : rtypes.bool     # if true, highlight some <code class='language-r'> </code> blocks.  See misc_page for how tiny this is!
         id               : rtypes.string
         mathjax_selector : rtypes.string   # if given, only run mathjax on result of jquery select with this selector and never use katex.
@@ -553,7 +494,7 @@ exports.HTML = HTML = rclass
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['value', 'auto_render_math', 'highlight', 'safeHTML', \
-                 'reload_images', 'highlight_code']) or \
+                 'reload_images', 'smc_image_scaling', 'highlight_code']) or \
                not underscore.isEqual(@props.style, next.style)
 
     _update_mathjax: ->
@@ -583,8 +524,11 @@ exports.HTML = HTML = rclass
         $(ReactDOM.findDOMNode(@)).find("table").addClass('table')
 
     _update_images: ->
-        if @_is_mounted and @props.reload_images
-            $(ReactDOM.findDOMNode(@)).reload_images()
+        if @_is_mounted
+            if @props.reload_images
+                $(ReactDOM.findDOMNode(@)).reload_images()
+            if @props.smc_image_scaling
+                $(ReactDOM.findDOMNode(@)).smc_image_scaling()
 
     _update_code: ->
         if @_is_mounted and @props.highlight_code
@@ -683,6 +627,7 @@ exports.Markdown = rclass
         content_editable : rtypes.bool     # if true, makes rendered Markdown contenteditable
         id               : rtypes.string
         reload_images    : rtypes.bool
+        smc_image_scaling: rtypes.bool
         highlight_code   : rtypes.bool
 
     getDefaultProps: ->
@@ -690,7 +635,7 @@ exports.Markdown = rclass
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['value', 'highlight', 'safeHTML',  \
-                    'checkboxes', 'reload_images', 'highlight_code']) or \
+                    'checkboxes', 'reload_images', 'smc_image_scaling', 'highlight_code']) or \
                not underscore.isEqual(@props.style, next.style)
 
     to_html: ->
@@ -712,6 +657,7 @@ exports.Markdown = rclass
             highlight        = {@props.highlight}
             safeHTML         = {@props.safeHTML}
             reload_images    = {@props.reload_images}
+            smc_image_scaling= {@props.smc_image_scaling}
             highlight_code   = {@props.highlight_code}
             content_editable = {@props.content_editable} />
 
@@ -778,94 +724,9 @@ exports.SaveButton = rclass
             <Icon name='save' /> <VisibleMDLG>Sav{if @props.saving then <span>ing... <Icon name='cc-icon-cocalc-ring' spin /></span> else <span>e</span>}</VisibleMDLG>
         </Button>
 
-# Component to attempt opening a cocalc path in a project
-exports.PathLink = rclass
-    displayName : 'Misc-PathLink'
-
-    propTypes :
-        path         : rtypes.string.isRequired
-        project_id   : rtypes.string.isRequired
-        display_name : rtypes.string # if provided, show this as the link and show real name in popover
-        full         : rtypes.bool   # true = show full path, false = show only basename
-        trunc        : rtypes.number # truncate longer names and show a tooltip with the full name
-        style        : rtypes.object
-        link         : rtypes.bool   # set to false to make it not be a link
-
-    getDefaultProps: ->
-        style : {}
-        full  : false
-        link  : true
-
-    handle_click: (e) ->
-        e.preventDefault()
-        switch_to = misc.should_open_in_foreground(e)
-        redux.getProjectActions(@props.project_id).open_file
-            path               : @props.path
-            foreground         : switch_to
-            foreground_project : switch_to
-
-    render_link: (text) ->
-        if @props.link
-            <a onClick={@handle_click} style={@props.style} href=''>{text}</a>
-        else
-            <span style={@props.style}>{text}</span>
-
-    render: ->
-        name = if @props.full then @props.path else misc.path_split(@props.path).tail
-        if name.length > @props.trunc or (@props.display_name? and @props.display_name isnt name)
-            if @props.trunc?
-                text = misc.trunc_middle(@props.display_name ? name, @props.trunc)
-            else
-                text = @props.display_name ? name
-            <Tip title='' tip={name}>
-                {@render_link(text)}
-            </Tip>
-        else
-            @render_link(name)
-
 Globalize = require('globalize')
 globalizeLocalizer = require('react-widgets-globalize')
 globalizeLocalizer(Globalize)
-
-DateTimePicker = require('react-widgets/lib/DateTimePicker')
-
-DATETIME_PARSE_FORMATS = [
-    'MMM d, yyyy h:mm tt'
-    'MMMM d, yyyy h:mm tt'
-    'MMM d, yyyy'
-    'MMM d, yyyy H:mm'
-    'MMMM d, yyyy'
-    'MMMM d, yyyy H:mm'
-]
-
-exports.DateTimePicker = rclass
-    displayName : 'Misc-DateTimePicker'
-
-    propTypes :
-        value       : rtypes.oneOfType([rtypes.string, rtypes.object])
-        on_change   : rtypes.func.isRequired
-        on_focus    : rtypes.func
-        on_blur     : rtypes.func
-        autoFocus   : rtypes.bool
-        onKeyDown   : rtypes.func
-        defaultOpen : rtypes.oneOf([false, 'time', 'date'])
-
-    getDefaultProps: ->
-        defaultOpen : 'date'
-
-    render: ->
-        <DateTimePicker
-            step        = {60}
-            editFormat  = {'MMM d, yyyy h:mm tt'}
-            format      = {'MMM d, yyyy h:mm tt'}
-            parse       = {DATETIME_PARSE_FORMATS}
-            value       = {@props.value}
-            onChange    = {@props.on_change}
-            onFocus     = {@props.on_focus}
-            onBlur      = {@props.on_blur}
-            autoFocus   = {@props.autoFocus}
-            defaultOpen = {@props.defaultOpen}
-        />
 
 Calendar = require('react-widgets/lib/Calendar')
 
@@ -880,52 +741,6 @@ exports.Calendar = rclass
         <Calendar
             defaultValue = {@props.value}
             onChange     = {@props.on_change}
-        />
-
-# NOTE: This component does *NOT* all the update_directory_tree action.  That is currently necessary
-# to update the tree as of July 31, 2015, though when there is a sync'd filetree it won't be.
-exports.DirectoryInput = rclass
-    displayName : 'DirectoryInput'
-
-    reduxProps :
-        projects :
-            directory_trees : rtypes.immutable
-
-    propTypes :
-        project_id    : rtypes.string.isRequired
-        on_change     : rtypes.func.isRequired
-        default_value : rtypes.string
-        placeholder   : rtypes.string
-        autoFocus     : rtypes.bool
-        on_key_down   : rtypes.func
-        on_key_up     : rtypes.func
-        exclusions    : rtypes.array
-
-    render: ->
-        x = @props.directory_trees?.get(@props.project_id)?.toJS()
-        if not x? or new Date() - x.updated >= 15000
-            redux.getActions('projects').fetch_directory_tree(@props.project_id, exclusions:@props.exclusions)
-        tree = x?.tree
-        if tree?
-            group = (s) ->
-                i = s.indexOf('/')
-                if i == -1
-                    return s
-                else
-                    return s.slice(0, i)
-        else
-            group = (s) -> s
-        <Combobox
-            autoFocus    = {@props.autoFocus}
-            data         = {tree}
-            filter       = {'contains'}
-            groupBy      = {group}
-            defaultValue = {@props.default_value}
-            placeholder  = {@props.placeholder}
-            messages     = {emptyFilter : '', emptyList : ''}
-            onChange     = {(value) => @props.on_change(value)}
-            onKeyDown    = {@props.on_key_down}
-            onKeyUp      = {@props.on_key_up}
         />
 
 # A warning to put on pages when the project is deleted
@@ -1063,17 +878,16 @@ exports.ProjectState = rclass
         show_desc : rtypes.bool
 
     getDefaultProps: ->
-        state     : 'unknown'
+        state     : immutable.Map()
         show_desc : false
 
     render_spinner:  ->
-        <span>... <Icon name='cc-icon-cocalc-ring' spin /></span>
+        <span style={{marginRight:'15px'}}>... <Icon name='cc-icon-cocalc-ring' spin /></span>
 
     render_desc: (desc) ->
         if not @props.show_desc
             return
         <span>
-            <br/>
             <span style={fontSize:'11pt'}>
                 {desc}
                 {@render_time()}
@@ -1086,14 +900,14 @@ exports.ProjectState = rclass
             return <span><Space/> (<exports.TimeAgo date={time} />)</span>
 
     render: ->
-        # In production I hit a traceback in which @props.state was defined
-        # but did not have a get attribute.  No clue why.
         s = COMPUTE_STATES[@props.state?.get?('state')]
         if not s?
             return <Loading />
         {display, desc, icon, stable} = s
         <span>
-            <Icon name={icon} /> {display} {@render_spinner() if not stable}
+            <Icon name={icon} /> {display}
+            <Space />
+            {@render_spinner() if not stable}
             {@render_desc(desc)}
         </span>
 
@@ -1121,9 +935,13 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
         style     : {marginRight:'2px', whiteSpace: 'nowrap'}
 
     handle_click: (name) ->
-        @props.actions.show_file_action_panel
-            path   : @props.filename
-            action : name
+        # ugly: fix when refactor this code.
+        {file_actions} = require('../project_store')
+        for action, v of file_actions
+            if v.name == name
+                @props.actions.show_file_action_panel
+                    path   : @props.filename
+                    action : action
 
     render_menu_item: (name, icon) ->
         <MenuItem onSelect={=>@handle_click(name)} key={name} >
@@ -1139,7 +957,7 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
         else
             # dynamically create a map from 'key' to 'icon'
             {file_actions} = require('../project_store')
-            items = underscore.object(([k, v.icon] for k, v of file_actions))
+            items = underscore.object(([v.name, v.icon] for k, v of file_actions))
 
         for name, icon of items
             @render_menu_item(name, icon)
@@ -1340,7 +1158,7 @@ exports.UpgradeAdjustor = rclass
                 reason = reasons.join(' and ')
                 label = <div style={UPGRADE_ERROR_STYLE}>Uncheck this: {reason}</div>
             else
-                label = if val == 0 then 'Enable' else 'Enabled'
+                label = if val == 0 then 'Disabled' else 'Enabled'
 
             is_upgraded = if total >= 1 then '(already upgraded)' else '(not upgraded)'
 
@@ -1532,7 +1350,7 @@ exports.UpgradeAdjustor = rclass
                 <hr/>
 
                 {@render_upgrade_row(n, @props.quota_params[n], remaining[n], current[n], limits[n], totals[n], proj_remainder[n]) for n in PROJECT_UPGRADES.field_order}
-                <UpgradeRestartWarning />
+                <UpgradeRestartWarning style={marginTop:'15px'}/>
                 {@props.children}
                 <ButtonToolbar style={marginTop:'10px'}>
                     <Button
@@ -1553,10 +1371,12 @@ exports.UpgradeAdjustor = rclass
 # Has a copy to clipboard button by default on the end
 # See prop descriptions for more details
 exports.CopyToClipBoard = rclass
+    displayName: 'CopyToClipBoard'
     propTypes:
         value         : rtypes.string
         button_before : rtypes.element # Optional button to place before the copy text
         hide_after    : rtypes.bool    # Hide the default after button
+        style         : rtypes.object
 
     getInitialState: ->
         show_tooltip : false
@@ -1588,7 +1408,7 @@ exports.CopyToClipBoard = rclass
         </InputGroup.Button>
 
     render: ->
-        <FormGroup>
+        <FormGroup style={@props.style}>
             <InputGroup>
                 {<InputGroup.Button>
                     {@props.button_before}

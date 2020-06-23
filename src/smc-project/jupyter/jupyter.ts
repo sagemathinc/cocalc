@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Jupyter Backend
 
 For interactive testing:
@@ -38,7 +43,7 @@ const {
   path_split,
   uuid,
   len,
-  is_array
+  is_array,
 } = require("smc-util/misc");
 
 import { SyncDB } from "../smc-util/sync/editor/db/sync";
@@ -49,7 +54,7 @@ import { blob_store, BlobStore } from "./jupyter-blobs-sqlite";
 import { JUPYTER_MIMETYPES } from "../smc-webapp/jupyter/util";
 import {
   is_likely_iframe,
-  process as iframe_process
+  process as iframe_process,
 } from "../smc-webapp/jupyter/iframe";
 
 import { remove_redundant_reps } from "../smc-webapp/jupyter/import-from-ipynb";
@@ -64,7 +69,7 @@ import { nbconvert } from "./nbconvert";
 import {
   ExecOpts,
   KernelInfo,
-  CodeExecutionEmitterInterface
+  CodeExecutionEmitterInterface,
 } from "../smc-webapp/jupyter/project-interface";
 
 import { CodeExecutionEmitter } from "./execute-code";
@@ -74,6 +79,8 @@ import { JupyterStore } from "../smc-webapp/jupyter/store";
 
 import { JupyterKernelInterface } from "../smc-webapp/jupyter/project-interface";
 
+import {launch_jupyter_kernel, LaunchJupyterOpts } from "./launch_jupyter_kernel"
+
 /*
 We set a few extra user-specific options for the environment in which
 Sage-based Jupyter kernels run; these are more multi-user friendly.
@@ -81,13 +88,13 @@ Sage-based Jupyter kernels run; these are more multi-user friendly.
 const SAGE_JUPYTER_ENV = merge(copy(process.env), {
   PYTHONUSERBASE: `${process.env.HOME}/.local`,
   PYTHON_EGG_CACHE: `${process.env.HOME}/.sage/.python-eggs`,
-  R_MAKEVARS_USER: `${process.env.HOME}/.sage/R/Makevars.user`
+  R_MAKEVARS_USER: `${process.env.HOME}/.sage/R/Makevars.user`,
 });
 
-export function jupyter_backend(syncdb: SyncDB, client: any) {
+export function jupyter_backend(syncdb: SyncDB, client: any): void {
   const dbg = client.dbg("jupyter_backend");
   dbg();
-  const app_data = require("smc-webapp/app-framework");
+  const app_framework = require("smc-webapp/app-framework");
 
   const project_id = client.client_id();
 
@@ -95,14 +102,49 @@ export function jupyter_backend(syncdb: SyncDB, client: any) {
   // official ipynb format:
   const path = original_path(syncdb.get_path());
 
-  const redux_name = app_data.redux_name(project_id, path);
-  const store = app_data.redux.createStore(redux_name, JupyterStore);
-  const actions = app_data.redux.createActions(redux_name, JupyterActions);
+  const redux_name = app_framework.redux_name(project_id, path);
+  if (
+    app_framework.redux.getStore(redux_name) != null &&
+    app_framework.redux.getActions(redux_name) != null
+  ) {
+    // The redux info for this notebook already exists, so don't
+    // try to make it again (which would be an error).
+    // See https://github.com/sagemathinc/cocalc/issues/4331
+    return;
+  }
+  const store = app_framework.redux.createStore(redux_name, JupyterStore);
+  const actions = app_framework.redux.createActions(redux_name, JupyterActions);
 
   actions._init(project_id, path, syncdb, store, client);
 
-  syncdb.once("error", err => dbg(`syncdb ERROR -- ${err}`));
+  syncdb.once("error", (err) => dbg(`syncdb ERROR -- ${err}`));
   syncdb.once("ready", () => dbg("syncdb ready"));
+}
+
+// Get rid of the store/actions for a given Jupyter notebook,
+// and also close the kernel if it is running.
+export async function remove_jupyter_backend(
+  path: string,
+  project_id: string
+): Promise<void> {
+  // if there is a kernel, close it
+  try {
+    await get_existing_kernel(path)?.close();
+  } catch (_err) {
+    // ignore
+  }
+  const app_framework = require("smc-webapp/app-framework");
+  const redux_name = app_framework.redux_name(project_id, path);
+  const actions = app_framework.redux.getActions(redux_name);
+  if (actions != null) {
+    try {
+      await actions.close();
+    } catch (_err) {
+      // ignore.
+    }
+  }
+  app_framework.redux.removeStore(redux_name);
+  app_framework.redux.removeActions(redux_name);
 }
 
 // for interactive testing
@@ -239,12 +281,18 @@ export class JupyterKernel extends EventEmitter
     const dbg = this.dbg("spawn1");
     dbg("spawning kernel...");
 
-    const opts: any = { detached: true, stdio: "ignore" };
+    const opts: LaunchJupyterOpts = { detached: true, stdio: "ignore", env: {} };
 
     if (this.name.indexOf("sage") == 0) {
       dbg("setting special environment for sage.* kernels");
-      opts.env = SAGE_JUPYTER_ENV;
+      opts.env = merge(opts.env, SAGE_JUPYTER_ENV);
     }
+
+    // Make cocalc default to the colab renderer for cocalc-jupyter, since
+    // this one happens to work best for us, and they don't have a custom
+    // one for us.  See https://plot.ly/python/renderers/ and
+    // https://github.com/sagemathinc/cocalc/issues/4259
+    opts.env.PLOTLY_RENDERER = "colab";
 
     if (this._directory !== "") {
       opts.cwd = this._directory;
@@ -252,7 +300,7 @@ export class JupyterKernel extends EventEmitter
 
     try {
       dbg("launching kernel interface...");
-      this._kernel = await require("spawnteract").launch(this.name, opts);
+      this._kernel = await launch_jupyter_kernel(this.name, opts);
       await this._finish_spawn();
     } catch (err) {
       this._set_state("off");
@@ -265,7 +313,7 @@ export class JupyterKernel extends EventEmitter
 
     dbg("now creating os...");
 
-    this._kernel.spawn.on("error", err => {
+    this._kernel.spawn.on("error", (err) => {
       dbg("kernel spawn error", err);
       return this.emit("spawn_error", err);
     });
@@ -275,11 +323,11 @@ export class JupyterKernel extends EventEmitter
       this._kernel.config
     );
 
-    this._channels.shell.subscribe(mesg => this.emit("shell", mesg));
+    this._channels.shell.subscribe((mesg) => this.emit("shell", mesg));
 
-    this._channels.stdin.subscribe(mesg => this.emit("stdin", mesg));
+    this._channels.stdin.subscribe((mesg) => this.emit("stdin", mesg));
 
-    this._channels.iopub.subscribe(mesg => {
+    this._channels.iopub.subscribe((mesg) => {
       if (DEBUG) {
         this.dbg("IOPUB", 100000)(JSON.stringify(mesg));
       }
@@ -351,9 +399,9 @@ export class JupyterKernel extends EventEmitter
       // we don't want them to all fail and start
       // again and fail ad infinitum!
       f: f,
-      log: function(...args) {
+      log: function (...args) {
         dbg("retry_until_success", ...args);
-      }
+      },
     });
 
     dbg("successfully got kernel info");
@@ -407,7 +455,7 @@ export class JupyterKernel extends EventEmitter
       await delay(interval);
       try {
         const usage = await this.usage();
-        for (let x of ["cpu", "memory"]) {
+        for (const x of ["cpu", "memory"]) {
           if (
             usage[x] > last_usage[x] * (1 + thresh) ||
             usage[x] < last_usage[x] * (1 - thresh) ||
@@ -467,7 +515,7 @@ export class JupyterKernel extends EventEmitter
       delete this._channels;
     }
     if (this._execute_code_queue != null) {
-      for (let code_snippet of this._execute_code_queue) {
+      for (const code_snippet of this._execute_code_queue) {
         code_snippet.close();
       }
       delete this._execute_code_queue;
@@ -477,7 +525,7 @@ export class JupyterKernel extends EventEmitter
   // public, since we do use it from some other places...
   public dbg(f: string, trunc: number = 1000): Function {
     if (!this._dbg) {
-      return function() {};
+      return function () {};
     } else {
       return this._dbg(
         `jupyter.Kernel('${this.name}',path='${this._path}').${f}`,
@@ -488,12 +536,12 @@ export class JupyterKernel extends EventEmitter
 
   _low_level_dbg() {
     // for low level debugging only...
-    const f = channel => {
-      return this._channels[channel].subscribe(mesg =>
+    const f = (channel) => {
+      return this._channels[channel].subscribe((mesg) =>
         console.log(channel, mesg)
       );
     };
-    for (let channel of ["shell", "iopub", "control", "stdin"]) {
+    for (const channel of ["shell", "iopub", "control", "stdin"]) {
       f(channel);
     }
   }
@@ -582,7 +630,7 @@ export class JupyterKernel extends EventEmitter
       this._execute_code_queue[0].go();
     } catch (err) {
       dbg(`error running kernel -- ${err}`);
-      for (let code of this._execute_code_queue) {
+      for (const code of this._execute_code_queue) {
         code.throw_error(err);
       }
       this._execute_code_queue = [];
@@ -599,7 +647,7 @@ export class JupyterKernel extends EventEmitter
       return;
     }
     const mesg = { done: true };
-    for (let code_execution_emitter of this._execute_code_queue.slice(1)) {
+    for (const code_execution_emitter of this._execute_code_queue.slice(1)) {
       code_execution_emitter.emit_output(mesg);
       code_execution_emitter.close();
     }
@@ -678,8 +726,8 @@ export class JupyterKernel extends EventEmitter
         username: "",
         session: "",
         msg_type: msg_type,
-        version: VERSION
-      }
+        version: VERSION,
+      },
     };
 
     // Send the message
@@ -687,8 +735,8 @@ export class JupyterKernel extends EventEmitter
 
     // Wait for the response that has the right msg_id.
     let the_mesg: any = undefined;
-    const wait_for_response = cb => {
-      var f = mesg => {
+    const wait_for_response = (cb) => {
+      var f = (mesg) => {
         if (mesg.parent_header.msg_id === message.header.msg_id) {
           this.removeListener("shell", f);
           mesg = deep_copy(mesg.content);
@@ -718,9 +766,7 @@ export class JupyterKernel extends EventEmitter
   }): Promise<any> {
     const dbg = this.dbg("introspect");
     dbg(
-      `code='${opts.code}', cursor_pos='${opts.cursor_pos}', detail_level=${
-        opts.detail_level
-      }`
+      `code='${opts.code}', cursor_pos='${opts.cursor_pos}', detail_level=${opts.detail_level}`
     );
     return await this.call("inspect_request", opts);
   }
@@ -769,7 +815,7 @@ export class JupyterKernel extends EventEmitter
     await nbconvert({
       args,
       timeout,
-      directory: this._directory
+      directory: this._directory,
     });
   }
 
@@ -786,7 +832,7 @@ export class JupyterKernel extends EventEmitter
     try {
       return await retry_until_success({
         f: f,
-        max_time: 30000
+        max_time: 30000,
       });
     } catch (err) {
       unlink(path); // TODO: think through again if this is the right thing to do.
@@ -818,8 +864,8 @@ export class JupyterKernel extends EventEmitter
         username: "user",
         session: "",
         msg_type: "comm_msg",
-        version: VERSION
-      }
+        version: VERSION,
+      },
     };
 
     dbg("sending ", JSON.stringify(message));

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Create the Primus realtime socket server
 */
 
@@ -24,7 +29,7 @@ export function init_websocket_server(
   // Create primus server object:
   const opts = {
     pathname: join(base_url, "/.smc/ws"),
-    transformer: "websockets"
+    transformer: "websockets",
   };
   const primus = new Primus(http_server, opts);
 

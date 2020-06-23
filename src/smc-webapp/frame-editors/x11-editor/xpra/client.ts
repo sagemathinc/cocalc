@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * CoCalc's Xpra HTML Client
  *
  * ---
@@ -27,7 +32,7 @@ import {
   hexUUID,
   calculateDPI,
   keyboardLayout,
-  timestamp
+  timestamp,
 } from "./util";
 
 import { EventEmitter } from "events";
@@ -58,7 +63,7 @@ function createConfiguration(defaults = {}, append = {}) {
       username: "",
       password: "",
       zlib: true,
-      lz4: true
+      lz4: true,
     },
     defaults,
     append
@@ -112,20 +117,20 @@ export class Client {
       warn: this.log("warn", 30),
       log: this.log("log", 20),
       info: this.log("info", 20),
-      debug: this.log("debug", 10)
+      debug: this.log("debug", 10),
     };
   }
 
   window_ids(): number[] {
     const v: number[] = [];
-    for (let wid in this.surfaces) {
+    for (const wid in this.surfaces) {
       v.push(parseInt(wid));
     }
     return v;
   }
 
   private destroy_surfaces(): void {
-    for (let wid in this.surfaces) {
+    for (const wid in this.surfaces) {
       const surface = this.surfaces[wid];
       surface.destroy();
     }
@@ -297,7 +302,7 @@ export class Client {
         this.send(
           "logging",
           level,
-          args.map(str => {
+          args.map((str) => {
             return unescape(encodeURIComponent(String(str)));
           })
         );
@@ -329,7 +334,7 @@ export class Client {
     if (width == null || height == null) {
       return;
     }
-    for (let wid in this.surfaces) {
+    for (const wid in this.surfaces) {
       const surface = this.surfaces[wid];
       if (surface.parent !== undefined && surface.parent.wid === parent.wid) {
         if (surface.is_overlay) {
@@ -396,10 +401,10 @@ export class Client {
       const canvases = [surface.renderer.canvas, surface.renderer.drawCanvas];
       const rects = [
         [w / scale, 0, canvases[0].width, canvases[0].height],
-        [0, h / scale, canvases[0].width, canvases[0].height]
+        [0, h / scale, canvases[0].width, canvases[0].height],
       ];
-      for (let rect of rects) {
-        for (let canvas of canvases) {
+      for (const rect of rects) {
+        for (const canvas of canvases) {
           const context = canvas.getContext("2d");
           if (context != null) {
             context.clearRect(rect[0], rect[1], rect[2], rect[3]);
@@ -433,7 +438,7 @@ export class Client {
         const props = Object.assign({}, properties || {}, {
           "encodings.rgb_formats": this.clientCapabilities[
             "encodings.rgb_formats"
-          ]
+          ],
         });
 
         this.send("map-window", wid, x, y, w, h, props);
@@ -460,7 +465,7 @@ export class Client {
           metadata,
           properties,
           send: this.send,
-          is_overlay: false
+          is_overlay: false,
         });
         this.surfaces[wid] = surface;
 
@@ -517,7 +522,7 @@ export class Client {
           metadata,
           properties,
           send: this.send,
-          is_overlay: true
+          is_overlay: true,
         });
 
         this.surfaces[wid] = surface;
@@ -564,7 +569,7 @@ export class Client {
           this.activeWindow = this.lastActiveWindow;
         } else {
           this.activeWindow = 0;
-          for (let id in this.surfaces) {
+          for (const id in this.surfaces) {
             this.focus(parseInt(id));
             return;
           }
@@ -622,7 +627,7 @@ export class Client {
         // We just reconnected after being disconnected.
         // have to tell local browser about any wid's that
         // are gone, but were there before.
-        for (let wid in this.surfaces_before_disconnect) {
+        for (const wid in this.surfaces_before_disconnect) {
           if (this.surfaces[wid] === undefined) {
             this.bus.emit(
               "window:destroy",
@@ -661,12 +666,12 @@ export class Client {
           expire_timeout,
           icon,
           actions,
-          hints
+          hints,
         });
       }
     );
 
-    bus.on("notify_close", notificationId => {
+    bus.on("notify_close", (notificationId) => {
       bus.emit("notification:destroy", notificationId);
     });
 
@@ -693,7 +698,7 @@ export class Client {
     );
 
     // TODO: figure out args, etc.
-    bus.on("open-url", url => bus.emit("system:url", url));
+    bus.on("open-url", (url) => bus.emit("system:url", url));
 
     bus.on("bell", () => bus.emit("system:bell"));
 

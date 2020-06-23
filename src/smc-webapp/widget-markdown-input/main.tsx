@@ -1,9 +1,21 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // 3rd Party Libraries
 import * as markdown from "../markdown";
 import { Button, ButtonToolbar, FormControl, FormGroup } from "react-bootstrap";
 
 // Internal Libraries
-import { Component, React, ReactDOM, rclass, redux, rtypes } from "../app-framework";
+import {
+  Component,
+  React,
+  ReactDOM,
+  rclass,
+  redux,
+  rtypes,
+} from "../app-framework";
 
 // Sibling Libraries
 import * as info from "./info";
@@ -14,9 +26,22 @@ export function init(): void {
   if (redux.hasActions(info.name)) {
     return;
   }
-  redux.createStore<MarkdownWidgetStoreState, MarkdownWidgetStore>(info.name, MarkdownWidgetStore);
-  redux.createActions<MarkdownWidgetStoreState, MarkdownWidgetActions>(info.name, MarkdownWidgetActions);
-};
+  redux.createStore<MarkdownWidgetStoreState, MarkdownWidgetStore>(
+    info.name,
+    MarkdownWidgetStore
+  );
+  redux.createActions<MarkdownWidgetStoreState, MarkdownWidgetActions>(
+    info.name,
+    MarkdownWidgetActions
+  );
+}
+
+// separate string, in particular the `>` char is ambiguous in newer TSX
+export const TIP_TEXT = `\
+You may enter (Github flavored) markdown here. In particular, use #
+for headings, > for block quotes, *'s for italic text, **'s for bold
+text, - at the beginning of a line for lists, back ticks \` for code,
+and URL's will automatically become links.`;
 
 interface ReactProps {
   autoFocus: boolean;
@@ -44,7 +69,10 @@ interface MarkdownInputState {
   value: string;
 }
 
-class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputState> {
+class MarkdownInput0 extends Component<
+  ReactProps & ReduxProps,
+  MarkdownInputState
+> {
   displayName: "WidgetMarkdownInput";
 
   constructor(props) {
@@ -55,9 +83,9 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
   static reduxProps() {
     return {
       markdown_inputs: {
-        open_inputs: rtypes.immutable.Map.isRequired
-      }
-    }
+        open_inputs: rtypes.immutable.Map.isRequired,
+      },
+    };
   }
 
   getInitialState = () => {
@@ -73,12 +101,14 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
 
     return {
       editing,
-      value
+      value,
     };
-  }
+  };
 
   getActions() {
-    return redux.getActions<MarkdownWidgetStoreState, MarkdownWidgetActions>(info.name)
+    return redux.getActions<MarkdownWidgetStoreState, MarkdownWidgetActions>(
+      info.name
+    );
   }
 
   componentDidMount() {
@@ -108,13 +138,13 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
         value != null ? value : this.state.value
       );
     }
-  }
+  };
 
   clear_persist = () => {
     if (this.props.persist_id != null) {
       this.getActions().clear(this.props.persist_id);
     }
-  }
+  };
 
   set_value = (value) => {
     if (typeof this.props.on_change === "function") {
@@ -122,7 +152,7 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
     }
     this.persist_value(value);
     this.setState({ value });
-  }
+  };
 
   edit = () => {
     if (typeof this.props.on_edit === "function") {
@@ -132,7 +162,7 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
       this.setState({ editing: true });
     }
     this.setState({ value: this.props.default_value });
-  }
+  };
 
   cancel = () => {
     if (typeof this.props.on_cancel === "function") {
@@ -142,7 +172,7 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
     if (this.props.editing == null) {
       this.setState({ editing: false });
     }
-  }
+  };
 
   save = () => {
     if (typeof this.props.on_save === "function") {
@@ -152,7 +182,7 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
     if (this.props.editing == null) {
       this.setState({ editing: false });
     }
-  }
+  };
 
   keydown = (e) => {
     if (e.keyCode === 27) {
@@ -160,7 +190,7 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
     } else if (e.keyCode === 13 && e.shiftKey) {
       this.save();
     }
-  }
+  };
 
   to_html = () => {
     if (this.props.default_value) {
@@ -169,21 +199,14 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
     } else {
       return { __html: "" };
     }
-  }
+  };
 
   render() {
     // Maybe there's a better way to fix this.
     // Required here because of circular requiring otherwise.
     const { Tip, Icon } = require("../r_misc");
     if (this.state.editing || this.props.editing) {
-      const tip = (
-        <span>
-          You may enter (Github flavored) markdown here. In particular, use #
-          for headings, > for block quotes, *'s for italic text, **'s for bold
-          text, - at the beginning of a line for lists, back ticks ` for code,
-          and URL's will automatically become links.
-        </span>
-      );
+      const tip = <span>{TIP_TEXT}</span>;
       return (
         <div>
           <form onSubmit={this.save} style={{ marginBottom: "-20px" }}>
@@ -197,9 +220,11 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
                 rows={this.props.rows != null ? this.props.rows : 4}
                 placeholder={this.props.placeholder}
                 value={this.state.value}
-                onChange={() =>
-                  this.set_value(ReactDOM.findDOMNode(this.refs.input).value)
-                }
+                onChange={() => {
+                  const value = ReactDOM.findDOMNode(this.refs.input)?.value;
+                  if (value == null) return;
+                  this.set_value(value);
+                }}
                 onKeyDown={this.keydown}
               />
             </FormGroup>
@@ -241,15 +266,10 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
       }
       return (
         <div>
-          <div
-            dangerouslySetInnerHTML={html}
-            style={style}
-          />
+          <div dangerouslySetInnerHTML={html} style={style} />
           {!this.props.hide_edit_button ? (
             <Button onClick={this.edit}>Edit</Button>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </div>
       );
     }

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 ###############################################################################
 #
 # All of the code below has been dedicated to the public domain by the authors.
@@ -22,18 +27,18 @@ import { React, Component } from "./app-framework"; // TODO: this will move
 
 function percent_to_color(x: number) {
   if (x < 0.2) {
-    return [255, Math.floor(255 * x / 0.2), 0];
+    return [255, Math.floor((255 * x) / 0.2), 0];
   }
   if (x < 0.4) {
     return [Math.floor(255 * (1 - (x - 0.2) / 0.2)), 255, 0];
   }
   if (x < 0.6) {
-    return [0, 255, Math.floor(255 * (x - 0.4) / 0.2)];
+    return [0, 255, Math.floor((255 * (x - 0.4)) / 0.2)];
   }
   if (x < 0.8) {
     return [0, Math.floor(255 * (1 - (x - 0.6) / 0.2)), 255];
   }
-  return [Math.floor(255 * (x - 0.8) / 0.2), 0, 255];
+  return [Math.floor((255 * (x - 0.8)) / 0.2), 0, 255];
 }
 
 interface ColorPickerProps {

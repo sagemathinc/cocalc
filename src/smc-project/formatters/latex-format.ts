@@ -1,4 +1,9 @@
-const {  writeFile, unlink } = require("fs");
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+const { writeFile, unlink } = require("fs");
 const tmp = require("tmp");
 const { callback } = require("awaiting");
 const { spawn } = require("child_process");
@@ -11,7 +16,7 @@ interface ParserOptions {
 }
 
 function close(proc, cb): void {
-  proc.on("close", code => cb(undefined, code));
+  proc.on("close", (code) => cb(undefined, code));
 }
 
 export async function latex_format(
@@ -26,9 +31,9 @@ export async function latex_format(
     const latexindent = spawn("latexindent", [input_path]);
     let output: string = "";
     // read data as it is produced.
-    latexindent.stdout.on("data", data => (output += data.toString()));
+    latexindent.stdout.on("data", (data) => (output += data.toString()));
     // wait for subprocess to close.
-    let code = await callback(close, latexindent);
+    const code = await callback(close, latexindent);
     if (code) {
       throw Error(`latexindent exited with code ${code}`);
     }

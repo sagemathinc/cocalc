@@ -1,23 +1,30 @@
-/* Copyright (c) 2009 Anton Ekblad
- * Copyright (c) 2013 Antoine Martin <antoine@devloop.org.uk>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software. */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 /*
- * This is a modified version, suitable for xpra wire encoding:
- * - the input can be a string or byte array
- * - we do not sort lists or dictionaries (the existing order is preserved)
- * - error out instead of writing "null" and generating a broken stream
- * - handle booleans as ints (0, 1)
+ * license
  */
+
+//  Copyright (c) 2009 Anton Ekblad
+//  Copyright (c) 2013 Antoine Martin <antoine@devloop.org.uk>
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software. */
+
+// This is a modified version, suitable for xpra wire encoding:
+// - the input can be a string or byte array
+// - we do not sort lists or dictionaries (the existing order is preserved)
+// - error out instead of writing "null" and generating a broken stream
+// - handle booleans as ints (0, 1)
 
 // bencode an object
 export function bencode(obj: any): string {
@@ -40,7 +47,7 @@ export function bencode(obj: any): string {
   }
 }
 
-function uintToString(uintArray : Uint8Array): string {
+function uintToString(uintArray: Uint8Array): string {
   // apply in chunks of 10400 to avoid call stack overflow
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/apply
   let s = "";
@@ -69,7 +76,7 @@ export function bdecode(buf: string | Uint8Array): any[] | null {
     // thing into a string at once
     buf = uintToString(buf);
   }
-  let dec = bparse(buf);
+  const dec = bparse(buf);
   if (dec == null) {
     return null;
   } else {
@@ -95,12 +102,12 @@ function bparse(str: string): [any, string] | null {
 
 // parse a bencoded string
 function bparseString(str: string): [any, string] | null {
-  let str2 = str.split(":", 1)[0];
+  const str2 = str.split(":", 1)[0];
   if (isNum(str2)) {
-    let len = parseInt(str2, 10);
+    const len = parseInt(str2, 10);
     return [
       str.substr(str2.length + 1, len),
-      str.substr(str2.length + 1 + len)
+      str.substr(str2.length + 1 + len),
     ];
   }
   return null;
@@ -108,7 +115,7 @@ function bparseString(str: string): [any, string] | null {
 
 // parse a bencoded integer
 function bparseInt(str: string): [any, string] | null {
-  let str2 = str.split("e", 1)[0];
+  const str2 = str.split("e", 1)[0];
   if (!isNum(str2)) {
     return null;
   }
@@ -163,7 +170,7 @@ function isNum(str: string): boolean {
 
 // returns the bencoding type of the given object
 function btypeof(obj): string {
-  let type = typeof obj;
+  const type = typeof obj;
   if (type === "object") {
     if (typeof obj.length === "undefined") {
       return "dictionary";
@@ -187,7 +194,7 @@ function bint(num: number): string {
 function blist(list: any[]): string {
   let str;
   str = "l";
-  for (let key in list) {
+  for (const key in list) {
     str += bencode(list[key]);
   }
   return str + "e";
@@ -197,7 +204,7 @@ function blist(list: any[]): string {
 function bdict(dict: any): string {
   let str;
   str = "d";
-  for (let key in dict) {
+  for (const key in dict) {
     str += bencode(key) + bencode(dict[key]);
   }
   return str + "e";

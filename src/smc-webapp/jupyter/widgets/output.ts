@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as outputBase from "@jupyter-widgets/output";
 
 export class OutputModel extends outputBase.OutputModel {
@@ -7,7 +12,7 @@ export class OutputModel extends outputBase.OutputModel {
   defaults() {
     return {
       ...super.defaults(),
-      msg_id: ""
+      msg_id: "",
     };
   }
 

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Ensure the billing Actions and Store are created:
 require("./actions");
 
@@ -7,16 +12,19 @@ import {
   React,
   redux,
   rtypes,
-  rclass
+  rclass,
 } from "../app-framework";
-import { AppliedCoupons, Customer, Invoices } from "./types";
+import { AppliedCoupons, Customer, InvoicesMap } from "./types";
 import { Map } from "immutable";
-import { ErrorDisplay } from "../r_misc/error-display";
-import { Space } from "../r_misc/space";
-import { Icon } from "../r_misc/icon";
-import { Loading } from "../r_misc/loading";
-const { ActivityDisplay, Footer } = require("../r_misc");
-const { HelpEmailLink, PolicyPricingPageUrl } = require("../customize");
+import {
+  A,
+  ActivityDisplay,
+  ErrorDisplay,
+  Icon,
+  Loading,
+  Space,
+} from "../r_misc";
+import { HelpEmailLink, PolicyPricingPageUrl, Footer } from "../customize";
 import { SubscriptionList } from "./subscription-list";
 import { PaymentMethods } from "./payment-methods";
 import { AddSubscription } from "./add-subscription";
@@ -30,7 +38,7 @@ interface ReactProps {
 
 interface ReduxProps {
   customer?: Customer;
-  invoices?: Invoices;
+  invoices?: InvoicesMap;
   error?: string | Error;
   action?: string;
   loaded?: boolean;
@@ -49,7 +57,7 @@ export const BillingPage = rclass<ReactProps>(
       return {
         billing: {
           customer: rtypes.object,
-          invoices: rtypes.object,
+          invoices: rtypes.immutable.Map,
           error: rtypes.oneOfType([rtypes.string, rtypes.object]),
           action: rtypes.string,
           loaded: rtypes.bool,
@@ -57,14 +65,14 @@ export const BillingPage = rclass<ReactProps>(
           selected_plan: rtypes.string,
           applied_coupons: rtypes.immutable.Map,
           coupon_error: rtypes.string,
-          continue_first_purchase: rtypes.bool
+          continue_first_purchase: rtypes.bool,
         },
         projects: {
-          project_map: rtypes.immutable // used, e.g., for course project payments; also computing available upgrades
+          project_map: rtypes.immutable, // used, e.g., for course project payments; also computing available upgrades
         },
         account: {
-          stripe_customer: rtypes.immutable // to get total upgrades user has available
-        }
+          stripe_customer: rtypes.immutable, // to get total upgrades user has available
+        },
       };
     }
 
@@ -91,31 +99,47 @@ export const BillingPage = rclass<ReactProps>(
       }
     }
 
+    private render_enterprise_support(): Rendered {
+      return (
+        <p>
+          <br />
+          <b>Enterprise Support:</b> Contact us at <HelpEmailLink /> for{" "}
+          <i>enterprise support</i>, including customized course packages,
+          modified terms of service, additional legal agreements, purchase
+          orders, insurance and priority technical support.
+        </p>
+      );
+    }
+
+    private render_on_prem(): Rendered {
+      return (
+        <p>
+          <b>Commercial on Premises:</b> Contact us at <HelpEmailLink /> for{" "}
+          questions about our{" "}
+          <A href="https://github.com/sagemathinc/cocalc-docker/blob/master/README.md">
+            commercial on premises offering.
+          </A>
+        </p>
+      );
+    }
+
     private render_help_suggestion(): Rendered {
       return (
         <span>
           <Space /> If you have any questions at all, read the{" "}
-          <a
-            href={"https://doc.cocalc.com/billing.html"}
-            target={"_blank"}
-            rel={"noopener"}
-          >
+          <A href={"https://doc.cocalc.com/billing.html"}>
             Billing{"/"}Upgrades FAQ
-          </a>{" "}
+          </A>{" "}
           or email <HelpEmailLink /> immediately.
           <b>
             <Space />
             <HelpEmailLink text={<span>Contact&nbsp;us</span>} /> if you are
-            considering purchasing a course subscription and need a short trial
-            to test things out first.
+            considering purchasing a course subscription and need a short
+            evaluation trial.
             <Space />
           </b>
-          <b>
-            <Space /> Customized course plans are available.
-            <Space />
-          </b>
-          If you do not see a plan that fits your needs, email <HelpEmailLink />{" "}
-          with a description of your specific requirements.
+          {this.render_enterprise_support()}
+          {this.render_on_prem()}
         </span>
       );
     }
@@ -130,7 +154,9 @@ export const BillingPage = rclass<ReactProps>(
           ? 0
           : this.props.customer.subscriptions.total_count;
       const invoices =
-        this.props.invoices == null ? 0 : this.props.invoices.total_count;
+        this.props.invoices == null
+          ? 0
+          : this.props.invoices.get("total_count");
       return { cards, subs, invoices };
     }
 
@@ -144,14 +170,10 @@ export const BillingPage = rclass<ReactProps>(
           return (
             <span>
               If you are{" "}
-              <a
-                href={"https://doc.cocalc.com/teaching-instructors.html"}
-                target={"_blank"}
-                rel={"noopener"}
-              >
-                teaching a course,
-              </a>
-              choose one of the course packages. If you need to upgrade your
+              <A href={"https://doc.cocalc.com/teaching-instructors.html"}>
+                teaching a course
+              </A>
+              , choose one of the course packages. If you need to upgrade your
               personal projects, choose a recurring subscription. You will{" "}
               <b>not be charged</b> until you explicitly click "Add Subscription
               or Course Package".
@@ -169,6 +191,7 @@ export const BillingPage = rclass<ReactProps>(
               about purchase orders, using PayPal or wire transfers for
               non-recurring subscriptions above $50) please email{" "}
               <HelpEmailLink /> immediately.
+              {this.render_enterprise_support()}
             </span>
           );
         }
@@ -177,13 +200,9 @@ export const BillingPage = rclass<ReactProps>(
         return (
           <span>
             Click "Add Subscription or Course Package...". If you are{" "}
-            <a
-              href={"https://doc.cocalc.com/teaching-instructors.html"}
-              target={"_blank"}
-              rel={"noopener"}
-            >
+            <A href={"https://doc.cocalc.com/teaching-instructors.html"}>
               teaching a course,
-            </a>
+            </A>
             choose one of the course packages. If you need to upgrade your
             personal projects, choose a recurring subscription. You will be
             charged only after you select a specific subscription and click "Add
@@ -217,10 +236,7 @@ export const BillingPage = rclass<ReactProps>(
       return (
         <div style={{ marginTop: "1em", marginBottom: "1em", color: "#666" }}>
           We offer many{" "}
-          <a href={PolicyPricingPageUrl} target="_blank" rel="noopener">
-            {" "}
-            pricing and subscription options
-          </a>
+          <A href={PolicyPricingPageUrl}>pricing and subscription options</A>
           .
           <Space />
           {this.render_suggested_next_step()}
@@ -315,9 +331,7 @@ export const BillingPage = rclass<ReactProps>(
                 >
                   {this.render_subscriptions()}
                 </Panel>
-              ) : (
-                undefined
-              )}
+              ) : undefined}
             </div>
           );
         } else if (this.props.is_simplified) {

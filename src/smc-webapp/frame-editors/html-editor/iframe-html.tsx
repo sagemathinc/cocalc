@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Component that shows rendered HTML in an iFrame, so safe and no mangling needed...
 */
 
@@ -8,16 +13,23 @@ import { is_safari } from "../generic/browser";
 import {
   change_filename_extension,
   is_different,
-  list_alternatives
+  list_alternatives,
 } from "smc-util/misc2";
 import { throttle } from "underscore";
-import { Component, React, ReactDOM, Rendered } from "../../app-framework";
+import {
+  Component,
+  React,
+  ReactDOM,
+  Rendered,
+  redux,
+} from "../../app-framework";
+import { DEFAULT_FONT_SIZE } from "smc-util/db-schema/defaults";
 
 import * as CSS from "csstype";
 
 const STYLE: CSS.Properties = {
-  overflowY: "scroll",
-  width: "100%"
+  overflowY: "auto",
+  width: "100%",
 };
 
 interface PropTypes {
@@ -40,7 +52,7 @@ export class IFrameHTML extends Component<PropTypes, {}> {
     return is_different(this.props, next, [
       "reload",
       "font_size",
-      "derived_file_types"
+      "derived_file_types",
     ]);
   }
 
@@ -63,9 +75,7 @@ export class IFrameHTML extends Component<PropTypes, {}> {
     if (elt == null) {
       return;
     }
-    const scroll = $(elt)
-      .contents()
-      .scrollTop();
+    const scroll = $(elt).contents().scrollTop();
     this.props.actions.save_editor_state(this.props.id, { scroll });
   }
 
@@ -120,9 +130,7 @@ export class IFrameHTML extends Component<PropTypes, {}> {
     }
 
     // param below is just to avoid caching.
-    const src_url = `${window.app_base_url}/${
-      this.props.project_id
-    }/raw/${path}?param=${this.props.reload}`;
+    const src_url = `${window.app_base_url}/${this.props.project_id}/raw/${path}?param=${this.props.reload}`;
 
     return (
       <iframe
@@ -150,6 +158,15 @@ export class IFrameHTML extends Component<PropTypes, {}> {
     elt.contentDocument.location.reload(true);
   }
 
+  base_font_size(): number {
+    const account = redux.getStore("account");
+    if (account != null) {
+      return account.get("font_size", DEFAULT_FONT_SIZE);
+    } else {
+      return DEFAULT_FONT_SIZE;
+    }
+  }
+
   set_iframe_style(font_size?: number): void {
     const elt = ReactDOM.findDOMNode(this.refs.iframe);
     if (elt == null) {
@@ -158,7 +175,12 @@ export class IFrameHTML extends Component<PropTypes, {}> {
     const j = $(elt);
     j.css("opacity", 1);
     const body = j.contents().find("body");
-    body.css("zoom", (font_size != null ? font_size : 16) / 16);
+    const base = this.base_font_size();
+    const scale = (font_size != null ? font_size : base) / base;
+    // don't use "zoom: ...", which is not a standard property
+    // https://github.com/sagemathinc/cocalc/issues/4438
+    body.css("transform", `scale(${scale})`);
+    body.css("transform-origin", "0 0");
     if (this.props.is_fullscreen && this.props.fullscreen_style != null) {
       body.css(this.props.fullscreen_style);
     }
@@ -169,7 +191,7 @@ export class IFrameHTML extends Component<PropTypes, {}> {
   }
 
   safari_hack(): void {
-    if (is_safari) {
+    if (is_safari()) {
       $(ReactDOM.findDOMNode(this)).make_height_defined();
     }
   }

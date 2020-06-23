@@ -39,9 +39,12 @@ def server_setup():
     DAEMON_FILE = os.path.join(DATA, "daemon.json")
 
     if len(sys.argv) == 1:
-        print("Usage: %s [start/stop/status] normal Jupyter notebook options..." % sys.argv[
-            0])
-        print("If start or stop is given, then runs as a daemon; otherwise, runs in the foreground.")
+        print(
+            "Usage: %s [start/stop/status] normal Jupyter notebook options..."
+            % sys.argv[0])
+        print(
+            "If start or stop is given, then runs as a daemon; otherwise, runs in the foreground."
+        )
         sys.exit(1)
 
     mode = sys.argv[1]
@@ -79,12 +82,6 @@ def command():
     else:
         base = ''
 
-    # 2nd argument after "start" ("start" is already eaten, see above)
-    if len(sys.argv) >= 2:
-        mathjax_url = sys.argv.pop(1)
-    else:
-        mathjax_url = "/static/mathjax/MathJax.js"  # fallback
-
     # --NotebookApp.iopub_data_rate_limit=<Float>
     #     Default: 0
     #     (bytes/sec) Maximum rate at which messages can be sent on iopub before they
@@ -93,9 +90,8 @@ def command():
     #     (msg/sec) Maximum rate at which messages can be sent on iopub before they
     #     are limited.
 
-    cmd = "jupyter notebook --port-retries=0 --no-browser --NotebookApp.iopub_data_rate_limit=2000000 --NotebookApp.iopub_msg_rate_limit=50 --NotebookApp.mathjax_url=%s %s --ip=%s --port=%s --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.allow_remote_access=True" % (
-        mathjax_url, base, ip, port)
-    cmd += " " + ' '.join(sys.argv[1:])
+    cmd = "jupyter notebook --port-retries=0 --no-browser --NotebookApp.iopub_data_rate_limit=2000000 --NotebookApp.iopub_msg_rate_limit=50 --NotebookApp.mathjax_url=/static/mathjax/MathJax.js %s --ip=%s --port=%s --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.allow_remote_access=True" % (
+        base, ip, port)
     return cmd, base, port
 
 
@@ -172,9 +168,8 @@ def action(mode):
             tries += 1
             #sys.stderr.write("tries... %s\n"%tries); sys.stderr.flush()
             if tries >= 20:
-                print(json.dumps({
-                    "error": "Failed to find pid of subprocess."
-                }))
+                print(
+                    json.dumps({"error": "Failed to find pid of subprocess."}))
                 sys.exit(1)
 
             c = "ps -u`whoami` -o pid,cmd|grep 'jupyter-notebook'"
@@ -236,8 +231,14 @@ def prepare_file_for_open():
     # a file, we run this to make sure there is a blank JSON template in place.
     # This is for compatibility with "new jupyter".
     # See https://github.com/sagemathinc/cocalc/issues/1978
+    # This may need to be updated periodically, and not doing so can cause
+    # difficult-to-debug problems.  It would be much better if
+    # Jupyter could handle a blank file... see
+    #   https://github.com/sagemathinc/cocalc/issues/4645
+    # Hopefully we will deprecate and remove jupyter-classic via this
+    # approach before we hit this bug again...
     for path in sys.argv[1:]:
         if not os.path.exists(path) or len(open(path).read().strip()) == 0:
             open(path, 'w').write(
-                '{"cells": [{"outputs": [], "source": [], "cell_type": "code", "metadata": {"collapsed": false}, "execution_count": null}], "nbformat_minor": 0, "nbformat": 4, "metadata": {"language_info": {"mimetype": "text/x-python", "version": "2.7.8", "nbconvert_exporter": "python", "pygments_lexer": "ipython2", "codemirror_mode": {"name": "ipython", "version": 2}, "file_extension": ".py", "name": "python"}, "kernelspec": {"name": "python2", "language": "python", "display_name": "Python 2"}}}'
+                '{"cells":[{"cell_type":"code","execution_count":null,"metadata":{},"outputs":[],"source":[]}],"metadata":{"kernelspec":{"display_name":"Python 3 (system-wide)","language":"python","name":"python3"},"language_info":{"codemirror_mode":{"name":"ipython","version":3},"file_extension":".py","mimetype":"text/x-python","name":"python","nbconvert_exporter":"python","pygments_lexer":"ipython3","version":"3.6.9"}},"nbformat":4,"nbformat_minor":4}'
             )

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * CoCalc's Xpra HTML Client
  *
  * ---
@@ -11,7 +16,7 @@
  * Copyright (c) 2018-2019 SageMath, Inc.
  * Licensed under MPL 2.0, see:
  * http://www.mozilla.org/MPL/2.0/
-*/
+ */
 /**
  * CoCalc XPRA HTML Client.
  */
@@ -69,7 +74,7 @@ export function keyboardLayout(): string {
   v = v.toLowerCase();
   //e.g.: v="en-gb";
   v = v.split(",")[0];
-  let l = v.split("-", 2);
+  const l = v.split("-", 2);
   if (l.length === 1) {
     // note: upstream, this returns an empty string, but imagine v="de"
     return l[0];
@@ -86,12 +91,12 @@ export function calculateColorGamut(): string {
   const map = {
     rec2020: "(color-gamut: rec2020)",
     P3: "(color-gamut: p3)",
-    srgb: "(color-gamut: srgb)"
+    srgb: "(color-gamut: srgb)",
   };
 
   let found;
   if (typeof window.matchMedia === "function") {
-    found = Object.keys(map).find(k => window.matchMedia(map[k]).matches);
+    found = Object.keys(map).find((k) => window.matchMedia(map[k]).matches);
   }
 
   return found ? found : "";
@@ -216,7 +221,7 @@ export function calculateScreens(width: number, height: number, dpi: number) {
     0,
     0,
     width,
-    height
+    height,
   ];
 
   return [screen]; // just a single screen

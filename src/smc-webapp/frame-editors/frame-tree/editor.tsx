@@ -1,24 +1,28 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import {
   React,
   rclass,
   rtypes,
   Component,
   Rendered,
-  project_redux_name
+  project_redux_name,
 } from "../../app-framework";
 
-const { ErrorDisplay, Loading } = require("smc-webapp/r_misc");
-
+import { ErrorDisplay, Loading, LoadingEstimate } from "smc-webapp/r_misc";
 import { FormatBar } from "./format-bar";
 import { StatusBar } from "./status-bar";
 const { FrameTree } = require("./frame-tree");
 import { EditorSpec, ErrorStyles } from "./types";
 
-import { copy, is_different, filename_extension } from "smc-util/misc2";
+import { is_different, filename_extension } from "smc-util/misc2";
 
 import { SetMap } from "./types";
 
-import { Available as AvailableFeatures } from "../../project_configuration";
+import { AvailableFeatures } from "../../project_configuration";
 
 interface FrameTreeEditorReactProps {
   name: string;
@@ -43,7 +47,7 @@ interface FrameTreeEditorReduxProps {
   errorstyle: ErrorStyles;
   cursors: Map<string, any>;
   status: string;
-  load_time_estimate?: Map<string, any>;
+  load_time_estimate?: LoadingEstimate;
   value?: string;
   reload: Map<string, number>;
   resize: number; // if changes, means that frames have been resized, so may need refreshing; passed to leaf.
@@ -67,12 +71,8 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
     // Copy the editor spec we will use for all future rendering
     // into our private state variable, and also do some function
     // evaluation (e.g,. if buttons is a function of the path).
-    for (let type in props.editor_spec) {
+    for (const type in props.editor_spec) {
       let spec = props.editor_spec[type];
-      if (typeof spec.buttons === "function") {
-        spec = copy(spec);
-        spec.buttons = spec.buttons(props.path);
-      }
       this.editor_spec[type] = spec;
     }
   }
@@ -82,7 +82,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
     return {
       account: {
         editor_settings: rtypes.immutable.Map,
-        terminal: rtypes.immutable.Map
+        terminal: rtypes.immutable.Map,
       },
       [name]: {
         is_public: rtypes.bool.isRequired,
@@ -110,11 +110,11 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
 
         complete: rtypes.immutable.Map.isRequired,
 
-        derived_file_types: rtypes.immutable.Set
+        derived_file_types: rtypes.immutable.Set,
       },
       [project_store_name]: {
-        available_features: rtypes.object
-      }
+        available_features: rtypes.immutable.Map,
+      },
     };
   }
 
@@ -151,7 +151,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
         "settings",
         "complete",
         "derived_file_types",
-        "available_features"
+        "available_features",
       ]) ||
       this.props.editor_settings.get("extra_button_bar") !==
         next.editor_settings.get("extra_button_bar")
@@ -220,11 +220,11 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
     if (!this.props.error) {
       return;
     }
-    let style: any = {
+    const style: any = {
       maxWidth: "100%",
       margin: "1ex",
       maxHeight: "30%",
-      overflowY: "scroll"
+      overflowY: "scroll",
     };
     if (this.props.errorstyle === "monospace") {
       style.fontFamily = "monospace";
@@ -259,7 +259,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           fontSize: "40px",
           textAlign: "center",
           padding: "15px",
-          color: "#999"
+          color: "#999",
         }}
       >
         <Loading estimate={this.props.load_time_estimate} />

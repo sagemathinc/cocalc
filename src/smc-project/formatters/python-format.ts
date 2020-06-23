@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const { writeFile, readFile, unlink } = require("fs");
 const tmp = require("tmp");
 const { callback } = require("awaiting");
@@ -12,7 +17,7 @@ interface ParserOptions {
 }
 
 function close(proc, cb): void {
-  proc.on("close", code => cb(undefined, code));
+  proc.on("close", (code) => cb(undefined, code));
 }
 
 // TODO: diversify this via options to support autopep8, black (requires python 3.6), and others...
@@ -31,7 +36,7 @@ function tail(str?: string, lines = 4): string {
         .trim()
         .split(/\r?\n/)
         .slice(-lines)
-        .filter(x => x.trim().length > 0)
+        .filter((x) => x.trim().length > 0)
         .join("\n") || ""
     );
   }
@@ -58,7 +63,7 @@ export async function python_format(
 
     const py_formatter = yapf(input_path);
 
-    py_formatter.on("error", err => {
+    py_formatter.on("error", (err) => {
       // ATTN do not throw an error here, because this is triggered by the subprocess!
       logger.debug(
         `Formatting utility exited with error no ${(err as any).errno}`
@@ -69,10 +74,10 @@ export async function python_format(
     let stdout: string = "";
     let stderr: string = "";
     // read data as it is produced.
-    py_formatter.stdout.on("data", data => (stdout += data.toString()));
-    py_formatter.stderr.on("data", data => (stderr += data.toString()));
+    py_formatter.stdout.on("data", (data) => (stdout += data.toString()));
+    py_formatter.stderr.on("data", (data) => (stderr += data.toString()));
     // wait for subprocess to close.
-    let code = await callback(close, py_formatter);
+    const code = await callback(close, py_formatter);
     // only last line
     // stdout = last_line(stdout);
     if (code) {
@@ -87,8 +92,8 @@ export async function python_format(
     }
 
     // all fine, we read from the temp file
-    let output: Buffer = await callback(readFile, input_path);
-    let s: string = output.toString("utf-8");
+    const output: Buffer = await callback(readFile, input_path);
+    const s: string = output.toString("utf-8");
     return s;
   } finally {
     unlink(input_path, () => {});

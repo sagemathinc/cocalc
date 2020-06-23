@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { ProjectActions } from "../../../project_actions";
 import { file_actions } from "../../../project_store";
 
@@ -36,14 +41,14 @@ export const EXTs: ReadonlyArray<Extension> = Object.freeze([
   "course",
   "sage",
   "py",
-  "sage-chat"
+  "sage-chat",
 ]);
 
 export function default_ext(
   disabled_ext: { includes: (s: string) => boolean } | undefined
 ): Extension {
   if (disabled_ext != null) {
-    for (let ext of EXTs) {
+    for (const ext of EXTs) {
       if (disabled_ext.includes(ext)) continue;
       return ext;
     }
@@ -72,7 +77,7 @@ export function generate_click_for(
   full_path: string,
   project_actions: ProjectActions
 ) {
-  return e => {
+  return (e) => {
     e.preventDefault();
     e.stopPropagation();
     if (!file_actions[file_action_name].allows_multiple_files) {

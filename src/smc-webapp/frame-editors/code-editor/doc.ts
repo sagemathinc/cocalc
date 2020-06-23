@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Manage codemirror documents.  For each path, there's one of these.
 */
 
@@ -14,7 +19,7 @@ export function get_linked_doc(
   project_id: string,
   path: string
 ): CodeMirror.Doc {
-  let doc = cache[key(project_id, path)];
+  const doc = cache[key(project_id, path)];
   if (doc != undefined) {
     return doc.linkedDoc();
   } else {
@@ -34,8 +39,8 @@ export function set_doc(
   cache[key(project_id, path)] = cm.getDoc();
 }
 
-export function get_doc(project_id: string, path: string) : CodeMirror.Doc {
-  let doc = cache[key(project_id, path)];
+export function get_doc(project_id: string, path: string): CodeMirror.Doc {
+  const doc = cache[key(project_id, path)];
   if (doc != undefined) {
     return doc;
   } else {
@@ -44,6 +49,6 @@ export function get_doc(project_id: string, path: string) : CodeMirror.Doc {
 }
 
 // Forget about given doc
-export function close(project_id: string, path: string) : void {
+export function close(project_id: string, path: string): void {
   delete cache[key(project_id, path)];
 }

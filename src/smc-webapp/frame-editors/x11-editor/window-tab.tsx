@@ -1,8 +1,13 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 X11 Window frame.
 */
 
-const { Icon } = require("smc-webapp/r_misc");
+import { Icon } from "smc-webapp/r_misc";
 
 import { Map } from "immutable";
 
@@ -54,9 +59,9 @@ export class WindowTab extends Component<Props, {}> {
           backgroundColor,
           color,
           position: "relative",
-          padding: "0 5px"
+          padding: "0 5px",
         }}
-        onClick={async evt => {
+        onClick={async (evt) => {
           const wid = this.props.info.get("wid");
           this.props.actions.close_window(this.props.id, wid);
           evt.stopPropagation();
@@ -78,7 +83,7 @@ export class WindowTab extends Component<Props, {}> {
   render(): Rendered {
     return (
       <div
-        onClick={evt => {
+        onClick={(evt) => {
           // FIRST set the active frame to the one we just clicked on!
           this.props.actions.set_active_id(this.props.id);
           // SECOND make this particular tab focused.
@@ -98,7 +103,7 @@ export class WindowTab extends Component<Props, {}> {
           margin: "5px 0 5px 5px",
           borderRight: "1px solid #aaa",
           background: this.props.is_current ? TAB_BAR_BLUE : TAB_BAR_GREY,
-          color: this.props.is_current ? TAB_BAR_GREY : TAB_BAR_BLUE
+          color: this.props.is_current ? TAB_BAR_GREY : TAB_BAR_BLUE,
         }}
       >
         {this.render_close_button()}

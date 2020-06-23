@@ -1,4 +1,9 @@
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
+######
 #
 # CoCalc: Collaborative web-based calculation
 # Copyright (C) 2017, Sagemath Inc.
@@ -1372,6 +1377,14 @@ describe 'top_sort', ->
     it 'Detects a lack of sources and throws an error', ->
         expect () => misc.top_sort(DAG3)
         .toThrow("No sources were detected")
+
+    DAG4 =
+        node1 : ["node0"]
+        node2 : ["node0", "node1"]
+
+    it 'Works with implict sources', ->
+        expect misc.top_sort(DAG4)
+        .toEqual [ 'node0', 'node1', 'node2' ]
 
 describe 'create_dependency_graph', ->
     store_def =

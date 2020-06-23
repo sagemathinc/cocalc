@@ -1,15 +1,23 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { Icon } from "./icon";
 import { TypedMap } from "../app-framework/TypedMap";
 
+export type Estimate = TypedMap<{
+  time: number; // Time in seconds
+  type: "new" | "ready" | "archived";
+}>;
+
 interface Props {
   style?: React.CSSProperties;
   text?: string;
-  estimate?: TypedMap<{
-    time: number; // Time in seconds
-    type: "new" | "ready" | "archived";
-  }>;
+  estimate?: Estimate;
   theme?: "medium" | undefined;
+  delay?: number; // if given, don't show anything until after delay milliseconds.  The component could easily unmount by then, and hence never annoyingly flicker on screen.
 }
 
 const LOADING_THEMES: { [keys: string]: React.CSSProperties } = {
@@ -18,8 +26,8 @@ const LOADING_THEMES: { [keys: string]: React.CSSProperties } = {
     textAlign: "center",
     marginTop: "15px",
     color: "#888",
-    background: "white"
-  }
+    background: "white",
+  },
 };
 
 export class Loading extends React.Component<Props> {

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const json_stable_stringify = require("json-stable-stringify");
 import { delay } from "awaiting";
 
@@ -13,8 +18,8 @@ export function synctable(
   query,
   options,
   client,
-  throttle_changes : undefined | number,
-  use_cache : boolean = true
+  throttle_changes: undefined | number,
+  use_cache: boolean = true
 ): SyncTable {
   if (options == null) {
     options = [];
@@ -26,7 +31,7 @@ export function synctable(
   const cache_key = json_stable_stringify({
     query,
     options,
-    throttle_changes
+    throttle_changes,
   });
   let S: SyncTable | undefined = synctables[cache_key];
   if (S != null) {

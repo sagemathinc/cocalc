@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // in "Files", this shows some information and action buttons related to the custom software environment
 
 import { Component, React } from "../app-framework";
@@ -6,19 +11,13 @@ import {
   CUSTOM_SOFTWARE_HELP_URL as help_url,
   title_style,
   props2img,
-  RESET_ICON
+  RESET_ICON,
 } from "./util";
 import { ComputeImages } from "./init";
 const misc = require("smc-util/misc");
 import * as misc2 from "smc-util/misc2";
 const { open_new_tab } = require("smc-webapp/misc_page");
-const {
-  Icon,
-  Tip,
-  HiddenXSSM,
-  VisibleMDLG,
-  VisibleXSSM
-} = require("../r_misc");
+import { Icon, Tip, HiddenXSSM, VisibleMDLG, VisibleXSSM } from "../r_misc";
 const { ButtonGroup, Button } = require("react-bootstrap");
 import { Available as AvailableFeatures } from "../project_configuration";
 //const { ROW_INFO_STYLE } = require("../project_files");
@@ -37,14 +36,7 @@ interface Props {
 }
 
 export class CustomSoftwareInfo extends Component<Props, {}> {
-  private props2img;
-
-  constructor(props) {
-    super(props);
-    this.props2img = props2img.bind(this);
-  }
-
-  render_path = path => {
+  render_path = (path) => {
     if (!this.props.project_is_running) return null;
     if (path.length === 0) return null;
 
@@ -97,9 +89,7 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
               <Icon name={"cc-icon-ipynb"} /> <HiddenXSSM>Jupyter</HiddenXSSM>
             </Tip>
           </ButtonRetryUntilSuccess>
-        ) : (
-          undefined
-        )}
+        ) : undefined}
         {have_jl ? (
           <ButtonRetryUntilSuccess get_href={href_jl}>
             <Tip title={"Start Jupyter Lab server"} placement={"bottom"}>
@@ -108,9 +98,7 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
               <VisibleXSSM>Lab</VisibleXSSM>
             </Tip>
           </ButtonRetryUntilSuccess>
-        ) : (
-          undefined
-        )}
+        ) : undefined}
 
         <Button onClick={this.reset}>
           <Icon name={RESET_ICON} /> <VisibleMDLG>Reset...</VisibleMDLG>
@@ -123,14 +111,14 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
     );
   };
 
-  img_info = img => {
+  img_info = (img) => {
     const disp = img.get("display", "");
     const id = img.get("id", "");
     return `${disp} (${id})`;
   };
 
   render = () => {
-    const img = this.props2img();
+    const img = props2img(this.props);
     if (img == null) return null;
     const path = img.get("path", "");
 

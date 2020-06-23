@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // ../ prefix to make manage-pods work
 import { callback2 } from "../smc-util/async-utils";
 import { trunc } from "../smc-util/misc2";
@@ -28,17 +33,19 @@ async function get_users(db: PostgreSQL, where): Promise<User[]> {
     : []; // syncdoc exists, but not used yet.
   const project_id: string = results.rows[0].project_id;
   const project_title: string = trunc(
-    (await callback2(db.get_project, {
-      columns: ["title"],
-      project_id
-    })).title,
+    (
+      await callback2(db.get_project, {
+        columns: ["title"],
+        project_id,
+      })
+    ).title,
     80
   );
 
   // get the names of the users
   const names = await callback2(db.account_ids_to_usernames, { account_ids });
   const users: User[] = [];
-  for (let account_id of account_ids) {
+  for (const account_id of account_ids) {
     if (account_id == project_id) {
       users.push({ account_id, user: `Project: ${project_title}` });
       continue;
@@ -73,7 +80,7 @@ export async function syncdoc_history(
     const patch: Patch = { time_utc: row.time, format: row.format };
     const u = users[row.user_id];
     if (u != null) {
-      for (let k in u) {
+      for (const k in u) {
         patch[k] = u[k];
       }
     }
@@ -87,7 +94,7 @@ export async function syncdoc_history(
     }
     return patch;
   }
-  for (let row of results.rows) {
+  for (const row of results.rows) {
     patches.push(format_patch(row));
   }
   return patches;

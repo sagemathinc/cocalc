@@ -1,10 +1,14 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React, Rendered } from "../app-framework";
 
 import { ExplainResources } from "./explain-resources";
 import { ExplainPlan } from "./explain-plan";
 import { SubscriptionGrid } from "./subscription-grid";
 import { DedicatedVM } from "./dedicated-vm";
-import { FAQ } from "./faq";
 
 export function render_static_pricing_page(): Rendered {
   return (
@@ -21,8 +25,6 @@ export function render_static_pricing_page(): Rendered {
       />
       <hr />
       <DedicatedVM />
-      <hr />
-      <FAQ />
     </div>
   );
 }

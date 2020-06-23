@@ -1,15 +1,21 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import * as os_path from "path";
 const { to_iso_path } = require("smc-util/misc");
 import {
   unreachable,
   capitalize,
   uuid,
-  separate_file_extension
+  separate_file_extension,
 } from "smc-util/misc2";
 import { generate as heroku } from "project-name-generator";
 const superb = require("superb");
 const catNames = require("cat-names");
 const dogNames = require("dog-names");
-const { file_options } = require("../editor");
+const { file_options } = require("../editor-tmp");
 import { DEFAULT_NEW_FILENAMES } from "smc-util/db-schema";
 
 export type NewFilenameTypes =
@@ -22,15 +28,15 @@ export type NewFilenameTypes =
   | "ymd_semantic";
 
 export const NewFilenameFamilies = Object.freeze<
-  Readonly<{ [name in NewFilenameTypes]: string }>
+  { [name in NewFilenameTypes]: string }
 >({
   iso: "Current time",
   heroku: "Heroku-like",
   ymd_heroku: "Heroku-like (prefix today)",
   pet: "Pet names",
   ymd_pet: "Pet names (prefix today)",
-  semantic: "Sematic",
-  ymd_semantic: "Sematic (prefix today) "
+  semantic: "Semantic",
+  ymd_semantic: "Semantic (prefix today) ",
 });
 
 export class NewFilenames {
@@ -48,7 +54,7 @@ export class NewFilenames {
     this.fullname = fullname;
   }
 
-  public set_ext(ext: string): void {
+  public set_ext(ext?: string): void {
     if (this.ext != ext || ext == null) {
       this.start = 0;
     }
@@ -71,9 +77,9 @@ export class NewFilenames {
       // ignore all extensions in avoid "set", if we do not know the file extension
       if (this.effective_ext == null) {
         const noexts = Object.keys(avoid).map(
-          x => separate_file_extension(x).name
+          (x) => separate_file_extension(x).name
         );
-        avoid = Object.assign({}, ...noexts.map(x => ({ [x]: true })));
+        avoid = Object.assign({}, ...noexts.map((x) => ({ [x]: true })));
       }
       avoid = avoid || {}; // satisfy TS
       // incremental numbering starts at 1, natural for humans
@@ -112,13 +118,7 @@ export class NewFilenames {
     }
     // in some cases, prefix with the current day
     if (this.type.startsWith("ymd_")) {
-      tokens.unshift(
-        new Date()
-          .toISOString()
-          .slice(0, 10)
-          .split("-")
-          .join("")
-      );
+      tokens.unshift(new Date().toISOString().slice(0, 10));
     }
     switch (this.effective_ext) {
       case "java": // CamelCase!
@@ -162,7 +162,7 @@ export class NewFilenames {
   // some superb words contain characters we want to avoid
   private get_superb(): string {
     while (true) {
-      let ret = superb.random();
+      const ret = superb.random();
       if (ret.match(/^[a-zA-Z0-9]+$/)) return ret;
     }
   }
@@ -210,4 +210,15 @@ const sha1 = require("sha1");
 
 export function editor_id(project_id: string, path: string): string {
   return `cocalc-editor-${sha1(project_id + path)}`;
+}
+
+
+// Normalize path as in node, except '' is the home dir, not '.'.
+export function normalize(path: string): string {
+  path = os_path.normalize(path);
+  if (path === ".") {
+    return "";
+  } else {
+    return path;
+  }
 }

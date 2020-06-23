@@ -1,9 +1,14 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Components for rendering input and output prompts.
 */
 
 import { React, Component } from "../app-framework";
-const { Icon, TimeAgo, Tip } = require("../r_misc");
+import { Icon, TimeAgo, Tip } from "../r_misc";
 
 const misc = require("smc-util/misc");
 
@@ -17,7 +22,7 @@ const INPUT_STYLE: React.CSSProperties = {
   fontFamily: "monospace",
   textAlign: "right",
   paddingRight: "1ex",
-  cursor: "pointer"
+  cursor: "pointer",
 };
 
 interface InputPromptProps {
@@ -97,7 +102,7 @@ const OUTPUT_STYLE: React.CSSProperties = {
   fontFamily: "monospace",
   textAlign: "right",
   paddingRight: ".4em",
-  paddingBottom: "2px"
+  paddingBottom: "2px",
 };
 
 interface OutputPromptProps {
@@ -115,12 +120,8 @@ export class OutputPrompt extends Component<OutputPromptProps> {
       n = this.props.exec_count != null ? this.props.exec_count : " ";
     }
     if (n == null) {
-      return <div style={OUTPUT_STYLE}/>;
+      return <div style={OUTPUT_STYLE} />;
     }
-    return (
-      <div style={OUTPUT_STYLE}>
-        Out[{n}]:
-      </div>
-    );
+    return <div style={OUTPUT_STYLE}>Out[{n}]:</div>;
   }
 }

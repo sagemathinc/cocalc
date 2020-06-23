@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const { writeFile, readFile, unlink } = require("fs");
 const tmp = require("tmp");
 const { callback } = require("awaiting");
@@ -32,7 +37,7 @@ async function tidy(input_path) {
     "no", // enable it, if we want to show warnings upon exit code == 1
     "--tidy-mark",
     "no",
-    input_path
+    input_path,
   ];
 
   return await callback_opts(execute_code)({
@@ -40,7 +45,7 @@ async function tidy(input_path) {
     args: args,
     err_on_exit: false,
     bash: false,
-    timeout: 15
+    timeout: 15,
   });
 }
 
@@ -67,9 +72,7 @@ export async function xml_format(
     } catch (e) {
       logger.debug(`Calling XML formatter raised ${e}`);
       throw new Error(
-        `XML formatter broken or not available. Is '${
-          options.parser
-        }' installed?`
+        `XML formatter broken or not available. Is '${options.parser}' installed?`
       );
     }
 
@@ -78,15 +81,13 @@ export async function xml_format(
 
     const problem = options.parser === "xml-tidy" ? code >= 2 : code >= 1;
     if (problem) {
-      const msg = `XML formatter "${
-        options.parser
-      }" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
+      const msg = `XML formatter "${options.parser}" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
       throw Error(msg);
     }
 
     // all fine, we read from the temp file
-    let output: Buffer = await callback(readFile, input_path);
-    let s: string = output.toString("utf-8");
+    const output: Buffer = await callback(readFile, input_path);
+    const s: string = output.toString("utf-8");
     return s;
   } finally {
     // logger.debug(`xml formatter done, unlinking ${input_path}`);

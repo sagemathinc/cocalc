@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * CoCalc native analytics
  *
  * This script saves some information about how, from where and why someone came on a cocalc page.
@@ -25,7 +30,7 @@ const UTM_KEYS: ReadonlyArray<string> = Object.freeze([
   "medium",
   "campaign",
   "term",
-  "content"
+  "content",
 ]);
 
 const response: any = {};
@@ -66,10 +71,10 @@ window
     cache: "no-cache",
     credentials: "include",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     },
     redirect: "follow",
-    body: JSON.stringify(response)
+    body: JSON.stringify(response),
   })
   //.then(response => console.log("Success:", response))
-  .catch(error => console.error("Error:", error));
+  .catch((error) => console.error("Error:", error));

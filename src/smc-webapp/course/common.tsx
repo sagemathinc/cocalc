@@ -1,81 +1,58 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-//##############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016 -- 2017, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
 
 // CoCalc libraries
-const misc = require("smc-util/misc");
-const { defaults, required } = misc;
+import { defaults, required, ISO_to_Date, to_json } from "smc-util/misc";
 
 // React libraries
-import { React, Component } from "../app-framework";
+import { React, Component, Rendered } from "../app-framework";
 import { CourseActions } from "./actions";
 import { redux } from "../frame-editors/generic/test/util";
-import { AssignmentRecord, StudentRecord } from "./store";
+import {
+  AssignmentRecord,
+  StudentRecord,
+  LastCopyInfo,
+  NBgraderRunInfo,
+} from "./store";
+import { NotebookScores } from "../jupyter/nbgrader/autograde";
+import { NbgraderScores } from "./nbgrader/scores";
+
+import { AssignmentCopyType, AssignmentCopyStep } from "./types";
 import { FormEvent } from "react";
 
-const {
-  Button,
-  ButtonToolbar,
-  ButtonGroup,
-  FormControl,
-  FormGroup,
-  Grid,
-  Row,
-  Col
-} = require("react-bootstrap");
+import { Button, ButtonGroup, FormControl, FormGroup } from "../antd-bootstrap";
 
-const {
+import { Row, Col } from "antd";
+
+import {
   ErrorDisplay,
   Icon,
   MarkdownInput,
   TimeAgo,
   Tip,
-  is_different_date
-} = require("../r_misc");
+  is_different_date,
+} from "../r_misc";
 
-export let { FoldersToolbar } = require("./common/FoldersToolBar");
+export { FoldersToolbar } from "./common/FoldersToolBar";
 
 interface BigTimeProps {
-  date: string | number | object;
+  date: string | number | Date;
 }
 
 export class BigTime extends Component<BigTimeProps> {
-  displayName: "CourseEditor-BigTime";
-
   shouldComponentUpdate(props) {
     return is_different_date(this.props.date, props.date);
   }
 
-  render() {
+  public render(): Rendered {
     let { date } = this.props;
     if (date == null) {
       return;
     }
     if (typeof date === "string") {
-      date = misc.ISO_to_Date(date);
+      date = ISO_to_Date(date);
     }
     return <TimeAgo popover={true} date={date} />;
   }
@@ -89,12 +66,14 @@ interface StudentAssignmentInfoHeaderProps {
 export class StudentAssignmentInfoHeader extends Component<
   StudentAssignmentInfoHeaderProps
 > {
-  displayName: "CourseEditor-StudentAssignmentInfoHeader";
-
-  render_col(number, key, width) {
-    let tip, title;
+  private render_col(
+    number: number,
+    key: AssignmentCopyStep | "grade",
+    width: 4 | 6
+  ): Rendered {
+    let tip: string, title: string;
     switch (key) {
-      case "last_assignment":
+      case "assignment":
         title = "Assign to Student";
         tip =
           "This column gives the status of making homework available to students, and lets you copy homework to one student at a time.";
@@ -110,13 +89,13 @@ export class StudentAssignmentInfoHeader extends Component<
           'Record homework grade" tip="Use this column to record the grade the student received on the assignment. Once the grade is recorded, you can return the assignment.  You can also export grades to a file in the Configuration tab.';
         break;
 
-      case "peer-assign":
+      case "peer_assignment":
         title = "Assign Peer Grading";
         tip =
           "This column gives the status of sending out collected homework to students for peer grading.";
         break;
 
-      case "peer-collect":
+      case "peer_collect":
         title = "Collect Peer Grading";
         tip =
           "This column gives status information about collecting the peer grading work that students did, and lets you collect peer grading from one student at a time.";
@@ -139,11 +118,11 @@ export class StudentAssignmentInfoHeader extends Component<
     );
   }
 
-  render_headers() {
-    const w = 3;
+  private render_headers(): Rendered {
+    const w = 6;
     return (
       <Row>
-        {this.render_col(1, "last_assignment", w)}
+        {this.render_col(1, "assignment", w)}
         {this.render_col(2, "collect", w)}
         {this.render_col(3, "grade", w)}
         {this.render_col(4, "return_graded", w)}
@@ -151,25 +130,25 @@ export class StudentAssignmentInfoHeader extends Component<
     );
   }
 
-  render_headers_peer() {
-    const w = 2;
+  private render_headers_peer(): Rendered {
+    const w = 4;
     return (
       <Row>
-        {this.render_col(1, "last_assignment", w)}
+        {this.render_col(1, "assignment", w)}
         {this.render_col(2, "collect", w)}
-        {this.render_col(3, "peer-assign", w)}
-        {this.render_col(4, "peer-collect", w)}
+        {this.render_col(3, "peer_assignment", w)}
+        {this.render_col(4, "peer_collect", w)}
         {this.render_col(5, "grade", w)}
         {this.render_col(6, "return_graded", w)}
       </Row>
     );
   }
 
-  render() {
+  public render(): Rendered {
     return (
-      <Grid fluid={true} style={{ width: "100%" }}>
+      <div>
         <Row style={{ borderBottom: "2px solid #aaa" }}>
-          <Col md={2} key="title">
+          <Col md={4} key="title">
             <Tip
               title={this.props.title}
               tip={
@@ -181,13 +160,13 @@ export class StudentAssignmentInfoHeader extends Component<
               <b>{this.props.title}</b>
             </Tip>
           </Col>
-          <Col md={10} key="rest">
+          <Col md={20} key="rest">
             {this.props.peer_grade
               ? this.render_headers_peer()
               : this.render_headers()}
           </Col>
         </Row>
-      </Grid>
+      </div>
     );
   }
 }
@@ -204,15 +183,17 @@ interface StudentAssignmentInfoProps {
     student_id: string;
     peer_assignment: boolean;
     peer_collect: boolean;
-    last_assignment: { error: string };
-    last_collect: { error: string };
-    last_peer_assignment: number;
-    last_peer_collect: { error: string };
-    last_return_graded: { error: string };
+    last_assignment?: LastCopyInfo;
+    last_collect?: LastCopyInfo;
+    last_peer_assignment?: LastCopyInfo;
+    last_peer_collect?: LastCopyInfo;
+    last_return_graded?: LastCopyInfo;
   };
   edited_grade?: string;
   edited_comments?: string;
+  nbgrader_scores?: { [ipynb: string]: NotebookScores | string };
   is_editing: boolean;
+  nbgrader_run_info?: NBgraderRunInfo;
 }
 
 interface StudentAssignmentInfoState {
@@ -228,8 +209,6 @@ export class StudentAssignmentInfo extends Component<
   StudentAssignmentInfoProps,
   StudentAssignmentInfoState
 > {
-  displayName: "CourseEditor-StudentAssignmentInfo";
-
   constructor(props: StudentAssignmentInfoProps) {
     super(props);
     this.state = {
@@ -238,68 +217,91 @@ export class StudentAssignmentInfo extends Component<
       recopy_copy: false,
       recopy_copy_tip: false,
       recopy_open_tip: false,
-      recopy_placement: false
+      recopy_placement: false,
     };
   }
 
   static defaultProps = {
     grade: "",
-    comments: ""
+    comments: "",
   };
 
-  get_actions(): CourseActions {
+  private get_actions(): CourseActions {
     return redux.getActions(this.props.name);
   }
 
-  open = (type, assignment_id, student_id) => {
-    return this.get_actions().open_assignment(type, assignment_id, student_id);
-  };
-
-  copy = (type, assignment_id, student_id) => {
-    return this.get_actions().copy_assignment(type, assignment_id, student_id);
-  };
-
-  stop = (type, assignment_id, student_id) => {
-    return this.get_actions().stop_copying_assignment(
+  private open = (
+    type: AssignmentCopyType,
+    assignment_id: string,
+    student_id: string
+  ) => {
+    return this.get_actions().assignments.open_assignment(
       type,
       assignment_id,
       student_id
     );
   };
 
-  save_feedback = (e?: FormEvent<HTMLFormElement>) => {
+  private copy = (
+    type: AssignmentCopyType,
+    assignment_id: string,
+    student_id: string
+  ) => {
+    return this.get_actions().assignments.copy_assignment(
+      type,
+      assignment_id,
+      student_id
+    );
+  };
+
+  private stop = (
+    type: AssignmentCopyType,
+    assignment_id: string,
+    student_id: string
+  ) => {
+    this.get_actions().assignments.stop_copying_assignment(
+      assignment_id,
+      student_id,
+      type
+    );
+  };
+
+  private save_feedback = (e?: FormEvent<HTMLFormElement>) => {
     if (e) {
       e.preventDefault;
     }
-    this.get_actions().save_feedback(this.props.assignment, this.props.student);
+    this.get_actions().assignments.save_feedback(
+      this.props.assignment.get("assignment_id"),
+      this.props.student.get("student_id")
+    );
   };
 
-  set_edited_feedback = (grade?: string, comments?: string) => {
-    this.get_actions().update_edited_feedback(
-      this.props.assignment,
-      this.props.student,
+  private set_edited_feedback = (grade?: string, comments?: string) => {
+    this.get_actions().assignments.update_edited_feedback(
+      this.props.assignment.get("assignment_id"),
+      this.props.student.get("student_id"),
       grade,
       comments
     );
   };
 
-  handle_grade_change = e => {
+  private handle_grade_change = (e) => {
     e.preventDefault();
     this.set_edited_feedback(e.target.value);
   };
 
-  handle_comments_change = value => {
+  private handle_comments_change = (value) => {
     this.set_edited_feedback(undefined, value);
   };
 
-  cancel_editing = () => {
-    this.get_actions().clear_edited_feedback(
-      this.props.assignment,
-      this.props.student
+  private cancel_editing = () => {
+    this.get_actions().assignments.clear_edited_feedback(
+      this.props.assignment.get("assignment_id"),
+      this.props.student.get("student_id")
     );
   };
 
-  render_grade() {
+  private render_grade(): Rendered {
     if (this.props.is_editing) {
       return (
         <form
@@ -330,16 +332,14 @@ export class StudentAssignmentInfo extends Component<
               <span>
                 <strong>Comments</strong>:
               </span>
-            ) : (
-              undefined
-            )}
+            ) : undefined}
           </div>
         );
       }
     }
   }
 
-  render_comments() {
+  private render_comments(): Rendered {
     return (
       <MarkdownInput
         autoFocus={false}
@@ -360,13 +360,13 @@ export class StudentAssignmentInfo extends Component<
           maxHeight: "4em",
           overflowY: "auto",
           padding: "5px",
-          border: "1px solid #888"
+          border: "1px solid #888",
         }}
       />
     );
   }
 
-  on_key_down_grade_editor = e => {
+  private on_key_down_grade_editor = (e) => {
     switch (e.keyCode) {
       case 27:
         this.cancel_editing();
@@ -379,50 +379,133 @@ export class StudentAssignmentInfo extends Component<
     }
   };
 
-  render_grade_col() {
-    let grade = this.props.grade || "";
-    const bsStyle = !grade.trim() ? "primary" : undefined;
-    const text = grade.trim() ? "Edit grade" : "Enter grade";
-
+  private render_nbgrader_scores(): Rendered {
+    if (!this.props.nbgrader_scores) return;
     return (
-      <>
-        <Tip
-          title="Enter student's grade"
-          tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number)."
-        >
-          <Button
-            key="edit"
-            onClick={() => this.set_edited_feedback()}
-            bsStyle={bsStyle}
-          >
-            {text}
-          </Button>
-        </Tip>
-        {this.render_grade()}
-        {this.render_comments()}
-      </>
-    );
-  }
-
-  render_last_time(time) {
-    return (
-      <div key="time" style={{ color: "#666" }}>
-        (<BigTime date={time} />)
+      <div>
+        <NbgraderScores
+          nbgrader_scores={this.props.nbgrader_scores}
+          name={this.props.name}
+          student_id={this.props.student.get("student_id")}
+          assignment_id={this.props.assignment.get("assignment_id")}
+        />
+        {this.render_run_nbgrader("Run nbgrader again")}
       </div>
     );
   }
 
-  render_open_recopy_confirm(name, copy, copy_tip, placement) {
+  private render_run_nbgrader(label: string | Rendered): Rendered {
+    let running = false;
+    if (this.props.nbgrader_run_info != null) {
+      const t = this.props.nbgrader_run_info.get(
+        this.props.assignment.get("assignment_id") +
+          "-" +
+          this.props.student.get("student_id")
+      );
+      if (t && new Date().valueOf() - t <= 1000 * 60 * 10) {
+        // Time starting is set and it's also within the last few minutes.
+        // This "few minutes" is just in case -- we probably shouldn't need
+        // that at all ever, but it could make cocalc state usable in case of
+        // weird issues, I guess).  User could also just close and re-open
+        // the course file, which resets this state completely.
+        running = true;
+      }
+    }
+    label = running ? (
+      <span>
+        {" "}
+        <Icon name="cc-icon-cocalc-ring" spin /> Running nbgrader
+      </span>
+    ) : (
+      <span>{label}</span>
+    );
+
+    return (
+      <div style={{ marginTop: "5px" }}>
+        <Button
+          key="nbgrader"
+          disabled={running}
+          onClick={() => {
+            this.get_actions().assignments.run_nbgrader_for_one_student(
+              this.props.assignment.get("assignment_id"),
+              this.props.student.get("student_id")
+            );
+          }}
+        >
+          <Icon name="graduation-cap" /> {label}
+        </Button>
+      </div>
+    );
+  }
+
+  private render_nbgrader(): Rendered {
+    if (this.props.nbgrader_scores) {
+      return this.render_nbgrader_scores();
+    }
+    if (
+      !this.props.assignment.get("nbgrader") ||
+      this.props.assignment.get("skip_grading")
+    )
+      return;
+
+    return this.render_run_nbgrader("Run nbgrader");
+  }
+
+  private render_enter_grade(): Rendered {
+    const grade = (this.props.grade || "").trim();
+    const bsStyle = !grade ? "primary" : undefined;
+    const text = !!grade ? "Edit grade" : "Enter grade";
+    return (
+      <Tip
+        title="Enter student's grade"
+        tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number)."
+      >
+        <Button
+          key="edit"
+          onClick={() => this.set_edited_feedback()}
+          bsStyle={bsStyle}
+        >
+          {text}
+        </Button>
+      </Tip>
+    );
+  }
+
+  private render_grade_col(): Rendered {
+    return (
+      <>
+        {this.render_enter_grade()}
+        {this.render_grade()}
+        {this.render_comments()}
+        {this.render_nbgrader()}
+      </>
+    );
+  }
+
+  private render_last_time(time: string | number | Date): Rendered {
+    return (
+      <div key="time" style={{ color: "#666" }}>
+        <BigTime date={time} />
+      </div>
+    );
+  }
+
+  private render_open_recopy_confirm(
+    name: string,
+    copy: Function,
+    copy_tip: string,
+    placement
+  ): Rendered | Rendered[] {
     const key = `recopy_${name}`;
     if (this.state[key]) {
-      const v: any[] = [];
+      const v: Rendered[] = [];
       v.push(
         <Button
-          key="copy_confirm"
+          key="recopy_confirm"
           bsStyle="danger"
           onClick={() => {
             this.setState({ [key]: false } as any);
-            return copy();
+            copy();
           }}
         >
           <Icon
@@ -443,7 +526,10 @@ export class StudentAssignmentInfo extends Component<
       if (name.toLowerCase() === "assign") {
         // inline-block because buttons above are float:left
         v.push(
-          <div style={{ margin: "5px", display: "inline-block" }}>
+          <div
+            key="what-happens"
+            style={{ margin: "5px", display: "inline-block" }}
+          >
             <a
               target="_blank"
               href="https://doc.cocalc.com/teaching-tips_and_tricks.html#how-exactly-are-assignments-copied-to-students"
@@ -473,21 +559,27 @@ export class StudentAssignmentInfo extends Component<
     }
   }
 
-  render_open_recopy(name, open, copy, copy_tip, open_tip) {
+  private render_open_recopy(
+    name: string,
+    open,
+    copy,
+    copy_tip: string,
+    open_tip: string
+  ): Rendered {
     const placement = name === "Return" ? "left" : "right";
     return (
-      <ButtonToolbar key="open_recopy">
+      <ButtonGroup key="open_recopy">
         {this.render_open_recopy_confirm(name, copy, copy_tip, placement)}
         <Button key="open" onClick={open}>
           <Tip title="Open assignment" placement={placement} tip={open_tip}>
             <Icon name="folder-open-o" /> Open
           </Tip>
         </Button>
-      </ButtonToolbar>
+      </ButtonGroup>
     );
   }
 
-  render_open_copying(name, open, stop) {
+  private render_open_copying(name: string, open, stop): Rendered {
     return (
       <ButtonGroup key="open_copying">
         <Button key="copy" bsStyle="success" disabled={true}>
@@ -503,7 +595,7 @@ export class StudentAssignmentInfo extends Component<
     );
   }
 
-  render_copy(name, copy, copy_tip) {
+  private render_copy(name: string, copy, copy_tip: string): Rendered {
     let placement;
     if (name === "Return") {
       placement = "left";
@@ -521,12 +613,17 @@ export class StudentAssignmentInfo extends Component<
     );
   }
 
-  render_error(name, error) {
+  private render_error(name: string, error): Rendered {
     if (typeof error !== "string") {
-      error = misc.to_json(error);
+      error = to_json(error);
     }
-    if (error.indexOf("No such file or directory") !== -1) {
-      error = `Somebody may have moved the folder that should have contained the assignment.\n${error}`;
+    // We search for two different error messages, since different errors happen in
+    // KuCalc versus other places cocalc runs.  It depends on what is doing the copy.
+    if (
+      error.indexOf("No such file or directory") !== -1 ||
+      error.indexOf("ENOENT") != -1
+    ) {
+      error = `The student probably renamed the directory that contained their assignment.  Open their project and see what happened.   If they renamed it, you could rename it back, then collect the assignment again.\n${error}`;
     } else {
       error = `Try to ${name.toLowerCase()} again:\n` + error;
     }
@@ -539,7 +636,15 @@ export class StudentAssignmentInfo extends Component<
     );
   }
 
-  render_last(opts) {
+  private render_last(opts: {
+    name: string;
+    type: AssignmentCopyType;
+    data?: any;
+    enable_copy?: boolean;
+    copy_tip?: string;
+    open_tip?: string;
+    omit_errors?: boolean;
+  }): Rendered[] {
     opts = defaults(opts, {
       name: required,
       type: required,
@@ -547,7 +652,7 @@ export class StudentAssignmentInfo extends Component<
       enable_copy: false,
       copy_tip: "",
       open_tip: "",
-      omit_errors: false
+      omit_errors: false,
     });
 
     const open = () =>
@@ -568,7 +673,7 @@ export class StudentAssignmentInfo extends Component<
         this.props.info.assignment_id,
         this.props.info.student_id
       );
-    const v: any[] = [];
+    const v: Rendered[] = [];
     if (opts.enable_copy) {
       if (opts.data.start) {
         v.push(this.render_open_copying(opts.name, open, stop));
@@ -578,12 +683,12 @@ export class StudentAssignmentInfo extends Component<
             opts.name,
             open,
             copy,
-            opts.copy_tip,
-            opts.open_tip
+            opts.copy_tip as string,
+            opts.open_tip as string
           )
         );
       } else {
-        v.push(this.render_copy(opts.name, copy, opts.copy_tip));
+        v.push(this.render_copy(opts.name, copy, opts.copy_tip as string));
       }
     }
     if (opts.data.time) {
@@ -595,9 +700,9 @@ export class StudentAssignmentInfo extends Component<
     return v;
   }
 
-  render_peer_assign() {
+  private render_peer_assign(): Rendered {
     return (
-      <Col md={2} key="peer_assign">
+      <Col md={4} key="peer_assign">
         {this.render_last({
           name: "Peer Assign",
           data: this.props.info.last_peer_assignment,
@@ -606,15 +711,15 @@ export class StudentAssignmentInfo extends Component<
           copy_tip:
             "Copy collected assignments from your project to this student's project so they can grade them.",
           open_tip:
-            "Open the student's copies of this assignment directly in their project, so you can see what they are peer grading."
+            "Open the student's copies of this assignment directly in their project, so you can see what they are peer grading.",
         })}
       </Col>
     );
   }
 
-  render_peer_collect() {
+  private render_peer_collect(): Rendered {
     return (
-      <Col md={2} key="peer_collect">
+      <Col md={4} key="peer_collect">
         {this.render_last({
           name: "Peer Collect",
           data: this.props.info.last_peer_collect,
@@ -623,21 +728,23 @@ export class StudentAssignmentInfo extends Component<
           copy_tip:
             "Copy the peer-graded assignments from various student projects back to your project so you can assign their official grade.",
           open_tip:
-            "Open your copy of your student's peer grading work in your own project, so that you can grade their work."
+            "Open your copy of your student's peer grading work in your own project, so that you can grade their work.",
         })}
       </Col>
     );
   }
 
-  render() {
-    let left, show_grade_col, show_return_graded;
-    const peer_grade = __guard__(this.props.assignment.get("peer_grade"), x =>
-      x.get("enabled")
+  public render(): Rendered {
+    let show_grade_col, show_return_graded;
+    const peer_grade: boolean = !!this.props.assignment.getIn([
+      "peer_grade",
+      "enabled",
+    ]);
+    const skip_grading: boolean = !!this.props.assignment.get("skip_grading");
+    const skip_assignment: boolean = !!this.props.assignment.get(
+      "skip_assignment"
     );
-    const skip_grading =
-      (left = this.props.assignment.get("skip_grading")) != null ? left : false;
-    const skip_assignment = this.props.assignment.get("skip_assignment");
-    const skip_collect = this.props.assignment.get("skip_collect");
+    const skip_collect: boolean = !!this.props.assignment.get("skip_collect");
     if (peer_grade) {
       show_grade_col =
         !skip_grading &&
@@ -662,20 +769,20 @@ export class StudentAssignmentInfo extends Component<
         (skip_grading && skip_collect);
     }
 
-    const width = peer_grade ? 2 : 3;
+    const width = peer_grade ? 4 : 6;
     return (
-      <Grid fluid={true} style={{ width: "100%" }}>
+      <div>
         <Row
           style={{
             borderTop: "1px solid #aaa",
             paddingTop: "5px",
-            paddingBottom: "5px"
+            paddingBottom: "5px",
           }}
         >
-          <Col md={2} key="title">
+          <Col md={4} key="title">
             {this.props.title}
           </Col>
-          <Col md={10} key="rest">
+          <Col md={20} key="rest">
             <Row>
               <Col md={width} key="last_assignment">
                 {this.render_last({
@@ -688,7 +795,7 @@ export class StudentAssignmentInfo extends Component<
                   open_tip:
                     "Open the student's copy of this assignment directly in their project. " +
                     "You will be able to see them type, chat with them, leave them hints, etc.",
-                  omit_errors: skip_assignment
+                  omit_errors: skip_assignment,
                 })}
               </Col>
               <Col md={width} key="last_collect">
@@ -707,7 +814,7 @@ export class StudentAssignmentInfo extends Component<
                         "Copy the assignment from your student's project back to your project so you can grade their work.",
                       open_tip:
                         "Open the copy of your student's work in your own project, so that you can grade their work.",
-                      omit_errors: skip_collect
+                      omit_errors: skip_collect,
                     })
                   : undefined}
               </Col>
@@ -736,20 +843,14 @@ export class StudentAssignmentInfo extends Component<
                         "Copy the graded assignment back to your student's project.",
                       open_tip:
                         "Open the copy of your student's work that you returned to them. " +
-                        "This opens the returned assignment directly in their project."
+                        "This opens the returned assignment directly in their project.",
                     })
                   : undefined}
               </Col>
             </Row>
           </Col>
         </Row>
-      </Grid>
+      </div>
     );
   }
-}
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
 }

@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 actions = store = undefined
 setup = (cb) -> (require('./setup').setup (err, x) -> actions=x; store=x?.store; cb(err))
 {teardown} = require('./setup')
@@ -12,7 +17,7 @@ describe 'tests exporting the most basic ipynb file -- ', ->
 
     it 'by directly calling export_to_ipynb', ->
         ipynb = export_to_ipynb(cell_list:actions.store.get('cell_list'), cells:actions.store.get('cells'), kernelspec:{})
-        expect(ipynb).toEqual({ cells: [ { cell_type: 'code', execution_count: 0, metadata: { collapsed: false }, outputs: [], source: [] } ], metadata: { kernelspec: {} }, nbformat: 4, nbformat_minor: 0 })
+        expect(ipynb).toEqual({ cells: [ { cell_type: 'code', execution_count: 0, metadata: { collapsed: false }, outputs: [], source: [] } ], metadata: { kernelspec: {} }, nbformat: 4, nbformat_minor: 4 })
 
     it 'by calling function in the store', ->
         ipynb = export_to_ipynb(cell_list:actions.store.get('cell_list'), cells:actions.store.get('cells'))

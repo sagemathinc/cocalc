@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { COLORS, Tip } from "../../r_misc";
 
@@ -19,7 +24,7 @@ export function PathSegmentLink({
   on_click,
   full_name,
   history,
-  active = false
+  active = false,
 }: Props): JSX.Element {
   function render_content(): JSX.Element | string | undefined {
     if (full_name && full_name !== display) {
@@ -35,11 +40,11 @@ export function PathSegmentLink({
 
   function style(): React.CSSProperties {
     if (history) {
-      return { color: "#c0c0c0" };
+      return { cursor: "pointer", color: "#c0c0c0" };
     } else if (active) {
-      return { color: COLORS.BS_BLUE_BGRND };
+      return { cursor: "pointer", color: COLORS.BS_BLUE_BGRND };
     }
-    return {};
+    return { cursor: "pointer" };
   }
 
   return (

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Run Knitr on rnw/rtex files
 */
 
@@ -14,7 +19,7 @@ const R_ARGS: ReadonlyArray<string> = [
   "--no-restore",
   "--quiet",
   "--no-readline",
-  "-e"
+  "-e",
 ];
 
 export async function knitr(
@@ -27,7 +32,6 @@ export async function knitr(
   const expr = `require(knitr); opts_knit$set(concordance = TRUE, progress = FALSE); knit("${filename}")`;
   status(`${expr}`);
   return exec({
-    allow_post: false, // definitely could take a long time to fully run Knitr
     timeout: 360,
     command: R_CMD,
     args: [...R_ARGS, expr],
@@ -35,7 +39,7 @@ export async function knitr(
     project_id: project_id,
     path: directory,
     err_on_exit: false,
-    aggregate: time ? { value: time } : undefined // one might think to aggregate on hash, but the output could be random!
+    aggregate: time ? { value: time } : undefined, // one might think to aggregate on hash, but the output could be random!
   });
 }
 
@@ -71,7 +75,7 @@ export function knitr_errors(output: BuildLog): ProcessedLatexLog {
   const warnmsg = "Warning message:";
   const errline = "Quitting from lines ";
 
-  for (let line of output.stderr.split("\n")) {
+  for (const line of output.stderr.split("\n")) {
     if (line.search("Error") == 0) {
       err = {
         line: null,
@@ -79,7 +83,7 @@ export function knitr_errors(output: BuildLog): ProcessedLatexLog {
         level: "error",
         message: line,
         content: "",
-        raw: ""
+        raw: "",
       };
       pll.errors.push(err);
       pll.all.push(err);
@@ -92,7 +96,7 @@ export function knitr_errors(output: BuildLog): ProcessedLatexLog {
         level: "warning",
         message: line,
         content: "",
-        raw: ""
+        raw: "",
       };
       pll.warnings.push(err);
       pll.all.push(err);
@@ -130,7 +134,6 @@ export async function patch_synctex(
   const expr = `require(patchSynctex); patchSynctex("${filename}")`;
   status(`${expr}`);
   return exec({
-    allow_post: true,
     timeout: 10,
     command: R_CMD,
     args: [...R_ARGS, expr],
@@ -138,6 +141,6 @@ export async function patch_synctex(
     project_id: project_id,
     path: directory,
     err_on_exit: false,
-    aggregate: time ? { value: time } : undefined
+    aggregate: time ? { value: time } : undefined,
   });
 }

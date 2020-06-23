@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const { defaults: tsjPreset } = require("ts-jest/presets");
 const path = require("path");
 
@@ -10,7 +15,7 @@ module.exports = {
         "<rootDir>/smc-webapp/**/*test.tsx",
       ],
       transform: {
-        ...tsjPreset.transform
+        ...tsjPreset.transform,
       },
       testPathIgnorePatterns: ["/node_modules/", "/test-mocha/", "/data/"],
       moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
@@ -18,20 +23,18 @@ module.exports = {
         path.resolve(__dirname, "smc-util"),
         path.resolve(__dirname, "smc-util/misc"),
         path.resolve(__dirname, "smc-webapp"),
-        path.resolve(__dirname, "smc-webapp/node_modules")
+        path.resolve(__dirname, "smc-webapp/node_modules"),
       ],
 
       // Setup Enzyme
       snapshotSerializers: ["enzyme-to-json/serializer"],
-      setupFilesAfterEnv: ["<rootDir>/setupEnzyme.ts"]
+      setupFilesAfterEnv: ["<rootDir>/setupEnzyme.ts"],
     },
     {
       displayName: "smc-util",
-      testMatch: [
-        "<rootDir>/smc-util/**/*test.ts"
-      ],
+      testMatch: ["<rootDir>/smc-util/**/*test.ts"],
       transform: {
-        ...tsjPreset.transform
+        ...tsjPreset.transform,
       },
       testPathIgnorePatterns: ["/node_modules/", "/test-mocha/", "/data/"],
       moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
@@ -39,8 +42,8 @@ module.exports = {
         path.resolve(__dirname, "smc-util"),
         path.resolve(__dirname, "smc-util/misc"),
         path.resolve(__dirname, "smc-webapp"),
-        path.resolve(__dirname, "smc-webapp/node_modules")
+        path.resolve(__dirname, "smc-webapp/node_modules"),
       ],
-    }
-  ]
+    },
+  ],
 };

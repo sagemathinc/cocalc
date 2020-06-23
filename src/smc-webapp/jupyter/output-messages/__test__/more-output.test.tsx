@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { shallow } from "enzyme";
 import { MoreOutput } from "../more-output";
@@ -20,7 +25,7 @@ describe("test More Output button with no actions (so not enabled)", () => {
 
 describe("test More Output button with actions", () => {
   const actions = {
-    fetch_more_output: jest.fn()
+    fetch_more_output: jest.fn(),
   };
   const wrapper = shallow(
     <MoreOutput

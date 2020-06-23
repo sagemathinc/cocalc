@@ -1,7 +1,9 @@
 /*
-Time travel actions.
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-*/
+// Time travel actions.
 
 import { List, Map } from "immutable";
 import { ButtonGroup } from "react-bootstrap";
@@ -11,7 +13,7 @@ import {
   Component,
   Rendered,
   rclass,
-  rtypes
+  rtypes,
 } from "../../app-framework";
 import { Loading } from "../../r_misc";
 
@@ -35,7 +37,7 @@ import { SyncDoc } from "smc-util/sync/editor/generic/sync-doc";
 const TasksHistoryViewer = require("../../tasks/history-viewer").HistoryViewer;
 import {
   HistoryViewer as JupyterHistoryViewer,
-  to_ipynb
+  to_ipynb,
 } from "../../jupyter/history-viewer";
 //import { SageWorksheetHistory } from "./sagews";
 import { SagewsCodemirror } from "./sagews-codemirror";
@@ -51,6 +53,7 @@ interface Props {
   editor_settings: Map<string, any>;
   resize: number;
   is_current: boolean;
+  is_subframe: boolean;
 
   // reduxProps
   versions?: List<Date>;
@@ -68,8 +71,8 @@ class TimeTravel extends Component<Props> {
         loading: rtypes.bool,
         has_full_history: rtypes.bool,
         docpath: rtypes.string,
-        docext: rtypes.string
-      }
+        docext: rtypes.string,
+      },
     };
   }
 
@@ -128,9 +131,9 @@ class TimeTravel extends Component<Props> {
       return;
     }
     const version = this.get_version();
-    if (version == null) return this.render_loading();
+    if (version == null) return; // no versions yet, so nothing to render
     const syncdoc = this.props.actions.syncdoc;
-    if (syncdoc == null) return this.render_loading();
+    if (syncdoc == null) return; // no syncdoc yet so again nothing to render.
     switch (this.props.docext) {
       case "tasks":
         return this.render_document_tasks(syncdoc, version);
@@ -360,10 +363,12 @@ class TimeTravel extends Component<Props> {
   }
 
   private render_open_file(): Rendered {
+    if (this.props.is_subframe) return;
     return <OpenFile actions={this.props.actions} />;
   }
 
   private render_open_snapshots(): Rendered {
+    if (this.props.is_subframe) return;
     return <OpenSnapshots actions={this.props.actions} />;
   }
 
@@ -397,7 +402,7 @@ class TimeTravel extends Component<Props> {
         style={{
           background: this.props.is_current ? "#fafafa" : "#ddd",
           borderBottom: "1px solid #ccc",
-          marginLeft: "5px"
+          marginLeft: "5px",
         }}
       >
         {this.render_changes_mode()}

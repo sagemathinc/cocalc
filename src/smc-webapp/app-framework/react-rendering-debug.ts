@@ -1,16 +1,31 @@
-declare var smc, performance;
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+declare let smc, performance;
 
 export enum MODES {
   count = "count", // collect count of number of times each component is rendered; call get_render_count and reset_render_count to see.
   time = "time", // show every single component render and how long it took
   verbose = "verbose", // print every CoCalc component that is rendered when rendered
   trace = "trace", // print only components that take some time, along with timing info
-  default = "default" // Do nothing extra
+  default = "default", // Do nothing extra
 }
 
-export function debug_transform(rclass: any, mode = MODES.default) {
+// to make typescript happy (TS2339 & co)
+interface TBase {
+  render: any;
+  _render: any;
+  displayName: string;
+}
+
+export function debug_transform<T extends (...args: any[]) => any>(
+  rclass: T,
+  mode = MODES.default
+): T {
   if (typeof smc === "undefined" || smc === null) {
-    return rclass // do not enable debugging in prod
+    return rclass; // do not enable debugging in prod
   }
 
   if (mode !== "default") {
@@ -23,10 +38,10 @@ export function debug_transform(rclass: any, mode = MODES.default) {
       // Use these in the console:
       //  smc.reset_render_count()
       //  JSON.stringify(smc.get_render_count())
-      var render_count = {};
-      composed_rclass = function(x: any) {
+      let render_count: { [key: string]: number } = {};
+      composed_rclass = function <T extends TBase>(x: T): T {
         x._render = x.render;
-        x.render = function() {
+        x.render = function (): ReturnType<T["render"]> {
           render_count[x.displayName] =
             (render_count[x.displayName] != null
               ? render_count[x.displayName]
@@ -35,21 +50,24 @@ export function debug_transform(rclass: any, mode = MODES.default) {
         };
         return rclass(x);
       };
-      smc.get_render_count = function() {
+      smc.get_render_count = function (): {
+        counts: { [key: string]: number };
+        total: number;
+      } {
         let total = 0;
-        for (let k in render_count) {
+        for (const k in render_count) {
           const v = render_count[k];
           total += v;
         }
 
         return { counts: render_count, total };
       };
-      smc.reset_render_count = function() {
+      smc.reset_render_count = function (): void {
         render_count = {};
       };
       break;
     case "time":
-      composed_rclass = x => {
+      composed_rclass = <T>(x: T): T => {
         const t0 = performance.now();
         const r = rclass(x);
         const t1 = performance.now();
@@ -60,17 +78,23 @@ export function debug_transform(rclass: any, mode = MODES.default) {
       };
       break;
     case "verbose":
-      composed_rclass = function(x: any) {
-        x._render = x.render;
-        x.render = function() {
+      composed_rclass = function <
+        T extends {
+          render: (...args: any[]) => any;
+          displayName?: string;
+        }
+      >(x: T): T & { _render: T["render"] } {
+        (x as any)._render = x.render;
+        x.render = function () {
           console.log(x.displayName);
-          return this._render();
+          return (this as any)._render();
         };
         return rclass(x);
       };
       break;
     case "trace":
-      var { react_debug_trace } = require("../app-framework-debug");
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { react_debug_trace } = require("../app-framework-debug");
       composed_rclass = react_debug_trace(rclass);
       break;
     case "default":

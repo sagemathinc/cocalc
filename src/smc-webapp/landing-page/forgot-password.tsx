@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /* Dialog that is displayed when a person forgets their password
    and requests a reset.
 */
@@ -13,8 +18,8 @@ import { actions } from "./util";
 
 interface Props {
   initial_email_address: string;
-  forgot_password_error: string;
-  forgot_password_success: string;
+  forgot_password_error?: string;
+  forgot_password_success?: string;
 }
 
 interface State {
@@ -27,12 +32,12 @@ export class ForgotPassword extends React.Component<Props, State> {
     super(props);
     this.state = {
       email_address: this.props.initial_email_address,
-      is_email_valid: is_valid_email_address(this.props.initial_email_address)
+      is_email_valid: is_valid_email_address(this.props.initial_email_address),
     };
     bind_methods(this, [
       "forgot_password",
       "set_email",
-      "hide_forgot_password"
+      "hide_forgot_password",
     ]);
   }
 
@@ -48,7 +53,7 @@ export class ForgotPassword extends React.Component<Props, State> {
     const email_address = evt.target.value;
     this.setState({
       email_address,
-      is_email_valid: is_valid_email_address(email_address)
+      is_email_valid: is_valid_email_address(email_address),
     });
   }
 

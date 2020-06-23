@@ -1,6 +1,10 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { HiddenSM, Icon, Tip } from "../../r_misc";
-import { analytics_event } from "../../tracker";
 import { ProjectActions } from "smc-webapp/project_store";
 const { Button, ButtonGroup, ButtonToolbar } = require("react-bootstrap");
 
@@ -19,38 +23,26 @@ export class MiscSideButtons extends React.Component<Props> {
   handle_refresh = (e: React.MouseEvent): void => {
     e.preventDefault();
     this.props.actions.fetch_directory_listing();
-  }
+  };
 
   handle_hidden_toggle = (e: React.MouseEvent): void => {
     e.preventDefault();
     return this.props.actions.setState({
-      show_hidden: !this.props.show_hidden
+      show_hidden: !this.props.show_hidden,
     });
-  }
+  };
 
   handle_masked_toggle = (e: React.MouseEvent): void => {
     e.preventDefault();
     this.props.actions.setState({
-      show_masked: !this.props.show_masked
+      show_masked: !this.props.show_masked,
     });
-  }
+  };
 
   handle_backup = (e: React.MouseEvent): void => {
     e.preventDefault();
     this.props.actions.open_directory(".snapshots");
-  }
-
-  render_refresh(): JSX.Element {
-    return (
-      <Button
-        bsSize="small"
-        cocalc-test="files-refresh"
-        onClick={this.handle_refresh}
-      >
-        <Icon name="refresh" />
-      </Button>
-    );
-  }
+  };
 
   render_hidden_toggle(): JSX.Element {
     const icon = this.props.show_hidden ? "eye" : "eye-slash";
@@ -95,8 +87,7 @@ export class MiscSideButtons extends React.Component<Props> {
 
   handle_library_click = (_e: React.MouseEvent): void => {
     this.props.actions.toggle_library();
-    analytics_event("project_file_listing", "toggle library");
-  }
+  };
 
   render_library_button(): JSX.Element | undefined {
     // library only exists on kucalc, for now.
@@ -110,16 +101,11 @@ export class MiscSideButtons extends React.Component<Props> {
     );
   }
 
-  handle_upload_click = (_e: React.MouseEvent): void => {
-    analytics_event("project_file_listing", "clicked upload");
-  }
-
   render_upload_button(): JSX.Element {
     return (
       <Button
         bsSize="small"
         className="upload-button"
-        onClick={this.handle_upload_click}
       >
         <Icon name="upload" /> <HiddenSM>Upload</HiddenSM>
       </Button>
@@ -133,15 +119,16 @@ export class MiscSideButtons extends React.Component<Props> {
         className="pull-right"
       >
         <ButtonGroup bsSize="small">
-          {(this.props.available_features != null
-          ? this.props.available_features.library
-          : undefined)
+          {(
+            this.props.available_features != null
+              ? this.props.available_features.library
+              : undefined
+          )
             ? this.render_library_button()
             : undefined}
           {this.render_upload_button()}
         </ButtonGroup>
         <ButtonGroup bsSize="small" className="pull-right">
-          {this.render_refresh()}
           {this.render_hidden_toggle()}
           {this.render_masked_toggle()}
           {this.render_backup()}

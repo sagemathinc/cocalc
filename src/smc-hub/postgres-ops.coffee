@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 PostgreSQL -- operations code, e.g., backups, maintenance, etc.
 
@@ -155,7 +160,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     home    : '.'
                     env     :
                         PGPASSWORD : @_password
-                        PGUSER     : 'smc'
+                        PGUSER     : @_user
                         PGHOST     : @_host
                     err_on_exit : true
                     cb      : cb

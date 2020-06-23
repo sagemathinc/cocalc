@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Synchronized table of all public paths.
 
 DESIGN NOTE:
@@ -38,7 +43,7 @@ export class PublicPaths extends EventEmitter {
 
   private async do_init(): Promise<void> {
     await retry_until_success({
-      f: this.init.bind(this)
+      f: this.init.bind(this),
     });
     this.is_ready = true;
     this.emit("ready");
@@ -59,7 +64,7 @@ export class PublicPaths extends EventEmitter {
   private add_vhost(info: HostInfo): void {
     const t = info.get("vhost");
     if (t == null) return;
-    for (let host of t.split(",")) {
+    for (const host of t.split(",")) {
       this.vhosts[host] = info;
     }
   }
@@ -67,7 +72,7 @@ export class PublicPaths extends EventEmitter {
   private delete_vhost(info: HostInfo): void {
     const t = info.get("vhost");
     if (t == null) return;
-    for (let host of t.split(",")) {
+    for (const host of t.split(",")) {
       delete this.vhosts[host];
     }
   }
@@ -116,7 +121,7 @@ export class PublicPaths extends EventEmitter {
       ];
       if (x == null) {
         x = this.public_paths_in_project[info.get("project_id")] = new Set([
-          info.get("path")
+          info.get("path"),
         ]);
       } else {
         x.add(info.get("path"));
@@ -178,10 +183,10 @@ export class PublicPaths extends EventEmitter {
     }
   }
 
-  public get_views(project_id : string, path:string) : number | undefined {
+  public get_views(project_id: string, path: string): number | undefined {
     const info = this.get_info(project_id, path);
     if (info == null) return;
-    return info.get('counter');
+    return info.get("counter");
   }
 
   public async increment_view_counter(
@@ -190,7 +195,7 @@ export class PublicPaths extends EventEmitter {
   ): Promise<void> {
     const id: string = this.get_id(project_id, path);
     await callback2(this.database._query, {
-      query: `UPDATE public_paths SET counter=coalesce(counter,0)+1 WHERE id='${id}'`
+      query: `UPDATE public_paths SET counter=coalesce(counter,0)+1 WHERE id='${id}'`,
     });
   }
 
@@ -210,7 +215,7 @@ export class PublicPaths extends EventEmitter {
         }
       });
     v.sort((a, b) => -cmp(a[0], b[0]));
-    const ids = v.map(x => x[1]);
+    const ids = v.map((x) => x[1]);
     this._order = immutable.fromJS(ids);
     if (this._order == null) throw Error("bug"); // make typescript happier
     return this._order;
@@ -232,11 +237,11 @@ export class PublicPaths extends EventEmitter {
         "auth",
         "unlisted",
         "license",
-        "token"
+        "token",
       ],
-      where: "disabled IS NOT TRUE"
+      where: "disabled IS NOT TRUE",
     });
-    this.synctable.on("change", id => {
+    this.synctable.on("change", (id) => {
       // TODO: just delete cached for now..., but
       // this is horrible and we must make this
       // way more efficient!

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Parse the Table of Contents information from the notebook structure.
 */
 
@@ -10,6 +15,7 @@ export interface TableOfContentsInfo {
   value: string;
   icon: string;
   number?: number[];
+  align: "center" | "top";
 }
 
 export function parse_headings(
@@ -32,7 +38,8 @@ export function parse_headings(
           id,
           level: last_level + 1,
           value: `Answer ${nbgrader_counter}`,
-          icon: "graduation-cap"
+          icon: "graduation-cap",
+          align: "center",
         });
       } else if (nbgrader.get("grade")) {
         // solution is false but grade is true, so it's a test cell
@@ -40,7 +47,8 @@ export function parse_headings(
           id,
           level: last_level + 1,
           value: `Tests for answer ${nbgrader_counter}`,
-          icon: "equals"
+          icon: "equals",
+          align: "center",
         });
       } else if (nbgrader.get("task")) {
         nbgrader_counter += 1;
@@ -48,14 +56,18 @@ export function parse_headings(
           id,
           level: last_level + 1,
           value: `Task ${nbgrader_counter}`,
-          icon: "tasks"
+          icon: "tasks",
+          align: "center",
         });
       }
     }
 
     if (cell.get("cell_type") != "markdown") return;
 
-    const { level, value } = parse_cell_heading(cell.get("input"));
+    const input = cell.get("input");
+    if (input == null) return; // this is only needed since in types we don't impose any structure on cell yet.
+    const { level, value } = parse_cell_heading(input);
+
     if (level > 0) {
       if (last_level != level) {
         // reset section numbers
@@ -75,7 +87,8 @@ export function parse_headings(
         level,
         value,
         icon: "minus",
-        number: section_counter.slice(0, level)
+        number: section_counter.slice(0, level),
+        align: "top",
       });
     }
   });
@@ -83,7 +96,7 @@ export function parse_headings(
 }
 
 function parse_cell_heading(input: string): { level: number; value: string } {
-  for (let line of input.split("\n")) {
+  for (const line of input.split("\n")) {
     const x = line.trim();
     if (x[0] != "#") continue;
     for (let n = 1; n < x.length; n++) {

@@ -1,15 +1,37 @@
-/* Websocket based request/response api.
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-All functionality here is of the form:
+/*
+ * License
+ */
 
- -- one request
- -- one response
+// Websocket based request/response api.
+//
+// All functionality here is of the form:
+//
+//  -- one request
+//  -- one response
 
-*/
-
+// This require is just because typescript is confused by
+// the path for now.  Growing pains.
 const { callback_opts } = require("smc-util/async-utils");
 
 import { browser_symmetric_channel } from "./symmetric_channel";
+import { canonical_paths } from "./canonical-path";
+import { eval_code } from "./eval-code";
+import { terminal } from "../terminal/server";
+import { lean, lean_channel } from "../lean/server";
+import { nbgrader } from "../nbgrader/api";
+import { jupyter_strip_notebook } from "../nbgrader/jupyter-parse";
+import { jupyter_run_notebook } from "../nbgrader/jupyter-run";
+import { x11_channel } from "../x11/server";
+import { synctable_channel } from "../sync/server";
+import { syncdoc_call } from "../sync/sync-doc";
+import { get_configuration } from "../configuration";
+import { delete_files } from "./delete-files";
+import { rename_file, move_files } from "./move-files";
 
 export function init_websocket_api(
   primus: any,
@@ -18,14 +40,14 @@ export function init_websocket_api(
 ): void {
   primus.plugin("responder", require("primus-responder"));
 
-  primus.on("connection", function(spark) {
+  primus.on("connection", function (spark) {
     // Now handle the connection
     logger.debug(
       "primus-api",
       `new connection from ${spark.address.ip} -- ${spark.id}`
     );
 
-    spark.on("request", async function(data, done) {
+    spark.on("request", async function (data, done) {
       logger.debug("primus-api", "request", typeof data, JSON.stringify(data));
       try {
         const resp = await handle_api_call(client, data, primus, logger);
@@ -44,7 +66,7 @@ export function init_websocket_api(
     });*/
   });
 
-  primus.on("disconnection", function(spark) {
+  primus.on("disconnection", function (spark) {
     logger.debug(
       "primus-api",
       `end connection from ${spark.address.ip} -- ${spark.id}`
@@ -63,8 +85,16 @@ async function handle_api_call(
   switch (data.cmd) {
     case "listing":
       return await listing(data.path, data.hidden);
+    case "delete_files":
+      return await delete_files(data.paths, logger);
+    case "move_files":
+      return await move_files(data.paths, data.dest, logger);
+    case "rename_file":
+      return await rename_file(data.src, data.dest, logger);
+    case "canonical_paths":
+      return canonical_paths(data.paths);
     case "configuration":
-      return await get_configuration(data.aspect);
+      return await get_configuration(data.aspect, data.no_cache);
     case "prettier":
       return await run_prettier(client, data.path, data.options, logger);
     case "prettier_string":
@@ -78,10 +108,18 @@ async function handle_api_call(
       return await jupyter(data.path, data.endpoint, data.query);
     case "exec":
       return await exec(data.opts);
+    case "eval_code":
+      return eval_code(data.code);
     case "terminal":
       return await terminal(primus, logger, data.path, data.options);
     case "lean":
       return await lean(client, primus, logger, data.opts);
+    case "nbgrader":
+      return await nbgrader(client, logger, data.opts);
+    case "jupyter_strip_notebook":
+      return await jupyter_strip_notebook(data.ipynb_path);
+    case "jupyter_run_notebook":
+      return await jupyter_run_notebook(client, logger, data.opts);
     case "lean_channel":
       return await lean_channel(client, primus, logger, data.path);
     case "x11_channel":
@@ -100,7 +138,7 @@ async function handle_api_call(
       return await browser_symmetric_channel(client, primus, logger, data.name);
     default:
       throw Error(
-        `command "${data.cmd}" not implemented -- try restarting your project`
+        `command "${data.cmd}" not implemented -- restart your project (in Project --> Settings)`
       );
   }
 }
@@ -124,18 +162,6 @@ interface ExecuteOutput {
   stderr: string;
   exit_code: number;
 }
-async function exec(opts: any): Promise<ExecuteOutput> {
+export async function exec(opts: any): Promise<ExecuteOutput> {
   return await callback_opts(execute_code)(opts);
 }
-
-import { terminal } from "../terminal/server";
-
-import { lean, lean_channel } from "../lean/server";
-
-import { x11_channel } from "../x11/server";
-
-import { synctable_channel } from "../sync/server";
-
-import { syncdoc_call } from "../sync/sync-doc";
-
-import { get_configuration } from "../configuration";

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Use React to convert a code file to printable form, entirely on the frontend.
 */
 
@@ -22,7 +27,7 @@ interface Options {
 export function print_code(opts: Options) {
   const w = popup("");
 
-  let options = fromJS(opts.options);
+  const options = fromJS(opts.options);
 
   // We add a trailing whitespace, since some printers grey the last line (e.g., chrome, but not firefox)
   const value = opts.value + "\n";
@@ -30,7 +35,7 @@ export function print_code(opts: Options) {
     value,
     options,
     style: { background: "white", width: "auto" },
-    no_border: true
+    no_border: true,
   };
   const s: string = renderToStaticMarkup(
     React.createElement(CodeMirrorStatic, props)

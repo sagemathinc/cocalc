@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { CompressedPatch, Document } from "../generic/types";
 import * as immutable from "immutable";
 import { isEqual } from "underscore";
@@ -8,14 +13,14 @@ import { len } from "../../../misc2";
 
 import {
   make_patch as string_make_patch,
-  apply_patch as string_apply_patch
+  apply_patch as string_apply_patch,
 } from "../generic/util";
 import {
   map_merge_patch,
   merge_set,
   nonnull_cols,
   to_key,
-  to_str
+  to_str,
 } from "./util";
 
 type Record = immutable.Map<string, any> | undefined;
@@ -102,7 +107,7 @@ export class DBDocument implements Document {
   private init_indexes(): Indexes {
     // Build indexes
     let indexes: Indexes = immutable.Map();
-    for (let field of this.primary_keys) {
+    for (const field of this.primary_keys) {
       const index: Index = immutable.Map();
       indexes = indexes.set(field, index);
     }
@@ -199,7 +204,7 @@ export class DBDocument implements Document {
     if (t1.size === 0) {
       // Special case: t1 is empty -- bunch of deletes
       const v: jsmap[] = [];
-      t0.map(x => {
+      t0.map((x) => {
         if (x != null) {
           v.push(this.primary_key_part(x.toJS()));
         }
@@ -227,7 +232,7 @@ export class DBDocument implements Document {
     // Inserts: everything in k1 that is not in k0
     const inserts = k1.subtract(k0);
     if (inserts.size > 0) {
-      inserts.map(k => {
+      inserts.map((k) => {
         if (k != null) {
           const x = other.get_one(k);
           if (x != null) {
@@ -241,7 +246,7 @@ export class DBDocument implements Document {
     // must have all changed
     const changed = k1.intersect(k0);
     if (changed.size > 0) {
-      changed.map(k => {
+      changed.map((k) => {
         if (k == null) {
           return;
         }
@@ -256,14 +261,14 @@ export class DBDocument implements Document {
         const from = from0.toJS();
         const to = to0.toJS();
         // undefined for each key of from not in to
-        for (let key in from) {
+        for (const key in from) {
           if (to[key] == null) {
             obj[key] = null;
           }
         }
         // Explicitly set each key of `to` that is different
         // than corresponding key of `from`:
-        for (let key in to) {
+        for (const key in to) {
           const v = to[key];
           if (!isEqual(from[key], v)) {
             if (this.string_cols.has(key) && from[key] != null && v != null) {
@@ -334,7 +339,7 @@ export class DBDocument implements Document {
     // satisfy the where condition.
     const n: number = len(where);
     let result: immutable.Set<number> | undefined = undefined;
-    for (let field in where) {
+    for (const field in where) {
       const value = where[field];
       const index = this.indexes.get(field);
       if (index == null) {
@@ -368,7 +373,7 @@ export class DBDocument implements Document {
   private parse(obj: Map<string, any>): { where: jsmap; set: jsmap } {
     const where: jsmap = {};
     const set: jsmap = {};
-    for (let field in obj) {
+    for (const field in obj) {
       const val = obj[field];
       if (this.primary_keys.has(field)) {
         if (val != null) {
@@ -384,7 +389,7 @@ export class DBDocument implements Document {
   public set(obj: SetCondition | SetCondition[]): DBDocument {
     if (is_array(obj)) {
       let z: DBDocument = this;
-      for (let x of obj as SetCondition[]) {
+      for (const x of obj as SetCondition[]) {
         z = z.set(x);
       }
       return z;
@@ -406,7 +411,7 @@ export class DBDocument implements Document {
         throw Error("bug -- record can't be null");
       }
       const before = record;
-      for (let field in set) {
+      for (const field in set) {
         const value = set[field];
         if (value === null) {
           // null = how to delete fields
@@ -463,7 +468,7 @@ export class DBDocument implements Document {
     } else {
       // The sparse array matches had nothing in it, so
       // append a new record.
-      for (let field in this.string_cols) {
+      for (const field in this.string_cols) {
         if (obj[field] != null && is_array(obj[field])) {
           // It's a patch -- but there is nothing to patch,
           // so discard this field
@@ -478,7 +483,7 @@ export class DBDocument implements Document {
       const everything = this.everything.add(n);
       // update indexes
       let indexes = this.indexes;
-      for (let field of this.primary_keys) {
+      for (const field of this.primary_keys) {
         const val = obj[field];
         if (val != null) {
           let index = indexes.get(field);
@@ -508,7 +513,7 @@ export class DBDocument implements Document {
 
   private delete_array(where: WhereCondition[]): DBDocument {
     let z = this as DBDocument;
-    for (let x of where) {
+    for (const x of where) {
       z = z.delete(x);
     }
     return z;
@@ -529,7 +534,9 @@ export class DBDocument implements Document {
     if (remove.size === this.everything.size) {
       // actually deleting everything; easy special cases
       changes = changes.union(
-        this.records.filter(record => record != null).map(this.primary_key_cols)
+        this.records
+          .filter((record) => record != null)
+          .map(this.primary_key_cols)
       );
       return new DBDocument(
         this.primary_keys,
@@ -543,12 +550,12 @@ export class DBDocument implements Document {
 
     // remove matches from every index
     let indexes = this.indexes;
-    for (let field of this.primary_keys) {
+    for (const field of this.primary_keys) {
       let index = indexes.get(field);
       if (index == null) {
         continue;
       }
-      remove.forEach(n => {
+      remove.forEach((n) => {
         if (n == null) {
           return;
         }
@@ -574,7 +581,7 @@ export class DBDocument implements Document {
     // delete corresponding records (actually set to undefined to
     // preserve index references).
     let records = this.records;
-    remove.forEach(n => {
+    remove.forEach((n) => {
       if (n == null) {
         return;
       }
@@ -625,7 +632,7 @@ export class DBDocument implements Document {
   // x = javascript object
   private primary_key_part(x: jsmap): jsmap {
     const where: jsmap = {};
-    for (let k in x) {
+    for (const k in x) {
       const v = x[k];
       if (this.primary_keys.has(k)) {
         where[k] = v;
@@ -644,10 +651,10 @@ export class DBDocument implements Document {
     // Get the defined records; there may be undefined ones due
     // to lazy delete.
     let t0: immutable.Set<Record> = immutable.Set(
-      immutable.Set(this.records).filter(x => x != null)
+      immutable.Set(this.records).filter((x) => x != null)
     );
     let t1: immutable.Set<Record> = immutable.Set(
-      immutable.Set(other.records).filter(x => x != null)
+      immutable.Set(other.records).filter((x) => x != null)
     );
 
     // Remove the common intersection -- nothing going on there.
@@ -670,7 +677,7 @@ export class DBDocument implements Document {
       return immutable.Set(
         immutable
           .Set(this.records)
-          .filter(x => x != null)
+          .filter((x) => x != null)
           .map(this.primary_key_cols)
       );
     }
@@ -705,7 +712,7 @@ export function from_str(
   string_cols: string[]
 ): DBDocument {
   const obj: jsmap[] = [];
-  for (let line of s.split("\n")) {
+  for (const line of s.split("\n")) {
     if (line.length > 0) {
       try {
         const x = JSON.parse(line);

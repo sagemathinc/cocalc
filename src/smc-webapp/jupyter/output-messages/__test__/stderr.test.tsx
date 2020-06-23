@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { shallow, render } from "enzyme";
 import { Stderr } from "../stderr";
@@ -29,7 +34,6 @@ describe("test ANSI rendering by Stderr", () => {
 describe("Stderr style test", () => {
   const wrapper = render(<Stderr message={fromJS({ text: "Hello World" })} />);
   it("checks the style -- has a red background.", () => {
-    expect(wrapper.attr('style')).toContain("background-color:#fdd");
+    expect(wrapper.attr("style")).toContain("background-color:#fdd");
   });
 });
-

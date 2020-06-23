@@ -1,5 +1,9 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
-import { analytics_event } from "../../tracker";
 import { TERM_MODE_CHAR } from "./file-listing";
 import { Icon, SearchInput } from "../../r_misc";
 import { ProjectActions } from "smc-webapp/project_store";
@@ -42,7 +46,7 @@ export class SearchBar extends React.Component<Props, State> {
     file_search: "",
     selected_file_index: 0,
     num_files_displayed: 0,
-    disabled: false
+    disabled: false,
   };
 
   constructor(props) {
@@ -51,7 +55,7 @@ export class SearchBar extends React.Component<Props, State> {
     this.state = {
       stdout: undefined,
       state: "edit", // 'edit' --> 'run' --> 'edit'
-      error: undefined
+      error: undefined,
     };
   }
 
@@ -59,7 +63,7 @@ export class SearchBar extends React.Component<Props, State> {
   execute_command(command: string): void {
     this.setState({
       stdout: "",
-      error: ""
+      error: "",
     });
     const input = command.trim();
     if (!input) {
@@ -70,7 +74,6 @@ export class SearchBar extends React.Component<Props, State> {
 
     this._id = (this._id != undefined ? this._id : 0) + 1;
     const id = this._id;
-    analytics_event("project_file_listing", "exec file search miniterm", input);
     webapp_client.exec({
       project_id: this.props.project_id,
       command: input0,
@@ -115,13 +118,13 @@ export class SearchBar extends React.Component<Props, State> {
           this.setState({
             state: "edit",
             error: output.stderr,
-            stdout: output.stdout
+            stdout: output.stdout,
           });
           if (!output.stderr) {
             this.props.actions.set_file_search("");
           }
         }
-      }
+      },
     });
   }
 
@@ -171,7 +174,7 @@ export class SearchBar extends React.Component<Props, State> {
       return (
         <pre style={style}>
           <a
-            onClick={e => {
+            onClick={(e) => {
               e.preventDefault();
               this.setState({ stdout: "", error: "" });
             }}
@@ -181,7 +184,7 @@ export class SearchBar extends React.Component<Props, State> {
               top: "0px",
               color: "#666",
               fontSize: "14pt",
-              position: "absolute"
+              position: "absolute",
             }}
           >
             <Icon name="times" />
@@ -194,9 +197,9 @@ export class SearchBar extends React.Component<Props, State> {
 
   dismiss_alert = (): void => {
     this.props.actions.setState({ file_creation_error: "" });
-  }
+  };
 
-  search_submit = (value: string, opts: {ctrl_down: boolean}): void => {
+  search_submit = (value: string, opts: { ctrl_down: boolean }): void => {
     if (value[0] === TERM_MODE_CHAR && !this.props.public_view) {
       const command = value.slice(1, value.length);
       this.execute_command(command);
@@ -212,7 +215,7 @@ export class SearchBar extends React.Component<Props, State> {
       } else {
         this.props.actions.open_file({
           path: new_path,
-          foreground: !opts.ctrl_down
+          foreground: !opts.ctrl_down,
         });
       }
       if (opening_a_dir || !opts.ctrl_down) {
@@ -227,29 +230,29 @@ export class SearchBar extends React.Component<Props, State> {
       }
       this.props.actions.clear_selected_file_index();
     }
-  }
+  };
 
   on_up_press = (): void => {
     if (this.props.selected_file_index > 0) {
       this.props.actions.decrement_selected_file_index();
     }
-  }
+  };
 
   on_down_press = (): void => {
     if (this.props.selected_file_index < this.props.num_files_displayed - 1) {
       this.props.actions.increment_selected_file_index();
     }
-  }
+  };
 
   on_change = (search: string): void => {
     this.props.actions.zero_selected_file_index();
     this.props.actions.set_file_search(search);
-  }
+  };
 
   on_clear = (): void => {
     this.props.actions.clear_selected_file_index();
     this.setState({ input: "", stdout: "", error: "" });
-  }
+  };
 
   render(): JSX.Element {
     return (
@@ -271,7 +274,7 @@ export class SearchBar extends React.Component<Props, State> {
         <div style={output_style_searchbox}>
           {this.render_output(this.state.error, {
             color: "darkred",
-            margin: 0
+            margin: 0,
           })}
           {this.render_output(this.state.stdout, { margin: 0 })}
         </div>

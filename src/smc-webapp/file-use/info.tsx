@@ -1,20 +1,15 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Component, React, Rendered } from "../app-framework";
-
-import { analytics_event } from "../tracker";
-
 const { User } = require("../users");
-const { TimeAgo } = require("../r_misc");
-import { r_join } from "../r_misc/r_join";
-import { Icon } from "../r_misc/icon";
-
+import { Icon, TimeAgo, r_join } from "../r_misc";
 import { FileUseIcon } from "./icon";
-
 import { Map as iMap } from "immutable";
-
 const { Col, Grid, Row } = require("react-bootstrap");
-
 const misc = require("smc-util/misc");
-
 import { open_file_use_entry } from "./util";
 
 // Arbitrary constants:
@@ -27,7 +22,7 @@ const TRUNCATE_LENGTH = 50;
 const file_use_style = {
   border: "1px solid #aaa",
   cursor: "pointer",
-  width: "100%"
+  width: "100%",
 };
 
 interface Props {
@@ -60,7 +55,7 @@ export class FileUseInfo extends Component<Props, {}> {
         users.push(user.toJS());
       }
     });
-    for (let user of users.slice(0, MAX_USERS)) {
+    for (const user of users.slice(0, MAX_USERS)) {
       v.push(
         <User
           key={user.account_id}
@@ -95,11 +90,6 @@ export class FileUseInfo extends Component<Props, {}> {
       x.get("show_chat", false),
       this.props.redux
     );
-    analytics_event(
-      "file_notifications",
-      "open from click",
-      misc.filename_extension(x.get("path"))
-    );
   }
 
   render_path(): Rendered {
@@ -112,7 +102,7 @@ export class FileUseInfo extends Component<Props, {}> {
       <span>
         <span
           style={{
-            fontWeight: this.props.info.get("is_unread") ? "bold" : "normal"
+            fontWeight: this.props.info.get("is_unread") ? "bold" : "normal",
           }}
         >
           {name}
@@ -165,7 +155,7 @@ export class FileUseInfo extends Component<Props, {}> {
       misc.merge(style, { background: "#08c", color: "white" });
     }
     return (
-      <Grid style={style} onClick={e => this.open(e)} fluid={true}>
+      <Grid style={style} onClick={(e) => this.open(e)} fluid={true}>
         <Row style={{ padding: "5px" }}>
           <Col key="action" sm={1} style={{ fontSize: "14pt" }}>
             {this.render_action_icon()}

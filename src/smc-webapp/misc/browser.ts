@@ -1,12 +1,17 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 
 Get browser name *and* version:
 
 https://stackoverflow.com/questions/5916900/how-can-you-detect-the-version-of-a-browser
 */
 
-export function get_browser() : {name:string, version:string} {
-  var ua = navigator.userAgent,
+export function get_browser(): { name: string; version: string } {
+  let ua = navigator.userAgent,
     tem,
     M =
       ua.match(
@@ -28,6 +33,6 @@ export function get_browser() : {name:string, version:string} {
   }
   return {
     name: M[0],
-    version: M[1]
+    version: M[1],
   };
 }

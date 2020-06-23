@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 React component to render a Sage worksheet statically (for use by share server or public mode)
 */
 
@@ -28,15 +33,15 @@ export class Worksheet extends Component<Props> {
   }
 
   private render_cells(): Rendered[] {
-    let cells: CellType[] = [];
-    for (let cell of this.props.sagews) {
+    const cells: CellType[] = [];
+    for (const cell of this.props.sagews) {
       if (cell.type === "cell") {
         cells.push(cell);
       }
     }
     cells.sort(field_cmp("pos"));
     const v: Rendered[] = [];
-    for (let cell of cells) {
+    for (const cell of cells) {
       v.push(this.render_cell(cell));
     }
     return v;

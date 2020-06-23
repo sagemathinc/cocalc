@@ -1,7 +1,16 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 A JSON Editor
 
 This is just built using codemirror for now.
+
+****NOTE:** This code is not used right now!  It can safely be deleted so long as you delete the places it is imported.  It's not user visible.**
+
+SEE https://github.com/sagemathinc/cocalc/issues/4295
 */
 
 import { React, Component } from "../app-framework";
@@ -20,7 +29,7 @@ const ERROR_STYLE: React.CSSProperties = {
   width: "50%",
   right: "0",
   borderRadius: "3px",
-  boxShadow: "0px 0px 3px 2px rgba(87, 87, 87, 0.2)"
+  boxShadow: "0px 0px 3px 2px rgba(87, 87, 87, 0.2)",
 };
 
 interface JSONEditorProps {
@@ -94,7 +103,7 @@ export class JSONEditor extends Component<JSONEditorProps, JSONEditorState> {
     }
   };
 
-  _cm_merge_remote = remote => {
+  _cm_merge_remote = (remote) => {
     let new_val: any;
     if (this.cm == null) {
       return;
@@ -222,7 +231,7 @@ export class JSONEditor extends Component<JSONEditorProps, JSONEditorState> {
           width: "100%",
           overflow: "auto",
           height: "100%",
-          position: "relative"
+          position: "relative",
         }}
       >
         {this.render_error()}

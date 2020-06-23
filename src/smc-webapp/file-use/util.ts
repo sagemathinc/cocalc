@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { delay } from "awaiting";
 
 export async function open_file_use_entry(
@@ -19,7 +24,7 @@ export async function open_file_use_entry(
   // Start the project opening. This may trigger a session restore.
   redux.getActions("projects").open_project({ project_id, switch_to: true });
   // Now open the file.
-  let a = redux.getProjectActions(project_id);
+  const a = redux.getProjectActions(project_id);
   if (a == null) return;
   // We wait until the next render loop before actually opening
   // the file.  The reason is because opening the project restores
@@ -35,6 +40,6 @@ export async function open_file_use_entry(
     path: path,
     foreground: true,
     foreground_project: true,
-    chat: show_chat
+    chat: show_chat,
   });
 }

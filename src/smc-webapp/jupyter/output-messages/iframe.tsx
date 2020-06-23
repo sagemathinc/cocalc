@@ -1,10 +1,15 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Handle iframe output messages involving a src doc.
 */
 
 import { React, Component, Rendered } from "smc-webapp/app-framework";
 import { get_blob_url } from "../server-urls";
-const { Icon } = require("smc-webapp/r_misc"); // TODO: import and type
+import { Icon } from "smc-webapp/r_misc";
 import { Button } from "react-bootstrap";
 
 interface IFrameProps {

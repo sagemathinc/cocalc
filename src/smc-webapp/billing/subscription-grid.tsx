@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Row, Col } from "react-bootstrap";
 import { Component, React, Rendered, redux } from "../app-framework";
 import { keys, intersection } from "lodash";
@@ -49,16 +54,16 @@ export class SubscriptionGrid extends Component<Props> {
 
   private render_cols(row: string[], ncols: number): Rendered[] {
     const width = 12 / ncols;
-    return row.map(plan => (
+    return row.map((plan) => (
       <Col sm={width} key={plan}>
         {this.render_plan_info(plan)}
       </Col>
     ));
   }
 
-  private render_rows(live_subscriptions: (string[])[], ncols): Rendered[] {
+  private render_rows(live_subscriptions: string[][], ncols): Rendered[] {
     const v: Rendered[] = [];
-    for (let i in live_subscriptions) {
+    for (const i in live_subscriptions) {
       const row: string[] = live_subscriptions[i];
       v.push(<Row key={i}>{this.render_cols(row, ncols)}</Row>);
     }
@@ -66,11 +71,11 @@ export class SubscriptionGrid extends Component<Props> {
   }
 
   public render(): Rendered {
-    const live_subscriptions: (string[])[] = [];
+    const live_subscriptions: string[][] = [];
     let ncols: number = 0; // max number of columns in any row
-    for (let row of PROJECT_UPGRADES.live_subscriptions) {
+    for (const row of PROJECT_UPGRADES.live_subscriptions) {
       const v: string[] = [];
-      for (let x of row) {
+      for (const x of row) {
         const price_keys = keys(PROJECT_UPGRADES.subscription[x].price);
         if (intersection(this.props.periods, price_keys).length > 0) {
           ncols = Math.max(ncols, row.length); // this row matters.

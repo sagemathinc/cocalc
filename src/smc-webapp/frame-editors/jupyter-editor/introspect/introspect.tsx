@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Introspect -- display information related to help, source code,
 etc., about a Jupyter notebook.  This is what appears as a pop-over
 on the bottom half the of the screen for Jupyter classic.
@@ -6,14 +11,14 @@ on the bottom half the of the screen for Jupyter classic.
 
 import { Map } from "immutable";
 
-import {merge} from "smc-util/misc2";
+import { merge } from "smc-util/misc2";
 
 import {
   Component,
   React,
   Rendered,
   rtypes,
-  rclass
+  rclass,
 } from "../../../app-framework";
 
 import { redux_name } from "../jupyter-actions";
@@ -33,14 +38,14 @@ interface Props {
 
 const STYLE: React.CSSProperties = {
   padding: "10px 25px 5px",
-  overflowY: "auto"
+  overflowY: "auto",
 };
 
 const INNER_STYLE: React.CSSProperties = {
   border: "1px solid rgb(207, 207, 207)",
   borderRadius: "2px",
   background: "rgb(247, 247, 247)",
-  padding: "5px 25px"
+  padding: "5px 25px",
 };
 
 class Introspect extends Component<Props> {
@@ -55,8 +60,8 @@ class Introspect extends Component<Props> {
     const name_of_jupyter_store = redux_name(name);
     return {
       [name_of_jupyter_store]: {
-        introspect: rtypes.immutable.Map
-      }
+        introspect: rtypes.immutable.Map,
+      },
     };
   }
 

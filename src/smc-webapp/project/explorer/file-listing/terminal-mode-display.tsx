@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 const { Alert, Row, Col } = require("react-bootstrap");
 
@@ -5,12 +10,12 @@ const row_style: React.CSSProperties = {
   textAlign: "left",
   color: "#888",
   marginTop: "5px",
-  wordWrap: "break-word"
+  wordWrap: "break-word",
 };
 
 const alert_style: React.CSSProperties = {
   marginTop: "5px",
-  fontWeight: "bold"
+  fontWeight: "bold",
 };
 
 export function TerminalModeDisplay() {

@@ -1,17 +1,20 @@
 /*
-Components related to toggling the way output is displayed.
-*/
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// Components related to toggling the way output is displayed.
 
 import { React, Component } from "../app-framework";
 
-const { Icon } = require("../r_misc"); // TODO: type
+import { Icon } from "../r_misc";
 const { merge } = require("smc-util/misc");
 
 const SCROLLED_STYLE: React.CSSProperties = {
   fontSize: "inherit",
   padding: 0,
   display: "flex", // flex used to move output prompt to bottom.
-  flexDirection: "column"
+  flexDirection: "column",
 };
 
 const NORMAL_STYLE: React.CSSProperties = merge(
@@ -78,7 +81,7 @@ export class CollapsedOutput extends Component<CollapsedOutputProps> {
           textAlign: "center",
           width: "100%",
           color: "#777",
-          padding: 0
+          padding: 0,
         }}
       >
         <Icon name="ellipsis-h" />

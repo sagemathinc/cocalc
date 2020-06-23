@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Assign, RequiredKeys } from "utility-types";
 import { Optionals } from "./types";
 
@@ -18,15 +23,22 @@ type Definition<T> = {
  *
  * @example
  *
- *     define<{name: string, 
+ *     define<{name: string,
  *              highlight?: boolean,
  *              last?: string},
  *           {highlight: boolean}>(unknown_prop, {highlight: false});
- * 
+ *
  * Unfortunately you must use both type annotations until this goes through
  * https://github.com/microsoft/TypeScript/issues/26242
  *
  **/
+export function define<T>(props: unknown, definition: Definition<T>): T;
+export function define<T extends object, U extends Optionals<T>>(
+  props: unknown,
+  definition: Assign<Definition<T>, U>,
+  allow_extra?: boolean,
+  strict?: boolean
+): Assign<U, Requireds<T>>;
 export function define<T extends object, U extends Optionals<T>>(
   props: unknown,
   definition: Assign<Definition<T>, U>,
@@ -57,7 +69,7 @@ export function define<T extends object, U extends Optionals<T>>(
     );
   }
   const result: Assign<U, Requireds<T>> = {} as any;
-  for (let key in definition) {
+  for (const key in definition) {
     if (props.hasOwnProperty(key) && props[key] != undefined) {
       if (definition[key] === required && props[key] == undefined) {
         return maybe_error(
@@ -77,7 +89,7 @@ export function define<T extends object, U extends Optionals<T>>(
   }
 
   if (!allow_extra) {
-    for (let key in props) {
+    for (const key in props) {
       if (!definition.hasOwnProperty(key)) {
         return maybe_error(
           `misc.defaults -- TypeError: got an unexpected argument '${key}'`

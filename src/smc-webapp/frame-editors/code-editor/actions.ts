@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Code Editor Actions
 */
 
@@ -7,6 +12,7 @@ const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
 
+import { reuseInFlight } from "async-await-utils/hof";
 import { fromJS, List, Map, Set } from "immutable";
 import { debounce } from "underscore";
 import { delay } from "awaiting";
@@ -17,20 +23,20 @@ import {
   prettier,
   syncstring,
   syncdb2,
-  syncstring2
+  syncstring2,
 } from "../generic/client";
 
 import { SyncDB } from "smc-util/sync/editor/db";
 import { SyncString } from "smc-util/sync/editor/string";
 
 import { aux_file } from "../frame-tree/util";
-import { callback_opts } from "smc-util/async-utils";
+import { callback_opts, once } from "smc-util/async-utils";
 import {
   endswith,
   filename_extension,
   history_path,
   len,
-  uuid
+  uuid,
 } from "smc-util/misc2";
 import { print_code } from "../frame-tree/print-code";
 import {
@@ -39,7 +45,7 @@ import {
   FrameTree,
   ImmutableFrameTree,
   SetMap,
-  ErrorStyles
+  ErrorStyles,
 } from "../frame-tree/types";
 import { SettingsObject } from "../settings/types";
 import { misspelled_words } from "./spell-check";
@@ -54,19 +60,26 @@ import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
 
 import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
+import { CodeEditorManager, CodeEditor } from "./code-editor-manager";
 
-import { Available as AvailableFeatures } from "../../project_configuration";
-import {
-  ext2parser,
-  parser2tool,
-  format_parser_for_extension
-} from "smc-util/code-formatter";
+import { AvailableFeatures } from "../../project_configuration";
+
+import { apply_patch } from "smc-util/sync/editor/generic/util";
+
+import { default_opts } from "../codemirror/cm-options";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 const { open_new_tab } = require("smc-webapp/misc_page");
 
-import { Options as FormatterOptions } from "smc-project/formatters/prettier";
-import { ParserVariant, Exts as FormatterExts } from "smc-util/code-formatter";
+import {
+  ext2syntax,
+  syntax2tool,
+  ParserVariant,
+  Syntax as FormatterSyntax,
+  Exts as FormatterExts,
+  Tool as FormatterTool,
+} from "smc-util/code-formatter";
+import { Config as FormatterConfig } from "smc-project/formatters/prettier";
 import { SHELLS } from "./editor";
 
 interface gutterMarkerParams {
@@ -97,16 +110,17 @@ export interface CodeEditorState {
   local_view_state: any; // Generic use of Actions below makes this entirely befuddling...
   reload: Map<string, any>;
   resize: number;
-  misspelled_words: Set<string>;
+  misspelled_words: Set<string> | string;
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
+  show_uncommitted_changes: boolean;
   is_saving: boolean;
   is_loaded: boolean;
   gutter_markers: GutterMarkers;
   cursors: Map<any, any>;
   value?: string;
   load_time_estimate: number;
-  error: any;
+  error: string;
   errorstyle?: ErrorStyles;
   status: any;
   read_only: boolean;
@@ -114,6 +128,7 @@ export interface CodeEditorState {
   complete: Map<string, any>;
   derived_file_types: Set<string>;
   visible: boolean;
+  switch_to_files: string[];
 }
 
 export class Actions<
@@ -127,7 +142,8 @@ export class Actions<
   protected _key_handler: any;
   protected _cm: { [key: string]: CodeMirror.Editor } = {};
 
-  protected terminals: TerminalManager<T>;
+  private terminals: TerminalManager<CodeEditorState>;
+  private code_editors: CodeEditorManager<CodeEditorState>;
 
   protected doctype: string = "syncstring";
   protected primary_keys: string[] = [];
@@ -159,7 +175,14 @@ export class Actions<
     this.path = path;
     this.store = store;
     this.is_public = is_public;
-    this.terminals = new TerminalManager<T>(this);
+    this.terminals = new TerminalManager<CodeEditorState>(
+      (this as unknown) as Actions<CodeEditorState>
+    );
+    this.code_editors = new CodeEditorManager<CodeEditorState>(
+      (this as unknown) as Actions<CodeEditorState>
+    );
+
+    this.format = reuseInFlight(this.format);
 
     this.set_resize = this.set_resize.bind(this);
     window.addEventListener("resize", this.set_resize);
@@ -179,11 +202,12 @@ export class Actions<
       misspelled_words: Set(),
       has_unsaved_changes: false,
       has_uncommitted_changes: false,
+      show_uncommitted_changes: false,
       is_saving: false,
       gutter_markers: Map(),
       cursors: Map(),
       settings: fromJS(this._default_settings()),
-      complete: Map()
+      complete: Map(),
     });
 
     if ((this as any)._init2) {
@@ -203,7 +227,7 @@ export class Actions<
     try {
       const data: string = await public_get_text_file({
         project_id: this.project_id,
-        path: this.path
+        path: this.path,
       });
       this.setState({ value: data });
     } catch (err) {
@@ -228,7 +252,7 @@ export class Actions<
   // spelling makes sense...
   protected _init_spellcheck(): void {
     this._spellcheck_is_supported = true;
-    this._syncstring.on("save-to-disk", time =>
+    this._syncstring.on("save-to-disk", (time) =>
       this.update_misspelled_words(time)
     );
   }
@@ -242,13 +266,13 @@ export class Actions<
         before_change_hook: () => this.set_syncstring_to_codemirror(),
         after_change_hook: () => this.set_codemirror_to_syncstring(),
         fake: true,
-        patch_interval: 500
+        patch_interval: 500,
       });
     } else if (this.doctype == "syncstring") {
       this._syncstring = syncstring2({
         project_id: this.project_id,
         path: this.path,
-        cursors: true
+        cursors: true,
       });
     } else if (this.doctype == "syncdb") {
       if (
@@ -262,13 +286,13 @@ export class Actions<
         project_id: this.project_id,
         path: this.path,
         primary_keys: this.primary_keys,
-        string_cols: this.string_cols
+        string_cols: this.string_cols,
       });
     } else {
       throw Error(`invalid doctype="${this.doctype}"`);
     }
 
-    this._syncstring.once("ready", err => {
+    this._syncstring.once("ready", (err) => {
       if (err) {
         this.set_error(
           `Fatal error opening file -- ${err}\nFix this, then try opening the file again.`
@@ -307,7 +331,7 @@ export class Actions<
       "after-change",
       this.set_codemirror_to_syncstring.bind(this)
     );
-    this._syncstring.once("load-time-estimate", est => {
+    this._syncstring.once("load-time-estimate", (est) => {
       return this.setState({ load_time_estimate: est });
     });
 
@@ -317,7 +341,7 @@ export class Actions<
       this.set_reload("save_to_disk");
     });
 
-    this._syncstring.once("error", err => {
+    this._syncstring.once("error", (err) => {
       this.set_error(
         `Fatal error opening ${this.path} -- ${err}\nFix this, then try opening the file again.`
       );
@@ -327,12 +351,21 @@ export class Actions<
       this.close();
     });
 
-    this._syncstring.on("has-uncommitted-changes", has_uncommitted_changes =>
-      this.setState({ has_uncommitted_changes })
+    this._syncstring.on(
+      "has-uncommitted-changes",
+      (has_uncommitted_changes) => {
+        this.setState({ has_uncommitted_changes });
+        if (!has_uncommitted_changes) {
+          this.set_show_uncommitted_changes(false);
+        }
+      }
     );
 
-    this._syncstring.on("has-unsaved-changes", has_unsaved_changes => {
+    this._syncstring.on("has-unsaved-changes", (has_unsaved_changes) => {
       this.setState({ has_unsaved_changes });
+      if (!has_unsaved_changes) {
+        this.set_show_uncommitted_changes(false);
+      }
     });
   }
 
@@ -352,9 +385,10 @@ export class Actions<
       project_id: this.project_id,
       path: aux,
       primary_keys,
-      string_cols
+      string_cols,
+      file_use_interval: 0, // disable file use,, since syncdb is an auxiliary file
     });
-    this._syncdb.once("error", err => {
+    this._syncdb.once("error", (err) => {
       this.set_error(
         `Fatal error opening config "${aux}" -- ${err}.\nFix this, then try opening the file again.`
       );
@@ -405,7 +439,7 @@ export class Actions<
       hash = this._syncstring.hash_of_saved_version();
     }
     this.setState({
-      reload: reload.set(type, hash)
+      reload: reload.set(type, hash),
     });
   }
 
@@ -418,7 +452,7 @@ export class Actions<
   set_resize(): void {
     if (!this.store.get("visible")) return;
     this.setState({
-      resize: this.store.get("resize", 0) + 1
+      resize: this.store.get("resize", 0) + 1,
     });
   }
 
@@ -456,6 +490,8 @@ export class Actions<
     cm_doc_cache.close(this.project_id, this.path);
     // Free up any allocated terminals.
     this.terminals.close();
+    // Free up stuff related to code editors with different path
+    this.code_editors.close();
   }
 
   private async close_syncstring(): Promise<void> {
@@ -542,13 +578,13 @@ export class Actions<
     }
     // Set local state related to what we see/search for/etc.
     let local = this.store.get("local_view_state");
-    for (let key in obj) {
+    for (const key in obj) {
       const coerced_key = key as keyof LocalViewParams;
       const value = obj[coerced_key];
       local = local.set(coerced_key, fromJS(value));
     }
     this.setState({
-      local_view_state: local
+      local_view_state: local,
     });
     this._save_local_view_state();
   }
@@ -595,7 +631,7 @@ export class Actions<
     // We delete full_id to de-maximize if in full screen mode,
     // so the active_id frame is visible.
     this.setState({
-      local_view_state: local.set("active_id", active_id).delete("full_id")
+      local_view_state: local.set("active_id", active_id).delete("full_id"),
     });
     this._save_local_view_state();
     this.focus(active_id);
@@ -622,7 +658,7 @@ export class Actions<
   _get_active_id(): string {
     let id: string | undefined = this.store.getIn([
       "local_view_state",
-      "active_id"
+      "active_id",
     ]);
     if (!id) {
       id = tree_ops.get_some_leaf_id(this._get_tree());
@@ -634,7 +670,7 @@ export class Actions<
   _get_tree(): ImmutableFrameTree {
     let tree: ImmutableFrameTree | undefined = this.store.getIn([
       "local_view_state",
-      "frame_tree"
+      "frame_tree",
     ]);
     if (tree == null) {
       // Worrisome rare race condition when frame_tree not yet initialized.
@@ -705,7 +741,7 @@ export class Actions<
   // like 'type' or 'font_size'.
   public set_frame_data(obj: object): void {
     const x: any = obj["id"] != null ? { id: obj["id"] } : {};
-    for (let key in obj) {
+    for (const key in obj) {
       if (key === "id") continue;
       x["data-" + key] = obj[key];
     }
@@ -733,7 +769,7 @@ export class Actions<
     // And save this new state to localStorage.
     this._save_local_view_state();
     // Emit new-frame events
-    for (let id in this._get_leaf_ids()) {
+    for (const id in this._get_leaf_ids()) {
       const leaf = this._get_frame_node(id);
       if (leaf != null) {
         const type = leaf.get("type");
@@ -747,13 +783,13 @@ export class Actions<
   }
 
   // Set the type of the given node, e.g., 'cm', 'markdown', etc.
-  // NOTE: This is only meant to be used in derived classes right now,
-  // though we have a unit test of it at this level.
+  // NOTE: This is only meant to be used in derived classes right now.
   set_frame_type(id: string, type: string): void {
     // save what is currently the most recent frame of this type.
     const prev_id = this._get_most_recent_active_frame_id_of_type(type);
 
-    this.set_frame_tree({ id, type });
+    // default path
+    let path = this.path;
 
     if (this._cm[id] && type != "cm") {
       // Make sure to clear cm cache in case switching type away,
@@ -765,6 +801,10 @@ export class Actions<
     if (type != "terminal") {
       this.terminals.close_terminal(id);
     }
+
+    // make sure there is no code editor manager for this frame (those
+    // are only for subframe code editors).
+    this.code_editors.close_code_editor(id);
 
     // Reset the font size for the frame based on recent
     // pref for this type.
@@ -778,7 +818,15 @@ export class Actions<
     if (!font_size) {
       font_size = get_default_font_size();
     }
-    this.set_font_size(id, font_size);
+    this.set_frame_tree({
+      id,
+      type,
+      path,
+      title: undefined,
+      connection_status: undefined,
+      is_paused: undefined,
+      font_size,
+    });
 
     this.store.emit("new-frame", { id, type });
   }
@@ -827,6 +875,7 @@ export class Actions<
       delete this._cm[id];
     }
     this.terminals.close_terminal(id);
+    this.code_editors.close_code_editor(id);
     this.close_frame_hook(id, type);
 
     // if id is the current active_id, change to most recent one.
@@ -839,6 +888,23 @@ export class Actions<
     // overload in derived class...
     id = id;
     type = type;
+  }
+
+  // Close all frames that have the given path.
+  // This will not close anything if path == this.path;
+  // this is only for when *other* files are open in frames.
+  // Returns number of frames closed.
+  close_frames_with_path(path: string): number {
+    if (path == this.path) return 0;
+    let n = 0;
+    for (const id in this._get_leaf_ids()) {
+      const leaf = this._get_frame_node(id);
+      if (path == leaf?.get("path")) {
+        this.close_frame(id);
+        n += 1;
+      }
+    }
+    return n;
   }
 
   // Returns id of new frame, if a frame is created.
@@ -857,7 +923,7 @@ export class Actions<
     const before = this._get_leaf_ids();
     this._tree_op("split_leaf", id, direction, type, extra, first);
     const after = this._get_leaf_ids();
-    for (let new_id in after) {
+    for (const new_id in after) {
       if (!before[new_id]) {
         this.copy_editor_state(id, new_id);
         if (!no_focus) {
@@ -873,7 +939,7 @@ export class Actions<
         }
         this.store.emit("new-frame", {
           id: new_id,
-          type
+          type,
         });
 
         return new_id;
@@ -925,7 +991,7 @@ export class Actions<
       editor_state = editor_state.set(id, fromJS(new_editor_state));
     }
     this.setState({
-      local_view_state: local.set("editor_state", editor_state)
+      local_view_state: local.set("editor_state", editor_state),
     });
     this._save_local_view_state();
   }
@@ -957,7 +1023,7 @@ export class Actions<
     // TOOD: this is probably naive and slow too...
     let cursors: Map<string, List<Map<string, any>>> = Map();
     this._syncstring.get_cursors().forEach((info, account_id) => {
-      info.get("locs").forEach(loc => {
+      info.get("locs").forEach((loc) => {
         loc = loc.set("time", info.get("time"));
         const locs = cursors.get(account_id, List()).push(loc);
         cursors = cursors.set(account_id, locs);
@@ -999,7 +1065,7 @@ export class Actions<
       cursors.map((user, _) => {
         const locs = user.get("locs");
         if (!locs) return;
-        locs.map(loc => {
+        locs.map((loc) => {
           const y = loc.get("y");
           if (y != null) {
             omit_lines[y] = true;
@@ -1010,8 +1076,22 @@ export class Actions<
     cm.delete_trailing_whitespace({ omit_lines });
   }
 
+  // Will get called when this or any subfile is explicitly saved by the user.
+  // If returns false then normal save happened.  If true, then nothing further.
+  // This is used, e.g., by multifile latex so that explicit save triggers
+  // save of all files and build... when a user option for "build on save"
+  // is enabled.
+  public async explicit_save(): Promise<boolean> {
+    await this.save(true);
+    return false;
+  }
+
   async save(explicit: boolean): Promise<void> {
-    if (this.is_public || !this.store.get("is_loaded")) {
+    if (
+      this.is_public ||
+      !this.store.get("is_loaded") ||
+      this._syncstring == null
+    ) {
       return;
     }
     // TODO: Maybe just move this to some explicit menu of actions, which also includes
@@ -1038,7 +1118,7 @@ export class Actions<
           string_id: this._syncstring ? this._syncstring._string_id : "",
           path: this.path,
           project_id: this.project_id,
-          error: "Error saving file -- has_unsaved_changes"
+          error: "Error saving file -- has_unsaved_changes",
         });
       }
     } finally {
@@ -1046,19 +1126,47 @@ export class Actions<
     }
   }
 
+  // Gets the most recent time of a save; if self_only is false (the default),
+  // then includes any files listed in switch_to_files...
+  public last_save_time(self_only: boolean = false): number {
+    if (this._syncstring == null || this._syncstring.get_state() != "ready") {
+      return 0;
+    }
+    let n = this._syncstring.get_last_save_to_disk_time().valueOf();
+    if (self_only) {
+      return n;
+    }
+    const files = this.store.get("switch_to_files");
+    if (files == null || files.size <= 1) {
+      return n;
+    }
+
+    for (const path of files) {
+      const actions = this.redux.getEditorActions(this.project_id, path);
+      if (actions == null) continue;
+      const t = (actions as Actions).last_save_time(true);
+      n = Math.max(n, t);
+    }
+    return n;
+  }
+
   _get_project_actions() {
     return this.redux.getProjectActions(this.project_id);
   }
 
-  time_travel(path?: string): void {
-    this._get_project_actions().open_file({
-      path: history_path(path || this.path),
-      foreground: true
-    });
+  time_travel(opts: { path?: string; frame?: boolean }): void {
+    if (opts.frame) {
+      this.show_focused_frame_of_type("time_travel");
+    } else {
+      this._get_project_actions().open_file({
+        path: history_path(opts.path || this.path),
+        foreground: true,
+      });
+    }
   }
 
   help(type: string): void {
-    const url: string = (function() {
+    const url: string = (function () {
       switch (type) {
         case "terminal":
           return "https://doc.cocalc.com/terminal.html";
@@ -1130,25 +1238,21 @@ export class Actions<
   }
 
   set_cm(id: string, cm: CodeMirror.Editor): void {
+    (cm as any).cocalc_actions = this;
+    this._cm[id] = cm;
+    // reference to this actions object, so codemirror plugins
+    // can potentially use it.  E.g., see the lean-editor/tab-completions.ts
+    if (len(this._cm) == 1) {
+      // Creating codemirror for the first time -- need to initialize it.
+      this.set_codemirror_to_syncstring();
+    }
+
     const sel =
       this._cm_selections != null ? this._cm_selections[id] : undefined;
     if (sel != null) {
       // restore saved selections (cursor position, selected ranges)
       cm.getDoc().setSelections(sel);
     }
-    // reference to this actions object, so codemirror plugins
-    // can potentially use it.  E.g., see the lean-editor/tab-completions.ts
-    (cm as any).cocalc_actions = this;
-
-    if (len(this._cm) > 0) {
-      // just making another cm
-      this._cm[id] = cm;
-      return;
-    }
-
-    this._cm[id] = cm;
-    // Creating codemirror for the first time -- need to initialize it.
-    this.set_codemirror_to_syncstring();
   }
 
   // 1. if id given, returns cm with given id if id
@@ -1188,20 +1292,20 @@ export class Actions<
 
   _get_most_recent_cm_id(): string | undefined {
     return this._get_most_recent_active_frame_id(
-      node => node.get("type").slice(0, 2) == "cm"
+      (node) => node.get("type").slice(0, 2) == "cm"
     );
   }
 
   _get_most_recent_terminal_id(): string | undefined {
     return this._get_most_recent_active_frame_id(
-      node => node.get("type").slice(0, 8) == "terminal"
+      (node) => node.get("type").slice(0, 8) == "terminal"
     );
   }
 
   // TODO: might also specify args.
   _get_most_recent_shell_id(command: string | undefined): string | undefined {
     return this._get_most_recent_active_frame_id(
-      node =>
+      (node) =>
         node.get("type").slice(0, 8) == "terminal" &&
         node.get("command") == command
     );
@@ -1215,7 +1319,10 @@ export class Actions<
     return this._cm[this._active_id()];
   }
 
-  public _get_terminal(id: string, parent: HTMLElement): Terminal<T> {
+  public _get_terminal(
+    id: string,
+    parent: HTMLElement
+  ): Terminal<CodeEditorState> {
     return this.terminals.get_terminal(id, parent);
   }
 
@@ -1264,7 +1371,7 @@ export class Actions<
       id = this._get_active_id();
     }
 
-    let cm: CodeMirror.Editor | undefined = this._cm[id];
+    const cm: CodeMirror.Editor | undefined = this._cm[id];
     if (cm) {
       // Save that it was focused just now; this is just a quick solution to
       // "give me last active cm" -- we will switch to something
@@ -1283,21 +1390,39 @@ export class Actions<
     }
   }
 
-  set_syncstring_to_codemirror(id?: string): void {
+  set_syncstring_to_codemirror(
+    id?: string,
+    do_not_exit_undo_mode?: boolean
+  ): void {
     const cm = this._get_cm(id);
     if (!cm) {
       return;
     }
-    this.set_syncstring(cm.getValue());
+    this.set_syncstring(cm.getValue(), do_not_exit_undo_mode);
   }
 
-  set_syncstring(value: string): void {
+  private set_syncstring(value: string, do_not_exit_undo_mode?: boolean): void {
     if (this._state === "closed") return;
     const cur = this._syncstring.to_str();
     if (cur === value) {
       // did not actually change.
       return;
     }
+    if (!do_not_exit_undo_mode) {
+      // If we are NOT doing an undo operation, then setting the
+      // syncstring due to any
+      // change in the codemirror editor (user editing, application of
+      // formatting like bold, etc.) should exit undo mode.  Otherwise,
+      // if the user *immediately* does an undo, they will undo from
+      // the wrong point in time.... which is very confusing.  See
+      // https://github.com/sagemathinc/cocalc/issues/1323
+      // NOTE: we only have to be careful about this because we
+      // are directly using syncstring.from_str below and not set_doc,
+      // because tricky stuff involving the codemirror editor having
+      // separate state and changing.
+      this._syncstring.exit_undo_mode();
+    }
+    // Now actually set the value.
     this._syncstring.from_str(value);
     // NOTE: above is the only place where syncstring is changed, and when *we* change syncstring,
     // no change event is fired.  However, derived classes may want to update some preview when
@@ -1305,11 +1430,21 @@ export class Actions<
     return this._syncstring.emit("change");
   }
 
-  set_codemirror_to_syncstring(): void {
-    if (this._syncstring == null) {
+  async set_codemirror_to_syncstring(): Promise<void> {
+    if (
+      this._syncstring == null ||
+      this._state == "closed" ||
+      this._syncstring.get_state() == "closed"
+    ) {
       // no point in doing anything further.
       return;
     }
+
+    if (this._syncstring.get_state() != "ready") {
+      await once(this._syncstring, "ready");
+      if (this._state == "closed") return;
+    }
+
     // NOTE: we fallback to getting the underlying CM doc, in case all actual
     // cm code-editor frames have been closed (or just aren't visible).
     const cm: CodeMirror.Editor | undefined = this._get_cm(undefined, true);
@@ -1345,7 +1480,7 @@ export class Actions<
     const value = this._syncstring.undo().to_str();
     cm.setValueNoJump(value, true);
     cm.focus();
-    this.set_syncstring_to_codemirror();
+    this.set_syncstring_to_codemirror(undefined, true);
     this._syncstring.commit();
   }
 
@@ -1366,7 +1501,7 @@ export class Actions<
     const value = doc.to_str();
     cm.setValueNoJump(value, true);
     cm.focus();
-    this.set_syncstring_to_codemirror();
+    this.set_syncstring_to_codemirror(undefined, true);
     this._syncstring.commit();
   }
 
@@ -1407,8 +1542,23 @@ export class Actions<
   async programmatical_goto_line(
     line: number,
     cursor?: boolean,
-    focus?: boolean
+    focus?: boolean,
+    id?: string // if given scroll this particular frame
   ): Promise<void> {
+    if (this._syncstring == null || this._syncstring.is_fake) {
+      // give up -- don't even have a syncstring...
+      // A derived class that doesn't use a syncstring
+      // might overload programmatical_goto_line to make
+      // sense for whatever it works with.
+      return;
+    }
+    const state = this._syncstring.get_state();
+    if (state == "closed") return;
+    if (state == "init") {
+      await once(this._syncstring, "ready");
+      if (this._state == "closed") return;
+    }
+
     if (line <= 0) {
       /* Lines <= 0 cause an exception in codemirror later.
          If the line number is much larger than the number of lines
@@ -1420,19 +1570,37 @@ export class Actions<
       */
       line = 1;
     }
-    const cm_id: string | undefined = this._get_most_recent_cm_id();
-    const full_id: string | undefined = this.store.getIn([
-      "local_view_state",
-      "full_id"
-    ]);
-    if (full_id && full_id != cm_id) {
-      this.unset_frame_full();
-      // have to wait for cm to get created and registered.
-      await delay(1);
-      if (this._state == "closed") return;
+    const cm_id: string | undefined =
+      id == null ? this._get_most_recent_cm_id() : id;
+    if (cm_id && this._get_frame_node(cm_id) != null) {
+      // cm_id defines a frame in the main frame tree associated
+      // to this file (rather than a frame in some other frame tree).
+      const full_id: string | undefined = this.store.getIn([
+        "local_view_state",
+        "full_id",
+      ]);
+      if (full_id && full_id != cm_id) {
+        this.unset_frame_full();
+        // have to wait for cm to get created and registered.
+        await delay(1);
+        if (this._state == "closed") return;
+      }
     }
 
     let cm = this._get_cm(cm_id);
+    // This is ugly -- react will render the frame with the
+    // editor in it, and after that happens the CodeMirror
+    // editor that was created gets registered, and finally
+    // this._get_cm will return it.  We thus keep trying until
+    // we find it (but for way less than a second).  This sort
+    // of crappy code is OK here, since it's just for moving the
+    // buffer to a line.
+    for (let i = 0; cm == null && i < 10; i++) {
+      cm = this._get_cm(cm_id);
+      await delay(25);
+      if (this._state == "closed") return;
+    }
+
     if (cm == null) {
       // this case can only happen in derived classes with non-cm editors.
       this.split_frame("col", this._get_active_id(), "cm");
@@ -1453,18 +1621,24 @@ export class Actions<
     const pos = { line: line - 1, ch: 0 };
     const info = cm.getScrollInfo();
     cm.scrollIntoView(pos, info.clientHeight / 2);
-    if (cursor) {
-      doc.setCursor(pos);
-    }
     if (focus) {
       cm.focus();
+    }
+    if (cursor) {
+      doc.setCursor(pos);
+      // TODO: this is VERY CRAPPY CODE -- wait after,
+      // so cm gets state/value fully set.
+      await delay(100);
+      if (this._state == "closed") return;
+      doc.setCursor(pos);
+      cm.scrollIntoView(pos, cm.getScrollInfo().clientHeight / 2);
     }
   }
 
   cut(id: string): void {
     const cm = this._get_cm(id);
     if (cm != null) {
-      let doc = cm.getDoc();
+      const doc = cm.getDoc();
       copypaste.set_buffer(doc.getSelection());
       doc.replaceSelection("");
       cm.focus();
@@ -1514,13 +1688,14 @@ export class Actions<
       this.setState({ error });
     } else {
       if (typeof error == "object") {
-        let e = (error as any).message;
+        const e = (error as any).message;
         if (e === undefined) {
           let e = JSON.stringify(error);
           if (e === "{}") {
             e = `${error}`;
           }
         }
+        if (typeof e != "string") throw Error("bug"); // make typescript happy
         error = e;
       }
       this.setState({ error });
@@ -1549,21 +1724,25 @@ export class Actions<
     }
   }
 
-  print(id): void {
+  print(id: string): void {
     const cm = this._get_cm(id);
     if (!cm) {
       return; // nothing to print...
     }
-    let node = this._get_frame_node(id);
-    if (!node) {
-      return; // this won't happen but it ensures node is defined for typescript.
-    }
+    const node = this._get_frame_node(id);
+    // NOTE/TODO: There is an "on-purpose" bug right now
+    // where node isn't defined, namely when you make
+    // a subframe code editor.  Then the node would be
+    // in a completely different store (the original frame
+    // for the tab) than where the codemirror editor is.
+    // Thus in case of a subframe code editor, the font size
+    // is always the default when printing.
     try {
       print_code({
         value: cm.getValue(),
         options: cm.options,
         path: this.path,
-        font_size: node.get("font_size")
+        font_size: node != null ? node.get("font_size") : undefined,
       });
     } catch (err) {
       this.set_error(err);
@@ -1595,8 +1774,8 @@ export class Actions<
 
     // hash combines state of file with spell check setting.
     // TODO: store /type fail.
-    const lang = (this.store.get("settings") as Map<string, any>).get("spell");
-    if (!lang) {
+    const lang: string | undefined = this.store.getIn(["settings", "spell"]);
+    if (lang == null) {
       // spell check configuration not yet initialized
       return;
     }
@@ -1607,30 +1786,49 @@ export class Actions<
     }
     this._update_misspelled_words_last_hash = hash;
     try {
-      const words: string[] = await misspelled_words({
+      const words: string[] | string = await misspelled_words({
         project_id: this.project_id,
         path: this.get_user_edited_file_path(),
         lang,
-        time
+        time,
       });
-      const x = Set(words);
-      if (!x.equals(this.store.get("misspelled_words"))) {
-        this.setState({ misspelled_words: x });
+      if (typeof words == "string") {
+        this.setState({ misspelled_words: words });
+      } else {
+        const x = Set(words);
+        if (!x.equals(this.store.get("misspelled_words"))) {
+          this.setState({ misspelled_words: x });
+        }
       }
     } catch (err) {
       this.set_error(err);
     }
   }
 
-  async format_action(cmd, args): Promise<void> {
+  // Do a formatting action to whatever code editor
+  // is currently active, or the main document if none is
+  // focused or force_main is true.
+  async format_action(cmd, args, force_main: boolean = false): Promise<void> {
+    if (!force_main) {
+      const id = this._get_active_id();
+      try {
+        return await this.get_code_editor(id)
+          .get_actions()
+          .format_action(cmd, args, true);
+      } catch (err) {
+        // active frame is not a different code editor, so we fallback
+        // to case below that we want the main doc (if there is one).
+      }
+    }
+
     const cm = this._get_cm(undefined, true);
     if (cm == null) {
       // format bar only makes sense when some cm is there...
       return;
     }
-    await callback_opts(opts => cm.edit_selection(opts))({
+    await callback_opts((opts) => cm.edit_selection(opts))({
       cmd,
-      args
+      args,
     });
     if (this._state !== "closed") {
       cm.focus();
@@ -1656,7 +1854,7 @@ export class Actions<
     const info = new GutterMarker({
       line: opts.line,
       gutter_id: opts.gutter_id,
-      component: opts.component
+      component: opts.component,
     });
     this.setState({ gutter_markers: gutter_markers.set(opts.id, info) });
   }
@@ -1701,7 +1899,7 @@ export class Actions<
       return;
     }
     this.setState({
-      gutter_markers: gutter_markers.set(id, info.set("handle", handle))
+      gutter_markers: gutter_markers.set(id, info.set("handle", handle)),
     });
   }
 
@@ -1719,28 +1917,44 @@ export class Actions<
     }
   }
 
+  public format_support_for_syntax(
+    available_features: AvailableFeatures,
+    syntax: FormatterSyntax
+  ): false | FormatterTool {
+    if (syntax == null) return false;
+    // first, check if there exists a tool for that syntax
+    const tool: FormatterTool = syntax2tool[syntax];
+    if (tool == null) return false;
+    // if so, check if this formatting tool is available in that project
+    const formatting = available_features.get("formatting");
+    if (formatting == null || formatting == false) return false;
+    // Now formatting is either "true" or a map itself.
+    if (formatting !== true && !formatting.get(tool)) return false;
+    return tool;
+  }
+
   public format_support_for_extension(
     available_features: AvailableFeatures,
     ext: string
-  ): false | string {
-    const formatting = available_features.formatting;
-    // there is no formatting available at all
-    if (!formatting) return false;
-    const parser = ext2parser[ext];
-    if (parser == null) return false;
-    const tool = parser2tool[parser];
-    if (tool == null) return false;
-    if (!formatting[tool]) return false;
-    return tool;
+  ): false | FormatterTool {
+    const syntax = ext2syntax[ext];
+    return this.format_support_for_syntax(available_features, syntax);
   }
 
   // Not an action, but works to make code clean
   has_format_support(
     id: string,
-    available_features?: AvailableFeatures
+    available_features?: AvailableFeatures // is in project store
   ): false | string {
-    const cm = this._get_cm(id);
-    if (!cm || available_features == null) return false; // not a code editor or no features
+    if (available_features == null) return false;
+    const leaf = this._get_frame_node(id);
+    if (leaf != null) {
+      // Our default format support is only for
+      // normal code editors.  This can be
+      // overloaded in derived actions, e.g.,
+      // it is in the Jupyter notebook actions.
+      if (leaf.get("type") != "cm") return false;
+    }
     const ext = filename_extension(this.path).toLowerCase();
     const tool = this.format_support_for_extension(available_features, ext);
     if (!tool) return false;
@@ -1750,7 +1964,10 @@ export class Actions<
   // ATTN to enable a formatter, you also have to let it show up in the format bar
   // e.g. look into frame-editors/code-editor/editor.ts
   // and the action has_format_support.
-  async format(id?: string): Promise<void> {
+  // Also, format is reuseInFlight, so if you call this multiple times while
+  // it is being called, it really only does the formatting once, which avoids
+  // corrupting your code:  https://github.com/sagemathinc/cocalc/issues/4343
+  async format(id: string): Promise<void> {
     const cm = this._get_cm(id);
     if (!cm) return;
 
@@ -1758,20 +1975,41 @@ export class Actions<
       return;
     }
 
+    // Important: this function may be called even if there is no format support,
+    // because it can be called via a keyboard shortcut.  That's why we gracefully
+    // handle this case -- see https://github.com/sagemathinc/cocalc/issues/4180
+    const s = this.redux.getProjectStore(this.project_id);
+    if (s == null) return;
+    // TODO: Using any here since TypeMap is just not working right...
+    const af: any = s.get("available_features");
+    if (!this.has_format_support(id, af)) return;
+
+    // Definitely have format support
     cm.focus();
-    const path = this.get_user_edited_file_path();
-    const ext = filename_extension(path).toLowerCase() as FormatterExts;
-    const { parser, variant }: ParserVariant = format_parser_for_extension(ext);
-    const options: FormatterOptions = {
-      parser,
+    const ext = filename_extension(this.path).toLowerCase() as FormatterExts;
+    const syntax: FormatterSyntax = ext2syntax[ext];
+    // TODO get variant
+    const config: FormatterConfig = {
+      syntax,
       variant,
       tabWidth: cm.getOption("tabSize") as number,
-      useTabs: cm.getOption("indentWithTabs") as boolean
+      useTabs: cm.getOption("indentWithTabs") as boolean,
     };
 
     this.set_status("Running code formatter...");
     try {
-      await prettier(this.project_id, path, options);
+      const patch = await prettier(this.project_id, this.path, config);
+      if (patch != null) {
+        // Apply the patch.
+        // NOTE: old backends that haven't restarted just return {status:'ok'}
+        // and directly make the change.  Delete this comment in a month or so.
+        // See https://github.com/sagemathinc/cocalc/issues/4335
+        this.set_syncstring_to_codemirror();
+        const new_val = apply_patch(patch, this._syncstring.to_str())[0];
+        this._syncstring.from_str(new_val);
+        this._syncstring.commit();
+        this.set_codemirror_to_syncstring();
+      }
       this.set_error("");
     } catch (err) {
       this.set_error(`Error formatting code: \n${err}`, "monospace");
@@ -1797,9 +2035,9 @@ export class Actions<
   // in arbitrary order.
   _get_most_recent_active_frame_id(f?: Function): string | undefined {
     if (this._state === "closed") return;
-    let tree = this._get_tree();
+    const tree = this._get_tree();
     for (let i = this._active_id_history.length - 1; i >= 0; i--) {
-      let id = this._active_id_history[i];
+      const id = this._active_id_history[i];
       if (tree_ops.is_leaf_id(tree, id)) {
         if (f === undefined || f(tree_ops.get_node(tree, id))) {
           return id;
@@ -1807,7 +2045,7 @@ export class Actions<
       }
     }
     // now just check for any frame at all.
-    for (let id in this._get_leaf_ids()) {
+    for (const id in this._get_leaf_ids()) {
       if (f === undefined || f(tree_ops.get_node(tree, id))) {
         return id;
       }
@@ -1818,7 +2056,7 @@ export class Actions<
 
   _get_most_recent_active_frame_id_of_type(type: string): string | undefined {
     return this._get_most_recent_active_frame_id(
-      node => node.get("type") == type
+      (node) => node.get("type") == type
     );
   }
 
@@ -1903,13 +2141,17 @@ export class Actions<
     if (this._spellcheck_is_supported) {
       if (!settings.get("spell")) {
         // ensure spellcheck is a possible setting, if necessary.
-        this.set_settings({ spell: "default" });
+        // Use browser spellcheck **by default** if that option is
+        // is configured, otherwise default backend spellcheck.
+        this.set_settings({
+          spell: default_opts(this.path).spellcheck ? "browser" : "default",
+        });
       }
       // initial spellcheck
       this.update_misspelled_words();
     }
 
-    this._syncstring.on("settings-change", settings => {
+    this._syncstring.on("settings-change", (settings) => {
       this.setState({ settings: settings });
     });
   }
@@ -1993,7 +2235,7 @@ export class Actions<
   // super class!
   public async show(): Promise<void> {
     this.setState({
-      visible: true
+      visible: true,
     });
 
     await delay(0); // wait until next render loop
@@ -2015,12 +2257,12 @@ export class Actions<
     // only that one is visible, or all are visible.
     const full_id: string | undefined = this.store.getIn([
       "local_view_state",
-      "full_id"
+      "full_id",
     ]);
     if (full_id != null) {
       this.refresh(full_id);
     } else {
-      for (let id in this._get_leaf_ids()) {
+      for (const id in this._get_leaf_ids()) {
         this.refresh(id);
       }
     }
@@ -2136,7 +2378,7 @@ export class Actions<
     if (id == null) {
       throw Error("bug creating frame");
     }
-    let local_view_state = this.store.get("local_view_state");
+    const local_view_state = this.store.get("local_view_state");
     if (local_view_state != null && local_view_state.get("full_id") != id) {
       this.unset_frame_full();
     }
@@ -2151,7 +2393,7 @@ export class Actions<
     first: boolean = false,
     pos: number | undefined = undefined
   ): string {
-    let id = this.show_recently_focused_frame_of_type(type, dir, first, pos);
+    const id = this.show_recently_focused_frame_of_type(type, dir, first, pos);
     this.set_active_id(id);
     return id;
   }
@@ -2160,12 +2402,141 @@ export class Actions<
   public close_recently_focused_frame_of_type(
     type: string
   ): string | undefined {
-    let id: string | undefined = this._get_most_recent_active_frame_id_of_type(
-      type
-    );
+    const id:
+      | string
+      | undefined = this._get_most_recent_active_frame_id_of_type(type);
     if (id != null) {
       this.close_frame(id);
       return id;
     }
+  }
+
+  /*
+  Open a file for editing with the code editor.  This is typically used for
+  opening a path other than this.path for editing.  E.g., this would be useful
+  for editing a tex or bib file associated to a master latex document, or editing
+  some .py code related to a Jupyter notebook.
+
+  - Will show and focus an existing frame if there already is one for this path.
+  - Otherwise, will create a new frame open to edit (using codemirror) the given path.
+
+  Returns the id of the frame with the code editor in it.
+  */
+  public open_code_editor_frame(
+    path: string,
+    dir: FrameDirection = "col",
+    first: boolean = false,
+    pos: number | undefined = undefined
+  ): string {
+    // See if there is already a frame for path, and if so show
+    // display and focus it.
+    for (let id in this._get_leaf_ids()) {
+      const leaf = this._get_frame_node(id);
+      if (
+        leaf != null &&
+        leaf.get("type") === "cm" &&
+        ((this.path === path && leaf.get("path") == null) || // default
+          leaf.get("path") === path) // existing frame
+      ) {
+        // got it!
+        this.set_active_id(id);
+        return id;
+      }
+    }
+
+    // There is no frame for path, so we create one.
+    // First the easy special case:
+    if (this.path === path) {
+      return this.show_focused_frame_of_type("cm", dir, first, pos);
+    }
+
+    // More difficult case - no such frame and different path
+    const active_id = this._get_active_id();
+    const id = this.split_frame(dir, active_id, "cm", undefined, first, true);
+    if (id == null) {
+      throw Error("BUG -- failed to make frame");
+    }
+    this.set_frame_to_code_editor(id, path);
+
+    if (pos != null) {
+      const parent_id = this.get_parent_id(id);
+      if (parent_id != null) {
+        this.set_frame_tree({ id: parent_id, pos });
+      }
+    }
+    this.set_active_id(id);
+    return id;
+  }
+
+  public async switch_to_file(path: string, id?: string): Promise<string> {
+    if (id != null) {
+      const node = this._get_frame_node(id);
+      if (node == null) return id;
+      if (node.get("path") == path) return id; // already done;
+      // Change it --
+      this.set_frame_to_code_editor(id, path);
+      return id;
+    }
+
+    // Check if there is already a code editor frame with the given path.
+    id = this.get_matching_frame({ path, type: "cm" });
+    if (id) {
+      // found one already
+      this.set_active_id(id);
+      return id;
+    }
+
+    // Focus a cm frame then change its path.
+    id = this.show_focused_frame_of_type("cm");
+    const node = this._get_frame_node(id);
+    if (node == null) {
+      throw Error("bug");
+    }
+    if (node.get("path") == path) return id; // already done.
+
+    this.set_frame_to_code_editor(id, path);
+    return id;
+  }
+
+  // Init actions and set our new cm frame to the given path.
+  private set_frame_to_code_editor(id: string, path: string): void {
+    const node = this._get_frame_node(id);
+    if (node == null) throw Error(`no frame with id ${id}`);
+
+    // This call to get_code_editor ensures the
+    // actions/manager is already initialized.  We need
+    // to do this here rather than in the frame-tree render
+    // loop, in order to ensure that the actions aren't created
+    // while rendering, as that causes a state transition which
+    // react does NOT appreciate.
+    this.code_editors.get_code_editor(id, path);
+
+    // Now actually change the path field of the frame tree, which causes
+    // a render.
+    this.set_frame_tree({ id, path, type: "cm" });
+  }
+
+  public get_code_editor(id: string): CodeEditor {
+    return this.code_editors.get_code_editor(id);
+  }
+
+  public get_matching_frame(obj: object): string | undefined {
+    const tree = this._get_tree();
+    for (const id in this._get_leaf_ids()) {
+      const node = tree_ops.get_node(tree, id);
+      if (node == null) continue;
+      let match = true;
+      for (let key in obj) {
+        if (node.get(key) != obj[key]) {
+          match = false;
+          break;
+        }
+      }
+      if (match) return id;
+    }
+  }
+
+  public set_show_uncommitted_changes(val: boolean): void {
+    this.setState({ show_uncommitted_changes: val });
   }
 }

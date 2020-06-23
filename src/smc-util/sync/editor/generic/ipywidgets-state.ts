@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { EventEmitter } from "events";
 import { Map as iMap } from "immutable";
 
@@ -63,9 +68,9 @@ export class IpywidgetsState extends EventEmitter {
           string_id: this.syncdoc.get_string_id(),
           model_id: null,
           type: null,
-          data: null
-        }
-      ]
+          data: null,
+        },
+      ],
     };
     this.table = await this.create_synctable(query, this.table_options, 0);
 
@@ -73,7 +78,7 @@ export class IpywidgetsState extends EventEmitter {
 
     this.set_state("ready");
 
-    this.table.on("change", keys => {
+    this.table.on("change", (keys) => {
       this.emit("change", keys);
     });
   }
@@ -93,7 +98,7 @@ export class IpywidgetsState extends EventEmitter {
     const key: string = JSON.stringify([
       this.syncdoc.get_string_id(),
       model_id,
-      type
+      type,
     ]);
     const record = this.table.get(key);
     if (record == null) {
@@ -117,7 +122,7 @@ export class IpywidgetsState extends EventEmitter {
       if (value == null) {
         throw Error("value must be a map");
       }
-      for (let key in value) {
+      for (const key in value) {
         state_js[key] = value[key];
       }
     }
@@ -204,7 +209,7 @@ export class IpywidgetsState extends EventEmitter {
       // we manually do the shallow merge only on the data field.
       const data0 = this.get_model_value(model_id);
       if (data0 != null) {
-        for (let k in data) {
+        for (const k in data) {
           data0[k] = data[k];
         }
         data = data0;
@@ -348,7 +353,7 @@ export class IpywidgetsState extends EventEmitter {
             if (this.capture_output[parent_msg_id] != null) {
               const v: string[] = [];
               const w: string[] = this.capture_output[parent_msg_id];
-              for (let m of w) {
+              for (const m of w) {
                 if (m != model_id) {
                   v.push(m);
                 }

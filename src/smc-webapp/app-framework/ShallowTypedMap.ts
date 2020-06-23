@@ -1,5 +1,9 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-export interface ShallowTypedMap<TProps extends Object> {
+export interface ShallowTypedMap<TProps extends Record<string, any>> {
   size: number;
 
   // Reading values
@@ -14,10 +18,7 @@ export interface ShallowTypedMap<TProps extends Object> {
    * produce an error when using Flow or TypeScript.
    */
   get<K extends keyof TProps>(field: K): TProps[K];
-  get<K extends keyof TProps, NSV>(
-    field: K,
-    notSetValue: NSV
-  ): TProps[K] | NSV;
+  get<K extends keyof TProps, NSV>(field: K, notSetValue: NSV): TProps[K] | NSV;
   get<K extends keyof TProps>(key: K): TProps[K];
   get<K extends keyof TProps, NSV>(key: K, notSetValue: NSV): TProps[K] | NSV;
   get<K extends keyof TProps, NSV>(key: K, notSetValue?: NSV): TProps[K] | NSV;

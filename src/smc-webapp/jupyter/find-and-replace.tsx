@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 The find and replace modal dialog
 */
 
@@ -8,11 +13,10 @@ import {
   FormControl,
   FormGroup,
   InputGroup,
-  Modal
+  Modal,
 } from "react-bootstrap";
 import * as immutable from "immutable";
-import { ErrorDisplay } from "../r_misc/error-display";
-import { Icon } from "../r_misc/icon";
+import { ErrorDisplay, Icon } from "../r_misc";
 import { find_matches } from "./find";
 import { JupyterActions } from "./browser-actions";
 
@@ -48,7 +52,7 @@ export class FindAndReplace extends Component<
       case: false,
       regexp: false,
       find: "",
-      replace: ""
+      replace: "",
     };
   }
 
@@ -124,7 +128,7 @@ export class FindAndReplace extends Component<
     return (
       <FormControl
         autoFocus={true}
-        inputRef={node => (this.findRef = node)}
+        inputRef={(node) => (this.findRef = node)}
         type="text"
         placeholder={place}
         value={this.state.find}
@@ -137,7 +141,7 @@ export class FindAndReplace extends Component<
     return (
       <FormControl
         style={{ marginTop: "15px" }}
-        inputRef={node => (this.replaceRef = node)}
+        inputRef={(node) => (this.replaceRef = node)}
         type="text"
         placeholder="Replace"
         value={this.state.replace}
@@ -218,7 +222,7 @@ export class FindAndReplace extends Component<
     let i = 0;
     let line_start = 0;
     let key = 0;
-    for (let line of text.split("\n")) {
+    for (const line of text.split("\n")) {
       const line_stop = line_start + line.length;
       const w: Rendered[] = []; // current line
       let s = 0;

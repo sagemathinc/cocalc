@@ -1,15 +1,20 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Changefeed } from "../changefeed";
 
 describe("first test of the public API of the Changefeed class", () => {
   const options = [];
   const query = {
-    system_notifications: { id: null, time: null, text: null, priority: null }
+    system_notifications: { id: null, time: null, text: null, priority: null },
   };
   const table = "system_notifications";
 
-  let got: any = {};
+  const got: any = {};
   const init_val = [
-    { id: "0", time: new Date(0), text: "foo", priority: "low" }
+    { id: "0", time: new Date(0), text: "foo", priority: "low" },
   ];
   function do_query(opts) {
     got.do_query = opts;
@@ -26,7 +31,7 @@ describe("first test of the public API of the Changefeed class", () => {
     query_cancel,
     options,
     query,
-    table
+    table,
   };
   it("creates the changefeed", () => {
     changefeed = new Changefeed(opts);
@@ -39,15 +44,15 @@ describe("first test of the public API of the Changefeed class", () => {
     expect(init).toBe(init_val);
   });
 
-  it("causes an update", done => {
-    changefeed.on("update", x => {
+  it("causes an update", (done) => {
+    changefeed.on("update", (x) => {
       expect(x).toEqual({ action: "insert", new_val: { text: "bar" } });
       done();
     });
     got.do_query.cb(undefined, { action: "insert", new_val: { text: "bar" } });
   });
 
-  it("ends the changefeed via query_cancel event", done => {
+  it("ends the changefeed via query_cancel event", (done) => {
     changefeed.on("close", () => {
       expect(changefeed.get_state()).toBe("closed");
       done();
@@ -61,7 +66,7 @@ describe("first test of the public API of the Changefeed class", () => {
     expect(changefeed.get_state()).toBe("connected");
   });
 
-  it("ends the changefeed via an error", done => {
+  it("ends the changefeed via an error", (done) => {
     changefeed.on("close", () => {
       expect(changefeed.get_state()).toBe("closed");
       done();
@@ -75,7 +80,7 @@ describe("first test of the public API of the Changefeed class", () => {
     expect(changefeed.get_state()).toBe("connected");
   });
 
-  it("ends the changefeed via an error", done => {
+  it("ends the changefeed via an error", (done) => {
     changefeed.on("close", () => {
       expect(changefeed.get_state()).toBe("closed");
       done();
@@ -89,7 +94,7 @@ describe("first test of the public API of the Changefeed class", () => {
     expect(changefeed.get_state()).toBe("connected");
   });
 
-  it("ends the changefeed by explicitly calling close", done => {
+  it("ends the changefeed by explicitly calling close", (done) => {
     changefeed.on("close", () => {
       expect(changefeed.get_state()).toBe("closed");
       done();

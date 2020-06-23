@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { MentionFilter } from "./mentions/types";
 const { Nav, NavItem } = require("react-bootstrap");
@@ -5,7 +10,7 @@ const { Nav, NavItem } = require("react-bootstrap");
 export function NotificationNav({
   filter,
   on_click,
-  style
+  style,
 }: {
   filter: MentionFilter;
   on_click: (label: MentionFilter) => void;

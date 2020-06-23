@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { delay } from "awaiting";
 
 import {
@@ -6,10 +11,10 @@ import {
   rtypes,
   Component,
   React,
-  Rendered
+  Rendered,
 } from "../app-framework";
 
-const { Loading } = require("../r_misc");
+import { Loading } from "../r_misc";
 
 import { FileUseViewer } from "./viewer";
 
@@ -34,18 +39,18 @@ class FileUsePage extends Component<Props, {}> {
     return {
       file_use: {
         file_use: rtypes.immutable,
-        get_sorted_file_use_list2: rtypes.func
+        get_sorted_file_use_list2: rtypes.func,
       },
       users: {
-        user_map: rtypes.immutable
+        user_map: rtypes.immutable,
       },
       projects: {
-        project_map: rtypes.immutable
+        project_map: rtypes.immutable,
       },
       mentions: {
         mentions: rtypes.immutable.Map,
-        get_unseen_size: rtypes.func
-      }
+        get_unseen_size: rtypes.func,
+      },
     };
   }
   componentDidMount() {

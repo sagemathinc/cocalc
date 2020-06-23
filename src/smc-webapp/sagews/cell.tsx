@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Rendering a Sage worksheet cell
 */
 
@@ -14,17 +19,17 @@ interface Props {
 }
 
 export class Cell extends Component<Props> {
-  private render_input() : Rendered {
+  private render_input(): Rendered {
     return <CellInput input={this.props.input} flags={this.props.flags} />;
   }
 
-  private render_output() : Rendered {
+  private render_output(): Rendered {
     if (this.props.output != null) {
       return <CellOutput output={this.props.output} flags={this.props.flags} />;
     }
   }
 
-  public render() : Rendered {
+  public render(): Rendered {
     return (
       <div>
         {this.render_input()}

@@ -1,7 +1,13 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
-import { rtypes, redux, rclass } from "../../app-framework";
+import { rtypes, redux, rclass, Rendered } from "../../app-framework";
 import {
   COLORS,
+  CopyToClipBoard,
   Loading,
   ProjectState,
   TimeAgo,
@@ -9,31 +15,31 @@ import {
   TimeElapsed,
   Space,
   Icon,
-  SettingBox
+  SettingBox,
 } from "../../r_misc";
 import {
   CUSTOM_SOFTWARE_HELP_URL,
   compute_image2name,
   compute_image2basename,
-  CUSTOM_IMG_PREFIX
+  CUSTOM_IMG_PREFIX,
 } from "../../custom-software/util";
 import { async } from "async";
-import { analytics_event } from "../../tracker";
 import {
-  Well,
   ButtonToolbar,
   Button,
   MenuItem,
   Alert,
-  DropdownButton
+  DropdownButton,
 } from "react-bootstrap";
 import { alert_message } from "../../alerts";
 import { Project } from "./types";
 import { Map, fromJS } from "immutable";
-
+import { Popconfirm } from "antd";
+import { StopOutlined, SyncOutlined } from "@ant-design/icons";
+import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 let {
   COMPUTE_IMAGES,
-  DEFAULT_COMPUTE_IMAGE
+  DEFAULT_COMPUTE_IMAGE,
 } = require("smc-util/compute-images");
 COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES); // only because that's how all the ui code was written.
 
@@ -42,7 +48,6 @@ const misc = require("smc-util/misc");
 
 interface ReactProps {
   project: Project;
-  allow_ssh: boolean;
 }
 
 interface ReduxProps {
@@ -51,38 +56,32 @@ interface ReduxProps {
 }
 
 interface State {
-  restart: boolean;
   show_ssh: boolean;
   compute_image: string;
   compute_image_changing: boolean;
   compute_image_focused: boolean;
-  show_stop_confirmation?: boolean;
 }
 
 export const ProjectControl = rclass<ReactProps>(
-  class ProjectControl extends React.Component<
-    ReactProps & ReduxProps,
-    State
-  > {
+  class ProjectControl extends React.Component<ReactProps & ReduxProps, State> {
     static reduxProps() {
       return {
         customize: {
-          kucalc: rtypes.string
+          kucalc: rtypes.string,
         },
         compute_images: {
-          images: rtypes.immutable.Map
-        }
+          images: rtypes.immutable.Map,
+        },
       };
     }
 
     constructor(props) {
       super(props);
       this.state = {
-        restart: false,
         show_ssh: false,
         compute_image: this.props.project.get("compute_image"),
         compute_image_changing: false,
-        compute_image_focused: false
+        compute_image_focused: false,
       };
     }
 
@@ -94,7 +93,7 @@ export const ProjectControl = rclass<ReactProps>(
       if (new_image !== this.state.compute_image) {
         return this.setState({
           compute_image: new_image,
-          compute_image_changing: false
+          compute_image_changing: false,
         });
       }
     }
@@ -103,19 +102,19 @@ export const ProjectControl = rclass<ReactProps>(
       e.preventDefault();
       const project_id = this.props.project.get("project_id");
       return async.series([
-        cb => {
+        (cb) => {
           return project_tasks(project_id).ensure_directory_exists({
             path: ".ssh",
-            cb
+            cb,
           });
         },
-        cb => {
+        (cb) => {
           redux.getActions({ project_id }).open_file({
             path: ".ssh/authorized_keys",
-            foreground: true
+            foreground: true,
           });
           return cb();
-        }
+        },
       ]);
     }
 
@@ -131,13 +130,15 @@ export const ProjectControl = rclass<ReactProps>(
     }
 
     render_idle_timeout() {
-      // get_idle_timeout_horizon depends on the project object, so this will update properly....
+      // get_idle_timeout_horizon depends on the project object, so this
+      // will update properly....
       const date = redux
         .getStore("projects")
         .get_idle_timeout_horizon(this.props.project.get("project_id"));
-      if (!date) {
-        // e.g., viewing as admin...
-        return;
+      if (date == null) {
+        // e.g., viewing as admin where the info about idle timeout
+        // horizon simply isn't known.
+        return <span style={{ color: "#666" }}>(not available)</span>;
       }
       return (
         <span style={{ color: "#666" }}>
@@ -154,120 +155,81 @@ export const ProjectControl = rclass<ReactProps>(
       redux
         .getActions("projects")
         .restart_project(this.props.project.get("project_id"));
-      analytics_event("project_settings", "restart project");
     };
 
     stop_project = () => {
       redux
         .getActions("projects")
         .stop_project(this.props.project.get("project_id"));
-      analytics_event("project_settings", "stop project");
     };
 
-    render_confirm_restart() {
-      if (this.state.restart) {
-        return (
-          <LabeledRow key="restart" label="">
-            <Well>
-              Restarting the project server will kill all processes, update the
-              project code, and start the project running again. It takes a few
-              seconds, and can fix some issues in case things are not working
-              properly.
-              <hr />
-              <ButtonToolbar>
-                <Button
-                  bsStyle="warning"
-                  onClick={e => {
-                    e.preventDefault();
-                    this.setState({ restart: false });
-                    this.restart_project();
-                  }}
-                >
-                  <Icon name="refresh" /> Restart Project Server
-                </Button>
-                <Button
-                  onClick={e => {
-                    e.preventDefault();
-                    this.setState({ restart: false });
-                  }}
-                >
-                  Cancel
-                </Button>
-              </ButtonToolbar>
-            </Well>
-          </LabeledRow>
-        );
-      }
+    render_stop_button(commands): Rendered {
+      const text = (
+        <div style={{ maxWidth: "300px" }}>
+          Stopping the project server will kill all processes. After stopping a
+          project, it will not start until you or a collaborator restarts the
+          project.
+        </div>
+      );
+
+      return (
+        <Popconfirm
+          placement={"bottom"}
+          arrowPointAtCenter={true}
+          title={text}
+          icon={<StopOutlined />}
+          onConfirm={() => this.stop_project()}
+          okText="Yes, stop project"
+          cancelText="Cancel"
+        >
+          <Button bsStyle="warning" disabled={!commands.includes("stop")}>
+            <Icon name="stop" /> Stop Project...
+          </Button>
+        </Popconfirm>
+      );
     }
 
-    render_confirm_stop() {
-      if (this.state.show_stop_confirmation) {
-        return (
-          <LabeledRow key="stop" label="">
-            <Well>
-              Stopping the project server will kill all processes. After
-              stopping a project, it will not start until a collaborator
-              restarts the project.
-              <hr />
-              <ButtonToolbar>
-                <Button
-                  bsStyle="warning"
-                  onClick={e => {
-                    e.preventDefault();
-                    this.setState({ show_stop_confirmation: false });
-                    this.stop_project();
-                  }}
-                >
-                  <Icon name="stop" /> Stop Project Server
-                </Button>
-                <Button
-                  onClick={e => {
-                    e.preventDefault();
-                    this.setState({ show_stop_confirmation: false });
-                  }}
-                >
-                  Cancel
-                </Button>
-              </ButtonToolbar>
-            </Well>
-          </LabeledRow>
-        );
-      }
+    render_restart_button(commands): Rendered {
+      const text = (
+        <div style={{ maxWidth: "300px" }}>
+          Restarting the project server will terminate all processes, update the
+          project code, and start the project running again. It takes a few
+          seconds, and can fix some issues in case things are not working
+          properly. You'll not lose any files, but you have to start your
+          notebooks and worksheets again.
+        </div>
+      );
+
+      return (
+        <Popconfirm
+          placement={"bottom"}
+          arrowPointAtCenter={true}
+          title={text}
+          icon={<SyncOutlined />}
+          onConfirm={() => this.restart_project()}
+          okText="Yes, restart project"
+          cancelText="Cancel"
+        >
+          <Button
+            disabled={!commands.includes("start") && !commands.includes("stop")}
+            bsStyle="warning"
+          >
+            <Icon name="refresh" /> Restart Project…
+          </Button>
+        </Popconfirm>
+      );
     }
 
-    render_action_buttons() {
+    render_action_buttons(): Rendered {
       const { COMPUTE_STATES } = require("smc-util/schema");
       const state = this.props.project.getIn(["state", "state"]);
-      const commands = (COMPUTE_STATES[state] &&
+      const commands = (state &&
+        COMPUTE_STATES[state] &&
         COMPUTE_STATES[state].commands) || ["save", "stop", "start"];
       return (
         <ButtonToolbar style={{ marginTop: "10px", marginBottom: "10px" }}>
-          <Button
-            bsStyle="warning"
-            disabled={!commands.includes("start") && !commands.includes("stop")}
-            onClick={e => {
-              e.preventDefault();
-              this.setState({
-                show_stop_confirmation: false,
-                restart: true
-              });
-            }}
-          >
-            <Icon name="refresh" /> Restart Project...
-          </Button>
-          <Button
-            bsStyle="warning"
-            disabled={!commands.includes("stop")}
-            onClick={e => {
-              e.preventDefault();
-              this.setState({
-                show_stop_confirmation: true,
-                restart: false
-              });
-            }}
-          >
-            <Icon name="stop" /> Stop Project...
-          </Button>
+          {this.render_restart_button(commands)}
+          {this.render_stop_button(commands)}
         </ButtonToolbar>
       );
     }
@@ -334,22 +296,21 @@ export const ProjectControl = rclass<ReactProps>(
       this.setState({
         compute_image: current_image,
         compute_image_changing: false,
-        compute_image_focused: false
+        compute_image_focused: false,
       });
-    }
+    };
 
     save_compute_image = async (current_image) => {
       // image is reset to the previous name and componentWillReceiveProps will set it when new
       this.setState({
         compute_image: current_image,
         compute_image_changing: true,
-        compute_image_focused: false
+        compute_image_focused: false,
       });
       const new_image = this.state.compute_image;
       const actions = redux.getProjectActions(
         this.props.project.get("project_id")
       );
-      analytics_event("project_settings", "change compute image");
       try {
         await actions.set_compute_image(new_image);
         this.restart_project();
@@ -357,7 +318,7 @@ export const ProjectControl = rclass<ReactProps>(
         alert_message({ type: "error", message: err });
         this.setState({ compute_image_changing: false });
       }
-    }
+    };
 
     set_compute_image(name) {
       this.setState({ compute_image: name });
@@ -368,34 +329,49 @@ export const ProjectControl = rclass<ReactProps>(
     }
 
     render_compute_image_items() {
-      return COMPUTE_IMAGES.entrySeq().map(entry => {
-        const [name, data] = entry;
-        return (
-          <MenuItem
-            key={name}
-            eventKey={name}
-            onSelect={this.set_compute_image.bind(this)}
-          >
-            {data.get("title")}
-          </MenuItem>
-        );
-      });
+      // we want "Default", "Previous", ... to come first
+      // then the timestamps in newest-first
+      // and then the exotic ones
+      const sorter = (a, b): number => {
+        const o1 = a.get("order", 0);
+        const o2 = b.get("order", 0);
+        if (o1 == o2) {
+          return a.get("title") < b.get("title") ? 1 : -1;
+        }
+        return o1 > o2 ? 1 : -1;
+      };
+      return COMPUTE_IMAGES.sort(sorter)
+        .entrySeq()
+        .map(([name, data]) => {
+          return (
+            <MenuItem
+              key={name}
+              eventKey={name}
+              onSelect={this.set_compute_image.bind(this)}
+            >
+              {data.get("title")}
+            </MenuItem>
+          );
+        });
     }
 
     render_select_compute_image_row() {
-      if (this.props.kucalc !== "yes") {
+      if (this.props.kucalc !== KUCALC_COCALC_COM) {
         return;
       }
       return (
-        <div>
-          <LabeledRow
-            key="cpu-usage"
-            label="Software Environment"
-            style={this.rowstyle(true)}
-          >
-            {this.render_select_compute_image()}
-          </LabeledRow>
-        </div>
+        <>
+          <hr />
+          <div>
+            <LabeledRow
+              key="cpu-usage"
+              label="Software Environment"
+              style={this.rowstyle(true)}
+            >
+              {this.render_select_compute_image()}
+            </LabeledRow>
+          </div>
+        </>
       );
     }
 
@@ -493,7 +469,9 @@ export const ProjectControl = rclass<ReactProps>(
                 selected_title != undefined ? selected_title : selected_image
               }
               id={selected_image}
-              onToggle={open => this.setState({ compute_image_focused: open })}
+              onToggle={(open) =>
+                this.setState({ compute_image_focused: open })
+              }
               onBlur={() => this.setState({ compute_image_focused: false })}
             >
               {this.render_compute_image_items()}
@@ -503,9 +481,7 @@ export const ProjectControl = rclass<ReactProps>(
               <span style={{ color: COLORS.GRAY, fontSize: "11pt" }}>
                 <br /> (If in doubt, select "{default_title}".)
               </span>
-            ) : (
-              undefined
-            )}
+            ) : undefined}
           </div>
           <div style={{ marginTop: "10px" }}>
             <span>
@@ -525,23 +501,18 @@ export const ProjectControl = rclass<ReactProps>(
                 Cancel
               </Button>
             </div>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </div>
       );
     }
 
-    rowstyle(delim?) {
-      const style: React.CSSProperties = {
-        marginBottom: "5px",
-        paddingBottom: "10px"
+    private rowstyle(delim?): React.CSSProperties | undefined {
+      if (!delim) return;
+      return {
+        borderBottom: "1px solid #ddd",
+        borderTop: "1px solid #ddd",
+        paddingBottom: "10px",
       };
-      if (delim) {
-        style.borderBottom = "1px solid #ccc";
-        style.borderTop = "1px solid #ccc";
-      }
-      return style;
     }
 
     render() {
@@ -556,12 +527,12 @@ export const ProjectControl = rclass<ReactProps>(
           <LabeledRow key="action" label="Actions">
             {this.render_action_buttons()}
           </LabeledRow>
-          {this.render_confirm_restart()}
-          {this.render_confirm_stop()}
           <LabeledRow key="project_id" label="Project id">
-            <pre>{this.props.project.get("project_id")}</pre>
+            <CopyToClipBoard
+              value={this.props.project.get("project_id")}
+              style={{ display: "inline-block", width: "50ex", margin: 0 }}
+            />
           </LabeledRow>
-          {this.props.kucalc !== "yes" ? <hr /> : undefined}
           {this.render_select_compute_image_row()}
         </SettingBox>
       );

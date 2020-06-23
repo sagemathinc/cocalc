@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 This is a rewrite and SUCCESSOR to ./misc.js.
 
 Each function is rethought from scratch, and we try to implement
@@ -6,6 +11,9 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 
 **The exact behavior of functions may change from what is in misc.js!**
 */
+
+import * as sha1 from "sha1";
+export { sha1 };
 
 import * as lodash from "lodash";
 export const keys = lodash.keys;
@@ -22,6 +30,14 @@ export function path_split(path: string): SplittedPath {
 
 export function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// turn an arbitrary string into a nice clean identifier that can safely be used in an URL
+export function make_valid_name(s: string): string {
+  // for now we just delete anything that isn't alphanumeric.
+  // See http://stackoverflow.com/questions/9364400/remove-not-alphanumeric-characters-from-string-having-trouble-with-the-char/9364527#9364527
+  // whose existence surprised me!
+  return s.replace(/\W/g, "_").toLowerCase();
 }
 
 const filename_extension_re = /(?:\.([^.]+))?$/;
@@ -57,6 +73,7 @@ export function change_filename_extension(
 }
 
 // Like Python splitlines.
+// WARNING -- this is actually NOT like Python splitlines, since it just deletes whitespace lines. TODO: audit usage and fix.
 export function splitlines(s: string): string[] {
   const r = s.match(/[^\r\n]+/g);
   return r ? r : [];
@@ -72,7 +89,15 @@ export function split(s: string): string[] {
   }
 }
 
-export function is_different(a: any, b: any, fields: string[]): boolean {
+export function is_different(
+  a: any,
+  b: any,
+  fields: string[],
+  verbose?: string
+): boolean {
+  if (verbose != null) {
+    return is_different_verbose(a, b, fields, verbose);
+  }
   let field: string;
   if (a == null) {
     if (b == null) {
@@ -104,12 +129,59 @@ export function is_different(a: any, b: any, fields: string[]): boolean {
   return false;
 }
 
+// Use for debugging purposes only -- copy code from above to avoid making that
+// code more complicated and possibly slower.
+function is_different_verbose(
+  a: any,
+  b: any,
+  fields: string[],
+  verbose: string
+): boolean {
+  function log(...x) {
+    console.log("is_different_verbose", verbose, ...x);
+  }
+  let field: string;
+  if (a == null) {
+    if (b == null) {
+      log("both null");
+      return false; // they are the same
+    }
+    // a not defined but b is
+    for (field of fields) {
+      if (b[field] != null) {
+        log("a not defined but b is");
+        return true;
+      }
+    }
+    return false;
+  }
+  if (b == null) {
+    // a is defined or would be handled above
+    for (field of fields) {
+      if (a[field] != null) {
+        log(`b null and "${field}" of a is not null`);
+        return true; // different
+      }
+    }
+    return false; // same
+  }
+
+  for (field of fields) {
+    if (a[field] !== b[field]) {
+      log(`field "${field}" differs`, a[field], b[field]);
+      return true;
+    }
+  }
+  log("same");
+  return false;
+}
+
 // Modifies in place the object dest so that it
 // includes all values in objs and returns dest
 // Rightmost object overwrites left.
 export function merge(dest, ...objs) {
-  for (let obj of objs) {
-    for (let k in obj) {
+  for (const obj of objs) {
+    for (const k in obj) {
       dest[k] = obj[k];
     }
   }
@@ -122,7 +194,7 @@ export function copy_with(obj: object, w: string | string[]): object {
   if (typeof w === "string") {
     w = [w];
   }
-  let obj2: any = {};
+  const obj2: any = {};
   let key: string;
   for (key of w) {
     const y = obj[key];
@@ -133,13 +205,29 @@ export function copy_with(obj: object, w: string | string[]): object {
   return obj2;
 }
 
+// copy of map but without some keys
+// I.e., restrict a function to the complement of a subset of the domain.
+export function copy_without(obj: object, w: string | string[]): object {
+  if (typeof w === "string") {
+    w = [w];
+  }
+  const r = {};
+  for (let key in obj) {
+    const y = obj[key];
+    if (!Array.from(w).includes(key)) {
+      r[key] = y;
+    }
+  }
+  return r;
+}
+
 import { cloneDeep } from "lodash";
 export const deep_copy = cloneDeep;
 
 // Very poor man's set.
 export function set(v: string[]): { [key: string]: true } {
   const s: { [key: string]: true } = {};
-  for (let x of v) {
+  for (const x of v) {
     s[x] = true;
   }
   return s;
@@ -192,7 +280,7 @@ export function startswith(s: string, x: string | string[]): boolean {
   if (typeof x === "string") {
     return s.indexOf(x) === 0;
   }
-  for (let v of x) {
+  for (const v of x) {
     if (s.indexOf(v) === 0) {
       return true;
     }
@@ -206,7 +294,7 @@ export function endswith(s: string, t: string): boolean {
 
 // We use this uuid implementation only for the browser client.  For node code, use node-uuid.
 export function uuid(): string {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
     const r = (Math.random() * 16) | 0;
     const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
@@ -220,15 +308,6 @@ export function is_valid_uuid_string(uuid: string): boolean {
   return (
     typeof uuid === "string" && uuid.length === 36 && uuid_regexp.test(uuid)
   );
-}
-
-export function history_path(path: string): string {
-  const p = path_split(path);
-  if (p.head) {
-    return `${p.head}/.${p.tail}.time-travel`;
-  } else {
-    return `.${p.tail}.time-travel`;
-  }
 }
 
 // returns the number of keys of an object, e.g., {a:5, b:7, d:'hello'} --> 3
@@ -270,7 +349,7 @@ export function encode_path(path) {
   return path.replace(/#/g, "%23").replace(/\?/g, "%3F");
 }
 
-const reValidEmail = (function() {
+const reValidEmail = (function () {
   const sQtext = "[^\\x0d\\x22\\x5c\\x80-\\xff]";
   const sDtext = "[^\\x0d\\x5b-\\x5d\\x80-\\xff]";
   const sAtom =
@@ -376,7 +455,7 @@ Like the immutable.js getIn, but on the thing x.
 */
 
 export function getIn(x: any, path: string[], default_value?: any): any {
-  for (let key of path) {
+  for (const key of path) {
     if (x !== undefined) {
       try {
         x = x[key];
@@ -400,13 +479,13 @@ export function replace_all(
 }
 
 export function path_to_title(path: string): string {
-  let subtitle = separate_file_extension(path_split(path).tail).name;
+  const subtitle = separate_file_extension(path_split(path).tail).name;
   return capitalize(replace_all(replace_all(subtitle, "-", " "), "_", " "));
 }
 
 // names is a Set<string>
 export function list_alternatives(names): string {
-  names = names.map(x => x.toUpperCase()).toJS();
+  names = names.map((x) => x.toUpperCase()).toJS();
   if (names.length == 1) {
     return names[0];
   } else if (names.length == 2) {
@@ -447,7 +526,7 @@ export function is_array(obj: any): boolean {
 
 export let is_integer: Function = Number.isInteger;
 if (is_integer == null) {
-  is_integer = n => typeof n === "number" && n % 1 === 0;
+  is_integer = (n) => typeof n === "number" && n % 1 === 0;
 }
 
 export function is_string(obj: any): boolean {
@@ -466,7 +545,7 @@ export function is_date(obj: any): boolean {
 
 // delete any null fields, to avoid wasting space.
 export function delete_null_fields(obj: object): void {
-  for (let k in obj) {
+  for (const k in obj) {
     if (obj[k] == null) {
       delete obj[k];
     }
@@ -478,10 +557,42 @@ export function unreachable(x: never) {
   throw new Error(`All types should be exhausted, but I got ${x}`);
 }
 
-export function bind_methods(obj: any, method_names: string[]): void {
-  for (let method_name of method_names) {
+// Get *all* methods of an object (including from base classes!).
+// See https://flaviocopes.com/how-to-list-object-methods-javascript/
+// This is used by bind_methods below to bind all methods
+// of an instance of an object, all the way up the
+// prototype chain, just to be 100% sure!
+function get_methods(obj: object): string[] {
+  let properties = new Set<string>();
+  let current_obj = obj;
+  do {
+    Object.getOwnPropertyNames(current_obj).map((item) => properties.add(item));
+  } while ((current_obj = Object.getPrototypeOf(current_obj)));
+  return [...properties.keys()].filter(
+    (item) => typeof obj[item] === "function"
+  );
+}
+
+// Bind all or specified methods of the object.  If method_names
+// is not given, binds **all** methods.
+// For example, in a base class constructor, you can do
+//       bind_methods(this);
+// and every method will always be bound even for derived classes
+// (assuming they call super if they overload the constructor!).
+// Do this for classes that don't get created in a tight inner
+// loop and for which you want 'safer' semantics.
+export function bind_methods<T extends object>(
+  obj: T,
+  method_names: undefined | string[] = undefined
+): T {
+  if (method_names === undefined) {
+    method_names = get_methods(obj);
+    method_names.splice(method_names.indexOf("constructor"), 1);
+  }
+  for (const method_name of method_names) {
     obj[method_name] = obj[method_name].bind(obj);
   }
+  return obj;
 }
 
 export function human_readable_size(bytes: number | null | undefined): string {
@@ -516,10 +627,24 @@ export function contains_url(str: string): boolean {
   return !!str.toLowerCase().match(re_url);
 }
 
+// TODO: Move this var and the `delete_local_storage` to a new front-end-misc or something
+// TS rightfully complains about this missing when built on back end systems
+declare var localStorage;
+/**
+ * Deletes key from local storage
+ * FRONT END ONLY
+ */
+export function delete_local_storage(key) {
+  try {
+    delete localStorage[key];
+  } catch (e) {
+    console.warn(`localStorage delete error -- ${e}`);
+  }
+}
 
 // converts an array to a "human readable" array
 export function to_human_list(arr) {
-  arr = lodash.map(arr, x => x.toString());
+  arr = lodash.map(arr, (x) => x.toString());
   if (arr.length > 1) {
     return arr.slice(0, -1).join(", ") + " and " + arr.slice(-1);
   } else if (arr.length === 1) {
@@ -527,4 +652,34 @@ export function to_human_list(arr) {
   } else {
     return "";
   }
-};
+}
+
+export function hidden_meta_file(path: string, ext: string): string {
+  const p = path_split(path);
+  let head: string = p.head;
+  if (head !== "") {
+    head += "/";
+  }
+  return head + "." + p.tail + "." + ext;
+}
+
+export function history_path(path: string): string {
+  return hidden_meta_file(path, "time-travel");
+}
+
+// helps with converting an array of strings to a union type of strings.
+// usage: 1. const foo : string[] = tuple(["bar", "baz"]);
+//        2. type Foo = typeof foo[number]; // bar | baz;
+export function tuple<T extends string[]>(o: T) {
+  return o;
+}
+
+export function aux_file(path: string, ext: string): string {
+  const s = path_split(path);
+  s.tail += "." + ext;
+  if (s.head) {
+    return s.head + "/." + s.tail;
+  } else {
+    return "." + s.tail;
+  }
+}

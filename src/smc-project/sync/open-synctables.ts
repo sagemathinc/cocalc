@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 All SyncTables that are currently open and being managed in this project.
 
 */
@@ -13,7 +18,7 @@ const open_synctables: { [key: string]: SyncTable } = {};
 const wait_for: { [key: string]: Function[] } = {};
 
 export function key(query): string {
-  let table: string = Object.keys(query)[0];
+  const table: string = Object.keys(query)[0];
   if (!table) {
     throw Error("no table in query");
   }
@@ -38,7 +43,7 @@ export function key(query): string {
 export function register_synctable(query: any, synctable: SyncTable): void {
   const k = key(query);
   open_synctables[k] = synctable;
-  synctable.on("closed", function() {
+  synctable.on("closed", function () {
     delete open_synctables[k];
   });
   if (wait_for[k] != null) {
@@ -81,7 +86,7 @@ function handle_wait_for(k: string, synctable: SyncTable): void {
   }
   const v: Function[] = wait_for[k];
   delete wait_for[k];
-  for (let cb of v) {
+  for (const cb of v) {
     cb(undefined, synctable);
   }
 }

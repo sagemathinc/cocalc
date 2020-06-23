@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as CodeMirror from "codemirror";
 
 /*
@@ -23,42 +28,42 @@ completions.sort();
     { regex: /\/-/, token: "comment", next: "blockcomment" },
     {
       regex: /#(print|eval|reduce|check|help|exit)\b/,
-      token: "variable-3"
+      token: "variable-3",
     },
     { regex: /--.*/, token: "comment" },
     { regex: /[-+\/*=<>!]+/, token: "operator" },
     {
       regex: /((?!\.).{1}|^)\b(import|prelude|theory|definition|def|abbreviation|instance|renaming|hiding|exposing|parameter|parameters|begin|constant|constants|lemma|variable|variables|theorem|example|open|axiom|inductive|coinductive|with|structure|universe|universes|alias|precedence|reserve|postfix|prefix|infix|infixl|infixr|notation|end|using|namespace|section|local|set_option|extends|include|omit|class|classes|instances|raw|run_cmd)\b/,
-      token: "keyword"
+      token: "keyword",
     },
     {
       regex: /((?!\.).{1}|^)\b(calc|have|this|match|do|suffices|show|by|in|at|let|forall|fun|exists|assume|from)\b/,
-      token: "variable-2"
+      token: "variable-2",
     },
     {
       regex: /\b(Prop|Type|Sort)\b/,
-      token: "atom"
+      token: "atom",
     },
     {
       regex: /0x[a-f\d]+|[-+]?(?:\.\d+|\d+\.?\d*)(?:e[-+]?\d+)?/i,
-      token: "number"
+      token: "number",
     },
     { regex: /\/-.*?-\//, token: "comment" },
     { regex: /begin/, indent: true },
     { regex: /end/, dedent: true },
     { regex: /[a-z$][\w$]*/, token: "variable" },
-    { regex: /b?"/, token: "string", next: "string" }
+    { regex: /b?"/, token: "string", next: "string" },
   ],
   string: [
     { regex: /"/, token: "string", next: "start" },
-    { regex: /(?:[^\\"]|\\(?:.|$))*/, token: "string" }
+    { regex: /(?:[^\\"]|\\(?:.|$))*/, token: "string" },
   ],
   blockcomment: [
     { regex: /.*?-\//, token: "comment", next: "start" },
-    { regex: /.*/, token: "comment" }
+    { regex: /.*/, token: "comment" },
   ],
   meta: {
     dontIndentStates: ["comment"],
-    lineComment: "--"
-  }
+    lineComment: "--",
+  },
 });

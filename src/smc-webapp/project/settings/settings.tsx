@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import * as misc from "smc-util/misc";
 import { ErrorDisplay, Loading } from "../../r_misc";
@@ -8,10 +13,12 @@ import {
   ProjectMap,
   UserMap,
   StripeCustomer,
-  Customer
+  Customer,
 } from "smc-webapp/todo-types";
-const { webapp_client } = require("../../webapp_client");
+
+import { webapp_client } from "../../webapp-client";
 const { Alert } = require("react-bootstrap");
+import { SCHEMA } from "smc-util/schema";
 
 interface ReactProps {
   project_id: string;
@@ -46,21 +53,21 @@ export const ProjectSettings = rclass<ReactProps>(
     public static reduxProps() {
       return {
         projects: {
-          project_map: rtypes.immutable
+          project_map: rtypes.immutable,
         }, // SMELL isRequired doesn't seem to work here
         users: {
-          user_map: rtypes.immutable
+          user_map: rtypes.immutable,
         },
         account: {
           // NOT used directly -- instead, the QuotaConsole component depends on this in that it calls something in the account store!
           stripe_customer: rtypes.immutable,
           email_address: rtypes.string,
           user_type: rtypes.string, // needed for projects get_my_group call in render
-          account_id: rtypes.string
+          account_id: rtypes.string,
         },
         billing: {
-          customer: rtypes.immutable
-        } // similar to stripe_customer
+          customer: rtypes.immutable,
+        }, // similar to stripe_customer
       };
     }
 
@@ -78,15 +85,19 @@ export const ProjectSettings = rclass<ReactProps>(
       // try to load it directly for future use
       this._admin_project = "loading";
       const query = {};
-      for (let k of misc.keys(
-        require("smc-util/schema").SCHEMA.projects.user_query.get.fields
-      )) {
-        query[k] = k === "project_id" ? this.props.project_id : undefined;
+      for (const k of misc.keys(SCHEMA.projects.user_query.get.fields)) {
+        // Do **not** change the null here to undefined, which means something
+        // completely different. See
+        // https://github.com/sagemathinc/cocalc/issues/4137
+        query[k] = k === "project_id" ? this.props.project_id : null;
       }
-      this._table = webapp_client.sync_table2({ projects_admin: query }, []);
+      this._table = webapp_client.sync_client.sync_table(
+        { projects_admin: query },
+        []
+      );
       this._table.on("change", () => {
         this.setState({
-          admin_project: this._table.get(this.props.project_id)
+          admin_project: this._table.get(this.props.project_id),
         });
       });
     }

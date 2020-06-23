@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Set } from "immutable";
 
 import { merge } from "smc-util/misc2";
@@ -18,7 +23,7 @@ export class NotebookFrameStore {
     // We have to fix some data types, since the frame tree data gets
     // JSON'd and de-JSON'd to local storage.  This also ensures sel_ids
     // and md_edit_ids are both defined.
-    for (let key of ["sel_ids", "md_edit_ids"]) {
+    for (const key of ["sel_ids", "md_edit_ids"]) {
       this.setState({ [key]: this.get(key, Set()).toSet() });
     }
   }
@@ -72,7 +77,7 @@ export class NotebookFrameStore {
     }
     const sel_ids = this.get("sel_ids");
     if (sel_ids != null) {
-      sel_ids.forEach(function(x) {
+      sel_ids.forEach(function (x) {
         selected[x] = true;
       });
     }
@@ -95,7 +100,7 @@ export class NotebookFrameStore {
       // special case -- no cells
       return v;
     }
-    cell_list.forEach(function(id) {
+    cell_list.forEach(function (id) {
       if (selected[id]) {
         v.push(id);
       }

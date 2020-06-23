@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { describe, it, expect } from "../../frame-editors/generic/test/util";
 import * as cell_utils from "../cell-utils";
 import * as immutable from "immutable";
@@ -62,7 +67,7 @@ describe("tests computing the sorted list of cell ids -- ", () => {
       xyz: { pos: -1 },
       a5: { pos: -10 },
       b7: { pos: 11 },
-      x: { pos: 0 }
+      x: { pos: 0 },
     });
     const cell_list = cell_utils.sorted_cell_list(cells);
     expect(cell_list.toJS()).to.deep.equal(["a5", "xyz", "x", "abc", "b7"]);
@@ -81,12 +86,12 @@ describe("test code for ensuring positions are unique -- ", () => {
     const cells = immutable.fromJS({
       abc: { pos: 1 },
       xyz: { pos: -1 },
-      qaz: { pos: 1 }
+      qaz: { pos: 1 },
     });
     expect(cell_utils.ensure_positions_are_unique(cells)).to.deep.equal({
       abc: 1,
       qaz: 2,
-      xyz: 0
+      xyz: 0,
     });
   });
 });
@@ -113,9 +118,9 @@ describe("test move_selected_cells --", () => {
   it("some undef cases", () => {
     expect(cell_utils.move_selected_cells()).to.equal(undefined);
     expect(cell_utils.move_selected_cells(["a", "b", "x"])).to.equal(undefined);
-    expect(cell_utils.move_selected_cells(["a", "b", "x"], { a: true })).to.equal(
-      undefined
-    );
+    expect(
+      cell_utils.move_selected_cells(["a", "b", "x"], { a: true })
+    ).to.equal(undefined);
     expect(
       cell_utils.move_selected_cells(["a", "b", "x"], { a: true }, 0)
     ).to.equal(undefined);

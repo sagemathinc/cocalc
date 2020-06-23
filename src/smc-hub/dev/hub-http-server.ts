@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /* Functionality specific to the hub http server when hub is in dev mode.
 
 Proxy server urls -- on SMC in production, HAproxy sends these requests directly to the proxy server
@@ -57,7 +62,7 @@ async function get_port(
     return await callback_opts(hub_proxy.jupyter_server_port)({
       project_id,
       compute_server: compute_server,
-      database: database
+      database: database,
     });
   } else {
     return port_number;
@@ -105,14 +110,15 @@ export async function init_http_proxy(
         database
       );
     } catch (err) {
+      logger.debug(`http_proxy: internal error: ${err}`);
       res.status(500).send(`internal error: ${err}`);
       return;
     }
-    logger.debug(`port='${port}'`);
+    logger.debug(`http_proxy: port='${port}'`);
     const target = `http://localhost:${port}`;
     proxy = createProxyServer({
       ws: false,
-      target
+      target,
     });
 
     // Workaround for bug https://github.com/nodejitsu/node-http-proxy/issues/1142; otherwise
@@ -151,12 +157,16 @@ export function init_websocket_proxy(
 ): void {
   async function handle_upgrade(req, socket, head): Promise<void> {
     if (hub_proxy.version_check(req, undefined, base_url)) {
-      logger.debug("http_proxy: websocket upgrade -- version check failed");
+      logger.debug(
+        "http_proxy.init_websocket_proxy: websocket upgrade -- version check failed"
+      );
       return;
     }
     let proxy;
     const req_url = req.url.slice(base_url.length);
-    logger.debug(`websocket_proxy.handle_upgrade: "${req_url}"`);
+    logger.debug(
+      `http_proxy.init_websocket_proxy.handle_upgrade: "${req_url}"`
+    );
     const { type, key, port_number, project_id } = target_parse_req(req_url);
     proxy = websocket_proxy_cache[key];
     if (proxy !== undefined) {
@@ -165,7 +175,10 @@ export function init_websocket_proxy(
       return;
     }
 
-    logger.debug("websocket", "upgrade -- creating proxy");
+    logger.debug(
+      "http_proxy.init_websocket_proxy.handle_upgrade",
+      "upgrade -- creating proxy"
+    );
     let port;
     try {
       port = await get_port(
@@ -183,11 +196,11 @@ export function init_websocket_proxy(
 
     proxy = createProxyServer({
       ws: true,
-      target: `ws://localhost:${port}`
+      target: `ws://localhost:${port}`,
     });
-    proxy.on("error", function(e) {
+    proxy.on("error", function (e) {
       logger.debug(
-        "websocket",
+        "http_proxy.init_websocket_proxy.error event",
         `websocket proxy error, so clearing cache -- ${e}`
       );
       delete websocket_proxy_cache[key];
@@ -212,7 +225,7 @@ export function init_share_server(
     database: database,
     path: `${PROJECT_PATH}/[project_id]`,
     base_url: base_url,
-    logger: logger
+    logger: logger,
   });
   express_app.use(url, share_router);
 }

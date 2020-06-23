@@ -1,17 +1,29 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React, Component, Rendered } from "../app-framework";
 const { HelpEmailLink, SiteName } = require("../customize");
-
+import { A } from "../r_misc";
 import { STUDENT_COURSE_PRICE } from "./data";
+import { Space } from "../r_misc/space";
 
 interface Props {
   type: "personal" | "course";
 }
 
+const TEACHER_PAYS =
+  "https://doc.cocalc.com/teaching-create-course.html#option-2-teacher-or-institution-pays-for-upgrades";
+const STUDENT_PAYS =
+  "https://doc.cocalc.com/teaching-create-course.html#option-1-students-pay-for-upgrades";
+const INSTRUCTOR_GUIDE = "https://doc.cocalc.com/teaching-instructors.html";
+
 export class ExplainPlan extends Component<Props> {
   private render_dedicated(): Rendered {
     return (
       <div>
-        For highly intensive workloads you can also purchase {" "}
+        For highly intensive workloads you can also purchase{" "}
         <a href="#dedicated">Dedicated resources</a>.
       </div>
     );
@@ -21,17 +33,25 @@ export class ExplainPlan extends Component<Props> {
       <div style={{ marginBottom: "10px" }}>
         <a id="subscriptions" />
         <h3>Personal subscriptions</h3>
-        <div>
-          We offer several subscriptions that let you upgrade the default free
-          quotas on projects. You can distribute these upgrades to your own
-          projects or any projects where you are a collaborator &mdash; everyone
-          participating in such a collective project benefits and can easily
-          change their allocations at any time! You can get higher-quality
-          hosting on members-only machines and enable access to the internet
-          from projects. You can also increase quotas for CPU and RAM, so that
-          you can work on larger problems and do more computations
-          simultaneously.
-        </div>
+        <p>
+          Personal subscriptions award you with{" "}
+          <A href="https://doc.cocalc.com/billing.html#quota-upgrades">
+            upgrades for project quotas
+          </A>
+          . They <b>automatically renew</b> after each period and you can{" "}
+          <b>cancel at any time</b>.
+        </p>
+        <p>
+          Once such upgrades are added to your account, you can distribute them
+          to your own projects or other projects where you are a collaborator
+          &mdash; everyone using an upgraded project benefits.
+        </p>
+        <p>
+          Quota upgrades can be added or removed at any time – move them between
+          your projects as often as you like.
+        </p>
+        <Space />
+
         <br />
         {this.render_dedicated()}
         <br />
@@ -46,53 +66,51 @@ export class ExplainPlan extends Component<Props> {
         <h3>Course packages</h3>
         <div>
           <p>
-            We offer course packages to support teaching using <SiteName />.
-            They start right after purchase and last for the indicated period
-            and do <b>not auto-renew</b>. Follow the{" "}
-            <a
-              href="https://doc.cocalc.com/teaching-instructors.html"
-              target="_blank"
-              rel="noopener"
-            >
-              instructor guide
-            </a>{" "}
-            to create a course file for your new course. Each time you add a
-            student to your course, a project will be automatically created for
-            that student. You can create and distribute assignments, students
-            work on assignments inside their project (where you can see their
-            progress in realtime and answer their questions), and you later
-            collect and grade their assignments, then return them.
+            You can <A href={INSTRUCTOR_GUIDE}>teach a course</A> on{" "}
+            <SiteName />. Each student works in their own project, while you
+            oversee everyone and track everyone's progress. <SiteName />
+            {"'s"} real-time collaboration makes it easy to help students
+            directly where they work.
+          </p>
+          <h4>Payment options</h4>
+          <ul style={{ paddingLeft: "20px" }}>
+            <li>
+              <b>
+                <A href={TEACHER_PAYS}>You or your institution pays</A>
+              </b>{" "}
+              for one or more course plans. You distribute the quota upgrades to
+              all projects of the course via the configuration frame of the
+              course management file. Course packages start immediately after
+              purchase, last for the indicated period, and do{" "}
+              <b>not auto-renew</b> when they end.
+            </li>
+
+            <li>
+              <b>
+                <A href={STUDENT_PAYS}>Students pay a one-time fee.</A>
+              </b>{" "}
+              In the configuration frame of the course management file, you opt
+              to require all students to pay a one-time ${STUDENT_COURSE_PRICE}{" "}
+              fee to upgrade their projects.
+            </li>
+          </ul>
+          <h4>Basic, Standard or Premium?</h4>
+          <p>
+            Our basic plan works well for cases where you are only doing small
+            computations in a single notebook/worksheet or just need internet
+            access and better hosting uptime.
           </p>
           <p>
-            Payment is required. This will ensure that your students have a
-            better experience, network access, and receive priority support. The
-            cost is <b>between $4 and ${STUDENT_COURSE_PRICE} per student</b>,
-            depending on class size and whether you or your students pay.{" "}
-            <b>Start right now:</b>{" "}
-            <i>
-              you can fully set up your class and add students immediately
-              before you pay us anything!
-            </i>
+            However, we find that many data and computational science courses
+            run better with the additional RAM and CPU found in the standard or
+            premium plans.
           </p>
-          <h4>You or your institution pays</h4>
-          You or your institution may pay for one of the course plans. You then
-          use your plan to upgrade all projects in the course in the settings
-          tab of the course file.
-          <h4>Students pay</h4>
-          In the settings tab of your course, you require that all students pay
-          a one-time ${STUDENT_COURSE_PRICE} fee to move their projects to
-          members only hosts and enable full internet access.
-          <br />
-          <h4>Basic or Standard?</h4>
-          Our basic plans work well for cases where you are only doing small
-          computations or just need internet access and better hosting uptime.
-          However, we find that many data science and computational science
-          courses run much smoother with the additional RAM and CPU found in the
-          standard plan.
           <h4>Custom Course Plans</h4>
-          In addition to the plans listed on this page, we can offer the
-          following on a custom basis:
-          <ul>
+          <p>
+            In addition to the plans listed on this page, we offer the following
+            on a custom basis:
+          </p>
+          <ul style={{ paddingLeft: "20px" }}>
             <li>start on a specified date after payment</li>
             <li>customized duration</li>
             <li>customized number of students</li>
@@ -102,10 +120,11 @@ export class ExplainPlan extends Component<Props> {
               account
             </li>
           </ul>
-          To learn more about these options, email us at <HelpEmailLink /> with
-          a description of your specific requirements.
-          <br />
-          <br />
+          <p>
+            To learn more about these options, email us at <HelpEmailLink />{" "}
+            with a description of your specific requirements.
+          </p>
+          <Space />
         </div>
       </div>
     );

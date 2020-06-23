@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 PDF Editor Actions
 */
 
@@ -9,7 +14,7 @@ import { raw_url } from "../frame-tree/util";
 
 import {
   ScrollIntoViewRecord,
-  ScrollIntoViewMap
+  ScrollIntoViewMap,
 } from "../latex-editor/actions";
 
 import { EDITOR_SPEC } from "./editor";
@@ -64,8 +69,8 @@ export class PDFActions extends Actions<PDFEditorState> {
       scroll_pdf_into_view: new ScrollIntoViewRecord({
         page: page,
         y: y,
-        id: id
-      })
+        id: id,
+      }),
     });
   }
 }

@@ -1,8 +1,13 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Node.js interface to nbconvert.
 */
 
-require('coffee-register');
+require("coffee-register");
 
 const { execute_code } = require("smc-util-node/misc_node");
 const { callback_opts } = require("smc-util/async-utils");
@@ -13,12 +18,12 @@ interface nbconvertParams {
   timeout?: number;
 }
 
-export async function nbconvert(opts: nbconvertParams) : Promise<void> {
+export async function nbconvert(opts: nbconvertParams): Promise<void> {
   if (!opts.timeout) {
     opts.timeout = 30;
   }
   let j: number = 0;
-  let to: string = '';
+  let to: string = "";
   for (let i = 0; i < opts.args.length; i++) {
     if (opts.args[i] === "--to") {
       j = i;
@@ -47,9 +52,9 @@ export async function nbconvert(opts: nbconvertParams) : Promise<void> {
     err_on_exit: false,
     timeout: opts.timeout, // in seconds
     ulimit_timeout: true,
-    bash: true
+    bash: true,
   });
-  if(output.exit_code != 0) {
+  if (output.exit_code != 0) {
     throw Error(output.stderr);
   }
 }

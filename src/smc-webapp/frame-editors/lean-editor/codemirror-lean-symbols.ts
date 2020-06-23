@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Make it so Codemirror has an option to insert LEAN symbols
 */
 
@@ -9,7 +14,7 @@ declare module "codemirror" {
   function innerMode(mode: any, state: any): any;
 }
 
-CodeMirror.defineOption("leanSymbols", false, function(cm, val, old) {
+CodeMirror.defineOption("leanSymbols", false, function (cm, val, old) {
   if (old) {
     cm.removeKeyMap("leanSymbols");
     cm.off("mousedown", lean_symbols);
@@ -26,7 +31,7 @@ CodeMirror.defineOption("leanSymbols", false, function(cm, val, old) {
     Right: lean_symbols,
     Up: lean_symbols,
     Down: lean_symbols,
-    "\\": lean_symbols
+    "\\": lean_symbols,
   };
   cm.on("mousedown", lean_symbols);
   cm.on("blur", lean_symbols);
@@ -49,9 +54,9 @@ function lean_symbols(cm): any {
   if (cm.getOption("disableInput")) {
     return CodeMirror.Pass;
   }
-  for (let range of cm.listSelections()) {
+  for (const range of cm.listSelections()) {
     const line = range.head.line;
-    for (let sub of substitute_symbols(cm.getLine(line))) {
+    for (const sub of substitute_symbols(cm.getLine(line))) {
       const { replacement, from, to } = sub;
       cm.replaceRange(
         replacement,

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * this manages project configuration specific aspects.
  * It is the corresponding counterpart of smc-project/configuration.ts
  * The various "capabilities" data-structures are used to show/hide UI elements or suppress
@@ -7,6 +12,8 @@
 
 import { Map as iMap } from "immutable";
 import { KNITR_EXTS } from "./frame-editors/latex-editor/constants";
+import { TypedMap } from "./app-framework/TypedMap";
+import { WebappClient } from "./webapp-client";
 
 export const LIBRARY_INDEX_FILE = "/ext/library/cocalc-examples/index.json";
 
@@ -36,6 +43,7 @@ export interface MainCapabilities {
   hashsums: Capabilities;
   latex: boolean;
   sage: boolean;
+  sage_version?: number[];
   x11: boolean;
   rmd: boolean;
   spellcheck: boolean;
@@ -56,6 +64,8 @@ export interface Available {
   formatting: Capabilities | boolean;
 }
 
+export type AvailableFeatures = TypedMap<Available>;
+
 const NO_AVAIL: Readonly<Available> = Object.freeze({
   jupyter_lab: false,
   jupyter_notebook: false,
@@ -66,7 +76,7 @@ const NO_AVAIL: Readonly<Available> = Object.freeze({
   x11: false,
   spellcheck: false,
   library: false,
-  formatting: false
+  formatting: false,
 });
 
 export const ALL_AVAIL: Readonly<Available> = Object.freeze({
@@ -79,7 +89,7 @@ export const ALL_AVAIL: Readonly<Available> = Object.freeze({
   x11: true,
   spellcheck: true,
   library: true,
-  formatting: true
+  formatting: true,
 });
 
 // detecting certain datastructures, only used for TS typing
@@ -108,17 +118,57 @@ export function isMainConfiguration(
   );
 }
 
+// if prettier exists, this adds all syntaxes to format via prettier
+function formatting_prettier(formatting: Capabilities): Capabilities {
+  if (formatting.prettier) {
+    formatting.postcss = true;
+    formatting.babel = true;
+    formatting.typescript = true;
+    formatting.json = true;
+    formatting.yaml = true;
+    formatting.markdown = true;
+  }
+  // for backwards compatibility
+  if (formatting.yapf) {
+    formatting.python = true;
+  }
+  if (formatting.biber) {
+    formatting["bib-biber"] = true;
+  }
+  if (formatting.tidy) {
+    formatting["xml-tidy"] = true;
+    formatting["html-tidy"] = true;
+  }
+  if (formatting.formatR) {
+    formatting.r = true;
+  }
+  if (formatting.latexindent) {
+    formatting.latex = true;
+  }
+  return formatting;
+}
+
 // derive available types of files from the configuration map
 export function is_available(configuration?: ProjectConfiguration): Available {
-  if (configuration == null) return NO_AVAIL;
+  if (configuration == null) {
+    // If the configuration is not yet available, we default to the *most likely*
+    // configuration, not the least likely configuration.
+    // See https://github.com/sagemathinc/cocalc/issues/4293
+    // We could alternatively make it so nothing that uses capabilites
+    // is available until configuration is loaded, but I don't like that
+    // since right now things like clicking a button to create a new file
+    // *do* work fine even if the project isn't yet running (they start
+    // the project, wait properly until it is running, then create the file).
+    return ALL_AVAIL;
+  }
 
   const main: Configuration | undefined = configuration.get("main");
-  if (main == null) return NO_AVAIL;
+  if (main == null) return ALL_AVAIL; // see note above
   const capabilities = main.capabilities as MainCapabilities;
-  if (capabilities == null) return NO_AVAIL;
+  if (capabilities == null) return ALL_AVAIL; // see note above.
   const jupyter: Capabilities | boolean = capabilities.jupyter;
 
-  const formatting = capabilities.formatting;
+  const formatting = formatting_prettier(capabilities.formatting);
 
   // uncomment for testing
   // formatting["yapf"] = formatting["tidy"] = false;
@@ -135,7 +185,7 @@ export function is_available(configuration?: ProjectConfiguration): Available {
       x11: !!capabilities.x11,
       spellcheck: !!capabilities.spellcheck,
       library: !!capabilities.library,
-      formatting
+      formatting,
     };
   } else {
     return NO_AVAIL;
@@ -145,15 +195,17 @@ export function is_available(configuration?: ProjectConfiguration): Available {
 // main function, this calls the project "configuration" endpoint.
 // it also manages updating the configuration datastructure, which is used in the project actions
 export async function get_configuration(
-  webapp_client: any,
+  webapp_client: WebappClient,
   project_id: string,
   aspect: ConfigurationAspect = "main",
-  prev: ProjectConfiguration
+  prev: ProjectConfiguration,
+  no_cache = false
 ): Promise<ProjectConfiguration | undefined> {
   // the actual API call, returning an object
-  const config: Configuration = await webapp_client.configuration(
+  const config: Configuration = await webapp_client.project_client.configuration(
     project_id,
-    aspect
+    aspect,
+    no_cache
   );
   if (config == null) return prev;
   // console.log("project_actions::init_configuration", aspect, config);

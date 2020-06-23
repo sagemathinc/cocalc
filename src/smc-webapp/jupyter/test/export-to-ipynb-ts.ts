@@ -1,10 +1,15 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import {
   describe,
   before,
   after,
   it,
   expect,
-  TestEditor
+  TestEditor,
 } from "../../frame-editors/generic/test/util";
 import { JupyterStore } from "../store";
 import { JupyterActions } from "../actions";
@@ -28,7 +33,7 @@ describe("tests exporting the most basic ipynb file -- ", () => {
     const ipynb = export_to_ipynb({
       cell_list: actions.store.get("cell_list"),
       cells: actions.store.get("cells"),
-      kernelspec: {}
+      kernelspec: {},
     });
     expect(ipynb).to.deep.equal({
       cells: [
@@ -37,18 +42,18 @@ describe("tests exporting the most basic ipynb file -- ", () => {
           execution_count: 0,
           metadata: { collapsed: false },
           outputs: [],
-          source: []
-        }
+          source: [],
+        },
       ],
       metadata: { kernelspec: {} },
       nbformat: 4,
-      nbformat_minor: 0
+      nbformat_minor: 4,
     });
   });
   it("by calling function in the store", () => {
     const ipynb = export_to_ipynb({
       cell_list: actions.store.get("cell_list"),
-      cells: actions.store.get("cells")
+      cells: actions.store.get("cells"),
     });
     expect(store.get_ipynb()).to.deep.equal(ipynb);
   });
@@ -59,7 +64,7 @@ describe("tests exporting the most basic ipynb file -- ", () => {
     const ipynb = export_to_ipynb({
       cell_list: actions.store.get("cell_list"),
       cells: actions.store.get("cells"),
-      kernelspec: {}
+      kernelspec: {},
     });
     expect(ipynb).to.deep.equal({
       cells: [
@@ -73,14 +78,14 @@ describe("tests exporting the most basic ipynb file -- ", () => {
               data: { "text/plain": ["5"] },
               output_type: "execute_result",
               metadata: {},
-              execution_count: 0
-            }
-          ]
-        }
+              execution_count: 0,
+            },
+          ],
+        },
       ],
       metadata: { kernelspec: {} },
       nbformat: 4,
-      nbformat_minor: 0
+      nbformat_minor: 4,
     });
   });
 });
@@ -105,13 +110,13 @@ describe("tests exporting a file with many cells -- ", () => {
     }
     const cell_list = store.get("cell_list");
     if (cell_list != null) {
-      cell_list.toJS().map(id => actions.set_cell_input(id, id));
+      cell_list.toJS().map((id) => actions.set_cell_input(id, id));
     }
   });
   it("exports and confirms order is right", () => {
     const ipynb = store.get_ipynb();
     if (ipynb == null) throw Error("must be defined");
-    const inputs = ipynb.cells.map(cell => cell.source[0]);
+    const inputs = ipynb.cells.map((cell) => cell.source[0]);
     const cell_list = store.get("cell_list");
     expect(inputs).to.deep.equal(cell_list != null && cell_list.toJS());
   });
@@ -141,8 +146,8 @@ describe("tests simple use of more_output ", () => {
       {
         name: "stderr",
         output_type: "stream",
-        text: ["WARNING: Some output was deleted.\n"]
-      }
+        text: ["WARNING: Some output was deleted.\n"],
+      },
     ]);
   });
   it("tests when there is more than one message", () => {
@@ -150,14 +155,14 @@ describe("tests simple use of more_output ", () => {
     actions.set_cell_output(id, {
       0: { data: { "text/plain": "5" } },
       1: { data: { "text/plain": "2" } },
-      2: { more_output: true }
+      2: { more_output: true },
     });
     const ipynb = store.get_ipynb();
     if (ipynb == null) throw Error("must be defined");
     expect(ipynb.cells[0].outputs[2]).to.deep.equal({
       name: "stderr",
       output_type: "stream",
-      text: ["WARNING: Some output was deleted.\n"]
+      text: ["WARNING: Some output was deleted.\n"],
     });
   });
 });

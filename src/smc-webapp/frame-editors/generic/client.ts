@@ -1,8 +1,13 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Typescript async/await rewrite of smc-util/client.coffee...
 */
 
-const webapp_client = require("smc-webapp/webapp_client").webapp_client;
+import { webapp_client } from "../../webapp-client";
 const schema = require("smc-util/schema");
 const DEFAULT_FONT_SIZE: number = require("smc-util/db-schema")
   .DEFAULT_FONT_SIZE;
@@ -10,40 +15,18 @@ import { redux } from "../../app-framework";
 import { callback2 } from "smc-util/async-utils";
 import { FakeSyncstring } from "./syncstring-fake";
 import { Map } from "immutable";
+import { CompressedPatch } from "smc-util/sync/editor/generic/types";
+import { ExecOpts, ExecOutput } from "../../client/project";
+import { Config as FormatterConfig } from "smc-project/formatters/prettier";
+export { ExecOpts, ExecOutput };
 
 export function server_time(): Date {
-  return webapp_client.server_time();
-}
-
-export interface ExecOpts {
-  project_id: string;
-  path?: string;
-  command: string;
-  args?: string[];
-  timeout?: number;
-  network_timeout?: number;
-  max_output?: number;
-  bash?: boolean;
-  aggregate?: string | number | { value: string | number };
-  err_on_exit?: boolean;
-  allow_post?: boolean; // set to false if genuinely could take a long time
-  env?: any; // custom environment variables.
-}
-
-export interface ExecOutput {
-  stdout: string;
-  stderr: string;
-  exit_code: number;
-  time: number; // time in ms, from user point of view.
+  return webapp_client.time_client.server_time();
 }
 
 // async version of the webapp_client exec -- let's you run any code in a project!
 export async function exec(opts: ExecOpts): Promise<ExecOutput> {
-  let msg = await callback2(webapp_client.exec, opts);
-  if (msg.status && msg.status == "error") {
-    throw new Error(msg.error);
-  }
-  return msg;
+  return await webapp_client.project_client.exec(opts);
 }
 
 export async function touch(project_id: string, path: string): Promise<void> {
@@ -59,7 +42,11 @@ export async function touch(project_id: string, path: string): Promise<void> {
 
 // Resets the idle timeout timer and makes it known we are using the project.
 export async function touch_project(project_id: string): Promise<void> {
-  return await callback2(webapp_client.touch_project, { project_id });
+  try {
+    await webapp_client.project_client.touch(project_id);
+  } catch (err) {
+    console.warn(`unable to touch '${project_id}' -- ${err}`);
+  }
 }
 
 export async function start_project(
@@ -83,21 +70,12 @@ export async function start_project(
 interface ReadTextFileOpts {
   project_id: string;
   path: string;
-  timeout?: number;
 }
-
-/*
-export async function exists_in_project(
-  project_id:string, path:string) : Promise<boolean> {
-
-}
-*/
 
 export async function read_text_file_from_project(
   opts: ReadTextFileOpts
 ): Promise<string> {
-  let mesg = await callback2(webapp_client.read_text_file_from_project, opts);
-  return mesg.content;
+  return await webapp_client.project_client.read_text_file(opts);
 }
 
 interface WriteTextFileOpts {
@@ -109,13 +87,13 @@ interface WriteTextFileOpts {
 export async function write_text_file_to_project(
   opts: WriteTextFileOpts
 ): Promise<void> {
-  await callback2(webapp_client.write_text_file_to_project, opts);
+  await webapp_client.project_client.write_text_file(opts);
 }
 
 export async function public_get_text_file(
   opts: ReadTextFileOpts
 ): Promise<string> {
-  return await callback2(webapp_client.public_get_text_file, opts);
+  return await webapp_client.project_client.public_get_text_file(opts);
 }
 
 export interface ParserOptions {
@@ -128,34 +106,29 @@ export interface ParserOptions {
 export async function prettier(
   project_id: string,
   path: string,
-  options: ParserOptions
-): Promise<void> {
-  let resp = await callback2(webapp_client.prettier, {
-    project_id,
-    path,
-    options
-  });
+  config: FormatterConfig
+): Promise<CompressedPatch> {
+  const api = await webapp_client.project_client.api(project_id);
+  const resp = await api.prettier(path, config);
+
   if (resp.status === "error") {
-    let loc = resp.error.loc;
+    const loc = resp.error.loc;
     if (loc && loc.start) {
       throw Error(
-        `Syntax error prevented formatting code (possibly on line ${
-          loc.start.line
-        } column ${loc.start.column}) -- fix and run again.`
+        `Syntax error prevented formatting code (possibly on line ${loc.start.line} column ${loc.start.column}) -- fix and run again.`
       );
     } else if (resp.error) {
       throw Error(resp.error);
     } else {
       throw Error("Syntax error prevented formatting code.");
     }
+  } else {
+    return resp.patch;
   }
 }
 
 export function log_error(error: string | object): void {
-  if (typeof error != "string") {
-    error = JSON.stringify(error);
-  }
-  webapp_client.log_error(error);
+  webapp_client.tracking_client.log_error(error);
 }
 
 interface SyncstringOpts {
@@ -210,6 +183,7 @@ export interface SyncDBOpts {
   patch_interval?: number;
   persistent?: boolean;
   data_server?: DataServer;
+  file_use_interval?: number;
 }
 
 export function syncdb(opts: SyncDBOpts): any {
@@ -231,11 +205,12 @@ export function syncdb2(opts: SyncDBOpts): SyncDB {
 interface QueryOpts {
   query: object;
   changes?: boolean;
-  options?: object[]; // e.g., [{limit:5}]
+  options?: object[]; // e.g., [{limit:5}],
+  no_post?: boolean;
 }
 
 export async function query(opts: QueryOpts): Promise<any> {
-  return callback2(webapp_client.query, opts);
+  return await webapp_client.query_client.query(opts);
 }
 
 export function get_default_font_size(): number {
@@ -248,19 +223,12 @@ export function get_default_font_size(): number {
 export function get_editor_settings(): Map<string, any> {
   const account: any = redux.getStore("account");
   if (account) {
-    let e = account.get("editor_settings");
+    const e = account.get("editor_settings");
     if (e) {
       return e;
     }
   }
   return Map(); // not loaded
-}
-
-export async function stripe_admin_create_customer(opts: {
-  account_id?: string;
-  email_address?: string;
-}): Promise<void> {
-  return callback2(webapp_client.stripe_admin_create_customer, opts);
 }
 
 export interface User {
@@ -275,17 +243,15 @@ export interface User {
 
 export async function user_search(opts: {
   query: string;
-  query_id?: number;
   limit?: number;
-  timeout?: number;
   admin?: boolean;
   active?: string;
 }): Promise<User[]> {
-  return callback2(webapp_client.user_search, opts);
+  return await webapp_client.users_client.user_search(opts);
 }
 
 export async function project_websocket(project_id: string): Promise<any> {
-  return await webapp_client.project_websocket(project_id);
+  return await webapp_client.project_client.websocket(project_id);
 }
 
 import { API } from "smc-webapp/project/websocket/api";
@@ -296,5 +262,5 @@ export async function project_api(project_id: string): Promise<API> {
 
 // Returns the raw URL to read the file from the project.
 export function raw_url_of_file(project_id: string, path: string): string {
-  return webapp_client.read_file_from_project({ project_id, path });
+  return webapp_client.project_client.read_file({ project_id, path });
 }

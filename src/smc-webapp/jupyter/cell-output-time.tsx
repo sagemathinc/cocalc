@@ -1,6 +1,11 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React, Component } from "../app-framework";
 
-const { TimeAgo } = require("../r_misc"); // TODO: import
+import { TimeAgo, A, Icon } from "../r_misc";
 
 interface CellTimingProps {
   start?: number;
@@ -10,17 +15,29 @@ interface CellTimingProps {
 
 export class CellTiming extends Component<CellTimingProps> {
   render() {
-    let tip = "";
+    let tip;
     if (this.props.start === undefined) {
       return <span />; // TODO: should this return undefined?
     }
     if (this.props.end !== undefined) {
       return `${(this.props.end - this.props.start) / 1000} seconds`;
     } else if (this.props.state === undefined || this.props.state === "done") {
-      tip = "(killed)";
+      tip = (
+        <A
+          href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html"
+          style={{
+            display: "inline-block",
+            background: "red",
+            color: "white",
+            padding: "0 5px",
+          }}
+        >
+          <Icon name="skull" /> Kernel killed...
+        </A>
+      );
     }
     return (
-      <div>
+      <div style={{ float: "right" }}>
         <TimeAgo date={new Date(this.props.start)} />
         <br />
         {tip}

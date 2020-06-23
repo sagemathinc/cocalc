@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Render a page describing a user.
 
 For now this is:
@@ -9,7 +14,8 @@ import { Map, List } from "immutable";
 
 import { React } from "smc-webapp/app-framework";
 import { UserPage } from "smc-webapp/share/user-page";
-import { react } from "./react";
+import * as react_support from "smc-webapp/share/server-render";
+import { Settings } from "./settings"
 
 export function render_user(opts: {
   res: any;
@@ -17,9 +23,9 @@ export function render_user(opts: {
   name: string;
   public_paths: Map<string, any>;
   paths_order: List<string>;
-  google_analytics?: string;
+  settings: Settings;
   base_url: string;
 }): void {
   const component = React.createElement(UserPage, opts);
-  react(opts.res, component);
+  react_support.render(opts.res, component);
 }

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { shallow } from "enzyme";
 import { NumberInput } from "../number-input";
@@ -21,7 +26,7 @@ describe("smoke testing", () => {
     expect(rendered).toMatchSnapshot();
 
     rendered.setProps({
-      number: updated_number
+      number: updated_number,
     });
 
     expect(rendered).toMatchSnapshot();
@@ -83,7 +88,7 @@ describe("input behavior", () => {
         on_change={mock_change}
       />
     );
-    const form = rendered.find("FormControl").first();
+    const form = rendered.find("Input").first();
     form.simulate("change", { target: { value: final_value } });
     form.simulate("blur");
     expect(mock_change.mock.calls.length).toBe(1);
@@ -106,14 +111,14 @@ describe("input behavior", () => {
         on_change={mock_change}
       />
     );
-    const form = rendered.find("FormControl").first();
+    const form = rendered.find("Input").first();
     form.simulate("change", { target: { value: over_max } });
     form.simulate("blur");
     expect(mock_change.mock.calls.length).toBe(1);
     expect(mock_change.mock.calls[0][0]).toBe(final_value);
 
     // When passed as prop
-    rendered.setProps({number: over_max});
+    rendered.setProps({ number: over_max });
     form.simulate("blur");
     expect(mock_change.mock.calls.length).toBe(2);
     expect(mock_change.mock.calls[1][0]).toBe(final_value);
@@ -135,14 +140,14 @@ describe("input behavior", () => {
         on_change={mock_change}
       />
     );
-    const form = rendered.find("FormControl").first();
+    const form = rendered.find("Input").first();
     form.simulate("change", { target: { value: under_min } });
     form.simulate("blur");
     expect(mock_change.mock.calls.length).toBe(1);
     expect(mock_change.mock.calls[0][0]).toBe(final_value);
 
     // When passed as prop
-    rendered.setProps({number: under_min});
+    rendered.setProps({ number: under_min });
     form.simulate("blur");
     expect(mock_change.mock.calls.length).toBe(2);
     expect(mock_change.mock.calls[1][0]).toBe(final_value);

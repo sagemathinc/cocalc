@@ -1,21 +1,25 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React, Component, Rendered } from "../app-framework";
+import { Settings } from "smc-hub/share/settings";
+import { A } from "../r_misc";
 
 interface Props {
   base_url: string;
   viewer?: string;
+  settings: Settings;
 }
 
 export class CoCalcLink extends Component<Props> {
   private target(): string {
-    return "https://cocalc.com" + this.props.base_url;
+    return `https://${this.props.settings.dns}${this.props.base_url}`;
   }
 
   private link(text: string): Rendered {
-    return (
-      <a href={this.target()} target={"_blank"} rel={"noopener"}>
-        {text}
-      </a>
-    );
+    return <A href={this.target()}>{text}</A>;
   }
 
   public render(): Rendered {
@@ -29,10 +33,10 @@ export class CoCalcLink extends Component<Props> {
             fontSize: "8pt",
             border: "1px solid #aaa",
             padding: "2px",
-            zIndex: 1000
+            zIndex: 1000,
           }}
         >
-          {this.link("Powered by CoCalc")}
+          {this.link(`Powered by ${this.props.settings.site_name}`)}
         </div>
       );
     } else {
@@ -42,10 +46,10 @@ export class CoCalcLink extends Component<Props> {
             position: "absolute",
             left: "50%",
             transform: "translate(-50%)",
-            fontSize: "12pt"
+            fontSize: "12pt",
           }}
         >
-          {this.link("CoCalc")}
+          {this.link(this.props.settings.site_name)}
         </div>
       );
     }

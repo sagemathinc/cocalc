@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import {
   Alert,
   Button,
@@ -5,10 +10,11 @@ import {
   ButtonToolbar,
   Col,
   Row,
-  Well
+  Well,
 } from "react-bootstrap";
 import { Icon } from "../r_misc/icon";
 import { PROJECT_UPGRADES } from "smc-util/schema";
+import { COLORS } from "smc-util/theme";
 import { capitalize, endswith } from "smc-util/misc2";
 import { Component, React, Rendered, redux } from "../app-framework";
 import { AppliedCoupons, Customer, PeriodName } from "./types";
@@ -128,18 +134,14 @@ export class AddSubscription extends Component<Props, State> {
               This subscription will <b>automatically renew</b> every {length}.
               You can cancel automatic renewal at any time.
             </span>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           {!renews ? (
             <span>
               You will be <b>charged only once</b> for the course package, which
               lasts {endswith(length, "s") ? "" : "a "}
               {length}. It does <b>not automatically renew</b>.
             </span>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </p>
       );
     }
@@ -271,9 +273,7 @@ export class AddSubscription extends Component<Props, State> {
               is_recurring={this.is_recurring()}
               on_close={this.props.on_close}
             />
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           {this.render_create_subscription_buttons()}
           <Row style={{ paddingTop: "15px" }}>
             <Col sm={5} smOffset={7}>
@@ -281,6 +281,12 @@ export class AddSubscription extends Component<Props, State> {
                 applied_coupons={this.props.applied_coupons}
                 coupon_error={this.props.coupon_error}
               />
+            </Col>
+            <Col sm={12} style={{ color: COLORS.GRAY, fontSize: "10pt" }}>
+              <hr />
+              Listed prices are in <strong>US dollars</strong>. When charging in
+              local currency, the prices are converted into local currency using
+              the conversion rates published by leading financial institutions.
             </Col>
           </Row>
         </Well>

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Information (from the database) about authors of shares,
 and what shares were authored by a given account.
 */
@@ -40,15 +45,25 @@ export class AuthorInfo {
       paths = path;
     }
 
+    const collabs = new Set(
+      await callback2(this.database.get_collaborators.bind(this.database), {
+        project_id,
+      })
+    );
+
     // Get accounts that have edited these paths, if they have edited them using sync.
-    for (let path of paths) {
+    for (const path of paths) {
       const id: string = this.database.sha1(project_id, path);
       const result = await callback2(this.database._query, {
-        query: `SELECT users FROM syncstrings WHERE string_id='${id}'`
+        query: `SELECT users FROM syncstrings WHERE string_id='${id}'`,
       });
       if (result == null || result.rowCount < 1) continue;
-      for (let account_id of result.rows[0].users) {
-        if (account_id != project_id && !known_account_ids.has(account_id)) {
+      for (const account_id of result.rows[0].users) {
+        if (
+          account_id != project_id &&
+          !known_account_ids.has(account_id) &&
+          collabs.has(account_id)
+        ) {
           account_ids.push(account_id);
           known_account_ids.add(account_id);
         }
@@ -58,10 +73,10 @@ export class AuthorInfo {
     // If no accounts, use the project collaborators as a fallback.
     if (account_ids.length === 0) {
       const result = await callback2(this.database._query, {
-        query: `SELECT jsonb_object_keys(users) FROM projects where project_id='${project_id}'`
+        query: `SELECT jsonb_object_keys(users) FROM projects where project_id='${project_id}'`,
       });
       if (result != null && result.rowCount >= 1) {
-        for (let v of result.rows) {
+        for (const v of result.rows) {
           account_ids.push(v.jsonb_object_keys);
         }
       }
@@ -71,9 +86,9 @@ export class AuthorInfo {
     const authors: Author[] = [];
     const names = await callback2(this.database.get_usernames, {
       account_ids,
-      cache_time_s: 60 * 5
+      cache_time_s: 60 * 5,
     });
-    for (let account_id in names) {
+    for (const account_id in names) {
       // todo really need to sort by last name
       const { first_name, last_name } = names[account_id];
       const name = `${first_name} ${last_name}`;
@@ -90,7 +105,7 @@ export class AuthorInfo {
   public async get_username(account_id: string): Promise<string> {
     const names = await callback2(this.database.get_usernames, {
       account_ids: [account_id],
-      cache_time_s: 60 * 5
+      cache_time_s: 60 * 5,
     });
     const { first_name, last_name } = names[account_id];
     return `${first_name} ${last_name}`;
@@ -110,7 +125,7 @@ export class AuthorInfo {
     const result = await callback2(this.database._query, { query });
     const ids: string[] = [];
     if (result == null) return [];
-    for (let x of result.rows) {
+    for (const x of result.rows) {
       ids.push(x.id);
     }
     return ids;

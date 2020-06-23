@@ -12,10 +12,14 @@ Code for parsing Sage code blocks sensibly.
 #                  http://www.gnu.org/licenses/                                         #
 #########################################################################################
 
+from __future__ import absolute_import
 import string
 import traceback
 import __future__ as future
 import ast
+
+# for the "input()" call
+import six
 
 
 def get_future_features(code, mode):
@@ -54,12 +58,12 @@ def get_future_features(code, mode):
 
 def get_input(prompt):
     try:
-        r = raw_input(prompt)
+        r = six.input(prompt)
         z = r
         if z.rstrip().endswith(':'):
             while True:
                 try:
-                    z = raw_input('...       ')
+                    z = six.input('...       ')
                 except EOFError:
                     quit = True
                     break
@@ -255,9 +259,9 @@ def divide_into_blocks(code):
     # For example, exec compile('#', '', 'single') is a syntax error.
     # Also, comments will confuse the code to break into blocks before.
     comment_lines = {}
-    for label, v in literals.iteritems():
+    for label, v in literals.items():
         if v.startswith('#'):
-            comment_lines[u"%%(%s)s" % label] = True
+            comment_lines["%%(%s)s" % label] = True
     code = [x for x in code if not comment_lines.get(x.strip(), False)]
 
     # take only non-whitespace lines now for Python code (string literals have already been removed).
@@ -336,7 +340,7 @@ CHARS = CHARS0 + '.'
 
 
 def guess_last_expression(
-        obj):  # TODO: bad guess -- need to use a parser to go any further.
+    obj):  # TODO: bad guess -- need to use a parser to go any further.
     i = len(obj) - 1
     while i >= 0 and obj[i] in CHARS:
         i -= 1
@@ -354,7 +358,7 @@ def is_valid_identifier(target):
 
 
 # Keywords from http://docs.python.org/release/2.7.2/reference/lexical_analysis.html
-_builtin_completions = __builtins__.keys() + [
+_builtin_completions = list(__builtins__.keys()) + [
     'and', 'del', 'from', 'not', 'while', 'as', 'elif', 'global', 'or', 'with',
     'assert', 'else', 'if', 'pass', 'yield', 'break', 'except', 'import',
     'print', 'class', 'exec', 'in', 'raise', 'continue', 'finally', 'is',
@@ -401,8 +405,8 @@ def introspect(code, namespace, preparse=True):
     try:
         # Strip all strings from the code, replacing them by template
         # symbols; this makes parsing much easier.
-        code0, literals, state = strip_string_literals(code.strip(
-        ))  # we strip, since trailing space could cause confusion below
+        # we strip, since trailing space could cause confusion below
+        code0, literals, state = strip_string_literals(code.strip())
 
         # Move i so that it points to the start of the last expression in the code.
         # (TODO: this should probably be replaced by using ast on preparsed version.  Not easy.)
@@ -427,21 +431,22 @@ def introspect(code, namespace, preparse=True):
         else:
             # Now for all of the other harder cases.
             i = max([expr.rfind(s) for s in '?('])
-            if i >= 1 and i == len(expr) - 1 and expr[
-                    i - 1] == '?':  # expr ends in two ?? -- source code
+            # expr ends in two ?? -- source code
+            if i >= 1 and i == len(expr) - 1 and expr[i - 1] == '?':
                 get_source = True
                 get_completions = False
                 get_help = False
                 target = ""
                 obj = expr[:i - 1]
-            elif i == len(
-                    expr) - 1:  # ends in ( or ? (but not ??) -- docstring
+            # ends in ( or ? (but not ??) -- docstring
+            elif i == len(expr) - 1:
                 get_help = True
                 get_completions = False
                 get_source = False
                 target = ""
                 obj = expr[:i]
-            else:  # completions (not docstrings or source)
+            # completions (not docstrings or source)
+            else:
                 get_help = False
                 get_completions = True
                 get_source = False
@@ -468,8 +473,9 @@ def introspect(code, namespace, preparse=True):
                 try:
                     pattern = expr.replace("*", ".*").replace("?", ".")
                     reg = re.compile(pattern + "$")
-                    v = filter(reg.match,
-                               namespace.keys() + _builtin_completions)
+                    v = list(
+                        filter(reg.match,
+                               list(namespace.keys()) + _builtin_completions))
                     # for 2*sq[tab]
                     if len(v) == 0:
                         gle = guess_last_expression(expr)
@@ -477,15 +483,16 @@ def introspect(code, namespace, preparse=True):
                         if j > 0:
                             target = gle
                             v = [
-                                x[j:] for x in (
-                                    namespace.keys() + _builtin_completions)
+                                x[j:] for x in (list(namespace.keys()) +
+                                                _builtin_completions)
                                 if x.startswith(gle)
                             ]
                 except:
                     pass
             else:
                 v = [
-                    x[j:] for x in (namespace.keys() + _builtin_completions)
+                    x[j:]
+                    for x in (list(namespace.keys()) + _builtin_completions)
                     if x.startswith(expr)
                 ]
                 # for 2+sqr[tab]
@@ -495,8 +502,8 @@ def introspect(code, namespace, preparse=True):
                     if j > 0 and j < len(expr):
                         target = gle
                         v = [
-                            x[j:]
-                            for x in (namespace.keys() + _builtin_completions)
+                            x[j:] for x in (list(namespace.keys()) +
+                                            _builtin_completions)
                             if x.startswith(gle)
                         ]
         else:
@@ -520,17 +527,16 @@ def introspect(code, namespace, preparse=True):
                 import sage.all_cmdline
                 if before_expr.strip():
                     try:
-                        exec(
-                            before_expr if not preparse else preparse_code(
-                                before_expr)) in namespace
+                        exec((before_expr if not preparse else
+                              preparse_code(before_expr)), namespace)
                     except Exception as msg:
                         pass
                         # uncomment for debugging only
                         # traceback.print_exc()
                 # We first try to evaluate the part of the expression before the name
                 try:
-                    O = eval(
-                        obj if not preparse else preparse_code(obj), namespace)
+                    O = eval(obj if not preparse else preparse_code(obj),
+                             namespace)
                 except (SyntaxError, TypeError, AttributeError):
                     # If that fails, we try on a subexpression.
                     # TODO: This will not be needed when
@@ -538,9 +544,8 @@ def introspect(code, namespace, preparse=True):
                     # AST, instead of using this lame hack.
                     obj = guess_last_expression(obj)
                     try:
-                        O = eval(
-                            obj if not preparse else preparse_code(obj),
-                            namespace)
+                        O = eval(obj if not preparse else preparse_code(obj),
+                                 namespace)
                     except:
                         pass
             finally:
@@ -549,11 +554,11 @@ def introspect(code, namespace, preparse=True):
             def get_file():
                 try:
                     import sage.misc.sageinspect
-                    return "   File: " + eval(
-                        'getdoc(O)', {
-                            'getdoc': sage.misc.sageinspect.sage_getfile,
-                            'O': O
-                        }) + "\n"
+                    eval_getdoc = eval('getdoc(O)', {
+                        'getdoc': sage.misc.sageinspect.sage_getfile,
+                        'O': O
+                    })
+                    return "   File: " + eval_getdoc + "\n"
                 except Exception as err:
                     return "Unable to read source filename (%s)" % err
 
@@ -577,14 +582,19 @@ def introspect(code, namespace, preparse=True):
                                 k = args.pop()
                                 v.insert(0, '%s=%r' % (k, d))
                             v = args + v
-                            t = u"   Signature : %s(%s)\n" % (obj,
-                                                              ', '.join(v))
+                            t = "   Signature : %s(%s)\n" % (obj, ', '.join(v))
                         except:
-                            t = u""
+                            t = ""
                         try:
-                            t += u"   Docstring :\n%s" % sage.misc.sageinspect.sage_getdoc(
-                                s).decode('utf-8').strip()
+                            ds_raw = sage.misc.sageinspect.sage_getdoc(s)
+                            if (six.PY3 and type(s) == bytes) or six.PY2:
+                                ds = ds_raw.decode('utf-8')
+                            else:
+                                ds = ds_raw
+                            ds = ds.strip()
+                            t += "   Docstring :\n%s" % ds
                         except Exception as ex:
+                            t += "   Problem retrieving Docstring :\n%s" % ex
                             # print ex  # issue 1780: 'ascii' codec can't decode byte 0xc3 in position 3719: ordinal not in range(128)
                             pass
                         return t
@@ -592,9 +602,8 @@ def introspect(code, namespace, preparse=True):
                     result += eval('getdoc(O)', {'getdoc': our_getdoc, 'O': O})
                 except Exception as err:
                     result += "Unable to read docstring (%s)" % err
-                result = result.lstrip().replace(
-                    '\n   ',
-                    '\n')  # Get rid of the 3 spaces in front of everything.
+                # Get rid of the 3 spaces in front of everything.
+                result = result.lstrip().replace('\n   ', '\n')
 
             elif get_source:
                 import sage.misc.sageinspect
@@ -618,10 +627,10 @@ def introspect(code, namespace, preparse=True):
                     # this case excludes abc = ...;for a in ab[tab]
                     if '*' in expr and '* ' not in expr:
                         try:
-                            pattern = target.replace("*", ".*").replace(
-                                "?", ".")
+                            pattern = target.replace("*", ".*")
+                            pattern = pattern.replace("?", ".")
                             reg = re.compile(pattern + "$")
-                            v = filter(reg.match, v)
+                            v = list(filter(reg.match, v))
                         except:
                             pass
                     else:
@@ -631,8 +640,7 @@ def introspect(code, namespace, preparse=True):
                     v = []
 
         if get_completions:
-            result = list(
-                sorted(set(v), lambda x, y: cmp(x.lower(), y.lower())))
+            result = list(sorted(set(v), key=lambda x: x.lower()))
 
     except Exception as msg:
         traceback.print_exc()

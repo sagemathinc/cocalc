@@ -1,8 +1,13 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Register the LEAN theorem prover editor
 */
 
-require('./_lean.sass')
+require("./_lean.sass");
 
 import { Editor } from "./editor";
 import { Actions } from "./actions";
@@ -18,5 +23,5 @@ require("./tab-completion");
 register_file_editor({
   ext: "lean",
   component: Editor,
-  Actions
+  Actions,
 });

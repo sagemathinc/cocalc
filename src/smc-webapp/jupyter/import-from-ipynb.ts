@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Importing from an ipynb object (in-memory version of .ipynb file)
 */
 
@@ -12,15 +17,15 @@ const DEFAULT_IPYNB = {
       execution_count: null,
       metadata: {},
       outputs: [],
-      source: []
-    }
+      source: [],
+    },
   ],
   metadata: {
     kernelspec: undefined,
-    language_info: undefined
+    language_info: undefined,
   },
   nbformat: 4,
-  nbformat_minor: 0
+  nbformat_minor: 4,
 };
 
 export class IPynbImporter {
@@ -40,7 +45,7 @@ export class IPynbImporter {
       // an is_available function; new_id(is_available) = a new id.
       existing_ids: [], // re-use these on loading for efficiency purposes
       output_handler: undefined, // h = output_handler(cell); h.message(...) -- hard to explain
-      process_attachment: undefined
+      process_attachment: undefined,
     }); // process attachments:  attachment(base64, mime) --> sha1
 
     this._ipynb = misc.deep_copy(opts.ipynb);
@@ -109,8 +114,8 @@ export class IPynbImporter {
     if (ipynb.cells == null) {
       ipynb.cells = [];
     }
-    for (let worksheet of ipynb.worksheets || []) {
-      for (let cell of worksheet.cells || []) {
+    for (const worksheet of ipynb.worksheets || []) {
+      for (const cell of worksheet.cells || []) {
         if (cell.input != null) {
           cell.source = cell.input;
           delete cell.input;
@@ -123,13 +128,13 @@ export class IPynbImporter {
           cell.source = `# ${cell.source}`;
         }
         if (cell.outputs) {
-          for (let mesg of cell.outputs) {
+          for (const mesg of cell.outputs) {
             if (mesg.output_type === "pyout") {
-              for (let type of JUPYTER_MIMETYPES) {
+              for (const type of JUPYTER_MIMETYPES) {
                 const b = type.split("/")[1];
                 if (mesg[b] != null) {
                   const data = { [type]: mesg[b] };
-                  for (let k in mesg) {
+                  for (const k in mesg) {
                     delete mesg[k];
                   }
                   mesg.data = data;
@@ -138,7 +143,7 @@ export class IPynbImporter {
               }
               if (mesg.text != null) {
                 const data = { "text/plain": mesg.text.join("") };
-                for (let k in mesg) {
+                for (const k in mesg) {
                   delete mesg[k];
                 }
                 mesg.data = data;
@@ -165,7 +170,7 @@ export class IPynbImporter {
       return;
     }
     const metadata: any = {};
-    for (let k in m) {
+    for (const k in m) {
       const v = m[k];
       if (k === "kernelspec") {
         continue;
@@ -203,7 +208,7 @@ export class IPynbImporter {
       }
       content.name = content.stream;
     } else {
-      for (let t of JUPYTER_MIMETYPES) {
+      for (const t of JUPYTER_MIMETYPES) {
         const b = t.split("/")[1];
         if (content[b] != null) {
           content = { data: { [t]: content[b] } };
@@ -213,7 +218,7 @@ export class IPynbImporter {
       if (content.text != null) {
         content = {
           data: { "text/plain": content.text },
-          output_type: "stream"
+          output_type: "stream",
         };
       }
     }
@@ -222,7 +227,7 @@ export class IPynbImporter {
 
   _join_array_strings_obj = (obj: any) => {
     if (obj != null) {
-      for (let key in obj) {
+      for (const key in obj) {
         const val = obj[key];
         if (misc.is_array(val)) {
           obj[key] = val.join("");
@@ -342,11 +347,14 @@ export class IPynbImporter {
         id
       ),
       cell_type: this._get_cell_type(cell.cell_type),
-      exec_count: this._get_exec_count(cell.execution_count, cell.prompt_number)
+      exec_count: this._get_exec_count(
+        cell.execution_count,
+        cell.prompt_number
+      ),
     };
 
     if (cell.metadata != null) {
-      for (let k of ["collapsed", "scrolled"]) {
+      for (const k of ["collapsed", "scrolled"]) {
         if (cell.metadata[k]) {
           obj[k] = !!(cell.metadata != null ? cell.metadata[k] : undefined);
         }
@@ -357,7 +365,7 @@ export class IPynbImporter {
       }
 
       if (cell.metadata.tags != null) {
-        obj.tags = misc.dict(cell.metadata.tags.map(tag => [tag, true]));
+        obj.tags = misc.dict(cell.metadata.tags.map((tag) => [tag, true]));
       }
       const other = misc.copy_without(cell.metadata, [
         "collapsed",
@@ -367,7 +375,7 @@ export class IPynbImporter {
         "_root",
         "__ownerID",
         "__hash",
-        "__altered"
+        "__altered",
       ]);
       //  See https://github.com/sagemathinc/cocalc/issues/3191 for
       // why the _'d ones above; this is to fix "corrupted" worksheets.
@@ -377,9 +385,9 @@ export class IPynbImporter {
     }
     if (cell.attachments != null) {
       obj.attachments = {};
-      for (let name in cell.attachments) {
+      for (const name in cell.attachments) {
         const val = cell.attachments[name];
-        for (let mime in val) {
+        for (const mime in val) {
           const base64 = val[mime];
           if (this._process_attachment != null) {
             const sha1 = this._process_attachment(base64, mime);
@@ -405,14 +413,14 @@ export function remove_redundant_reps(data?: any) {
   // This means opening and closing an ipynb file may lose information, which
   // no client currently cares about (?) -- maybe nbconvert does.
   let keep;
-  for (let type of JUPYTER_MIMETYPES) {
+  for (const type of JUPYTER_MIMETYPES) {
     if (data[type] != null) {
       keep = type;
       break;
     }
   }
   if (keep != null) {
-    for (let type in data) {
+    for (const type in data) {
       // NOTE: we only remove multiple reps that are both in JUPYTER_MIMETYPES;
       // if there is another rep that is NOT in JUPYTER_MIMETYPES, then it is
       // not removed, e.g., application/vnd.jupyter.widget-view+json and

@@ -86,12 +86,6 @@ def command():
     else:
         base = ''
 
-    # 2nd argument after "start" ("start" is already eaten, see above)
-    if len(sys.argv) >= 2:
-        mathjax_url = sys.argv.pop(1)
-    else:
-        mathjax_url = "/static/mathjax/MathJax.js"  # fallback
-
     # --NotebookApp.iopub_data_rate_limit=<Float>
     #     Default: 0
     #     (bytes/sec) Maximum rate at which messages can be sent on iopub before they
@@ -102,9 +96,8 @@ def command():
     # --NotebookApp.allow_remote_access=True
     #     is suddenly needed, at least for cocalc-docker.
 
-    cmd = "jupyter lab --port-retries=0 --no-browser --NotebookApp.iopub_data_rate_limit=2000000 --NotebookApp.iopub_msg_rate_limit=50 --NotebookApp.mathjax_url=%s %s --ip=%s --port=%s --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.allow_remote_access=True" % (
-        mathjax_url, base, ip, port)
-    cmd += " " + ' '.join(sys.argv[1:])
+    cmd = "jupyter lab --port-retries=0 --no-browser --NotebookApp.iopub_data_rate_limit=2000000 --NotebookApp.iopub_msg_rate_limit=50 --NotebookApp.mathjax_url=/static/mathjax/MathJax.js %s --ip=%s --port=%s --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.allow_remote_access=True" % (
+       base, ip, port)
     return cmd, base, port
 
 

@@ -1,12 +1,13 @@
 /*
- * decaffeinate suggestions:
- * DS001: Remove Babel/TypeScript constructor workaround
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
+
+/*
+TODO: mark_file basically implements a broken version of lodash.throttle, but
+it's sort of complicated to just switch to throttle.  Do so.
+
+*/
 
 const { webapp_client } = require("../webapp_client");
 
@@ -21,10 +22,13 @@ const immutable = require("immutable");
 import { FileUseState, FileUseStore } from "./store";
 const { sha1 } = require("smc-util/schema").client_db;
 
+const DEFAULT_CHAT_TTL_S = 5;
+const DEFAULT_FILE_TTL_S = 45;
+
 export class FileUseActions<T = FileUseState> extends Actions<
   T | FileUseState
 > {
-  private _mark_file_lock: { [key: string]: boolean } = {};
+  private mark_file_lock: { [key: string]: Date | true } = {};
 
   _init() {
     this.record_error = this.record_error.bind(this);
@@ -54,7 +58,7 @@ export class FileUseActions<T = FileUseState> extends Actions<
         .get_errors()
         .push(
           immutable.Map({ time: webapp_client.server_time(), err: `${err}` })
-        )
+        ),
     });
   }
 
@@ -70,12 +74,12 @@ export class FileUseActions<T = FileUseState> extends Actions<
       this.record_error(`mark_all: unknown action '${action}'`);
       return;
     }
-    v.map(x => {
+    v.map((x) => {
       if (x != null) this.mark_file(x.project_id, x.path, action, 0, false);
     });
   }
 
-  _set = async obj => {
+  _set = async (obj) => {
     try {
       if (!webapp_client.is_signed_in()) {
         await once(webapp_client, "signed_in");
@@ -88,8 +92,6 @@ export class FileUseActions<T = FileUseState> extends Actions<
   };
 
   // Mark the action for the given file with the current timestamp (right now).
-  // If zero is true, instead mark the timestamp as 0, basically indicating removal
-  // of that marking for that user.
   async mark_file(
     project_id: string,
     path: string,
@@ -122,33 +124,58 @@ export class FileUseActions<T = FileUseState> extends Actions<
       // so definitely shouldn't mark file use.
       return;
     }
-    if (ttl) {
-      if (ttl === "default") {
-        if (action.slice(0, 4) === "chat") {
-          ttl = 5 * 1000;
-        } else {
-          ttl = 90 * 1000;
-        }
-      }
-      const key: string = `${project_id}-${path}-${action}`;
-      if (this._mark_file_lock[key]) {
-        return;
-      }
-      this._mark_file_lock[key] = true;
-      setTimeout(() => delete this._mark_file_lock[key], ttl);
-    }
 
     if (timestamp == null) {
       timestamp = webapp_client.server_time();
     } else {
+      // ensure is a Date object...
       timestamp = new Date(timestamp);
     }
 
-    const obj : any = {
+    if (ttl) {
+      if (ttl === "default") {
+        if (action.slice(0, 4) === "chat") {
+          ttl = DEFAULT_CHAT_TTL_S * 1000;
+        } else {
+          ttl = DEFAULT_FILE_TTL_S * 1000;
+        }
+      }
+      const key: string = `${project_id}-${path}-${action}`;
+
+      if (this.mark_file_lock[key] && timestamp != null) {
+        this.mark_file_lock[key] = timestamp;
+        return;
+      } else {
+        // Always set a lock.
+        this.mark_file_lock[key] = true;
+      }
+
+      setTimeout(() => {
+        const ts = this.mark_file_lock[key];
+        if (ts && ts !== true) {
+          // user changed the file *after* the lock was set, so we
+          // mark it a final time.
+          this.do_mark_file(account_id, action, project_id, path, ts);
+        }
+        delete this.mark_file_lock[key];
+      }, ttl);
+    }
+    if (timestamp == null) return;
+    await this.do_mark_file(account_id, action, project_id, path, timestamp);
+  }
+
+  private async do_mark_file(
+    account_id: string,
+    action: string,
+    project_id: string,
+    path: string,
+    timestamp: Date
+  ): Promise<void> {
+    const obj: any = {
       id: sha1(project_id, path),
       project_id,
       path,
-      users: { [account_id]: { [action]: timestamp } }
+      users: { [account_id]: { [action]: timestamp } },
     };
     if (action === "edit" || action === "chat" || action === "chatseen") {
       // Update the overall "last_edited" field for the file; this is used for sorting,

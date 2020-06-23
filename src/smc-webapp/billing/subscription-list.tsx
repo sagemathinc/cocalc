@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Component, React, Rendered, redux } from "../app-framework";
 import { Button, Col, Row } from "react-bootstrap";
 import { Icon } from "../r_misc/icon";
@@ -78,7 +83,7 @@ export class SubscriptionList extends Component<Props, State> {
       return;
     }
     const v: Rendered[] = [];
-    for (let sub of this.props.customer.subscriptions.data) {
+    for (const sub of this.props.customer.subscriptions.data) {
       v.push(<Subscription key={sub.id} subscription={sub} />);
     }
     return v;

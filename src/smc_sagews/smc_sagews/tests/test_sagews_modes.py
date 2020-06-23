@@ -1,5 +1,6 @@
 # test_sagews_modes.py
 # tests of sage worksheet modes
+from __future__ import absolute_import
 import pytest
 import conftest
 import re
@@ -36,7 +37,7 @@ class TestSingularMode:
         factorize(f);''').strip()
         exec2(
             code,
-            u'[1]:\n   _[1]=9\n   _[2]=x6-2x3y2-x2y3+y4\n   _[3]=-x5+y2\n[2]:\n   1,1,2\n'
+            '[1]:\n   _[1]=9\n   _[2]=x6-2x3y2-x2y3+y4\n   _[3]=-x5+y2\n[2]:\n   1,1,2\n'
         )
 
 
@@ -51,7 +52,7 @@ import platform
     reason="scala jupyter kernel broken in 18.04")
 class TestScalaMode:
     def test_scala_list(self, exec2):
-        print("linux version {}".format(platform.linux_distribution()[1]))
+        print(("linux version {}".format(platform.linux_distribution()[1])))
         exec2(
             "%scala\nList(1,2,3)",
             html_pattern="res0.*List.*Int.*List.*1.*2.*3",
@@ -118,7 +119,7 @@ class TestPython3Mode:
         code = r"""%python3
 from IPython.display import Math
 Math(r'F(k) = \int_{-\infty}^{\infty} f(x) e^{2\pi i k} dx')"""
-        htmp = r"""\$\$F\(k\) = \\int_\{-\\infty\}\^\{\\infty\} f\(x\) e\^\{2\\pi i k\} dx\$\$"""
+        htmp = r"""F\(k\) = \\int_\{-\\infty\}\^\{\\infty\} f\(x\) e\^\{2\\pi i k\} dx"""
         exec2(code, html_pattern=htmp)
 
     def test_p3_pandas(self, exec2):
@@ -340,4 +341,4 @@ class TestJuliaMode:
             timeout=40)
 
     def test_julia_version(self, exec2):
-        exec2("%julia\nVERSION", pattern=r'^v"1\.1\.\d+"', timeout=40)
+        exec2("%julia\nVERSION", pattern=r'^v"1\.2\.\d+"', timeout=40)

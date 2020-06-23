@@ -1,5 +1,15 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Create a singleton websocket connection directly to a particular project.
+
+This is something that is annoyingly NOT supported by Primus.
+Many projects (perhaps dozens) can be open for a given client
+wat once, and hence we make many Primus websocket connections
+simultaneously to the same domain.  It does work, but not without an ugly hack.
 */
 
 import { reuseInFlight } from "async-await-utils/hof";
@@ -7,23 +17,22 @@ import { API } from "./api";
 const {
   callback2,
   once,
-  retry_until_success
+  retry_until_success,
 } = require("smc-util/async-utils"); // so also works on backend.
 
 import { callback } from "awaiting";
 import { /* getScript*/ ajax, globalEval } from "jquery";
 
-const { webapp_client } = require("../../webapp_client");
 const { redux } = require("../../app-framework");
 
 import { set_project_websocket_state, WebsocketState } from "./websocket-state";
+import { webapp_client } from "../../client/client";
 
 const connections = {};
 
 // This is a horrible temporary hack to ensure that we do not load two global Primus
 // client libraries at the same time, with one overwriting the other with the URL
 // of the target, hence causing multiple projects to have the same websocket.
-// I'm too tired to do this right at the moment.
 let READING_PRIMUS_JS = false;
 
 async function start_project(project_id: string) {
@@ -34,17 +43,16 @@ async function start_project(project_id: string) {
     throw Error("projects store must exist");
   }
 
-  if (projects.get_state(project_id) != "running") {
-    // Encourage project to start running, if it isn't already...
-    await callback2(webapp_client.touch_project, { project_id });
-    if (projects.get_my_group(project_id) == "admin") {
-      // must be viewing as admin, so can't start as below.  Just touch and be done.
-      return;
-    }
-    await callback2(projects.wait, {
-      until: () => projects.get_state(project_id) == "running"
-    });
+  // Encourage project to start running, if it isn't already...
+
+  await webapp_client.project_client.touch(project_id);
+  if (projects.get_my_group(project_id) == "admin") {
+    // must be viewing as admin, so can't start as below.  Just touch and be done.
+    return;
   }
+  await callback2(projects.wait, {
+    until: () => projects.get_state(project_id) == "running",
+  });
 }
 
 async function connection_to_project0(project_id: string): Promise<any> {
@@ -54,11 +62,14 @@ async function connection_to_project0(project_id: string): Promise<any> {
   if (connections[project_id] !== undefined) {
     return connections[project_id];
   }
-  //console.log(`project websocket: connecting to ${project_id}...`);
+
+  function log(..._args): void {
+    // Uncomment for very verbose logging/debugging...
+    // console.log(`project websocket("${project_id}")`, ..._args);
+  }
+  log("connecting...");
   const window0: any = (global as any).window as any; // global part is so this also compiles on node.js.
-  const url: string = `${
-    window0.app_base_url
-  }/${project_id}/raw/.smc/primus.js`;
+  const url: string = `${window0.app_base_url}/${project_id}/raw/.smc/primus.js`;
 
   const Primus0 = window0.Primus; // the global primus
   let Primus;
@@ -66,75 +77,113 @@ async function connection_to_project0(project_id: string): Promise<any> {
   // So that the store reflects that we are not connected but are trying.
   set_project_websocket_state(project_id, "offline");
 
-  await retry_until_success({
-    // log: console.log,
-    f: async function() {
-      if (READING_PRIMUS_JS) {
-        throw Error("currently reading one already");
-      }
+  const MAX_AJAX_TIMEOUT_MS: number = 3500;
+  const { webapp_client } = require("../../webapp_client");
 
-      if (!webapp_client.is_signed_in()) {
-        // At least wait until main client is signed in, since nothing
-        // will work until that is the case anyways.
-        await once(webapp_client, "signed_in");
-      }
+  async function get_primus(do_eval: boolean) {
+    let timeout: number = 750;
+    await retry_until_success({
+      // log: console.log,
+      f: async function () {
+        if (do_eval && READING_PRIMUS_JS) {
+          throw Error("currently reading one already");
+        }
 
-      await start_project(project_id);
+        if (!webapp_client.is_signed_in()) {
+          // At least wait until main client is signed in, since nothing
+          // will work until that is the case anyways.
+          await once(webapp_client, "signed_in");
+        }
 
-      // Now project is thought to be running, so maybe this will work:
-      try {
-        READING_PRIMUS_JS = true;
+        log("start_project...");
+        await start_project(project_id);
+        log("start_project: done");
 
-        const load_primus = cb => {
-          ajax({
-            type: "GET",
-            url: url,
-            // text, in contrast to "script", doesn't eval it -- we do that!
-            dataType: "text",
-            error: () => {
-              cb("ajax error -- try again");
-            },
-            success: async function(data) {
-              // console.log("success. data:", data.slice(0, 100));
-              if (data.charAt(0) !== "<") {
-                await globalEval(data);
-                cb();
-              } else {
-                cb("wrong data -- try again");
-              }
-            }
-          });
-        };
-        await callback(load_primus);
+        // Now project is thought to be running, so maybe this will work:
+        try {
+          if (do_eval) {
+            READING_PRIMUS_JS = true;
+          }
 
-        Primus = window0.Primus;
-        window0.Primus = Primus0; // restore global primus
-      } finally {
-        READING_PRIMUS_JS = false;
-        //console.log("success!");
-      }
-    },
-    start_delay: 250,
-    max_delay: 5000, // do not make too aggressive or it DDOS proxy server;
-    // but also not too slow since project startup will feel slow to user.
-    factor: 1.3,
-    desc: "connecting to project"
-    //log: (...x) => {
-    //  console.log("retry primus:", ...x);
-    //}
-  });
+          /*
+          We use a timeout in the ajax call before, since while the project is
+          starting up the call ends up taking a LONG time to "Stall out" due to settings
+          in a proxy server somewhere along the way.  This makes the project start time
+          (i.e., how long until websocket is working) seem really slow for no good reason.
+          Instead, we keep retrying the primus.js GET request pretty aggressively until
+          success.
+          NOTE: there is the real potential of very slow 3G clients not being able to complete the
+          GET, which is why we increase it each time up to MAX_AJAX_TIMEOUT_MS.
+          */
+
+          const load_primus = (cb) => {
+            ajax({
+              timeout,
+              type: "GET",
+              url,
+              // text, in contrast to "script", doesn't eval it -- we do that!
+              dataType: "text",
+              error: () => {
+                cb("ajax error -- try again");
+              },
+              success: async function (data) {
+                // console.log("success. data:", data.slice(0, 100));
+                if (data.charAt(0) !== "<") {
+                  if (do_eval) {
+                    await globalEval(data);
+                  }
+                  cb();
+                } else {
+                  cb("wrong data -- try again");
+                }
+              },
+            });
+          };
+          log(
+            `load_primus: attempt to get primus.js with timeout=${timeout}ms and do_eval=${do_eval}`
+          );
+          await callback(load_primus);
+          log("load_primus: done");
+
+          if (do_eval) {
+            Primus = window0.Primus;
+            window0.Primus = Primus0; // restore global primus
+          }
+        } finally {
+          if (do_eval) {
+            READING_PRIMUS_JS = false;
+          }
+          timeout = Math.min(timeout * 1.2, MAX_AJAX_TIMEOUT_MS);
+          //console.log("success!");
+        }
+      },
+      start_delay: 250,
+      max_delay: 2000, // do not make too aggressive or it DDOS proxy server;
+      // but also not too slow since project startup will feel slow to user.
+      factor: 1.2,
+      desc: "connecting to project",
+      log: (...x) => {
+        log("retry primus:", ...x);
+      },
+    });
+
+    log("got primus.js successfully");
+  }
+  await get_primus(true);
 
   // This dance is because evaling primus_js sets window.Primus.
   // However, we don't want to overwrite the usual global window.Primus.
+  // Also, we use {strategy:false} to **completely disable** all
+  // automatic reconnect logic (see https://github.com/primus/primus#strategy),
+  // because of recent bugs (optimizations?) in web browsers that make it
+  // so after a certain number of failed reconnect attempts, they totally BREAK
+  // and you have to restart your browser complete (not good).
   const conn = (connections[project_id] = Primus.connect({
-    reconnect: {
-      min: 250,
-      max: 5000, // do not make too aggressive or it DDOS proxy server;
-      // but not too slow or project startup feels slow to user!
-      factor: 1.3,
-      retries: Infinity
-    }
+    strategy: false,
+    manual: true,
   }));
+  conn.open();
+
   conn.api = new API(conn, project_id);
   conn.verbose = false;
 
@@ -159,6 +208,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
   update_state("offline"); // starts offline
 
   conn.on("open", () => {
+    log("online!");
     update_state("online");
   });
 
@@ -177,9 +227,16 @@ async function connection_to_project0(project_id: string): Promise<any> {
     update_state("destroyed");
   });
 
-  conn.on("reconnect", async function() {
-    //console.log(`project websocket: reconnecting to '${project_id}'...`);
+  // Instead of using the primus reconnect logic, which just keeps
+  // attempting websocket connections (which turns out to be very bad
+  // for modern browsers!), we use our own strategy.
+  conn.on("end", async function () {
+    log(`project websocket: reconnecting to '${project_id}'...`);
+    if (conn.api == null) return; // done with this connection
     update_state("offline");
+    await get_primus(false);
+    if (conn.api == null) return; // done with this connection
+    conn.open();
   });
 
   return conn;
@@ -188,7 +245,6 @@ async function connection_to_project0(project_id: string): Promise<any> {
 export const connection_to_project = reuseInFlight(connection_to_project0);
 
 export function disconnect_from_project(project_id: string): void {
-  //console.log(`conn ${project_id} -- disconnect`);
   const conn = connections[project_id];
   if (conn === undefined) {
     return;
@@ -197,4 +253,10 @@ export function disconnect_from_project(project_id: string): void {
   conn.destroy();
   delete conn.api;
   delete connections[project_id];
+}
+
+export function disconnect_from_all_projects(): void {
+  for (const project_id in connections) {
+    disconnect_from_project(project_id);
+  }
 }

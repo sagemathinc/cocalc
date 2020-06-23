@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Viewer for public ipynb files, e.g., on the share server.
 */
 
@@ -8,7 +13,7 @@ import {
   Component,
   rclass,
   rtypes,
-  Rendered
+  Rendered,
 } from "../../app-framework";
 
 import { ErrorDisplay } from "../../r_misc/error-display";
@@ -40,8 +45,8 @@ export class NBViewer0 extends Component<NBViewerProps> {
         cell_list: rtypes.immutable,
         cells: rtypes.immutable,
         font_size: rtypes.number.isRequired,
-        cm_options: rtypes.immutable
-      }
+        cm_options: rtypes.immutable,
+      },
     };
   }
 
@@ -52,7 +57,7 @@ export class NBViewer0 extends Component<NBViewerProps> {
           fontSize: "24pt",
           textAlign: "center",
           marginTop: "15px",
-          color: "#888"
+          color: "#888",
         }}
       />
     );
@@ -77,10 +82,7 @@ export class NBViewer0 extends Component<NBViewerProps> {
         cells={this.props.cells}
         font_size={this.props.font_size}
         mode="escape"
-        cm_options={
-          this.props.cm_options
-            ? this.props.cm_options
-            : Map() }
+        cm_options={this.props.cm_options ? this.props.cm_options : Map()}
         project_id={this.props.project_id}
         directory={directory}
         trust={false}
@@ -95,7 +97,7 @@ export class NBViewer0 extends Component<NBViewerProps> {
           display: "flex",
           flexDirection: "column",
           height: "100%",
-          overflowY: "hidden"
+          overflowY: "hidden",
         }}
       >
         {this.render_cells()}

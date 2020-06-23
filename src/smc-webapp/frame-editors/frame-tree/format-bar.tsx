@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 The format bar
 */
 
@@ -14,11 +19,11 @@ const {
   ButtonGroup,
   Button,
   DropdownButton,
-  MenuItem
+  MenuItem,
 } = require("react-bootstrap");
 
-const buttonbar = require("smc-webapp/buttonbar");
-const { Icon, Space } = require("smc-webapp/r_misc");
+import { FONT_FACES } from "../../editors/editor-button-bar";
+import { Icon, Space } from "smc-webapp/r_misc";
 
 const FONT_SIZES = "xx-small x-small small medium large x-large xx-large".split(
   " "
@@ -175,12 +180,12 @@ export class FormatBar extends Component<Props, {}> {
 
   render_font_family_dropdown(): Rendered {
     const items: Rendered[] = [];
-    for (let family of buttonbar.FONT_FACES) {
+    for (const family of FONT_FACES) {
       const item: Rendered = (
         <MenuItem
           key={family}
           eventKey={family}
-          onSelect={family =>
+          onSelect={(family) =>
             this.props.actions.format_action("font_family", family)
           }
         >
@@ -204,12 +209,12 @@ export class FormatBar extends Component<Props, {}> {
 
   render_font_size_dropdown(): Rendered {
     const items: Rendered[] = [];
-    for (let size of FONT_SIZES) {
+    for (const size of FONT_SIZES) {
       const item: Rendered = (
         <MenuItem
           key={size}
           eventKey={size}
-          onSelect={size =>
+          onSelect={(size) =>
             this.props.actions.format_action("font_size_new", size)
           }
         >
@@ -262,7 +267,7 @@ export class FormatBar extends Component<Props, {}> {
         <MenuItem
           key={heading}
           eventKey={heading}
-          onSelect={heading =>
+          onSelect={(heading) =>
             this.props.actions.format_action(`format_heading_${heading}`)
           }
         >
@@ -296,14 +301,14 @@ export class FormatBar extends Component<Props, {}> {
       return result;
     })();
     v.sort((a, b) => cmp(a.code, b.code));
-    for (let x of v) {
+    for (const x of v) {
       color = x[0];
       code = x[1];
       const item = (
         <MenuItem
           key={color}
           eventKey={code}
-          onSelect={code => this.props.actions.format_action("color", code)}
+          onSelect={(code) => this.props.actions.format_action("color", code)}
         >
           <span style={{ background: code }}>
             <Space />
@@ -351,7 +356,7 @@ export class FormatBar extends Component<Props, {}> {
     return (
       <div style={{ background: "#f8f8f8", margin: "0 1px" }}>
         {this.render_font_dropdowns()}
-        <div className={'cc-frame-tree-format-bar'}>
+        <div className={"cc-frame-tree-format-bar"}>
           {this.render_text_style_buttons()}
           <Space />
           {this.render_insert_buttons()}

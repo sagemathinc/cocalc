@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Authentication.
 */
 
@@ -28,7 +33,7 @@ export function is_authenticated(opts: {
   }
 
   let auth_info: any = undefined;
-  opts.auth.forEach(function(info, path: string): boolean | undefined {
+  opts.auth.forEach(function (info, path: string): boolean | undefined {
     if (startswith(opts.path, path)) {
       auth_info = info;
       return false;

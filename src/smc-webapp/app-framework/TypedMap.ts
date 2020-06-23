@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 # Example usage
 
 ```ts
@@ -16,34 +21,17 @@ let sale2 = sale1.set("name", "Mocha");
 For more information see "app-framework/examples/"
 */
 import { Map } from "immutable";
-import { DeepImmutable } from "./immutable-types";
+import { TypedCollectionMethods } from "./immutable-types";
 
-export interface TypedMap<TProps extends Object> {
+export interface TypedMap<TProps extends Record<string, any>>
+  extends TypedCollectionMethods<TProps> {
   size: number;
 
   // Reading values
   has(key: string): boolean;
 
-  /**
-   * Returns the value associated with the provided key, which may be the
-   * default value defined when creating the Record factory function.
-   *
-   * If the requested key is not defined by this Record type, then
-   * notSetValue will be returned if provided. Note that this scenario would
-   * produce an error when using Flow or TypeScript.
-   */
-  get<K extends keyof TProps>(field: K): DeepImmutable<TProps[K]>;
-  get<K extends keyof TProps, NSV>(
-    field: K,
-    notSetValue: NSV
-  ): DeepImmutable<TProps[K]> | NSV;
-  get<K extends keyof TProps>(key: K): TProps[K];
-  get<K extends keyof TProps, NSV>(key: K, notSetValue: NSV): TProps[K] | NSV;
-  get<K extends keyof TProps, NSV>(key: K, notSetValue?: NSV): TProps[K] | NSV;
-
   // Reading deep values
   hasIn(keyPath: Iterable<any>): boolean;
-  getIn<NSV>(keyPath: Iterable<any>, notSetValue?: NSV): any;
 
   // Value equality
   equals(other: any): boolean;
@@ -60,8 +48,8 @@ export interface TypedMap<TProps extends Object> {
     ...collections: Array<Partial<TProps> | Iterable<[string, any]>>
   ): this;
 
-  mergeWith(
-    merger: (oldVal: any, newVal: any, key: keyof TProps) => any,
+  mergeWith<K extends keyof TProps>(
+    merger: (oldVal: any, newVal: any, key: K) => any,
     ...collections: Array<Partial<TProps> | Iterable<[string, any]>>
   ): this;
   mergeDeepWith(
@@ -124,13 +112,26 @@ export interface TypedMap<TProps extends Object> {
    * @see `Map#asImmutable`
    */
   asImmutable(): this;
+
+  [Symbol.iterator](): IterableIterator<[keyof TProps, TProps[keyof TProps]]>;
+
+  filter(fn: (predicate) => boolean): this;
+  some: Map<string, any>["some"];
+  forEach: Map<string, TProps[keyof TProps]>["forEach"];
 }
 
-interface TypedMapFactory<TProps extends Object> {
+interface TypedMapFactory<TProps extends Record<string, any>> {
   new (values: TProps): TypedMap<TProps>;
 }
 
-export function createTypedMap<OuterProps extends Object>(
+export function TypedMap<TProps extends object>(
+  defaults: Partial<TProps> = {}
+): TypedMap<TProps> {
+  // Add `& readonly TProps` to enable property access?
+  return Map(defaults) as any;
+}
+
+export function createTypedMap<OuterProps extends Record<string, any>>(
   defaults?: Partial<
     OuterProps extends TypedMap<infer InnerProps> ? InnerProps : OuterProps
   >
@@ -146,7 +147,7 @@ export function createTypedMap<OuterProps extends Object>(
     ? InnerProps
     : OuterProps;
 
-  class _TypedMap {
+  class OldTypedMap {
     private data: any;
 
     constructor(TProps: TProps) {
@@ -173,7 +174,10 @@ export function createTypedMap<OuterProps extends Object>(
      * produce an error when using Flow or TypeScript.
      */
     get<K extends keyof TProps>(key: K): TProps[K];
-    get<K extends keyof TProps, NSV>(key: K, notSetValue: NSV): TProps[K] | NSV;
+    get<K extends keyof TProps, NSV>(
+      key: K,
+      notSetValue: NSV
+    ): NonNullable<TProps[K]> | NSV;
     get<K extends keyof TProps, NSV>(
       key: K,
       notSetValue?: NSV
@@ -320,5 +324,5 @@ export function createTypedMap<OuterProps extends Object>(
     }
   }
 
-  return _TypedMap as any;
+  return OldTypedMap as any;
 }

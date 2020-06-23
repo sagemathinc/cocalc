@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React, Component, Rendered } from "../../app-framework";
 
 interface Props {
@@ -18,7 +23,7 @@ export class InputCell extends Component<Props, State> {
     return (
       <textarea
         value={this.state.input}
-        onChange={evt => {
+        onChange={(evt) => {
           this.setState({ input: evt.target.value });
         }}
       />

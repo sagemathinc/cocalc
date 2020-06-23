@@ -1,15 +1,17 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Map } from "immutable";
-
 import { is_different } from "smc-util/misc2";
-
-const { Markdown } = require("smc-webapp/r_misc");
 
 import {
   React,
   Component,
   Rendered,
   rclass,
-  rtypes
+  rtypes,
 } from "../../app-framework";
 
 interface Props {
@@ -28,7 +30,7 @@ function render_text(text: string, zoom: number = 100): Rendered {
         fontFamily: "monospace",
         whiteSpace: "pre-wrap",
         marginTop: "1ex",
-        fontSize: `${zoom}%`
+        fontSize: `${zoom}%`,
       }}
     >
       {text}
@@ -44,7 +46,7 @@ class LeanInfo extends Component<Props, {}> {
       "font_size",
       "info",
       "sync",
-      "syncstring_hash"
+      "syncstring_hash",
     ]);
   }
 
@@ -53,8 +55,8 @@ class LeanInfo extends Component<Props, {}> {
       [name]: {
         info: rtypes.immutable.Map,
         sync: rtypes.immutable.Map,
-        syncstring_hash: rtypes.number
-      }
+        syncstring_hash: rtypes.number,
+      },
     };
   }
 
@@ -81,43 +83,19 @@ class LeanInfo extends Component<Props, {}> {
     );
   }
 
-  render_doc(): Rendered {
-    const doc = this.props.info.get("doc");
-    const params = this.props.info.get("tactic_params");
-    if (!doc && !params) {
-      return;
-    }
-    return (
-      <div>
-        {this.render_heading(params)}
-        <Markdown value={doc} safeHTML={false} highlight_code={true} />
-      </div>
-    );
-  }
-
-  render_info(): Rendered {
-    if (this.props.info == null) {
-      return;
-    }
-    return (
-      <div>
-        {this.render_state()}
-        <hr />
-        {this.render_doc()}
-      </div>
-    );
-  }
-
   render(): Rendered {
+    if (this.props.info == null) {
+      return <span />;
+    }
     return (
       <div
         style={{
           overflowY: "auto",
           margin: "0px 15px",
-          fontSize: this.props.font_size
+          fontSize: this.props.font_size,
         }}
       >
-        {this.render_info()}
+        {this.render_state()}
       </div>
     );
   }

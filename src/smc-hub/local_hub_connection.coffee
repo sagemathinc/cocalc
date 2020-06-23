@@ -1,29 +1,11 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 {PROJECT_HUB_HEARTBEAT_INTERVAL_S} = require('smc-util/heartbeat')
 
-###
-Connection to a Project (="local hub", for historical reasons only.)
-###
+# Connection to a Project (="local hub", for historical reasons only.)
 
 async   = require('async')
 {callback2} = require('smc-util/async-utils')
@@ -270,7 +252,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             return
         if await @ephemeral_state()
             @dbg("project has ephemeral state")
-            write_mesg(message.error(error:"FATAL -- project has ephemeral state so no database queries are aloud"))
+            write_mesg(message.error(error:"FATAL -- project has ephemeral state so no database queries are allowed"))
             return
         @dbg("project does NOT have ephemeral state")
         first = true
@@ -579,7 +561,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 return
             connect_to_a_local_hub
                 port         : @address.port
-                host         : @address.host
+                host         : @address.ip ? @address.host   # prefer @address.ip if it exists (e.g., for cocalc-kubernetes); otherwise use host (which is where compute server is).
                 secret_token : @address.secret_token
                 cb           : cb
         socket = undefined
@@ -896,15 +878,20 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     id      : data_uuid
                     timeout : 60
                     cb      : (_data) =>
-                        data = _data
-                        data.archive = result_archive
-                        cb()
-
+                        # recv_mesg returns either a Buffer blob
+                        # *or* a {event:'error', error:'the error'} object.
+                        # Fortunately `new Buffer().event` is valid (and undefined).
+                        if _data.event == 'error'
+                            cb(_data.error)
+                        else
+                            data = _data
+                            data.archive = result_archive
+                            cb()
         ], (err) =>
             if err
                 cb(err)
             else
-                cb(false, data)
+                cb(undefined, data)
         )
 
     # Write a file
@@ -941,4 +928,3 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                             opts.cb(mesg.error)
                         else
                             opts.cb("unexpected message type '#{mesg.event}'")
-

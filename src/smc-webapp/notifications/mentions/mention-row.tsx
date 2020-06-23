@@ -1,16 +1,20 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 
 import { redux } from "../../app-framework";
 import { MentionInfo } from "./types";
-
-const { Avatar } = require("../../other-users");
-const { Icon, TimeAgo } = require("../../r_misc");
-const { User } = require("../../users");
+import { Avatar } from "../../account/avatar/avatar";
+import { Icon, TimeAgo } from "../../r_misc";
+import { User } from "../../users";
 
 export function MentionRow({
   id,
   mention,
-  user_map
+  user_map,
 }: {
   id: string;
   mention: MentionInfo;
@@ -22,15 +26,15 @@ export function MentionRow({
     source,
     time,
     target,
-    description
+    description,
   } = mention.toJS();
 
   const on_row_click = () => {
     redux.getProjectActions(project_id).open_file({ path: path, chat: true });
   };
 
-  const is_read: boolean = mention.getIn(["users", target, "read"]);
-  const is_saved: boolean = mention.getIn(["users", target, "saved"]);
+  const is_read = mention.getIn(["users", target, "read"]);
+  const is_saved = mention.getIn(["users", target, "saved"]);
   let read_icon = "square-o";
   let save_icon = "bookmark-o";
   let row_style: React.CSSProperties = {};
@@ -39,7 +43,7 @@ export function MentionRow({
     read_icon = "check-square-o";
     row_style = {
       backgroundColor: "rgb(246, 248, 250)",
-      color: "rgb(88, 96, 105)"
+      color: "rgb(88, 96, 105)",
     };
   }
 
@@ -47,7 +51,7 @@ export function MentionRow({
     save_icon = "bookmark";
   }
 
-  const on_read_unread_click = e => {
+  const on_read_unread_click = (e) => {
     e.preventDefault();
     e.stopPropagation();
     const actions = redux.getActions("mentions");
@@ -59,7 +63,7 @@ export function MentionRow({
     }
   };
 
-  const on_save_unsave_click = e => {
+  const on_save_unsave_click = (e) => {
     e.preventDefault();
     e.stopPropagation();
     const actions = redux.getActions("mentions");
@@ -109,5 +113,5 @@ export function MentionRow({
 
 const description_style: React.CSSProperties = { flex: "1" };
 const avatar_wrapping_style: React.CSSProperties = {
-  margin: ".9em"
+  margin: ".9em",
 };

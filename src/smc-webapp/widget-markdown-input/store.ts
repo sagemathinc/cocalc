@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // 3rd Party Libraries
 import * as immutable from "immutable";
 
@@ -9,9 +14,9 @@ export interface MarkdownWidgetStoreState {
 }
 
 export class MarkdownWidgetStore extends Store<MarkdownWidgetStoreState> {
-  getInitialState = function() {
+  getInitialState = function () {
     return {
-      open_inputs: immutable.Map({})
+      open_inputs: immutable.Map({}),
     };
-  }
+  };
 }

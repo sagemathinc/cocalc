@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Select the license for a public share.
 
 NOTE: Our approach to state here means that two people can't
@@ -45,7 +50,7 @@ export class License extends Component<Props, State> {
 
   public render(): Rendered {
     const v: Rendered[] = [];
-    for (let key in LICENSES) {
+    for (const key in LICENSES) {
       v.push(
         <MenuItem key={key} eventKey={key} active={key === this.state.license}>
           {LICENSES[key]}

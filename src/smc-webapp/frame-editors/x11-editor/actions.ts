@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 X Window Editor Actions
 */
 
@@ -23,14 +28,14 @@ import { callback, delay } from "awaiting";
 import {
   X11Configuration,
   Capabilities,
-  isMainConfiguration
+  isMainConfiguration,
 } from "../../project_configuration";
 
 const WID_HISTORY_LENGTH = 40;
 
 import {
   Actions as BaseActions,
-  CodeEditorState
+  CodeEditorState,
 } from "../code-editor/actions";
 
 import { ConnectionStatus, FrameTree } from "../frame-tree/types";
@@ -117,16 +122,16 @@ export class Actions extends BaseActions<X11EditorState> {
         direction: "row",
         type: "node",
         first: {
-          type: "terminal"
+          type: "terminal",
         },
         second: {
-          type: "launcher"
-        }
+          type: "launcher",
+        },
       },
       second: {
-        type: "x11"
+        type: "x11",
       },
-      pos: 0.25
+      pos: 0.25,
     };
   }
 
@@ -159,7 +164,11 @@ export class Actions extends BaseActions<X11EditorState> {
     this.client.close();
     delete this.client;
     if (this.channel !== undefined) {
-      this.channel.end();
+      try {
+        this.channel.end();
+      } catch (_) {
+        // this can throw an error, but we don't care.
+      }
       delete this.channel;
     }
     super.close();
@@ -172,7 +181,7 @@ export class Actions extends BaseActions<X11EditorState> {
       console.warn(`_set_window -- no window with id ${wid}`);
       return;
     }
-    for (let key in obj) {
+    for (const key in obj) {
       window = window.set(key, obj[key]);
     }
     windows = windows.set(wid, window);
@@ -184,7 +193,7 @@ export class Actions extends BaseActions<X11EditorState> {
   }
 
   delete_window(wid: number): void {
-    let windows = this.store.get("windows").delete(wid);
+    const windows = this.store.get("windows").delete(wid);
     this.setState({ windows });
   }
 
@@ -192,14 +201,14 @@ export class Actions extends BaseActions<X11EditorState> {
     this.client = new XpraClient({
       project_id: this.project_id,
       path: this.path,
-      idle_timeout_ms: CLIENT_IDLE_TIMEOUT_MS
+      idle_timeout_ms: CLIENT_IDLE_TIMEOUT_MS,
     });
 
     this.client.on(
       "window:create",
       (wid: number, title: string, is_modal: boolean) => {
         this.push_to_wid_history(wid);
-        let windows = this.store
+        const windows = this.store
           .get("windows")
           .set(wid, fromJS({ wid, title, is_modal }));
         this.setState({ windows });
@@ -260,14 +269,14 @@ export class Actions extends BaseActions<X11EditorState> {
     if (!parent) {
       return;
     }
-    let children = parent.get("children", immutableSet())[op](child_wid);
+    const children = parent.get("children", immutableSet())[op](child_wid);
     parent = parent.set("children", children);
     windows = windows.set(parent_wid, parent);
     this.setState({ windows });
   }
 
   set_x11_connection_status(status: ConnectionStatus): void {
-    for (let leaf_id in this._get_leaf_ids()) {
+    for (const leaf_id in this._get_leaf_ids()) {
       const leaf = this._get_frame_node(leaf_id);
       if (
         leaf != null &&
@@ -357,7 +366,7 @@ export class Actions extends BaseActions<X11EditorState> {
 
   _ensure_only_one_tab_has_wid(id: string, wid: number): void {
     // ensure no other tab has this wid selected.
-    for (let leaf_id in this._get_leaf_ids()) {
+    for (const leaf_id in this._get_leaf_ids()) {
       if (leaf_id === id) {
         continue;
       }
@@ -384,7 +393,7 @@ export class Actions extends BaseActions<X11EditorState> {
 
   switch_to_window_after_this_closes(wid: number, id?: string): void {
     if (id === undefined) {
-      for (let leaf_id in this._get_leaf_ids()) {
+      for (const leaf_id in this._get_leaf_ids()) {
         const leaf = this._get_frame_node(leaf_id);
         if (
           leaf != null &&
@@ -421,7 +430,7 @@ export class Actions extends BaseActions<X11EditorState> {
       type: "info",
       title: `X11: ${desc.summary}`,
       message: desc.body,
-      timeout: 9999
+      timeout: 9999,
     });
   }
 
@@ -473,7 +482,7 @@ export class Actions extends BaseActions<X11EditorState> {
         await this.init_channel();
       });
     });
-    channel.on("data", x => {
+    channel.on("data", (x) => {
       if (typeof x === "object") {
         this.handle_data_from_channel(x);
       }
@@ -504,14 +513,14 @@ export class Actions extends BaseActions<X11EditorState> {
     if (modal_wids.size > 0) {
       // there is a modal window -- in this case we just consider
       // all non-modal windows as used, so they can't get seleted below.
-      for (let id of new Set(windows.keys())) {
+      for (const id of new Set(windows.keys())) {
         if (!modal_wids.has(id)) {
           used_wids[id] = true;
         }
       }
     }
 
-    for (let leaf_id in this._get_leaf_ids()) {
+    for (const leaf_id in this._get_leaf_ids()) {
       const leaf = this._get_frame_node(leaf_id);
       if (leaf == null || leaf.get("type") !== "x11") {
         continue;
@@ -569,7 +578,7 @@ export class Actions extends BaseActions<X11EditorState> {
 
   private _get_used_wids(): { [id: string]: boolean } {
     const used_wids = {};
-    for (let leaf_id in this._get_leaf_ids()) {
+    for (const leaf_id in this._get_leaf_ids()) {
       const leaf = this._get_frame_node(leaf_id);
       if (leaf != null && leaf.get("type") === "x11" && leaf.get("wid")) {
         used_wids[leaf.get("wid")] = true;
@@ -599,8 +608,8 @@ export class Actions extends BaseActions<X11EditorState> {
     if (this.client._ws_status !== "connected") {
       // Wait until connected
       this.set_status(`Waiting until connected before launching ${command}...`);
-      const wait = cb => {
-        const f = status => {
+      const wait = (cb) => {
+        const f = (status) => {
           if (status === "connected") {
             this.client.removeListener("ws:status", f);
             cb();
@@ -620,11 +629,16 @@ export class Actions extends BaseActions<X11EditorState> {
       event: "x11",
       action: "launch",
       path: this.path,
-      command
+      command,
     });
   }
 
   set_physical_keyboard(layout: string, variant: string): void {
+    if (this.client == null) {
+      // better to ignore if client isn't configured yet.
+      // I saw this once when testing. (TODO: could be more careful.)
+      return;
+    }
     this.client.set_physical_keyboard(layout, variant);
   }
 

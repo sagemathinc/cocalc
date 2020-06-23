@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { delay } from "awaiting";
 import { React, Component, Rendered } from "smc-webapp/app-framework";
 import { get_blob_url } from "../server-urls";
@@ -13,6 +18,7 @@ interface ImageProps {
 
 interface ImageState {
   attempts: number;
+  zoomed: boolean;
 }
 
 export class Image extends Component<ImageProps, ImageState> {
@@ -20,7 +26,8 @@ export class Image extends Component<ImageProps, ImageState> {
 
   constructor(props: ImageProps, context: any) {
     super(props, context);
-    this.state = { attempts: 0 };
+    this.img_click = this.img_click.bind(this);
+    this.state = { attempts: 0, zoomed: false };
   }
 
   load_error = async (): Promise<void> => {
@@ -43,18 +50,37 @@ export class Image extends Component<ImageProps, ImageState> {
     return this.props.type.split("/")[1].split("+")[0];
   };
 
+  img_click(): void {
+    this.setState((state) => {
+      return { zoomed: !state.zoomed };
+    });
+  }
+
+  render_image(src, on_error?): Rendered {
+    const props = {
+      src,
+      width: this.props.width,
+      height: this.props.height,
+      onClick: this.img_click,
+    };
+    if (this.props.width == null && this.props.height == null) {
+      const cursor = this.state.zoomed ? "zoom-out" : "zoom-in";
+      props["style"] = { cursor } as React.CSSProperties;
+      if (!this.state.zoomed) {
+        const limit: React.CSSProperties = { maxWidth: "100%", height: "auto" };
+        Object.assign(props["style"], limit);
+      }
+    }
+    if (on_error != null) {
+      props["onError"] = on_error;
+    }
+    return <img {...props} />;
+  }
+
   render_using_server(project_id: string, sha1: string): Rendered {
-    const src =
-      get_blob_url(project_id, this.extension(), sha1) +
-      `&attempts=${this.state.attempts}`;
-    return (
-      <img
-        src={src}
-        onError={this.load_error}
-        width={this.props.width}
-        height={this.props.height}
-      />
-    );
+    const blob_url = get_blob_url(project_id, this.extension(), sha1);
+    const src = `${blob_url}&attempts=${this.state.attempts}`;
+    return this.render_image(src, this.load_error);
   }
 
   encoding = (): string => {
@@ -70,12 +96,9 @@ export class Image extends Component<ImageProps, ImageState> {
     // The encodeURIComponent is definitely necessary these days.
     // See https://github.com/sagemathinc/cocalc/issues/3197 and the comments at
     // https://css-tricks.com/probably-dont-base64-svg/
-    const src = `data:${
-      this.props.type
-    };${this.encoding()},${encodeURIComponent(value)}`;
-    return (
-      <img src={src} width={this.props.width} height={this.props.height} />
-    );
+    const prefix = `data:${this.props.type};${this.encoding()}`;
+    const src = `${prefix},${encodeURIComponent(value)}`;
+    return this.render_image(src);
   }
 
   render(): Rendered {

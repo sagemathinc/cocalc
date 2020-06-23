@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Configure how a path is shared.
 
 This is used by the frontend client to configure how a path
@@ -14,7 +19,7 @@ simultaneously edit this and have it be synced properly
 between them.
 */
 
-const WIKI_SHARE_HELP_URL = "https://doc.cocalc.com/share.html";
+const SHARE_HELP_URL = "https://doc.cocalc.com/share.html";
 
 import {
   Alert,
@@ -23,19 +28,21 @@ import {
   Col,
   FormGroup,
   FormControl,
-  Radio
+  Radio,
 } from "react-bootstrap";
+
 import {
   React,
   ReactDOM,
   Component,
   Rendered,
   rclass,
-  rtypes
+  rtypes,
 } from "../../app-framework";
+
 const { open_new_tab } = require("../../misc_page");
-const { CopyToClipBoard, Icon, VisibleMDLG } = require("../../r_misc");
-import { Space } from "../../r_misc/space";
+
+import { CopyToClipBoard, Icon, VisibleMDLG, Space } from "../../r_misc";
 
 import { public_share_url, share_server_url } from "./util";
 
@@ -86,17 +93,15 @@ class Configure extends Component<Props, State> {
   public static reduxProps(): object {
     return {
       customize: {
-        is_commercial: rtypes.bool
-      }
+        is_commercial: rtypes.bool,
+      },
     };
   }
 
   private render_how_shared_heading(): Rendered {
     return (
       <div style={{ color: "#444", fontSize: "15pt" }}>
-        How the {this.props.isdir ? "directory" : "file"}{" "}
-        <span style={{ fontFamily: "monospace" }}>"{this.props.path}"</span> is
-        shared
+       Public or Private?
       </div>
     );
   }
@@ -119,12 +124,12 @@ class Configure extends Component<Props, State> {
       // this.props.public is suppose to work in this state
       this.props.set_public_path({
         unlisted: false,
-        disabled: false
+        disabled: false,
       });
     } else if (state === "public_unlisted") {
       this.props.set_public_path({
         unlisted: true,
-        disabled: false
+        disabled: false,
       });
     }
   }
@@ -159,7 +164,7 @@ class Configure extends Component<Props, State> {
           <Space />
           <i>Public (listed)</i> - on the{" "}
           <a href={share_server_url()} target="_blank">
-            public share server
+            public Google-indexed server
           </a>
           .
         </Radio>
@@ -199,7 +204,7 @@ class Configure extends Component<Props, State> {
       >
         <Icon name="eye-slash" />
         <Space />
-        <i>Public (unlisted)</i> - Only people with the link can view this.
+        <i>Public (unlisted)</i> - only people with the link can view this.
       </Radio>
     );
   }
@@ -215,7 +220,7 @@ class Configure extends Component<Props, State> {
       >
         <Icon name="lock" />
         <Space />
-        <i>Private</i> - Only collaborators on this project can view this.
+        <i>Private</i> - only collaborators on this project can view this.
       </Radio>
     );
   }
@@ -313,11 +318,14 @@ class Configure extends Component<Props, State> {
     );
   }
 
-  private render_link(): Rendered {
+  private render_link(parent_is_public: boolean): Rendered {
     const url = public_share_url(
       this.props.project_id,
-      this.props.path,
-      this.props.isdir
+      parent_is_public && this.props.public != null
+        ? this.props.public.path
+        : this.props.path,
+      this.props.isdir,
+      this.props.path
     );
 
     const button_before = (
@@ -349,7 +357,7 @@ class Configure extends Component<Props, State> {
           {this.render_license(parent_is_public)}
         </Col>
         <Col sm={6} style={{ color: "#666" }}>
-          {this.render_link()}
+          {this.render_link(parent_is_public)}
         </Col>
       </Row>
     );
@@ -359,19 +367,19 @@ class Configure extends Component<Props, State> {
     const server = share_server_url();
     return (
       <div style={{ color: "#555", fontSize: "12pt" }}>
-        <a href={WIKI_SHARE_HELP_URL} target="_blank" rel="noopener">
-          You share
+        <a href={SHARE_HELP_URL} target="_blank" rel="noopener">
+          You make
         </a>{" "}
         files or directories{" "}
         <a href={server} target="_blank" rel="noopener">
           <b>
-            <i>to the world</i>,
+            <i>public to the world</i>,
           </b>
         </a>{" "}
         either indexed by search engines (listed), or only visible with the link
-        (unlisted). Files are automatically made public about 30 seconds any
-        time you change them. (To instead privately collaborate, go to Project
-        settings and "Add new collaborators".)
+        (unlisted). Files are automatically copied to the public server within
+        about 30 seconds after you explicitly edit them. (To instead privately
+        collaborate, go to Project settings and "Add new collaborators".)
       </div>
     );
   }

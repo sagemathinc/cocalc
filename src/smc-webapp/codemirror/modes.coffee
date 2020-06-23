@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 Load javascript support for all modes that we support in CoCalc.
 
@@ -7,6 +12,7 @@ that shouldn't also be used on the backend.
 
 require('codemirror/mode/clike/clike.js')
 require('codemirror/mode/clojure/clojure.js')
+require('codemirror/mode/cobol/cobol.js')
 require('codemirror/mode/coffeescript/coffeescript.js')
 require('codemirror/mode/commonlisp/commonlisp.js')
 require('codemirror/mode/css/css.js')
