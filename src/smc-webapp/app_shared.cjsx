@@ -173,32 +173,3 @@ exports.NotificationBell = require('./app/notification-bell').NotificationBell
 exports.ConnectionIndicator = require('./app/connection-indicator').ConnectionIndicator
 exports.ConnectionInfo = require('./app/connection-info').ConnectionInfo
 
-exports.AppLogo = rclass
-    displayName : 'AppLogo'
-
-    shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['logo_square'])
-
-    reduxProps:
-        customize:
-            logo_square : rtypes.string
-
-    url: ->
-        if @props.logo_square?.length > 0
-            return @props.logo_square
-        else
-            {APP_ICON} = require('./art')
-            return APP_ICON
-
-    render: ->
-        styles =
-            display         : 'inline-block'
-            backgroundImage : "url('#{@url()}')"
-            backgroundSize  : 'contain'
-            backgroundRepeat: 'no-repeat'
-            height          : "32px"
-            width           : "32px"
-            position        : 'relative'
-            margin          : '2px'
-        <div style={styles}></div>
-

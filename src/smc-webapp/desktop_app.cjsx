@@ -24,10 +24,11 @@ misc_page = require('./misc_page')
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent, ConnectionIndicator, ConnectionInfo, NavTab, NotificationBell, AppLogo, announce_bar_offset} = require('./app_shared')
+{ActiveAppContent, ConnectionIndicator, ConnectionInfo, NavTab, NotificationBell, announce_bar_offset} = require('./app_shared')
 
 {VersionWarning, CookieWarning, LocalStorageWarning} = require("./app/warnings")
 {FullscreenButton} = require('./app/fullscreen-button')
+{AppLogo} = require('./app/logo')
 
 nav_class = 'hidden-xs'
 
