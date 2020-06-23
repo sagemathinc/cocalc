@@ -1,4 +1,7 @@
-/* jQuery plugin to make a div mouse click draggable. */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import * as $ from "jquery";
 
@@ -8,7 +11,7 @@ declare global {
   }
 }
 
-$.fn.mouse_draggable = function() {
+$.fn.mouse_draggable = function () {
   this.each(mouse_draggable);
   return this;
 };
@@ -22,6 +25,7 @@ interface Position {
 
 function mouse_draggable(): void {
   // the element that is being dragged around.
+  // @ts-ignore
   const elt = $(this);
 
   // dragpos = the position that the user just dragged the document to
@@ -29,7 +33,7 @@ function mouse_draggable(): void {
 
   // when the mouse button goes down, we change the cursor, initialize the dragpos,
   // and activate the mousemove handler.
-  elt.on("mousedown", e => {
+  elt.on("mousedown", (e) => {
     e.preventDefault();
     // Still need to remove the focus from the codemirror textarea
     // otherwise, space-key and others have no effect on scrolling.
@@ -39,7 +43,7 @@ function mouse_draggable(): void {
     if (e.clientX == undefined || e.clientY == undefined) return; // do not bother
     dragpos = {
       left: e.clientX,
-      top: e.clientY
+      top: e.clientY,
     };
     elt.on("mousemove", mousemove_handler);
   });
@@ -51,14 +55,14 @@ function mouse_draggable(): void {
   }
 
   // finished dragging -- reset everything.
-  elt.on("mouseup", e => {
+  elt.on("mouseup", (e) => {
     e.preventDefault();
     reset();
     return false;
   });
 
   // handle mouse moving with button down.
-  const mousemove_handler = e => {
+  const mousemove_handler = (e) => {
     e.preventDefault();
 
     // this checks, if we come back into the viewport after leaving it
@@ -74,7 +78,7 @@ function mouse_draggable(): void {
 
     const delta = {
       x: e.clientX - dragpos.left,
-      y: e.clientY - dragpos.top
+      y: e.clientY - dragpos.top,
     };
 
     elt.scrollLeft(<number>elt.scrollLeft() - delta.x);
@@ -82,7 +86,7 @@ function mouse_draggable(): void {
 
     dragpos = {
       left: e.clientX,
-      top: e.clientY
+      top: e.clientY,
     };
     return false;
   };

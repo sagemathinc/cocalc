@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Misc utility functions for manipulating and working wth cells.
 */
 
@@ -55,9 +60,9 @@ export function sorted_cell_list(cells: Map<string, any>): List<string> {
   }
   return cells
     .map((record, id) => ({ id, pos: record.get("pos", -1) }))
-    .filter(x => x.id != null)
+    .filter((x) => x.id != null)
     .sort(field_cmp("pos"))
-    .map(x => x.id)
+    .map((x) => x.id)
     .toList();
 }
 
@@ -69,7 +74,7 @@ export function ensure_positions_are_unique(cells?: Map<string, any>) {
   }
   const v: any = {};
   let all_unique = true;
-  cells.forEach(cell => {
+  cells.forEach((cell) => {
     const pos = cell.get("pos");
     if (pos == null || v[pos]) {
       // dup! (or not defined)
@@ -83,7 +88,7 @@ export function ensure_positions_are_unique(cells?: Map<string, any>) {
   }
   let pos = 0;
   const new_pos: { [id: string]: number } = {};
-  sorted_cell_list(cells).forEach(id => {
+  sorted_cell_list(cells).forEach((id) => {
     new_pos[id] = pos;
     pos += 1;
   });

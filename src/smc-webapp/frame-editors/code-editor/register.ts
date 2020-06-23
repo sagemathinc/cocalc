@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Register the code editor
 */
 
@@ -20,5 +25,5 @@ for (const ext in file_associations) {
 register_file_editor({
   ext: extensions,
   component: Editor,
-  Actions
+  Actions,
 });

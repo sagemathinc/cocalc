@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Handle all mentions that haven't yet been handled.
 */
 
@@ -20,7 +25,7 @@ import { callback, delay } from "awaiting";
 import { project_has_network_access } from "../postgres/project-queries";
 import { is_paying_customer } from "../postgres/account-queries";
 
-const { send_email } = require("../email");
+import { send_email } from "../email";
 
 const { HELP_EMAIL } = require("smc-util/theme");
 
@@ -37,12 +42,12 @@ interface Key {
 
 type Action = "email" | "ignore" | "no-network";
 
-type Database = any; // TODO
+import { PostgreSQL } from "../postgres/types";
 
 // Handle all notification, then wait for the given time, then again
 // handle all unhandled notifications.
 export async function handle_mentions_loop(
-  db: Database,
+  db: PostgreSQL,
   poll_interval_s: number = POLL_INTERVAL_S
 ): Promise<void> {
   while (true) {
@@ -61,7 +66,7 @@ export async function handle_all_mentions(db: any): Promise<void> {
   const result = await callback2(db._query, {
     select: ["time", "project_id", "path", "source", "target", "priority"],
     table: "mentions",
-    where: "action is null" // no action taken yet.
+    where: "action is null", // no action taken yet.
   });
   if (result == null || result.rows == null) {
     throw Error("invalid result"); // can't happen
@@ -85,7 +90,7 @@ export async function handle_all_mentions(db: any): Promise<void> {
 }
 
 async function determine_action(
-  db: Database,
+  db: PostgreSQL,
   key: Key,
   source: string
 ): Promise<Action> {
@@ -102,7 +107,7 @@ async function determine_action(
   }
   const result = await callback2(db._query, {
     query: `SELECT COUNT(*) FROM mentions WHERE project_id=$1 AND path=$2 AND target=$3 AND action = 'email' AND time >= NOW() - INTERVAL '${MIN_EMAIL_INTERVAL}'`,
-    params: [project_id, path, target]
+    params: [project_id, path, target],
   });
   const count: number = parseInt(result.rows[0].count);
   if (count > 0) {
@@ -112,7 +117,7 @@ async function determine_action(
 }
 
 export async function handle_mention(
-  db: Database,
+  db: PostgreSQL,
   key: Key,
   source: string,
   _priority: number, // ignored for now.
@@ -145,14 +150,14 @@ export async function handle_mention(
 }
 
 async function send_email_notification(
-  db: Database,
+  db: PostgreSQL,
   key: Key,
   source: string,
   description: string = ""
 ): Promise<void> {
   // Gather relevant information to use to construct notification.
   const user_names = await callback2(db.account_ids_to_usernames, {
-    account_ids: [source]
+    account_ids: [source],
   });
   const source_name = `${user_names[source].first_name} ${user_names[source].last_name}`;
   const project_title = await callback(
@@ -176,19 +181,21 @@ async function send_email_notification(
 
   const category = "notification";
 
+  const settings = await callback2(db.get_server_settings_cached, {});
+
   // Send email notification.
-  await callback2(send_email, { subject, body, from, to, category });
+  await callback2(send_email, { subject, body, from, to, category, settings });
 }
 
 async function set_action(
-  db: Database,
+  db: PostgreSQL,
   key: Key,
   action: string
 ): Promise<void> {
   await callback2(db._query, {
     query: "UPDATE mentions SET action=$1",
     params: [action],
-    where: key
+    where: key,
   });
 }
 
@@ -201,6 +208,6 @@ export async function record_error(
   await callback2(db._query, {
     query: "UPDATE mentions SET action=$1,error=$2",
     where: key,
-    params: [action, error]
+    params: [action, error],
   });
 }

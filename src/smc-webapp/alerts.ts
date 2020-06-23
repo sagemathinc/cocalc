@@ -1,23 +1,7 @@
-//##############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import { notification } from "antd";
 import { ReactElement } from "react";
@@ -26,10 +10,10 @@ import {
   defaults,
   hash_string,
   server_seconds_ago,
-  server_time
+  server_time,
 } from "smc-util/misc";
 
-const { webapp_client } = require("./webapp_client");
+import { webapp_client } from "./webapp-client";
 
 type NotificationType = "error" | "default" | "success" | "info" | "warning";
 
@@ -37,7 +21,7 @@ const default_timeout: { [key: string]: number } = {
   error: 8,
   default: 4,
   success: 4,
-  info: 6
+  info: 6,
 };
 
 const last_shown = {};
@@ -56,7 +40,7 @@ export function alert_message(opts: AlertMessageOptions = {}) {
     title: undefined,
     message: "",
     block: undefined,
-    timeout: undefined // time in seconds
+    timeout: undefined, // time in seconds
   });
   if (opts.type == null) throw Error("bug"); // make typescript happy.
   if (opts.timeout == null) {
@@ -89,7 +73,7 @@ export function alert_message(opts: AlertMessageOptions = {}) {
   f({
     message: opts.title != null ? opts.title : "",
     description: opts.message,
-    duration: opts.block ? 0 : opts.timeout
+    duration: opts.block ? 0 : opts.timeout,
   });
 
   if (opts.type === "error") {
@@ -97,20 +81,20 @@ export function alert_message(opts: AlertMessageOptions = {}) {
     // that us developers know what errors people are hitting.
     // There really should be no situation where users *regularly*
     // get error alert messages.
-    webapp_client.log_error(opts.message);
+    webapp_client.tracking_client.log_error(opts.message);
   }
 }
 
 function check_for_clock_skew() {
   const local_time = new Date().valueOf();
   const s = Math.ceil(
-    Math.abs(webapp_client.server_time() - local_time) / 1000
+    Math.abs(webapp_client.time_client.server_time().valueOf() - local_time.valueOf()) / 1000
   );
   if (s > 120) {
     return exports.alert_message({
       type: "error",
       timeout: 9999,
-      message: `Your computer's clock is off by about ${s} seconds!  You MUST set it correctly then refresh your browser.  Expect nothing to work until you fix this.`
+      message: `Your computer's clock is off by about ${s} seconds!  You MUST set it correctly then refresh your browser.  Expect nothing to work until you fix this.`,
     });
   }
 }

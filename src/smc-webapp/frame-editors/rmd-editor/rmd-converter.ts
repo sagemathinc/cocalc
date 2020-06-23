@@ -1,13 +1,15 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Convert R Markdown file to hidden Markdown file, then read.
 */
 
 // import { aux_file } from "../frame-tree/util";
-import { path_split /* change_filename_extension */ } from "smc-util/misc2";
-import {
-  exec,
-  ExecOutput /* read_text_file_from_project */
-} from "../generic/client";
+import { path_split } from "smc-util/misc2";
+import { exec, ExecOutput } from "../generic/client";
 
 export async function convert(
   project_id: string,
@@ -17,7 +19,6 @@ export async function convert(
 ): Promise<ExecOutput> {
   const x = path_split(path);
   const infile = x.tail;
-
   // console.log("frontmatter", frontmatter);
   let cmd: string;
   // https://www.rdocumentation.org/packages/rmarkdown/versions/1.10/topics/render
@@ -29,20 +30,18 @@ export async function convert(
   ) {
     cmd = `rmarkdown::render('${infile}', output_format = NULL, run_pandoc = TRUE)`;
   } else {
-    cmd = `rmarkdown::render('${infile}', output_format = NULL, output_options = list(self_contained = FALSE) , run_pandoc = TRUE)`;
+    cmd = `rmarkdown::render('${infile}', output_format = NULL, run_pandoc = TRUE, output_options = list(self_contained = FALSE))`;
   }
-  // console.log("rmd cmd", cmd);
 
   return await exec({
-    allow_post: false, // definitely could take a long time to fully run all the R stuff...
-    timeout: 90,
+    timeout: 4 * 60,
     bash: true, // so timeout is enforced by ulimit
     command: "Rscript",
     args: ["-e", cmd],
     env: { MPLBACKEND: "Agg" }, // for python plots -- https://github.com/sagemathinc/cocalc/issues/4202
     project_id: project_id,
     path: x.head,
-    err_on_exit: true,
-    aggregate: time
+    err_on_exit: false,
+    aggregate: time,
   });
 }

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 This is a renderer using the embed tag, so works with browsers that have a PDF viewer plugin.
 */
 
@@ -45,7 +50,7 @@ export class PDFEmbed extends Component<Props, {}> {
             position: "absolute",
             width: "100%",
             height: "100%",
-            zIndex: this.props.is_current ? -1 : 1
+            zIndex: this.props.is_current ? -1 : 1,
           }}
           onMouseEnter={() => this.focus()}
         />
@@ -60,7 +65,7 @@ export class PDFEmbed extends Component<Props, {}> {
         style={{
           position: "relative",
           height: "100%",
-          width: "100%"
+          width: "100%",
         }}
       >
         {this.render_clickable()}

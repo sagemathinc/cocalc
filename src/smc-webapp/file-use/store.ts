@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { fromJS, List as iList, Map as iMap } from "immutable";
 import { Store } from "../app-framework";
 const { webapp_client } = require("../webapp_client");
@@ -126,7 +131,7 @@ export class FileUseStore extends Store<FileUseState> {
         other_newest_edit_or_chat = misc.max([
           other_newest_edit_or_chat,
           user.last_edited,
-          user.chat != null ? user.chat : 0
+          user.chat != null ? user.chat : 0,
         ]);
       }
       v.push(user);
@@ -293,7 +298,7 @@ export class FileUseStore extends Store<FileUseState> {
       sorted_file_use_list: v,
       file_use_map,
       sorted_file_use_immutable_list: fromJS(v),
-      notify_count
+      notify_count,
     };
     require("browser").set_window_title();
     return v;
@@ -302,13 +307,13 @@ export class FileUseStore extends Store<FileUseState> {
   // See above for the definition of unread and unseen.
   get_all_unread(): any[] {
     return this.get_sorted_file_use_list().filter(
-      x => x != null && x.is_unread
+      (x) => x != null && x.is_unread
     );
   }
 
   get_all_unseen(): any[] {
     return this.get_sorted_file_use_list().filter(
-      x => x != null && x.is_unseen
+      (x) => x != null && x.is_unseen
     );
   }
 
@@ -368,7 +373,7 @@ export class FileUseStore extends Store<FileUseState> {
             // create array if necessary, then push data about it
             last_used: user.last_used != null ? user.last_used : 0,
             project_id: info.project_id,
-            path: info.path
+            path: info.path,
           });
         }
       }
@@ -392,12 +397,12 @@ export class FileUseStore extends Store<FileUseState> {
     }
     const users_map: iMap<string, any> = file_use.getIn([
       sha1(opts.project_id, opts.path),
-      "users"
+      "users",
     ]);
     if (users_map == null) {
       return users;
     }
-    users_map.forEach(function(info: iMap<string, any>, account_id: string) {
+    users_map.forEach(function (info: iMap<string, any>, account_id: string) {
       const timestamp = info.get("video");
       if (timestamp != null && timestamp.valueOf() >= cutoff) {
         users[account_id] = timestamp;

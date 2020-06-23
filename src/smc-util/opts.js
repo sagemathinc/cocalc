@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
  * DS103: Rewrite code to no longer use __guard__
@@ -31,13 +36,13 @@ if (
     typeof process !== "undefined" && process !== null
       ? process.env
       : undefined,
-    x => x.DEVEL
+    (x) => x.DEVEL
   ) &&
   !__guard__(
     typeof process !== "undefined" && process !== null
       ? process.env
       : undefined,
-    x1 => x1.SMC_TEST
+    (x1) => x1.SMC_TEST
   )
 ) {
   // Running on node and DEVEL is set and not running under test suite
@@ -50,7 +55,7 @@ if (
 if (DEBUG) {
   console.debug = console.log;
 } else {
-  console.debug = function() {};
+  console.debug = function () {};
 }
 
 if (
@@ -58,7 +63,7 @@ if (
     typeof process !== "undefined" && process !== null
       ? process.env
       : undefined,
-    x2 => x2.SMC_TEST
+    (x2) => x2.SMC_TEST
   )
 ) {
   // in test mode we *do* want exception to get thrown below when type checks fails
@@ -67,7 +72,7 @@ if (
 
 // Checks property types on a target object with checkers in a declaration.
 // Declarations should throw an Error for mismatches and undefined if OK.
-const types = (exports.types = function(target, declaration, identifier) {
+const types = (exports.types = function (target, declaration, identifier) {
   if (identifier == null) {
     identifier = "check.types";
   }
@@ -104,7 +109,7 @@ types.immutable = immutable_types.immutable;
 // obj1.  For each property P of obj2 not specified in obj1, the
 // corresponding value obj1[P] is set (all in a new copy of obj1) to
 // be obj2[P].
-exports.defaults = function(obj1, obj2, allow_extra, strict) {
+exports.defaults = function (obj1, obj2, allow_extra, strict) {
   let err;
   if (strict == null) {
     strict = false;
@@ -112,7 +117,7 @@ exports.defaults = function(obj1, obj2, allow_extra, strict) {
   if (obj1 == null) {
     obj1 = {};
   }
-  const error = function() {
+  const error = function () {
     try {
       return `(obj1=${exports.trunc(
         exports.to_json(obj1),

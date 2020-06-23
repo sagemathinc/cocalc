@@ -1,4 +1,7 @@
-/* Various functions involving the database and projects. */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import { PostgreSQL } from "./types";
 
@@ -12,7 +15,7 @@ export async function project_has_network_access(
   try {
     x = await callback2(db.get_project, {
       project_id,
-      columns: ["users", "settings"]
+      columns: ["users", "settings"],
     });
   } catch (err) {
     // error probably means there is no such project or project_id is badly formatted.

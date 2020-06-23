@@ -1,4 +1,7 @@
-/* Adding (and later removing) collaborators to/from projects. */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import { PostgreSQL } from "./types";
 
@@ -34,7 +37,7 @@ export async function record_user_tracking(
       "account_id :: UUID": account_id,
       "time       :: TIMESTAMP": "NOW()",
       "event      :: TEXT": event,
-      "value      :: JSONB": value
-    }
+      "value      :: JSONB": value,
+    },
   });
 }

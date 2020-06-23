@@ -1,24 +1,9 @@
-//#############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016 -- 2017, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//#############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Upgrading quotas for all student projects
-//#############################################################################
 
 import { UpgradeGoal } from "../types";
 import * as misc from "smc-util/misc";
@@ -34,10 +19,13 @@ import {
   redux,
   rclass,
   Rendered,
-  TypedMap
+  TypedMap,
 } from "../../app-framework";
 import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
+import { SiteLicensePublicInfo } from "../../site-licenses/site-license-public-info";
+
+const { ShowSupportLink } = require("../../support");
 
 import {
   A,
@@ -45,7 +33,7 @@ import {
   Loading,
   NoUpgrades,
   Tip,
-  UPGRADE_ERROR_STYLE
+  UPGRADE_ERROR_STYLE,
 } from "../../r_misc";
 
 import { UpgradeRestartWarning } from "../../upgrade-restart-warning";
@@ -57,10 +45,20 @@ import {
   FormGroup,
   FormControl,
   Row,
-  Col
+  Col,
 } from "../../antd-bootstrap";
 
 import { Alert, Card } from "antd";
+
+export const LICENSE_STYLE = {
+  width: "100%",
+  margin: "15px 0",
+  padding: "10px",
+  borderRadius: "5px",
+  fontFamily: "monospace",
+  fontSize: "14pt",
+  color: "darkblue",
+};
 
 interface StudentProjectUpgradesProps {
   name: string;
@@ -68,6 +66,7 @@ interface StudentProjectUpgradesProps {
   upgrade_goal?: TypedMap<UpgradeGoal>;
   institute_pay?: boolean;
   student_pay?: boolean;
+  site_license_id?: string;
 
   // redux props
   all_projects_have_been_loaded?: boolean;
@@ -78,6 +77,8 @@ interface StudentProjectUpgradesState {
   upgrades: object;
   upgrade_plan?: object;
   loading_all_projects?: boolean;
+  show_site_license?: boolean;
+  site_license_id: string;
 }
 
 class StudentProjectUpgrades extends Component<
@@ -92,7 +93,8 @@ class StudentProjectUpgrades extends Component<
     this.state = {
       upgrade_quotas: false, // true if display the quota upgrade panel
       upgrades: {},
-      upgrade_plan: undefined
+      upgrade_plan: undefined,
+      site_license_id: "",
     };
   }
 
@@ -201,7 +203,9 @@ class StudentProjectUpgrades extends Component<
             value={val}
             onChange={() => {
               const u = this.state.upgrades;
-              u[quota] = ReactDOM.findDOMNode(this.refs[ref]).value;
+              const value = ReactDOM.findDOMNode(this.refs[ref])?.value;
+              if (value == null) return;
+              u[quota] = value;
               this.setState({ upgrades: u });
               this.update_plan();
             }}
@@ -230,7 +234,7 @@ class StudentProjectUpgrades extends Component<
       return (
         <Checkbox
           checked={val > 0}
-          onChange={e => {
+          onChange={(e) => {
             const u = this.state.upgrades;
             u[quota] = (e.target as any).checked ? 1 : 0;
             this.setState({ upgrades: u });
@@ -262,7 +266,7 @@ class StudentProjectUpgrades extends Component<
       desc,
       display_factor,
       display_unit,
-      input_type
+      input_type,
     } = schema.PROJECT_UPGRADES.params[quota];
 
     yours *= display_factor;
@@ -275,7 +279,7 @@ class StudentProjectUpgrades extends Component<
     } else {
       const n = misc.parse_number_input(x);
       if (n == null) {
-        input = n;
+        input = 0;
       } else {
         input = yours / num_projects; // currently typed in
       }
@@ -283,8 +287,6 @@ class StudentProjectUpgrades extends Component<
     if (input_type === "checkbox") {
       input = input > 0 ? 1 : 0;
     }
-
-    //#console.log(quota, "remaining = (#{available} - #{input}/#{display_factor}*#{num_projects}) * #{display_factor}")
 
     const remaining = misc.round2(
       (available - (input / display_factor) * num_projects) * display_factor
@@ -446,9 +448,10 @@ class StudentProjectUpgrades extends Component<
     );
   }
 
-  save_admin_upgrade = e => {
+  save_admin_upgrade = (e) => {
     e.preventDefault();
-    const s = ReactDOM.findDOMNode(this.refs.admin_input).value;
+    const s = ReactDOM.findDOMNode(this.refs.admin_input)?.value;
+    if (s == null) return;
     const quotas = JSON.parse(s);
     // This console.log is intentional... because admin upgrade is only
     // for really advanced users (i.e., William).
@@ -538,7 +541,7 @@ class StudentProjectUpgrades extends Component<
     this.setState({
       upgrade_quotas: true,
       upgrades,
-      upgrade_plan
+      upgrade_plan,
     });
   };
 
@@ -573,18 +576,100 @@ class StudentProjectUpgrades extends Component<
     if (this.state.loading_all_projects) {
       return (
         <Button disabled={true} bsStyle="primary">
-          <Icon name="arrow-circle-up" /> Adjust upgrades... (Loading)
+          <Icon name="arrow-circle-up" /> Upgrade using a course package or
+          subscription... (Loading)
         </Button>
       );
     }
     return (
       <Button bsStyle="primary" onClick={this.adjust_quotas}>
-        <Icon name="arrow-circle-up" /> Adjust upgrades...
+        <Icon name="arrow-circle-up" /> Upgrade using a course package or
+        subscription...
       </Button>
     );
   }
 
-  handle_institute_pay_checkbox = e => {
+  private render_site_license_text(): Rendered {
+    if (!this.state.show_site_license) return;
+    const disabled =
+      this.state.site_license_id.length != 36 &&
+      this.state.site_license_id.length != 0;
+    return (
+      <div>
+        Enter a license key below to automatically apply upgrades from that
+        license to this course project, all student projects, and the shared
+        project whenever they are running. Clear the field below to stop
+        applying those upgrades. Upgrades from the license are only applied when
+        a project is started. Create a <ShowSupportLink /> if you would like to
+        purchase a license key.
+        <input
+          style={LICENSE_STYLE}
+          type="text"
+          value={this.state.site_license_id}
+          onChange={(e) => this.setState({ site_license_id: e.target.value })}
+        />
+        <ButtonGroup>
+          {" "}
+          <Button onClick={() => this.setState({ show_site_license: false })}>
+            Cancel
+          </Button>
+          <Button
+            bsStyle="primary"
+            disabled={disabled}
+            onClick={() => {
+              const actions = this.get_actions();
+              actions.configuration.set_site_license_id(
+                this.state.site_license_id
+              );
+              actions.configuration.configure_all_projects();
+              this.setState({ show_site_license: false });
+            }}
+          >
+            Save
+          </Button>{" "}
+        </ButtonGroup>
+        <br />
+        {disabled ? "Valid license keys are 36 characters long." : ""}
+      </div>
+    );
+  }
+
+  render_current_license(): Rendered {
+    if (!this.props.site_license_id) return;
+    return (
+      <div style={{ margin: "15px 0" }}>
+        This project and all student projects will be upgraded using the
+        following license:
+        <br />
+        <SiteLicensePublicInfo license_id={this.props.site_license_id} />
+      </div>
+    );
+  }
+
+  render_site_license() {
+    return (
+      <div>
+        {this.render_current_license()}
+        <Button
+          onClick={() => {
+            this.setState({
+              show_site_license: true,
+              site_license_id: this.props.site_license_id ?? "",
+            });
+          }}
+          disabled={this.state.show_site_license}
+        >
+          <Icon name="key" />{" "}
+          {this.props.site_license_id
+            ? "Change or remove site license"
+            : "Upgrade using a license key..."}
+        </Button>
+        {this.render_site_license_text()}
+      </div>
+    );
+  }
+
+  handle_institute_pay_checkbox = (e) => {
     return this.get_actions().configuration.set_pay_choice(
       "institute",
       e.target.checked
@@ -610,6 +695,8 @@ class StudentProjectUpgrades extends Component<
         {this.state.upgrade_quotas
           ? this.render_upgrade_quotas()
           : this.render_upgrade_quotas_button()}
+        <hr />
+        {this.render_site_license()}
         <hr />
         <div style={{ color: "#666" }}>
           <p>

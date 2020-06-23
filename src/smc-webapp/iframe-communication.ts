@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // This makes it possible to communicate between a host page and CoCalc in an embedded IFrame in a clean way.
 //
 // It listens to `postMessage`'s and dispatches actions accordingly.
@@ -45,7 +50,7 @@ function connection_status(): ConnectionStatus | undefined {
     quality: page_store.get("connection_quality") || "good",
     status: page_store.get("connection_status"),
     status_time: page_store.get("last_status_time"),
-    ping: page_store.get("avgping")
+    ping: page_store.get("avgping"),
   };
 }
 
@@ -59,7 +64,7 @@ function close_all_files() {
   const op = open_projects();
   const page_actions = redux.getActions("page") as any;
   if (op == null || page_actions == null) return;
-  op.map(project_id => {
+  op.map((project_id) => {
     const pa = redux.getProjectActions(project_id);
     pa.close_all_files();
     page_actions.close_project_tab(project_id);
@@ -70,16 +75,13 @@ function all_opened_files(): undefined | object {
   const op = open_projects();
   if (op == null) return;
   const all_files = Map(
-    op.map(project_id => {
+    op.map((project_id) => {
       const ps = redux.getProjectStore(project_id);
-      const files = ps
-        .get("open_files")
-        .keySeq()
-        .toArray();
+      const files = ps.get("open_files").keySeq().toArray();
       return [project_id, files];
     })
   );
-  return all_files.filter(files => files.length > 0).toJS();
+  return all_files.filter((files) => files.length > 0).toJS();
 }
 
 // this gets and saves a list of allowed origin hosts.
@@ -121,7 +123,7 @@ async function handle_open({ data, reply }) {
   if (path == null || typeof path !== "string") {
     reply({
       status: "error",
-      mesg: `invalid path, it must be a string`
+      mesg: `invalid path, it must be a string`,
     });
     return;
   }
@@ -136,7 +138,7 @@ async function handle_open({ data, reply }) {
   if (actions == null) {
     reply({
       status: "error",
-      mesg: `problem opening project ${project_id}`
+      mesg: `problem opening project ${project_id}`,
     });
     return;
   }
@@ -146,7 +148,7 @@ async function handle_open({ data, reply }) {
     foreground: true,
     foreground_project: true,
     ignore_kiosk: true,
-    change_history: false
+    change_history: false,
   };
 
   try {
@@ -159,7 +161,7 @@ async function handle_open({ data, reply }) {
       action,
       path,
       project_id,
-      mesg: err.toString()
+      mesg: err.toString(),
     });
   }
 }
@@ -215,7 +217,7 @@ async function process_message(mesg) {
       reply({
         status: "done",
         connection: connection_status(),
-        open_files: all_opened_files() || {}
+        open_files: all_opened_files() || {},
       });
       break;
 

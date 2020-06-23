@@ -1,3 +1,7 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 /*
 Functions for determining various things about applying upgrades to a project.
@@ -5,10 +9,9 @@ Functions for determining various things about applying upgrades to a project.
 WARNING: This should stay as simple typescript with no crazy dependencies for easy node.js unit testing.
 */
 
-import { Map } from "immutable";
 import * as misc from "smc-util/misc";
+import { ProjectMap } from "../projects/store";
 
-type ProjectMap = Map<any, any>;
 interface ExistenceMap {
   [keys: string]: boolean;
 }
@@ -30,7 +33,7 @@ export function available_upgrades(opts: {
     This is a map {quota0:x, quota1:y, ...}
     */
   let available = misc.copy(opts.purchased_upgrades);
-  opts.project_map.forEach(function(project, project_id) {
+  opts.project_map.forEach(function (project, project_id) {
     if (opts.student_project_ids[project_id]) {
       // do not count projects in course
       return;
@@ -62,7 +65,7 @@ export function current_student_project_upgrades(opts: {
       continue;
     }
     var x = undefined;
-    users.forEach(function(info, user_id) {
+    users.forEach(function (info, user_id) {
       if (user_id === opts.account_id) {
         return;
       }
@@ -112,7 +115,7 @@ export function upgrade_plan(opts: {
   const cur = exports.current_student_project_upgrades({
     account_id: opts.account_id,
     project_map: opts.project_map,
-    student_project_ids: opts.student_project_ids
+    student_project_ids: opts.student_project_ids,
   });
 
   // upgrades we have that have not been allocated to our course
@@ -120,7 +123,7 @@ export function upgrade_plan(opts: {
     account_id: opts.account_id,
     purchased_upgrades: opts.purchased_upgrades,
     project_map: opts.project_map,
-    student_project_ids: opts.student_project_ids
+    student_project_ids: opts.student_project_ids,
   });
 
   const ids = misc.keys(opts.student_project_ids);
@@ -153,7 +156,7 @@ export function upgrade_plan(opts: {
       project_id,
       "users",
       opts.account_id,
-      "upgrades"
+      "upgrades",
     ]);
     const alloc = upgrades != null ? upgrades.toJS() : {};
     let change = false;

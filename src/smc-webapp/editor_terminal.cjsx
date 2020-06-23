@@ -1,23 +1,7 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2015 -- 2016, SageMath, Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 # Terminal panel for .term files.
 
@@ -101,20 +85,21 @@ class DevTerminalActions extends Actions
         session_uuid = store.get('session_uuid')
         filename = store.get('filename')
 
-        webapp_client.read_text_file_from_project
-            project_id : project_id
-            path       : filename
-            cb         : (err, result) =>
-                if err
-                    report_error(err)
-                else
-                    # New session or connect to session
-                    if result.content? and result.content.length < 36
-                        # empty/corrupted -- messed up by bug in early version of SMC...
-                        delete result.content
-                    @setState
-                        session_uuid : result.content
-                    @connect_to_server(cb)
+        try
+            content = await webapp_client.project_client.read_text_file
+                project_id : project_id
+                path       : filename
+        catch err
+            report_error(err)
+            cb?(err)
+            return
+        # New session or connect to session
+        if content? and content.length < 36
+            # empty/corrupted -- messed up by bug in early version of SMC...
+            content = undefined
+        @setState
+            session_uuid : content
+        @connect_to_server(cb)
 
     connect_to_server: (cb) =>
         store = @get_store()

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Use Xpra to provide X11 server.
 
 import { retry_until_success } from "smc-util/async-utils";
@@ -40,7 +45,7 @@ const MOUSE_EVENTS = [
   "touchcancel",
   "wheel",
   "mousewheel",
-  "DOMMouseScroll"
+  "DOMMouseScroll",
 ];
 
 interface Options {
@@ -74,7 +79,7 @@ export class XpraClient extends EventEmitter {
 
     this.server = new XpraServer({
       project_id: this.options.project_id,
-      display: this.display
+      display: this.display,
     });
 
     this.init_touch(); // so project is alive so long as x11 session is active in some sense.
@@ -82,7 +87,7 @@ export class XpraClient extends EventEmitter {
     this.init_idle_timeout();
     this.connect();
     this.copy_from_xpra = throttle(this.copy_from_xpra.bind(this), 200, {
-      trailing: false
+      trailing: false,
     });
   }
 
@@ -151,7 +156,7 @@ export class XpraClient extends EventEmitter {
       start_delay: 1000,
       max_delay: 6000,
       factor: 1.4,
-      desc: "xpra -- connect"
+      desc: "xpra -- connect",
     });
   }
 
@@ -240,7 +245,7 @@ export class XpraClient extends EventEmitter {
         title: "X11 Clipboard Copy.",
         message:
           "Currently copying from graphical Linux applications requires Chrome version 66 or higher.  Try using the copy button for internal copy.",
-        timeout: 9999
+        timeout: 9999,
       });
     }
     const value = await this.get_clipboard();
@@ -251,7 +256,7 @@ export class XpraClient extends EventEmitter {
     }
   }
 
-  event_keydown = ev => {
+  event_keydown = (ev) => {
     // Annoying: typescript doesn't know ev is of type KeyboardEvent
     // todo -- second arg?
     const r = this.client.key_inject(ev as any, undefined);
@@ -261,11 +266,11 @@ export class XpraClient extends EventEmitter {
     return r;
   };
 
-  event_keyup = ev => {
+  event_keyup = (ev) => {
     return this.client.key_inject(ev as any, undefined);
   };
 
-  event_keypress = ev => {
+  event_keypress = (ev) => {
     return this.client.key_inject(ev as any, undefined);
   };
 
@@ -414,13 +419,11 @@ export class XpraClient extends EventEmitter {
       border,
       borderRadius: "4px",
       boxShadow,
-      backgroundColor: "white"
+      backgroundColor: "white",
     });
 
     // if parent not in DOM yet, the following is a no-op.
-    $(surface.parent.canvas)
-      .parent()
-      .append(e);
+    $(surface.parent.canvas).parent().append(e);
   }
 
   overlay_create(overlay: Surface): void {

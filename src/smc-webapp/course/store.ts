@@ -1,23 +1,7 @@
-//#############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 // React libraries
 import { Store } from "../app-framework";
@@ -37,6 +21,8 @@ import { SITE_NAME } from "smc-util/theme";
 import * as project_upgrades from "./project-upgrades";
 
 import { AssignmentCopyStep, AssignmentStatus, UpgradeGoal } from "./types";
+
+import { NotebookScores } from "../jupyter/nbgrader/autograde";
 
 import { CourseActions } from "./actions";
 
@@ -99,6 +85,14 @@ export type AssignmentRecord = TypedMap<{
   target_path: string;
   collect_path: string;
   graded_path: string;
+
+  nbgrader?: boolean; // if true, probably includes at least one nbgrader ipynb file
+
+  grades?: { [student_id: string]: string };
+  comments?: { [student_id: string]: string };
+  nbgrader_scores?: {
+    [student_id: string]: { [ipynb: string]: NotebookScores | string };
+  };
 }>;
 
 export type AssignmentsMap = Map<string, AssignmentRecord>;
@@ -129,6 +123,10 @@ export type CourseSettingsRecord = TypedMap<{
   student_pay: boolean;
   title: string;
   upgrade_goal: Map<any, any>;
+  site_license_id?: string;
+  nbgrader_grade_in_instructor_project?: boolean;
+  nbgrader_cell_timeout_ms?: number;
+  nbgrader_timeout_ms?: number;
 }>;
 
 export const CourseSetting = createTypedMap<CourseSettingsRecord>();
@@ -142,6 +140,16 @@ export type FeedbackRecord = TypedMap<{
   edited_comments: string;
 }>;
 export const Feedback = createTypedMap<FeedbackRecord>();
+
+// This NBgraderRunInfo is a map from what nbgrader task is running
+// to when it was started (ms since epoch).  The keys are as follows:
+//     36-character [account_id] = means that entire assignment with that id is being graded
+//     [account_id]-[student_id] = the particular assignment for that student is being graded
+// We do not track grading of individual files in an assignment.
+// This is NOT sync'd across users, since that would increase network traffic and
+// is probably not critical to do, since the worst case scenario is just running nbgrader
+// more than once at the same time, which is probably just *inefficient*.
+export type NBgraderRunInfo = Map<string, number>;
 
 export interface CourseState {
   activity: ActivityMap;
@@ -167,6 +175,7 @@ export interface CourseState {
   students: StudentsMap;
   unsaved?: boolean;
   terminal_command?: TerminalCommand;
+  nbgrader_run_info?: NBgraderRunInfo;
 }
 
 export class CourseStore extends Store<CourseState> {
@@ -340,7 +349,7 @@ export class CourseStore extends Store<CourseState> {
     if (users == null) return student_id;
     return [
       users.get_last_name(account_id),
-      users.get_first_name(account_id)
+      users.get_first_name(account_id),
     ].join(" ");
   }
 
@@ -421,6 +430,17 @@ export class CourseStore extends Store<CourseState> {
     return r == null ? "" : r;
   }
 
+  public get_nbgrader_scores(
+    assignment_id: string,
+    student_id: string
+  ): { [ipynb: string]: NotebookScores | string } | undefined {
+    const { assignment } = this.resolve({ assignment_id });
+    if (assignment == null) return undefined;
+    const x = assignment.getIn(["nbgrader_scores", student_id]);
+    if (x == null) return undefined;
+    return x.toJS();
+  }
+
   public get_comments(assignment_id: string, student_id: string): string {
     const { assignment } = this.resolve({ assignment_id });
     if (assignment == null) return "";
@@ -448,7 +468,7 @@ export class CourseStore extends Store<CourseState> {
         v.push(assignment);
       }
     }
-    const f = function(a: AssignmentRecord) {
+    const f = function (a: AssignmentRecord) {
       return [a.get("due_date", 0), a.get("path", "")];
     };
     v.sort((a, b) => misc.cmp_array(f(a), f(b)));
@@ -534,7 +554,7 @@ export class CourseStore extends Store<CourseState> {
         student_id,
         assignment_id,
         peer_assignment: false,
-        peer_collect: false
+        peer_collect: false,
       };
     }
 
@@ -563,12 +583,12 @@ export class CourseStore extends Store<CourseState> {
       student_id,
       assignment_id,
       peer_assignment,
-      peer_collect
+      peer_collect,
     };
   }
 
   // Return true if the assignment was copied to/from the
-  // student (in the given step of the workflow.
+  // student, in the given step of the workflow.
   // Even an attempt to copy with an error counts,
   // unless no_error is true, in which case it doesn't.
   public last_copied(
@@ -581,7 +601,7 @@ export class CourseStore extends Store<CourseState> {
       "assignments",
       assignment_id,
       `last_${step}`,
-      student_id
+      student_id,
     ]);
     if (x == null) {
       return false;
@@ -708,7 +728,7 @@ export class CourseStore extends Store<CourseState> {
     return {
       status: status != null ? status.toJS() : undefined,
       student_id,
-      handout_id
+      handout_id,
     };
   }
 
@@ -759,7 +779,7 @@ export class CourseStore extends Store<CourseState> {
 
     const info = {
       handout: 0,
-      not_handout: 0
+      not_handout: 0,
     };
 
     const status = handout.get("status");
@@ -782,22 +802,24 @@ export class CourseStore extends Store<CourseState> {
 
   public get_upgrade_plan(upgrade_goal: UpgradeGoal) {
     const account_store: any = this.redux.getStore("account");
+    const project_map = this.redux.getStore("projects").get("project_map");
+    if (project_map == null) throw Error("not fully loaded");
     const plan = project_upgrades.upgrade_plan({
       account_id: account_store.get_account_id(),
       purchased_upgrades: account_store.get_total_upgrades(),
-      project_map: this.redux.getStore("projects").get("project_map"),
+      project_map,
       student_project_ids: set(
         this.get_student_project_ids({
-          include_deleted: true
+          include_deleted: true,
         })
       ),
       deleted_project_ids: set(
         this.get_student_project_ids({
           include_deleted: true,
-          deleted_only: true
+          deleted_only: true,
         })
       ),
-      upgrade_goal
+      upgrade_goal,
     });
     return plan;
   }
@@ -817,4 +839,59 @@ export class CourseStore extends Store<CourseState> {
     delete x.store;
     return x;
   }
+
+  // List of ids of (non-deleted) assignments that have been
+  // assigned to at least one student.
+  public get_assigned_assignment_ids(): string[] {
+    const v: string[] = [];
+    for (const [assignment_id, val] of this.get_assignments()) {
+      if (val.get("deleted")) continue;
+      const x = val.get(`last_assignment`);
+      if (x != null && x.size > 0) {
+        v.push(assignment_id);
+      }
+    }
+    return v;
+  }
+
+  // List of ids of (non-deleted) handouts that have been copied
+  // out to at least one student.
+  public get_assigned_handout_ids(): string[] {
+    const v: string[] = [];
+    for (const [handout_id, val] of this.get_handouts()) {
+      if (val.get("deleted")) continue;
+      const x = val.get(`status`);
+      if (x != null && x.size > 0) {
+        v.push(handout_id);
+      }
+    }
+    return v;
+  }
+}
+
+export function get_nbgrader_score(scores: {
+  [ipynb: string]: NotebookScores | string;
+}): { score: number; points: number; error?: boolean; manual_needed: boolean } {
+  let points: number = 0;
+  let score: number = 0;
+  let error: boolean = false;
+  let manual_needed: boolean = false;
+  for (const ipynb in scores) {
+    const x = scores[ipynb];
+    if (typeof x == "string") {
+      error = true;
+      continue;
+    }
+    for (const grade_id in x) {
+      const y = x[grade_id];
+      if (y.score == null && y.manual) {
+        manual_needed = true;
+      }
+      if (y.score) {
+        score += y.score;
+      }
+      points += y.points;
+    }
+  }
+  return { score, points, error, manual_needed };
 }

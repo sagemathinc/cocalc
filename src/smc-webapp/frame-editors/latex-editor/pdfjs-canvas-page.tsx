@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Render a single PDF page using canvas.
 */
 
@@ -21,7 +26,7 @@ export class CanvasPage extends Component<Props, {}> {
   async render_page(page: PDFPageProxy, scale: number): Promise<void> {
     const div: HTMLElement = ReactDOM.findDOMNode(this.refs.page);
     const viewport: PDFPageViewport = page.getViewport({
-      scale: scale * window.devicePixelRatio
+      scale: scale * window.devicePixelRatio,
     });
     const canvas: HTMLCanvasElement = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
@@ -40,7 +45,7 @@ export class CanvasPage extends Component<Props, {}> {
     try {
       await page.render({
         canvasContext: ctx,
-        viewport: viewport
+        viewport: viewport,
       }).promise;
     } catch (err) {
       console.error(`pdf.js -- Error rendering canvas page: ${err}`);
@@ -62,7 +67,7 @@ export class CanvasPage extends Component<Props, {}> {
         style={{
           margin: "auto",
           position: "relative",
-          display: "inline-block"
+          display: "inline-block",
         }}
       >
         <AnnotationLayer

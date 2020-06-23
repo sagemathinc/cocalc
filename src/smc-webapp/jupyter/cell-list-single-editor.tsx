@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 React component that renders the ordered list of cells
 **as a single codemirror editor document**
 
@@ -41,7 +46,7 @@ export class CellList extends Component<CellListProps> {
           fontSize: "32pt",
           color: "#888",
           textAlign: "center",
-          marginTop: "15px"
+          marginTop: "15px",
         }}
       >
         <Loading />
@@ -131,7 +136,7 @@ export class CellList extends Component<CellListProps> {
       new_val = syncstring.three_way_merge({
         base: this.cm_last_remote,
         local,
-        remote
+        remote,
       });
     } else {
       new_val = remote;
@@ -163,7 +168,7 @@ export class CellList extends Component<CellListProps> {
     this.cm = CodeMirror.fromTextArea(node, options);
     $(this.cm.getWrapperElement()).css({
       height: "auto",
-      backgroundColor: "#f7f7f7"
+      backgroundColor: "#f7f7f7",
     });
     this.cm_merge_remote(this.props.cell_list, this.props.cells);
     this.cm_change = underscore.debounce(this.cm_save, 1000);
@@ -215,7 +220,7 @@ export class CellList extends Component<CellListProps> {
       backgroundColor: "#eee",
       height: "100%",
       overflowY: "auto",
-      overflowX: "hidden"
+      overflowX: "hidden",
     };
 
     return (
@@ -224,7 +229,7 @@ export class CellList extends Component<CellListProps> {
           style={{
             backgroundColor: "#fff",
             padding: "15px",
-            boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)"
+            boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)",
           }}
         >
           <textarea />

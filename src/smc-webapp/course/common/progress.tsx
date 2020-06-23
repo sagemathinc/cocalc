@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Progress indicator for assigning/collecting/etc. a particular assignment or handout.
 */
 
@@ -12,7 +17,7 @@ import * as misc from "smc-util/misc";
 const progress_info = {
   color: COLORS.GRAY_D,
   marginLeft: "10px",
-  whiteSpace: "normal"
+  whiteSpace: "normal",
 };
 
 const progress_info_done = misc.copy(progress_info);

@@ -1,18 +1,20 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const path = require("path");
 const this_file: string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
 
 import chalk from "chalk";
-import { Opts, PassFail, TestFiles } from "./types";
-import { time_log } from "./time_log";
+import { Creds, Opts, PassFail, TestFiles } from "./types";
+import { time_log2 } from "./time_log";
 import screenshot from "./screenshot";
 import { Page } from "puppeteer";
 import { expect } from "chai";
 
-export const test_sage_ker = async function(
-  opts: Opts,
-  page: Page
-): Promise<PassFail> {
+export const test_sage_ker = async function (creds: Creds, opts: Opts, page: Page): Promise<PassFail> {
   const pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
@@ -44,7 +46,7 @@ export const test_sage_ker = async function(
     await page.click(sel);
     debuglog("clicked file line");
 
-    time_log(`open ${TestFiles.sageipynbfile}`, tm_open_sage_ker);
+    await time_log2(`open ${TestFiles.sageipynbfile}`, tm_open_sage_ker, creds, opts);
     const tm_sage_ker_test = process.hrtime.bigint();
 
     sel = '*[cocalc-test="jupyter-cell"]';
@@ -64,15 +66,11 @@ export const test_sage_ker = async function(
     await page.click(sel);
     debuglog("clicked Kernel button");
 
-    let linkHandlers = await page.$x(
-      "//span[contains(., 'Restart and run all (do not stop on errors)...')]"
-    );
+    let linkHandlers = await page.$x("//span[contains(., 'Restart and run all (do not stop on errors)...')]");
     await linkHandlers[0].click();
     debuglog("clicked Restart and run all no stop");
 
-    linkHandlers = await page.$x(
-      "//button[contains(., 'Restart and run all')]"
-    );
+    linkHandlers = await page.$x("//button[contains(., 'Restart and run all')]");
     await linkHandlers[0].click();
     debuglog("clicked Restart and run all");
 
@@ -87,11 +85,10 @@ export const test_sage_ker = async function(
     let text: string = "XX";
     let step: number = 0;
     for (; step < restart_max_tries; step++) {
-      text = await page.$eval(sel, function(e) {
+      text = await page.$eval(sel, function (e) {
         return (<HTMLElement>e).innerText.toString();
       });
-      if (step > 0 && step % 10 == 0)
-        debuglog(step, ": readout: ", text.substr(0, 40));
+      if (step > 0 && step % 10 == 0) debuglog(step, ": readout: ", text.substr(0, 40));
       if (text.startsWith(empty_exec_str)) break;
       await page.waitFor(100);
     }
@@ -110,7 +107,7 @@ export const test_sage_ker = async function(
     await page.waitForSelector(sel);
     debuglog("got file search");
 
-    time_log(this_file, tm_sage_ker_test);
+    await time_log2(this_file, tm_sage_ker_test, creds, opts);
     await screenshot(page, opts, "cocalc-sage-ipynb.png");
     pfcounts.pass += 1;
   } catch (e) {
@@ -118,4 +115,4 @@ export const test_sage_ker = async function(
     console.log(chalk.red(`ERROR: ${e.message}`));
   }
   return pfcounts;
-}
+};

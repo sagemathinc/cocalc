@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Top-level react component for editing Sage Worksheets.
 
 Ultimately we'll have several views:
@@ -33,7 +38,7 @@ const worksheet_buttons = set([
   "copy",
   "undo",
   "redo",
-  "format"
+  "format",
 ]);
 
 const EDITOR_SPEC = {
@@ -42,16 +47,16 @@ const EDITOR_SPEC = {
     name: "Cell Worksheet",
     icon: "minus-square",
     component: CellWorksheet,
-    buttons: worksheet_buttons
+    buttons: worksheet_buttons,
   },
   document: {
     short: "Document",
     name: "Document Worksheet",
     icon: "file-alt",
     component: DocumentWorksheet,
-    buttons: worksheet_buttons
+    buttons: worksheet_buttons,
   },
-  terminal
+  terminal,
   /*,
   print: {
     short: "Print",
@@ -80,5 +85,5 @@ All this for sagews *or* .ipynb...
 export const Editor = createEditor({
   format_bar: true,
   editor_spec: EDITOR_SPEC,
-  display_name: "SageWorksheetEditor"
+  display_name: "SageWorksheetEditor",
 });

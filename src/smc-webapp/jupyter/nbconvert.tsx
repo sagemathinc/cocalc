@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 NBConvert dialog -- for running nbconvert
 */
 import { React, Component } from "../app-framework";
@@ -22,10 +27,11 @@ const NAMES = {
     ext: "sagews",
     display: "Sage Worksheet",
     internal: true,
-    nolink: true
+    nolink: true,
   },
   pdf: { ext: "pdf", display: "PDF" },
-  script: { ext: "txt", display: "Executable Script", internal: true }
+  script: { ext: "txt", display: "Executable Script", internal: true },
+  "chromium-pdf": { ext: "pdf", display: "PDF", no_run_button: true },
 };
 
 interface ErrorProps {
@@ -88,7 +94,7 @@ class Error extends Component<ErrorProps> {
           Running nbconvert failed with an error {this.render_time()}. Read the
           error log below, update your Jupyter notebook, then try again.
           <pre
-            ref={node => (this.preNode = node)}
+            ref={(node) => (this.preNode = node)}
             style={{ maxHeight: "40vh", margin: "5px 30px" }}
           >
             {error}
@@ -163,9 +169,7 @@ export class NBConvert extends Component<NBConvertProps> {
           <a href={url} target="_blank">
             {target_path}
           </a>
-        ) : (
-          undefined
-        )}
+        ) : undefined}
         {info.internal ? this.render_edit(target_path) : undefined}
       </div>
     );
@@ -224,6 +228,11 @@ export class NBConvert extends Component<NBConvertProps> {
     let cmd: any;
     const { tail = undefined } = misc.path_split(this.props.path) || {};
     if (
+      this.props.nbconvert_dialog != null &&
+      this.props.nbconvert_dialog.get("to") === "chromium-pdf"
+    ) {
+      cmd = shell_escape(["cc-ipynb-to-pdf", tail]);
+    } else if (
       this.props.nbconvert_dialog != null &&
       this.props.nbconvert_dialog.get("to") === "sagews"
     ) {
@@ -295,6 +304,9 @@ export class NBConvert extends Component<NBConvertProps> {
     if (this.props.nbconvert_dialog == null) {
       return;
     }
+    const to = this.props.nbconvert_dialog.get("to");
+    const info = NAMES[to];
+    if (info.no_run_button) return;
     const state =
       this.props.nbconvert != null
         ? this.props.nbconvert.get("state")
@@ -364,7 +376,7 @@ export class NBConvert extends Component<NBConvertProps> {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          Use View-->Slideshow to turn your Jupyter notebook into a slideshow.
+          Use View &rarr; Slideshow to turn your Jupyter notebook into a slideshow.
           One click display of slideshows is{" "}
           <a
             target="_blank"
@@ -374,7 +386,7 @@ export class NBConvert extends Component<NBConvertProps> {
             not yet implemented
           </a>
           . However, you can start a slideshow by copying and pasting the
-          following command in a terminal in CoCalc (+New-->Terminal):
+          following command in a terminal in CoCalc (+New &rarr; Terminal):
           <pre>{this.slides_command()}</pre>
           Then view your slides at
           <div style={{ textAlign: "center" }}>

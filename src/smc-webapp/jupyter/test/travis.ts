@@ -1,31 +1,36 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import {
   describe,
   before,
   after,
   it,
   expect,
-  TestEditor
+  TestEditor,
 } from "../../frame-editors/generic/test/util";
 /*
 import { JupyterStore } from "../store";
 import { JupyterActions } from "../actions";
 */
 
-describe("Jupyter - testing the tests", function() {
+describe("Jupyter - testing the tests", function () {
   this.timeout(10000);
   it("1 + 1 = 2", async () => {
     expect(eval("1+1")).to.equal(2);
   });
 });
 
-describe("Jupyter - testing a single action", function() {
+describe("Jupyter - testing a single action", function () {
   this.timeout(10000);
   let editor: TestEditor;
-  before(async function() {
+  before(async function () {
     editor = new TestEditor("ipynb");
     await editor.wait_until_loaded();
   });
-  after(function() {
+  after(function () {
     editor.delete();
   });
   it("list kernels", async () => {

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Map } from "immutable";
 import { TypedMap } from "../../app-framework";
 
@@ -27,11 +32,20 @@ export type ProjectEvent =
   | MiniTermEvent
   | CollaboratorEvent
   | X11Event
-  | SetEvent
+  | SetTitleEvent
+  | SetDescriptionEvent
   | { event: "open_project" }
   | SystemEvent;
 
-export type SetEvent = { event: "set" };
+export type SetTitleEvent = {
+  event: "set";
+  title: string;
+};
+
+export type SetDescriptionEvent = {
+  event: "set";
+  description: string;
+};
 
 export type X11Event = {
   event: "x11";
@@ -92,7 +106,7 @@ export type ProjectControlEvent = {
 
 export type FileActionEvent = (
   | { action: "deleted" }
-  | { action: "downloaded"; path?: string }
+  | { action: "downloaded"; files?: string[] }
   | { action: "moved" }
   | { action: "copied" }
   | { action: "shared" }

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Settings and configuration for editing this file.
 */
 
@@ -43,7 +48,7 @@ export class Settings extends Component<Props, {}> {
               key={key}
               value={value}
               available={af.get("spellcheck")}
-              set={value => this.props.actions.set_settings({ [key]: value })}
+              set={(value) => this.props.actions.set_settings({ [key]: value })}
             />
           );
           return;
@@ -52,6 +57,9 @@ export class Settings extends Component<Props, {}> {
         // we could delete it like so -- this.props.actions.set_settings({[key]:null});
       }
     });
+    if (v.length == 0) {
+      v.push(<div>This editor currently has no configurable settings.</div>);
+    }
     return v;
   }
 
@@ -62,13 +70,13 @@ export class Settings extends Component<Props, {}> {
         style={{
           overflowY: "scroll",
           padding: "5px 15px",
-          fontSize: "10pt"
+          fontSize: "10pt",
         }}
       >
         <h3
           style={{
             borderBottom: "1px solid #ccc",
-            paddingBottom: "15px"
+            paddingBottom: "15px",
           }}
         >
           <Icon name="wrench" /> Editor Settings
@@ -85,5 +93,5 @@ export const SETTINGS_SPEC = {
   icon: "wrench",
   buttons: {},
   component: Settings,
-  hide_public: true
+  hide_public: true,
 };

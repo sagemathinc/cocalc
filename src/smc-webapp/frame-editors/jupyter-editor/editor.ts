@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Spec for editing Jupyter notebooks via a frame tree.
 */
 
@@ -46,7 +51,7 @@ export const EDITOR_SPEC = {
       "undo",
       "redo",
       "format",
-      "show_table_of_contents"
+      "show_table_of_contents",
       /* ,
       "shell" -- disable for now since not fully implemented*/
     ]),
@@ -54,30 +59,30 @@ export const EDITOR_SPEC = {
       shell: {
         text: "Console",
         title:
-          "Open command line Jupyter console session attached to the same kernel as notebook"
-      }
-    }
+          "Open command line Jupyter console session attached to the same kernel as notebook",
+      },
+    },
   },
   jupyter_slideshow_revealjs: {
     short: "Slideshow",
     name: "Slideshow (Reveal.js)",
     icon: "slideshare",
     component: Slideshow,
-    buttons: set(["build"])
+    buttons: set(["build"]),
   },
   jupyter_table_of_contents: {
     short: "Contents",
     name: "Table of Contents",
     icon: "align-right",
     component: TableOfContents,
-    buttons: set(["decrease_font_size", "increase_font_size"])
+    buttons: set(["decrease_font_size", "increase_font_size"]),
   },
   introspect: {
     short: "Introspect",
     name: "Introspection",
     icon: "info",
     component: Introspect,
-    buttons: set(["decrease_font_size", "increase_font_size"])
+    buttons: set(["decrease_font_size", "increase_font_size"]),
   },
   terminal,
   time_travel,
@@ -86,8 +91,8 @@ export const EDITOR_SPEC = {
     name: "Raw JSON editor",
     icon: "cc-icon-markdown",
     component: RawIPynb,
-    buttons: set(["decrease_font_size", "increase_font_size"])
-  }
+    buttons: set(["decrease_font_size", "increase_font_size"]),
+  },
 };
 /*,
   jupyter_singledoc_notebook: {
@@ -179,5 +184,5 @@ export const EDITOR_SPEC = {
 export const Editor = createEditor({
   format_bar: false,
   editor_spec: EDITOR_SPEC,
-  display_name: "JupyterNotebook"
+  display_name: "JupyterNotebook",
 });

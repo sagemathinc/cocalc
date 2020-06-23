@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Manages rendering a single page using either SVG or Canvas
 */
 
@@ -13,7 +18,7 @@ import { CanvasPage } from "./pdfjs-canvas-page";
 import {
   PDFAnnotationData,
   PDFPageProxy,
-  PDFDocumentProxy
+  PDFDocumentProxy,
 } from "pdfjs-dist/webpack";
 
 import { SyncHighlight } from "./pdfjs-annotation";
@@ -43,14 +48,14 @@ export class Page extends Component<PageProps, {}> {
         "n",
         "renderer",
         "scale",
-        "sync_highlight"
+        "sync_highlight",
       ]) || this.props.doc.fingerprint !== next_props.doc.fingerprint
     );
   }
 
   render_content(): Rendered {
     if (!this.props.page) return;
-    const f = annotation => {
+    const f = (annotation) => {
       this.click_annotation(annotation);
     };
     if (this.props.renderer == "none") {
@@ -74,7 +79,7 @@ export class Page extends Component<PageProps, {}> {
           textAlign: "center",
           color: "white",
           backgroundColor: BG_COL,
-          height: `${PAGE_GAP}px`
+          height: `${PAGE_GAP}px`,
         }}
       >
         Page {this.props.n}
@@ -135,7 +140,10 @@ export class Page extends Component<PageProps, {}> {
     return (
       <div>
         {this.render_page_number()}
-        <div style={{ background: BG_COL }} onDoubleClick={e => this.click(e)}>
+        <div
+          style={{ background: BG_COL }}
+          onDoubleClick={(e) => this.click(e)}
+        >
           {this.render_content()}
         </div>
       </div>

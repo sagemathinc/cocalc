@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 module.exports = {
   parser: "@typescript-eslint/parser",
   plugins: ["react-hooks"],
@@ -5,14 +10,14 @@ module.exports = {
     "plugin:react/recommended",
     "plugin:@typescript-eslint/recommended",
     "prettier/@typescript-eslint", // Disables rules from @typescript-eslint that would conflict with Prettier
-    "plugin:prettier/recommended" // Make sure this always the last config to be loaded.
+    "plugin:prettier/recommended", // Make sure this always the last config to be loaded.
   ],
   parserOptions: {
     ecmaVersion: 2018,
     sourceType: "module",
     ecmaFeatures: {
-      jsx: true
-    }
+      jsx: true,
+    },
   },
   rules: {
     camelcase: "off",
@@ -26,11 +31,11 @@ module.exports = {
     "arrow-body-style": ["error", "always"],
     "no-console": ["error", { allow: ["warn", "error"] }],
 
-    "react/prop-types": "off"
+    "react/prop-types": "off",
   },
   settings: {
     react: {
-      version: "detect"
-    }
-  }
+      version: "detect",
+    },
+  },
 };

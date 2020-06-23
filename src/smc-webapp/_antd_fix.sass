@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Here we revert some of the style changes that antd made.
 
 // This is mainly meant to be temporary, so that we keep the
@@ -25,3 +30,6 @@ html
   .ant-popover-arrow
     border-color: $COL_GRAY_L !important
     z-index: -1 !important
+
+.ant-popover-inner-content>.cocalc-account-button-dropdown-links
+  margin: -12px -16px //Accomodate untouchable padding in inner-content just for .cocalc-account-button-dropdown-links

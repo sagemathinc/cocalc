@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Rendering output part of a Sage worksheet cell
 */
 
@@ -83,9 +88,9 @@ export class CellOutput extends Component<Props> {
     if (extensions.image.has(ext)) {
       return <img key={key} src={src} />;
     } else if (extensions.video.has(ext)) {
-      return <video key={key} src={src} controls />;
+      return <video key={key} src={src} controls loop />;
     } else if (extensions.audio.has(ext)) {
-      return <audio src={src} autoPlay={true} controls={true} loop={false} />;
+      return <audio src={src} autoPlay={true} controls loop />;
     } else if (ext === "sage3d") {
       return this.render_3d(value.filename, key);
     } else {
@@ -131,17 +136,23 @@ export class CellOutput extends Component<Props> {
     );
   }
 
-  render_raw_input(val: { prompt: string; value: string }, key): Rendered {
+  render_raw_input(
+    val: { prompt: string; value: string | undefined },
+    key
+  ): Rendered {
     const { prompt, value } = val;
+    // sanitizing value, b/c we know the share server throws right here:
+    // TypeError: Cannot read property 'length' of undefined
+    const value_sani = value ?? "";
     return (
       <div key={key}>
         <b>{prompt}</b>
         <input
           style={{ padding: "0em 0.25em", margin: "0em 0.25em" }}
           type="text"
-          size={Math.max(47, value.length + 10)}
+          size={Math.max(47, value_sani.length + 10)}
           readOnly={true}
-          value={value}
+          value={value_sani}
         />
       </div>
     );

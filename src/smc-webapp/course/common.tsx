@@ -1,22 +1,7 @@
-//##############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016 -- 2017, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 // CoCalc libraries
 import { defaults, required, ISO_to_Date, to_json } from "smc-util/misc";
@@ -25,16 +10,19 @@ import { defaults, required, ISO_to_Date, to_json } from "smc-util/misc";
 import { React, Component, Rendered } from "../app-framework";
 import { CourseActions } from "./actions";
 import { redux } from "../frame-editors/generic/test/util";
-import { AssignmentRecord, StudentRecord, LastCopyInfo } from "./store";
+import {
+  AssignmentRecord,
+  StudentRecord,
+  LastCopyInfo,
+  NBgraderRunInfo,
+} from "./store";
+import { NotebookScores } from "../jupyter/nbgrader/autograde";
+import { NbgraderScores } from "./nbgrader/scores";
+
 import { AssignmentCopyType, AssignmentCopyStep } from "./types";
 import { FormEvent } from "react";
 
-import {
-  Button,
-  ButtonGroup,
-  FormControl,
-  FormGroup
-} from "../antd-bootstrap";
+import { Button, ButtonGroup, FormControl, FormGroup } from "../antd-bootstrap";
 
 import { Row, Col } from "antd";
 
@@ -44,7 +32,7 @@ import {
   MarkdownInput,
   TimeAgo,
   Tip,
-  is_different_date
+  is_different_date,
 } from "../r_misc";
 
 export { FoldersToolbar } from "./common/FoldersToolBar";
@@ -203,7 +191,9 @@ interface StudentAssignmentInfoProps {
   };
   edited_grade?: string;
   edited_comments?: string;
+  nbgrader_scores?: { [ipynb: string]: NotebookScores | string };
   is_editing: boolean;
+  nbgrader_run_info?: NBgraderRunInfo;
 }
 
 interface StudentAssignmentInfoState {
@@ -227,13 +217,13 @@ export class StudentAssignmentInfo extends Component<
       recopy_copy: false,
       recopy_copy_tip: false,
       recopy_open_tip: false,
-      recopy_placement: false
+      recopy_placement: false,
     };
   }
 
   static defaultProps = {
     grade: "",
-    comments: ""
+    comments: "",
   };
 
   private get_actions(): CourseActions {
@@ -295,12 +285,12 @@ export class StudentAssignmentInfo extends Component<
     );
   };
 
-  private handle_grade_change = e => {
+  private handle_grade_change = (e) => {
     e.preventDefault();
     this.set_edited_feedback(e.target.value);
   };
 
-  private handle_comments_change = value => {
+  private handle_comments_change = (value) => {
     this.set_edited_feedback(undefined, value);
   };
 
@@ -342,9 +332,7 @@ export class StudentAssignmentInfo extends Component<
               <span>
                 <strong>Comments</strong>:
               </span>
-            ) : (
-              undefined
-            )}
+            ) : undefined}
           </div>
         );
       }
@@ -372,13 +360,13 @@ export class StudentAssignmentInfo extends Component<
           maxHeight: "4em",
           overflowY: "auto",
           padding: "5px",
-          border: "1px solid #888"
+          border: "1px solid #888",
         }}
       />
     );
   }
 
-  private on_key_down_grade_editor = e => {
+  private on_key_down_grade_editor = (e) => {
     switch (e.keyCode) {
       case 27:
         this.cancel_editing();
@@ -391,27 +379,105 @@ export class StudentAssignmentInfo extends Component<
     }
   };
 
-  private render_grade_col(): Rendered {
-    const grade = this.props.grade || "";
-    const bsStyle = !grade.trim() ? "primary" : undefined;
-    const text = grade.trim() ? "Edit grade" : "Enter grade";
+  private render_nbgrader_scores(): Rendered {
+    if (!this.props.nbgrader_scores) return;
+    return (
+      <div>
+        <NbgraderScores
+          nbgrader_scores={this.props.nbgrader_scores}
+          name={this.props.name}
+          student_id={this.props.student.get("student_id")}
+          assignment_id={this.props.assignment.get("assignment_id")}
+        />
+        {this.render_run_nbgrader("Run nbgrader again")}
+      </div>
+    );
+  }
+
+  private render_run_nbgrader(label: string | Rendered): Rendered {
+    let running = false;
+    if (this.props.nbgrader_run_info != null) {
+      const t = this.props.nbgrader_run_info.get(
+        this.props.assignment.get("assignment_id") +
+          "-" +
+          this.props.student.get("student_id")
+      );
+      if (t && new Date().valueOf() - t <= 1000 * 60 * 10) {
+        // Time starting is set and it's also within the last few minutes.
+        // This "few minutes" is just in case -- we probably shouldn't need
+        // that at all ever, but it could make cocalc state usable in case of
+        // weird issues, I guess).  User could also just close and re-open
+        // the course file, which resets this state completely.
+        running = true;
+      }
+    }
+    label = running ? (
+      <span>
+        {" "}
+        <Icon name="cc-icon-cocalc-ring" spin /> Running nbgrader
+      </span>
+    ) : (
+      <span>{label}</span>
+    );
 
     return (
-      <>
-        <Tip
-          title="Enter student's grade"
-          tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number)."
+      <div style={{ marginTop: "5px" }}>
+        <Button
+          key="nbgrader"
+          disabled={running}
+          onClick={() => {
+            this.get_actions().assignments.run_nbgrader_for_one_student(
+              this.props.assignment.get("assignment_id"),
+              this.props.student.get("student_id")
+            );
+          }}
         >
-          <Button
-            key="edit"
-            onClick={() => this.set_edited_feedback()}
-            bsStyle={bsStyle}
-          >
-            {text}
-          </Button>
-        </Tip>
+          <Icon name="graduation-cap" /> {label}
+        </Button>
+      </div>
+    );
+  }
+
+  private render_nbgrader(): Rendered {
+    if (this.props.nbgrader_scores) {
+      return this.render_nbgrader_scores();
+    }
+    if (
+      !this.props.assignment.get("nbgrader") ||
+      this.props.assignment.get("skip_grading")
+    )
+      return;
+
+    return this.render_run_nbgrader("Run nbgrader");
+  }
+
+  private render_enter_grade(): Rendered {
+    const grade = (this.props.grade || "").trim();
+    const bsStyle = !grade ? "primary" : undefined;
+    const text = !!grade ? "Edit grade" : "Enter grade";
+    return (
+      <Tip
+        title="Enter student's grade"
+        tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number)."
+      >
+        <Button
+          key="edit"
+          onClick={() => this.set_edited_feedback()}
+          bsStyle={bsStyle}
+        >
+          {text}
+        </Button>
+      </Tip>
+    );
+  }
+
+  private render_grade_col(): Rendered {
+    return (
+      <>
+        {this.render_enter_grade()}
         {this.render_grade()}
         {this.render_comments()}
+        {this.render_nbgrader()}
       </>
     );
   }
@@ -551,8 +617,13 @@ export class StudentAssignmentInfo extends Component<
     if (typeof error !== "string") {
       error = to_json(error);
     }
-    if (error.indexOf("No such file or directory") !== -1) {
-      error = `Somebody may have moved the folder that should have contained the assignment.\n${error}`;
+    // We search for two different error messages, since different errors happen in
+    // KuCalc versus other places cocalc runs.  It depends on what is doing the copy.
+    if (
+      error.indexOf("No such file or directory") !== -1 ||
+      error.indexOf("ENOENT") != -1
+    ) {
+      error = `The student probably renamed the directory that contained their assignment.  Open their project and see what happened.   If they renamed it, you could rename it back, then collect the assignment again.\n${error}`;
     } else {
       error = `Try to ${name.toLowerCase()} again:\n` + error;
     }
@@ -581,7 +652,7 @@ export class StudentAssignmentInfo extends Component<
       enable_copy: false,
       copy_tip: "",
       open_tip: "",
-      omit_errors: false
+      omit_errors: false,
     });
 
     const open = () =>
@@ -640,7 +711,7 @@ export class StudentAssignmentInfo extends Component<
           copy_tip:
             "Copy collected assignments from your project to this student's project so they can grade them.",
           open_tip:
-            "Open the student's copies of this assignment directly in their project, so you can see what they are peer grading."
+            "Open the student's copies of this assignment directly in their project, so you can see what they are peer grading.",
         })}
       </Col>
     );
@@ -657,7 +728,7 @@ export class StudentAssignmentInfo extends Component<
           copy_tip:
             "Copy the peer-graded assignments from various student projects back to your project so you can assign their official grade.",
           open_tip:
-            "Open your copy of your student's peer grading work in your own project, so that you can grade their work."
+            "Open your copy of your student's peer grading work in your own project, so that you can grade their work.",
         })}
       </Col>
     );
@@ -667,7 +738,7 @@ export class StudentAssignmentInfo extends Component<
     let show_grade_col, show_return_graded;
     const peer_grade: boolean = !!this.props.assignment.getIn([
       "peer_grade",
-      "enabled"
+      "enabled",
     ]);
     const skip_grading: boolean = !!this.props.assignment.get("skip_grading");
     const skip_assignment: boolean = !!this.props.assignment.get(
@@ -705,7 +776,7 @@ export class StudentAssignmentInfo extends Component<
           style={{
             borderTop: "1px solid #aaa",
             paddingTop: "5px",
-            paddingBottom: "5px"
+            paddingBottom: "5px",
           }}
         >
           <Col md={4} key="title">
@@ -724,7 +795,7 @@ export class StudentAssignmentInfo extends Component<
                   open_tip:
                     "Open the student's copy of this assignment directly in their project. " +
                     "You will be able to see them type, chat with them, leave them hints, etc.",
-                  omit_errors: skip_assignment
+                  omit_errors: skip_assignment,
                 })}
               </Col>
               <Col md={width} key="last_collect">
@@ -743,7 +814,7 @@ export class StudentAssignmentInfo extends Component<
                         "Copy the assignment from your student's project back to your project so you can grade their work.",
                       open_tip:
                         "Open the copy of your student's work in your own project, so that you can grade their work.",
-                      omit_errors: skip_collect
+                      omit_errors: skip_collect,
                     })
                   : undefined}
               </Col>
@@ -772,7 +843,7 @@ export class StudentAssignmentInfo extends Component<
                         "Copy the graded assignment back to your student's project.",
                       open_tip:
                         "Open the copy of your student's work that you returned to them. " +
-                        "This opens the returned assignment directly in their project."
+                        "This opens the returned assignment directly in their project.",
                     })
                   : undefined}
               </Col>

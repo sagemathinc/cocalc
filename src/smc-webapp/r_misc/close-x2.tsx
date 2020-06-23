@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { Icon } from "./icon";
 
@@ -11,8 +16,8 @@ export class CloseX2 extends React.Component<Props> {
     close: undefined,
     style: {
       cursor: "pointer",
-      fontSize: "13pt"
-    }
+      fontSize: "13pt",
+    },
   };
 
   shouldComponentUpdate(next) {

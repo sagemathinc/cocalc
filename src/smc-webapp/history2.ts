@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 String or undefined. undefined => 'account'
 */
 export function parse_target(
@@ -39,7 +44,7 @@ export function parse_target(
               | "billing"
               | "upgrades"
               | "support"
-              | "ssh-keys"
+              | "ssh-keys",
           };
         default:
           return { page: "account", tab: "account" };

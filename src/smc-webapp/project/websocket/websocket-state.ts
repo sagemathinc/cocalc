@@ -1,4 +1,7 @@
-/* Manage the redux state in the projects store. */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 // offline -- it's not connected, but is **trying**
 // online -- it's connected and working

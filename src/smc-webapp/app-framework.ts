@@ -1,25 +1,9 @@
-//#############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2015 -- 2016, SageMath, Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // CoCalc specific wrapper around the redux library
-//##############################################################################
 
 // Important: code below now assumes that a global variable called "DEBUG" is **defined**!
 declare var DEBUG: boolean, smc;
@@ -35,7 +19,7 @@ import * as immutable from "immutable";
 import * as React from "react";
 import { createStore as createReduxStore } from "redux";
 import * as createReactClass from "create-react-class";
-import { Provider, connect } from "react-redux";
+import { Provider, connect, useSelector } from "react-redux";
 import * as json_stable from "json-stable-stringify";
 
 import { Store, StoreConstructorType } from "./app-framework/Store";
@@ -45,43 +29,49 @@ import { Table, TableConstructor } from "./app-framework/Table";
 import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 
 // Relative import is temporary, until I figure this out -- needed for *project*
-import { keys, is_valid_uuid_string } from "../smc-util/misc2";
+import { bind_methods, keys, is_valid_uuid_string } from "../smc-util/misc2";
 
-import { AdminStore, AdminActions } from "./admin";
+import { AdminUsersActions } from "./admin/users/actions";
+import { AdminUsersStore } from "./admin/users/store";
+import { SiteLicensesActions } from "./site-licenses/admin/actions";
+import { SiteLicensesStore } from "./site-licenses/admin/store";
+import { ProjectsActions } from "./projects/actions";
+import { ProjectsStore } from "./projects/store";
+import { CustomizeStore } from "./customize";
+import { BillingActions } from "./billing/actions";
+import { BillingStore } from "./billing/store";
 import { AccountStore, AccountActions } from "./account";
 
 import { MentionsActions, MentionsStore } from "./notifications";
 import { FileUseStore } from "./file-use/store";
+import { FileUseActions } from "./file-use/actions";
 export { TypedMap } from "./app-framework/TypedMap";
+
+import { NAME_TYPE as ComputeImageStoreType } from "./custom-software/util";
+import { ComputeImagesStore } from "./custom-software/init";
 
 // Only import the types
 declare type ProjectStore = import("./project_store").ProjectStore;
 declare type ProjectActions = import("./project_actions").ProjectActions;
 
-export const COLOR = {
-  BG_RED: "#d9534f", // the red bootstrap color of the button background
-  FG_RED: "#c9302c", // red used for text
-  FG_BLUE: "#428bca" // blue used for text
-};
-
-const action_set_state = function(change) {
+const action_set_state = function (change) {
   return {
     type: "SET_STATE",
-    change: immutable.fromJS(change) // guaranteed immutable.js all the way down
+    change: immutable.fromJS(change), // guaranteed immutable.js all the way down
   };
 };
 // Deeply nested objects need to be converted with fromJS before being put in the store
 
-const action_remove_store = function(name) {
+const action_remove_store = function (name) {
   return {
     type: "REMOVE_STORE",
-    name
+    name,
   };
 };
 
 type redux_state = immutable.Map<string, immutable.Map<string, any>>;
 
-const redux_app = function(state: redux_state, action): redux_state {
+const redux_app = function (state: redux_state, action): redux_state {
   if (state == null) {
     return immutable.Map();
   }
@@ -89,7 +79,7 @@ const redux_app = function(state: redux_state, action): redux_state {
     case "SET_STATE":
       // Typically action.change has exactly one key, the name of a Store.
       // We merge in what is in action.change[name] to state[name] below.
-      action.change.map(function(val, store) {
+      action.change.map(function (val, store) {
         let new_val;
         const old_val = state.get(store);
         if (old_val !== undefined) {
@@ -115,27 +105,10 @@ export class AppRedux {
   private _stores: ClassMap<any, Store<any>>;
   private _actions: ClassMap<any, Actions<any>>;
   private _last_state: redux_state;
+  private changed_stores: Set<string> = new Set([]);
 
   constructor() {
-    this._redux_store_change = this._redux_store_change.bind(this);
-    this.show_state = this.show_state.bind(this);
-    this.log_states = this.log_states.bind(this);
-    this._set_state = this._set_state.bind(this);
-    this.createActions = this.createActions.bind(this);
-    this.getActions = this.getActions.bind(this);
-    this.createStore = this.createStore.bind(this);
-    this.getStore = this.getStore.bind(this);
-    this.createTable = this.createTable.bind(this);
-    this.removeTable = this.removeTable.bind(this);
-    this.removeStore = this.removeStore.bind(this);
-    this.removeActions = this.removeActions.bind(this);
-    this.getTable = this.getTable.bind(this);
-    this.getProjectStore = this.getProjectStore.bind(this);
-    this.getProjectActions = this.getProjectActions.bind(this);
-    this.getProjectTable = this.getProjectTable.bind(this);
-    this.removeProjectReferences = this.removeProjectReferences.bind(this);
-    this.getEditorStore = this.getEditorStore.bind(this);
-    this.getEditorActions = this.getEditorActions.bind(this);
+    bind_methods(this);
     this._tables = {};
     this._redux_store = createReduxStore(redux_app);
     this._stores = {};
@@ -145,6 +118,7 @@ export class AppRedux {
 
   // Only used by tests to completely reset the global redux instance
   __reset(): void {
+    this.changed_stores.clear();
     this._tables = {};
     this._redux_store = createReduxStore(redux_app);
     this._stores = {};
@@ -157,13 +131,15 @@ export class AppRedux {
     if (this._last_state == null) {
       this._last_state = immutable.Map();
     }
-    for (const name in this._stores) {
+    for (const name of this.changed_stores) {
       const store = this._stores[name];
+      if (store == null) continue;
       const s = state.get(name);
       if (this._last_state.get(name) !== s) {
         store._handle_store_change(s);
       }
     }
+    this.changed_stores.clear();
   }
 
   show_state(): void {
@@ -175,7 +151,8 @@ export class AppRedux {
     return this._redux_store.subscribe(this.show_state);
   }
 
-  _set_state(change): void {
+  _set_state(change, store_name: string): void {
+    this.changed_stores.add(store_name);
     this._redux_store.dispatch(action_set_state(change));
   }
 
@@ -203,11 +180,13 @@ export class AppRedux {
   }
 
   getActions(name: "account"): AccountActions;
-  getActions(name: "projects"): any;
-  getActions(name: "billing"): any;
+  getActions(name: "projects"): ProjectsActions;
+  getActions(name: "billing"): BillingActions;
   getActions(name: "page"): any;
-  getActions(name: "admin-page"): AdminActions;
+  getActions(name: "admin-users"): AdminUsersActions;
+  getActions(name: "admin-site-licenses"): SiteLicensesActions;
   getActions(name: "mentions"): MentionsActions;
+  getActions(name: "file_use"): FileUseActions | undefined;
   getActions(name: { project_id: string }): ProjectActions;
   getActions<T, C extends Actions<T>>(name: string): C;
   getActions<T, C extends Actions<T>>(
@@ -248,13 +227,13 @@ export class AppRedux {
       // Put into store. WARNING: New set_states CAN OVERWRITE THESE FUNCTIONS
       let C = immutable.Map(S as {});
       C = C.delete("redux"); // No circular pointing
-      this._set_state({ [name]: C });
+      this._set_state({ [name]: C }, name);
     }
     if (typeof S.getInitialState === "function") {
       init = S.getInitialState();
     }
     if (init != null) {
-      this._set_state({ [name]: init });
+      this._set_state({ [name]: init }, name);
     }
     return S;
   }
@@ -264,14 +243,16 @@ export class AppRedux {
   }
 
   getStore(name: "account"): AccountStore;
-  getStore(name: "customize"): any;
-  getStore(name: "projects"): any;
-  getStore(name: "users"): any;
+  getStore(name: "projects"): ProjectsStore;
+  getStore(name: "billing"): BillingStore;
   getStore(name: "page"): any;
-  getStore(name: "billing"): any;
+  getStore(name: "admin-users"): AdminUsersStore;
+  getStore(name: "admin-site-licenses"): SiteLicensesStore;
   getStore(name: "mentions"): MentionsStore;
-  getStore(name: "admin-page"): AdminStore;
   getStore(name: "file_use"): FileUseStore | undefined;
+  getStore(name: "customize"): CustomizeStore;
+  getStore(name: "users"): any;
+  getStore(name: ComputeImageStoreType): ComputeImagesStore;
   getStore<State>(name: string): Store<State>;
   getStore<State, C extends Store<State>>(name: string): C | undefined;
   getStore<State, C extends Store<State>>(name: string): C | undefined {
@@ -291,6 +272,12 @@ export class AppRedux {
     }
     const table = new table_class(name, this);
     return (tables[name] = table);
+  }
+
+  // Set the table; we assume that the table being overwritten
+  // has been cleaned up properly somehow...
+  setTable(name: string, table: Table): void {
+    this._tables[name] = table;
   }
 
   removeTable(name: string): void {
@@ -331,15 +318,39 @@ export class AppRedux {
     return this.hasStore(project_redux_name(project_id));
   }
 
-  // getProject... is safe to call any time. All structures will be created if they don't exist
-  // TODO -- Typing: Type project Store
-  // <T, C extends Store<T>>
+  /**
+   * A React Hook to connect a function component to a project store.
+   * Opposed to `getProjectStore`, the project store will not initialize
+   * if it's not defined already.
+   *
+   * @param selectFrom selector to run on the store.
+   *    The result will be compared to the previous result to determine
+   *    if the component should rerender
+   * @param project_id id of the project to connect to
+   */
+  useProjectStore<T>(
+    selectFrom: (store?: ProjectStore) => T,
+    project_id?: string
+  ): T {
+    return useSelector<any, T>((_) => {
+      let projectStore = undefined;
+      if (project_id) {
+        projectStore = this.getStore(project_redux_name(project_id)) as any;
+      }
+      return selectFrom(projectStore);
+    });
+  }
+
+  // getProject... is safe to call any time. All structures will be created
+  // if they don't exist
   getProjectStore = (project_id: string): ProjectStore => {
     if (!is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectStore: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
+      // Right now importing project_store breaks the share server,
+      // so we don't yet.
       return require("./project_store").init(project_id, this);
     } else {
       return this.getStore(project_redux_name(project_id)) as any;
@@ -402,15 +413,36 @@ export class AppRedux {
     }
     return this.getActions(file_redux_name(project_id, path, is_public));
   }
+
+  // getEditorActions but for whatever editor  -- this is mainly meant to be used
+  // from the console when debugging, e.g., smc.redux.currentEditorActions()
+  public currentEditor(): {
+    actions: Actions<any> | undefined;
+    store: Store<any> | undefined;
+  } {
+    const project_id = this.getStore("page").get("active_top_tab");
+    if (!is_valid_uuid_string(project_id)) {
+      return { actions: undefined, store: undefined };
+    }
+    const store = this.getProjectStore(project_id);
+    const tab = store.get("active_project_tab");
+    if (!tab.startsWith("editor-")) {
+      return { actions: undefined, store: undefined };
+    }
+    const path = tab.slice("editor-".length);
+    return {
+      actions: this.getEditorActions(project_id, path),
+      store: this.getEditorStore(project_id, path),
+    };
+  }
 }
 
-const computed = rtype => {
+const computed = (rtype) => {
   const clone = rtype.bind({});
   clone.is_computed = true;
   return clone;
 };
 
-// For backward compatibility
 const rtypes = require("smc-util/opts").types;
 
 /*
@@ -425,8 +457,8 @@ WARNING: If store not yet defined, then props will all be undefined for that sto
 is no warning/error in this case.
 
 */
-const connect_component = spec => {
-  const map_state_to_props = function(state) {
+const connect_component = (spec) => {
+  const map_state_to_props = function (state) {
     const props = {};
     if (state == null) {
       return props;
@@ -445,6 +477,14 @@ const connect_component = spec => {
       for (const prop in info) {
         var val;
         const type = info[prop];
+
+        if (type == null) {
+          throw Error(
+            `ERROR invalid redux spec: no type info set for prop '${prop}' in store '${store_name}', ` +
+              `where full spec has keys '${Object.keys(spec)}' ` +
+              `-- e.g. rtypes.bool vs. rtypes.boolean`
+          );
+        }
 
         if (store == undefined) {
           val = undefined;
@@ -499,7 +539,7 @@ function compute_cache_key(data: { [key: string]: any }): string {
   return json_stable(keys(data).sort());
 }
 
-rclass = function(x: any) {
+rclass = function (x: any) {
   let C;
   if (typeof x === "function" && typeof x.reduxProps === "function") {
     // using an ES6 class *and* reduxProps...
@@ -520,7 +560,7 @@ rclass = function(x: any) {
           this.props,
           this.props.children
         );
-      }
+      },
     });
     return C;
   } else if (typeof x === "function") {
@@ -557,7 +597,7 @@ rclass = function(x: any) {
           this.props,
           this.props.children
         );
-      }
+      },
     });
 
     return cached;
@@ -666,6 +706,12 @@ function UNSAFE_NONNULLABLE<T>(arg: T): NonNullable<T> {
   return arg as any;
 }
 export { UNSAFE_NONNULLABLE };
+
+// I'm explicitly disabling using typing with ReactDOM on purpose,
+// because it's basically impossibly to use, and I'll probably get
+// rid of all uses of ReactDOM.findDOMNode anyways.
+//import * as ReactDOM from "react-dom";
+//export { ReactDOM };
 export const ReactDOM = require("react-dom");
 
 if (DEBUG) {
@@ -695,4 +741,237 @@ export function redux_fields(spec) {
     }
   }
   return v;
+}
+
+// Export common React Hooks for convenience
+export * from "./app-framework/hooks";
+
+/*
+Selector for getting anything from our global redux store.
+
+Use it in one of two ways:
+
+ useRedux<T>(['name-of-store', 'path', 'in', 'store'])
+
+or
+
+ useRedux<T>(['path', 'in', 'project store'], 'project-id', 'name')
+
+
+*/
+export function useReduxNamedStore(path: string[]) {
+  const [value, set_value] = React.useState(() =>
+    redux._redux_store.getState().getIn(path)
+  );
+
+  React.useEffect(() => {
+    const store = redux.getStore(path[0]);
+    if (store == null) {
+      // TODO: I could make it return undefined until the store is created.
+      // I *did* do this for useReduxEditorStore, but just haven't gotten
+      // around to doing this for useReduxNamedStore yet.
+      throw Error(`store ${path[0]} must exist!`);
+    }
+    const subpath = path.slice(1);
+    let last_value = value;
+    const f = (obj) => {
+      if (!f.is_mounted) {
+        // CRITICAL: even after removing the change listener, sometimes f gets called;
+        // I don't know why EventEmitter has those semantics, but it definitely does.
+        // That's why we *also* maintain this is_mounted flag.
+        return;
+      }
+      const new_value = obj.getIn(subpath);
+      if (last_value !== new_value) {
+        /*
+        console.log("useReduxNamedStore change ", {
+          name: path[0],
+          path: JSON.stringify(path),
+          new_value,
+          last_value,
+        });
+        */
+        last_value = new_value;
+        set_value(new_value);
+      }
+    };
+    f.is_mounted = true;
+    store.on("change", f);
+    return () => {
+      f.is_mounted = false;
+      store.removeListener("change", f);
+    };
+  }, [path[0]]);
+
+  return value;
+}
+
+function useReduxProjectStore(path: string[], project_id: string) {
+  const [value, set_value] = React.useState(() =>
+    redux
+      .getProjectStore(project_id)
+      .getIn(path as [string, string, string, string, string])
+  );
+
+  React.useEffect(() => {
+    const store = redux.getProjectStore(project_id);
+    let last_value = value;
+    const f = (obj) => {
+      if (!f.is_mounted) return; // see comment for useReduxNamedStore
+      const new_value = obj.getIn(path);
+      if (last_value !== new_value) {
+        /*
+        console.log("useReduxProjectStore change ", {
+          path: JSON.stringify(path),
+          new_value,
+          last_value,
+        });
+        */
+        last_value = new_value;
+        set_value(new_value);
+      }
+    };
+    f.is_mounted = true;
+    store.on("change", f);
+    return () => {
+      f.is_mounted = false;
+      store.removeListener("change", f);
+    };
+  }, []);
+
+  return value;
+}
+
+function useReduxEditorStore(
+  path: string[],
+  project_id: string,
+  filename: string,
+  is_public?: boolean
+) {
+  const [value, set_value] = React.useState(() =>
+    // the editor itself might not be defined hence the ?. below:
+    redux
+      .getEditorStore(project_id, filename, is_public)
+      ?.getIn(path as [string, string, string, string, string])
+  );
+
+  React.useEffect(() => {
+    let store = redux.getEditorStore(project_id, filename, is_public);
+    let last_value = value;
+    const f = (obj) => {
+      if (!f.is_mounted) return; // see comment for useReduxNamedStore
+      const new_value = obj.getIn(path);
+      if (last_value !== new_value) {
+        last_value = new_value;
+        set_value(new_value);
+      }
+    };
+    f.is_mounted = true;
+    if (store != null) {
+      store.on("change", f);
+    } else {
+      /* This code is extra complicated since we account for the case
+         when getEditorStore is undefined then becomes defined.
+         Very rarely there are components that useRedux and somehow
+         manage to do so before the editor store gets created.
+      */
+      const g = () => {
+        if (!f.is_mounted) {
+          unsubscribe();
+          return;
+        }
+        store = redux.getEditorStore(project_id, filename, is_public);
+        if (store != null) {
+          unsubscribe();
+          f(store); // may have missed an initial change
+          store.on("change", f);
+        }
+      };
+      const unsubscribe = redux._redux_store.subscribe(g);
+    }
+
+    return () => {
+      f.is_mounted = false;
+      store?.removeListener("change", f);
+    };
+  }, []);
+
+  return value;
+}
+
+export function useRedux(
+  path: string[],
+  project_id?: string,
+  filename?: string, // for editing a file in project
+  is_public?: boolean
+) {
+  if (project_id == null) {
+    return useReduxNamedStore(path);
+  }
+  if (filename == null) {
+    return useReduxProjectStore(path, project_id);
+  }
+  return useReduxEditorStore(path, project_id, filename, is_public);
+}
+
+/*
+Hook to get the actions associated to a named actions/store,
+a project, or an editor.  If the first argument is a uuid,
+then it's the project actions or editor actions; otherwise,
+it's one of the other named actions or undefined.
+*/
+
+export function useActions(name: "account"): AccountActions;
+export function useActions(name: "projects"): ProjectsActions;
+export function useActions(name: "billing"): BillingActions;
+export function useActions(name: "page"): any;
+export function useActions(name: "admin-users"): AdminUsersActions;
+export function useActions(name: "admin-site-licenses"): SiteLicensesActions;
+export function useActions(name: "mentions"): MentionsActions;
+export function useActions(name: "file_use"): FileUseActions; // or undefined?
+
+// If it is none of the explicitly named ones... it's a project.
+export function useActions(name_or_project_id: string): ProjectActions;
+
+// Or an editor actions (any for now)
+export function useActions(name_or_project_id: string, path: string): any;
+
+export function useActions(name_or_project_id: string, path?: string) {
+  return React.useMemo(() => {
+    if (path == null) {
+      if (is_valid_uuid_string(name_or_project_id)) {
+        return redux.getProjectActions(name_or_project_id);
+      } else {
+        return redux.getActions(name_or_project_id);
+      }
+    } else {
+      return redux.getEditorActions(name_or_project_id, path);
+    }
+  }, [name_or_project_id, path]);
+}
+
+export function useStore(name: "account"): AccountStore;
+export function useStore(name: "projects"): ProjectsStore;
+export function useStore(name: "billing"): BillingStore;
+export function useStore(name: "page"): any;
+export function useStore(name: "admin-users"): AdminUsersStore;
+export function useStore(name: "admin-site-licenses"): SiteLicensesStore;
+export function useStore(name: "mentions"): MentionsStore;
+export function useStore(name: "file_use"): FileUseStore | undefined;
+// If it is none of the explicitly named ones... it's a project.
+export function useStore(name_or_project_id: string): ProjectStore;
+// Or an editor store (any for now)
+export function useStore(name_or_project_id: string, path: string): any;
+export function useStore(name_or_project_id: string, path?: string): any {
+  return React.useMemo(() => {
+    if (path == null) {
+      if (is_valid_uuid_string(name_or_project_id)) {
+        return redux.getProjectStore(name_or_project_id);
+      } else {
+        return redux.getStore(name_or_project_id);
+      }
+    } else {
+      return redux.getEditorStore(name_or_project_id, path);
+    }
+  }, [name_or_project_id, path]) as any;
 }

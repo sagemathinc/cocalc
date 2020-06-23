@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const path = require("path");
 const this_file: string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
@@ -5,7 +10,7 @@ const debuglog = require("util").debuglog("cc-" + this_file);
 const puppeteer = require("puppeteer");
 import chalk from "chalk";
 import { Creds, Opts, PassFail, TestGetBoolean } from "./types";
-import { time_log } from "./time_log";
+import { time_log2 } from "./time_log";
 import { test_tex } from "./test_tex";
 import { test_widget } from "./test_widget";
 import { test_sage_ker } from "./test_sage_ker";
@@ -19,17 +24,14 @@ import screenshot from "./screenshot";
 
 const LONG_TIMEOUT = 70000; // msec
 
-export const login_tests = async function(
-  creds: Creds,
-  opts: Opts
-): Promise<PassFail> {
+export const login_tests = async function (creds: Creds, opts: Opts): Promise<PassFail> {
   const pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
     pfcounts.skip += 1;
     return pfcounts;
   }
-  let browser: Browser|undefined;
+  let browser: Browser | undefined;
   try {
     const tm_launch_browser = process.hrtime.bigint();
     browser = await puppeteer.launch({
@@ -45,7 +47,7 @@ export const login_tests = async function(
     const version: string = await page.browser().version();
     debuglog("browser", version);
 
-    time_log("launch browser", tm_launch_browser);
+    await time_log2("launch browser", tm_launch_browser, creds, opts);
     const tm_login = process.hrtime.bigint();
     await page.setDefaultTimeout(LONG_TIMEOUT);
 
@@ -53,7 +55,7 @@ export const login_tests = async function(
     // https://github.com/sagemathinc/cocalc/issues/4000
     //await page.setViewport({ width: 1280, height: 1024});
     // workaround for sagews, Run button doesn't show if window is narrower than 1000 px or so
-    await page.setViewport({ width: 1024, height: 768});
+    await page.setViewport({ width: 1024, height: 768 });
     //await page.setViewport({ width: 800, height: 600});
 
     await page.goto(creds.url);
@@ -71,7 +73,7 @@ export const login_tests = async function(
 
     sel = '*[cocalc-test="sign-in-submit"]';
     await page.click(sel);
-    time_log("login", tm_login);
+    await time_log2("login with gui", tm_login, creds, opts);
 
     const tm_open_project = process.hrtime.bigint();
     sel = '*[cocalc-test="project-button"]';
@@ -93,22 +95,22 @@ export const login_tests = async function(
 
     xpt = '//button[text()="Check All"]';
     await page.waitForXPath(xpt);
-    time_log("open project", tm_open_project);
+    await time_log2("open project", tm_open_project, creds, opts);
     pfcounts.pass += 1;
 
-    if (opts.xprj) pfcounts.add(await del_hide_project(opts, page));
+    if (opts.xprj) pfcounts.add(await del_hide_project(creds, opts, page));
     if (opts.xprj === undefined || opts.xprj !== "delete") {
-      pfcounts.add(await test_tex(opts, page));
-      pfcounts.add(await test_ir(opts, page));
-      pfcounts.add(await test_widget(opts, page));
-      pfcounts.add(await test_sage_ker(opts, page));
-      pfcounts.add(await test_sagews(opts, page));
-      const tgb: TestGetBoolean = await is_admin(opts, page);
+      pfcounts.add(await test_tex(creds, opts, page));
+      pfcounts.add(await test_ir(creds, opts, page));
+      pfcounts.add(await test_widget(creds, opts, page));
+      pfcounts.add(await test_sage_ker(creds, opts, page));
+      pfcounts.add(await test_sagews(creds, opts, page));
+      const tgb: TestGetBoolean = await is_admin(creds, opts, page);
       pfcounts.add(tgb);
       pfcounts.add(await test_shared_file(creds, opts, browser!));
     }
 
-    time_log("login session total", tm_launch_browser);
+    await time_log2("login session total", tm_launch_browser, creds, opts);
   } catch (e) {
     pfcounts.fail += 1;
     console.log(chalk.red(`ERROR: ${e.message}`));

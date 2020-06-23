@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * decaffeinate suggestions:
  * DS207: Consider shorter variations of null checks
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
@@ -39,7 +44,7 @@ Check React lib to see if this has changed.
 
 */
 
-const check_is_immutable = function(
+const check_is_immutable = function (
   props,
   propName,
   componentName,
@@ -61,8 +66,8 @@ const check_is_immutable = function(
   }
 };
 
-const allow_isRequired = function(validate) {
-  const check_type = function(
+const allow_isRequired = function (validate) {
+  const check_type = function (
     isRequired,
     props,
     propName,
@@ -88,8 +93,8 @@ const allow_isRequired = function(validate) {
   return chainedCheckType;
 };
 
-const create_immutable_type_required_chain = function(validate) {
-  const check_type = function(
+const create_immutable_type_required_chain = function (validate) {
+  const check_type = function (
     immutable_type_name,
     props,
     propName,

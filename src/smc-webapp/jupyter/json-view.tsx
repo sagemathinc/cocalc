@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Provide nice JSON view of the ipynb
 */
 
@@ -29,7 +34,7 @@ export class JSONView extends Component<JSONViewProps> {
           backgroundColor: "#eee",
           height: "100%",
           overflowY: "auto",
-          overflowX: "hidden"
+          overflowX: "hidden",
         }}
       >
         <div
@@ -37,7 +42,7 @@ export class JSONView extends Component<JSONViewProps> {
             backgroundColor: "#fff",
             padding: "15px",
             boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)",
-            position: "relative"
+            position: "relative",
           }}
         >
           <div
@@ -46,7 +51,7 @@ export class JSONView extends Component<JSONViewProps> {
               fontSize: "12pt",
               right: "15px",
               position: "absolute",
-              background: "white"
+              background: "white",
             }}
           >
             Read-only view of notebook's underlying object structure.

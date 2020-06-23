@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Ensure the billing Actions and Store are created:
 require("./actions");
 
@@ -7,7 +12,7 @@ import {
   React,
   redux,
   rtypes,
-  rclass
+  rclass,
 } from "../app-framework";
 import { AppliedCoupons, Customer, InvoicesMap } from "./types";
 import { Map } from "immutable";
@@ -15,12 +20,11 @@ import {
   A,
   ActivityDisplay,
   ErrorDisplay,
-  Footer,
   Icon,
   Loading,
-  Space
+  Space,
 } from "../r_misc";
-const { HelpEmailLink, PolicyPricingPageUrl } = require("../customize");
+import { HelpEmailLink, PolicyPricingPageUrl, Footer } from "../customize";
 import { SubscriptionList } from "./subscription-list";
 import { PaymentMethods } from "./payment-methods";
 import { AddSubscription } from "./add-subscription";
@@ -61,14 +65,14 @@ export const BillingPage = rclass<ReactProps>(
           selected_plan: rtypes.string,
           applied_coupons: rtypes.immutable.Map,
           coupon_error: rtypes.string,
-          continue_first_purchase: rtypes.bool
+          continue_first_purchase: rtypes.bool,
         },
         projects: {
-          project_map: rtypes.immutable // used, e.g., for course project payments; also computing available upgrades
+          project_map: rtypes.immutable, // used, e.g., for course project payments; also computing available upgrades
         },
         account: {
-          stripe_customer: rtypes.immutable // to get total upgrades user has available
-        }
+          stripe_customer: rtypes.immutable, // to get total upgrades user has available
+        },
       };
     }
 
@@ -327,9 +331,7 @@ export const BillingPage = rclass<ReactProps>(
                 >
                   {this.render_subscriptions()}
                 </Panel>
-              ) : (
-                undefined
-              )}
+              ) : undefined}
             </div>
           );
         } else if (this.props.is_simplified) {

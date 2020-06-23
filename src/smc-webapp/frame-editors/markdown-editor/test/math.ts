@@ -1,42 +1,46 @@
-/* Test rendering of math */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import {
   TestEditor,
   describe,
   it,
   expect,
-  eventually
+  eventually,
 } from "../../generic/test/util";
 
-describe("Markdown - test rendering of math", function() {
+describe("Markdown - test rendering of math", function () {
+  // @ts-ignore
   this.timeout(5000);
 
-  describe("open file, set various math content and observe the result", function() {
+  describe("open file, set various math content and observe the result", function () {
     let editor, id: string | undefined;
-    it("get a file", async function() {
+    it("get a file", async function () {
       editor = new TestEditor("md");
       await editor.wait_until_loaded();
       id = editor.store.getIn([
         "local_view_state",
         "frame_tree",
         "second",
-        "id"
+        "id",
       ]);
       expect(id).to.exist;
     });
 
-    it("sets the content of the file", function() {
+    it("sets the content of the file", function () {
       editor.actions.set_cm_value("$x^2$");
     });
 
-    it("verifies that the codemirror editor gets properly set", async function() {
+    it("verifies that the codemirror editor gets properly set", async function () {
       expect(editor.actions._get_cm_value()).to.equal("$x^2$");
     });
 
-    it("inspect rendered markdown", async function() {
+    it("inspect rendered markdown", async function () {
       // This is just a partial test that katex maybe worked.
       await eventually(
-        function() {
+        function () {
           const rendered: string = editor.actions._get_frame_jquery(id).html();
           expect(rendered).to.have.string(
             '<math><semantics><mrow><msup><mi>x</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">x^2</annotation></semantics></math>'
@@ -47,7 +51,7 @@ describe("Markdown - test rendering of math", function() {
       );
     });
 
-    it("deletes the file", function() {
+    it("deletes the file", function () {
       editor.delete();
     });
   });

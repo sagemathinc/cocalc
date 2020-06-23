@@ -12,6 +12,6 @@
     "../smc-webapp/node_modules/",
     "./smc-webapp/node_modules/",
     "smc-webapp/node_modules",
-    "../smc-webapp/node_modules/*",
+    "../smc-webapp/node_modules/*"
   ]
 }

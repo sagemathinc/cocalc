@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * Typed wrapper around LocalStorage
  */
 
@@ -6,7 +11,7 @@ const { APP_BASE_URL } = require("../misc_page");
 
 // tests at startup if localStorage exists and works. if not or disabled, uses memory as a fallback.
 
-const LS: { [k: string]: string | undefined } = (function() {
+const LS: { [k: string]: string | undefined } = (function () {
   let it_works = false;
   try {
     const test_key = "cocalc_test";

@@ -1,11 +1,15 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Actions specific to manipulating the student projects that students have in a course.
 */
 
 import { delay } from "awaiting";
 import { CourseActions, EMAIL_REINVITE_DAYS } from "../actions";
 import { CourseStore } from "../store";
-import { callback2 } from "smc-util/async-utils";
 import { webapp_client } from "../../webapp-client";
 import { redux } from "../../app-framework";
 import { len, copy, days_ago } from "smc-util/misc";
@@ -33,7 +37,7 @@ export class StudentProjectsActions {
   ): Promise<string | undefined> {
     const { store, student } = this.course_actions.resolve({
       student_id,
-      finish: this.course_actions.set_error.bind(this)
+      finish: this.course_actions.set_error.bind(this),
     });
     if (store == null || student == null) return;
     if (store.get("students") == null || store.get("settings") == null) {
@@ -49,16 +53,16 @@ export class StudentProjectsActions {
     this.course_actions.set({
       create_project: webapp_client.server_time(),
       table: "students",
-      student_id
+      student_id,
     });
     const id = this.course_actions.set_activity({
-      desc: `Create project for ${store.get_student_name(student_id)}.`
+      desc: `Create project for ${store.get_student_name(student_id)}.`,
     });
     let project_id: string;
     try {
       project_id = await redux.getActions("projects").create_project({
         title: store.get("settings").get("title"),
-        description: store.get("settings").get("description")
+        description: store.get("settings").get("description"),
       });
     } catch (err) {
       this.course_actions.set_error(
@@ -74,7 +78,7 @@ export class StudentProjectsActions {
       create_project: null,
       project_id,
       table: "students",
-      student_id
+      student_id,
     });
     await this.configure_project(student_id, false, project_id);
     return project_id;
@@ -97,14 +101,14 @@ export class StudentProjectsActions {
     const student = s.get_student(student_id);
     if (student == null) return; // no such student..
 
-    let site_name = redux.getStore("customize").site_name;
+    let site_name = redux.getStore("customize").get("site_name");
     if (!site_name) {
       site_name = SITE_NAME;
     }
     let body = s.get_email_invite();
 
     // Define function to invite or add collaborator
-    const invite = async x => {
+    const invite = async (x) => {
       // console.log("invite", x, " to ", student_project_id);
       const account_store = redux.getStore("account");
       const name = account_store.get_fullname();
@@ -141,14 +145,14 @@ export class StudentProjectsActions {
       const last_email_invite = student.get("last_email_invite");
       if (
         force_send_invite_by_email ||
-        (!last_email_invite ||
-          new Date(last_email_invite) < days_ago(EMAIL_REINVITE_DAYS))
+        !last_email_invite ||
+        new Date(last_email_invite) < days_ago(EMAIL_REINVITE_DAYS)
       ) {
         await invite(student.get("email_address"));
         this.course_actions.set({
           table: "students",
           student_id,
-          last_email_invite: new Date().valueOf()
+          last_email_invite: new Date().valueOf(),
         });
       }
     } else if (
@@ -170,6 +174,20 @@ export class StudentProjectsActions {
         await invite(account_id);
       }
     }
+
+    // Set license key if known; remove if not.
+    const site_license_id = s.getIn(["settings", "site_license_id"]);
+    const actions = redux.getActions("projects");
+    if (site_license_id) {
+      await actions.add_site_license_to_project(
+        student_project_id,
+        site_license_id
+      );
+    } else {
+      // ensure no license set
+      await actions.remove_site_license_from_project(student_project_id);
+    }
+
     // Regarding student_account_id !== undefined below, see https://github.com/sagemathinc/cocalc/pull/3259
     // The problem is that student_account_id might not yet be known to the .course, even though
     // the student has been added and the account_id exists, and is known to the account opening
@@ -299,10 +317,7 @@ export class StudentProjectsActions {
   public async set_all_student_project_titles(title: string): Promise<void> {
     const actions = redux.getActions("projects");
     const store = this.get_store();
-    for (const student of store
-      .get_students()
-      .valueSeq()
-      .toArray()) {
+    for (const student of store.get_students().valueSeq().toArray()) {
       const student_project_id = student.get("project_id");
       const project_title = `${store.get_student_name(
         student.get("student_id")
@@ -331,10 +346,7 @@ export class StudentProjectsActions {
   ): Promise<void> {
     const store = this.get_store();
     const actions = redux.getActions("projects");
-    for (const student of store
-      .get_students()
-      .valueSeq()
-      .toArray()) {
+    for (const student of store.get_students().valueSeq().toArray()) {
       const student_project_id = student.get("project_id");
       if (student_project_id != null) {
         await actions.set_project_description(student_project_id, description);
@@ -361,7 +373,7 @@ export class StudentProjectsActions {
       }
       this.course_actions.set({
         pay,
-        table: "settings"
+        table: "settings",
       });
     }
 
@@ -371,13 +383,10 @@ export class StudentProjectsActions {
     }
     const actions = redux.getActions("projects");
     const id = this.course_actions.set_activity({
-      desc: "Updating project course info..."
+      desc: "Updating project course info...",
     });
     try {
-      for (const student of store
-        .get_students()
-        .valueSeq()
-        .toArray()) {
+      for (const student of store.get_students().valueSeq().toArray()) {
         const student_project_id = student.get("project_id");
         if (student_project_id == null) continue;
         // account_id: might not be known when student first added, or if student
@@ -436,13 +445,13 @@ export class StudentProjectsActions {
     const student_project_id = store.getIn([
       "students",
       student_id,
-      "project_id"
+      "project_id",
     ]);
     if (student_project_id == null) return;
     const student_account_id = store.getIn([
       "students",
       student_id,
-      "account_id"
+      "account_id",
     ]);
     if (student_account_id != undefined) {
       redux
@@ -454,7 +463,7 @@ export class StudentProjectsActions {
       create_project: null,
       project_id: null,
       table: "students",
-      student_id
+      student_id,
     });
   }
 
@@ -471,7 +480,7 @@ export class StudentProjectsActions {
     try {
       this.course_actions.setState({ configuring_projects: true });
       id = this.course_actions.set_activity({
-        desc: "Ensuring all projects are configured..."
+        desc: "Ensuring all projects are configured...",
       });
       const ids = store.get_student_ids({ deleted: false });
       if (ids == undefined) {
@@ -482,7 +491,7 @@ export class StudentProjectsActions {
         if (this.course_actions.is_closed()) return;
         i += 1;
         const id1: number = this.course_actions.set_activity({
-          desc: `Configuring student project ${i} of ${ids.length}`
+          desc: `Configuring student project ${i} of ${ids.length}`,
         });
         await this.configure_project(student_id, false, undefined, force);
         this.course_actions.set_activity({ id: id1 });
@@ -490,6 +499,10 @@ export class StudentProjectsActions {
       } // always re-invite students on running this.
       await this.course_actions.shared_project.configure();
       await this.set_all_student_project_course_info();
+    } catch (err) {
+      this.course_actions.set_error(
+        `Error configuring student projects - ${err}`
+      );
     } finally {
       if (this.course_actions.is_closed()) return;
       this.course_actions.setState({ configuring_projects: false });
@@ -502,7 +515,7 @@ export class StudentProjectsActions {
     const store = this.get_store();
 
     const id = this.course_actions.set_activity({
-      desc: "Deleting all student projects..."
+      desc: "Deleting all student projects...",
     });
     try {
       const ids = store.get_student_ids({ deleted: false });
@@ -533,7 +546,7 @@ export class StudentProjectsActions {
       return;
     }
     const id = this.course_actions.set_activity({
-      desc: `Adjusting upgrades on ${len(plan)} student projects...`
+      desc: `Adjusting upgrades on ${len(plan)} student projects...`,
     });
     const a = redux.getActions("projects");
     const s = redux.getStore("projects");
@@ -543,7 +556,7 @@ export class StudentProjectsActions {
       if (upgrades == null) continue;
       // avoid race if projects are being created *right* when we
       // try to upgrade them.
-      if (!s.get_project(project_id)) continue;
+      if (!s.has_project(project_id)) continue;
       await a.apply_upgrades_to_project(project_id, upgrades, false);
     }
     this.course_actions.set_activity({ id });
@@ -564,7 +577,7 @@ export class StudentProjectsActions {
     for (const project_id of ids) {
       const x = copy(quotas);
       x.project_id = project_id;
-      await callback2(webapp_client.project_set_quotas, x);
+      await webapp_client.project_client.set_quotas(x);
     }
   }
 }

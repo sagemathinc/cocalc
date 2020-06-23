@@ -1,10 +1,17 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { sortBy, keys } from "lodash";
 import { SettingBox, A, Icon, Loading } from "smc-webapp/r_misc";
-import { rclass, rtypes } from "../../app-framework";
+import { rclass, rtypes, redux, Rendered } from "../../app-framework";
 import { Project } from "./types";
 import { Map } from "immutable";
 import * as misc from "smc-util/misc2";
+import { Button } from "antd";
+import { ReloadOutlined } from "@ant-design/icons";
 
 const { CUSTOM_SOFTWARE_HELP_URL } = require("../../custom-software/util");
 const { COLORS } = require("smc-util/theme");
@@ -29,8 +36,8 @@ export const ProjectCapabilities = rclass<ReactProps>(
         [name]: {
           configuration: rtypes.immutable,
           configuration_loading: rtypes.bool,
-          available_features: rtypes.object
-        }
+          available_features: rtypes.object,
+        },
       };
     }
 
@@ -39,11 +46,11 @@ export const ProjectCapabilities = rclass<ReactProps>(
         "project",
         "configuration",
         "configuration_loading",
-        "available_features"
+        "available_features",
       ]);
     }
 
-    render_features(avail) {
+    private render_features(avail): [Rendered, boolean] {
       const feature_map = [
         ["spellcheck", "Spellchecking"],
         ["rmd", "RMarkdown"],
@@ -52,21 +59,33 @@ export const ProjectCapabilities = rclass<ReactProps>(
         ["jupyter_lab", "Jupyter Lab"],
         ["library", "Library of documents"],
         ["x11", "Graphical applications"],
-        ["latex", "LaTeX editor"]
+        ["latex", "LaTeX editor"],
       ];
       const features: JSX.Element[] = [];
       let any_nonavail = false;
-      for (const [key, display] of Array.from(sortBy(feature_map, f => f[1]))) {
+      for (const [key, display] of Array.from(
+        sortBy(feature_map, (f) => f[1])
+      )) {
         const available = avail[key];
         any_nonavail = !available;
         const color = available ? COLORS.BS_GREEN_D : COLORS.BS_RED;
         const icon = available ? "check-square" : "minus-square";
+        let extra = "";
+        if (key == "sage") {
+          const main = this.props.configuration.get("main");
+          const sage_version = main.capabilities?.sage_version;
+          if (sage_version != null) {
+            extra = `(version ${sage_version.join(".")})`;
+          }
+        }
         features.push(
           <React.Fragment key={key}>
             <dt>
               <Icon name={icon} style={{ color }} />
             </dt>
-            <dd>{display}</dd>
+            <dd>
+              {display} {extra}
+            </dd>
           </React.Fragment>
         );
       }
@@ -81,7 +100,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
       return [component, any_nonavail];
     }
 
-    render_formatter(formatter) {
+    private render_formatter(formatter): [Rendered, boolean] | Rendered {
       if (formatter === false) {
         return <div>No code formatters are available</div>;
       }
@@ -93,7 +112,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
 
       const r_formatters: JSX.Element[] = [];
       let any_nonavail = false;
-      for (const tool of sortBy(keys(formatter), x => x)) {
+      for (const tool of sortBy(keys(formatter), (x) => x)) {
         const available = formatter[tool];
         const color = available ? COLORS.BS_GREEN_D : COLORS.BS_RED;
         const icon = available ? "check-square" : "minus-square";
@@ -129,7 +148,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
       return [component, any_nonavail];
     }
 
-    render_noavail_info() {
+    private render_noavail_info(): Rendered {
       return (
         <>
           <hr />
@@ -143,7 +162,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
       );
     }
 
-    render_available() {
+    private render_available(): Rendered {
       const avail = this.props.available_features;
       if (avail == undefined) {
         return (
@@ -169,24 +188,44 @@ export const ProjectCapabilities = rclass<ReactProps>(
       );
     }
 
-    render_debug_info(conf) {
+    private render_debug_info(conf): Rendered {
       if (conf != null && DEBUG) {
         return (
           <pre style={{ fontSize: "9px", color: "black" }}>
-            {JSON.stringify(conf, () => {}, 2)}
+            {JSON.stringify(conf, undefined, 2)}
           </pre>
         );
       }
+    }
+
+    private reload(): void {
+      const project_id = this.props.project.get("project_id");
+      const pa = redux.getProjectActions(project_id);
+      pa.reload_configuration();
+    }
+
+    private render_reload(): Rendered {
+      return (
+        <Button
+          onClick={() => this.reload()}
+          icon={<ReloadOutlined />}
+          disabled={this.props.configuration_loading}
+          style={{ float: "right", marginTop: "-7.5px" }} // that compensates for bootstrap's 15px's all over the place...
+        >
+          Refresh
+        </Button>
+      );
+    }
+
+    private render_title(): Rendered {
+      return <span>{this.render_reload()}Features and configuration</span>;
     }
 
     render() {
       const conf = this.props.configuration;
 
       return (
-        <SettingBox
-          title={"Features and configuration"}
-          icon={"clipboard-check"}
-        >
+        <SettingBox title_el={this.render_title()} icon={"clipboard-check"}>
           {this.render_debug_info(conf)}
           {this.render_available()}
         </SettingBox>

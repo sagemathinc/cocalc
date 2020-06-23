@@ -1,16 +1,21 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const path = require("path");
 const this_file: string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
 
 import chalk from "chalk";
-import { Opts, PassFail, TestFiles } from "./types";
-import { time_log } from "./time_log";
+import { Creds, Opts, PassFail, TestFiles } from "./types";
+import { time_log2 } from "./time_log";
 import screenshot from "./screenshot";
 import { Page } from "puppeteer";
 
 import { expect } from "chai";
 
-export const test_tex = async function(opts: Opts, page: Page): Promise<PassFail> {
+export const test_tex = async function (creds: Creds, opts: Opts, page: Page): Promise<PassFail> {
   const pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
@@ -43,7 +48,7 @@ export const test_tex = async function(opts: Opts, page: Page): Promise<PassFail
     await page.click(sel);
     debuglog("clicked file line");
 
-    time_log("open tex file", tm_open_tex);
+    await time_log2("open tex file", tm_open_tex, creds, opts);
     const tm_word_count = process.hrtime.bigint();
 
     sel = '*[cocalc-test="short-Source"]';
@@ -63,7 +68,7 @@ export const test_tex = async function(opts: Opts, page: Page): Promise<PassFail
     sel = '*[cocalc-test="word-count-output"]';
     await page.waitForSelector(sel);
 
-    const text: string = await page.$eval(sel, function(e) {
+    const text: string = await page.$eval(sel, function (e) {
       return (<HTMLElement>e).innerText.toString();
     });
     const want: string = "Words in headers: 3";
@@ -87,7 +92,7 @@ export const test_tex = async function(opts: Opts, page: Page): Promise<PassFail
     await page.click(sel);
     debuglog("clicked close file tab icon");
 
-    time_log("word count tex file", tm_word_count);
+    await time_log2("word count tex file", tm_word_count, creds, opts);
     await screenshot(page, opts, "cocalc-tex.png");
     pfcounts.pass += 1;
   } catch (e) {

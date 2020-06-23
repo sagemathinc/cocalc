@@ -1,3 +1,10 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { NotebookScores } from "../jupyter/nbgrader/autograde";
+
 export interface SyncDBRecordBase {
   table: string;
 }
@@ -8,17 +15,27 @@ export interface SyncDBRecordSettings {
   allow_collabs?: boolean;
   shared_project_id?: string;
   pay?: string;
+  site_license_id?: string;
+  nbgrader_grade_in_instructor_project?: boolean;
+  nbgrader_cell_timeout_ms?: number;
+  nbgrader_timeout_ms?: number;
 }
+
+// This is closely related to store.AssignmentRecord...
 
 export interface SyncDBRecordAssignment {
   table: string;
   assignment_id?: string;
   note?: string;
-  has_student_subdir?: boolean;  // True if assignment has a STUDENT_SUBDIR subdir (so only that subdir is sent to students)
+  has_student_subdir?: boolean; // True if assignment has a STUDENT_SUBDIR subdir (so only that subdir is sent to students)
+  nbgrader?: boolean; // Very likely to be using nbgrader for this assignment (heuristic: existence of foo.ipynb and student/foo.ipynb)
   description?: string;
   title?: string;
   grades?: { [student_id: string]: string };
   comments?: { [student_id: string]: string };
+  nbgrader_scores?: {
+    [student_id: string]: { [ipynb: string]: NotebookScores | string };
+  };
   deleted?: boolean;
   path?: string;
   collect_path?: string;
@@ -35,6 +52,7 @@ export interface SyncDBRecordHandout {
   note?: string;
   description?: string;
   title?: string;
+  path?: string;
   deleted?: boolean;
   status?: {
     [student_id: string]: { start?: number; time?: number; error?: string };

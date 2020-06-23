@@ -1,23 +1,7 @@
-//#############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 // CoCalc libraries
 import * as misc from "smc-util/misc";
@@ -34,14 +18,14 @@ import {
   rtypes,
   redux,
   AppRedux,
-  Rendered
+  Rendered,
 } from "../../app-framework";
 
 import {
   Button,
   ButtonGroup,
   FormControl,
-  FormGroup
+  FormGroup,
 } from "../../antd-bootstrap";
 
 import { Alert, Card, Row, Col } from "antd";
@@ -56,7 +40,8 @@ import {
   AssignmentRecord,
   SortDescription,
   CourseStore,
-  IsGradingMap
+  IsGradingMap,
+  NBgraderRunInfo,
 } from "../store";
 import { CourseActions } from "../actions";
 import { ReactElement } from "react";
@@ -67,7 +52,7 @@ import {
   MarkdownInput,
   Space,
   Tip,
-  WindowedList
+  WindowedList,
 } from "../../r_misc";
 
 import { STEPS, step_direction, step_verb, step_ready } from "../util";
@@ -76,7 +61,7 @@ import {
   BigTime,
   FoldersToolbar,
   StudentAssignmentInfo,
-  StudentAssignmentInfoHeader
+  StudentAssignmentInfoHeader,
 } from "../common";
 
 import { Progress } from "../common/progress";
@@ -101,6 +86,7 @@ interface AssignmentsPanelReduxProps {
   active_student_sort: SortDescription;
   expanded_peer_configs: Set<string>;
   active_feedback_edits: IsGradingMap;
+  nbgrader_run_info?: NBgraderRunInfo;
 }
 
 interface AssignmentsPanelState {
@@ -119,7 +105,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       this.state = {
         err: undefined, // error message to display at top.
         search: "", // search query to restrict which assignments are shown.
-        show_deleted: false // whether or not to show deleted assignments on the bottom
+        show_deleted: false, // whether or not to show deleted assignments on the bottom
       };
     }
 
@@ -130,8 +116,9 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
           active_assignment_sort: rtypes.immutable.Map,
           active_student_sort: rtypes.immutable.Map,
           expanded_peer_configs: rtypes.immutable.Set,
-          active_feedback_edits: rtypes.immutable.Map
-        }
+          active_feedback_edits: rtypes.immutable.Map,
+          nbgrader_run_info: rtypes.immutable.Map,
+        },
       };
     };
 
@@ -162,20 +149,20 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       ({ list, num_omitted } = util.compute_match_list({
         list,
         search_key: "path",
-        search: this.state.search.trim()
+        search: this.state.search.trim(),
       }));
 
       if (this.props.active_assignment_sort.get("column_name") === "due_date") {
-        f = a => [
+        f = (a) => [
           a.due_date != null ? a.due_date : 0,
-          a.path != null ? a.path.toLowerCase() : undefined
+          a.path != null ? a.path.toLowerCase() : undefined,
         ];
       } else if (
         this.props.active_assignment_sort.get("column_name") === "dir_name"
       ) {
-        f = a => [
+        f = (a) => [
           a.path != null ? a.path.toLowerCase() : undefined,
-          a.due_date != null ? a.due_date : 0
+          a.due_date != null ? a.due_date : 0,
         ];
       }
 
@@ -183,14 +170,14 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
         list,
         compare_function: (a, b) => misc.cmp_array(f(a), f(b)),
         reverse: this.props.active_assignment_sort.get("is_descending"),
-        include_deleted: this.state.show_deleted
+        include_deleted: this.state.show_deleted,
       }));
 
       return {
         shown_assignments: list,
         deleted_assignments: deleted,
         num_omitted,
-        num_deleted
+        num_deleted,
       };
     }
 
@@ -201,7 +188,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       return (
         <a
           href=""
-          onClick={e => {
+          onClick={(e) => {
             e.preventDefault();
             return this.get_actions().assignments.set_active_assignment_sort(
               column_name
@@ -220,9 +207,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
                   : "caret-down"
               }
             />
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </a>
       );
     }
@@ -258,6 +243,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
             assignment_id
           )}
           active_feedback_edits={this.props.active_feedback_edits}
+          nbgrader_run_info={this.props.nbgrader_run_info}
         />
       );
     }
@@ -274,7 +260,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
           estimated_row_size={50}
           row_count={assignments.length}
           row_renderer={({ key, index }) => this.render_assignment(key, index)}
-          row_key={index =>
+          row_key={(index) =>
             assignments[index] != null
               ? assignments[index].assignment_id
               : undefined
@@ -351,13 +337,13 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
 
     private yield_adder(deleted_assignments): (string) => void {
       const deleted_paths = {};
-      deleted_assignments.map(obj => {
+      deleted_assignments.map((obj) => {
         if (obj.path) {
           deleted_paths[obj.path] = obj.assignment_id;
         }
       });
 
-      return path => {
+      return (path) => {
         if (deleted_paths[path] != null) {
           this.get_actions().assignments.undelete_assignment(
             deleted_paths[path]
@@ -373,7 +359,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
         shown_assignments,
         deleted_assignments,
         num_omitted,
-        num_deleted
+        num_deleted,
       } = this.compute_assignment_list();
 
       const add_assignment = this.yield_adder(deleted_assignments);
@@ -382,11 +368,11 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
         <div style={{ marginBottom: "15px" }}>
           <FoldersToolbar
             search={this.state.search}
-            search_change={value => this.setState({ search: value })}
+            search_change={(value) => this.setState({ search: value })}
             num_omitted={num_omitted}
             project_id={this.props.project_id}
             items={this.props.assignments}
-            add_folders={paths => paths.map(add_assignment)}
+            add_folders={(paths) => paths.map(add_assignment)}
             item_name={"assignment"}
             plural_item_name={"assignments"}
           />
@@ -440,6 +426,7 @@ interface AssignmentProps {
   active_student_sort: SortDescription;
   expand_peer_config?: boolean;
   active_feedback_edits: IsGradingMap;
+  nbgrader_run_info?: NBgraderRunInfo;
 }
 
 interface AssignmentState {
@@ -466,7 +453,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       copy_confirm_collect: false,
       copy_confirm_peer_assignment: false,
       copy_confirm_peer_collect: false,
-      copy_confirm_return_graded: false
+      copy_confirm_return_graded: false,
     };
   }
 
@@ -482,7 +469,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         "is_expanded",
         "active_student_sort",
         "expand_peer_config",
-        "active_feedback_edits"
+        "active_feedback_edits",
+        "nbgrader_run_info",
       ])
     );
   }
@@ -531,7 +519,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     );
   }
 
-  date_change = date => {
+  date_change = (date) => {
     this.get_actions().assignments.set_due_date(
       this.props.assignment.get("assignment_id"),
       date != null ? date.toISOString() : undefined
@@ -562,13 +550,70 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             rows={6}
             placeholder="Private notes about this assignment (not visible to students)"
             default_value={this.props.assignment.get("note")}
-            on_save={value =>
+            on_save={(value) =>
               this.get_actions().assignments.set_assignment_note(
                 this.props.assignment.get("assignment_id"),
                 value
               )
             }
           />
+        </Col>
+      </Row>
+    );
+  }
+
+  private render_export_file_use_times(): Rendered {
+    return (
+      <Row key="file-use-times-export-used">
+        <Col xs={4}>
+          <Tip
+            title="Export when students used files"
+            tip="Export a JSON file containing extensive information about exactly when students have opened or edited files in this assignment.  The JSON file will open in a new tab; the access_times (in milliseconds since the UNIX epoch) are when they opened the file and the edit_times are when they actually changed it through CoCalc's web-based editor."
+          >
+            Export file use times
+            <br />
+            <span style={{ color: "#666" }} />
+          </Tip>
+        </Col>
+        <Col xs={20}>
+          <Button
+            onClick={() =>
+              this.get_actions().export.file_use_times(
+                this.props.assignment.get("assignment_id")
+              )
+            }
+          >
+            Export file use times for this assignment
+          </Button>
+        </Col>
+      </Row>
+    );
+  }
+
+  private render_export_assignment(): Rendered {
+    return (
+      <Row key="file-use-times-export-collected">
+        <Col xs={4}>
+          <Tip
+            title="Export collected student files"
+            tip="Export all student work to files in a single directory that are easy to grade or archive outside of CoCalc.  Any Jupyter notebooks or Sage worksheets are first converted to PDF (if possible), and all files are renamed with the student as a filename prefix."
+          >
+            Export collected student files
+            <br />
+            <span style={{ color: "#666" }} />
+          </Tip>
+        </Col>
+        <Col xs={20}>
+          <Button
+            onClick={() =>
+              this.get_actions().assignments.export_collected(
+                this.props.assignment.get("assignment_id")
+              )
+            }
+          >
+            Export collected student files to single directory, converting
+            notebooks to pdf
+          </Button>
         </Col>
       </Row>
     );
@@ -589,7 +634,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     const bottom = {
       borderBottom: "1px solid grey",
       paddingBottom: "15px",
-      marginBottom: "15px"
+      marginBottom: "15px",
     };
     v.push(
       <Row key="header3" style={bottom}>
@@ -640,10 +685,11 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       width = 6;
     }
     const buttons: ReactElement<any>[] = [];
-    const insert_skip_button = (key: string) => {
+    const insert_grade_button = (key: string) => {
       const b2 = this.render_skip_grading_button(status);
       return buttons.push(
         <Col md={width} key={key}>
+          {this.render_nbgrader_button(status)}
           {b2}
         </Col>
       );
@@ -653,7 +699,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       const b = this[`render_${name}_button`](status);
       // squeeze in the skip grading button (don't add it to STEPS!)
       if (!peer && name === "return_graded") {
-        insert_skip_button("skip_grading");
+        insert_grade_button("skip_grading");
       }
       if (b != null) {
         buttons.push(
@@ -662,7 +708,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           </Col>
         );
         if (peer && name === "peer_collect") {
-          insert_skip_button("skip_peer_collect");
+          insert_grade_button("skip_peer_collect");
         }
       }
     }
@@ -700,8 +746,15 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
               user_map={this.props.user_map}
               active_student_sort={this.props.active_student_sort}
               active_feedback_edits={this.props.active_feedback_edits}
+              nbgrader_run_info={this.props.nbgrader_run_info}
             />
             {this.render_note()}
+            <br />
+            <hr />
+            <br />
+            {this.render_export_file_use_times()}
+            <br />
+            {this.render_export_assignment()}
           </Card>
         </Col>
       </Row>
@@ -782,7 +835,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         not_done={status.not_assignment}
         step="assigned"
         skipped={this.props.assignment.get("skip_assignment")}
-      />
+      />,
     ];
   }
 
@@ -818,7 +871,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         [`copy_confirm_${step}`]: false,
         [`copy_confirm_all_${step}`]: false,
         copy_confirm: false,
-        copy_assignment_confirm_overwrite: false
+        copy_assignment_confirm_overwrite: false,
       } as any);
     };
     return (
@@ -836,7 +889,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       this.copy_assignment(step, false, true);
       return this.setState({
         copy_assignment_confirm_overwrite: false,
-        copy_assignment_confirm_overwrite_text: ""
+        copy_assignment_confirm_overwrite_text: "",
       });
     };
     return (
@@ -848,9 +901,9 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             autoFocus
             type="text"
             ref="copy_assignment_confirm_overwrite_field"
-            onChange={e =>
+            onChange={(e) =>
               this.setState({
-                copy_assignment_confirm_overwrite_text: (e.target as any).value
+                copy_assignment_confirm_overwrite_text: (e.target as any).value,
               })
             }
             style={{ marginTop: "1ex" }}
@@ -914,7 +967,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     this.setState({
       [`copy_confirm_${step}`]: false,
       [`copy_confirm_all_${step}`]: false,
-      copy_confirm: false
+      copy_confirm: false,
     } as any);
   }
 
@@ -1046,9 +1099,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             >
               Replace student files!
             </Button>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           {this.render_copy_cancel(step)}
         </ButtonGroup>
         {this.render_copy_assignment_confirm_overwrite(step)}
@@ -1077,7 +1128,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             onClick={() =>
               this.setState({
                 [`copy_confirm_all_${step}`]: true,
-                copy_confirm: true
+                copy_confirm: true,
               } as any)
             }
             disabled={this.state[`copy_confirm_all_${step}`]}
@@ -1094,9 +1145,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
               The {n} student{n > 1 ? "s" : ""} not already {step_verb(step)}ed{" "}
               {step_direction(step)}
             </Button>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           {this.render_copy_cancel(step)}
         </ButtonGroup>
         {this.state[`copy_confirm_all_${step}`]
@@ -1167,7 +1216,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         not_done={status.not_collect}
         step="collected"
         skipped={this.props.assignment.get("skip_collect")}
-      />
+      />,
     ];
   }
 
@@ -1212,7 +1261,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         onClick={() =>
           this.setState({
             copy_confirm_peer_assignment: true,
-            copy_confirm: true
+            copy_confirm: true,
           })
         }
         disabled={this.state.copy_confirm}
@@ -1236,7 +1285,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         done={status.peer_assignment}
         not_done={status.not_peer_assignment}
         step="peer assigned"
-      />
+      />,
     ];
   }
 
@@ -1298,7 +1347,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         done={status.peer_collect}
         not_done={status.not_peer_collect}
         step="peer collected"
-      />
+      />,
     ];
   }
 
@@ -1328,8 +1377,57 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       : "square-o";
     return (
       <Button onClick={this.toggle_skip_grading}>
-        <Icon name={icon} /> Skip Grading
+        <Icon name={icon} /> Skip grading
       </Button>
+    );
+  }
+
+  render_nbgrader_button(status) {
+    if (
+      status.collect === 0 ||
+      !this.props.assignment.get("nbgrader") ||
+      this.props.assignment.get("skip_grading")
+    ) {
+      // No button if nothing collected or not nbgrader support or
+      // decided to skip grading this.
+      return;
+    }
+    let running = false;
+    if (this.props.nbgrader_run_info != null) {
+      const t = this.props.nbgrader_run_info.get(
+        this.props.assignment.get("assignment_id")
+      );
+      if (t && new Date().valueOf() - t <= 1000 * 60 * 10) {
+        // Time starting is set and it's also within the last few minutes.
+        // This "few minutes" is just in case -- we probably shouldn't need
+        // that at all ever, but it could make cocalc state usable in case of
+        // weird issues, I guess).  User could also just close and re-open
+        // the course file, which resets this state completely.
+        running = true;
+      }
+    }
+    const label = running ? (
+      <span>
+        {" "}
+        <Icon name="cc-icon-cocalc-ring" spin /> Running nbgrader
+      </span>
+    ) : (
+      <span>Run nbgrader</span>
+    );
+    return (
+      <div style={{ marginBottom: "5px 0" }}>
+        <Button
+          disabled={running}
+          key="nbgrader"
+          onClick={() => {
+            this.get_actions().assignments.run_nbgrader_for_all_students(
+              this.props.assignment.get("assignment_id")
+            );
+          }}
+        >
+          <Icon name="graduation-cap" /> {label}
+        </Button>
+      </div>
     );
   }
 
@@ -1350,7 +1448,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       // Nothing unreturned and ungraded yet and also nothing returned yet
       return;
     }
-    let bsStyle: string;
+    let bsStyle;
     if (status.return_graded > 0) {
       // Have already returned some
       if (status.not_return_graded === 0) {
@@ -1367,7 +1465,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         onClick={() =>
           this.setState({
             copy_confirm_return_graded: true,
-            copy_confirm: true
+            copy_confirm: true,
           })
         }
         disabled={this.state.copy_confirm}
@@ -1390,7 +1488,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         done={status.return_graded}
         not_done={status.not_return_graded}
         step="returned"
-      />
+      />,
     ];
   }
 
@@ -1517,7 +1615,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     return (
       <a
         href=""
-        onClick={e => {
+        onClick={(e) => {
           e.preventDefault();
           return this.get_actions().toggle_item_expansion(
             "assignment",
@@ -1573,6 +1671,7 @@ interface StudentListForAssignmentProps {
   background?: string;
   active_student_sort: SortDescription;
   active_feedback_edits: IsGradingMap;
+  nbgrader_run_info?: NBgraderRunInfo;
 }
 
 class StudentListForAssignment extends Component<
@@ -1587,7 +1686,8 @@ class StudentListForAssignment extends Component<
       "user_map",
       "background",
       "active_student_sort",
-      "active_feedback_edits"
+      "active_feedback_edits",
+      "nbgrader_run_info",
     ]);
     if (x) {
       delete this.student_list;
@@ -1630,6 +1730,10 @@ class StudentListForAssignment extends Component<
           this.props.assignment.get("assignment_id"),
           student_id
         )}
+        nbgrader_scores={store.get_nbgrader_scores(
+          this.props.assignment.get("assignment_id"),
+          student_id
+        )}
         comments={store.get_comments(
           this.props.assignment.get("assignment_id"),
           student_id
@@ -1641,6 +1745,7 @@ class StudentListForAssignment extends Component<
         is_editing={!!edited_feedback}
         edited_comments={edited_comments}
         edited_grade={edited_grade}
+        nbgrader_run_info={this.props.nbgrader_run_info}
       />
     );
   }
@@ -1684,7 +1789,7 @@ class StudentListForAssignment extends Component<
         estimated_row_size={65}
         row_count={info.length}
         row_renderer={({ key }) => this.render_student_info(key)}
-        row_key={index => this.get_student_list()[index]}
+        row_key={(index) => this.get_student_list()[index]}
         cache_id={`course-assignment-${this.props.assignment.get(
           "assignment_id"
         )}-${this.props.name}-${this.props.frame_id}`}

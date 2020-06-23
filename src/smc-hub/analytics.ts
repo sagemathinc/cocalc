@@ -1,20 +1,30 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as ms from "ms";
+import { isEqual } from "lodash";
 import { analytics_cookie_name } from "smc-util/misc";
+import { PostgreSQL } from "./postgres/types";
+import { get_server_settings, pii_retention_to_future } from "./utils";
 import * as fs from "fs";
 import * as TS from "typescript";
 const UglifyJS = require("uglify-js");
 import { is_valid_uuid_string, uuid } from "../smc-util/misc2";
 // express-js cors plugin
 import * as cors from "cors";
-// this splits into { subdomain: "dev" or "", domain: "cocalc",  tld: "com" }
-const parseDomain = require("parse-domain");
-import { DNS } from "smc-util/theme";
-const pdDNS = parseDomain(DNS);
+import {
+  parseDomain,
+  fromUrl,
+  ParseResultType,
+  ParseResult,
+} from "parse-domain";
 
 // compiling analytics-script.ts and minifying it.
 export const analytics_js = UglifyJS.minify(
   TS.transpileModule(fs.readFileSync("./analytics-script.ts").toString(), {
-    compilerOptions: { module: TS.ModuleKind.CommonJS }
+    compilerOptions: { module: TS.ModuleKind.CommonJS },
   }).outputText
 ).code;
 
@@ -59,7 +69,8 @@ function analytics_rec(
   db: any,
   logger: any,
   token: string,
-  payload: object | undefined
+  payload: object | undefined,
+  pii_retention: number | false
 ): void {
   if (payload == null) return;
   if (!is_valid_uuid_string(token)) return;
@@ -68,6 +79,7 @@ function analytics_rec(
   // sanitize data (limits size and number of characters)
   const rec_data = sanitize(payload);
   dbg("rec_data", rec_data);
+  const expire = pii_retention_to_future(pii_retention);
 
   if (rec_data.account_id != null) {
     // dbg("update analytics", rec_data.account_id);
@@ -77,8 +89,9 @@ function analytics_rec(
       where: [{ "token = $::UUID": token }, "account_id IS NULL"],
       set: {
         "account_id       :: UUID": rec_data.account_id,
-        "account_id_time  :: TIMESTAMP": new Date()
-      }
+        "account_id_time  :: TIMESTAMP": new Date(),
+        "expire           :: TIMESTAMP": expire,
+      },
     });
   } else {
     db._query({
@@ -86,11 +99,58 @@ function analytics_rec(
       values: {
         "token     :: UUID": token,
         "data      :: JSONB": rec_data,
-        "data_time :: TIMESTAMP": new Date()
+        "data_time :: TIMESTAMP": new Date(),
+        "expire    :: TIMESTAMP": expire,
       },
-      conflict: "token"
+      conflict: "token",
     });
   }
+}
+
+// could throw an error
+function check_cors(
+  origin: string | undefined,
+  dns_parsed: ParseResult,
+  dbg: Function
+): boolean {
+  // no origin, e.g. when loaded as usual in a script tag
+  if (origin == null) return true;
+
+  // origin could be https://...
+  const origin_parsed = parseDomain(fromUrl(origin));
+  if (origin_parsed.type === ParseResultType.Reserved) {
+    // This happens, e.g., when origin is https://localhost, which happens with cocalc-docker.
+    return true;
+  }
+  // the configured DNS name is not ok
+  if (dns_parsed.type !== ParseResultType.Listed) {
+    dbg(`parsed DNS domain invalid: ${JSON.stringify(dns_parsed)}`);
+    return false;
+  }
+  // now, we want dns_parsed and origin_parsed to be valid and listed
+  if (origin_parsed.type === ParseResultType.Listed) {
+    if (
+      isEqual(origin_parsed.topLevelDomains, dns_parsed.topLevelDomains) &&
+      origin_parsed.domain === dns_parsed.domain
+    ) {
+      return true;
+    }
+    if (isEqual(origin_parsed.topLevelDomains, ["com"])) {
+      if (
+        origin_parsed.domain === "cocalc" ||
+        origin_parsed.domain === "sagemath"
+      ) {
+        return true;
+      }
+    }
+    if (
+      isEqual(origin_parsed.topLevelDomains, ["org"]) &&
+      origin_parsed.domain === "sagemath"
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /*
@@ -107,60 +167,64 @@ The query param "fqd" (fully qualified domain) can be set to true or false (defa
 It controls if the bounce back URL mentions the domain.
 */
 
-export function setup_analytics_js(
+export async function setup_analytics_js(
   router: any,
-  database: any,
+  database: PostgreSQL,
   logger: any,
   base_url: string
-): void {
-  const dbg = create_log("analytics_js", logger);
+): Promise<void> {
+  const dbg = create_log("analytics_js/cors", logger);
+
+  // we only get the DNS once at startup – i.e. hub restart required upon changing DNS!
+  const settings = await get_server_settings(database);
+  const DNS = settings.dns;
+  const dns_parsed = parseDomain(DNS);
+  const pii_retention = settings.pii_retention;
+
+  if (
+    dns_parsed.type !== ParseResultType.Listed &&
+    dns_parsed.type !== ParseResultType.Reserved
+  ) {
+    dbg(
+      `WARNING: the configured domain name ${DNS} cannot be parsed properly. ` +
+        `Please fix it in Admin → Site Settings!\n` +
+        `dns_parsed="${JSON.stringify(dns_parsed)}}"`
+    );
+  }
 
   // CORS-setup: allow access from other trusted (!) domains
   const analytics_cors = {
     credentials: true,
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "*"],
-    origin(origin, cb) {
-      dbg(`analytics_cors origin='${origin}'`);
-      // no origin, e.g. when loaded as usual in a script tag
-      if (origin == null) {
-        cb(null, true);
-        return;
-      }
-
-      let allow = false;
+    origin: function (origin, cb) {
+      dbg(`check origin='${origin}'`);
       try {
-        const pd = parseDomain(origin);
-        if (pd.tld === "com") {
-          if (pd.domain === "cocalc" || pd.domain === "sagemath") {
-            allow = true;
-          }
-        } else if (pd.tld === "org" && pd.domain === "sagemath") {
-          allow = true;
-        } else if (pd.tld === pdDNS.tld && pd.domain === pdDNS.domain) {
-          allow = true;
+        if (check_cors(origin, dns_parsed, dbg)) {
+          cb(null, true);
+        } else {
+          cb(`origin="${origin}" is not allowed`, false);
         }
       } catch (e) {
         cb(e);
         return;
       }
-
-      if (allow) {
-        cb(null, true);
-      } else {
-        cb("CORS: not allowed", false);
-      }
-    }
+    },
   };
 
-  router.get("/analytics.js", cors(analytics_cors), function(req, res) {
+  router.get("/analytics.js", cors(analytics_cors), function (req, res) {
     res.header("Content-Type", "text/javascript");
     // in case user was already here, do not send it again.
     // only the first hit is interesting.
     dbg(
       `/analytics.js GET analytics_cookie='${req.cookies[analytics_cookie_name]}'`
     );
-    if (req.cookies[analytics_cookie_name]) {
+
+    // also, don't write a script if the DNS is not valid
+    if (
+      req.cookies[analytics_cookie_name] ||
+      dns_parsed.type !== ParseResultType.Listed
+    ) {
       // cache for 6 hours
       res.header("Cache-Control", `private, max-age=${6 * 60 * 60}`);
       res.write("// NOOP");
@@ -171,15 +235,19 @@ export function setup_analytics_js(
     // write response script
     // this only runs once, hence no caching
     res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
-    //analytics_cookie(res)
+    //analytics_cookie(DNS, res)
+
+    const DOMAIN = `${dns_parsed.domain}.${dns_parsed.topLevelDomains.join(
+      "."
+    )}`;
     res.write(`var NAME = '${analytics_cookie_name}';\n`);
     res.write(`var ID = '${uuid()}';\n`);
-    res.write(`var DOMAIN = '${pdDNS.domain}.${pdDNS.tld}';\n`);
+    res.write(`var DOMAIN = '${DOMAIN}';\n`);
     //  BASE_URL
     if (req.query.fqd === "false") {
       res.write(`var PREFIX = '${base_url}';\n`);
     } else {
-      const prefix = `//${DNS}${base_url}`;
+      const prefix = `//${DOMAIN}${base_url}`;
       res.write(`var PREFIX = '${prefix}';\n\n`);
     }
     res.write(analytics_js);
@@ -187,20 +255,20 @@ export function setup_analytics_js(
   });
 
   // tracking image: this is a 100% experimental idea and not used
-  router.get("/analytics.js/track.png", cors(analytics_cors), function(
+  router.get("/analytics.js/track.png", cors(analytics_cors), function (
     req,
     res
   ) {
     // in case user was already here, do not set a cookie
     if (!req.cookies[analytics_cookie_name]) {
-      analytics_cookie(res);
+      analytics_cookie(DNS, res);
     }
     res.header("Content-Type", "image/png");
     res.header("Content-Length", PNG_1x1.length);
     return res.end(PNG_1x1);
   });
 
-  router.post("/analytics.js", cors(analytics_cors), function(req, res): void {
+  router.post("/analytics.js", cors(analytics_cors), function (req, res): void {
     // check if token is in the cookie (see above)
     // if not, ignore it
     const token = req.cookies[analytics_cookie_name];
@@ -213,7 +281,7 @@ export function setup_analytics_js(
         `/analytics.js -- TOKEN=${token} -- DATA=${JSON.stringify(req.body)}`
       );
       // record it, there is no need for a callback
-      analytics_rec(database, logger, token, req.body);
+      analytics_rec(database, logger, token, req.body, pii_retention);
     }
     res.end();
   });
@@ -222,13 +290,13 @@ export function setup_analytics_js(
   router.options("/analytics.js", cors(analytics_cors));
 }
 
-function analytics_cookie(res): void {
+function analytics_cookie(DNS: string, res): void {
   // set the cookie (TODO sign it?)
   const analytics_token = uuid();
   res.cookie(analytics_cookie_name, analytics_token, {
     path: "/",
     maxAge: ms("7 days"),
     // httpOnly: true,
-    domain: DNS
+    domain: DNS,
   });
 }

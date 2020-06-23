@@ -1,6 +1,16 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Metadata } from "./types";
 
 type Language = "python" | "julia" | "r" | "sage";
+
+// I think the default points in official nbgrader is 0, but I find that very confusing
+// and it forces you to think.  Since partial credit with autograder doesn't exist, just
+// defaulting to 1 is probably often a much better choice.
+const DEFAULT_POINTS: number = 1;
 
 interface CelltypeInfo {
   title: string; // human readable title for this type of cell
@@ -50,6 +60,13 @@ def squares(n):  # modify function name and parameters
     return [i**2 for i in range(1, n+1)]
     ### END SOLUTION`;
 
+const PY_MANUAL_ANSWER = `
+def foo(a, b):
+    """Return a + b."""
+    ### BEGIN SOLUTION
+    return a + b
+    ### END SOLUTION`;
+
 const R_TEST = `
 testthat::test_that("squares function works as expected", {
   # test the result is an integer vector of length 10
@@ -85,6 +102,15 @@ squares <- function(n) {
   x <- 1:n
   return(x * x)
 
+  ### END SOLUTION
+}`;
+
+const R_MANUAL_ANSWER = `
+foo <- function(a, b) {
+  # Returns a + b
+
+  ### BEGIN SOLUTION
+  return(a + b)
   ### END SOLUTION
 }`;
 
@@ -126,6 +152,15 @@ function squares(n)
     ### END SOLUTION
 end`;
 
+const JULIA_MANUAL_ANSWER = `
+function foo(a, b)
+    # Compute the sum of a and b.
+
+    ### BEGIN SOLUTION
+    return a + b
+    ### END SOLUTION
+end`;
+
 const TASK_TEMPLATE = `
 Describe the task here, e.g., "Process the data and create
 a plot to illustrate your results."
@@ -150,11 +185,11 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     link:
       "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#developing-assignments-with-the-assignment-toolbar",
     hover:
-      "This is a normal Jupyter cell, which won't be graded and doesn't contain any special autograding meaning."
+      "This is a normal Jupyter cell, which won't be graded and doesn't contain any special autograding meaning.",
   },
   {
     title: "Manually graded answer",
-    student_title: "Your answer",
+    student_title: "Manually graded answer",
     student_tip:
       "Type your answer in this cell.  It will be manually graded by a person later.",
     link:
@@ -167,7 +202,12 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     locked: false,
     solution: true,
     task: false,
-    points: 0
+    points: DEFAULT_POINTS,
+    template: {
+      python: PY_MANUAL_ANSWER,
+      r: R_MANUAL_ANSWER,
+      julia: JULIA_MANUAL_ANSWER,
+    },
   },
   {
     // The official docs so this is only for markdown cells only and that is all that makes sense,
@@ -189,12 +229,12 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     solution: false,
     task: true,
     template: TASK_TEMPLATE,
-    points: 0,
-    markdown_only: true
+    points: DEFAULT_POINTS,
+    markdown_only: true,
   },
   {
     title: "Autograded answer",
-    student_title: "Your answer (tests are below)",
+    student_title: "Answer that will be automatically graded below",
     student_tip:
       "Type your answer in this cell and evaluate it.  Use tests in cells below to check that your code probably works.",
     link:
@@ -211,12 +251,12 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     template: {
       python: PY_ANSWER,
       r: R_ANSWER,
-      julia: JULIA_ANSWER
-    }
+      julia: JULIA_ANSWER,
+    },
   },
   {
     title: "Autograder tests",
-    student_title: "Test your code",
+    student_title: "Test your code from above here",
     student_tip:
       "You should have typed some code above and evaluated it.  Use the tests here to check that your code probably works.  Note that your teacher may also run additional tests not included here.",
     link:
@@ -229,13 +269,13 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     locked: true,
     solution: false,
     task: false,
-    points: 0,
+    points: DEFAULT_POINTS,
     code_only: true,
     template: {
       python: PY_TEST,
       r: R_TEST,
-      julia: JULIA_TEST
-    }
+      julia: JULIA_TEST,
+    },
   },
   {
     title: "Readonly",
@@ -251,8 +291,8 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     grade: false,
     locked: true,
     solution: false,
-    task: false
-  }
+    task: false,
+  },
 ];
 
 export const CELLTYPE_INFO_MAP: { [value: string]: CelltypeInfo } = {};
@@ -299,7 +339,7 @@ export function value_to_state(value: string): Metadata {
     locked: x.locked,
     solution: x.solution,
     task: x.task,
-    points: x.points
+    points: x.points,
   };
 }
 
@@ -309,8 +349,14 @@ or memorize the syntax of nbgrader...
 */
 export function value_to_template_content(
   value: string,
-  language: string
+  language: string,
+  type: string
 ): string {
+  if (value == "manual" && type != "code") {
+    // special case
+    return "YOUR ANSWER HERE";
+  }
+
   const x = CELLTYPE_INFO_MAP[value];
   if (x == null) {
     throw Error(`unknown value "${value}"`);

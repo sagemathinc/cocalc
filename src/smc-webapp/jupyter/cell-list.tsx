@@ -1,6 +1,9 @@
 /*
-React component that renders the ordered list of cells
-*/
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// React component that renders the ordered list of cells
 
 declare const $: any;
 
@@ -42,6 +45,9 @@ interface CellListProps {
   cell_toolbar?: string;
   trust?: boolean;
   use_windowed_list?: boolean;
+  // NOTE: if the value of use_windowed_list *changes* while mounted, we don't re-render everything,
+  // which would be a mess and is not really a good idea... since the main use of windowing is to
+  // make the initial render fast.  If it is already rendered, why mess it up?
 }
 
 export class CellList extends Component<CellListProps> {
@@ -183,7 +189,6 @@ export class CellList extends Component<CellListProps> {
   }
 
   private async scroll_cell_list(scroll: Scroll): Promise<void> {
-    if (!this.use_windowed_list) return;
     let list = this.windowed_list_ref.current;
     if (list == null) return;
     const info = list.get_scroll();
@@ -195,15 +200,16 @@ export class CellList extends Component<CellListProps> {
     }
 
     // supported scroll positions are in types.ts
-    if (scroll === "cell visible") {
+    if (scroll.startsWith("cell ")) {
+      const align = scroll === "cell top" ? "start" : "top";
       if (this.props.cur_id == null) return;
       const n = this.props.cell_list.indexOf(this.props.cur_id);
       if (n == -1) return;
-      list.ensure_row_is_visible(n, "top");
+      list.ensure_row_is_visible(n, align);
       await delay(5); // needed due to shift+enter causing output
       list = this.windowed_list_ref.current;
       if (list == null) return;
-      list.ensure_row_is_visible(n, "top");
+      list.ensure_row_is_visible(n, align);
     }
     if (info == null) return;
 
@@ -230,7 +236,7 @@ export class CellList extends Component<CellListProps> {
           fontSize: "32pt",
           color: "#888",
           textAlign: "center",
-          marginTop: "15px"
+          marginTop: "15px",
         }}
       >
         <Loading />
@@ -238,7 +244,7 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  private on_click = e => {
+  private on_click = (e) => {
     if (this.props.actions) this.props.actions.clear_complete();
     if ($(e.target).hasClass("cocalc-complete")) {
       // Bootstrap simulates a click even when user presses escape; can't catch there.
@@ -313,7 +319,7 @@ export class CellList extends Component<CellListProps> {
     key,
     isVisible,
     isScrolling,
-    index
+    index,
   }): Rendered {
     const is_last: boolean = key === this.props.cell_list.get(-1);
     return (
@@ -334,9 +340,9 @@ export class CellList extends Component<CellListProps> {
     return (
       <WindowedList
         ref={this.windowed_list_ref}
-        overscan_row_count={10}
+        overscan_row_count={this.use_windowed_list ? 40 : 200}
         estimated_row_size={DEFAULT_ROW_SIZE}
-        row_key={index => this.props.cell_list.get(index)}
+        row_key={(index) => this.props.cell_list.get(index)}
         row_count={this.props.cell_list.size}
         row_renderer={this.windowed_list_row_renderer.bind(this)}
         cache_id={cache_id}
@@ -348,7 +354,9 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  private render_list_of_cells_directly(): Rendered[] {
+  // This is needed for **the share server**, which can't
+  // do windowing.
+  private render_list_of_cells_directly() {
     const v: Rendered[] = [];
     let index: number = 0;
     this.props.cell_list.forEach((id: string) => {
@@ -371,18 +379,23 @@ export class CellList extends Component<CellListProps> {
   private render_list_of_cells(): Rendered | Rendered[] {
     const style: React.CSSProperties = {
       backgroundColor: "#fff",
-      paddingLeft: "5px"
+      paddingLeft: "5px",
     };
 
-    if (this.use_windowed_list) {
+    if (this.props.actions == null) {
+      // e.g., the share server uses this:
       return (
         <div className="smc-vfill" style={style}>
-          {this.render_list_of_cells_using_windowed_list()}
+          {this.render_list_of_cells_directly()}
         </div>
       );
-    } else {
-      return <div style={style}>{this.render_list_of_cells_directly()}</div>;
     }
+
+    return (
+      <div className="smc-vfill" style={style}>
+        {this.render_list_of_cells_using_windowed_list()}
+      </div>
+    );
   }
 
   public render(): Rendered {
@@ -395,7 +408,7 @@ export class CellList extends Component<CellListProps> {
       paddingLeft: "5px",
       height: "100%",
       overflowY: "auto",
-      overflowX: "hidden"
+      overflowX: "hidden",
     };
 
     return (

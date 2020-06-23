@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Register the time editor -- stopwatch
   - set the file extension, icon, react component,
     and how to init and remove the actions/store
@@ -39,11 +44,11 @@ register_file_editor({
       project_id,
       path,
       primary_keys: ["id"],
-      string_cols: ["label"]
+      string_cols: ["label"],
     });
     actions.syncdb = syncdb;
     actions.store = store;
-    syncdb.once("error", err => {
+    syncdb.once("error", (err) => {
       const message = `Stopwatch error '${path}' -- ${err}`;
       alert_message({ type: "error", message });
     });
@@ -68,5 +73,5 @@ register_file_editor({
     redux.removeStore(name);
     redux.removeActions(name);
     return name;
-  }
+  },
 });

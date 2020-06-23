@@ -1,260 +1,182 @@
-/* The sign-in banner at the top of the landing page. */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-import * as React from "react";
-import { ReactDOM, Rendered } from "../app-framework";
+import { React, useActions, useEffect, useState } from "../app-framework";
 import { List } from "immutable";
 import { ErrorDisplay } from "../r_misc/error-display";
 import { Markdown } from "../r_misc";
 import { Passports } from "../passports";
-import {
-  Col,
-  Row,
-  FormGroup,
-  FormControl,
-  Button,
-  Grid
-} from "react-bootstrap";
-import { bind_methods } from "smc-util/misc2";
-
-import { actions } from "./util";
+import { PassportStrategy } from "../account/passport-types";
+import { Col, Row, Button } from "../antd-bootstrap";
+import { Input } from "antd";
 
 interface Props {
   sign_in_error?: string;
-  signing_in: boolean;
-  has_account: boolean;
-  xs: boolean; // extra small
+  signing_in?: boolean;
+  has_account?: boolean;
+  xs?: boolean; // extra small
   color: string;
-  strategies: List<string>;
-  get_api_key: string;
+  strategies?: List<PassportStrategy>;
+  get_api_key?: string;
 }
 
-interface State {
-  show_forgot_password: boolean;
-}
+export const SignIn: React.FC<Props> = (props) => {
+  const page_actions = useActions("page");
+  useEffect(() => {
+    page_actions.set_sign_in_func(sign_in);
+    return () => page_actions.remove_sign_in_func();
+  }, []);
 
-export class SignIn extends React.Component<Props, State> {
-  constructor(props) {
-    super(props);
-    this.state = { show_forgot_password: false };
-    bind_methods(this, [
-      "remove_error",
-      "sign_in",
-      "display_forgot_password",
-      "change_email"
-    ]);
-  }
-  componentDidMount(): void {
-    actions("page").set_sign_in_func(this.sign_in);
-  }
+  const actions = useActions("account");
 
-  componentWillUnmount(): void {
-    actions("page").remove_sign_in_func();
+  const [email, set_email] = useState<string>("");
+  const [password, set_password] = useState<string>("");
+
+  // Just a quick check for whether submit button should be disabled
+  // don't make too clever, since we want user to see errors.
+  function is_submittable(): boolean {
+    return email != "" && password != "" && !props.signing_in;
   }
 
-  sign_in(e): void {
-    if (e != null) {
-      e.preventDefault();
-    }
-    actions("account").sign_in(
-      ReactDOM.findDOMNode(this.refs.email).value,
-      ReactDOM.findDOMNode(this.refs.password).value
-    );
+  function sign_in(): void {
+    actions.sign_in(email, password);
   }
 
-  display_forgot_password(): void {
-    actions("account").setState({ show_forgot_password: true });
+  function display_forgot_password(): void {
+    actions.setState({ show_forgot_password: true });
   }
 
-  render_error(): Rendered {
-    if (!this.props.sign_in_error) return;
-    // TODO: @j3 -- please fix ErrorDisplay typing so the conversion
+  function render_error(): JSX.Element | undefined {
+    if (!props.sign_in_error) return;
+    // TODO: please fix ErrorDisplay typing so the conversion
     // to unknown below is not needed.
     return (
       <ErrorDisplay
         style={{ marginRight: 0 }}
-        error_component={<Markdown value={this.props.sign_in_error} />}
-        onClose={() =>
-          actions("account").setState({ sign_in_error: undefined })
-        }
+        error_component={<Markdown value={props.sign_in_error} />}
+        onClose={() => actions.setState({ sign_in_error: undefined })}
       />
     );
   }
 
-  render_passports(): Rendered {
+  function render_passports(): JSX.Element {
     return (
       <div>
         <Passports
-          strategies={this.props.strategies}
-          get_api_key={this.props.get_api_key}
+          strategies={props.strategies}
+          get_api_key={props.get_api_key}
           no_heading={true}
         />
       </div>
     );
   }
 
-  remove_error(): void {
-    if (this.props.sign_in_error) {
-      actions("account").setState({ sign_in_error: undefined });
+  function remove_error(): void {
+    if (props.sign_in_error) {
+      actions.setState({ sign_in_error: undefined });
     }
   }
 
-  change_email(): void {
-    actions("account").setState({
-      sign_in_error: undefined,
-      sign_in_email_address: ReactDOM.findDOMNode(this.refs.email).value
-    });
-  }
-
-  forgot_font_size(): string {
-    if (this.props.sign_in_error != null) {
+  function forgot_font_size(): string {
+    if (props.sign_in_error != null) {
       return "16pt";
     } else {
       return "12pt";
     }
   }
 
-  render_extra_small(): Rendered {
+  function render_full_size(): JSX.Element {
     return (
-      <Col xs={12}>
-        <form onSubmit={this.sign_in} className="form-inline">
-          <Row>
-            <FormGroup>
-              <FormControl
-                ref="email"
-                type="email"
-                placeholder="Email address"
-                name="email"
-                autoFocus={this.props.has_account}
-                onChange={this.change_email}
-              />
-            </FormGroup>
-          </Row>
-          <Row>
-            <FormGroup>
-              <FormControl
-                style={{ width: "100%" }}
-                ref="password"
-                type="password"
-                name="password"
-                placeholder="Password"
-                onChange={this.remove_error}
-              />
-            </FormGroup>
-          </Row>
-          <Row>
+      <div>
+        <Row>
+          <Col md={5} xs={12}>
+            <Input
+              style={{ width: "100%", marginBottom: "5px" }}
+              value={email}
+              type="email"
+              name="email"
+              placeholder="Email address"
+              cocalc-test={"sign-in-email"}
+              autoFocus={true}
+              onChange={(e) => {
+                const sign_in_email_address = e.target.value;
+                set_email(sign_in_email_address);
+                actions.setState({
+                  sign_in_email_address, // so can be used by modal password reset dialog...
+                  sign_in_error: undefined,
+                });
+              }}
+            />
+          </Col>
+          <Col md={5} xs={12}>
+            <Input.Password
+              placeholder="Password"
+              style={{ width: "100%", marginBottom: "5px" }}
+              value={password}
+              type="password"
+              name="password"
+              cocalc-test={"sign-in-password"}
+              onChange={(e) => {
+                set_password(e.target.value);
+                remove_error();
+              }}
+              onKeyDown={(e) => {
+                if (e.keyCode == 13) {
+                  e.preventDefault();
+                  sign_in();
+                }
+              }}
+            />
+          </Col>
+          <Col md={2} xs={12}>
+            <Button
+              cocalc-test={"sign-in-submit"}
+              disabled={!is_submittable()}
+              style={{ height: 34 }}
+              className="pull-right"
+              onClick={sign_in}
+            >
+              Sign&nbsp;in
+            </Button>
+          </Col>
+        </Row>
+        <Row>
+          <Col xs={7} xsOffset={5} style={{ paddingLeft: 15 }}>
             <div style={{ marginTop: "1ex" }}>
               <a
-                onClick={this.display_forgot_password}
+                onClick={display_forgot_password}
                 style={{
-                  color: this.props.color,
+                  color: props.color,
                   cursor: "pointer",
-                  fontSize: this.forgot_font_size()
+                  fontSize: forgot_font_size(),
                 }}
               >
                 Forgot Password?
               </a>
             </div>
-          </Row>
-          <Row>
-            <Button
-              type="submit"
-              disabled={this.props.signing_in}
-              bsStyle="default"
-              style={{ height: 34 }}
-              className="pull-right"
-            >
-              Sign&nbsp;In
-            </Button>
-          </Row>
-          <Row>{this.render_passports()}</Row>
-          <Row className="form-inline pull-right" style={{ clear: "right" }}>
-            {this.render_error()}
-          </Row>
-        </form>
-      </Col>
+          </Col>
+        </Row>
+        <Row>
+          <Col xs={12}>{render_passports()}</Col>
+        </Row>
+        <Row
+          className={"form-inline pull-right"}
+          style={{ clear: "right", width: "100%" }}
+        >
+          <Col xs={12}>{render_error()}</Col>
+        </Row>
+      </div>
     );
   }
 
-  render_full_size(): Rendered {
-    return (
-      <form onSubmit={this.sign_in} className="form-inline">
-        <Grid fluid={true} style={{ padding: 0 }}>
-          <Row>
-            <Col xs={5}>
-              <FormGroup>
-                <FormControl
-                  style={{ width: "100%" }}
-                  ref="email"
-                  type="email"
-                  name="email"
-                  placeholder="Email address"
-                  cocalc-test={"sign-in-email"}
-                  autoFocus={true}
-                  onChange={this.change_email}
-                />
-              </FormGroup>
-            </Col>
-            <Col xs={4}>
-              <FormGroup>
-                <FormControl
-                  style={{ width: "100%" }}
-                  ref="password"
-                  type="password"
-                  name="password"
-                  placeholder="Password"
-                  cocalc-test={"sign-in-password"}
-                  onChange={this.remove_error}
-                />
-              </FormGroup>
-            </Col>
-            <Col xs={3}>
-              <Button
-                cocalc-test={"sign-in-submit"}
-                type="submit"
-                disabled={this.props.signing_in}
-                bsStyle="default"
-                style={{ height: 34 }}
-                className="pull-right"
-              >
-                Sign&nbsp;in
-              </Button>
-            </Col>
-          </Row>
-          <Row>
-            <Col xs={7} xsOffset={5} style={{ paddingLeft: 15 }}>
-              <div style={{ marginTop: "1ex" }}>
-                <a
-                  onClick={this.display_forgot_password}
-                  style={{
-                    color: this.props.color,
-                    cursor: "pointer",
-                    fontSize: this.forgot_font_size()
-                  }}
-                >
-                  Forgot Password?
-                </a>
-              </div>
-            </Col>
-          </Row>
-          <Row>
-            <Col xs={12}>{this.render_passports()}</Col>
-          </Row>
-          <Row
-            className={"form-inline pull-right"}
-            style={{ clear: "right", width: "100%" }}
-          >
-            <Col xs={12}>{this.render_error()}</Col>
-          </Row>
-        </Grid>
-      </form>
-    );
+  return render_full_size();
+  /*
+  if (props.xs) {
+    return render_extra_small();
+  } else {
+    return render_full_size();
   }
-
-  render(): Rendered {
-    if (this.props.xs) {
-      return this.render_extra_small();
-    } else {
-      return this.render_full_size();
-    }
-  }
-}
+  */
+};

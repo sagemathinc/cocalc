@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // ../ prefix to make manage-pods work
 import { callback2 } from "../smc-util/async-utils";
 import { trunc } from "../smc-util/misc2";
@@ -28,10 +33,12 @@ async function get_users(db: PostgreSQL, where): Promise<User[]> {
     : []; // syncdoc exists, but not used yet.
   const project_id: string = results.rows[0].project_id;
   const project_title: string = trunc(
-    (await callback2(db.get_project, {
-      columns: ["title"],
-      project_id
-    })).title,
+    (
+      await callback2(db.get_project, {
+        columns: ["title"],
+        project_id,
+      })
+    ).title,
     80
   );
 

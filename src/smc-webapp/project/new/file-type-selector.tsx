@@ -1,6 +1,10 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { Col, Row } from "react-bootstrap";
-import { useSelector } from "react-redux";
 
 import { Tip } from "../../r_misc";
 
@@ -8,37 +12,25 @@ import { JupyterServerPanel } from "../plain-jupyter-server";
 import { JupyterLabServerPanel } from "../jupyterlab-server";
 
 import { NewFileButton } from "./new-file-button";
-import { AvailableFeatures } from "./types";
 import { ALL_AVAIL } from "../../project_configuration";
+import { useRedux, useState } from "../../app-framework";
 
 interface Props {
   create_file: (name?: string) => void;
   project_id?: string;
   children?: React.ReactNode;
-  name: string;
 }
 
 // Use Rows and Cols to append more buttons to this class.
 // Could be changed to auto adjust to a list of pre-defined button names.
-export function FileTypeSelector({
-  name,
+export const FileTypeSelector: React.FC<Props> = ({
   create_file,
   project_id,
-  children
-}: Props): JSX.Element | null {
-  const [show_jupyter_server, set_show_jupyter_server] = React.useState(false);
-  const [show_jupyterlab_server, set_show_jupyterlab_server] = React.useState(
-    false
-  );
-  // TODO: this is very confusing because you're replacing the abstraction
-  // of having a store associated to the project by knowledge that this
-  // just happens to be implemented by a single global immutable.js object x
-  // where the data for the project is in x.get(name).   I guess this is a
-  // bad leaky abstraction situation...  I would replace this code with
-  // a new hook called something like useProjectStore...
-  const available_features = useSelector<any, AvailableFeatures>(obj => {
-    return obj.getIn([name, "available_features"]);
-  });
+  children,
+}: Props): JSX.Element | null => {
+  const [show_jupyter_server, set_show_jupyter_server] = useState(false);
+  const [show_jupyterlab_server, set_show_jupyterlab_server] = useState(false);
+  const available_features = useRedux(["available_features"], project_id);
 
   if (!create_file || !create_file || !project_id) {
     return null;
@@ -70,9 +62,7 @@ export function FileTypeSelector({
                 ext="sagews"
               />
             </Tip>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           {available.jupyter_notebook ? (
             <Tip
               icon="cc-icon-jupyter"
@@ -86,9 +76,7 @@ export function FileTypeSelector({
                 ext={"ipynb"}
               />
             </Tip>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           {available.latex ? (
             <Tip
               title="LaTeX Document"
@@ -102,9 +90,7 @@ export function FileTypeSelector({
                 ext="tex"
               />
             </Tip>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           <Tip
             title="Linux terminal"
             icon="terminal"
@@ -130,9 +116,7 @@ export function FileTypeSelector({
                 ext="x11"
               />
             </Tip>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </Col>
       </Row>
       <Row style={row_style}>
@@ -192,9 +176,7 @@ export function FileTypeSelector({
                 ext="rmd"
               />
             </Tip>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           <Tip
             title="Task list"
             icon="tasks"
@@ -243,9 +225,7 @@ export function FileTypeSelector({
                 disabled={show_jupyter_server}
               />
             </Tip>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           {available.jupyter_lab ? (
             <Tip
               title={"JupyterLab server"}
@@ -263,27 +243,21 @@ export function FileTypeSelector({
                 disabled={show_jupyterlab_server}
               />
             </Tip>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </Col>
       </Row>
       <Row style={row_style}>
         <Col sm={6}>
           {show_jupyter_server ? (
             <JupyterServerPanel project_id={project_id} />
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </Col>
         <Col sm={6}>
           {show_jupyterlab_server ? (
             <JupyterLabServerPanel project_id={project_id} />
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </Col>
       </Row>
     </>
   );
-}
+};

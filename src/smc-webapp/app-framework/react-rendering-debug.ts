@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 declare let smc, performance;
 
 export enum MODES {
@@ -5,7 +10,14 @@ export enum MODES {
   time = "time", // show every single component render and how long it took
   verbose = "verbose", // print every CoCalc component that is rendered when rendered
   trace = "trace", // print only components that take some time, along with timing info
-  default = "default" // Do nothing extra
+  default = "default", // Do nothing extra
+}
+
+// to make typescript happy (TS2339 & co)
+interface TBase {
+  render: any;
+  _render: any;
+  displayName: string;
 }
 
 export function debug_transform<T extends (...args: any[]) => any>(
@@ -27,9 +39,9 @@ export function debug_transform<T extends (...args: any[]) => any>(
       //  smc.reset_render_count()
       //  JSON.stringify(smc.get_render_count())
       let render_count: { [key: string]: number } = {};
-      composed_rclass = function<T extends any>(x: T): T {
+      composed_rclass = function <T extends TBase>(x: T): T {
         x._render = x.render;
-        x.render = function(): ReturnType<T["render"]> {
+        x.render = function (): ReturnType<T["render"]> {
           render_count[x.displayName] =
             (render_count[x.displayName] != null
               ? render_count[x.displayName]
@@ -38,7 +50,7 @@ export function debug_transform<T extends (...args: any[]) => any>(
         };
         return rclass(x);
       };
-      smc.get_render_count = function(): {
+      smc.get_render_count = function (): {
         counts: { [key: string]: number };
         total: number;
       } {
@@ -50,7 +62,7 @@ export function debug_transform<T extends (...args: any[]) => any>(
 
         return { counts: render_count, total };
       };
-      smc.reset_render_count = function(): void {
+      smc.reset_render_count = function (): void {
         render_count = {};
       };
       break;
@@ -66,16 +78,16 @@ export function debug_transform<T extends (...args: any[]) => any>(
       };
       break;
     case "verbose":
-      composed_rclass = function<
+      composed_rclass = function <
         T extends {
-          render: (...args: any[]) => JSX.Element;
+          render: (...args: any[]) => any;
           displayName?: string;
         }
       >(x: T): T & { _render: T["render"] } {
         (x as any)._render = x.render;
-        x.render = function(): JSX.Element {
+        x.render = function () {
           console.log(x.displayName);
-          return this._render();
+          return (this as any)._render();
         };
         return rclass(x);
       };

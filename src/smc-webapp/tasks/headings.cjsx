@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 Headings of the task list:
 
@@ -77,28 +82,36 @@ exports.Headings = rclass
     render_headings: ->
         column = @props.sort?.get('column') ? HEADINGS[0]
         dir    = @props.sort?.get('dir')    ? HEADINGS_DIR[0]
+        # NOTE: we use xs below so that the HEADING columns never wordwrap on
+        # skinny screens, since they are really important for being
+        # able to control the order.  On the other hand, if they wrap,
+        # then they use a LOT of vertical space, which is at an extreme
+        # premium for task lists...  See
+        #   https://github.com/sagemathinc/cocalc/issues/4305
+        # We hide the done column though since it overlaps and we can't
+        # sort by that.
         <Row style={borderBottom:'1px solid lightgray'}>
-            <Col md={1} style={color:'#666', textAlign:'center'}>
+            <Col xs={1} style={color:'#666', textAlign:'center'}>
 
             </Col>
-            <Col md={6} style={color:'#666'}>
+            <Col xs={6} style={color:'#666'}>
                 Description
             </Col>
-            <Col md={2}>
+            <Col xs={2}>
                 {@render_heading(HEADINGS[0], if column==HEADINGS[0] then dir)}
             </Col>
-            <Col md={1}>
+            <Col xs={1}>
                 {@render_heading(HEADINGS[1], if column==HEADINGS[1] then dir)}
             </Col>
-            <Col md={1}>
+            <Col xs={1}>
                 {@render_heading(HEADINGS[2], if column==HEADINGS[2] then dir)}
             </Col>
-            <Col md={1} style={color:'#666'}>
+            <Col xs={1} style={color:'#666'}  className={'visible-sm-inline visible-md-inline visible-lg-inline'}>
                 Done
             </Col>
         </Row>
 
     render: ->
-        <div style={padding:'0 10px'}  className={'visible-lg-inline'}>
+        <div style={padding:'0 10px'}>
             {@render_headings()}
         </div>

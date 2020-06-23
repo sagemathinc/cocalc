@@ -1,16 +1,19 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Map as iMap, List as iList } from "immutable";
 import { FileUseInfo } from "./info";
-import { Alert, Button, Col, Row, Grid } from "react-bootstrap";
+import { Alert, Button, Col, Row } from "react-bootstrap";
 import { Component, React, Rendered } from "../app-framework";
-import { analytics_event } from "../tracker";
 import { SearchInput, WindowedList, Icon } from "../r_misc";
 import { FileUseActions } from "./actions";
 import { open_file_use_entry } from "./util";
 
 const {
-  filename_extension,
   search_match,
-  search_split
+  search_split,
 } = require("smc-util/misc");
 
 interface Props {
@@ -38,7 +41,7 @@ export class FileUseViewer extends Component<Props, State> {
     super(props);
     this.state = {
       search: "",
-      cursor: 0
+      cursor: 0,
     };
   }
 
@@ -89,11 +92,11 @@ export class FileUseViewer extends Component<Props, State> {
           autoFocus={true}
           placeholder="Search..."
           default_value={this.state.search}
-          on_change={value => this.setState({ search: value, cursor: 0 })}
+          on_change={(value) => this.setState({ search: value, cursor: 0 })}
           on_submit={() => {
             this.open_selected();
           }}
-          on_escape={before => {
+          on_escape={(before) => {
             if (!before) {
               const a = this.props.redux.getActions("page");
               if (a != null) {
@@ -141,11 +144,6 @@ export class FileUseViewer extends Component<Props, State> {
       x.get("show_chat", false),
       this.props.redux
     );
-    analytics_event(
-      "file_notifications",
-      "open from search",
-      filename_extension(x.get("path"))
-    );
   }
 
   private get_visible_list(): iList<FileUseInfoMap> {
@@ -153,7 +151,7 @@ export class FileUseViewer extends Component<Props, State> {
       this.visible_list = this.props.file_use_list;
       if (this.state.search) {
         const s = search_split(this.state.search.toLowerCase());
-        this.visible_list = this.visible_list.filter(info =>
+        this.visible_list = this.visible_list.filter((info) =>
           search_match(info.get("search"), s)
         );
         this.num_missing =
@@ -200,9 +198,15 @@ export class FileUseViewer extends Component<Props, State> {
   }
 
   render_see_mentions_link(): Rendered {
-    const notifications_page_text = `See mentions (${this.props.unseen_mentions_size})`;
+    let notifications_page_text:
+      | string
+      | JSX.Element = `Mentions (${this.props.unseen_mentions_size})`;
+    if (this.props.unseen_mentions_size > 0) {
+      notifications_page_text = <b>{notifications_page_text}</b>;
+    }
     return (
       <Link
+        style={{ fontSize: "16px", whiteSpace: "nowrap" }}
         on_click={() => {
           this.props.redux.getActions("page").set_active_tab("notifications");
           this.props.redux.getActions("page").toggle_show_file_use();
@@ -217,17 +221,17 @@ export class FileUseViewer extends Component<Props, State> {
     const link = this.render_see_mentions_link();
     return (
       <div className={"smc-vfill smc-file-use-viewer"}>
-        <Grid fluid={true}>
-          <Row key="top">
-            <Col sm={7}>{this.render_search_box()}</Col>
-            <Col sm={2}>{link}</Col>
-            <Col sm={3}>
-              <div style={{ float: "right" }}>
-                {this.render_mark_all_read_button()}
-              </div>
-            </Col>
-          </Row>
-        </Grid>
+        <Row key="top">
+          <Col sm={7}>{this.render_search_box()}</Col>
+          <Col sm={2} style={{ paddingTop: "5px" }}>
+            {link}
+          </Col>
+          <Col sm={3}>
+            <div style={{ float: "right" }}>
+              {this.render_mark_all_read_button()}
+            </div>
+          </Col>
+        </Row>
         {this.render_how_many_hidden_by_search()}
         {this.render_list()}
       </div>
@@ -235,14 +239,14 @@ export class FileUseViewer extends Component<Props, State> {
   }
 }
 
-function Link({ on_click, children }) {
-  const _on_click = e => {
+function Link({ on_click, children, style }) {
+  const _on_click = (e) => {
     e.preventDefault();
     on_click(e);
   };
 
   return (
-    <a role="button" href="" onClick={_on_click}>
+    <a role="button" href="" onClick={_on_click} style={style}>
       {children}{" "}
     </a>
   );

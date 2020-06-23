@@ -1,15 +1,21 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const path = require("path");
 const this_file: string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
 
 import chalk from "chalk";
-import { Creds, TestGetString } from "./types";
-import { time_log } from "./time_log";
+import { Creds, Opts, TestGetString } from "./types";
+import { time_log2 } from "./time_log";
 import axios from "axios";
 import { expect } from "chai";
 
-export const get_project_status = async function(
+export const get_project_status = async function (
   creds: Creds,
+  opts: Opts,
   api_key: string,
   project_id: string
 ): Promise<TestGetString> {
@@ -41,7 +47,7 @@ export const get_project_status = async function(
     expect(response.data.event).to.equal("query");
     const status: string = response.data.query.projects.status.state;
     debuglog("status state", status);
-    time_log(this_file, tm_start);
+    await time_log2(this_file, tm_start, creds, opts);
     ags.result = status;
     ags.pass += 1;
   } catch (e) {

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { props2img, RESET_ICON } from "./util";
 import { ComputeImages } from "./init";
@@ -7,7 +12,7 @@ import { ComputeImages } from "./init";
 import {
   A,
   Icon,
-  COLORS
+  COLORS,
   //   Tip,
   //   HiddenXSSM,
   //   VisibleMDLG,
@@ -31,15 +36,15 @@ const doc_tt = "https://doc.cocalc.com/time-travel.html";
 const title_style: React.CSSProperties = Object.freeze({
   fontWeight: "bold" as "bold",
   fontSize: "15pt",
-  paddingBottom: "20px"
+  paddingBottom: "20px",
 });
 
 const button_bar_style: React.CSSProperties = Object.freeze({
-  whiteSpace: "nowrap" as "nowrap"
+  whiteSpace: "nowrap" as "nowrap",
 });
 
 const info_style: React.CSSProperties = Object.freeze({
-  paddingBottom: "20px"
+  paddingBottom: "20px",
 });
 
 interface Props {
@@ -52,19 +57,12 @@ interface Props {
 }
 
 export class CustomSoftwareReset extends React.Component<Props, {}> {
-  private props2img;
-
-  constructor(props) {
-    super(props);
-    this.props2img = props2img.bind(this);
-  }
-
   reset = () => this.props.actions.custom_software_reset();
 
   cancel = () => this.props.actions.toggle_custom_software_reset(false);
 
   render = () => {
-    const img = this.props2img();
+    const img = props2img(this.props);
     if (img == null) return;
     const NAME = this.props.site_name || SITE_NAME;
 

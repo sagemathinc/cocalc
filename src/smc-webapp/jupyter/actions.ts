@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Jupyter actions -- these are the actions for the underlying document structure.
 This can be used both on the frontend and the backend.
 */
@@ -6,6 +11,12 @@ This can be used both on the frontend and the backend.
 // Uncomment to temporarily force build, since otherwise webpack doesn't find:
 // require('./test/export-to-ipynb-ts');
 // require("./project-actions");
+
+// This was 10000 for a while and that caused regular noticeable problems:
+//    https://github.com/sagemathinc/cocalc/issues/4590
+// It seems like 50000 provides a better tradeoff.  With 10000 we got about
+// four support messages *per year* about this...
+const DEFAULT_MAX_OUTPUT_LENGTH = 100000;
 
 declare const localStorage: any;
 
@@ -26,16 +37,13 @@ import * as awaiting from "awaiting";
 import { three_way_merge } from "../../smc-util/sync/editor/generic/util";
 
 import { Cell, KernelInfo } from "./types";
-import {
-  Parser,
-  format_parser_for_extension
-} from "../../smc-util/code-formatter";
+import { Syntax } from "../../smc-util/code-formatter";
 
 import { Actions } from "../app-framework";
 import {
   JupyterStoreState,
   JupyterStore,
-  show_kernel_selector_reasons
+  show_kernel_selector_reasons,
 } from "./store";
 import * as parsing from "./parsing";
 import * as cell_utils from "./cell-utils";
@@ -49,17 +57,15 @@ import { IPynbImporter } from "./import-from-ipynb";
 
 import { JupyterKernelInterface } from "./project-interface";
 
-import { connection_to_project } from "../project/websocket/connect";
-
 import { parse_headings } from "./contents";
 
 import {
   codemirror_to_jupyter_pos,
   js_idx_to_char_idx,
-  char_idx_to_js_idx
+  char_idx_to_js_idx,
 } from "./util";
 
-import { Options as FormatterOptions } from "../../smc-project/formatters/prettier";
+import { Config as FormatterConfig } from "../../smc-project/formatters/prettier";
 
 import { SyncDB } from "../../smc-util/sync/editor/db/sync";
 
@@ -114,7 +120,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       throw Error("type error -- project_id and path can't be null");
       return;
     }
-    store.dbg = f => {
+    store.dbg = (f) => {
       return client.dbg(`JupyterStore('${store.get("path")}').${f}`);
     };
     this._state = "init"; // 'init', 'load', 'ready', 'closed'
@@ -162,8 +168,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       project_id,
       directory,
       path,
-      max_output_length: 10000,
-      cell_toolbar: this.store.get_local_storage("cell_toolbar")
+      max_output_length: DEFAULT_MAX_OUTPUT_LENGTH,
+      cell_toolbar: this.store.get_local_storage("cell_toolbar"),
     });
 
     this.syncdb.on("change", this._syncdb_change);
@@ -182,7 +188,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // the (hidden, e.g. .a.ipynb.sage-jupyter2) syncdb file,
     // then set the kernel, if necessary.
     try {
-      await this.syncdb.wait(s => !!s.get_one({ type: "file" }), 600);
+      await this.syncdb.wait((s) => !!s.get_one({ type: "file" }), 600);
     } catch (err) {
       if (this._state != "ready") {
         // Probably user just closed the notebook before it finished
@@ -205,6 +211,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   init_project_conn = reuseInFlight(
     async (): Promise<any> => {
+      // this cannot (and does not need to be) be imported from within the project.
+      // TODO: move to browser-actions.ts
+      const { connection_to_project } = require("../project/websocket/connect");
       return (this.project_conn = await connection_to_project(
         this.store.get("project_id")
       ));
@@ -268,7 +277,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.set_error(err);
       return;
     }
-    const kernels = immutable.fromJS(data);
+    // we filter kernels that are disabled for the cocalc notebook – motivated by a broken GAP kernel
+    const kernels = immutable
+      .fromJS(data)
+      .filter((k) => !k.getIn(["metadata", "cocalc", "disabled"], false));
     const key = this.store.jupyter_kernel_key();
     jupyter_kernels = jupyter_kernels.set(key, kernels); // global
     this.setState({ kernels });
@@ -321,7 +333,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         id,
         input,
         start: null,
-        end: null
+        end: null,
       },
       save
     );
@@ -332,7 +344,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       {
         type: "cell",
         id,
-        output
+        output,
       },
       save
     );
@@ -434,7 +446,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const obj: any = {
       type: "cell",
       id,
-      cell_type
+      cell_type,
     };
     if (cell_type !== "code") {
       // delete output and exec time info when switching to non-code cell_type
@@ -490,7 +502,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       // delete cell
       this.reset_more_output(id); // free up memory locally
       if (old_cell != null) {
-        const cell_list = this.store.get_cell_list().filter(x => x !== id);
+        const cell_list = this.store.get_cell_list().filter((x) => x !== id);
         this.setState({ cells: cells.delete(id), cell_list });
       }
     } else {
@@ -552,7 +564,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       //    {type: "settings", backend_state: "running", trust: true, kernel: "python3", kernel_usage: {…}, …}
       //    {type: "cell", id: "22cc3e", pos: 0, input: "# small copy", state: "done"}
       let cells: immutable.Map<string, Cell> = immutable.Map();
-      this.syncdb.get().forEach(record => {
+      this.syncdb.get().forEach((record) => {
         switch (record.get("type")) {
           case "cell":
             cells = cells.set(record.get("id"), record);
@@ -572,9 +584,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               max_output_length: bounded_integer(
                 record.get("max_output_length"),
                 100,
-                100000,
-                20000
-              )
+                250000,
+                DEFAULT_MAX_OUTPUT_LENGTH
+              ),
             };
             if (kernel !== orig_kernel) {
               obj.kernel = kernel;
@@ -594,7 +606,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.setState({ cells });
       cell_list_needs_recompute = true;
     } else {
-      changes.forEach(key => {
+      changes.forEach((key) => {
         const type: string = key.get("type");
         const record = this.syncdb.get_one(key);
         switch (type) {
@@ -639,9 +651,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               max_output_length: bounded_integer(
                 record.get("max_output_length"),
                 100,
-                100000,
-                20000
-              )
+                250000,
+                DEFAULT_MAX_OUTPUT_LENGTH
+              ),
             };
             if (kernel !== orig_kernel) {
               obj.kernel = kernel;
@@ -717,7 +729,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     } else {
       // Opening an existing notebook
       const default_kernel = this.store.get_default_kernel();
-      if (default_kernel == null) {
+      if (default_kernel == null && this.store.get("kernel")) {
         // But user has no default kernel, since they never before explicitly set one.
         // So we set it.  This is so that a user's default
         // kernel is that of the first ipynb they
@@ -866,7 +878,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         type: "cell",
         id: new_id,
         pos,
-        input: ""
+        input: "",
       },
       save
     );
@@ -1000,7 +1012,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         output: null,
         exec_count: null,
         collapsed: null,
-        no_halt: no_halt ? no_halt : null
+        no_halt: no_halt ? no_halt : null,
       },
       save
     );
@@ -1020,7 +1032,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         end: null,
         output: null,
         exec_count: null,
-        collapsed: null
+        collapsed: null,
       },
       save
     );
@@ -1034,7 +1046,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       {
         type: "cell",
         id,
-        state: "done"
+        state: "done",
       },
       save
     );
@@ -1045,14 +1057,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   run_all_cells = (no_halt: boolean = false): void => {
-    this.store.get_cell_list().forEach(id => {
+    this.store.get_cell_list().forEach((id) => {
       this.run_cell(id, false, no_halt);
     });
     this.save_asap();
   };
 
   clear_all_cell_run_state = (): void => {
-    this.store.get_cell_list().forEach(id => {
+    this.store.get_cell_list().forEach((id) => {
       this.clear_cell_run_state(id, false);
     });
     this.save_asap();
@@ -1186,7 +1198,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         input,
         output: output != null ? output : null,
         start: null,
-        end: null
+        end: null,
       },
       save
     );
@@ -1251,10 +1263,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
           [key]: !this.store.getIn(
             ["cells", id, "metadata", key],
             default_value
-          )
+          ),
         },
         merge: true,
-        save
+        save,
       });
     }
     if (save) {
@@ -1275,7 +1287,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       id,
       metadata: { jupyter },
       merge: true,
-      save
+      save,
     });
   }
 
@@ -1298,7 +1310,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       id,
       metadata: { jupyter },
       merge: true,
-      save
+      save,
     });
   }
 
@@ -1356,7 +1368,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         before_pos = cells.getIn([cell_before_pasted_id, "pos"]);
         after_pos = cells.getIn([
           this.store.get_cell_id(+1, cell_before_pasted_id),
-          "pos"
+          "pos",
         ]);
       }
       const positions = cell_utils.positions_between(
@@ -1400,7 +1412,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // unset the line_numbers property from all cells
     const cells = this.store
       .get("cells")
-      .map(cell => cell.delete("line_numbers"));
+      .map((cell) => cell.delete("line_numbers"));
     if (!cells.equals(this.store.get("cells"))) {
       // actually changed
       this.setState({ cells });
@@ -1463,7 +1475,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this.store.get("kernel") !== kernel) {
       this._set({
         type: "settings",
-        kernel
+        kernel,
       });
     }
     if (this.store.get("show_kernel_selector")) {
@@ -1476,7 +1488,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (project_actions == null) return;
     project_actions.open_file({
       path: misc.history_path(this.path),
-      foreground: true
+      foreground: true,
     });
   }
 
@@ -1532,13 +1544,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     try {
       complete = await this.api_call("complete", {
         code,
-        cursor_pos
+        cursor_pos,
       });
     } catch (err) {
       if (this._complete_request > req) return false;
       this.setState({ complete: { error: err } });
       // no op for now...
-      throw Error("ignore");
+      throw Error(`ignore -- ${err}`);
       //return false;
     }
 
@@ -1556,8 +1568,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (complete.status !== "ok") {
       this.setState({
         complete: {
-          error: complete.error ? complete.error : "completion failed"
-        }
+          error: complete.error ? complete.error : "completion failed",
+        },
       });
       return false;
     }
@@ -1580,12 +1592,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // For some reason, sometimes complete.matches are not unique, which is annoying/confusing,
     // and breaks an assumption in our react code too.
     complete.matches = Array.from(new Set(complete.matches)).sort();
-    this.setState({ complete: immutable.fromJS(complete) });
+    const i_complete = immutable.fromJS(complete);
     if (complete.matches && complete.matches.length === 1 && id != null) {
-      // special case -- a unique completion and we know id of cell in which completing is given
-      this.select_complete(id, complete.matches[0]);
+      // special case -- a unique completion and we know id of cell in which completing is given.
+      this.select_complete(id, complete.matches[0], i_complete);
       return false;
     } else {
+      this.setState({ complete: i_complete });
       return true;
     }
   }
@@ -1596,8 +1609,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({ complete: undefined });
   };
 
-  public select_complete(id: string, item: string): void {
-    const complete = this.store.get("complete");
+  public select_complete(
+    id: string,
+    item: string,
+    complete?: immutable.Map<string, any>
+  ): void {
+    if (complete == null) {
+      complete = this.store.get("complete");
+    }
     this.clear_complete();
     if (complete == null) {
       return;
@@ -1623,14 +1642,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     save: boolean = true
   ): void {
     const remote = this.store.getIn(["cells", id, "input"]);
-    // console.log 'merge', "'#{base}'", "'#{input}'", "'#{remote}'"
     if (remote == null || base == null || input == null) {
       return;
     }
     const new_input = three_way_merge({
       base,
       local: input,
-      remote
+      remote,
     });
     this.set_cell_input(id, new_input, save);
   }
@@ -1704,7 +1722,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       introspect = await this.api_call("introspect", {
         code,
         cursor_pos,
-        level
+        level,
       });
       if (introspect.status !== "ok") {
         introspect = { error: "completion failed" };
@@ -1795,7 +1813,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         start_delay: 1000,
         max_delay: 10000,
         f: this._fetch_backend_kernel_info_from_server,
-        desc: "jupyter:_set_backend_kernel_info_client"
+        desc: "jupyter:_set_backend_kernel_info_client",
       });
     }
   );
@@ -1809,7 +1827,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.setState({
         backend_kernel_info: data,
         // this is when the server for this doc started, not when kernel last started!
-        start_time: data.start_time
+        start_time: data.start_time,
       });
     };
     try {
@@ -1818,7 +1836,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         start_delay: 500,
         max_delay: 3000,
         f,
-        desc: "jupyter:_fetch_backend_kernel_info_from_server"
+        desc: "jupyter:_fetch_backend_kernel_info_from_server",
       });
     } catch (err) {
       this.set_error(err);
@@ -1866,10 +1884,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return a.set_file_action(action_name, () => tail);
   }
 
-  set_max_output_length = n => {
+  set_max_output_length = (n) => {
     return this._set({
       type: "settings",
-      max_output_length: n
+      max_output_length: n,
     });
   };
 
@@ -1894,7 +1912,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     const x = this.store.get("more_output", immutable.Map());
     this.setState({
-      more_output: x.set(id, immutable.fromJS(more_output))
+      more_output: x.set(id, immutable.fromJS(more_output)),
     });
   };
 
@@ -1923,7 +1941,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         editor_settings,
         line_numbers,
         read_only
-      )
+      ),
     });
 
     if (!x.equals(this.store.get("cm_options"))) {
@@ -1936,7 +1954,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this._set(
       {
         type: "settings",
-        trust: !!trust
+        trust: !!trust,
       },
       save
     ); // case to bool
@@ -2044,20 +2062,28 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     let set, trust;
     if (data_only) {
       trust = undefined;
-      set = function() {};
+      set = function () {};
     } else {
       if (typeof this.reset_more_output === "function") {
         this.reset_more_output();
         // clear the more output handler (only on backend)
       }
-      this.syncdb.delete(); // completely empty database
+      // We delete all of the cells.
+      // We do NOT delete everything, namely the last_loaded and
+      // the settings entry in the database, because that would
+      // throw away important information, e.g., the current kernel
+      // and its state.  NOTe: Some of that extra info *should* be
+      // moved to a different ephemeral table, but I haven't got
+      // around to doing so.
+      this.syncdb.delete({ type: "cell" });
       // preserve trust state across file updates/loads
       trust = this.store.get("trust");
-      set = obj => {
+      set = (obj) => {
         this.syncdb.set(obj);
       };
     }
 
+    // Change kernel to what is in the file if necessary:
     set({ type: "settings", kernel });
     if (typeof this.ensure_backend_kernel_setup === "function") {
       this.ensure_backend_kernel_setup();
@@ -2077,7 +2103,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this.jupyter_kernel != null
           ? this.jupyter_kernel.process_attachment
           : undefined,
-      output_handler: this._output_handler // undefined in client; defined in project
+      output_handler:
+        this.jupyter_kernel != null ? this._output_handler : undefined, // undefined in client; defined in project
     });
 
     if (data_only) {
@@ -2121,7 +2148,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this._set({
       type: "cell",
       id,
-      slide: value
+      slide: value,
     });
   }
 
@@ -2152,7 +2179,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // set new kernel and save it
     cur.kernel = kernel;
     (this.redux.getTable("account") as any).set({
-      editor_settings: { jupyter: cur }
+      editor_settings: { jupyter: cur },
     });
   };
 
@@ -2180,7 +2207,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
     let input = this.store.getIn(["cells", id, "input"], "");
-    console.log("insert_input_at_cursor", id, input);
     const cursor = this._cursor_locs != null ? this._cursor_locs[0] : undefined;
     if ((cursor != null ? cursor.id : undefined) === id) {
       const v = input.split("\n");
@@ -2190,7 +2216,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     } else {
       input += s;
     }
-    console.log("insert_input_at_cursor - new input:", id, input);
     return this._set({ type: "cell", id, input }, save);
   };
 
@@ -2212,7 +2237,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       {
         type: "cell",
         id,
-        attachments
+        attachments,
       },
       save
     );
@@ -2230,7 +2255,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     await callback2(this.store.wait, {
       until: () =>
         this.store.getIn(["cells", id, "attachments", name, "type"]) === "sha1",
-      timeout: 0
+      timeout: 0,
     });
     // This has to happen in the next render loop, since changing immediately
     // can update before the attachments props are updated.
@@ -2243,7 +2268,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
     this.set_cell_attachment(id, name, null, false);
-    return this.set_cell_input(
+    this.set_cell_input(
       id,
       misc.replace_all(
         this._get_cell_input(id),
@@ -2261,7 +2286,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       {
         type: "cell",
         id,
-        tags: { [tag]: true }
+        tags: { [tag]: true },
       },
       save
     );
@@ -2275,14 +2300,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       {
         type: "cell",
         id,
-        tags: { [tag]: null }
+        tags: { [tag]: null },
       },
       save
     );
   }
 
   toggle_tag(id: string, tag: string, save: boolean = true): void {
-    console.log("toggle_tag", id, tag);
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
       throw Error(`no cell with id ${id}`);
@@ -2313,7 +2337,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       id: required,
       metadata: required,
       save: true,
-      merge: false
+      merge: false,
     }));
 
     // Special case: delete metdata (unconditionally)
@@ -2322,7 +2346,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         {
           type: "cell",
           id,
-          metadata: null
+          metadata: null,
         },
         save
       );
@@ -2352,21 +2376,24 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
     }
 
-    // first delete
+    if (!merge) {
+      // first delete -- we have to do this due to shortcomings in syncdb, but it
+      // can have annoying side effects on the UI
+      this._set(
+        {
+          type: "cell",
+          id,
+          metadata: null,
+        },
+        false
+      );
+    }
+    // now set
     this._set(
       {
         type: "cell",
         id,
-        metadata: null
-      },
-      false
-    );
-    // then set
-    this._set(
-      {
-        type: "cell",
-        id,
-        metadata
+        metadata,
       },
       save
     );
@@ -2382,13 +2409,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
 
     this.setState({
-      raw_ipynb: immutable.fromJS(this.store.get_ipynb())
+      raw_ipynb: immutable.fromJS(this.store.get_ipynb()),
     });
   }
 
   private async api_call_prettier(
     str: string,
-    options: object,
+    config: FormatterConfig,
     timeout_ms?: number
   ): Promise<string | undefined> {
     if (this._state === "closed") {
@@ -2396,7 +2423,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     return await (await this.init_project_conn()).api.prettier_string(
       str,
-      options,
+      config,
       timeout_ms
     );
   }
@@ -2407,23 +2434,18 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       throw Error(`no cell with id ${id}`);
     }
     const code: string = cell.get("input", "").trim();
-    let options: FormatterOptions;
+    let config: FormatterConfig;
     const cell_type: string = cell.get("cell_type", "code");
     switch (cell_type) {
       case "code":
-        const ext = this.store.get_kernel_ext();
-        if (ext == null) {
+        const syntax: Syntax = this.store.get_kernel_syntax();
+        if (syntax == null) {
           return; // no-op on these.
         }
-        try {
-          const parser: Parser = format_parser_for_extension(ext);
-          options = { parser };
-        } catch (err) {
-          return; // no parser available.
-        }
+        config = { syntax: syntax };
         break;
       case "markdown":
-        options = { parser: "markdown" };
+        config = { syntax: "markdown" };
         break;
       default:
         // no-op -- do not format unknown cells
@@ -2432,7 +2454,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     //  console.log("FMT", cell_type, options, code);
     let resp: string | undefined;
     try {
-      resp = await this.api_call_prettier(code, options);
+      resp = await this.api_call_prettier(code, config);
     } catch (err) {
       this.set_error(err);
       // Do not process response (probably empty anyways) if
@@ -2511,7 +2533,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const kernel_selection = this.store.get_kernel_selection(kernels);
     const [
       kernels_by_name,
-      kernels_by_language
+      kernels_by_language,
     ] = this.store.get_kernels_by_name_or_language(kernels);
     const default_kernel = this.store.get_default_kernel();
     // do we have a similar kernel?
@@ -2528,7 +2550,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       kernels_by_name,
       kernels_by_language,
       default_kernel,
-      closestKernel
+      closestKernel,
     });
   };
 
@@ -2550,7 +2572,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // the select dialog will show a loading spinner
     this.setState({
       show_kernel_selector_reason: reason,
-      show_kernel_selector: true
+      show_kernel_selector: true,
     });
   };
 
@@ -2559,7 +2581,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       show_kernel_selector_reason: undefined,
       show_kernel_selector: false,
       kernel_selection: undefined,
-      kernels_by_name: undefined
+      kernels_by_name: undefined,
     });
   };
 
@@ -2574,7 +2596,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // why is "as any" necessary?
     const account_table = this.redux.getTable("account") as any;
     account_table.set({
-      editor_settings: { ask_jupyter_kernel: !dont_ask }
+      editor_settings: { ask_jupyter_kernel: !dont_ask },
     });
   };
 

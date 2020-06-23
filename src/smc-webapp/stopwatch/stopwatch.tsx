@@ -1,8 +1,14 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 The stopwatch component
 */
 
 import { Button, Row, Col } from "antd";
+import { DeleteTwoTone, PauseCircleTwoTone, PlayCircleTwoTone, StopTwoTone } from "@ant-design/icons";
 
 import { Component, React, Rendered } from "../app-framework";
 
@@ -57,7 +63,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   private render_start_button(): Rendered {
     return (
       <Button
-        icon={"play-circle"}
+        icon={<PlayCircleTwoTone />}
         onClick={() => this.props.click_button("start")}
         style={!this.props.compact ? { width: "8em" } : undefined}
         size={this.props.compact ? "small" : undefined}
@@ -70,7 +76,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   private render_reset_button(): Rendered {
     return (
       <Button
-        icon={"stop"}
+        icon={<StopTwoTone />}
         onClick={() => this.props.click_button("reset")}
         size={this.props.compact ? "small" : undefined}
       >
@@ -82,7 +88,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   private render_delete_button(): Rendered {
     if (this.props.compact) return;
     return (
-      <Button icon={"delete"} onClick={() => this.props.click_button("delete")}>
+      <Button icon={<DeleteTwoTone />} onClick={() => this.props.click_button("delete")}>
         {!this.props.compact ? "Delete" : undefined}
       </Button>
     );
@@ -91,7 +97,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   private render_pause_button(): Rendered {
     return (
       <Button
-        icon={"pause-circle"}
+        icon={<PauseCircleTwoTone />}
         onClick={() => this.props.click_button("pause")}
         style={!this.props.compact ? { width: "8em" } : undefined}
         size={this.props.compact ? "small" : undefined}
@@ -140,7 +146,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
           width: "100%",
           color: this.props.label ? "#444" : "#999",
           borderBottom: "1px solid #999",
-          marginBottom: "10px"
+          marginBottom: "10px",
         }}
         onClick={() => this.edit_label()}
       >
@@ -156,12 +162,12 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
         style={{
           fontSize: "25px",
           marginTop: "25px",
-          width: "100%"
+          width: "100%",
         }}
       >
         <TextInput
           text={this.props.label ? this.props.label : ""}
-          on_change={value => {
+          on_change={(value) => {
             this.props.set_label(value);
             this.setState({ editing_label: false });
           }}
@@ -209,7 +215,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
         style={{
           borderBottom: "1px solid #666",
           background: "#efefef",
-          padding: "15px"
+          padding: "15px",
         }}
       >
         <Row>
@@ -240,7 +246,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   }
 }
 
-const zpad = function(n) {
+const zpad = function (n) {
   n = `${n}`;
   if (n.length === 1) {
     n = `0${n}`;
@@ -265,7 +271,7 @@ function TimeAmount(props: TimeProps) {
     <div
       style={{
         fontSize: !props.compact ? "50pt" : undefined,
-        fontFamily: "courier"
+        fontFamily: "courier",
       }}
     >
       {zpad(hours)}:{zpad(minutes)}:{zpad(seconds)}

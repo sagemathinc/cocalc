@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import * as misc from "smc-util/misc";
 
@@ -23,7 +28,7 @@ interface Props {
 export class Icon extends React.Component<Props> {
   static defaultProps = {
     name: "square-o",
-    onClick: undefined
+    onClick: undefined,
   };
 
   shouldComponentUpdate(next) {
@@ -40,7 +45,7 @@ export class Icon extends React.Component<Props> {
         "fixedWidth",
         "stack",
         "inverse",
-        "className"
+        "className",
       ]) ||
       !misc.is_equal(this.props.style, next.style)
     );
@@ -58,7 +63,7 @@ export class Icon extends React.Component<Props> {
       fixedWidth,
       stack,
       inverse,
-      className
+      className,
     } = this.props;
 
     let i = name.indexOf("cc-icon");

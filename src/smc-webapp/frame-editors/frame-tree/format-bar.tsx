@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 The format bar
 */
 
@@ -14,10 +19,10 @@ const {
   ButtonGroup,
   Button,
   DropdownButton,
-  MenuItem
+  MenuItem,
 } = require("react-bootstrap");
 
-const buttonbar = require("smc-webapp/buttonbar");
+import { FONT_FACES } from "../../editors/editor-button-bar";
 import { Icon, Space } from "smc-webapp/r_misc";
 
 const FONT_SIZES = "xx-small x-small small medium large x-large xx-large".split(
@@ -175,12 +180,12 @@ export class FormatBar extends Component<Props, {}> {
 
   render_font_family_dropdown(): Rendered {
     const items: Rendered[] = [];
-    for (const family of buttonbar.FONT_FACES) {
+    for (const family of FONT_FACES) {
       const item: Rendered = (
         <MenuItem
           key={family}
           eventKey={family}
-          onSelect={family =>
+          onSelect={(family) =>
             this.props.actions.format_action("font_family", family)
           }
         >
@@ -209,7 +214,7 @@ export class FormatBar extends Component<Props, {}> {
         <MenuItem
           key={size}
           eventKey={size}
-          onSelect={size =>
+          onSelect={(size) =>
             this.props.actions.format_action("font_size_new", size)
           }
         >
@@ -262,7 +267,7 @@ export class FormatBar extends Component<Props, {}> {
         <MenuItem
           key={heading}
           eventKey={heading}
-          onSelect={heading =>
+          onSelect={(heading) =>
             this.props.actions.format_action(`format_heading_${heading}`)
           }
         >
@@ -303,7 +308,7 @@ export class FormatBar extends Component<Props, {}> {
         <MenuItem
           key={color}
           eventKey={code}
-          onSelect={code => this.props.actions.format_action("color", code)}
+          onSelect={(code) => this.props.actions.format_action("color", code)}
         >
           <span style={{ background: code }}>
             <Space />

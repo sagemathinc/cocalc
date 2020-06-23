@@ -1,7 +1,11 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import * as immutable from "immutable";
 import { COLORS, HiddenSM, Icon, Space } from "../../r_misc";
-import { analytics_event } from "../../tracker";
 import { ComputeImages } from "smc-webapp/custom-software/init";
 import { ProjectActions } from "smc-webapp/project_store";
 
@@ -13,7 +17,7 @@ const { file_actions } = require("../../project_store");
 const ROW_INFO_STYLE = {
   color: COLORS.GRAY,
   height: "22px",
-  margin: "5px 3px"
+  margin: "5px 3px",
 } as const;
 
 interface Props {
@@ -71,7 +75,7 @@ export class ActionBar extends React.Component<Props, State> {
         this.props.page_size * (this.props.page_number + 1)
       );
       this.props.actions.set_file_list_checked(
-        files_on_page.map(file =>
+        files_on_page.map((file) =>
           misc.path_to_file(this.props.current_path, file.name)
         )
       );
@@ -115,7 +119,7 @@ export class ActionBar extends React.Component<Props, State> {
 
   select_entire_directory = (): void => {
     this.props.actions.set_file_list_checked(
-      this.props.listing.map(file =>
+      this.props.listing.map((file) =>
         misc.path_to_file(this.props.current_path, file.name)
       )
     );
@@ -152,8 +156,7 @@ export class ActionBar extends React.Component<Props, State> {
           <span>{`${total} ${misc.plural(total, "item")}`}</span>
           <div style={{ display: "inline" }}>
             {" "}
-            &mdash; Click on the checkbox to the left of a file to copy, move,
-            delete, download, etc.
+            &mdash; Click checkbox to the left of a file to copy, download, etc.
           </div>
         </div>
       );
@@ -185,7 +188,6 @@ export class ActionBar extends React.Component<Props, State> {
     };
     const handle_click = (_e: React.MouseEvent) => {
       this.props.actions.set_file_action(name, get_basename);
-      analytics_event("project_file_listing", "open " + name + " menu");
     };
 
     return (
@@ -204,7 +206,8 @@ export class ActionBar extends React.Component<Props, State> {
       | "duplicate"
       | "move"
       | "copy"
-      | "share")[];
+      | "share"
+    )[];
     if (!this.props.project_is_running) {
       return;
     }
@@ -229,7 +232,7 @@ export class ActionBar extends React.Component<Props, State> {
           "duplicate",
           "move",
           "copy",
-          "share"
+          "share",
         ];
       } else {
         // one file selected
@@ -240,7 +243,7 @@ export class ActionBar extends React.Component<Props, State> {
           "duplicate",
           "move",
           "copy",
-          "share"
+          "share",
         ];
       }
     } else {
@@ -252,7 +255,7 @@ export class ActionBar extends React.Component<Props, State> {
     }
     return (
       <ButtonGroup bsSize="small">
-        {action_buttons.map(v => this.render_action_button(v))}
+        {action_buttons.map((v) => this.render_action_button(v))}
       </ButtonGroup>
     );
   }

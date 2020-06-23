@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Alert, Button, ButtonToolbar, Col, Row } from "react-bootstrap";
 import { stripe_amount, stripe_date, capitalize } from "smc-util/misc";
 import { Component, React, Rendered, redux } from "../app-framework";
@@ -69,9 +74,7 @@ export class Subscription extends Component<Props, State> {
             >
               Cancel...
             </Button>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </Col>
       </Row>
     );
@@ -89,7 +92,7 @@ export class Subscription extends Component<Props, State> {
           style={{
             borderBottom: "1px solid #999",
             paddingBottom: "15px",
-            paddingTop: "15px"
+            paddingTop: "15px",
           }}
         >
           <Col md={6}>
@@ -126,7 +129,7 @@ export class Subscription extends Component<Props, State> {
       <div
         style={{
           borderBottom: "1px solid #999",
-          padding: "5px 0"
+          padding: "5px 0",
         }}
       >
         {this.render_info()}

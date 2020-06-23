@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { useDebounce } from "../../hooks";
 import { SearchInput } from "../../r_misc";
@@ -19,7 +24,7 @@ export function LogSearch({
   actions,
   reset_cursor,
   increment_cursor,
-  decrement_cursor
+  decrement_cursor,
 }: Props): JSX.Element {
   const open_selected = React.useCallback(
     (_value, info: any): void => {
@@ -34,7 +39,7 @@ export function LogSearch({
           if (target != null) {
             actions.open_file({
               path: target,
-              foreground: !info.ctrl_down
+              foreground: !info.ctrl_down,
             });
           }
           break;

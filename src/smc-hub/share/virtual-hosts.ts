@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Support for virtual hosts.
 */
 
@@ -64,7 +69,7 @@ export async function virtual_hosts(opts: {
       res,
       path,
       auth: info.get("auth"),
-      logger: opts.logger
+      logger: opts.logger,
     });
 
     if (!is_auth) {

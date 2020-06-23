@@ -1,10 +1,15 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import {
   React,
   rclass,
   rtypes,
   Component,
   Rendered,
-  project_redux_name
+  project_redux_name,
 } from "../../app-framework";
 
 import { ErrorDisplay, Loading, LoadingEstimate } from "smc-webapp/r_misc";
@@ -77,7 +82,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
     return {
       account: {
         editor_settings: rtypes.immutable.Map,
-        terminal: rtypes.immutable.Map
+        terminal: rtypes.immutable.Map,
       },
       [name]: {
         is_public: rtypes.bool.isRequired,
@@ -105,11 +110,11 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
 
         complete: rtypes.immutable.Map.isRequired,
 
-        derived_file_types: rtypes.immutable.Set
+        derived_file_types: rtypes.immutable.Set,
       },
       [project_store_name]: {
-        available_features: rtypes.immutable.Map
-      }
+        available_features: rtypes.immutable.Map,
+      },
     };
   }
 
@@ -146,7 +151,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
         "settings",
         "complete",
         "derived_file_types",
-        "available_features"
+        "available_features",
       ]) ||
       this.props.editor_settings.get("extra_button_bar") !==
         next.editor_settings.get("extra_button_bar")
@@ -219,7 +224,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
       maxWidth: "100%",
       margin: "1ex",
       maxHeight: "30%",
-      overflowY: "scroll"
+      overflowY: "scroll",
     };
     if (this.props.errorstyle === "monospace") {
       style.fontFamily = "monospace";
@@ -254,7 +259,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           fontSize: "40px",
           textAlign: "center",
           padding: "15px",
-          color: "#999"
+          color: "#999",
         }}
       >
         <Loading estimate={this.props.load_time_estimate} />

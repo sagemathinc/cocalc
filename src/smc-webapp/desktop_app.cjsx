@@ -1,44 +1,24 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016 -- 2017, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 {isMobile} = require('./feature')
 
 {React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./app-framework')
 
 {Button, Navbar, Nav, NavItem} = require('react-bootstrap')
-{ErrorBoundary, Loading, Space, Tip}   = require('./r_misc')
+{ErrorBoundary, Loading, Space, Tip, Icon}   = require('./r_misc')
 {COLORS} = require('smc-util/theme')
 misc_page = require('./misc_page')
-{should_do_anonymous_setup} = require('./client/anonymous-setup')
 
 # CoCalc Pages
 # SMELL: Page UI's are mixed with their store/state.
 # So we have to require them even though they aren't used
-{HelpPage}     = require('./r_help')
-{ProjectsPage} = require('./projects')
 {ProjectPage}  = require('./project_page')
-{AccountPage}  = require('./account_page') # SMELL: Not used but gets around a webpack error..
 {FileUsePage}  = require('./file-use/page')
 {Support}      = require('./support')
-{Avatar}       = require('./other-users')
+{ Avatar }     = require("./account/avatar/avatar");
 
 # CoCalc Libraries
 misc = require('smc-util/misc')
@@ -99,8 +79,12 @@ PAGE_REDUX_PROPS =
         show_global_info       : rtypes.bool
         groups                 : rtypes.immutable.List
         is_anonymous           : rtypes.bool
+        doing_anonymous_setup  : rtypes.bool
+        created                : rtypes.object
     support :
         show                   : rtypes.bool
+    customize:
+        site_name              : rtypes.string
 
 PAGE_REDUX_FIELDS = redux_fields(PAGE_REDUX_PROPS)
 
@@ -140,8 +124,19 @@ Page = rclass
             a = 'cog'
 
         if @props.is_anonymous
-            label = <Button bsStyle="success" style={fontWeight:'bold'}>Sign Up!</Button>
+            style={fontWeight:'bold', opacity:0}
+            if @props.created and new Date().valueOf() - @props.created.valueOf() >= 1000*60*60*24*3
+                mesg = "Sign Up NOW to avoid losing all of your work!"
+                style.width = "400px";
+            else
+                mesg = "Sign Up"
+            label = <Button id="anonymous-sign-up" bsStyle="success" style={style}>{mesg}</Button>
             style = {marginTop:'-10px'}  # compensate for using a button
+            show_button = () => $("#anonymous-sign-up").css('opacity', 1)
+
+            # We only actually show the button if it is still there a few seconds later.  This avoids flickering it
+            # for a moment during normal sign in.  This feels like a hack, but was super quick to implement.
+            setTimeout(show_button, 3000)
         else
             label = "Account"
             style = undefined
@@ -156,6 +151,40 @@ Page = rclass
             active_top_tab = {@props.active_top_tab}
             show_label     = {@state.show_label}
         />
+
+    # This is the new version with a dropdown menu.
+    xxx_render_account_tab: ->
+        if @props.is_anonymous
+            return <NavTab
+                        name           = 'account'
+                        label          = {<Button bsStyle="success" style={fontWeight:'bold'}>Sign Up!</Button>}
+                        style          = {{marginTop:'-10px'}}
+                        label_class    = {nav_class}
+                        icon           = {undefined}
+                        actions        = {@actions('page')}
+                        active_top_tab = {@props.active_top_tab}
+                        show_label     = {@state.show_label}
+                    />
+
+        if @props.account_id
+            a = <Avatar
+                    size       = {20}
+                    account_id = {@props.account_id}
+                    no_tooltip = {true}
+                    no_loading = {true}
+                    />
+        else # What does it mean to not have an account id?
+            a = <Icon name='cog'/>
+
+        return <AccountTabDropdown
+                user_label = {@props.redux.getStore("account").get_fullname()}
+                icon = {a}
+                links = {<DefaultAccountDropDownLinks account_actions={@actions("account")}  page_actions={@actions("page")} />}
+                label_class = {nav_class}
+                show_label = {@state.show_label}
+                is_active = {@props.active_top_tab == 'account'}
+            />
+
 
     render_admin_tab: ->
         <NavTab
@@ -223,7 +252,7 @@ Page = rclass
             {@render_sign_in_tab() if not logged_in}
             <NavTab
                 name           = {'about'}
-                label          = {'CoCalc'}
+                label          = {@props.site_name}
                 label_class    = {nav_class}
                 icon           = {'info-circle'}
                 inner_style    = {padding: '10px', display: 'flex'}
@@ -235,7 +264,7 @@ Page = rclass
             {@render_support()}
             {@render_account_tab() if logged_in}
             {@render_bell()}
-            {<ConnectionIndicator actions={@actions('page')}/> if not @props.is_anonymous}
+            {<ConnectionIndicator /> if not @props.is_anonymous}
         </Nav>
 
     render_project_nav_button: ->
@@ -283,11 +312,18 @@ Page = rclass
             overflow      : 'hidden'
             background    : 'white'
 
-        if should_do_anonymous_setup()
+        if @props.doing_anonymous_setup
             # Don't show the login screen or top navbar for a second while creating
             # their anonymous account, since that would just be ugly/confusing/and annoying.
             # Have to use above style to *hide* the crash warning.
-            return <div style={style}><h1 style={margin:'auto', color:'#666'}><Loading/></h1></div>
+            loading_anon =
+                <div style={margin:'auto', textAlign:'center'}>
+                    <h1 style={color:COLORS.GRAY}><Loading/></h1>
+                    <div style={color:COLORS.GRAY_L, width:'50vw'}>
+                        Please give {@props.site_name} a couple of seconds to start your project and prepare a file...
+                    </div>
+                </div>
+            return <div style={style}>{loading_anon}</div>
 
         top = if @props.show_global_info then "#{announce_bar_offset}px" else 0
 

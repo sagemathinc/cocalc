@@ -1,74 +1,157 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { List } from "immutable";
-import * as misc from "smc-util/misc";
+import { capitalize } from "smc-util/misc2";
 import { Icon, Tip } from "./r_misc";
+import { SiteName } from "./customize";
+import { PassportStrategy, PRIMARY_SSO } from "./account/passport-types";
+import { COLORS } from "smc-util/theme";
 
 interface Props {
-  strategies?: List<string>;
+  strategies?: List<PassportStrategy>;
   get_api_key?: string;
   no_heading?: boolean;
   style?: object;
   disabled?: boolean;
 }
 
-const BASE_ICON_STYLE: React.CSSProperties = {
+const BASE_ICON_STYLE: React.CSSProperties = Object.freeze({
   display: "inline-block",
   padding: "6px",
   borderRadius: "50%",
   width: "50px",
   height: "50px",
   marginRight: "10px",
-  textAlign: "center"
-};
+  textAlign: "center",
+});
+
+const CUSTOM_ICON_STYLE = Object.freeze({
+  ...BASE_ICON_STYLE,
+  ...{
+    display: "inline-block",
+    position: "relative", // unclear why, somehow due to faking these fa-icons
+    backgroundSize: "contain",
+    padding: "0",
+  },
+} as React.CSSProperties);
+
+const TEXT_ICON_STYLE: React.CSSProperties = Object.freeze({
+  backgroundColor: COLORS.GRAY_D,
+  color: "white",
+  fontSize: "24px",
+  display: "inline-block",
+  padding: "6px",
+  height: "50px",
+  marginRight: "10px",
+  textAlign: "center",
+  borderRadius: "10px",
+});
 
 const PASSPORT_ICON_STYLES = {
   facebook: {
     backgroundColor: "#395996",
-    color: "white"
+    color: "white",
   },
   google: {
     backgroundColor: "#DC4839",
-    color: "white"
+    color: "white",
   },
   twitter: {
     backgroundColor: "#55ACEE",
-    color: "white"
+    color: "white",
   },
   github: {
     backgroundColor: "white",
-    color: "black"
-  }
+    color: "black",
+  },
 };
+
+export function strategy2display(strategy: PassportStrategy): string {
+  return strategy.display ?? capitalize(strategy.name);
+}
+
+export function PassportStrategyIcon({
+  strategy,
+  small,
+}: {
+  strategy: PassportStrategy;
+  small?: boolean;
+}) {
+  const { name, display, icon } = strategy;
+  const small_icon = small ? { width: "25px", height: "25px", top: "0" } : {};
+  if (PRIMARY_SSO.indexOf(name) >= 0) {
+    const icon_style: React.CSSProperties = {
+      ...BASE_ICON_STYLE,
+      ...PASSPORT_ICON_STYLES[name],
+      ...small_icon,
+    };
+    return <Icon name={name} style={icon_style} />;
+  } else if (icon != null) {
+    // icon is an URL
+    const style: React.CSSProperties = {
+      ...CUSTOM_ICON_STYLE,
+      ...{ backgroundImage: `url("${icon}")` },
+      ...small_icon,
+    };
+    return <div style={style} />;
+  } else {
+    return <div style={TEXT_ICON_STYLE}>{display}</div>;
+  }
+}
 
 export class Passports extends React.Component<Props> {
   static defaultProps = {
-    strategies: List([])
+    strategies: List([]),
   };
 
-  render_strategy(name) {
-    if (name === "email") {
-      return;
-    }
-    let url = `${window.app_base_url}/auth/${name}`;
-    if (this.props.get_api_key) {
-      url += `?get_api_key=${this.props.get_api_key}`;
-    }
-    const icon_style = Object.assign(
-      {},
-      BASE_ICON_STYLE,
-      PASSPORT_ICON_STYLES[name]
+  render_tip(passport_name: string) {
+    return (
+      <>
+        Use {passport_name} to sign into your <SiteName /> account instead of an
+        email address and password.
+      </>
     );
-    const passport_name = misc.capitalize(name);
-    const title = (
+  }
+
+  private strategy_tip_title(name: string, passport_name: string) {
+    return (
       <span>
-        <Icon name={name} /> {passport_name}
+        {PRIMARY_SSO.indexOf(name) >= 0 ? <Icon name={name} /> : undefined}{" "}
+        {passport_name}
       </span>
     );
-    const style: any = { fontSize: "28px" };
+  }
+
+  private strategy_style(): React.CSSProperties {
+    const style: React.CSSProperties = { fontSize: "28px" };
     if (this.props.disabled) {
-      url = "";
       style.opacity = 0.5;
     }
+    return style;
+  }
+
+  private strategy_url(name: string): string {
+    let url = "";
+    if (!this.props.disabled) {
+      url = `${window.app_base_url}/auth/${name}`;
+      if (this.props.get_api_key) {
+        url += `?get_api_key=${this.props.get_api_key}`;
+      }
+    }
+    return url;
+  }
+
+  private render_strategy(strategy: PassportStrategy) {
+    const { name } = strategy;
+    if (name === "email") return;
+    const url = this.strategy_url(name);
+    const passport_name = strategy2display(strategy);
+    const title = this.strategy_tip_title(name, passport_name);
+    const style = this.strategy_style();
     if (this.props.disabled) {
       return (
         <span key={name} style={style}>
@@ -77,7 +160,7 @@ export class Passports extends React.Component<Props> {
             title={title}
             tip={"Please agree to the terms of service first."}
           >
-            <Icon name={name} style={icon_style} />
+            <PassportStrategyIcon strategy={strategy} />
           </Tip>
         </span>
       );
@@ -87,20 +170,20 @@ export class Passports extends React.Component<Props> {
           <Tip
             placement="bottom"
             title={title}
-            tip={`Use ${passport_name} to sign into your CoCalc account instead of an email address and password.`}
+            tip={this.render_tip(passport_name)}
           >
-            <Icon name={name} style={icon_style} />
+            <PassportStrategyIcon strategy={strategy} />
           </Tip>
         </a>
       );
     }
   }
 
-  render_heading() {
+  private render_heading() {
     if (this.props.no_heading) {
       return;
     }
-    const style: any = { marginTop: 0 };
+    const style: React.CSSProperties = { marginTop: 0 };
     if (this.props.disabled) {
       style.opacity = 0.5;
     }
@@ -113,8 +196,9 @@ export class Passports extends React.Component<Props> {
     return (
       <div style={this.props.style}>
         {this.render_heading()}
-        <div>{strategies.map(name => this.render_strategy(name))}</div>
-        <hr style={{ marginTop: 10, marginBottom: 10 }} />
+        <div style={{ display: "flex" }}>
+          {strategies.map((strategy) => this.render_strategy(strategy))}
+        </div>
       </div>
     );
   }

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Return a default filename with the given ext (or not extension if ext not given)
 // this is just a wrapper for backwards compatibility
 import { NewFilenames, NewFilenameTypes } from "../project/utils";
@@ -7,7 +12,7 @@ import { redux } from "../app-framework";
 
 const new_filenames_generator = new NewFilenames(undefined, true);
 
-export const default_filename = function(
+export const default_filename = function (
   ext?: string,
   project_id?: string
 ): string {

@@ -1,14 +1,18 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Input box for setting the account creation token.
 */
 
-import { React, Rendered, Component, redux } from "../app-framework";
-
+import { List } from "immutable";
+import { React, Rendered, Component, redux, TypedMap } from "../app-framework";
 import { Button, Well, FormGroup, FormControl } from "react-bootstrap";
-
 import { query } from "../frame-editors/generic/client";
-
-import { ErrorDisplay, Saving } from "../r_misc";
+import { ErrorDisplay, Saving, COLORS } from "../r_misc";
+import { PassportStrategy } from "../account/passport-types";
 
 interface State {
   state: "view" | "edit" | "save";
@@ -22,7 +26,7 @@ export class AccountCreationToken extends Component<{}, State> {
     this.state = {
       state: "view", // view --> edit --> save --> view
       token: "",
-      error: ""
+      error: "",
     };
   }
 
@@ -37,9 +41,9 @@ export class AccountCreationToken extends Component<{}, State> {
         query: {
           server_settings: {
             name: "account_creation_token",
-            value: this.state.token
-          }
-        }
+            value: this.state.token,
+          },
+        },
       });
       this.setState({ state: "view", error: "", token: "" });
     } catch (err) {
@@ -77,7 +81,7 @@ export class AccountCreationToken extends Component<{}, State> {
                   ref="input"
                   type="text"
                   value={this.state.token}
-                  onChange={e =>
+                  onChange={(e) =>
                     this.setState({ token: (e.target as any).value })
                   }
                 />
@@ -95,7 +99,7 @@ export class AccountCreationToken extends Component<{}, State> {
     }
   }
 
-  render_error(): Rendered {
+  private render_error(): Rendered {
     if (this.state.error) {
       return (
         <ErrorDisplay
@@ -106,41 +110,60 @@ export class AccountCreationToken extends Component<{}, State> {
     }
   }
 
-  render_save(): Rendered {
+  private render_save(): Rendered {
     if (this.state.state === "save") {
       return <Saving />;
     }
   }
 
-  render_unsupported(): Rendered {
+  private render_unsupported(): Rendered {
     // see https://github.com/sagemathinc/cocalc/issues/333
     return (
-      <div style={{ color: "#666" }}>
-        Not supported since some passport strategies are enabled.
+      <div style={{ color: COLORS.GRAY }}>
+        Not supported! At least one "public" passport strategy is enabled.
       </div>
     );
   }
 
-  render_content(): Rendered {
+  private render_info(): Rendered {
+    return (
+      <div style={{ color: COLORS.GRAY, fontStyle: "italic" }}>
+        Note: You can disable email sign up in Site Settings
+      </div>
+    );
+  }
+
+  // disable token editing if any strategy besides email is public
+  private not_supported(strategies): boolean {
+    return strategies
+      .filterNot((s) => s.get("name") === "email")
+      .some((s) => s.get("public"));
+  }
+
+  private render_content(): Rendered {
     const account_store: any = redux.getStore("account");
     if (account_store == null) {
       return <div>Account store not defined -- refresh your browser.</div>;
     }
-    const strategies: any = account_store.get("strategies");
+    const strategies:
+      | List<TypedMap<PassportStrategy>>
+      | undefined = account_store.get("strategies");
     if (strategies == null) {
       // I hit this in production once and it crashed my browser.
       return <div>strategies not loaded -- refresh your browser.</div>;
     }
-    if (strategies.size > 1) {
+    if (this.not_supported(strategies)) {
       return this.render_unsupported();
+    } else {
+      return (
+        <div>
+          {this.render_control()}
+          {this.render_save()}
+          {this.render_error()}
+          {this.render_info()}
+        </div>
+      );
     }
-    return (
-      <div>
-        {this.render_control()}
-        {this.render_save()}
-        {this.render_error()}
-      </div>
-    );
   }
 
   render(): Rendered {

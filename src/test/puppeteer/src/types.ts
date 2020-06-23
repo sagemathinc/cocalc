@@ -1,3 +1,9 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// contents of credentials yaml file
 export interface Creds {
   readonly sitename: string;
   readonly url: string;
@@ -11,10 +17,12 @@ export interface Creds {
   readonly shared_file?: string;
 }
 
+// command-line options and derived objects
 export interface Opts {
   headless?: string;
   screenshot?: string;
   path?: string | boolean;
+  csv_log: string;
   skip?: RegExp;
   xprj?: string;
 }
@@ -24,6 +32,7 @@ export interface InstallOpts {
   create_project: boolean;
   headless?: string;
   path?: string | boolean;
+  csv_log: string;
 }
 
 export const ExtChromePath: string = "/usr/bin/chromium-browser";

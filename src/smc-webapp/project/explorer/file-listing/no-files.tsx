@@ -1,6 +1,10 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { Rendered } from "../../../app-framework";
-import { analytics_event } from "../../../tracker";
 import { Icon } from "../../../r_misc/icon";
 import { ProjectActions } from "../../../project_actions";
 
@@ -28,13 +32,13 @@ const row_style: React.CSSProperties = {
   textAlign: "left",
   color: "#888",
   marginTop: "20px",
-  wordWrap: "break-word"
+  wordWrap: "break-word",
 };
 
 const create_button_style = {
   fontSize: "40px",
   color: "#888",
-  maxWidth: "100%"
+  maxWidth: "100%",
 };
 
 export class NoFiles extends React.PureComponent<Props> {
@@ -43,19 +47,12 @@ export class NoFiles extends React.PureComponent<Props> {
   handle_click = () => {
     if (this.props.file_search.length === 0) {
       this.props.actions.toggle_new(true);
-      analytics_event("project_file_listing", "listing_create_button", "empty");
     } else if (
       this.props.file_search[this.props.file_search.length - 1] === "/"
     ) {
       this.props.create_folder();
-      analytics_event(
-        "project_file_listing",
-        "listing_create_button",
-        "folder"
-      );
     } else {
       this.props.create_file();
-      analytics_event("project_file_listing", "listing_create_button", "file");
     }
   };
 
@@ -85,7 +82,6 @@ export class NoFiles extends React.PureComponent<Props> {
       <div>
         <h4 style={{ color: "#666" }}>Or select a file type</h4>
         <FileTypeSelector
-          name={this.props.name}
           project_id={this.props.project_id}
           create_file={this.props.create_file}
         />

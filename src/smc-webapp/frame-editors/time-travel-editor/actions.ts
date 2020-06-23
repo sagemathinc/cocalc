@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 TimeTravel Frame Editor Actions
 
 path/to/file.foo --> path/to/.file.foo.time-travel
@@ -13,14 +18,14 @@ the old viewer, which is a convenient fallback if somebody needs it for some rea
 */
 import { debounce } from "lodash";
 import { List } from "immutable";
-import { callback2, once } from "smc-util/async-utils";
+import { once } from "smc-util/async-utils";
 import { filename_extension, keys, path_split } from "smc-util/misc2";
 import { meta_file } from "smc-util/misc";
 import { SyncDoc } from "smc-util/sync/editor/generic/sync-doc";
-const { webapp_client } = require("../../webapp_client");
+import { webapp_client } from "../../webapp-client";
 import {
   Actions as CodeEditorActions,
-  CodeEditorState
+  CodeEditorState,
 } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
 import { export_to_json } from "./export-to-json";
@@ -68,7 +73,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       loading: true,
       has_full_history: false,
       docpath: this.docpath,
-      docext: this.docext
+      docext: this.docext,
     });
     this.init_syncdoc();
   }
@@ -86,10 +91,10 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
 
   private async init_syncdoc(): Promise<void> {
     const persistent = this.docext == "ipynb" || this.docext == "sagews"; // ugly for now (?)
-    this.syncdoc = await callback2(webapp_client.open_existing_sync_document, {
+    this.syncdoc = await webapp_client.sync_client.open_existing_sync_document({
       project_id: this.project_id,
       path: this.syncpath,
-      persistent
+      persistent,
     });
     if (this.syncdoc == null) return;
     this.syncdoc.on("change", debounce(this.syncdoc_changed.bind(this), 1000));
@@ -98,7 +103,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     }
     this.setState({
       loading: false,
-      has_full_history: this.syncdoc.has_full_history()
+      has_full_history: this.syncdoc.has_full_history(),
     });
   }
 

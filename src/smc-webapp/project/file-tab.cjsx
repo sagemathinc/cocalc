@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 A single file tab that
 
@@ -11,8 +16,6 @@ misc = require('smc-util/misc')
 {NavItem} = require('react-bootstrap')
 
 {COLORS, HiddenXS, Icon, Tip} = require('../r_misc')
-
-{analytics_event} = require("../tracker")
 
 exports.DEFAULT_FILE_TAB_STYLES =
     width        : 250
@@ -68,11 +71,6 @@ exports.FileTab = rclass
                 new_browser_window : true
         else
             actions.set_active_tab(@props.name)
-
-        if @props.file_tab
-            analytics_event('project_navigation', 'opened_a_file', misc.filename_extension(@props.name))
-        else
-            analytics_event('project_navigation', 'opened_project_' + @props.name)
 
     # middle mouse click closes
     onMouseDown: (e) ->
@@ -142,7 +140,7 @@ exports.FileTab = rclass
         body = <div style={width:'100%', color:text_color, cursor : 'pointer'}>
                 <div style={x_button_style}>
                     {<Icon
-                        onMouseOver = {@mouse_over_x} onMouseOut={@mouse_out_x}
+                        onMouseOver = {=>@mouse_over_x()} onMouseOut={=>@mouse_out_x()}
                         name        = 'times'
                         onClick     = {(e)=>@close_file(e, misc.tab_to_path(@props.name))}
                     /> if @props.file_tab}

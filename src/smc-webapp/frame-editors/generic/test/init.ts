@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // import {init} from "./util";
 
 // const w = window as any;
@@ -7,10 +12,10 @@ const w = window as any;
 
 w.test_load = {};
 
-w.test_load.basic = function() {
+w.test_load.basic = function () {
   require("../../markdown-editor/test/basic");
 };
 
-w.test_load.math = function() {
+w.test_load.math = function () {
   require("../../markdown-editor/test/math");
 };

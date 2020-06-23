@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { shallow } from "enzyme";
 import { SelectorInput } from "../selector-input";
@@ -12,7 +17,7 @@ describe("Smoke test:", () => {
   test("it renders a list of {value, display} objects", () => {
     const display_objects = [
       { value: "value_1", display: <div>Susan</div> },
-      { value: "value_2", display: <div>Harry</div> }
+      { value: "value_2", display: <div>Harry</div> },
     ];
     const tree = shallow(<SelectorInput options={display_objects} />)
       .children()
@@ -23,7 +28,7 @@ describe("Smoke test:", () => {
   test("it renders an object with keys mapped to react components ", () => {
     const options_map = {
       value_1: <div>Susan</div>,
-      value_2: <div>Harry</div>
+      value_2: <div>Harry</div>,
     };
     const tree = shallow(<SelectorInput options={options_map} />)
       .children()

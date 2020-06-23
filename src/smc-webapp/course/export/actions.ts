@@ -1,7 +1,11 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { replace_all, split } from "smc-util/misc";
 import { redux } from "../../app-framework";
 import { webapp_client } from "../../webapp-client";
-import { callback2 } from "smc-util/async-utils";
 
 import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
@@ -17,19 +21,19 @@ export class ExportActions {
     return this.course_actions.get_store();
   }
 
-  private path(ext: string): string {
+  private path(ext: string, what: string): string {
     // make path more likely to be python-readable...
     const path = this.get_store().get("course_filename");
     const p: string = split(replace_all(path, "-", "_")).join("_");
     const i: number = p.lastIndexOf(".");
-    return `export_${p.slice(0, i)}.${ext}`;
+    return `course-exports/${p.slice(0, i)}/${what}.${ext}`;
   }
 
   private open_file(path: string): void {
     const project_id = this.get_store().get("course_project_id");
     redux.getProjectActions(project_id).open_file({
       path,
-      foreground: true
+      foreground: true,
     });
   }
 
@@ -38,10 +42,10 @@ export class ExportActions {
     const id = actions.set_activity({ desc: `Writing ${path}` });
     const project_id = this.get_store().get("course_project_id");
     try {
-      await callback2(webapp_client.write_text_file_to_project, {
+      await webapp_client.project_client.write_text_file({
         project_id,
         path,
-        content
+        content,
       });
       if (actions.is_closed()) return;
       this.open_file(path);
@@ -125,7 +129,7 @@ export class ExportActions {
       const line = [name, id, email, grades, comments].join(",");
       content += line + "\n";
     }
-    this.write_file(this.path("csv"), content);
+    this.write_file(this.path("csv", "grades"), content);
   }
 
   public async to_py(): Promise<void> {
@@ -191,6 +195,49 @@ export class ExportActions {
       content += line + "\n";
     }
     content += "]\n";
-    this.write_file(this.path("py"), content);
+    this.write_file(this.path("py", "grades"), content);
+  }
+
+  public async file_use_times(assignment_or_handout_id: string): Promise<void> {
+    const id = this.course_actions.set_activity({
+      desc: "Exporting file use times...",
+    });
+    try {
+      const { assignment, handout } = this.course_actions.resolve({
+        assignment_id: assignment_or_handout_id,
+        handout_id: assignment_or_handout_id,
+      });
+      if (assignment != null) {
+        const target_json = this.path(
+          "json",
+          "file-use-times/assignment/" +
+            replace_all(assignment.get("path"), "/", "-")
+        );
+        await this.course_actions.assignments.export_file_use_times(
+          assignment_or_handout_id,
+          target_json
+        );
+        this.open_file(target_json);
+      } else if (handout != null) {
+        const target_json = this.path(
+          "json",
+          "file-use-times/handouts/" +
+            replace_all(handout.get("path"), "/", "-")
+        );
+        await this.course_actions.handouts.export_file_use_times(
+          assignment_or_handout_id,
+          target_json
+        );
+        this.open_file(target_json);
+      } else {
+        throw Error(
+          `Unknown handout or assignment "${assignment_or_handout_id}"`
+        );
+      }
+    } catch (err) {
+      this.course_actions.set_error(`Error exporting file use times -- ${err}`);
+    } finally {
+      this.course_actions.set_activity({ id });
+    }
   }
 }

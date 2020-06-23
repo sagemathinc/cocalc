@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Top-level react component, which ties everything together
 */
 
@@ -7,6 +12,7 @@ import * as immutable from "immutable";
 
 import { ErrorDisplay } from "../r_misc/error-display";
 import { Loading } from "../r_misc/loading";
+import { is_firefox, is_safari } from "../frame-editors/generic/browser";
 
 // React components that implement parts of the Jupyter notebook.
 import { TopMenubar } from "./top-menubar";
@@ -37,7 +43,7 @@ const KERNEL_STYLE: React.CSSProperties = {
   overflow: "hidden",
   borderLeft: "1px solid rgb(231,231,231)",
   borderBottom: "1px solid rgb(231,231,231)",
-  whiteSpace: "nowrap"
+  whiteSpace: "nowrap",
 };
 
 import { JupyterActions } from "./browser-actions";
@@ -102,7 +108,6 @@ interface JupyterEditorProps {
   edit_attachments?: string;
   edit_cell_metadata?: immutable.Map<any, any>;
   editor_settings?: immutable.Map<any, any>;
-  raw_ipynb?: immutable.Map<any, any>;
   metadata?: immutable.Map<any, any>;
   trust?: boolean;
   kernel_info?: immutable.Map<any, any>;
@@ -144,7 +149,6 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         insert_image: rtypes.string, // show insert image dialog
         edit_attachments: rtypes.string,
         edit_cell_metadata: rtypes.immutable.Map,
-        raw_ipynb: rtypes.immutable.Map,
         metadata: rtypes.immutable.Map,
         trust: rtypes.bool,
         kernel_info: rtypes.immutable.Map,
@@ -154,10 +158,10 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         kernels_by_name: rtypes.immutable.Map,
         kernels_by_language: rtypes.immutable.Map,
         default_kernel: rtypes.string,
-        closestKernel: rtypes.immutable.Map
+        closestKernel: rtypes.immutable.Map,
       },
       customize: { site_name: rtypes.string },
-      account: { editor_settings: rtypes.immutable.Map }
+      account: { editor_settings: rtypes.immutable.Map },
     };
   }
 
@@ -167,7 +171,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         margin: "1ex",
         whiteSpace: "pre" as "pre",
         fontSize: "12px",
-        fontFamily: "monospace" as "monospace"
+        fontFamily: "monospace" as "monospace",
       };
       return (
         <ErrorDisplay
@@ -269,10 +273,34 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
           fontSize: "24pt",
           textAlign: "center",
           marginTop: "15px",
-          color: "#888"
+          color: "#888",
         }}
       />
     );
+  }
+
+  private use_windowed_list(): boolean {
+    // NOTE: here by "disable windowing", we still use react-window,
+    // it's just that we make the overscan size large to effectively
+    // disable any pros and cons (but we still get the nice scroll api).
+    if (
+      this.props.frame_actions == null ||
+      this.props.editor_settings == null ||
+      this.props.cell_list == null
+      /*||
+      this.props.editor_settings.get("disable_jupyter_windowing") */
+    ) {
+      // very obvious reasons to disable windowing...
+      return false;
+    }
+    // OK, we have a big notebook.  Let's window if we're not on Safari/Firefox,
+    // where I don't know what is going on -- maybe some polyfill doesn't really
+    // work... (see #4320).
+    if (is_safari() || is_firefox()) {
+      return false;
+    }
+    // OK, let's do it.
+    return true;
   }
 
   render_cells() {
@@ -289,7 +317,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
             fontSize: "24pt",
             textAlign: "center",
             marginTop: "15px",
-            color: "#888"
+            color: "#888",
           }}
         />
       );
@@ -318,11 +346,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         scroll={this.props.scroll}
         cell_toolbar={this.props.cell_toolbar}
         trust={this.props.trust}
-        use_windowed_list={
-          this.props.frame_actions != null &&
-          this.props.editor_settings != null &&
-          !this.props.editor_settings.get("disable_jupyter_windowing")
-        }
+        use_windowed_list={this.use_windowed_list()}
       />
     );
   }
@@ -478,11 +502,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_raw_editor() {
-    if (
-      this.props.raw_ipynb == null ||
-      this.props.cm_options == null ||
-      this.props.font_size == null
-    ) {
+    if (this.props.cm_options == null || this.props.font_size == null) {
       return <Loading />;
     }
     return (
@@ -490,7 +510,6 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         name={this.props.name}
         actions={this.props.actions}
         font_size={this.props.font_size}
-        raw_ipynb={this.props.raw_ipynb}
         cm_options={this.props.cm_options.get("options")}
       />
     );
@@ -546,7 +565,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
           display: "flex",
           flexDirection: "column",
           height: "100%",
-          overflowY: "hidden"
+          overflowY: "hidden",
         }}
       >
         {this.render_error()}

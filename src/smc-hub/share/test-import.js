@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 We load a bunch of code just to force some typescript compilation,
 and generally improve the chances things will work when actually
 launched.  This is run during the build process as a test, so
@@ -11,7 +16,7 @@ few **minutes**, since typescript is quite slow.
 
 console.log("Doing a test import of code...");
 require("ts-node").register({
-  cacheDirectory: process.env.HOME + "/.ts-node-cache"
+  cacheDirectory: process.env.HOME + "/.ts-node-cache",
 });
 require("node-cjsx").transform();
 require("./server");

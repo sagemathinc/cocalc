@@ -1,22 +1,23 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const path = require("path");
 const this_file: string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
 
 import chalk from "chalk";
-import { Creds, TestGetString } from "./types";
-import { time_log } from "./time_log";
+import { Creds, Opts, TestGetString } from "./types";
+import { time_log2 } from "./time_log";
 import axios from "axios";
 import { expect } from "chai";
 
-export const api_create_project = async function(
-  creds: Creds,
-  api_key: string
-): Promise<TestGetString> {
+export const api_create_project = async function (creds: Creds, opts: Opts, api_key: string): Promise<TestGetString> {
   const ags: TestGetString = new TestGetString();
   try {
     const tm_start = process.hrtime.bigint();
-    const url: string =
-      creds.url.replace(/\/app.*/, "") + "/api/v1/create_project";
+    const url: string = creds.url.replace(/\/app.*/, "") + "/api/v1/create_project";
     debuglog("url", url);
 
     const desc: string = new Date().toISOString();
@@ -42,7 +43,7 @@ export const api_create_project = async function(
     const project_id: string = response.data.project_id;
     debuglog("project_id", project_id);
     expect(project_id.length).to.equal(36);
-    time_log(this_file, tm_start);
+    await time_log2(this_file, tm_start, creds, opts);
     ags.result = project_id;
     ags.pass += 1;
   } catch (e) {

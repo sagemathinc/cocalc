@@ -1,7 +1,14 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // This is derived from https://github.com/sharelatex/latex-log-parser-sharelatex
 // commit: 7301857ac402ff5491cb219d9415ac41b19e7e43
 // incorporating fix for https://github.com/sharelatex/latex-log-parser-sharelatex/issues/5 by HSY
 // License: MIT
+
+import { normalize as path_normalize } from "path";
 
 // Define some constants
 const LOG_WRAP_LIMIT = 79;
@@ -75,7 +82,8 @@ class LogText {
 
 const state = {
   NORMAL: 0,
-  ERROR: 1
+  ERROR: 1,
+  DEPS: 2,
 };
 
 /* Type of an error or warning */
@@ -99,6 +107,7 @@ export interface IProcessedLatexLog {
   typesetting: Error[];
   all: Error[];
   files: string[];
+  deps: string[]; // dependency files (no absolute files, only tex and bib)
 }
 
 export class ProcessedLatexLog implements IProcessedLatexLog {
@@ -107,6 +116,7 @@ export class ProcessedLatexLog implements IProcessedLatexLog {
   typesetting: Error[] = [];
   all: Error[] = [];
   files: string[] = [];
+  deps: string[] = [];
 
   toJS(): IProcessedLatexLog {
     return Object.assign({}, this);
@@ -125,6 +135,7 @@ export class LatexParser {
   private currentLine: string;
   private currentFilePath: string;
   private files: Set<string> = new Set([]);
+  private deps: string[]; // list of dependency files
 
   constructor(text, options) {
     this.log = new LogText(text);
@@ -135,6 +146,7 @@ export class LatexParser {
     this.fileStack = [];
     this.rootFileList = [];
     this.openParens = 0;
+    this.deps = [];
   }
 
   parse(): IProcessedLatexLog {
@@ -148,7 +160,7 @@ export class LatexParser {
             level: "error",
             message: this.currentLine.slice(2),
             content: "",
-            raw: this.currentLine + "\n"
+            raw: this.currentLine + "\n",
           };
         } else if (this.currentLineIsRunawayArgument()) {
           this.parseRunawayArgumentError();
@@ -158,11 +170,13 @@ export class LatexParser {
           this.parseHboxLine();
         } else if (this.currentLineIsPackageWarning()) {
           this.parseMultipleWarningLine();
+        } else if (this.currentLineIsDependenciesList()) {
+          this.state = state.DEPS;
+          continue; // skip first line
         } else {
           this.parseParensForFilenames();
         }
-      }
-      if (this.state === state.ERROR) {
+      } else if (this.state === state.ERROR) {
         this.currentError.content += this.log
           .linesUpToNextMatchingLine(/^l\.[0-9]+/)
           .join("\n");
@@ -174,9 +188,35 @@ export class LatexParser {
         }
         this.data.push(this.currentError);
         this.state = state.NORMAL;
+      } else if (this.state === state.DEPS) {
+        if (this.currentLineIsDependenciesListEnd()) {
+          this.state = state.NORMAL;
+        } else {
+          this.addDeps(this.currentLine);
+        }
       }
     }
     return this.postProcess(this.data).toJS();
+  }
+
+  currentLineIsDependenciesList(): boolean {
+    return this.currentLine.startsWith("#===Dependents for");
+  }
+
+  currentLineIsDependenciesListEnd(): boolean {
+    return this.currentLine.startsWith("#===End dependents for");
+  }
+
+  addDeps(line: string): void {
+    line = line.trim();
+    // ignore absolute files
+    if (line[0] === "/") return;
+    if (line[line.length - 1] === "\\") {
+      line = line.slice(0, line.length - 1);
+    }
+    // we only want to know about tex and bib files
+    if (!line.endsWith(".tex") && !line.endsWith(".bib")) return;
+    this.deps.push(line);
   }
 
   currentLineIsError(): boolean {
@@ -206,7 +246,7 @@ export class LatexParser {
       level: "error",
       message: this.currentLine,
       content: "",
-      raw: this.currentLine + "\n"
+      raw: this.currentLine + "\n",
     };
     this.currentError.content += this.log
       .linesUpToNextWhitespaceLine()
@@ -236,7 +276,7 @@ export class LatexParser {
       file: this.currentFilePath,
       level: "warning",
       message: warning,
-      raw: warning
+      raw: warning,
     });
   }
 
@@ -267,7 +307,7 @@ export class LatexParser {
       file: this.currentFilePath,
       level: "warning",
       message: raw_message,
-      raw: raw_message
+      raw: raw_message,
     });
   }
 
@@ -279,7 +319,7 @@ export class LatexParser {
       file: this.currentFilePath,
       level: "typesetting",
       message: this.currentLine,
-      raw: this.currentLine
+      raw: this.currentLine,
     });
   }
 
@@ -295,7 +335,7 @@ export class LatexParser {
           this.currentFilePath = filePath;
           const newFile: File = {
             path: filePath,
-            files: []
+            files: [],
           };
           this.fileStack.push(newFile);
           this.files.add(filePath);
@@ -346,17 +386,19 @@ export class LatexParser {
     }
     //if DEBUG
     //    console.log("latex-log-parser@consumeFilePath", @currentLine, "endOfFilePath:", endOfFilePath, "-> path: '#{path}'")
-    return path;
+    return path_normalize(path);
   }
 
   postProcess(data: Error[]): ProcessedLatexLog {
     const pll = new ProcessedLatexLog();
     for (const path of this.files) {
-      if (!path.endsWith(".tex") && !path.endsWith(".bib")) continue; // only include tex and bib files
+      // only include tex and bib files
+      if (!path.endsWith(".tex") && !path.endsWith(".bib")) continue;
       pll.files.push(path);
     }
     const hashes: string[] = [];
-    const hashEntry: Function = entry => entry.raw;
+    const hashEntry: Function = (entry) => entry.raw;
+    pll.deps = this.deps;
 
     let i: number = 0;
     while (i < data.length) {

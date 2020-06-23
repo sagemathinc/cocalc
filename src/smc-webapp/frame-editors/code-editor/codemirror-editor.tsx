@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Single codemirror-based file editor
 
 This is a wrapper around a single codemirror editor view.
@@ -36,7 +41,7 @@ const STYLE = {
   marginbottom: "1ex",
   minheight: "2em",
   border: "0px",
-  background: "#fff"
+  background: "#fff",
 };
 
 interface Props {
@@ -51,7 +56,7 @@ interface Props {
   is_current: boolean;
   is_public: boolean;
   value?: string; // if defined and is_public, use this static value and editor is read-only
-  misspelled_words: Set<string>;
+  misspelled_words: Set<string> | string; // **or** show these words as not spelled correctly
   resize: number;
   gutters: string[];
   gutter_markers: Map<string, any>;
@@ -97,7 +102,7 @@ export class CodemirrorEditor extends Component<Props, State> {
         "gutter_markers",
         "is_subframe",
         "is_current",
-        "path"
+        "path",
       ])
     );
   }
@@ -138,7 +143,25 @@ export class CodemirrorEditor extends Component<Props, State> {
     this.cm.refresh();
   }
 
-  cm_highlight_misspelled_words(words: Set<string>): void {
+  cm_highlight_misspelled_words(words: Set<string> | string): void {
+    if (words == "browser") {
+      // just ensure browser spellcheck is enabled
+      this.cm.setOption("spellcheck", true);
+      (this.cm as any).spellcheck_highlight([]);
+      return;
+    }
+    if (words == "disabled") {
+      // disabled
+      this.cm.setOption("spellcheck", false);
+      (this.cm as any).spellcheck_highlight([]);
+      return;
+    }
+    if (typeof words == "string") {
+      // not supported yet
+      console.warn("unsupported words option", words);
+      return;
+    }
+    this.cm.setOption("spellcheck", false);
     (this.cm as any).spellcheck_highlight(words.toJS());
   }
 
@@ -190,7 +213,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     const locs = this.cm
       .getDoc()
       .listSelections()
-      .map(c => ({ x: c.anchor.ch, y: c.anchor.line }));
+      .map((c) => ({ x: c.anchor.ch, y: c.anchor.line }));
     // side_effect is whether or not the cursor move is being caused by an
     // external setValueNoJump, so just a side effect of something another user did.
     const side_effect = (this.cm as any)._setValueNoJump;
@@ -297,6 +320,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       this.init_new_codemirror();
     }
 
+    // (window as any).cm = this.cm;
     if (props.editor_state != null) {
       codemirror_state.set_state(this.cm, props.editor_state.toJS() as any);
     }
@@ -360,13 +384,14 @@ export class CodemirrorEditor extends Component<Props, State> {
     this.cm.on("focus", () => {
       this.props.actions.set_active_id(this.props.id);
       if (this.style_active_line && this.cm) {
-        this.cm.setOption("styleActiveLine", true);
+        // any because the typing doesn't recognize extensions
+        this.cm.setOption("styleActiveLine" as any, true);
       }
     });
 
     this.cm.on("blur", () => {
       if (this.style_active_line && this.cm) {
-        this.cm.setOption("styleActiveLine", false);
+        this.cm.setOption("styleActiveLine" as any, false);
       }
     });
 
@@ -410,10 +435,10 @@ export class CodemirrorEditor extends Component<Props, State> {
       "leanSymbols",
       "lineWrapping",
       "indentWithTabs",
-      "theme"
+      "theme",
     ]) {
       if (!isEqual(cm.options[key], options[key])) {
-        cm.setOption(key, options[key]);
+        cm.setOption(key as any, options[key]);
       }
     }
   }
@@ -501,7 +526,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       color: "#337ab7",
       cursor: "pointer",
       width: "100%",
-      fontSize: "10pt"
+      fontSize: "10pt",
     };
     if (this.props.is_current) {
       style.background = "#337ab7";

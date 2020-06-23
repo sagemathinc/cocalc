@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 PostgreSQL -- implementation of all the queries needed for the backend servers
 
@@ -32,6 +37,19 @@ PROJECT_GROUPS = misc.PROJECT_GROUPS
 collab = require('./postgres/collab')
 {set_account_info_if_possible} = require('./postgres/account-queries')
 
+{site_license_usage_stats, projects_using_site_license, number_of_projects_using_site_license} = require('./postgres/site-license/analytics')
+{update_site_license_usage_log} = require('./postgres/site-license/usage-log')
+{site_license_public_info} = require('./postgres/site-license/public')
+{matching_site_licenses, manager_site_licenses} = require('./postgres/site-license/search')
+{permanently_unlink_all_deleted_projects_of_user} = require('./postgres/delete-projects')
+{unlist_all_public_paths} = require('./postgres/public-paths')
+{get_remember_me} = require('./postgres/remember-me')
+
+SERVER_SETTINGS_EXTRAS = require("smc-util/db-schema/site-settings-extras").EXTRAS
+SITE_SETTINGS_CONF = require("smc-util/schema").site_settings_conf
+SERVER_SETTINGS_CACHE = require("expiring-lru-cache")({ size: 10, expiry: 60 * 1000 })
+{pii_expire} = require("./utils")
+
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # write an event to the central_log table
     log: (opts) =>
@@ -39,13 +57,24 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             event : required    # string
             value : required    # object
             cb    : undefined
+
+        expire = null
+        if opts.event == 'uncaught_exception'
+            expire = misc.expire_time(30 * 24 * 60 * 60) # del in 30 days
+        else
+            v = opts.value
+            pii_events = ['create_account','change_password','change_email_address','webapp-add_passport','get_user_auth_token','successful_sign_in','webapp-email_sign_up']
+            if v.ip_address? or v.email_address? or opts.event in pii_events
+                expire = await pii_expire(@)
+
         @_query
             query  : 'INSERT INTO central_log'
             values :
-                'id::UUID'        : misc.uuid()
-                'event::TEXT'     : opts.event
-                'value::JSONB'    : opts.value
-                'time::TIMESTAMP' : 'NOW()'
+                'id::UUID'          : misc.uuid()
+                'event::TEXT'       : opts.event
+                'value::JSONB'      : opts.value
+                'time::TIMESTAMP'   : 'NOW()'
+                'expire::TIMESTAMP' : expire
             cb     : (err) => opts.cb?(err)
 
     uncaught_exception: (err) =>
@@ -101,6 +130,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             error      : 'error'
             account_id : undefined
             cb         : undefined
+        # get rid of the entry in 30 days
+        expire = misc.expire_time(30 * 24 * 60 * 60)
         @_query
             query  : 'INSERT INTO client_error_log'
             values :
@@ -109,6 +140,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 'error      :: TEXT'      : opts.error
                 'account_id :: UUID'      : opts.account_id
                 'time       :: TIMESTAMP' : 'NOW()'
+                'expire     :: TIMESTAMP' : expire
             cb     : opts.cb
 
     webapp_error: (opts) =>
@@ -134,6 +166,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             start_time   : undefined
             id           : undefined  # ignored
             cb           : undefined
+        # get rid of the entry in 30 days
+        expire = misc.expire_time(30 * 24 * 60 * 60)
         @_query
             query       : 'INSERT INTO webapp_errors'
             values      :
@@ -158,6 +192,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 'uptime        :: TEXT'      : opts.uptime
                 'start_time    :: TIMESTAMP' : opts.start_time
                 'time          :: TIMESTAMP' : 'NOW()'
+                'expire        :: TIMESTAMP' : expire
             cb          : opts.cb
 
     get_client_error_log: (opts) =>
@@ -174,13 +209,29 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             name  : required
             value : required
             cb    : required
-        @_query
-            query  : 'INSERT INTO server_settings'
-            values :
-                'name::TEXT'  : opts.name
-                'value::TEXT' : opts.value
-            conflict : 'name'
-            cb     : opts.cb
+        async.series([
+            (cb) ->
+                @_query
+                    query  : 'INSERT INTO server_settings'
+                    values :
+                        'name::TEXT'  : opts.name
+                        'value::TEXT' : opts.value
+                    conflict : 'name'
+                    cb     : cb
+            # also set a timestamp
+            (cb) ->
+                @_query
+                    query  : 'INSERT INTO server_settings'
+                    values :
+                        'name::TEXT'  : '_last_update'
+                        'value::TEXT' : (new Date()).toISOString()
+                    conflict : 'name'
+                    cb     : cb
+        ], (err) ->
+            # clear the cache no matter what (e.g., server_settings might have partly changed then errored)
+            SERVER_SETTINGS_CACHE.reset()
+            opts.cb(err)
+        )
 
     get_server_setting: (opts) =>
         opts = defaults opts,
@@ -191,6 +242,44 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             where :
                 "name = $::TEXT" : opts.name
             cb    : one_result('value', opts.cb)
+
+    get_server_settings_cached: (opts) =>
+        opts = defaults opts,
+            cb: required
+
+        settings = SERVER_SETTINGS_CACHE.get('server_settings')
+        if settings != null
+            opts.cb(undefined, settings)
+            return
+
+        dbg = @_dbg('get_server_settings_cached')
+        @_query
+            query : 'SELECT name, value FROM server_settings'
+            cache : true
+            cb    : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    x = {}
+                    # process values, possibly post-process values
+                    for k in result.rows
+                        val = k.value
+                        config = SITE_SETTINGS_CONF[k.name] ? SERVER_SETTINGS_EXTRAS[k.name]
+                        if config?.to_val?
+                            val = config.to_val(val)
+                        x[k.name] = val
+                    # set default values for missing keys
+                    for config in [SERVER_SETTINGS_EXTRAS, SITE_SETTINGS_CONF]
+                        for ckey in Object.keys(config)
+                            if (not x[ckey]?) or x[ckey] == ''
+                                conf = config[ckey]
+                                if conf?.to_val?
+                                    x[ckey] = conf.to_val(conf.default)
+                                else
+                                    x[ckey] = conf.default
+                    SERVER_SETTINGS_CACHE.set('server_settings', x)
+                    #dbg("server_settings = #{JSON.stringify(x, null, 2)}")
+                    opts.cb(undefined, x)
 
     get_site_settings: (opts) =>
         opts = defaults opts,
@@ -237,6 +326,13 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             where :
                 "strategy = $::TEXT" : opts.strategy
             cb    : one_result('conf', opts.cb)
+
+    get_all_passport_settings: (opts) =>
+        opts = defaults opts,
+            cb       : required
+        @_query
+            query : 'SELECT strategy, conf FROM passport_settings'
+            cb    : all_results(opts.cb)
 
     ###
     API Key Management
@@ -298,6 +394,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
             email_address     : undefined
             password_hash     : undefined
+            lti_id            : undefined  # 2-tuple <string[]>[iss, user_id]
 
             passport_strategy : undefined
             passport_id       : undefined
@@ -305,7 +402,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             usage_intent      : undefined
             cb                : required       # cb(err, account_id)
 
-        dbg = @_dbg("create_account(#{opts.first_name}, #{opts.last_name} #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id}), #{opts.usage_intent}")
+        dbg = @_dbg("create_account(#{opts.first_name}, #{opts.last_name}, #{opts.lti_id}, #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id}), #{opts.usage_intent}")
         dbg()
 
         for name in ['first_name', 'last_name']
@@ -361,6 +458,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         'account_id     :: UUID'      : account_id
                         'first_name     :: TEXT'      : opts.first_name
                         'last_name      :: TEXT'      : opts.last_name
+                        'lti_id         :: TEXT[]'    : opts.lti_id
                         'created        :: TIMESTAMP' : new Date()
                         'created_by     :: INET'      : opts.created_by
                         'password_hash  :: CHAR(173)' : opts.password_hash
@@ -615,16 +713,24 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         locals =
             email_address : undefined
             token         : undefined
+            old_challenge : undefined
 
         async.series([
             (cb) =>
                 @_query
-                    query : "SELECT email_address FROM accounts"
+                    query : "SELECT email_address, email_address_challenge FROM accounts"
                     where : "account_id = $::UUID" : opts.account_id
-                    cb    : one_result 'email_address', (err, x) =>
-                        locals.email_address = x
+                    cb    : one_result (err, x) =>
+                        locals.email_address = x?.email_address
+                        locals.old_challenge = x?.email_address_challenge
                         cb(err)
             (cb) =>
+                # TODO maybe expire tokens after some time
+                if locals.old_challenge?.token?
+                    locals.token = locals.old_challenge.token
+                    cb()
+                    return
+
                 {generate} = require("random-key")
                 locals.token = generate(16).toLowerCase()
                 data =
@@ -640,7 +746,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         "account_id = $::UUID"       : opts.account_id
                     cb     : cb
         ], (err) ->
-            opts.cb?(err, locals.token, locals.email_address)
+            opts.cb?(err, locals)
         )
 
 
@@ -997,10 +1103,28 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cb     : required     # cb(err, list of {id:?, first_name:?, last_name:?, email_address:?}), where the
                                   # email_address *only* occurs in search queries that are by email_address -- we do not reveal
                                   # email addresses of users queried by name.
+
+        if opts.admin and (misc.is_valid_uuid_string(opts.query) or misc.is_valid_email_address(opts.query))
+            # One special case: when the query is just an email address or uuid, in which case we
+            # just return that account (this is ONLY for admins) since
+            # this includes the email address, except NOT an error if
+            # there is no match
+            @get_account
+                account_id : if misc.is_valid_uuid_string(opts.query) then opts.query
+                email_address : if misc.is_valid_email_address(opts.query) then opts.query
+                columns:['account_id', 'first_name', 'last_name', 'email_address', 'last_active', 'created', 'banned']
+                cb: (err, account) =>
+                    if err
+                        opts.cb(undefined, [])
+                    else
+                        opts.cb(undefined, [account])
+            return
+
+
         {string_queries, email_queries} = misc.parse_user_search(opts.query)
 
         if opts.admin
-            # For admin we just do substring queries.
+            # For admin we just do substring queries:
             for x in email_queries
                 string_queries.push([x])
             email_queries = []
@@ -1091,21 +1215,32 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             )
 
     _account_where: (opts) =>
-        if opts.account_id?
+        # account_id > email_address > lti_id
+        if opts.account_id
             return {"account_id = $::UUID" : opts.account_id}
-        else
+        else if opts.email_address
             return {"email_address = $::TEXT" : opts.email_address}
+        else if opts.lti_id
+            return {"lti_id = $::TEXT[]" : opts.lti_id}
+        else
+            throw Error("postgres-server-queries::_account_where neither account_id, nor email_address, nor lti_id specified and nontrivial")
 
     get_account: (opts) =>
         opts = defaults opts,
-            email_address : undefined     # provide either email or account_id (not both)
+            email_address : undefined     # provide one of email, account_id, or lti_id (pref is account_id, then email_address, then lti_id)
             account_id    : undefined
+            lti_id        : undefined
             columns       : ['account_id',
                              'password_hash',
                              'password_is_set',  # true or false, depending on whether a password is set (since don't send password_hash to user!)
-                             'first_name', 'last_name',
+                             'first_name',
+                             'last_name',
                              'email_address',
-                             'evaluate_key', 'autosave', 'terminal', 'editor_settings', 'other_settings',
+                             'evaluate_key',
+                             'autosave',
+                             'terminal',
+                             'editor_settings',
+                             'other_settings',
                              'groups',
                              'passports'
                             ]
@@ -1331,13 +1466,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     get_remember_me: (opts) =>
         opts = defaults opts,
             hash                : required
+            cache               : true
             cb                  : required   # cb(err, signed_in_message)
-        @_query
-            query : 'SELECT value, expire FROM remember_me'
-            where :
-                'hash = $::TEXT' : opts.hash.slice(0,127)
-            retry_until_success  : {max_time:60000, start_delay:3000}  # since we want this to be (more) robust to database connection failures.
-            cb       : one_result('value', opts.cb)
+        try
+            opts.cb(undefined, await get_remember_me(@, opts.hash, opts.cache))
+        catch err
+            opts.cb(err)
 
     delete_remember_me: (opts) =>
         opts = defaults opts,
@@ -1658,6 +1792,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             account_id  : required    # initial owner
             title       : undefined
             description : undefined
+            lti_id      : undefined   # array of strings
             image       : 'default'   # probably ok to leave it undefined
             cb          : required    # cb(err, project_id)
         if not @_validate_opts(opts) then return
@@ -1670,6 +1805,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 title         : opts.title
                 description   : opts.description
                 compute_image : opts.image
+                lti_id        : opts.lti_id
                 created       : now
                 last_edited   : now
                 users         : {"#{opts.account_id}":{group:'owner'}}
@@ -1741,7 +1877,15 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     _validate_opts: (opts) =>
         for k, v of opts
-            if k.slice(k.length-2) == 'id'
+            if k == 'lti_id'
+                if not (Array.isArray(v) and v.length > 0)
+                    opts.cb?("invalid #{k} -- can't be an empty array")
+                    return false
+                for x in v
+                    if not (typeof x == 'string' and x.length > 0)
+                        opts.cb?("invalid #{k} -- #{v}")
+                        return false
+            else if k.slice(k.length-2) == 'id'
                 if v? and not misc.is_valid_uuid_string(v)
                     opts.cb?("invalid #{k} -- #{v}")
                     return false
@@ -1875,6 +2019,18 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             where : "users ? $::TEXT" : opts.account_id
             cb    : all_results('jsonb_object_keys', opts.cb)
 
+    # get list of project collaborator IDs
+    get_collaborators: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        dbg = @_dbg("get_collaborators")
+        @_query
+            query : "SELECT DISTINCT jsonb_object_keys(users) FROM projects"
+            where : "project_id = $::UUID" : opts.project_id
+            cb    : all_results('jsonb_object_keys', opts.cb)
+
+
     # return list of paths that are public and not disabled in the given project
     get_public_paths: (opts) =>
         opts = defaults opts,
@@ -1998,6 +2154,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             project_id  : required
             account_id  : undefined
             groups      : misc.PROJECT_GROUPS
+            cache       : false  # if true cache result for a few seconds
             cb          : required  # cb(err, true if in group)
         if not opts.account_id?
             # clearly user -- who isn't even signed in -- is not in the group
@@ -2006,6 +2163,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         if not @_validate_opts(opts) then return
         @_query
             query : 'SELECT COUNT(*) FROM projects'
+            cache : opts.cache
             where :
                 'project_id :: UUID = $' : opts.project_id
                 "users#>>'{#{opts.account_id},group}' = ANY($)" : opts.groups
@@ -2024,11 +2182,17 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     get_project_ids_with_user: (opts) =>
         opts = defaults opts,
             account_id : required
+            is_owner   : undefined     # if set to true, only return projects with this owner.
             cb         : required      # opts.cb(err, [project_id, project_id, project_id, ...])
         if not @_validate_opts(opts) then return
+
+        if opts.is_owner
+            where = {"users#>>'{#{opts.account_id},group}' = $::TEXT" : 'owner'}
+        else
+            where = {'users ? $::TEXT' : opts.account_id}
         @_query
             query : 'SELECT project_id FROM projects'
-            where : 'users ? $::TEXT' : opts.account_id
+            where : where
             cb    : all_results('project_id', opts.cb)
 
     # cb(err, array of account_id's of accounts in non-invited-only groups)
@@ -2056,8 +2220,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             to         : required  # an email address
             cb         : required
         if not @_validate_opts(opts) then return
+        # in particular, emails like bla'foo@bar.com → bla''foo@bar.com
+        sani_to = @sanitize("{\"#{opts.to}\"}")
+        query_select = "SELECT invite#>#{sani_to} AS to FROM projects"
         @_query
-            query : "SELECT invite#>'{\"#{opts.to}\"}' AS to FROM projects"
+            query : query_select
             where : 'project_id :: UUID = $' : opts.project_id
             cb    : one_result 'to', (err, y) =>
                 opts.cb(err, if not y? or y.error or not y.time then 0 else new Date(y.time))
@@ -2442,6 +2609,18 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             jsonb_merge : {settings: opts.settings}
             cb          : opts.cb
 
+    get_project_extra_env: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @_query
+            query : "SELECT env FROM projects"
+            where : 'project_id = $::UUID' : opts.project_id
+            cb    : one_result 'env', (err, env) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, env ? {})
 
     ###
     Stats
@@ -2994,3 +3173,38 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     syncdoc_history_async : (string_id, patches) =>
         return await syncdoc_history(@, string_id, patches)
+
+    # async function
+    site_license_usage_stats: () =>
+        return await site_license_usage_stats(@)
+
+    # async function
+    projects_using_site_license: (opts) =>
+        return await projects_using_site_license(@, opts)
+
+    # async function
+    number_of_projects_using_site_license: (opts) =>
+        return await number_of_projects_using_site_license(@, opts)
+
+    # async function
+    site_license_public_info: (license_id) =>
+        return await site_license_public_info(@, license_id)
+
+    # async function
+    update_site_license_usage_log: =>
+        return await update_site_license_usage_log(@)
+
+        # async function
+    matching_site_licenses: (...args) =>
+        return await matching_site_licenses(@, ...args)
+
+    manager_site_licenses: (...args) =>
+        return await manager_site_licenses(@, ...args)
+
+    # async function
+    permanently_unlink_all_deleted_projects_of_user: (account_id_or_email_address) =>
+        return await permanently_unlink_all_deleted_projects_of_user(@, account_id_or_email_address)
+
+    # async function
+    unlist_all_public_paths: (account_id, is_owner) =>
+        return await unlist_all_public_paths(@, account_id, is_owner)

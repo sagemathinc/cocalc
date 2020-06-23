@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 FrameTree -- a binary tree of editor frames.
 
 For the first version, these will all be codemirror editors on the same file.
@@ -33,7 +38,7 @@ import {
   ReactDOM,
   Component,
   redux,
-  Rendered
+  Rendered,
 } from "../../app-framework";
 import { Map, Set } from "immutable";
 
@@ -61,18 +66,18 @@ const cols_drag_bar = {
   padding: `${drag_offset}px`,
   background: "#efefef",
   zIndex: 20,
-  cursor: "ew-resize"
+  cursor: "ew-resize",
 };
 
 const drag_hover = {
   background: "darkgrey",
-  opacity: 0.8
+  opacity: 0.8,
 };
 
 const cols_drag_bar_drag_hover = merge(copy(cols_drag_bar), drag_hover);
 
 const rows_drag_bar = merge(copy(cols_drag_bar), {
-  cursor: "ns-resize"
+  cursor: "ns-resize",
 });
 
 const rows_drag_bar_drag_hover = merge(copy(rows_drag_bar), drag_hover);
@@ -150,7 +155,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         "status",
         "complete",
         "derived_file_types",
-        "available_features"
+        "available_features",
       ])
     );
   }
@@ -378,7 +383,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
       const id = this.props.frame_tree.get("id");
       this.props.actions.set_frame_tree({
         id,
-        pos
+        pos,
       });
       this.props.actions.set_resize();
       this.props.actions.focus(); // see https://github.com/sagemathinc/cocalc/issues/3269
@@ -422,7 +427,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
       style_first: { display: "flex", flex: pos },
       second: this.props.frame_tree.get("second"),
       style_second: { display: "flex", flex: 1 - pos },
-      outer_style: undefined as any
+      outer_style: undefined as any,
     };
 
     if (flex_direction === "row") {
@@ -431,7 +436,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         display: "flex",
         flexDirection: "row",
         flex: 1,
-        overflow: "hidden"
+        overflow: "hidden",
       };
     }
     return data;
@@ -482,7 +487,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
       reset();
       this.props.actions.set_frame_tree({
         id: this.props.frame_tree.get("id"),
-        pos
+        pos,
       });
       this.props.actions.set_resize();
       this.props.actions.focus();

@@ -1,11 +1,15 @@
 /*
-Show a file listing.
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-NOTES:
+// Show a file listing.
+//
+// NOTES:
+//
+//  - TODO: If we want to preserve the scroll position let's just not unmount this component (like we do with editors).
 
- - TODO: If we want to preserve the scroll position let's just not unmount this component (like we do with editors).
-*/
-
+import { WATCH_THROTTLE_MS } from "../../websocket/listings";
 import * as React from "react";
 import * as immutable from "immutable";
 import { WindowedList } from "../../../r_misc/windowed-list";
@@ -22,6 +26,7 @@ import { DirectoryRow } from "./directory-row";
 import { FileRow } from "./file-row";
 import { TERM_MODE_CHAR } from "./utils";
 import { MainConfiguration } from "../../../project_configuration";
+import { TypedMap } from "../../../app-framework";
 
 const misc = require("smc-util/misc");
 const { Col, Row } = require("react-bootstrap");
@@ -32,7 +37,7 @@ interface Props {
   redux: AppRedux;
 
   name: string;
-  active_file_sort?: any;
+  active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
   listing: any[];
   file_map: object;
   file_search: string;
@@ -55,9 +60,38 @@ interface Props {
 export class FileListing extends React.Component<Props> {
   static defaultProps = { file_search: "" };
   private list_ref = React.createRef<WindowedList>();
+  private timer;
 
   constructor(props) {
     super(props);
+  }
+
+  componentDidMount(): void {
+    this.watch();
+    this.timer = setInterval(this.watch.bind(this), WATCH_THROTTLE_MS);
+  }
+
+  componentWillUnmount(): void {
+    if (this.timer != null) {
+      clearInterval(this.timer);
+      delete this.timer;
+    }
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.props.current_path != prevProps.current_path) {
+      this.watch();
+    }
+  }
+
+  private watch(): void {
+    const store = this.props.actions.get_store();
+    if (store == null) return;
+    try {
+      store.get_listings().watch(this.props.current_path);
+    } catch (err) {
+      console.warn("ERROR watching directory", err);
+    }
   }
 
   private render_row(
@@ -182,6 +216,7 @@ export class FileListing extends React.Component<Props> {
     if (this.props.file_search[0] === TERM_MODE_CHAR) {
       return;
     }
+
     return (
       <NoFiles
         name={this.props.name}
@@ -247,7 +282,7 @@ export class FileListing extends React.Component<Props> {
             flex: "1 0 auto",
             zIndex: 1,
             display: "flex",
-            flexDirection: "column"
+            flexDirection: "column",
           }}
         >
           {!this.props.public_view && this.render_terminal_mode()}

@@ -1,10 +1,20 @@
-import { callback2, once } from "smc-util/async-utils";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { once } from "smc-util/async-utils";
 import { redux } from "../app-framework";
 import { QueryParams } from "../misc/query-params";
 const { APP_BASE_URL, get_cookie } = require("../misc_page");
+import { WelcomeFile } from "./welcome-file";
+import { WebappClient } from "./client";
+import { NAME as LAUNCH_NAME } from "../launch/actions";
+
+export const ANON_PROJECT_TITLE =  "Welcome to CoCalc!"
 
 /*
-true if anonymous query param set at all (doesn't matter to what) during
+If the anonymous query param is set at all (doesn't matter to what) during
 initial page load.
 
 Also do NOT make true of has_remember_me is set, since then probably
@@ -21,14 +31,35 @@ export function should_do_anonymous_setup(): boolean {
   return resp;
 }
 
-export async function do_anonymous_setup(client: any): Promise<void> {
-  // function log(...args): void { console.log("do_anonymous_setup", ...args); }
-  // log();
+async function setup_default_project(log) {
+  const actions = redux.getActions("projects");
+  log("creating project");
+  const project_id = await actions.create_project({
+    title: ANON_PROJECT_TITLE,
+    start: true,
+    description: "",
+  });
+  log("opening project");
+  actions.open_project({ project_id, switch_to: true });
+  await new WelcomeFile(project_id).open();
+}
+
+export async function do_anonymous_setup(client: WebappClient): Promise<void> {
+  function log(..._args): void {
+    // uncomment to debug...
+    // console.log("do_anonymous_setup", ..._args);
+  }
+  log();
   try {
-    // log("creating account");
-    const x = await callback2(client.create_account.bind(client), {});
-    if (x != null && x.event == "account_creation_failed") {
-      // log("failed to create account", x);
+    redux.getActions("account").setState({ doing_anonymous_setup: true });
+    log("creating account");
+    try {
+      const resp = await client.account_client.create_account({});
+      if (resp?.event == "account_creation_failed") {
+        throw Error(resp.error);
+      }
+    } catch (err) {
+      log("failed to create account", err);
       // If there is an error specifically with creating the account
       // due to the backend not allowing it (e.g., missing token), then
       // it is fine to silently return, which falls back to the login
@@ -36,63 +67,32 @@ export async function do_anonymous_setup(client: any): Promise<void> {
       return;
     }
     if (!client.is_signed_in()) {
-      // log("waiting to be signed in");
-      await once(this, "signed_in");
-    }
-    const actions = redux.getActions("projects");
-    // log("creating project");
-    const project_id = await actions.create_project({
-      title: "Welcome to CoCalc!",
-      start: true,
-      description: ""
-    });
-    // log("opening project");
-    actions.open_project({ project_id, switch_to: true });
-
-    const launch_actions = redux.getStore("launch-actions");
-    if (launch_actions != null && launch_actions.get("launch")) {
-      console.log(
-        "anonymous setup: do nothing further since there is a launch action"
-      );
-      return;
+      log("waiting to be signed in");
+      await once(client, "signed_in");
     }
 
-    // This does not seem like a good idea -- nobody uses it. Better
-    // it turns out to maybe show the files page.  We will see...
-    open_default_jupyter_notebook(project_id);
+    // "share" and "custom software images" create projects on their own!
+    const launch_store = redux.getStore(LAUNCH_NAME);
+    const need_project = !launch_store.get("type");
+    if (need_project) {
+      await setup_default_project(log);
+    }
   } catch (err) {
     console.warn("ERROR doing anonymous sign up -- ", err);
-    // log("err", err);
-    // There was an error creating the account (probably), so we do nothing further.
-    // If the user didn't get signed in, this will fall back to sign in page, which
+    log("err", err);
+    // There was an error creating the account (probably), so we do nothing
+    // further involving making an anonymous account.
+    // If the user didn't get signed in, this will fallback to sign in page, which
     // is reasonable behavior.
     // Such an error *should* happen if, e.g., a sign in token is required,
     // or maybe this user's ip is blocked. Falling back
     // to normal sign up makes sense in this case.
     return;
   } finally {
-    // log("removing anonymous param");
+    redux.getActions("account").setState({ doing_anonymous_setup: false });
+    log("removing anonymous param");
     // In all cases, remove the 'anonymous' parameter. This way if
     // they refresh their browser it won't cause confusion.
     QueryParams.remove("anonymous");
   }
-}
-
-function open_default_jupyter_notebook(project_id: string): void {
-  // Also change default account settings to not ask for the kernel,
-  // since that adds friction.
-  // log("do not ask for jupyter kernel");
-  redux.getTable("account").set({
-    editor_settings: {
-      ask_jupyter_kernel: false,
-      jupyter: { kernel: "python3" }
-    }
-  });
-  // Open a new Jupyter notebook:
-  // log("open jupyter notebook");
-  const project_actions = redux.getProjectActions(project_id);
-  project_actions.open_file({
-    path: "Welcome to CoCalc.ipynb",
-    foreground: true
-  });
 }

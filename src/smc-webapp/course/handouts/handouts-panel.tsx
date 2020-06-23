@@ -1,23 +1,7 @@
-//#############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 // CoCalc libraries
 import * as misc from "smc-util/misc";
@@ -29,14 +13,14 @@ import {
   Component,
   rclass,
   Rendered,
-  redux
+  redux,
 } from "../../app-framework";
 
 import {
   Button,
   ButtonGroup,
   FormGroup,
-  FormControl
+  FormControl,
 } from "../../antd-bootstrap";
 
 import { Alert, Card, Row, Col } from "antd";
@@ -50,7 +34,7 @@ import {
   StudentsMap,
   HandoutRecord,
   CourseStore,
-  LastCopyInfo
+  LastCopyInfo,
 } from "../store";
 import { UserMap } from "../../todo-types";
 import { Set } from "immutable";
@@ -60,7 +44,7 @@ import {
   Icon,
   Tip,
   MarkdownInput,
-  WindowedList
+  WindowedList,
 } from "../../r_misc";
 
 // Could be merged with steps system of assignments.
@@ -68,7 +52,7 @@ import {
 // Could also be coded into the components below but steps could be added in the future?
 const STEPS = () => ["handout"];
 
-const step_direction = function(step) {
+const step_direction = function (step) {
   switch (step) {
     case "handout":
       return "to";
@@ -77,7 +61,7 @@ const step_direction = function(step) {
   }
 };
 
-const step_verb = function(step) {
+const step_verb = function (step) {
   switch (step) {
     case "handout":
       return "distribute";
@@ -86,14 +70,14 @@ const step_verb = function(step) {
   }
 };
 
-const step_ready = function(step) {
+const step_ready = function (step) {
   switch (step) {
     case "handout":
       return "";
   }
 };
 
-const past_tense = function(word) {
+const past_tense = function (word) {
   if (word[word.length - 1] === "e") {
     return word + "d";
   } else {
@@ -129,15 +113,15 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
       super(props);
       this.state = {
         show_deleted: false,
-        search: ""
+        search: "",
       };
     }
 
     static reduxProps({ name }) {
       return {
         [name]: {
-          expanded_handouts: rtypes.immutable.Set
-        }
+          expanded_handouts: rtypes.immutable.Set,
+        },
       };
     }
 
@@ -171,7 +155,7 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
       ({ list, num_omitted } = util.compute_match_list({
         list,
         search_key: "path",
-        search: this.state.search.trim()
+        search: this.state.search.trim(),
       }));
 
       ({ list, deleted, num_deleted } = util.order_list({
@@ -182,14 +166,14 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
             b.path != null ? b.path.toLowerCase() : undefined
           ),
         reverse: false,
-        include_deleted: this.state.show_deleted
+        include_deleted: this.state.show_deleted,
       }));
 
       return {
         shown_handouts: list,
         deleted_handouts: deleted,
         num_omitted,
-        num_deleted
+        num_deleted,
       };
     }
 
@@ -229,13 +213,13 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
 
     private yield_adder(deleted_handouts) {
       const deleted_paths = {};
-      deleted_handouts.map(obj => {
+      deleted_handouts.map((obj) => {
         if (obj.path) {
           return (deleted_paths[obj.path] = obj.handout_id);
         }
       });
 
-      return path => {
+      return (path) => {
         if (deleted_paths[path] != null) {
           return this.props.actions.handouts.undelete_handout(
             deleted_paths[path]
@@ -273,7 +257,7 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
           estimated_row_size={50}
           row_count={handouts.length}
           row_renderer={({ key, index }) => this.render_handout(key, index)}
-          row_key={index =>
+          row_key={(index) =>
             handouts[index] != null ? handouts[index].handout_id : undefined
           }
           cache_id={`course-handouts-${this.props.name}-${this.props.frame_id}`}
@@ -312,18 +296,18 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
         shown_handouts,
         deleted_handouts,
         num_omitted,
-        num_deleted
+        num_deleted,
       } = this.compute_handouts_list();
       const add_handout = this.yield_adder(deleted_handouts);
 
       const header = (
         <FoldersToolbar
           search={this.state.search}
-          search_change={value => this.setState({ search: value })}
+          search_change={(value) => this.setState({ search: value })}
           num_omitted={num_omitted}
           project_id={this.props.project_id}
           items={this.props.handouts}
-          add_folders={paths => paths.map(add_handout)}
+          add_folders={(paths) => paths.map(add_handout)}
           item_name={"handout"}
           plural_item_name={"handouts"}
         />
@@ -389,11 +373,11 @@ class Handout extends Component<HandoutProps, HandoutState> {
       copy_confirm: false,
       copy_confirm_handout: false,
       copy_handout_confirm_overwrite: false,
-      copy_handout_confirm_overwrite_text: ""
+      copy_handout_confirm_overwrite_text: "",
     };
   }
 
-  private open_handout_path = e => {
+  private open_handout_path = (e) => {
     e.preventDefault();
     const actions = redux.getProjectActions(this.props.project_id);
     if (actions != null) {
@@ -438,13 +422,41 @@ class Handout extends Component<HandoutProps, HandoutState> {
             rows={6}
             placeholder="Private notes about this handout (not visible to students)"
             default_value={this.props.handout.get("note")}
-            on_save={value =>
+            on_save={(value) =>
               this.props.actions.handouts.set_handout_note(
                 this.props.handout,
                 value
               )
             }
           />
+        </Col>
+      </Row>
+    );
+  }
+
+  private render_export_file_use_times(): Rendered {
+    return (
+      <Row key="file-use-times-export-handout">
+        <Col xs={4}>
+          <Tip
+            title="Export when students used files"
+            tip="Export a JSON file containing extensive information about exactly when students have opened or edited files in this handout.  The JSON file will open in a new tab; the access_times (in milliseconds since the UNIX epoch) are when they opened the file and the edit_times are when they actually changed it through CoCalc's web-based editor."
+          >
+            Export file use times
+            <br />
+            <span style={{ color: "#666" }} />
+          </Tip>
+        </Col>
+        <Col xs={20}>
+          <Button
+            onClick={() =>
+              this.props.actions.export.file_use_times(
+                this.props.handout.get("handout_id")
+              )
+            }
+          >
+            Export file use times for this handout
+          </Button>
         </Col>
       </Row>
     );
@@ -482,7 +494,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
         [`copy_confirm_${step}`]: false,
         [`copy_confirm_all_${step}`]: false,
         copy_confirm: false,
-        copy_handout_confirm_overwrite: false
+        copy_handout_confirm_overwrite: false,
       } as any);
     };
     return (
@@ -497,10 +509,10 @@ class Handout extends Component<HandoutProps, HandoutState> {
       return;
     }
     const do_it = (): void => {
-      this.copy_handout(step, false);
+      this.copy_handout(step, false, true);
       this.setState({
         copy_handout_confirm_overwrite: false,
-        copy_handout_confirm_overwrite_text: ""
+        copy_handout_confirm_overwrite_text: "",
       });
     };
     return (
@@ -512,9 +524,9 @@ class Handout extends Component<HandoutProps, HandoutState> {
             autoFocus
             type="text"
             ref="copy_handout_confirm_overwrite_field"
-            onChange={e =>
+            onChange={(e) =>
               this.setState({
-                copy_handout_confirm_overwrite_text: (e.target as any).value
+                copy_handout_confirm_overwrite_text: (e.target as any).value,
               })
             }
             style={{ marginTop: "1ex" }}
@@ -552,7 +564,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
     this.setState({
       [`copy_confirm_${step}`]: false,
       [`copy_confirm_all_${step}`]: false,
-      copy_confirm: false
+      copy_confirm: false,
     } as any);
   }
 
@@ -592,7 +604,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
         return `\
 This will recopy all of the files to them.
 CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots.
-Select "Replace student files!" in case you do not want to create any backups and also delete all other files in the assignment directory of their projects.\
+Select "Replace student files!" in case you do not want to create any backups and also delete all other files in the handout directory of their projects.\
 `;
     }
   }
@@ -649,7 +661,7 @@ Select "Replace student files!" in case you do not want to create any backups an
                 onClick={() =>
                   this.setState({
                     [`copy_confirm_all_${step}`]: true,
-                    copy_confirm: true
+                    copy_confirm: true,
                   } as any)
                 }
                 disabled={this.state[`copy_confirm_all_${step}`]}
@@ -667,9 +679,7 @@ Select "Replace student files!" in case you do not want to create any backups an
                   The {n} student{n > 1 ? "s" : ""} not already{" "}
                   {past_tense(step_verb(step))} {step_direction(step)}
                 </Button>
-              ) : (
-                undefined
-              )}
+              ) : undefined}
               {this.render_copy_cancel(step)}
             </ButtonGroup>
             {this.state[`copy_confirm_all_${step}`]
@@ -811,6 +821,10 @@ Select "Replace student files!" in case you do not want to create any backups an
               name={this.props.name}
             />
             {this.render_handout_notes()}
+            <br />
+            <hr />
+            <br />
+            {this.render_export_file_use_times()}
           </Card>
         </Col>
       </Row>
@@ -828,7 +842,7 @@ Select "Replace student files!" in case you do not want to create any backups an
       <h5>
         <a
           href=""
-          onClick={e => {
+          onClick={(e) => {
             e.preventDefault();
             return this.props.actions.toggle_item_expansion(
               "handout",
@@ -862,7 +876,7 @@ Select "Replace student files!" in case you do not want to create any backups an
     if (status == null) {
       status = {
         handout: 0,
-        not_handout: 0
+        not_handout: 0,
       };
     }
     return (
@@ -933,7 +947,7 @@ class StudentListForHandout extends Component<StudentListForHandoutProps> {
     const x: boolean = misc.is_different(this.props, props, [
       "handout",
       "students",
-      "user_map"
+      "user_map",
     ]);
     if (x) {
       delete this.student_list;
@@ -955,7 +969,7 @@ class StudentListForHandout extends Component<StudentListForHandoutProps> {
         estimated_row_size={65}
         row_count={info.length}
         row_renderer={({ key }) => this.render_student_info(key)}
-        row_key={index => this.get_student_list()[index]}
+        row_key={(index) => this.get_student_list()[index]}
         cache_id={`course-handout-${this.props.handout.get("handout_id")}-${
           this.props.actions.name
         }-${this.props.frame_id}`}
@@ -1244,7 +1258,7 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
           style={{
             borderTop: "1px solid #aaa",
             paddingTop: "5px",
-            paddingBottom: "5px"
+            paddingBottom: "5px",
           }}
         >
           <Col md={4} key="title">

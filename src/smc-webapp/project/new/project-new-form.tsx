@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as misc from "smc-util/misc";
 
 import { React, rtypes, rclass } from "../../app-framework";
@@ -10,7 +15,7 @@ import {
   ButtonToolbar,
   FormControl,
   FormGroup,
-  Alert
+  Alert,
 } from "react-bootstrap";
 
 import { ErrorDisplay, Icon, Tip, SettingBox } from "../../r_misc";
@@ -19,13 +24,13 @@ import { ProjectActions } from "../../project_actions";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { special_filenames_with_no_extension } = require("../../project_file");
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { SMC_Dropzone } = require("../../smc-dropzone");
-import { PathLink } from "./path-link";
+import { FileUpload } from "../../file-upload";
 import { NewFileButton } from "./new-file-button";
 import { NewFileDropdown } from "./new-file-dropdown";
 import { FileTypeSelector } from "./file-type-selector";
 import { AvailableFeatures } from "./types";
 import { ProjectMap } from "smc-webapp/todo-types";
+import { PathNavigator } from "../explorer/path-navigator";
 
 interface ReactProps {
   project_id: string;
@@ -39,7 +44,7 @@ interface ReactProps {
 }
 
 interface ReduxProps {
-  current_path?: string;
+  current_path: string;
   default_filename: string;
   file_creation_error: string;
   available_features: AvailableFeatures;
@@ -62,20 +67,20 @@ export const ProjectNewForm = rclass<ReactProps>(
           default_filename: rtypes.string,
           file_creation_error: rtypes.string,
           available_features: rtypes.immutable,
-          downloading_file: rtypes.bool
+          downloading_file: rtypes.bool,
         },
         projects: {
           project_map: rtypes.immutable,
-          get_total_project_quotas: rtypes.func
-        }
+          get_total_project_quotas: rtypes.func,
+        },
       };
-    }
+    };
 
     constructor(props) {
       super(props);
       this.state = {
         filename: this.props.default_filename ?? this.default_filename(),
-        extension_warning: false
+        extension_warning: false,
       };
     }
 
@@ -98,7 +103,7 @@ export const ProjectNewForm = rclass<ReactProps>(
       this.props.actions.create_file({
         name: this.state.filename,
         ext,
-        current_path: this.props.current_path
+        current_path: this.props.current_path,
       });
       this.props.on_create_file?.();
     };
@@ -175,7 +180,7 @@ export const ProjectNewForm = rclass<ReactProps>(
       this.props.actions.create_folder({
         name: this.state.filename,
         current_path: this.props.current_path,
-        switch_over: true
+        switch_over: true,
       });
       this.props.on_create_folder?.();
     };
@@ -255,11 +260,11 @@ export const ProjectNewForm = rclass<ReactProps>(
           </Row>
           <Row>
             <Col sm={12}>
-              <SMC_Dropzone
+              <FileUpload
                 dropzone_handler={{
                   complete: (): void => {
                     this.props.actions.fetch_directory_listing();
-                  }
+                  },
                 }}
                 project_id={this.props.project_id}
                 current_path={this.props.current_path}
@@ -312,7 +317,7 @@ export const ProjectNewForm = rclass<ReactProps>(
           this.setState({ extension_warning: false });
         } else {
           this.setState({
-            filename: e.target.value
+            filename: e.target.value,
           });
         }
       };
@@ -351,9 +356,9 @@ export const ProjectNewForm = rclass<ReactProps>(
         return (
           <span>
             Create new files in{" "}
-            <PathLink
-              path={this.props.current_path}
-              actions={this.props.actions}
+            <PathNavigator
+              project_id={this.props.project_id}
+              style={{ display: "inline" }}
             />
           </span>
         );
@@ -379,14 +384,14 @@ export const ProjectNewForm = rclass<ReactProps>(
                   display: "flex",
                   flexFlow: "row wrap",
                   justifyContent: "space-between",
-                  alignItems: "stretch"
+                  alignItems: "stretch",
                 }}
               >
                 <div
                   style={{
                     flex: "1 0 auto",
                     marginRight: "10px",
-                    minWidth: "20em"
+                    minWidth: "20em",
                   }}
                 >
                   {this.render_filename_form()}
@@ -403,7 +408,6 @@ export const ProjectNewForm = rclass<ReactProps>(
                 Select the type of file
               </div>
               <FileTypeSelector
-                name={this.props.name}
                 create_file={this.submit}
                 project_id={this.props.project_id}
               >

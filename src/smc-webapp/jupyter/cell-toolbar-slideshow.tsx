@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 The slideshow toolbar functionality for cells.
 */
 
@@ -14,10 +19,10 @@ const TYPES = [
   { title: "Sub-Slide", value: "subslide" },
   { title: "Fragment", value: "fragment" },
   { title: "Skip", value: "skip" },
-  { title: "Notes", value: "notes" }
+  { title: "Notes", value: "notes" },
 ];
 
-const rendered_options = TYPES.map(x => (
+const rendered_options = TYPES.map((x) => (
   <option key={x.value} value={x.value}>
     {x.title}
   </option>

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Run sagetex
 
 - TODO: this might be better done always as part of latexmk; not sure.
@@ -24,14 +29,13 @@ export async function sagetex_hash(
   const s = sagetex_file(base);
   status(`sha1sum ${s}`);
   const output = await exec({
-    allow_post: true, // very quick computation of sha1 hash
     timeout: 10,
     command: "sha1sum",
     args: [s],
     project_id: project_id,
     path: output_directory || directory,
     err_on_exit: true,
-    aggregate: time
+    aggregate: time,
   });
   return output.stdout.split(" ")[0];
 }
@@ -47,7 +51,6 @@ export async function sagetex(
   const s = sagetex_file(base);
   status(`sage ${s}`);
   return exec({
-    allow_post: false, // definitely could take a long time to fully run sage
     timeout: 360,
     bash: true, // so timeout is enforced by ulimit
     command: "sage",
@@ -55,7 +58,7 @@ export async function sagetex(
     project_id: project_id,
     path: output_directory || directory,
     err_on_exit: false,
-    aggregate: hash ? { value: hash } : undefined
+    aggregate: hash ? { value: hash } : undefined,
   });
 }
 
@@ -68,7 +71,7 @@ export async function sagetex(
  */
 
 export function sagetex_errors(
-  path: string,
+  file: string,
   output: BuildLog
 ): ProcessedLatexLog {
   const pll = new ProcessedLatexLog();
@@ -86,11 +89,11 @@ export function sagetex_errors(
       if (err == null) {
         err = {
           line: null,
-          file: path,
+          file,
           level: "error",
           message: line,
           content: "",
-          raw: ""
+          raw: "",
         };
         pll.errors.push(err);
         pll.all.push(err);

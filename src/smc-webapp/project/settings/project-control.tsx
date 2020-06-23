@@ -1,7 +1,13 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { rtypes, redux, rclass, Rendered } from "../../app-framework";
 import {
   COLORS,
+  CopyToClipBoard,
   Loading,
   ProjectState,
   TimeAgo,
@@ -9,31 +15,31 @@ import {
   TimeElapsed,
   Space,
   Icon,
-  SettingBox
+  SettingBox,
 } from "../../r_misc";
 import {
   CUSTOM_SOFTWARE_HELP_URL,
   compute_image2name,
   compute_image2basename,
-  CUSTOM_IMG_PREFIX
+  CUSTOM_IMG_PREFIX,
 } from "../../custom-software/util";
 import { async } from "async";
-import { analytics_event } from "../../tracker";
 import {
   ButtonToolbar,
   Button,
   MenuItem,
   Alert,
-  DropdownButton
+  DropdownButton,
 } from "react-bootstrap";
 import { alert_message } from "../../alerts";
 import { Project } from "./types";
 import { Map, fromJS } from "immutable";
-import { Popconfirm, Icon as AntIcon } from "antd";
-
+import { Popconfirm } from "antd";
+import { StopOutlined, SyncOutlined } from "@ant-design/icons";
+import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 let {
   COMPUTE_IMAGES,
-  DEFAULT_COMPUTE_IMAGE
+  DEFAULT_COMPUTE_IMAGE,
 } = require("smc-util/compute-images");
 COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES); // only because that's how all the ui code was written.
 
@@ -42,7 +48,6 @@ const misc = require("smc-util/misc");
 
 interface ReactProps {
   project: Project;
-  allow_ssh: boolean;
 }
 
 interface ReduxProps {
@@ -62,11 +67,11 @@ export const ProjectControl = rclass<ReactProps>(
     static reduxProps() {
       return {
         customize: {
-          kucalc: rtypes.string
+          kucalc: rtypes.string,
         },
         compute_images: {
-          images: rtypes.immutable.Map
-        }
+          images: rtypes.immutable.Map,
+        },
       };
     }
 
@@ -76,7 +81,7 @@ export const ProjectControl = rclass<ReactProps>(
         show_ssh: false,
         compute_image: this.props.project.get("compute_image"),
         compute_image_changing: false,
-        compute_image_focused: false
+        compute_image_focused: false,
       };
     }
 
@@ -88,7 +93,7 @@ export const ProjectControl = rclass<ReactProps>(
       if (new_image !== this.state.compute_image) {
         return this.setState({
           compute_image: new_image,
-          compute_image_changing: false
+          compute_image_changing: false,
         });
       }
     }
@@ -97,19 +102,19 @@ export const ProjectControl = rclass<ReactProps>(
       e.preventDefault();
       const project_id = this.props.project.get("project_id");
       return async.series([
-        cb => {
+        (cb) => {
           return project_tasks(project_id).ensure_directory_exists({
             path: ".ssh",
-            cb
+            cb,
           });
         },
-        cb => {
+        (cb) => {
           redux.getActions({ project_id }).open_file({
             path: ".ssh/authorized_keys",
-            foreground: true
+            foreground: true,
           });
           return cb();
-        }
+        },
       ]);
     }
 
@@ -125,13 +130,15 @@ export const ProjectControl = rclass<ReactProps>(
     }
 
     render_idle_timeout() {
-      // get_idle_timeout_horizon depends on the project object, so this will update properly....
+      // get_idle_timeout_horizon depends on the project object, so this
+      // will update properly....
       const date = redux
         .getStore("projects")
         .get_idle_timeout_horizon(this.props.project.get("project_id"));
-      if (!date) {
-        // e.g., viewing as admin...
-        return;
+      if (date == null) {
+        // e.g., viewing as admin where the info about idle timeout
+        // horizon simply isn't known.
+        return <span style={{ color: "#666" }}>(not available)</span>;
       }
       return (
         <span style={{ color: "#666" }}>
@@ -148,14 +155,12 @@ export const ProjectControl = rclass<ReactProps>(
       redux
         .getActions("projects")
         .restart_project(this.props.project.get("project_id"));
-      analytics_event("project_settings", "restart project");
     };
 
     stop_project = () => {
       redux
         .getActions("projects")
         .stop_project(this.props.project.get("project_id"));
-      analytics_event("project_settings", "stop project");
     };
 
     render_stop_button(commands): Rendered {
@@ -172,7 +177,7 @@ export const ProjectControl = rclass<ReactProps>(
           placement={"bottom"}
           arrowPointAtCenter={true}
           title={text}
-          icon={<AntIcon type={"stop"} theme="outlined" />}
+          icon={<StopOutlined />}
           onConfirm={() => this.stop_project()}
           okText="Yes, stop project"
           cancelText="Cancel"
@@ -200,7 +205,7 @@ export const ProjectControl = rclass<ReactProps>(
           placement={"bottom"}
           arrowPointAtCenter={true}
           title={text}
-          icon={<AntIcon type={"sync"} theme="outlined" />}
+          icon={<SyncOutlined />}
           onConfirm={() => this.restart_project()}
           okText="Yes, restart project"
           cancelText="Cancel"
@@ -287,26 +292,25 @@ export const ProjectControl = rclass<ReactProps>(
       );
     }
 
-    cancel_compute_image = current_image => {
+    cancel_compute_image = (current_image) => {
       this.setState({
         compute_image: current_image,
         compute_image_changing: false,
-        compute_image_focused: false
+        compute_image_focused: false,
       });
     };
 
-    save_compute_image = async current_image => {
+    save_compute_image = async (current_image) => {
       // image is reset to the previous name and componentWillReceiveProps will set it when new
       this.setState({
         compute_image: current_image,
         compute_image_changing: true,
-        compute_image_focused: false
+        compute_image_focused: false,
       });
       const new_image = this.state.compute_image;
       const actions = redux.getProjectActions(
         this.props.project.get("project_id")
       );
-      analytics_event("project_settings", "change compute image");
       try {
         await actions.set_compute_image(new_image);
         this.restart_project();
@@ -325,34 +329,49 @@ export const ProjectControl = rclass<ReactProps>(
     }
 
     render_compute_image_items() {
-      return COMPUTE_IMAGES.entrySeq().map(entry => {
-        const [name, data] = entry;
-        return (
-          <MenuItem
-            key={name}
-            eventKey={name}
-            onSelect={this.set_compute_image.bind(this)}
-          >
-            {data.get("title")}
-          </MenuItem>
-        );
-      });
+      // we want "Default", "Previous", ... to come first
+      // then the timestamps in newest-first
+      // and then the exotic ones
+      const sorter = (a, b): number => {
+        const o1 = a.get("order", 0);
+        const o2 = b.get("order", 0);
+        if (o1 == o2) {
+          return a.get("title") < b.get("title") ? 1 : -1;
+        }
+        return o1 > o2 ? 1 : -1;
+      };
+      return COMPUTE_IMAGES.sort(sorter)
+        .entrySeq()
+        .map(([name, data]) => {
+          return (
+            <MenuItem
+              key={name}
+              eventKey={name}
+              onSelect={this.set_compute_image.bind(this)}
+            >
+              {data.get("title")}
+            </MenuItem>
+          );
+        });
     }
 
     render_select_compute_image_row() {
-      if (this.props.kucalc !== "yes") {
+      if (this.props.kucalc !== KUCALC_COCALC_COM) {
         return;
       }
       return (
-        <div>
-          <LabeledRow
-            key="cpu-usage"
-            label="Software Environment"
-            style={this.rowstyle(true)}
-          >
-            {this.render_select_compute_image()}
-          </LabeledRow>
-        </div>
+        <>
+          <hr />
+          <div>
+            <LabeledRow
+              key="cpu-usage"
+              label="Software Environment"
+              style={this.rowstyle(true)}
+            >
+              {this.render_select_compute_image()}
+            </LabeledRow>
+          </div>
+        </>
       );
     }
 
@@ -450,7 +469,9 @@ export const ProjectControl = rclass<ReactProps>(
                 selected_title != undefined ? selected_title : selected_image
               }
               id={selected_image}
-              onToggle={open => this.setState({ compute_image_focused: open })}
+              onToggle={(open) =>
+                this.setState({ compute_image_focused: open })
+              }
               onBlur={() => this.setState({ compute_image_focused: false })}
             >
               {this.render_compute_image_items()}
@@ -460,9 +481,7 @@ export const ProjectControl = rclass<ReactProps>(
               <span style={{ color: COLORS.GRAY, fontSize: "11pt" }}>
                 <br /> (If in doubt, select "{default_title}".)
               </span>
-            ) : (
-              undefined
-            )}
+            ) : undefined}
           </div>
           <div style={{ marginTop: "10px" }}>
             <span>
@@ -482,23 +501,18 @@ export const ProjectControl = rclass<ReactProps>(
                 Cancel
               </Button>
             </div>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </div>
       );
     }
 
-    rowstyle(delim?) {
-      const style: React.CSSProperties = {
-        marginBottom: "5px",
-        paddingBottom: "10px"
+    private rowstyle(delim?): React.CSSProperties | undefined {
+      if (!delim) return;
+      return {
+        borderBottom: "1px solid #ddd",
+        borderTop: "1px solid #ddd",
+        paddingBottom: "10px",
       };
-      if (delim) {
-        style.borderBottom = "1px solid #ccc";
-        style.borderTop = "1px solid #ccc";
-      }
-      return style;
     }
 
     render() {
@@ -514,9 +528,11 @@ export const ProjectControl = rclass<ReactProps>(
             {this.render_action_buttons()}
           </LabeledRow>
           <LabeledRow key="project_id" label="Project id">
-            <pre>{this.props.project.get("project_id")}</pre>
+            <CopyToClipBoard
+              value={this.props.project.get("project_id")}
+              style={{ display: "inline-block", width: "50ex", margin: 0 }}
+            />
           </LabeledRow>
-          {this.props.kucalc !== "yes" ? <hr /> : undefined}
           {this.render_select_compute_image_row()}
         </SettingBox>
       );

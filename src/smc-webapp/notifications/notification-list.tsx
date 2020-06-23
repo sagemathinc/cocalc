@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 
 import { MentionsMap, MentionFilter } from "./mentions/types";
@@ -5,7 +10,7 @@ import { MentionRow } from "./mentions/mention-row";
 
 import { NoNewNotifications } from "./no-new-notifications";
 
-const { ProjectTitle } = require("../projects");
+import { ProjectTitle } from "../projects/project-title";
 
 const { Panel } = require("react-bootstrap");
 
@@ -18,7 +23,7 @@ export function NotificationList({
   mentions,
   filter,
   style,
-  user_map
+  user_map,
 }: {
   account_id: string;
   mentions: MentionsMap;
@@ -34,11 +39,11 @@ export function NotificationList({
   const project_id_order: string[] = [];
 
   mentions
-    .filter(notification => notification.get("target") === account_id)
-    .filter(notification => {
+    .filter((notification) => notification.get("target") === account_id)
+    .filter((notification) => {
       const status = notification.getIn(["users", account_id])?.toJS() ?? {
         read: false,
-        saved: false
+        saved: false,
       };
 
       switch (filter) {
@@ -79,10 +84,7 @@ export function NotificationList({
 
   for (const project_id of project_id_order) {
     project_panels.push(
-      <Panel
-        key={project_id}
-        header={<ProjectTitle project_id={project_id} />}
-      >
+      <Panel key={project_id} header={<ProjectTitle project_id={project_id} />}>
         <ul>{mentions_per_project[project_id]}</ul>
       </Panel>
     );
@@ -100,7 +102,7 @@ export function NotificationList({
 
 function NoMentions({
   filter,
-  style
+  style,
 }: {
   filter: MentionFilter;
   style: React.CSSProperties;
@@ -114,7 +116,7 @@ function NoMentions({
       text = "No read mentions";
       break;
     case "saved":
-      text = "No saved Mentions";
+      text = "No saved mentions";
       break;
     case "all":
       text = "No mentions";
@@ -128,5 +130,5 @@ function NoMentions({
 const notification_list_style: React.CSSProperties = {
   height: "100%",
   width: "100%",
-  padding: "0px"
+  padding: "0px",
 };

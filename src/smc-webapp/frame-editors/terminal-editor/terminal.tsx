@@ -1,17 +1,15 @@
 /*
-A single terminal frame.
-*/
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// A single terminal frame.
 
 import { Map } from "immutable";
-
 import { Terminal } from "./connected-terminal";
-
 import { throttle } from "underscore";
-
 import { background_color } from "./themes";
-
 import { is_different } from "smc-util/misc2";
-
 import { React, Component, Rendered, ReactDOM } from "../../app-framework";
 
 interface Props {
@@ -41,7 +39,7 @@ export class TerminalFrame extends Component<Props, {}> {
       "font_size",
       "terminal",
       "desc",
-      "resize"
+      "resize",
     ]);
   }
 
@@ -107,7 +105,7 @@ export class TerminalFrame extends Component<Props, {}> {
     // NOTE: this would probably make sense in DOM mode instead of canvas mode;
     // if we switch, disable this...
     // Well, this context menu is still silly. Always disable it.
-    $(node).bind("contextmenu", function() {
+    $(node).bind("contextmenu", function () {
       return false;
     });
 
@@ -143,7 +141,7 @@ export class TerminalFrame extends Component<Props, {}> {
           paddingLeft: "5px",
           background: "rgb(248, 248, 248)",
           height: "20px",
-          overflow: "hidden"
+          overflow: "hidden",
         }}
       >
         {command} {args != null ? args.join(" ") : ""}

@@ -1,15 +1,20 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const path = require("path");
 const this_file: string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
 
 import chalk from "chalk";
-import { Opts, PassFail, TestFiles } from "./types";
-import { time_log } from "./time_log";
+import { Creds, Opts, PassFail, TestFiles } from "./types";
+import { time_log2 } from "./time_log";
 import screenshot from "./screenshot";
 import { Page } from "puppeteer";
 import { expect } from "chai";
 
-export const test_widget = async function(opts: Opts, page: Page): Promise<PassFail> {
+export const test_widget = async function (creds: Creds, opts: Opts, page: Page): Promise<PassFail> {
   const pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
@@ -41,7 +46,7 @@ export const test_widget = async function(opts: Opts, page: Page): Promise<PassF
     await page.click(sel);
     debuglog("clicked file line");
 
-    time_log(`open ${TestFiles.widgetfile}`, tm_open_widget);
+    await time_log2(`open ${TestFiles.widgetfile}`, tm_open_widget, creds, opts);
     const tm_widget_test = process.hrtime.bigint();
 
     sel = '*[cocalc-test="jupyter-cell"]';
@@ -54,15 +59,11 @@ export const test_widget = async function(opts: Opts, page: Page): Promise<PassF
     await page.click(sel);
     debuglog("clicked Kernel button");
 
-    let linkHandlers = await page.$x(
-      "//span[contains(., 'Restart and run all (do not stop on errors)...')]"
-    );
+    let linkHandlers = await page.$x("//span[contains(., 'Restart and run all (do not stop on errors)...')]");
     await linkHandlers[0].click();
     debuglog("clicked Restart and run all no stop");
 
-    linkHandlers = await page.$x(
-      "//button[contains(., 'Restart and run all')]"
-    );
+    linkHandlers = await page.$x("//button[contains(., 'Restart and run all')]");
     await linkHandlers[0].click();
     debuglog("clicked Restart and run all");
 
@@ -72,11 +73,10 @@ export const test_widget = async function(opts: Opts, page: Page): Promise<PassF
     let text: string = "XX";
     let step: number = 0;
     for (; step < restart_max_tries; step++) {
-      text = await page.$eval(sel, function(e) {
+      text = await page.$eval(sel, function (e) {
         return (<HTMLElement>e).innerText.toString();
       });
-      if (step > 0 && step % 10 == 0)
-        debuglog(step, ": readout: ", text.substr(0, 40));
+      if (step > 0 && step % 10 == 0) debuglog(step, ": readout: ", text.substr(0, 40));
       if (text.startsWith(empty_exec_str)) break;
       await page.waitFor(100);
     }
@@ -92,7 +92,7 @@ export const test_widget = async function(opts: Opts, page: Page): Promise<PassF
     let textw: string = "XX";
     let stepw: number = 0;
     for (; stepw < restart_max_triesw; stepw++) {
-      textw = await page.$eval(sel, function(e) {
+      textw = await page.$eval(sel, function (e) {
         return (<HTMLElement>e).innerText.toString();
       });
       debuglog(stepw, ": readout: ", textw);
@@ -115,25 +115,14 @@ export const test_widget = async function(opts: Opts, page: Page): Promise<PassF
     // { x: 166, y: 288, width: 212, height: 28, top: 288, right: 378, bottom: 316, left: 166 }
     // use "!" after querySelector to suppress TSC "possibly null" error
     const box = await page.evaluate(() => {
-      const gbcr = function(element: any) {
-        const {
-          top,
-          right,
-          bottom,
-          left,
-          width,
-          height,
-          x,
-          y
-        } = element!.getBoundingClientRect();
+      const gbcr = function (element: any) {
+        const { top, right, bottom, left, width, height, x, y } = element!.getBoundingClientRect();
         return { top, right, bottom, left, width, height, x, y };
       };
       const sr = document.querySelector(".ui-slider");
       return gbcr(sr);
     });
-    debuglog(
-      `slider at (${box.left},${box.top}) to (${box.right},${box.bottom})`
-    );
+    debuglog(`slider at (${box.left},${box.top}) to (${box.right},${box.bottom})`);
 
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
@@ -141,9 +130,7 @@ export const test_widget = async function(opts: Opts, page: Page): Promise<PassF
     debuglog("clicked slider");
 
     // readout of slider should be fifty
-    await page.waitForFunction(
-      'document.querySelector("div.widget-readout").innerText==50'
-    );
+    await page.waitForFunction('document.querySelector("div.widget-readout").innerText==50');
     debuglog("got 50 readout");
 
     sel = "button[title='Close and halt']";
@@ -154,7 +141,7 @@ export const test_widget = async function(opts: Opts, page: Page): Promise<PassF
     await page.waitForSelector(sel);
     debuglog("gotfile search");
 
-    time_log("widget test", tm_widget_test);
+    await time_log2("widget test", tm_widget_test, creds, opts);
     await screenshot(page, opts, "cocalc-widget.png");
     pfcounts.pass += 1;
   } catch (e) {

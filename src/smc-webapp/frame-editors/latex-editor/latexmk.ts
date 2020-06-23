@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Convert LaTeX file to PDF using latexmk.
 */
 
@@ -28,14 +33,13 @@ export async function latexmk(
   }
   const exec_output = await exec({
     bash: true, // we use ulimit so that the timeout on the backend is *enforced* via ulimit!!
-    allow_post: false, // definitely could take a long time to fully run latex
     timeout: 4 * 60, // 4 minutes, on par with Overleaf
     command,
     args,
     project_id,
     path: x.head,
     err_on_exit: false,
-    aggregate: time
+    aggregate: time,
   });
   if (output_directory != null) {
     // We use cp instead of `ln -sf` so the file persists after project restart.
@@ -45,10 +49,9 @@ export async function latexmk(
       await exec({
         project_id,
         bash: false,
-        allow_post: true,
         command: "cp",
         path: x.head,
-        args: [`${output_directory}/${pdf_path(x.tail)}`, "."]
+        args: [`${output_directory}/${pdf_path(x.tail)}`, "."],
       });
     } catch (err) {
       // good reasons this could fail (due to err_on_exit above), e.g., no pdf produced.
@@ -94,7 +97,7 @@ export function build_command(
   However, users hate errorstopmode, so we use nonstopmode, which can hang in rare cases with tikz.
   See https://github.com/sagemathinc/cocalc/issues/156
   */
-  const name: string = (function() {
+  const name: string = (function () {
     switch (engine) {
       case "PDFLaTeX":
       case "PDFLaTeX (shell-escape)":
@@ -139,8 +142,9 @@ export function build_command(
     "-f",
     "-g",
     "-bibtex",
+    "-deps",
     "-synctex=1",
-    "-interaction=nonstopmode"
+    "-interaction=nonstopmode",
   ];
   if (!knitr && output_directory != null) {
     tail.push(`-output-directory=${output_directory}`);

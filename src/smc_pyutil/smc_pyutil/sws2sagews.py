@@ -1,24 +1,6 @@
 #!/usr/bin/env python
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
 MARKERS = {'cell': u"\uFE20", 'output': u"\uFE21"}
 
@@ -103,10 +85,8 @@ def output_messages(output):
             messages.extend(process_output(output[:i]))
             j = output.find(HTML['close'])
             if j != -1:
-                messages.append({
-                    'html':
-                    process_html(output[i + len(HTML['open']):j])
-                })
+                messages.append(
+                    {'html': process_html(output[i + len(HTML['open']):j])})
                 output = output[j + len(HTML['close']):]
                 continue
 
@@ -164,9 +144,7 @@ def sws_body_to_sagews(body):
             out += '%html\n'
             out += html + u'\n'
             out += (u'\n' + MARKERS['output'] + uuid() + MARKERS['output'] +
-                    json.dumps({
-                        'html': html
-                    }) + MARKERS['output']) + u'\n'
+                    json.dumps({'html': html}) + MARKERS['output']) + u'\n'
 
         if input or output:
             modes = ''

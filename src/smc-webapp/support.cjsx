@@ -1,34 +1,20 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, SageMath, Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
 $          = window.$
 underscore = _ = require('underscore')
 {React, ReactDOM, Actions, Store, rtypes, rclass, redux, COLOR}  = require('./app-framework')
 {Button, FormControl, FormGroup, Well, Alert, Modal, Table} = require('react-bootstrap')
-{Icon, Markdown, Loading, Space, ImmutablePureRenderMixin, Footer} = require('./r_misc')
+{Icon, Markdown, Loading, Space, ImmutablePureRenderMixin, A} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
 {webapp_client} = require('./webapp_client')
 feature         = require('./feature')
-{HelpEmailLink, SiteName} = require('./customize')
+{HelpEmailLink, SiteName, Footer} = require('./customize')
+{DISCORD_INVITE} = require('smc-util/theme')
+{delay} = require('awaiting')
 
 STATE =
     NEW        : 'new'      # new/default/resetted/no problem
@@ -77,32 +63,40 @@ class SupportActions extends Actions
             @check_valid()
 
     load_support_tickets: () ->
-        # mockup for testing -- set it to "true" to see some tickets
-        if DEBUG and false
-            @setState
-                support_tickets : [
-                    id : 123
-                    status: 'open'
-                    description: 'test ticket 123'
-                ,
-                    id : 456
-                    status : 'open'
-                    description: 'test ticket 456'
-                ]
-                support_ticket_error : null
-        else
-            webapp_client.get_support_tickets (err, tickets) =>
-                # console.log("tickets: #{misc.to_json(tickets)}")
-                # sort by .updated_at
-                if err?
+        if @_loading
+            return
+        try
+            @_loading = true
+            # mockup for testing -- set it to "true" to see some tickets
+            if DEBUG and false
+                @setState
+                    support_tickets : [
+                        id : 123
+                        status: 'open'
+                        description: 'test ticket 123'
+                        created_at: new Date()
+                        updated_at: new Date()
+                    ,
+                        id : 456
+                        status : 'open'
+                        description: 'test ticket 456'
+                        created_at: new Date()
+                        updated_at: new Date()
+                    ]
+                    support_ticket_error : null
+            else
+                try
+                    tickets = await webapp_client.support_tickets.get()
+                    tickets = tickets.sort(cmp_tickets)
+                    @setState
+                        support_ticket_error : undefined
+                        support_tickets      : tickets
+                catch err
                     @setState
                         support_ticket_error : err
                         support_tickets      : []
-                else
-                    tickets = tickets.sort(cmp_tickets)
-                    @setState
-                        support_ticket_error : err
-                        support_tickets      : tickets
+        finally
+            @_loading = false
 
     reset: =>
         @init_email_address()
@@ -168,17 +162,12 @@ class SupportActions extends Actions
         account    = @redux.getStore('account')
         account_id = account.get_account_id() # null if not authenticated
         project_id = @project_id()
-        project    = @projects()?.get_project(project_id)
 
         @set(state: STATE.CREATING)
 
         if misc.is_valid_uuid_string(project_id)
-            u = @projects().get_upgrades_to_project(project_id)
-            # console.log("PID", project, u)
-            # sum up upgrades for each category
-            proj_upgrades = _.mapObject(u, (v, k) -> misc.sum(_.values(v)))
-            proj_settings = @projects().get_project(project_id).settings
-            quotas = misc.map_sum(proj_upgrades, proj_settings)
+            proj_upgrades = @projects().get_total_project_upgrades(project_id)
+            quotas = @projects().get_total_project_quotas(project_id)
         else
             proj_upgrades = null
             quotas = {}
@@ -206,14 +195,13 @@ class SupportActions extends Actions
             user_agent : navigator?.userAgent
             mobile     : feature.get_mobile() ? false
             internet   : (quotas?.network ? 0) > 0
-            hostname   : project?.host?.host ? 'unknown'
             course     : course ? 'no'
             quotas     : JSON.stringify(quotas)
 
         name = account.get_fullname()
         name = if name?.trim?().length > 0 then name else null
-        webapp_client.create_support_ticket
-            opts:
+        try
+            url = await webapp_client.support_tickets.create
                 username     : name
                 email_address: @get('email')
                 subject      : @get('subject')
@@ -222,25 +210,22 @@ class SupportActions extends Actions
                 location     : @location()
                 account_id   : account_id
                 info         : info
-            cb : @process_support
-
-    process_support: (err, url) =>
-        if not err?
             @set    # only clear subject/body, if there has been a success!
                 subject  : ''
                 body     : ''
                 url      : url
-        @set
-            state  : if err? then STATE.ERROR else STATE.CREATED
-            err    : err ? ''
-
+                state    : STATE.CREATED
+        catch err
+            @set
+                state : STATE.ERROR
+                err   : err
 
 exports.SupportPage = rclass
     displayName : "SupportPage"
 
     reduxProps :
         support:
-            support_tickets      : rtypes.array
+            support_tickets      : rtypes.immutable.List
             support_ticket_error : rtypes.string
 
     render_header: ->
@@ -255,7 +240,7 @@ exports.SupportPage = rclass
         open_new_tab(url, '_blank')
 
     render_body: ->
-        for i, ticket of @props.support_tickets
+        for i, ticket of @props.support_tickets.toJS()
             do (ticket, i) =>
                 style = switch ticket.status
                     when 'open', 'new'
@@ -289,15 +274,21 @@ exports.SupportPage = rclass
                     </td>
                 </tr>
 
+    load_support_tickets_soon: -> # see https://github.com/sagemathinc/cocalc/issues/4520
+        await delay(1)
+        redux.getActions('support').load_support_tickets()
+
+
     render_table: ->
         divStyle = {textAlign:"center", marginTop: "4em"}
 
         if not @props.support_tickets?
+            @load_support_tickets_soon()
             return <div style={divStyle}>
                         <Loading />
                    </div>
 
-        if @props.support_tickets.length > 0
+        if @props.support_tickets.size > 0
             <Table responsive style={borderCollapse: "separate", borderSpacing: "0 1em"}>
                 <tbody>{@render_body()}</tbody>
             </Table>
@@ -391,32 +382,29 @@ SupportInfo = rclass
             <h2 style={marginTop:'-5px'}>Frequent questions</h2>
             <ul>
                 <li>
-                    <a href="https://doc.cocalc.com" target="_blank" rel="noopener"><b>Looking for documentation and help?</b></a>
+                    <a href="https://doc.cocalc.com" target="_blank" rel="noopener"><b><SiteName/> Documentation and help</b></a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/subscriptions.html#what-if-your-subscription-does-not-seem-to-do-anything">Subscription does not work?</a>
+                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/subscriptions.html#what-if-your-subscription-does-not-seem-to-do-anything">Subscription problems</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/missing-project.html">File or project seems gone?</a>
+                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/missing-project.html">File or project seems gone</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/slow-worksheet.html">Sage worksheet or Jupyter notebook is slow or will not run?</a>
+                   Jupyter notebook or SageMath worksheet  <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/slow-worksheet.html">slow</a> or <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">crashing</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">Jupyter notebook keeps crashing with "Kernel terminated"?</a>
+                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/sage-question.html">Questions about SageMath</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/sage-question.html">Questions about how to use Sage?</a>
-                </li>
-                <li>
-                    <b>Requesting that we install software?</b> Fill out the form below...
-                </li>
-                <li>
-                    <b>Hit a bug or just need to talk with us?</b>  Fill out the form below...
-                </li>
-                <li>
-                    <b>Just trying to sign out?</b>  Click on Account on the top right, then click
+                    <b>Trying to sign out:</b>  Click on Account on the top right, then click
                     "Sign out..." in Preferences.
+                </li>
+                <li>
+                    <b>Hit a bug, just need to talk with us, or request that we install software:</b> Fill out the form below...
+                </li>
+                <li>
+                    Just <b>want to chat</b> with somebody?  Visit <A href={DISCORD_INVITE}>our Discord server</A>.
                 </li>
             </ul>
 
@@ -526,16 +514,22 @@ SupportForm = rclass
                     type        = 'text'
                     tabIndex    = {2}
                     label       = 'Message'
-                    placeholder = "Summarize the problem ..."
+                    placeholder = "Very short summary..."
                     value       = {@props.subject}
                     onChange    = {@data_change} />
             </FormGroup>
             <FormGroup>
+                <b>
+                1. What did you do exactly?
+                2. What happened?
+                3. How did this differ from what you expected?
+                </b>
+                <br/>
                 <FormControl
                     componentClass = "textarea"
                     ref         = 'body'
                     tabIndex    = {3}
-                    placeholder = 'Describe the problem ...'
+                    placeholder = 'Describe in detail...'
                     rows        = {6}
                     value       = {@props.body}
                     onChange    = {@data_change} />
@@ -553,7 +547,7 @@ exports.Support = rclass
         show        : false
         email       : ''
         subject     : ''
-        body        : '1. What did you do exactly?\n\n2. What happened?\n\n3. How did this differ from what you expected?'
+        body        : ''
         state       : STATE.NEW
         url         : ''
         err         : ''
@@ -573,6 +567,9 @@ exports.Support = rclass
             valid        : rtypes.bool
         account:
             is_anonymous : rtypes.bool
+
+    componentDidMount: ->
+        @props.actions.check_valid()
 
     componentWillReceiveProps: (newProps) ->
         newProps.actions.check_valid()
@@ -612,7 +609,7 @@ exports.Support = rclass
             err       = {@props.err} />
 
     render_body: (show_form) ->
-        <div>
+        <div style={color:'#333'}>
             {@render_info()}
             {@render_form(show_form)}
         </div>

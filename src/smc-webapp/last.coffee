@@ -1,30 +1,9 @@
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2014 -- 2016, SageMath, Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
-
-###############################################################################
-#
 # This should be the last code run on client application startup.
-#
-###############################################################################
 
 $               = window.$
 {webapp_client} = require('./webapp_client')
@@ -43,12 +22,12 @@ $(document).on "click", (e) ->
 
 
 client = webapp_client
-if client._connected
+if client.hub_client.is_connected()
     # These events below currently (due to not having finished the react rewrite)
     # have to be emited after the page loads, but may happen before.
     client.emit('connected')
-    if client._signed_in
-        client.emit("signed_in", client._sign_in_mesg)
+    if client.hub_client.is_signed_in()
+        client.emit("signed_in", client.hub_client.get_signed_in_mesg())
 
 
 # load the mathjax configuration before mathjax starts up
@@ -58,6 +37,8 @@ window.MathJax = MathJaxConfig
 $ = window.$
 $("#smc-startup-banner")?.remove()
 $('#smc-startup-banner-status')?.remove()
+$('#cocalc-error-report-startup')?.remove()
+
 $ ->
     try
         $(parent).trigger('initialize:frame')

@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 Add collaborators to a project
 ###
@@ -53,12 +58,13 @@ exports.AddCollaborators = rclass
              @setState(err:undefined, select:undefined)
              return
         @setState(searching:true)
-        webapp_client.user_search
-            query : search
-            limit : 50
-            cb    : (err, select) =>
-                @write_email_invite()
-                @setState(searching:false, err:err, select:select, email_to:undefined)
+        err = undefined
+        try
+            users = await webapp_client.users_client.user_search(query:search, limit:50)
+        catch e
+            err = e.toString()
+        @write_email_invite()
+        @setState(searching:false, err:err, select:users, email_to:undefined)
 
     render_options: (select) ->
         if @props.user_map?
@@ -217,7 +223,7 @@ exports.AddCollaborators = rclass
             <div style={marginBottom:'10px'}>Search for '{@state.search}'</div>
 
     render_send_email_invite: ->
-        if has_internet_access(this.props.project)
+        if has_internet_access(this.props.project?.get('project_id'))
             <Button style={marginBottom:'10px'} onClick={@write_email_invite}>
                 <Icon name='envelope' />  Send Email Invitation...
             </Button>

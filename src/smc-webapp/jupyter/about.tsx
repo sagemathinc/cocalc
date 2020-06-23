@@ -1,8 +1,13 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 About dialog -- provides info about the Jupyter Notebook
 */
 
-import * as Ansi from "ansi-to-react";
+import Ansi from "ansi-to-react";
 import { React, Component, Rendered } from "../app-framework";
 import { Button, Modal } from "react-bootstrap";
 import { Icon } from "../r_misc";
@@ -76,7 +81,7 @@ export class About extends Component<AboutProps> {
           padding: "10px",
           paddingLeft: "30px",
           backgroundColor: "#fafafa",
-          fontSize: "11pt"
+          fontSize: "11pt",
         }}
       >
         <li>

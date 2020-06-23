@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
  * DS207: Consider shorter variations of null checks
@@ -43,12 +48,12 @@ register_file_editor({
       project_id,
       path,
       primary_keys: ["task_id"],
-      string_cols: ["desc"]
+      string_cols: ["desc"],
     });
 
     actions._init(project_id, path, syncdb, store, webapp_client);
 
-    syncdb.once("error", err => {
+    syncdb.once("error", (err) => {
       const message = `Tasks error '${path}' -- ${err}`;
       alert_message({ type: "error", message });
     });
@@ -76,5 +81,5 @@ register_file_editor({
     const name = redux_name(project_id, path);
     const actions = redux.getActions(name);
     return actions != null ? actions.save() : undefined;
-  }
+  },
 });

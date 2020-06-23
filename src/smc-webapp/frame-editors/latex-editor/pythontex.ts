@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Run PythonTeX
 */
 
@@ -34,7 +39,6 @@ export async function pythontex(
   status(`pythontex ${args.join(" ")}`);
   const aggregate = time && !force ? { value: time } : undefined;
   return exec({
-    allow_post: false, // definitely could take a long time to fully run this
     timeout: 360,
     bash: true, // timeout is enforced by ulimit
     command: "pythontex3",
@@ -43,7 +47,7 @@ export async function pythontex(
     project_id: project_id,
     path: output_directory || directory,
     err_on_exit: false,
-    aggregate
+    aggregate,
   });
 }
 
@@ -65,7 +69,7 @@ PythonTeX:  pytex-test - 1 error(s), 0 warning(s)
 */
 
 export function pythontex_errors(
-  path: string,
+  file: string,
   output: BuildLog
 ): ProcessedLatexLog {
   const pll = new ProcessedLatexLog();
@@ -81,11 +85,11 @@ export function pythontex_errors(
       }
       err = {
         line: line_no,
-        file: path,
+        file,
         level: "error",
         message: line,
         content: "",
-        raw: ""
+        raw: "",
       };
       pll.errors.push(err);
       pll.all.push(err);

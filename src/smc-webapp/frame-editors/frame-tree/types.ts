@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Map } from "immutable";
 
 export type FrameDirection = "row" | "col";
@@ -51,8 +56,8 @@ export interface EditorDescription {
   mode?: any; // I think it's a CM mode (?)
   reload_images?: boolean;
   gutters?: string[]; // I think it's cm gutters
-  renderer?: string;  // e.g., "canvas" or "svg"
-  hide_public?: boolean;  // if true, do not show this editor option (in title bar dropdown) when viewing file publicly.
+  renderer?: string; // e.g., "canvas" or "svg"
+  hide_public?: boolean; // if true, do not show this editor option (in title bar dropdown) when viewing file publicly.
 }
 
 export interface EditorSpec {

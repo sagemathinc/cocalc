@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 The toolbar at the top of each cell
 */
 
@@ -19,7 +24,7 @@ const STYLE = {
   marginLeft: PROMPT_MIN_WIDTH,
   display: "flex",
   background: "#eee",
-  border: "1px solid rgb(247, 247, 247)"
+  border: "1px solid rgb(247, 247, 247)",
 };
 
 export interface CellToolbarProps {
@@ -33,7 +38,7 @@ const TOOLBARS = {
   attachments: Attachments,
   tags: TagsToolbar,
   metadata: Metadata,
-  create_assignment: CreateAssignmentToolbar
+  create_assignment: CreateAssignmentToolbar,
 };
 
 export class CellToolbar extends Component<CellToolbarProps> {

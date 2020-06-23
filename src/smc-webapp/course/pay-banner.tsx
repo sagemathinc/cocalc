@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 A banner across the top of a course that appears if the instructor is not paying in any way, so they
 know they should.
 */
@@ -57,13 +62,13 @@ export class PayBanner extends Component<PayBannerProps> {
         color: "white",
         fontSize: "16pt",
         fontWeight: "bold",
-        margin: "5px 15px"
+        margin: "5px 15px",
       };
     } else {
       style = {
         fontSize: "12pt",
         color: "#666",
-        margin: "5px 15px"
+        margin: "5px 15px",
       };
     }
 

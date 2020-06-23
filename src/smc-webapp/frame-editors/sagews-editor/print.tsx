@@ -1,10 +1,15 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Map } from "immutable";
 import {
   React,
   Component,
   Rendered,
   rtypes,
-  rclass
+  rclass,
 } from "../../app-framework";
 
 import { InputCell } from "./input-cell";
@@ -19,8 +24,8 @@ class Print extends Component<Props, {}> {
   static reduxProps({ name }) {
     return {
       [name]: {
-        cells: rtypes.immutable.Map
-      }
+        cells: rtypes.immutable.Map,
+      },
     };
   }
 

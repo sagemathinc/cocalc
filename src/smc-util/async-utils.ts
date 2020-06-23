@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Some async utils.
 
 (Obviously should be moved somewhere else when the dust settles!)
@@ -21,7 +26,7 @@ import { reuseInFlight } from "async-await-utils/hof";
 // With callback_opts, you do:   callback_opts(f)(opts)
 // TODO: maybe change this everwhere to callback_opts(f, opts) for consistency!
 export function callback_opts(f: Function) {
-  return async function(opts?: any): Promise<any> {
+  return async function (opts?: any): Promise<any> {
     if (opts === undefined) {
       opts = {};
     }
@@ -123,7 +128,7 @@ export async function once(
   }
   let val: any[] = [];
   function wait(cb: Function): void {
-    obj.once(event, function(...args): void {
+    obj.once(event, function (...args): void {
       val = args;
       cb();
     });

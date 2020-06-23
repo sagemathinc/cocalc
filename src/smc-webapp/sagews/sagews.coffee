@@ -1,23 +1,7 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2015 -- 2016, SageMath, Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 $         = window.$
 async     = require('async')
@@ -108,19 +92,21 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # Code execution queue.
         @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
 
-    # Since we can't use in super cbs, use _init_cb as the function which will be called by the parent
+    # Since we can't use in super cbs, use _init_cb as the function which
+    # will be called by the parent
     _init_cb: =>
         @readonly = @_syncstring.is_read_only()  # TODO: harder problem -- if file state flips between read only and not, need to rerender everything...
 
         @init_hide_show_gutter()  # must be after @readonly set
 
         @process_sage_updates(caller:"constructor")   # MUST be after @readonly is set.
-
         if not @readonly
             @status cb: (err, status) =>
                 if not status?.running
+                    # nobody has started the worksheet running yet, so enqueue the %auto cells
                     @execute_auto_cells()
                 else
+                    # worksheet is running, but do something just to ensure it works
                     # Kick the worksheet process into gear if it isn't running already
                     @introspect_line
                         line     : "return?"
@@ -764,7 +750,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     # NOTE: we do get mesg.event not error, but mesg.target isn't defined: see https://github.com/sagemathinc/cocalc/issues/1685
                     err = "sagews: unable to instrospect '#{line}' -- #{JSON.stringify(mesg)}"
                     console.log(err)  # this is intentional... -- it's may be useful to know
-                    webapp_client.log_error(err)
+                    webapp_client.tracking_client.log_error(err)
                     return
                 else
                     from = {line:pos.line, ch:pos.ch - mesg.target.length}
@@ -1354,23 +1340,14 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     # make links open in a new tab
                     a.attr("target","_blank")
 
+        # scale images
+        e.smc_image_scaling()
+
         # make relative links to images use the raw server
         a = e.find("img")
         for x in a
             y           = $(x)
             src         = y.attr('src')
-            # see https://github.com/sagemathinc/cocalc/issues/1192
-            img_scaling = y.attr('smc-image-scaling')
-            if img_scaling?
-                img = y.get(0)
-                scale_img = ->
-                    width  = img.naturalWidth
-                    factor = parseFloat(img_scaling)
-                    if not isNaN(factor)
-                        new_width = width * factor
-                        y.css('width', "#{new_width}px")
-                scale_img()
-                img.onload = scale_img
             # checking, if we need to fix the src path
             is_fullurl  = src.indexOf('://') != -1
             is_blob     = misc.startswith(src, "#{window.app_base_url}/blobs/")
@@ -1413,13 +1390,13 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # how worksheets render slightly.
         uuids = @_output_blobs_with_possible_ttl()
         if uuids?
-            webapp_client.remove_blob_ttls
-                uuids : uuids
-                cb    : (err) =>
-                    if not err
-                        # don't try again to remove ttls for these blobs -- since did so successfully
-                        @_output_blobs_ttls_removed(uuids)
-                    cb?(err)
+            try
+                await webapp_client.file_client.remove_blob_ttls(uuids)
+            catch err
+                cb?(err)
+                return
+            # don't try again to remove ttls for these blobs -- since did so successfully
+            @_output_blobs_ttls_removed(uuids)
 
     raw_input: (raw_input) =>
         prompt = raw_input.prompt
@@ -1590,7 +1567,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             output.append($("<br><strong>WARNING:</strong> webm animations not supported on Safari or IE; use an animated gif instead, e.g., the gif=True option to show.<br>"))
                         if $.browser.firefox
                             output.append($("<br><strong>WARNING:</strong> Right click and select play.<br>"))
-                        video = $("<video src='#{target}' class='sagews-output-video' controls></video>")
+                        video = $("<video src='#{target}' class='sagews-output-video' controls loop></video>")
                         output.append(video)
 
                     when 'sage3d'

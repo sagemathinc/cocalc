@@ -1,5 +1,11 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as immutable from "immutable";
 import { NewFilenameTypes } from "../project/utils";
+import { PassportStrategy } from "./passport-types";
 
 export interface AccountState {
   active_page: string;
@@ -28,6 +34,7 @@ export interface AccountState {
   sign_up_error?: { generic: string };
   signing_in: boolean;
   sign_in_error?: string;
+  sign_in_email_address?: string;
   account_deletion_error?: string;
   forgot_password_error?: string;
   forgot_password_success?: string;
@@ -43,4 +50,11 @@ export interface AccountState {
   is_anonymous: boolean;
   is_admin: boolean;
   is_ready: boolean; // user signed in and account settings have been loaded.
+  doing_anonymous_setup?: boolean;
+  lti_id?: immutable.List<string>;
+  created?: Date;
+  strategies?: immutable.List<PassportStrategy>;
+  token?: string;
+  keyboard_variant_options?: immutable.List<any>;
+  show_forgot_password?: boolean;
 }

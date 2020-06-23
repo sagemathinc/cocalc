@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Map } from "immutable";
 import { TypedMap } from "../../app-framework/TypedMap";
 
@@ -16,6 +21,10 @@ export type ProjectStatus = TypedMap<{
 
 export type ProjectSettings = Map<string, any>;
 
+export type SiteLicense = TypedMap<{
+  [license_id: string]: { [prop: string]: number };
+}>;
+
 export type Project = TypedMap<{
   title: string;
   description: string;
@@ -27,4 +36,5 @@ export type Project = TypedMap<{
   status: ProjectStatus;
   settings: ProjectSettings;
   compute_image: string;
+  site_license: SiteLicense;
 }>;

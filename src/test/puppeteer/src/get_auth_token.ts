@@ -1,14 +1,19 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const path = require("path");
 const this_file: string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
 
 import chalk from "chalk";
 import { Creds, Opts, TestGetString } from "./types";
-import { time_log } from "./time_log";
+import { time_log2 } from "./time_log";
 import axios from "axios";
 import { expect } from "chai";
 
-const get_auth_token = async function(
+const get_auth_token = async function (
   creds: Creds,
   opts: Opts,
   api_key: string,
@@ -37,23 +42,18 @@ const get_auth_token = async function(
     });
     expect(response.status).to.equal(200);
     const event: string = response.data.event;
-    if (event === "error")
-      console.log(chalk.red(`ERROR-A: ${JSON.stringify(response.data)}`));
+    if (event === "error") console.log(chalk.red(`ERROR-A: ${JSON.stringify(response.data)}`));
     expect(response.data.event, "ERROR-B:").to.equal("user_auth_token");
     const auth_token: string = response.data.auth_token;
     expect(auth_token.length).to.equal(24);
-    time_log(this_file, tm_start);
+    await time_log2(this_file, tm_start, creds, opts);
     debuglog("auth_token", auth_token.substr(0, 5) + "...");
     ags.result = auth_token;
     ags.pass += 1;
   } catch (err) {
     ags.fail += 1;
     console.log(chalk.red("ERROR-C"));
-    console.log(
-      chalk.red(
-        `ERROR-D: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`
-      )
-    );
+    console.log(chalk.red(`ERROR-D: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`));
   }
   debuglog(this_file + " done");
   return ags;

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 React component that describes a single cell
 
         editable={cell.getIn(["metadata", "editable"], true)}
@@ -9,9 +14,7 @@ React component that describes a single cell
 
 import { React, Component, Rendered } from "../app-framework";
 import { Map } from "immutable";
-
-const misc_page = require("../misc_page"); // TODO: import type
-
+import { clear_selection } from "../misc/clear-selection";
 import { COLORS } from "smc-util/theme";
 import { INPUT_PROMPT_COLOR } from "./prompt";
 import { Icon, Tip } from "../r_misc";
@@ -132,7 +135,7 @@ export class Cell extends Component<CellProps> {
       return;
     }
     if (event.shiftKey && !this.props.is_current) {
-      misc_page.clear_selection();
+      clear_selection();
       this.props.frame_actions.select_cell_range(this.props.id);
       return;
     }
@@ -225,7 +228,7 @@ export class Cell extends Component<CellProps> {
         top: "2px",
         left: "5px",
         whiteSpace: "nowrap",
-        color: COLORS.GRAY_L
+        color: COLORS.GRAY_L,
       };
     } else {
       // Need arbitrarily much horizontal space, so we
@@ -280,7 +283,7 @@ export class Cell extends Component<CellProps> {
       border: `1px solid ${color1}`,
       borderLeft: `5px solid ${color2}`,
       padding: "2px 5px",
-      position: "relative"
+      position: "relative",
     };
 
     if (this.props.is_selected) {

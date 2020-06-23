@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 React component that represents cursors of other users.
 */
 
@@ -14,7 +19,7 @@ import {
   rclass,
   rtypes,
   ReactDOM,
-  Rendered
+  Rendered,
 } from "../app-framework";
 
 import { times_n } from "./util";
@@ -23,7 +28,7 @@ import { server_time, trunc_middle, is_different } from "smc-util/misc";
 
 const UNKNOWN_USER_PROFILE = {
   color: "rgb(170,170,170)",
-  name: "Private User"
+  name: "Private User",
 };
 
 interface CursorProps {
@@ -106,7 +111,7 @@ export class Cursor extends Component<CursorProps, CursorState> {
           position: "relative",
           cursor: "text",
           pointerEvents: "all",
-          top: this.props.top
+          top: this.props.top,
         }}
         onMouseEnter={() => this.show_name()}
         onMouseLeave={() => this.show_name(HIDE_NAME_TIMEOUT_MS)}
@@ -118,7 +123,7 @@ export class Cursor extends Component<CursorProps, CursorState> {
             width: 0,
             height: "1em",
             borderLeft: "2px solid",
-            position: "absolute"
+            position: "absolute",
           }}
         />
         <span
@@ -128,7 +133,7 @@ export class Cursor extends Component<CursorProps, CursorState> {
             top: "-2px",
             height: "6px",
             position: "absolute",
-            backgroundColor: this.props.color
+            backgroundColor: this.props.color,
           }}
         />
         {this.state.show_name ? (
@@ -144,14 +149,12 @@ export class Cursor extends Component<CursorProps, CursorState> {
               background: this.props.color,
               fontFamily: "sans-serif",
               boxShadow: "3px 3px 5px 0px #bbb",
-              opacity: 0.8
+              opacity: 0.8,
             }}
           >
             {this.props.name}
           </span>
-        ) : (
-          undefined
-        )}
+        ) : undefined}
       </span>
     );
   }
@@ -177,7 +180,7 @@ class PositionedCursor extends Component<PositionedCursorProps> {
       "ch",
       "name",
       "color",
-      "time"
+      "time",
     ]);
   }
 
@@ -280,7 +283,7 @@ class StaticPositionedCursor extends Component<StaticPositionedCursorProps> {
       whiteSpace: "pre",
       top: "4px", // must match what is used in codemirror-static.
       left: "4px",
-      pointerEvents: "none" // so clicking in the spaces (the string position below) doesn't break click to focus cell.
+      pointerEvents: "none", // so clicking in the spaces (the string position below) doesn't break click to focus cell.
     };
 
     // we position using newlines and blank spaces, so no measurement is needed.
@@ -317,11 +320,11 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
 
   public static reduxProps = () => ({
     users: {
-      user_map: rtypes.immutable.Map
+      user_map: rtypes.immutable.Map,
     },
     account: {
-      account_id: rtypes.string
-    }
+      account_id: rtypes.string,
+    },
   });
 
   constructor(props, context) {
@@ -374,7 +377,7 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
     if (this.props.cursors != null && this.props.user_map != null) {
       this.props.cursors.forEach((locs: any, account_id: any) => {
         const { color, name } = this.profile(account_id);
-        locs.forEach(pos => {
+        locs.forEach((pos) => {
           const tm = pos.get("time");
           if (tm == null) {
             return;

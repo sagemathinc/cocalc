@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // mathjax configuration: this could be cleaned up further or even parameterized with some code during startup
 // ATTN: do not use "xypic.js", frequently causes crash!
 
@@ -12,11 +17,17 @@ exports.MathJaxConfig = {
   jax: ["input/TeX", "input/AsciiMath", "output/SVG"],
   // http://docs.mathjax.org/en/latest/options/tex2jax.html
   tex2jax: {
-    inlineMath: [["$", "$"], ["\\(", "\\)"]],
-    displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+    inlineMath: [
+      ["$", "$"],
+      ["\\(", "\\)"],
+    ],
+    displayMath: [
+      ["$$", "$$"],
+      ["\\[", "\\]"],
+    ],
     processEscapes: true,
     ignoreClass: "tex2jax_ignore",
-    skipTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+    skipTags: ["script", "noscript", "style", "textarea", "pre", "code"],
   },
 
   TeX: {
@@ -42,7 +53,7 @@ exports.MathJaxConfig = {
       GF: ["\\Bold{F}_{#1}", 1],
       Zp: ["\\ZZ_{#1}", 1],
       Qp: ["\\QQ_{#1}", 1],
-      Zmod: ["\\ZZ/#1\\ZZ", 1]
+      Zmod: ["\\ZZ/#1\\ZZ", 1],
     },
     noErrors: {
       // http://docs.mathjax.org/en/latest/tex.html#noerrors
@@ -54,29 +65,29 @@ exports.MathJaxConfig = {
         color: "red",
         padding: "1px 3px",
         background: "#FFEEEE",
-        border: "none"
-      }
+        border: "none",
+      },
     },
     noUndefined: {
       // http://docs.mathjax.org/en/latest/tex.html#noundefined
       attributes: {
         mathcolor: "red",
         mathbackground: "#FFEEEE",
-        mathsize: "90%"
-      }
-    }
+        mathsize: "90%",
+      },
+    },
   },
 
   // do not use "xypic.js", frequently causes crash!
   "HTML-CSS": {
     linebreaks: {
-      automatic: true
-    }
+      automatic: true,
+    },
   },
   SVG: {
     linebreaks: {
-      automatic: true
-    }
+      automatic: true,
+    },
   },
-  showProcessingMessages: false
+  showProcessingMessages: false,
 };

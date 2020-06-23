@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # test_env.py
 # tests of sage worksheet environment options
+from __future__ import absolute_import
 import conftest
 import os
 import errno

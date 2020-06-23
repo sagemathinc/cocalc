@@ -1,11 +1,13 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React } from "smc-webapp/app-framework";
 import { ContentPage } from "smc-webapp/share/content-page";
 import { IsPublicFunction } from "smc-webapp/share/types";
 import * as react_support from "smc-webapp/share/server-render";
-
-// read token from disk, if it is there.
-import { google_analytics_token } from "./util";
-const google_analytics: string | undefined = google_analytics_token();
+import { Settings } from "./settings";
 
 export function react_viewer(
   base_url: string,
@@ -14,10 +16,11 @@ export function react_viewer(
   notranslate: boolean,
   viewer: "share" | "embed",
   is_public: IsPublicFunction,
+  settings: Settings,
   description?: string,
   launch_path?: string
 ): Function {
-  return function(res, component, subtitle: string, noindex: boolean): void {
+  return function (res, component, subtitle: string, noindex: boolean): void {
     const the_page = React.createElement(
       ContentPage,
       {
@@ -27,11 +30,11 @@ export function react_viewer(
         subtitle,
         description,
         notranslate,
-        google_analytics,
+        settings,
         viewer,
         is_public,
         noindex,
-        launch_path
+        launch_path,
       },
       component
     );

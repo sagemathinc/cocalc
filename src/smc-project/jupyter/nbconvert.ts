@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Node.js interface to nbconvert.
 */
 
@@ -47,7 +52,7 @@ export async function nbconvert(opts: nbconvertParams): Promise<void> {
     err_on_exit: false,
     timeout: opts.timeout, // in seconds
     ulimit_timeout: true,
-    bash: true
+    bash: true,
   });
   if (output.exit_code != 0) {
     throw Error(output.stderr);

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * CoCalc's Xpra HTML Client
  *
  * ---
@@ -25,16 +30,16 @@ function createWebsocket(uri: string, bus: any): WebSocket {
   const socket = new WebSocket(uri, "binary");
 
   socket.binaryType = "arraybuffer";
-  socket.onopen = function(ev) {
+  socket.onopen = function (ev) {
     bus.emit("ws:open", ev);
   };
-  socket.onclose = function(ev) {
+  socket.onclose = function (ev) {
     bus.emit("ws:close", ev);
   };
-  socket.onerror = function(ev) {
+  socket.onerror = function (ev) {
     bus.emit("ws:error", ev);
   };
-  socket.onmessage = function(ev) {
+  socket.onmessage = function (ev) {
     const data = new Uint8Array(ev.data);
     bus.emit("ws:data", ev, data);
   };

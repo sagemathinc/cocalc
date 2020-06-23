@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 This (and the ProjectQuotaBoundsTable) are currently only showed
 in the backend static pages, so the tooltips are not visible there (no javascript).
 */
@@ -47,8 +52,8 @@ export class ProjectQuotaFreeTable extends Component {
           </Tip>
         </div>
         {PROJECT_UPGRADES.field_order
-          .filter(name => DEFAULT_QUOTAS[name])
-          .map(name => render_project_quota(name, DEFAULT_QUOTAS[name]))}
+          .filter((name) => DEFAULT_QUOTAS[name])
+          .map((name) => render_project_quota(name, DEFAULT_QUOTAS[name]))}
         <Space />
         <div style={{ textAlign: "center", marginTop: "10px" }}>
           <h3 style={{ textAlign: "left" }}>

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * CoCalc's Xpra HTML Client
  *
  * ---
@@ -27,14 +32,14 @@ import {
   NUMPAD_TO_NAME,
   KEY_TO_NAME,
   CHAR_TO_NAME,
-  DOM_KEY_LOCATION_RIGHT
+  DOM_KEY_LOCATION_RIGHT,
 } from "./constants";
 
 const modifierMap = {
   altKey: "alt",
   ctrlKey: "control",
   metaKey: "meta",
-  shiftKey: "shift"
+  shiftKey: "shift",
 };
 
 /**

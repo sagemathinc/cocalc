@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /* Unit test of the SortedPatchList object, which manages
    a sorted list of patches.
 */
@@ -93,7 +98,7 @@ describe("Test sorted patch list with one patch", () => {
     time: new Date("2019-01-03T20:33:47.360Z"),
     patch: make_patch("", "CoCalc"),
     user_id: 0,
-    size: JSON.stringify(make_patch("", "CoCalc")).length
+    size: JSON.stringify(make_patch("", "CoCalc")).length,
   };
   it("adds a patch", () => {
     patches.add([patch]);
@@ -150,7 +155,7 @@ describe("Test sorted patch list with several patches", () => {
     make_patch(
       "CoCalc -- Collaborative Calculation",
       "CoCalc -- Collaborative Calculation in the Cloud"
-    )
+    ),
   ];
 
   const v = [
@@ -159,21 +164,21 @@ describe("Test sorted patch list with several patches", () => {
       patch: w[0],
       user_id: 0,
       sent: new Date("2019-01-03T20:33:47.40Z"),
-      size: JSON.stringify(w[0]).length
+      size: JSON.stringify(w[0]).length,
     },
     {
       time: new Date("2019-01-03T20:33:50Z"),
       patch: w[1],
       user_id: 1,
       sent: new Date("2019-01-03T20:34"),
-      size: JSON.stringify(w[1]).length
+      size: JSON.stringify(w[1]).length,
     },
     {
       time: new Date("2019-01-03T20:34:50Z"),
       patch: w[2],
       user_id: 0,
-      size: JSON.stringify(w[2]).length
-    }
+      size: JSON.stringify(w[2]).length,
+    },
   ];
 
   it("adds the patches", () => {
@@ -217,7 +222,7 @@ describe("Test sorted patch list with several patches", () => {
   });
 
   it("list of versions", () => {
-    expect(patches.versions()).toEqual(v.map(x => x.time));
+    expect(patches.versions()).toEqual(v.map((x) => x.time));
   });
 
   it("most recent patch", () => {
@@ -237,10 +242,14 @@ describe("Test inserting missing patches (thus changing history)", () => {
     expect(patches.value().to_str()).toBe("");
   });
 
-  const w = [make_patch("", "SageMathCloud -- "), make_patch("SageMathCloud -- ", "CoCalc -- "), make_patch(
-        "SageMathCloud -- ",
-        "SageMathCloud -- Collaborative Calculation in the Cloud"
-      )];
+  const w = [
+    make_patch("", "SageMathCloud -- "),
+    make_patch("SageMathCloud -- ", "CoCalc -- "),
+    make_patch(
+      "SageMathCloud -- ",
+      "SageMathCloud -- Collaborative Calculation in the Cloud"
+    ),
+  ];
 
   const v = [
     {
@@ -248,22 +257,22 @@ describe("Test inserting missing patches (thus changing history)", () => {
       patch: w[0],
       user_id: 0,
       sent: new Date("2019-01-03T20:33:47.40Z"),
-      size:JSON.stringify(w[0]).length
+      size: JSON.stringify(w[0]).length,
     },
     {
       time: new Date("2019-01-03T20:33:50Z"),
       patch: w[1],
       user_id: 1,
       sent: new Date("2019-01-03T20:34"),
-      size:JSON.stringify(w[1]).length
+      size: JSON.stringify(w[1]).length,
     },
     {
       time: new Date("2019-01-03T20:34:50Z"),
       patch: w[2],
       user_id: 0,
       sent: new Date("2019-01-03T20:35"),
-      size:JSON.stringify(w[1]).length
-    }
+      size: JSON.stringify(w[1]).length,
+    },
   ];
 
   it("adds some patches", () => {
@@ -301,6 +310,6 @@ describe("Test inserting missing patches (thus changing history)", () => {
   });
 
   it("list of versions", () => {
-    expect(patches.versions()).toEqual(v.map(x => x.time));
+    expect(patches.versions()).toEqual(v.map((x) => x.time));
   });
 });

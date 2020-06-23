@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Utilities for testing
 */
 
@@ -39,7 +44,7 @@ export async function test_line(opts0: TestLineOptions): Promise<void> {
       line: 1,
       burst: 10,
       delay: 500,
-      wait: 2500
+      wait: 2500,
     },
     opts0
   );

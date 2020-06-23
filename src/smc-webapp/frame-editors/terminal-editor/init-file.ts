@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const { console_init_filename } = require("smc-util/misc");
 import { exec } from "../generic/client";
 
@@ -39,7 +44,7 @@ async function create_init_file(
     project_id: project_id,
     command,
     bash: true,
-    err_on_exit: false
+    err_on_exit: false,
   });
 }
 

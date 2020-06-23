@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Confirmation dialog, for explicitly confirming dangerous actions.
 */
 
@@ -54,7 +59,7 @@ export class ConfirmDialog extends Component<ConfirmDialogProps> {
     const choices = this.props.confirm_dialog.get("choices");
     const buttons: Rendered[] = [];
     if (choices != null) {
-      choices.forEach(choice =>
+      choices.forEach((choice) =>
         buttons.push(this.render_button(choice.toJS()))
       );
     }

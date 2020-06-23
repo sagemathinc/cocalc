@@ -1,19 +1,21 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { EventEmitter } from "events";
+
+import { throttle } from "lodash";
 import * as async from "async";
+import { fromJS } from "immutable";
+
 import { createSelector } from "reselect";
 import { AppRedux } from "../app-framework";
 import { TypedMap } from "./TypedMap";
 import { TypedCollectionMethods } from "./immutable-types";
-import * as misc from "../../smc-util/misc";
-// Relative import is temporary, until I figure this out -- needed for *project*
-// import { fill } from "../../smc-util/fill";
-// fill does not even compile for the backend project (using the fill from the fill
-// module breaks starting projects).
-// NOTE: a basic requirement of "redux app framework" is that it can fully run
-// on the backend (e.g., in a project) under node.js.
-const { defaults, required } = misc;
-
-import { throttle } from "lodash";
+import { callback2 } from "../../smc-util/async-utils";
+import { defaults, required, top_sort } from "../../smc-util/misc";
+import { bind_methods } from "../../smc-util/misc2";
 
 export type StoreConstructorType<T, C = Store<T>> = new (
   name: string,
@@ -22,7 +24,7 @@ export type StoreConstructorType<T, C = Store<T>> = new (
 ) => C;
 
 export interface Selector<State, K extends keyof State> {
-  dependencies?: (keyof State)[];
+  dependencies?: readonly (keyof State)[];
   fn: () => State[K];
 }
 
@@ -33,23 +35,27 @@ export class Store<State> extends EventEmitter {
   public name: string;
   public getInitialState?: () => State;
   protected redux: AppRedux;
-  protected selectors: { [K in keyof Partial<State>]: Selector<State, K> };
+  protected selectors?: {
+    [K in keyof Partial<State>]: Selector<State, K> | undefined;
+  };
   private _last_state: State;
 
   constructor(name: string, redux: AppRedux) {
     super();
-    this._handle_store_change = this._handle_store_change.bind(this);
-    this.getState = this.getState.bind(this);
-    this.get = this.get.bind(this);
-    this.getIn = this.getIn.bind(this);
-    this.wait = this.wait.bind(this);
+    // This binds all methods, even in derived classes (as long as they don't overload
+    // constructor and not call super); there is some runtime cost, but it is worth it
+    // to avoid bugs in Store/Actions, which are often used with the assumption that
+    // this binding happened.
+    bind_methods(this);
     this.name = name;
     this.redux = redux;
-    this.setMaxListeners(150);
+    this.setMaxListeners(1000);
+  }
+
+  protected setup_selectors(): void {
     if (this.selectors) {
       type selector = Selector<State, any>;
       const created_selectors: { [K in keyof State]: selector } = {} as any;
-
       const dependency_graph: any = {}; // Used to check for cycles
 
       for (const selector_name of Object.getOwnPropertyNames(this.selectors)) {
@@ -57,30 +63,30 @@ export class Store<State> extends EventEmitter {
         const dependent_selectors: selector[] = [];
 
         // Names of dependencies
-        const dependencies = this.selectors[selector_name].dependencies;
-        dependency_graph[selector_name] = dependencies || [];
+        const dependencies = this.selectors[selector_name].dependencies || [];
+        dependency_graph[selector_name] = dependencies;
 
-        if (dependencies) {
-          for (const dep_name of dependencies) {
-            if (created_selectors[dep_name] == undefined) {
-              created_selectors[dep_name] = (): any => this.get(dep_name);
-            }
-            dependent_selectors.push(created_selectors[dep_name]);
-
-            // Set the selector function to the new selector
-            this.selectors[dep_name].fn = createSelector(
-              dependent_selectors as any,
-              this.selectors[dep_name].fn
-            ) as any;
+        for (const dep_name of dependencies) {
+          if (created_selectors[dep_name] == undefined) {
+            created_selectors[dep_name] = (): any => {
+              return this.get(dep_name);
+            };
           }
+          dependent_selectors.push(created_selectors[dep_name]);
+
+          // Set the selector function to the new selector
+          this.selectors[selector_name].fn = createSelector(
+            dependent_selectors as any,
+            this.selectors[selector_name].fn
+          ) as any;
         }
       }
       // check if there are cycles
       try {
-        misc.top_sort(dependency_graph);
+        top_sort(dependency_graph);
       } catch {
         throw new Error(
-          `redux store "${name}" has cycle in its selector dependencies`
+          `redux store "${this.name}" has cycle in its selector dependencies`
         );
       }
       return;
@@ -107,7 +113,7 @@ export class Store<State> extends EventEmitter {
     notSetValue?: any
   ): any => {
     if (this.selectors && this.selectors[field] != undefined) {
-      return this.selectors[field].fn();
+      return this.selectors[field].fn(this.getState());
     } else {
       return this.redux._redux_store
         .getState()
@@ -119,9 +125,32 @@ export class Store<State> extends EventEmitter {
     path: any[],
     notSetValue?: any
   ): any => {
-    return this.redux._redux_store
-      .getState()
-      .getIn([this.name].concat(path), notSetValue);
+    if (path.length == 0) {
+      return undefined;
+    }
+    // Assumes no nested stores
+    const first_key = path[0];
+    if (this.selectors && this.selectors[first_key] != undefined) {
+      let top_value = this.selectors[first_key].fn(this.getState());
+      if (path.length == 1) {
+        return top_value;
+      } else if (typeof top_value.getIn === "function") {
+        return top_value.getIn(path.slice(1), notSetValue);
+      } else {
+        console.warn(
+          "Calling getIn on",
+          this.name,
+          "but",
+          path[0],
+          "is not immutable"
+        );
+        return fromJS(top_value).getIn(path.slice(1), notSetValue);
+      }
+    } else {
+      return this.redux._redux_store
+        .getState()
+        .getIn([this.name].concat(path), notSetValue);
+    }
   };
 
   unsafe_getIn(path: any[], notSetValue?: any): any {
@@ -135,22 +164,17 @@ export class Store<State> extends EventEmitter {
    * happens call the given callback.
    */
   wait<T>(opts: {
-    until: (store: Store<State>) => T; // waits until "until(store)" evaluates to something truthy
+    until: (store: any) => T; // waits until "until(store)" evaluates to something truthy
     cb: (err?: string, result?: T) => any; // cb(undefined, until(store)) on success and cb('timeout') on failure due to timeout
     throttle_ms?: number; // in ms -- throttles the call to until(store)
     timeout?: number; // in seconds -- set to 0 to disable (DANGEROUS since until will get run for a long time)
-  }): this | undefined {
+  }): void {
     let timeout_ref;
-    /*
-    let { until, cb, throttle_ms, timeout } = fill(opts, {
-      timeout: 30
-    });
-    */
     opts = defaults(opts, {
       until: required,
       throttle_ms: undefined,
       timeout: 30,
-      cb: required
+      cb: required,
     });
     let { until } = opts;
     const { cb, throttle_ms, timeout } = opts;
@@ -164,14 +188,14 @@ export class Store<State> extends EventEmitter {
       return;
     }
     // Setup a listener
-    const listener = (): unknown => {
+    const listener = (): void => {
       x = until(this);
       if (x) {
         if (timeout_ref) {
           clearTimeout(timeout_ref);
         }
         this.removeListener("change", listener);
-        return async.nextTick(() => cb(undefined, x));
+        async.nextTick(() => cb(undefined, x));
       }
     };
     // If we want a timeout (the default), setup a timeout
@@ -183,6 +207,14 @@ export class Store<State> extends EventEmitter {
       };
       timeout_ref = setTimeout(timeout_error, timeout * 1000);
     }
-    return this.on("change", listener);
+    this.on("change", listener);
+  }
+
+  public async async_wait<T>(opts: {
+    until: (store: any) => T; // waits until "until(store)" evaluates to something truthy
+    throttle_ms?: number; // in ms -- throttles the call to until(store)
+    timeout?: number; // in seconds -- set to 0 to disable (DANGEROUS since until will get run for a long time)
+  }): Promise<any> {
+    return await callback2(this.wait.bind(this), opts);
   }
 }

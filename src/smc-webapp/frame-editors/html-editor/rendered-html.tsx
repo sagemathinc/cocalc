@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Component that shows rendered HTML.
 */
 
@@ -30,7 +35,7 @@ export class QuickHTMLPreview extends Component<PropTypes, {}> {
       "path",
       "font_size",
       "read_only",
-      "value"
+      "value",
     ]);
   }
 
@@ -69,9 +74,9 @@ export class QuickHTMLPreview extends Component<PropTypes, {}> {
     return (
       <div
         style={{
-          overflowY: "scroll",
+          overflowY: "auto",
           width: "100%",
-          fontSize: `${this.props.font_size}px`
+          fontSize: `${this.props.font_size}px`,
         }}
         ref={"scroll"}
         onScroll={throttle(() => this.on_scroll(), 250)}
@@ -81,7 +86,7 @@ export class QuickHTMLPreview extends Component<PropTypes, {}> {
           style={{
             maxWidth: MAX_WIDTH,
             margin: "10px auto",
-            padding: "0 10px"
+            padding: "0 10px",
           }}
         >
           <HTML

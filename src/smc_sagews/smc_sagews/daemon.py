@@ -56,12 +56,14 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+from __future__ import absolute_import
+
 import os
 import sys
 import errno
 
 
-def basic_daemonize():
+def basic_daemonize(silence=True):
     # See http://www.erlenstar.demon.co.uk/unix/faq_toc.html#TOC16
     if os.fork():  # launch child and...
         os._exit(0)  # kill off parent
@@ -69,18 +71,22 @@ def basic_daemonize():
     if os.fork():  # launch child and...
         os._exit(0)  # kill off parent again.
     os.umask(0o022)  # Don't allow others to write
-    null = os.open('/dev/null', os.O_RDWR)
-    for i in range(3):
-        try:
-            os.dup2(null, i)
-        except OSError as e:
-            if e.errno != errno.EBADF:
-                raise
-    os.close(null)
+
+    if not silence:
+        print("daemonize.basic_daemonize: process NOT silenced, for debugging")
+    else:
+        null = os.open('/dev/null', os.O_RDWR)
+        for i in range(3):
+            try:
+                os.dup2(null, i)
+            except OSError as e:
+                if e.errno != errno.EBADF:
+                    raise
+        os.close(null)
 
 
 def writePID(pidfile):
-    open(pidfile, 'wb').write(str(os.getpid()))
+    open(pidfile, 'w').write(str(os.getpid()))
     if not os.path.exists(pidfile):
         raise Exception("pidfile %s does not exist" % pidfile)
 
@@ -96,18 +102,21 @@ def checkPID(pidfile):
         try:
             os.kill(pid, 0)
         except OSError as why:
-            if why[0] == errno.ESRCH:
+            if why.args[0] == errno.ESRCH:
                 # The pid doesnt exists.
-                print('Removing stale pidfile %s' % pidfile)
+                print(('Removing stale pidfile %s' % pidfile))
                 os.remove(pidfile)
             else:
                 sys.exit("Can't check status of PID %s from pidfile %s: %s" %
-                         (pid, pidfile, why[1]))
+                         (pid, pidfile, why.args[1]))
         else:
             sys.exit("Another server is running, PID %s\n" % pid)
 
 
 def daemonize(pidfile):
     checkPID(pidfile)
-    basic_daemonize()
+    # CRITICAL: DO NOT set silence=False in production.  It hangs starting the sage server
+    # properly, which breaks things badly for users (e.g., their first worksheet
+    # never works).
+    basic_daemonize(silence=True)
     writePID(pidfile)

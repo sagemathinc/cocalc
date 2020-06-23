@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 The Store
 */
 
@@ -11,6 +16,7 @@ import { export_to_ipynb } from "./export-to-ipynb";
 import { DEFAULT_COMPUTE_IMAGE } from "../../smc-util/compute-images";
 import { Kernels, Kernel } from "./util";
 import { KernelInfo, Cell, CellToolbarName } from "./types";
+import { Syntax } from "../../smc-util/code-formatter";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -79,7 +85,7 @@ export const initial_jupyter_store_state: {
   show_kernel_selector: false,
   widget_model_ids: Set(),
   cell_list: List(),
-  cells: Map()
+  cells: Map(),
 };
 
 export class JupyterStore extends Store<JupyterStoreState> {
@@ -101,7 +107,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     if (cur_id != null) {
       selected[cur_id] = true;
     }
-    this.get("sel_ids").map(function(x) {
+    this.get("sel_ids").map(function (x) {
       selected[x] = true;
     });
     return selected;
@@ -109,7 +115,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
   // immutable List
   public get_cell_list = (): List<string> => {
-    return this.get("cell_list");
+    return this.get("cell_list") ?? List();
   };
 
   // string[]
@@ -220,7 +226,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
       kernelspec: this.get_kernel_info(this.get("kernel")),
       language_info: this.get_language_info(),
       blob_store,
-      more_output
+      more_output,
     });
   };
 
@@ -231,7 +237,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     }
   }
 
-  get_cm_mode = () => {
+  public get_cm_mode() {
     let metadata_immutable = this.get("backend_kernel_info");
     if (metadata_immutable == null) {
       metadata_immutable = this.get("metadata");
@@ -262,15 +268,44 @@ export class JupyterStore extends Store<JupyterStoreState> {
       }
     }
     if (mode == null) {
-      mode = this.get("kernel"); // may be better than nothing...; e.g., octave kernel has no mode.
+      // As a fallback in case none of the metadata has been filled in yet by the backend,
+      // we can guess a mode from the kernel in many cases.   Any mode is vastly better
+      // than nothing!
+      let kernel = this.get("kernel"); // may be better than nothing...; e.g., octave kernel has no mode.
+      if (kernel != null) {
+        kernel = kernel.toLowerCase();
+        // The kernel is just a string that names the kernel, so we use heuristics.
+        if (kernel.indexOf("python") != -1 || kernel.indexOf("sage") != -1) {
+          if (kernel.indexOf("python3") != -1) {
+            mode = { name: "python", version: 3 };
+          } else {
+            mode = { name: "python", version: 2 };
+          }
+        } else if (kernel.indexOf("octave") != -1) {
+          mode = "octave";
+        } else if (kernel.indexOf("bash") != -1) {
+          mode = "shell";
+        } else if (kernel.indexOf("julia") != -1) {
+          mode = "text/x-julia";
+        } else if (kernel.indexOf("haskell") != -1) {
+          mode = "text/x-haskell";
+        } else if (kernel.indexOf("javascript") != -1) {
+          mode = "javascript";
+        } else if (kernel.indexOf("ir") != -1) {
+          mode = "r";
+        } else {
+          // C is probably a good fallback.
+          mode = "text/x-c";
+        }
+      }
     }
     if (typeof mode === "string") {
       mode = { name: mode }; // some kernels send a string back for the mode; others an object
     }
     return mode;
-  };
+  }
 
-  get_more_output = (id: any) => {
+  get_more_output = (id: string) => {
     if (this._is_project) {
       // This is ONLY used by the backend project for storing extra output.
       if (this._more_output == null) {
@@ -321,8 +356,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
   };
 
   /*
-   * select all kernels, which are ranked highest for a specific language
-   * and do have a priority weight > 0.
+   * select all kernels, which are ranked highest for a specific language.
    *
    * kernel metadata looks like that
    *
@@ -333,7 +367,8 @@ export class JupyterStore extends Store<JupyterStoreState> {
    *    "cocalc": {
    *      "priority": 10,
    *      "description": "Open-source mathematical software system",
-   *      "url": "https://www.sagemath.org/"
+   *      "url": "https://www.sagemath.org/",
+   *      "disabled": true
    *    }
    *  }
    *
@@ -342,8 +377,8 @@ export class JupyterStore extends Store<JupyterStoreState> {
   get_kernel_selection = (kernels: Kernels): Map<string, string> => {
     const data: any = {};
     kernels
-      .filter(entry => entry.get("language") != null)
-      .groupBy(entry => entry.get("language"))
+      .filter((entry) => entry.get("language") != null)
+      .groupBy((entry) => entry.get("language"))
       .forEach((kernels, lang) => {
         const top: any = kernels
           .sort((a, b) => {
@@ -373,7 +408,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
       if (data_lang[lang] == null) data_lang[lang] = [];
       data_lang[lang].push(entry);
     };
-    kernels.map(entry => {
+    kernels.map((entry) => {
       const name = entry.get("name");
       const lang = entry.get("language");
       if (name != null) data_name[name] = entry;
@@ -392,13 +427,13 @@ export class JupyterStore extends Store<JupyterStoreState> {
     // data_lang, we're only interested in the kernel names, not the entry itself
     data_lang = fromJS(data_lang).map((v, k) => {
       v = v
-        .sortBy(v => v.get("display_name", v.get("name", k)).toLowerCase())
-        .map(v => v.get("name"));
+        .sortBy((v) => v.get("display_name", v.get("name", k)).toLowerCase())
+        .map((v) => v.get("name"));
       return v;
     });
-    const by_lang = OrderedMap<string, List<string>>(data_lang).sortBy(
-      (_v, k) => k.toLowerCase()
-    );
+    const by_lang = OrderedMap<string, List<string>>(
+      data_lang
+    ).sortBy((_v, k) => k.toLowerCase());
     return [by_name, by_lang];
   };
 
@@ -448,38 +483,32 @@ export class JupyterStore extends Store<JupyterStoreState> {
     return lang;
   }
 
-  // heuristic **attempt** to get what would be the filename
-  // extension for the kernel language.  Probably not very good.
-  // It does work for most of the kernels we have installed on June 2019.
-  public get_kernel_ext(): string | undefined {
+  // map the kernel language to the syntax of a language we know
+  public get_kernel_syntax(): Syntax | undefined {
     let lang = this.get_kernel_language();
     if (!lang) return undefined;
     lang = lang.toLowerCase();
     switch (lang) {
       case "python":
       case "python3":
-        return "py";
+        return "python3";
       case "r":
-        return "r";
-      case "julia":
-        return "jl";
-      case "octave":
-        return "m";
+        return "R";
       case "c++":
       case "c++17":
-        return "cpp";
-      case "bash":
-        return "sh";
-      case "gp":
-        return "gp";
+        return "c++";
+      case "javascript":
+        return "JavaScript";
     }
   }
 
   jupyter_kernel_key = (): string => {
     const project_id = this.get("project_id");
     const projects_store = this.redux.getStore("projects");
-    const path = ["project_map", project_id, "compute_image"];
-    const compute_image = projects_store.getIn(path, DEFAULT_COMPUTE_IMAGE);
+    const compute_image = projects_store.getIn(
+      ["project_map", project_id, "compute_image"],
+      DEFAULT_COMPUTE_IMAGE
+    );
     const key = [project_id, compute_image].join("::");
     // console.log("jupyter store / jupyter_kernel_key", key);
     return key;

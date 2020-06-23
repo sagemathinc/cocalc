@@ -1,9 +1,14 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as misc from "smc-util/misc";
-const { webapp_client } = require("../webapp_client");
-const remember_me = webapp_client.remember_me_key();
+import { webapp_client } from "../webapp-client";
 import { AccountActions } from "./actions";
 import { AccountStore } from "./store";
 import { AccountTable } from "./table";
+import { init_dark_mode } from "./dark-mode";
 
 export function init(redux) {
   // Register account store
@@ -14,18 +19,19 @@ export function init(redux) {
   // ... except for show_global_info2 (null or a timestamp)
   init.other_settings.show_global_info2 = "loading"; // indicates there is no data yet
   init.editor_settings.physical_keyboard = "NO_DATA"; // indicator that there is no data
-  init.user_type = misc.get_local_storage(remember_me)
+  init.user_type = misc.get_local_storage(webapp_client.remember_me_key())
     ? "signing_in"
     : "public"; // default
   const store = redux.createStore("account", AccountStore, init);
   const actions = redux.createActions("account", AccountActions);
 
   actions._init(store);
+  init_dark_mode(store);
 
   redux.createTable("account", AccountTable);
 
   // Login status
-  webapp_client.on("signed_in", function(mesg) {
+  webapp_client.on("signed_in", function (mesg) {
     if (mesg != null ? mesg.api_key : undefined) {
       // wait for sign in to finish and cookie to get set, then redirect
       const f = () =>
@@ -45,7 +51,7 @@ export function init(redux) {
 
   // Autosave interval
   let _autosave_interval: NodeJS.Timeout | undefined = undefined;
-  const init_autosave = function(autosave) {
+  const init_autosave = function (autosave) {
     if (_autosave_interval) {
       // This function can safely be called again to *adjust* the
       // autosave interval, in case user changes the settings.
@@ -55,9 +61,9 @@ export function init(redux) {
 
     // Use the most recent autosave value.
     if (autosave) {
-      const save_all_files = function() {
+      const save_all_files = function () {
         if (webapp_client.is_connected()) {
-          return redux.getActions("projects").save_all_files();
+          redux.getActions("projects")?.save_all_files();
         }
       };
       _autosave_interval = setInterval(save_all_files, autosave * 1000);
@@ -65,7 +71,7 @@ export function init(redux) {
   };
 
   let _last_autosave_interval_s = undefined;
-  store.on("change", function() {
+  store.on("change", function () {
     const interval_s = store.get("autosave");
     if (interval_s !== _last_autosave_interval_s) {
       _last_autosave_interval_s = interval_s;
@@ -75,12 +81,12 @@ export function init(redux) {
 
   // Standby timeout
   let last_set_standby_timeout_m = undefined;
-  store.on("change", function() {
+  store.on("change", function () {
     // NOTE: we call this on any change to account settings, which is maybe too extreme.
     const x = store.getIn(["other_settings", "standby_timeout_m"]);
     if (last_set_standby_timeout_m !== x) {
       last_set_standby_timeout_m = x;
-      webapp_client.set_standby_timeout_m(x);
+      webapp_client.idle_client.set_standby_timeout_m(x);
     }
   });
 }

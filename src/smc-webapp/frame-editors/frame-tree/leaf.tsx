@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Map, Set } from "immutable";
 
 import {
@@ -5,7 +10,7 @@ import {
   React,
   Rendered,
   rclass,
-  rtypes
+  rtypes,
 } from "../../app-framework";
 import { ErrorDisplay, Loading } from "../../r_misc";
 import { AvailableFeatures } from "../../project_configuration";
@@ -66,7 +71,7 @@ class FrameTreeLeaf extends Component<Props & ReduxProps> {
       complete: rtypes.immutable.Map,
       is_loaded: rtypes.bool,
       error: rtypes.string,
-      gutter_markers: rtypes.immutable.Map
+      gutter_markers: rtypes.immutable.Map,
     };
     if (!is_subframe) {
       // This is used for showing the error message right with this frame,
@@ -74,7 +79,7 @@ class FrameTreeLeaf extends Component<Props & ReduxProps> {
       delete redux_props.error;
     }
     return {
-      [name]: redux_props
+      [name]: redux_props,
     };
   }
 
@@ -146,7 +151,7 @@ class FrameTreeLeaf extends Component<Props & ReduxProps> {
           overflowY: "scroll",
           fontFamily: "monospace",
           fontSize: "85%",
-          whiteSpace: "pre-wrap"
+          whiteSpace: "pre-wrap",
         }}
       />
     );

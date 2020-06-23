@@ -1,14 +1,17 @@
 /*
-Component that shows rendered markdown.
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-It also:
-
-   - [x] tracks and restores scroll position
-   - [x] is scrollable
-   - [x] is zoomable
-   - [x] math is properly typeset
-   - [x] checkbox in markdown are interactive (can click them, which edits file)
-*/
+// Component that shows rendered markdown.
+//
+// It also:
+//
+//    - [x] tracks and restores scroll position
+//    - [x] is scrollable
+//    - [x] is zoomable
+//    - [x] math is properly typeset
+//    - [x] checkbox in markdown are interactive (can click them, which edits file)
 
 import { Markdown } from "smc-webapp/r_misc";
 
@@ -44,7 +47,7 @@ export class RenderedMarkdown extends Component<Props, {}> {
       "font_size",
       "read_only",
       "value",
-      "reload_images"
+      "reload_images",
     ]);
   }
 
@@ -66,7 +69,7 @@ export class RenderedMarkdown extends Component<Props, {}> {
     const elt = $(ReactDOM.findDOMNode(this.refs.scroll));
     if (elt.length === 0) return;
     elt.scrollTop(scroll);
-    elt.find("img").on("load", function() {
+    elt.find("img").on("load", function () {
       elt.scrollTop(scroll);
     });
   }
@@ -92,13 +95,13 @@ export class RenderedMarkdown extends Component<Props, {}> {
     return (
       <div
         style={{
-          overflowY: "scroll",
+          overflowY: "auto",
           width: "100%",
-          zoom: (this.props.font_size != null ? this.props.font_size : 16) / 16
+          zoom: (this.props.font_size != null ? this.props.font_size : 16) / 16,
         }}
         ref={"scroll"}
         onScroll={throttle(() => this.on_scroll(), 250)}
-        onClick={e => this.on_click(e)}
+        onClick={(e) => this.on_click(e)}
         className={
           "cocalc-editor-div"
         } /* this cocalc-editor-div class is needed for a safari hack only */
@@ -107,7 +110,7 @@ export class RenderedMarkdown extends Component<Props, {}> {
           style={{
             maxWidth: MAX_WIDTH,
             margin: "10px auto",
-            padding: "0 10px"
+            padding: "0 10px",
           }}
         >
           <Markdown

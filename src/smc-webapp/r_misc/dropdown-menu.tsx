@@ -1,4 +1,10 @@
-import { Menu, Dropdown, Button, Icon } from "antd";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { Menu, Dropdown, Button } from "antd";
+import { DownOutlined } from "@ant-design/icons";
 import { merge } from "smc-util/misc2";
 import { Component, React } from "../app-framework";
 
@@ -27,7 +33,7 @@ export class DropdownMenu extends Component<Props> {
           disabled={this.props.disabled}
           id={this.props.id}
         >
-          {this.props.title} <Icon type="down" />
+          {this.props.title} <DownOutlined />
         </Button>
       );
     } else {
@@ -39,7 +45,7 @@ export class DropdownMenu extends Component<Props> {
             style={merge(
               {
                 color: "#777",
-                cursor: "not-allowed"
+                cursor: "not-allowed",
               },
               style
             )}
@@ -70,7 +76,7 @@ export class DropdownMenu extends Component<Props> {
         onClick={this.on_click.bind(this)}
         style={{
           maxHeight: this.props.maxHeight ? this.props.maxHeight : "70vH",
-          overflow: "auto"
+          overflow: "auto",
         }}
       >
         {this.props.children}

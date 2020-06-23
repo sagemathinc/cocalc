@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { List, Map } from "immutable";
 type CursorMap = Map<string, any>;
 
@@ -18,7 +23,7 @@ export class CursorManager {
       const locs = last_info.get("locs");
       if (locs != null) {
         // delete previously set cursor locations
-        locs.forEach(loc => {
+        locs.forEach((loc) => {
           if (loc == null) return;
           const id: string | undefined = loc.get("id");
           if (id == null) return; // be super careful.
@@ -37,7 +42,7 @@ export class CursorManager {
     if (info == null) return cells;
 
     // set new cursor locations
-    info.get("locs").forEach(loc => {
+    info.get("locs").forEach((loc) => {
       if (loc == null) return;
       const id = loc.get("id");
       let cell = cells.get(id);

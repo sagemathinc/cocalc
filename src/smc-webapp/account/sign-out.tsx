@@ -1,10 +1,20 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Component, React, Rendered, redux } from "../app-framework";
 import { Button, Popconfirm } from "antd";
+import { LogoutOutlined } from "@ant-design/icons";
 
-export class SignOut extends Component<
-  { everywhere?: boolean; sign_in?: boolean },
-  {}
-> {
+interface Props {
+  everywhere?: boolean;
+  sign_in?: boolean;
+  highlight?: boolean;
+  style?: React.CSSProperties;
+}
+
+export class SignOut extends Component<Props> {
   private sign_out(): void {
     const account = redux.getActions("account");
     if (account != null) {
@@ -38,7 +48,7 @@ export class SignOut extends Component<
     }
     if (store.get("is_anonymous")) {
       title +=
-        "\n Everything you have done using this TEMPORARY ACCOUNT will be immediately deleted!  If you would like to save your work, click cancel and sign up above.";
+        "\n Everything you have done using this TEMPORARY ACCOUNT will be immediately deleted!  If you would like to save your work to a new account, click cancel and sign up below.";
     }
     return (
       <Popconfirm
@@ -47,7 +57,13 @@ export class SignOut extends Component<
         okText={`Yes, sign out${this.props.everywhere ? " everywhere" : ""}`}
         cancelText={"Cancel"}
       >
-        <Button icon={"logout"}>{this.render_body()}</Button>
+        <Button
+          icon={<LogoutOutlined />}
+          type={this.props.highlight ? "primary" : undefined}
+          style={this.props.style}
+        >
+          {this.render_body()}
+        </Button>
       </Popconfirm>
     );
   }

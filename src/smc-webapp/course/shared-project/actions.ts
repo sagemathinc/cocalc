@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Actions that are specific to the shared project.
 */
 
@@ -27,7 +32,7 @@ export class SharedProjectActions {
       title: `Shared Project -- ${settings.get("title")}`,
       description:
         settings.get("description") +
-        "\n\n---\n\nThis project is shared with all students in the course."
+        "\n\n---\n\nThis project is shared with all students in the course.",
     };
   }
 
@@ -77,7 +82,7 @@ export class SharedProjectActions {
       return; // no shared project
     }
     const id = this.actions.set_activity({
-      desc: "Configuring shared project..."
+      desc: "Configuring shared project...",
     });
     try {
       await this.set_project_title();
@@ -133,6 +138,19 @@ export class SharedProjectActions {
           await actions.invite_collaborator(shared_project_id, account_id);
         }
       }
+      // Set license key if known; remove if not.
+      const site_license_id = store.getIn(["settings", "site_license_id"]);
+      if (site_license_id) {
+        await actions.add_site_license_to_project(
+          shared_project_id,
+          site_license_id
+        );
+      } else {
+        // ensure no license set
+        await actions.remove_site_license_from_project(shared_project_id);
+      }
+    } catch (err) {
+      this.actions.set_error(`Error configuring shared project - ${err}`);
     } finally {
       this.actions.set_activity({ id });
     }
@@ -142,7 +160,7 @@ export class SharedProjectActions {
   private set_project_id(shared_project_id: string): void {
     this.actions.set({
       table: "settings",
-      shared_project_id
+      shared_project_id,
     });
   }
 
@@ -153,7 +171,7 @@ export class SharedProjectActions {
       return;
     }
     const id = this.actions.set_activity({
-      desc: "Creating shared project..."
+      desc: "Creating shared project...",
     });
     let project_id: string;
     try {
@@ -190,16 +208,19 @@ export class SharedProjectActions {
       const student_account_id = store.unsafe_getIn([
         "students",
         student_id,
-        "account_id"
+        "account_id",
       ]);
       if (student_account_id) {
-        await project_actions.remove_collaborator(shared_id, student_account_id);
+        await project_actions.remove_collaborator(
+          shared_id,
+          student_account_id
+        );
       }
     }
     // make the course itself forget about the shared project:
     this.actions.set({
       table: "settings",
-      shared_project_id: ""
+      shared_project_id: "",
     });
   }
 }

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { Icon } from "../../r_misc";
 import { SplitButton, MenuItem } from "react-bootstrap";
@@ -11,7 +16,7 @@ interface Props {
   create_file: (ext?: string) => void;
 }
 
-const file_type_list = function(list: string[], exclude: boolean): string[] {
+const file_type_list = function (list: string[], exclude: boolean): string[] {
   const extensions: string[] = [];
   const file_types_so_far = {};
   for (const ext of list) {
@@ -40,7 +45,7 @@ function ButtonIcon(): JSX.Element {
 
 function FileDropDownItem({
   ext,
-  on_select
+  on_select,
 }: {
   ext: string;
   on_select: () => void;
@@ -60,7 +65,7 @@ function FileDropDownItem({
 }
 
 export const NewFileDropdown = React.memo(function NewFileDropdown({
-  create_file
+  create_file,
 }: Props) {
   const new_file_button_types = file_type_list(
     misc.keys(file_associations).sort(),

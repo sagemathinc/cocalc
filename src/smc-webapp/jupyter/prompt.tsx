@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Components for rendering input and output prompts.
 */
 
@@ -17,7 +22,7 @@ const INPUT_STYLE: React.CSSProperties = {
   fontFamily: "monospace",
   textAlign: "right",
   paddingRight: "1ex",
-  cursor: "pointer"
+  cursor: "pointer",
 };
 
 interface InputPromptProps {
@@ -97,7 +102,7 @@ const OUTPUT_STYLE: React.CSSProperties = {
   fontFamily: "monospace",
   textAlign: "right",
   paddingRight: ".4em",
-  paddingBottom: "2px"
+  paddingBottom: "2px",
 };
 
 interface OutputPromptProps {

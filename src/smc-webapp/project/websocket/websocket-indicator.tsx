@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Websocket connection status indicator for a single project.
 */
 
@@ -23,7 +28,7 @@ export class WebsocketIndicator extends Component<Props, {}> {
       <span title={this.props.state}>
         <Icon
           style={{
-            color: color(this.props.state)
+            color: color(this.props.state),
           }}
           name={"wifi"}
         />

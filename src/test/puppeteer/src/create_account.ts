@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // use the GUI to create an account
 
 const path = require("path");
@@ -16,7 +21,7 @@ import { sign_up } from "./sign_up";
 // provide program version for "-V" | "--version" arg
 program.version("1.0.0");
 
-const cli_parse = function() {
+const cli_parse = function () {
   try {
     // command line processing
     // -p option without arg uses the following path
@@ -26,6 +31,7 @@ const cli_parse = function() {
       .option("-s, --screenshot", "take screenshots", false)
       .option("-p, --path-to-chrome [chromepath]")
       .option("-k, --skip <pattern>", "skip tests matching pattern")
+      .option("-m, --csv-log <file>", "timing log file", "./log.csv")
       .parse(process.argv);
     const creds_file = program.creds;
     //if (!creds_file.includes("/")) {creds_file = "./" + creds_file;}
@@ -44,6 +50,7 @@ const cli_parse = function() {
       headless: program.headless,
       screenshot: program.screenshot,
       path: cpath,
+      csv_log: program.csvLog,
       skip: skip
     };
     debuglog("opts", opts);
@@ -56,7 +63,7 @@ const cli_parse = function() {
   }
 };
 
-const run_tests = async function() {
+const run_tests = async function () {
   // as of 2019-09-27, axios POST to CoCalc docker API fails
   // with "certificate has expired"
   // UNLESS the following setting is used

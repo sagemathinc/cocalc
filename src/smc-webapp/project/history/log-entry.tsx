@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as misc from "smc-util/misc";
 import * as React from "react";
 
@@ -13,7 +18,7 @@ import { Icon, TimeAgo, PathLink, r_join, Space, Tip } from "../../r_misc";
 const { User } = require("../../users");
 import { file_actions } from "../../project_store";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { ProjectTitle } = require("../../projects");
+import { ProjectTitle } from "../../projects/project-title";
 import { file_associations } from "../../file-associations";
 import { SystemProcess } from "./system-process";
 import { UserMap } from "smc-webapp/todo-types";
@@ -29,12 +34,12 @@ import {
   AssistantEvent,
   UpgradeEvent,
   CollaboratorEvent,
-  SystemEvent
+  SystemEvent,
 } from "./types";
 
 const selected_item: React.CSSProperties = {
   backgroundColor: "#08c",
-  color: "white"
+  color: "white",
 };
 
 const file_action_icons = {
@@ -43,7 +48,7 @@ const file_action_icons = {
   moved: "move",
   copied: "copy",
   share: "shared",
-  uploaded: "upload"
+  uploaded: "upload",
 };
 
 interface Props {
@@ -59,7 +64,7 @@ interface Props {
 
 function TookTime({
   ms,
-  display = "seconds"
+  display = "seconds",
 }: {
   ms?: number;
   display?: "seconds";
@@ -97,8 +102,8 @@ export class LogEntry extends React.Component<Props> {
           style={this.props.cursor ? selected_item : undefined}
           trunc={TRUNC}
           project_id={this.props.project_id}
-        />
-        {" "}<TookTime ms={event.time} />
+        />{" "}
+        <TookTime ms={event.time} />
       </span>
     );
   }
@@ -153,7 +158,7 @@ export class LogEntry extends React.Component<Props> {
     );
   }
 
-  file_link(
+  private file_link(
     path: string,
     link: boolean,
     i: number,
@@ -172,9 +177,16 @@ export class LogEntry extends React.Component<Props> {
     );
   }
 
-  multi_file_links(event: { files: string[] }, link?: boolean): Rendered[] {
+  multi_file_links(
+    event: { files: string | string[] },
+    link?: boolean
+  ): Rendered[] {
     if (link == null) {
       link = true;
+    }
+    // due to a bug, "files" could just be a string
+    if (typeof event.files === "string") {
+      event.files = [event.files];
     }
     const links: Rendered[] = [];
     for (let i = 0; i < event.files.length; i++) {
@@ -184,8 +196,15 @@ export class LogEntry extends React.Component<Props> {
     return r_join(links);
   }
 
-  to_link(event: { project?: string; dest?: string }): React.ReactNode {
-    if (event.project != undefined) {
+  private to_link(event: { project?: string; dest?: string }) {
+    if (event.project != undefined && event.dest != null) {
+      return (
+        <>
+          {this.file_link(event.dest, true, 0, event.project)} in the project{" "}
+          {this.project_title({ project: event.project })}
+        </>
+      );
+    } else if (event.project != undefined) {
       return this.project_title({ project: event.project });
     } else if (event.dest != null) {
       return this.file_link(event.dest, true, 0);
@@ -199,15 +218,14 @@ export class LogEntry extends React.Component<Props> {
       case "deleted":
         return (
           <span>
-            deleted {this.multi_file_links(e, false)}{" "}
+            deleted {this.multi_file_links(e, true)}{" "}
             {e.count != null ? `(${e.count} total)` : ""}
           </span>
         );
       case "downloaded":
         return (
           <span>
-            downloaded{" "}
-            {this.file_link(e.path != null ? e.path : e.files[0], true, 0)}{" "}
+            downloaded {this.multi_file_links(e, true)}{" "}
             {e.count != null ? `(${e.count} total)` : ""}
           </span>
         );
@@ -258,7 +276,7 @@ export class LogEntry extends React.Component<Props> {
         <span key={i}>
           set{" "}
           <a
-            onClick={this.click_set}
+            onClick={this.click_set.bind(this)}
             style={this.props.cursor ? selected_item : undefined}
             href=""
           >
@@ -353,7 +371,7 @@ export class LogEntry extends React.Component<Props> {
       <span>
         set{" "}
         <a
-          onClick={this.click_set}
+          onClick={this.click_set.bind(this)}
           style={this.props.cursor ? selected_item : undefined}
           href=""
         >

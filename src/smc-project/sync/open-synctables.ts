@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 All SyncTables that are currently open and being managed in this project.
 
 */
@@ -38,7 +43,7 @@ export function key(query): string {
 export function register_synctable(query: any, synctable: SyncTable): void {
   const k = key(query);
   open_synctables[k] = synctable;
-  synctable.on("closed", function() {
+  synctable.on("closed", function () {
     delete open_synctables[k];
   });
   if (wait_for[k] != null) {

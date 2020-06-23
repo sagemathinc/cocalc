@@ -1,26 +1,10 @@
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2014--2016, SageMath, Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 # This is a collection of utility classes for printing documents.
 # They encapsulate the conversion logic, such that they can be used in editors.
-###############################################################################
 
 _               = require('underscore')
 async           = require('async')
@@ -38,7 +22,7 @@ class Printer
     # overwrite with the list of supported extensions
     @supported : []
 
-    print : (cb) ->
+    print: (cb) ->
         console.error('printing: Printer.print method needs to be subclassed')
 
     show_print_new_tab : (cb) ->
@@ -123,10 +107,19 @@ class SagewsPrinter extends Printer
         try
             switch target_ext
                 when 'pdf'
-                    webapp_client.print_to_pdf(cb)
+                    # NOTE: this "cb" is really opts, and there is an opts.cb.  This whole
+                    # printing.coffee file is a horrible nightmare of overly dynamic confusing
+                    # code. TODO: rewrite in typescript and use the websocket api instead.
+                    opts = cb
+                    try
+                        path = await webapp_client.project_client.print_to_pdf(opts)
+                        opts.cb(undefined, path)
+                    catch err
+                        opts.cb(err)
                 when 'html'
                     @html(cb, progress)
         catch e
+            # TODO: why is this even here -- the error would go to the callback.  WEIRD/broken, for sure.
             err = "Exception trying to print to #{target_ext} -- #{e}"
             console.error(err, e)
             console.trace()
@@ -146,14 +139,14 @@ class SagewsPrinter extends Printer
             MathJaxConfig["HTML-CSS"] ?= {}
             MathJaxConfig["HTML-CSS"].scale = 80
 
-            {SITE_NAME, BASE_URL} = require('smc-util/theme')
+            {SITE_NAME} = require('smc-util/theme')
             SiteName = redux.getStore('customize').site_name ? SITE_NAME
-            url = BASE_URL
+            {BASE_URL} = require('./misc_page')
 
             # note to a future reader: the <meta data-name="smc-generated" ... > uniquely tags this document for detection.
             # e.g. this can be used to import it later on
             # version 1: no embedded file
-            # versoin 2: embedded into "a[download]:first"
+            # version 2: embedded into "a[download]:first"
             @_html_tmpl = """
                 <!doctype html>
                 <html lang="en">
@@ -290,7 +283,7 @@ class SagewsPrinter extends Printer
 
                     <script type="text/javascript">window.MathJax = #{misc.to_json(MathJaxConfig)};</script>
                     <script type="text/javascript" async
-                        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS_HTML">
+                        src="#{BASE_URL}/static/mathjax/MathJax.js?config=TeX-AMS_HTML">
                     </script>
                 </head>
 
@@ -315,7 +308,7 @@ class SagewsPrinter extends Printer
                 #{data.content}
                 <footer>
                     <div>generated #{data.timestamp} on
-                    <a href="#{url}">#{SiteName}</a>
+                    <a href="#{BASE_URL}">#{SiteName}</a>
                     </div>
                 </footer>
                 </body>
@@ -528,7 +521,7 @@ class SagewsPrinter extends Printer
             cb()
 
         sagews_data = (cb) =>
-            dl_url = webapp_client.read_file_from_project
+            dl_url = webapp_client.project_client.read_file
                 project_id  : @editor.project_id
                 path        : @editor.filename
 
@@ -602,13 +595,15 @@ class SagewsPrinter extends Printer
                 sagews_data : data
 
             progress(.95, "Saving to #{@output_file} ...")
-            webapp_client.write_text_file_to_project
-                project_id : @editor.project_id
-                path       : @output_file
-                content    : content
-                cb         : (err, resp) =>
-                    console.debug("write_text_file_to_project.resp: '#{resp}'")
-                    cb?(err)
+            try
+                await webapp_client.project_client.write_text_file
+                    project_id : @editor.project_id
+                    path       : @output_file
+                    content    : content
+                console.debug("write_text_file")
+                cb?()
+            catch err
+                cb?(err)
 
         # parallel is tempting, but videos depend on process lines
         async.series([sagews_data, process_lines, embed_videos], finalize)

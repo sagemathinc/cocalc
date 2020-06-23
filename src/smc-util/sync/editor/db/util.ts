@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Well-defined JSON.stringify...
 const json_stable = require("json-stable-stringify");
 import * as immutable from "immutable";
@@ -22,7 +27,7 @@ export function to_key(s: any): string {
 */
 
 export function to_str(obj: any[]): string {
-  const v = obj.map(x => json_stable(x));
+  const v = obj.map((x) => json_stable(x));
   /* NOTE: It is *VERY* important to sort v!  Otherwise, the hash
      of this document, which is used by
      syncstring, isn't stable in terms of the value of the
@@ -72,7 +77,7 @@ export function merge_set(
   obj: immutable.Map<any, any>,
   change: immutable.Map<any, any>
 ): immutable.Map<any, any> {
-  change.forEach(function(v, k) {
+  change.forEach(function (v, k) {
     if (v === null || v == null) {
       obj = obj.delete(k);
     } else {

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Lean Editor Actions
 */
 
@@ -14,7 +19,7 @@ import { Store } from "../../app-framework";
 
 import {
   Actions as BaseActions,
-  CodeEditorState
+  CodeEditorState,
 } from "../code-editor/actions";
 
 import { FrameTree } from "../frame-tree/types";
@@ -68,13 +73,13 @@ export class Actions extends BaseActions<LeanEditorState> {
       tasks: [],
       sync: { hash: 0, time: 0 },
       syncstring_hash: 0,
-      info: {}
+      info: {},
     });
     this.gutter_last = { synced: false, messages: List(), tasks: List() };
     if (!this.is_public) {
       this._syncstring.on("change", () => {
         this.setState({
-          syncstring_hash: this._syncstring.hash_of_live_version()
+          syncstring_hash: this._syncstring.hash_of_live_version(),
         });
         this.debounced_update_gutters();
         this.debounced_update_status_bar();
@@ -105,7 +110,7 @@ export class Actions extends BaseActions<LeanEditorState> {
         await this._init_channel();
       });
     });
-    channel.on("data", x => {
+    channel.on("data", (x) => {
       if (typeof x === "object") {
         this.handle_data_from_channel(x);
       }
@@ -143,7 +148,7 @@ export class Actions extends BaseActions<LeanEditorState> {
     this.set_status("Restarting LEAN ...");
     // Using hash: -1 as a signal for restarting -- yes, that's ugly
     this.setState({
-      sync: { hash: -1, time: 0 }
+      sync: { hash: -1, time: 0 },
     });
     const api = await project_api(this.project_id);
     try {
@@ -160,7 +165,7 @@ export class Actions extends BaseActions<LeanEditorState> {
     if (this.channel !== undefined) {
       try {
         this.channel.end();
-      } catch(err) {
+      } catch (err) {
         // pass
       }
       delete this.channel;
@@ -218,9 +223,9 @@ export class Actions extends BaseActions<LeanEditorState> {
         this.set_gutter_marker({
           line,
           component,
-          gutter_id: "Codemirror-lean-messages"
+          gutter_id: "Codemirror-lean-messages",
         });
-      }
+      },
     });
   };
 
@@ -232,18 +237,25 @@ export class Actions extends BaseActions<LeanEditorState> {
         direction: "col",
         type: "node",
         first: {
-          type: "cm-lean"
+          type: "cm-lean",
         },
         second: {
           direction: "row",
           type: "node",
           first: {
-            type: "lean-messages"
+            type: "lean-messages",
           },
           second: {
-            type: "lean-info"
-          }
-        }
+            direction: "row",
+            type: "node",
+            first: {
+              type: "lean-info",
+            },
+            second: {
+              type: "lean-help",
+            },
+          },
+        },
       };
     }
   }
@@ -269,7 +281,7 @@ export class Actions extends BaseActions<LeanEditorState> {
         path: this.path,
         cmd: "complete",
         line: line + 1, // codemirror is 0 based but lean is 1-based.
-        column
+        column,
       });
     } catch (err) {
       err = err.toString();
@@ -298,7 +310,7 @@ export class Actions extends BaseActions<LeanEditorState> {
         path: this.path,
         cmd: "info",
         line: line + 1, // codemirror is 0 based but lean is 1-based.
-        column
+        column,
       });
     } catch (err) {
       err = err.toString();

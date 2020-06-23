@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * CoCalc's Xpra HTML Client
  *
  * ---
@@ -109,7 +114,7 @@ function normalize_wheel(
     spinY,
     pixelX,
     pixelY,
-    deltaMode: ev.deltaMode || 0
+    deltaMode: ev.deltaMode || 0,
   };
 }
 
@@ -248,7 +253,7 @@ export class Mouse {
     x,
     y,
     buttons,
-    modifiers
+    modifiers,
   }: {
     ev: MouseEvent;
     wid: number;

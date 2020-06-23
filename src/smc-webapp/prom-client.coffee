@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 Use prom-client in browser!
 
@@ -33,7 +38,7 @@ exports.send = ->
         #console.log("prom-client.send: not connected")
         return
     metrics = exports.Registry.globalRegistry.getMetricsAsJSON()
-    webapp_client.send_metrics(metrics)
+    webapp_client.tracking_client.send_metrics(metrics)
     #console.log('prom-client.send: sending metrics')
 
 _interval_s = undefined

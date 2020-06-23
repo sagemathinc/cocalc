@@ -1,18 +1,36 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 #smc-startup-banner {
     width: 350px;
     /* bootstrap 3.3 has this line height. fix it, if it changes! */
     line-height: 1.42857143;
     text-align: center;
-    position: fixed;
     left: 0;
     right: 0;
     top: 100px;
-    margin: auto;
+    margin: 100px auto 0 auto;
     max-width: 100%;
     max-height: 100%;
     font-family: sans-serif;
     font-size: 26px;
     color: white;
+}
+
+#cocalc-error-report-startup {
+    clear: both;
+    display: none;
+    font-size: 15px;
+    margin: 0 auto 0 auto;
+    width: 90vw;
+    padding: 10px;
+    border: 3px solid red;
+    border-radius: 5px;
+}
+#cocalc-error-report-startup pre {
+    font-size: 10px;
 }
 
 #smc-startup-banner-status {
@@ -47,6 +65,7 @@
     float: left;
 }
 #smc-startup-banner .banner-error .message {
+    width: auto;
     background-color: #bf1919;
 }
 #smc-startup-banner .banner-blink {
@@ -54,6 +73,18 @@
     opacity: 1;
     animation: banner-red 60s forwards;
 }
+#cc-banner2 {
+    background-color: 'white';
+}
+#cc-banner2 img.logo-square {
+    height: 200px;
+    width: auto;
+}
+#cc-banner2 img.logo-rectangular {
+    width: 200px;
+    height: auto;
+}
+
 @keyframes banner-red {
     0% {
         background-color: #4474c0;

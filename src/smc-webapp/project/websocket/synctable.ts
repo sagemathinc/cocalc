@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Synctable that uses the project websocket rather than the database.
 */
 
@@ -10,28 +15,18 @@ import { synctable_no_database, SyncTable } from "smc-util/sync/table";
 
 import { once, retry_until_success } from "smc-util/async-utils";
 
+import { WebappClient } from "../../webapp-client";
+
 // Always wait at least this long between connect attempts.  This
 // avoids flooding the project with connection requests if, e.g., the
 // client limit for a particular file is reached.
 const MIN_CONNECT_WAIT_MS = 5000;
 
-interface Client {
-  touch_project: ({
-    project_id,
-    cb
-  }: {
-    project_id: string;
-    cb?: Function;
-  }) => Promise<any>;
-  project_websocket: (project_id: string) => Promise<any>;
-  set_connected: (connected: boolean) => void;
-}
-
 interface Options {
   project_id: string;
-  query: any;
-  options: any;
-  client: Client;
+  query: object;
+  options: any[];
+  client: WebappClient;
   throttle_changes?: undefined | number;
   id: string;
 }
@@ -41,7 +36,7 @@ import { EventEmitter } from "events";
 class SyncTableChannel extends EventEmitter {
   public synctable: SyncTable;
   private project_id: string;
-  private client: Client;
+  private client: WebappClient;
   private channel?: any;
   private websocket?: any;
   private query: any;
@@ -55,6 +50,12 @@ class SyncTableChannel extends EventEmitter {
   constructor(opts: Options) {
     super();
     const { project_id, query, options, client, throttle_changes } = opts;
+    if (query == null) {
+      throw Error("query must be defined");
+    }
+    if (options == null) {
+      throw Error("options must be defined");
+    }
     this.key = key(opts);
     this.synctable = synctable_no_database(
       query,
@@ -81,7 +82,7 @@ class SyncTableChannel extends EventEmitter {
   }
 
   private log(..._args): void {
-    //console.log("SyncChannel", this.query, ..._args);
+    // console.log("SyncChannel", this.query, ..._args);
   }
 
   private async connect(): Promise<void> {
@@ -100,7 +101,7 @@ class SyncTableChannel extends EventEmitter {
       max_delay: 5000,
       f: this.attempt_to_connect.bind(this),
       desc: "webapp-synctable-connect",
-      log: this.log
+      log: this.log,
     });
 
     this.last_connect = new Date().valueOf();
@@ -110,7 +111,9 @@ class SyncTableChannel extends EventEmitter {
     if (this.synctable == null) return;
     this.log("set_connected", connected);
     this.connected = connected;
-    this.synctable.client.set_connected(connected);
+    if (this.synctable.client.set_connected != null) {
+      this.synctable.client.set_connected(connected);
+    }
     if (connected) {
       this.emit("connected");
     } else {
@@ -126,9 +129,11 @@ class SyncTableChannel extends EventEmitter {
     // touch_project mainly makes sure that some hub is connected to
     // the project, so the project can do DB queries.  Also
     // starts the project.
-    this.client.touch_project({ project_id: this.project_id });
+    await this.client.touch_project(this.project_id);
     // Get a websocket.
-    this.websocket = await this.client.project_websocket(this.project_id);
+    this.websocket = await this.client.project_client.websocket(
+      this.project_id
+    );
     if (this.websocket.state != "online") {
       // give websocket state once chance to change.
       // It could change to destroyed or online.
@@ -156,7 +161,7 @@ class SyncTableChannel extends EventEmitter {
   }
 
   private init_synctable_handlers(): void {
-    this.synctable.on("timed-changes", timed_changes => {
+    this.synctable.on("timed-changes", (timed_changes) => {
       this.send_mesg_to_project({ timed_changes });
     });
     this.synctable.once("closed", this.close.bind(this));

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Register a CodeMirror hinter for the mode with name 'lean'.
 
 */
@@ -65,7 +70,7 @@ async function leanHint(
   return {
     list,
     from: CodeMirror.Pos(cur.line, token.start),
-    to: CodeMirror.Pos(cur.line, token.end)
+    to: CodeMirror.Pos(cur.line, token.end),
   };
 }
 

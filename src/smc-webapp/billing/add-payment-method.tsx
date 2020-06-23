@@ -1,14 +1,15 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import {
-  //  Alert,
   Button,
   ButtonToolbar,
   Row,
   Col,
-  //  FormGroup,
-  //  FormControl,
-  //  InputGroup,
-  Well
-} from "react-bootstrap";
+  Well,
+} from "../antd-bootstrap";
 
 import { Component, React, Rendered, redux } from "../app-framework";
 
@@ -29,7 +30,7 @@ const CARD_STYLE = {
   border: "1px solid grey",
   padding: "30px",
   background: "white",
-  borderRadius: "5px"
+  borderRadius: "5px",
 };
 
 interface State {
@@ -47,7 +48,7 @@ export class AddPaymentMethod extends Component<Props, State> {
     this.state = {
       submitting: false,
       error: "",
-      loading: true
+      loading: true,
     };
   }
 
@@ -69,7 +70,8 @@ export class AddPaymentMethod extends Component<Props, State> {
   private async submit_payment_method(): Promise<void> {
     this.setState({ error: "", submitting: true });
     const actions = redux.getActions("billing");
-    if (actions.store.get("customer") == null) {
+    const store = redux.getStore('billing');
+    if (store.get("customer") == null) {
       actions.setState({ continue_first_purchase: true });
     }
     const stripe = await load_stripe();

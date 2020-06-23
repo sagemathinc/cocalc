@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 const { writeFile, readFile, unlink } = require("fs");
 const tmp = require("tmp");
 const { callback } = require("awaiting");
@@ -9,7 +14,7 @@ interface ParserOptions {
 }
 
 function close(proc, cb): void {
-  proc.on("close", code => cb(undefined, code));
+  proc.on("close", (code) => cb(undefined, code));
 }
 
 // ref: https://golang.org/cmd/gofmt/ ... but there isn't anything to configure
@@ -55,8 +60,8 @@ export async function gofmt(
     let stdout: string = "";
     let stderr: string = "";
     // read data as it is produced.
-    formatter.stdout.on("data", data => (stdout += data.toString()));
-    formatter.stderr.on("data", data => (stderr += data.toString()));
+    formatter.stdout.on("data", (data) => (stdout += data.toString()));
+    formatter.stderr.on("data", (data) => (stderr += data.toString()));
     // wait for subprocess to close.
     const code = await callback(close, formatter);
     if (code >= 1) {

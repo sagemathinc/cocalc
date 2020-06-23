@@ -1,28 +1,10 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2017, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
-###
-Server side synchronized tables built on PostgreSQL, and basic support
-for user get query updates.
-###
+# Server side synchronized tables built on PostgreSQL, and basic support
+# for user get query updates.
 
 EventEmitter = require('events')
 
@@ -260,8 +242,8 @@ class SyncTable extends EventEmitter
         @removeAllListeners()
         @_db.removeListener(@_tgname, @_notification)
         @_db.removeListener('connect', @_reconnect)
-        delete @_value
         @_state = 'closed'
+        delete @_value
         @_db._stop_listening(@_table, @_listen_columns, @_watch_columns, cb)
 
     connect: (opts) =>
@@ -358,7 +340,10 @@ class SyncTable extends EventEmitter
             cb?()
 
     _process_results: (rows) =>
-        if @_state == 'closed'
+        if @_state == 'closed' or not @_value?
+            # See https://github.com/sagemathinc/cocalc/issues/4440
+            # for why the @_value check.  Remove this when this is
+            # rewritten in typescript and we can guarantee stuff.
             return
         for x in rows
             k = x[@_primary_key]
@@ -610,4 +595,3 @@ CREATE TRIGGER trigger_delete_old_trigger_notifications
   EXECUTE PROCEDURE delete_old_trigger_notifications();
 
 ###
-

@@ -1,6 +1,9 @@
-/**
- * Presentational component for a user's face
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
+
+// Presentational component for a user's face
 
 import * as React from "react";
 
@@ -15,7 +18,7 @@ export function ProfileIcon({ size = 24, url, outer_style }: Props) {
     height: `${size}px`,
     width: `${size}px`,
     lineHeight: `${size}px`,
-    fontSize: `${0.7 * size}px`
+    fontSize: `${0.7 * size}px`,
   };
 
   return (
@@ -25,7 +28,7 @@ export function ProfileIcon({ size = 24, url, outer_style }: Props) {
         style={{
           borderRadius: "50%",
           width: "100%",
-          verticalAlign: "top"
+          verticalAlign: "top",
         }}
         src={url}
       />

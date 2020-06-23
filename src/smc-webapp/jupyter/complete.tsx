@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 declare const $: any;
 
 import { React, Component, Rendered } from "../app-framework";
@@ -19,7 +24,14 @@ export class Complete extends Component<CompleteProps> {
   private node: HTMLElement;
 
   private select(item: string): void {
+    // Save contents of editor to the store so that completion properly *places* the
+    // completion in the correct place: see https://github.com/sagemathinc/cocalc/issues/3978
+    this.props.frame_actions.save_input_editor(this.props.id);
+
+    // Actually insert the completion:
     this.props.actions.select_complete(this.props.id, item);
+
+    // Start working on the cell:
     this.props.frame_actions.set_mode("edit");
   }
 
@@ -39,15 +51,11 @@ export class Complete extends Component<CompleteProps> {
 
   public componentDidMount(): void {
     $(window).on("keypress", this.keypress);
-    $(this.node)
-      .find("a:first")
-      .focus();
+    $(this.node).find("a:first").focus();
   }
 
   public componentDidUpdate(): void {
-    $(this.node)
-      .find("a:first")
-      .focus();
+    $(this.node).find("a:first").focus();
   }
 
   public componentWillUnmount(): void {
@@ -64,9 +72,7 @@ export class Complete extends Component<CompleteProps> {
     }
     e.preventDefault();
     e.stopPropagation();
-    const item = $(this.node)
-      .find("a:focus")
-      .text();
+    const item = $(this.node).find("a:focus").text();
     this.select(item);
   }
 
@@ -81,7 +87,7 @@ export class Complete extends Component<CompleteProps> {
       opacity: 0.95,
       zIndex: 10,
       width: 0,
-      height: 0
+      height: 0,
     };
   }
 
