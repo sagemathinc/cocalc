@@ -173,56 +173,6 @@ exports.NotificationBell = require('./app/notification-bell').NotificationBell
 exports.ConnectionIndicator = require('./app/connection-indicator').ConnectionIndicator
 exports.ConnectionInfo = require('./app/connection-info').ConnectionInfo
 
-exports.FullscreenButton = rclass
-    displayName : 'FullscreenButton'
-
-    reduxProps :
-        page :
-            fullscreen : rtypes.oneOf(['default', 'kiosk'])
-        account :
-            show_global_info       : rtypes.bool
-
-    shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['fullscreen', 'show_global_info'])
-
-    on_fullscreen: (ev) ->
-        user_tracking("top_nav",{name:'fullscreen', enabled:!@props.fullscreen})
-        @actions('page').toggle_fullscreen()
-
-    render: ->
-        icon = if @props.fullscreen then 'compress' else 'expand'
-        top_px = '-1px'
-
-        tip_style =
-            position     : 'fixed'
-            zIndex       : 10000
-            right        : 0
-            top          : top_px
-            borderRadius : '3px'
-
-        icon_style =
-            fontSize   : '13pt'
-            padding    : 2
-            color      : COLORS.GRAY
-            cursor     : 'pointer'
-
-        if @props.fullscreen
-            icon_style.background = '#fff'
-            icon_style.opacity    = .7
-            icon_style.border     = '1px solid grey'
-
-        <Tip
-            style     = {tip_style}
-            title     = {'Fullscreen mode, focused on the current document or page.'}
-            placement = {'left'}
-        >
-            <Icon
-                style   = {icon_style}
-                name    = {icon}
-                onClick = {@on_fullscreen}
-            />
-        </Tip>
-
 exports.AppLogo = rclass
     displayName : 'AppLogo'
 
