@@ -5,22 +5,15 @@
 
 /*
 Customization and selection of the build command.
-
 */
 
 import { List, fromJS } from "immutable";
-
 import { Loading } from "smc-webapp/r_misc";
-
 import { Alert, FormControl } from "react-bootstrap";
-
 import { Menu, Dropdown, Button } from "antd";
 import { DownOutlined } from "@ant-design/icons";
-
 import { React, Rendered, Component } from "../../app-framework";
-
 import { split } from "smc-util/misc2";
-
 import { Engine, build_command } from "./latexmk";
 import { Actions } from "./actions";
 
