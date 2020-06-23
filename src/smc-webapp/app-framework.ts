@@ -768,6 +768,8 @@ export function useReduxNamedStore(path: string[]) {
     const store = redux.getStore(path[0]);
     if (store == null) {
       // TODO: I could make it return undefined until the store is created.
+      // I *did* do this for useReduxEditorStore, but just haven't gotten
+      // around to doing this for useReduxNamedStore yet.
       throw Error(`store ${path[0]} must exist!`);
     }
     const subpath = path.slice(1);
@@ -854,29 +856,43 @@ function useReduxEditorStore(
   );
 
   React.useEffect(() => {
-    const store = redux.getEditorStore(project_id, filename, is_public);
+    let store = redux.getEditorStore(project_id, filename, is_public);
     let last_value = value;
     const f = (obj) => {
       if (!f.is_mounted) return; // see comment for useReduxNamedStore
       const new_value = obj.getIn(path);
       if (last_value !== new_value) {
-        /*
-        console.log("useReduxEditorStore change ", {
-          path: JSON.stringify(path),
-          filename,
-          new_value,
-          last_value,
-        });
-        */
         last_value = new_value;
         set_value(new_value);
       }
     };
     f.is_mounted = true;
-    store.on("change", f);
+    if (store != null) {
+      store.on("change", f);
+    } else {
+      /* This code is extra complicated since we account for the case
+         when getEditorStore is undefined then becomes defined.
+         Very rarely there are components that useRedux and somehow
+         manage to do so before the editor store gets created.
+      */
+      const g = () => {
+        if (!f.is_mounted) {
+          unsubscribe();
+          return;
+        }
+        store = redux.getEditorStore(project_id, filename, is_public);
+        if (store != null) {
+          unsubscribe();
+          f(store); // may have missed an initial change
+          store.on("change", f);
+        }
+      };
+      const unsubscribe = redux._redux_store.subscribe(g);
+    }
+
     return () => {
       f.is_mounted = false;
-      store.removeListener("change", f);
+      store?.removeListener("change", f);
     };
   }, []);
 
