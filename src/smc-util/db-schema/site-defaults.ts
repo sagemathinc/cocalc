@@ -36,6 +36,7 @@ export type SiteSettingsKeys =
   | "kucalc"
   | "dns"
   | "ssh_gateway"
+  | "versions"
   | "version_min_project"
   | "version_min_browser"
   | "version_recommended_browser"
@@ -99,8 +100,11 @@ export const only_ints = (val) =>
 export const only_nonneg_int = (val) =>
   ((v) => only_ints(v) && v >= 0)(to_int(val));
 
+// TODO a cheap'n'dirty validation is good enough
+const valid_dns_name = (val) => val.match(/^[a-zA-Z0-9.-]+$/g);
+
 export const split_iframe_comm_hosts = (hosts) =>
-  hosts.match(/[a-zA-Z0-9.-]+/g) || [];
+  hosts.match(/[a-z0-9.-]+/g) || [];
 
 function num_dns_hosts(val): string {
   return `Found ${split_iframe_comm_hosts(val).length} hosts.`;
@@ -120,6 +124,14 @@ const organization_email_desc = `How to contact your organization (fallback: '${
 
 export const site_settings_conf: SiteSettings = {
   // ========= THEMING ===============
+  dns: {
+    name: "Domain name",
+    desc: "DNS for your server, e.g. cocalc.universe.edu",
+    default: "",
+    valid: valid_dns_name,
+    // to make sure if dns isn't set or an empty string, it falls back to a known name
+    to_val: (val) => val || DNS,
+  },
   theming: {
     name: "Show Theming",
     desc: "If 'No', the fields below are hidden, not disabled!",
@@ -138,6 +150,14 @@ export const site_settings_conf: SiteSettings = {
     name: "Site description",
     desc: "A tagline describing your site.",
     default: "Collaborative Calculation Online",
+    clearable: true,
+    show: show_theming_vars,
+  },
+  help_email: {
+    name: help_email_name,
+    desc: "Email address that user is directed to use for support requests",
+    default: "",
+    valid: is_valid_email_address,
     clearable: true,
     show: show_theming_vars,
   },
@@ -163,14 +183,6 @@ export const site_settings_conf: SiteSettings = {
     desc:
       "Instructions displayed next to the box where a user creates their account using their name and email address.",
     default: "Create an Account",
-    clearable: true,
-    show: show_theming_vars,
-  },
-  help_email: {
-    name: help_email_name,
-    desc: "Email address that user is directed to use for support requests",
-    default: "",
-    valid: is_valid_email_address,
     clearable: true,
     show: show_theming_vars,
   },
@@ -227,46 +239,20 @@ export const site_settings_conf: SiteSettings = {
     multiline: 5,
   },
   // ============== END THEMING ============
-  commercial: {
-    name: "Commercial",
-    desc:
-      "Whether or not to include user interface elements related to for-pay upgrades and other features.  Set to 'yes' to include these elements.",
-    default: "no",
-    valid: only_booleans,
-    to_val: to_bool,
-  },
-  kucalc: {
-    name: "KuCalc UI",
-    desc: `Configure which UI elements to show in order to match the Kubernetes backend. '${KUCALC_COCALC_COM}' for cocalc.com production site, '${KUCALC_ON_PREMISES}' for on-premises k8s, or '${KUCALC_DISABLED}'`,
-    default: KUCALC_DISABLED,
-    valid: KUCALC_VALID_VALS,
-  },
-  dns: {
-    name: "Domain name",
-    desc: "DNS for your server, e.g. cocalc.universe.edu",
+
+  versions: {
+    name: "Client Versions",
+    desc: "",
     default: "",
-    show: not_cocalc_com,
-    // to make sure if dns isn't set, this falls back to a known name
-    to_val: (val) => val || DNS,
-  },
-  google_analytics: {
-    name: "Google Analytics",
-    desc: `The GA tag, only for the cocalc.com production site`,
-    default: "",
-    show: only_cocalc_com,
-  },
-  ssh_gateway: {
-    name: "SSH Gateway",
-    desc: "Show corresponding UI elements",
-    default: "no",
-    valid: only_booleans,
-    to_val: to_bool,
+    type: "header",
   },
   version_min_project: {
     name: "Required project version",
     desc:
       "Minimal version required by projects (if project older, will be force restarted).",
     default: "0",
+    valid: only_nonneg_int,
+    show: () => true,
   },
   version_min_browser: {
     name: "Required browser version",
@@ -274,20 +260,35 @@ export const site_settings_conf: SiteSettings = {
       "Minimal version required for browser clients (if older, forced disconnect).",
     default: "0",
     valid: only_nonneg_int,
+    show: () => true,
   },
   version_recommended_browser: {
     name: "Recommended version",
     desc: "Older clients receive an upgrade warning.",
     default: "0",
     valid: only_nonneg_int,
+    show: () => true,
   },
-  iframe_comm_hosts: {
-    name: "IFrame communication hosts",
-    desc:
-      "List of allowed DNS names, which are allowed to communicate back and forth with an embedded CoCalc instance. If starting with a dot, also all subdomains. It picks all matching '[a-zA-Z0-9.-]+'",
+  kucalc: {
+    name: "KuCalc UI",
+    desc: `Configure which UI elements to show in order to match the Kubernetes backend. '${KUCALC_COCALC_COM}' for cocalc.com production site, '${KUCALC_ON_PREMISES}' for on-premises Kubernetes, or '${KUCALC_DISABLED}' for Docker`,
+    default: KUCALC_DISABLED,
+    valid: KUCALC_VALID_VALS,
+  },
+  google_analytics: {
+    name: "Google Analytics",
+    desc: `The GA tag, only for the cocalc.com production site`,
     default: "",
-    to_val: split_iframe_comm_hosts,
-    to_display: num_dns_hosts,
+    show: only_cocalc_com,
+  },
+  commercial: {
+    name: "Commercial",
+    desc:
+      "Whether or not to include user interface elements related to for-pay upgrades and other features.  Set to 'yes' to include these elements.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    show: only_cocalc_com,
   },
   onprem_quota_heading: {
     name: "On-prem Quotas",
@@ -309,6 +310,21 @@ export const site_settings_conf: SiteSettings = {
       "A JSON-formatted upper limit of all quotas. This is only for on-prem setups. The fields are defined in the upgrade spec.",
     default: "{}",
     show: only_onprem,
+  },
+  ssh_gateway: {
+    name: "SSH Gateway",
+    desc: "Show corresponding UI elements",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  iframe_comm_hosts: {
+    name: "IFrame communication hosts",
+    desc:
+      "List of allowed DNS names, which are allowed to communicate back and forth with an embedded CoCalc instance. If starting with a dot, also all subdomains. It picks all matching '[a-zA-Z0-9.-]+'",
+    default: "",
+    to_val: split_iframe_comm_hosts,
+    to_display: num_dns_hosts,
   },
   email_enabled: {
     name: "Email sending enabled",
