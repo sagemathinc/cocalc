@@ -37,6 +37,7 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
       // representations of ms since epoch.  However, it won't fail until over
       // 200 years from now, so we leave it to future generations to worry about.
       let m = messages;
+      if (m == null) return [];
       if (search) {
         const search_terms = search_split(search.toLowerCase());
         m = m.filter((message) => search_matches(message, search_terms));
@@ -86,6 +87,7 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
     }
 
     function render_not_showing(): JSX.Element | undefined {
+      if (messages == null) return;
       const not_showing = messages.size - sorted_dates.length;
       if (not_showing <= 0) return;
       return (

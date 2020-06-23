@@ -13,9 +13,9 @@ if process.env.DEVEL
 
 
 # id='eb5c61ae-b37c-411f-9509-10adb51eb90b';require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);global.s=s; s.project(project_id:id,cb:(e,p)->global.p=p;cidonsole.log(e)))
-# 
+#
 # Another example with database on local host
-# 
+#
 # id='7fffd5b4-d140-4a34-a960-9f71fa7fc54b';require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);global.t=s; s.project(project_id:id,cb:(e, p)->global.p=p))
 
 # obviously don't want to trigger this too quickly, since it may mean file loss.
@@ -1846,7 +1846,7 @@ class ProjectClient extends EventEmitter
             cb(err, address)
         )
 
-    # This will keep trying for up to an hour to get the address, with exponential
+    # This will keep trying for up to 5 minutes to get the address, with exponential
     # decay backing off up to 15s between attempts.
     # If/when it works, the returned address object will definitely have the
     # host, port and secret_token set.
@@ -1857,6 +1857,7 @@ class ProjectClient extends EventEmitter
             cb : required
         if @_address_cbs?
             @_address_cbs.push(opts.cb)
+            dbg("address already running, so adding callback to queue; it now has length #{@_address_cbs.length}")
             return
         @_synctable?.connect()
         @_address_cbs = [opts.cb]
@@ -1870,13 +1871,14 @@ class ProjectClient extends EventEmitter
                     cb(err)
             start_delay : 3000
             max_delay   : 15000
-            max_time    : 3600*1000
+            max_time    : 5*60*1000
             cb          : (err) =>
                 if not address and not err
                     err = "failed to get address"
-                for cb in @_address_cbs
-                    cb(err, address)
+                v = @_address_cbs
                 delete @_address_cbs
+                for cb in v
+                    cb(err, address)
 
     copy_path: (opts) =>
         opts = defaults opts,

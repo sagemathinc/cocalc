@@ -713,16 +713,24 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         locals =
             email_address : undefined
             token         : undefined
+            old_challenge : undefined
 
         async.series([
             (cb) =>
                 @_query
-                    query : "SELECT email_address FROM accounts"
+                    query : "SELECT email_address, email_address_challenge FROM accounts"
                     where : "account_id = $::UUID" : opts.account_id
-                    cb    : one_result 'email_address', (err, x) =>
-                        locals.email_address = x
+                    cb    : one_result (err, x) =>
+                        locals.email_address = x?.email_address
+                        locals.old_challenge = x?.email_address_challenge
                         cb(err)
             (cb) =>
+                # TODO maybe expire tokens after some time
+                if locals.old_challenge?.token?
+                    locals.token = locals.old_challenge.token
+                    cb()
+                    return
+
                 {generate} = require("random-key")
                 locals.token = generate(16).toLowerCase()
                 data =

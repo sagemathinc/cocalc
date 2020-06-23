@@ -23,7 +23,7 @@ export function update_gutters(opts: {
     let item: Error;
     for (item of opts.log[group]) {
       if (!item.file) continue;
-      if (item.line === null) {
+      if (item.line == null) {
         /* no gutter mark in a line if there is no line number, e.g., "there were missing refs" */
         continue;
       }

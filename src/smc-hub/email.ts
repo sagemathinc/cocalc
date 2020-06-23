@@ -709,7 +709,7 @@ You can share your thoughts in a <strong>side chat</strong> next to each documen
 </ul>
 
 <p style="margin-top:0;margin-bottom:20px;">
-Visit our <a href="https://cocalc.com/static/doc/software.html">Software overview page</a> for more details!
+Visit our <a href="https://cocalc.com/doc/software.html">Software overview page</a> for more details!
 </p>
 
 

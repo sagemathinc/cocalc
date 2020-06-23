@@ -1373,6 +1373,7 @@ exports.UpgradeAdjustor = rclass
 # Has a copy to clipboard button by default on the end
 # See prop descriptions for more details
 exports.CopyToClipBoard = rclass
+    displayName: 'CopyToClipBoard'
     propTypes:
         value         : rtypes.string
         button_before : rtypes.element # Optional button to place before the copy text

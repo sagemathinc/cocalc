@@ -4,6 +4,7 @@
  */
 
 import * as ms from "ms";
+import { isEqual } from "lodash";
 import { analytics_cookie_name } from "smc-util/misc";
 import { PostgreSQL } from "./postgres/types";
 import { get_server_settings, pii_retention_to_future } from "./utils";
@@ -13,12 +14,12 @@ const UglifyJS = require("uglify-js");
 import { is_valid_uuid_string, uuid } from "../smc-util/misc2";
 // express-js cors plugin
 import * as cors from "cors";
-// this splits into { subdomain: "dev" or "", domain: "cocalc",  tld: "com" }
-const parseDomain = require("parse-domain");
-interface DNSParsed {
-  tld: string;
-  domain: string;
-}
+import {
+  parseDomain,
+  fromUrl,
+  ParseResultType,
+  ParseResult,
+} from "parse-domain";
 
 // compiling analytics-script.ts and minifying it.
 export const analytics_js = UglifyJS.minify(
@@ -109,32 +110,45 @@ function analytics_rec(
 // could throw an error
 function check_cors(
   origin: string | undefined,
-  dns_parsed: DNSParsed
+  dns_parsed: ParseResult,
+  dbg: Function
 ): boolean {
   // no origin, e.g. when loaded as usual in a script tag
   if (origin == null) return true;
 
-  const origin_parsed = parseDomain(origin);
-  if (origin_parsed == null) {
+  // origin could be https://...
+  const origin_parsed = parseDomain(fromUrl(origin));
+  if (origin_parsed.type === ParseResultType.Reserved) {
     // This happens, e.g., when origin is https://localhost, which happens with cocalc-docker.
     return true;
   }
-  if (
-    origin_parsed.tld === dns_parsed.tld &&
-    origin_parsed.domain === dns_parsed.domain
-  ) {
-    return true;
+  // the configured DNS name is not ok
+  if (dns_parsed.type !== ParseResultType.Listed) {
+    dbg(`parsed DNS domain invalid: ${JSON.stringify(dns_parsed)}`);
+    return false;
   }
-  if (origin_parsed.tld === "com") {
+  // now, we want dns_parsed and origin_parsed to be valid and listed
+  if (origin_parsed.type === ParseResultType.Listed) {
     if (
-      origin_parsed.domain === "cocalc" ||
+      isEqual(origin_parsed.topLevelDomains, dns_parsed.topLevelDomains) &&
+      origin_parsed.domain === dns_parsed.domain
+    ) {
+      return true;
+    }
+    if (isEqual(origin_parsed.topLevelDomains, ["com"])) {
+      if (
+        origin_parsed.domain === "cocalc" ||
+        origin_parsed.domain === "sagemath"
+      ) {
+        return true;
+      }
+    }
+    if (
+      isEqual(origin_parsed.topLevelDomains, ["org"]) &&
       origin_parsed.domain === "sagemath"
     ) {
       return true;
     }
-  }
-  if (origin_parsed.tld === "org" && origin_parsed.domain === "sagemath") {
-    return true;
   }
   return false;
 }
@@ -167,6 +181,17 @@ export async function setup_analytics_js(
   const dns_parsed = parseDomain(DNS);
   const pii_retention = settings.pii_retention;
 
+  if (
+    dns_parsed.type !== ParseResultType.Listed &&
+    dns_parsed.type !== ParseResultType.Reserved
+  ) {
+    dbg(
+      `WARNING: the configured domain name ${DNS} cannot be parsed properly. ` +
+        `Please fix it in Admin → Site Settings!\n` +
+        `dns_parsed="${JSON.stringify(dns_parsed)}}"`
+    );
+  }
+
   // CORS-setup: allow access from other trusted (!) domains
   const analytics_cors = {
     credentials: true,
@@ -175,7 +200,7 @@ export async function setup_analytics_js(
     origin: function (origin, cb) {
       dbg(`check origin='${origin}'`);
       try {
-        if (check_cors(origin, dns_parsed)) {
+        if (check_cors(origin, dns_parsed, dbg)) {
           cb(null, true);
         } else {
           cb(`origin="${origin}" is not allowed`, false);
@@ -194,7 +219,12 @@ export async function setup_analytics_js(
     dbg(
       `/analytics.js GET analytics_cookie='${req.cookies[analytics_cookie_name]}'`
     );
-    if (req.cookies[analytics_cookie_name]) {
+
+    // also, don't write a script if the DNS is not valid
+    if (
+      req.cookies[analytics_cookie_name] ||
+      dns_parsed.type !== ParseResultType.Listed
+    ) {
       // cache for 6 hours
       res.header("Cache-Control", `private, max-age=${6 * 60 * 60}`);
       res.write("// NOOP");
@@ -206,7 +236,10 @@ export async function setup_analytics_js(
     // this only runs once, hence no caching
     res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
     //analytics_cookie(DNS, res)
-    const DOMAIN = `${dns_parsed.domain}.${dns_parsed.tld}`;
+
+    const DOMAIN = `${dns_parsed.domain}.${dns_parsed.topLevelDomains.join(
+      "."
+    )}`;
     res.write(`var NAME = '${analytics_cookie_name}';\n`);
     res.write(`var ID = '${uuid()}';\n`);
     res.write(`var DOMAIN = '${DOMAIN}';\n`);

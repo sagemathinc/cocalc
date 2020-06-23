@@ -93,6 +93,8 @@ const COLORS = {
   BG_RED: "#d9534f", // the red bootstrap color of the button background
   FG_RED: "#c9302c", // red used for text
   FG_BLUE: "#428bca", // blue used for text
+
+  ATND_BG_RED_L: "#fff2f0",
 };
 
 // The definitions below add semantic meaning by using the colors

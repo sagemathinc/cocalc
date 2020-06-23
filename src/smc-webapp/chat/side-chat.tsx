@@ -229,7 +229,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
                 send_chat();
                 user_activity("side_chat", "send_chat", "click");
               }}
-              disabled={input.trim() === "" || is_uploading}
+              disabled={!input?.trim() || is_uploading}
               bsStyle="success"
             >
               <Icon name="chevron-circle-right" />

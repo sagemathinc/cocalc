@@ -64,7 +64,7 @@ export function init(redux) {
     if (autosave) {
       const save_all_files = function () {
         if (webapp_client.is_connected()) {
-          return redux.getActions("projects").save_all_files();
+          redux.getActions("projects")?.save_all_files();
         }
       };
       _autosave_interval = setInterval(save_all_files, autosave * 1000);

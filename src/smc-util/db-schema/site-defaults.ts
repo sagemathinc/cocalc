@@ -5,7 +5,12 @@
 
 // Default settings to customize a given site, typically a private install of CoCalc.
 
+// The following two requires *should* be imports for better
+// typing info.  Unfortunately, this currently breaks starting projects.
+//import { is_valid_email_address } from "smc-util/misc";
+//import { DNS } from "../theme";
 const { is_valid_email_address } = require("smc-util/misc");
+const { DNS } = require("../theme");
 
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 
@@ -241,6 +246,8 @@ export const site_settings_conf: SiteSettings = {
     desc: "DNS for your server, e.g. cocalc.universe.edu",
     default: "",
     show: not_cocalc_com,
+    // to make sure if dns isn't set, this falls back to a known name
+    to_val: (val) => val || DNS,
   },
   google_analytics: {
     name: "Google Analytics",

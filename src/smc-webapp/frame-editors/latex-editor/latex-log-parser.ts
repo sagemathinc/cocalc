@@ -8,6 +8,8 @@
 // incorporating fix for https://github.com/sharelatex/latex-log-parser-sharelatex/issues/5 by HSY
 // License: MIT
 
+import { normalize as path_normalize } from "path";
+
 // Define some constants
 const LOG_WRAP_LIMIT = 79;
 const LATEX_WARNING_REGEX = /^LaTeX Warning: (.*)$/;
@@ -384,13 +386,14 @@ export class LatexParser {
     }
     //if DEBUG
     //    console.log("latex-log-parser@consumeFilePath", @currentLine, "endOfFilePath:", endOfFilePath, "-> path: '#{path}'")
-    return path;
+    return path_normalize(path);
   }
 
   postProcess(data: Error[]): ProcessedLatexLog {
     const pll = new ProcessedLatexLog();
     for (const path of this.files) {
-      if (!path.endsWith(".tex") && !path.endsWith(".bib")) continue; // only include tex and bib files
+      // only include tex and bib files
+      if (!path.endsWith(".tex") && !path.endsWith(".bib")) continue;
       pll.files.push(path);
     }
     const hashes: string[] = [];

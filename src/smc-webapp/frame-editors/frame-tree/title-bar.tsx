@@ -13,6 +13,7 @@ import {
   Rendered,
   redux,
   useEffect,
+  useForceUpdate,
   useRedux,
   useRef,
   useState,
@@ -153,10 +154,14 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
   const buttons_ref = useRef<
     { [button_name: string]: true } | null | undefined
   >(null);
+
+  const force_update = useForceUpdate();
+
   useEffect(() => {
     // clear button cache whenever type changes; otherwise,
     // the buttons at the top wouldn't change.
     buttons_ref.current = null;
+    force_update();
   }, [props.type]);
 
   const [close_and_halt_confirm, set_close_and_halt_confirm] = useState<
@@ -184,6 +189,10 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
   const has_uncommitted_changes: boolean = useRedux([
     props.editor_actions.name,
     "has_uncommitted_changes",
+  ]);
+  const show_uncommitted_changes: boolean = useRedux([
+    props.editor_actions.name,
+    "show_uncommitted_changes",
   ]);
   const is_saving: boolean = useRedux([props.editor_actions.name, "is_saving"]);
   const is_public: boolean = useRedux([props.editor_actions.name, "is_public"]);
@@ -943,6 +952,10 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
         key="save"
         has_unsaved_changes={has_unsaved_changes}
         has_uncommitted_changes={has_uncommitted_changes}
+        show_uncommitted_changes={show_uncommitted_changes}
+        set_show_uncommitted_changes={
+          props.editor_actions.set_show_uncommitted_changes
+        }
         read_only={read_only}
         is_public={is_public}
         is_saving={is_saving}
