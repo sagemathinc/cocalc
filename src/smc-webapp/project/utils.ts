@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import * as os_path from "path";
 const { to_iso_path } = require("smc-util/misc");
 import {
   unreachable,
@@ -209,4 +210,15 @@ const sha1 = require("sha1");
 
 export function editor_id(project_id: string, path: string): string {
   return `cocalc-editor-${sha1(project_id + path)}`;
+}
+
+
+// Normalize path as in node, except '' is the home dir, not '.'.
+export function normalize(path: string): string {
+  path = os_path.normalize(path);
+  if (path === ".") {
+    return "";
+  } else {
+    return path;
+  }
 }
