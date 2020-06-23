@@ -9,13 +9,14 @@ Customization and selection of the build command.
 
 import { List, fromJS } from "immutable";
 import { Loading } from "smc-webapp/r_misc";
-import { Alert, FormControl } from "react-bootstrap";
-import { Menu, Dropdown, Button } from "antd";
-import { DownOutlined } from "@ant-design/icons";
+import { Alert } from "react-bootstrap";
+import { Button, Input, Select, Form } from "antd";
+import { SaveOutlined } from "@ant-design/icons";
 import { React } from "../../app-framework";
 import { split } from "smc-util/misc2";
 import { Engine, build_command as latexmk_build_command } from "./latexmk";
 import { Actions } from "./actions";
+import { COLORS } from "../../../smc-util/theme";
 
 const ENGINES: Engine[] = [
   "PDFLaTeX",
@@ -66,13 +67,15 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
     build_command_string(build_command_orig)
   );
   const [focus, set_focus] = React.useState<boolean>(false);
+  const [dirty, set_dirty] = React.useState<boolean>(false);
 
   if (!focus && build_command_prev != build_command_orig) {
     set_build_command_prev(build_command_orig);
     set_build_command(build_command_string(build_command_orig));
   }
 
-  function select_engine(engine: Engine): void {
+  function select_engine(engine: Engine | "Engine"): void {
+    if (engine == "Engine") return;
     const cmd: string[] = latexmk_build_command(
       engine,
       filename,
@@ -83,37 +86,37 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
     set_build_command(build_command_string(fromJS(cmd)));
   }
 
-  function render_item(engine: string): JSX.Element {
-    return <Menu.Item key={engine}>{engine}</Menu.Item>;
-  }
-
-  function render_menu(): JSX.Element {
-    const v: JSX.Element[] = [];
+  function render_engine_options(): JSX.Element {
+    const v: JSX.Element[] = [
+      <Select.Option key={"Engine"} value={"Engine"}>
+        Engine
+      </Select.Option>,
+    ];
     for (const engine of ENGINES) {
-      v.push(render_item(engine));
+      v.push(
+        <Select.Option key={engine} value={engine} size={"small"}>
+          {engine}
+        </Select.Option>
+      );
     }
-    return (
-      <Menu
-        onClick={(e) => select_engine(e.key as Engine)}
-        style={{ maxHeight: "100vH", overflow: "scroll" }}
-      >
-        {v}
-      </Menu>
-    );
+    return <>{v}</>;
   }
 
-  function render_dropdown(): JSX.Element {
+  function render_engines(): JSX.Element {
     return (
-      <Dropdown overlay={render_menu()}>
-        <Button style={{ float: "right" }}>
-          Engine <DownOutlined />
-        </Button>
-      </Dropdown>
+      <Select
+        defaultValue={"Engine"}
+        size={"small"}
+        onChange={(val) => select_engine(val)}
+      >
+        {render_engine_options()}
+      </Select>
     );
   }
 
   function handle_command_line_change(val: string): void {
     set_build_command(val);
+    set_dirty(true);
   }
 
   function handle_build_change(): void {
@@ -126,15 +129,14 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  function render_command_line() {
+  function render_input() {
     return (
-      <FormControl
+      <Input
         style={{
           fontFamily: "monospace",
-          fontSize: "12px",
+          fontSize: "11px",
           textOverflow: "ellipsis",
         }}
-        type="text"
         value={build_command}
         onChange={(e) => handle_command_line_change((e.target as any).value)}
         onFocus={() => set_focus(true)}
@@ -149,19 +151,43 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
           }
         }}
         onBlur={() => {
-          set_focus(true);
+          set_focus(false);
           handle_build_change();
         }}
       />
     );
-    // "any" type above because of https://github.com/facebook/flow/issues/218
+  }
+
+  function render_command_line() {
+    return (
+      <Form name="command_line" layout="inline">
+        <Form.Item style={{ flex: "1 1 auto", marginRight: "0" }}>
+          {render_input()}
+        </Form.Item>
+        <Form.Item>{render_save()}</Form.Item>
+        <Form.Item style={{ maxWidth: "25%", marginRight: "0" }}>
+          {render_engines()}
+        </Form.Item>
+      </Form>
+    );
+  }
+
+  function render_save() {
+    return (
+      <Button
+        disabled={!dirty}
+        size={"small"}
+        icon={<SaveOutlined />}
+        onClick={() => set_dirty(false)}
+      />
+    );
   }
 
   function render_help() {
     if (!focus) return null;
     return (
       <Alert bsStyle="info">
-        <div style={{ color: "#666" }}>
+        <div style={{ color: COLORS.GRAY }}>
           <h4>Build Command</h4>
           Select a build engine from the menu at the right, or enter absolutely
           any custom build command line you want. Custom build commands are run
@@ -171,17 +197,11 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_form() {
+  function render_body() {
     return (
-      <div style={{ marginTop: "5px", marginBottom: "-15px" }}>
-        <div style={{ display: "flex" }}>
-          <div style={{ flex: 1 }}>
-            {render_command_line()}
-            <br />
-            {render_help()}
-          </div>
-          <div style={{ paddingLeft: "5px" }}>{render_dropdown()}</div>
-        </div>
+      <div>
+        {render_command_line()}
+        {render_help()}
       </div>
     );
   }
@@ -189,6 +209,6 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
   if (!build_command) {
     return <Loading />;
   } else {
-    return render_form();
+    return render_body();
   }
 });

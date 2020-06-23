@@ -121,7 +121,7 @@ export interface CodeEditorState {
   load_time_estimate: number;
   error: string;
   errorstyle?: ErrorStyles;
-  status: any;
+  status: string;
   read_only: boolean;
   settings: Map<string, any>; // settings specific to this file (but **not** this user or browser), e.g., spell check language.
   complete: Map<string, any>;
@@ -1215,12 +1215,6 @@ export class Actions<
     }
     this.set_frame_tree({ id, font_size });
     this.focus(id);
-    this.set_status_font_size(font_size, default_font_size);
-  }
-
-  set_status_font_size(font_size: number, default_font_size) {
-    const percent = Math.round((font_size * 100) / default_font_size);
-    this.set_status(`Set font size to ${font_size} (${percent}%)`, 1500);
   }
 
   increase_font_size(id: string): void {

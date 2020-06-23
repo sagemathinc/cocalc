@@ -181,6 +181,20 @@ export const Build: React.FC<Props> = React.memo((props) => {
     );
   }
 
+  function render_logs(): Rendered {
+    if (status) return;
+    return (
+      <>
+        {render_log("latex")}
+        {render_log("sagetex")}
+        {render_log("pythontex")}
+        {render_log("knitr")}
+        {render_log("bibtex")}
+        {render_clean()}
+      </>
+    );
+  }
+
   function render_build_command(): Rendered {
     return (
       <BuildCommand
@@ -221,12 +235,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
     >
       {render_build_command()}
       {render_status()}
-      {render_log("latex")}
-      {render_log("sagetex")}
-      {render_log("pythontex")}
-      {render_log("knitr")}
-      {render_log("bibtex")}
-      {render_clean()}
+      {render_logs()}
     </div>
   );
 });
