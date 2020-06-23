@@ -7,21 +7,15 @@
 Show the last latex build log, i.e., output from last time we ran the LaTeX build process.
 */
 
-import { List } from "immutable";
 import { ButtonGroup, Button } from "react-bootstrap";
-import { is_different, path_split } from "smc-util/misc2";
+import { path_split } from "smc-util/misc2";
 import {
   React,
-  rclass,
-  rtypes,
   Rendered,
-  Component,
+  useRedux,
 } from "../../app-framework";
-
-import { BuildLogs } from "./actions";
-
+//import { BuildLogs } from "./actions";
 import { BuildCommand } from "./build-command";
-
 import { Icon, Loading } from "smc-webapp/r_misc";
 
 interface IBuildSpec {
@@ -94,6 +88,7 @@ const BUILD_SPECS: IBuildSpecs = {
 
 interface Props {
   id: string;
+  name: string;
   actions: any;
   editor_state: Map<string, any>;
   is_fullscreen: boolean;
@@ -102,35 +97,35 @@ interface Props {
   reload: number;
   font_size: number;
   status: string;
-
-  // reduxProps:
-  build_logs: BuildLogs;
-  build_command: string | List<string>;
-  knitr: boolean;
 }
 
-class Build extends Component<Props, {}> {
-  static reduxProps({ name }) {
-    return {
-      [name]: {
-        build_logs: rtypes.immutable.Map,
-        build_command: rtypes.oneOfType([rtypes.string, rtypes.immutable.List]),
-        knitr: rtypes.bool,
-      },
-    };
-  }
+function should_memoize(prev, next) {
+  return prev.status != next.status || prev.font_size != next.font_size;
+}
 
-  shouldComponentUpdate(props): boolean {
-    return is_different(this.props, props, [
-      "build_logs",
-      "status",
-      "font_size",
-      "build_command",
-      "knitr",
-    ]);
-  }
+// should memoize function used at the end
+export const Build: React.FC<Props> = React.memo((props) => {
+  const {
+    /*id,*/
+    name,
+    actions,
+    /*project_id,*/
+    /*editor_state,*/
+    /*is_fullscreen,*/
+    path,
+    /*reload,*/
+    font_size: font_size_orig,
+    status,
+  } = props;
 
-  render_log_label(stage: string, time_str: string): Rendered {
+  const font_size = 0.8 * font_size_orig;
+  console.log(font_size);
+
+  const build_logs = useRedux([name, "build_logs"]);
+  const build_command = useRedux([name, "build_command"]);
+  const knitr: boolean = useRedux([name, "knitr"]);
+
+  function render_log_label(stage: string, time_str: string): Rendered {
     return (
       <h5>
         {BUILD_SPECS[stage].label} Output {time_str}
@@ -138,9 +133,9 @@ class Build extends Component<Props, {}> {
     );
   }
 
-  render_log(stage): Rendered {
-    if (this.props.build_logs == null) return;
-    const x = this.props.build_logs.get(stage);
+  function render_log(stage): Rendered {
+    if (build_logs == null) return;
+    const x = build_logs.get(stage);
     if (!x) return;
     const value: string | undefined = x.get("stdout") + x.get("stderr");
     if (!value) {
@@ -153,7 +148,7 @@ class Build extends Component<Props, {}> {
     }
     return (
       <>
-        {this.render_log_label(stage, time_str)}
+        {render_log_label(stage, time_str)}
         <textarea
           readOnly={true}
           style={{
@@ -170,11 +165,9 @@ class Build extends Component<Props, {}> {
     );
   }
 
-  render_clean(): Rendered {
+  function render_clean(): Rendered {
     const value =
-      this.props.build_logs != null
-        ? this.props.build_logs.getIn(["clean", "output"])
-        : undefined;
+      build_logs != null ? build_logs.getIn(["clean", "output"]) : undefined;
     if (!value) {
       return;
     }
@@ -197,23 +190,23 @@ class Build extends Component<Props, {}> {
     );
   }
 
-  render_build_command(): Rendered {
+  function render_build_command(): Rendered {
     return (
       <BuildCommand
-        filename={path_split(this.props.path).tail}
-        actions={this.props.actions}
-        build_command={this.props.build_command}
-        knitr={this.props.knitr}
+        filename={path_split(path).tail}
+        actions={actions}
+        build_command={build_command}
+        knitr={knitr}
       />
     );
   }
 
-  render_status(): Rendered {
-    if (this.props.status) {
+  function render_status(): Rendered {
+    if (status) {
       return (
         <div style={{ margin: "15px" }}>
           <Loading
-            text={this.props.status}
+            text={status}
             style={{
               fontSize: "10pt",
               textAlign: "center",
@@ -226,52 +219,51 @@ class Build extends Component<Props, {}> {
     }
   }
 
-  render_build_action_button(action: string, spec: IBuildSpec): Rendered {
+  function render_build_action_button(
+    action: string,
+    spec: IBuildSpec
+  ): Rendered {
     return (
       <Button
         key={spec.label}
         title={spec.tip}
-        onClick={() => this.props.actions.build_action(action)}
-        disabled={!!this.props.status}
+        onClick={() => actions.build_action(action)}
+        disabled={!!status}
       >
         <Icon name={spec.icon} /> {spec.label}
       </Button>
     );
   }
 
-  render_buttons() {
+  function render_buttons() {
     const v: Rendered[] = [];
     for (const action in BUILD_SPECS) {
       const spec: IBuildSpec = BUILD_SPECS[action];
       if (spec.button) {
-        v.push(this.render_build_action_button(action, spec));
+        v.push(render_build_action_button(action, spec));
       }
     }
     return <ButtonGroup>{v}</ButtonGroup>;
   }
 
-  render() {
-    return (
-      <div
-        className={"smc-vfill"}
-        style={{
-          overflowY: "scroll",
-          padding: "5px 15px",
-          fontSize: "10pt",
-        }}
-      >
-        {this.render_build_command()}
-        {this.render_status()}
-        {this.render_log("latex")}
-        {this.render_log("sagetex")}
-        {this.render_log("pythontex")}
-        {this.render_log("knitr")}
-        {this.render_log("bibtex")}
-        {this.render_clean()}
-      </div>
-    );
-  }
-}
-
-const Build0 = rclass(Build);
-export { Build0 as Build };
+  return (
+    <div
+      className={"smc-vfill"}
+      style={{
+        overflowY: "scroll",
+        padding: "5px 15px",
+        fontSize: "10pt",
+      }}
+    >
+      {render_build_command()}
+      {render_buttons()}
+      {render_status()}
+      {render_log("latex")}
+      {render_log("sagetex")}
+      {render_log("pythontex")}
+      {render_log("knitr")}
+      {render_log("bibtex")}
+      {render_clean()}
+    </div>
+  );
+}, should_memoize);

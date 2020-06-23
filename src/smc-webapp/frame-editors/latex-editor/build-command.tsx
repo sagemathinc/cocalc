@@ -12,9 +12,9 @@ import { Loading } from "smc-webapp/r_misc";
 import { Alert, FormControl } from "react-bootstrap";
 import { Menu, Dropdown, Button } from "antd";
 import { DownOutlined } from "@ant-design/icons";
-import { React, Rendered, Component } from "../../app-framework";
+import { React } from "../../app-framework";
 import { split } from "smc-util/misc2";
-import { Engine, build_command } from "./latexmk";
+import { Engine, build_command as latexmk_build_command } from "./latexmk";
 import { Actions } from "./actions";
 
 const ENGINES: Engine[] = [
@@ -31,34 +31,17 @@ interface Props {
   knitr: boolean;
 }
 
-interface State {
-  build_command: string;
-  focus: boolean;
-}
+export const BuildCommand: React.FC<Props> = (props: Props) => {
+  const { actions, filename, build_command: build_command_orig, knitr } = props;
+  const [build_command, set_build_command] = React.useState<string>(ENGINES[0]);
+  const [focus, set_focus] = React.useState<boolean>(false);
 
-export class BuildCommand extends Component<Props, State> {
-  constructor(props) {
-    super(props);
-    this.state = {
-      build_command: this.build_command_string(props.build_command),
-      focus: false,
-    };
-  }
-
-  componentWillReceiveProps(next: Props): void {
-    if (this.state.focus) {
-      return;
-    }
-    if (next.build_command != this.props.build_command) {
-      // set by another user or menu selection.
-      this.setState({
-        build_command: this.build_command_string(next.build_command),
-      });
-    }
+  if (!focus && build_command_orig != build_command) {
+    set_build_command(build_command_string(build_command_orig));
   }
 
   // cmd could be undefined -- https://github.com/sagemathinc/cocalc/issues/3290
-  build_command_string(cmd: string | List<string> | undefined): string {
+  function build_command_string(cmd: string | List<string>): string {
     let s: string;
     if (cmd == null) {
       // cmd is not initialized, see actions._init_config
@@ -83,29 +66,29 @@ export class BuildCommand extends Component<Props, State> {
     return s;
   }
 
-  select_engine(engine: Engine): void {
-    const cmd: string[] = build_command(
+  function select_engine(engine: Engine): void {
+    const cmd: string[] = latexmk_build_command(
       engine,
-      this.props.filename,
-      this.props.knitr,
-      this.props.actions.output_directory
+      filename,
+      knitr,
+      actions.output_directory
     );
-    this.props.actions.set_build_command(cmd);
-    this.setState({ build_command: this.build_command_string(fromJS(cmd)) });
+    actions.set_build_command(cmd);
+    set_build_command(build_command_string(fromJS(cmd)));
   }
 
-  render_item(engine: string): JSX.Element {
+  function render_item(engine: string): JSX.Element {
     return <Menu.Item key={engine}>{engine}</Menu.Item>;
   }
 
-  render_menu(): JSX.Element {
+  function render_menu(): JSX.Element {
     const v: JSX.Element[] = [];
     for (const engine of ENGINES) {
-      v.push(this.render_item(engine));
+      v.push(render_item(engine));
     }
     return (
       <Menu
-        onClick={(e) => this.select_engine(e.key as Engine)}
+        onClick={(e) => select_engine(e.key as Engine)}
         style={{ maxHeight: "100vH", overflow: "scroll" }}
       >
         {v}
@@ -113,9 +96,9 @@ export class BuildCommand extends Component<Props, State> {
     );
   }
 
-  render_dropdown(): JSX.Element {
+  function render_dropdown(): JSX.Element {
     return (
-      <Dropdown overlay={this.render_menu()}>
+      <Dropdown overlay={render_menu()}>
         <Button style={{ float: "right" }}>
           Engine <DownOutlined />
         </Button>
@@ -123,24 +106,21 @@ export class BuildCommand extends Component<Props, State> {
     );
   }
 
-  handle_command_line_change(val: string): void {
-    this.setState({ build_command: val });
+  function handle_command_line_change(val: string): void {
+    set_build_command(val);
   }
 
-  handle_build_change(): void {
-    if (
-      this.state.build_command !=
-      this.build_command_string(this.props.build_command)
-    ) {
-      if (!this.state.build_command) {
-        this.select_engine(ENGINES[0]);
+  function handle_build_change(): void {
+    if (build_command != build_command_string(build_command)) {
+      if (!build_command) {
+        select_engine(ENGINES[0]);
       } else {
-        this.props.actions.set_build_command(this.state.build_command);
+        actions.set_build_command(build_command);
       }
     }
   }
 
-  render_command_line(): Rendered {
+  function render_command_line() {
     return (
       <FormControl
         style={{
@@ -149,32 +129,30 @@ export class BuildCommand extends Component<Props, State> {
           textOverflow: "ellipsis",
         }}
         type="text"
-        value={this.state.build_command}
-        onChange={(e) =>
-          this.handle_command_line_change((e.target as any).value)
-        }
-        onFocus={() => this.setState({ focus: true })}
+        value={build_command}
+        onChange={(e) => handle_command_line_change((e.target as any).value)}
+        onFocus={() => set_focus(true)}
         onKeyDown={(evt) => {
           if (
             evt.keyCode == 13 ||
             ((evt.metaKey || evt.ctrlKey) &&
               String.fromCharCode(evt.which).toLowerCase() == "s")
           ) {
-            this.handle_build_change();
+            handle_build_change();
             evt.preventDefault();
           }
         }}
         onBlur={() => {
-          this.setState({ focus: false });
-          this.handle_build_change();
+          set_focus(true);
+          handle_build_change();
         }}
       />
     );
     // "any" type above because of https://github.com/facebook/flow/issues/218
   }
 
-  render_help(): Rendered {
-    if (!this.state.focus) return;
+  function render_help() {
+    if (!focus) return null;
     return (
       <Alert bsStyle="info">
         <div style={{ color: "#666" }}>
@@ -187,24 +165,24 @@ export class BuildCommand extends Component<Props, State> {
     );
   }
 
-  render_form(): Rendered {
+  function render_form() {
     return (
       <div style={{ marginTop: "5px", marginBottom: "-15px" }}>
         <div style={{ display: "flex" }}>
           <div style={{ flex: 1 }}>
-            {this.render_command_line()}
+            {render_command_line()}
             <br />
-            {this.render_help()}
+            {render_help()}
           </div>
-          <div style={{ paddingLeft: "5px" }}>{this.render_dropdown()}</div>
+          <div style={{ paddingLeft: "5px" }}>{render_dropdown()}</div>
         </div>
       </div>
     );
   }
-  render(): Rendered {
-    if (!this.props.build_command) {
-      return <Loading />;
-    }
-    return this.render_form();
+
+  if (!build_command) {
+    return <Loading />;
+  } else {
+    return render_form();
   }
-}
+};
