@@ -22,7 +22,8 @@ function script_error() {
 function style() {
   const NAME = CUSTOMIZE.site_name || "CoCalc";
   HELP_EMAIL = CUSTOMIZE.help_email || "help@cocalc.com";
-  document.title = NAME;
+  const SITE_DESCR = CUSTOMIZE.site_description || "";
+  document.title = `${NAME} – ${SITE_DESCR}`;
   const msg = document.getElementById("cc-message");
   if (msg == null) {
     // happens when loading is very quick and message is already removed
