@@ -99,11 +99,20 @@ export async function open_file(
     actions.open_files.set(opts.path, "component", {});
   }
 
+  // Returns true if the project is closed or the file tab is now closed.
+  function is_closed(): boolean {
+    const store = actions.get_store();
+    // if store isn't defined (so project closed) *or*
+    // open_files doesn't have path in since tab got closed
+    // (see https://github.com/sagemathinc/cocalc/issues/4692):
+    return store?.getIn(["open_files", opts.path]) == null;
+  }
+
   // Next get the group.
   let group: string;
   try {
     group = await get_my_group(actions.project_id);
-    if (actions.get_store() == null) return;
+    if (is_closed()) return;
   } catch (err) {
     actions.set_activity({
       id: uuid(),
@@ -122,12 +131,13 @@ export async function open_file(
     // back to a codemirror text editor...   After all, that's what
     // we already do with all uknown file types.
     const can_open_file = await store.can_open_file_ext(ext, actions);
+    if (is_closed()) return;
     if (!can_open_file) {
-      const SiteName =
+      const site_name =
         redux.getStore("customize").get("site_name") || SITE_NAME;
       alert_message({
         type: "error",
-        message: `This ${SiteName} project cannot open ${ext} files!`,
+        message: `This ${site_name} project cannot open ${ext} files!`,
         timeout: 20,
       });
       // console.log(
@@ -147,7 +157,7 @@ export async function open_file(
       });
       return;
     }
-    if (actions.get_store() == null) return;
+    if (is_closed()) return;
   }
 
   if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {

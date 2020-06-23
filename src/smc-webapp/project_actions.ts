@@ -228,7 +228,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   };
 
-  _ensure_project_is_open(cb): void {
+  public _ensure_project_is_open(cb): void {
     const s: any = this.redux.getStore("projects");
     if (!s.is_project_open(this.project_id)) {
       (this.redux.getActions("projects") as any).open_project({
