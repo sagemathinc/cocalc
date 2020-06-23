@@ -1791,9 +1791,6 @@ exports.restore_selection = (selected_range) ->
 # but I (hsy) wasn't able to configure them in such a way that all tags/attributes are allowed.
 # It seems like there is some bug in the library, because the definitions to allow e.g. src in img are there.
 
-exports.sanitize_html = (html) ->
-    return jQuery("<div>").html(html).html()
-
 # http://api.jquery.com/jQuery.parseHTML/ (expanded behavior in version 3+)
 exports.sanitize_html = (html, keepScripts = true, keepUnsafeAttributes = true, post_hook = undefined) ->
     {sanitize_html_attributes} = require('smc-util/misc')

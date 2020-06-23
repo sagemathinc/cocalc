@@ -5,6 +5,8 @@
 
 async = require('async')
 
+InnerHTML = require('dangerously-set-html-content').default
+
 {Component, React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('../app-framework')
 {Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, Overlay, OverlayTrigger, Modal, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('../customize')
@@ -587,27 +589,36 @@ exports.HTML = HTML = rclass
             else
                 html = require('../misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
 
-        return {__html: html}
+        return html
 
     render: ->
         # the random key is the whole span (hence the html) does get rendered whenever
         # this component is updated.  Otherwise, it will NOT re-render except when the value changes.
+        html = @render_html()
+        inner = undefined
+        if @props.safeHTML
+            # can't use react
+            inner = <span dangerouslySetInnerHTML = {__html:html} />
+        else
+            # can just use react -- see
+            # https://stackoverflow.com/questions/35614809/react-script-tag-not-working-when-inserted-using-dangerouslysetinnerhtml
+            inner = <InnerHTML html={html}/>
         if @props.content_editable
             <div
                 id                      = {@props.id}
                 contentEditable         = {true}
                 key                     = {Math.random()}
                 className               = {@props.className}
-                dangerouslySetInnerHTML = {@render_html()}
                 style                   = {@props.style} >
+                {inner}
             </div>
         else
             <span
                 id                      = {@props.id}
                 key                     = {Math.random()}
                 className               = {@props.className}
-                dangerouslySetInnerHTML = {@render_html()}
                 style                   = {@props.style} >
+                {inner}
             </span>
 
 exports.Markdown = rclass
