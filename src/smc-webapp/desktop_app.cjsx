@@ -24,7 +24,9 @@ misc_page = require('./misc_page')
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent, CookieWarning, GlobalInformationMessage, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning, announce_bar_offset} = require('./app_shared')
+{ActiveAppContent, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, announce_bar_offset} = require('./app_shared')
+
+{VersionWarning, CookieWarning, LocalStorageWarning} = require("./app/warnings")
 
 nav_class = 'hidden-xs'
 
@@ -76,7 +78,7 @@ PAGE_REDUX_PROPS =
     account :
         account_id             : rtypes.string
         is_logged_in           : rtypes.bool
-        show_global_info       : rtypes.bool
+        show_global_info       : rtypes.bool  # deprecated for now
         groups                 : rtypes.immutable.List
         is_anonymous           : rtypes.bool
         doing_anonymous_setup  : rtypes.bool
@@ -348,7 +350,6 @@ Page = rclass
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
             {<LocalStorageWarning /> if @props.local_storage_warning}
-            {<GlobalInformationMessage /> if @props.show_global_info}
             {<Navbar className="smc-top-bar" style={style_top_bar}>
                 {@render_project_nav_button() if @props.is_logged_in and not @props.is_anonymous}
                 <ProjectsNav dropdown={false} />

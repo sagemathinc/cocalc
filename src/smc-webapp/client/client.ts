@@ -257,7 +257,7 @@ class Client extends EventEmitter implements WebappClient {
     };
   }
 
-  public version(): string {
+  public version(): number {
     return version;
   }
 
