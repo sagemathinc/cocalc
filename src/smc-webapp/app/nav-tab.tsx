@@ -28,7 +28,6 @@ interface Props {
 
 export const NavTab: React.FC<Props> = React.memo((props) => {
   const page_actions = useActions("page");
-  console.log("NavTab", props);
 
   function render_label() {
     if (!props.hide_label && props.label != null) {
