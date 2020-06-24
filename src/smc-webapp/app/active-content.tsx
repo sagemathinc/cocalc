@@ -107,7 +107,7 @@ export const ActiveContent: React.FC<Props> = React.memo(({ render_small }) => {
         v.push(<NotificationPage key={"notifications"} />);
         break;
       case "admin":
-        v.push(<AdminPage redux={redux} key={"admin"} />);
+        v.push(<AdminPage key={"admin"} />);
         break;
       case undefined:
         v.push(<div key={"broken"}>Please click a button on the top tab.</div>);
@@ -116,8 +116,9 @@ export const ActiveContent: React.FC<Props> = React.memo(({ render_small }) => {
   }
 
   if (v.length === 0) {
-    // this happens upon loading a URL for a project, but the project isn't open yet.
-    // implicitly, this waits for a websocket connection, hence show the same banner as for the landing page
+    // This happens upon loading a URL for a project, but the
+    // project isn't open yet.  Implicitly, this waits for a
+    // websocket connection, hence show the same banner as for the landing page
     v.push(<Connecting key={"connecting"} />);
   }
   return <>{v}</>;

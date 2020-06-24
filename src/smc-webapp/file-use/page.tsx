@@ -72,6 +72,9 @@ class FileUsePage extends Component<Props, {}> {
       this.props.redux == null ||
       this.props.user_map == null ||
       this.props.project_map == null ||
+      this.props.mentions == null ||
+      this.props.get_sorted_file_use_list2 == null ||
+      this.props.get_unseen_size == null ||
       account_id == null
     ) {
       return <Loading />;

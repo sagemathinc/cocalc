@@ -38,6 +38,9 @@ export const NotificationPage = rclass(
 
     render() {
       const { account_id, mentions, user_map, filter } = this.props;
+      if (filter == null || account_id == null) {
+        return <div />;
+      }
       return (
         <div style={outer_container_style} className="smc-vfill">
           <h3 style={{ color: "#666" }}>
