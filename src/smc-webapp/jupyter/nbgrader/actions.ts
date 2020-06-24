@@ -12,7 +12,6 @@ import { clear_hidden_tests } from "./clear-hidden-tests";
 import { clear_mark_regions } from "./clear-mark-regions";
 import { set_checksum } from "./compute-checksums";
 import { delay } from "awaiting";
-import { once } from "smc-util/async-utils";
 import { path_split } from "smc-util/misc2";
 import { STUDENT_SUBDIR } from "../../course/assignments/actions";
 
@@ -154,18 +153,16 @@ export class NBGraderActions {
     const project_id = this.jupyter_actions.store.get("project_id");
     const project_actions = this.redux.getProjectActions(project_id);
     await project_actions.open_file({ path: filename, foreground: true });
-    let actions: any = undefined;
-    while (true) {
-      actions = this.redux.getEditorActions(project_id, filename);
-      if (actions != null) break;
+    let actions = this.redux.getEditorActions(project_id, filename);
+    while (actions == null) {
       await delay(200);
+      actions = this.redux.getEditorActions(project_id, filename);
     }
-    if (actions.jupyter_actions.syncdb.get_state() == "init") {
-      await once(actions.jupyter_actions.syncdb, "ready");
-    }
+    await actions.jupyter_actions.wait_until_ready();
     actions.jupyter_actions.syncdb.from_str(
       this.jupyter_actions.syncdb.to_str()
     );
+    await actions.jupyter_actions.save();
     await actions.jupyter_actions.nbgrader_actions.apply_assign_transformations();
     await actions.jupyter_actions.save();
   }
