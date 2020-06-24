@@ -471,6 +471,10 @@ exports.HTML = HTML = rclass
         file_path        : rtypes.string   # optional -- ...
         className        : rtypes.string   # optional class
         safeHTML         : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
+                                           # WARNING!!! ATTN!  This does not work.  scripts will NEVER be run.  See
+                                           # commit 1abcd43bd5fff811b5ffaf7c76cb86a0ad494498, which I've reverted, since it breaks
+                                           # katex... and on balance if we can get by with other approaches to this problem we should
+                                           # since script is dangerous.  See also https://github.com/sagemathinc/cocalc/issues/4695
         href_transform   : rtypes.func     # optional function that link/src hrefs are fed through
         post_hook        : rtypes.func     # optional function post_hook(elt), which should mutate elt, where elt is
                                            # the jQuery wrapped set that is created (and discarded!) in the course of
