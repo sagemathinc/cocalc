@@ -874,6 +874,8 @@ function useReduxEditorStore(
          when getEditorStore is undefined then becomes defined.
          Very rarely there are components that useRedux and somehow
          manage to do so before the editor store gets created.
+         NOTE: I might be able to solve this same problem with
+         simpler code with useAsyncEffect...
       */
       const g = () => {
         if (!f.is_mounted) {

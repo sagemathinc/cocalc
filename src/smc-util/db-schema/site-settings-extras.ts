@@ -9,6 +9,7 @@
 
 import {
   Config,
+  is_email_enabled,
   only_for_smtp,
   only_for_sendgrid,
   only_for_password_reset_smtp,
@@ -122,6 +123,7 @@ export const EXTRAS: SettingsExtras = {
       "The type of backend for sending emails ('none' means there is none).",
     default: "",
     valid: ["none", "sendgrid", "smtp"],
+    show: is_email_enabled,
   },
   sendgrid_key: {
     name: "Sendgrid API key",
@@ -179,6 +181,7 @@ export const EXTRAS: SettingsExtras = {
       "For 'smtp', password reset and email verification emails are sent via the 'Secondary SMTP' configuration",
     default: "default",
     valid: ["default", "smtp"],
+    show: is_email_enabled,
   },
   password_reset_smtp_server: {
     name: "Secondary SMTP server",

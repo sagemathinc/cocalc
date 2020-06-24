@@ -16,7 +16,7 @@ feature = require('./feature')
 # SMC Components
 {React, ReactDOM, rclass, rtypes} = require('./app-framework')
 {Loading, Icon, Tip} = require('./r_misc')
-{NavTab} = require('./app_shared')
+{NavTab} = require('./app/nav-tab')
 
 {WebsocketIndicator} = require('./project/websocket/websocket-indicator')
 

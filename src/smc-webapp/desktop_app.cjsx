@@ -24,7 +24,15 @@ misc_page = require('./misc_page')
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent, CookieWarning, GlobalInformationMessage, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning, announce_bar_offset} = require('./app_shared')
+{ActiveAppContent} = require('./app_shared')
+{NavTab} = require('./app/nav-tab');
+{ConnectionIndicator} = require('./app/connection-indicator')
+{ConnectionInfo} = require('./app/connection-info')
+{NotificationBell} = require('./app/notification-bell')
+
+{VersionWarning, CookieWarning, LocalStorageWarning} = require("./app/warnings")
+{FullscreenButton} = require('./app/fullscreen-button')
+{AppLogo} = require('./app/logo')
 
 nav_class = 'hidden-xs'
 
@@ -76,7 +84,7 @@ PAGE_REDUX_PROPS =
     account :
         account_id             : rtypes.string
         is_logged_in           : rtypes.bool
-        show_global_info       : rtypes.bool
+        show_global_info       : rtypes.bool  # deprecated for now
         groups                 : rtypes.immutable.List
         is_anonymous           : rtypes.bool
         doing_anonymous_setup  : rtypes.bool
@@ -149,7 +157,7 @@ Page = rclass
             icon           = {a}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
-            show_label     = {@state.show_label}
+            hide_label     = {not @state.show_label}
         />
 
     # This is the new version with a dropdown menu.
@@ -163,7 +171,7 @@ Page = rclass
                         icon           = {undefined}
                         actions        = {@actions('page')}
                         active_top_tab = {@props.active_top_tab}
-                        show_label     = {@state.show_label}
+                        hide_label     = {not @state.show_label}
                     />
 
         if @props.account_id
@@ -181,7 +189,7 @@ Page = rclass
                 icon = {a}
                 links = {<DefaultAccountDropDownLinks account_actions={@actions("account")}  page_actions={@actions("page")} />}
                 label_class = {nav_class}
-                show_label = {@state.show_label}
+                hide_label = {not @state.show_label}
                 is_active = {@props.active_top_tab == 'account'}
             />
 
@@ -195,7 +203,7 @@ Page = rclass
             inner_style    = {padding: '10px', display: 'flex'}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
-            show_label     = {@state.show_label}
+            hide_label     = {not @state.show_label}
         />
 
     sign_in_tab_clicked: ->
@@ -221,7 +229,7 @@ Page = rclass
             active_top_tab  = {@props.active_top_tab}
             style           = {style}
             add_inner_style = {color: 'black'}
-            show_label     = {@state.show_label}
+            hide_label     = {not @state.show_label}
         />
 
     render_support: ->
@@ -235,7 +243,7 @@ Page = rclass
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
             on_click       = {=>redux.getActions('support').show(true)}
-            show_label     = {@state.show_label}
+            hide_label     = {not @state.show_label}
         />
 
     render_bell: ->
@@ -258,7 +266,7 @@ Page = rclass
                 inner_style    = {padding: '10px', display: 'flex'}
                 actions        = {@actions('page')}
                 active_top_tab = {@props.active_top_tab}
-                show_label     = {@state.show_label}
+                hide_label     = {not @state.show_label}
             />
             <NavItem className='divider-vertical hidden-xs' />
             {@render_support()}
@@ -325,8 +333,6 @@ Page = rclass
                 </div>
             return <div style={style}>{loading_anon}</div>
 
-        top = if @props.show_global_info then "#{announce_bar_offset}px" else 0
-
         style_top_bar =
             display       : 'flex'
             marginBottom  : 0
@@ -336,10 +342,9 @@ Page = rclass
             right         : 0
             zIndex        : '100'
             borderRadius  : 0
-            top           : top
+            top           : 0
 
-        positionHackOffset = if @props.show_global_info then announce_bar_offset else 0
-        positionHackHeight = (NAV_HEIGHT + positionHackOffset) + 'px'
+        positionHackHeight = NAV_HEIGHT + 'px'
 
         <div ref="page" style={style} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
             {<FileUsePageWrapper /> if @props.show_file_use}
@@ -348,7 +353,6 @@ Page = rclass
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
             {<LocalStorageWarning /> if @props.local_storage_warning}
-            {<GlobalInformationMessage /> if @props.show_global_info}
             {<Navbar className="smc-top-bar" style={style_top_bar}>
                 {@render_project_nav_button() if @props.is_logged_in and not @props.is_anonymous}
                 <ProjectsNav dropdown={false} />
