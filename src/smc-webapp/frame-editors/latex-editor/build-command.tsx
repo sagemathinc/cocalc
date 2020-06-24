@@ -166,7 +166,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
           {render_input()}
         </Form.Item>
         <Form.Item>{render_save()}</Form.Item>
-        <Form.Item style={{ marginRight: "0" }}>{render_engines()}</Form.Item>
+        <Form.Item style={{ marginRight: "5px" }}>{render_engines()}</Form.Item>
       </Form>
     );
   }

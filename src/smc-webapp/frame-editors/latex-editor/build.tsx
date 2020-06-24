@@ -7,11 +7,15 @@
 Show the last latex build log, i.e., output from last time we ran the LaTeX build process.
 */
 
+import Ansi from "ansi-to-react";
 import { path_split } from "smc-util/misc2";
 import { React, Rendered, useRedux } from "../../app-framework";
 //import { BuildLogs } from "./actions";
 import { BuildCommand } from "./build-command";
 import { Loading } from "smc-webapp/r_misc";
+import { Tabs } from "antd";
+const { TabPane } = Tabs;
+import { COLORS } from "../../../smc-util/theme";
 
 interface IBuildSpec {
   button: boolean;
@@ -114,82 +118,57 @@ export const Build: React.FC<Props> = React.memo((props) => {
   const build_command = useRedux([name, "build_command"]);
   const knitr: boolean = useRedux([name, "knitr"]);
 
-  function render_log_label(stage: string, time_str: string): Rendered {
-    return (
-      <h5>
-        {BUILD_SPECS[stage].label} Output {time_str}
-      </h5>
-    );
-  }
-
   function render_log(stage): Rendered {
     if (build_logs == null) return;
     const x = build_logs.get(stage);
     if (!x) return;
-    const value: string | undefined = x.get("stdout") + x.get("stderr");
-    if (!value) {
-      return;
-    }
+    const value = x.get("stdout") + x.get("stderr");
+    if (!value) return;
     const time: number | undefined = x.get("time");
-    let time_str: string = "";
-    if (time) {
-      time_str = `(${(time / 1000).toFixed(1)} seconds)`;
-    }
+    const time_str = time ? `(${(time / 1000).toFixed(1)} seconds)` : "";
+    const title = BUILD_SPECS[stage].label;
+    return render_tab_body(title, value, time_str);
+  }
+
+  function render_tab_body(title, value, time_str?) {
+    const style = {
+      fontFamily: "monospace",
+      whiteSpace: "pre-line" as "pre-line",
+      color: COLORS.GRAY_D,
+      background: COLORS.GRAY_LLL,
+      display: "block",
+      width: "100%",
+      padding: "5px",
+      fontSize: `${font_size}px`,
+      overflow: "auto",
+      margin: "0",
+    };
     return (
-      <>
-        {render_log_label(stage, time_str)}
-        <textarea
-          readOnly={true}
-          style={{
-            color: "#666",
-            background: "#f8f8f0",
-            display: "block",
-            width: "100%",
-            padding: "10px",
-            flex: 1,
-          }}
-          value={value}
-        />
-      </>
+      <TabPane tab={title} key={title} style={style}>
+        {`${title} Output ${time_str || ""}\n`}
+        <Ansi>{value}</Ansi>
+      </TabPane>
     );
   }
 
   function render_clean(): Rendered {
-    const value =
-      build_logs != null ? build_logs.getIn(["clean", "output"]) : undefined;
-    if (!value) {
-      return;
-    }
-    return (
-      <>
-        <h4>Clean Auxiliary Files</h4>
-        <textarea
-          readOnly={true}
-          style={{
-            color: "#666",
-            background: "#f8f8f0",
-            display: "block",
-            width: "100%",
-            padding: "10px",
-            flex: 1,
-          }}
-          value={value}
-        />
-      </>
-    );
+    const value = build_logs?.getIn(["clean", "output"]);
+    if (!value) return;
+    const title = "Clean Auxiliary Files";
+    return render_tab_body(title, value);
   }
 
   function render_logs(): Rendered {
     if (status) return;
     return (
-      <>
+      <Tabs tabPosition={"left"} size={"small"} style={{}}>
         {render_log("latex")}
         {render_log("sagetex")}
         {render_log("pythontex")}
         {render_log("knitr")}
         {render_log("bibtex")}
         {render_clean()}
-      </>
+      </Tabs>
     );
   }
 
@@ -225,11 +204,11 @@ export const Build: React.FC<Props> = React.memo((props) => {
 
   return (
     <div
-      className={"smc-vfill"}
+      className={"smc-vfill cocalc-latex-build-content"}
       style={{
-        overflowY: "scroll",
-        padding: "5px 15px",
-        fontSize: "10pt",
+        overflowY: "hidden",
+        padding: "5px 0 0 5px",
+        fontSize: `${font_size}px`,
       }}
     >
       {render_build_command()}
