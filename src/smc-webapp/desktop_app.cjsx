@@ -344,7 +344,7 @@ Page = rclass
             borderRadius  : 0
             top           : 0
 
-        positionHackHeight = NAV_HEIGHT + 'px'
+        positionHackHeight = (NAV_HEIGHT - 26) + 'px'
 
         <div ref="page" style={style} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
             {<FileUsePageWrapper /> if @props.show_file_use}
