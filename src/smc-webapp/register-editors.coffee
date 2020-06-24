@@ -13,8 +13,6 @@ One you add a new built in editor, it should go here.
 # This should be a comprehensive list of all React editors
 
 
-
-# require('./editor_terminal')
 require('./chat/register')
 require('./editors/archive/actions')
 require('./stopwatch/register')
