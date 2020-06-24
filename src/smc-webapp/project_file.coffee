@@ -17,4 +17,4 @@ for n in ['icon', 'register_file_editor', 'initialize', 'generate', 'remove', 's
 exports.special_filenames_with_no_extension = ->
     return (name.slice(6) for name in Object.keys(file_associations) when name.slice(0,6) == 'noext-')
 
-require('./register-editors')
+require('./editors/register-all')
