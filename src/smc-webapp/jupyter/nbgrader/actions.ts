@@ -154,8 +154,9 @@ export class NBGraderActions {
     const project_id = this.jupyter_actions.store.get("project_id");
     const project_actions = this.redux.getProjectActions(project_id);
     await project_actions.open_file({ path: filename, foreground: true });
-    let actions = this.redux.getEditorActions(project_id, filename);
+    let actions: any = undefined;
     while (true) {
+      actions = this.redux.getEditorActions(project_id, filename);
       if (actions != null) break;
       await delay(200);
     }
@@ -165,17 +166,6 @@ export class NBGraderActions {
     actions.jupyter_actions.syncdb.from_str(
       this.jupyter_actions.syncdb.to_str()
     );
-    project_actions.close_file(filename);
-    await delay(200);
-    await project_actions.open_file({ path: filename, foreground: true });
-    while (true) {
-      actions = this.redux.getEditorActions(project_id, filename);
-      if (actions != null) break;
-      await delay(200);
-    }
-    if (actions.jupyter_actions.syncdb.get_state() == "init") {
-      await once(actions.jupyter_actions.syncdb, "ready");
-    }
     await actions.jupyter_actions.nbgrader_actions.apply_assign_transformations();
     await actions.jupyter_actions.save();
   }
