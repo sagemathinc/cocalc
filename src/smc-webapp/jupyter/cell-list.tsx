@@ -380,6 +380,7 @@ export class CellList extends Component<CellListProps> {
     const style: React.CSSProperties = {
       backgroundColor: "#fff",
       paddingLeft: "5px",
+      overflowY: "auto",
     };
 
     if (this.props.actions == null) {
