@@ -11,8 +11,7 @@ const { Panel } = require("react-bootstrap");
 
 interface Props {
   icon: string;
-  title?: string;
-  title_el?: JSX.Element;
+  title?: string | JSX.Element;
   show_header?: boolean;
   close?: () => void;
   children?: React.ReactNode;
@@ -21,7 +20,6 @@ interface Props {
 export function SettingBox({
   icon,
   title,
-  title_el,
   close,
   children,
   show_header = true,
@@ -30,14 +28,10 @@ export function SettingBox({
     if (!show_header) {
       return;
     }
-    const final_title = title != undefined ? title : title_el;
-    if (final_title == undefined) {
-      return;
-    }
 
     return (
       <h3>
-        <Icon name={icon} /> {final_title}
+        <Icon name={icon} /> {title}
         {close ? <CloseX2 close={close} /> : undefined}
       </h3>
     );

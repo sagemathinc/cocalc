@@ -8,6 +8,7 @@ import * as immutable from "immutable";
 import * as underscore from "underscore";
 import { rtypes, rclass, redux, TypedMap } from "../../app-framework";
 import {
+  A,
   ActivityDisplay,
   Icon,
   ProjectState,
@@ -341,7 +342,12 @@ export const Explorer = rclass<ReactProps>(
           <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
             <SettingBox
               icon={"book"}
-              title={"Library"}
+              title={
+                <span>
+                  Library{" "}
+                  <A href="https://doc.cocalc.com/project-library.html">(help...)</A>
+                </span>
+              }
               close={() => this.props.actions.toggle_library(false)}
             >
               <Library

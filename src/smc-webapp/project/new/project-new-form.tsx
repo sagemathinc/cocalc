@@ -371,7 +371,7 @@ export const ProjectNewForm = rclass<ReactProps>(
         <SettingBox
           show_header={this.props.show_header}
           icon={"plus-circle"}
-          title_el={this.render_title()}
+          title={this.render_title()}
           close={this.props.on_close}
         >
           <Row key={this.props.default_filename}>

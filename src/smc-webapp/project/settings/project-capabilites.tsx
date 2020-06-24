@@ -225,7 +225,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
       const conf = this.props.configuration;
 
       return (
-        <SettingBox title_el={this.render_title()} icon={"clipboard-check"}>
+        <SettingBox title={this.render_title()} icon={"clipboard-check"}>
           {this.render_debug_info(conf)}
           {this.render_available()}
         </SettingBox>
