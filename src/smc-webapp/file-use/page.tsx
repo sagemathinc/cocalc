@@ -27,11 +27,11 @@ interface Props {
 
   // reduxProps
   file_use?: iMap<string, any>;
-  get_sorted_file_use_list2: Function;
+  get_sorted_file_use_list2?: Function;
   user_map?: iMap<string, any>;
   project_map?: iMap<string, any>;
-  mentions: MentionsMap;
-  get_unseen_size: (mentions: MentionsMap) => number;
+  mentions?: MentionsMap;
+  get_unseen_size?: (mentions: MentionsMap) => number;
 }
 
 class FileUsePage extends Component<Props, {}> {

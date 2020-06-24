@@ -13,10 +13,10 @@ import { redux, rclass, rtypes } from "../app-framework";
 import { Icon } from "../r_misc";
 
 interface ReduxProps {
-  account_id: string;
-  mentions: any;
-  user_map: any;
-  filter: MentionFilter;
+  account_id?: string;
+  mentions?: any;
+  user_map?: any;
+  filter?: MentionFilter;
 }
 
 export const NotificationPage = rclass(
