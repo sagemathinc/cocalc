@@ -64,7 +64,8 @@ export type Engine =
   | "PDFLaTeX"
   | "PDFLaTeX (shell-escape)"
   | "XeLaTeX"
-  | "LuaTex";
+  | "LuaTex"
+  | "<disabled>";
 
 export function get_engine_from_config(config: string): Engine | null {
   switch (config.toLowerCase()) {
@@ -89,6 +90,9 @@ export function build_command(
   knitr: boolean,
   output_directory: string | undefined // probably should not require special escaping.
 ): string[] {
+  // special case: disable build
+  if (engine == "<disabled>") return ["false"];
+
   /*
   errorstopmode recommended by
   http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling

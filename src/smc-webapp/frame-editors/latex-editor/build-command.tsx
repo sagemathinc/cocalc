@@ -10,8 +10,9 @@ Customization and selection of the build command.
 import { List, fromJS } from "immutable";
 import { Loading } from "smc-webapp/r_misc";
 import { Alert } from "react-bootstrap";
-import { Button, Input, Select, Form } from "antd";
-import { SaveOutlined } from "@ant-design/icons";
+import { Input, Form, Dropdown, Menu } from "antd";
+import { Button } from "../../antd-bootstrap";
+import { SaveOutlined, DownOutlined } from "@ant-design/icons";
 import { React } from "../../app-framework";
 import { split } from "smc-util/misc2";
 import { Engine, build_command as latexmk_build_command } from "./latexmk";
@@ -23,6 +24,7 @@ const ENGINES: Engine[] = [
   "PDFLaTeX (shell-escape)",
   "XeLaTeX",
   "LuaTex",
+  "<disabled>",
 ];
 
 // cmd could be undefined -- https://github.com/sagemathinc/cocalc/issues/3290
@@ -56,10 +58,17 @@ interface Props {
   filename: string;
   build_command: string | List<string>;
   knitr: boolean;
+  font_size: number;
 }
 
 export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
-  const { actions, filename, build_command: build_command_orig, knitr } = props;
+  const {
+    actions,
+    filename,
+    build_command: build_command_orig,
+    knitr,
+    font_size,
+  } = props;
   const [build_command_prev, set_build_command_prev] = React.useState(
     build_command_orig
   );
@@ -74,8 +83,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
     set_build_command(build_command_string(build_command_orig));
   }
 
-  function select_engine(engine: Engine | "Engine"): void {
-    if (engine == "Engine") return;
+  function select_engine(engine: Engine): void {
     const cmd: string[] = latexmk_build_command(
       engine,
       filename,
@@ -87,30 +95,23 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_engine_options(): JSX.Element {
-    const v: JSX.Element[] = [
-      <Select.Option key={"Engine"} value={"Engine"}>
-        Engine
-      </Select.Option>,
-    ];
-    for (const engine of ENGINES) {
-      v.push(
-        <Select.Option key={engine} value={engine} size={"small"}>
-          {engine}
-        </Select.Option>
-      );
-    }
-    return <>{v}</>;
+    const v: JSX.Element[] = ENGINES.map((engine) => (
+      <Menu.Item key={engine}>{engine}</Menu.Item>
+    ));
+    return <Menu onClick={(e) => select_engine(e.key as Engine)}>{v}</Menu>;
   }
 
   function render_engines(): JSX.Element {
     return (
-      <Select
-        defaultValue={"Engine"}
-        size={"small"}
-        onChange={(val) => select_engine(val)}
+      <Dropdown
+        placement={"bottomRight"}
+        overlay={render_engine_options()}
+        trigger={["hover", "click"]}
       >
-        {render_engine_options()}
-      </Select>
+        <Button bsSize={"xsmall"}>
+          Engine <DownOutlined />
+        </Button>
+      </Dropdown>
     );
   }
 
@@ -120,13 +121,14 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function handle_build_change(): void {
-    if (build_command != build_command_string(build_command)) {
-      if (!build_command) {
-        select_engine(ENGINES[0]);
-      } else {
-        actions.set_build_command(build_command);
-      }
+    if (!build_command) {
+      // fallback
+      select_engine(ENGINES[0]);
+    } else {
+      actions.set_build_command(build_command);
     }
+    set_dirty(false);
+    set_focus(false);
   }
 
   function render_input() {
@@ -134,7 +136,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
       <Input
         style={{
           fontFamily: "monospace",
-          fontSize: "11px",
+          fontSize: font_size,
           textOverflow: "ellipsis",
         }}
         value={build_command}
@@ -151,7 +153,6 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
           }
         }}
         onBlur={() => {
-          set_focus(false);
           handle_build_change();
         }}
       />
@@ -165,9 +166,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
           {render_input()}
         </Form.Item>
         <Form.Item>{render_save()}</Form.Item>
-        <Form.Item style={{ maxWidth: "25%", marginRight: "0" }}>
-          {render_engines()}
-        </Form.Item>
+        <Form.Item style={{ marginRight: "0" }}>{render_engines()}</Form.Item>
       </Form>
     );
   }
@@ -176,10 +175,13 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
     return (
       <Button
         disabled={!dirty}
-        size={"small"}
-        icon={<SaveOutlined />}
-        onClick={() => set_dirty(false)}
-      />
+        bsSize={"xsmall"}
+        bsStyle={dirty ? "success" : undefined}
+        title={"Saves the modified command (or just hit the 'Return' key)"}
+        onClick={() => handle_build_change()}
+      >
+        <SaveOutlined />
+      </Button>
     );
   }
 

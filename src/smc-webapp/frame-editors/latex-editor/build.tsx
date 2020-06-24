@@ -110,8 +110,6 @@ export const Build: React.FC<Props> = React.memo((props) => {
   } = props;
 
   const font_size = 0.8 * font_size_orig;
-  console.log(font_size);
-
   const build_logs = useRedux([name, "build_logs"]);
   const build_command = useRedux([name, "build_command"]);
   const knitr: boolean = useRedux([name, "knitr"]);
@@ -198,6 +196,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
   function render_build_command(): Rendered {
     return (
       <BuildCommand
+        font_size={font_size}
         filename={path_split(path).tail}
         actions={actions}
         build_command={build_command}
