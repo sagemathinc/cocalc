@@ -24,7 +24,11 @@ React Component for displaying the entire page on a mobile device.
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent, ConnectionIndicator, ConnectionInfo, NavTab, NotificationBell} = require('./app_shared')
+{ActiveAppContent} = require('./app_shared')
+{NavTab} = require('./app/nav-tab');
+{ConnectionIndicator} = require('./app/connection-indicator')
+{ConnectionInfo} = require('./app/connection-info')
+{NotificationBell} = require('./app/notification-bell')
 
 {AppLogo} = require('./app/logo')
 
