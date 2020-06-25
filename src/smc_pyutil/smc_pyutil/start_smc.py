@@ -1,5 +1,5 @@
 #!/usr/bin/python
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 
 import os, sys, time
 
@@ -11,8 +11,8 @@ if not os.path.exists(SMC):
     os.makedirs(SMC)
 
 # ensure that PATH starts with ~/bin, so user can customize what gets run
-os.environ['PATH'] = "%s:%s" % (os.path.join(os.environ['HOME'], 'bin'),
-                                os.environ['PATH'])
+os.environ['PATH'] = "%s:%s" % (os.path.join(os.environ['HOME'],
+                                             'bin'), os.environ['PATH'])
 
 
 def cmd(s):
@@ -40,10 +40,6 @@ def main():
         sys.stdout.flush()
         if i >= 100:
             sys.exit(1)
-
-    # Update the ~/.snapshots path symlinks
-    from update_snapshots import update_snapshots
-    update_snapshots()
 
 
 if __name__ == "__main__":

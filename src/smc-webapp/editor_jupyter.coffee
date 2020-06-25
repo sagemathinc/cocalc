@@ -51,6 +51,7 @@ misc                 = require('smc-util/misc')
 {redux}              = require('./app-framework')
 syncdoc              = require('./syncdoc')
 misc_page            = require('./misc_page')
+{JUPYTER_CLASSIC_OPEN}  = require('./misc/commands')
 
 templates            = $(".smc-jupyter-templates")
 editor_templates     = $("#webapp-editor-templates")
@@ -856,7 +857,7 @@ class JupyterNotebook extends EventEmitter
 
     ensure_nonempty: (cb) =>
         webapp_client.exec
-            command    : 'cc-jupyter-classic-open'
+            command    : JUPYTER_CLASSIC_OPEN
             project_id : @project_id
             path       : @path
             args       : [@file]

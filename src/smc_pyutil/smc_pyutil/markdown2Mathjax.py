@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import absolute_import, print_function
 __version_info__ = (0, 3, 9)
 __version__ = '.'.join(map(str, __version_info__))
 __author__ = "Matthew Young"
@@ -38,8 +41,8 @@ def sanitizeInput(string,
     """
     #Check placeholder is valid.
     if not markdown_safe(placeholder):
-        raise ValueError(
-            "Placeholder %s altered by markdown processing." % placeholder)
+        raise ValueError("Placeholder %s altered by markdown processing." %
+                         placeholder)
     #really what we want is a reverse markdown function, but as that's too much work, this will do
     inline_left = re.compile("(?<!\\\\)" + re.escape(inline_delims[0]))
     inline_right = re.compile("(?<!\\\\)" + re.escape(inline_delims[1]))
@@ -146,7 +149,7 @@ def reconstructMath(processedString,
     #Make html substitutions.
     if htmlSafe:
         safeAmp = re.compile("&(?!(?:amp;|lt;|gt;))")
-        for i in xrange(len(codeblocks)):
+        for i in range(len(codeblocks)):
             codeblocks[i] = safeAmp.sub("&amp;", codeblocks[i])
             codeblocks[i] = codeblocks[i].replace("<", "&lt;")
             codeblocks[i] = codeblocks[i].replace(">", "&gt;")
@@ -154,7 +157,7 @@ def reconstructMath(processedString,
     outString = ''
     scan = placeholder_re.scanner(processedString)
     post = 0
-    for i in xrange(len(codeblocks)):
+    for i in range(len(codeblocks)):
         inBlock = int(codeblocks[i][0])
         match = scan.search()
         if not match:

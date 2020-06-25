@@ -14,6 +14,7 @@ const TimeAgo = require("react-timeago").default;
 const { Button, ButtonGroup, Modal } = require("react-bootstrap");
 const misc = require("smc-util/misc");
 import { JupyterActions } from "./browser-actions";
+import { IPYNB2PDF } from "../misc/commands";
 
 const NAMES = {
   python: { ext: "py", display: "Python", internal: true },
@@ -231,7 +232,7 @@ export class NBConvert extends Component<NBConvertProps> {
       this.props.nbconvert_dialog != null &&
       this.props.nbconvert_dialog.get("to") === "chromium-pdf"
     ) {
-      cmd = shell_escape(["cc-ipynb-to-pdf", tail]);
+      cmd = shell_escape([IPYNB2PDF, tail]);
     } else if (
       this.props.nbconvert_dialog != null &&
       this.props.nbconvert_dialog.get("to") === "sagews"
@@ -376,8 +377,8 @@ export class NBConvert extends Component<NBConvertProps> {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          Use View &rarr; Slideshow to turn your Jupyter notebook into a slideshow.
-          One click display of slideshows is{" "}
+          Use View &rarr; Slideshow to turn your Jupyter notebook into a
+          slideshow. One click display of slideshows is{" "}
           <a
             target="_blank"
             rel="noopener"

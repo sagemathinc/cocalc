@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 ######################################################################
 # This is a daemon-ization script for the IPython notebook, for running
@@ -18,6 +19,7 @@
 # The views and conclusions contained in the software and documentation are those of the authors and should not be interpreted as representing official policies, either expressed or implied, of the SageMath Project.
 ######################################################################
 
+from __future__ import absolute_import, print_function
 import json, os, random, signal, sys, time
 
 
@@ -169,7 +171,8 @@ def action(mode):
             #sys.stderr.write("tries... %s\n"%tries); sys.stderr.flush()
             if tries >= 20:
                 print(
-                    json.dumps({"error": "Failed to find pid of subprocess."}))
+                    (json.dumps({"error":
+                                 "Failed to find pid of subprocess."})))
                 sys.exit(1)
 
             c = "ps -u`whoami` -o pid,cmd|grep 'jupyter-notebook'"

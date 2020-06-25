@@ -73,7 +73,7 @@ smc_compute = (opts) =>
     if DEV
         winston.debug("dev_smc_compute: running #{misc.to_json(opts.args)}")
         os_path = require('path')
-        command = os_path.join(process.env.SALVUS_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
+        command = os_path.join(process.env.SMC_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
         PROJECT_PATH = conf.project_path()
         v = ['--dev', "--projects", PROJECT_PATH]
     else

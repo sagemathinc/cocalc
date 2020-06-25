@@ -3,9 +3,10 @@
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
 # License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
-import argparse, codecs, json, os
+from __future__ import absolute_import, print_function
 
-import sagews2pdf
+import argparse, codecs, json, os
+from . import sagews2pdf
 
 
 def ipynb_string_list(s):

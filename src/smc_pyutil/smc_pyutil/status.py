@@ -2,6 +2,7 @@
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
 # License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
+from __future__ import absolute_import, print_function
 import json, os
 
 SMC = os.environ['SMC']
@@ -47,9 +48,11 @@ def main():
             set(daemon + '.pid', False)
 
     for name in [
-            'secret_token', 'local_hub/local_hub.port', 'local_hub/raw.port',
+            'secret_token',
+            'local_hub/local_hub.port',
+            'local_hub/raw.port',
             'console_server/console_server.port',
-            'sage_server/sage_server.port'
+            'sage_server/sage_server.port',
     ]:
         to_int = 'port' in name
         read(name.split('/')[-1], os.path.join(SMC, name), to_int=to_int)
