@@ -131,14 +131,14 @@ export const Build: React.FC<Props> = React.memo((props) => {
   ) {
     const style: React.CSSProperties = {
       fontFamily: "monospace",
-      whiteSpace: "pre-line" as "pre-line",
+      whiteSpace: "pre-line",
       color: COLORS.GRAY_D,
       background: COLORS.GRAY_LLL,
       display: "block",
       width: "100%",
       padding: "5px",
       fontSize: `${font_size}px`,
-      overflowY: "auto" as "auto",
+      overflowY: "auto",
       margin: "0",
     };
     const err_style = error ? { background: COLORS.ATND_BG_RED_L } : undefined;
@@ -176,8 +176,13 @@ export const Build: React.FC<Props> = React.memo((props) => {
 
   function render_logs(): Rendered {
     if (status) return;
+    // Regarding scrolling, it would be way better to have height 100% on Tabs and also on
+    // the container of the tab body, and then only overflowY on the tab body, so only the log
+    // itself scrolls rather than the tabs too.  But I don't see how to do that given what
+    // antd trivially exposes.  I'll leave that to followup works.
     return (
       <Tabs
+        style={{ height: "100%", overflowY: "auto" }}
         tabPosition={"left"}
         size={"small"}
         activeKey={active_tab}
