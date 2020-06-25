@@ -1,7 +1,9 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
 # License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
-# -*- coding: utf-8 -*-
+
 """
 Open and modify Microsoft Word 2007 docx files (called 'OpenXML' and
 'Office OpenXML' by Microsoft)
@@ -10,8 +12,11 @@ Part of Python's docx module - http://github.com/mikemaccana/python-docx
 See LICENSE for licensing information.
 """
 
+from __future__ import absolute_import, print_function
+
 import logging
 from lxml import etree
+from .py23 import text_type, py2encodestr
 try:
     from PIL import Image
 except ImportError:
@@ -35,54 +40,36 @@ if not os.path.isdir(template_dir):
 # LXML doesn't actually use prefixes (just the real namespace) , but these
 # make it easier to copy Word output more easily.
 nsprefixes = {
-    'mo':
-    'http://schemas.microsoft.com/office/mac/office/2008/main',
-    'o':
-    'urn:schemas-microsoft-com:office:office',
-    've':
-    'http://schemas.openxmlformats.org/markup-compatibility/2006',
+    'mo': 'http://schemas.microsoft.com/office/mac/office/2008/main',
+    'o': 'urn:schemas-microsoft-com:office:office',
+    've': 'http://schemas.openxmlformats.org/markup-compatibility/2006',
     # Text Content
-    'w':
-    'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
-    'w10':
-    'urn:schemas-microsoft-com:office:word',
-    'wne':
-    'http://schemas.microsoft.com/office/word/2006/wordml',
+    'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+    'w10': 'urn:schemas-microsoft-com:office:word',
+    'wne': 'http://schemas.microsoft.com/office/word/2006/wordml',
     # Drawing
-    'a':
-    'http://schemas.openxmlformats.org/drawingml/2006/main',
-    'm':
-    'http://schemas.openxmlformats.org/officeDocument/2006/math',
-    'mv':
-    'urn:schemas-microsoft-com:mac:vml',
-    'pic':
-    'http://schemas.openxmlformats.org/drawingml/2006/picture',
-    'v':
-    'urn:schemas-microsoft-com:vml',
+    'a': 'http://schemas.openxmlformats.org/drawingml/2006/main',
+    'm': 'http://schemas.openxmlformats.org/officeDocument/2006/math',
+    'mv': 'urn:schemas-microsoft-com:mac:vml',
+    'pic': 'http://schemas.openxmlformats.org/drawingml/2006/picture',
+    'v': 'urn:schemas-microsoft-com:vml',
     'wp':
     'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing',
     # Properties (core and extended)
     'cp':
     'http://schemas.openxmlformats.org/package/2006/metadata/core-properties',
-    'dc':
-    'http://purl.org/dc/elements/1.1/',
+    'dc': 'http://purl.org/dc/elements/1.1/',
     'ep':
     'http://schemas.openxmlformats.org/officeDocument/2006/extended-properties',
-    'xsi':
-    'http://www.w3.org/2001/XMLSchema-instance',
+    'xsi': 'http://www.w3.org/2001/XMLSchema-instance',
     # Content Types
-    'ct':
-    'http://schemas.openxmlformats.org/package/2006/content-types',
+    'ct': 'http://schemas.openxmlformats.org/package/2006/content-types',
     # Package Relationships
-    'r':
-    'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
-    'pr':
-    'http://schemas.openxmlformats.org/package/2006/relationships',
+    'r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
+    'pr': 'http://schemas.openxmlformats.org/package/2006/relationships',
     # Dublin Core document properties
-    'dcmitype':
-    'http://purl.org/dc/dcmitype/',
-    'dcterms':
-    'http://purl.org/dc/terms/'
+    'dcmitype': 'http://purl.org/dc/dcmitype/',
+    'dcterms': 'http://purl.org/dc/terms/'
 }
 
 
@@ -162,13 +149,12 @@ def pagebreak(type='page', orient='portrait'):
         if orient == 'portrait':
             pgSz = makeelement('pgSz', attributes={'w': '12240', 'h': '15840'})
         elif orient == 'landscape':
-            pgSz = makeelement(
-                'pgSz',
-                attributes={
-                    'h': '12240',
-                    'w': '15840',
-                    'orient': 'landscape'
-                })
+            pgSz = makeelement('pgSz',
+                               attributes={
+                                   'h': '12240',
+                                   'w': '15840',
+                                   'orient': 'landscape'
+                               })
         sectPr.append(pgSz)
         pPr.append(sectPr)
         pagebreak.append(pPr)
@@ -278,13 +264,12 @@ def contenttypes():
     }
     for part in parts:
         types.append(
-            makeelement(
-                'Override',
-                nsprefix=None,
-                attributes={
-                    'PartName': part,
-                    'ContentType': parts[part]
-                }))
+            makeelement('Override',
+                        nsprefix=None,
+                        attributes={
+                            'PartName': part,
+                            'ContentType': parts[part]
+                        }))
     # Add support for filetypes
     filetypes = {
         'gif': 'image/gif',
@@ -296,13 +281,12 @@ def contenttypes():
     }
     for extension in filetypes:
         types.append(
-            makeelement(
-                'Default',
-                nsprefix=None,
-                attributes={
-                    'Extension': extension,
-                    'ContentType': filetypes[extension]
-                }))
+            makeelement('Default',
+                        nsprefix=None,
+                        attributes={
+                            'Extension': extension,
+                            'ContentType': filetypes[extension]
+                        }))
     return types
 
 
@@ -312,8 +296,8 @@ def heading(headingtext, headinglevel, lang='en'):
     # Make our elements
     paragraph = makeelement('p')
     pr = makeelement('pPr')
-    pStyle = makeelement(
-        'pStyle', attributes={'val': lmap[lang] + str(headinglevel)})
+    pStyle = makeelement('pStyle',
+                         attributes={'val': lmap[lang] + str(headinglevel)})
     run = makeelement('r')
     text = makeelement('t', tagtext=headingtext)
     # Add the text the run, and the run to the paragraph
@@ -376,20 +360,20 @@ def table(contents,
     tableprops = makeelement('tblPr')
     tablestyle = makeelement('tblStyle', attributes={'val': ''})
     tableprops.append(tablestyle)
-    tablewidth = makeelement(
-        'tblW', attributes={
-            'w': str(tblw),
-            'type': str(twunit)
-        })
+    tablewidth = makeelement('tblW',
+                             attributes={
+                                 'w': str(tblw),
+                                 'type': str(twunit)
+                             })
     tableprops.append(tablewidth)
-    if len(borders.keys()):
+    if len(list(borders.keys())):
         tableborders = makeelement('tblBorders')
         for b in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']:
-            if b in borders.keys() or 'all' in borders.keys():
-                k = 'all' if 'all' in borders.keys() else b
+            if b in list(borders.keys()) or 'all' in list(borders.keys()):
+                k = 'all' if 'all' in list(borders.keys()) else b
                 attrs = {}
                 for a in borders[k].keys():
-                    attrs[a] = unicode(borders[k][a])
+                    attrs[a] = text_type(borders[k][a])
                 borderelem = makeelement(b, attributes=attrs)
                 tableborders.append(borderelem)
         tableprops.append(tableborders)
@@ -400,8 +384,8 @@ def table(contents,
     tablegrid = makeelement('tblGrid')
     for i in range(columns):
         tablegrid.append(
-            makeelement(
-                'gridCol', attributes={'w': str(colw[i]) if colw else '2390'}))
+            makeelement('gridCol',
+                        attributes={'w': str(colw[i]) if colw else '2390'}))
     table.append(tablegrid)
     # Heading Row
     row = makeelement('tr')
@@ -420,15 +404,14 @@ def table(contents,
             else:
                 wattr = {'w': '0', 'type': 'auto'}
             cellwidth = makeelement('tcW', attributes=wattr)
-            cellstyle = makeelement(
-                'shd',
-                attributes={
-                    'val': 'clear',
-                    'color': 'auto',
-                    'fill': 'FFFFFF',
-                    'themeFill': 'text2',
-                    'themeFillTint': '99'
-                })
+            cellstyle = makeelement('shd',
+                                    attributes={
+                                        'val': 'clear',
+                                        'color': 'auto',
+                                        'fill': 'FFFFFF',
+                                        'themeFill': 'text2',
+                                        'themeFillTint': '99'
+                                    })
             cellprops.append(cellwidth)
             cellprops.append(cellstyle)
             cell.append(cellprops)
@@ -465,7 +448,7 @@ def table(contents,
                 if isinstance(c, etree._Element):
                     cell.append(c)
                 else:
-                    if celstyle and 'align' in celstyle[i].keys():
+                    if celstyle and 'align' in list(celstyle[i].keys()):
                         align = celstyle[i]['align']
                     else:
                         align = 'left'
@@ -517,11 +500,10 @@ def picture(relationshiplist,
     # 1. The Blipfill - specifies how the image fills the picture area (stretch, tile, etc.)
     blipfill = makeelement('blipFill', nsprefix='pic')
     blipfill.append(
-        makeelement(
-            'blip',
-            nsprefix='a',
-            attrnsprefix='r',
-            attributes={'embed': picrelid}))
+        makeelement('blip',
+                    nsprefix='a',
+                    attrnsprefix='r',
+                    attributes={'embed': picrelid}))
     stretch = makeelement('stretch', nsprefix='a')
     stretch.append(makeelement('fillRect', nsprefix='a'))
     blipfill.append(makeelement('srcRect', nsprefix='a'))
@@ -529,24 +511,22 @@ def picture(relationshiplist,
 
     # 2. The non visual picture properties
     nvpicpr = makeelement('nvPicPr', nsprefix='pic')
-    cnvpr = makeelement(
-        'cNvPr',
-        nsprefix='pic',
-        attributes={
-            'id': '0',
-            'name': 'Picture 1',
-            'descr': picname
-        })
+    cnvpr = makeelement('cNvPr',
+                        nsprefix='pic',
+                        attributes={
+                            'id': '0',
+                            'name': 'Picture 1',
+                            'descr': picname
+                        })
     nvpicpr.append(cnvpr)
     cnvpicpr = makeelement('cNvPicPr', nsprefix='pic')
     cnvpicpr.append(
-        makeelement(
-            'picLocks',
-            nsprefix='a',
-            attributes={
-                'noChangeAspect': str(int(nochangeaspect)),
-                'noChangeArrowheads': str(int(nochangearrowheads))
-            }))
+        makeelement('picLocks',
+                    nsprefix='a',
+                    attributes={
+                        'noChangeAspect': str(int(nochangeaspect)),
+                        'noChangeArrowheads': str(int(nochangearrowheads))
+                    }))
     nvpicpr.append(cnvpicpr)
 
     # 3. The Shape properties
@@ -558,13 +538,15 @@ def picture(relationshiplist,
             'y': '0'
         }))
     xfrm.append(
-        makeelement(
-            'ext', nsprefix='a', attributes={
-                'cx': width,
-                'cy': height
-            }))
-    prstgeom = makeelement(
-        'prstGeom', nsprefix='a', attributes={'prst': 'rect'})
+        makeelement('ext',
+                    nsprefix='a',
+                    attributes={
+                        'cx': width,
+                        'cy': height
+                    }))
+    prstgeom = makeelement('prstGeom',
+                           nsprefix='a',
+                           attributes={'prst': 'rect'})
     prstgeom.append(makeelement('avLst', nsprefix='a'))
     sppr.append(xfrm)
     sppr.append(prstgeom)
@@ -577,52 +559,51 @@ def picture(relationshiplist,
 
     # Now make the supporting elements
     # The following sequence is just: make element, then add its children
-    graphicdata = makeelement(
-        'graphicData',
-        nsprefix='a',
-        attributes={
-            'uri': 'http://schemas.openxmlforma'
-            'ts.org/drawingml/2006/picture'
-        })
+    graphicdata = makeelement('graphicData',
+                              nsprefix='a',
+                              attributes={
+                                  'uri':
+                                  'http://schemas.openxmlforma'
+                                  'ts.org/drawingml/2006/picture'
+                              })
     graphicdata.append(pic)
     graphic = makeelement('graphic', nsprefix='a')
     graphic.append(graphicdata)
 
-    framelocks = makeelement(
-        'graphicFrameLocks', nsprefix='a', attributes={'noChangeAspect': '1'})
+    framelocks = makeelement('graphicFrameLocks',
+                             nsprefix='a',
+                             attributes={'noChangeAspect': '1'})
     framepr = makeelement('cNvGraphicFramePr', nsprefix='wp')
     framepr.append(framelocks)
-    docpr = makeelement(
-        'docPr',
-        nsprefix='wp',
-        attributes={
-            'id': picid,
-            'name': 'Picture 1',
-            'descr': picdescription
-        })
-    effectextent = makeelement(
-        'effectExtent',
-        nsprefix='wp',
-        attributes={
-            'l': '25400',
-            't': '0',
-            'r': '0',
-            'b': '0'
-        })
-    extent = makeelement(
-        'extent', nsprefix='wp', attributes={
-            'cx': width,
-            'cy': height
-        })
-    inline = makeelement(
-        'inline',
-        attributes={
-            'distT': "0",
-            'distB': "0",
-            'distL': "0",
-            'distR': "0"
-        },
-        nsprefix='wp')
+    docpr = makeelement('docPr',
+                        nsprefix='wp',
+                        attributes={
+                            'id': picid,
+                            'name': 'Picture 1',
+                            'descr': picdescription
+                        })
+    effectextent = makeelement('effectExtent',
+                               nsprefix='wp',
+                               attributes={
+                                   'l': '25400',
+                                   't': '0',
+                                   'r': '0',
+                                   'b': '0'
+                               })
+    extent = makeelement('extent',
+                         nsprefix='wp',
+                         attributes={
+                             'cx': width,
+                             'cy': height
+                         })
+    inline = makeelement('inline',
+                         attributes={
+                             'distT': "0",
+                             'distB': "0",
+                             'distL': "0",
+                             'distR': "0"
+                         },
+                         nsprefix='wp')
     inline.append(extent)
     inline.append(effectextent)
     inline.append(docpr)
@@ -763,7 +744,7 @@ def AdvSearch(document, search, bs=3):
                         if found:
                             break
                         if s + l <= len(searchels):
-                            e = range(s, s + l)
+                            e = list(range(s, s + l))
                             txtsearch = ''
                             for k in e:
                                 txtsearch += searchels[k].text
@@ -851,7 +832,7 @@ def advReplace(document, search, replace, bs=3):
                         if found:
                             break
                         if s + l <= len(searchels):
-                            e = range(s, s + l)
+                            e = list(range(s, s + l))
                             #print "elems:", e
                             txtsearch = ''
                             for k in e:
@@ -871,7 +852,7 @@ def advReplace(document, search, replace, bs=3):
                                               replace)
                                     log.debug("Matched text: %s", txtsearch)
                                     log.debug("Matched text (splitted): %s",
-                                              map(lambda i: i.text, searchels))
+                                              [i.text for i in searchels])
                                     log.debug("Matched at position: %s",
                                               match.start())
                                     log.debug("matched in elements: %s", e)
@@ -966,8 +947,8 @@ def coreproperties(title, subject, creator, keywords, lastmodifiedby=None):
     coreprops.append(
         makeelement('lastModifiedBy', tagtext=lastmodifiedby, nsprefix='cp'))
     coreprops.append(makeelement('revision', tagtext='1', nsprefix='cp'))
-    coreprops.append(
-        makeelement('category', tagtext='Examples', nsprefix='cp'))
+    coreprops.append(makeelement('category', tagtext='Examples',
+                                 nsprefix='cp'))
     coreprops.append(
         makeelement('description', tagtext='Examples', nsprefix='dc'))
     currenttime = time.strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -1054,14 +1035,13 @@ def wordrelationships(relationshiplist):
     count = 0
     for relationship in relationshiplist:
         # Relationship IDs (rId) start at 1.
-        rel_elm = makeelement(
-            'Relationship',
-            nsprefix=None,
-            attributes={
-                'Id': 'rId' + str(count + 1),
-                'Type': relationship[0],
-                'Target': relationship[1]
-            })
+        rel_elm = makeelement('Relationship',
+                              nsprefix=None,
+                              attributes={
+                                  'Id': 'rId' + str(count + 1),
+                                  'Type': relationship[0],
+                                  'Target': relationship[1]
+                              })
         relationships.append(rel_elm)
         count += 1
     return relationships
@@ -1071,8 +1051,9 @@ def savedocx(document, coreprops, appprops, contenttypes, websettings,
              wordrelationships, output):
     '''Save a modified document'''
     assert os.path.isdir(template_dir)
-    docxfile = zipfile.ZipFile(
-        output, mode='w', compression=zipfile.ZIP_DEFLATED)
+    docxfile = zipfile.ZipFile(output,
+                               mode='w',
+                               compression=zipfile.ZIP_DEFLATED)
 
     # Move to the template data path
     prev_dir = os.path.abspath('.')  # save previous working dir
@@ -1135,7 +1116,7 @@ def main():
     # Make explicit unicode version
     newparatextlist = []
     for paratext in paratextlist:
-        newparatextlist.append(paratext.encode("utf-8"))
+        newparatextlist.append(py2encodestr(paratext))
 
     ## Print our documnts test with two newlines under each paragraph
     newfile.write('\n\n'.join(newparatextlist))

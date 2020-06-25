@@ -14,6 +14,7 @@ Authors:
 """
 
 from __future__ import print_function
+from __future__ import absolute_import
 import json
 from ansi2html import Ansi2HTMLConverter
 

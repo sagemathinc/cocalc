@@ -183,6 +183,7 @@ export class AppRedux {
   getActions(name: "projects"): ProjectsActions;
   getActions(name: "billing"): BillingActions;
   getActions(name: "page"): any;
+  getActions(name: "support"): any;
   getActions(name: "admin-users"): AdminUsersActions;
   getActions(name: "admin-site-licenses"): SiteLicensesActions;
   getActions(name: "mentions"): MentionsActions;
@@ -246,6 +247,7 @@ export class AppRedux {
   getStore(name: "projects"): ProjectsStore;
   getStore(name: "billing"): BillingStore;
   getStore(name: "page"): any;
+  getStore(name: "support"): any;
   getStore(name: "admin-users"): AdminUsersStore;
   getStore(name: "admin-site-licenses"): SiteLicensesStore;
   getStore(name: "mentions"): MentionsStore;
@@ -670,7 +672,7 @@ export function project_redux_name(project_id: string, name?: string): string {
   return s;
 }
 
-class Redux extends React.Component {
+export class Redux extends React.Component {
   render() {
     return React.createElement(
       Provider,
@@ -698,7 +700,6 @@ export { computed };
 export { React };
 export type CSS = React.CSSProperties;
 export const { Fragment } = React;
-export { Redux };
 export { redux }; // global redux singleton
 export { Actions };
 export { Table };
@@ -771,7 +772,7 @@ export function useReduxNamedStore(path: string[]) {
       // TODO: I could make it return undefined until the store is created.
       // I *did* do this for useReduxEditorStore, but just haven't gotten
       // around to doing this for useReduxNamedStore yet.
-      throw Error(`store ${path[0]} must exist!`);
+      throw Error(`store "${path[0]}" must exist!`);
     }
     const subpath = path.slice(1);
     let last_value = value;
@@ -928,6 +929,7 @@ export function useActions(name: "account"): AccountActions;
 export function useActions(name: "projects"): ProjectsActions;
 export function useActions(name: "billing"): BillingActions;
 export function useActions(name: "page"): any;
+export function useActions(name: "support"): any;
 export function useActions(name: "admin-users"): AdminUsersActions;
 export function useActions(name: "admin-site-licenses"): SiteLicensesActions;
 export function useActions(name: "mentions"): MentionsActions;
@@ -957,6 +959,7 @@ export function useStore(name: "account"): AccountStore;
 export function useStore(name: "projects"): ProjectsStore;
 export function useStore(name: "billing"): BillingStore;
 export function useStore(name: "page"): any;
+export function useStore(name: "support"): any;
 export function useStore(name: "admin-users"): AdminUsersStore;
 export function useStore(name: "admin-site-licenses"): SiteLicensesStore;
 export function useStore(name: "mentions"): MentionsStore;

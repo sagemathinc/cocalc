@@ -1114,7 +1114,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       log += s + "\n";
       const build_logs: BuildLogs = this.store.get("build_logs");
       this.setState({
-        build_logs: build_logs.set("clean", fromJS({ stdout: log })),
+        build_logs: build_logs.set("clean", fromJS({ output: log })),
       });
     };
 

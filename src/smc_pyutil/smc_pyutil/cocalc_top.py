@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
 # License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
@@ -24,6 +25,7 @@ Notes:
 * All time related units are seconds or UTC.
 * Some values have human readable string counterparts, they are `*_h`.
 '''
+from __future__ import absolute_import, division
 import os
 from os.path import join
 from json import load

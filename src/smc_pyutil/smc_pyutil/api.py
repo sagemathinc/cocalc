@@ -1,9 +1,13 @@
+# -*- coding: utf-8 -*-
+
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
 # License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
 # This code will work in both Python 2 and Python 3 to get
 # the history of edits of a file in a project, using the
 # project HTTP API.
+
+from __future__ import absolute_import
 
 
 def get_syncdoc_history(path, patches=False):

@@ -9,73 +9,67 @@ import { Modal } from "react-bootstrap";
 import { Button, Row, Col } from "../antd-bootstrap";
 import { webapp_client } from "../webapp-client";
 
-interface Props {
-  ping: number;
-  avgping: number;
-  status: string;
-}
+export const ConnectionInfo: React.FC = React.memo(() => {
+  const ping = useRedux(["page", "ping"]);
+  const avgping = useRedux(["page", "avgping"]);
+  const status = useRedux(["page", "connection_status"]);
+  const hub = useRedux(["account", "hub"]);
+  const page_actions = useActions("page");
 
-export const ConnectionInfo: React.FC<Props> = React.memo(
-  ({ ping, avgping, status }) => {
-    const hub = useRedux(["account", "hub"]);
-    const page_actions = useActions("page");
-
-    function close() {
-      page_actions.show_connection(false);
-    }
-
-    return (
-      <Modal bsSize={"large"} show={true} onHide={close} animation={false}>
-        <Modal.Header closeButton>
-          <Modal.Title>
-            <Icon name="wifi" style={{ marginRight: "1em" }} /> Connection
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div>
-            {ping ? (
-              <Row>
-                <Col sm={3}>
-                  <h4>Ping time</h4>
-                </Col>
-                <Col sm={6}>
-                  <pre>
-                    {avgping}ms (latest: {ping}ms)
-                  </pre>
-                </Col>
-              </Row>
-            ) : undefined}
-            <Row>
-              <Col sm={3}>
-                <h4>Hub server</h4>
-              </Col>
-              <Col sm={6}>
-                <pre>{hub != null ? hub : "Not signed in"}</pre>
-              </Col>
-              <Col sm={2}>
-                <Button onClick={webapp_client.hub_client.fix_connection}>
-                  <Icon name="repeat" spin={status === "connecting"} />{" "}
-                  Reconnect
-                </Button>
-              </Col>
-            </Row>
-            <Row>
-              <Col sm={3}>
-                <h4>Messages</h4>
-              </Col>
-              <Col sm={6}>
-                <MessageInfo />
-              </Col>
-            </Row>
-          </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button onClick={close}>Close</Button>
-        </Modal.Footer>
-      </Modal>
-    );
+  function close() {
+    page_actions.show_connection(false);
   }
-);
+
+  return (
+    <Modal bsSize={"large"} show={true} onHide={close} animation={false}>
+      <Modal.Header closeButton>
+        <Modal.Title>
+          <Icon name="wifi" style={{ marginRight: "1em" }} /> Connection
+        </Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <div>
+          {ping ? (
+            <Row>
+              <Col sm={3}>
+                <h4>Ping time</h4>
+              </Col>
+              <Col sm={6}>
+                <pre>
+                  {avgping}ms (latest: {ping}ms)
+                </pre>
+              </Col>
+            </Row>
+          ) : undefined}
+          <Row>
+            <Col sm={3}>
+              <h4>Hub server</h4>
+            </Col>
+            <Col sm={6}>
+              <pre>{hub != null ? hub : "Not signed in"}</pre>
+            </Col>
+            <Col sm={2}>
+              <Button onClick={webapp_client.hub_client.fix_connection}>
+                <Icon name="repeat" spin={status === "connecting"} /> Reconnect
+              </Button>
+            </Col>
+          </Row>
+          <Row>
+            <Col sm={3}>
+              <h4>Messages</h4>
+            </Col>
+            <Col sm={6}>
+              <MessageInfo />
+            </Col>
+          </Row>
+        </div>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button onClick={close}>Close</Button>
+      </Modal.Footer>
+    </Modal>
+  );
+});
 
 function bytes_to_str(bytes: number): string {
   const x = Math.round(bytes / 1000);

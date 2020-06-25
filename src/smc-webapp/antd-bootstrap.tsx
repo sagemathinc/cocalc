@@ -15,7 +15,15 @@ some serious problems / bug /issues with using our stupid old react-bootstrap
 */
 
 // TODO: What we haven't converted yet, but do use in CoCalc:
-export { FormControl, FormGroup, Form, InputGroup } from "react-bootstrap";
+export {
+  FormControl,
+  FormGroup,
+  Form,
+  InputGroup,
+  Navbar,
+  Nav,
+  NavItem,
+} from "react-bootstrap";
 
 import { React, Rendered } from "./app-framework";
 import { r_join, Space } from "./r_misc";
@@ -35,7 +43,7 @@ type ButtonStyle =
   | "link";
 
 const BS_STYLE_TO_TYPE: {
-  [name: string]: "primary" | "default" | "dashed" | "danger" | "link";
+  [name in ButtonStyle]: "primary" | "default" | "dashed" | "danger" | "link";
 } = {
   primary: "primary",
   success: "default", // antd doesn't have this so we do it via style below.
@@ -108,6 +116,7 @@ export function Button(props: {
   href?: string;
   target?: string;
   title?: string;
+  id?: string;
 }) {
   // The span is needed inside below, otherwise icons and labels get squashed together
   // due to button having word-spacing 0.
@@ -134,6 +143,7 @@ export function Button(props: {
       ghost={ghost}
       loading={loading}
       title={props.title}
+      id={props.id}
     >
       <span>{props.children}</span>
     </antd.Button>

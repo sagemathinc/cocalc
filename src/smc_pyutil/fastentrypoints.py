@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Copyright (c) 2016, Aaron Christianson
 # All rights reserved.
 #
@@ -35,6 +37,8 @@ This is better.
 (c) 2016, Aaron Christianson
 http://github.com/ninjaaron/fast-entry_points
 '''
+from __future__ import absolute_import
+from __future__ import print_function
 from setuptools.command import easy_install
 import re
 TEMPLATE = '''\

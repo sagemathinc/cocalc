@@ -1,13 +1,15 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
 # License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
 # this script converts an html-exported sagews file back to sagews
 
-from __future__ import print_function, unicode_literals
+from __future__ import print_function, unicode_literals, absolute_import
 
 import sys
-import urllib
+from .py23 import unquote, PY3
 import base64
 
 
@@ -28,7 +30,9 @@ def extract(in_fn, out_fn):
     base64str = href.split(',', 1)
     if len(base64str) <= 1:
         raise Exception("unable to parse href data")
-    data = base64.b64decode(urllib.unquote(base64str[1]))
+    data = base64.b64decode(unquote(base64str[1]))
+    if PY3:
+        data = data.decode('utf8')
     open(out_fn, 'w').write(data)
 
 

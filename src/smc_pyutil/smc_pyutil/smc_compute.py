@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 ###############################################################################
 #
@@ -20,6 +21,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
+
+from __future__ import absolute_import, print_function, division
+from smc_pyutil.py23 import iteritems
 
 # used in naming streams -- changing this would break all existing data...
 TO = "-to-"
@@ -780,7 +784,7 @@ spec:
             # when the user's quota is exceeded, the last column is "ERROR"
             if quotas == "ERROR":
                 quotas = v[-2]
-            s['disk_MB'] = int(quotas.split()[-6].strip('*')) / 1000
+            s['disk_MB'] = int(int(quotas.split()[-6].strip('*')) / 1000)
         except Exception as mesg:
             log("error computing quota -- %s", mesg)
 
@@ -1019,7 +1023,7 @@ spec:
 
         # Fill in other OS information about each file
         #for obj in result:
-        for name, info in files.iteritems():
+        for name, info in iteritems(files):
             if os.path.isdir(os.path.join(abspath, name)):
                 info['isdir'] = True
             else:
@@ -1258,8 +1262,8 @@ spec:
             ] + exclude + w)
             # do the rsync
             self.cmd(v, verbose=2)
-        except Exception as mesg:
-            mesg = str(mesg)
+        except Exception as mesg_err:
+            mesg = str(mesg_err)
             # get rid of scary (and pointless) part of message
             s = "avoid man-in-the-middle attacks"
             i = mesg.rfind(s)
