@@ -3,44 +3,44 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/* This defines the entire Cocalc page layout and brings in
+/*
+This defines the entire **desktop** Cocalc page layout and brings in
 everything on *desktop*, once the user has signed in.
-
 */
 
 declare var DEBUG: boolean;
 
 // TODO:
-const { ProjectsNav } = require("../../projects_nav");
-const { Support } = require("../../support");
+const { ProjectsNav } = require("../projects_nav");
+const { Support } = require("../support");
 
 import { COLORS } from "smc-util/theme";
 
-import { Button, Navbar, Nav, NavItem } from "../../antd-bootstrap";
+import { Button, Navbar, Nav, NavItem } from "../antd-bootstrap";
 import {
   React,
   useActions,
   useEffect,
   useState,
   useRedux,
-} from "../../app-framework";
-import { SiteName } from "../../customize";
-import { alert_message } from "../../alerts";
-import { Avatar } from "../../account/avatar/avatar";
-import { NavTab } from "../nav-tab";
-import { ErrorBoundary, Loading } from "../../r_misc";
-import { ActiveContent } from "../active-content";
-import { FullscreenButton } from "../fullscreen-button";
+} from "../app-framework";
+import { SiteName } from "../customize";
+import { alert_message } from "../alerts";
+import { Avatar } from "../account/avatar/avatar";
+import { NavTab } from "./nav-tab";
+import { ErrorBoundary, Loading } from "../r_misc";
+import { ActiveContent } from "./active-content";
+import { FullscreenButton } from "./fullscreen-button";
 import {
   VersionWarning,
   CookieWarning,
   LocalStorageWarning,
-} from "../warnings";
-import { AppLogo } from "../logo";
-import { ConnectionInfo } from "../connection-info";
-import { ConnectionIndicator } from "../connection-indicator";
-import { FileUsePage } from "../../file-use/page";
-import { NotificationBell } from "../notification-bell";
+} from "./warnings";
+import { AppLogo } from "./logo";
+import { ConnectionInfo } from "./connection-info";
+import { ConnectionIndicator } from "./connection-indicator";
+import { FileUsePage } from "../file-use/page";
+import { NotificationBell } from "./notification-bell";
 
 const HIDE_LABEL_THRESHOLD = 6;
 const NAV_HEIGHT = 36;

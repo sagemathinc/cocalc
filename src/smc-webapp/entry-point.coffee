@@ -50,19 +50,8 @@ require('./widget-markdown-input/main').init(redux)
 if fullscreen.COCALC_MINIMAL
     require('./iframe-communication').init()
 
-mobile = require('./mobile_app')
-desktop = require('./app/desktop/render')
-
-# Feature must be loaded before account and anything that might use cookies or localStorage,
-# but after app-framework and the basic app definition.
-{IS_MOBILE, isMobile} = require('./feature')
-
-if IS_MOBILE and not isMobile.tablet()
-    # Cell-phone version of site, with different
-    # navigation system for selecting projects and files.
-    mobile.render()
-else
-    desktop.render()
+{render} = require('./app/render')
+render()
 
 $(window).on('beforeunload', redux.getActions('page').check_unload)
 
