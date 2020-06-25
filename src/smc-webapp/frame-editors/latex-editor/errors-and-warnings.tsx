@@ -15,6 +15,7 @@ import { TypedMap } from "../../app-framework/TypedMap";
 import { BuildLogs } from "./actions";
 import { Icon, Loading } from "smc-webapp/r_misc";
 import { COLORS } from "../../../smc-util/theme";
+import { use_build_logs } from "./hooks";
 
 function group_to_level(group: string): string {
   switch (group) {
@@ -193,23 +194,7 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
       /*font_size,*/
     } = props;
 
-    const build_logs_next: BuildLogs =
-      useRedux([name, "build_logs"]) ?? Map<string, any>();
-    const [build_logs, set_build_logs] = React.useState<BuildLogs>(
-      Map<string, any>()
-    );
-
-    // only update if any parsed logs differ
-    for (const key of ["latex", "knitr", "pythontex", "sagetex"]) {
-      if (
-        build_logs_next.getIn([key, "parse"]) !=
-        build_logs.getIn([key, "parse"])
-      ) {
-        set_build_logs(build_logs_next);
-        break;
-      }
-    }
-
+    const build_logs: BuildLogs = use_build_logs(name);
     const status: string = useRedux([name, "status"]) ?? "";
     const knitr: boolean = useRedux([name, "knitr"]);
 

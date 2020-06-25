@@ -16,6 +16,8 @@ import { Loading } from "smc-webapp/r_misc";
 import { Tabs } from "antd";
 const { TabPane } = Tabs;
 import { COLORS } from "../../../smc-util/theme";
+import { BuildLogs } from "./actions";
+import { use_build_logs } from "./hooks";
 
 interface IBuildSpec {
   button: boolean;
@@ -114,9 +116,40 @@ export const Build: React.FC<Props> = React.memo((props) => {
   } = props;
 
   const font_size = 0.8 * font_size_orig;
-  const build_logs = useRedux([name, "build_logs"]);
+  const build_logs: BuildLogs = use_build_logs(name);
   const build_command = useRedux([name, "build_command"]);
   const knitr: boolean = useRedux([name, "knitr"]);
+  const [active_tab, set_active_tab] = React.useState<string>(
+    BUILD_SPECS.latex.label
+  );
+
+  function render_tab_body(
+    title: string,
+    value: string,
+    error?: boolean,
+    time_str?: string
+  ) {
+    const style: React.CSSProperties = {
+      fontFamily: "monospace",
+      whiteSpace: "pre-line" as "pre-line",
+      color: COLORS.GRAY_D,
+      background: COLORS.GRAY_LLL,
+      display: "block",
+      width: "100%",
+      padding: "5px",
+      fontSize: `${font_size}px`,
+      overflowY: "auto" as "auto",
+      margin: "0",
+    };
+    const err_style = error ? { background: COLORS.ATND_BG_RED_L } : undefined;
+    const tab_button = <div style={err_style}>{title}</div>;
+    return (
+      <TabPane tab={tab_button} key={title} style={style}>
+        {time_str && `Build time: ${time_str}\n\n`}
+        <Ansi>{value}</Ansi>
+      </TabPane>
+    );
+  }
 
   function render_log(stage): Rendered {
     if (build_logs == null) return;
@@ -127,28 +160,11 @@ export const Build: React.FC<Props> = React.memo((props) => {
     const time: number | undefined = x.get("time");
     const time_str = time ? `(${(time / 1000).toFixed(1)} seconds)` : "";
     const title = BUILD_SPECS[stage].label;
-    return render_tab_body(title, value, time_str);
-  }
-
-  function render_tab_body(title, value, time_str?) {
-    const style = {
-      fontFamily: "monospace",
-      whiteSpace: "pre-line" as "pre-line",
-      color: COLORS.GRAY_D,
-      background: COLORS.GRAY_LLL,
-      display: "block",
-      width: "100%",
-      padding: "5px",
-      fontSize: `${font_size}px`,
-      overflow: "auto",
-      margin: "0",
-    };
-    return (
-      <TabPane tab={title} key={title} style={style}>
-        {`${title} Output ${time_str || ""}\n`}
-        <Ansi>{value}</Ansi>
-      </TabPane>
-    );
+    // highlights tab, if there is at least one parsed error
+    const error = build_logs.getIn([stage, "parse", "errors"]).size > 0;
+    // also show the problematic log to the user
+    if (error && active_tab != title) set_active_tab(title);
+    return render_tab_body(title, value, error, time_str);
   }
 
   function render_clean(): Rendered {
@@ -161,7 +177,12 @@ export const Build: React.FC<Props> = React.memo((props) => {
   function render_logs(): Rendered {
     if (status) return;
     return (
-      <Tabs tabPosition={"left"} size={"small"} style={{}}>
+      <Tabs
+        tabPosition={"left"}
+        size={"small"}
+        activeKey={active_tab}
+        onChange={(key) => set_active_tab(key)}
+      >
         {render_log("latex")}
         {render_log("sagetex")}
         {render_log("pythontex")}
@@ -206,7 +227,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
     <div
       className={"smc-vfill cocalc-latex-build-content"}
       style={{
-        overflowY: "hidden",
+        overflow: "hidden",
         padding: "5px 0 0 5px",
         fontSize: `${font_size}px`,
       }}
