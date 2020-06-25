@@ -24,7 +24,7 @@ misc_page = require('./misc_page')
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent} = require('./app_shared')
+{ActiveContent} = require('./app/active-content')
 {NavTab} = require('./app/nav-tab');
 {ConnectionIndicator} = require('./app/connection-indicator')
 {ConnectionInfo} = require('./app/connection-info')
@@ -344,13 +344,13 @@ Page = rclass
             borderRadius  : 0
             top           : 0
 
-        positionHackHeight = NAV_HEIGHT + 'px'
+        positionHackHeight = (NAV_HEIGHT - 26) + 'px'
 
         <div ref="page" style={style} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
             {<FileUsePageWrapper /> if @props.show_file_use}
             {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} show_pingtime = {@state.show_label}/> if @props.show_connection}
             {<Support actions={@actions('support')} /> if @props.show}
-            {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
+            {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}1
             {<CookieWarning /> if @props.cookie_warning}
             {<LocalStorageWarning /> if @props.local_storage_warning}
             {<Navbar className="smc-top-bar" style={style_top_bar}>
@@ -363,7 +363,7 @@ Page = rclass
             {### Children must define their own padding from navbar and screen borders ###}
             {### Note that the parent is a flex container ###}
             <ErrorBoundary>
-                <ActiveAppContent active_top_tab={@props.active_top_tab} open_projects={@props.open_projects} kiosk_mode={@props.fullscreen == 'kiosk'} />
+                <ActiveContent />
             </ErrorBoundary>
         </div>
 

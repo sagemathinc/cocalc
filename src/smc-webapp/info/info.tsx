@@ -102,7 +102,7 @@ const InfoPageElement = rclass<{}>(
 
       return (
         <Row style={{ padding: "10px", margin: "0px", overflow: "auto" }}>
-          <Col sm={10} smOffset={1} md={8} mdOffset={2} xs={12}>
+          <Col xsOffset={0} xs={12} smOffset={1} sm={9} md={8} mdOffset={2}>
             <h3 style={{ textAlign: "center", marginBottom: "30px" }}>
               {this.render_logo()}
               <br />

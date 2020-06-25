@@ -229,10 +229,16 @@ export function Col(props: {
   const props2: any = {};
   for (const p of ["xs", "sm", "md", "lg"]) {
     if (props[p] != null) {
-      props2[p] = 2 * props[p];
+      if (props2[p] == null) {
+        props2[p] = {};
+      }
+      props2[p].span = 2 * props[p];
     }
     if (props[p + "Offset"] != null) {
-      props2["offset"] = 2 * props[p + "Offset"]; // loss of info
+      if (props2[p] == null) {
+        props2[p] = {};
+      }
+      props2[p].offset = 2 * props[p + "Offset"];
     }
   }
   for (const p of ["className", "onClick", "style"]) {

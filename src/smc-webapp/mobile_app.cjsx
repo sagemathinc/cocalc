@@ -24,7 +24,7 @@ React Component for displaying the entire page on a mobile device.
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent} = require('./app_shared')
+{ActiveContent} = require('./app/active-content')
 {NavTab} = require('./app/nav-tab');
 {ConnectionIndicator} = require('./app/connection-indicator')
 {ConnectionInfo} = require('./app/connection-info')
@@ -198,7 +198,7 @@ Page = rclass
             {@render_menu() if (@state.show_menu and (@props.fullscreen != 'kiosk'))}
             {### Children must define their own padding from navbar and screen borders ###}
             <ErrorBoundary>
-                <ActiveAppContent active_top_tab={@props.active_top_tab} render_small={true} kiosk_mode={@props.fullscreen == 'kiosk'}/>
+                <ActiveContent render_small={true} />
             </ErrorBoundary>
         </div>
 
