@@ -23,8 +23,6 @@ import { Map as iMap } from "immutable";
 import { MentionsMap } from "../notifications/mentions/types";
 
 interface Props {
-  redux: any;
-
   // reduxProps
   file_use?: iMap<string, any>;
   get_sorted_file_use_list2?: Function;
@@ -62,14 +60,14 @@ class FileUsePage extends Component<Props, {}> {
   }
 
   render(): Rendered {
-    const account = this.props.redux.getStore("account");
+    const account = redux.getStore("account");
     if (account == null) {
       return <Loading />;
     }
     const account_id = account.get_account_id();
     if (
       this.props.file_use == null ||
-      this.props.redux == null ||
+      redux == null ||
       this.props.user_map == null ||
       this.props.project_map == null ||
       this.props.mentions == null ||
@@ -82,7 +80,7 @@ class FileUsePage extends Component<Props, {}> {
 
     return (
       <FileUseViewer
-        redux={this.props.redux}
+        redux={redux}
         file_use_list={this.props.get_sorted_file_use_list2()}
         user_map={this.props.user_map}
         project_map={this.props.project_map}
