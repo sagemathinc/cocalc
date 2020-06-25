@@ -10,7 +10,6 @@ Show the last latex build log, i.e., output from last time we ran the LaTeX buil
 import Ansi from "ansi-to-react";
 import { path_split } from "smc-util/misc2";
 import { React, Rendered, useRedux } from "../../app-framework";
-//import { BuildLogs } from "./actions";
 import { BuildCommand } from "./build-command";
 import { Loading } from "smc-webapp/r_misc";
 import { Tabs } from "antd";
@@ -100,7 +99,6 @@ interface Props {
   status: string;
 }
 
-// should memoize function used at the end
 export const Build: React.FC<Props> = React.memo((props) => {
   const {
     /*id,*/
@@ -122,6 +120,8 @@ export const Build: React.FC<Props> = React.memo((props) => {
   const [active_tab, set_active_tab] = React.useState<string>(
     BUILD_SPECS.latex.label
   );
+  const [error_tab, set_error_tab] = React.useState(null);
+  let no_errors = true;
 
   function render_tab_body(
     title: string,
@@ -138,7 +138,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
       width: "100%",
       padding: "5px",
       fontSize: `${font_size}px`,
-      overflowY: "auto" as "auto",
+      overflowY: "auto",
       margin: "0",
     };
     const err_style = error ? { background: COLORS.ATND_BG_RED_L } : undefined;
@@ -163,7 +163,13 @@ export const Build: React.FC<Props> = React.memo((props) => {
     // highlights tab, if there is at least one parsed error
     const error = build_logs.getIn([stage, "parse", "errors"]).size > 0;
     // also show the problematic log to the user
-    if (error && active_tab != title) set_active_tab(title);
+    if (error) {
+      no_errors = false;
+      if (error_tab == null) {
+        set_active_tab(title);
+        set_error_tab(title);
+      }
+    }
     return render_tab_body(title, value, error, time_str);
   }
 
@@ -181,7 +187,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
         tabPosition={"left"}
         size={"small"}
         activeKey={active_tab}
-        onChange={(key) => set_active_tab(key)}
+        onTabClick={(key) => set_active_tab(key)}
       >
         {render_log("latex")}
         {render_log("sagetex")}
@@ -215,13 +221,17 @@ export const Build: React.FC<Props> = React.memo((props) => {
               fontSize: "10pt",
               textAlign: "center",
               marginTop: "15px",
-              color: "#666",
+              color: COLORS.GRAY,
             }}
           />
         </div>
       );
     }
   }
+
+  // if all errors are fixed, clear the state remembering we had an active error tab
+  const logs = render_logs();
+  if (no_errors && error_tab != null) set_error_tab(null);
 
   return (
     <div
@@ -234,7 +244,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
     >
       {render_build_command()}
       {render_status()}
-      {render_logs()}
+      {logs}
     </div>
   );
 });
