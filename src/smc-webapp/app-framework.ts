@@ -770,7 +770,7 @@ export function useReduxNamedStore(path: string[]) {
       // TODO: I could make it return undefined until the store is created.
       // I *did* do this for useReduxEditorStore, but just haven't gotten
       // around to doing this for useReduxNamedStore yet.
-      throw Error(`store ${path[0]} must exist!`);
+      throw Error(`store "${path[0]}" must exist!`);
     }
     const subpath = path.slice(1);
     let last_value = value;

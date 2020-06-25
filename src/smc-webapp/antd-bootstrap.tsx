@@ -35,7 +35,7 @@ type ButtonStyle =
   | "link";
 
 const BS_STYLE_TO_TYPE: {
-  [name: string]: "primary" | "default" | "dashed" | "danger" | "link";
+  [name in ButtonStyle]: "primary" | "default" | "dashed" | "danger" | "link";
 } = {
   primary: "primary",
   success: "default", // antd doesn't have this so we do it via style below.
