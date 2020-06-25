@@ -26,6 +26,7 @@ import {
 } from "../../app-framework";
 import { SiteName } from "../../customize";
 import { alert_message } from "../../alerts";
+import { Avatar } from "../../account/avatar/avatar";
 import { NavTab } from "../nav-tab";
 import { ErrorBoundary, Loading } from "../../r_misc";
 import { ActiveContent } from "../active-content";
@@ -90,14 +91,14 @@ const PAGE_STYLE: React.CSSProperties = {
   background: "white",
 } as const;
 
-const positionHackHeight = NAV_HEIGHT - 26 + "px";
+const positionHackHeight = `${NAV_HEIGHT - 4}px`;
 
 export const Page: React.FC = () => {
-  const [show_label, set_show_label] = useState<boolean>(true);
   const page_actions = useActions("page");
-  const account_actions = useActions("account");
   const support_actions = useActions("support");
 
+  const open_projects = useRedux(["projects", "open_projects"]);
+  const [show_label, set_show_label] = useState<boolean>(true);
   useEffect(() => {
     const next = open_projects.size <= HIDE_LABEL_THRESHOLD;
     if (next != show_label) {
@@ -111,7 +112,6 @@ export const Page: React.FC = () => {
     };
   }, []);
 
-  const open_projects = useRedux(["projects", "open_projects"]);
   const active_top_tab = useRedux(["page", "active_top_tab"]);
   const show_connection = useRedux(["page", "show_connection"]);
   const show_file_use = useRedux(["page", "show_file_use"]);
@@ -185,7 +185,6 @@ export const Page: React.FC = () => {
         style={style}
         label_class={NAV_CLASS}
         icon={a}
-        actions={page_actions}
         active_top_tab={active_top_tab}
         hide_label={!show_label}
       />
@@ -200,7 +199,6 @@ export const Page: React.FC = () => {
         label_class={NAV_CLASS}
         icon={"users"}
         inner_style={{ padding: "10px", display: "flex" }}
-        actions={page_actions}
         active_top_tab={active_top_tab}
         hide_label={!show_label}
       />
@@ -230,8 +228,7 @@ export const Page: React.FC = () => {
         label_class={NAV_CLASS}
         icon="sign-in"
         inner_style={{ padding: "10px", display: "flex" }}
-        on_click={this.sign_in_tab_clicked}
-        actions={page_actions}
+        on_click={sign_in_tab_clicked}
         active_top_tab={active_top_tab}
         style={style}
         add_inner_style={{ color: "black" }}
@@ -240,7 +237,7 @@ export const Page: React.FC = () => {
     );
   }
 
-  function render_support(): JSX.Element {
+  function render_support(): JSX.Element | undefined {
     if (!is_commercial) {
       return;
     }
@@ -250,7 +247,6 @@ export const Page: React.FC = () => {
         label_class={NAV_CLASS}
         icon={"medkit"}
         inner_style={{ padding: "10px", display: "flex" }}
-        actions={page_actions}
         active_top_tab={active_top_tab}
         on_click={() => support_actions.show(true)}
         hide_label={!show_label}

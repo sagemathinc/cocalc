@@ -101,7 +101,7 @@ export const ActiveContent: React.FC<Props> = React.memo(({ render_small }) => {
         v.push(<InfoPage key={"about"} />);
         break;
       case "file-use":
-        v.push(<FileUsePage redux={redux} key={"file-use"} />);
+        v.push(<FileUsePage key={"file-use"} />);
         break;
       case "notifications":
         v.push(<NotificationPage key={"notifications"} />);
