@@ -1855,13 +1855,13 @@ class ProjectClient extends EventEmitter
     address: (opts) =>
         opts = defaults opts,
             cb : required
+        dbg = @dbg("address")
         if @_address_cbs?
             @_address_cbs.push(opts.cb)
             dbg("address already running, so adding callback to queue; it now has length #{@_address_cbs.length}")
             return
         @_synctable?.connect()
         @_address_cbs = [opts.cb]
-        dbg = @dbg("address")
         dbg()
         address = undefined
         misc.retry_until_success
