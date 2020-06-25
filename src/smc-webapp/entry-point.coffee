@@ -51,7 +51,7 @@ if fullscreen.COCALC_MINIMAL
     require('./iframe-communication').init()
 
 mobile = require('./mobile_app')
-desktop = require('./desktop_app')
+desktop = require('./app/desktop/render')
 
 # Feature must be loaded before account and anything that might use cookies or localStorage,
 # but after app-framework and the basic app definition.

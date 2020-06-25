@@ -672,7 +672,7 @@ export function project_redux_name(project_id: string, name?: string): string {
   return s;
 }
 
-class Redux extends React.Component {
+export class Redux extends React.Component {
   render() {
     return React.createElement(
       Provider,
@@ -699,7 +699,6 @@ export { rtypes }; // has extra rtypes.immutable, needed for reduxProps to leave
 export { computed };
 export { React };
 export const { Fragment } = React;
-export { Redux };
 export { redux }; // global redux singleton
 export { Actions };
 export { Table };
