@@ -26,8 +26,8 @@ export class TopBar extends Component<TopBarProps> {
     return (
       <span style={{ marginRight: "10px" }}>
         <a href={top} style={{ textDecoration: "none" }}>
-          <CoCalcLogo base_url={this.props.base_url} /> {this.props.settings.site_name}{" "}
-          Public Files
+          <CoCalcLogo base_url={this.props.base_url} />{" "}
+          {this.props.settings.site_name} Public Files
         </a>
       </span>
     );
@@ -49,7 +49,6 @@ export class TopBar extends Component<TopBarProps> {
       path,
       launch_path,
       project_id,
-      site_name,
       is_public,
     } = this.props;
     let path_component: Rendered | Rendered[], top: string;
@@ -113,9 +112,9 @@ export class TopBar extends Component<TopBarProps> {
             href={cocalc_url}
             className="btn btn-success"
             rel="nofollow"
-            style={{ marginLeft: "30px", fontSize: "14pt" }}
+            style={{ marginLeft: "30px", fontSize: "14pt", maxWidth: "400px" }}
           >
-            Open in {site_name} with one click!
+            Open with one click!
           </a>
         );
       }
