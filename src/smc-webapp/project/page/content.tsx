@@ -49,7 +49,7 @@ import { SideChat } from "../../chat/side-chat";
 const DEFAULT_CHAT_WIDTH = IS_MOBILE ? 0.5 : 0.3;
 
 const MAIN_STYLE: React.CSSProperties = {
-  overflow: "hidden",
+  overflowX: "hidden",
   flex: 1,
   height: 0,
   position: "relative",
@@ -281,12 +281,16 @@ export const Content: React.FC<Props> = React.memo(
     }
 
     // The className below is so we always make this div the remaining height,
-    // except for on the files page when New is being displayed:
+    // except for on the files page when New is being displayed.
+    // The overflowY is hidden for editors (which don't scroll), but auto
+    // otherwise, since some tabs (e.g., settings) *do* need to scroll. See
+    // https://github.com/sagemathinc/cocalc/pull/4708.
     return (
       <div
         style={{
           ...MAIN_STYLE,
           ...(!is_visible ? { display: "none" } : undefined),
+          ...{ overflowY: tab_name.startsWith("editor-") ? "hidden" : "auto" },
         }}
         className={tab_name === "files" && show_new ? undefined : "smc-vfill"}
       >
