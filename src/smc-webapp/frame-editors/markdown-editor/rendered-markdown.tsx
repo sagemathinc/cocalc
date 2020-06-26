@@ -118,9 +118,9 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
       padding: "0 10px",
     },
     ...{
+      // transform: scale() and transformOrigin: "0 0" or "center 0"
+      // doesn't work well. Changing the base font size is fine.
       fontSize: `${100 * scaling}%`,
-      // transform: `scale(${scaling})`,
-      // transformOrigin: "0//  0",
     },
   };
 
