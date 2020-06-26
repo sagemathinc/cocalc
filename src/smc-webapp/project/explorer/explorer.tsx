@@ -68,7 +68,6 @@ const error_style: React.CSSProperties = {
 interface ReactProps {
   project_id: string;
   actions: ProjectActions;
-  redux: any;
   name: string;
 }
 
@@ -129,7 +128,7 @@ interface State {
 }
 // TODO: change/rewrite Explorer to not have any rtypes.objects and
 // add a shouldComponentUpdate!!
-export const Explorer = rclass<ReactProps>(
+export const Explorer = rclass(
   class Explorer extends React.Component<ReactProps & ReduxProps, State> {
     static reduxProps = ({ name }) => {
       return {
@@ -209,7 +208,7 @@ export const Explorer = rclass<ReactProps>(
       // Prevents cascading changes which impact responsiveness
       // https://github.com/sagemathinc/cocalc/pull/3705#discussion_r268263750
       setTimeout(() => {
-        const billing = this.props.redux.getActions("billing");
+        const billing = redux.getActions("billing");
         if (billing != undefined) {
           billing.update_customer();
         }
@@ -345,7 +344,9 @@ export const Explorer = rclass<ReactProps>(
               title={
                 <span>
                   Library{" "}
-                  <A href="https://doc.cocalc.com/project-library.html">(help...)</A>
+                  <A href="https://doc.cocalc.com/project-library.html">
+                    (help...)
+                  </A>
                 </span>
               }
               close={() => this.props.actions.toggle_library(false)}
@@ -442,10 +443,7 @@ export const Explorer = rclass<ReactProps>(
         <div style={{ marginTop: "10px" }}>
           <BillingPage is_simplified={true} for_course={true} />
           {cards && (
-            <PayCourseFee
-              project_id={this.props.project_id}
-              redux={this.props.redux}
-            />
+            <PayCourseFee project_id={this.props.project_id} redux={redux} />
           )}
         </div>
       );
@@ -579,7 +577,7 @@ export const Explorer = rclass<ReactProps>(
               sort_by={this.props.actions.set_sorted_file_column}
               other_settings={this.props.other_settings}
               library={this.props.library}
-              redux={this.props.redux}
+              redux={redux}
               show_new={this.props.show_new}
               last_scroll_top={this.props.file_listing_scroll_top}
               configuration_main={this.props.configuration?.get("main")}
@@ -596,9 +594,7 @@ export const Explorer = rclass<ReactProps>(
     }
 
     on_click_start_project = () => {
-      this.props.redux
-        .getActions("projects")
-        .start_project(this.props.project_id);
+      redux.getActions("projects").start_project(this.props.project_id);
     };
 
     render_start_project_button(project_state?: ProjectStatus) {

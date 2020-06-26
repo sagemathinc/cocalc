@@ -583,6 +583,14 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
           "https://doc.cocalc.com/jupyter.html"
         )}
         {external_link(
+          "nbgrader in CoCalc",
+          "https://doc.cocalc.com/teaching-nbgrader.html"
+        )}
+        {external_link(
+          "Custom Jupyter kernels",
+          "https://doc.cocalc.com/howto/custom-jupyter-kernel.html"
+        )}
+        {external_link(
           "Markdown",
           "https://help.github.com/articles/basic-writing-and-formatting-syntax"
         )}

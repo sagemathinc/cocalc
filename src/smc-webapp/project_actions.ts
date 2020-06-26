@@ -815,7 +815,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Used by open/close chat below.
-  _set_chat_state(path: string, is_chat_open: boolean): void {
+  private set_chat_state(path: string, is_chat_open: boolean): void {
     this.open_files.set(path, "is_chat_open", is_chat_open);
   }
 
@@ -828,23 +828,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.redux,
       this.project_id
     );
-    const editor = require("./editor");
-    editor
-      ? editor.local_storage(this.project_id, opts.path, "is_chat_open", true)
-      : undefined;
+    const { local_storage } = require("./editor");
+    local_storage(this.project_id, opts.path, "is_chat_open", true);
     // Only then set state to say that the chat is opened!
-    // (Otherwise when the opened chat is rendered actions is randomly not defined, and things break for.)
-    this._set_chat_state(opts.path, true);
+    // Otherwise when the opened chat is rendered actions is
+    // randomly not defined, and things break.
+    this.set_chat_state(opts.path, true);
   }
 
   // Close side chat for the given file, assuming the file itself is open
   close_chat(opts) {
     opts = defaults(opts, { path: required });
-    const editor = require("./editor");
-    editor
-      ? editor.local_storage(this.project_id, opts.path, "is_chat_open", false)
-      : undefined;
-    this._set_chat_state(opts.path, false);
+    const { local_storage } = require("./editor");
+    local_storage(this.project_id, opts.path, "is_chat_open", false);
+    this.set_chat_state(opts.path, false);
   }
 
   set_chat_width(opts): void {
@@ -859,10 +856,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const open_files = store.get("open_files");
     if (open_files != null) {
       const width = misc.ensure_bound(opts.width, 0.05, 0.95);
-      const editor = require("./editor");
-      editor
-        ? editor.local_storage(this.project_id, opts.path, "chat_width", width)
-        : undefined;
+      const { local_storage } = require("./editor");
+      local_storage(this.project_id, opts.path, "chat_width", width);
       this.open_files.set(opts.path, "chat_width", width);
     }
   }

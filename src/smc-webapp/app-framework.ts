@@ -950,7 +950,11 @@ export function useActions(name_or_project_id: string, path?: string) {
         return redux.getActions(name_or_project_id);
       }
     } else {
-      return redux.getEditorActions(name_or_project_id, path);
+      const actions = redux.getEditorActions(name_or_project_id, path);
+      if (actions == null) {
+        throw Error(`BUG: actions for "${path}" must be defined but is not`);
+      }
+      return actions;
     }
   }, [name_or_project_id, path]);
 }

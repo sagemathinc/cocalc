@@ -193,11 +193,12 @@ export async function open_file(
 
     // Add it to open files
     actions.open_files.set(opts.path, "component", { is_public });
-    actions.open_files.set(opts.path, "is_chat_open", opts.chat);
     actions.open_files.set(opts.path, "chat_width", opts.chat_width);
 
     if (opts.chat) {
       init_chat(meta_file(opts.path, "chat"), redux, actions.project_id);
+      // ONLY do this *after* initializing actions/store for side chat:
+      actions.open_files.set(opts.path, "is_chat_open", opts.chat);
     }
 
     redux.getActions("page").save_session();

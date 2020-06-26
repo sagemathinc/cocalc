@@ -238,8 +238,8 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
 
   function render_button_row() {
     return (
-      <Row style={{ marginTop: "5px" }}>
-        <Col xs={6} md={6} style={{ padding: "2px", textAlign: "right" }}>
+      <Row style={{ marginLeft: 0, marginRight: 0 }}>
+        <Col xs={6} md={6} style={{ padding: "2px" }}>
           <ButtonGroup>
             {render_save_button()}
             {render_timetravel_button()}

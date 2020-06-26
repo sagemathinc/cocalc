@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-const { ProjectPage, MobileProjectPage } = require("../project_page");
+const { ProjectPage } = require("../project_page");
 import { React, useRedux, redux } from "../app-framework";
 import { ProjectsPage } from "../projects/projects-page";
 import { AccountPage } from "../account/account-page";
@@ -14,11 +14,7 @@ import { NotificationPage } from "../notifications";
 import { AdminPage } from "../admin";
 import { Connecting } from "../landing-page/connecting";
 
-interface Props {
-  render_small?: boolean;
-}
-
-export const ActiveContent: React.FC<Props> = React.memo(({ render_small }) => {
+export const ActiveContent: React.FC = React.memo(() => {
   const active_top_tab = useRedux(["page", "active_top_tab"]);
   const fullscreen = useRedux(["page", "fullscreen"]);
   const open_projects = useRedux(["projects", "open_projects"]);
@@ -29,23 +25,13 @@ export const ActiveContent: React.FC<Props> = React.memo(({ render_small }) => {
       let x;
       const is_active = project_id === active_top_tab;
       const project_name = redux.getProjectStore(project_id).name;
-      if (render_small) {
-        x = (
-          <MobileProjectPage
-            name={project_name}
-            project_id={project_id}
-            is_active={is_active}
-          />
-        );
-      } else {
-        x = (
-          <ProjectPage
-            name={project_name}
-            project_id={project_id}
-            is_active={is_active}
-          />
-        );
-      }
+      x = (
+        <ProjectPage
+          name={project_name}
+          project_id={project_id}
+          is_active={is_active}
+        />
+      );
       let cls = "smc-vfill";
       if (project_id !== active_top_tab) {
         cls += " hide";
@@ -62,25 +48,14 @@ export const ActiveContent: React.FC<Props> = React.memo(({ render_small }) => {
       let x;
       const project_id = active_top_tab;
       const project_name = redux.getProjectStore(project_id).name;
-      if (render_small) {
-        x = (
-          <MobileProjectPage
-            key={project_id}
-            name={project_name}
-            project_id={project_id}
-            is_active={true}
-          />
-        );
-      } else {
-        x = (
-          <ProjectPage
-            key={project_id}
-            name={project_name}
-            project_id={project_id}
-            is_active={true}
-          />
-        );
-      }
+      x = (
+        <ProjectPage
+          key={project_id}
+          name={project_name}
+          project_id={project_id}
+          is_active={true}
+        />
+      );
       v.push(x);
     }
   }
