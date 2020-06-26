@@ -108,205 +108,7 @@ fixed_project_pages =
         is_public : false
         no_anonymous : true
 
-# Children must define their own padding from navbar and screen borders
-ProjectContentViewer = rclass
-    displayName: 'ProjectContentViewer'
-
-    shouldComponentUpdate: (nextProps) ->
-        return @props.is_visible or nextProps.is_visible
-
-    propTypes :
-        is_visible      : rtypes.bool.isRequired
-        project_id      : rtypes.string.isRequired
-        project_name    : rtypes.string.isRequired
-        active_tab_name : rtypes.string
-        opened_file     : rtypes.object
-        file_path       : rtypes.string
-        group           : rtypes.string
-        save_scroll     : rtypes.func
-        show_new        : rtypes.bool
-        fullscreen      : rtypes.oneOf(['default', 'kiosk'])
-
-    getInitialState: -> # just for forcing updates sometimes
-        counter : 0
-
-    componentDidMount: ->
-        @mounted = true
-        @restore_scroll_position()
-
-    componentWillUnmount: ->
-        @mounted = false
-        @save_scroll_position()
-
-    componentDidUpdate: ->
-        @restore_scroll_position()
-
-    componentWillUpdate: ->
-        @save_scroll_position()
-
-    restore_scroll_position: ->
-        saved_scroll = @props.opened_file?.get('component')?.scroll_position
-        if saved_scroll?
-            $(@refs.editor_inner_container).children()[0]?.scrollTop = saved_scroll
-
-    save_scroll_position: ->
-        if @refs.editor_inner_container? and @props.save_scroll?
-            val = $(@refs.editor_inner_container).children()[0]?.scrollTop
-            if val?
-                @props.save_scroll(val)
-
-    # TRULY HORRIBLE: force an update soon
-    update_soon: ->
-        await delay(500)
-        if @mounted
-            # -- sometimes the Editor getting
-            # defined doesn't result in this component updating,
-            # which is HORRIBLE for users, since they don't know
-            # what is going on and stare at the Loading spinner
-            # for a long time... For now, let's force that update to
-            # happen.   Revisit this when rewriting this file
-            # in typescript.
-            @setState(counter : @state.counter+1)
-
-    render_editor: (path) ->
-        {Editor, redux_name} = @props.opened_file.get('component') ? {}
-        if redux_name?
-            editor_actions = redux.getActions(redux_name)
-        if not Editor?
-            if @props.is_visible
-                @update_soon()
-            <Loading theme={"medium"} />
-        else
-            <div
-                ref       = {'editor_inner_container'}
-                className = {'smc-vfill'}
-                id        = {editor_id(@props.project_id, path)}
-                style     = {height:'100%', willChange: 'transform'}>
-                <Editor
-                    name         = {redux_name}
-                    path         = {path}
-                    project_id   = {@props.project_id}
-                    redux        = {redux}
-                    actions      = {editor_actions}
-                    project_name = {@props.project_name}
-                />
-            </div>
-
-    render_side_chat: (path) ->
-        <SideChat
-            project_id = {@props.project_id}
-            path       = {misc.meta_file(path, 'chat')}
-            />
-
-    render_drag_bar: (path) ->
-        reset = () =>
-            if not @refs.draggable?
-                return
-            # This is ugly and dangerous, but I don't know any other way to reset
-            # the state of the bar, so it fits back into our flex display model, besides
-            # writing something like the Draggable component from scratch for our purposes.
-            # For now, this will do.
-            @refs.draggable.state.x = 0
-            $(ReactDOM.findDOMNode(@refs.draggable)).css('transform','')
-
-        handle_drag_bar_stop = (evt, ui) =>
-            clientX = ui.node.offsetLeft + ui.x + $(ui.node).width() + 2
-            misc_page.drag_stop_iframe_enable()
-            elt = $(ReactDOM.findDOMNode(@refs.editor_container))
-            width = 1 - (clientX - elt.offset().left) / elt.width()
-            reset()
-            redux.getProjectActions(@props.project_id).set_chat_width({path:path, width:width})
-
-        <Draggable
-            ref    = 'draggable'
-            axis   = "x"
-            onStop = {handle_drag_bar_stop}
-            onStart = {misc_page.drag_start_iframe_disable}
-            >
-            <div className="smc-vertical-drag-bar" style={if feature.IS_TOUCH then {width:'12px'}}> </div>
-        </Draggable>
-
-
-    render_editor_tab: ->
-        if webapp_client.file_client.is_deleted(@props.file_path, @props.project_id)
-            return <DeletedFile
-                     project_id = {@props.project_id}
-                     path       = {@props.file_path}
-                     onOpen     = {=> @setState(counter : @state.counter+1)}/>
-
-        if feature.IS_MOBILE
-            # Side chat is not supported at all on mobile.
-            is_chat_open = false
-        else
-            chat_width   = @props.opened_file.get('chat_width') ? DEFAULT_CHAT_WIDTH
-            is_chat_open = @props.opened_file.get('is_chat_open')
-
-        editor  = @render_editor(@props.file_path)
-
-        # WARNING: every CSS style below is hard won.  Don't f!$k with them without knowing what
-        # you are doing and testing on all supported browsers.  - wstein
-        if is_chat_open
-            # 2 column layout with chat
-            content =\
-                <div
-                    style = {position: 'absolute', height:'100%', width:'100%', display:'flex'}
-                    ref   = 'editor_container'
-                >
-                    <div style={flex:1, overflow:'hidden', height:'100%', width:'100%'}>
-                        {editor}
-                    </div>
-                    {@render_drag_bar(@props.file_path)}
-                    <div
-                        ref = 'side_chat_container'
-                        style={flexBasis:"#{chat_width*100}%", position:'relative'}>
-                        {@render_side_chat(@props.file_path)}
-                    </div>
-                </div>
-        else
-            # just the editor
-            content =\
-                <div style={position: 'absolute', height:'100%', width:'100%'}>
-                    {editor}
-                </div>
-
-        return content
-
-    render_tab_content : ->
-        # show the kiosk mode banner instead of anything besides a file editor
-        if @props.fullscreen == 'kiosk' and not @props.active_tab_name.startsWith('editor-')
-            return <KioskModeBanner />
-
-        switch @props.active_tab_name
-            when 'files'
-                <Explorer name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)} start_project={@actions("projects").start_project} />
-            when 'new'
-                <ProjectNew name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)}/>
-            when 'log'
-                <ProjectLog name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)} />
-            when 'search'
-                <ProjectSearch project_id={@props.project_id} />
-            when 'settings'
-                <ProjectSettings project_id={@props.project_id} name={@props.project_name} group={@props.group} />
-            else  # @props.active_tab_name = "editor-<filename>"
-                if not @props.opened_file? or not @props.active_tab_name?
-                    <Loading />
-                else
-                    @render_editor_tab()
-
-    render: ->
-        style = {overflowY:'auto', overflowX:'hidden', flex:1, height:0, position:'relative'}
-        if !@props.is_visible
-            style.display = "none"
-        # always make div remaining height,
-        # except for on the files page when New is being displayed:
-        if @props.active_tab_name == 'files' and @props.show_new
-            className = undefined
-        else
-            className = 'smc-vfill'
-        <div style={style} className={className}>
-            {@render_tab_content()}
-        </div>
-
+{Content} = require('./project/page/content')
 
 exports.ProjectPage = ProjectPage = rclass ({name}) ->
     displayName : 'ProjectPage'
@@ -477,17 +279,11 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             if not path
                 return
             tab_name = 'editor-' + path
-            v.push <ProjectContentViewer
+            v.push <Content
                 key             = {tab_name}
                 is_visible      = {@props.active_project_tab == tab_name}
                 project_id      = {@props.project_id}
-                project_name    = {@props.name}
-                active_tab_name = {tab_name}
-                opened_file     = {@props.open_files.get(path)}
-                file_path       = {path}
-                group           = {group}
-                save_scroll     = {@actions(name).get_scroll_saver_for(tab_name)}
-                fullscreen      = {@props.fullscreen}
+                tab_name = {tab_name}
             />
         return v
 
@@ -502,18 +298,11 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 # render these pages at all, unless the tab is active
                 # and they are visible.
                 return
-            v.push <ProjectContentViewer
+            v.push <Content
                 key             = {@props.active_project_tab}
                 is_visible      = {true}
                 project_id      = {@props.project_id}
-                project_name    = {@props.name}
-                active_tab_name = {@props.active_project_tab}
-                show_new        = {@props.show_new}
-                opened_file     = {@props.open_files.get(active_path)}
-                file_path       = {active_path}
-                group           = {group}
-                save_scroll     = {@actions(name).get_scroll_saver_for(active_path)}
-                fullscreen      = {@props.fullscreen}
+                tab_name = {@props.active_project_tab}
                 />
         return v.concat(@render_editor_tabs(active_path, group))
 

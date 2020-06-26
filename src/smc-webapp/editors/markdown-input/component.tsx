@@ -421,7 +421,8 @@ export const MarkdownInput: React.FC<Props> = ({
         <A href="https://en.wikibooks.org/wiki/LaTeX/Mathematics">
           LaTeX formulas
         </A>
-        . {render_upload_instructions()} Attach files... {extraHelp}
+        . {render_upload_instructions()}
+        {extraHelp}
       </div>
     );
   }
@@ -462,9 +463,13 @@ export const MarkdownInput: React.FC<Props> = ({
 
   function render_upload_instructions(): JSX.Element | undefined {
     if (!enableUpload) return;
-    const text = IS_MOBILE
-      ? "Attach files..."
-      : "Attach files by dragging & dropping, selecting or pasting them.";
+    const text = IS_MOBILE ? (
+      <a>Tap here to attach files.</a>
+    ) : (
+      <>
+        Attach files by dragging & dropping, <a>selecting</a> or pasting them.
+      </>
+    );
     return (
       <>
         {" "}

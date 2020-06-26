@@ -9,6 +9,7 @@ import {
   useRedux,
   useRef,
 } from "../app-framework";
+import { IS_MOBILE } from "../feature";
 import { user_activity } from "../tracker";
 import { A, Icon, Loading, SearchInput } from "../r_misc";
 import { Button } from "../antd-bootstrap";
@@ -126,6 +127,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
   }
 
   function render_project_users() {
+    if (IS_MOBILE) return;
     return (
       <div
         style={{
