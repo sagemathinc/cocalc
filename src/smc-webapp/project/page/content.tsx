@@ -49,8 +49,7 @@ import { SideChat } from "../../chat/side-chat";
 const DEFAULT_CHAT_WIDTH = IS_MOBILE ? 0.5 : 0.3;
 
 const MAIN_STYLE: React.CSSProperties = {
-  overflowY: "auto",
-  overflowX: "hidden",
+  overflow: "hidden",
   flex: 1,
   height: 0,
   position: "relative",
