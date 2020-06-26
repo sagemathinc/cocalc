@@ -698,6 +698,7 @@ export { rclass }; // use rclass to get access to reduxProps support
 export { rtypes }; // has extra rtypes.immutable, needed for reduxProps to leave value as immutable
 export { computed };
 export { React };
+export type CSS = React.CSSProperties;
 export const { Fragment } = React;
 export { redux }; // global redux singleton
 export { Actions };
