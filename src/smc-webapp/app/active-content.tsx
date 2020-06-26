@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-const { ProjectPage } = require("../project_page");
-import { React, useRedux, redux } from "../app-framework";
+import { ProjectPage } from "../project/page/page";
+import { React, useRedux } from "../app-framework";
 import { ProjectsPage } from "../projects/projects-page";
 import { AccountPage } from "../account/account-page";
 import { KioskModeBanner } from "./kiosk-mode-banner";
@@ -20,45 +20,20 @@ export const ActiveContent: React.FC = React.memo(() => {
   const open_projects = useRedux(["projects", "open_projects"]);
 
   const v: JSX.Element[] = [];
-  if (open_projects != null) {
-    open_projects.forEach((project_id: string) => {
-      let x;
-      const is_active = project_id === active_top_tab;
-      const project_name = redux.getProjectStore(project_id).name;
-      x = (
-        <ProjectPage
-          name={project_name}
-          project_id={project_id}
-          is_active={is_active}
-        />
-      );
-      let cls = "smc-vfill";
-      if (project_id !== active_top_tab) {
-        cls += " hide";
-      }
-      v.push(
-        <div key={project_id} className={cls}>
-          {x}
-        </div>
-      );
-    });
-  } else {
-    // open_projects not used (e.g., on mobile).
-    if (active_top_tab?.length == 36) {
-      let x;
-      const project_id = active_top_tab;
-      const project_name = redux.getProjectStore(project_id).name;
-      x = (
-        <ProjectPage
-          key={project_id}
-          name={project_name}
-          project_id={project_id}
-          is_active={true}
-        />
-      );
-      v.push(x);
+  open_projects?.forEach((project_id: string) => {
+    let x;
+    const is_active = project_id === active_top_tab;
+    x = <ProjectPage project_id={project_id} is_active={is_active} />;
+    let cls = "smc-vfill";
+    if (project_id !== active_top_tab) {
+      cls += " hide";
     }
-  }
+    v.push(
+      <div key={project_id} className={cls}>
+        {x}
+      </div>
+    );
+  });
 
   // in kiosk mode: if no file is opened show a banner
   if (fullscreen == "kiosk" && v.length === 0) {
