@@ -54,7 +54,7 @@ const TOP_BAR_STYLE: React.CSSProperties = {
 } as const;
 
 const FILE_USE_STYLE: React.CSSProperties = {
-  zIndex: 100,
+  zIndex: 110,
   marginLeft: "0",
   position: "fixed",
   boxShadow: "0 0 15px #aaa",
