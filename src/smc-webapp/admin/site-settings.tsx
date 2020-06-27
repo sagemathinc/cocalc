@@ -36,7 +36,13 @@ import { ConfigValid, Config, RowType } from "smc-util/db-schema/site-defaults";
 import { isEqual } from "lodash";
 
 import { COLORS } from "smc-util/theme";
-import { Select, Input } from "antd";
+
+// Commented out since Select via antd is broken now,
+// at least when used here...
+// import { Select } from "antd";
+// const { Option } = Select;
+import { Input } from "antd";
+
 import {
   Icon,
   Markdown,
@@ -312,18 +318,38 @@ class SiteSettingsComponent extends Component<
     multiline
   ): Rendered {
     if (Array.isArray(valid)) {
-      return (
+      /* This antd code below is broken because something about
+         antd is broken.  Maybe it is a bug in antd.
+         Even the first official example in the antd
+         docs breaks for me!
+         See https://github.com/sagemathinc/cocalc/issues/4714
+         */
+      /*return
         <Select
           defaultValue={value}
           onChange={(val) => this.on_change_entry(name, val)}
           style={{ width: "100%" }}
         >
           {valid.map((e) => (
-            <Select.Option value={e} key={e}>
+            <Option value={e} key={e}>
               {e}
-            </Select.Option>
+            </Option>
           ))}
         </Select>
+      );
+      */
+      return (
+        <select
+          defaultValue={value}
+          onChange={(event) => this.on_change_entry(name, event.target.value)}
+          style={{ width: "100%" }}
+        >
+          {valid.map((e) => (
+            <option value={e} key={e}>
+              {e}
+            </option>
+          ))}
+        </select>
       );
     } else {
       if (password) {
