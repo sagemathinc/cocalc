@@ -10,8 +10,7 @@ everything on *desktop*, once the user has signed in.
 
 declare var DEBUG: boolean;
 
-// TODO:
-const { ProjectsNav } = require("../projects_nav");
+import { ProjectsNav } from "../projects/projects-nav";
 const { Support } = require("../support");
 
 import { COLORS } from "smc-util/theme";
@@ -31,11 +30,7 @@ import { NavTab } from "./nav-tab";
 import { ErrorBoundary, Loading } from "../r_misc";
 import { ActiveContent } from "./active-content";
 import { FullscreenButton } from "./fullscreen-button";
-import {
-  VersionWarning,
-  CookieWarning,
-  LocalStorageWarning,
-} from "./warnings";
+import { VersionWarning, CookieWarning, LocalStorageWarning } from "./warnings";
 import { AppLogo } from "./logo";
 import { ConnectionInfo } from "./connection-info";
 import { ConnectionIndicator } from "./connection-indicator";
@@ -379,7 +374,7 @@ export const Page: React.FC = () => {
       {!fullscreen && (
         <Navbar className="smc-top-bar" style={TOP_BAR_STYLE}>
           {is_logged_in && !is_anonymous && render_project_nav_button()}
-          <ProjectsNav dropdown={false} />
+          <ProjectsNav />
           {render_right_nav()}
         </Navbar>
       )}
