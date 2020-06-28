@@ -50,9 +50,9 @@ export { TypedMap } from "./app-framework/TypedMap";
 import { NAME_TYPE as ComputeImageStoreType } from "./custom-software/util";
 import { ComputeImagesStore } from "./custom-software/init";
 
-// Only import the types
 declare type ProjectStore = import("./project_store").ProjectStore;
 declare type ProjectActions = import("./project_actions").ProjectActions;
+export { ProjectStore, ProjectActions };
 
 const action_set_state = function (change) {
   return {

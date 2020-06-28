@@ -13,6 +13,7 @@ extra support for being connected to:
 
 import { Map } from "immutable";
 import { callback, delay } from "awaiting";
+import { redux, ProjectActions } from "../../app-framework";
 
 import { aux_file } from "../frame-tree/util";
 
@@ -26,7 +27,12 @@ import { setTheme } from "./themes";
 import { project_websocket, touch, touch_project } from "../generic/client";
 import { Actions, CodeEditorState } from "../code-editor/actions";
 
-import { endswith, filename_extension, replace_all } from "smc-util/misc2";
+import {
+  endswith,
+  filename_extension,
+  replace_all,
+  bind_methods,
+} from "smc-util/misc2";
 import { open_init_file } from "./init-file";
 
 import { ConnectionStatus } from "../frame-tree/types";
@@ -49,17 +55,11 @@ interface Path {
   directory?: string;
 }
 
-// todo: move to generic util if this works.
-function bind(that: any, v: string[]): void {
-  for (const f of v) {
-    that[f] = that[f].bind(that);
-  }
-}
-
 export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private state: string = "ready";
   private actions: Actions<T>;
-  private account: any;
+  private account_store: any;
+  private project_actions: ProjectActions;
   private terminal_settings: Map<string, any>;
   private project_id: string;
   private path: string;
@@ -107,17 +107,12 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     command?: string,
     args?: string[]
   ) {
-    bind(this, [
-      "handle_mesg",
-      "update_settings",
-      "connect",
-      "_handle_data_from_project",
-      "touch",
-    ]);
+    bind_methods(this);
 
     this.actions = actions;
-    this.account = (this.actions as any).redux.getStore("account");
-    if (this.account == null) {
+    this.account_store = redux.getStore("account");
+    this.project_actions = redux.getProjectActions(actions.project_id);
+    if (this.account_store == null) {
       throw Error("user must be signed in and account store initialized");
     }
     this.terminal_settings = Map(); // what was last set.
@@ -150,12 +145,12 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     //  the pty can respond to the resize event before another one occurs."
     // We do NOT debounce, because it strangely breaks everything,
     // as you can see by just resizing the window.
-    // this.terminal_resize = debounce(this.terminal_resize.bind(this), 2000);
+    // this.terminal_resize = debounce(this.terminal_resize, 2000);
   }
 
   private get_xtermjs_options(): any {
     const rendererType = this.rendererType;
-    const settings = this.account.get("terminal");
+    const settings = this.account_store.get("terminal");
     if (settings == null) {
       // not fully loaded yet.
       return { rendererType };
@@ -188,9 +183,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.set_connection_status("disconnected");
     this.state = "closed";
     clearInterval(this.touch_interval);
-    this.account.removeListener("change", this.update_settings);
+    this.account_store.removeListener("change", this.update_settings);
     delete this.actions;
-    delete this.account;
+    delete this.account_store;
     delete this.terminal_settings;
     delete this.project_id;
     delete this.path;
@@ -216,7 +211,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   update_settings(): void {
     this.assert_not_closed();
-    const settings = this.account.get("terminal");
+    const settings = this.account_store.get("terminal");
     if (settings == null || this.terminal_settings.equals(settings)) {
       // no changes or not yet loaded
       return;
@@ -313,12 +308,13 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.conn.write(data);
   }
 
-  _handle_data_from_project(data: any): void {
+  private _handle_data_from_project(data: any): void {
     //console.log("data", data);
     this.assert_not_closed();
     if (data == null) {
       return;
     }
+    this.activity();
     switch (typeof data) {
       case "string":
         if (this.is_paused && !this.ignore_terminal_data) {
@@ -335,6 +331,10 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       default:
         console.warn("TERMINAL: no way to handle data -- ", data);
     }
+  }
+
+  private activity() {
+    this.project_actions.flag_file_activity(this.path);
   }
 
   render(data: string): void {
@@ -670,7 +670,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   init_settings(): void {
-    this.account.on("change", this.update_settings);
+    this.account_store.on("change", this.update_settings);
   }
 
   focus(): void {
