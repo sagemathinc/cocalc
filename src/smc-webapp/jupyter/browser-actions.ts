@@ -56,6 +56,9 @@ export class JupyterActions extends JupyterActions0 {
     this.syncdb.on("metadata-change", this.sync_read_only);
     this.syncdb.on("connected", this.sync_read_only);
 
+    // And activity indicator
+    this.syncdb.on("change", this.activity);
+
     // Load kernel (once ipynb file loads).
     this.set_kernel_after_load();
 
@@ -117,6 +120,10 @@ export class JupyterActions extends JupyterActions0 {
         "editor_settings"
       );
     }
+  }
+
+  private activity() : void {
+    this.redux.getProjectActions(this.project_id).flag_file_activity(this.path);
   }
 
   focus = (wait?: any) => {

@@ -366,6 +366,13 @@ export class Actions<
         this.set_show_uncommitted_changes(false);
       }
     });
+
+    this._syncstring.on("change", this.activity);
+  }
+
+  // Flag that there is activity (causes icon to turn orange).
+  private activity() : void {
+    this._get_project_actions().flag_file_activity(this.path);
   }
 
   // This is currently NOT used in this base class.  It's used in other
@@ -408,6 +415,8 @@ export class Actions<
         this.setState({ is_loaded: true });
       }
     });
+
+    this._syncdb.on("change", this.activity);
   }
 
   // Reload the document.  This is used mainly for *public* viewing of
