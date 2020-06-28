@@ -1,24 +1,29 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { NavItem, Nav } from "react-bootstrap";
 import { DeletedProjectWarning, Loading } from "../../r_misc";
 import { Content } from "./content";
-import { path_split, path_to_tab, tab_to_path } from "smc-util/misc";
+import { tab_to_path } from "smc-util/misc";
 import { React, useActions, useRedux } from "../../app-framework";
 import { SortableContainer, SortableElement } from "react-sortable-hoc";
 import { ChatIndicator } from "../../chat/chat-indicator";
 import { ShareIndicator } from "../../share/share-indicator";
 import { IS_TOUCH } from "../../feature";
-const { file_options } = require("../../editor");
 import { file_tab_labels } from "../file-tab-labels";
 import { DiskSpaceWarning } from "../warnings/disk-space";
 import { RamWarning } from "../warnings/ram";
 import { OOMWarning } from "../warnings/oom";
 import { TrialBanner } from "../trial-banner";
 
-// TODO: maybe when FileTab is in typescript the ":any" below
-// won't be needed.
-//import { DEFAULT_FILE_TAB_STYLES, FileTab } from "../file-tab";
-const { DEFAULT_FILE_TAB_STYLES, FileTab } = require("../file-tab");
-const SortableFileTab: any = SortableElement(FileTab);
+import {
+  DEFAULT_FILE_TAB_STYLES,
+  FIXED_PROJECT_TABS,
+  FileTab,
+} from "./file-tab";
+const SortableFileTab = SortableElement(FileTab);
 
 const PAGE_STYLE: React.CSSProperties = {
   display: "flex",
@@ -37,38 +42,6 @@ const INDICATOR_STYLE: React.CSSProperties = {
   overflow: "hidden",
   paddingLeft: "5px",
   height: "32px",
-} as const;
-
-const FIXED_PROJECT_PAGES = {
-  files: {
-    label: "Files",
-    icon: "folder-open-o",
-    tooltip: "Browse files",
-  },
-  new: {
-    label: "New",
-    icon: "plus-circle",
-    tooltip: "Create new file, folder, worksheet or terminal",
-    no_anonymous: true,
-  },
-  log: {
-    label: "Log",
-    icon: "history",
-    tooltip: "Log of project activity",
-    no_anonymous: true,
-  },
-  search: {
-    label: "Find",
-    icon: "search",
-    tooltip: "Search files in the project",
-    no_anonymous: true,
-  },
-  settings: {
-    label: "Settings",
-    icon: "wrench",
-    tooltip: "Project settings and controls",
-    no_anonymous: true,
-  },
 } as const;
 
 interface Props {
@@ -136,22 +109,13 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
   }
 
   function file_tab(path: string, index: number, label): JSX.Element {
-    const filename = path_split(path).tail;
-    // get the file_associations[ext] just like it is defined in the editor
-
-    const icon = file_options(filename)?.icon ?? "code-o";
     return (
       <SortableFileTab
         index={index}
         key={path}
-        name={path_to_tab(path)}
-        label={label}
-        icon={icon}
-        tooltip={path}
         project_id={project_id}
-        file_tab={true}
-        has_activity={open_files.getIn([path, "has_activity"])}
-        is_active={active_project_tab === path_to_tab(path)}
+        path={path}
+        label={label}
       />
     );
   }
@@ -212,21 +176,18 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
 
   function fixed_tabs_array(shrink_fixed_tabs) {
     const tabs: JSX.Element[] = [];
-    for (let k in FIXED_PROJECT_PAGES) {
-      const v = FIXED_PROJECT_PAGES[k];
+    let name: keyof typeof FIXED_PROJECT_TABS;
+    for (name in FIXED_PROJECT_TABS) {
+      const v = FIXED_PROJECT_TABS[name];
       if (is_anonymous && v.no_anonymous) {
         continue;
       }
       const tab = (
         <FileTab
-          key={k}
-          name={k}
-          label={v.label}
-          icon={v.icon}
-          tooltip={v.tooltip}
+          key={name}
           project_id={project_id}
-          is_active={active_project_tab === k}
-          shrink={shrink_fixed_tabs}
+          name={name}
+          label={shrink_fixed_tabs ? "" : undefined}
         />
       );
       tabs.push(tab);
