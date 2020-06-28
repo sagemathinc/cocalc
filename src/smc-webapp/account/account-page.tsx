@@ -321,13 +321,7 @@ class AccountPage extends Component<Props> {
   }
 
   private render_signout(): Rendered {
-    return (
-      <Tab
-        key="signout"
-        eventKey="signout"
-        title={<SignOut everywhere={false} highlight={true} />}
-      ></Tab>
-    );
+    return <SignOut everywhere={false} highlight={true} />;
   }
 
   private render_logged_in_view(): Rendered {
@@ -339,9 +333,9 @@ class AccountPage extends Component<Props> {
         <div style={{ margin: "5% 10%" }}>{this.render_account_settings()}</div>
       );
     }
-    const tabs: Rendered[] = [this.render_account_tab()]
-      .concat(this.render_special_tabs())
-      .concat(this.render_signout());
+    const tabs: Rendered[] = [this.render_account_tab()].concat(
+      this.render_special_tabs()
+    );
     return (
       <Row>
         <Col md={12}>
@@ -349,6 +343,7 @@ class AccountPage extends Component<Props> {
             activeKey={this.props.active_page ?? "account"}
             onSelect={this.handle_select.bind(this)}
             animation={false}
+            tabBarExtraContent={this.render_signout()}
           >
             {tabs}
           </Tabs>

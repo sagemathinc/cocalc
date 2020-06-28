@@ -264,6 +264,7 @@ export function Tabs(props: {
   onSelect?: (activeKey: string) => void;
   animation?: boolean;
   style?: React.CSSProperties;
+  tabBarExtraContent?: React.ReactNode;
   children: any;
 }) {
   // We do this because for antd, "There must be `tab` property on children of Tabs."
@@ -282,6 +283,7 @@ export function Tabs(props: {
       onChange={props.onSelect}
       animated={props.animation ?? false}
       style={props.style}
+      tabBarExtraContent={props.tabBarExtraContent}
     >
       {tabs}
     </antd.Tabs>
