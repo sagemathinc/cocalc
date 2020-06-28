@@ -29,8 +29,7 @@ import { normalize } from "./utils";
 const { local_storage } = require("../editor");
 //import { local_storage } from "../editor";
 
-// UGH don't import in case not in browser (for testing)
-const project_file = window != null ? require("../project_file") : undefined;
+import { remove } from "../project-file";
 
 export async function open_file(
   actions: ProjectActions,
@@ -175,6 +174,7 @@ export async function open_file(
 
   // Only generate the editor component if we don't have it already
   // Also regenerate if view type (public/not-public) changes.
+  // (TODO: get rid of that change code since public is deprecated)
   open_files = store.get("open_files");
   if (open_files == null || actions.open_files == null) {
     // project is closing
@@ -188,7 +188,7 @@ export async function open_file(
 
     if (was_public != null && was_public !== is_public) {
       actions.open_files.delete(opts.path);
-      project_file?.remove(opts.path, redux, actions.project_id, was_public);
+      remove(opts.path, redux, actions.project_id, was_public);
     }
 
     // Add it to open files

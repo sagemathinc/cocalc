@@ -8,7 +8,7 @@
 // See https://github.com/sagemathinc/cocalc/issues/2462
 
 import { React, Rendered, useActions } from "../app-framework";
-const { register_file_editor } = require("../project_file");
+import { register_file_editor } from "../project-file";
 import { Markdown } from "../r_misc";
 import { webapp_client } from "../webapp-client";
 import { keys, filename_extension } from "smc-util/misc2";

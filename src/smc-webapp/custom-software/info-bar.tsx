@@ -20,7 +20,6 @@ const { open_new_tab } = require("smc-webapp/misc_page");
 import { Icon, Tip, HiddenXSSM, VisibleMDLG, VisibleXSSM } from "../r_misc";
 const { ButtonGroup, Button } = require("react-bootstrap");
 import { Available as AvailableFeatures } from "../project_configuration";
-//const { ROW_INFO_STYLE } = require("../project_files");
 const { jupyterlab_server_url } = require("../project/jupyterlab-server");
 const { jupyter_server_url } = require("../editor_jupyter");
 const { ButtonRetryUntilSuccess } = require("../widgets-misc/link-retry");

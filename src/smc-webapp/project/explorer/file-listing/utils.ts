@@ -26,7 +26,7 @@ type Extension =
 
 // default extensions, in their order of precendence
 // the order of these buttons also determines the precedence of suggested file extensions
-// see also smc-webapp/project_files.cjsx
+// see also smc-webapp/project-files.ts
 export const EXTs: ReadonlyArray<Extension> = Object.freeze([
   "sagews",
   "ipynb",

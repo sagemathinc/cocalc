@@ -21,9 +21,7 @@ import {
 import { ErrorDisplay, Icon, Tip, SettingBox } from "../../r_misc";
 import { ProjectActions } from "../../project_actions";
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { special_filenames_with_no_extension } = require("../../project_file");
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+import { special_filenames_with_no_extension } from "../../project-file";
 import { FileUpload } from "../../file-upload";
 import { NewFileButton } from "./new-file-button";
 import { NewFileDropdown } from "./new-file-dropdown";

@@ -7,6 +7,7 @@ import {
   split,
 } from "smc-util/misc";
 import { Actions, redux_name } from "../../app-framework";
+import { register_file_editor } from "../../project-file";
 
 import { Archive } from "./component";
 
@@ -94,10 +95,10 @@ function init_redux(
   path: string,
   redux,
   project_id: string
-): string | undefined {
+): string  {
   const name = redux_name(project_id, path);
   if (redux.getActions(name) != null) {
-    return; // already initialized
+    return name;
   }
   redux.createStore(name);
   const actions = redux.createActions(name, ArchiveActions);
@@ -262,7 +263,7 @@ class ArchiveActions extends Actions<State> {
 // ton of extensions that shoud open in the archive editor, but aren't implemented
 // yet and we don't want to open those in codemirror -- see https://github.com/sagemathinc/cocalc/issues/1720
 const TODO_TYPES = split("z lz lzma tgz tbz tbz2 tb2 taz tz tlz txz");
-require("project_file").register_file_editor({
+register_file_editor({
   ext: keys(COMMANDS).concat(TODO_TYPES),
   icon: "file-archive-o",
   init: init_redux,

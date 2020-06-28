@@ -9,7 +9,7 @@ Register the time editor -- stopwatch
     and how to init and remove the actions/store
 */
 
-const { register_file_editor } = require("../project_file");
+import { register_file_editor } from "../project-file";
 import { redux_name, Store, AppRedux } from "../app-framework";
 import { alert_message } from "../alerts";
 

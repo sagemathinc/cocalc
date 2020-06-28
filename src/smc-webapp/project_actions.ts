@@ -35,12 +35,8 @@ import { transform_get_url } from "./project/transform-get-url";
 import { OpenFiles } from "./project/open-files";
 import { log_opened_time, open_file } from "./project/open-file";
 
-let project_file, wrapped_editors;
-if (window != null) {
-  // don't import in case not in browser (for testing)
-  project_file = require("./project_file");
-  wrapped_editors = require("./editors/react-wrapper");
-}
+import * as project_file from "./project-file";
+import { get_editor } from "./editors/react-wrapper";
 
 import * as misc from "smc-util/misc";
 const { MARKERS } = require("smc-util/sagews");
@@ -728,7 +724,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private init_file_react_redux(
     path: string,
     is_public: boolean
-  ): { name: string; Editor: any } {
+  ): { name: string | undefined; Editor: any } {
     // Initialize the file's store and actions
     const name = project_file.initialize(
       path,
@@ -775,7 +771,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const a: any = redux.getEditorActions(this.project_id, path);
     if (a == null) {
       // try non-react editor
-      const editor = wrapped_editors.get_editor(this.project_id, path);
+      const editor = get_editor(this.project_id, path);
       if (
         editor != null &&
         typeof editor.programmatical_goto_line === "function"
@@ -794,7 +790,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const a: any = redux.getEditorActions(this.project_id, path);
     if (a == null) {
       // try non-react editor
-      const editor = wrapped_editors.get_editor(this.project_id, path);
+      const editor = get_editor(this.project_id, path);
       if (editor != null) editor.show();
     } else {
       if (typeof a.show === "function") a.show();
@@ -807,7 +803,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const a: any = redux.getEditorActions(this.project_id, path);
     if (a == null) {
       // try non-react editor
-      const editor = wrapped_editors.get_editor(this.project_id, path);
+      const editor = get_editor(this.project_id, path);
       if (editor != null) editor.hide();
     } else {
       if (typeof a.hide === "function") a.hide();

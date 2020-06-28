@@ -22,6 +22,10 @@ import {
 } from "../app-framework";
 import { copy } from "smc-util/misc";
 
+// Once we get rid of all editor.coffee:
+//import { register_file_editor } from "../project-file";
+//import { file_options } from "../editor-tmp";
+
 const WrappedEditor: React.FC<{ editor: any }> = ({ editor }) => {
   const ref = useRef(null);
 
@@ -100,9 +104,10 @@ export function register_nonreact_editor(opts: {
 }): void {
   // Circle import issue -- since editor imports react-wrapper:
   const { file_options } = require("../editor");
-  const { register_file_editor } = require("../project_file");
+  const { register_file_editor } = require("../project-file");
 
-  // We do this just to make it crystal clear which extensions still use non-react editors
+  // Do this to make it crystal clear which extensions still
+  // use non-react editors:
   /* console.log("register_nonreact_editor", {
     ext: opts.ext,
     is_public: opts.is_public,
@@ -146,7 +151,7 @@ export function register_nonreact_editor(opts: {
       return wrapper_generator;
     },
 
-    remove(path: string, _redux, project_id: string): void {
+    remove(path: string, _redux, project_id: string) {
       const key = get_key(project_id, path);
       if (editors[key]) {
         editors[key].remove();
