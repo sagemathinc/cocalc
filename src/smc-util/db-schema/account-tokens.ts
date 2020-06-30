@@ -18,6 +18,7 @@ Table({
     user_query: {
       set: {
         admin: true,
+        delete: true,
         fields: {
           token: null,
           desc: null,
@@ -27,16 +28,15 @@ Table({
         },
       },
       get: {
+        admin: true,
+        pg_where: [], // no limits
         fields: {
-          admin: true,
-          fields: {
-            token: null,
-            desc: null,
-            expires: null,
-            counter: null,
-            limit: null,
-            disabled: null,
-          },
+          token: null,
+          desc: null,
+          expires: null,
+          counter: null,
+          limit: null,
+          disabled: null,
         },
       },
     },

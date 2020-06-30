@@ -8,6 +8,7 @@ export { SCHEMA } from "./types";
 // The tables
 import "./account-creation-actions";
 import "./account-profiles";
+import "./account-tokens";
 import "./accounts";
 import "./auth";
 import "./blobs";
