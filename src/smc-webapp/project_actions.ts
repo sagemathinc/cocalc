@@ -860,7 +860,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // OPTIMIZATION: Some possible performance problems here. Debounce may be necessary
   flag_file_activity(filename: string): void {
-    if (filename == null || this.open_files == null) {
+    if (filename == null || !this.open_files?.has(filename)) {
+      // filename invalid or not currently open, see
+      //  https://github.com/sagemathinc/cocalc/issues/4717
       return;
     }
 
@@ -870,7 +872,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     const set_inactive = () => {
-      if (this.open_files == null) return;
+      if (!this.open_files?.has(filename)) return;
       this.open_files.set(filename, "has_activity", false);
     };
 

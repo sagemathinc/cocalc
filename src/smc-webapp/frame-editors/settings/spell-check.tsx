@@ -89,7 +89,7 @@ export class SpellCheck extends Component<Props, {}> {
       return (
         <div>
           <span style={style}>
-            <b>Spellcheck</b> is not available for this project.
+            <b>Spellcheck</b> is not available for this editor.
           </span>
         </div>
       );
