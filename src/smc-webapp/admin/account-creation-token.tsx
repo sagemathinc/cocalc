@@ -11,6 +11,7 @@ import { List } from "immutable";
 import * as moment from "moment";
 import { range, sortBy } from "lodash";
 import { cmp_moment } from "smc-util/misc2";
+import { round2 } from "smc-util/misc";
 import { React, Rendered, redux, TypedMap } from "../app-framework";
 import { Button } from "../antd-bootstrap";
 import {
@@ -95,15 +96,29 @@ export const AccountCreationToken: React.FC<Props> = () => {
       } finally {
         set_state("view");
       }
+    } else {
+      // reset state upon closing
+      set_sel_rows([]);
+      set_error("");
     }
   }, [show]);
 
+  React.useEffect(() => {
+    if (editing != null) {
+      // antd's form want's something called "Store" – which is just this?
+      form.setFieldsValue(editing as any);
+    }
+  }, [editing]);
+
   async function save(val): Promise<void> {
     // antd wraps the time in a moment.js object
+    const val_orig: Token = { ...val };
     if (val.expires != null && moment.isMoment(val.expires)) {
       // https://momentjs.com/docs/#/displaying/as-javascript-date/
       val.expires = moment(val.expires).toDate();
     }
+    // set optional field to null
+    ["desc", "limit", "expires"].forEach((k) => (val[k] = val[k] ?? undefined));
     try {
       set_show(false);
       await query({
@@ -111,7 +126,8 @@ export const AccountCreationToken: React.FC<Props> = () => {
           account_tokens: val,
         },
       });
-      set_last_saved(val);
+      // we need the original one, without moment-js in it!
+      set_last_saved(val_orig);
       set_editing(null);
       set_show(true);
     } catch (err) {
@@ -119,17 +135,37 @@ export const AccountCreationToken: React.FC<Props> = () => {
     }
   }
 
-  async function delete_tokens(): Promise<void> {
-    set_deleting(true);
+  async function delete_token(
+    token: string | undefined,
+    single: boolean = false
+  ) {
+    if (token == null) return;
+    if (single) set_deleting(true);
+
     try {
       await query({
         query: {
-          account_tokens: sel_rows.map((token) => {
-            return { token };
-          }),
+          account_tokens: { token },
         },
         options: [{ delete: true }],
       });
+      if (single) load();
+    } catch (err) {
+      if (single) {
+        set_error(err);
+      } else {
+        throw err;
+      }
+    } finally {
+      if (single) set_deleting(false);
+    }
+  }
+
+  async function delete_tokens(): Promise<void> {
+    set_deleting(true);
+    try {
+      // it's not possible to delete several tokens at once
+      await sel_rows.map(async (token) => await delete_token(token));
       set_sel_rows([]);
       load();
     } catch (err) {
@@ -157,6 +193,8 @@ export const AccountCreationToken: React.FC<Props> = () => {
   }
 
   function render_edit(): Rendered {
+    if (last_saved != null) set_last_saved(null);
+
     const layout = {
       style: { margin: "20px 0" },
       labelCol: { span: 2 },
@@ -167,14 +205,8 @@ export const AccountCreationToken: React.FC<Props> = () => {
       wrapperCol: { offset: 2, span: 8 },
     };
 
-    const onFinish = (values) => {
-      save(values);
-    };
-
+    const onFinish = (values) => save(values);
     const onRandom = () => form.setFieldsValue({ token: new_random_token() });
-
-    // antd's form want's something called "Store", but this works fine, though.
-    form.setFieldsValue(editing as any);
 
     return (
       <Form
@@ -259,7 +291,9 @@ export const AccountCreationToken: React.FC<Props> = () => {
           rowSelection={rowSelection}
           pagination={{ position: ["bottomRight"] }}
           rowClassName={(row) =>
-            row.token === last_saved?.token ? "cocalc-bg-highlight" : ""
+            row.token === last_saved?.token
+              ? "cocalc-highlight-saved-token"
+              : ""
           }
         >
           <Table.Column<Token>
@@ -274,13 +308,25 @@ export const AccountCreationToken: React.FC<Props> = () => {
             dataIndex="counter"
             render={(text) => text ?? 0}
           />
-          <Table.Column<Token> title="Limit" dataIndex="limit" />
+          <Table.Column<Token>
+            title="Limit"
+            dataIndex="limit"
+            render={(text) => (text != null ? text : "∞")}
+          />
           <Table.Column<Token>
             title="% Used"
             dataIndex="used"
             render={(_text, token) => {
-              if (token.limit != null) {
-                return `${(100 * (token.counter ?? 0)) / token.limit} %`;
+              const { limit, counter } = token;
+              if (limit != null) {
+                if (limit == 0) {
+                  return "100%";
+                } else {
+                  // codemirror -_-
+                  const c = counter ?? 0;
+                  const pct = (100 * c) / limit;
+                  return `${round2(pct)}%`;
+                }
               } else {
                 return "";
               }
@@ -289,7 +335,7 @@ export const AccountCreationToken: React.FC<Props> = () => {
           <Table.Column<Token>
             title="Expires"
             dataIndex="expires"
-            defaultSortOrder={"ascend"}
+            sortDirections={["ascend", "descend"]}
             render={(v) => (v != null ? v.fromNow() : "never")}
             sorter={(a, b) => cmp_moment(a.expires, b.expires)}
           />
@@ -306,7 +352,7 @@ export const AccountCreationToken: React.FC<Props> = () => {
             render={(_text, token) => (
               <Popconfirm
                 title="Sure to delete?"
-                onConfirm={() => console.log("DELETE", token.key)}
+                onConfirm={() => delete_token(token.key, true)}
               >
                 <DeleteOutlined />
               </Popconfirm>
