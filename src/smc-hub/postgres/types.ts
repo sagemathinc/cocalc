@@ -20,7 +20,7 @@ export interface QueryOptions {
   table?: string;
   where?: QueryWhere;
   query?: string;
-  params?: (string | number | Date)[];  // todo -- maybe too specific?
+  params?: (string | number | Date)[]; // todo -- maybe too specific?
   cache?: boolean;
   retry_until_success?: any; // todo
   cb?: Function;
@@ -182,4 +182,5 @@ export interface PostgreSQL extends EventEmitter {
     cb: Function;
   });
   verify_email_check_token(opts: { email_address: string; token: string });
+  reset_server_settings_cache();
 }

@@ -229,9 +229,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     cb     : cb
         ], (err) ->
             # clear the cache no matter what (e.g., server_settings might have partly changed then errored)
-            SERVER_SETTINGS_CACHE.reset()
+            @reset_server_settings_cache()
             opts.cb(err)
         )
+
+    reset_server_settings_cache: =>
+        SERVER_SETTINGS_CACHE.reset()
 
     get_server_setting: (opts) =>
         opts = defaults opts,

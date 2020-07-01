@@ -50,6 +50,7 @@ client     = require('./client')
 sage       = require('./sage')               # sage server
 auth       = require('./auth')
 base_url   = require('./base-url')
+{migrate_account_token} = require('./postgres/migrate-account-token')
 
 {handle_mentions_loop} = require('./mentions/handle')
 
@@ -536,6 +537,8 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             # This must happen *AFTER* update_schema above.
             init_smc_version(database, cb)
+        (cb) ->
+            migrate_account_token(database, cb)
         (cb) ->
             winston.debug("mentions=#{program.mentions}")
             if program.mentions
