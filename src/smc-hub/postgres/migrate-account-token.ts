@@ -11,34 +11,30 @@ import { callback2 as cb2 } from "../../smc-util/async-utils";
 import * as debug from "debug";
 const LOG = debug("hub:migrate:account_token");
 
-export async function migrate_account_token(db: PostgreSQL, cb: Function) {
+export async function migrate_account_token(db: PostgreSQL) {
   const token = await cb2(db.get_server_setting, {
     name: "account_creation_token",
   });
   if (token == null) return;
 
-  try {
-    if (token != "") {
-      await cb2(db._query, {
-        query: "INSERT INTO account_tokens",
-        values: {
-          "token::TEXT": token,
-          "desc::TEXT": `Migrated from Site Settings`,
-        },
-        conflict: "token",
-      });
-    }
-
+  if (token != "") {
+    LOG(`Migrating account token ...`);
     await cb2(db._query, {
-      query: "DELETE FROM server_settings",
-      where: { "name = $::TEXT": "account_creation_token" },
+      query: "INSERT INTO account_tokens",
+      values: {
+        "token::TEXT": token,
+        "desc::TEXT": `Migrated from Site Settings`,
+      },
+      conflict: "token",
     });
-
-    db.reset_server_settings_cache();
-    LOG(`Account token migrated from Site Settings to Account Tokens table`);
-    cb();
-  } catch (err) {
-    LOG(`Problem migrating account token -- ${err}`);
-    cb(err);
   }
+
+  // get rid of this field in any case (empty string)
+  await cb2(db._query, {
+    query: "DELETE FROM server_settings",
+    where: { "name = $::TEXT": "account_creation_token" },
+  });
+
+  db.reset_server_settings_cache();
+  LOG(`Account token migrated from Site Settings to Account Tokens table`);
 }

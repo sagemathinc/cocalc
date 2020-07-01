@@ -125,6 +125,7 @@ interface Fields {
 }
 
 interface UserOrProjectQuery<F extends Fields> {
+  validate?: boolean; // if false, bypasses most of schema-validate.js
   get?: {
     fields: { [key in keyof Partial<F>]: any };
     throttle_changes?: number;
@@ -222,6 +223,16 @@ interface UserOrProjectQuery<F extends Fields> {
       old_val,
       query,
       account_id: string,
+      cb: (err?: string | Error) => void
+    ) => void;
+
+    /* 4. instead_of_query */
+    instead_of_query?: (
+      database,
+      opts: {
+        query: any;
+        options: any[];
+      },
       cb: (err?: string | Error) => void
     ) => void;
   };

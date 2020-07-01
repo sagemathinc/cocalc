@@ -36,7 +36,7 @@ export function is_valid_password(password: string) {
 }
 
 function issues_with_create_account(mesg) {
-  const issues : any = {};
+  const issues: any = {};
   if (mesg.email_address && !is_valid_email_address(mesg.email_address)) {
     issues.email_address = "Email address does not appear to be valid.";
   }
@@ -47,6 +47,23 @@ function issues_with_create_account(mesg) {
     }
   }
   return issues;
+}
+
+// return true if allowed to continue creating an account (either no token required or token matches)
+async function check_account_token(
+  db: PostgreSQL,
+  token: string | undefined
+): Promise<boolean> {
+  const has_tokens = await callback2(db._query, {
+    query: "SELECT EXISTS(SELECT 1 FROM account_tokens) AS has_tokens",
+  });
+  console.log(has_tokens);
+  const match = await callback2(db._query, {
+    query: "SELECT expires FROM account_tokens",
+    where: { "token = $:TEXT": token },
+  });
+  console.log("match", match);
+  process.exit();
 }
 
 interface AccountCreationOptions {
@@ -167,10 +184,7 @@ export async function create_account(
     }
 
     dbg("check if a registration token is required");
-    const token = await callback2(opts.database.get_server_setting, {
-      name: "account_creation_token",
-    });
-    if (token && token !== opts.mesg.token) {
+    if (!(await check_account_token(opts.database, opts.mesg.token))) {
       reason = { token: "Incorrect registration token." };
       throw Error();
     }

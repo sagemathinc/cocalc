@@ -538,7 +538,12 @@ exports.start_server = start_server = (cb) ->
             # This must happen *AFTER* update_schema above.
             init_smc_version(database, cb)
         (cb) ->
-            migrate_account_token(database, cb)
+            try
+                await migrate_account_token(database)
+            catch err
+                cb(err)
+                return
+            cb()
         (cb) ->
             winston.debug("mentions=#{program.mentions}")
             if program.mentions

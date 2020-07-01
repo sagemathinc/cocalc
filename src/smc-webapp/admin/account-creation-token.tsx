@@ -62,16 +62,13 @@ export const AccountCreationToken: React.FC<Props> = () => {
       // TODO query should be limited by disabled != true
       result = await query({
         query: {
-          account_tokens: [
-            {
-              token: null,
-              desc: null,
-              expires: null,
-              counter: null,
-              limit: null,
-              disabled: null,
-            },
-          ],
+          account_tokens: {
+            token: "*",
+            desc: null,
+            expires: null,
+            limit: null,
+            disabled: null,
+          },
         },
       });
       const data = {};
@@ -289,7 +286,11 @@ export const AccountCreationToken: React.FC<Props> = () => {
           size={"small"}
           dataSource={table_data}
           rowSelection={rowSelection}
-          pagination={{ position: ["bottomRight"] }}
+          pagination={{
+            position: ["bottomRight"],
+            defaultPageSize: 10,
+            showSizeChanger: true,
+          }}
           rowClassName={(row) =>
             row.token === last_saved?.token
               ? "cocalc-highlight-saved-token"

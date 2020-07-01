@@ -474,6 +474,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         # after everything the database has been modified.
         r.on_change_hook = r.client_query.set.on_change
 
+        # 4. instead of query
+        r.instead_of_query = r.client_query.set.instead_of_query
+
         #dbg("on_change_hook=#{on_change_hook?}, #{misc.to_json(misc.keys(client_query.set))}")
 
         # Set the query options -- order doesn't matter for set queries (unlike for get), so we
@@ -683,7 +686,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 else
                     cb()
             (cb) =>
-                @_user_set_query_main_query(r, cb)
+                if r.instead_of_query?
+                    opts1 = misc.copy_without(opts, ['cb', 'changes', 'table'])
+                    r.instead_of_query @, opts1, cb
+                else
+                    @_user_set_query_main_query(r, cb)
             (cb) =>
                 if r.on_change_hook?
                     r.on_change_hook(@, r.old_val, r.query, r.account_id, cb)
