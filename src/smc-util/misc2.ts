@@ -16,6 +16,7 @@ import * as sha1 from "sha1";
 export { sha1 };
 
 import * as lodash from "lodash";
+import { Moment } from "moment";
 export const keys = lodash.keys;
 
 interface SplittedPath {
@@ -267,6 +268,10 @@ export function cmp_Date(
     return 1;
   }
   return 0; // note: a == b for Date objects doesn't work as expected, but that's OK here.
+}
+
+export function cmp_moment(a?: Moment, b?: Moment) {
+  return cmp_Date(a?.toDate(), b?.toDate());
 }
 
 // see https://stackoverflow.com/questions/728360/how-do-i-correctly-clone-a-javascript-object/30042948#30042948

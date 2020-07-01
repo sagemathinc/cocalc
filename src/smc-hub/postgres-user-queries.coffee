@@ -117,7 +117,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
         v = misc.keys(opts.query)
         if v.length > 1
-            dbg('FATAL no key')
+            dbg("FATAL no key")
             opts.cb?('FATAL: must specify exactly one key in the query')
             return
         table = v[0]

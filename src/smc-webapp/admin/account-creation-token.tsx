@@ -10,6 +10,7 @@ Input box for setting the account creation token.
 import { List } from "immutable";
 import * as moment from "moment";
 import { range, sortBy } from "lodash";
+import { cmp_moment } from "smc-util/misc2";
 import { React, Rendered, redux, TypedMap } from "../app-framework";
 import { Button } from "../antd-bootstrap";
 import {
@@ -35,7 +36,7 @@ interface Token {
   desc?: string;
   limit?: number;
   counter?: number; // readonly
-  expires?: moment.Moment;
+  expires?: moment.Moment; // DB uses Date objects, watch out!
 }
 
 interface Props {}
@@ -46,6 +47,7 @@ export const AccountCreationToken: React.FC<Props> = () => {
   const [state, set_state] = React.useState<States>("closed");
   const [data, set_data] = React.useState<{ [key: string]: Token }>({});
   const [editing, set_editing] = React.useState<Token | null>(null);
+  const [last_saved, set_last_saved] = React.useState<Token | null>(null);
   const [error, set_error] = React.useState<string>("");
   const [show, set_show] = React.useState<boolean>(false);
   const [sel_rows, set_sel_rows] = React.useState<any>([]);
@@ -71,24 +73,28 @@ export const AccountCreationToken: React.FC<Props> = () => {
           ],
         },
       });
+      const data = {};
+      for (const x of result.query.account_tokens) {
+        if (x.expires) x.expires = moment(x.expires);
+        data[x.token] = x;
+      }
+      set_error("");
+      set_data(data);
     } catch (err) {
       set_error(err.message);
-      return;
     }
-    const data = {};
-    for (const x of result.query.account_tokens) {
-      if (x.expires) x.expires = moment(x.expires);
-      data[x.token] = x;
-    }
-    set_state("view");
-    set_error("");
-    set_data(data);
   }
 
   React.useEffect(() => {
+    // every time we show or hide, clear the selection
+    set_sel_rows([]);
     if (show) {
       set_state("load");
-      load();
+      try {
+        load();
+      } finally {
+        set_state("view");
+      }
     }
   }, [show]);
 
@@ -105,6 +111,8 @@ export const AccountCreationToken: React.FC<Props> = () => {
           account_tokens: val,
         },
       });
+      set_last_saved(val);
+      set_editing(null);
       set_show(true);
     } catch (err) {
       set_error(err);
@@ -119,8 +127,8 @@ export const AccountCreationToken: React.FC<Props> = () => {
           account_tokens: sel_rows.map((token) => {
             return { token };
           }),
-          options: [{ delete: true }],
         },
+        options: [{ delete: true }],
       });
       set_sel_rows([]);
       load();
@@ -145,7 +153,7 @@ export const AccountCreationToken: React.FC<Props> = () => {
   }
 
   function edit_new_token(): void {
-    set_editing({ token: new_random_token() });
+    set_editing({ ...last_saved, ...{ token: new_random_token() } });
   }
 
   function render_edit(): Rendered {
@@ -250,6 +258,9 @@ export const AccountCreationToken: React.FC<Props> = () => {
           dataSource={table_data}
           rowSelection={rowSelection}
           pagination={{ position: ["bottomRight"] }}
+          rowClassName={(row) =>
+            row.token === last_saved?.token ? "cocalc-bg-highlight" : ""
+          }
         >
           <Table.Column<Token>
             title="Token"
@@ -279,12 +290,8 @@ export const AccountCreationToken: React.FC<Props> = () => {
             title="Expires"
             dataIndex="expires"
             defaultSortOrder={"ascend"}
-            render={(v) => v.fromNow()}
-            sorter={(a, b) =>
-              a.expires != null && b.expires != null
-                ? a.expires.diff(b.expires)
-                : 0
-            }
+            render={(v) => (v != null ? v.fromNow() : "never")}
+            sorter={(a, b) => cmp_moment(a.expires, b.expires)}
           />
           <Table.Column<Token>
             title="Edit"
