@@ -23,6 +23,7 @@ import { is_valid_email_address, len, to_json } from "smc-util/misc2";
 import { callback2 } from "smc-util/async-utils";
 import { PostgreSQL } from "../postgres/types";
 const { api_key_action } = require("../api/manage");
+import { get_server_settings, have_active_account_tokens } from "../utils";
 
 export function is_valid_password(password: string) {
   if (typeof password !== "string") {
@@ -53,17 +54,47 @@ function issues_with_create_account(mesg) {
 async function check_account_token(
   db: PostgreSQL,
   token: string | undefined
-): Promise<boolean> {
-  const has_tokens = await callback2(db._query, {
-    query: "SELECT EXISTS(SELECT 1 FROM account_tokens) AS has_tokens",
-  });
-  console.log(has_tokens);
+): Promise<string | undefined> {
+  const have_tokens = await have_active_account_tokens(db);
+
+  // if there are no tokens set, it's ok
+  if (!have_tokens) return;
+
+  if (token == null || token == "") {
+    return "No registration token provided";
+  }
+  // overview: first, we check if the token matches.
+  // → true
+  //   → check expiration date → abort if expired
+  //   → if counter, check counter vs. limit
+  //     → true: increase the counter → ok
+  //     → false: ok
   const match = await callback2(db._query, {
-    query: "SELECT expires FROM account_tokens",
-    where: { "token = $:TEXT": token },
+    query: `SELECT "expires", "counter", "limit" FROM account_tokens`,
+    where: { "token = $::TEXT": token },
   });
-  console.log("match", match);
-  process.exit();
+  if (match.rows.length != 1) {
+    return "Registration token is wrong.";
+  }
+  // e.g. { expires: 2020-12-04T11:54:52.889Z, counter: null, limit: 10 }
+  const { expires, counter: counter_raw, limit } = match.rows[0];
+  const counter = counter_raw ?? 0;
+
+  if (expires != null && expires.getTime() < new Date().getTime()) {
+    return "Token no longer valid.";
+  }
+
+  if (limit != null) {
+    if (limit <= counter) {
+      return "Token used up.";
+    } else {
+      // increase counter
+      await callback2(db._query, {
+        query: `UPDATE account_tokens SET "counter" = $1 WHERE token = $2::TEXT`,
+        params: [counter + 1, token],
+      });
+    }
+  }
 }
 
 interface AccountCreationOptions {
@@ -119,6 +150,13 @@ export async function create_account(
 
   try {
     dbg("run tests on generic validity of input");
+
+    // check if we even allow account creating via email/password
+    const settings = await get_server_settings(opts.database);
+    if (!settings.email_signup) {
+      reason = { other: "Signing up via email/password is disabled." };
+      throw new Error("email/password signup disabled");
+    }
 
     // issues_with_create_account also does check is_valid_password!
     const issues = issues_with_create_account(opts.mesg);
@@ -184,8 +222,12 @@ export async function create_account(
     }
 
     dbg("check if a registration token is required");
-    if (!(await check_account_token(opts.database, opts.mesg.token))) {
-      reason = { token: "Incorrect registration token." };
+    const check_token = await check_account_token(
+      opts.database,
+      opts.mesg.token
+    );
+    if (check_token) {
+      reason = { token: check_token };
       throw Error();
     }
 

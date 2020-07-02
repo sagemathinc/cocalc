@@ -16,27 +16,33 @@ function is_delete(options: Array<{ delete?: boolean }>) {
   return options.some((v) => v?.delete === true);
 }
 
+// this covers 3 cases: selecting all, updating one, and deleting one
 async function instead_of_query(
   db: PostgreSQL,
   opts: any,
   cb: Function
 ): Promise<void> {
   const { options, query } = opts;
-  console.log("query", query, "options", options);
   try {
-    if (is_delete(options)) {
-      // delete query
+    if (is_delete(options) && query.token) {
+      // delete if option is set and there is a token which is defined and not an empty string
+      await cb2(db._query, {
+        query: "DELETE FROM account_tokens WHERE token = $1",
+        params: [query.token],
+      });
       cb(null);
     } else {
-      // either inserting or editing data
+      // either we want to get all tokens or insert/edit one
+
       if (query.token == "*") {
+        // select all tokens
         const data = await cb2(db._query, {
           query: "SELECT * FROM account_tokens",
         });
         cb(null, data.rows);
       } else if (query.token != null && query.token != "") {
+        // upsert an existing one
         const { token, descr, expires, limit, disabled } = query;
-
         await cb2(db._query, {
           query: `INSERT INTO account_tokens ("token","descr","expires","limit","disabled")
                 VALUES ($1, $2, $3, $4, $5) ON CONFLICT (token)

@@ -11,9 +11,8 @@ import { List } from "immutable";
 import * as moment from "moment";
 import { range, sortBy } from "lodash";
 import { cmp_moment } from "smc-util/misc2";
-import { round2 } from "smc-util/misc";
+import { round1 } from "smc-util/misc";
 import { React, Rendered, redux, TypedMap } from "../app-framework";
-import { Button } from "../antd-bootstrap";
 import {
   Form,
   DatePicker,
@@ -24,7 +23,7 @@ import {
   Table,
 } from "antd";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
-import { ErrorDisplay, Saving, COLORS } from "../r_misc";
+import { ErrorDisplay, Saving, COLORS, Icon } from "../r_misc";
 import { PassportStrategy } from "../account/passport-types";
 import { query } from "../frame-editors/generic/client";
 //import { deep_copy } from "smc-util/misc2";
@@ -284,15 +283,10 @@ export const AccountCreationToken: React.FC<Props> = () => {
           disabled={!any_selected}
           loading={deleting}
         >
-          Delete
+          {any_selected ? `Delete ${sel_rows.length} token(s)` : "Delete"}
         </AntdButton>
 
-        {any_selected && (
-          <span style={{ margin: "0 10px" }}>
-            {any_selected ? `Delete ${sel_rows.length} token(s)` : ""}
-          </span>
-        )}
-
+        <AntdButton onClick={() => load()}>Refresh</AntdButton>
         <AntdButton onClick={() => set_show(false)}>Close</AntdButton>
       </div>
     );
@@ -359,7 +353,15 @@ export const AccountCreationToken: React.FC<Props> = () => {
                   // codemirror -_-
                   const c = counter ?? 0;
                   const pct = (100 * c) / limit;
-                  return `${round2(pct)}%`;
+                  return {
+                    props: {
+                      style: {
+                        backgroundColor:
+                          pct > 90 ? COLORS.ATND_BG_RED_L : undefined,
+                      },
+                    },
+                    children: `${round1(pct)}%`,
+                  };
                 }
               } else {
                 return "";
@@ -463,17 +465,27 @@ export const AccountCreationToken: React.FC<Props> = () => {
     }
   }
 
-  function render_body() {
-    if (!show) {
-      return <Button onClick={() => set_show(true)}>Load tokens ...</Button>;
-    } else {
+  function render_body(): Rendered {
+    if (show) {
       return render_content();
     }
   }
 
+  function render_header(): Rendered {
+    return (
+      <h4 onClick={() => set_show((v) => !v)} style={{ cursor: "pointer" }}>
+        <Icon
+          style={{ width: "20px" }}
+          name={show ? "caret-down" : "caret-right"}
+        />{" "}
+        Account Creation Tokens
+      </h4>
+    );
+  }
+
   return (
     <div>
-      <h4>Account Creation Tokens</h4>
+      {render_header()}
       {render_body()}
     </div>
   );
