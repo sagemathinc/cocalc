@@ -109,7 +109,7 @@ exports.split = function (s) {
 // Like the exports.split method, but quoted terms are grouped together for an exact search.
 exports.search_split = function (search) {
   const terms = [];
-  search = search.split('"');
+  search = search.toLowerCase().split('"');
   const { length } = search;
   for (let i = 0; i < search.length; i++) {
     let element = search[i];
