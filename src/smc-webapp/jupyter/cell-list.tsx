@@ -8,6 +8,7 @@
 declare const $: any;
 
 const DEFAULT_ROW_SIZE: number = 64;
+const DEFAULT_WINDOWED_SIZE: number = 15;
 
 import { delay } from "awaiting";
 import * as immutable from "immutable";
@@ -340,7 +341,9 @@ export class CellList extends Component<CellListProps> {
     return (
       <WindowedList
         ref={this.windowed_list_ref}
-        overscan_row_count={this.use_windowed_list ? 40 : 200}
+        overscan_row_count={
+          this.use_windowed_list ? DEFAULT_WINDOWED_SIZE : 200
+        }
         estimated_row_size={DEFAULT_ROW_SIZE}
         row_key={(index) => this.props.cell_list.get(index)}
         row_count={this.props.cell_list.size}
