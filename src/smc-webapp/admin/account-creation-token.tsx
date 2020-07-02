@@ -266,6 +266,38 @@ export const AccountCreationToken: React.FC<Props> = () => {
     );
   }
 
+  function render_buttons() {
+    const any_selected = sel_rows.length > 0;
+    return (
+      <div style={{ margin: "10px 0" }}>
+        <AntdButton
+          type={!any_selected ? "primary" : "default"}
+          disabled={any_selected}
+          onClick={() => edit_new_token()}
+        >
+          Add
+        </AntdButton>
+
+        <AntdButton
+          type={any_selected ? "primary" : "default"}
+          onClick={delete_tokens}
+          disabled={!any_selected}
+          loading={deleting}
+        >
+          Delete
+        </AntdButton>
+
+        {any_selected && (
+          <span style={{ margin: "0 10px" }}>
+            {any_selected ? `Delete ${sel_rows.length} token(s)` : ""}
+          </span>
+        )}
+
+        <AntdButton onClick={() => set_show(false)}>Close</AntdButton>
+      </div>
+    );
+  }
+
   function render_view(): Rendered {
     const table_data = sortBy(
       Object.values(data).map((v) => {
@@ -278,22 +310,9 @@ export const AccountCreationToken: React.FC<Props> = () => {
       selectedRowKeys: sel_rows,
       onChange: set_sel_rows,
     };
-    const any_selected = sel_rows.length > 0;
     return (
       <>
-        <div style={{ margin: "10px 0" }}>
-          <AntdButton
-            type="primary"
-            onClick={delete_tokens}
-            disabled={!any_selected}
-            loading={deleting}
-          >
-            Delete
-          </AntdButton>
-          <span style={{ marginLeft: 8 }}>
-            {any_selected ? `Delete ${sel_rows.length} token(s)` : ""}
-          </span>
-        </div>
+        {render_buttons()}
 
         <Table<Token>
           size={"small"}
@@ -412,15 +431,6 @@ export const AccountCreationToken: React.FC<Props> = () => {
     );
   }
 
-  function render_buttons(): Rendered {
-    return (
-      <div>
-        <Button onClick={() => edit_new_token()}>Add</Button>
-        <Button onClick={() => set_show(false)}>Close</Button>
-      </div>
-    );
-  }
-
   // disable token editing if any strategy besides email is public
   function not_supported(strategies): boolean {
     return strategies
@@ -443,14 +453,11 @@ export const AccountCreationToken: React.FC<Props> = () => {
     if (not_supported(strategies)) {
       return render_unsupported();
     } else {
-      const buttons = render_buttons();
       return (
         <div>
-          {buttons}
           {render_error()}
           {render_control()}
           {render_info()}
-          {buttons}
         </div>
       );
     }
