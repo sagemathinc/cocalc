@@ -373,7 +373,7 @@ export const AccountCreationToken: React.FC<Props> = () => {
             dataIndex="expires"
             sortDirections={["ascend", "descend"]}
             render={(v) => (v != null ? v.fromNow() : "never")}
-            sorter={(a, b) => cmp_moment(a.expires, b.expires)}
+            sorter={(a, b) => cmp_moment(a.expires, b.expires, true)}
           />
           <Table.Column<Token>
             title="Edit"
