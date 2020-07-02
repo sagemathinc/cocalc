@@ -1,3 +1,9 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+
 import { React, useState } from "../../app-framework";
 import { PurchaseOneLicense } from "../../site-licenses/purchase";
 
@@ -11,7 +17,7 @@ export const PurchaseLicense: React.FC = () => {
             set_show(!show);
           }}
         >
-          Purchase license{show ? "" : "..."}
+          Purchase a license{show ? "" : "..."}
         </a>
       </h3>
       {show && <PurchaseOneLicense />}
