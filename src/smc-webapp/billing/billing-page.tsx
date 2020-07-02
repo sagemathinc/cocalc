@@ -289,16 +289,8 @@ export const BillingPage = rclass<ReactProps>(
         return (
           <div>
             <PaymentMethods
-              sources={
-                this.props.customer != null
-                  ? this.props.customer.sources
-                  : undefined
-              }
-              default={
-                this.props.customer != null
-                  ? this.props.customer.default_source
-                  : undefined
-              }
+              sources={this.props.customer?.sources}
+              default={this.props.customer?.default_source}
             />
             <AddSubscription
               hide_cancel_button={true}

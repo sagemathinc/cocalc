@@ -18,9 +18,10 @@ import { Button, Card, DatePicker, Radio } from "antd";
 import * as moment from "moment";
 import { webapp_client } from "../../webapp-client";
 import { React, useMemo, useState } from "../../app-framework";
-import { SliderWithInput } from "./slider-with-input";
 const { RangePicker } = DatePicker;
 import { ErrorDisplay } from "../../r_misc";
+import { SliderWithInput } from "./slider-with-input";
+import { PurchaseMethod } from "./purchase-method";
 
 type User = "academic" | "individual" | "business";
 type Upgrade = "basic" | "standard" | "premium";
@@ -35,6 +36,9 @@ export interface PurchaseInfo {
   end?: Date;
   quote: boolean;
   quote_info?: string;
+  payment_method?: string;
+  cost?: number; // use cost and discounted_cost as double check on backend only (i.e., don't trust them, but on other hand be careful not to charge more!)
+  discounted_cost?: number;
 }
 
 const COSTS = {
@@ -43,6 +47,8 @@ const COSTS = {
 } as const;
 
 const DISCOUNT = 0.7;
+
+const MIN_QUOTE = 100;
 
 interface Props {
   onClose: () => void;
@@ -55,8 +61,19 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   const [subscription, set_subscription] = useState<Subscription | undefined>(
     undefined
   );
-  const [start, set_start] = useState<Date>(new Date());
-  const [end, set_end] = useState<Date>(moment().add(1, "M").toDate());
+
+  const [start, set_start_state] = useState<Date>(new Date());
+  function set_start(date: Date) {
+    set_start_state(date < start ? new Date() : date);
+  }
+
+  const [end, set_end_state] = useState<Date>(
+    moment().add(1, "month").toDate()
+  );
+  function set_end(date: Date) {
+    set_end_state(date <= start ? moment(start).add(1, "day").toDate() : date);
+  }
+
   const [quote, set_quote] = useState<boolean | undefined>(undefined);
   const [quote_info, set_quote_info] = useState<string | undefined>(undefined);
   const [error, set_error] = useState<string>("");
@@ -66,6 +83,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   const disabled: boolean = useMemo(() => {
     return sending == "success" || sending == "active";
   }, [sending]);
+  const [payment_method, set_payment_method] = useState<string | undefined>(
+    undefined
+  );
 
   const cost = useMemo<number | undefined>(() => {
     if (
@@ -240,9 +260,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               value: false,
             },
             {
-              label:
-                "I require a quote, invoice, modified terms or a purchase order, etc.",
+              label: `I require a quote, invoice, modified terms or a purchase order,  use PayPal, etc. ($${MIN_QUOTE} minimum)`,
               value: true,
+              disabled: cost < MIN_QUOTE,
             },
           ]}
           onChange={(e) => set_quote(e.target.value)}
@@ -255,7 +275,32 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   function render_credit_card() {
     if (quote !== false) return;
 
-    return <div>Enter credit card number here: </div>;
+    let body;
+    if (payment_method != null) {
+      body = (
+        <>
+          {payment_method}
+          <br />
+          <Button onClick={() => set_payment_method(undefined)}>
+            Change...
+          </Button>
+        </>
+      );
+    } else {
+      body = (
+        <>
+          <br />
+          <PurchaseMethod
+            onClose={(id) => {
+              console.log("got payment method ", id);
+              set_payment_method(id);
+            }}
+          />
+        </>
+      );
+    }
+
+    return <div>Payment method: {body}</div>;
   }
 
   async function submit(): Promise<void> {
@@ -273,9 +318,12 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       upgrade,
       subscription,
       start,
-      end,
+      end: subscription == "no" ? end : undefined,
       quote,
       quote_info,
+      payment_method,
+      cost,
+      discounted_cost,
     };
     set_sending("active");
     try {
@@ -313,7 +361,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     if (quote !== false) return;
     return (
       <div>
-        <Button onClick={submit} disabled={disabled}>
+        <Button onClick={submit} disabled={disabled || payment_method == null}>
           Complete purchase
         </Button>
       </div>
@@ -348,6 +396,15 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     }
   }
 
+  // Just cancel everything
+  function render_cancel() {
+    return (
+      <div>
+        <Button onClick={onClose}>Cancel</Button>
+      </div>
+    );
+  }
+
   return (
     <Card title={"Buy a license"} extra={<a onClick={onClose}>close</a>}>
       {render_error()}
@@ -362,6 +419,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       {render_quote_info()}
       {render_buy()}
       {render_sending()}
+      <hr />
+      <br />
+      {render_cancel()}
     </Card>
   );
 });
