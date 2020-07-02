@@ -9,11 +9,12 @@ Input box for setting the account creation token.
 
 import { List } from "immutable";
 import * as moment from "moment";
-import { range, sortBy } from "lodash";
+import { range, sortBy, pick } from "lodash";
 import { cmp_moment } from "smc-util/misc2";
 import { round1 } from "smc-util/misc";
 import { React, Rendered, redux, TypedMap } from "../app-framework";
 import {
+  Checkbox,
   Form,
   DatePicker,
   InputNumber,
@@ -21,6 +22,7 @@ import {
   Input,
   Popconfirm,
   Table,
+  Switch,
 } from "antd";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { ErrorDisplay, Saving, COLORS, Icon } from "../r_misc";
@@ -28,11 +30,14 @@ import { PassportStrategy } from "../account/passport-types";
 import { query } from "../frame-editors/generic/client";
 //import { deep_copy } from "smc-util/misc2";
 
-const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+// base 58, to avoid ambiguities when writing it down
+const chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 interface Token {
   key?: string; // used in the table, not for the database
   token: string;
+  disabled?: boolean;
+  active?: boolean; // active is just !disabled
   descr?: string;
   limit?: number;
   counter?: number; // readonly
@@ -75,6 +80,7 @@ export const RegistrationToken: React.FC<Props> = () => {
       const data = {};
       for (const x of result.query.registration_tokens) {
         if (x.expires) x.expires = moment(x.expires);
+        x.active = !x.disabled;
         data[x.token] = x;
       }
       set_error("");
@@ -116,11 +122,15 @@ export const RegistrationToken: React.FC<Props> = () => {
   async function save(val): Promise<void> {
     // antd wraps the time in a moment.js object
     const val_orig: Token = { ...val };
-    set_editing(null);
+    if (editing != null) set_editing(null);
+
+    // data preparation
     if (val.expires != null && moment.isMoment(val.expires)) {
       // https://momentjs.com/docs/#/displaying/as-javascript-date/
       val.expires = moment(val.expires).toDate();
     }
+    val.disabled = !val.active;
+    val = pick(val, ["token", "disabled", "expires", "limit"]);
     // set optional field to undefined (to get rid of it)
     ["descr", "limit", "expires"].forEach(
       (k) => (val[k] = val[k] ?? undefined)
@@ -132,7 +142,7 @@ export const RegistrationToken: React.FC<Props> = () => {
           registration_tokens: val,
         },
       });
-      // we need the original one, without moment-js in it!
+      // we save the original one, with moment-js in it!
       set_last_saved(val_orig);
       set_saving(false);
       await load();
@@ -198,7 +208,10 @@ export const RegistrationToken: React.FC<Props> = () => {
   }
 
   function edit_new_token(): void {
-    set_editing({ ...last_saved, ...{ token: new_random_token() } });
+    set_editing({
+      ...last_saved,
+      ...{ token: new_random_token(), active: true },
+    });
   }
 
   function render_edit(): Rendered {
@@ -241,6 +254,9 @@ export const RegistrationToken: React.FC<Props> = () => {
         <Form.Item name="limit" label="Limit" rules={[{ required: false }]}>
           <InputNumber min={0} step={1} />
         </Form.Item>
+        <Form.Item name="active" label="Active" valuePropName="checked">
+          <Switch />
+        </Form.Item>
         <Form.Item {...tailLayout}>
           <AntdButton type="primary" htmlType="submit">
             Save
@@ -257,7 +273,7 @@ export const RegistrationToken: React.FC<Props> = () => {
           <AntdButton htmlType="button" onClick={() => set_editing(null)}>
             Cancel
           </AntdButton>
-          <AntdButton type="link" htmlType="button" onClick={onRandom}>
+          <AntdButton type="link" onClick={onRandom}>
             Randomize
           </AntdButton>
         </Form.Item>
@@ -375,6 +391,17 @@ export const RegistrationToken: React.FC<Props> = () => {
             render={(v) => (v != null ? v.fromNow() : "never")}
             sorter={(a, b) => cmp_moment(a.expires, b.expires, true)}
           />
+
+          <Table.Column<Token>
+            title="Active"
+            dataIndex="disabled"
+            render={(_text, token) => {
+              const click = () => save({ ...token, active: !token.active });
+              return (
+                <Checkbox checked={token.active} onChange={click}></Checkbox>
+              );
+            }}
+          />
           <Table.Column<Token>
             title="Edit"
             dataIndex="edit"
@@ -400,9 +427,6 @@ export const RegistrationToken: React.FC<Props> = () => {
   }
 
   function render_control(): Rendered {
-    if (saving) {
-      return <Saving />;
-    }
     if (editing != null) {
       return render_edit();
     } else {
@@ -428,6 +452,12 @@ export const RegistrationToken: React.FC<Props> = () => {
   function render_info(): Rendered {
     return (
       <div style={{ color: COLORS.GRAY, fontStyle: "italic" }}>
+        {saving && (
+          <>
+            <Saving />
+            <br />
+          </>
+        )}
         Note: You can disable email sign up in Site Settings
       </div>
     );
@@ -443,14 +473,14 @@ export const RegistrationToken: React.FC<Props> = () => {
   function render_content(): Rendered {
     const account_store: any = redux.getStore("account");
     if (account_store == null) {
-      return <div>Account store not defined -- refresh your browser.</div>;
+      return <div>Account store not defined -- try again...</div>;
     }
     const strategies:
       | List<TypedMap<PassportStrategy>>
       | undefined = account_store.get("strategies");
     if (strategies == null) {
       // I hit this in production once and it crashed my browser.
-      return <div>strategies not loaded -- refresh your browser.</div>;
+      return <div>strategies not loaded -- try again...</div>;
     }
     if (not_supported(strategies)) {
       return render_unsupported();

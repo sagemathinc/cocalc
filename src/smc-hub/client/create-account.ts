@@ -64,20 +64,31 @@ async function check_registration_token(
     return "No registration token provided";
   }
   // overview: first, we check if the token matches.
+  // → check if it is disabled?
   // → check expiration date → abort if expired
   // → if counter, check counter vs. limit
   //   → true: increase the counter → ok
   //   → false: ok
   const match = await callback2(db._query, {
-    query: `SELECT "expires", "counter", "limit" FROM registration_tokens`,
+    query: `SELECT "expires", "counter", "limit", "disabled" FROM registration_tokens`,
     where: { "token = $::TEXT": token },
   });
   if (match.rows.length != 1) {
     return "Registration token is wrong.";
   }
-  // e.g. { expires: 2020-12-04T11:54:52.889Z, counter: null, limit: 10 }
-  const { expires, counter: counter_raw, limit } = match.rows[0];
+  // e.g. { expires: 2020-12-04T11:54:52.889Z, counter: null, limit: 10, disabled: ... }
+  const {
+    expires,
+    counter: counter_raw,
+    limit,
+    disabled: disabled_raw,
+  } = match.rows[0];
   const counter = counter_raw ?? 0;
+  const disabled = disabled_raw ?? false;
+
+  if (disabled) {
+    return "Registration token disabled.";
+  }
 
   if (expires != null && expires.getTime() < new Date().getTime()) {
     return "Registration token no longer valid.";

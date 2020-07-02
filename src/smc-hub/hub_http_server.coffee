@@ -33,7 +33,7 @@ MetricsRecorder  = require('./metrics-recorder')
 
 {http_message_api_v1} = require('./api/handler')
 {setup_analytics_js} = require('./analytics')
-{have_active_registation_tokens} = require("./utils");
+{have_active_registration_tokens} = require("./utils");
 
 open_cocalc = require('./open-cocalc-server')
 
