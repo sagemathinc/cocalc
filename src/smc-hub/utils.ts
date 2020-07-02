@@ -24,12 +24,12 @@ export function read_db_password_from_disk(): string | null {
   }
 }
 
-export async function have_active_account_tokens(
+export async function have_active_registration_tokens(
   db: PostgreSQL
 ): Promise<boolean> {
   const resp = await cb2(db._query, {
     query:
-      "SELECT EXISTS(SELECT 1 FROM account_tokens WHERE disabled IS NOT true) AS have_tokens",
+      "SELECT EXISTS(SELECT 1 FROM registration_tokens WHERE disabled IS NOT true) AS have_tokens",
   });
   return resp.rows[0]?.have_tokens === true;
 }

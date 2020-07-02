@@ -33,7 +33,7 @@ MetricsRecorder  = require('./metrics-recorder')
 
 {http_message_api_v1} = require('./api/handler')
 {setup_analytics_js} = require('./analytics')
-{have_active_account_tokens} = require("./utils");
+{have_active_registation_tokens} = require("./utils");
 
 open_cocalc = require('./open-cocalc-server')
 
@@ -284,7 +284,7 @@ exports.init_express_http_server = (opts) ->
     # the user to create an account.
     if server_settings?
         router.get '/registration', (req, res) ->
-            if await have_active_account_tokens(opts.database)
+            if await have_active_registration_tokens(opts.database)
                 res.json({token:true})
             else
                 res.json({})

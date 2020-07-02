@@ -8,7 +8,6 @@ export { SCHEMA } from "./types";
 // The tables
 import "./account-creation-actions";
 import "./account-profiles";
-import "./account-tokens";
 import "./accounts";
 import "./auth";
 import "./blobs";
@@ -30,6 +29,7 @@ import "./password-reset";
 import "./project-log";
 import "./projects";
 import "./public-paths";
+import "./registration-tokens";
 import "./server-settings";
 import "./site-licenses";
 import "./site-settings";

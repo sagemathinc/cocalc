@@ -23,7 +23,7 @@ import { is_valid_email_address, len, to_json } from "smc-util/misc2";
 import { callback2 } from "smc-util/async-utils";
 import { PostgreSQL } from "../postgres/types";
 const { api_key_action } = require("../api/manage");
-import { get_server_settings, have_active_account_tokens } from "../utils";
+import { get_server_settings, have_active_registration_tokens } from "../utils";
 
 export function is_valid_password(password: string) {
   if (typeof password !== "string") {
@@ -51,11 +51,11 @@ function issues_with_create_account(mesg) {
 }
 
 // return true if allowed to continue creating an account (either no token required or token matches)
-async function check_account_token(
+async function check_registration_token(
   db: PostgreSQL,
   token: string | undefined
 ): Promise<string | undefined> {
-  const have_tokens = await have_active_account_tokens(db);
+  const have_tokens = await have_active_registration_tokens(db);
 
   // if there are no tokens set, it's ok
   if (!have_tokens) return;
@@ -64,13 +64,12 @@ async function check_account_token(
     return "No registration token provided";
   }
   // overview: first, we check if the token matches.
-  // → true
-  //   → check expiration date → abort if expired
-  //   → if counter, check counter vs. limit
-  //     → true: increase the counter → ok
-  //     → false: ok
+  // → check expiration date → abort if expired
+  // → if counter, check counter vs. limit
+  //   → true: increase the counter → ok
+  //   → false: ok
   const match = await callback2(db._query, {
-    query: `SELECT "expires", "counter", "limit" FROM account_tokens`,
+    query: `SELECT "expires", "counter", "limit" FROM registration_tokens`,
     where: { "token = $::TEXT": token },
   });
   if (match.rows.length != 1) {
@@ -81,16 +80,16 @@ async function check_account_token(
   const counter = counter_raw ?? 0;
 
   if (expires != null && expires.getTime() < new Date().getTime()) {
-    return "Token no longer valid.";
+    return "Registration token no longer valid.";
   }
 
   if (limit != null) {
     if (limit <= counter) {
-      return "Token used up.";
+      return "Registration token used up.";
     } else {
       // increase counter
       await callback2(db._query, {
-        query: `UPDATE account_tokens SET "counter" = $1 WHERE token = $2::TEXT`,
+        query: `UPDATE registration_tokens SET "counter" = $1 WHERE token = $2::TEXT`,
         params: [counter + 1, token],
       });
     }
@@ -222,7 +221,7 @@ export async function create_account(
     }
 
     dbg("check if a registration token is required");
-    const check_token = await check_account_token(
+    const check_token = await check_registration_token(
       opts.database,
       opts.mesg.token
     );

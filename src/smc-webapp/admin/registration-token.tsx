@@ -41,7 +41,7 @@ interface Token {
 
 interface Props {}
 
-export const AccountCreationToken: React.FC<Props> = () => {
+export const RegistrationToken: React.FC<Props> = () => {
   const [data, set_data] = React.useState<{ [key: string]: Token }>({});
   const [editing, set_editing] = React.useState<Token | null>(null);
   const [saving, set_saving] = React.useState<boolean>(false);
@@ -63,7 +63,7 @@ export const AccountCreationToken: React.FC<Props> = () => {
       // TODO query should be limited by disabled != true
       result = await query({
         query: {
-          account_tokens: {
+          registration_tokens: {
             token: "*",
             descr: null,
             expires: null,
@@ -73,7 +73,7 @@ export const AccountCreationToken: React.FC<Props> = () => {
         },
       });
       const data = {};
-      for (const x of result.query.account_tokens) {
+      for (const x of result.query.registration_tokens) {
         if (x.expires) x.expires = moment(x.expires);
         data[x.token] = x;
       }
@@ -129,7 +129,7 @@ export const AccountCreationToken: React.FC<Props> = () => {
       set_saving(true);
       await query({
         query: {
-          account_tokens: val,
+          registration_tokens: val,
         },
       });
       // we need the original one, without moment-js in it!
@@ -154,7 +154,7 @@ export const AccountCreationToken: React.FC<Props> = () => {
     try {
       await query({
         query: {
-          account_tokens: { token },
+          registration_tokens: { token },
         },
         options: [{ delete: true }],
       });
@@ -478,7 +478,7 @@ export const AccountCreationToken: React.FC<Props> = () => {
           style={{ width: "20px" }}
           name={show ? "caret-down" : "caret-right"}
         />{" "}
-        Account Creation Tokens
+        Registration Tokens
       </h4>
     );
   }
