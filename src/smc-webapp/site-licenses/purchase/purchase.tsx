@@ -16,14 +16,26 @@
 
 import { Button, Card, DatePicker, Radio } from "antd";
 import * as moment from "moment";
-import { React, useState } from "../../app-framework";
+import { webapp_client } from "../../webapp-client";
+import { React, useMemo, useState } from "../../app-framework";
 import { SliderWithInput } from "./slider-with-input";
 const { RangePicker } = DatePicker;
+import { ErrorDisplay } from "../../r_misc";
 
 type User = "academic" | "individual" | "business";
 type Upgrade = "basic" | "standard" | "premium";
-type Quantity = number;
-type SubscriptionPeriod = "no" | "monthly" | "yearly";
+type Subscription = "no" | "monthly" | "yearly";
+
+export interface PurchaseInfo {
+  user: User;
+  upgrade: Upgrade;
+  quantity: number;
+  subscription: Subscription;
+  start: Date;
+  end?: Date;
+  quote: boolean;
+  quote_info?: string;
+}
 
 const COSTS = {
   user: { academic: 1, individual: 1.2, business: 2 },
@@ -39,14 +51,54 @@ interface Props {
 export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   const [user, set_user] = useState<User | undefined>(undefined);
   const [upgrade, set_upgrade] = useState<Upgrade | undefined>(undefined);
-  const [quantity, set_quantity] = useState<Quantity>(1);
-  const [subscription, set_subscription] = useState<
-    SubscriptionPeriod | undefined
-  >(undefined);
+  const [quantity, set_quantity] = useState<number>(1);
+  const [subscription, set_subscription] = useState<Subscription | undefined>(
+    undefined
+  );
   const [start, set_start] = useState<Date>(new Date());
   const [end, set_end] = useState<Date>(moment().add(1, "M").toDate());
   const [quote, set_quote] = useState<boolean | undefined>(undefined);
   const [quote_info, set_quote_info] = useState<string | undefined>(undefined);
+  const [error, set_error] = useState<string>("");
+  const [sending, set_sending] = useState<
+    undefined | "active" | "success" | "failed"
+  >(undefined);
+  const disabled: boolean = useMemo(() => {
+    return sending == "success" || sending == "active";
+  }, [sending]);
+
+  const cost = useMemo<number | undefined>(() => {
+    if (
+      upgrade == null ||
+      user == null ||
+      quantity == null ||
+      subscription == null ||
+      isNaN(quantity)
+    )
+      return undefined;
+
+    // Just a quick sample cost formula so we can see this work.
+    let cost = quantity * COSTS.user[user] * COSTS.upgrade[upgrade];
+    if (subscription == "no") {
+      // scale by factor of a month
+      const months =
+        (end.valueOf() - start.valueOf()) / (30.5 * 24 * 60 * 60 * 1000);
+      cost *= months;
+    } else if (subscription == "yearly") {
+      cost *= 12;
+    }
+    return Math.max(5, Math.round(cost));
+  }, [quantity, user, upgrade, subscription, start, end]);
+
+  const discounted_cost = useMemo<number | undefined>(() => {
+    if (cost == null) return undefined;
+    return Math.max(5, Math.round(cost * DISCOUNT));
+  }, [cost]);
+
+  function render_error() {
+    if (error == "") return;
+    return <ErrorDisplay error={error} onClose={() => set_error("")} />;
+  }
 
   function render_user() {
     return (
@@ -59,6 +111,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           ]}
           onChange={(e) => set_user(e.target.value)}
           value={user}
+          disabled={disabled}
         />
       </div>
     );
@@ -70,6 +123,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div>
         <Radio.Group
+          disabled={disabled}
           options={[
             { label: "Basic", value: "basic" },
             { label: "Standard", value: "standard" },
@@ -93,6 +147,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           max={1000}
           value={quantity}
           onChange={set_quantity}
+          disabled={disabled}
         />
       </div>
     );
@@ -103,6 +158,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div>
         <Radio.Group
+          disabled={disabled}
           options={[
             { label: "Specific period of time", value: "no" },
             { label: "Monthly subscription", value: "monthly" },
@@ -128,6 +184,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       const value = [moment(start), moment(end)];
       return (
         <RangePicker
+          disabled={disabled}
           value={value as any}
           onChange={(value) => {
             if (value == null || value[0] == null || value[1] == null) return;
@@ -142,6 +199,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         <div>
           Start on{" "}
           <DatePicker
+            disabled={disabled}
             value={moment(start) as any}
             onChange={(moment) => {
               if (moment == null) return;
@@ -154,52 +212,36 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   }
 
   function render_cost() {
-    if (
-      upgrade == null ||
-      user == null ||
-      quantity == null ||
-      subscription == null ||
-      isNaN(quantity)
-    )
-      return;
+    if (cost == null || discounted_cost == null) return;
 
-    // Just a quick sample cost formula so we can see this work.
-    let cost = quantity * COSTS.user[user] * COSTS.upgrade[upgrade];
-    if (subscription == "no") {
-      // scale by factor of a month
-      const months =
-        (end.valueOf() - start.valueOf()) / (30.5 * 24 * 60 * 60 * 1000);
-      cost *= months;
-    } else if (subscription == "yearly") {
-      cost *= 12;
-    }
-    cost = Math.max(5, Math.round(cost));
-    const discounted_cost = Math.max(5, Math.round(cost * DISCOUNT));
     return (
       <div style={{ fontSize: "12pt" }}>
-        Cost: ${cost} {subscription != "no" ? subscription : ""} (
-        <i>or ${discounted_cost} if you purchase online NOW</i>)
+        Cost: ${cost} {subscription != "no" ? subscription : ""}{" "}
+        {discounted_cost < cost ? (
+          <i>(or ${discounted_cost} if you purchase online NOW)</i>
+        ) : undefined}
       </div>
     );
   }
 
   function render_quote() {
-    if (
-      upgrade == null ||
-      user == null ||
-      quantity == null ||
-      subscription == null ||
-      isNaN(quantity)
-    )
-      return;
-
+    if (cost == null || discounted_cost == null) return;
     return (
       <div>
         <Radio.Group
+          disabled={disabled}
           options={[
-            { label: "Purchase online now", value: false },
             {
-              label: "I require a quote, invoice, special terms, PO's etc.",
+              label:
+                "Purchase online now " +
+                (discounted_cost < cost
+                  ? `(and save $${cost - discounted_cost})`
+                  : ""),
+              value: false,
+            },
+            {
+              label:
+                "I require a quote, invoice, modified terms or a purchase order, etc.",
               value: true,
             },
           ]}
@@ -216,8 +258,16 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return <div>Enter credit card number here: </div>;
   }
 
-  function submit() {
-    const info = {
+  async function submit(): Promise<void> {
+    if (
+      user == null ||
+      upgrade == null ||
+      quantity <= 0 ||
+      subscription == null ||
+      quote == null
+    )
+      return;
+    const info: PurchaseInfo = {
       quantity,
       user,
       upgrade,
@@ -227,8 +277,14 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       quote,
       quote_info,
     };
-    console.log("submit", info);
-    onClose();
+    set_sending("active");
+    try {
+      await webapp_client.stripe.purchase_license(info);
+      set_sending("success");
+    } catch (err) {
+      set_error(err.toString());
+      set_sending("failed");
+    }
   }
 
   function render_quote_info() {
@@ -239,13 +295,16 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         Enter additional information about your quote request:
         <br />
         <textarea
+          disabled={disabled}
           style={{ width: "100%" }}
           rows={4}
           value={quote_info}
           onChange={(event) => set_quote_info(event.target.value)}
         />
         <br />
-        <Button onClick={submit}>Please contact me with a quote</Button>
+        <Button disabled={disabled} onClick={submit}>
+          Please contact me
+        </Button>
       </div>
     );
   }
@@ -254,17 +313,44 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     if (quote !== false) return;
     return (
       <div>
-        <Button onClick={submit}>Complete purchase</Button>
+        <Button onClick={submit} disabled={disabled}>
+          Complete purchase
+        </Button>
       </div>
     );
   }
 
+  function render_sending() {
+    switch (sending) {
+      case "active":
+        return <div>Sending to server...</div>;
+      case "success":
+        return (
+          <div>
+            Successfully{" "}
+            {quote === true ? "requested quote" : "completed purchase"}
+            <br />
+            <Button onClick={onClose}>Close</Button>
+          </div>
+        );
+      case "failed":
+        if (error) {
+          return (
+            <div>
+              Failed to {quote === true ? "request quote" : "complete purchase"}
+              <br />
+              You may want to try again later.
+              <br />
+              <Button onClick={onClose}>Close</Button>
+            </div>
+          );
+        } else return;
+    }
+  }
+
   return (
-    <Card
-      style={{ width: "100%" }}
-      title={"Buy a license"}
-      extra={<a onClick={onClose}>close</a>}
-    >
+    <Card title={"Buy a license"} extra={<a onClick={onClose}>close</a>}>
+      {render_error()}
       {render_user()}
       {render_upgrade()}
       {render_quantity()}
@@ -275,6 +361,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       {render_credit_card()}
       {render_quote_info()}
       {render_buy()}
+      {render_sending()}
     </Card>
   );
 });

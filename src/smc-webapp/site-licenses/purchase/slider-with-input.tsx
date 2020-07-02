@@ -10,14 +10,16 @@ interface Props {
   onChange: (number) => void;
   min: number;
   max: number;
+  disabled?: boolean;
 }
 
 export const SliderWithInput: React.FC<Props> = React.memo(
-  ({ value, onChange, min, max }) => {
+  ({ value, onChange, min, max, disabled }) => {
     return (
       <Row>
         <Col span={4}>
           <InputNumber
+            disabled={disabled}
             min={min}
             max={max}
             style={{ margin: "0 16px" }}
@@ -27,6 +29,7 @@ export const SliderWithInput: React.FC<Props> = React.memo(
         </Col>
         <Col span={12}>
           <Slider
+            disabled={disabled}
             min={min}
             max={max}
             onChange={onChange}

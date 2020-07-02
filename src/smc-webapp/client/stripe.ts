@@ -9,6 +9,8 @@ stripe payments api via backend hub
 
 import { callback2 } from "smc-util/async-utils";
 import * as message from "smc-util/message";
+import { PurchaseInfo } from "../site-licenses/purchase/purchase";
+import { delay } from "awaiting";
 
 export class StripeClient {
   private call_api: Function;
@@ -173,5 +175,11 @@ export class StripeClient {
       | { account_id?: string; email_address: string }
   ) {
     return await this.admin_create_invoice_item(opts);
+  }
+
+  public async purchase_license(info: PurchaseInfo) {
+    console.log("purchase_license stub", info);
+    await delay(3000);
+    console.log("done with stub");
   }
 }
