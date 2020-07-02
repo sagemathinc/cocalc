@@ -186,11 +186,20 @@ export class NBGraderActions {
            done by computing a checksum of the cell contents and saving it
            into the cell metadata.
     */
+    //const log = (...args) => console.log("assign:", ...args);
+    // log("unlock everything");
+    this.assign_unlock_all_cells();
+    // log("clear solutions");
     this.assign_clear_solutions(); // step 3a
+    // log("clear hidden tests");
     this.assign_clear_hidden_tests(); // step 3b
+    // log("clear mark regions");
     this.assign_clear_mark_regions(); // step 3c
+    // log("clear all outputs");
     this.jupyter_actions.clear_all_outputs(false); // step 4
+    // log("assign save checksums");
     this.assign_save_checksums(); // step 5
+    // log("lock readonly cells");
     this.assign_lock_readonly_cells(); // step 2 -- needs to be last, since it stops cells from being editable!
     this.jupyter_actions.save_asap();
   }
@@ -252,6 +261,21 @@ export class NBGraderActions {
         this.jupyter_actions.set_cell_metadata({
           id: cell.get("id"),
           metadata: { nbgrader: cell2.get("nbgrader") },
+          merge: true,
+          save: false,
+        });
+      }
+    });
+  }
+
+  private assign_unlock_all_cells(): void {
+    this.jupyter_actions.store.get("cells").forEach((cell) => {
+      if (cell == null || !cell.getIn(["metadata", "nbgrader", "locked"]))
+        return;
+      for (const key of ["editable", "deletable"]) {
+        this.jupyter_actions.set_cell_metadata({
+          id: cell.get("id"),
+          metadata: { [key]: true },
           merge: true,
           save: false,
         });
