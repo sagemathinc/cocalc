@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-
 import { React, useState } from "../../app-framework";
 import { PurchaseOneLicense } from "../../site-licenses/purchase";
 
@@ -20,7 +19,13 @@ export const PurchaseLicense: React.FC = () => {
           Purchase a license{show ? "" : "..."}
         </a>
       </h3>
-      {show && <PurchaseOneLicense />}
+      {show && (
+        <PurchaseOneLicense
+          onClose={() => {
+            set_show(false);
+          }}
+        />
+      )}
     </div>
   );
 };

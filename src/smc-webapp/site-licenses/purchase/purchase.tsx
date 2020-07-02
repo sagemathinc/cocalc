@@ -32,7 +32,11 @@ const COSTS = {
 
 const DISCOUNT = 0.7;
 
-export const PurchaseOneLicense: React.FC = React.memo(() => {
+interface Props {
+  onClose: () => void;
+}
+
+export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   const [user, set_user] = useState<User | undefined>(undefined);
   const [upgrade, set_upgrade] = useState<Upgrade | undefined>(undefined);
   const [quantity, set_quantity] = useState<Quantity>(1);
@@ -42,6 +46,7 @@ export const PurchaseOneLicense: React.FC = React.memo(() => {
   const [start, set_start] = useState<Date>(new Date());
   const [end, set_end] = useState<Date>(moment().add(1, "M").toDate());
   const [quote, set_quote] = useState<boolean | undefined>(undefined);
+  const [quote_info, set_quote_info] = useState<string | undefined>(undefined);
 
   function render_user() {
     return (
@@ -172,8 +177,8 @@ export const PurchaseOneLicense: React.FC = React.memo(() => {
     const discounted_cost = Math.max(5, Math.round(cost * DISCOUNT));
     return (
       <div style={{ fontSize: "12pt" }}>
-        Cost: ${cost} {subscription != "no" ? subscription : ""} (or $
-        {discounted_cost} if you purchase online NOW)
+        Cost: ${cost} {subscription != "no" ? subscription : ""} (
+        <i>or ${discounted_cost} if you purchase online NOW</i>)
       </div>
     );
   }
@@ -211,23 +216,55 @@ export const PurchaseOneLicense: React.FC = React.memo(() => {
     return <div>Enter credit card number here: </div>;
   }
 
+  function submit() {
+    const info = {
+      quantity,
+      user,
+      upgrade,
+      subscription,
+      start,
+      end,
+      quote,
+      quote_info,
+    };
+    console.log("submit", info);
+    onClose();
+  }
+
   function render_quote_info() {
     if (quote !== true) return;
 
-    return <div>Enter additional information about your quote request: </div>;
+    return (
+      <div>
+        Enter additional information about your quote request:
+        <br />
+        <textarea
+          style={{ width: "100%" }}
+          rows={4}
+          value={quote_info}
+          onChange={(event) => set_quote_info(event.target.value)}
+        />
+        <br />
+        <Button onClick={submit}>Please contact me with a quote</Button>
+      </div>
+    );
   }
 
   function render_buy() {
     if (quote !== false) return;
     return (
       <div>
-        <Button>Complete purchase</Button>
+        <Button onClick={submit}>Complete purchase</Button>
       </div>
     );
   }
 
   return (
-    <Card style={{ width: "100%" }}>
+    <Card
+      style={{ width: "100%" }}
+      title={"Buy a license"}
+      extra={<a onClick={onClose}>close</a>}
+    >
       {render_user()}
       {render_upgrade()}
       {render_quantity()}
