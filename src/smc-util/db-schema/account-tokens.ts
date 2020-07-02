@@ -12,6 +12,10 @@ import { Table } from "./types";
 import { PostgreSQL } from "../../smc-hub/postgres/types";
 import { callback2 as cb2 } from "../../smc-util/async-utils";
 
+function is_delete(options: Array<{ delete?: boolean }>) {
+  return options.some((v) => v?.delete === true);
+}
+
 async function instead_of_query(
   db: PostgreSQL,
   opts: any,
@@ -19,27 +23,44 @@ async function instead_of_query(
 ): Promise<void> {
   const { options, query } = opts;
   console.log("query", query, "options", options);
-  if (query.token == "*") {
-    const data = await cb2(db._query, {
-      query: "SELECT * FROM account_tokens",
-    });
-    cb(null, data.rows);
-  } else if (query.token != null && query.token != "") {
-    const { token, desc, expires, limit, disabled } = query;
-    await cb2(db._query, {
-      query: `INSERT INTO account_tokens ("token","desc","expires","limit","disabled") 
-              VALUES ($, $, $, $, $) ON CONFLICT (token)
-              DO UPDATE SET (token,desc,expires,limit,disabled) = (EXCLUDED.token,EXCLUDED.desc,EXCLUDED.expires,EXCLUDED.limit,EXCLUDED.disabled)`,
-      params: [
-        token,
-        desc ? desc : "NULL",
-        expires ? expires : "NULL",
-        limit >= 0 ? limit : "NULL",
-        disabled != null ? disabled : false,
-      ],
-    });
-  } else {
-    throw new Error("don't know what to do with this query");
+  try {
+    if (is_delete(options)) {
+      // delete query
+      cb(null);
+    } else {
+      // either inserting or editing data
+      if (query.token == "*") {
+        const data = await cb2(db._query, {
+          query: "SELECT * FROM account_tokens",
+        });
+        cb(null, data.rows);
+      } else if (query.token != null && query.token != "") {
+        const { token, descr, expires, limit, disabled } = query;
+
+        await cb2(db._query, {
+          query: `INSERT INTO account_tokens ("token","descr","expires","limit","disabled")
+                VALUES ($1, $2, $3, $4, $5) ON CONFLICT (token)
+                DO UPDATE SET
+                  "token"    = EXCLUDED.token,
+                  "descr"    = EXCLUDED.descr,
+                  "expires"  = EXCLUDED.expires,
+                  "limit"    = EXCLUDED.limit,
+                  "disabled" = EXCLUDED.disabled`,
+          params: [
+            token,
+            descr ? descr : null,
+            expires ? expires : null,
+            limit >= 0 ? limit : null,
+            disabled != null ? disabled : false,
+          ],
+        });
+        cb(null);
+      } else {
+        throw new Error("don't know what to do with this query");
+      }
+    }
+  } catch (err) {
+    cb(err);
   }
 }
 
@@ -49,14 +70,13 @@ Table({
     primary_key: "token",
     anonymous: false,
     user_query: {
-      validate: false,
       set: {
         admin: true,
         instead_of_query,
         delete: true,
         fields: {
           token: null,
-          desc: null,
+          descr: null,
           expires: null,
           limit: null,
           disabled: null,
@@ -68,7 +88,7 @@ Table({
         pg_where: [], // no limits
         fields: {
           token: null,
-          desc: null,
+          descr: null,
           expires: null,
           counter: null,
           limit: null,
@@ -79,7 +99,7 @@ Table({
   },
   fields: {
     token: { type: "string" },
-    desc: { type: "string" },
+    descr: { type: "string" },
     counter: { type: "number", desc: "how many accounts are created" },
     expires: {
       type: "timestamp",

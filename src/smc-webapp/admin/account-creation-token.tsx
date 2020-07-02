@@ -34,7 +34,7 @@ const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 interface Token {
   key?: string; // used in the table, not for the database
   token: string;
-  desc?: string;
+  descr?: string;
   limit?: number;
   counter?: number; // readonly
   expires?: moment.Moment; // DB uses Date objects, watch out!
@@ -42,29 +42,31 @@ interface Token {
 
 interface Props {}
 
-type States = "save" | "load" | "add" | "view" | "edit" | "closed";
-
 export const AccountCreationToken: React.FC<Props> = () => {
-  const [state, set_state] = React.useState<States>("closed");
   const [data, set_data] = React.useState<{ [key: string]: Token }>({});
   const [editing, set_editing] = React.useState<Token | null>(null);
+  const [saving, set_saving] = React.useState<boolean>(false);
+  const [deleting, set_deleting] = React.useState<boolean>(false);
+  const [loading, set_loading] = React.useState<boolean>(false);
   const [last_saved, set_last_saved] = React.useState<Token | null>(null);
   const [error, set_error] = React.useState<string>("");
   const [show, set_show] = React.useState<boolean>(false);
   const [sel_rows, set_sel_rows] = React.useState<any>([]);
-  const [deleting, set_deleting] = React.useState<boolean>(false);
 
   const [form] = Form.useForm();
 
+  // we load the data in a map, indexed by the token
+  // dates are converted to moment.js on the fly
   async function load() {
     let result: any;
+    set_loading(true);
     try {
       // TODO query should be limited by disabled != true
       result = await query({
         query: {
           account_tokens: {
             token: "*",
-            desc: null,
+            descr: null,
             expires: null,
             limit: null,
             disabled: null,
@@ -80,6 +82,8 @@ export const AccountCreationToken: React.FC<Props> = () => {
       set_data(data);
     } catch (err) {
       set_error(err.message);
+    } finally {
+      set_loading(false);
     }
   }
 
@@ -87,15 +91,16 @@ export const AccountCreationToken: React.FC<Props> = () => {
     // every time we show or hide, clear the selection
     set_sel_rows([]);
     if (show) {
-      set_state("load");
+      set_loading(true);
       try {
         load();
       } finally {
-        set_state("view");
+        set_loading(false);
       }
     } else {
       // reset state upon closing
       set_sel_rows([]);
+      set_last_saved(null);
       set_error("");
     }
   }, [show]);
@@ -107,17 +112,22 @@ export const AccountCreationToken: React.FC<Props> = () => {
     }
   }, [editing]);
 
+  // saving a specific token value converts moment.js back to pure Date objects
+  // we also record the last saved token as a template for the next add operation
   async function save(val): Promise<void> {
     // antd wraps the time in a moment.js object
     const val_orig: Token = { ...val };
+    set_editing(null);
     if (val.expires != null && moment.isMoment(val.expires)) {
       // https://momentjs.com/docs/#/displaying/as-javascript-date/
       val.expires = moment(val.expires).toDate();
     }
-    // set optional field to null
-    ["desc", "limit", "expires"].forEach((k) => (val[k] = val[k] ?? undefined));
+    // set optional field to undefined (to get rid of it)
+    ["descr", "limit", "expires"].forEach(
+      (k) => (val[k] = val[k] ?? undefined)
+    );
     try {
-      set_show(false);
+      set_saving(true);
       await query({
         query: {
           account_tokens: val,
@@ -125,10 +135,13 @@ export const AccountCreationToken: React.FC<Props> = () => {
       });
       // we need the original one, without moment-js in it!
       set_last_saved(val_orig);
-      set_editing(null);
-      set_show(true);
+      set_saving(false);
+      await load();
     } catch (err) {
       set_error(err);
+      set_editing(val_orig);
+    } finally {
+      set_saving(false);
     }
   }
 
@@ -217,7 +230,7 @@ export const AccountCreationToken: React.FC<Props> = () => {
           <Input disabled={true} />
         </Form.Item>
         <Form.Item
-          name="desc"
+          name="descr"
           label="Description"
           rules={[{ required: false }]}
         >
@@ -285,6 +298,7 @@ export const AccountCreationToken: React.FC<Props> = () => {
         <Table<Token>
           size={"small"}
           dataSource={table_data}
+          loading={loading}
           rowSelection={rowSelection}
           pagination={{
             position: ["bottomRight"],
@@ -303,7 +317,7 @@ export const AccountCreationToken: React.FC<Props> = () => {
             defaultSortOrder={"ascend"}
             sorter={(a, b) => a.token.localeCompare(b.token)}
           />
-          <Table.Column<Token> title="Description" dataIndex="desc" />
+          <Table.Column<Token> title="Description" dataIndex="descr" />
           <Table.Column<Token>
             title="Usages"
             dataIndex="counter"
@@ -365,6 +379,9 @@ export const AccountCreationToken: React.FC<Props> = () => {
   }
 
   function render_control(): Rendered {
+    if (saving) {
+      return <Saving />;
+    }
     if (editing != null) {
       return render_edit();
     } else {
@@ -429,7 +446,6 @@ export const AccountCreationToken: React.FC<Props> = () => {
       const buttons = render_buttons();
       return (
         <div>
-          {state == "save" && <Saving />}
           {buttons}
           {render_error()}
           {render_control()}

@@ -56,10 +56,6 @@ exports.validate_client_query = function validate_client_query(
     is_set_query = !misc.has_null_leaf(pattern);
   }
 
-  if (user_query.validate === false) {
-    return;
-  }
-
   if (is_set_query) {
     S = user_query.set;
     if (S == null) {
