@@ -1491,8 +1491,8 @@ class exports.Client extends EventEmitter
 
     # NOTE: this is different than invite_collab, in that it is
     # much more similar to remove_collaborator.  It also supports
-    # adding multiple collabs to multiple projects in one
-    # transaction.
+    # adding multiple collabs to multiple projects (NOT in one
+    # transaction, though).
     mesg_add_collaborator: (mesg) =>
         @touch()
         if not misc.is_array(mesg.project_id)

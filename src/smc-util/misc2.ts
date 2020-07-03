@@ -16,6 +16,7 @@ import * as sha1 from "sha1";
 export { sha1 };
 
 import * as lodash from "lodash";
+import { Moment } from "moment";
 export const keys = lodash.keys;
 
 interface SplittedPath {
@@ -246,27 +247,34 @@ export function cmp(a: any, b: any): -1 | 0 | 1 {
 compare two Date | undefined | null objects.
 
 null and undefined are considered equal to each other.
+
+null_last:
+  - true: nulls are infinitely in the future
+  - false: nulls are the dawn of mankind
 */
 
 export function cmp_Date(
   a: Date | undefined | null,
-  b: Date | undefined | null
+  b: Date | undefined | null,
+  null_last = false
 ): -1 | 0 | 1 {
   if (a == null) {
     if (b == null) {
       return 0;
     }
-    return -1;
+    return null_last ? 1 : -1;
   }
+  // a != null
   if (b == null) {
-    return 1;
+    return null_last ? -1 : 1;
   }
-  if (a < b) {
-    return -1;
-  } else if (a > b) {
-    return 1;
-  }
+  if (a < b) return -1;
+  if (a > b) return 1;
   return 0; // note: a == b for Date objects doesn't work as expected, but that's OK here.
+}
+
+export function cmp_moment(a?: Moment, b?: Moment, null_last = false) {
+  return cmp_Date(a?.toDate(), b?.toDate(), null_last);
 }
 
 // see https://stackoverflow.com/questions/728360/how-do-i-correctly-clone-a-javascript-object/30042948#30042948
