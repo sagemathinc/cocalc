@@ -46,9 +46,7 @@ interface Token {
   expires?: moment.Moment; // DB uses Date objects, watch out!
 }
 
-interface Props {}
-
-export const RegistrationToken: React.FC<Props> = () => {
+function use_registration_tokens() {
   const [data, set_data] = React.useState<{ [key: string]: Token }>({});
   const [no_or_all_inactive, set_no_or_all_inactive] = React.useState<boolean>(
     false
@@ -62,6 +60,7 @@ export const RegistrationToken: React.FC<Props> = () => {
   const [show, set_show] = React.useState<boolean>(false);
   const [sel_rows, set_sel_rows] = React.useState<any>([]);
 
+  // Antd
   const [form] = Form.useForm();
 
   // we load the data in a map, indexed by the token
@@ -123,6 +122,9 @@ export const RegistrationToken: React.FC<Props> = () => {
     if (editing != null) {
       // antd's form want's something called "Store" – which is just this?
       form.setFieldsValue(editing as any);
+    }
+    if (last_saved != null) {
+      set_last_saved(null);
     }
   }, [editing]);
 
@@ -229,9 +231,59 @@ export const RegistrationToken: React.FC<Props> = () => {
     });
   }
 
-  function render_edit(): Rendered {
-    if (last_saved != null) set_last_saved(null);
+  return {
+    data,
+    form,
+    editing,
+    saving,
+    deleting,
+    delete_token,
+    delete_tokens,
+    loading,
+    last_saved,
+    error,
+    set_error,
+    show,
+    sel_rows,
+    set_sel_rows,
+    set_deleting,
+    set_editing,
+    new_random_token,
+    edit_new_token,
+    save,
+    load,
+    set_show,
+    no_or_all_inactive,
+  };
+}
 
+export const RegistrationToken: React.FC<{}> = () => {
+  // TODO I'm sure this could be done in a smarter way ...
+  const {
+    show,
+    data,
+    form,
+    set_show,
+    error,
+    set_error,
+    deleting,
+    delete_token,
+    delete_tokens,
+    editing,
+    set_editing,
+    saving,
+    sel_rows,
+    set_sel_rows,
+    last_saved,
+    new_random_token,
+    no_or_all_inactive,
+    edit_new_token,
+    save,
+    load,
+    loading,
+  } = use_registration_tokens();
+
+  function render_edit(): Rendered {
     const layout = {
       style: { margin: "20px 0" },
       labelCol: { span: 2 },
