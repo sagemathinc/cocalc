@@ -89,7 +89,8 @@ function compute_presets() {
   }
 
   // Adjust for better consistency with courses and more realistic usage.
-  PRESETS["plan-standard"].upgrades["cores"] = 0.5;
+  PRESETS["plan-standard"].upgrades["cores"] = 1;
+  PRESETS["plan-standard"].upgrades["mintime"] = 2;
   PRESETS["plan-premium"].upgrades["cores"] = 2;
   PRESETS["plan-premium"].upgrades["cpu_shares"] = 256;
   PRESETS["plan-premium"].upgrades["memory"] = 3000;

@@ -14,14 +14,22 @@
 
 */
 
-import { Button, Card, DatePicker, Radio } from "antd";
+import { Button, Card, DatePicker } from "antd";
 import * as moment from "moment";
 import { webapp_client } from "../../webapp-client";
-import { React, useMemo, useState } from "../../app-framework";
+import { CSS, React, useMemo, useState } from "../../app-framework";
 const { RangePicker } = DatePicker;
 import { ErrorDisplay } from "../../r_misc";
 import { SliderWithInput } from "./slider-with-input";
 import { PurchaseMethod } from "./purchase-method";
+import { RadioGroup } from "./radio-group";
+
+const radioStyle: CSS = {
+  display: "block",
+  height: "30px",
+  lineHeight: "30px",
+  fontWeight: "inherit", // this is to undo what react-bootstrap does to the labels.
+};
 
 type User = "academic" | "individual" | "business";
 type Upgrade = "basic" | "standard" | "premium";
@@ -42,11 +50,11 @@ export interface PurchaseInfo {
 }
 
 const COSTS = {
-  user: { academic: 1, individual: 1.2, business: 2 },
-  upgrade: { basic: 4, standard: 6, premium: 10 },
+  user: { academic: 0.5, individual: 0.7, business: 1 },
+  upgrade: { basic: 8, standard: 12, premium: 20 },
 } as const;
 
-const DISCOUNT = 0.7;
+const ONLINE_DISCOUNT = 0.7;
 
 const MIN_QUOTE = 100;
 
@@ -112,7 +120,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
 
   const discounted_cost = useMemo<number | undefined>(() => {
     if (cost == null) return undefined;
-    return Math.max(5, Math.round(cost * DISCOUNT));
+    return Math.max(5, Math.round(cost * ONLINE_DISCOUNT));
   }, [cost]);
 
   function render_error() {
@@ -123,15 +131,34 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   function render_user() {
     return (
       <div>
-        <Radio.Group
+        <h4>Who will use the license</h4>
+        <RadioGroup
           options={[
-            { label: "Academic", value: "academic" },
-            { label: "Individual", value: "individual" },
-            { label: "Business", value: "business" },
+            {
+              label: "Academics",
+              desc: `students and teachers at an academic institute or online course (up to ${Math.round(
+                (1 - COSTS.user.academic) * 100
+              )}% discount)`,
+              value: "academic",
+            },
+            {
+              label: "Individuals",
+              desc: `non-academic and non-business users  (up to ${Math.round(
+                (1 - COSTS.user.individual) * 100
+              )}% discount)`,
+              value: "individual",
+            },
+            {
+              label: "Business employees",
+              desc:
+                "people working at a company, e.g., doing research and development",
+              value: "business",
+            },
           ]}
           onChange={(e) => set_user(e.target.value)}
           value={user}
           disabled={disabled}
+          radioStyle={radioStyle}
         />
       </div>
     );
@@ -142,15 +169,33 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
 
     return (
       <div>
-        <Radio.Group
+        <br />
+        <h4>How to upgrade projects</h4>
+        <RadioGroup
           disabled={disabled}
           options={[
-            { label: "Basic", value: "basic" },
-            { label: "Standard", value: "standard" },
-            { label: "Premium", value: "premium" },
+            {
+              label: "Basic",
+              value: "basic",
+              desc:
+                "member hosting, internet access, better idle timeout, a slightly more dedicated and shared RAM",
+            },
+            {
+              label: "Standard",
+              value: "standard",
+              desc:
+                "member hosting, internet access, 4 hours idle timeout, 2GB shared RAM and 2 shared vCPU's",
+            },
+            {
+              label: "Premium",
+              value: "premium",
+              desc:
+                "premium hosting, internet access, 24 hours idle timeout, 4GB shared RAM, 3 shared vCPU's",
+            },
           ]}
           onChange={(e) => set_upgrade(e.target.value)}
           value={upgrade}
+          radioStyle={radioStyle}
         />
       </div>
     );
@@ -160,7 +205,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     if (upgrade == null || user == null) return;
     return (
       <div>
-        Number of simultaneous active projects{" "}
+        <br />
+        <h4>Maximum number of simultaneous active projects</h4>
         {isNaN(quantity) ? "enter a number" : ""}
         <SliderWithInput
           min={1}
@@ -177,7 +223,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     if (upgrade == null || user == null || quantity == null) return;
     return (
       <div>
-        <Radio.Group
+        <br />
+        <h4>When the license will be used</h4>
+        <RadioGroup
           disabled={disabled}
           options={[
             { label: "Specific period of time", value: "no" },
@@ -186,6 +234,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           ]}
           onChange={(e) => set_subscription(e.target.value)}
           value={subscription}
+          radioStyle={radioStyle}
         />
       </div>
     );
@@ -201,23 +250,29 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       return;
     if (subscription == "no") {
       // range of dates: start date -- end date
+      // TODO: use "midnight UTC", or should we just give a day grace period on both ends (?).
       const value = [moment(start), moment(end)];
       return (
-        <RangePicker
-          disabled={disabled}
-          value={value as any}
-          onChange={(value) => {
-            if (value == null || value[0] == null || value[1] == null) return;
-            set_start(value[0].toDate());
-            set_end(value[1].toDate());
-          }}
-        />
+        <div>
+          <br />
+          <h4>Start and end dates</h4>
+          <RangePicker
+            disabled={disabled}
+            value={value as any}
+            onChange={(value) => {
+              if (value == null || value[0] == null || value[1] == null) return;
+              set_start(value[0].toDate());
+              set_end(value[1].toDate());
+            }}
+          />
+        </div>
       );
     } else {
       // just the start date (default to today)
       return (
         <div>
-          Start on{" "}
+          <br />
+          <h4>Start date</h4>
           <DatePicker
             disabled={disabled}
             value={moment(start) as any}
@@ -236,9 +291,18 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
 
     return (
       <div style={{ fontSize: "12pt" }}>
-        Cost: ${cost} {subscription != "no" ? subscription : ""}{" "}
+        <br />
+        <h4>
+          Total cost: ${cost} {subscription != "no" ? subscription : ""}{" "}
+        </h4>
         {discounted_cost < cost ? (
-          <i>(or ${discounted_cost} if you purchase online NOW)</i>
+          <i>
+            Online Special: ${discounted_cost} if you{" "}
+            <b>
+              <i>purchase online</i>
+            </b>{" "}
+            today!
+          </i>
         ) : undefined}
       </div>
     );
@@ -248,25 +312,30 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     if (cost == null || discounted_cost == null) return;
     return (
       <div>
-        <Radio.Group
+        <br />
+        <h4>Purchase now or request quote</h4>
+        <RadioGroup
           disabled={disabled}
           options={[
             {
-              label:
-                "Purchase online now " +
+              label: "Purchase now",
+              desc:
+                "purchase online now " +
                 (discounted_cost < cost
-                  ? `(and save $${cost - discounted_cost})`
+                  ? `and save $${cost - discounted_cost}`
                   : ""),
               value: false,
             },
             {
-              label: `I require a quote, invoice, modified terms or a purchase order,  use PayPal, etc. ($${MIN_QUOTE} minimum)`,
+              label: "Get a quote",
+              desc: `I need a quote, invoice, modified terms, a purchase order, to use PayPal, etc. ($${MIN_QUOTE} minimum)`,
               value: true,
               disabled: cost < MIN_QUOTE,
             },
           ]}
           onChange={(e) => set_quote(e.target.value)}
           value={quote}
+          radioStyle={radioStyle}
         />
       </div>
     );
@@ -274,33 +343,31 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
 
   function render_credit_card() {
     if (quote !== false) return;
-
-    let body;
     if (payment_method != null) {
-      body = (
-        <>
-          {payment_method}
+      return (
+        <div>
+          <br />
+          <h4>Payment method</h4>
+          Pay with {payment_method}
           <br />
           <Button onClick={() => set_payment_method(undefined)}>
             Change...
           </Button>
-        </>
+        </div>
       );
     } else {
-      body = (
-        <>
+      return (
+        <div>
           <br />
+          <h4>Select or enter payment method</h4>
           <PurchaseMethod
             onClose={(id) => {
-              console.log("got payment method ", id);
               set_payment_method(id);
             }}
           />
-        </>
+        </div>
       );
     }
-
-    return <div>Payment method: {body}</div>;
   }
 
   async function submit(): Promise<void> {
@@ -406,7 +473,11 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   }
 
   return (
-    <Card title={"Buy a license"} extra={<a onClick={onClose}>close</a>}>
+    <Card
+      title={<h3>Purchase license</h3>}
+      extra={<a onClick={onClose}>close</a>}
+      style={{ maxWidth: "1100px", margin: "auto" }}
+    >
       {render_error()}
       {render_user()}
       {render_upgrade()}
