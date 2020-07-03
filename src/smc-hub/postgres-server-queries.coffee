@@ -50,6 +50,17 @@ SITE_SETTINGS_CONF = require("smc-util/schema").site_settings_conf
 SERVER_SETTINGS_CACHE = require("expiring-lru-cache")({ size: 10, expiry: 60 * 1000 })
 {pii_expire} = require("./utils")
 
+# log events, which contain personal information (email, account_id, ...)
+PII_EVENTS = ['create_account',
+              'change_password',
+              'change_email_address',
+              'webapp-add_passport',
+              'get_user_auth_token',
+              'successful_sign_in',
+              'webapp-email_sign_up',
+              'create_account_registration_token'
+             ]
+
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # write an event to the central_log table
     log: (opts) =>
@@ -63,8 +74,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             expire = misc.expire_time(30 * 24 * 60 * 60) # del in 30 days
         else
             v = opts.value
-            pii_events = ['create_account','change_password','change_email_address','webapp-add_passport','get_user_auth_token','successful_sign_in','webapp-email_sign_up']
-            if v.ip_address? or v.email_address? or opts.event in pii_events
+            if v.ip_address? or v.email_address? or opts.event in PII_EVENTS
                 expire = await pii_expire(@)
 
         @_query

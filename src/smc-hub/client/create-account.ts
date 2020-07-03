@@ -19,6 +19,7 @@ import {
   required,
   defaults,
 } from "smc-util/misc";
+import { delay } from "awaiting";
 import { is_valid_email_address, len, to_json } from "smc-util/misc2";
 import { callback2 } from "smc-util/async-utils";
 import { PostgreSQL } from "../postgres/types";
@@ -50,6 +51,19 @@ function issues_with_create_account(mesg) {
   return issues;
 }
 
+async function get_db_client(db: PostgreSQL) {
+  const t0 = new Date().getTime();
+  while (new Date().getTime() - t0 < 10 * 1000) {
+    const client = db._client();
+    if (client != null) {
+      return client;
+    } else {
+      await delay(100);
+    }
+  }
+  throw new Error("Unable to get a database client");
+}
+
 // return true if allowed to continue creating an account (either no token required or token matches)
 async function check_registration_token(
   db: PostgreSQL,
@@ -63,47 +77,62 @@ async function check_registration_token(
   if (token == null || token == "") {
     return "No registration token provided";
   }
-  // overview: first, we check if the token matches.
-  // → check if it is disabled?
-  // → check expiration date → abort if expired
-  // → if counter, check counter vs. limit
-  //   → true: increase the counter → ok
-  //   → false: ok
-  const match = await callback2(db._query, {
-    query: `SELECT "expires", "counter", "limit", "disabled" FROM registration_tokens`,
-    where: { "token = $::TEXT": token },
-  });
-  if (match.rows.length != 1) {
-    return "Registration token is wrong.";
-  }
-  // e.g. { expires: 2020-12-04T11:54:52.889Z, counter: null, limit: 10, disabled: ... }
-  const {
-    expires,
-    counter: counter_raw,
-    limit,
-    disabled: disabled_raw,
-  } = match.rows[0];
-  const counter = counter_raw ?? 0;
-  const disabled = disabled_raw ?? false;
 
-  if (disabled) {
-    return "Registration token disabled.";
-  }
+  // since we check the counter against the limit, we have to wrap this in a transaction
+  // otherwise there is a chance to increase the counter above the limit
+  const client = await get_db_client(db);
 
-  if (expires != null && expires.getTime() < new Date().getTime()) {
-    return "Registration token no longer valid.";
-  }
+  try {
+    await client.query("BEGIN");
 
-  if (limit != null) {
-    if (limit <= counter) {
+    // overview: first, we check if the token matches.
+    // → check if it is disabled?
+    // → check expiration date → abort if expired
+    // → if counter, check counter vs. limit
+    //   → true: increase the counter → ok
+    //   → false: ok
+    const q_match = `SELECT "expires", "counter", "limit", "disabled"
+                     FROM registration_tokens
+                     WHERE token = $1::TEXT
+                     FOR UPDATE`;
+    const match = await client.query(q_match, [token]);
+
+    if (match.rows.length != 1) {
+      return "Registration token is wrong.";
+    }
+    // e.g. { expires: 2020-12-04T11:54:52.889Z, counter: null, limit: 10, disabled: ... }
+    const {
+      expires,
+      counter: counter_raw,
+      limit,
+      disabled: disabled_raw,
+    } = match.rows[0];
+    const counter = counter_raw ?? 0;
+    const disabled = disabled_raw ?? false;
+
+    if (disabled) {
+      return "Registration token disabled.";
+    }
+
+    if (expires != null && expires.getTime() < new Date().getTime()) {
+      return "Registration token no longer valid.";
+    }
+
+    // we count in any case, but only enforce the limit if there is actually a limit set
+    if (limit != null && limit <= counter) {
       return "Registration token used up.";
     } else {
       // increase counter
-      await callback2(db._query, {
-        query: `UPDATE registration_tokens SET "counter" = $1 WHERE token = $2::TEXT`,
-        params: [counter + 1, token],
-      });
+      const q_inc = `UPDATE registration_tokens SET "counter" = coalesce("counter", 0) + 1
+                     WHERE token = $1::TEXT`;
+      await client.query(q_inc, [token]);
     }
+
+    // all good, let's commit
+    await client.query("COMMIT");
+  } catch (e) {
+    await client.query("ROLLBACK");
+    throw e;
   }
 }
 
@@ -252,6 +281,14 @@ export async function create_account(
       created_by: opts.client.ip_address,
       usage_intent: opts.mesg.usage_intent,
     });
+
+    if (opts.mesg.token != null) {
+      // we also record that we used a registration token ...
+      await callback2(opts.database.log, {
+        event: "create_account_registration_token",
+        value: { token: opts.mesg.token, account_id },
+      });
+    }
 
     // log to database
     const data: CreateAccountData = {

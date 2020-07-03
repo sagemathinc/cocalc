@@ -5,6 +5,7 @@
 
 import { EventEmitter } from "events";
 import { Changes } from "./changefeed";
+import { Client } from "pg";
 
 export type QuerySelect = object;
 
@@ -49,6 +50,8 @@ export interface PostgreSQL extends EventEmitter {
   _stop_listening(table: string, select: QuerySelect, watch: string[]);
 
   _query(opts: QueryOptions): void;
+
+  _client(): Client | undefined;
 
   async_query(opts: AsyncQueryOptions): Promise<any>;
 
