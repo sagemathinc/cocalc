@@ -4,7 +4,13 @@
  */
 
 import { fromJS, Map } from "immutable";
-import { Component, React, Rendered, redux } from "../app-framework";
+import {
+  React,
+  useEffect,
+  useIsMountedRef,
+  useState,
+  redux,
+} from "../app-framework";
 import { SiteLicensePublicInfo as Info } from "./types";
 import { site_license_public_info } from "./util";
 import { Icon, Loading, Space, TimeAgo } from "../r_misc";
@@ -19,61 +25,56 @@ interface Props {
   upgrades?: Map<string, number>;
 }
 
-interface State {
-  info?: Info;
-  err?: string;
-  loading?: boolean;
-}
+export const SiteLicensePublicInfo: React.FC<Props> = ({
+  license_id,
+  project_id,
+  upgrades,
+}) => {
+  const [info, set_info] = useState<Info | undefined>(undefined);
+  const [err, set_err] = useState<string | undefined>(undefined);
+  const [loading, set_loading] = useState<boolean>(true);
+  const isMountedRef = useIsMountedRef();
 
-export class SiteLicensePublicInfo extends Component<Props, State> {
-  private mounted: boolean = false;
+  useEffect(() => {
+    fetch_info(true);
+  }, []);
 
-  constructor(props, state) {
-    super(props, state);
-    this.state = { loading: true };
-    this.fetch_info();
-  }
-
-  componentWillUnmount() {
-    this.mounted = false;
-  }
-
-  componentWillMount() {
-    this.mounted = true;
-  }
-
-  private async fetch_info(force: boolean = false): Promise<void> {
-    if (this.mounted) {
-      this.setState({ loading: true, err: "" });
-    }
+  async function fetch_info(force: boolean = false): Promise<void> {
+    set_err("");
+    set_loading(true);
     try {
-      let info = await site_license_public_info(this.props.license_id, force);
-      if (!this.mounted) return;
-      this.setState({ info, loading: false });
+      let info = await site_license_public_info(license_id, force);
+      if (isMountedRef.current) {
+        set_info(info);
+      }
     } catch (err) {
-      if (!this.mounted) return;
-      this.setState({ err: `${err}`, loading: false });
+      if (isMountedRef.current) {
+        set_err(`${err}`);
+      }
+    } finally {
+      if (isMountedRef.current) {
+        set_loading(false);
+      }
     }
   }
 
-  private render_expires(): Rendered {
-    if (!this.state.info) return;
-    if (!this.state.info.expires) {
+  function render_expires(): JSX.Element | undefined {
+    if (!info) return;
+    if (!info.expires) {
       return <span> (no expiration date set)</span>;
     }
-    let word: string =
-      new Date() >= this.state.info.expires ? "expired" : "will expire";
+    let word: string = new Date() >= info.expires ? "expired" : "will expire";
     return (
       <span>
         {" "}
-        ({word} <TimeAgo date={this.state.info.expires} />)
+        ({word} <TimeAgo date={info.expires} />)
       </span>
     );
   }
 
-  private get_type(): "warning" | "error" | "success" {
-    if (this.state.loading || this.state.info != null) {
-      if (this.provides_upgrades()) {
+  function get_type(): "warning" | "error" | "success" {
+    if (loading || info != null) {
+      if (provides_upgrades()) {
         return "success";
       } else {
         return "warning";
@@ -83,8 +84,8 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     }
   }
 
-  private render_id(): Rendered {
-    if (this.state.loading) return;
+  function render_id(): JSX.Element | undefined {
+    if (loading) return;
     // dumb minimal security -- only show this for now to admins.
     // Later license managers will see it.   Of course, somebody could
     // sniff their browser traffic and get it so this is just to
@@ -93,43 +94,39 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
 
     // Show only last few digits if not manager.
     // license display for specific project
-    const license_id = this.state.info?.is_manager
-      ? this.props.license_id
-      : trunc_left(this.props.license_id, 14);
-
     return (
       <li>
         License code:
         <Space />
         <span style={{ fontFamily: "monospace", whiteSpace: "nowrap" }}>
-          {license_id}
+          {info?.is_manager ? license_id : trunc_left(license_id, 14)}
         </span>
       </li>
     );
   }
 
-  private render_license(): Rendered {
-    if (!this.state.info) {
-      if (!this.state.loading && !this.state.err) {
+  function render_license(): JSX.Element | undefined {
+    if (!info) {
+      if (!loading && !err) {
         return <span>Unknown license key.</span>;
       }
       return;
     }
     return (
       <span>
-        {this.state.info.title}
-        {this.render_expires()}
+        {info.title}
+        {render_expires()}
       </span>
     );
   }
 
-  private provides_upgrades(): boolean {
-    return this.props.upgrades != null && this.props.upgrades.size > 0;
+  function provides_upgrades(): boolean {
+    return upgrades != null && upgrades.size > 0;
   }
 
-  private render_run_limit(): Rendered {
-    if (!this.state.info) return;
-    if (!this.state.info.run_limit) {
+  function render_run_limit(): JSX.Element | undefined {
+    if (!info) return;
+    if (!info.run_limit) {
       return (
         <li>
           This license can be applied to an unlimited number of simultaneous
@@ -139,45 +136,40 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     }
     return (
       <li>
-        This license can be applied to up to {this.state.info.run_limit}{" "}
-        simultaneous running projects.
+        This license can be applied to up to {info.run_limit} simultaneous
+        running projects.
       </li>
     );
   }
 
-  private render_running(): Rendered {
-    if (!this.state.info) return;
+  function render_running(): JSX.Element | undefined {
+    if (!info) return;
     return (
       <li>
-        Currently {this.state.info.running}{" "}
-        {this.state.info.running == 1 ? "project is" : "projects are"} using
-        this license.
+        Currently {info.running}{" "}
+        {info.running == 1 ? "project is" : "projects are"} using this license.
       </li>
     );
   }
 
-  private render_overall_limit(): Rendered {
-    if (!this.state.info) return;
-    if (!this.state.info.run_limit) {
+  function render_overall_limit(): JSX.Element | undefined {
+    if (!info) return;
+    if (!info.run_limit) {
       return (
         <span>to an unlimited number of simultaneous running projects</span>
       );
     }
-    return (
-      <span>
-        to up to {this.state.info.run_limit} simultaneous running projects
-      </span>
-    );
+    return <span>to up to {info.run_limit} simultaneous running projects</span>;
   }
 
-  private render_what_license_provides_overall(): Rendered {
-    if (!this.state.info) return;
-    if (!this.state.info.upgrades) return <div>Provides no upgrades.</div>;
+  function render_what_license_provides_overall(): JSX.Element | undefined {
+    if (!info) return;
+    if (!info.upgrades) return <div>Provides no upgrades.</div>;
     return (
       <div>
-        Provides the following upgrades {this.render_overall_limit()}:
+        Provides the following upgrades {render_overall_limit()}:
         <DisplayUpgrades
-          upgrades={scale_by_display_factors(fromJS(this.state.info.upgrades))}
+          upgrades={scale_by_display_factors(fromJS(info.upgrades))}
           style={{
             border: "1px solid #ddd",
             padding: "0 15px",
@@ -189,54 +181,52 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     );
   }
 
-  private restart_project(): void {
-    if (!this.props.project_id) return;
+  function restart_project(): void {
+    if (!project_id) return;
     const actions = redux.getActions("projects");
-    actions.restart_project(this.props.project_id);
+    actions.restart_project(project_id);
   }
 
-  private render_upgrades(): Rendered {
-    if (!this.props.project_id) {
+  function render_upgrades(): JSX.Element | undefined {
+    if (!project_id) {
       // component not being used in the context of a specific project.
       return (
         <div>
-          {this.render_id()}
-          {this.render_what_license_provides_overall()}
-          {this.render_run_limit()}
-          {this.render_running()}
+          {render_id()}
+          {render_what_license_provides_overall()}
+          {render_run_limit()}
+          {render_running()}
+          {render_activated()}
         </div>
       );
     }
 
-    let provides: Rendered;
+    let provides: JSX.Element | undefined;
     let show_run: boolean = true;
-    if (this.state.info == null) {
-      if (this.state.loading) {
+    if (info == null) {
+      if (loading) {
         return; // wait until done loading.
       } else {
         // Show just the id so user can check for typos
-        return <ul>{this.render_id()}</ul>;
+        return <ul>{render_id()}</ul>;
       }
     }
-    if (this.state.info.expires && new Date() >= this.state.info.expires) {
+    if (info.expires && new Date() >= info.expires) {
       // expired?
       // it is expired, so no point in explaining what upgrades it would
       // provide or telling you to restart your project.
       provides = <li>This license is expired.</li>;
       show_run = false; // no point in showing these
-    } else if (!this.provides_upgrades()) {
+    } else if (!provides_upgrades()) {
       // not providing any upgrades -- why?
-      if (
-        !this.state.info.run_limit ||
-        this.state.info.running < this.state.info.run_limit
-      ) {
+      if (!info.run_limit || info.running < info.run_limit) {
         provides = (
           <>
             <li>Currently providing no upgrades to this project. </li>
             <li>
               <Icon name="warning" />{" "}
-              <a onClick={() => this.restart_project()}>Restart this project</a>{" "}
-              to use the upgrades provided by this license.
+              <a onClick={restart_project}>Restart this project</a> to use the
+              upgrades provided by this license.
             </li>
           </>
         );
@@ -246,24 +236,22 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
             <li>Currently providing no upgrades to this project.</li>
             <li>
               <Icon name="warning" /> This license is already being used to
-              upgrade {this.state.info.running} other running projects, which is
-              the limit. If possible, stop one of those projects, then{" "}
-              <a onClick={() => this.restart_project()}>
-                restart this project.
-              </a>
+              upgrade {info.running} other running projects, which is the limit.
+              If possible, stop one of those projects, then{" "}
+              <a onClick={restart_project}>restart this project.</a>
             </li>
           </>
         );
       }
     } else {
       // not expired and is providing upgrades.
-      if (this.props.upgrades == null) throw Error("make typescript happy");
+      if (upgrades == null) throw Error("make typescript happy");
       provides = (
         <li>
-          Currently providing the following{" "}
-          {plural(this.props.upgrades.size, "upgrade")}:
+          Currently providing the following {plural(upgrades.size, "upgrade")}
+          :
           <DisplayUpgrades
-            upgrades={scale_by_display_factors(this.props.upgrades)}
+            upgrades={scale_by_display_factors(upgrades)}
             style={{
               border: "1px solid #ddd",
               padding: "0 15px",
@@ -276,31 +264,29 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     }
     return (
       <ul>
-        {this.render_id()}
+        {render_id()}
         {provides}
-        {show_run ? this.render_run_limit() : undefined}
-        {show_run ? this.render_running() : undefined}
+        {show_run ? render_run_limit() : undefined}
+        {show_run ? render_running() : undefined}
+        {render_activated()}
       </ul>
     );
   }
 
-  private render_body(): Rendered {
-    if (this.state.loading) {
+  function render_body(): JSX.Element | undefined {
+    if (loading) {
       return <Loading />;
     } else {
-      return this.render_license();
+      return render_license();
     }
   }
 
-  private async remove_license(): Promise<void> {
-    if (!this.props.project_id) return;
+  async function remove_license(): Promise<void> {
+    if (!project_id) return;
     const actions = redux.getActions("projects");
     // newly added licenses
     try {
-      await actions.remove_site_license_from_project(
-        this.props.project_id,
-        this.props.license_id
-      );
+      await actions.remove_site_license_from_project(project_id, license_id);
     } catch (err) {
       alert_message({
         type: "error",
@@ -310,18 +296,18 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     }
   }
 
-  private render_refresh_button(): Rendered {
+  function render_refresh_button(): JSX.Element {
     return (
-      <Button onClick={() => this.fetch_info(true)}>
+      <Button onClick={() => fetch_info(true)}>
         <Icon name="redo" />
         <Space /> Refresh
       </Button>
     );
   }
 
-  private render_remove_button(): Rendered {
-    if (!this.props.project_id) return;
-    const extra = this.provides_upgrades() ? (
+  function render_remove_button(): JSX.Element | undefined {
+    if (!project_id) return;
+    const extra = provides_upgrades() ? (
       <>
         <br />
         The project will no longer get upgraded using this license, and it may
@@ -336,7 +322,7 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
             {extra}
           </div>
         }
-        onConfirm={() => this.remove_license()}
+        onConfirm={remove_license}
         okText={"Yes"}
         cancelText={"Cancel"}
       >
@@ -348,36 +334,52 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     );
   }
 
-  private render_err(): Rendered {
-    if (this.state.err) {
+  function render_activated(): JSX.Element | undefined {
+    const activates = info?.activates;
+    if (activates == null) return;
+    if (activates > new Date()) {
+      return (
+        <li style={{ fontWeight: "bold" }}>
+          Will activate <TimeAgo date={activates} />.
+        </li>
+      );
+    } else {
+      return (
+        <li>
+          Activated <TimeAgo date={activates} />.
+        </li>
+      );
+    }
+  }
+
+  function render_err(): JSX.Element | undefined {
+    if (err) {
       return (
         <div>
           <br />
-          {this.state.err}
+          {err}
         </div>
       );
     }
   }
 
-  public render(): Rendered {
-    const message = (
-      <div>
-        <Button.Group style={{ float: "right" }}>
-          {this.render_refresh_button()}
-          {this.render_remove_button()}
-        </Button.Group>
-        <Icon name="key" /> {this.render_body()}
-        <br />
-        {this.render_upgrades()}
-        {this.render_err()}
-      </div>
-    );
-    return (
-      <Alert
-        style={{ marginTop: "5px", minHeight: "48px" }}
-        message={message}
-        type={this.get_type()}
-      />
-    );
-  }
-}
+  const message = (
+    <div>
+      <Button.Group style={{ float: "right" }}>
+        {render_refresh_button()}
+        {render_remove_button()}
+      </Button.Group>
+      <Icon name="key" /> {render_body()}
+      <br />
+      {render_upgrades()}
+      {render_err()}
+    </div>
+  );
+  return (
+    <Alert
+      style={{ marginTop: "5px", minHeight: "48px" }}
+      message={message}
+      type={get_type()}
+    />
+  );
+};
