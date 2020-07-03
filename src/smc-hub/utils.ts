@@ -8,6 +8,7 @@ const winston = require("./winston-metrics").get_logger("utils");
 import { PostgreSQL } from "./postgres/types";
 import { AllSiteSettings } from "../smc-util/db-schema/types";
 import { expire_time } from "../smc-util/misc";
+import { callback2 as cb2 } from "smc-util/async-utils";
 
 export function get_smc_root(): string {
   return process.env.SMC_ROOT ?? ".";
@@ -21,6 +22,16 @@ export function read_db_password_from_disk(): string | null {
     winston.debug("NO PASSWORD FILE!");
     return null;
   }
+}
+
+export async function have_active_registration_tokens(
+  db: PostgreSQL
+): Promise<boolean> {
+  const resp = await cb2(db._query, {
+    query:
+      "SELECT EXISTS(SELECT 1 FROM registration_tokens WHERE disabled IS NOT true) AS have_tokens",
+  });
+  return resp.rows[0]?.have_tokens === true;
 }
 
 // just to make this async friendly, that's all

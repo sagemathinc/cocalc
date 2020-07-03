@@ -5,7 +5,7 @@
 
 import { React } from "../app-framework";
 
-import { AccountCreationToken } from "./account-creation-token";
+import { RegistrationToken } from "./registration-token";
 import { SiteSettings } from "./site-settings";
 //import { SubscriptionManager } from "./subscription-manager";
 import { SystemNotifications } from "./system-notifications";
@@ -29,7 +29,7 @@ export const AdminPage: React.FC = React.memo(() => {
       <hr />
       <SiteSettings />
       <hr />
-      <AccountCreationToken />
+      <RegistrationToken />
       <hr />
       <SystemNotifications />
     </div>

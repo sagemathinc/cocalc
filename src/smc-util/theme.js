@@ -82,6 +82,7 @@ const COLORS = {
   GRAY_LLL: "#f5f5f5",
   // bootstrap 3 colors
   BS_BLUE_BGRND: "rgb(66, 139, 202)",
+  BS_GREEN_LL: "#E8F5E9",
   BS_GREEN: "#5CB85C",
   BS_GREEN_D: "#449d44",
   BS_GREEN_DD: "#398439",

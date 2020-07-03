@@ -41,7 +41,7 @@
     "lodash": "^4.17.15",
     "mime": "^1.3.4",
     "mkdirp": "^1.0.4",
-    "moment": "^2.24.0",
+    "moment": "^2.27.0",
     "node-cjsx": "^2.0.0",
     "node-uuid": "^1.4.2",
     "node-zendesk": "^1.3.0",
