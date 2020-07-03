@@ -8,7 +8,11 @@
 // In the future, this might be extended to dispatch some action,
 // like adding a student to a course, similar to account creation actions.
 
-import { Table } from "./types";
+import {
+  Table,
+  RegistrationTokenSetFields,
+  RegistrationTokenGetFields,
+} from "./types";
 import { PostgreSQL } from "../../smc-hub/postgres/types";
 import { callback2 as cb2 } from "../../smc-util/async-utils";
 
@@ -86,7 +90,7 @@ Table({
           expires: null,
           limit: null,
           disabled: null,
-        },
+        } as { [key in RegistrationTokenSetFields]: null },
       },
       get: {
         admin: true,
@@ -99,7 +103,7 @@ Table({
           counter: null,
           limit: null,
           disabled: null,
-        },
+        } as { [key in RegistrationTokenGetFields]: null },
       },
     },
   },

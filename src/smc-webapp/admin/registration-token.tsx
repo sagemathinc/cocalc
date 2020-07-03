@@ -12,6 +12,7 @@ import * as moment from "moment";
 import { range, sortBy, pick } from "lodash";
 import { cmp_moment } from "smc-util/misc2";
 import { round1 } from "smc-util/misc";
+import { RegistrationTokenSetFields } from "smc-util/db-schema/types";
 import { React, Rendered, redux, TypedMap } from "../app-framework";
 import {
   Checkbox,
@@ -130,10 +131,16 @@ export const RegistrationToken: React.FC<Props> = () => {
       val.expires = moment(val.expires).toDate();
     }
     val.disabled = !val.active;
-    val = pick(val, ["token", "disabled", "expires", "limit"]);
+    val = pick(val, [
+      "token",
+      "disabled",
+      "expires",
+      "limit",
+      "descr",
+    ] as RegistrationTokenSetFields[]);
     // set optional field to undefined (to get rid of it)
     ["descr", "limit", "expires"].forEach(
-      (k) => (val[k] = val[k] ?? undefined)
+      (k: RegistrationTokenSetFields) => (val[k] = val[k] ?? undefined)
     );
     try {
       set_saving(true);
@@ -229,6 +236,7 @@ export const RegistrationToken: React.FC<Props> = () => {
 
     const onFinish = (values) => save(values);
     const onRandom = () => form.setFieldsValue({ token: new_random_token() });
+    const limit_min = editing != null ? editing.counter ?? 0 : 0;
 
     return (
       <Form
@@ -252,7 +260,7 @@ export const RegistrationToken: React.FC<Props> = () => {
           <DatePicker />
         </Form.Item>
         <Form.Item name="limit" label="Limit" rules={[{ required: false }]}>
-          <InputNumber min={0} step={1} />
+          <InputNumber min={limit_min} step={1} />
         </Form.Item>
         <Form.Item name="active" label="Active" valuePropName="checked">
           <Switch />
