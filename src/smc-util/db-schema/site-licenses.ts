@@ -95,6 +95,8 @@ Table({
     pg_indexes: [],
     user_query: {
       get: {
+        pg_where: [],
+        admin: true,
         options: [{ order_by: "-last_used" }, { limit: 500 }],
         fields: {
           id: null,
