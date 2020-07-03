@@ -35,6 +35,7 @@ hub_projects         = require('./projects')
 {send_email, create_email_body} = require('./email')
 {api_key_action}     = require('./api/manage')
 {create_account, delete_account} = require('./client/create-account')
+{purchase_license}   = require('./client/license')
 db_schema            = require('smc-util/db-schema')
 { escapeHtml }       = require("escape-html")
 {CopyPath}           = require('./copy-path')
@@ -1954,6 +1955,13 @@ class exports.Client extends EventEmitter
     mesg_remove_all_upgrades: (mesg) =>
         mesg.event = 'stripe_remove_all_upgrades'     # for backward compat
         @handle_stripe_mesg(mesg)
+
+    mesg_purchase_license: (mesg) =>
+        try
+            resp = await purchase_license(@account_id, mesg.info, @dbg("purchase_license"))
+            @push_to_client(message.purchase_license_resp(id:mesg.id, resp:resp))
+        catch err
+            @error_to_client(id:mesg.id, error:err.toString())
 
     #  END stripe-related functionality
 

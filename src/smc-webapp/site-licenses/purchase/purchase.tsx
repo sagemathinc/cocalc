@@ -31,32 +31,17 @@ const radioStyle: CSS = {
   fontWeight: "inherit", // this is to undo what react-bootstrap does to the labels.
 };
 
-type User = "academic" | "individual" | "business";
-type Upgrade = "basic" | "standard" | "premium";
-type Subscription = "no" | "monthly" | "yearly";
-
-export interface PurchaseInfo {
-  user: User;
-  upgrade: Upgrade;
-  quantity: number;
-  subscription: Subscription;
-  start: Date;
-  end?: Date;
-  quote: boolean;
-  quote_info?: string;
-  payment_method?: string;
-  cost?: number; // use cost and discounted_cost as double check on backend only (i.e., don't trust them, but on other hand be careful not to charge more!)
-  discounted_cost?: number;
-}
-
-const COSTS = {
-  user: { academic: 0.5, individual: 0.7, business: 1 },
-  upgrade: { basic: 8, standard: 12, premium: 20 },
-} as const;
-
-const ONLINE_DISCOUNT = 0.7;
-
-const MIN_QUOTE = 100;
+import {
+  User,
+  Upgrade,
+  Subscription,
+  PurchaseInfo,
+  COSTS,
+  MIN_QUOTE,
+  compute_cost,
+  compute_discounted_cost,
+  percent_discount,
+} from "./util";
 
 interface Props {
   onClose: () => void;
@@ -88,6 +73,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   const [sending, set_sending] = useState<
     undefined | "active" | "success" | "failed"
   >(undefined);
+  const [purchase_resp, set_purchase_resp] = useState<string | undefined>(
+    undefined
+  );
   const disabled: boolean = useMemo(() => {
     return sending == "success" || sending == "active";
   }, [sending]);
@@ -102,25 +90,15 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       quantity == null ||
       subscription == null ||
       isNaN(quantity)
-    )
+    ) {
       return undefined;
-
-    // Just a quick sample cost formula so we can see this work.
-    let cost = quantity * COSTS.user[user] * COSTS.upgrade[upgrade];
-    if (subscription == "no") {
-      // scale by factor of a month
-      const months =
-        (end.valueOf() - start.valueOf()) / (30.5 * 24 * 60 * 60 * 1000);
-      cost *= months;
-    } else if (subscription == "yearly") {
-      cost *= 12;
     }
-    return Math.max(5, Math.round(cost));
+    return compute_cost({ quantity, user, upgrade, subscription, start, end });
   }, [quantity, user, upgrade, subscription, start, end]);
 
   const discounted_cost = useMemo<number | undefined>(() => {
     if (cost == null) return undefined;
-    return Math.max(5, Math.round(cost * ONLINE_DISCOUNT));
+    return compute_discounted_cost(cost);
   }, [cost]);
 
   function render_error() {
@@ -178,19 +156,19 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               label: "Basic",
               value: "basic",
               desc:
-                "member hosting, internet access, better idle timeout, a slightly more dedicated and shared RAM",
+                "member hosting, internet access, 30 minutes idle timeout, 3GB disk space",
             },
             {
               label: "Standard",
               value: "standard",
               desc:
-                "member hosting, internet access, 4 hours idle timeout, 2GB shared RAM and 2 shared vCPU's",
+                "member hosting, internet access, 4 hours idle timeout, 5GB disk space, 2GB shared RAM and 2 shared vCPUs, ",
             },
             {
               label: "Premium",
               value: "premium",
               desc:
-                "premium hosting, internet access, 24 hours idle timeout, 4GB shared RAM, 3 shared vCPU's",
+                "premium hosting, internet access, 24 hours idle timeout, 15GB disk space, 4GB shared RAM, 3 shared vCPU's",
             },
           ]}
           onChange={(e) => set_upgrade(e.target.value)}
@@ -206,7 +184,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div>
         <br />
-        <h4>Maximum number of simultaneous active projects</h4>
+        <h4>Maximum number of simultaneous running projects</h4>
         {isNaN(quantity) ? "enter a number" : ""}
         <SliderWithInput
           min={1}
@@ -228,9 +206,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         <RadioGroup
           disabled={disabled}
           options={[
-            { label: "Specific period of time", value: "no" },
             { label: "Monthly subscription", value: "monthly" },
             { label: "Yearly subscription", value: "yearly" },
+            { label: "Specific period of time", value: "no" },
           ]}
           onChange={(e) => set_subscription(e.target.value)}
           value={subscription}
@@ -301,7 +279,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             <b>
               <i>purchase online</i>
             </b>{" "}
-            today!
+            today and get {percent_discount(cost, discounted_cost)}% off!
           </i>
         ) : undefined}
       </div>
@@ -348,7 +326,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         <div>
           <br />
           <h4>Payment method</h4>
-          Pay with {payment_method}
+          Use {payment_method}
           <br />
           <Button onClick={() => set_payment_method(undefined)}>
             Change...
@@ -394,7 +372,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     };
     set_sending("active");
     try {
-      await webapp_client.stripe.purchase_license(info);
+      const resp = await webapp_client.stripe.purchase_license(info);
+      set_purchase_resp(resp);
       set_sending("success");
     } catch (err) {
       set_error(err.toString());
@@ -463,6 +442,16 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     }
   }
 
+  function render_purchase_resp() {
+    if (!purchase_resp) return;
+    return (
+      <div>
+        <br />
+        {purchase_resp}
+      </div>
+    );
+  }
+
   // Just cancel everything
   function render_cancel() {
     return (
@@ -476,7 +465,6 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     <Card
       title={<h3>Purchase license</h3>}
       extra={<a onClick={onClose}>close</a>}
-      style={{ maxWidth: "1100px", margin: "auto" }}
     >
       {render_error()}
       {render_user()}
@@ -490,6 +478,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       {render_quote_info()}
       {render_buy()}
       {render_sending()}
+      {render_purchase_resp()}
       <hr />
       <br />
       {render_cancel()}

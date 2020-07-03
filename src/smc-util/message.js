@@ -3169,3 +3169,18 @@ message({
   account_id: required,
   ban: required, // if true ban; if false, unban
 });
+
+// Request to purchase a license (either via stripe or a quote)
+API(
+  message({
+    event: "purchase_license",
+    id: undefined,
+    info: required, // import { PurchaseInfo } from "smc-webapp/site-licenses/purchase/util";
+  })
+);
+
+message({
+  event: "purchase_license_resp",
+  id: undefined,
+  resp: required, // a string - basically a message to show the user
+})
