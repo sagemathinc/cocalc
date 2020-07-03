@@ -508,10 +508,9 @@ export const RegistrationToken: React.FC<{}> = () => {
     if (no_or_all_inactive) {
       return (
         <Alert bsStyle="warning">
-          No tokens, or there are no active tokens. This means any use can sign
-          in.
+          No tokens, or there are no active tokens. This means anybody can use your server.
           <br />
-          Create at least one active token to prevent anyone from signing up!
+          Create at least one active token to prevent just anybody from signing up for your server!
         </Alert>
       );
     }
