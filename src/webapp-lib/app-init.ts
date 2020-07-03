@@ -130,11 +130,17 @@ function pad(s: string, w: number, align: "left" | "right" = "left") {
   }
 }
 
+function delay(t): Promise<void> {
+  return new Promise((done) => setTimeout(() => done(), t));
+}
+
 // initialize…
 const loading_size: { [key: string]: number } = {};
 const loading_info: { [key: string]: number } = {};
+const loading_ok: { [key: string]: boolean } = {};
 let loading_show: any = null;
 
+// for chrome, be aware of https://bugs.chromium.org/p/chromium/issues/detail?id=463622
 function show_loading_info() {
   let bars = "";
   const W = 30;
@@ -143,37 +149,47 @@ function show_loading_info() {
     const info = loading_info[name];
     bars += `${pad(name, 20)}`;
     if (size != null && size != 0 && info != null && !isNaN(info)) {
-      // info could be > size, not sure why
       const width = Math.min(W, Math.round((W * info) / size));
-      // console.log({ size, name, width, W });
       const bar = `[${"=".repeat(width)}>${" ".repeat(W - width)}]`;
-      const pct = `${Math.round((100 * info) / size)}`;
-      bars += `${bar} (${pad(pct, 3, "right")}%)\n`;
+      if (loading_ok[name] != null) {
+        // set to 100%  ... it's not accurate what webpack tells us
+        if (loading_ok[name]) loading_info[name] = loading_size[name];
+        const msg = loading_ok[name] ? "DONE" : "FAIL";
+        bars += `${bar} ( ${msg} )`;
+      } else {
+        // webpack tells us smaller files, at least in dev version
+        // we just cap this at 100% ... if this is systematically wrong everywhere,
+        // we could divide info by ~2.5.
+        const pct = `${Math.min(100, Math.round((100 * info) / size))}`;
+        bars += `${bar} ( ${pad(pct, 3, "right")}% )`;
+      }
     } else {
-      bars += `[${" ".repeat(W + 1)}]       \n`;
+      bars += `[${" ".repeat(W + 1)}]         `;
     }
+    bars += "\n";
   }
   loading_show.innerHTML = bars;
 }
 
-function update_loading_info(name, info, size?) {
+function update_loading_info(name, info) {
   // sometimes, the progress indicator says 0
   if (info == 0) return;
+  // console.log("update_loading_info", name, info, "size", loading_size[name]);
   loading_info[name] = info;
-  if (size != null) loading_size[name] = size;
   show_loading_info();
 }
 
-function load_asset(name, size, url, hash): Promise<string> {
+function load_asset(name, url, hash): Promise<string> {
   return new Promise(function (done, err) {
     const req = new XMLHttpRequest();
     req.open("GET", `${url}?${hash}`);
     req.onload = function () {
       if (this.status >= 200 && this.status < 300) {
         // report 100%
-        update_loading_info(name, size);
+        update_loading_info(name, req.responseText.length);
         done(req.responseText);
       } else {
+        loading_ok[name] = false;
         err({
           status: this.status,
           statusText: req.statusText,
@@ -182,15 +198,18 @@ function load_asset(name, size, url, hash): Promise<string> {
     };
 
     req.onerror = function () {
+      loading_ok[name] = false;
       err({
         status: this.status,
         statusText: req.statusText,
       });
     };
 
-    req.addEventListener("progress", function (e) {
-      // e.total is 0 if it isn't reported, but we happen to know the size from webpack
-      update_loading_info(name, e.loaded, e.total || size);
+    req.addEventListener("progress", function (_e) {
+      // e.total is 0 if it isn't reported (no surprise with compression),
+      // but we happen to know the size from webpack anyways ...
+      // e.loaded gives us the bytes so far, but compressed ...
+      update_loading_info(name, req.responseText.length);
     });
     req.send();
   });
@@ -204,16 +223,26 @@ async function load_assets(data) {
 
   // loading them in parallel ...
   const code: { [key: string]: Promise<string> } = {};
-  for (const [name, chunk] of Object.entries(chunks)) {
-    loading_size[name] = chunk.size;
-    loading_info[name] = 0;
-    code[name] = load_asset(name, chunk.size, chunk.entry, chunk.hash);
+  try {
+    for (const [name, chunk] of Object.entries(chunks)) {
+      loading_size[name] = chunk.size;
+      loading_info[name] = 0;
+      code[name] = load_asset(name, chunk.entry, chunk.hash);
+    }
+    // we eval them in a well defined order: i.e. fill, then css, then vendor?, ...
+    const names = Object.keys(code);
+    // safety check
+    names.forEach((n) => {
+      if (asset_names.indexOf(n) == -1) throw new Error(`unknown asset ${n}`);
+    });
+    await names.forEach(async (name) => {
+      await eval(await code[name]);
+      loading_ok[name] = true;
+      show_loading_info();
+      await delay(1);
+    });
+  } catch (err) {
+    // TODO most likely, load_asset failed. We tell the user about this.
+    alert(`Error Code: ${err.message.status}: ${err.message.statusText}`);
   }
-  // we have to define the load ordering. i.e. fill, then css, then vendor?, ...
-  const names = Object.keys(code);
-  // safety check
-  names.forEach((n) => {
-    if (asset_names.indexOf(n) == -1) throw new Error(`unknown asset ${n}`);
-  });
-  await names.forEach(async (name) => eval(await code[name]));
 }

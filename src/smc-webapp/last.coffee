@@ -38,6 +38,7 @@ $ = window.$
 $("#smc-startup-banner")?.remove()
 $('#smc-startup-banner-status')?.remove()
 $('#cocalc-error-report-startup')?.remove()
+$('#cocalc-assets-loading')?.remove()
 
 $ ->
     try
