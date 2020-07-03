@@ -37,6 +37,10 @@ const SHRINK_THRESH: number = 10;
 import { VariableSizeList as List, ListOnScrollProps } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
 
+export interface ScrollInfo extends ListOnScrollProps {
+  maxScrollOffset?: number;
+}
+
 import { React, Component, Rendered } from "../app-framework";
 
 interface Props {
@@ -53,7 +57,7 @@ interface Props {
   scroll_to_index?: number; // moves to this row during next render (but doesn't get stuck there!)
   scroll_top?: number;
   cache_id?: string; // if set, the measured cell sizes and scroll position are preserved between unmount/mounts
-  on_scroll?: (info: ListOnScrollProps) => void;
+  on_scroll?: (info: ScrollInfo) => void;
   use_is_scrolling?: boolean;
   hide_resize?: boolean;
   render_info?: boolean; // if true, record RenderInfo; also makes isVisible available for row_renderer.
@@ -92,11 +96,7 @@ export class WindowedList extends Component<Props, State> {
   private RowComponent: any;
   private height: number = 0;
   private width: number = 0;
-  private scroll_info: {
-    scrollDirection: "backward" | "forward";
-    scrollOffset: number;
-    scrollUpdateWasRequested: boolean;
-  } = {
+  private scroll_info: ScrollInfo = {
     scrollDirection: "forward",
     scrollOffset: 0,
     scrollUpdateWasRequested: false,
@@ -354,13 +354,21 @@ export class WindowedList extends Component<Props, State> {
     let on_scroll: undefined | ((info: ListOnScrollProps) => void) = undefined;
     if (this.props.cache_id != null || this.props.on_scroll != null) {
       on_scroll = (info: ListOnScrollProps): void => {
-        this.scroll_info = info;
+        const a = $(this.list_ref.current?._outerRef);
+        let maxScrollOffset = 0;
+        if (a != null && a[0] != null) {
+          maxScrollOffset = a[0].scrollHeight - (a.height() ?? 0);
+        }
+        this.scroll_info = {
+          ...info,
+          ...{ maxScrollOffset },
+        };
         if (this.props.on_scroll != null) {
-          this.props.on_scroll(info);
+          this.props.on_scroll(this.scroll_info);
         }
         if (this.props.cache_id != null) {
           scroll_cache[this.props.cache_id as string] = {
-            info,
+            info: this.scroll_info,
             row_heights_cache: this.row_heights_cache,
           };
         }
@@ -411,7 +419,7 @@ export class WindowedList extends Component<Props, State> {
 
 interface RowRendererProps {
   index: number;
-  style: object;
+  style: React.CSSProperties;
   isScrolling?: boolean;
 }
 
