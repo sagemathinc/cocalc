@@ -114,3 +114,106 @@ function handle_window_error(msg, url, lineNo, columnNo, error) {
 }
 
 window.onerror = handle_window_error;
+
+// magic code to load all webpack assets
+
+// order matters!
+const asset_names = ["fill", "css", "pdf.worker", "vendor", "smc"];
+
+function pad(s: string, w: number, align: "left" | "right" = "left") {
+  const f = Math.max(0, w - s.length);
+  const fill = " ".repeat(f);
+  if (align == "left") {
+    return s + fill;
+  } else {
+    return fill + s;
+  }
+}
+
+// initialize…
+const loading_size: { [key: string]: number } = {};
+const loading_info: { [key: string]: number } = {};
+let loading_show: any = null;
+
+function show_loading_info() {
+  let bars = "";
+  const W = 30;
+  for (const name of asset_names) {
+    const size = loading_size[name];
+    const info = loading_info[name];
+    bars += `${pad(name, 20)}`;
+    if (size != null && size != 0 && info != null && !isNaN(info)) {
+      // info could be > size, not sure why
+      const width = Math.min(W, Math.round((W * info) / size));
+      // console.log({ size, name, width, W });
+      const bar = `[${"=".repeat(width)}>${" ".repeat(W - width)}]`;
+      const pct = `${Math.round((100 * info) / size)}`;
+      bars += `${bar} (${pad(pct, 3, "right")}%)\n`;
+    } else {
+      bars += `[${" ".repeat(W + 1)}]       \n`;
+    }
+  }
+  loading_show.innerHTML = bars;
+}
+
+function update_loading_info(name, info, size?) {
+  // sometimes, the progress indicator says 0
+  if (info == 0) return;
+  loading_info[name] = info;
+  if (size != null) loading_size[name] = size;
+  show_loading_info();
+}
+
+function load_asset(name, size, url, hash): Promise<string> {
+  return new Promise(function (done, err) {
+    const req = new XMLHttpRequest();
+    req.open("GET", `${url}?${hash}`);
+    req.onload = function () {
+      if (this.status >= 200 && this.status < 300) {
+        // report 100%
+        update_loading_info(name, size);
+        done(req.responseText);
+      } else {
+        err({
+          status: this.status,
+          statusText: req.statusText,
+        });
+      }
+    };
+
+    req.onerror = function () {
+      err({
+        status: this.status,
+        statusText: req.statusText,
+      });
+    };
+
+    req.addEventListener("progress", function (e) {
+      // e.total is 0 if it isn't reported, but we happen to know the size from webpack
+      update_loading_info(name, e.loaded, e.total || size);
+    });
+    req.send();
+  });
+}
+
+type Chunks = { [key: string]: { size: number; entry: string; hash: string } };
+
+async function load_assets(data) {
+  const chunks: Chunks = JSON.parse(data);
+  loading_show = document.getElementById("cocalc-assets-loading");
+
+  // loading them in parallel ...
+  const code: { [key: string]: Promise<string> } = {};
+  for (const [name, chunk] of Object.entries(chunks)) {
+    loading_size[name] = chunk.size;
+    loading_info[name] = 0;
+    code[name] = load_asset(name, chunk.size, chunk.entry, chunk.hash);
+  }
+  // we have to define the load ordering. i.e. fill, then css, then vendor?, ...
+  const names = Object.keys(code);
+  // safety check
+  names.forEach((n) => {
+    if (asset_names.indexOf(n) == -1) throw new Error(`unknown asset ${n}`);
+  });
+  await names.forEach(async (name) => eval(await code[name]));
+}

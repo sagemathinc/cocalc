@@ -306,24 +306,36 @@ while (base_url_html && base_url_html[base_url_html.length - 1] === "/") {
 // this is the main app.html file, which should be served without any caching
 // config: https://github.com/jantimon/html-webpack-plugin#configuration
 const pug2app = new HtmlWebpackPlugin({
-  date: BUILD_DATE,
-  title: TITLE,
-  description: DESCRIPTION,
-  BASE_URL: base_url_html,
-  theme,
-  COMP_ENV,
-  components: {}, // no data needed, empty is fine
-  inventory: {}, // no data needed, empty is fine
-  git_rev: GIT_REV,
-  mathjax: MATHJAX_URL,
   filename: "app.html",
   chunksSortMode: smcChunkSorter,
-  inject: "body",
   hash: PRODMODE,
   template: path.join(INPUT, "app.pug"),
   minify: htmlMinifyOpts,
-  GOOGLE_ANALYTICS,
-  COMMERCIAL,
+  inject: false,
+  templateParameters: function (compilation, assets, options) {
+    return {
+      files: assets,
+      htmlWebpackPlugin: {
+        options: {
+          ...options,
+          ...{
+            date: BUILD_DATE,
+            title: TITLE,
+            description: DESCRIPTION,
+            BASE_URL: base_url_html,
+            theme,
+            COMP_ENV,
+            components: {}, // no data needed, empty is fine
+            inventory: {}, // no data needed, empty is fine
+            git_rev: GIT_REV,
+            mathjax: MATHJAX_URL,
+            GOOGLE_ANALYTICS,
+            COMMERCIAL,
+          },
+        },
+      },
+    };
+  },
 });
 
 // global css loader configuration
@@ -493,15 +505,16 @@ module.exports = {
   optimization: {
     minimizer: [minimizer],
 
-    splitChunks: {
-      cacheGroups: {
-        commons: {
-          test: /[\\/]node_modules[\\/]/,
-          name: "vendor",
-          chunks: "all",
-        },
-      },
-    },
+    // this doesn't play nice with a loading indicator on the app page. probably best to not use it.
+    //splitChunks: {
+    //  cacheGroups: {
+    //    commons: {
+    //      test: /[\\/]node_modules[\\/]/,
+    //      name: "vendor",
+    //      chunks: "all",
+    //    },
+    //  },
+    //},
   },
 
   entry: entries,

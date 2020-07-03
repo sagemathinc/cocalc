@@ -51,4 +51,20 @@ html(lang="en")
 
     div#smc-react-container.page-container
 
+    div(style="clear: both")
+
+    pre#cocalc-assets-loading
+
+    //- manually inserting webpack chunks to get some feedback about the loading process
+    script(type="text/javascript").
+      document.addEventListener("DOMContentLoaded", function() {
+        load_assets('!{JSON.stringify(files.chunks)}');
+      });
+
+    //- Uncomment the lines below to see what data is available ...
+    //- h3 Files
+    //- pre(style="font-size: 70%")= JSON.stringify(files, null, 2)
+    //- h3 Options
+    //- pre(style="font-size: 70%")= JSON.stringify(htmlWebpackPlugin.options, null, 2)
+
     include _inc_analytics.pug

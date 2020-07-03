@@ -33,6 +33,15 @@
     font-size: 10px;
 }
 
+#cocalc-assets-loading {
+    width: 70vw;
+    margin: 10px auto;
+    color: #444;
+    background: white;
+    border: none;
+    text-align: center;
+}
+
 #smc-startup-banner-status {
     font-family: sans-serif;
     font-size: 12pt;
