@@ -104,12 +104,7 @@ function use_registration_tokens() {
     // every time we show or hide, clear the selection
     set_sel_rows([]);
     if (show) {
-      set_loading(true);
-      try {
-        load();
-      } finally {
-        set_loading(false);
-      }
+      load();
     } else {
       // reset state upon closing
       set_sel_rows([]);
