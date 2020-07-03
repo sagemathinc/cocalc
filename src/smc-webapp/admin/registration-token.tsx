@@ -25,6 +25,7 @@ import {
   Table,
   Switch,
 } from "antd";
+import { Alert } from "../antd-bootstrap";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { ErrorDisplay, Saving, COLORS, Icon } from "../r_misc";
 import { PassportStrategy } from "../account/passport-types";
@@ -49,6 +50,9 @@ interface Props {}
 
 export const RegistrationToken: React.FC<Props> = () => {
   const [data, set_data] = React.useState<{ [key: string]: Token }>({});
+  const [no_or_all_inactive, set_no_or_all_inactive] = React.useState<boolean>(
+    false
+  );
   const [editing, set_editing] = React.useState<Token | null>(null);
   const [saving, set_saving] = React.useState<boolean>(false);
   const [deleting, set_deleting] = React.useState<boolean>(false);
@@ -79,11 +83,15 @@ export const RegistrationToken: React.FC<Props> = () => {
         },
       });
       const data = {};
+      let warn_signup = true;
       for (const x of result.query.registration_tokens) {
         if (x.expires) x.expires = moment(x.expires);
         x.active = !x.disabled;
         data[x.token] = x;
+        // we have at least one active token → no need to warn user
+        if (x.active) warn_signup = false;
       }
+      set_no_or_all_inactive(warn_signup);
       set_error("");
       set_data(data);
     } catch (err) {
@@ -448,6 +456,20 @@ export const RegistrationToken: React.FC<Props> = () => {
     }
   }
 
+  // this tells an admin that users can sign in freely if there are no tokens or no active tokens
+  function render_no_active_token_warning(): Rendered {
+    if (no_or_all_inactive) {
+      return (
+        <Alert bsStyle="warning">
+          No tokens, or there are no active tokens. This means any use can sign
+          in.
+          <br />
+          Create at least one active token to prevent anyone from signing up!
+        </Alert>
+      );
+    }
+  }
+
   function render_unsupported(): Rendered {
     // see https://github.com/sagemathinc/cocalc/issues/333
     return (
@@ -495,6 +517,7 @@ export const RegistrationToken: React.FC<Props> = () => {
     } else {
       return (
         <div>
+          {render_no_active_token_warning()}
           {render_error()}
           {render_control()}
           {render_info()}
