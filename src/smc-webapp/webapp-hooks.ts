@@ -51,7 +51,6 @@ const signed_in = function (mesg) {
   document.cookie = `${APP_BASE_URL}has_remember_me=true; expires=${exp} ;path=/`;
   // Record which hub we're connected to.
   redux.getActions("account").setState({ hub: mesg.hub });
-  require("./file-use/init"); // initialize file_use notifications
   console.log(`Signed into ${mesg.hub} at ${new Date()}`);
   if (first_login) {
     first_login = false;
