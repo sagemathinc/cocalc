@@ -52,7 +52,7 @@ interface CellListProps {
      really a good idea... since the main use of windowing is to
      make the initial render fast.  If it is already rendered, why
      mess it up?
-     (TODO: we are not using windowed list ever.)
+     (TODO: we are not using windowed list ever anyways...)
   */
 }
 
@@ -210,8 +210,6 @@ export class CellList extends Component<CellListProps> {
       // Handle "cell visible" and "cell top"
       const cell = $(node).find(`#${this.props.cur_id}`);
       if (scroll == "cell visible") {
-        cell.scrollintoview();
-        await delay(50); // needed due to shift+enter causing output
         cell.scrollintoview();
       } else if (scroll == "cell top") {
         // Make it so the top of the cell is at the top of

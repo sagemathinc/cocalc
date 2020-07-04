@@ -51,10 +51,11 @@ export class InsertCell extends Component<InsertCellProps, InsertCellState> {
     this.setState({ hover: false });
   };
   render() {
-    const style: any = { height: "6px" }; // TODO: types
+    const style: React.CSSProperties = { height: "6px", paddingBottom: "6px" };
     if (IS_TOUCH) {
-      // TODO: understand this comment
-      // this whole approach makes no sense for a touch device, since no notion of hover, and is just confusing.
+      // TODO: Inserting cells via hover and click does not make sense
+      // for a touch device, since no notion of hover, and is just confusing and results
+      // in many false inserts.
       return <div style={style} />;
     }
     if (this.state.hover) {
