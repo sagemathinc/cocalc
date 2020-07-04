@@ -31,25 +31,11 @@ import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 // Relative import is temporary, until I figure this out -- needed for *project*
 import { bind_methods, keys, is_valid_uuid_string } from "../smc-util/misc2";
 
-import { AdminUsersActions } from "./admin/users/actions";
-import { AdminUsersStore } from "./admin/users/store";
-import { SiteLicensesActions } from "./site-licenses/admin/actions";
-import { SiteLicensesStore } from "./site-licenses/admin/store";
-import { ProjectsActions } from "./projects/actions";
-import { ProjectsStore } from "./projects/store";
-import { CustomizeStore } from "./customize";
-import { BillingActions } from "./billing/actions";
-import { BillingStore } from "./billing/store";
-import { AccountStore, AccountActions } from "./account";
-
-import { MentionsActions, MentionsStore } from "./notifications";
-import { FileUseStore } from "./file-use/store";
-import { FileUseActions } from "./file-use/actions";
 export { TypedMap } from "./app-framework/TypedMap";
 
 import { NAME_TYPE as ComputeImageStoreType } from "./custom-software/util";
-import { ComputeImagesStore } from "./custom-software/init";
 
+import * as types from "./app-framework/actions-and-stores";
 declare type ProjectStore = import("./project_store").ProjectStore;
 declare type ProjectActions = import("./project_actions").ProjectActions;
 export { ProjectStore, ProjectActions };
@@ -179,15 +165,16 @@ export class AppRedux {
     return !!this._actions[name];
   }
 
-  getActions(name: "account"): AccountActions;
-  getActions(name: "projects"): ProjectsActions;
-  getActions(name: "billing"): BillingActions;
-  getActions(name: "page"): any;
-  getActions(name: "support"): any;
-  getActions(name: "admin-users"): AdminUsersActions;
-  getActions(name: "admin-site-licenses"): SiteLicensesActions;
-  getActions(name: "mentions"): MentionsActions;
-  getActions(name: "file_use"): FileUseActions | undefined;
+  getActions(name: "account"): types.AccountActions;
+  getActions(name: "projects"): types.ProjectsActions;
+  getActions(name: "billing"): types.BillingActions;
+  getActions(name: "page"): types.PageActions;
+  getActions(name: "users"): types.UsersActions;
+  getActions(name: "support"): types.SupportActions;
+  getActions(name: "admin-users"): types.AdminUsersActions;
+  getActions(name: "admin-site-licenses"): types.SiteLicensesActions;
+  getActions(name: "mentions"): types.MentionsActions;
+  getActions(name: "file_use"): types.FileUseActions;
   getActions(name: { project_id: string }): ProjectActions;
   getActions<T, C extends Actions<T>>(name: string): C;
   getActions<T, C extends Actions<T>>(
@@ -243,18 +230,19 @@ export class AppRedux {
     return !!this._stores[name];
   }
 
-  getStore(name: "account"): AccountStore;
-  getStore(name: "projects"): ProjectsStore;
-  getStore(name: "billing"): BillingStore;
-  getStore(name: "page"): any;
-  getStore(name: "support"): any;
-  getStore(name: "admin-users"): AdminUsersStore;
-  getStore(name: "admin-site-licenses"): SiteLicensesStore;
-  getStore(name: "mentions"): MentionsStore;
-  getStore(name: "file_use"): FileUseStore | undefined;
-  getStore(name: "customize"): CustomizeStore;
-  getStore(name: "users"): any;
-  getStore(name: ComputeImageStoreType): ComputeImagesStore;
+  getStore(name: "account"): types.AccountStore;
+  getStore(name: "projects"): types.ProjectsStore;
+  getStore(name: "billing"): types.BillingStore;
+  getStore(name: "page"): types.PageStore;
+  getStore(name: "support"): types.SupportStore;
+  getStore(name: "admin-users"): types.AdminUsersStore;
+  getStore(name: "admin-site-licenses"): types.SiteLicensesStore;
+  getStore(name: "mentions"): types.MentionsStore;
+  getStore(name: "file_use"): types.FileUseStore;
+  getStore(name: "customize"): types.CustomizeStore;
+  getStore(name: "users"): types.UsersStore;
+  getStore(name: ComputeImageStoreType): types.ComputeImagesStore;
+
   getStore<State>(name: string): Store<State>;
   getStore<State, C extends Store<State>>(name: string): C | undefined;
   getStore<State, C extends Store<State>>(name: string): C | undefined {
@@ -745,243 +733,6 @@ export function redux_fields(spec) {
   return v;
 }
 
-// Export common React Hooks for convenience
+// Export common React Hooks for convenience:
 export * from "./app-framework/hooks";
-
-/*
-Selector for getting anything from our global redux store.
-
-Use it in one of two ways:
-
- useRedux<T>(['name-of-store', 'path', 'in', 'store'])
-
-or
-
- useRedux<T>(['path', 'in', 'project store'], 'project-id', 'name')
-
-
-*/
-export function useReduxNamedStore(path: string[]) {
-  const [value, set_value] = React.useState(() => {
-    return redux.getStore(path[0])?.getIn(path.slice(1) as any) as any;
-  });
-
-  React.useEffect(() => {
-    const store = redux.getStore(path[0]);
-    if (store == null) {
-      // TODO: I could make it return undefined until the store is created.
-      // I *did* do this for useReduxEditorStore, but just haven't gotten
-      // around to doing this for useReduxNamedStore yet.
-      throw Error(`store "${path[0]}" must exist!`);
-    }
-    const subpath = path.slice(1);
-    let last_value = value;
-    const f = () => {
-      if (!f.is_mounted) {
-        // CRITICAL: even after removing the change listener, sometimes f gets called;
-        // I don't know why EventEmitter has those semantics, but it definitely does.
-        // That's why we *also* maintain this is_mounted flag.
-        return;
-      }
-      const new_value = store.getIn(subpath as any);
-      if (last_value !== new_value) {
-        /*
-        console.log("useReduxNamedStore change ", {
-          name: path[0],
-          path: JSON.stringify(path),
-          new_value,
-          last_value,
-        });
-        */
-        last_value = new_value;
-        set_value(new_value);
-      }
-    };
-    f.is_mounted = true;
-    store.on("change", f);
-    return () => {
-      f.is_mounted = false;
-      store.removeListener("change", f);
-    };
-  }, [path[0]]);
-
-  return value;
-}
-
-function useReduxProjectStore(path: string[], project_id: string) {
-  const [value, set_value] = React.useState(() =>
-    redux
-      .getProjectStore(project_id)
-      .getIn(path as [string, string, string, string, string])
-  );
-
-  React.useEffect(() => {
-    const store = redux.getProjectStore(project_id);
-    let last_value = value;
-    const f = (obj) => {
-      if (!f.is_mounted) return; // see comment for useReduxNamedStore
-      const new_value = obj.getIn(path);
-      if (last_value !== new_value) {
-        /*
-        console.log("useReduxProjectStore change ", {
-          path: JSON.stringify(path),
-          new_value,
-          last_value,
-        });
-        */
-        last_value = new_value;
-        set_value(new_value);
-      }
-    };
-    f.is_mounted = true;
-    store.on("change", f);
-    return () => {
-      f.is_mounted = false;
-      store.removeListener("change", f);
-    };
-  }, []);
-
-  return value;
-}
-
-function useReduxEditorStore(
-  path: string[],
-  project_id: string,
-  filename: string,
-  is_public?: boolean
-) {
-  const [value, set_value] = React.useState(() =>
-    // the editor itself might not be defined hence the ?. below:
-    redux
-      .getEditorStore(project_id, filename, is_public)
-      ?.getIn(path as [string, string, string, string, string])
-  );
-
-  React.useEffect(() => {
-    let store = redux.getEditorStore(project_id, filename, is_public);
-    let last_value = value;
-    const f = (obj) => {
-      if (!f.is_mounted) return; // see comment for useReduxNamedStore
-      const new_value = obj.getIn(path);
-      if (last_value !== new_value) {
-        last_value = new_value;
-        set_value(new_value);
-      }
-    };
-    f.is_mounted = true;
-    if (store != null) {
-      store.on("change", f);
-    } else {
-      /* This code is extra complicated since we account for the case
-         when getEditorStore is undefined then becomes defined.
-         Very rarely there are components that useRedux and somehow
-         manage to do so before the editor store gets created.
-         NOTE: I might be able to solve this same problem with
-         simpler code with useAsyncEffect...
-      */
-      const g = () => {
-        if (!f.is_mounted) {
-          unsubscribe();
-          return;
-        }
-        store = redux.getEditorStore(project_id, filename, is_public);
-        if (store != null) {
-          unsubscribe();
-          f(store); // may have missed an initial change
-          store.on("change", f);
-        }
-      };
-      const unsubscribe = redux._redux_store.subscribe(g);
-    }
-
-    return () => {
-      f.is_mounted = false;
-      store?.removeListener("change", f);
-    };
-  }, []);
-
-  return value;
-}
-
-export function useRedux(
-  path: string[],
-  project_id?: string,
-  filename?: string, // for editing a file in project
-  is_public?: boolean
-) {
-  if (project_id == null) {
-    return useReduxNamedStore(path);
-  }
-  if (filename == null) {
-    return useReduxProjectStore(path, project_id);
-  }
-  return useReduxEditorStore(path, project_id, filename, is_public);
-}
-
-/*
-Hook to get the actions associated to a named actions/store,
-a project, or an editor.  If the first argument is a uuid,
-then it's the project actions or editor actions; otherwise,
-it's one of the other named actions or undefined.
-*/
-
-export function useActions(name: "account"): AccountActions;
-export function useActions(name: "projects"): ProjectsActions;
-export function useActions(name: "billing"): BillingActions;
-export function useActions(name: "page"): any;
-export function useActions(name: "support"): any;
-export function useActions(name: "admin-users"): AdminUsersActions;
-export function useActions(name: "admin-site-licenses"): SiteLicensesActions;
-export function useActions(name: "mentions"): MentionsActions;
-export function useActions(name: "file_use"): FileUseActions; // or undefined?
-
-// If it is none of the explicitly named ones... it's a project.
-export function useActions(name_or_project_id: string): ProjectActions;
-
-// Or an editor actions (any for now)
-export function useActions(name_or_project_id: string, path: string): any;
-
-export function useActions(name_or_project_id: string, path?: string) {
-  return React.useMemo(() => {
-    if (path == null) {
-      if (is_valid_uuid_string(name_or_project_id)) {
-        return redux.getProjectActions(name_or_project_id);
-      } else {
-        return redux.getActions(name_or_project_id);
-      }
-    } else {
-      const actions = redux.getEditorActions(name_or_project_id, path);
-      if (actions == null) {
-        throw Error(`BUG: actions for "${path}" must be defined but is not`);
-      }
-      return actions;
-    }
-  }, [name_or_project_id, path]);
-}
-
-export function useStore(name: "account"): AccountStore;
-export function useStore(name: "projects"): ProjectsStore;
-export function useStore(name: "billing"): BillingStore;
-export function useStore(name: "page"): any;
-export function useStore(name: "support"): any;
-export function useStore(name: "admin-users"): AdminUsersStore;
-export function useStore(name: "admin-site-licenses"): SiteLicensesStore;
-export function useStore(name: "mentions"): MentionsStore;
-export function useStore(name: "file_use"): FileUseStore | undefined;
-// If it is none of the explicitly named ones... it's a project.
-export function useStore(name_or_project_id: string): ProjectStore;
-// Or an editor store (any for now)
-export function useStore(name_or_project_id: string, path: string): any;
-export function useStore(name_or_project_id: string, path?: string): any {
-  return React.useMemo(() => {
-    if (path == null) {
-      if (is_valid_uuid_string(name_or_project_id)) {
-        return redux.getProjectStore(name_or_project_id);
-      } else {
-        return redux.getStore(name_or_project_id);
-      }
-    } else {
-      return redux.getEditorStore(name_or_project_id, path);
-    }
-  }, [name_or_project_id, path]) as any;
-}
+export * from "./app-framework/redux-hooks";

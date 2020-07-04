@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /* Gather together and export some common hooks for convenience. */
 
 export { useState, useEffect, useMemo, useRef, useLayoutEffect } from "react";
