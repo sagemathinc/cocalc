@@ -762,9 +762,9 @@ or
 
 */
 export function useReduxNamedStore(path: string[]) {
-  const [value, set_value] = React.useState(() =>
-    redux._redux_store.getState().getIn(path)
-  );
+  const [value, set_value] = React.useState(() => {
+    return redux.getStore(path[0])?.getIn(path.slice(1) as any) as any;
+  });
 
   React.useEffect(() => {
     const store = redux.getStore(path[0]);
@@ -776,14 +776,14 @@ export function useReduxNamedStore(path: string[]) {
     }
     const subpath = path.slice(1);
     let last_value = value;
-    const f = (obj) => {
+    const f = () => {
       if (!f.is_mounted) {
         // CRITICAL: even after removing the change listener, sometimes f gets called;
         // I don't know why EventEmitter has those semantics, but it definitely does.
         // That's why we *also* maintain this is_mounted flag.
         return;
       }
-      const new_value = obj.getIn(subpath);
+      const new_value = store.getIn(subpath as any);
       if (last_value !== new_value) {
         /*
         console.log("useReduxNamedStore change ", {
