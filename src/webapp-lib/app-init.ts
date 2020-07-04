@@ -134,32 +134,53 @@ function delay(t): Promise<void> {
   return new Promise((done) => setTimeout(() => done(), t));
 }
 
-// initialize…
-const loading_size: { [key: string]: number } = {};
-const loading_info: { [key: string]: number } = {};
-const loading_ok: { [key: string]: boolean } = {};
-let loading_show: any = null;
+interface Loading {
+  err?: string;
+  size: { [key: string]: number };
+  loaded: { [key: string]: number };
+  done: { [key: string]: boolean };
+}
 
-// for chrome, be aware of https://bugs.chromium.org/p/chromium/issues/detail?id=463622
-function show_loading_info() {
+// initialize…
+const loading: Loading = {
+  size: {},
+  loaded: {},
+  done: {},
+};
+
+// will be a div element ...
+let loading_output: any = null;
+
+const DEFLATE_FACTOR = 2; // picked by observing in production, no deep insight
+// calculate a progress bar for each asset
+// the problem is, we use compression, nginx's streaming, or cloudlfare, ... ?
+// in any case, there is no header for the total content size. hence the browser
+// only knows the bytes it did transfer. that's why we multiply the known "info" value by DEFLATE_FACTOR.
+// that's more or less ok.
+// also, for chrome, be aware of https://bugs.chromium.org/p/chromium/issues/detail?id=463622
+// and chrome, firfox and others might have subtle differences ...
+function show_loading() {
+  if (loading.err != null) {
+    loading_output.innerHTML = `Problem loading assets.\n${loading.err}`;
+    return;
+  }
   let bars = "";
   const W = 30;
   for (const name of asset_names) {
-    const size = loading_size[name];
-    const info = loading_info[name];
+    const size = loading.size[name];
+    const info = DEFLATE_FACTOR * loading.loaded[name];
     bars += `${pad(name, 20)}`;
     if (size != null && size != 0 && info != null && !isNaN(info)) {
       const width = Math.min(W, Math.round((W * info) / size));
       const bar = `[${"=".repeat(width)}>${" ".repeat(W - width)}]`;
-      if (loading_ok[name] != null) {
+      if (loading.done[name] != null) {
         // set to 100%  ... it's not accurate what webpack tells us
-        if (loading_ok[name]) loading_info[name] = loading_size[name];
-        const msg = loading_ok[name] ? "DONE" : "FAIL";
+        if (loading.done[name]) loading.loaded[name] = loading.size[name];
+        const msg = loading.done[name] ? "DONE" : "FAIL";
         bars += `${bar} ( ${msg} )`;
       } else {
-        // webpack tells us smaller files, at least in dev version
-        // we just cap this at 100% ... if this is systematically wrong everywhere,
-        // we could divide info by ~2.5.
+        // in development, webpack tells us much smaller file sizes.
+        // in any case, we just cap this at 100%, just like the width above.
         const pct = `${Math.min(100, Math.round((100 * info) / size))}`;
         bars += `${bar} ( ${pad(pct, 3, "right")}% )`;
       }
@@ -168,28 +189,29 @@ function show_loading_info() {
     }
     bars += "\n";
   }
-  loading_show.innerHTML = bars;
+  loading_output.innerHTML = bars;
 }
 
-function update_loading_info(name, info) {
+function update_loading(name, info) {
   // sometimes, the progress indicator says 0
   if (info == 0) return;
-  // console.log("update_loading_info", name, info, "size", loading_size[name]);
-  loading_info[name] = info;
-  show_loading_info();
+  // console.log("update_loading", name, info, "size", loading.size[name]);
+  loading.loaded[name] = info;
+  show_loading();
 }
 
 function load_asset(name, url, hash): Promise<string> {
   return new Promise(function (done, err) {
     const req = new XMLHttpRequest();
     req.open("GET", `${url}?${hash}`);
+
     req.onload = function () {
       if (this.status >= 200 && this.status < 300) {
         // report 100%
-        update_loading_info(name, req.responseText.length);
+        update_loading(name, req.responseText.length);
         done(req.responseText);
       } else {
-        loading_ok[name] = false;
+        loading.done[name] = false;
         err({
           status: this.status,
           statusText: req.statusText,
@@ -198,7 +220,7 @@ function load_asset(name, url, hash): Promise<string> {
     };
 
     req.onerror = function () {
-      loading_ok[name] = false;
+      loading.done[name] = false;
       err({
         status: this.status,
         statusText: req.statusText,
@@ -209,8 +231,9 @@ function load_asset(name, url, hash): Promise<string> {
       // e.total is 0 if it isn't reported (no surprise with compression),
       // but we happen to know the size from webpack anyways ...
       // e.loaded gives us the bytes so far, but compressed ...
-      update_loading_info(name, req.responseText.length);
+      update_loading(name, req.responseText.length);
     });
+
     req.send();
   });
 }
@@ -219,14 +242,14 @@ type Chunks = { [key: string]: { size: number; entry: string; hash: string } };
 
 async function load_assets(data) {
   const chunks: Chunks = JSON.parse(data);
-  loading_show = document.getElementById("cocalc-assets-loading");
+  loading_output = document.getElementById("cocalc-assets-loading");
 
   // loading them in parallel ...
   const code: { [key: string]: Promise<string> } = {};
   try {
     for (const [name, chunk] of Object.entries(chunks)) {
-      loading_size[name] = chunk.size;
-      loading_info[name] = 0;
+      loading.size[name] = chunk.size;
+      loading.loaded[name] = 0;
       code[name] = load_asset(name, chunk.entry, chunk.hash);
     }
     // we eval them in a well defined order: i.e. fill, then css, then vendor?, ...
@@ -237,12 +260,15 @@ async function load_assets(data) {
     });
     await names.forEach(async (name) => {
       await eval(await code[name]);
-      loading_ok[name] = true;
-      show_loading_info();
+      loading.done[name] = true;
+      show_loading();
       await delay(1);
     });
   } catch (err) {
     // TODO most likely, load_asset failed. We tell the user about this.
-    alert(`Error Code: ${err.message.status}: ${err.message.statusText}`);
+    loading.err = `Error: ${err.message.status}: ${err.message.statusText}`;
+    show_loading();
+    await delay(10);
+    window.stop(); // stops javascript
   }
 }
