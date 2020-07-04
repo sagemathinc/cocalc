@@ -64,7 +64,6 @@ export class CellList extends Component<CellListProps> {
 
   constructor(props) {
     super(props);
-    (window as any).cell_list = this;
 
     this.use_windowed_list =
       !!this.props.use_windowed_list &&
@@ -199,7 +198,6 @@ export class CellList extends Component<CellListProps> {
   }
 
   private async scroll_cell_list_not_windowed(scroll: Scroll): Promise<void> {
-    console.log("scroll_cell_list_not_windowed", scroll);
     const node = $(this.cell_list_node);
     if (node == null) return;
     if (typeof scroll === "number") {
@@ -209,11 +207,18 @@ export class CellList extends Component<CellListProps> {
 
     // supported scroll positions are in types.ts
     if (scroll.startsWith("cell ")) {
-      //const align = scroll === "cell top" ? "start" : "top";
+      // Handle "cell visible" and "cell top"
       const cell = $(node).find(`#${this.props.cur_id}`);
-      // TODO: do it
-      await delay(5); // needed due to shift+enter causing output
-      // TODO: do it again
+      if (scroll == "cell visible") {
+        cell.scrollintoview();
+        await delay(50); // needed due to shift+enter causing output
+        cell.scrollintoview();
+      } else if (scroll == "cell top") {
+        // Make it so the top of the cell is at the top of
+        // the visible area.
+        const s = cell.offset().top - node.offset().top;
+        node.scrollTop(node.scrollTop() + s);
+      }
       return;
     }
 
