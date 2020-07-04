@@ -128,7 +128,7 @@ export class SignUp extends React.Component<Props, State> {
         <FormControl
           disabled={!this.state.terms_checkbox}
           type={"text"}
-          placeholder={"Enter the secret token"}
+          placeholder={"Enter secret token"}
           cocalc-test={"sign-up-token"}
           onChange={(e) => this.setState({ user_token: e.target.value })}
         />

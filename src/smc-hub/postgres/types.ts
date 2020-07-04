@@ -5,6 +5,7 @@
 
 import { EventEmitter } from "events";
 import { Changes } from "./changefeed";
+import { Client } from "pg";
 
 export type QuerySelect = object;
 
@@ -20,7 +21,7 @@ export interface QueryOptions {
   table?: string;
   where?: QueryWhere;
   query?: string;
-  params?: (string | number | Date)[];  // todo -- maybe too specific?
+  params?: (string | number | Date)[]; // todo -- maybe too specific?
   cache?: boolean;
   retry_until_success?: any; // todo
   cb?: Function;
@@ -49,6 +50,8 @@ export interface PostgreSQL extends EventEmitter {
   _stop_listening(table: string, select: QuerySelect, watch: string[]);
 
   _query(opts: QueryOptions): void;
+
+  _client(): Client | undefined;
 
   async_query(opts: AsyncQueryOptions): Promise<any>;
 
@@ -182,4 +185,5 @@ export interface PostgreSQL extends EventEmitter {
     cb: Function;
   });
   verify_email_check_token(opts: { email_address: string; token: string });
+  reset_server_settings_cache();
 }

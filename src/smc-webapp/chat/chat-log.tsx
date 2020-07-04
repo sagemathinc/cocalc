@@ -10,7 +10,7 @@ Render all the messages in the chat.
 import { List, Map } from "immutable";
 import { React, useActions, useMemo, useRedux } from "../app-framework";
 import { Alert } from "../antd-bootstrap";
-import { WindowedList } from "../r_misc/windowed-list";
+import { ScrollInfo, WindowedList } from "../r_misc/windowed-list";
 import { Message } from "./message";
 import { search_match, search_split } from "smc-util/misc";
 import { ChatActions } from "./actions";
@@ -100,13 +100,22 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
       );
     }
 
-    function on_scroll(): void {
-      // TODO: get rid of this annoying hackish way of passing state.
+    function on_scroll(info: ScrollInfo): void {
+      // TODO: get rid of this annoying hackish way of passing
+      // state (or document it better and make work with typescript).
       if (
         windowed_list_ref?.current != null &&
         !(windowed_list_ref.current as any).chat_scroll_to_bottom
       ) {
-        (windowed_list_ref.current as any).chat_manual_scroll = true;
+        if (
+          info.maxScrollOffset &&
+          Math.abs(info.scrollOffset - info.maxScrollOffset) < 40
+        ) {
+          // at the bottom so turn off chat_manual_scroll.
+          (windowed_list_ref.current as any).chat_manual_scroll = false;
+        } else {
+          (windowed_list_ref.current as any).chat_manual_scroll = true;
+        }
       }
     }
 

@@ -29,6 +29,7 @@ import "./password-reset";
 import "./project-log";
 import "./projects";
 import "./public-paths";
+import "./registration-tokens";
 import "./server-settings";
 import "./site-licenses";
 import "./site-settings";
