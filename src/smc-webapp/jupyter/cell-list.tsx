@@ -7,6 +7,8 @@
 
 declare const $: any;
 
+import { debounce } from "lodash";
+
 const DEFAULT_ROW_SIZE: number = 64;
 const DEFAULT_WINDOWED_SIZE: number = 15;
 const NON_WINDOWED_SIZE = 1000;
@@ -473,6 +475,9 @@ export class CellList extends Component<CellListProps> {
             ? this.on_click
             : undefined
         }
+        onScroll={debounce(() => {
+          this.save_scroll();
+        }, 3000)}
       >
         {this.render_list_of_cells()}
       </div>
