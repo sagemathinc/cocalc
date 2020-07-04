@@ -201,7 +201,7 @@ export class CellList extends Component<CellListProps> {
 
   private async scroll_cell_list_not_windowed(scroll: Scroll): Promise<void> {
     const node = $(this.cell_list_node);
-    if (node == null) return;
+    if (node.length == 0) return;
     if (typeof scroll === "number") {
       node.scrollTop(node.scrollTop() + scroll);
       return;
@@ -211,6 +211,7 @@ export class CellList extends Component<CellListProps> {
     if (scroll.startsWith("cell ")) {
       // Handle "cell visible" and "cell top"
       const cell = $(node).find(`#${this.props.cur_id}`);
+      if (cell.length == 0) return;
       if (scroll == "cell visible") {
         cell.scrollintoview();
       } else if (scroll == "cell top") {

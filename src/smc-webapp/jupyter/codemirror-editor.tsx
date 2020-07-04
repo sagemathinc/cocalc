@@ -158,7 +158,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     // See https://github.com/jupyter/notebook/issues/2464 for discussion of this cell_list_top business.
     const cell_list_div = this.props.frame_actions.cell_list_div;
     if (cell_list_div != null) {
-      const cell_list_top = cell_list_div.offset().top;
+      const cell_list_top = cell_list_div.offset()?.top;
       if (
         cell_list_top != null &&
         this.cm.cursorCoords(true, "window").top < cell_list_top
