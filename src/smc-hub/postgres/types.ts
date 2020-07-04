@@ -125,6 +125,7 @@ export interface PostgreSQL extends EventEmitter {
 
   get_server_setting(opts: { name: string; cb: Function }): void;
   get_server_settings_cached(opts: { cb: CB }): void;
+  server_settings_synctable(): any; // returns a table
 
   create_account(opts: {
     first_name: string;
