@@ -12,7 +12,7 @@ import * as immutable from "immutable";
 
 import { ErrorDisplay } from "../r_misc/error-display";
 import { Loading } from "../r_misc/loading";
-import { is_firefox, is_safari } from "../frame-editors/generic/browser";
+//import { is_firefox, is_safari } from "../frame-editors/generic/browser";
 
 // React components that implement parts of the Jupyter notebook.
 import { TopMenubar } from "./top-menubar";
@@ -280,9 +280,17 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   private use_windowed_list(): boolean {
-    // NOTE: here by "disable windowing", we still use react-window,
-    // it's just that we make the overscan size large to effectively
-    // disable any pros and cons (but we still get the nice scroll api).
+    // IMPORTANT: We are not using react-windowed at all
+    // for Jupyter, due to situations like this
+    //   https://github.com/sagemathinc/cocalc/issues/4727
+    // I'm going to leave all the code in for now though,
+    // since there is no harm and maybe some surprise
+    // will pop up.  Also, we could have a non-default
+    // option for huge notebooks that people might want to use.
+
+    return false;
+
+    /*
     if (
       this.props.frame_actions == null ||
       this.props.editor_settings == null ||
@@ -300,6 +308,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     }
     // OK, let's do it.
     return true;
+    */
   }
 
   render_cells() {

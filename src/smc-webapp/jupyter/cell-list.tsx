@@ -47,9 +47,13 @@ interface CellListProps {
   cell_toolbar?: string;
   trust?: boolean;
   use_windowed_list?: boolean;
-  // NOTE: if the value of use_windowed_list *changes* while mounted, we don't re-render everything,
-  // which would be a mess and is not really a good idea... since the main use of windowing is to
-  // make the initial render fast.  If it is already rendered, why mess it up?
+  /* NOTE: if the value of use_windowed_list *changes* while mounted,
+     we don't re-render everything, which would be a mess and is not
+     really a good idea... since the main use of windowing is to
+     make the initial render fast.  If it is already rendered, why
+     mess it up?
+     (TODO: we are not using windowed list ever.)
+  */
 }
 
 export class CellList extends Component<CellListProps> {
@@ -60,6 +64,8 @@ export class CellList extends Component<CellListProps> {
 
   constructor(props) {
     super(props);
+    (window as any).cell_list = this;
+
     this.use_windowed_list =
       !!this.props.use_windowed_list &&
       this.props.actions != null &&
@@ -83,14 +89,16 @@ export class CellList extends Component<CellListProps> {
   }
 
   private save_scroll(): void {
-    if (
-      this.use_windowed_list &&
-      this.props.frame_actions != null &&
-      this.windowed_list_ref.current != null
-    ) {
+    if (this.props.frame_actions == null) return;
+    if (this.use_windowed_list) {
+      if (this.windowed_list_ref.current == null) return;
       const info = this.windowed_list_ref.current.get_scroll();
       if (info != null) {
         this.props.frame_actions.set_scrollTop(info.scrollOffset);
+      }
+    } else {
+      if (this.cell_list_node != null) {
+        this.props.frame_actions.set_scrollTop(this.cell_list_node.scrollTop);
       }
     }
   }
@@ -190,9 +198,45 @@ export class CellList extends Component<CellListProps> {
     }
   }
 
+  private async scroll_cell_list_not_windowed(scroll: Scroll): Promise<void> {
+    console.log("scroll_cell_list_not_windowed", scroll);
+    const node = $(this.cell_list_node);
+    if (node == null) return;
+    if (typeof scroll === "number") {
+      node.scrollTop(node.scrollTop() + scroll);
+      return;
+    }
+
+    // supported scroll positions are in types.ts
+    if (scroll.startsWith("cell ")) {
+      //const align = scroll === "cell top" ? "start" : "top";
+      const cell = $(node).find(`#${this.props.cur_id}`);
+      // TODO: do it
+      await delay(5); // needed due to shift+enter causing output
+      // TODO: do it again
+      return;
+    }
+
+    switch (scroll) {
+      case "list up":
+        // move scroll position of list up one page
+        node.scrollTop(node.scrollTop() - node.height() * 0.9);
+        break;
+      case "list down":
+        // move scroll position of list up one page
+        node.scrollTop(node.scrollTop() + node.height() * 0.9);
+        break;
+    }
+  }
+
   private async scroll_cell_list(scroll: Scroll): Promise<void> {
     let list = this.windowed_list_ref.current;
-    if (list == null) return;
+    if (list == null) {
+      // scroll not using windowed list
+      this.scroll_cell_list_not_windowed(scroll);
+      return;
+    }
+
     const info = list.get_scroll();
 
     if (typeof scroll === "number") {
@@ -359,7 +403,7 @@ export class CellList extends Component<CellListProps> {
   }
 
   // This is needed for **the share server**, which can't
-  // do windowing.
+  // do windowing and also for the non-windowed mode.
   private render_list_of_cells_directly() {
     const v: Rendered[] = [];
     let index: number = 0;
@@ -381,23 +425,19 @@ export class CellList extends Component<CellListProps> {
   }
 
   private render_list_of_cells(): Rendered | Rendered[] {
-    const style: React.CSSProperties = {
-      backgroundColor: "#fff",
-      paddingLeft: "5px",
-      overflowY: "auto",
-    };
-
-    if (this.props.actions == null) {
-      // e.g., the share server uses this:
-      return (
-        <div className="smc-vfill" style={style}>
-          {this.render_list_of_cells_directly()}
-        </div>
-      );
+    if (this.props.actions == null || !this.use_windowed_list) {
+      return this.render_list_of_cells_directly();
     }
 
     return (
-      <div className="smc-vfill" style={style}>
+      <div
+        className="smc-vfill"
+        style={{
+          backgroundColor: "#fff",
+          paddingLeft: "5px",
+          overflowY: "auto",
+        }}
+      >
         {this.render_list_of_cells_using_windowed_list()}
       </div>
     );
@@ -421,7 +461,10 @@ export class CellList extends Component<CellListProps> {
         key="cells"
         className="smc-vfill"
         style={style}
-        ref={(node: any) => (this.cell_list_node = node)}
+        ref={(node: any) => {
+          this.cell_list_node = node;
+          this.props.frame_actions?.set_cell_list_div(node);
+        }}
         onClick={
           this.props.actions != null && this.props.complete != null
             ? this.on_click
