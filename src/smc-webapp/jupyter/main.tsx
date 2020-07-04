@@ -286,9 +286,8 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     if (
       this.props.frame_actions == null ||
       this.props.editor_settings == null ||
-      this.props.cell_list == null
-      /*||
-      this.props.editor_settings.get("disable_jupyter_windowing") */
+      this.props.cell_list == null ||
+      this.props.editor_settings.get("disable_jupyter_windowing")
     ) {
       // very obvious reasons to disable windowing...
       return false;
