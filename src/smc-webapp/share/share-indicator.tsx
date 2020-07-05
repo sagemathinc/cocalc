@@ -9,7 +9,7 @@ Indicator about whether or not file or path is publicly shared.
 
 import { containing_public_path } from "smc-util/misc";
 import { COLORS } from "smc-util/theme";
-import { React, redux, useMemo, useRedux } from "../app-framework";
+import { React, redux, useMemo, useTypedRedux } from "../app-framework";
 import { Icon, Loading } from "../r_misc";
 
 const SHARE_INDICATOR_STYLE = {
@@ -29,7 +29,7 @@ interface Props {
 
 export const ShareIndicator: React.FC<Props> = React.memo(
   ({ project_id, path, shrink_fixed_tabs }) => {
-    const public_paths = useRedux(["public_paths"], project_id);
+    const public_paths = useTypedRedux({ project_id }, "public_paths");
 
     const is_public = useMemo(() => {
       if (public_paths == null) return false;

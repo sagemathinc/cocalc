@@ -3,6 +3,7 @@ import {
   React,
   useMemo,
   useRedux,
+  useTypedRedux,
   redux,
   useActions,
 } from "../../app-framework";
@@ -13,7 +14,7 @@ export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
   project_id,
 }) => {
   const project = useRedux(["projects", "project_map", project_id]);
-  const is_commercial = useRedux(["customize", "is_commercial"]);
+  const is_commercial = useTypedRedux("customize", "is_commercial");
   const quotas = useMemo(
     () =>
       is_commercial

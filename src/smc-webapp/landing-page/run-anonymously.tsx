@@ -4,7 +4,7 @@
  */
 
 import { useState } from "react";
-import { React, useRedux } from "../app-framework";
+import { React, useTypedRedux } from "../app-framework";
 import { WELL_STYLE } from "./sign-up";
 import { UNIT } from "../r_misc";
 const { Button, Checkbox, FormGroup, Well } = require("react-bootstrap");
@@ -18,11 +18,11 @@ interface Props {
 
 export const RunAnonymously: React.FC<Props> = (params) => {
   const { show_terms } = params;
-  const allow_anon = useRedux(["customize", "allow_anonymous_sign_in"]) ?? true;
+  const allow_anon = useTypedRedux("customize", "allow_anonymous_sign_in") ?? true;
   if (!allow_anon) return null;
 
   const [anon_checkbox, set_anon_checkbox] = useState(!show_terms);
-  const site_name = useRedux(["customize", "site_name"]);
+  const site_name = useTypedRedux("customize", "site_name");
 
   const run_anonymously = (e) => {
     e.preventDefault();

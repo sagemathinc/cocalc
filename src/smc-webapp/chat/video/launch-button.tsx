@@ -1,7 +1,7 @@
 import useInterval from "use-interval";
 import { debounce } from "lodash";
 
-import { React, useState, useRedux, useRef } from "../../app-framework";
+import { React, useState, useTypedRedux, useRef } from "../../app-framework";
 
 import { Icon, Tip } from "../../r_misc";
 import { user_activity } from "../../tracker";
@@ -29,10 +29,10 @@ export const VideoChatButton: React.FC<Props> = ({
 }) => {
   // to know if somebody else has video chat opened for this file
   // @ts-ignore
-  const file_use = useRedux(["file_use", "file_use"]);
+  const file_use = useTypedRedux("file_use", "file_use");
 
   // so we can exclude ourselves
-  const account_id: string = useRedux(["account", "account_id"]);
+  const account_id: string = useTypedRedux("account", "account_id");
 
   const [counter, set_counter] = useState<number>(0); // to force updates periodically.
   useInterval(() => set_counter(counter + 1), VIDEO_UPDATE_INTERVAL_MS / 2);

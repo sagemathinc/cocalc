@@ -13,6 +13,7 @@ import {
   useActions,
   useStore,
   useRedux,
+  useTypedRedux,
 } from "../app-framework";
 import { ProjectUsers } from "./project-users";
 const { AddCollaborators } = require("../collaborators/add-to-project");
@@ -45,7 +46,7 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
   const project = useRedux(["projects", "project_map", project_id]);
 
   const [add_collab, set_add_collab] = useState<boolean>(false);
-  const images = useRedux(["compute_images", "images"]);
+  const images = useTypedRedux("compute_images", "images");
 
   const store = useStore("projects");
   const actions = useActions("projects");

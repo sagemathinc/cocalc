@@ -1647,11 +1647,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    this.setState({
-      configuration: next,
-      available_features: feature_is_available(next),
-      configuration_loading: false,
-    });
+    this.setState(
+      immutable.fromJS({
+        configuration: next,
+        available_features: feature_is_available(next),
+        configuration_loading: false,
+      })
+    );
 
     return next.get(aspect) as Configuration;
   }

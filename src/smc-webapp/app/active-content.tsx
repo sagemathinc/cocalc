@@ -4,7 +4,7 @@
  */
 
 import { ProjectPage } from "../project/page/page";
-import { React, useRedux } from "../app-framework";
+import { React, useTypedRedux } from "../app-framework";
 import { ProjectsPage } from "../projects/projects-page";
 import { AccountPage } from "../account/account-page";
 import { KioskModeBanner } from "./kiosk-mode-banner";
@@ -15,9 +15,9 @@ import { AdminPage } from "../admin";
 import { Connecting } from "../landing-page/connecting";
 
 export const ActiveContent: React.FC = React.memo(() => {
-  const active_top_tab = useRedux(["page", "active_top_tab"]);
-  const fullscreen = useRedux(["page", "fullscreen"]);
-  const open_projects = useRedux(["projects", "open_projects"]);
+  const active_top_tab = useTypedRedux("page", "active_top_tab");
+  const fullscreen = useTypedRedux("page", "fullscreen");
+  const open_projects = useTypedRedux("projects", "open_projects");
 
   const v: JSX.Element[] = [];
   open_projects?.forEach((project_id: string) => {

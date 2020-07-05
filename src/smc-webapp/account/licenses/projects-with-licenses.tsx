@@ -3,12 +3,11 @@ import { Row, Col } from "antd";
 import {
   React,
   useMemo,
-  useRedux,
+  useTypedRedux,
   useEffect,
   redux,
 } from "../../app-framework";
 import { Loading, TimeAgo, WindowedList } from "../../r_misc";
-import { Map } from "immutable";
 import { projects_with_licenses } from "./util";
 import { plural, trunc_middle } from "smc-util/misc2";
 
@@ -18,11 +17,11 @@ function open_project(project_id: string): void {
 }
 
 export const ProjectsWithLicenses: React.FC = () => {
-  const project_map: Map<string, any> = useRedux(["projects", "project_map"]);
-  const all_projects_have_been_loaded = useRedux([
+  const project_map = useTypedRedux("projects", "project_map");
+  const all_projects_have_been_loaded = useTypedRedux(
     "projects",
     "all_projects_have_been_loaded",
-  ]);
+  );
   const projects = useMemo(() => projects_with_licenses(project_map), [
     project_map,
   ]);

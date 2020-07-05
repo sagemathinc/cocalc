@@ -20,6 +20,7 @@ import {
   useRedux,
   useRef,
   useState,
+  useTypedRedux,
 } from "../../app-framework";
 import { path_to_tab } from "smc-util/misc";
 import { path_split } from "smc-util/misc2";
@@ -83,7 +84,10 @@ export const FileTab: React.FC<Props> = React.memo(
   ({ project_id, path, name, label }) => {
     const [x_hovered, set_x_hovered] = useState<boolean>(false);
     const actions = useActions(project_id);
-    const active_project_tab = useRedux(["active_project_tab"], project_id);
+    const active_project_tab = useTypedRedux(
+      { project_id },
+      "active_project_tab"
+    );
 
     // True if this tab is currently selected:
     const is_selected: boolean = useMemo(() => {

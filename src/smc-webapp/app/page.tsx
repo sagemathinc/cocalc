@@ -21,7 +21,7 @@ import {
   useActions,
   useEffect,
   useState,
-  useRedux,
+  useTypedRedux,
 } from "../app-framework";
 import { SiteName } from "../customize";
 import { alert_message } from "../alerts";
@@ -92,7 +92,7 @@ export const Page: React.FC = () => {
   const page_actions = useActions("page");
   const support_actions = useActions("support");
 
-  const open_projects = useRedux(["projects", "open_projects"]);
+  const open_projects = useTypedRedux("projects", "open_projects");
   const [show_label, set_show_label] = useState<boolean>(true);
   useEffect(() => {
     const next = open_projects.size <= HIDE_LABEL_THRESHOLD;
@@ -107,24 +107,24 @@ export const Page: React.FC = () => {
     };
   }, []);
 
-  const active_top_tab = useRedux(["page", "active_top_tab"]);
-  const show_connection = useRedux(["page", "show_connection"]);
-  const show_file_use = useRedux(["page", "show_file_use"]);
-  const fullscreen = useRedux(["page", "fullscreen"]);
-  const local_storage_warning = useRedux(["page", "local_storage_warning"]);
-  const cookie_warning = useRedux(["page", "cookie_warning"]);
-  const new_version = useRedux(["page", "new_version"]);
+  const active_top_tab = useTypedRedux("page", "active_top_tab");
+  const show_connection = useTypedRedux("page", "show_connection");
+  const show_file_use = useTypedRedux("page", "show_file_use");
+  const fullscreen = useTypedRedux("page", "fullscreen");
+  const local_storage_warning = useTypedRedux("page", "local_storage_warning");
+  const cookie_warning = useTypedRedux("page", "cookie_warning");
+  const new_version = useTypedRedux("page", "new_version");
 
-  const show_support = useRedux(["support", "show"]);
+  const show_support = useTypedRedux("support", "show");
 
-  const account_id = useRedux(["account", "account_id"]);
-  const is_logged_in = useRedux(["account", "is_logged_in"]);
-  const is_anonymous = useRedux(["account", "is_anonymous"]);
-  const doing_anonymous_setup = useRedux(["account", "doing_anonymous_setup"]);
-  const when_account_created = useRedux(["account", "created"]);
-  const groups = useRedux(["account", "groups"]);
+  const account_id = useTypedRedux("account", "account_id");
+  const is_logged_in = useTypedRedux("account", "is_logged_in");
+  const is_anonymous = useTypedRedux("account", "is_anonymous");
+  const doing_anonymous_setup = useTypedRedux("account", "doing_anonymous_setup");
+  const when_account_created = useTypedRedux("account", "created");
+  const groups = useTypedRedux("account", "groups");
 
-  const is_commercial = useRedux(["customize", "is_commercial"]);
+  const is_commercial = useTypedRedux("customize", "is_commercial");
 
   function render_account_tab(): JSX.Element {
     let a, label, style;

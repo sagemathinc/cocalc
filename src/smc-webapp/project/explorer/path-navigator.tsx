@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useRedux, useActions } from "../../app-framework";
+import { React, useTypedRedux, useActions } from "../../app-framework";
 import { PathSegmentLink } from "./path-segment-link";
 import { Icon } from "../../r_misc";
 import { trunc_middle } from "smc-util/misc";
@@ -17,8 +17,8 @@ export function PathNavigator({
   project_id: string;
   style?: React.CSSProperties;
 }): JSX.Element {
-  const current_path = useRedux(["current_path"], project_id);
-  const history_path = useRedux(["history_path"], project_id);
+  const current_path = useTypedRedux({ project_id }, "current_path");
+  const history_path = useTypedRedux({ project_id }, "history_path");
   const actions = useActions(project_id);
 
   function make_path(): JSX.Element[] {

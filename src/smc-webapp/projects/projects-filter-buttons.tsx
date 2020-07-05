@@ -3,14 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useRedux, useActions } from "../app-framework";
+import { React, useTypedRedux, useActions } from "../app-framework";
 import { user_activity } from "../tracker";
 import { Button, ButtonGroup } from "../antd-bootstrap";
 import { Icon } from "../r_misc";
 
 export const ProjectsFilterButtons: React.FC = () => {
-  const deleted = useRedux(["projects", "deleted"]);
-  const hidden = useRedux(["projects", "hidden"]);
+  const deleted = useTypedRedux("projects", "deleted");
+  const hidden = useTypedRedux("projects", "hidden");
   const actions = useActions("projects");
 
   function render_deleted_button(): JSX.Element {

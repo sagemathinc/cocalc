@@ -3,17 +3,17 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useActions, useRedux } from "../app-framework";
+import { React, useActions, useTypedRedux } from "../app-framework";
 import { Icon } from "../r_misc";
 import { Modal } from "react-bootstrap";
 import { Button, Row, Col } from "../antd-bootstrap";
 import { webapp_client } from "../webapp-client";
 
 export const ConnectionInfo: React.FC = React.memo(() => {
-  const ping = useRedux(["page", "ping"]);
-  const avgping = useRedux(["page", "avgping"]);
-  const status = useRedux(["page", "connection_status"]);
-  const hub = useRedux(["account", "hub"]);
+  const ping = useTypedRedux("page", "ping");
+  const avgping = useTypedRedux("page", "avgping");
+  const status = useTypedRedux("page", "connection_status");
+  const hub = useTypedRedux("account", "hub");
   const page_actions = useActions("page");
 
   function close() {
@@ -80,7 +80,7 @@ function bytes_to_str(bytes: number): string {
 }
 
 const MessageInfo: React.FC = React.memo(() => {
-  const info = useRedux(["account", "mesg_info"]);
+  const info = useTypedRedux("account", "mesg_info");
 
   if (info == null) {
     return <span></span>;

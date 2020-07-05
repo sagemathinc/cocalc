@@ -34,7 +34,7 @@ export type ComputeImageKeys =
 export type ComputeImage = iMap<ComputeImageKeys, string>;
 export type ComputeImages = iMap<string, ComputeImage>;
 
-interface ComputeImagesState {
+export interface ComputeImagesState {
   images?: ComputeImages;
 }
 

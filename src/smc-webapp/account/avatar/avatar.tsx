@@ -3,12 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Map } from "immutable";
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
 import { trunc_middle, merge, ensure_bound } from "smc-util/misc";
 import { webapp_client } from "../../webapp-client";
-import { React, redux, useRedux } from "../../app-framework";
-import { Loading, Space } from "../../r_misc";
+import { React, redux, useTypedRedux } from "../../app-framework";
+import { Space } from "../../r_misc";
 import { avatar_fontcolor } from "./font-color";
 import { ProjectTitle } from "../../projects/project-title";
 
@@ -38,8 +37,8 @@ interface Props {
 }
 
 export const Avatar: React.FC<Props> = (props) => {
-  // we use this to display the username and face:
-  const user_map: Map<string, any> = useRedux(["users", "user_map"]);
+  // we use the user_map to display the username and face:
+  const user_map = useTypedRedux("users", "user_map");
 
   function click_avatar() {
     if (props.activity == null) {
@@ -210,12 +209,6 @@ export const Avatar: React.FC<Props> = (props) => {
       0,
       0.85
     );
-  }
-
-  // TODO: When TS this file, use profile-icon in r_misc
-  // for code reusability! (eg. We might want lighter weight icon some places)
-  if (user_map == null) {
-    return <Loading />;
   }
 
   const { size } = props;

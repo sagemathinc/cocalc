@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useActions, useRedux } from "../app-framework";
+import { React, useActions, useTypedRedux } from "../app-framework";
 import { COLORS } from "smc-util/theme";
 import { user_tracking } from "../user-tracking";
 import { Icon } from "../r_misc";
@@ -48,7 +48,7 @@ const ACTIVE_OUTER_STYLE: React.CSSProperties = {
 export const NotificationBell: React.FC<Props> = React.memo(
   ({ active, on_click }) => {
     const page_actions = useActions("page");
-    const count = useRedux(["file_use", "notify_count"]);
+    const count = useTypedRedux("file_use", "notify_count");
 
     function handle_navitem_click() {
       page_actions.toggle_show_file_use();
