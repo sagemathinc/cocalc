@@ -70,7 +70,8 @@ function areEqual(props: Props, nextProps: Props): boolean {
 }
 
 export const Cell: React.FC<Props> = React.memo((props) => {
-  const render = useDelayedRender(props.index);
+  // only delay rendering if actions are set (otherwise we break share server)
+  const render = useDelayedRender(props.actions == null ? 0 : props.index);
   if (!render) {
     return <></>;
   }
