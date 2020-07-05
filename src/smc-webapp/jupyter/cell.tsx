@@ -7,8 +7,9 @@
 React component that describes a single cella
 */
 
-import { React, Rendered } from "../app-framework";
 import { Map } from "immutable";
+import { delay } from "awaiting";
+import { React, Rendered, useAsyncEffect, useState } from "../app-framework";
 import { clear_selection } from "../misc/clear-selection";
 import { COLORS } from "smc-util/theme";
 import { INPUT_PROMPT_COLOR } from "./prompt";
@@ -70,6 +71,18 @@ function areEqual(props: Props, nextProps: Props): boolean {
 }
 
 export const Cell: React.FC<Props> = React.memo((props) => {
+  const [render, set_render] = useState<boolean>(false);
+
+  useAsyncEffect(async (is_mounted) => {
+    await delay(props.index);
+    if (!is_mounted()) return;
+    set_render(true);
+  }, []);
+
+  if (!render) {
+    return <div />;
+  }
+
   function is_editable(): boolean {
     return props.cell.getIn(["metadata", "editable"], true);
   }

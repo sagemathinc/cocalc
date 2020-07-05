@@ -112,7 +112,7 @@ export class CellList extends Component<CellListProps> {
        keep resetting scrollTop a few times.
     */
     let scrollHeight: number = 0;
-    for (const tm of [0, 1, 100, 150]) {
+    for (const tm of [0, 1, 100, 250, 500, 1000]) {
       if (!this.is_mounted) return;
       if (this.use_windowed_list) {
         if (this.windowed_list_ref.current != null) {
