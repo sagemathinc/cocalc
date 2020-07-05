@@ -18,6 +18,7 @@ import * as express from "express";
 import * as path_module from "path";
 const auth = require("./auth");
 import { get_smc_root } from "./utils";
+import { have_active_registration_tokens } from "./utils";
 //import { SiteSettingsKeys } from "smc-util/db-schema/site-defaults";
 import * as winston from "winston";
 
@@ -39,7 +40,7 @@ function fallback(val: string | undefined, fallback: string): string {
 async function get_params(opts: GetData) {
   const { db, base_url } = opts;
   const settings = await callback2(db.get_server_settings_cached, {});
-  const ANONYMOUS_SIGNUP = !settings.account_creation_token;
+  const ANONYMOUS_SIGNUP = !(await have_active_registration_tokens(db));
   const NAME = settings.site_name;
   const DESCRIPTION = settings.site_description;
   const PREFIX = ""; // this is unrelated of base_url, used for subdirectories
