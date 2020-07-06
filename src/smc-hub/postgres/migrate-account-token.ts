@@ -24,7 +24,7 @@ export async function migrate_account_token(db: PostgreSQL) {
       query: "INSERT INTO registration_tokens",
       values: {
         "token::TEXT": token,
-        "desc::TEXT": `Migrated from Site Settings`,
+        "descr::TEXT": `Migrated from Site Settings`,
       },
       conflict: "token",
     });

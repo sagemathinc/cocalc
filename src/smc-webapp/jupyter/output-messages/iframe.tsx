@@ -7,76 +7,61 @@
 Handle iframe output messages involving a src doc.
 */
 
-import { React, Component, Rendered } from "smc-webapp/app-framework";
+import { delay } from "awaiting";
+import {
+  React,
+  ReactDOM,
+  useEffect,
+  useIsMountedRef,
+  useRef,
+  useState,
+} from "smc-webapp/app-framework";
 import { get_blob_url } from "../server-urls";
-import { Icon } from "smc-webapp/r_misc";
-import { Button } from "react-bootstrap";
 
-interface IFrameProps {
+interface Props {
   sha1: string;
   project_id: string;
 }
 
-interface IFrameState {
-  show: boolean;
-  attempts: number;
-}
+const MAX_ATTEMPTS = 10;
+const MAX_WAIT = 5000;
+const BACKOFF = 1.3;
 
-export class IFrame extends Component<IFrameProps, IFrameState> {
-  // TODO: WARNING: check this - it's a different pattern than the original
-  // component, see https://github.com/facebook/react/issues/5465
-  private timeout: any;
+export const IFrame: React.FC<Props> = ({ sha1, project_id }) => {
+  const [attempts, set_attempts] = useState<number>(0);
+  const [failed, set_failed] = useState<boolean>(false);
+  const delay_ref = useRef<number>(500);
+  const isMountedRef = useIsMountedRef();
+  const iframe_ref = useRef(null);
 
-  constructor(props: IFrameProps, context: any) {
-    super(props, context);
-    this.state = { attempts: 0, show: false };
+  useEffect(() => {
+    const elt = ReactDOM.findDOMNode(iframe_ref.current);
+    if (elt == null) return;
+    elt.onload = function () {
+      elt.style.height = elt.contentWindow.document.body.scrollHeight + "px";
+    };
+  }, []);
+
+  async function load_error(): Promise<void> {
+    if (attempts >= MAX_ATTEMPTS) {
+      set_failed(true);
+      return;
+    }
+    await delay(delay_ref.current);
+    if (!isMountedRef.current) return;
+    delay_ref.current = Math.max(MAX_WAIT, delay_ref.current * BACKOFF);
+    set_attempts(attempts + 1);
   }
 
-  clearTimeout = (): void => {
-    if (this.timeout !== undefined) {
-      clearTimeout(this.timeout);
-      this.timeout = undefined;
-    }
-  };
-
-  componentWillUmount(): void {
-    this.clearTimeout();
+  if (failed) {
+    return <div>Failed to load iframe contents</div>;
   }
-
-  load_error = (): void => {
-    if (this.state.attempts < 5) {
-      this.clearTimeout();
-      this.timeout = setTimeout(
-        () => this.setState(({ attempts }) => ({ attempts: attempts + 1 })),
-        500
-      );
-    }
-  };
-
-  render_iframe = (): Rendered => {
-    const src =
-      get_blob_url(this.props.project_id, "html", this.props.sha1) +
-      `&attempts=${this.state.attempts}`;
-    // TODO: should width/height be in style instead of attrs?
-    return (
-      <iframe
-        src={src}
-        onError={this.load_error}
-        width="100%"
-        height="500px"
-        style={{ border: 0 }}
-      />
-    );
-  };
-
-  render() {
-    if (this.state.show) {
-      return this.render_iframe();
-    }
-    return (
-      <Button onClick={() => this.setState({ show: true })} bsStyle="info">
-        <Icon name="cube" /> Load Viewer...
-      </Button>
-    );
-  }
-}
+  return (
+    <iframe
+      ref={iframe_ref}
+      src={get_blob_url(project_id, "html", sha1) + `&attempts=${attempts}`}
+      onError={load_error}
+      style={{ border: 0, width: "100%", minHeight: "500px" }}
+    />
+  );
+};

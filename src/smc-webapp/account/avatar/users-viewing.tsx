@@ -5,7 +5,7 @@
 
 import useInterval from "use-interval";
 import { merge, cmp, copy } from "smc-util/misc";
-import { React, redux, useMemo, useRedux, useState } from "../../app-framework";
+import { React, redux, useMemo, useTypedRedux, useState } from "../../app-framework";
 import { Loading } from "../../r_misc";
 import { Avatar } from "./avatar";
 
@@ -58,10 +58,7 @@ export const UsersViewing: React.FC<Props> = (props) => {
   const [counter, set_counter] = useState(0); // used to force update periodically.
 
   // only so component is updated immediately whenever file use changes
-  const file_use: Map<string, any> | undefined = useRedux([
-    "file_use",
-    "file_use",
-  ]);
+  const file_use = useTypedRedux("file_use", "file_use");
   const users = useMemo(
     () =>
       redux.getStore("file_use")?.get_active_users({
@@ -73,10 +70,7 @@ export const UsersViewing: React.FC<Props> = (props) => {
   );
 
   // so we can exclude ourselves from list of faces
-  const our_account_id: string | undefined = useRedux([
-    "account",
-    "account_id",
-  ]);
+  const our_account_id: string | undefined = useTypedRedux("account", "account_id");
 
   useInterval(() => {
     // cause an update

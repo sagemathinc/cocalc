@@ -38,6 +38,7 @@ require('./process-links')
 ###
 require('./init_app')
 require('./account').init(redux)
+require("./file-use/init")
 require('./webapp-hooks')
 
 if not fullscreen.COCALC_MINIMAL

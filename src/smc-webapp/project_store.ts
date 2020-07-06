@@ -63,14 +63,14 @@ export interface ProjectStoreState {
   history_path: string;
   open_files: immutable.Map<string, immutable.Map<string, any>>;
   open_files_order: immutable.List<string>;
-  public_paths?: immutable.List<string>;
+  public_paths?: immutable.List<TypedMap<{ disabled?: boolean; path: string }>>;
   directory_listings: immutable.Map<string, any>; // immutable,
   show_upload: boolean;
   create_file_alert: boolean;
   displayed_listing?: any; // computed(object),
   configuration?: ProjectConfiguration;
   configuration_loading: boolean; // for UI feedback
-  available_features?: AvailableFeatures;
+  available_features?: TypedMap<AvailableFeatures>;
   show_custom_software_reset: boolean;
 
   // Project Page
@@ -120,7 +120,7 @@ export interface ProjectStoreState {
   too_many_results?: boolean;
   command?: string;
   most_recent_search?: string;
-  most_recent_path?: string;
+  most_recent_path: string;
   subdirectories?: boolean;
   case_sensitive?: boolean;
   hidden_files?: boolean;
@@ -254,6 +254,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       // Project Find
       user_input: "",
       git_grep: true,
+      most_recent_path: "",
 
       // Project Settings
       stripped_public_paths: this.selectors.stripped_public_paths.fn,

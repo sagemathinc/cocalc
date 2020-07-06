@@ -5,7 +5,13 @@
 
 import * as humanizeList from "humanize-list";
 import { server_time } from "../frame-editors/generic/client";
-import { React, redux, useMemo, useRedux, useStore } from "../app-framework";
+import {
+  React,
+  redux,
+  useMemo,
+  useTypedRedux,
+  useStore,
+} from "../app-framework";
 const { Alert } = require("react-bootstrap");
 import { Icon, A } from "../r_misc";
 const trial_url = "https://doc.cocalc.com/trial.html";
@@ -15,9 +21,9 @@ interface Props {
 }
 
 export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
-  const other_settings = useRedux(["account", "other_settings"]);
-  const is_anonymous = useRedux(["account", "is_anonymous"]);
-  const project_map = useRedux(["projects", "project_map"]);
+  const other_settings = useTypedRedux("account", "other_settings");
+  const is_anonymous = useTypedRedux("account", "is_anonymous");
+  const project_map = useTypedRedux("projects", "project_map");
   const projects_store = useStore("projects");
   const total_project_quotas = useMemo(
     () => projects_store.get_total_project_quotas(project_id),
@@ -27,10 +33,13 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
     () => projects_store.date_when_course_payment_required(project_id),
     [project_map, project_id]
   );
-  const is_commercial = useRedux(["customize", "is_commercial"]);
+  const is_commercial = useTypedRedux("customize", "is_commercial");
 
   // note: closing this is currently disabled.
-  const free_warning_closed = useRedux(["free_warning_closed"], project_id);
+  const free_warning_closed = useTypedRedux(
+    { project_id },
+    "free_warning_closed"
+  );
 
   function message(
     host: boolean,

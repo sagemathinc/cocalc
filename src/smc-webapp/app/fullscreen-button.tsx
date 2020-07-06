@@ -24,10 +24,10 @@ const ICON_STYLE: React.CSSProperties = {
 } as const;
 
 export const FullscreenButton: React.FC = React.memo(() => {
-  const fullscreen: undefined | "default" | "kiosk" = useRedux([
+  const fullscreen: undefined | "default" | "kiosk" = useRedux(
     "page",
-    "fullscreen",
-  ]);
+    "fullscreen"
+  );
   const page_actions = useActions("page");
 
   const icon = fullscreen ? "compress" : "expand";

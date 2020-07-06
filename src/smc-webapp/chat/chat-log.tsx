@@ -8,7 +8,7 @@ Render all the messages in the chat.
 */
 
 import { List, Map } from "immutable";
-import { React, useActions, useMemo, useRedux } from "../app-framework";
+import { React, useActions, useMemo, useRedux, useTypedRedux } from "../app-framework";
 import { Alert } from "../antd-bootstrap";
 import { ScrollInfo, WindowedList } from "../r_misc/windowed-list";
 import { Message } from "./message";
@@ -29,9 +29,9 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
     const actions: ChatActions = useActions(project_id, path);
     const messages = useRedux(["messages"], project_id, path);
     const search = useRedux(["search"], project_id, path);
-    const user_map = useRedux(["users", "user_map"]);
-    const account_id = useRedux(["account", "account_id"]);
-    const font_size = useRedux(["account", "font_size"]);
+    const user_map = useTypedRedux("users", "user_map");
+    const account_id = useTypedRedux("account", "account_id");
+    const font_size = useTypedRedux("account", "font_size");
     const sorted_dates = useMemo<string[]>(() => {
       // WARNING: This code is technically wrong since the keys are the string
       // representations of ms since epoch.  However, it won't fail until over

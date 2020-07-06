@@ -12,7 +12,7 @@ import {
   React,
   useActions,
   useMemo,
-  useRedux,
+  useTypedRedux,
   useState,
 } from "../app-framework";
 import { ResetProjectsConfirmation } from "../account/upgrades/reset-projects";
@@ -26,10 +26,10 @@ export const ProjectsListingDescription: React.FC<Props> = ({
   visible_projects,
   onCancel,
 }) => {
-  const deleted = useRedux(["projects", "deleted"]);
-  const hidden = useRedux(["projects", "hidden"]);
-  const search: string | undefined = useRedux(["projects", "search"]);
-  const selected_hashtags = useRedux(["projects", "selected_hashtags"]);
+  const deleted = useTypedRedux("projects", "deleted");
+  const hidden = useTypedRedux("projects", "hidden");
+  const search: string | undefined = useTypedRedux("projects", "search");
+  const selected_hashtags = useTypedRedux("projects", "selected_hashtags");
   const selected_hashtags_for_filter: {
     [tag: string]: boolean;
   } = useMemo(() => {
@@ -41,8 +41,8 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     "none" | "hide" | "remove" | "remove-upgrades" | "delete"
   >("none");
 
-  const project_map = useRedux(["projects", "project_map"]);
-  const account_id = useRedux(["account", "account_id"]);
+  const project_map = useTypedRedux("projects", "project_map");
+  const account_id = useTypedRedux("account", "account_id");
 
   const actions = useActions("projects");
 

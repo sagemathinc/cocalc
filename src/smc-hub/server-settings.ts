@@ -9,6 +9,8 @@ Synchronized table that tracks server settings.
 
 const { site_settings_conf } = require("smc-util/db-schema");
 const { startswith } = require("smc-util/misc");
+import { PostgreSQL } from "./postgres/types";
+import { have_active_registration_tokens } from "./utils";
 
 // Returns:
 //   - all: a mutable javascript object that is a map from each server setting to its current value.
@@ -27,14 +29,14 @@ interface ServerSettings {
 
 let server_settings: ServerSettings | undefined = undefined;
 
-module.exports = function (db) {
+module.exports = function (db: PostgreSQL) {
   if (server_settings != null) {
     return server_settings;
   }
   const table = db.server_settings_synctable();
   server_settings = { all: {}, pub: {}, version: {}, table: table };
   const { all, pub, version } = server_settings;
-  const update = function () {
+  const update = async function () {
     table.get().forEach(function (record, field) {
       all[field] = record.get("value");
       if (site_settings_conf[field]) {
@@ -62,8 +64,11 @@ module.exports = function (db) {
     }
 
     // finally, signal the front end if it allows users to anonymously sign in
-    // this is currently derived from the existence of the sign up token
-    pub["allow_anonymous_sign_in"] = !all["account_creation_token"];
+    // OLD: this is currently derived from the existence of the sign up token
+    // NEW (past july 2020): there is a regisrtation token table
+    pub["allow_anonymous_sign_in"] = !(await have_active_registration_tokens(
+      db
+    ));
   };
   table.on("change", update);
   table.on("init", update);

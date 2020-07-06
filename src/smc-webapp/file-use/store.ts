@@ -12,7 +12,7 @@ const { sha1 } = require("smc-util/schema").client_db;
 export interface FileUseState {
   errors?: iList<string>;
   file_use?: iMap<string, any>;
-  notify_count?: number;
+  notify_count: number;
 }
 
 export class FileUseStore extends Store<FileUseState> {
@@ -22,26 +22,6 @@ export class FileUseStore extends Store<FileUseState> {
   private _account_id: string;
   private _cache_init: boolean = false;
   private _cache: any;
-
-  constructor(name, redux) {
-    super(name, redux);
-    this.get_errors = this.get_errors.bind(this);
-    this._initialize_cache = this._initialize_cache.bind(this);
-    this.clear_cache = this.clear_cache.bind(this);
-    this._search = this._search.bind(this);
-    this._process_users = this._process_users.bind(this);
-    this.get_notify_count = this.get_notify_count.bind(this);
-    this.get_sorted_file_use_list = this.get_sorted_file_use_list.bind(this);
-    this.get_sorted_file_use_list2 = this.get_sorted_file_use_list2.bind(this);
-    this.get_file_info = this.get_file_info.bind(this);
-    this.get_project_info = this.get_project_info.bind(this);
-    this.get_file_use_map = this.get_file_use_map.bind(this);
-    this._update_cache = this._update_cache.bind(this);
-    this.get_all_unread = this.get_all_unread.bind(this);
-    this.get_all_unseen = this.get_all_unseen.bind(this);
-    this.get_active_users = this.get_active_users.bind(this);
-    this.get_video_chat_users = this.get_video_chat_users.bind(this);
-  }
 
   get_errors(): iList<string> {
     return this.get("errors", iList()) as iList<string>;
@@ -358,10 +338,10 @@ export class FileUseStore extends Store<FileUseState> {
     const users = {};
     const now = webapp_client.server_time().valueOf();
     const cutoff = now - opts.max_age_s * 1000;
-    for (const _ in files) {
-      const info = files[_];
-      let user: any;
-      for (user of info.users) {
+    for (const id in files) {
+      const info = files[id];
+      for (const account_id in info.users) {
+        const user = info.users[account_id];
         const time = user.last_used != null ? user.last_used : 0;
         // Note: we filter in future, since would be bad/buggy data.  (database could disallow...?)
         if (time >= cutoff && time <= now + 60000) {

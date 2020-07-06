@@ -1,4 +1,3 @@
-import { Map } from "immutable";
 import { Col, Row } from "../../antd-bootstrap";
 import { React, redux, useRedux } from "../../app-framework";
 import { A } from "../../r_misc";
@@ -6,10 +5,10 @@ import { SSHKeyAdder } from "./ssh-key-adder";
 import { SSHKeyList } from "./ssh-key-list";
 
 export const SSHKeysPage: React.FC = () => {
-  const ssh_keys: Map<string, any> | undefined = useRedux([
+  const ssh_keys = useRedux(
     "account",
     "ssh_keys",
-  ]);
+  );
 
   function render_pre_list_message() {
     return (

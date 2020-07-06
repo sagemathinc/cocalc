@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { fromJS } from "immutable";
 import { Actions } from "../app-framework/Actions";
 
 import { webapp_client } from "../webapp-client";
@@ -158,7 +159,9 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
       });
     } catch (err) {
       // generic error.
-      this.setState({ sign_up_error: { generic: JSON.stringify(err) } });
+      this.setState(
+        fromJS({ sign_up_error: { generic: JSON.stringify(err) } })
+      );
       return;
     } finally {
       this.setState({ signing_up: false });

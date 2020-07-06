@@ -25,7 +25,7 @@ import {
   redux,
   useForceUpdate,
   useMemo,
-  useRedux,
+  useTypedRedux,
   useRef,
 } from "../../app-framework";
 import { Loading } from "../../r_misc";
@@ -65,11 +65,11 @@ export const Content: React.FC<Props> = React.memo(
   ({ project_id, tab_name, is_visible }) => {
     const force_update = useForceUpdate();
     const open_files =
-      useRedux(["open_files"], project_id) ?? Map<string, any>();
-    const show_new = useRedux(["show_new"], project_id);
+      useTypedRedux({ project_id }, "open_files") ?? Map<string, any>();
+    const show_new = useTypedRedux({ project_id }, "show_new");
     const draggable_ref = useRef<any>(null);
     const editor_container_ref = useRef(null);
-    const fullscreen = useRedux(["page", "fullscreen"]);
+    const fullscreen = useTypedRedux("page", "fullscreen");
 
     const path = useMemo(() => {
       if (tab_name.startsWith("editor-")) {

@@ -28,6 +28,16 @@ import {
 // to send at once to hub-websocket.
 const MAX_CONCURRENT: number = 10;
 
+export interface MessageInfo {
+  count: number;
+  sent: number;
+  sent_length: number;
+  recv: number;
+  recv_length: number;
+  enqueued: number;
+  max_concurrent: number;
+}
+
 export class HubClient {
   private client: WebappClient;
   private conn: any; // primus connection
@@ -77,7 +87,7 @@ export class HubClient {
   }
 
   private emit_mesg_data(): void {
-    const info: any = copy_without(this.mesg_data, ["queue"]);
+    const info: MessageInfo = copy_without(this.mesg_data, ["queue"]) as any;
     info.enqueued = this.mesg_data.queue.length;
     info.max_concurrent = MAX_CONCURRENT;
     this.client.emit("mesg_info", info);

@@ -72,6 +72,7 @@ import {
   useRef,
   useRedux,
   useState,
+  useTypedRedux,
   redux,
 } from "../../app-framework";
 import { Avatar } from "../../account/avatar/avatar";
@@ -143,7 +144,7 @@ export const MarkdownInput: React.FC<Props> = ({
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
   const theme = useRedux(["account", "editor_settings", "theme"]);
   const bindings = useRedux(["account", "editor_settings", "bindings"]);
-  const defaultFontSize = useRedux(["account", "font_size"]);
+  const defaultFontSize = useTypedRedux("account", "font_size");
 
   const dropzone_ref = useRef<Dropzone>(null);
   const upload_close_preview_ref = useRef<Function | null>(null);

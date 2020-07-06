@@ -13,11 +13,11 @@ import { JupyterLabServerPanel } from "../jupyterlab-server";
 
 import { NewFileButton } from "./new-file-button";
 import { ALL_AVAIL } from "../../project_configuration";
-import { useRedux, useState } from "../../app-framework";
+import { useTypedRedux, useState } from "../../app-framework";
 
 interface Props {
   create_file: (name?: string) => void;
-  project_id?: string;
+  project_id: string;
   children?: React.ReactNode;
 }
 
@@ -30,7 +30,10 @@ export const FileTypeSelector: React.FC<Props> = ({
 }: Props): JSX.Element | null => {
   const [show_jupyter_server, set_show_jupyter_server] = useState(false);
   const [show_jupyterlab_server, set_show_jupyterlab_server] = useState(false);
-  const available_features = useRedux(["available_features"], project_id);
+  const available_features = useTypedRedux(
+    { project_id },
+    "available_features"
+  );
 
   if (!create_file || !create_file || !project_id) {
     return null;

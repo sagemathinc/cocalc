@@ -7,7 +7,7 @@ import { NavItem, Nav } from "react-bootstrap";
 import { DeletedProjectWarning, Loading } from "../../r_misc";
 import { Content } from "./content";
 import { tab_to_path } from "smc-util/misc";
-import { React, useActions, useRedux } from "../../app-framework";
+import { React, useActions, useRedux, useTypedRedux } from "../../app-framework";
 import { SortableContainer, SortableElement } from "react-sortable-hoc";
 import { ChatIndicator } from "../../chat/chat-indicator";
 import { ShareIndicator } from "../../share/share-indicator";
@@ -58,14 +58,20 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
     "deleted",
   ]);
 
-  const open_files_order = useRedux(["open_files_order"], project_id);
-  const open_files = useRedux(["open_files"], project_id);
-  const active_project_tab = useRedux(["active_project_tab"], project_id);
-  const current_path = useRedux(["current_path"], project_id);
-  const num_ghost_file_tabs = useRedux(["num_ghost_file_tabs"], project_id);
+  const open_files_order = useTypedRedux({ project_id }, "open_files_order");
+  const open_files = useTypedRedux({ project_id }, "open_files");
+  const active_project_tab = useTypedRedux(
+    { project_id },
+    "active_project_tab"
+  );
+  const current_path = useTypedRedux({ project_id }, "current_path");
+  const num_ghost_file_tabs = useTypedRedux(
+    { project_id },
+    "num_ghost_file_tabs"
+  );
 
-  const is_anonymous = useRedux(["account", "is_anonymous"]);
-  const fullscreen = useRedux(["page", "fullscreen"]);
+  const is_anonymous = useTypedRedux("account", "is_anonymous");
+  const fullscreen = useTypedRedux("page", "fullscreen");
 
   function on_sort_end({ oldIndex, newIndex }): void {
     actions.move_file_tab({

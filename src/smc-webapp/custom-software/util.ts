@@ -8,6 +8,7 @@ import { COLORS } from "../r_misc";
 
 export const RESET_ICON = "redo-alt";
 
+// Do NOT change this:
 export type NAME_TYPE = "compute_images";
 export const NAME = "compute_images" as NAME_TYPE;
 
