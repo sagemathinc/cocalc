@@ -8,7 +8,7 @@ const winston = require("./winston-metrics").get_logger("utils");
 import { PostgreSQL } from "./postgres/types";
 import { AllSiteSettings } from "../smc-util/db-schema/types";
 import { expire_time } from "../smc-util/misc";
-import { callback2 as cb2 } from "smc-util/async-utils";
+import { callback2 as cb2 } from "../smc-util/async-utils";
 
 export function get_smc_root(): string {
   return process.env.SMC_ROOT ?? ".";
