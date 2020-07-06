@@ -5,7 +5,7 @@
 
 import { Map, Set } from "immutable";
 
-import { redux, Store } from "../app-framework";
+import { redux, Store, TypedMap } from "../app-framework";
 import { AppliedCoupons, CoursePay, Customer, Invoices } from "./types";
 
 export interface BillingStoreState {
@@ -15,8 +15,8 @@ export interface BillingStoreState {
   error?: string;
   action?: string;
   no_stripe?: boolean;
-  customer?: Customer;
-  invoices?: Invoices;
+  customer?: TypedMap<Customer>;
+  invoices?: TypedMap<Invoices>;
   loaded?: boolean;
   continue_first_purchase?: boolean;
   selected_plan?: string;

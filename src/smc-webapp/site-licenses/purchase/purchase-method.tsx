@@ -16,7 +16,7 @@ import {
   React,
   useActions,
   useAsyncEffect,
-  useRedux,
+  useTypedRedux,
   useState,
 } from "../../app-framework";
 import { Loading } from "../../r_misc";
@@ -28,7 +28,7 @@ interface Props {
 }
 
 export const PurchaseMethod: React.FC<Props> = React.memo(({ onClose }) => {
-  const customer = useRedux(["billing", "customer"]);
+  const customer = useTypedRedux("billing", "customer");
   const actions = useActions("billing");
   const [loaded, set_loaded] = useState<boolean>(false);
 
