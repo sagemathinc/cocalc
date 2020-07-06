@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useActions, useRedux } from "../app-framework";
+import { React, useActions, useTypedRedux} from "../app-framework";
 import { blur_active_element } from "./util";
 import { user_tracking } from "../user-tracking";
 import { Icon } from "../r_misc";
@@ -15,8 +15,8 @@ interface Props {
 
 export const ConnectionIndicator: React.FC<Props> = React.memo(
   ({ on_click }) => {
-    const connection_status = useRedux(["page", "connection_status"]);
-    const mesg_info = useRedux(["account", "mesg_info"]);
+    const connection_status = useTypedRedux("page", "connection_status");
+    const mesg_info = useTypedRedux("account", "mesg_info");
     const actions = useActions("page");
 
     function render_connection_status() {
@@ -96,4 +96,3 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
     );
   }
 );
-

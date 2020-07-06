@@ -5,7 +5,7 @@
 
 import { debounce } from "lodash";
 import { filename_extension } from "smc-util/misc2";
-import { React, redux, useRedux, useMemo } from "../app-framework";
+import { React, redux, useTypedRedux, useMemo } from "../app-framework";
 import { COLORS } from "smc-util/theme";
 import { Icon, Tip, Space } from "../r_misc";
 import { UsersViewing } from "../account/avatar/users-viewing";
@@ -44,8 +44,8 @@ export const ChatIndicator: React.FC<Props> = ({
   is_chat_open,
   shrink_fixed_tabs,
 }) => {
-  const fullscreen = useRedux(["page", "fullscreen"]);
-  const file_use = useRedux(["file_use", "file_use"]);
+  const fullscreen = useTypedRedux("page", "fullscreen");
+  const file_use = useTypedRedux("file_use", "file_use");
   const is_new_chat = useMemo(
     () =>
       !!redux.getStore("file_use")?.get_file_info(project_id, path)

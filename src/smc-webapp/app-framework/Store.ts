@@ -111,7 +111,7 @@ export class Store<State> extends EventEmitter {
   get: TypedCollectionMethods<State>["get"] = (
     field: string,
     notSetValue?: any
-  ): any => {
+  ) => {
     if (this.selectors && this.selectors[field] != undefined) {
       return this.selectors[field].fn(this.getState());
     } else {
@@ -124,7 +124,7 @@ export class Store<State> extends EventEmitter {
   getIn: TypedCollectionMethods<State>["getIn"] = (
     path: any[],
     notSetValue?: any
-  ): any => {
+  ) => {
     if (path.length == 0) {
       return undefined;
     }

@@ -13,7 +13,7 @@ be in a single namespace somehow...!
 import { Alert, Row, Col, Button, Checkbox, Well } from "../../antd-bootstrap";
 import { Icon, Loading, SearchInput, Space } from "../../r_misc";
 import { path_to_file, should_open_in_foreground } from "smc-util/misc";
-import { React, useRedux, useActions } from "../../app-framework";
+import { React, useTypedRedux, useActions } from "../../app-framework";
 import { delay } from "awaiting";
 
 const DESC_STYLE: React.CSSProperties = {
@@ -25,14 +25,14 @@ const DESC_STYLE: React.CSSProperties = {
 export const ProjectSearchBody: React.FC<{ project_id: string }> = ({
   project_id,
 }) => {
-  const user_input = useRedux(["user_input"], project_id);
-  const subdirectories = useRedux(["subdirectories"], project_id);
-  const case_sensitive = useRedux(["case_sensitive"], project_id);
-  const hidden_files = useRedux(["hidden_files"], project_id);
-  const git_grep = useRedux(["git_grep"], project_id);
+  const user_input = useTypedRedux({ project_id }, "user_input");
+  const subdirectories = useTypedRedux({ project_id }, "subdirectories");
+  const case_sensitive = useTypedRedux({ project_id }, "case_sensitive");
+  const hidden_files = useTypedRedux({ project_id }, "hidden_files");
+  const git_grep = useTypedRedux({ project_id }, "git_grep");
 
   function is_valid_search(): boolean {
-    return user_input && user_input.trim() != "";
+    return user_input.trim() != "";
   }
 
   const actions = useActions(project_id);
@@ -98,7 +98,7 @@ const ProjectSearchInput: React.FC<{ project_id: string }> = ({
   project_id,
 }) => {
   const actions = useActions(project_id);
-  const user_input = useRedux(["user_input"], project_id);
+  const user_input = useTypedRedux({ project_id }, "user_input");
 
   return (
     <SearchInput
@@ -124,11 +124,14 @@ const ProjectSearchInput: React.FC<{ project_id: string }> = ({
 const ProjectSearchOutput: React.FC<{ project_id: string }> = ({
   project_id,
 }) => {
-  const most_recent_search = useRedux(["most_recent_search"], project_id);
-  const most_recent_path = useRedux(["most_recent_path"], project_id);
-  const search_results = useRedux(["search_results"], project_id);
-  const search_error = useRedux(["search_error"], project_id);
-  const too_many_results = useRedux(["too_many_results"], project_id);
+  const most_recent_search = useTypedRedux(
+    { project_id },
+    "most_recent_search"
+  );
+  const most_recent_path = useTypedRedux({ project_id }, "most_recent_path");
+  const search_results = useTypedRedux({ project_id }, "search_results");
+  const search_error = useTypedRedux({ project_id }, "search_error");
+  const too_many_results = useTypedRedux({ project_id }, "too_many_results");
 
   if (most_recent_search == null || most_recent_path == null) {
     return <span />;
@@ -197,12 +200,15 @@ const ProjectSearchOutputHeader: React.FC<{ project_id: string }> = ({
   project_id,
 }) => {
   const actions = useActions(project_id);
-  const info_visible = useRedux(["info_visible"], project_id);
-  const search_error = useRedux(["search_error"], project_id);
-  const search_results = useRedux(["search_results"], project_id);
-  const command = useRedux(["command"], project_id);
-  const most_recent_search = useRedux(["most_recent_search"], project_id);
-  const most_recent_path = useRedux(["most_recent_path"], project_id);
+  const info_visible = useTypedRedux({ project_id }, "info_visible");
+  const search_error = useTypedRedux({ project_id }, "search_error");
+  const search_results = useTypedRedux({ project_id }, "search_results");
+  const command = useTypedRedux({ project_id }, "command");
+  const most_recent_search = useTypedRedux(
+    { project_id },
+    "most_recent_search"
+  );
+  const most_recent_path = useTypedRedux({ project_id }, "most_recent_path");
 
   function output_path() {
     return !most_recent_path ? <Icon name="home" /> : most_recent_path;

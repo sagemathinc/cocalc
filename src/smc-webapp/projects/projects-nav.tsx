@@ -20,6 +20,7 @@ import {
   useRedux,
   useRef,
   useState,
+  useTypedRedux,
 } from "../app-framework";
 import { Loading, Icon, Tip } from "../r_misc";
 import { NavTab } from "../app/nav-tab";
@@ -78,14 +79,14 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
 
     const [x_hovered, set_x_hovered] = useState<boolean>(false);
     const actions = useActions("page");
-    const active_top_tab = useRedux(["page", "active_top_tab"]);
+    const active_top_tab = useTypedRedux("page", "active_top_tab");
     const project = useRedux(["projects", "project_map", project_id]);
-    const public_project_titles = useRedux([
+    const public_project_titles = useTypedRedux(
       "projects",
-      "public_project_titles",
-    ]);
-    const project_websockets = useRedux(["projects", "project_websockets"]);
-    const is_anonymous = useRedux(["account", "is_anonymous"]);
+      "public_project_titles"
+    );
+    const project_websockets = useTypedRedux("projects", "project_websockets");
+    const is_anonymous = useTypedRedux("account", "is_anonymous");
 
     function close_tab(e) {
       e.stopPropagation();
@@ -183,28 +184,10 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
 );
 
 export const ProjectsNav: React.FC = React.memo(() => {
-  /*
-  reduxProps: {
-    projects: {
-      open_projects: rtypes.immutable.List, // List of open projects and their state
-      project_map: rtypes.immutable.Map, // All projects available to the user
-      public_project_titles: rtypes.immutable,
-    },
-    page: {
-      active_top_tab: rtypes.string, // key of the active tab
-      num_ghost_tabs: rtypes.number,
-    },
-  },
-
-  getDefaultProps() {
-    return { num_ghost_tabs: 0 };
-  },
-  */
-
   const actions = useActions("projects");
 
-  const num_ghost_tabs = useRedux(["page", "num_ghost_tabs"]);
-  const open_projects = useRedux(["projects", "open_projects"]);
+  const num_ghost_tabs = useTypedRedux("page", "num_ghost_tabs");
+  const open_projects = useTypedRedux("projects", "open_projects");
 
   function on_sort_end({ oldIndex, newIndex }) {
     actions.move_project_tab({

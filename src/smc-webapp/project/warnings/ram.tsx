@@ -1,5 +1,5 @@
 import { Alert } from "../../antd-bootstrap";
-import { React, useRedux, useActions } from "../../app-framework";
+import { React, useRedux, useTypedRedux, useActions } from "../../app-framework";
 import { A, Icon } from "../../r_misc";
 import { ALERT_STYLE } from "./common";
 const OOM_INFO_PAGE = "https://doc.cocalc.com/howto/low-memory.html";
@@ -8,7 +8,7 @@ export const RamWarning: React.FC<{ project_id: string }> = ({
   project_id,
 }) => {
   const project = useRedux(["projects", "project_map", project_id]);
-  const is_commercial = useRedux(["customize", "is_commercial"]);
+  const is_commercial = useTypedRedux("customize", "is_commercial");
   const actions = useActions(project_id);
 
   if (!is_commercial || project == null) {

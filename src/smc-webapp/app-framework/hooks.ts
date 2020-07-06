@@ -52,8 +52,9 @@ export function useForceUpdate() {
 */
 
 export function useDelayedRender(delay_ms: number) {
-  const [render, set_render] = useState<boolean>(false);
+  const [render, set_render] = useState<boolean>(delay_ms <= 0);
   useAsyncEffect(async (is_mounted) => {
+    if (delay_ms == 0) return;
     await delay(delay_ms);
     if (!is_mounted()) return;
     set_render(true);

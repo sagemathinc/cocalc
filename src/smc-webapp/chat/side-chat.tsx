@@ -8,6 +8,7 @@ import {
   useEffect,
   useRedux,
   useRef,
+  useTypedRedux,
 } from "../app-framework";
 import { IS_MOBILE } from "../feature";
 import { user_activity } from "../tracker";
@@ -39,7 +40,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
   const add_collab: boolean = useRedux(["add_collab"], project_id, path);
   const is_uploading = useRedux(["is_uploading"], project_id, path);
 
-  const project_map = useRedux(["projects", "project_map"]);
+  const project_map = useTypedRedux("projects", "project_map");
 
   const log_container_ref = useRef(null);
 

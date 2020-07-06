@@ -9,7 +9,7 @@ import { FileUseStore } from "./store";
 import { FileUseActions } from "./actions";
 import { FileUseTable } from "./table";
 
-redux.createStore("file_use", FileUseStore, {});
+redux.createStore("file_use", FileUseStore, { notify_count: 0 });
 const actions = redux.createActions("file_use", FileUseActions);
 
 // We only initialize the actual FileUseTable when not in kiosk

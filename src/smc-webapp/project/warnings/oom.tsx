@@ -1,5 +1,5 @@
 import { Alert, Button } from "../../antd-bootstrap";
-import { React, useEffect, useRedux, useState } from "../../app-framework";
+import { React, useEffect, useRedux, useState, useTypedRedux } from "../../app-framework";
 import { A, Icon } from "../../r_misc";
 import { ALERT_STYLE } from "./common";
 import * as LS from "../../misc/local-storage";
@@ -22,7 +22,7 @@ export const OOMWarning: React.FC<{ project_id: string }> = ({
   const [start_ts, set_start_ts] = useState<number | undefined>(undefined);
   const [oom_dismissed, set_oom_dismissed] = useState<number>(0);
   const project = useRedux(["projects", "project_map", project_id]);
-  const is_commercial = useRedux(["customize", "is_commercial"]);
+  const is_commercial = useTypedRedux("customize", "is_commercial");
 
   // Load start_ts and oom_dismissed from local storage first time only.
   useEffect(() => {

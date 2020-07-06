@@ -12,7 +12,7 @@ import {
   React,
   redux,
   useActions,
-  useRedux,
+  useTypedRedux,
   useState,
   useMemo,
 } from "../app-framework";
@@ -49,24 +49,24 @@ export const ProjectsPage: React.FC = () => {
     0
   );
 
-  const all_projects_have_been_loaded = useRedux([
+  const all_projects_have_been_loaded = useTypedRedux(
     "projects",
     "all_projects_have_been_loaded",
-  ]);
-  const hidden = !!useRedux(["projects", "hidden"]);
-  const deleted = !!useRedux(["projects", "deleted"]);
+  );
+  const hidden = !!useTypedRedux("projects", "hidden");
+  const deleted = !!useTypedRedux("projects", "deleted");
   const filter = useMemo(() => {
     return `${!!hidden}-${!!deleted}`;
   }, [hidden, deleted]);
-  const search: string = useRedux(["projects", "search"]);
+  const search: string = useTypedRedux("projects", "search");
 
-  const selected_hashtags: Map<string, Set<string>> = useRedux([
+  const selected_hashtags: Map<string, Set<string>> = useTypedRedux(
     "projects",
     "selected_hashtags",
-  ]);
+  );
 
-  const project_map: Map<string, any> = useRedux(["projects", "project_map"]);
-  const user_map = useRedux(["users", "user_map"]);
+  const project_map: Map<string, any> = useTypedRedux("projects", "project_map");
+  const user_map = useTypedRedux("users", "user_map");
   const visible_projects: string[] = useMemo(
     () =>
       get_visible_projects(

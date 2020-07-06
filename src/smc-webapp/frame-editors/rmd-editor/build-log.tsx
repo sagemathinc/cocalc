@@ -51,18 +51,8 @@ const STYLE_ERR: React.CSSProperties = {
   backgroundColor: COLORS.ATND_BG_RED_L,
 };
 
-const BuildLogFC: React.FC<BuildLogProps> = (props) => {
-  const {
-    /*id,*/
-    name,
-    actions,
-    /*editor_state,*/
-    /*is_fullscreen,*/
-    /*project_id,*/
-    /*path,*/
-    /*reload,*/
-    font_size: font_size_orig,
-  } = props;
+export const BuildLog: React.FC<BuildLogProps> = React.memo((props) => {
+  const { name, actions, font_size: font_size_orig } = props;
 
   const font_size = 0.8 * font_size_orig;
 
@@ -122,7 +112,9 @@ const BuildLogFC: React.FC<BuildLogProps> = (props) => {
   }
 
   if (status) {
-    return <Loading style={STYLE_LOADING} text={"Running rmarkdown::render ..."} />;
+    return (
+      <Loading style={STYLE_LOADING} text={"Running rmarkdown::render ..."} />
+    );
   } else if (!build_log && !build_err) {
     return (
       <div style={{ margin: "1rem" }}>
@@ -136,9 +128,4 @@ const BuildLogFC: React.FC<BuildLogProps> = (props) => {
   } else {
     return <div style={STYLE_OUTER}>{body()}</div>;
   }
-};
-
-export const BuildLog = React.memo(
-  BuildLogFC,
-  (prev, next) => prev.name != next.name
-);
+});

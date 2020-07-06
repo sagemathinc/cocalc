@@ -1,4 +1,4 @@
-import { React, useRedux } from "../app-framework";
+import { React, useTypedRedux } from "../app-framework";
 import { APP_ICON } from "../art";
 
 const STYLE: React.CSSProperties = {
@@ -12,10 +12,7 @@ const STYLE: React.CSSProperties = {
 } as const;
 
 export const AppLogo: React.FC = React.memo(() => {
-  const logo_square: string | undefined = useRedux([
-    "customize",
-    "logo_square",
-  ]);
+  const logo_square: string | undefined = useTypedRedux("customize", "logo_square");
 
   const backgroundImage = `url('${logo_square ? logo_square : APP_ICON}')`;
 

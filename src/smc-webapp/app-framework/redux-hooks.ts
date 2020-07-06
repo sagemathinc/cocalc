@@ -4,6 +4,17 @@
  */
 
 /*
+
+**IMPORTANT:** TYPED REDUX HOOKS -- If you use
+
+        useTypedRedux('name' | {project_id:'the project id'}, 'one field')
+
+then you will get good guaranteed typing (unless, of course, the global store
+hasn't been converted to typescript yet!). If you use plain useRedux, you
+get a dangerous "any" type out!
+
+---
+
 Hook for getting anything from our global redux store, and this should
 also work fine with computed properties.
 
@@ -20,12 +31,12 @@ With a specific project:
 Or with an editor in a project:
 
  useRedux(['path', 'in', 'project store'], 'project-id', 'path')
-
 */
 
 import { is_valid_uuid_string } from "../../smc-util/misc2";
 
 import { redux, ProjectActions, ProjectStore } from "../app-framework";
+import { ProjectStoreState } from "../project_store";
 import * as React from "react";
 
 import * as types from "./actions-and-stores";
@@ -172,17 +183,71 @@ function useReduxEditorStore(
   return value;
 }
 
+export interface StoreStates {
+  account: types.AccountState;
+  "admin-site-licenses": types.SiteLicensesState;
+  "admin-users": types.AdminUsersState;
+  billing: types.BillingState;
+  compute_images: types.ComputeImagesState;
+  customize: types.CustomizeState;
+  file_use: types.FileUseState;
+  mentions: types.MentionsState;
+  page: types.PageState;
+  projects: types.ProjectsState;
+  support: types.SupportState;
+  users: types.UsersState;
+}
+
+export function useTypedRedux<
+  T extends keyof StoreStates,
+  S extends keyof StoreStates[T]
+>(store: T, field: S): StoreStates[T][S];
+
+export function useTypedRedux<S extends keyof ProjectStoreState>(
+  project_id: { project_id: string },
+  field: S
+): ProjectStoreState[S];
+
+export function useTypedRedux(
+  a: keyof StoreStates | { project_id: string },
+  field: string
+) {
+  return useRedux(typeof a == "string" ? a : a.project_id, field);
+}
+
 export function useRedux(
-  path: string[],
+  path: string | string[],
   project_id?: string,
-  filename?: string, // for editing a file in project
+  filename?: string,
   is_public?: boolean
 ) {
+  if (typeof path == "string") {
+    // good typed version!! -- path specifies store
+    if (
+      typeof project_id != "string" ||
+      typeof filename != "undefined" ||
+      typeof is_public != "undefined"
+    ) {
+      throw Error(
+        "if first argument of useRedux is a string then second argument must also be and no other arguments can be specified"
+      );
+    }
+    if (is_valid_uuid_string(path)) {
+      return useRedux([project_id], path);
+    } else {
+      return useRedux([path, project_id]);
+    }
+  }
   if (project_id == null) {
     return useReduxNamedStore(path);
   }
   if (filename == null) {
-    return useReduxProjectStore(path, project_id);
+    if (!is_valid_uuid_string(project_id)) {
+      // this is used a lot by frame-tree editors right now.
+      return useReduxNamedStore([project_id].concat(path));
+    } else {
+      return useReduxProjectStore(path, project_id);
+    }
   }
   return useReduxEditorStore(path, project_id, filename, is_public);
 }
@@ -194,24 +259,43 @@ then it's the project actions or editor actions; otherwise,
 it's one of the other named actions or undefined.
 */
 
+// TODO: very incomplete -- might not even work.
+/*
+export interface ActionsTypes {
+  account: types.AccountActions;
+  "admin-site-licenses": types.SiteLicensesActions;
+  "admin-users": types.AdminUsersActions;
+  billing: types.BillingActions;
+  compute_images: types.ComputeImagesActions;
+  customize: types.CustomizeActions;
+  file_use: types.FileUseActions;
+  mentions: types.MentionsActions;
+  page: types.PageActions;
+  projects: types.ProjectsActions;
+  support: types.SupportActions;
+  users: types.UsersActions;
+}
+
+*/
+
 export function useActions(name: "account"): types.AccountActions;
-export function useActions(name: "projects"): types.ProjectsActions;
-export function useActions(name: "billing"): types.BillingActions;
-export function useActions(name: "page"):  types.PageActions;
-export function useActions(name: "support"): types.SupportActions;
-export function useActions(name: "admin-users"): types.AdminUsersActions;
 export function useActions(
   name: "admin-site-licenses"
 ): types.SiteLicensesActions;
+export function useActions(name: "admin-users"): types.AdminUsersActions;
+export function useActions(name: "billing"): types.BillingActions;
+export function useActions(name: "file_use"): types.FileUseActions;
 export function useActions(name: "mentions"): types.MentionsActions;
-export function useActions(name: "file_use"): types.FileUseActions; // or undefined?
+export function useActions(name: "page"): types.PageActions;
+export function useActions(name: "projects"): types.ProjectsActions;
+export function useActions(name: "support"): types.SupportActions;
+export function useActions(name: "users"): types.UsersActions;
 
 // If it is none of the explicitly named ones... it's a project.
 export function useActions(name_or_project_id: string): ProjectActions;
 
 // Or an editor actions (any for now)
 export function useActions(name_or_project_id: string, path: string): any;
-
 export function useActions(name_or_project_id: string, path?: string) {
   return React.useMemo(() => {
     if (path == null) {
@@ -230,29 +314,42 @@ export function useActions(name_or_project_id: string, path?: string) {
   }, [name_or_project_id, path]);
 }
 
-export function useStore(name: "account"): types.AccountStore;
-export function useStore(name: "projects"): types.ProjectsStore;
-export function useStore(name: "billing"): types.BillingStore;
-export function useStore(name: "page"): types.PageStore;
-export function useStore(name: "support"): types.SupportStore;
-export function useStore(name: "admin-users"): types.AdminUsersStore;
-export function useStore(name: "admin-site-licenses"): types.SiteLicensesStore;
-export function useStore(name: "mentions"): types.MentionsStore;
-export function useStore(name: "file_use"): types.FileUseStore;
+// WARNING: I tried to define this Stores interface
+// in actions-and-stores.ts but it did NOT work. All
+// the types just became any or didn't match.  Don't
+// move this unless you also fully test it!!
+import { Store } from "./Store";
+export interface Stores {
+  account: types.AccountStore;
+  "admin-site-licenses": types.SiteLicensesStore;
+  "admin-users": types.AdminUsersStore;
+  billing: types.BillingStore;
+  compute_images: types.ComputeImagesStore;
+  customize: types.CustomizeStore;
+  file_use: types.FileUseStore;
+  mentions: types.MentionsStore;
+  page: types.PageStore;
+  projects: types.ProjectsStore;
+  support: types.SupportStore;
+  users: types.UsersStore;
+}
+
 // If it is none of the explicitly named ones... it's a project.
-export function useStore(name_or_project_id: string): ProjectStore;
-// Or an editor store (any for now)
-export function useStore(name_or_project_id: string, path: string): any;
-export function useStore(name_or_project_id: string, path?: string): any {
+//export function useStore(name: "projects"): types.ProjectsStore;
+export function useStore<T extends keyof Stores>(name: T): Stores[T];
+export function useStore(project_id: string): ProjectStore;
+// Or an editor store (any for now):
+//export function useStore(project_id: string, path: string): Store<any>;
+export function useStore(name_or_project_id: string): any {
   return React.useMemo(() => {
-    if (path == null) {
-      if (is_valid_uuid_string(name_or_project_id)) {
-        return redux.getProjectStore(name_or_project_id);
-      } else {
-        return redux.getStore(name_or_project_id);
-      }
+    if (is_valid_uuid_string(name_or_project_id)) {
+      return redux.getProjectStore(name_or_project_id);
     } else {
-      return redux.getEditorStore(name_or_project_id, path);
+      const store = redux.getStore(name_or_project_id);
+      if (store == null) {
+        throw Error("store must be defined");
+      }
+      return store;
     }
-  }, [name_or_project_id, path]) as any;
+  }, [name_or_project_id]) as Store<any>;
 }

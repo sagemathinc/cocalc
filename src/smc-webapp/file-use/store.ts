@@ -12,7 +12,7 @@ const { sha1 } = require("smc-util/schema").client_db;
 export interface FileUseState {
   errors?: iList<string>;
   file_use?: iMap<string, any>;
-  notify_count?: number;
+  notify_count: number;
 }
 
 export class FileUseStore extends Store<FileUseState> {
