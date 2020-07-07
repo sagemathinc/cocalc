@@ -35,13 +35,19 @@
 }
 
 #cocalc-assets-loading {
-    width: 70vw;
     margin: 10px auto;
-    color: #444;
+    color: #666;
     background: white;
     border: none;
     text-align: center;
-    white-space: pre-wrap;
+    white-space: pre;
+}
+
+@media (max-width: 767px) {
+    #cocalc-assets-loading {
+        margin: 10px auto;
+        font-size: 80%;
+    }
 }
 
 #smc-startup-banner-status {
