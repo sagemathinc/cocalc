@@ -8,6 +8,9 @@ html(lang="en")
   head
     include _inc_head.pug
     title= CoCalc
+    //- we manually insert webpack chunks to get some feedback about the loading process
+    script(type="text/javascript").
+        window.COCALC_ASSETS = '!{JSON.stringify(files.chunks)}';
   body
     style.
       #{require('!postcss-loader!app-startup-style.css')}
@@ -15,9 +18,9 @@ html(lang="en")
     div#mocha
 
     div#smc-startup-banner
-      div.banner-blink#cc-banner1(style="display:none")
+      div#cc-banner1(style="display:none")
         img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-icon-white-transparent.svg'))
-      div.banner-blink#cc-banner2(style="display:none")
+      div#cc-banner2(style="display:none")
       div.banner-error
         div.message#cc-message
 
@@ -50,5 +53,15 @@ html(lang="en")
     div.webapp-responsive-mode-test
 
     div#smc-react-container.page-container
+
+    div(style="clear: both")
+
+    pre#cocalc-assets-loading
+
+    //- Uncomment the lines below to see what data is available ...
+    //- h3 Files
+    //- pre(style="font-size: 70%")= JSON.stringify(files, null, 2)
+    //- h3 Options
+    //- pre(style="font-size: 70%")= JSON.stringify(htmlWebpackPlugin.options, null, 2)
 
     include _inc_analytics.pug

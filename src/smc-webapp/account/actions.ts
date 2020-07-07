@@ -107,7 +107,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
         email_address: email,
         password,
         remember_me: true,
-        get_api_key: this.redux.getStore("page").get("get_api_key"),
+        get_api_key: !!this.redux.getStore("page").get("get_api_key"),
       });
     } catch (err) {
       this.setState({
@@ -155,7 +155,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
         usage_intent,
         agreed_to_terms: true, // since never gets called if not set in UI
         token,
-        get_api_key: this.redux.getStore("page").get("get_api_key"),
+        get_api_key: !!this.redux.getStore("page").get("get_api_key"),
       });
     } catch (err) {
       // generic error.
@@ -284,7 +284,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     window.location = (APP_BASE_URL + "/" + (sign_in ? "app" : "")) as any;
   }
 
-  push_state(url: string): void {
+  push_state(url?: string): void {
     const { set_url } = require("../history");
     if (url == null) {
       url = this._last_history_state;
