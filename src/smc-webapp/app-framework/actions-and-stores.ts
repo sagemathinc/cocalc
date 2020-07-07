@@ -49,9 +49,8 @@ export { FileUseState } from "../file-use/store";
 export { MentionsActions, MentionsStore } from "../notifications";
 export { MentionsState } from "../notifications";
 // page
-export type PageStore = any;
-export type PageActions = any;
-export type PageState = any;
+export { PageActions } from "../app/actions";
+export { PageState, PageStore } from "../app/store";
 // projects
 export { ProjectsActions } from "../projects/actions";
 export { ProjectsStore } from "../projects/store";
@@ -64,3 +63,4 @@ export type SupportState = any;
 export { UsersStore } from "../users/store";
 export { UsersActions } from "../users/actions";
 export { UsersState } from "../users/types";
+

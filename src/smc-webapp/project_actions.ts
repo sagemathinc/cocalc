@@ -330,7 +330,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return `/projects/${this.project_id}/${misc.encode_path(local_url)}`;
   }
 
-  push_state(local_url: string): void {
+  push_state(local_url?: string): void {
     if (local_url == null) {
       local_url = this._last_history_state;
     }

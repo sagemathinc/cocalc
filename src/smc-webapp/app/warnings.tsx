@@ -5,7 +5,7 @@ import { SiteName } from "../customize";
 import { get_browser } from "../feature";
 
 interface VersionWarningProps {
-  new_version: TypedMap<{ min_version: number }>;
+  new_version: TypedMap<{ min_version: number; version: number }>;
 }
 
 const VERSION_WARNING_STYLE: React.CSSProperties = {
