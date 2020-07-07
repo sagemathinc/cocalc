@@ -16,14 +16,16 @@ type TopTab =
   | "file-use"
   | "notifications";
 
+export type ConnectionStatus = "disconnected" | "connecting" | "connected";
+
 export interface PageState {
   active_top_tab: TopTab; // key of the active tab
   show_connection: boolean;
   ping?: number;
   avgping?: number;
-  connection_status?: string;
-  connection_quality?: "good" | "bad" | "flaky";
-  new_version?: TypedMap<{ version: number; min_version: number; }>;
+  connection_status: ConnectionStatus;
+  connection_quality: "good" | "bad" | "flaky";
+  new_version?: TypedMap<{ version: number; min_version: number }>;
   fullscreen?: "default" | "kiosk";
   test?: string; // test query in the URL
   cookie_warning: boolean;
@@ -31,17 +33,21 @@ export interface PageState {
   show_file_use: boolean;
   num_ghost_tabs: number;
   session?: string; // session query in the URL
-  last_status_time?: string;
+  last_status_time?: Date;
   get_api_key?: string; // Set, e.g., when you visit https://cocalc.com/app?get_api_key=myapp -- see https://doc.cocalc.com/api/index.html#authentication
 }
 
 export class PageStore extends Store<PageState> {}
 
-redux.createStore("page", PageStore, {
+const DEFAULT_STATE: PageState = {
   active_top_tab: parse_target((window as any).cocalc_target).page as TopTab,
   show_connection: false,
+  connection_status: "connecting",
+  connection_quality: "good",
   cookie_warning: false,
   local_storage_warning: false,
   show_file_use: false,
   num_ghost_tabs: 0,
-});
+};
+
+redux.createStore("page", PageStore, DEFAULT_STATE);

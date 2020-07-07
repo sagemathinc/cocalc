@@ -9,6 +9,7 @@ const history = require("../history");
 import { disconnect_from_project } from "../project/websocket/connect";
 
 import { init_ping } from "./monitor-pings";
+import { init_connection } from "./monitor-connection";
 
 // circular imports:
 // import { session_manager } from "../session";
@@ -22,6 +23,7 @@ class PageActions extends Actions<PageState> {
   constructor(name, redux) {
     super(name, redux);
     init_ping();
+    init_connection();
   }
 
   /* Expects a func which takes a browser keydown event
@@ -261,9 +263,9 @@ class PageActions extends Actions<PageState> {
     this.setState({ ping, avgping });
   }
 
-  set_connection_status(val, time) {
+  set_connection_status(connection_status, time : Date) {
     if (time > (redux.getStore("page").get("last_status_time") ?? 0)) {
-      this.setState({ connection_status: val, last_status_time: time });
+      this.setState({ connection_status, last_status_time: time });
     }
   }
 
