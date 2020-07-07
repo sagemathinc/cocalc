@@ -127,6 +127,7 @@ window.onerror = handle_window_error;
 
 // order matters!
 const asset_names = ["fill", "css", "pdf.worker", "vendor", "smc"];
+const asset_width = Math.max(...asset_names.map((x) => x.length));
 
 function pad(s: string, w: number, align: "left" | "right" = "left") {
   const f = Math.max(0, w - s.length);
@@ -169,6 +170,7 @@ async function show_error(err) {
 
   if (loading_output == null) return;
   loading_output.innerHTML = `Problem loading assets.\n${loading.err}`;
+  loading_output.style["white-space"] = "pre-wrap";
 
   const err_box = document.querySelector(
     "#smc-startup-banner div.banner-error"
@@ -208,7 +210,7 @@ async function show_loading() {
   for (const name of asset_names) {
     const size = loading.size[name];
     const info = DEFLATE_FACTOR * loading.loaded[name];
-    bars += `${pad(name, 20)}`;
+    bars += `${pad(name, asset_width + 1)}`;
     if (size != null && size != 0 && info != null && !isNaN(info)) {
       const width = Math.min(W, Math.round((W * info) / size));
       const bar = `[${"=".repeat(width)}>${" ".repeat(W - width)}]`;
