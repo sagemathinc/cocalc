@@ -3,40 +3,45 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Map } from "immutable";
 import { parse_target } from "../history2";
-import { redux, Store } from "../app-framework";
+import { redux, Store, TypedMap } from "../app-framework";
 
 type TopTab =
+  | "about" // the info page
   | "account"
+  | "admin"
+  | "help" // i.e., the support dialog that makes a ZenDesk ticket....
   | "project"
   | "projects"
-  | "help"
   | "file-use"
-  | "notifications"
-  | "admin";
+  | "notifications";
 
 export interface PageState {
   active_top_tab: TopTab; // key of the active tab
-  show_connection?: boolean;
+  show_connection: boolean;
   ping?: number;
   avgping?: number;
   connection_status?: string;
   connection_quality?: "good" | "bad" | "flaky";
-  new_version?: Map<string, any>; // todo
+  new_version?: TypedMap<{ version: number; min_version: number; }>;
   fullscreen?: "default" | "kiosk";
   test?: string; // test query in the URL
-  cookie_warning?: boolean;
-  local_storage_warning?: boolean;
-  show_file_use?: boolean;
-  num_ghost_tabs?: number;
+  cookie_warning: boolean;
+  local_storage_warning: boolean;
+  show_file_use: boolean;
+  num_ghost_tabs: number;
   session?: string; // session query in the URL
   last_status_time?: string;
-  get_api_key?: string;
+  get_api_key?: string; // Set, e.g., when you visit https://cocalc.com/app?get_api_key=myapp -- see https://doc.cocalc.com/api/index.html#authentication
 }
 
 export class PageStore extends Store<PageState> {}
 
 redux.createStore("page", PageStore, {
-  active_top_tab: parse_target((window as any).cocalc_target).page,
+  active_top_tab: parse_target((window as any).cocalc_target).page as TopTab,
+  show_connection: false,
+  cookie_warning: false,
+  local_storage_warning: false,
+  show_file_use: false,
+  num_ghost_tabs: 0,
 });
