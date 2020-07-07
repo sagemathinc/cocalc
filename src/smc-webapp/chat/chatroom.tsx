@@ -6,7 +6,6 @@
 // standard non-CoCalc libraries
 import { debounce } from "lodash";
 import { useDebounce } from "use-debounce";
-const { IS_MOBILE } = require("../feature");
 
 // CoCalc libraries
 import { smiley, history_path, path_split } from "smc-util/misc";
@@ -32,7 +31,7 @@ import {
   useRef,
   useRedux,
 } from "../app-framework";
-import { Icon, Loading, Tip, SearchInput } from "../r_misc";
+import { Icon, Loading, Tip, SearchInput, VisibleMDLG } from "../r_misc";
 import { Col, Row, Well } from "../antd-bootstrap";
 import { ChatLog } from "./chat-log";
 import { WindowedList } from "../r_misc/windowed-list";
@@ -179,7 +178,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           tip={<span>Browse all versions of this chatroom.</span>}
           placement="left"
         >
-          <Icon name="history" /> TimeTravel
+          <Icon name="history" /> <VisibleMDLG>TimeTravel</VisibleMDLG>
         </Tip>
       </Button>
     );
@@ -189,11 +188,43 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
     return (
       <Button onClick={button_scroll_to_bottom}>
         <Tip
-          title="Scroll to Bottom"
-          tip={<span>Scrolls the chat to the bottom</span>}
+          title="Newest Messages"
+          tip={
+            <span>
+              Scrolls the chat to the bottom showing the newest messages
+            </span>
+          }
           placement="left"
         >
-          <Icon name="arrow-down" /> Bottom
+          <Icon name="arrow-down" /> <VisibleMDLG>Newest Messages</VisibleMDLG>
+        </Tip>
+      </Button>
+    );
+  }
+
+  function render_increase_font_size(): JSX.Element {
+    return (
+      <Button onClick={() => actions.change_font_size(1)}>
+        <Tip
+          title="Increase font size"
+          tip={<span>Make the font size larger for chat messages</span>}
+          placement="left"
+        >
+          <Icon name="search-plus" />
+        </Tip>
+      </Button>
+    );
+  }
+
+  function render_decrease_font_size(): JSX.Element {
+    return (
+      <Button onClick={() => actions.change_font_size(-1)}>
+        <Tip
+          title="Decrease font size"
+          tip={<span>Make the font size smaller for chat messages</span>}
+          placement="left"
+        >
+          <Icon name="search-minus" />
         </Tip>
       </Button>
     );
@@ -217,7 +248,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
         project_id={project_id}
         path={path}
         button={true}
-        label={"Video Chat"}
+        label={<VisibleMDLG>Video Chat</VisibleMDLG>}
       />
     );
   }
@@ -239,15 +270,21 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   function render_button_row() {
     return (
       <Row style={{ marginLeft: 0, marginRight: 0 }}>
-        <Col xs={6} md={6} style={{ padding: "2px" }}>
+        <Col xs={9} md={9} style={{ padding: "2px" }}>
           <ButtonGroup>
             {render_save_button()}
             {render_timetravel_button()}
+          </ButtonGroup>
+          <ButtonGroup style={{ marginLeft: "5px" }}>
             {render_video_chat_button()}
             {render_bottom_button()}
           </ButtonGroup>
+          <ButtonGroup style={{ marginLeft: "5px" }}>
+            {render_decrease_font_size()}
+            {render_increase_font_size()}
+          </ButtonGroup>
         </Col>
-        <Col xs={6} md={6} style={{ padding: "2px" }}>
+        <Col xs={3} md={3} style={{ padding: "2px" }}>
           {render_search()}
         </Col>
       </Row>
@@ -263,7 +300,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   function render_body(): JSX.Element {
     return (
       <div className="smc-vfill" style={GRID_STYLE}>
-        {!IS_MOBILE ? render_button_row() : undefined}
+        {render_button_row()}
         <div className="smc-vfill" style={CHAT_LOG_STYLE}>
           <ChatLog
             project_id={project_id}

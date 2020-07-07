@@ -18,7 +18,7 @@ import { callback2 } from "../smc-util/async-utils";
 import * as LS from "./misc/local-storage";
 import { bind_methods } from "smc-util/misc2";
 
-exports.session_manager = (name, redux) => {
+export function session_manager(name, redux): SessionManager | undefined {
   const sm = new SessionManager(name, redux);
   if (COCALC_MINIMAL) {
     // we only need the session manager to open a target URL
@@ -26,7 +26,7 @@ exports.session_manager = (name, redux) => {
   } else {
     return sm;
   }
-};
+}
 
 interface State {
   // project_id <=> filenames
@@ -276,8 +276,7 @@ function restore_session_state(
     return;
   }
 
-  // TODO: won't need the any once init_app.coffee is rewritten in typescript.
-  const page = redux.getActions("page") as any;
+  const page = redux.getActions("page");
 
   if (reset_first) {
     redux

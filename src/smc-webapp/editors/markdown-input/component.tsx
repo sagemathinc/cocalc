@@ -115,6 +115,8 @@ interface Props {
   height?: string;
   extraHelp?: string | JSX.Element;
   fontSize?: number;
+  styleActiveLine?: boolean;
+  lineWrapping?: boolean;
 }
 
 export const MarkdownInput: React.FC<Props> = ({
@@ -136,6 +138,8 @@ export const MarkdownInput: React.FC<Props> = ({
   height,
   extraHelp,
   fontSize,
+  styleActiveLine,
+  lineWrapping,
 }) => {
   // @ts-ignore
   const deleteme = [project_id, path, enableUpload, enableMentions];
@@ -190,8 +194,8 @@ export const MarkdownInput: React.FC<Props> = ({
         name: "gfm",
       },
       extraKeys,
-      styleActiveLine: true,
-      lineWrapping: true,
+      styleActiveLine,
+      lineWrapping,
     };
     cm.current = CodeMirror.fromTextArea(node, options);
     // UNCOMMENT FOR DEBUGGING ONLY

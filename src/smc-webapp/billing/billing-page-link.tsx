@@ -4,8 +4,7 @@
  */
 
 import { React, Rendered } from "../app-framework";
-
-const { load_target } = require("../history");
+import { load_target } from "../history";
 
 export function BillingPageLink(opts: { text?: string }): Rendered {
   let { text } = opts;

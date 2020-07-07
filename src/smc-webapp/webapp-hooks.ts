@@ -43,7 +43,8 @@ webapp_client.on("mesg_info", function (info) {
   setTimeout(f, 1);
 });
 
-const signed_in = function (mesg) {
+import { load_target } from "./history";
+function signed_in(mesg) {
   // the has_remember_me cookie is for usability: After a sign in we "mark" this client as being "known"
   // next time the main landing page is visited, haproxy or hub will redirect to the client
   // note: similar code is in account/AccountActions.ts → AccountActions::sign_out
@@ -55,10 +56,10 @@ const signed_in = function (mesg) {
   if (first_login) {
     first_login = false;
     if (!should_load_target_url()) {
-      load_app(() => require("./history").load_target("projects"));
+      load_app(() => load_target("projects"));
     }
   }
-};
+}
 // loading a possible target is done after restoring a session -- see session.coffee
 
 // Listen for pushed sign_in events from the server.  This is one way that

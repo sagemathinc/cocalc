@@ -223,4 +223,10 @@ export class ChatActions extends Actions<ChatState> {
   public set_uploading(is_uploading: boolean): void {
     this.setState({ is_uploading });
   }
+
+  public change_font_size(delta: number): void {
+    if (!this.store) return;
+    const font_size = this.store.get("font_size") + delta;
+    this.setState({ font_size });
+  }
 }

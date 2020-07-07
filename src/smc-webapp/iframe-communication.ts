@@ -128,7 +128,7 @@ async function handle_open({ data, reply }) {
     return;
   }
 
-  // we're in kiosk mode and only want to open a single project (see init_app)
+  // we're in kiosk mode and only want to open a single project
   redux.getActions("page").setState({ kiosk_project_id: project_id });
 
   // copied from cocalc/src/smc-webapp/file-use/util.ts
