@@ -7,6 +7,7 @@
 // if the endpoint doesn't work, we have a problem. report back accordingly…
 
 declare const CUSTOMIZE: any;
+declare const COCALC_ASSETS: string;
 let HELP_EMAIL = "help@cocalc.com";
 
 function email() {
@@ -30,7 +31,7 @@ function style() {
     return;
   }
   msg.innerHTML += `
-  Timeout while loading ${NAME}.
+  Problem while loading ${NAME}.
   <br/>
   Try hitting shift and reload the page, restart your browser, or <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/connectivity-issues.html">follow these steps</a>.
   If the problem persists, email ${email()}.`;
@@ -47,11 +48,18 @@ function style() {
   }
 }
 
-const customizeScript = document.createElement("script");
-customizeScript.onerror = script_error;
-customizeScript.onload = style;
-document.head.appendChild(customizeScript);
-customizeScript.src = `${window.app_base_url}/customize?type=embed`;
+// load customization once the DOM exists.
+// then start downloading all cocalc assets...
+document.addEventListener("DOMContentLoaded", function () {
+  const customizeScript = document.createElement("script");
+  customizeScript.onerror = script_error;
+  customizeScript.onload = function () {
+    style();
+    load_assets();
+  };
+  document.head.appendChild(customizeScript);
+  customizeScript.src = `${window.app_base_url}/customize?type=embed`;
+});
 
 function error_msg({ msg, lineNo, columnNo, url, stack, show_explanation }) {
   const explanation = show_explanation
@@ -68,7 +76,7 @@ ${stack}
 </pre>`;
 }
 
-/* We do "delete window.onerror" below for the follwoing reason.
+/* We do "window.onerror = null" below for the follwoing reason.
 
 When I merged this, the following always results in nonstop 100% cpu usage:
 
@@ -114,3 +122,207 @@ function handle_window_error(msg, url, lineNo, columnNo, error) {
 }
 
 window.onerror = handle_window_error;
+
+// magic code to load all webpack assets
+
+// order matters!
+const asset_names = ["fill", "css", "pdf.worker", "vendor", "smc"];
+
+function pad(s: string, w: number, align: "left" | "right" = "left") {
+  const f = Math.max(0, w - s.length);
+  const fill = " ".repeat(f);
+  if (align == "left") {
+    return s + fill;
+  } else {
+    return fill + s;
+  }
+}
+
+function delay(t): Promise<void> {
+  return new Promise((done) => setTimeout(() => done(), t));
+}
+
+interface Loading {
+  err?: string;
+  size: { [key: string]: number };
+  loaded: { [key: string]: number };
+  done: { [key: string]: boolean };
+}
+
+// initialize…
+const loading: Loading = {
+  size: {},
+  loaded: {},
+  done: {},
+};
+
+// will be a div element ...
+let loading_output: HTMLElement | null = null;
+
+async function show_error(err) {
+  if (typeof err === "string") {
+    loading.err = `Error: ${err}`;
+  } else {
+    // this is a broken promise: most likely, load_asset failed. We tell the user about this.
+    loading.err = `Error ${err.status}: ${err.statusText}`;
+  }
+
+  if (loading_output == null) return;
+  loading_output.innerHTML = `Problem loading assets.\n${loading.err}`;
+
+  const err_box = document.querySelector(
+    "#smc-startup-banner div.banner-error"
+  );
+  // https://github.com/microsoft/TypeScript/issues/3263#issuecomment-277894602
+  if (err_box instanceof HTMLElement) {
+    // we know for sure it is there
+    err_box.style.opacity = "1";
+  }
+  ["cc-banner1", "cc-banner2"].forEach((id) => {
+    const banner = document.getElementById(id);
+    if (banner == null) return;
+    banner.style.opacity = "1";
+    banner.classList.add("banner-error");
+  });
+  const bottom_status = document.getElementById("smc-startup-banner-status");
+  if (bottom_status != null) {
+    bottom_status.innerHTML = "Error: aborting startup initialization";
+  }
+  // give it a sec to render, then abort all of this …
+  await delay(10);
+  window.stop(); // stops javascript
+}
+
+const DEFLATE_FACTOR = 2; // picked by observing in production, no deep insight
+// calculate a progress bar for each asset
+// the problem is, we use compression, nginx's streaming, or cloudlfare, ... ?
+// in any case, there is no header for the total content size. hence the browser
+// only knows the bytes it did transfer. that's why we multiply the known "info" value by DEFLATE_FACTOR.
+// that's more or less ok.
+// also, for chrome, be aware of https://bugs.chromium.org/p/chromium/issues/detail?id=463622
+// and chrome, firfox and others might have subtle differences ...
+async function show_loading() {
+  if (loading.err != null) return;
+  let bars = "";
+  const W = 30;
+  for (const name of asset_names) {
+    const size = loading.size[name];
+    const info = DEFLATE_FACTOR * loading.loaded[name];
+    bars += `${pad(name, 20)}`;
+    if (size != null && size != 0 && info != null && !isNaN(info)) {
+      const width = Math.min(W, Math.round((W * info) / size));
+      const bar = `[${"=".repeat(width)}>${" ".repeat(W - width)}]`;
+      if (loading.done[name] != null) {
+        // set to 100%  ... it's not accurate what webpack tells us
+        if (loading.done[name]) loading.loaded[name] = loading.size[name];
+        const msg = loading.done[name] ? "DONE" : "FAIL";
+        bars += `${bar} ( ${msg} )`;
+      } else {
+        // in development, webpack tells us much smaller file sizes.
+        // in any case, we just cap this at 100%, just like the width above.
+        const pct = `${Math.min(100, Math.round((100 * info) / size))}`;
+        bars += `${bar} ( ${pad(pct, 3, "right")}% )`;
+      }
+    } else {
+      bars += `[${" ".repeat(W + 1)}]         `;
+    }
+    bars += "\n";
+  }
+  const dones = Object.values(loading.done);
+  const all_done = asset_names.length == dones.length;
+  if (all_done && dones.every((v) => !!v)) {
+    const NAME = CUSTOMIZE.site_name || "CoCalc";
+    bars += `\nCompiling ${NAME} ...`;
+  }
+  if (loading_output == null) return;
+  loading_output.innerHTML = bars;
+  await delay(1);
+}
+
+function update_loading(name, info) {
+  // sometimes, the progress indicator says 0
+  if (info == 0) return;
+  // console.log("update_loading", name, info, "size", loading.size[name]);
+  loading.loaded[name] = info;
+  show_loading();
+}
+
+function load_asset(name, url, hash): Promise<string> {
+  return new Promise(function (done, err) {
+    const req = new XMLHttpRequest();
+    req.open("GET", `${url}?${hash}`);
+
+    req.onload = function () {
+      if (this.status >= 200 && this.status < 300) {
+        // report 100%
+        update_loading(name, req.responseText.length);
+        done(req.responseText);
+      } else {
+        loading.done[name] = false;
+        err({
+          status: this.status,
+          statusText: req.statusText,
+        });
+      }
+    };
+
+    req.onerror = function () {
+      loading.done[name] = false;
+      err({
+        status: this.status,
+        statusText: req.statusText,
+      });
+    };
+
+    req.addEventListener("progress", function (_e) {
+      // e.total is 0 if it isn't reported (no surprise with compression),
+      // but we happen to know the size from webpack anyways ...
+      // e.loaded gives us the bytes so far, but compressed ...
+      update_loading(name, req.responseText.length);
+    });
+
+    req.send();
+  });
+}
+
+type Chunks = { [key: string]: { size: number; entry: string; hash: string } };
+
+// load_assets is called after the customization script is loaded
+// the point is: there is a potential race condition starting cocalc very quickly, before this is defined
+async function load_assets() {
+  const chunks: Chunks = JSON.parse(COCALC_ASSETS);
+  delete window["COCALC_ASSETS"];
+  loading_output = document.getElementById("cocalc-assets-loading");
+
+  // loading them in parallel ...
+  const code: { [key: string]: Promise<string | void> } = {};
+  try {
+    for (const [name, chunk] of Object.entries(chunks)) {
+      loading.size[name] = chunk.size;
+      loading.loaded[name] = 0;
+      code[name] = load_asset(name, chunk.entry, chunk.hash).catch((err) => {
+        loading.done[name] = false;
+        show_error(err);
+      });
+    }
+    // we eval them in a well defined order: i.e. fill, then css, then vendor?, ...
+    const names = Object.keys(code);
+    // safety check
+    names.forEach((n) => {
+      if (asset_names.indexOf(n) == -1) throw new Error(`unknown asset ${n}`);
+    });
+    await names.forEach(async (name) => {
+      const source_code = await code[name];
+      if (loading.err != null) return;
+      if (typeof source_code === "string") {
+        loading.done[name] = true;
+        await show_loading();
+        await eval(source_code);
+      } else {
+        loading.done[name] = false;
+      }
+    });
+  } catch (err) {
+    show_error(err);
+  }
+}
