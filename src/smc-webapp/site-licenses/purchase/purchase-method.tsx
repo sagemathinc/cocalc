@@ -63,7 +63,7 @@ export const PurchaseMethod: React.FC<Props> = React.memo(({ onClose }) => {
       />
       {source && (
         <Button onClick={() => onClose(source)}>
-          Pay using default method
+          Use default method
         </Button>
       )}
     </div>

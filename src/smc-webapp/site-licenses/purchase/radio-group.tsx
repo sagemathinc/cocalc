@@ -8,10 +8,18 @@
 
 import { React, CSS } from "../../app-framework";
 import { Radio } from "antd";
+import { Icon } from "../../r_misc";
 
 interface Props {
   disabled?: boolean;
-  options: { label: string; value: any; disabled?: boolean; desc?: string }[];
+  options: {
+    label: string;
+    value: any;
+    disabled?: boolean;
+    desc?: string;
+    cost?: string;
+    icon?: string;
+  }[];
   onChange: (e) => void;
   value?: any;
   radioStyle?: CSS;
@@ -33,15 +41,25 @@ export const RadioGroup: React.FC<Props> = ({
         disabled={x.disabled}
         key={x.value}
       >
-        <b>{x.label}</b>
-        {x.desc ? " - " + x.desc : undefined}
+        <span style={{ fontSize: "12pt" }}>
+          {x.icon && (
+            <>
+              <Icon name={x.icon} />{" "}
+            </>
+          )}
+          <b>{x.label}</b>
+          {x.cost ? ` (${x.cost})` : undefined}
+          {x.desc ? " - " + x.desc : undefined}
+        </span>
       </Radio>
     );
   }
 
   return (
-    <Radio.Group onChange={onChange} value={value} disabled={disabled}>
-      {v}
-    </Radio.Group>
+    <div style={{ marginLeft: "30px" }}>
+      <Radio.Group onChange={onChange} value={value} disabled={disabled}>
+        {v}
+      </Radio.Group>
+    </div>
   );
 };

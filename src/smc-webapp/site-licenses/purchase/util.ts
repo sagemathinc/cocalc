@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export type User = "academic" | "individual" | "business";
-export type Upgrade = "basic" | "standard" | "premium";
+export type User = "academic" | "business";
+export type Upgrade = "small" | "medium" | "large" | "pro";
 export type Subscription = "no" | "monthly" | "yearly";
 
 export interface PurchaseInfo {
@@ -21,21 +21,42 @@ export interface PurchaseInfo {
   discounted_cost?: number;
 }
 
-export const COSTS = {
-  user: { academic: 0.5, individual: 0.7, business: 1 },
-  upgrade: { basic: 8, standard: 12, premium: 20 },
+// discount is the number we multiply the price by:
+
+// TODO: move the actual **data** that defines this cost map to the database
+// and admin site settings.  It must be something that we can change at any time,
+// and that somebody else selling cocalc would set differently.
+
+const ACADEMIC_DISCOUNT = 0.6;
+export const COSTS: {
+  user_discount: { [user in User]: number };
+  sub_discount: { [sub in Subscription]: number };
+  online_discount: number;
+  min_quote: number;
+  min_sale: number;
+  base_cost: { [upgrade in Upgrade]: number };
+} = {
+  user_discount: { academic: ACADEMIC_DISCOUNT, business: 1 },
+  sub_discount: { no: 1, monthly: 1, yearly: 0.85 },
+  online_discount: 0.75,
+  min_quote: 100,
+  min_sale: 7,
+  base_cost: {
+    small: 8 / ACADEMIC_DISCOUNT,
+    medium: 16 / ACADEMIC_DISCOUNT,
+    large: 24 / ACADEMIC_DISCOUNT,
+    pro: 36 / ACADEMIC_DISCOUNT,
+  },
 } as const;
-
-export const ONLINE_DISCOUNT = 0.7;
-
-export const MIN_QUOTE = 100;
-
-const MINIMUM_SALE = 5;
 
 // TODO: this is just a quick sample cost formula so we can see this work.
 export function compute_cost(info: PurchaseInfo): number {
   const { quantity, user, upgrade, subscription, start, end } = info;
-  let cost = quantity * COSTS.user[user] * COSTS.upgrade[upgrade];
+  let cost =
+    quantity *
+    COSTS.user_discount[user] *
+    COSTS.base_cost[upgrade] *
+    COSTS.sub_discount[subscription];
   if (subscription == "no") {
     if (end == null) {
       throw Error("end must be set if subscription is no");
@@ -47,11 +68,11 @@ export function compute_cost(info: PurchaseInfo): number {
   } else if (subscription == "yearly") {
     cost *= 12;
   }
-  return Math.max(MINIMUM_SALE, Math.round(cost));
+  return Math.max(COSTS.min_sale, cost);
 }
 
 export function compute_discounted_cost(cost: number): number {
-  return Math.max(MINIMUM_SALE, Math.round(cost * ONLINE_DISCOUNT));
+  return Math.max(COSTS.min_sale, cost * COSTS.online_discount);
 }
 
 export function percent_discount(
@@ -59,4 +80,12 @@ export function percent_discount(
   discounted_cost: number
 ): number {
   return Math.round(100 * (1 - discounted_cost / cost));
+}
+
+export function money(n: number): string {
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+  }).format(n);
 }

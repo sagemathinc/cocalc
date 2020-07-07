@@ -16,7 +16,7 @@ export const PurchaseLicense: React.FC = () => {
             set_show(!show);
           }}
         >
-          Purchase a license{show ? "" : "..."}
+          {show ? "" : "Buy a license..."}
         </a>
       </h3>
       {show && (

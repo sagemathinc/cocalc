@@ -14,15 +14,15 @@
 
 */
 
-import { Button, Card, DatePicker } from "antd";
+import { Button, Card, DatePicker, InputNumber } from "antd";
 import * as moment from "moment";
 import { webapp_client } from "../../webapp-client";
 import { CSS, React, useMemo, useState } from "../../app-framework";
 const { RangePicker } = DatePicker;
 import { ErrorDisplay } from "../../r_misc";
-import { SliderWithInput } from "./slider-with-input";
 import { PurchaseMethod } from "./purchase-method";
 import { RadioGroup } from "./radio-group";
+import { plural } from "smc-util/misc2";
 
 const radioStyle: CSS = {
   display: "block",
@@ -37,9 +37,9 @@ import {
   Subscription,
   PurchaseInfo,
   COSTS,
-  MIN_QUOTE,
   compute_cost,
   compute_discounted_cost,
+  money,
   percent_discount,
 } from "./util";
 
@@ -49,11 +49,9 @@ interface Props {
 
 export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   const [user, set_user] = useState<User | undefined>(undefined);
-  const [upgrade, set_upgrade] = useState<Upgrade | undefined>(undefined);
-  const [quantity, set_quantity] = useState<number>(1);
-  const [subscription, set_subscription] = useState<Subscription | undefined>(
-    undefined
-  );
+  const [upgrade, set_upgrade] = useState<Upgrade>("medium");
+  const [quantity, set_quantity] = useState<number | undefined>(1);
+  const [subscription, set_subscription] = useState<Subscription>("monthly");
 
   const [start, set_start_state] = useState<Date>(new Date());
   function set_start(date: Date) {
@@ -109,28 +107,22 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   function render_user() {
     return (
       <div>
-        <h4>Who will use the license</h4>
+        <h4>Academic or Commercial Use</h4>
         <RadioGroup
           options={[
             {
-              label: "Academics",
-              desc: `students and teachers at an academic institute or online course (up to ${Math.round(
-                (1 - COSTS.user.academic) * 100
+              label: "Academic",
+              desc: `students, teachers, academic researchers and hobbyists (${Math.round(
+                (1 - COSTS.user_discount["academic"]) * 100
               )}% discount)`,
               value: "academic",
+              icon: "graduation-cap",
             },
             {
-              label: "Individuals",
-              desc: `non-academic and non-business users  (up to ${Math.round(
-                (1 - COSTS.user.individual) * 100
-              )}% discount)`,
-              value: "individual",
-            },
-            {
-              label: "Business employees",
-              desc:
-                "people working at a company, e.g., doing research and development",
+              label: "Commercial",
+              desc: "for business purposes",
               value: "business",
+              icon: "briefcase",
             },
           ]}
           onChange={(e) => set_user(e.target.value)}
@@ -148,28 +140,61 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div>
         <br />
-        <h4>How to upgrade projects</h4>
+        <h4>Project Size</h4>
         <RadioGroup
           disabled={disabled}
           options={[
             {
-              label: "Basic",
-              value: "basic",
-              desc:
-                "member hosting, internet access, 30 minutes idle timeout, 3GB disk space",
+              icon: "battery-2",
+              label: "Small",
+              value: "small",
+              desc: "use basic notebooks and documents",
+              //"member hosting, internet access, 30 minutes idle timeout, 3GB disk space",
+              cost: `${money(
+                COSTS.sub_discount[subscription] *
+                  COSTS.user_discount[user] *
+                  COSTS.base_cost["small"]
+              )}/month per project`,
             },
             {
-              label: "Standard",
-              value: "standard",
+              icon: "battery-3",
+              label: "Medium",
+              value: "medium",
               desc:
-                "member hosting, internet access, 4 hours idle timeout, 5GB disk space, 2GB shared RAM and 2 shared vCPUs, ",
+                "use several bigger notebooks and documents, and run longer computations",
+              //"member hosting, internet access, 4 hours idle timeout, 5GB disk space, 2GB shared RAM and 2 shared vCPUs, ",
+              cost: `${money(
+                COSTS.sub_discount[subscription] *
+                  COSTS.user_discount[user] *
+                  COSTS.base_cost["medium"]
+              )}/month per project`,
             },
             {
-              label: "Premium",
-              value: "premium",
+              icon: "battery-4",
+              label: "Large",
+              value: "large",
               desc:
-                "premium hosting, internet access, 24 hours idle timeout, 15GB disk space, 4GB shared RAM, 3 shared vCPU's",
+                "use many notebooks at once with multiple cpu's, and leave computations running for a day unattended",
+              // "premium hosting, internet access, 24 hours idle timeout, 15GB disk space, 4GB shared RAM, 3 shared vCPU's",
+              cost: `${money(
+                COSTS.sub_discount[subscription] *
+                  COSTS.user_discount[user] *
+                  COSTS.base_cost["large"]
+              )}/month per project`,
             },
+            /*{
+              icon: "battery-4",
+              label: "Professional",
+              value: "pro",
+              desc:
+                "use many large notebooks at once with multiple cpu's, and leave computations running for days unattended",
+              // "premium hosting, internet access, 24 hours idle timeout, 15GB disk space, 4GB shared RAM, 3 shared vCPU's",
+              cost: `${money(
+                COSTS.sub_discount[subscription] *
+                  COSTS.user_discount[user] *
+                  COSTS.base_cost["pro"]
+              )}/month per project`,
+            },*/
           ]}
           onChange={(e) => set_upgrade(e.target.value)}
           value={upgrade}
@@ -179,35 +204,60 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     );
   }
 
+  function render_quantity_input() {
+    return (
+      <InputNumber
+        style={{ margin: "0 5px" }}
+        disabled={disabled}
+        min={1}
+        max={1500}
+        value={quantity}
+        onChange={(number) => {
+          if (typeof number == "string") return;
+          set_quantity(number);
+        }}
+      />
+    );
+  }
+
   function render_quantity() {
-    if (upgrade == null || user == null) return;
+    if (user == null) return;
     return (
       <div>
         <br />
-        <h4>Maximum number of simultaneous running projects</h4>
-        {isNaN(quantity) ? "enter a number" : ""}
-        <SliderWithInput
-          min={1}
-          max={1000}
-          value={quantity}
-          onChange={set_quantity}
-          disabled={disabled}
-        />
+        <h4>Number of Projects</h4>
+        <div style={{ fontSize: "12pt", marginLeft: "30px" }}>
+          Simultaneously run
+          {render_quantity_input()}
+          {plural(quantity, "project")} using this license.
+        </div>
       </div>
     );
   }
 
   function render_subscription() {
-    if (upgrade == null || user == null || quantity == null) return;
+    if (user == null) return;
     return (
       <div>
         <br />
-        <h4>When the license will be used</h4>
+        <h4>Period</h4>
         <RadioGroup
           disabled={disabled}
           options={[
-            { label: "Monthly subscription", value: "monthly" },
-            { label: "Yearly subscription", value: "yearly" },
+            {
+              label: "Monthly subscription",
+              value: "monthly",
+              desc: `pay once per month (${Math.round(
+                (1 - COSTS.sub_discount["monthly"]) * 100
+              )}% discount)`,
+            },
+            {
+              label: "Yearly subscription",
+              value: "yearly",
+              desc: `pay once per year (${Math.round(
+                (1 - COSTS.sub_discount["yearly"]) * 100
+              )}% discount)`,
+            },
             { label: "Specific period of time", value: "no" },
           ]}
           onChange={(e) => set_subscription(e.target.value)}
@@ -231,9 +281,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       // TODO: use "midnight UTC", or should we just give a day grace period on both ends (?).
       const value = [moment(start), moment(end)];
       return (
-        <div>
+        <div style={{ marginLeft: "30px" }}>
           <br />
-          <h4>Start and end dates</h4>
+          <h5>Start and End Dates</h5>
           <RangePicker
             disabled={disabled}
             value={value as any}
@@ -248,9 +298,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     } else {
       // just the start date (default to today)
       return (
-        <div>
+        <div style={{ marginLeft: "30px" }}>
           <br />
-          <h4>Start date</h4>
+          <h5>Start Date</h5>
           <DatePicker
             disabled={disabled}
             value={moment(start) as any}
@@ -267,21 +317,24 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   function render_cost() {
     if (cost == null || discounted_cost == null) return;
 
+    let desc;
+    if (discounted_cost < cost) {
+      desc = (
+        <>
+          <span style={{ textDecoration: "line-through" }}>{money(cost)}</span>{" "}
+          {money(discounted_cost)}
+          {subscription != "no" ? " " + subscription : ""}, if you purchase
+          online now ({percent_discount(cost, discounted_cost)}% off!)
+        </>
+      );
+    } else {
+      desc = `${money(cost)} ${subscription != "no" ? subscription : ""}`;
+    }
+
     return (
       <div style={{ fontSize: "12pt" }}>
         <br />
-        <h4>
-          Total cost: ${cost} {subscription != "no" ? subscription : ""}{" "}
-        </h4>
-        {discounted_cost < cost ? (
-          <i>
-            Online Special: ${discounted_cost} if you{" "}
-            <b>
-              <i>purchase online</i>
-            </b>{" "}
-            today and get {percent_discount(cost, discounted_cost)}% off!
-          </i>
-        ) : undefined}
+        <h4>Total Cost: {desc}</h4>
       </div>
     );
   }
@@ -291,7 +344,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div>
         <br />
-        <h4>Purchase now or request quote</h4>
+        <h4>Purchase now or request a quote</h4>
         <RadioGroup
           disabled={disabled}
           options={[
@@ -300,15 +353,19 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               desc:
                 "purchase online now " +
                 (discounted_cost < cost
-                  ? `and save $${cost - discounted_cost}`
+                  ? `and save ${money(cost - discounted_cost)} ${
+                      subscription != "no" ? subscription : ""
+                    }`
                   : ""),
               value: false,
             },
             {
               label: "Get a quote",
-              desc: `I need a quote, invoice, modified terms, a purchase order, to use PayPal, etc. ($${MIN_QUOTE} minimum)`,
+              desc: `I need a quote, invoice, modified terms, a purchase order, to use PayPal, etc. (${money(
+                COSTS.min_quote
+              )} minimum)`,
               value: true,
-              disabled: cost < MIN_QUOTE,
+              disabled: cost < COSTS.min_quote,
             },
           ]}
           onChange={(e) => set_quote(e.target.value)}
@@ -352,7 +409,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     if (
       user == null ||
       upgrade == null ||
-      quantity <= 0 ||
+      quantity == undefined ||
       subscription == null ||
       quote == null
     )
@@ -407,6 +464,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     if (quote !== false) return;
     return (
       <div>
+        <br />
         <Button onClick={submit} disabled={disabled || payment_method == null}>
           Complete purchase
         </Button>
@@ -463,7 +521,15 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
 
   return (
     <Card
-      title={<h3>Purchase license</h3>}
+      title={
+        <>
+          <h3>Buy a license</h3>
+          <span style={{ fontWeight: 350 }}>
+            Find out how much licenses cost, buy a license online, or get a
+            quote.
+          </span>
+        </>
+      }
       extra={<a onClick={onClose}>close</a>}
     >
       {render_error()}
