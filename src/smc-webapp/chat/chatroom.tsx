@@ -6,7 +6,6 @@
 // standard non-CoCalc libraries
 import { debounce } from "lodash";
 import { useDebounce } from "use-debounce";
-const { IS_MOBILE } = require("../feature");
 
 // CoCalc libraries
 import { smiley, history_path, path_split } from "smc-util/misc";
@@ -32,7 +31,7 @@ import {
   useRef,
   useRedux,
 } from "../app-framework";
-import { Icon, Loading, Tip, SearchInput } from "../r_misc";
+import { Icon, Loading, Tip, SearchInput, VisibleMDLG } from "../r_misc";
 import { Col, Row, Well } from "../antd-bootstrap";
 import { ChatLog } from "./chat-log";
 import { WindowedList } from "../r_misc/windowed-list";
@@ -179,7 +178,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           tip={<span>Browse all versions of this chatroom.</span>}
           placement="left"
         >
-          <Icon name="history" /> TimeTravel
+          <Icon name="history" /> <VisibleMDLG>TimeTravel</VisibleMDLG>
         </Tip>
       </Button>
     );
@@ -197,7 +196,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           }
           placement="left"
         >
-          <Icon name="arrow-down" /> Newest Messages
+          <Icon name="arrow-down" /> <VisibleMDLG>Newest Messages</VisibleMDLG>
         </Tip>
       </Button>
     );
@@ -249,7 +248,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
         project_id={project_id}
         path={path}
         button={true}
-        label={"Video Chat"}
+        label={<VisibleMDLG>Video Chat</VisibleMDLG>}
       />
     );
   }
@@ -271,7 +270,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   function render_button_row() {
     return (
       <Row style={{ marginLeft: 0, marginRight: 0 }}>
-        <Col xs={7} md={7} style={{ padding: "2px" }}>
+        <Col xs={9} md={9} style={{ padding: "2px" }}>
           <ButtonGroup>
             {render_save_button()}
             {render_timetravel_button()}
@@ -285,7 +284,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             {render_increase_font_size()}
           </ButtonGroup>
         </Col>
-        <Col xs={5} md={5} style={{ padding: "2px" }}>
+        <Col xs={3} md={3} style={{ padding: "2px" }}>
           {render_search()}
         </Col>
       </Row>
@@ -301,7 +300,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   function render_body(): JSX.Element {
     return (
       <div className="smc-vfill" style={GRID_STYLE}>
-        {!IS_MOBILE ? render_button_row() : undefined}
+        {render_button_row()}
         <div className="smc-vfill" style={CHAT_LOG_STYLE}>
           <ChatLog
             project_id={project_id}

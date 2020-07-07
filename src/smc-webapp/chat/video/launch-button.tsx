@@ -17,7 +17,7 @@ const VIDEO_CHAT_LIMIT = 99999;
 interface Props {
   project_id: string;
   path: string;
-  label?: string;
+  label?: string | JSX.Element;
   button?: boolean;
 }
 
