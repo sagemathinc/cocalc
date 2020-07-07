@@ -7,7 +7,7 @@
 import * as immutable from "immutable";
 
 // Internal Libraries
-import { Store, TypedMap } from "../app-framework";
+import { Store, TypedMap, redux } from "../app-framework";
 
 type Mention = TypedMap<{
   id: string;
@@ -38,10 +38,11 @@ export interface ChatState {
   has_unsaved_changes: boolean;
   unsent_user_mentions: MentionList;
   is_uploading: boolean;
+  font_size: number;
 }
 
 export class ChatStore extends Store<ChatState> {
-  getInitialState = function () {
+  getInitialState = () => {
     return {
       height: 0,
       input: "",
@@ -59,6 +60,7 @@ export class ChatStore extends Store<ChatState> {
       has_unsaved_changes: false,
       unsent_user_mentions: immutable.List(),
       is_uploading: false,
+      font_size: redux.getStore("account").get("font_size"),
     };
   };
 }

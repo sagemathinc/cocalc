@@ -189,11 +189,43 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
     return (
       <Button onClick={button_scroll_to_bottom}>
         <Tip
-          title="Scroll to Bottom"
-          tip={<span>Scrolls the chat to the bottom</span>}
+          title="Newest Messages"
+          tip={
+            <span>
+              Scrolls the chat to the bottom showing the newest messages
+            </span>
+          }
           placement="left"
         >
-          <Icon name="arrow-down" /> Bottom
+          <Icon name="arrow-down" /> Newest Messages
+        </Tip>
+      </Button>
+    );
+  }
+
+  function render_increase_font_size(): JSX.Element {
+    return (
+      <Button onClick={() => actions.change_font_size(1)}>
+        <Tip
+          title="Increase font size"
+          tip={<span>Make the font size larger for chat messages</span>}
+          placement="left"
+        >
+          <Icon name="search-plus" />
+        </Tip>
+      </Button>
+    );
+  }
+
+  function render_decrease_font_size(): JSX.Element {
+    return (
+      <Button onClick={() => actions.change_font_size(-1)}>
+        <Tip
+          title="Decrease font size"
+          tip={<span>Make the font size smaller for chat messages</span>}
+          placement="left"
+        >
+          <Icon name="search-minus" />
         </Tip>
       </Button>
     );
@@ -239,15 +271,21 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   function render_button_row() {
     return (
       <Row style={{ marginLeft: 0, marginRight: 0 }}>
-        <Col xs={6} md={6} style={{ padding: "2px" }}>
+        <Col xs={7} md={7} style={{ padding: "2px" }}>
           <ButtonGroup>
             {render_save_button()}
             {render_timetravel_button()}
+          </ButtonGroup>
+          <ButtonGroup style={{ marginLeft: "5px" }}>
             {render_video_chat_button()}
             {render_bottom_button()}
           </ButtonGroup>
+          <ButtonGroup style={{ marginLeft: "5px" }}>
+            {render_decrease_font_size()}
+            {render_increase_font_size()}
+          </ButtonGroup>
         </Col>
-        <Col xs={6} md={6} style={{ padding: "2px" }}>
+        <Col xs={5} md={5} style={{ padding: "2px" }}>
           {render_search()}
         </Col>
       </Row>
