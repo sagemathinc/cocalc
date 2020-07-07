@@ -8,6 +8,9 @@ html(lang="en")
   head
     include _inc_head.pug
     title= CoCalc
+    //- we manually insert webpack chunks to get some feedback about the loading process
+    script(type="text/javascript").
+        window.COCALC_ASSETS = '!{JSON.stringify(files.chunks)}';
   body
     style.
       #{require('!postcss-loader!app-startup-style.css')}
@@ -54,12 +57,6 @@ html(lang="en")
     div(style="clear: both")
 
     pre#cocalc-assets-loading
-
-    //- manually inserting webpack chunks to get some feedback about the loading process
-    script(type="text/javascript").
-      document.addEventListener("DOMContentLoaded", function() {
-        load_assets('!{JSON.stringify(files.chunks)}');
-      });
 
     //- Uncomment the lines below to see what data is available ...
     //- h3 Files

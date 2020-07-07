@@ -7,6 +7,7 @@
 // if the endpoint doesn't work, we have a problem. report back accordingly…
 
 declare const CUSTOMIZE: any;
+declare const COCALC_ASSETS: string;
 let HELP_EMAIL = "help@cocalc.com";
 
 function email() {
@@ -47,11 +48,18 @@ function style() {
   }
 }
 
-const customizeScript = document.createElement("script");
-customizeScript.onerror = script_error;
-customizeScript.onload = style;
-document.head.appendChild(customizeScript);
-customizeScript.src = `${window.app_base_url}/customize?type=embed`;
+// load customization once the DOM exists.
+// then start downloading all cocalc assets...
+document.addEventListener("DOMContentLoaded", function () {
+  const customizeScript = document.createElement("script");
+  customizeScript.onerror = script_error;
+  customizeScript.onload = function () {
+    style();
+    load_assets();
+  };
+  document.head.appendChild(customizeScript);
+  customizeScript.src = `${window.app_base_url}/customize?type=embed`;
+});
 
 function error_msg({ msg, lineNo, columnNo, url, stack, show_explanation }) {
   const explanation = show_explanation
@@ -68,7 +76,7 @@ ${stack}
 </pre>`;
 }
 
-/* We do "delete window.onerror" below for the follwoing reason.
+/* We do "window.onerror = null" below for the follwoing reason.
 
 When I merged this, the following always results in nonstop 100% cpu usage:
 
@@ -277,8 +285,11 @@ function load_asset(name, url, hash): Promise<string> {
 
 type Chunks = { [key: string]: { size: number; entry: string; hash: string } };
 
-async function load_assets(data) {
-  const chunks: Chunks = JSON.parse(data);
+// load_assets is called after the customization script is loaded
+// the point is: there is a potential race condition starting cocalc very quickly, before this is defined
+async function load_assets() {
+  const chunks: Chunks = JSON.parse(COCALC_ASSETS);
+  delete window["COCALC_ASSETS"];
   loading_output = document.getElementById("cocalc-assets-loading");
 
   // loading them in parallel ...
