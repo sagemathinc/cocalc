@@ -6,17 +6,13 @@
 // Monitor ping events from webapp_client and use them to set some
 // ping state in the page store.
 
-import { delay } from "awaiting";
 import { redux } from "../app-framework";
 import { webapp_client } from "../webapp-client";
 
 const prom_client = require("../prom-client"); // still on coffeescript
 // import * as prom_client from "../prom-client";
 
-export async function init_ping(): Promise<void> {
-  // Wait until initial page load, etc., is fine since this is just listening
-  // for pings every minute or so.  Ensures everything is setup.
-  await delay(50);
+export  function init_ping(): void {
   let prom_ping_time: any = undefined,
     prom_ping_time_last: any = undefined;
   if (prom_client.enabled) {

@@ -20,9 +20,7 @@ const CONNECTING_STATE_DELAY_MS = 3000;
 
 import { isMobile } from "../feature";
 
-export async function init_connection() {
-  // Wait until initial page load, etc to get all this connection monitoring going.
-  await delay(50);
+export function init_connection(): void {
   const actions = redux.getActions("page");
   const store = redux.getStore("page");
 
@@ -136,7 +134,8 @@ export async function init_connection() {
       (num_recent_disconnects() >= 2 || attempt >= 10)
     ) {
       // this event fires several times, limit displaying the message and calling reconnect() too often
-      const SiteName = redux.getStore("customize").get("site_name") ?? SITE_NAME;
+      const SiteName =
+        redux.getStore("customize").get("site_name") ?? SITE_NAME;
       if (
         reconnection_warning === null ||
         reconnection_warning < +minutes_ago(1)

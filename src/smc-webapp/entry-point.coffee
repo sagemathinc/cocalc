@@ -36,7 +36,8 @@ require('./process-links')
 ###
 # Initialize app stores, actions, etc.
 ###
-require('./init_app')
+require('./app/init')
+require("./custom-software/init").init()
 require('./account').init(redux)
 require("./file-use/init")
 require('./webapp-hooks')

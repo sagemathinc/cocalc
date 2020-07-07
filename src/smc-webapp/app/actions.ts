@@ -7,24 +7,13 @@ import { redux, Actions } from "../app-framework";
 import { set_window_title } from "../browser";
 const history = require("../history");
 import { disconnect_from_project } from "../project/websocket/connect";
-
-import { init_ping } from "./monitor-pings";
-import { init_connection } from "./monitor-connection";
-
-// circular imports:
-// import { session_manager } from "../session";
+import { session_manager } from "../session";
 import { PageState } from "./store";
 
 class PageActions extends Actions<PageState> {
   private session_manager?: any;
   private active_key_handler?: any;
   private suppress_key_handlers: boolean = false;
-
-  constructor(name, redux) {
-    super(name, redux);
-    init_ping();
-    init_connection();
-  }
 
   /* Expects a func which takes a browser keydown event
      Only allows one keyhandler to be active at a time.
@@ -263,7 +252,7 @@ class PageActions extends Actions<PageState> {
     this.setState({ ping, avgping });
   }
 
-  set_connection_status(connection_status, time : Date) {
+  set_connection_status(connection_status, time: Date) {
     if (time > (redux.getStore("page").get("last_status_time") ?? 0)) {
       this.setState({ connection_status, last_status_time: time });
     }
@@ -314,7 +303,7 @@ class PageActions extends Actions<PageState> {
     // Make new session manager, but only register it if we have
     // an actual session name!
     if (!this.session_manager) {
-      const sm = require("../session").session_manager(session, redux);
+      const sm = session_manager(session, redux);
       if (session) {
         this.session_manager = sm;
       }
@@ -368,4 +357,6 @@ class PageActions extends Actions<PageState> {
   }
 }
 
-redux.createActions("page", PageActions);
+export function init_actions() {
+  redux.createActions("page", PageActions);
+}

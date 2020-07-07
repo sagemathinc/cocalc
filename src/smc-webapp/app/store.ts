@@ -39,15 +39,17 @@ export interface PageState {
 
 export class PageStore extends Store<PageState> {}
 
-const DEFAULT_STATE: PageState = {
-  active_top_tab: parse_target((window as any).cocalc_target).page as TopTab,
-  show_connection: false,
-  connection_status: "connecting",
-  connection_quality: "good",
-  cookie_warning: false,
-  local_storage_warning: false,
-  show_file_use: false,
-  num_ghost_tabs: 0,
-};
+export function init_store() {
+  const DEFAULT_STATE: PageState = {
+    active_top_tab: parse_target((window as any).cocalc_target).page as TopTab,
+    show_connection: false,
+    connection_status: "connecting",
+    connection_quality: "good",
+    cookie_warning: false,
+    local_storage_warning: false,
+    show_file_use: false,
+    num_ghost_tabs: 0,
+  } as const;
 
-redux.createStore("page", PageStore, DEFAULT_STATE);
+  redux.createStore("page", PageStore, DEFAULT_STATE);
+}
