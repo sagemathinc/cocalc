@@ -8,7 +8,7 @@ import { set_window_title } from "../browser";
 const history = require("../history");
 import { disconnect_from_project } from "../project/websocket/connect";
 
-import { init_ping } from "./connect-client-to-store";
+import { init_ping } from "./monitor-pings";
 
 // circular imports:
 // import { session_manager } from "../session";
