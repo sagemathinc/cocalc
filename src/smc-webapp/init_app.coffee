@@ -57,39 +57,6 @@ setInterval(record_heartbeat, heartbeat_interval_ms)
 recent_wakeup_from_standby = ->
     (heartbeats.length == heartbeat_N) and (+misc.minutes_ago((heartbeat_N+1) * heartbeat_interval_min) > heartbeats[0])
 
-# exporting this test. maybe somewhere else useful, too...
-exports.recent_wakeup_from_standby = recent_wakeup_from_standby
-
-if DEBUG
-    window.smc ?= {}
-    window.smc.misc = misc
-    window.smc.misc_page = require('./misc_page')
-    window.smc.init_app =
-        recent_wakeup_from_standby : recent_wakeup_from_standby
-        num_recent_disconnects     : num_recent_disconnects
-
-prom_client = require('./prom-client')
-if prom_client.enabled
-    prom_ping_time = prom_client.new_histogram('ping_ms', 'ping time',
-         {buckets : [50, 100, 150, 200, 300, 500, 1000, 2000, 5000]})
-    prom_ping_time_last = prom_client.new_gauge('ping_last_ms', 'last reported ping time')
-
-webapp_client.on "ping", (ping_time, clock_skew) ->
-    ping_time_smooth = redux.getStore('page').get('avgping') ? ping_time
-    # reset outside 3x
-    if ping_time > 3 * ping_time_smooth or ping_time_smooth > 3 * ping_time
-        ping_time_smooth = ping_time
-    else
-        decay = 1 - Math.exp(-1)
-        ping_time_smooth = decay * ping_time_smooth + (1-decay) * ping_time
-    page_actions = redux.getActions('page')
-    page_actions.set_ping(ping_time, Math.round(ping_time_smooth))
-    page_actions.setState(clock_skew:clock_skew)
-
-    if prom_client.enabled
-        prom_ping_time.observe(ping_time)
-        prom_ping_time_last.set(ping_time)
-
 webapp_client.on "connected", () ->
     redux.getActions('page').set_connection_status('connected', new Date())
 

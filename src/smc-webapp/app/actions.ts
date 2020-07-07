@@ -8,6 +8,8 @@ import { set_window_title } from "../browser";
 const history = require("../history");
 import { disconnect_from_project } from "../project/websocket/connect";
 
+import { init_ping } from "./connect-client-to-store";
+
 // circular imports:
 // import { session_manager } from "../session";
 import { PageState } from "./store";
@@ -16,6 +18,11 @@ class PageActions extends Actions<PageState> {
   private session_manager?: any;
   private active_key_handler?: any;
   private suppress_key_handlers: boolean = false;
+
+  constructor(name, redux) {
+    super(name, redux);
+    init_ping();
+  }
 
   /* Expects a func which takes a browser keydown event
      Only allows one keyhandler to be active at a time.
