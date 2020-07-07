@@ -19,6 +19,8 @@ import * as misc from "smc-util/misc2";
 import { server_days_ago } from "smc-util/misc";
 import { define, required } from "smc-util/fill";
 
+import { set_url } from "../history";
+
 // Define account actions
 export class AccountActions extends Actions<AccountState> {
   private _last_history_state: string;
@@ -285,7 +287,6 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
   }
 
   push_state(url?: string): void {
-    const { set_url } = require("../history");
     if (url == null) {
       url = this._last_history_state;
     }

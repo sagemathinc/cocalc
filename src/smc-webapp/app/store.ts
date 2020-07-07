@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { parse_target } from "../history2";
+import { parse_target } from "../history";
 import { redux, Store, TypedMap } from "../app-framework";
 
 type TopTab =

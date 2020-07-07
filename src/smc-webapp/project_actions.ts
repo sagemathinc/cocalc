@@ -45,6 +45,8 @@ import { webapp_client } from "./webapp-client";
 const { project_tasks } = require("./project_tasks");
 const { defaults, required } = misc;
 
+import { set_url } from "./history";
+
 import { delete_files } from "./project/delete-files";
 
 import { get_directory_listing2 as get_directory_listing } from "./project/directory-listing";
@@ -338,7 +340,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       local_url = `files/`;
     }
     this._last_history_state = local_url;
-    const { set_url } = require("./history");
     set_url(this._url_in_project(local_url));
   }
 

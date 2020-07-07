@@ -5,7 +5,7 @@
 
 import { redux, Actions } from "../app-framework";
 import { set_window_title } from "../browser";
-const history = require("../history");
+import { update_params, set_url} from "../history";
 import { disconnect_from_project } from "../project/websocket/connect";
 import { session_manager } from "../session";
 import { PageState } from "./store";
@@ -149,7 +149,7 @@ class PageActions extends Actions<PageState> {
     switch (key) {
       case "projects":
         if (change_history) {
-          history.set_url("/projects");
+          set_url("/projects");
         }
         set_window_title("Projects");
         return;
@@ -161,25 +161,25 @@ class PageActions extends Actions<PageState> {
         return;
       case "about":
         if (change_history) {
-          history.set_url("/help");
+          set_url("/help");
         }
         set_window_title("Help");
         return;
       case "file-use":
         if (change_history) {
-          history.set_url("/file-use");
+          set_url("/file-use");
         }
         set_window_title("File Usage");
         return;
       case "admin":
         if (change_history) {
-          history.set_url("/admin");
+          set_url("/admin");
         }
         set_window_title("Admin");
         return;
       case "notifications":
         if (change_history) {
-          history.set_url("/notifications");
+          set_url("/notifications");
         }
         set_window_title("Notifications");
         return;
@@ -273,12 +273,12 @@ class PageActions extends Actions<PageState> {
       return;
     }
     this.setState({ fullscreen });
-    history.update_params();
+    update_params();
   }
 
   set_get_api_key(val) {
     this.setState({ get_api_key: val });
-    history.update_params();
+    update_params();
   }
 
   toggle_fullscreen() {
@@ -298,7 +298,7 @@ class PageActions extends Actions<PageState> {
 
     // Save state and update URL.
     this.setState({ session });
-    history.update_params();
+    update_params();
 
     // Make new session manager, but only register it if we have
     // an actual session name!

@@ -8,7 +8,7 @@ import { is_valid_uuid_string } from "smc-util/misc";
 import { QueryParams } from "../misc/query-params";
 import { COCALC_FULLSCREEN } from "../fullscreen";
 import { redux } from "../app-framework";
-import { parse_target } from "../history2";
+import { parse_target } from "../history";
 import { webapp_client } from "../webapp-client";
 
 export function init_query_params(): void {
