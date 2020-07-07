@@ -157,7 +157,7 @@ const loading: Loading = {
 };
 
 // will be a div element ...
-let loading_output: any = null;
+let loading_output: HTMLElement | null = null;
 
 async function show_error(err) {
   if (typeof err === "string") {
@@ -167,6 +167,7 @@ async function show_error(err) {
     loading.err = `Error ${err.status}: ${err.statusText}`;
   }
 
+  if (loading_output == null) return;
   loading_output.innerHTML = `Problem loading assets.\n${loading.err}`;
 
   const err_box = document.querySelector(
@@ -233,6 +234,7 @@ async function show_loading() {
     const NAME = CUSTOMIZE.site_name || "CoCalc";
     bars += `\nCompiling ${NAME} ...`;
   }
+  if (loading_output == null) return;
   loading_output.innerHTML = bars;
   await delay(1);
 }
