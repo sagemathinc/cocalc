@@ -273,8 +273,8 @@ class PageActions extends Actions
         false
 
 {parse_target} = require("./history2")
-redux.createStore('page', {active_top_tab: parse_target(window.cocalc_target).page})
 redux.createActions('page', PageActions)
+require('./app/store')
 init_csi()
 
 ###
