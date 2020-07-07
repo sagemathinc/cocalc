@@ -17,6 +17,7 @@
     font-family: sans-serif;
     font-size: 26px;
     color: white;
+    opacity: 1;
 }
 
 #cocalc-error-report-startup {
@@ -40,6 +41,7 @@
     background: white;
     border: none;
     text-align: center;
+    white-space: pre-wrap;
 }
 
 #smc-startup-banner-status {
@@ -55,7 +57,6 @@
     padding: 20px;
     opacity: 0.85;
 }
-
 #smc-startup-banner img {
     vertical-align: middle;
     width: 282px; /* original 94px */
@@ -70,17 +71,12 @@
 }
 #smc-startup-banner .banner-error {
     opacity: 0;
-    animation: banner-error ease-in 60s forwards;
+    animation: banner-error ease-in 2s forwards;
     float: left;
 }
 #smc-startup-banner .banner-error .message {
     width: auto;
     background-color: #bf1919;
-}
-#smc-startup-banner .banner-blink {
-    background-color: #4474c0;
-    opacity: 1;
-    animation: banner-red 60s forwards;
 }
 #cc-banner2 {
     background-color: 'white';
@@ -94,86 +90,11 @@
     height: auto;
 }
 
-@keyframes banner-red {
-    0% {
-        background-color: #4474c0;
-    }
-    95% {
-        background-color: #4474c0;
-    }
-    100% {
-        background-color: #bf1919;
-    }
-}
-#smc-startup-banner .banner-blink img {
-    animation: banner-blink 60s forwards;
-}
-@keyframes banner-blink {
-    0% {
-        opacity: 1;
-    }
-    5% {
-        opacity: 0.1;
-    }
-    10% {
-        opacity: 1;
-    }
-    15% {
-        opacity: 0.1;
-    }
-    20% {
-        opacity: 1;
-    }
-    25% {
-        opacity: 0.1;
-    }
-    30% {
-        opacity: 1;
-    }
-    35% {
-        opacity: 0.1;
-    }
-    40% {
-        opacity: 1;
-    }
-    45% {
-        opacity: 0.1;
-    }
-    50% {
-        opacity: 1;
-    }
-    55% {
-        opacity: 0.1;
-    }
-    60% {
-        opacity: 1;
-    }
-    65% {
-        opacity: 0.2;
-    }
-    70% {
-        opacity: 1;
-    }
-    80% {
-        opacity: 0.3;
-    }
-    90% {
-        opacity: 0.7;
-    }
-    95% {
-        opacity: 0.1;
-    }
-    100% {
-        opacity: 1;
-    }
-}
 @keyframes banner-error {
-    95% {
-        opacity: 0;
-        background-color: #ffffff;
+    0% {
+        background-color: #4474c0;
     }
     100% {
-        opacity: 1;
         background-color: #bf1919;
     }
 }

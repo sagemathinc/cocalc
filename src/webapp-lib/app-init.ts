@@ -30,7 +30,7 @@ function style() {
     return;
   }
   msg.innerHTML += `
-  Timeout while loading ${NAME}.
+  Problem while loading ${NAME}.
   <br/>
   Try hitting shift and reload the page, restart your browser, or <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/connectivity-issues.html">follow these steps</a>.
   If the problem persists, email ${email()}.`;
@@ -151,6 +151,39 @@ const loading: Loading = {
 // will be a div element ...
 let loading_output: any = null;
 
+async function show_error(err) {
+  if (typeof err === "string") {
+    loading.err = `Error: ${err}`;
+  } else {
+    // this is a broken promise: most likely, load_asset failed. We tell the user about this.
+    loading.err = `Error ${err.status}: ${err.statusText}`;
+  }
+
+  loading_output.innerHTML = `Problem loading assets.\n${loading.err}`;
+
+  const err_box = document.querySelector(
+    "#smc-startup-banner div.banner-error"
+  );
+  // https://github.com/microsoft/TypeScript/issues/3263#issuecomment-277894602
+  if (err_box instanceof HTMLElement) {
+    // we know for sure it is there
+    err_box.style.opacity = "1";
+  }
+  ["cc-banner1", "cc-banner2"].forEach((id) => {
+    const banner = document.getElementById(id);
+    if (banner == null) return;
+    banner.style.opacity = "1";
+    banner.classList.add("banner-error");
+  });
+  const bottom_status = document.getElementById("smc-startup-banner-status");
+  if (bottom_status != null) {
+    bottom_status.innerHTML = "Error: aborting startup initialization";
+  }
+  // give it a sec to render, then abort all of this …
+  await delay(10);
+  window.stop(); // stops javascript
+}
+
 const DEFLATE_FACTOR = 2; // picked by observing in production, no deep insight
 // calculate a progress bar for each asset
 // the problem is, we use compression, nginx's streaming, or cloudlfare, ... ?
@@ -159,11 +192,8 @@ const DEFLATE_FACTOR = 2; // picked by observing in production, no deep insight
 // that's more or less ok.
 // also, for chrome, be aware of https://bugs.chromium.org/p/chromium/issues/detail?id=463622
 // and chrome, firfox and others might have subtle differences ...
-function show_loading() {
-  if (loading.err != null) {
-    loading_output.innerHTML = `Problem loading assets.\n${loading.err}`;
-    return;
-  }
+async function show_loading() {
+  if (loading.err != null) return;
   let bars = "";
   const W = 30;
   for (const name of asset_names) {
@@ -189,7 +219,14 @@ function show_loading() {
     }
     bars += "\n";
   }
+  const dones = Object.values(loading.done);
+  const all_done = asset_names.length == dones.length;
+  if (all_done && dones.every((v) => !!v)) {
+    const NAME = CUSTOMIZE.site_name || "CoCalc";
+    bars += `\nCompiling ${NAME} ...`;
+  }
   loading_output.innerHTML = bars;
+  await delay(1);
 }
 
 function update_loading(name, info) {
@@ -245,12 +282,15 @@ async function load_assets(data) {
   loading_output = document.getElementById("cocalc-assets-loading");
 
   // loading them in parallel ...
-  const code: { [key: string]: Promise<string> } = {};
+  const code: { [key: string]: Promise<string | void> } = {};
   try {
     for (const [name, chunk] of Object.entries(chunks)) {
       loading.size[name] = chunk.size;
       loading.loaded[name] = 0;
-      code[name] = load_asset(name, chunk.entry, chunk.hash);
+      code[name] = load_asset(name, chunk.entry, chunk.hash).catch((err) => {
+        loading.done[name] = false;
+        show_error(err);
+      });
     }
     // we eval them in a well defined order: i.e. fill, then css, then vendor?, ...
     const names = Object.keys(code);
@@ -259,16 +299,17 @@ async function load_assets(data) {
       if (asset_names.indexOf(n) == -1) throw new Error(`unknown asset ${n}`);
     });
     await names.forEach(async (name) => {
-      await eval(await code[name]);
-      loading.done[name] = true;
-      show_loading();
-      await delay(1);
+      const source_code = await code[name];
+      if (loading.err != null) return;
+      if (typeof source_code === "string") {
+        loading.done[name] = true;
+        await show_loading();
+        await eval(source_code);
+      } else {
+        loading.done[name] = false;
+      }
     });
   } catch (err) {
-    // TODO most likely, load_asset failed. We tell the user about this.
-    loading.err = `Error: ${err.message.status}: ${err.message.statusText}`;
-    show_loading();
-    await delay(10);
-    window.stop(); // stops javascript
+    show_error(err);
   }
 }
