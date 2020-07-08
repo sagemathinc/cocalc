@@ -16,6 +16,8 @@ The URI schema is as follows:
         https://cocalc.com/settings/billing
      Upgrades:
         https://cocalc.com/settings/upgrades
+     Licenes:
+        https://cocalc.com/settings/licenses
      Support:
         https://cocalc.com/settings/support
      Projects page:
@@ -125,7 +127,7 @@ export function load_target(
       if (!logged_in) {
         return;
       }
-      redux.getActions("page").set_active_tab("account", change_history);
+      redux.getActions("page").set_active_tab("account", false);
 
       if (segments[1] === "account") {
         redux.getActions("account").set_active_tab("account");
@@ -138,6 +140,10 @@ export function load_target(
 
       if (segments[1] === "upgrades") {
         redux.getActions("account").set_active_tab("upgrades");
+      }
+
+      if (segments[1] === "licenses") {
+        redux.getActions("account").set_active_tab("licenses");
       }
 
       if (segments[1] === "support") {
@@ -187,7 +193,13 @@ export function parse_target(
   | { page: "project"; target: string }
   | {
       page: "account";
-      tab: "account" | "billing" | "upgrades" | "support" | "ssh-keys";
+      tab:
+        | "account"
+        | "billing"
+        | "upgrades"
+        | "licenses"
+        | "support"
+        | "ssh-keys";
     }
   | {
       page: "notifications";
@@ -209,6 +221,7 @@ export function parse_target(
         case "account":
         case "billing":
         case "upgrades":
+        case "licenses":
         case "support":
         case "ssh-keys":
           return {
@@ -217,6 +230,7 @@ export function parse_target(
               | "account"
               | "billing"
               | "upgrades"
+              | "licenses"
               | "support"
               | "ssh-keys",
           };
