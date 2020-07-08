@@ -6,7 +6,7 @@
 # This should be the last code run on client application startup.
 
 $               = window.$
-{webapp_client} = require('./webapp_client')
+{webapp_client} = require('./webapp-client')
 {redux}         = require('./app-framework')
 misc            = require('smc-util/misc')
 

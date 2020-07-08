@@ -30,8 +30,8 @@ import { SSHPanel } from "./ssh";
 import { Environment } from "./environment";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 
-const { webapp_client } = require("../../webapp_client");
-const { Col, Row } = require("react-bootstrap");
+import { webapp_client } from "../../webapp-client";
+import { Col, Row } from "react-bootstrap";
 
 interface ReactProps {
   project_id: string;

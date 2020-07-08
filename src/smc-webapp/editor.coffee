@@ -24,7 +24,7 @@ message = require('smc-util/message')
 
 _ = underscore = require('underscore')
 
-{webapp_client} = require('./webapp_client')
+{webapp_client} = require('./webapp-client')
 {EventEmitter}  = require('events')
 {alert_message} = require('./alerts')
 {project_tasks} = require('./project_tasks')

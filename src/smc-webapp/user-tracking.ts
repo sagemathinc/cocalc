@@ -49,11 +49,6 @@ export async function user_tracking(
   value: object
 ): Promise<void> {
   // console.log("user_tracking", event, value);
-  /* const { webapp_client } = require("./webapp_client");
-  if (webapp_client == null) {
-    console.warn("webapp_client not available");
-    return;
-  }*/
   try {
     await webapp_client.tracking_client.user_tracking(event, value);
   } catch (err) {

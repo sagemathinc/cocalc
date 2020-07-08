@@ -17,7 +17,7 @@ misc                 = require('smc-util/misc')
 misc_page         = require('../misc_page')
 message           = require('smc-util/message')
 markdown          = require('../markdown')
-{webapp_client}   = require('../webapp_client')
+{webapp_client}   = require('../webapp-client')
 {redux}           = require('../app-framework')
 {alert_message}   = require('../alerts')
 

@@ -8,7 +8,7 @@ import { JupyterStore, initial_jupyter_store_state } from "../../jupyter/store";
 
 import { syncdb2 as new_syncdb } from "../generic/client";
 
-const { webapp_client } = require("../../webapp_client");
+import { webapp_client } from "../../webapp-client";
 import { meta_file } from "smc-util/misc";
 import { alert_message } from "../../alerts";
 

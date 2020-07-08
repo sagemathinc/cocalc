@@ -14,7 +14,7 @@ import { Map } from "immutable";
 import { redux, Actions, Store } from "../app-framework";
 import { reuse_in_flight_methods } from "smc-util/async-utils";
 import { server_minutes_ago, server_time } from "smc-util/misc";
-const { webapp_client } = require("../webapp_client");
+import { webapp_client } from "../webapp-client";
 import { StripeClient } from "../client/stripe";
 
 import { BillingStoreState } from "./store";

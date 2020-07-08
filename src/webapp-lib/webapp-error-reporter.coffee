@@ -79,7 +79,7 @@ sendError = (opts) ->
     opts.uptime      = misc.get_uptime()
     opts.start_time  = misc.get_start_time_ts()
     if DEBUG then console.info('error reporter sending:', opts)
-    {webapp_client} = require('smc-webapp/webapp_client')
+    {webapp_client} = require('smc-webapp/webapp-client')
     webapp_client.tracking_client.webapp_error(opts)
 
 # neat trick to get a stacktrace when there is none

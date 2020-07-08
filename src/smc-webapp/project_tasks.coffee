@@ -8,7 +8,7 @@
 # They do not fit into the CQRS pattern in project_store.coffee and hence
 # do not modify the state in the project store.
 
-{webapp_client}      = require('./webapp_client')
+{webapp_client}      = require('./webapp-client')
 {alert_message}      = require('./alerts')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
