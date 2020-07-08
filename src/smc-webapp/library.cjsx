@@ -12,7 +12,7 @@ os_path        = require('path')
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, Fragment}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Well, SplitButton, MenuItem, Alert, ListGroup, ListGroupItem} = require('react-bootstrap')
 {Markdown, Space, TimeAgo, ErrorDisplay, Icon, Loading, TimeAgo, Tip, Space, SearchInput} = require('./r_misc')
-{webapp_client} = require('./webapp_client')
+{webapp_client} = require('./webapp-client')
 {COLORS}        = require('smc-util/theme')
 
 # used for some styles

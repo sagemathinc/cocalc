@@ -9,8 +9,8 @@ Session management
 Initially only the simplest possible client-side implementation.
 */
 
-const { throttle } = require("underscore");
-const { webapp_client } = require("./webapp_client");
+import { throttle } from "underscore";
+import { webapp_client } from "./webapp-client";
 const misc_page = require("./misc_page");
 import { AppRedux } from "./app-framework";
 import { COCALC_MINIMAL } from "./fullscreen";

@@ -9,7 +9,7 @@ it's sort of complicated to just switch to throttle.  Do so.
 
 */
 
-const { webapp_client } = require("../webapp_client");
+import { webapp_client } from "../webapp-client";
 
 const misc = require("smc-util/misc");
 

@@ -5,9 +5,10 @@
 
 import { fromJS, List as iList, Map as iMap } from "immutable";
 import { Store } from "../app-framework";
-const { webapp_client } = require("../webapp_client");
-const misc = require("smc-util/misc");
-const { sha1 } = require("smc-util/schema").client_db;
+import { webapp_client } from "../webapp-client";
+import { cmp, max } from "smc-util/misc";
+import { client_db } from "smc-util/schema";
+const { sha1 } = client_db;
 
 export interface FileUseState {
   errors?: iList<string>;
@@ -108,7 +109,7 @@ export class FileUseStore extends Store<FileUseState> {
         you_last_read = user.last_read;
         you_last_chatseen = user.chatseen != null ? user.chatseen : 0;
       } else {
-        other_newest_edit_or_chat = misc.max([
+        other_newest_edit_or_chat = max([
           other_newest_edit_or_chat,
           user.last_edited,
           user.chat != null ? user.chat : 0,
@@ -117,7 +118,7 @@ export class FileUseStore extends Store<FileUseState> {
       v.push(user);
     }
     // sort users by their edit/chat time
-    v.sort((a, b) => misc.cmp(b.last_edited, a.last_edited));
+    v.sort((a, b) => cmp(b.last_edited, a.last_edited));
     y.users = v;
     y.newest_chat = newest_chat;
     if (y.last_edited == null) {
@@ -261,7 +262,7 @@ export class FileUseStore extends Store<FileUseState> {
         w2.push(a);
       }
     }
-    const c = (a, b) => misc.cmp(b.last_edited, a.last_edited);
+    const c = (a, b) => cmp(b.last_edited, a.last_edited);
     w0.sort(c);
     w1.sort(c);
     w2.sort(c);

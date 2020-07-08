@@ -12,7 +12,7 @@ async = require('async')
 
 misc = require('smc-util/misc')
 
-{webapp_client} = require('./webapp_client')
+{webapp_client} = require('./webapp-client')
 {redux} = require('./app-framework')
 {FileEditor, codemirror_session_editor} = require('./editor')
 

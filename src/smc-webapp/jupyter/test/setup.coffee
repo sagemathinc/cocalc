@@ -32,7 +32,7 @@ exports.setup = (cb) ->
     smc_react.redux.getProjectStore(project_id)
 
     # Initialize/reset the testing client that the synctables connect to.
-    {webapp_client} = require('../../webapp_client')
+    {webapp_client} = require('../../webapp-client')
     global.webapp_client = webapp_client
     webapp_client.reset()
 

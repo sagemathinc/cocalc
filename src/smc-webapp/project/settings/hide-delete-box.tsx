@@ -8,7 +8,7 @@ import { Project } from "./types";
 import { Icon, SettingBox, DeletedProjectWarning } from "smc-webapp/r_misc";
 import { Button, Well, Alert, ButtonToolbar, Row, Col } from "react-bootstrap";
 import { ProjectsActions } from "smc-webapp/todo-types";
-const { webapp_client } = require("../../webapp_client");
+import { webapp_client } from "../../webapp-client";
 import { HelpEmailLink } from "../../customize";
 
 interface Props {
@@ -61,6 +61,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
   }
 
   hide_message(): JSX.Element {
+    if (!webapp_client.account_id) return <span>Must be signed in.</span>;
     const user = this.props.project.getIn(["users", webapp_client.account_id]);
     if (user == undefined) {
       return <span>Does not make sense for admin.</span>;
@@ -109,10 +110,13 @@ export class HideDeleteBox extends React.Component<Props, State> {
   }
 
   render_expanded_delete_info(): JSX.Element {
-    const has_upgrades = this.user_has_applied_upgrades(
-      webapp_client.account_id,
-      this.props.project
-    );
+    const has_upgrades =
+      webapp_client.account_id == null
+        ? false
+        : this.user_has_applied_upgrades(
+            webapp_client.account_id,
+            this.props.project
+          );
     return (
       <Well style={{ textAlign: "center" }}>
         {has_upgrades ? (
@@ -142,6 +146,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
   }
 
   render(): JSX.Element {
+    if (!webapp_client.account_id) return <span>Must be signed in.</span>;
     const user = this.props.project.getIn(["users", webapp_client.account_id]);
     if (user == undefined) {
       return <span>Does not make sense for admin.</span>;
