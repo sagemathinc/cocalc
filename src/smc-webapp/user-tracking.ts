@@ -3,10 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/*
- * lic
- */
-
 // Provide a typescript-friendly stable interface to user_tracking, so
 // client code doesn't have to import webapp_client everywhere, and we can
 // completely change this if we want.
