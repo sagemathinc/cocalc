@@ -43,9 +43,9 @@ export const RadioGroup: React.FC<Props> = ({
       >
         <span style={{ fontSize: "12pt" }}>
           {x.icon && (
-            <>
+            <span style={{ display: "inline-block", width: "25px" }}>
               <Icon name={x.icon} />{" "}
-            </>
+            </span>
           )}
           <b>{x.label}</b>
           {x.cost ? ` (${x.cost})` : undefined}

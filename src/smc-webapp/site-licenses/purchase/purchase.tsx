@@ -49,7 +49,7 @@ interface Props {
 
 export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   const [user, set_user] = useState<User | undefined>(undefined);
-  const [upgrade, set_upgrade] = useState<Upgrade>("medium");
+  const [upgrade, set_upgrade] = useState<Upgrade>("standard");
   const [quantity, set_quantity] = useState<number | undefined>(1);
   const [subscription, set_subscription] = useState<Subscription>("monthly");
 
@@ -134,67 +134,51 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     );
   }
 
-  function render_upgrade() {
+  function render_project_type() {
     if (user == null) return;
 
     return (
       <div>
         <br />
-        <h4>Project Size</h4>
+        <h4>Type of Projects</h4>
         <RadioGroup
           disabled={disabled}
           options={[
             {
               icon: "battery-2",
-              label: "Small",
-              value: "small",
+              label: "Standard",
+              value: "standard",
               desc: "use basic notebooks and documents",
-              //"member hosting, internet access, 30 minutes idle timeout, 3GB disk space",
               cost: `${money(
                 COSTS.sub_discount[subscription] *
                   COSTS.user_discount[user] *
-                  COSTS.base_cost["small"]
+                  COSTS.base_cost["standard"]
               )}/month per project`,
             },
             {
               icon: "battery-3",
-              label: "Medium",
-              value: "medium",
+              label: "Premium",
+              value: "premium",
               desc:
                 "use several bigger notebooks and documents, and run longer computations",
-              //"member hosting, internet access, 4 hours idle timeout, 5GB disk space, 2GB shared RAM and 2 shared vCPUs, ",
               cost: `${money(
                 COSTS.sub_discount[subscription] *
                   COSTS.user_discount[user] *
-                  COSTS.base_cost["medium"]
+                  COSTS.base_cost["premium"]
               )}/month per project`,
             },
             {
               icon: "battery-4",
-              label: "Large",
-              value: "large",
+              label: "Professional",
+              value: "professional",
               desc:
                 "use many notebooks at once with multiple cpu's, and leave computations running for a day unattended",
-              // "premium hosting, internet access, 24 hours idle timeout, 15GB disk space, 4GB shared RAM, 3 shared vCPU's",
               cost: `${money(
                 COSTS.sub_discount[subscription] *
                   COSTS.user_discount[user] *
-                  COSTS.base_cost["large"]
+                  COSTS.base_cost["professional"]
               )}/month per project`,
             },
-            /*{
-              icon: "battery-4",
-              label: "Professional",
-              value: "pro",
-              desc:
-                "use many large notebooks at once with multiple cpu's, and leave computations running for days unattended",
-              // "premium hosting, internet access, 24 hours idle timeout, 15GB disk space, 4GB shared RAM, 3 shared vCPU's",
-              cost: `${money(
-                COSTS.sub_discount[subscription] *
-                  COSTS.user_discount[user] *
-                  COSTS.base_cost["pro"]
-              )}/month per project`,
-            },*/
           ]}
           onChange={(e) => set_upgrade(e.target.value)}
           value={upgrade}
@@ -245,6 +229,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           disabled={disabled}
           options={[
             {
+              icon: "calendar-alt",
               label: "Monthly subscription",
               value: "monthly",
               desc: `pay once per month (${Math.round(
@@ -252,6 +237,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               )}% discount)`,
             },
             {
+              icon: "calendar-check",
               label: "Yearly subscription",
               value: "yearly",
               desc: `pay once per year (${Math.round(
@@ -321,7 +307,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     if (discounted_cost < cost) {
       desc = (
         <>
-          <span style={{ textDecoration: "line-through" }}>{money(cost)}</span>{" "}
+          <span style={{ textDecoration: "line-through" }}>{money(cost)}</span>
+          {" or "}
           {money(discounted_cost)}
           {subscription != "no" ? " " + subscription : ""}, if you purchase
           online now ({percent_discount(cost, discounted_cost)}% off!)
@@ -534,8 +521,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     >
       {render_error()}
       {render_user()}
-      {render_upgrade()}
       {render_quantity()}
+      {render_project_type()}
       {render_subscription()}
       {render_date()}
       {render_cost()}

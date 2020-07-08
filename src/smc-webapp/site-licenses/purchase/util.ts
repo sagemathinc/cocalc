@@ -4,7 +4,7 @@
  */
 
 export type User = "academic" | "business";
-export type Upgrade = "small" | "medium" | "large" | "pro";
+export type Upgrade = "standard" | "premium" | "professional";
 export type Subscription = "no" | "monthly" | "yearly";
 
 export interface PurchaseInfo {
@@ -27,7 +27,7 @@ export interface PurchaseInfo {
 // and admin site settings.  It must be something that we can change at any time,
 // and that somebody else selling cocalc would set differently.
 
-const ACADEMIC_DISCOUNT = 0.6;
+const ACADEMIC_DISCOUNT = 0.5;
 export const COSTS: {
   user_discount: { [user in User]: number };
   sub_discount: { [sub in Subscription]: number };
@@ -37,15 +37,14 @@ export const COSTS: {
   base_cost: { [upgrade in Upgrade]: number };
 } = {
   user_discount: { academic: ACADEMIC_DISCOUNT, business: 1 },
-  sub_discount: { no: 1, monthly: 1, yearly: 0.85 },
+  sub_discount: { no: 1, monthly: 0.9, yearly: 0.8 },
   online_discount: 0.75,
   min_quote: 100,
   min_sale: 7,
   base_cost: {
-    small: 8 / ACADEMIC_DISCOUNT,
-    medium: 16 / ACADEMIC_DISCOUNT,
-    large: 24 / ACADEMIC_DISCOUNT,
-    pro: 36 / ACADEMIC_DISCOUNT,
+    standard: 16,
+    premium: 16*4,
+    professional: 16*8,
   },
 } as const;
 
@@ -83,9 +82,14 @@ export function percent_discount(
 }
 
 export function money(n: number): string {
-  return new Intl.NumberFormat(undefined, {
+  let s = new Intl.NumberFormat(undefined, {
     style: "currency",
     currency: "USD",
     minimumFractionDigits: 0,
   }).format(n);
+  const i = s.indexOf('.')
+  if (i == s.length - 2) {
+    s += '0'
+  }
+  return 'USD ' + s;
 }
