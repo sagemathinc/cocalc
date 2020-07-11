@@ -1846,11 +1846,29 @@ class ProjectClient extends EventEmitter
             cb(err, address)
         )
 
+
+    address: (opts) =>
+        opts = defaults opts,
+            cb : required
+        dbg = @dbg("address-2")
+        dbg()
+        @_synctable?.connect()
+        @_address (err, address) =>
+            if not address and not err
+                err = "failed to get address"
+            dbg(err)  # do not log the address since maybe it's a more complicated object with the secret token? TODO
+            opts.cb(err, address)
+
+    # The following "reuse in flight" version keeps hanging on cc-in-cc dev
+    # and possibly on cocalc-docker (?), so I'm trying disabling it in favor
+    # of the above.  I think it's just an optimization anyways.
+
+    ###
     # This will keep trying for up to 5 minutes to get the address, with exponential
     # decay backing off up to 15s between attempts.
     # If/when it works, the returned address object will definitely have the
     # host, port and secret_token set.
-    # In some cases it will ip set, which should be
+    # In some cases it will also have the ip set, which should be
     # preferred to host.
     address: (opts) =>
         opts = defaults opts,
@@ -1879,6 +1897,7 @@ class ProjectClient extends EventEmitter
                 delete @_address_cbs
                 for cb in v
                     cb(err, address)
+    ###
 
     copy_path: (opts) =>
         opts = defaults opts,
