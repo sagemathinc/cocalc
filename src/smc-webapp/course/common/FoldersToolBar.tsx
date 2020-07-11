@@ -252,7 +252,7 @@ class MultipleAddSearch extends Component<
           autoFocus={true}
           ref="search_input"
           default_value=""
-          placeholder={`Add ${this.props.item_name} by folder name (enter to see available folders)...`}
+          placeholder={`Add or create ${this.props.item_name} by directory name...`}
           on_submit={(search) => {
             this.props.do_search(search);
             this.search = search;

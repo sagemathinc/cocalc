@@ -773,13 +773,13 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         key="open"
         title={
           <span>
-            <Icon name="folder-open-o" /> Open assignment
+            <Icon name="folder-open-o" /> Open Directory
           </span>
         }
-        tip="Open the folder in the current project that contains the original files for this assignment.  Edit files in this folder to create the content that your students will see when they receive an assignment."
+        tip="Open the directory in the current project that contains the original files for this assignment.  Edit files in this folder to create the content that your students will see when they receive an assignment."
       >
         <Button onClick={this.open_assignment_path}>
-          <Icon name="folder-open-o" /> Open
+          <Icon name="folder-open-o" /> Open directory...
         </Button>
       </Tip>
     );
