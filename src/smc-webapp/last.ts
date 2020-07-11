@@ -6,7 +6,10 @@
 // This should be the last code run on client application startup.
 
 declare var $: any;
-declare var MathJax : any;
+declare var MathJax: any;
+declare var MATHJAX_URL: string;
+declare var SMC_GIT_REV: string;
+
 import { webapp_client } from "./webapp-client";
 import { wrap_log } from "smc-util/misc";
 import { get_browser, IS_MOBILE, IS_TOUCH } from "./feature";
@@ -54,15 +57,22 @@ $(function () {
     $(parent).trigger("initialize:frame");
   } catch (error) {}
 
-  // mathjax startup. config is set above, now we dynamically insert the mathjax script URL
-  const mjscript = document.createElement("script");
-  mjscript.type = "text/javascript";
-  mjscript.src = (window as any).MATHJAX_URL;
-  mjscript.onload = function () {
-    // once loaded, we finalize the configuration and process pending rendering requests
-    MathJax.Hub?.Queue([mathjax_finish_startup]);
-  };
-  document.getElementsByTagName("head")[0].appendChild(mjscript);
+  if (!MATHJAX_URL) {
+    // This global variable MATHJAX_URL should be set by Webpack.
+    console.log(
+      "WARNING: MathJax rendering fallback is NOT enabled.  Only katex rendering is available for math formulas!"
+    );
+  } else {
+    // mathjax startup. config is set above, now we dynamically insert the mathjax script URL
+    const mjscript = document.createElement("script");
+    mjscript.type = "text/javascript";
+    mjscript.src = MATHJAX_URL;
+    mjscript.onload = function () {
+      // once loaded, we finalize the configuration and process pending rendering requests
+      MathJax.Hub?.Queue([mathjax_finish_startup]);
+    };
+    document.getElementsByTagName("head")[0].appendChild(mjscript);
+  }
 
   // enable logging
   wrap_log();
@@ -81,7 +91,7 @@ $(function () {
         get_browser(),
         IS_MOBILE,
         IS_TOUCH,
-        (window as any).SMC_GIT_REV ?? "N/A"
+        SMC_GIT_REV ?? "N/A"
       )
       .set(1);
     const initialization_time_gauge = prom_client.new_gauge(
