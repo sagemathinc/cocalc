@@ -34,7 +34,7 @@ type State = "init" | "ready" | "closed";
 interface Listing {
   path: string;
   project_id?: string;
-  listing?: PathEntry[];
+  listing?: List<ImmutablePathEntry>;
   time?: Date;
   interest?: Date;
   missing?: number;
@@ -427,6 +427,24 @@ export class Listings extends EventEmitter {
       if (exception) throw err;
       return true;
     }
+  }
+
+  // Returns the realpath if path is a **known symlink and the realpath
+  // is also known**; otherwise, returns the input path.  This is used to
+  // open the original file rather than a symlink, as a convenience to
+  // avoid weird potential confusion, e.g., not seeing other user cursors,
+  // or Jupyter overwriting other Jupyter:
+  //   https://github.com/sagemathinc/cocalc/issues/4732
+  public get_realpath(path: string): string | undefined {
+    const { head, tail } = path_split(path);
+    const listing = this.get_record(head)?.get("listing");
+    if (listing == null) return path;
+    for (const x of listing) {
+      if (x.get("name") == tail) {
+        return x.get("realpath") ?? path;
+      }
+    }
+    return path;
   }
 }
 

@@ -103,7 +103,8 @@ export class FileListing extends React.Component<Props> {
     display_name,
     public_data,
     issymlink,
-    index: number
+    index: number,
+    realpath?: string  // if given, is a known symlink to this file
   ): Rendered {
     let color;
     const checked = this.props.checked_files.has(
@@ -164,6 +165,7 @@ export class FileListing extends React.Component<Props> {
           actions={this.props.actions}
           no_select={this.props.shift_is_down}
           public_view={this.props.public_view}
+          realpath={realpath}
         />
       );
     }
@@ -181,7 +183,8 @@ export class FileListing extends React.Component<Props> {
       a.display_name,
       a.public,
       a.issymlink,
-      index
+      index,
+      a.realpath
     );
   }
 

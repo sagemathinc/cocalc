@@ -17,20 +17,18 @@ Use ?random= or ?time= if you're worried about cacheing.
 Browser client code only uses this through the websocket anyways.
 */
 
-import { lstat, stat, readdir, Dirent, Stats } from "fs";
+import { lstat, stat, readdir, realpath, Dirent, Stats } from "fs";
 
 import { callback } from "awaiting";
 
 // SMC_LOCAL_HUB_HOME is used for developing cocalc inside cocalc...
-const HOME =
-  process.env.SMC_LOCAL_HUB_HOME != null
-    ? process.env.SMC_LOCAL_HUB_HOME
-    : process.env.HOME;
+const HOME = process.env.SMC_LOCAL_HUB_HOME ?? process.env.HOME;
 
 export interface ListingEntry {
   name: string;
   isdir?: boolean;
   issymlink?: boolean;
+  realpath?: string; // set if issymlink is true and we're able to determine the realpath.
   size?: number; // bytes for file, number of entries for directory (*including* . and ..).
   mtime?: number;
   error?: string;
@@ -63,6 +61,18 @@ export async function get_listing(
       let stats: Stats;
       if (file.isSymbolicLink()) {
         entry.issymlink = true;
+        try {
+          let rpath = await callback(realpath, dir + "/" + entry.name);
+          if (rpath.startsWith(HOME + "/")) {
+            rpath = rpath.slice((HOME + "/").length);
+          }
+          entry.realpath = rpath;
+        } catch (err) {
+          // If we don't know the realpath for some reason, then nothing
+          // involving the file will work anyways:
+          // E.g., for broken symlinks or links to a destination
+          // where user doesn't have permissions.
+        }
       }
       try {
         stats = await callback(stat, dir + "/" + entry.name);
