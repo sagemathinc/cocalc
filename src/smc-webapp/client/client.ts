@@ -163,7 +163,11 @@ class Client extends EventEmitter implements WebappClient {
     this.time_client = bind_methods(new TimeClient(this));
     this.account_client = bind_methods(new AccountClient(this));
     this.project_client = bind_methods(new ProjectClient(this));
+
     this.sync_client = bind_methods(new SyncClient(this));
+    this.sync_string = this.sync_client.sync_string;
+    this.sync_db = this.sync_client.sync_db;
+
     this.admin_client = bind_methods(
       new AdminClient(this.async_call.bind(this))
     );

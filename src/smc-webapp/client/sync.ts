@@ -11,7 +11,6 @@ import { callback2 } from "smc-util/async-utils";
 import { once } from "smc-util/async-utils";
 import { is_valid_uuid_string, merge } from "smc-util/misc2";
 import { defaults, required } from "smc-util/misc";
-
 import { SyncDoc, SyncOpts0 } from "smc-util/sync/editor/generic/sync-doc";
 interface SyncOpts extends Omit<SyncOpts0, "client"> {}
 
@@ -24,7 +23,7 @@ import {
   SyncTable,
   Query,
   QueryOptions,
-  synctable_no_changefeed
+  synctable_no_changefeed,
 } from "smc-util/sync/table";
 
 import { synctable_project } from "../project/websocket/synctable";
@@ -177,4 +176,5 @@ export class SyncClient {
     const f = `sync_${doctype.type}`;
     return (this as any)[f](opts2);
   }
+
 }

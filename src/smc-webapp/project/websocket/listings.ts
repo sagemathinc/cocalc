@@ -25,6 +25,7 @@ interface PathEntry {
   mtime: number;
   size: number;
   isdir?: boolean;
+  link_target?: string;
 }
 
 type ImmutablePathEntry = TypedMap<PathEntry>;
@@ -34,7 +35,7 @@ type State = "init" | "ready" | "closed";
 interface Listing {
   path: string;
   project_id?: string;
-  listing?: PathEntry[];
+  listing?: List<ImmutablePathEntry>;
   time?: Date;
   interest?: Date;
   missing?: number;

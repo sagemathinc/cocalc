@@ -275,6 +275,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     }
 
     student_add_button() {
+      if (this.state.add_search?.trim().length == 0) return;
       const icon = this.state.add_searching ? (
         <Icon name="cc-icon-cocalc-ring" spin />
       ) : (
@@ -388,7 +389,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       }
       const options = this.get_add_selector_options();
       return (
-        <FormGroup>
+        <FormGroup style={{ margin: "5px 0 15px 15px" }}>
           <FormControl
             componentClass="select"
             multiple
@@ -398,7 +399,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           >
             {options}
           </FormControl>
-          <div style={{ marginTop: "15px" }}>
+          <div style={{ marginTop: "5px" }}>
             {this.render_cancel()}
             <Space />
             {this.render_add_selector_button(options)}
@@ -561,7 +562,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       // using inline styles to undo the spacing screwups they cause, so it doesn't
       // look like total crap.
       return (
-        <div style={{ borderBottom: "1px solid #e5e5e5" }}>
+        <div>
           <Row>
             <Col md={6}>
               <SearchInput
@@ -581,23 +582,28 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
                 horizontal
                 style={{ marginLeft: "15px" }}
               >
-                <Col md={18}>
-                  <FormGroup style={{ marginRight: "15px" }}>
-                    <FormControl
-                      ref="student_add_input"
-                      componentClass="textarea"
-                      placeholder="Add students by name or email address..."
-                      value={this.state.add_search}
-                      onChange={() => this.student_add_input_onChange()}
-                      onKeyDown={(e) => this.student_add_input_onKeyDown(e)}
-                    />
-                  </FormGroup>
-                </Col>
-                <Col md={6}>
-                  <InputGroup.Button>
-                    {this.student_add_button()}
-                  </InputGroup.Button>
-                </Col>
+                <Row>
+                  <Col md={18}>
+                    <FormGroup style={{ margin: "0 0 5px 0" }}>
+                      <FormControl
+                        ref="student_add_input"
+                        componentClass="textarea"
+                        placeholder="Add students by name or email address..."
+                        value={this.state.add_search}
+                        onChange={() => this.student_add_input_onChange()}
+                        onKeyDown={(e) => this.student_add_input_onKeyDown(e)}
+                      />
+                    </FormGroup>
+                  </Col>
+                  <Col md={6}>
+                    <div style={{ marginLeft: "15px", width: "100%" }}>
+                      <InputGroup.Button>
+
+    {this.student_add_button()}
+                      </InputGroup.Button>
+                    </div>
+                  </Col>
+                </Row>
               </Form>
               {this.render_add_selector()}
             </Col>

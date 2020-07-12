@@ -181,6 +181,10 @@ export class API {
     return await this.call({ cmd: "eval_code", code }, timeout_ms);
   }
 
+  async realpath(path: string): Promise<string> {
+    return await this.call({ cmd: "realpath", path }, 15000);
+  }
+
   async terminal(path: string, options: object = {}): Promise<Channel> {
     const channel_name = await this.call(
       {

@@ -17,27 +17,25 @@ Use ?random= or ?time= if you're worried about cacheing.
 Browser client code only uses this through the websocket anyways.
 */
 
-import { lstat, stat, readdir, Dirent, Stats } from "fs";
+import { lstat, stat, readdir, readlink, Dirent, Stats } from "fs";
 
 import { callback } from "awaiting";
 
 // SMC_LOCAL_HUB_HOME is used for developing cocalc inside cocalc...
-const HOME =
-  process.env.SMC_LOCAL_HUB_HOME != null
-    ? process.env.SMC_LOCAL_HUB_HOME
-    : process.env.HOME;
+const HOME = process.env.SMC_LOCAL_HUB_HOME ?? process.env.HOME;
 
 export interface ListingEntry {
   name: string;
   isdir?: boolean;
   issymlink?: boolean;
+  link_target?: string; // set if issymlink is true and we're able to determine the target of the link
   size?: number; // bytes for file, number of entries for directory (*including* . and ..).
   mtime?: number;
   error?: string;
 }
 
 export async function get_listing(
-  path: string,
+  path: string, // assumed in home directory!
   hidden: boolean = false
 ): Promise<ListingEntry[]> {
   const dir = HOME + "/" + path;
@@ -61,8 +59,15 @@ export async function get_listing(
 
     try {
       let stats: Stats;
-      if (file.isSymbolicLink()) {
-        entry.issymlink = true;
+      entry.issymlink = file.isSymbolicLink();
+      if (entry.issymlink) {
+        // at least right now we only use this symlink stuff to display
+        // information to the user in a listing, and nothing else.
+        try {
+          entry.link_target = await callback(readlink, dir + "/" + entry.name);
+        } catch (err) {
+          // If we don't know the link target for some reason; just ignore this.
+        }
       }
       try {
         stats = await callback(stat, dir + "/" + entry.name);

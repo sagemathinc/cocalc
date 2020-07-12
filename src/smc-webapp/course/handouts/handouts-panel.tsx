@@ -1173,8 +1173,8 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
       <ButtonGroup key="open_recopy">
         {this.render_open_recopy_confirm(name, copy, copy_tip)}
         <Button key="open" onClick={open}>
-          <Tip title="Open handout" tip={open_tip}>
-            <Icon name="folder-open-o" /> Open
+          <Tip title="Open Directory" tip={open_tip}>
+            <Icon name="folder-open-o" /> Open directory...
           </Tip>
         </Button>
       </ButtonGroup>

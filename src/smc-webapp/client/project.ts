@@ -412,4 +412,11 @@ export class ProjectClient {
   public async disconnect_hub_from_project(project_id: string): Promise<void> {
     await this.call(message.disconnect_from_project({ project_id }));
   }
+
+  public async realpath(opts: {
+    project_id: string;
+    path: string;
+  }): Promise<string> {
+    return (await this.api(opts.project_id)).realpath(opts.path);
+  }
 }
