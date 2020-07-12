@@ -17,7 +17,7 @@ Use ?random= or ?time= if you're worried about cacheing.
 Browser client code only uses this through the websocket anyways.
 */
 
-import { lstat, stat, readdir, realpath, Dirent, Stats } from "fs";
+import { lstat, stat, readdir, readlink, Dirent, Stats } from "fs";
 
 import { callback } from "awaiting";
 
@@ -28,14 +28,14 @@ export interface ListingEntry {
   name: string;
   isdir?: boolean;
   issymlink?: boolean;
-  realpath?: string; // set if issymlink is true and we're able to determine the realpath.
+  link_target?: string; // set if issymlink is true and we're able to determine the target of the link
   size?: number; // bytes for file, number of entries for directory (*including* . and ..).
   mtime?: number;
   error?: string;
 }
 
 export async function get_listing(
-  path: string,
+  path: string, // assumed in home directory!
   hidden: boolean = false
 ): Promise<ListingEntry[]> {
   const dir = HOME + "/" + path;
@@ -59,19 +59,14 @@ export async function get_listing(
 
     try {
       let stats: Stats;
-      if (file.isSymbolicLink()) {
-        entry.issymlink = true;
+      entry.issymlink = file.isSymbolicLink();
+      if (entry.issymlink) {
+        // at least right now we only use this symlink stuff to display
+        // information to the user in a listing, and nothing else.
         try {
-          let rpath = await callback(realpath, dir + "/" + entry.name);
-          if (rpath.startsWith(HOME + "/")) {
-            rpath = rpath.slice((HOME + "/").length);
-          }
-          entry.realpath = rpath;
+          entry.link_target = await callback(readlink, dir + "/" + entry.name);
         } catch (err) {
-          // If we don't know the realpath for some reason, then nothing
-          // involving the file will work anyways:
-          // E.g., for broken symlinks or links to a destination
-          // where user doesn't have permissions.
+          // If we don't know the link target for some reason; just ignore this.
         }
       }
       try {

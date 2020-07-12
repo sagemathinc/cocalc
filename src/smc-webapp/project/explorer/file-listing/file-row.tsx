@@ -17,6 +17,7 @@ const misc = require("smc-util/misc");
 const { project_tasks } = require("../../../project_tasks");
 
 interface Props {
+  isdir: boolean;
   name: string;
   display_name: string; // if given, will display this, and will show true filename in popover
   size: number; // sometimes is NOT known!
@@ -32,7 +33,7 @@ interface Props {
   actions: ProjectActions;
   no_select: boolean;
   public_view: boolean;
-  realpath?: string;
+  link_target?: string;
 }
 
 export const FileRow: React.FC<Props> = React.memo((props) => {
@@ -42,33 +43,53 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
   ] = useState<string | undefined>(undefined);
 
   function render_icon() {
-    // get the file_associations[ext] just like it is defined in the editor
-    let name: string;
-    const { file_options } = require("../../../editor");
-    const info = file_options(props.name);
-    if (info != undefined) {
-      name = info.icon;
-    } else {
-      name = "file";
-    }
-    const style = {
+    const style: React.CSSProperties = {
       color: props.mask ? "#bbbbbb" : undefined,
       verticalAlign: "sub",
-    };
-    return (
-      <a style={style}>
-        <Icon name={name} style={{ fontSize: "14pt" }} />
-      </a>
-    );
+    } as const;
+    let body: JSX.Element;
+    if (props.isdir) {
+      body = (
+        <>
+          <Icon
+            name="folder-open-o"
+            style={{ fontSize: "14pt", verticalAlign: "sub" }}
+          />
+          <Icon
+            name="caret-right"
+            style={{
+              marginLeft: "3px",
+              fontSize: "14pt",
+              verticalAlign: "sub",
+            }}
+          />
+        </>
+      );
+    } else {
+      // get the file_associations[ext] just like it is defined in the editor
+      let name: string;
+      const { file_options } = require("../../../editor");
+      const info = file_options(props.name);
+      if (info != undefined) {
+        name = info.icon;
+      } else {
+        name = "file";
+      }
+
+      body = <Icon name={name} style={{ fontSize: "14pt" }} />;
+    }
+
+    return <a style={style}>{body}</a>;
   }
 
-  function render_realpath() {
-    if (props.realpath == null || props.realpath == props.name) return;
+  function render_link_target() {
+    if (props.link_target == null || props.link_target == props.name) return;
     return (
-      <span>
+      <>
         {" "}
-        ( <Icon name="arrow-right" /> {props.realpath}){" "}
-      </span>
+        <Icon name="arrow-right" style={{ margin: "0 10px" }} />{" "}
+        {props.link_target}{" "}
+      </>
     );
   }
 
@@ -81,7 +102,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
         <span style={{ color: !props.mask ? "#999" : undefined }}>
           {ext === "" ? "" : `.${ext}`}
         </span>
-        {render_realpath()}
+        {render_link_target()}
       </a>
     );
   }
@@ -155,14 +176,18 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       // the click to do the selection triggering opening of the file.
       return;
     }
-
-    const foreground = misc.should_open_in_foreground(e);
-    props.actions.open_file({
-      path: full_path(),
-      foreground,
-    });
-    if (foreground) {
+    if (props.isdir) {
+      props.actions.open_directory(full_path());
       props.actions.set_file_search("");
+    } else {
+      const foreground = misc.should_open_in_foreground(e);
+      props.actions.open_file({
+        path: full_path(),
+        foreground,
+      });
+      if (foreground) {
+        props.actions.set_file_search("");
+      }
     }
   }
 
@@ -245,10 +270,14 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       </Col>
       <Col sm={4} smPush={5} xs={6}>
         {render_timestamp()}
-        <span className="pull-right" style={{ color: "#666" }}>
-          {misc.human_readable_size(props.size)}
-          {render_download_button(url_href)}
-        </span>
+        {props.isdir ? (
+          <DirectorySize size={props.size} />
+        ) : (
+          <span className="pull-right" style={{ color: "#666" }}>
+            {misc.human_readable_size(props.size)}
+            {render_download_button(url_href)}
+          </span>
+        )}
       </Col>
       <Col sm={5} smPull={4} xs={12}>
         {render_name()}
@@ -256,3 +285,20 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     </Row>
   );
 });
+
+const directory_size_style: React.CSSProperties = {
+  color: "#666",
+  marginRight: "3em",
+} as const;
+
+function DirectorySize({ size }) {
+  if (size == undefined) {
+    return null;
+  }
+
+  return (
+    <span className="pull-right" style={directory_size_style}>
+      {size} {misc.plural(size, "item")}
+    </span>
+  );
+}

@@ -32,6 +32,7 @@ import { syncdoc_call } from "../sync/sync-doc";
 import { get_configuration } from "../configuration";
 import { delete_files } from "./delete-files";
 import { rename_file, move_files } from "./move-files";
+import { realpath } from "./realpath";
 
 export function init_websocket_api(
   primus: any,
@@ -136,6 +137,8 @@ async function handle_api_call(
       return await syncdoc_call(data.path, logger, data.mesg);
     case "symmetric_channel":
       return await browser_symmetric_channel(client, primus, logger, data.name);
+    case "realpath":
+      return realpath(data.path);
     default:
       throw Error(
         `command "${data.cmd}" not implemented -- restart your project (in Project --> Settings)`

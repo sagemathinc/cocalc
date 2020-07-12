@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// Implement the open_file actions.
+// Implement the open_file actions for opening one single file in a project.
 
 import { callback, delay } from "awaiting";
 import {
@@ -63,6 +63,27 @@ export async function open_file(
     anchor: undefined,
   });
   opts.path = normalize(opts.path);
+  try {
+    // Unfortunately (it adds a roundtrip to the server), we **have** to do this
+    // due to https://github.com/sagemathinc/cocalc/issues/4732 until we actually
+    // genuinely implement symlink support.  Otherwise bad things happen.  Much of
+    // cocalc was implemented basically assuming links don't exist; it's not easy
+    // to change that!
+    const realpath = await webapp_client.project_client.realpath({
+      project_id: actions.project_id,
+      path: opts.path,
+    });
+    if (opts.path != realpath) {
+      alert_message({
+        type: "info",
+        message: `Opening realpath "${realpath}" instead, since filesystem links are not fully supported.`,
+        timeout: 15,
+      });
+      opts.path = realpath;
+    }
+  } catch (_) {
+    // TODO: old projects will not have the new realpath api call -- can delete this try/catch at some point.
+  }
   const ext = filename_extension_notilde(opts.path).toLowerCase();
 
   // intercept any requests if in kiosk mode
