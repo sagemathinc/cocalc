@@ -823,8 +823,9 @@ ${details}
     // type = assigned, collected, graded, peer-assigned, peer-collected
     switch (type) {
       case "assigned":
-        await this.has_student_subdir(assignment_id); // make sure this is up to date
-        // create_due_date_file = true
+        // make sure listing is up to date, since it sets "has_student_subdir",
+        // which impacts the distribute semantics.
+        await this.update_listing(assignment_id);
         await this.copy_assignment_to_student(assignment_id, student_id, {
           create_due_date_file: true,
         });
@@ -859,7 +860,7 @@ ${details}
       new_only ? "who have not already received it" : ""
     }`;
     const short_desc = "copy to student";
-    await this.has_student_subdir(assignment_id); // make sure this is up to date
+    await this.update_listing(assignment_id); // make sure this is up to date
     if (this.course_actions.is_closed()) return;
     await this.copy_assignment_create_due_date_file(assignment_id);
     if (this.course_actions.is_closed()) return;
@@ -1272,28 +1273,44 @@ ${details}
     });
   }
 
-  // Update the database to properly reflect whether or not the assignment
-  // directory currently has a STUDENT_SUBDIR/ subdirectory.
-  // If there is a STUDENT_SUBDIR/, we also check heuristically if
-  // nbgrader is probably being used.
-  public async has_student_subdir(assignment_id: string): Promise<void> {
+  // Update datastore with directory listing of non-hidden content of the assignment.
+  // This also sets whether or not there is a STUDENT_SUBDIR directory.
+  public async update_listing(assignment_id: string): Promise<void> {
     const { store, assignment } = this.course_actions.resolve({
       assignment_id,
     });
     if (assignment == null) return;
     const project_id = store.get("course_project_id");
-    const command = "stat";
     const path = assignment.get("path");
-    const args = ["-c", "%F", path + "/" + STUDENT_SUBDIR];
-    const r = await exec({
-      project_id,
-      command,
-      args,
-      err_on_exit: false,
+    if (project_id == null || path == null) return;
+    let listing;
+    try {
+      const { files } = await webapp_client.project_client.directory_listing({
+        project_id,
+        path,
+        hidden: false,
+      });
+      listing = files;
+    } catch (err) {
+      // This might happen, e.g., if the assignment directory is deleted or user messes
+      // with permissions...
+      // In this case, just give up.
+      return;
+    }
+    if (listing == null || this.course_actions.is_closed()) return;
+    this.course_actions.set({
+      listing,
+      assignment_id,
+      table: "assignments",
     });
-    if (this.course_actions.is_closed()) return;
 
-    const has_student_subdir = r != null && r.stdout.trim() == "directory";
+    let has_student_subdir: boolean = false;
+    for (const entry of listing) {
+      if (entry.isdir && entry.name == STUDENT_SUBDIR) {
+        has_student_subdir = true;
+        break;
+      }
+    }
     const nbgrader = has_student_subdir
       ? await this.probably_uses_nbgrader(assignment, project_id)
       : false;

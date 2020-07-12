@@ -779,7 +779,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         tip="Open the directory in the current project that contains the original files for this assignment.  Edit files in this folder to create the content that your students will see when they receive an assignment."
       >
         <Button onClick={this.open_assignment_path}>
-          <Icon name="folder-open-o" /> Open directory...
+          <Icon name="folder-open-o" /> Open...
         </Button>
       </Tip>
     );
@@ -791,7 +791,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     const assignment_id: string | undefined = this.props.assignment.get(
       "assignment_id"
     );
-    actions.assignments.has_student_subdir(assignment_id);
+    actions.assignments.update_listing(assignment_id);
   }
 
   render_assignment_button(status) {
@@ -1603,10 +1603,14 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   render_assignment_name() {
+    const items = this.props.assignment.get("listing")?.size ?? 0;
     return (
       <span>
         {misc.trunc_middle(this.props.assignment.get("path"), 80)}
         {this.props.assignment.get("deleted") ? <b> (deleted)</b> : undefined}
+        {items > 0
+          ? `  (${items} items)`
+          : "  (please add content to this assignment)"}
       </span>
     );
   }
@@ -1617,7 +1621,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         href=""
         onClick={(e) => {
           e.preventDefault();
-          return this.get_actions().toggle_item_expansion(
+          this.get_actions().toggle_item_expansion(
             "assignment",
             this.props.assignment.get("assignment_id")
           );

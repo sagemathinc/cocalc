@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { DirectoryListingEntry } from "smc-util/types";
+
 import { NotebookScores } from "../jupyter/nbgrader/autograde";
 
 export interface SyncDBRecordBase {
@@ -28,6 +30,7 @@ export interface SyncDBRecordAssignment {
   assignment_id?: string;
   note?: string;
   has_student_subdir?: boolean; // True if assignment has a STUDENT_SUBDIR subdir (so only that subdir is sent to students)
+  listing?: DirectoryListingEntry[];
   nbgrader?: boolean; // Very likely to be using nbgrader for this assignment (heuristic: existence of foo.ipynb and student/foo.ipynb)
   description?: string;
   title?: string;

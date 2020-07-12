@@ -22,7 +22,7 @@ interface Props {
   display_name: string; // if given, will display this, and will show true filename in popover
   size: number; // sometimes is NOT known!
   time: number;
-  issymlink: boolean; // TODO: actually use
+  issymlink: boolean;
   checked: boolean;
   bordered: boolean;
   color: string;

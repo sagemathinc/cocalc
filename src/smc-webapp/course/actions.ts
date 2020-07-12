@@ -364,6 +364,11 @@ export class CourseActions extends Actions<CourseState> {
       adjusted = expanded_items.delete(item_id);
     } else {
       adjusted = expanded_items.add(item_id);
+      if (item_name == "assignment") {
+        // for assignments, whenever show more details also update the directory listing,
+        // since various things that get rendered in the expanded view depend on an updated listing.
+        this.assignments.update_listing(item_id);
+      }
     }
     this.setState({ [field_name]: adjusted });
   }
