@@ -67,7 +67,7 @@ export function compute_cost(info: PurchaseInfo): number {
   } else if (subscription == "yearly") {
     cost *= 12;
   }
-  return Math.max(COSTS.min_sale, cost);
+  return Math.max(COSTS.min_sale/COSTS.online_discount, cost);
 }
 
 export function compute_discounted_cost(cost: number): number {

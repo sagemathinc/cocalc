@@ -148,7 +148,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               icon: "battery-2",
               label: "Standard",
               value: "standard",
-              desc: "use basic notebooks and documents",
+              desc:
+                "support, member hosting, internet access, 3GB disk space (removes the red warning banner)",
               cost: `${money(
                 COSTS.sub_discount[subscription] *
                   COSTS.user_discount[user] *
@@ -157,26 +158,13 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             },
             {
               icon: "battery-3",
-              label: "Premium",
+              label: "Custom",
               value: "premium",
-              desc:
-                "use several bigger notebooks and documents, and run longer computations",
+              desc: "customize your RAM, CPU, disk space and idle timeout",
               cost: `${money(
                 COSTS.sub_discount[subscription] *
                   COSTS.user_discount[user] *
                   COSTS.base_cost["premium"]
-              )}/month per project`,
-            },
-            {
-              icon: "battery-4",
-              label: "Professional",
-              value: "professional",
-              desc:
-                "use many notebooks at once with multiple cpu's, and leave computations running for a day unattended",
-              cost: `${money(
-                COSTS.sub_discount[subscription] *
-                  COSTS.user_discount[user] *
-                  COSTS.base_cost["professional"]
               )}/month per project`,
             },
           ]}
