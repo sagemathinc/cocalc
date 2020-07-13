@@ -162,6 +162,12 @@ export class NBGraderActions {
     actions.jupyter_actions.syncdb.from_str(
       this.jupyter_actions.syncdb.to_str()
     );
+    // Important: we also have to fire a changes event with all
+    // records, since otherwise the Jupyter store doesn't get
+    // updated since we're using from_str.
+    // The complicated map/filter thing below is just to grab
+    // only the {type:?,id:?} parts of all the records.
+    actions.jupyter_actions.syncdb.emit("change", "all");
     await actions.jupyter_actions.save();
     await actions.jupyter_actions.nbgrader_actions.apply_assign_transformations();
     await actions.jupyter_actions.save();
