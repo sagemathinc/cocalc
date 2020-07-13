@@ -19,17 +19,25 @@ import * as moment from "moment";
 import { webapp_client } from "../../webapp-client";
 import { CSS, React, useMemo, useState } from "../../app-framework";
 const { RangePicker } = DatePicker;
-import { ErrorDisplay } from "../../r_misc";
+import { ErrorDisplay, Space } from "../../r_misc";
 import { PurchaseMethod } from "./purchase-method";
 import { RadioGroup } from "./radio-group";
 import { plural } from "smc-util/misc2";
+
+const LENGTH_PRESETS = [
+  { label: "1 Week", desc: { n: 7, key: "days" } },
+  { label: "1 Month", desc: { n: 1, key: "months" } },
+  { label: "3 Months", desc: { n: 3, key: "months" } },
+  { label: "4 Months", desc: { n: 4, key: "months" } },
+  { label: "1 Year", desc: { n: 1, key: "years" } },
+] as const;
 
 const radioStyle: CSS = {
   display: "block",
   height: "30px",
   lineHeight: "30px",
   fontWeight: "inherit", // this is to undo what react-bootstrap does to the labels.
-};
+} as const;
 
 import {
   User,
@@ -232,13 +240,25 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
                 (1 - COSTS.sub_discount["yearly"]) * 100
               )}% discount)`,
             },
-            { label: "Specific period of time", value: "no" },
+            {
+              icon: "calendar-times-o",
+              label: "Specific period of time",
+              value: "no",
+            },
           ]}
           onChange={(e) => set_subscription(e.target.value)}
           value={subscription}
           radioStyle={radioStyle}
         />
       </div>
+    );
+  }
+
+  function set_end_date(x): void {
+    set_end(
+      moment(start)
+        .add(x.n as any, x.key)
+        .toDate()
     );
   }
 
@@ -254,10 +274,16 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       // range of dates: start date -- end date
       // TODO: use "midnight UTC", or should we just give a day grace period on both ends (?).
       const value = [moment(start), moment(end)];
+      const presets: JSX.Element[] = [];
+      for (const { label, desc } of LENGTH_PRESETS) {
+        presets.push(
+          <Button onClick={() => set_end_date(desc)}>{label}</Button>
+        );
+      }
       return (
         <div style={{ marginLeft: "30px" }}>
           <br />
-          <h5>Start and End Dates</h5>
+          <h5>Start and end dates</h5>
           <RangePicker
             disabled={disabled}
             value={value as any}
@@ -267,6 +293,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               set_end(value[1].toDate());
             }}
           />
+          <Space />
+          <Button.Group>{presets}</Button.Group>
         </div>
       );
     } else {
