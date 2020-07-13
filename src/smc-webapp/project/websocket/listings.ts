@@ -16,19 +16,12 @@ import { deleted_file_variations } from "smc-util/delete-files";
 import { exec, query } from "../../frame-editors/generic/client";
 
 import { get_directory_listing } from "../directory-listing";
+import { DirectoryListingEntry } from "smc-util/types";
 
 import { WATCH_TIMEOUT_MS } from "smc-util/db-schema/listings";
 export const WATCH_THROTTLE_MS = WATCH_TIMEOUT_MS / 2;
 
-interface PathEntry {
-  name: string;
-  mtime: number;
-  size: number;
-  isdir?: boolean;
-  link_target?: string;
-}
-
-type ImmutablePathEntry = TypedMap<PathEntry>;
+type ImmutablePathEntry = TypedMap<DirectoryListingEntry>;
 
 type State = "init" | "ready" | "closed";
 
@@ -92,7 +85,7 @@ export class Listings extends EventEmitter {
     });
   }
 
-  public async get(path: string): Promise<PathEntry[] | undefined> {
+  public async get(path: string): Promise<DirectoryListingEntry[] | undefined> {
     if (this.state != "ready") {
       try {
         const listing = await this.get_using_database(path);
@@ -236,7 +229,7 @@ export class Listings extends EventEmitter {
 
   public async get_using_database(
     path: string
-  ): Promise<PathEntry[] | undefined> {
+  ): Promise<DirectoryListingEntry[] | undefined> {
     const q = await query({
       query: {
         listings: {
@@ -259,7 +252,7 @@ export class Listings extends EventEmitter {
       ?.get("missing");
   }
 
-  public async get_listing_directly(path: string): Promise<PathEntry[]> {
+  public async get_listing_directly(path: string): Promise<DirectoryListingEntry[]> {
     const store = redux.getStore("projects");
     // make sure that our relationship to this project is known.
     if (store == null) throw Error("bug");

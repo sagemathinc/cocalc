@@ -510,7 +510,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         </Col>
         <Col xs={22}>
           <DateTimePicker
-            placeholder={"Set Assignment Due Date"}
+            placeholder={"Set Due Date"}
             value={this.props.assignment.get("due_date")}
             onChange={this.date_change}
           />
@@ -619,7 +619,18 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     );
   }
 
-  render_more_header() {
+  render_no_content() {
+    return (
+      <div style={{ margin: "15px auto", maxWidth: "800px", fontSize: "12pt" }}>
+        There are no files in this assignment yet. Please{" "}
+        <a onClick={this.open_assignment_path}>open the directory</a> for this
+        assignment, then create, upload, or copy any content you want into that
+        directory. You will then be able to send it to all of your students.
+      </div>
+    );
+  }
+
+  render_more_header(num_files: number) {
     let width;
     const status:
       | AssignmentStatus
@@ -684,84 +695,108 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     } else {
       width = 6;
     }
-    const buttons: ReactElement<any>[] = [];
-    const insert_grade_button = (key: string) => {
-      const b2 = this.render_skip_grading_button(status);
-      return buttons.push(
-        <Col md={width} key={key}>
-          {this.render_nbgrader_button(status)}
-          {b2}
-        </Col>
-      );
-    };
 
-    for (const name of STEPS(peer)) {
-      const b = this[`render_${name}_button`](status);
-      // squeeze in the skip grading button (don't add it to STEPS!)
-      if (!peer && name === "return_graded") {
-        insert_grade_button("skip_grading");
-      }
-      if (b != null) {
-        buttons.push(
-          <Col md={width} key={name}>
-            {b}
+    if (num_files > 0) {
+      const buttons: ReactElement<any>[] = [];
+      const insert_grade_button = (key: string) => {
+        const b2 = this.render_skip_grading_button(status);
+        return buttons.push(
+          <Col md={width} key={key}>
+            {this.render_nbgrader_button(status)}
+            {b2}
           </Col>
         );
-        if (peer && name === "peer_collect") {
-          insert_grade_button("skip_peer_collect");
+      };
+
+      for (const name of STEPS(peer)) {
+        const b = this[`render_${name}_button`](status);
+        // squeeze in the skip grading button (don't add it to STEPS!)
+        if (!peer && name === "return_graded") {
+          insert_grade_button("skip_grading");
+        }
+        if (b != null) {
+          buttons.push(
+            <Col md={width} key={name}>
+              {b}
+            </Col>
+          );
+          if (peer && name === "peer_collect") {
+            insert_grade_button("skip_peer_collect");
+          }
         }
       }
+
+      v.push(
+        <Row key="header-control">
+          <Col md={20} offset={4} key="buttons">
+            <Row>{buttons}</Row>
+          </Col>
+        </Row>
+      );
+
+      v.push(
+        <Row key="header2-copy">
+          <Col md={20} offset={4}>
+            {this.render_copy_confirms(status)}
+          </Col>
+        </Row>
+      );
     }
-
-    v.push(
-      <Row key="header-control">
-        <Col md={20} offset={4} key="buttons">
-          <Row>{buttons}</Row>
-        </Col>
-      </Row>
-    );
-
-    v.push(
-      <Row key="header2-copy">
-        <Col md={20} offset={4}>
-          {this.render_copy_confirms(status)}
-        </Col>
-      </Row>
-    );
-
     return v;
   }
 
   render_more() {
+    const num_files = this.props.assignment.get("listing")?.size ?? 0;
+    let body;
+    if (num_files == 0) {
+      body = this.render_no_content();
+    } else {
+      body = (
+        <>
+          <StudentListForAssignment
+            redux={this.props.redux}
+            frame_id={this.props.frame_id}
+            name={this.props.name}
+            assignment={this.props.assignment}
+            students={this.props.students}
+            user_map={this.props.user_map}
+            active_student_sort={this.props.active_student_sort}
+            active_feedback_edits={this.props.active_feedback_edits}
+            nbgrader_run_info={this.props.nbgrader_run_info}
+          />
+          {this.render_note()}
+          <br />
+          <hr />
+          <br />
+          {this.render_export_file_use_times()}
+          <br />
+          {this.render_export_assignment()}
+        </>
+      );
+    }
     return (
       <Row key="more">
         <Col sm={24}>
-          <Card title={this.render_more_header()}>
-            <StudentListForAssignment
-              redux={this.props.redux}
-              frame_id={this.props.frame_id}
-              name={this.props.name}
-              assignment={this.props.assignment}
-              students={this.props.students}
-              user_map={this.props.user_map}
-              active_student_sort={this.props.active_student_sort}
-              active_feedback_edits={this.props.active_feedback_edits}
-              nbgrader_run_info={this.props.nbgrader_run_info}
-            />
-            {this.render_note()}
-            <br />
-            <hr />
-            <br />
-            {this.render_export_file_use_times()}
-            <br />
-            {this.render_export_assignment()}
-          </Card>
+          <Card title={this.render_more_header(num_files)}> {body}</Card>
         </Col>
       </Row>
     );
   }
 
   open_assignment_path = () => {
+    if (this.props.assignment.get("listing")?.size == 0) {
+      // there are no files yet, so we *close* the assignment
+      // details panel.  This is just **a hack** so that the user
+      // has to re-open it after adding files, which will trigger
+      // updating the directory listing, hence show the rest
+      // of the assignment info.  The alternative would be
+      // polling the directory or watching listings, which is
+      // a lot more work to properly implement.
+      this.get_actions().toggle_item_expansion(
+        "assignment",
+        this.props.assignment.get("assignment_id")
+      );
+    }
     return redux
       .getProjectActions(this.props.project_id)
       .open_directory(this.props.assignment.get("path"));
@@ -1603,14 +1638,12 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   render_assignment_name() {
-    const items = this.props.assignment.get("listing")?.size ?? 0;
+    const num_items = this.props.assignment.get("listing")?.size ?? 0;
     return (
       <span>
         {misc.trunc_middle(this.props.assignment.get("path"), 80)}
         {this.props.assignment.get("deleted") ? <b> (deleted)</b> : undefined}
-        {items > 0
-          ? `  (${items} items)`
-          : "  (please add content to this assignment)"}
+        {num_items == 0 ? "  - add content to this assignment..." : undefined}
       </span>
     );
   }
