@@ -7,7 +7,7 @@ import { Component, React, Rendered } from "../app-framework";
 import { Map } from "immutable";
 import { webapp_client } from "../webapp-client";
 import { Checkbox, Panel } from "../antd-bootstrap";
-import { InputNumber } from "antd";
+import { Card, InputNumber } from "antd";
 import { IS_MOBILE, IS_TOUCH } from "../feature";
 import {
   A,
@@ -16,13 +16,11 @@ import {
   LabeledRow,
   Loading,
   SelectorInput,
-  Space,
 } from "../r_misc";
 import { NEW_FILENAMES } from "smc-util/db-schema";
 import { NewFilenameFamilies, NewFilenames } from "../project/utils";
-import { get_dark_mode_config } from "./dark-mode";
+import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
 import { set_account_table } from "./util";
-import { debounce } from "lodash";
 
 interface Props {
   other_settings: Map<string, any>;
@@ -185,6 +183,7 @@ export class OtherSettings extends Component<Props> {
   private render_dark_mode(): Rendered {
     const checked = !!this.props.other_settings.get("dark_mode");
     const config = get_dark_mode_config(this.props.other_settings);
+    const label_style = { width: "100px", display: "inline-block" } as const;
     return (
       <div>
         <Checkbox
@@ -208,42 +207,39 @@ export class OtherSettings extends Component<Props> {
           )
         </Checkbox>
         {checked && (
-          <>
-            DARK READER Brightness:{" "}
+          <Card size="small" title="Dark Mode Configuration">
+            <span style={label_style}>Brightness</span>
             <InputNumber
-              min={1}
+              min={dark_mode_mins.brightness}
               max={100}
               value={config.brightness}
-              onChange={debounce(
-                (x) => this.on_change("dark_mode_brightness", x),
-                2000
-              )}
+              onChange={(x) => this.on_change("dark_mode_brightness", x)}
             />
-            <Space />
-            <Space />
-            Contrast:{" "}
+            <br />
+            <span style={label_style}>Contrast</span>
             <InputNumber
-              min={1}
+              min={dark_mode_mins.contrast}
               max={100}
               value={config.contrast}
-              onChange={debounce(
-                (x) => this.on_change("dark_mode_contrast", x),
-                2000
-              )}
+              onChange={(x) => this.on_change("dark_mode_contrast", x)}
             />
-            <Space />
-            <Space />
-            Sepia:{" "}
+            <br />
+            <span style={label_style}>Sepia</span>
             <InputNumber
-              min={1}
+              min={dark_mode_mins.sepia}
               max={100}
               value={config.sepia}
-              onChange={debounce(
-                (x) => this.on_change("dark_mode_sepia", x),
-                2000
-              )}
+              onChange={(x) => this.on_change("dark_mode_sepia", x)}
             />
-          </>
+            <br />
+            <span style={label_style}>Grayscale</span>
+            <InputNumber
+              min={dark_mode_mins.grayscale}
+              max={100}
+              value={config.grayscale}
+              onChange={(x) => this.on_change("dark_mode_grayscale", x)}
+            />
+          </Card>
         )}
       </div>
     );
