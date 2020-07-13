@@ -7,6 +7,7 @@ import { Component, React, Rendered } from "../app-framework";
 import { Map } from "immutable";
 import { webapp_client } from "../webapp-client";
 import { Checkbox, Panel } from "../antd-bootstrap";
+import { InputNumber } from "antd";
 import { IS_MOBILE, IS_TOUCH } from "../feature";
 import {
   A,
@@ -15,11 +16,13 @@ import {
   LabeledRow,
   Loading,
   SelectorInput,
+  Space,
 } from "../r_misc";
 import { NEW_FILENAMES } from "smc-util/db-schema";
 import { NewFilenameFamilies, NewFilenames } from "../project/utils";
-
+import { get_dark_mode_config } from "./dark-mode";
 import { set_account_table } from "./util";
+import { debounce } from "lodash";
 
 interface Props {
   other_settings: Map<string, any>;
@@ -180,21 +183,69 @@ export class OtherSettings extends Component<Props> {
   }
 
   private render_dark_mode(): Rendered {
+    const checked = !!this.props.other_settings.get("dark_mode");
+    const config = get_dark_mode_config(this.props.other_settings);
     return (
-      <Checkbox
-        checked={!!this.props.other_settings.get("dark_mode")}
-        onChange={(e) => this.on_change("dark_mode", e.target.checked)}
-        style={{
-          color: "rgba(229, 224, 216, 0.65)",
-          backgroundColor: "rgb(36, 37, 37)",
-          marginLeft: "-5px",
-          padding: "5px",
-          borderRadius: "3px",
-        }}
-      >
-        Dark mode: reduce eye strain by showing a dark background (via{" "}
-        <A href="https://darkreader.org/">Dark Reader</A>)
-      </Checkbox>
+      <div>
+        <Checkbox
+          checked={checked}
+          onChange={(e) => this.on_change("dark_mode", e.target.checked)}
+          style={{
+            color: "rgba(229, 224, 216, 0.65)",
+            backgroundColor: "rgb(36, 37, 37)",
+            marginLeft: "-5px",
+            padding: "5px",
+            borderRadius: "3px",
+          }}
+        >
+          Dark mode: reduce eye strain by showing a dark background (via{" "}
+          <A
+            style={{ color: "#e96c4d", fontWeight: 700 }}
+            href="https://darkreader.org/"
+          >
+            DARK READER
+          </A>
+          )
+        </Checkbox>
+        {checked && (
+          <>
+            DARK READER Brightness:{" "}
+            <InputNumber
+              min={1}
+              max={100}
+              value={config.brightness}
+              onChange={debounce(
+                (x) => this.on_change("dark_mode_brightness", x),
+                2000
+              )}
+            />
+            <Space />
+            <Space />
+            Contrast:{" "}
+            <InputNumber
+              min={1}
+              max={100}
+              value={config.contrast}
+              onChange={debounce(
+                (x) => this.on_change("dark_mode_contrast", x),
+                2000
+              )}
+            />
+            <Space />
+            <Space />
+            Sepia:{" "}
+            <InputNumber
+              min={1}
+              max={100}
+              value={config.sepia}
+              onChange={debounce(
+                (x) => this.on_change("dark_mode_sepia", x),
+                2000
+              )}
+            />
+          </>
+        )}
+      </div>
     );
   }
 
