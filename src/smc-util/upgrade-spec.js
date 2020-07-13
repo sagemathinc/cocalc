@@ -21,7 +21,7 @@ const upgrades = (exports.upgrades = {});
 // these are the base quotas
 exports.DEFAULT_QUOTAS = {
   disk_quota: 3000,
-  cores: 1,
+  cores: 1.5,
   cpu_shares: 0,
   memory: 3000,
   memory_request: 0,
