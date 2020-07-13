@@ -18,34 +18,24 @@ Browser client code only uses this through the websocket anyways.
 */
 
 import { lstat, stat, readdir, readlink, Dirent, Stats } from "fs";
-
 import { callback } from "awaiting";
+import { DirectoryListingEntry } from "./smc-util/types";
 
 // SMC_LOCAL_HUB_HOME is used for developing cocalc inside cocalc...
 const HOME = process.env.SMC_LOCAL_HUB_HOME ?? process.env.HOME;
 
-export interface ListingEntry {
-  name: string;
-  isdir?: boolean;
-  issymlink?: boolean;
-  link_target?: string; // set if issymlink is true and we're able to determine the target of the link
-  size?: number; // bytes for file, number of entries for directory (*including* . and ..).
-  mtime?: number;
-  error?: string;
-}
-
 export async function get_listing(
   path: string, // assumed in home directory!
   hidden: boolean = false
-): Promise<ListingEntry[]> {
+): Promise<DirectoryListingEntry[]> {
   const dir = HOME + "/" + path;
-  const files: ListingEntry[] = [];
+  const files: DirectoryListingEntry[] = [];
   let file: Dirent;
   for (file of await callback(readdir, dir, { withFileTypes: true })) {
     if (!hidden && file.name[0] === ".") {
       continue;
     }
-    let entry: ListingEntry;
+    let entry: DirectoryListingEntry;
     try {
       // I don't actually know if file.name can fail to be JSON-able with node.js -- is there
       // even a string in Node.js that cannot be dumped to JSON?  With python
@@ -59,7 +49,10 @@ export async function get_listing(
 
     try {
       let stats: Stats;
-      entry.issymlink = file.isSymbolicLink();
+      if (file.isSymbolicLink()) {
+        // Optimization: don't explicitly set issymlink if it is false
+        entry.issymlink = true;
+      }
       if (entry.issymlink) {
         // at least right now we only use this symlink stuff to display
         // information to the user in a listing, and nothing else.

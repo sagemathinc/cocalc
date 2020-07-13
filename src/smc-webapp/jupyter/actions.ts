@@ -553,7 +553,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const do_init = this.is_project && this._state === "init";
     let cell_list_needs_recompute = false;
 
-    if (this.store.get("cells") == null) {
+    if (changes == "all" || this.store.get("cells") == null) {
+      // changes == 'all' is used by nbgrader to set the state...
       // First time initialization, rather than some small
       // update.  We could use the same code, e.g.,
       // calling syncdb_cell_change, but that SCALES HORRIBLY
@@ -603,8 +604,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         }
       });
 
-      this.setState({ cells });
-      cell_list_needs_recompute = true;
+      this.setState({ cells, cell_list: cell_utils.sorted_cell_list(cells) });
+      cell_list_needs_recompute = false;
     } else {
       changes.forEach((key) => {
         const type: string = key.get("type");
