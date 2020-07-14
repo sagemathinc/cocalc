@@ -19,7 +19,7 @@ export function PathNavigator({
 }): JSX.Element {
   const current_path = useTypedRedux({ project_id }, "current_path");
   const history_path = useTypedRedux({ project_id }, "history_path");
-  const actions = useActions(project_id);
+  const actions = useActions({project_id});
 
   function make_path(): JSX.Element[] {
     const v: JSX.Element[] = [];

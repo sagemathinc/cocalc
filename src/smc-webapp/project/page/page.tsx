@@ -50,7 +50,7 @@ interface Props {
 }
 
 export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
-  const actions = useActions(project_id);
+  const actions = useActions({project_id});
   const is_deleted = useRedux([
     "projects",
     "project_map",
