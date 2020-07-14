@@ -57,11 +57,11 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   const [user, set_user] = useState<User | undefined>(undefined);
   const [upgrade, set_upgrade] = useState<Upgrade>("standard");
 
-  const [custom_ram, set_custom_ram] = useState<number>(COSTS.standard.ram);
-  const [custom_cpu, set_custom_cpu] = useState<number>(COSTS.standard.cpu);
-  const [custom_disk, set_custom_disk] = useState<number>(COSTS.standard.disk);
+  const [custom_ram, set_custom_ram] = useState<number>(COSTS.basic.ram);
+  const [custom_cpu, set_custom_cpu] = useState<number>(COSTS.basic.cpu);
+  const [custom_disk, set_custom_disk] = useState<number>(COSTS.basic.disk);
   const [custom_always_on, set_custom_always_on] = useState<boolean>(
-    !!COSTS.standard.always_on
+    !!COSTS.basic.always_on
   );
 
   const [quantity, set_quantity] = useState<number>(1);
@@ -180,6 +180,17 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           options={[
             {
               icon: "battery-1",
+              label: "Basic",
+              value: "basic",
+              desc: `priority support, network access, ${COSTS.basic.cpu} vCPU, ${COSTS.basic.ram}GB RAM, ${COSTS.basic.disk}GB disk space`,
+              cost: `${money(
+                COSTS.sub_discount[subscription] *
+                  COSTS.user_discount[user] *
+                  COSTS.basic_cost
+              )}/month per project`,
+            },
+            {
+              icon: "battery-2",
               label: "Standard",
               value: "standard",
               desc: `priority support, network access, ${COSTS.standard.cpu} vCPU, ${COSTS.standard.ram}GB RAM, ${COSTS.standard.disk}GB disk space`,
@@ -249,7 +260,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         <Row>
           <Col md={col_control}>
             <InputNumber
-              min={COSTS.standard.cpu}
+              min={COSTS.basic.cpu}
               max={COSTS.custom_max.cpu}
               value={custom_cpu}
               onChange={(x) => {
@@ -272,7 +283,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         <Row>
           <Col md={col_control}>
             <InputNumber
-              min={COSTS.standard.ram}
+              min={COSTS.basic.ram}
               max={COSTS.custom_max.ram}
               value={custom_ram}
               onChange={(x) => {
@@ -292,7 +303,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         <Row>
           <Col md={col_control}>
             <InputNumber
-              min={COSTS.standard.disk}
+              min={COSTS.basic.disk}
               max={COSTS.custom_max.disk}
               value={custom_disk}
               onChange={(x) => {
@@ -324,6 +335,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           </Col>
           <Col md={col_desc}>
             Project is always on (multiply price by{" "}
+            {COSTS.custom_cost.always_on}(multiply price by{" "}
             {COSTS.custom_cost.always_on}){" "}
             {render_explanation(
               "enable so your project is always running, you don't have to wait for it to start, and you can run long computations; otherwise, your project will stop after a while if it is not actively being used."
@@ -395,7 +407,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             },
             {
               icon: "calendar-times-o",
-              label: "Specific period of time",
+              label: "Custom",
+              desc: "specify the start and end dates (at least one week)",
               value: "no",
             },
           ]}
@@ -435,10 +448,13 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           </Button>
         );
       }
+      const n = moment(end).diff(moment(start), "days");
       return (
-        <div style={{ marginLeft: "30px" }}>
+        <div style={{ marginLeft: "60px" }}>
           <br />
-          <h5>Start and end dates (at least one week)</h5>
+          <h5>
+            Start and end dates ({n} {plural(n, "day")})
+          </h5>
           <RangePicker
             disabled={disabled}
             value={value as any}
@@ -455,7 +471,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     } else {
       // just the start date (default to today)
       return (
-        <div style={{ marginLeft: "30px" }}>
+        <div style={{ marginLeft: "60px" }}>
           <br />
           <h5>Start date</h5>
           <DatePicker
@@ -688,8 +704,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         <>
           <h3>Buy a license</h3>
           <span style={{ fontWeight: 350 }}>
-            Find out how much licenses cost, buy a license online, or get a
-            quote.
+            Buy licenses or request a quote.
           </span>
         </>
       }
