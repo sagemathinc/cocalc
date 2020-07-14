@@ -4,58 +4,53 @@
  */
 
 /*
-A banner across the top of a course that appears if the instructor is not paying in any way, so they
-know they should.
+A banner across the top of a course that appears if the instructor is not paying
+in any way, so they know they should.
+
+This banner only shows up if commerical is set for hub configuration.
 */
 
-import { Component, React, redux } from "../app-framework";
+import { CSS, React, useTypedRedux } from "../app-framework";
 
 import { Alert } from "antd";
 import { CourseSettingsRecord } from "./store";
-import { CourseActions } from "./actions";
 import { Icon, Space } from "../r_misc";
 
 interface PayBannerProps {
   settings: CourseSettingsRecord;
   num_students: number;
   tab: string;
-  name: string;
+  show_config: () => void;
 }
 
-export class PayBanner extends Component<PayBannerProps> {
-  shouldComponentUpdate(next) {
-    return (
-      this.props.settings !== next.settings ||
-      this.props.tab !== next.tab ||
-      this.props.num_students !== next.num_students
-    );
-  }
+export const PayBanner: React.FC<PayBannerProps> = React.memo(
+  ({ settings, num_students, tab, show_config }) => {
+    const is_commercial = useTypedRedux("customize", "is_commercial");
 
-  get_actions(): CourseActions {
-    return redux.getActions(this.props.name);
-  }
+    if (!is_commercial) {
+      return <></>;
+    }
 
-  paid() {
-    if ((this.props.num_students != null ? this.props.num_students : 0) <= 3) {
-      // don't bother at first
-      return true;
+    function paid(): boolean {
+      if ((num_students != null ? num_students : 0) <= 3) {
+        // don't bother at first
+        return true;
+      }
+      if (settings.get("student_pay")) {
+        return true;
+      }
+      if (settings.get("institute_pay")) {
+        return true;
+      }
+      return false;
     }
-    if (this.props.settings.get("student_pay")) {
-      return true;
-    }
-    if (this.props.settings.get("institute_pay")) {
-      return true;
-    }
-    return false;
-  }
 
-  render() {
-    let mesg, style;
-    if (this.paid()) {
+    if (paid()) {
       return <span />;
     }
 
-    if ((this.props.num_students != null ? this.props.num_students : 0) >= 20) {
+    let mesg: JSX.Element, style: CSS;
+    if ((num_students != null ? num_students : 0) >= 20) {
       // Show a harsh error.
       style = {
         background: "red",
@@ -72,7 +67,7 @@ export class PayBanner extends Component<PayBannerProps> {
       };
     }
 
-    if (this.props.tab === "configuration") {
+    if (tab === "configuration") {
       mesg = (
         <span>
           Please select either the student pay or institute pay option below.
@@ -81,8 +76,8 @@ export class PayBanner extends Component<PayBannerProps> {
     } else {
       mesg = (
         <span>
-          Please open the Configuration page for this course and select a pay
-          option.
+          Please open the <a onClick={show_config}>Configuration page</a> for
+          this course and select a pay option.
         </span>
       );
     }
@@ -105,4 +100,4 @@ export class PayBanner extends Component<PayBannerProps> {
       />
     );
   }
-}
+);

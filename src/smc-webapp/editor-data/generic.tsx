@@ -85,7 +85,7 @@ const DataGeneric: React.FC<Props> = React.memo((props) => {
 
   function render_docx() {
     if (ext !== "docx") return;
-    const pa = useActions(project_id);
+    const pa = useActions({project_id});
     return (
       <>
         <br />

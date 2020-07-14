@@ -35,7 +35,7 @@ export const ProjectSearchBody: React.FC<{ project_id: string }> = ({
     return user_input.trim() != "";
   }
 
-  const actions = useActions(project_id);
+  const actions = useActions({project_id});
 
   return (
     <Well>
@@ -97,7 +97,7 @@ export const ProjectSearchBody: React.FC<{ project_id: string }> = ({
 const ProjectSearchInput: React.FC<{ project_id: string }> = ({
   project_id,
 }) => {
-  const actions = useActions(project_id);
+  const actions = useActions({project_id});
   const user_input = useTypedRedux({ project_id }, "user_input");
 
   return (
@@ -199,7 +199,7 @@ const ProjectSearchOutput: React.FC<{ project_id: string }> = ({
 const ProjectSearchOutputHeader: React.FC<{ project_id: string }> = ({
   project_id,
 }) => {
-  const actions = useActions(project_id);
+  const actions = useActions({project_id});
   const info_visible = useTypedRedux({ project_id }, "info_visible");
   const search_error = useTypedRedux({ project_id }, "search_error");
   const search_results = useTypedRedux({ project_id }, "search_results");
@@ -272,7 +272,7 @@ const ProjectSearchResultLine: React.FC<{
   line_number: number;
   most_recent_path: string;
 }> = ({ project_id, filename, description, line_number, most_recent_path }) => {
-  const actions = useActions(project_id);
+  const actions = useActions({project_id});
 
   async function click_filename(e): Promise<void> {
     e.preventDefault();
