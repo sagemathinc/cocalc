@@ -24,7 +24,7 @@ exports.DEFAULT_QUOTAS = {
   cores: 1,
   cpu_shares: 0,
   memory: 3000,
-  memory_request: 0,
+  memory_request: 3000,
   mintime: 1800, // 30 minutes
   network: 0,
   member_host: 0,
