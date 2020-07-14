@@ -22,9 +22,9 @@ const upgrades = (exports.upgrades = {});
 exports.DEFAULT_QUOTAS = {
   disk_quota: 3000,
   cores: 1,
-  cpu_shares: 0,
+  cpu_shares: 1478,
   memory: 3000,
-  memory_request: 3000,
+  memory_request: 0,
   mintime: 1800, // 30 minutes
   network: 0,
   member_host: 0,
