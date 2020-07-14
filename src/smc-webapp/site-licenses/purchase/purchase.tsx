@@ -3,18 +3,17 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/* Purchasing a license
+/* Purchasing a license */
 
-   - [ ] User: Academic Individual,  or Business
-   - [ ] Upgrade: Basic, Standard, Premium (actual upgrades depend on user type)
-   - [ ] Quantity: How many simultaneously running projects can use this
-   - [ ] Duration: 1 day, 1 week, 1 month, 4 months, 1 year, 2 years
-   - [ ] Subscription: yes or no
-   - [ ] Start date:
-
-*/
-
-import { Button, Card, DatePicker, InputNumber } from "antd";
+import {
+  Button,
+  Card,
+  Checkbox,
+  DatePicker,
+  InputNumber,
+  Row,
+  Col,
+} from "antd";
 import * as moment from "moment";
 import { webapp_client } from "../../webapp-client";
 import { CSS, React, useMemo, useState } from "../../app-framework";
@@ -46,7 +45,6 @@ import {
   PurchaseInfo,
   COSTS,
   compute_cost,
-  compute_discounted_cost,
   money,
   percent_discount,
 } from "./util";
@@ -58,7 +56,15 @@ interface Props {
 export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   const [user, set_user] = useState<User | undefined>(undefined);
   const [upgrade, set_upgrade] = useState<Upgrade>("standard");
-  const [quantity, set_quantity] = useState<number | undefined>(1);
+
+  const [custom_ram, set_custom_ram] = useState<number>(COSTS.standard.ram);
+  const [custom_cpu, set_custom_cpu] = useState<number>(COSTS.standard.cpu);
+  const [custom_disk, set_custom_disk] = useState<number>(COSTS.standard.disk);
+  const [custom_always_on, set_custom_always_on] = useState<boolean>(
+    !!COSTS.standard.always_on
+  );
+
+  const [quantity, set_quantity] = useState<number>(1);
   const [subscription, set_subscription] = useState<Subscription>("monthly");
 
   const [start, set_start_state] = useState<Date>(new Date());
@@ -70,7 +76,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     moment().add(1, "month").toDate()
   );
   function set_end(date: Date) {
-    set_end_state(date <= start ? moment(start).add(1, "day").toDate() : date);
+    const next_week = moment(start).add(7, "day").toDate();
+    set_end_state(date <= next_week ? next_week : date);
   }
 
   const [quote, set_quote] = useState<boolean | undefined>(undefined);
@@ -89,23 +96,42 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     undefined
   );
 
-  const cost = useMemo<number | undefined>(() => {
+  const cost = useMemo<
+    | { cost: number; cost_per_project: number; discounted_cost: number }
+    | undefined
+  >(() => {
     if (
       upgrade == null ||
       user == null ||
       quantity == null ||
-      subscription == null ||
-      isNaN(quantity)
+      subscription == null
     ) {
       return undefined;
     }
-    return compute_cost({ quantity, user, upgrade, subscription, start, end });
-  }, [quantity, user, upgrade, subscription, start, end]);
-
-  const discounted_cost = useMemo<number | undefined>(() => {
-    if (cost == null) return undefined;
-    return compute_discounted_cost(cost);
-  }, [cost]);
+    return compute_cost({
+      quantity,
+      user,
+      upgrade,
+      subscription,
+      start,
+      end,
+      custom_ram,
+      custom_cpu,
+      custom_disk,
+      custom_always_on,
+    });
+  }, [
+    quantity,
+    user,
+    upgrade,
+    subscription,
+    start,
+    end,
+    custom_ram,
+    custom_cpu,
+    custom_disk,
+    custom_always_on,
+  ]);
 
   function render_error() {
     if (error == "") return;
@@ -115,7 +141,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   function render_user() {
     return (
       <div>
-        <h4>Academic or Commercial Use</h4>
+        <h4>Discount</h4>
         <RadioGroup
           options={[
             {
@@ -143,43 +169,167 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   }
 
   function render_project_type() {
-    if (user == null) return;
+    if (user == null || cost == null) return;
 
     return (
       <div>
         <br />
-        <h4>Type of Projects</h4>
+        <h4>Type</h4>
         <RadioGroup
           disabled={disabled}
           options={[
             {
-              icon: "battery-2",
+              icon: "battery-1",
               label: "Standard",
               value: "standard",
-              desc:
-                "support, member hosting, internet access, 3GB disk space (removes the red warning banner)",
+              desc: `priority support, network access, ${COSTS.standard.cpu} vCPU, ${COSTS.standard.ram}GB RAM, ${COSTS.standard.disk}GB disk space`,
               cost: `${money(
                 COSTS.sub_discount[subscription] *
                   COSTS.user_discount[user] *
-                  COSTS.base_cost["standard"]
+                  COSTS.standard_cost
               )}/month per project`,
             },
             {
               icon: "battery-3",
               label: "Custom",
-              value: "premium",
-              desc: "customize your RAM, CPU, disk space and idle timeout",
-              cost: `${money(
-                COSTS.sub_discount[subscription] *
-                  COSTS.user_discount[user] *
-                  COSTS.base_cost["premium"]
-              )}/month per project`,
+              value: "custom",
+              cost:
+                upgrade == "custom"
+                  ? `${money(cost.cost_per_project)}/month per project`
+                  : undefined,
             },
           ]}
           onChange={(e) => set_upgrade(e.target.value)}
           value={upgrade}
           radioStyle={radioStyle}
         />
+        {upgrade == "custom" && render_custom()}
+      </div>
+    );
+  }
+
+  function render_explanation(s): JSX.Element {
+    return (
+      <span style={{ color: "#888" }}>
+        <Space /> - {s}
+      </span>
+    );
+  }
+
+  function render_custom() {
+    if (user == null) return;
+    const col_control = 4;
+    const col_desc = 20;
+    return (
+      <div style={{ marginLeft: "60px" }}>
+        <Row>
+          <Col md={col_control}>
+            <Checkbox checked={true} disabled={true}>
+              Support
+            </Checkbox>
+          </Col>
+          <Col md={col_desc}>
+            priority support{" "}
+            {render_explanation("we respond to your support requests first")}
+          </Col>
+        </Row>
+        <Row>
+          <Col md={col_control}>
+            <Checkbox checked={true} disabled={true}>
+              Network
+            </Checkbox>
+          </Col>
+          <Col md={col_desc}>
+            network access{" "}
+            {render_explanation(
+              "your project can connect to the Internet to clone git repositories, download files, send emails, etc."
+            )}
+          </Col>
+        </Row>
+        <Row>
+          <Col md={col_control}>
+            <InputNumber
+              min={COSTS.standard.cpu}
+              max={COSTS.custom_max.cpu}
+              value={custom_cpu}
+              onChange={(x) => {
+                if (typeof x != "number") return;
+                set_custom_cpu(Math.round(x));
+              }}
+            />
+          </Col>
+          <Col md={col_desc}>
+            Number of vCPU's (
+            {`${money(
+              COSTS.user_discount[user] * COSTS.custom_cost.cpu
+            )}/vCPU per month`}
+            )
+            {render_explanation(
+              "the are vCPUs on Google cloud, and they may be shared with other users"
+            )}
+          </Col>
+        </Row>
+        <Row>
+          <Col md={col_control}>
+            <InputNumber
+              min={COSTS.standard.ram}
+              max={COSTS.custom_max.ram}
+              value={custom_ram}
+              onChange={(x) => {
+                if (typeof x != "number") return;
+                set_custom_ram(Math.round(x));
+              }}
+            />
+          </Col>
+          <Col md={col_desc}>
+            GB RAM (
+            {`${money(
+              COSTS.user_discount[user] * COSTS.custom_cost.ram
+            )}/GB per month`}
+            ){render_explanation("this RAM may be shared with other users")}
+          </Col>
+        </Row>
+        <Row>
+          <Col md={col_control}>
+            <InputNumber
+              min={COSTS.standard.disk}
+              max={COSTS.custom_max.disk}
+              value={custom_disk}
+              onChange={(x) => {
+                if (typeof x != "number") return;
+                set_custom_disk(Math.round(x));
+              }}
+            />
+          </Col>
+          <Col md={col_desc}>
+            GB Disk Space (
+            {`${money(
+              COSTS.user_discount[user] * COSTS.custom_cost.disk
+            )}/GB per month`}
+            )
+            {render_explanation(
+              "this allows you to store a larger number of files; snapshots and complete file edit history is included at no additional charge"
+            )}
+          </Col>
+        </Row>
+
+        <Row>
+          <Col md={col_control}>
+            <Checkbox
+              checked={custom_always_on}
+              onChange={(e) => set_custom_always_on(e.target.checked)}
+            >
+              Always on
+            </Checkbox>
+          </Col>
+          <Col md={col_desc}>
+            Project is always on (multiply price by{" "}
+            {COSTS.custom_cost.always_on}){" "}
+            {render_explanation(
+              "enable so your project is always running, you don't have to wait for it to start, and you can run long computations; otherwise, your project will stop after a while if it is not actively being used."
+            )}
+          </Col>
+        </Row>
       </div>
     );
   }
@@ -190,11 +340,11 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         style={{ margin: "0 5px" }}
         disabled={disabled}
         min={1}
-        max={1500}
+        max={1000}
         value={quantity}
-        onChange={(number) => {
-          if (typeof number == "string") return;
-          set_quantity(number);
+        onChange={(x) => {
+          if (typeof x != "number") return;
+          set_quantity(Math.round(x));
         }}
       />
     );
@@ -205,11 +355,14 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div>
         <br />
-        <h4>Number of Projects</h4>
+        <h4>Quantity</h4>
         <div style={{ fontSize: "12pt", marginLeft: "30px" }}>
-          Simultaneously run
+          Simultaneously use
           {render_quantity_input()}
-          {plural(quantity, "project")} using this license.
+          {plural(quantity, "project")} with this license.
+          <br />
+          You can create multiple projects that use this license, but only{" "}
+          {quantity} can be used at once.
         </div>
       </div>
     );
@@ -277,13 +430,15 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       const presets: JSX.Element[] = [];
       for (const { label, desc } of LENGTH_PRESETS) {
         presets.push(
-          <Button onClick={() => set_end_date(desc)}>{label}</Button>
+          <Button key={label} onClick={() => set_end_date(desc)}>
+            {label}
+          </Button>
         );
       }
       return (
         <div style={{ marginLeft: "30px" }}>
           <br />
-          <h5>Start and end dates</h5>
+          <h5>Start and end dates (at least one week)</h5>
           <RangePicker
             disabled={disabled}
             value={value as any}
@@ -302,7 +457,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       return (
         <div style={{ marginLeft: "30px" }}>
           <br />
-          <h5>Start Date</h5>
+          <h5>Start date</h5>
           <DatePicker
             disabled={disabled}
             value={moment(start) as any}
@@ -317,37 +472,39 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   }
 
   function render_cost() {
-    if (cost == null || discounted_cost == null) return;
+    if (cost == null) return;
 
     let desc;
-    if (discounted_cost < cost) {
+    if (cost.discounted_cost < cost.cost) {
       desc = (
         <>
-          <span style={{ textDecoration: "line-through" }}>{money(cost)}</span>
+          <span style={{ textDecoration: "line-through" }}>
+            {money(cost.cost)}
+          </span>
           {" or "}
-          {money(discounted_cost)}
+          {money(cost.discounted_cost)}
           {subscription != "no" ? " " + subscription : ""}, if you purchase
-          online now ({percent_discount(cost, discounted_cost)}% off!)
+          online now ({percent_discount(cost.cost, cost.discounted_cost)}% off!)
         </>
       );
     } else {
-      desc = `${money(cost)} ${subscription != "no" ? subscription : ""}`;
+      desc = `${money(cost.cost)} ${subscription != "no" ? subscription : ""}`;
     }
 
     return (
       <div style={{ fontSize: "12pt" }}>
         <br />
-        <h4>Total Cost: {desc}</h4>
+        <h4>Cost: {desc}</h4>
       </div>
     );
   }
 
   function render_quote() {
-    if (cost == null || discounted_cost == null) return;
+    if (cost == null) return;
     return (
       <div>
         <br />
-        <h4>Purchase now or request a quote</h4>
+        <h4>Purchase</h4>
         <RadioGroup
           disabled={disabled}
           options={[
@@ -355,8 +512,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               label: "Purchase now",
               desc:
                 "purchase online now " +
-                (discounted_cost < cost
-                  ? `and save ${money(cost - discounted_cost)} ${
+                (cost.discounted_cost < cost.cost
+                  ? `and save ${money(cost.cost - cost.discounted_cost)} ${
                       subscription != "no" ? subscription : ""
                     }`
                   : ""),
@@ -368,7 +525,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
                 COSTS.min_quote
               )} minimum)`,
               value: true,
-              disabled: cost < COSTS.min_quote,
+              disabled: cost.cost < COSTS.min_quote,
             },
           ]}
           onChange={(e) => set_quote(e.target.value)}
@@ -428,7 +585,10 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       quote_info,
       payment_method,
       cost,
-      discounted_cost,
+      custom_ram,
+      custom_cpu,
+      custom_disk,
+      custom_always_on,
     };
     set_sending("active");
     try {

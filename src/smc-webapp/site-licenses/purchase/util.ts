@@ -4,8 +4,9 @@
  */
 
 export type User = "academic" | "business";
-export type Upgrade = "standard" | "premium" | "professional";
+export type Upgrade = "standard" | "custom";
 export type Subscription = "no" | "monthly" | "yearly";
+export type CustomUpgrades = "ram" | "cpu" | "disk" | "always_on";
 
 export interface PurchaseInfo {
   user: User;
@@ -17,8 +18,11 @@ export interface PurchaseInfo {
   quote?: boolean;
   quote_info?: string;
   payment_method?: string;
-  cost?: number; // use cost and discounted_cost as double check on backend only (i.e., don't trust them, but on other hand be careful not to charge more!)
-  discounted_cost?: number;
+  cost?: { cost: number; discounted_cost: number; cost_per_project: number }; // use cost and discounted_cost as double check on backend only (i.e., don't trust them, but on other hand be careful not to charge more!)
+  custom_ram: number;
+  custom_cpu: number;
+  custom_disk: number;
+  custom_always_on: boolean;
 }
 
 // discount is the number we multiply the price by:
@@ -27,35 +31,78 @@ export interface PurchaseInfo {
 // and admin site settings.  It must be something that we can change at any time,
 // and that somebody else selling cocalc would set differently.
 
+// See https://cloud.google.com/compute/vm-instance-pricing#e2_custommachinetypepricing
+// for the monthly GCE prices
+const GCE_COSTS = {
+  ram: 0.67, // for pre-emptibles
+  cpu: 5, // for pre-emptibles
+  disk: 0.04, // per GB/month
+  non_pre_factor: 3.33, // factor for non-preemptible
+};
+
 const ACADEMIC_DISCOUNT = 0.5;
+const COST_MULTIPLIER = 1.5;
+const CUSTOM_COST = {
+  ram: (COST_MULTIPLIER * GCE_COSTS.ram) / ACADEMIC_DISCOUNT,
+  cpu: (COST_MULTIPLIER * GCE_COSTS.cpu) / ACADEMIC_DISCOUNT,
+  disk: (5 * (COST_MULTIPLIER * GCE_COSTS.disk)) / ACADEMIC_DISCOUNT, // 5 since we have about that many copies of user data, plus snapshots.
+  always_on: 5,
+} as const;
+const STANDARD = { ram: 1, cpu: 1, disk: 1, always_on: 0 } as const;
 export const COSTS: {
   user_discount: { [user in User]: number };
   sub_discount: { [sub in Subscription]: number };
   online_discount: number;
   min_quote: number;
   min_sale: number;
-  base_cost: { [upgrade in Upgrade]: number };
+  standard_cost: number;
+  custom_cost: { [key in CustomUpgrades]: number };
+  custom_max: { [key in CustomUpgrades]: number };
+  standard: { [key in CustomUpgrades]: number };
 } = {
   user_discount: { academic: ACADEMIC_DISCOUNT, business: 1 },
-  sub_discount: { no: 1, monthly: 0.9, yearly: 0.8 },
+  sub_discount: { no: 1, monthly: 0.9, yearly: 0.85 },
   online_discount: 0.75,
   min_quote: 100,
-  min_sale: 7,
-  base_cost: {
-    standard: 16,
-    premium: 16*4,
-    professional: 16*8,
-  },
+  min_sale: 1,
+  standard_cost:
+    STANDARD.ram * CUSTOM_COST.ram +
+    STANDARD.cpu * CUSTOM_COST.cpu +
+    STANDARD.disk * CUSTOM_COST.disk,
+  custom_cost: CUSTOM_COST,
+  custom_max: { ram: 16, cpu: 4, disk: 20, always_on: 1 },
+  standard: STANDARD,
 } as const;
 
 // TODO: this is just a quick sample cost formula so we can see this work.
-export function compute_cost(info: PurchaseInfo): number {
-  const { quantity, user, upgrade, subscription, start, end } = info;
-  let cost =
-    quantity *
-    COSTS.user_discount[user] *
-    COSTS.base_cost[upgrade] *
-    COSTS.sub_discount[subscription];
+export function compute_cost(
+  info: PurchaseInfo
+): { cost: number; cost_per_project: number; discounted_cost: number } {
+  const {
+    quantity,
+    user,
+    upgrade,
+    subscription,
+    start,
+    end,
+    custom_ram,
+    custom_cpu,
+    custom_disk,
+    custom_always_on,
+  } = info;
+  let cost_per_project = COSTS.standard_cost;
+  if (upgrade == "custom") {
+    cost_per_project +=
+      (custom_ram - COSTS.standard.ram) * COSTS.custom_cost.ram +
+      (custom_cpu - COSTS.standard.cpu) * COSTS.custom_cost.cpu +
+      (custom_disk - COSTS.standard.disk) * COSTS.custom_cost.disk;
+    if (custom_always_on) {
+      cost_per_project *= COSTS.custom_cost.always_on;
+    }
+  }
+  cost_per_project *=
+    COSTS.user_discount[user] * COSTS.sub_discount[subscription];
+  let cost = quantity * cost_per_project;
   if (subscription == "no") {
     if (end == null) {
       throw Error("end must be set if subscription is no");
@@ -67,11 +114,11 @@ export function compute_cost(info: PurchaseInfo): number {
   } else if (subscription == "yearly") {
     cost *= 12;
   }
-  return Math.max(COSTS.min_sale/COSTS.online_discount, cost);
-}
-
-export function compute_discounted_cost(cost: number): number {
-  return Math.max(COSTS.min_sale, cost * COSTS.online_discount);
+  return {
+    cost: Math.max(COSTS.min_sale / COSTS.online_discount, cost),
+    discounted_cost: Math.max(COSTS.min_sale, cost * COSTS.online_discount),
+    cost_per_project,
+  };
 }
 
 export function percent_discount(
@@ -87,9 +134,9 @@ export function money(n: number): string {
     currency: "USD",
     minimumFractionDigits: 0,
   }).format(n);
-  const i = s.indexOf('.')
+  const i = s.indexOf(".");
   if (i == s.length - 2) {
-    s += '0'
+    s += "0";
   }
-  return 'USD ' + s;
+  return "USD " + s;
 }
