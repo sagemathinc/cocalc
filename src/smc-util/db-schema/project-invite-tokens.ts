@@ -11,17 +11,30 @@ as a collaborator to the given project.
 
 import { Table } from "./types";
 
+export interface ProjectInviteToken {
+  token: string;
+  project_id: string;
+  created: Date;
+  expires?: Date;
+  limit?: number;
+  counter?: number;
+}
+
 Table({
   name: "project_invite_tokens",
   fields: {
     token: {
       type: "string",
-      desc:
-        "random unique id (intention: this is a 16-character random string)",
+      desc: "random unique id (intention: this is a random string)",
     },
     project_id: {
       type: "uuid",
       desc: "project_id of the project that this token provides access to",
+    },
+    created: {
+      type: "timestamp",
+      desc:
+        "when this token was created (just used for user convenience so no sanity checking)",
     },
     expires: {
       type: "timestamp",
@@ -38,11 +51,13 @@ Table({
     pg_indexes: ["project_id"],
     user_query: {
       get: {
+        options: [{ order_by: "-created" }],
         pg_where: ["projects"],
         fields: {
           project_id: null,
           token: null,
           expires: null,
+          created: null,
           limit: null,
           counter: null,
         },
@@ -52,6 +67,7 @@ Table({
           project_id: "project_write",
           token: null,
           expires: null,
+          created: null,
           limit: null,
         },
         required_fields: {
