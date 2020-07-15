@@ -1123,8 +1123,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             # this includes the email address, except NOT an error if
             # there is no match
             @get_account
-                account_id : if misc.is_valid_uuid_string(opts.query) then opts.query
-                email_address : if misc.is_valid_email_address(opts.query) then opts.query
+                account_id : if misc.is_valid_uuid_string(opts.query) then opts.query.trim()
+                email_address : if misc.is_valid_email_address(opts.query) then opts.query.trim()
                 columns:['account_id', 'first_name', 'last_name', 'email_address', 'last_active', 'created', 'banned']
                 cb: (err, account) =>
                     if err
