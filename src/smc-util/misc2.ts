@@ -17,6 +17,8 @@ export { sha1 };
 
 import * as lodash from "lodash";
 import { Moment } from "moment";
+import * as getRandomValues from "get-random-values";
+
 export const keys = lodash.keys;
 
 interface SplittedPath {
@@ -690,4 +692,30 @@ export function aux_file(path: string, ext: string): string {
   } else {
     return "." + s.tail;
   }
+}
+
+/*
+Generate a cryptographically safe secure random string with
+16 characters chosen to be reasonably unambiguous to look at.
+That is 93 bits of randomness, and there is an argument here
+that 64 bits is enough:
+
+https://security.stackexchange.com/questions/1952/how-long-should-a-random-nonce-be
+*/
+const BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+export function secure_random_token(
+  length: number = 16,
+  alphabet: string = BASE58 // default is this crypto base58 less ambiguous numbers/letters
+): string {
+  let s = "";
+  if (length == 0) return s;
+  if (alphabet.length == 0) {
+    throw Error("impossible, since alphabet is empty");
+  }
+  const v = new Uint32Array(length);
+  getRandomValues(v); // secure random numbers
+  for (const i of v) {
+    s += alphabet[i % alphabet.length];
+  }
+  return s;
 }

@@ -22,6 +22,7 @@
     "coffee-register-cache": "0.0.0",
     "coffeelint": "^2.1.0",
     "coffeescript": "^2.5.1",
+    "get-random-values": "^1.2.0",
     "immutable": "^3.8.2",
     "jest": "^26.0.1",
     "json-stable-stringify": "^1.0.1",
