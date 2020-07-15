@@ -23,7 +23,7 @@ exports.DEFAULT_QUOTAS = {
   disk_quota: 3000,
   cores: 2,
   cpu_shares: 1478,
-  memory: 3000,
+  memory: 14000,
   memory_request: 0,
   mintime: 1800, // 30 minutes
   network: 0,
