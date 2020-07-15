@@ -9,7 +9,8 @@ import { SyncTable, SyncTableState } from "../smc-util/sync/table";
 import { TypedMap } from "../smc-webapp/app-framework";
 import { endswith, merge, path_split, startswith } from "../smc-util/misc2";
 import { field_cmp, seconds_ago } from "../smc-util/misc";
-import { get_listing, ListingEntry } from "../directory-listing";
+import { DirectoryListingEntry } from "../smc-util/types";
+import { get_listing } from "../directory-listing";
 import {
   WATCH_TIMEOUT_MS,
   MAX_FILES_PER_PATH,
@@ -43,7 +44,7 @@ import { MAX_PATHS } from "../smc-util/db-schema/listings";
 interface Listing {
   path: string;
   project_id?: string;
-  listing?: ListingEntry[];
+  listing?: DirectoryListingEntry[];
   time?: Date;
   interest?: Date;
   missing?: number;
