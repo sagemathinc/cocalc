@@ -13,6 +13,11 @@ TODO:
 
 */
 
+// Load the code that checks for the PROJECT_INVITE_QUERY_PARAM
+// when user gets signed in, and handles it.
+
+import { PROJECT_INVITE_QUERY_PARAM } from "./handle-project-invite";
+
 import { Button, Popconfirm, Table } from "antd";
 import { React, useState, useIsMountedRef } from "../app-framework";
 import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../r_misc";
@@ -212,7 +217,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
           <br />
           <br />
           <CopyToClipBoard
-            value={`${document.location.origin}${window.app_base_url}/app?project_invite=${token}`}
+            value={`${document.location.origin}${window.app_base_url}/app?${PROJECT_INVITE_QUERY_PARAM}=${token}`}
             style={{ width: "100%" }}
           />
           <br />

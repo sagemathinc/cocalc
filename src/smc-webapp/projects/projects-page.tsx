@@ -60,6 +60,7 @@ export const ProjectsPage: React.FC = () => {
     return `${!!hidden}-${!!deleted}`;
   }, [hidden, deleted]);
   const search: string = useTypedRedux("projects", "search");
+  const is_anonymous = useTypedRedux("account", "is_anonymous");
 
   const selected_hashtags: Map<string, Set<string>> = useTypedRedux(
     "projects",
@@ -147,13 +148,13 @@ export const ProjectsPage: React.FC = () => {
           </div>
         </Col>
         <Col sm={2}>
-          <ProjectsFilterButtons />
+          {!is_anonymous && <ProjectsFilterButtons />}
         </Col>
         <Col sm={3}>
           <UsersViewing style={{ width: "100%" }} />
         </Col>
         <Col sm={3}>
-          <AddToProjectToken />
+          {!is_anonymous && <AddToProjectToken />}
         </Col>
       </Row>
       <Row>

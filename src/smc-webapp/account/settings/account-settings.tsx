@@ -376,7 +376,7 @@ export class AccountSettings extends Component<Props, State> {
             <li>Create support tickets</li>
             <li>
               Unlock additional features and controls, including unlimited
-              additional projects, realtime collaboration and much, much more
+              additional projects, realtime collaboration and much more!
             </li>
           </ul>
           <br />
