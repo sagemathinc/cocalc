@@ -16,7 +16,7 @@ import {
 } from "antd";
 import * as moment from "moment";
 import { webapp_client } from "../../webapp-client";
-import { CSS, React, useMemo, useState } from "../../app-framework";
+import { CSS, React, redux, useMemo, useState } from "../../app-framework";
 const { RangePicker } = DatePicker;
 import { ErrorDisplay, Space } from "../../r_misc";
 import { PurchaseMethod } from "./purchase-method";
@@ -335,7 +335,6 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           </Col>
           <Col md={col_desc}>
             Project is always on (multiply price by{" "}
-            {COSTS.custom_cost.always_on}(multiply price by{" "}
             {COSTS.custom_cost.always_on}){" "}
             {render_explanation(
               "enable so your project is always running, you don't have to wait for it to start, and you can run long computations; otherwise, your project will stop after a while if it is not actively being used."
@@ -393,7 +392,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               icon: "calendar-alt",
               label: "Monthly subscription",
               value: "monthly",
-              desc: `pay once per month (${Math.round(
+              desc: `pay once every month (${Math.round(
                 (1 - COSTS.sub_discount["monthly"]) * 100
               )}% discount)`,
             },
@@ -401,14 +400,15 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               icon: "calendar-check",
               label: "Yearly subscription",
               value: "yearly",
-              desc: `pay once per year (${Math.round(
+              desc: `pay once every year (${Math.round(
                 (1 - COSTS.sub_discount["yearly"]) * 100
               )}% discount)`,
             },
             {
               icon: "calendar-times-o",
               label: "Custom",
-              desc: "specify the start and end dates (at least one week)",
+              desc:
+                "pay exactly once for a specific period of time (at least one week long)",
               value: "no",
             },
           ]}
@@ -438,7 +438,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       return;
     if (subscription == "no") {
       // range of dates: start date -- end date
-      // TODO: use "midnight UTC", or should we just give a day grace period on both ends (?).
+      // TODO: use "midnight UTC", or should we just give a
+      // day grace period on both ends (?).
       const value = [moment(start), moment(end)];
       const presets: JSX.Element[] = [];
       for (const { label, desc } of LENGTH_PRESETS) {
@@ -704,7 +705,11 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         <>
           <h3>Buy a license</h3>
           <span style={{ fontWeight: 350 }}>
-            Buy licenses or request a quote.
+            Buy licenses or request a quote below. If you are planning on making
+            a purchase, but need to test things out first,{" "}
+            <a onClick={() => redux.getActions("support").show(true)}>
+              please request a free trial.
+            </a>
           </span>
         </>
       }

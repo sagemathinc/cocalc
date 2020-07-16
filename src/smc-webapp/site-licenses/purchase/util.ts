@@ -40,7 +40,7 @@ const GCE_COSTS = {
   non_pre_factor: 3.33, // factor for non-preemptible
 };
 
-const ACADEMIC_DISCOUNT = 0.5;
+const ACADEMIC_DISCOUNT = 0.6; // changing this doesn't change the actual academic prices -- it just changes the *business* prices.
 const COST_MULTIPLIER = 0.75; // we charge LESS than Google VM's, due to multiple users on a node at once.
 const CUSTOM_COST = {
   ram: (COST_MULTIPLIER * GCE_COSTS.ram) / ACADEMIC_DISCOUNT,
