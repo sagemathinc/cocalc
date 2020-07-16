@@ -92,7 +92,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
           style={{ width: "20px" }}
           name={expanded ? "caret-down" : "caret-right"}
         />{" "}
-        Or invite people via a link...
+        Or invite people via a project invite token...
       </a>
     );
     if (!expanded) {
@@ -215,6 +215,11 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
             value={`${document.location.origin}${window.app_base_url}/app?project_invite=${token}`}
             style={{ width: "100%" }}
           />
+          <br />
+          When they click the link, they will get added to this project (this
+          will even work without an account!). You can also share the token
+          above, which they can enter on the top right side of the projects
+          page.
         </div>
       );
     }
@@ -226,7 +231,12 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
         const { token, counter, usage_limit, created, expires } = data;
         dataSource.push({
           key: token,
-          token: token,
+          token:
+            expires && expires <= webapp_client.server_time() ? (
+              <span style={{ textDecoration: "line-through" }}>{token}</span>
+            ) : (
+              <CopyToClipBoard value={token} />
+            ),
           counter,
           usage_limit: usage_limit ?? "∞",
           created: created ? <TimeAgo date={created} /> : undefined,

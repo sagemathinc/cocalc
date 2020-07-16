@@ -25,6 +25,7 @@ import { UpgradeStatus } from "../upgrades/status";
 import { NewProjectCreator } from "./create-project";
 import { ProjectsFilterButtons } from "./projects-filter-buttons";
 import { ProjectsSearch } from "./search";
+import { AddToProjectToken } from "./token";
 import { Hashtags } from "./hashtags";
 import { ProjectsListingDescription } from "./project-list-desc";
 import { ProjectList } from "./project-list";
@@ -51,7 +52,7 @@ export const ProjectsPage: React.FC = () => {
 
   const all_projects_have_been_loaded = useTypedRedux(
     "projects",
-    "all_projects_have_been_loaded",
+    "all_projects_have_been_loaded"
   );
   const hidden = !!useTypedRedux("projects", "hidden");
   const deleted = !!useTypedRedux("projects", "deleted");
@@ -62,10 +63,13 @@ export const ProjectsPage: React.FC = () => {
 
   const selected_hashtags: Map<string, Set<string>> = useTypedRedux(
     "projects",
-    "selected_hashtags",
+    "selected_hashtags"
   );
 
-  const project_map: Map<string, any> = useTypedRedux("projects", "project_map");
+  const project_map: Map<string, any> = useTypedRedux(
+    "projects",
+    "project_map"
+  );
   const user_map = useTypedRedux("users", "user_map");
   const visible_projects: string[] = useMemo(
     () =>
@@ -142,11 +146,14 @@ export const ProjectsPage: React.FC = () => {
             <Icon name="edit" /> Projects{" "}
           </div>
         </Col>
-        <Col sm={4}>
+        <Col sm={2}>
           <ProjectsFilterButtons />
         </Col>
-        <Col sm={4}>
+        <Col sm={3}>
           <UsersViewing style={{ width: "100%" }} />
+        </Col>
+        <Col sm={3}>
+          <AddToProjectToken />
         </Col>
       </Row>
       <Row>
