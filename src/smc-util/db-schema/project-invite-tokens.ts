@@ -5,7 +5,7 @@
 
 /*
 Project invite tokens.  If a user presents one of these tokens and it is
-not expired and the counter hasn't hit the limit, then they get added
+not expired and the counter hasn't hit the usage_limit, then they get added
 as a collaborator to the given project.
 */
 
@@ -16,7 +16,7 @@ export interface ProjectInviteToken {
   project_id: string;
   created: Date;
   expires?: Date;
-  limit?: number;
+  usage_limit?: number;
   counter?: number;
 }
 
@@ -40,7 +40,10 @@ Table({
       type: "timestamp",
       desc: "when this token expires",
     },
-    limit: { type: "number", desc: "how many times this token can be used" },
+    usage_limit: {
+      type: "number",
+      desc: "how many times this token can be used",
+    },
     counter: {
       type: "number",
       desc: "how many times this token has been used",
@@ -58,7 +61,7 @@ Table({
           token: null,
           expires: null,
           created: null,
-          limit: null,
+          usage_limit: null,
           counter: null,
         },
       },
@@ -68,7 +71,7 @@ Table({
           token: null,
           expires: null,
           created: null,
-          limit: null,
+          usage_limit: null,
         },
         required_fields: {
           project_id: true,

@@ -8,28 +8,28 @@ Manage tokens that can be used to add new users who
 know the token to a project.
 
 TODO:
-- we don't allow adjusting the limit, so hide that for now.
-- the default expire time is "1 week" and user can't edit that yet, except to set expire to now.
+- we don't allow adjusting the usage_limit, so hide that for now.
+- the default expire time is "2 weeks" and user can't edit that yet, except to set expire to now.
 
 */
 
-import { Button, Table } from "antd";
+import { Button, Popconfirm, Table } from "antd";
 import { React, useState, useIsMountedRef } from "../app-framework";
-import { Icon, Loading, TimeAgo } from "../r_misc";
+import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../r_misc";
 import { ProjectInviteToken } from "smc-util/db-schema/project-invite-tokens";
 import { webapp_client } from "../webapp-client";
 import { alert_message } from "../alerts";
 import { secure_random_token } from "smc-util/misc2";
 import { server_weeks_ago } from "smc-util/misc";
 
-const TOKEN_LIMIT = 200;
+const TOKEN_LENGTH = 16;
+const MAX_TOKENS = 200;
 const COLUMNS = [
   { title: "Token", dataIndex: "token", key: "token" },
   { title: "Created", dataIndex: "created", key: "created" },
   { title: "Uses", dataIndex: "counter", key: "counter" },
-  /* { title: "Limit", dataIndex: "limit", key: "limit" },*/
+  /* { title: "Limit", dataIndex: "usage_limit", key: "usage_limit" },*/
   { title: "Expires", dataIndex: "expires", key: "expires" },
-  { title: "", dataIndex: "expire", key: "expire" },
 ];
 
 interface Props {
@@ -44,9 +44,11 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
       undefined
     );
     const is_mounted_ref = useIsMountedRef();
+    const [fetching, set_fetching] = useState<boolean>(false);
 
     async function fetch_tokens() {
       try {
+        set_fetching(true);
         const { query } = await webapp_client.async_query({
           query: {
             project_invite_tokens: [
@@ -55,7 +57,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
                 token: null,
                 created: null,
                 expires: null,
-                limit: null,
+                usage_limit: null,
                 counter: null,
               },
             ],
@@ -68,6 +70,10 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
           type: "error",
           message: `Error getting project invite tokens: ${err}`,
         });
+      } finally {
+        if (is_mounted_ref.current) {
+          set_fetching(false);
+        }
       }
     }
 
@@ -94,7 +100,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
     }
 
     async function add_token() {
-      if (tokens != null && tokens.length > TOKEN_LIMIT) {
+      if (tokens != null && tokens.length > MAX_TOKENS) {
         // TODO: just in case of some weird abuse... and until we implement
         // deletion of tokens.  Maybe the backend will just purge
         // anything that has expired after a while.
@@ -105,7 +111,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
         });
         return;
       }
-      const token = secure_random_token();
+      const token = secure_random_token(TOKEN_LENGTH);
       try {
         await webapp_client.async_query({
           query: {
@@ -113,7 +119,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
               token,
               project_id,
               created: webapp_client.server_time(),
-              expires: server_weeks_ago(-1),
+              expires: server_weeks_ago(-2),
             },
           },
         });
@@ -128,7 +134,30 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
     }
 
     function render_create_token() {
-      return <Button onClick={add_token}>Create</Button>;
+      return (
+        <Popconfirm
+          title={
+            "Create a link that people can use to get added as a collaborator to this project."
+          }
+          onConfirm={add_token}
+          okText={"Yes, create token"}
+          cancelText={"Cancel"}
+        >
+          <Button disabled={fetching}>
+            <Icon name="plus" />
+            <Space /> Create token...
+          </Button>
+        </Popconfirm>
+      );
+    }
+
+    function render_refresh() {
+      return (
+        <Button onClick={fetch_tokens} disabled={fetching}>
+          <Icon name="refresh" spin={fetching} />
+          <Space /> Refresh
+        </Button>
+      );
     }
 
     async function expire_token(token) {
@@ -153,40 +182,73 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
       fetch_tokens();
     }
 
-    function render_expire_token(token, expires) {
+    function render_expire_button(token, expires) {
       if (expires && expires <= webapp_client.server_time()) {
-        return "(expired)";
+        return "(EXPIRED)";
       }
-      return <Button onClick={() => expire_token(token)}>Expire</Button>;
+      return (
+        <Popconfirm
+          title={
+            "Expire this token?  This will make it so this token cannot be used anymore."
+          }
+          onConfirm={() => expire_token(token)}
+          okText={"Yes, expire token"}
+          cancelText={"Cancel"}
+        >
+          <Button>Expire...</Button>
+        </Popconfirm>
+      );
     }
 
-    function render_link(token: string) {
-      return <pre>https://cocalc.com?project={token}</pre>;
+    function render_link(data: ProjectInviteToken) {
+      const { token, expires } = data;
+      if (expires && expires <= webapp_client.server_time()) {
+        return <div>This token is expired.</div>;
+      }
+      return (
+        <div>
+          Make this link available to people who you would like to join this
+          project:
+          <br />
+          <br />
+          <CopyToClipBoard
+            value={`${document.location.origin}${window.app_base_url}/app?project_invite=${token}`}
+            style={{ width: "100%" }}
+          />
+        </div>
+      );
     }
 
     function render_tokens() {
       if (tokens == null) return <Loading />;
       const dataSource: any[] = [];
-      for (const { token, counter, limit, created, expires } of tokens) {
+      for (const data of tokens) {
+        const { token, counter, usage_limit, created, expires } = data;
         dataSource.push({
           key: token,
           token: token,
-          counter: counter ?? 0,
-          limit: limit ?? "∞",
+          counter,
+          usage_limit: usage_limit ?? "∞",
           created: created ? <TimeAgo date={created} /> : undefined,
-          expires: expires ? <TimeAgo date={expires} /> : undefined,
-          expire: render_expire_token(token, expires),
-          link: render_link(token),
+          expires: expires ? (
+            <span>
+              <TimeAgo date={expires} /> <Space />
+              {render_expire_button(token, expires)}
+            </span>
+          ) : undefined,
+          data,
         });
       }
       return (
         <Table
           dataSource={dataSource}
           columns={COLUMNS}
+          pagination={{ pageSize: 4 }}
+          scroll={{ y: 240 }}
           expandable={{
-            expandedRowRender: ({ token }) => (
-              <div style={{ margin: 0 }}>{render_link(token)}</div>
-            ),
+            expandedRowRender: ({ data }) => {
+              return <div style={{ margin: 0 }}>{render_link(data)}</div>;
+            },
           }}
         />
       );
@@ -196,7 +258,12 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
       <div>
         {heading}
         <br />
+        <br />
         {render_create_token()}
+        <Space />
+        {render_refresh()}
+        <br />
+        <br />
         {render_tokens()}
       </div>
     );
