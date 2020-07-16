@@ -26,7 +26,7 @@ import { SiteName, TermsOfService } from "../../customize";
 import { keys, startswith } from "smc-util/misc2";
 import { set_account_table, ugly_error } from "../util";
 import { webapp_client } from "../../webapp-client";
-import { ErrorDisplay, Icon, Space, TimeAgo } from "../../r_misc";
+import { A, ErrorDisplay, Icon, Space, TimeAgo } from "../../r_misc";
 import { SignOut } from "../sign-out";
 import { DeleteAccount } from "../delete-account";
 import { TextSetting } from "./text-setting";
@@ -365,23 +365,14 @@ export class AccountSettings extends Component<Props, State> {
       <div>
         <Alert bsStyle="warning" style={{ marginTop: "10px" }}>
           <h4>Sign up</h4>
-          <ul>
-            <li>It is free</li>
-            <li>
-              <b>
-                <i>Avoid losing all your work</i>
-              </b>
-            </li>
-            <li>Get added to courses and projects that you were invited to</li>
-            <li>Create support tickets</li>
-            <li>
-              Unlock additional features and controls, including unlimited
-              additional projects, realtime collaboration and much more!
-            </li>
-          </ul>
+          Signing up is free, avoids losing your work, you get added to projects
+          you were invited to, and you unlock{" "}
+          <A href="https://doc.cocalc.com/">many additional features</A>!
+          <br />
           <br />
           <h4>Sign in</h4>
           If you already have a <SiteName /> account, <SignOut sign_in={true} />
+          . Note that you will lose any work you've done anonymously here.
         </Alert>
         <hr />
       </div>

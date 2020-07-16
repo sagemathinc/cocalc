@@ -245,7 +245,16 @@ export class NBGraderActions {
 
   private assign_clear_mark_regions(): void {
     this.jupyter_actions.store.get("cells").forEach((cell) => {
-      if (!cell.getIn(["metadata", "nbgrader", "task"])) return;
+      if (!cell.getIn(["metadata", "nbgrader", "grade"])) {
+        // We clear mark regions for any cell that is graded.
+        // In the official nbgrader docs, it seems that mark
+        // regions are only for **task** cells.  However,
+        // I've seen nbgrader use "in nature" that uses
+        // the mark regions in other grading cells, and also
+        // it just makes sense to be able to easily record
+        // how you will grade things even for non-task cells!
+        return;
+      }
       const cell2 = clear_mark_regions(cell);
       if (cell !== cell2) {
         // set the input
