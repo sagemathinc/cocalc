@@ -21,6 +21,7 @@ export function deleted_file_variations(path: string): string[] {
     "sage-jupyter2",
     "time-travel",
     "sage-history",
+    "syncdb",
   ]) {
     variations.push(head + "." + tail + "." + ext);
   }
