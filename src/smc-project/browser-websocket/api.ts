@@ -148,11 +148,12 @@ async function handle_api_call(
 
 /* implementation of the api calls */
 
-import { get_listing, ListingEntry } from "../directory-listing";
+import { get_listing } from "../directory-listing";
+import { DirectoryListingEntry } from "../../smc-util/types";
 async function listing(
   path: string,
   hidden?: boolean
-): Promise<ListingEntry[]> {
+): Promise<DirectoryListingEntry[]> {
   return await get_listing(path, hidden);
 }
 

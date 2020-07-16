@@ -1443,20 +1443,24 @@ API(
         desc: "A unique UUID for the query",
       },
       project_id: {
-        init: required,
+        init: undefined,
         desc:
-          "project_id of project to add user to (can be an array to add multiple users to multiple projects)",
+          "project_id of project to add user to (can be an array to add multiple users to multiple projects); isn't needed if token_id is specified",
       },
       account_id: {
         init: required,
         desc:
           "account_id of user (can be an array to add multiple users to multiple projects)",
       },
+      token_id: {
+        init: undefined,
+        desc: "project_invite_token that is needed in case the user **making the request** is not already a project collab"
+      }
     },
     desc: `\
 Directly add a user to a CoCalc project.
-You must be owner or collaborator on the target project.
-You cannot remove the project owner.
+You must be owner or collaborator on the target project or provide,
+an optional valid token_id (the token determines the project).
 The user is NOT notified via email that they were added, and there
 is no confirmation process.  (Eventually, there will be
 an accept process, or this endpoint will only work
@@ -1499,7 +1503,7 @@ API(
     desc: `\
 Remove a user from a CoCalc project.
 You must be owner or collaborator on the target project.
-You cannot remove the project owner.
+The project owner cannot be removed.
 The user is NOT notified via email that they were removed.
 
 Example:

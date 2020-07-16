@@ -401,7 +401,7 @@ export const RegistrationToken: React.FC<{}> = () => {
           />
           <Table.Column<Token> title="Description" dataIndex="descr" />
           <Table.Column<Token>
-            title="Usages"
+            title="Uses"
             dataIndex="counter"
             render={(text) => text ?? 0}
           />

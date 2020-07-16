@@ -18,6 +18,9 @@ export const LoadAllProjects: React.FC = React.memo(() => {
   const [loading, set_loading] = useState<boolean>(false);
   const is_mounted_ref = useIsMountedRef();
   const actions = useActions("projects");
+  const is_anonymous = useTypedRedux("account", "is_anonymous");
+
+  if (is_anonymous) return <></>;
 
   async function load() {
     set_loading(true);

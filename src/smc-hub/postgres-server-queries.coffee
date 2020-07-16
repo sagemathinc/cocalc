@@ -2018,8 +2018,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cb        : opts.cb
 
     # async
-    add_collaborators_to_projects: (account_id, accounts, projects) =>
-        await collab.add_collaborators_to_projects(@, account_id, accounts, projects)
+    add_collaborators_to_projects: (account_id, accounts, projects, tokens) =>
+        await collab.add_collaborators_to_projects(@, account_id, accounts, projects, tokens)
 
     # Return a list of the account_id's of all collaborators of the given users.
     get_collaborator_ids: (opts) =>
@@ -2161,7 +2161,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             ]
             cb    : all_results('project_id', opts.cb)
 
-    # cb(err, true if user is in one of the groups for the project)
+    # cb(err, true if user is in one of the groups for the project **or an admin**)
     user_is_in_project_group: (opts) =>
         opts = defaults opts,
             project_id  : required
@@ -2188,6 +2188,24 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     @is_admin
                         account_id : opts.account_id
                         cb         : opts.cb
+                else
+                    opts.cb(err, n > 0)
+
+    # cb(err, true if user is an actual collab; ADMINS do not count)
+    user_is_collaborator: (opts) =>
+        opts = defaults opts,
+            project_id  : required
+            account_id  : required
+            cb          : required  # cb(err, true if is actual collab on project)
+        if not @_validate_opts(opts) then return
+        @_query
+            query : 'SELECT COUNT(*) FROM projects'
+            cache : opts.cache
+            where : ['project_id :: UUID = $1', "users ? $2"]
+            params: [opts.project_id, opts.account_id]
+            cb    : count_result (err, n) =>
+                if err
+                    opts.cb(err)
                 else
                     opts.cb(err, n > 0)
 
