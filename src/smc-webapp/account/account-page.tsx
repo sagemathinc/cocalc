@@ -330,7 +330,7 @@ class AccountPage extends Component<Props> {
     }
     if (this.props.is_anonymous) {
       return (
-        <div style={{ margin: "5% 10%" }}>{this.render_account_settings()}</div>
+        <div style={{ margin: "15px 10%" }}>{this.render_account_settings()}</div>
       );
     }
     const tabs: Rendered[] = [this.render_account_tab()].concat(
