@@ -16,6 +16,7 @@ import {
   useRef,
   useState,
   useRedux,
+  useTypedRedux,
 } from "../app-framework";
 
 import { ComputeImages, ComputeImageTypes } from "../custom-software/init";
@@ -54,7 +55,7 @@ export const NewProjectCreator: React.FC<Props> = ({
 }: Props) => {
   const images: ComputeImages | undefined = useRedux(
     "compute_images",
-    "images",
+    "images"
   );
   // view --> edit --> saving --> view
   const [state, set_state] = useState<EditState>(
@@ -71,6 +72,8 @@ export const NewProjectCreator: React.FC<Props> = ({
   const [title_prefill, set_title_prefill] = useState<boolean>(true);
 
   const new_project_title_ref = useRef(null);
+
+  const is_anonymous = useTypedRedux("account", "is_anonymous");
 
   useEffect(() => {
     select_text();
@@ -169,7 +172,24 @@ export const NewProjectCreator: React.FC<Props> = ({
     }
   }
 
-  function render_new_project_button(): JSX.Element {
+  function show_account_tab() {
+    redux.getActions("page").set_active_tab("account");
+  }
+
+  function render_new_project_button(): JSX.Element | undefined {
+    if (is_anonymous) {
+      // anonymous users can't create projects...
+      return (
+        <Button
+          onClick={show_account_tab}
+          bsStyle={"success"}
+          bsSize={"large"}
+          style={{ width: "100%", margin: "30px 0" }}
+        >
+          Sign up now so you can create more projects and not lose your work!
+        </Button>
+      );
+    }
     return (
       <Row>
         <Col xs={24}>

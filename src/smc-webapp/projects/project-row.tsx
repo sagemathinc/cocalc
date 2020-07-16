@@ -47,6 +47,7 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
 
   const [add_collab, set_add_collab] = useState<boolean>(false);
   const images = useTypedRedux("compute_images", "images");
+  const is_anonymous = useTypedRedux("account", "is_anonymous");
 
   const store = useStore("projects");
   const actions = useActions("projects");
@@ -159,6 +160,7 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
   }
 
   function open_project_settings(e): void {
+    if (is_anonymous) return;
     actions.open_project({
       project_id,
       switch_to: !(e.which === 2 || e.ctrlKey || e.metaKey),
@@ -208,11 +210,13 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
         >
           {render_project_description()}
         </Col>
-        <Col sm={4}>{render_collab()}</Col>
+        <Col sm={4}>{!is_anonymous && render_collab()}</Col>
         <Col sm={2} onClick={open_project_settings}>
-          <a>
-            <ProjectState state={project.get("state", { state: "closed" })} />
-          </a>
+          {!is_anonymous && (
+            <a>
+              <ProjectState state={project.get("state", { state: "closed" })} />
+            </a>
+          )}
         </Col>
       </Row>
     </Well>

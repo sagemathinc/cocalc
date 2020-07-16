@@ -9,18 +9,25 @@ import { is_array, is_valid_uuid_string } from "../smc-util/misc2";
 
 import { callback2 } from "../smc-util/async-utils";
 
+const GROUPS = ["owner", "collaborator"] as const;
+
 export async function add_collaborators_to_projects(
   db: PostgreSQL,
   account_id: string,
   accounts: string[],
-  projects: string[]
+  projects: string[], // can be empty strings if tokens specified (since they determine project_id)
+  tokens?: string[] // must be all specified or none
 ): Promise<void> {
+  // In case of project tokens, this mutates the projects array.
+  await verify_write_access_to_projects(db, account_id, projects, tokens);
+
   /* Right now this function is called from outside typescript
     (e.g., api from user), so we have to do extra type checking.
     Also, the input is uuid's, which typescript can't check. */
   verify_types(account_id, accounts, projects);
 
-  await verify_write_access_to_projects(db, account_id, projects);
+  // We now know that account_id is allowed to add users to all of the projects,
+  // *OR* at that there are valid tokens to permit adding users.
 
   // Now we just need to do the actual collab add.  This could be done in many
   // ways that are more parallel, or via a single transaction, etc... but for
@@ -31,26 +38,54 @@ export async function add_collaborators_to_projects(
   for (const i in projects) {
     const project_id: string = projects[i];
     const account_id: string = accounts[i];
-    await callback2(db.add_user_to_project, { project_id, account_id });
+    const token_id: string | undefined = tokens?.[i];
+    if (await callback2(db.user_is_collaborator, { project_id, account_id })) {
+      // nothing to do since user is already on the given project -- won't use up token.
+      continue;
+    }
+    await callback2(db.add_user_to_project, {
+      project_id,
+      account_id,
+    });
+    if (token_id != null) {
+      await increment_project_invite_token_counter(db, token_id);
+    }
   }
 }
 
 async function verify_write_access_to_projects(
   db: PostgreSQL,
   account_id: string,
-  projects: string[]
+  projects: string[],
+  tokens?: string[]
 ): Promise<void> {
   // Also, we are not doing this in parallel, but could. Let's not
   // put undue load on the server for this.
-
-  // Note that projects are likely to repeated, so we use a Set.
-  const groups = ["owner", "collaborator"];
+  if (tokens != null) {
+    // Using tokens for adding users to projects...
+    for (let i = 0; i < projects.length; i++) {
+      if (tokens[i] == null) {
+        throw Error("If tokens are specified, they must all be non-null.");
+      }
+      const { project_id, error } = await project_invite_token_project_id(
+        db,
+        tokens[i]
+      );
+      if (error || !project_id) {
+        throw Error(`Project invite token is not valid - ${error}`);
+      }
+      projects[i] = project_id;
+    }
+    return;
+  }
+  // Not using tokens:
+  // Note that projects are likely to be repeated, so we use a Set.
   for (const project_id of new Set(projects)) {
     if (
       !(await callback2(db.user_is_in_project_group, {
         project_id,
         account_id,
-        groups,
+        GROUPS,
       }))
     ) {
       throw Error(
@@ -85,7 +120,47 @@ function verify_types(
       throw Error(`all account id's must be valid uuid's, but "${x}" is not`);
   }
   for (const x of projects) {
-    if (!is_valid_uuid_string(x))
-      throw Error(`all project id's must be valid uuid's, but "${x}" is not`);
+    if (x != "" && !is_valid_uuid_string(x))
+      throw Error(
+        `all project id's must be valid uuid's (or empty), but "${x}" is not`
+      );
   }
+}
+
+// Returns "" if token is not valid.
+// Returns the project_id of the project if the token is valid.
+async function project_invite_token_project_id(
+  db: PostgreSQL,
+  token: string
+): Promise<{ project_id?: string; error?: string }> {
+  let v;
+  try {
+    v = await db.async_query({
+      table: "project_invite_tokens",
+      select: ["expires", "counter", "usage_limit", "project_id"],
+      where: { token },
+    });
+  } catch (err) {
+    return { error: `problem querying the database -- ${err}` };
+  }
+  if (v.rows.length == 0) return { error: "" }; // no such token
+  const { expires, counter, usage_limit, project_id } = v.rows[0];
+  if (expires != null && expires <= new Date()) {
+    return { error: "the token already expired" };
+  }
+  if (usage_limit != null && counter >= usage_limit) {
+    return { error: `the token can only be used ${usage_limit} times` };
+  }
+  return { project_id };
+}
+
+async function increment_project_invite_token_counter(
+  db: PostgreSQL,
+  token: string
+): Promise<void> {
+  await db.async_query({
+    query:
+      "UPDATE project_invite_tokens SET counter=coalesce(counter, 0)+1 WHERE token=$1",
+    params: [token],
+  });
 }

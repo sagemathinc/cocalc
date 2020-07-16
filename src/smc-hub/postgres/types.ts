@@ -93,6 +93,12 @@ export interface PostgreSQL extends EventEmitter {
     cb: Function;
   }): void;
 
+  user_is_collaborator(opts: {
+    account_id: string;
+    project_id: string;
+    cb: Function;
+  });
+
   get_user_column(column: string, account_id: string, cb: Function);
 
   _get_project_column(column: string, project_id: string, cb: Function);
