@@ -645,14 +645,6 @@ spec:
         - containerPort: 6000
           name: "local-hub"
           protocol: TCP
-      livenessProbe:
-        httpGet:
-          path: /health
-          port: 6001 # port number configured in Dockerfile and supervisord.conf
-        initialDelaySeconds: 60
-        periodSeconds: 30
-        timeoutSeconds: 10
-        failureThreshold: 20
       resources:
         limits:
           cpu: "{cores}"
