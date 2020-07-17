@@ -3,6 +3,8 @@
 # License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
 #########################################################################
 
+support_rewrite = require('./support/index-rename')
+
 $          = window.$
 underscore = _ = require('underscore')
 {React, ReactDOM, Actions, Store, rtypes, rclass, redux, COLOR}  = require('./app-framework')
@@ -42,183 +44,6 @@ date2str = (d) ->
     catch e
         console.warn("support/date2str: could not convert #{d}")
         return '?'
-
-class SupportStore extends Store
-
-class SupportActions extends Actions
-
-    # TODO: the public api of actions is not supposed to return anything.  An action *DOES* stuff.
-    # These get_store and get should be private.
-    get_store: =>
-        @redux.getStore('support')
-
-    get: (key) =>
-        @get_store().get(key)
-
-    set: (update) =>
-        @setState(update)
-        u = underscore
-        fields = ['email_err', 'subject', 'body']
-        if u.intersection(u.keys(update), fields).length > 0
-            @check_valid()
-
-    load_support_tickets: () ->
-        if @_loading
-            return
-        try
-            @_loading = true
-            # mockup for testing -- set it to "true" to see some tickets
-            if DEBUG and false
-                @setState
-                    support_tickets : [
-                        id : 123
-                        status: 'open'
-                        description: 'test ticket 123'
-                        created_at: new Date()
-                        updated_at: new Date()
-                    ,
-                        id : 456
-                        status : 'open'
-                        description: 'test ticket 456'
-                        created_at: new Date()
-                        updated_at: new Date()
-                    ]
-                    support_ticket_error : null
-            else
-                try
-                    tickets = await webapp_client.support_tickets.get()
-                    tickets = tickets.sort(cmp_tickets)
-                    @setState
-                        support_ticket_error : undefined
-                        support_tickets      : tickets
-                catch err
-                    @setState
-                        support_ticket_error : err
-                        support_tickets      : []
-        finally
-            @_loading = false
-
-    reset: =>
-        @init_email_address()
-        @set
-            state   : STATE.NEW
-            err     : ''
-            valid   : @check_valid()
-
-    show: (show) =>
-        if show
-            @reset()
-        @set(show: show)
-
-    new_ticket: (evt) =>
-        evt?.preventDefault()
-        @reset()
-
-    init_email_address: () =>
-        if not @get('email')?.length > 0
-            account  = @redux.getStore('account')
-            email    = account.get_email_address()
-            email    = email ? ''
-            @set_email(email)
-
-    set_email: (email) =>
-        @set(email: email)
-        if email?.length == 0
-            @set(email_err: 'Please enter a valid email address above.')
-        else if misc.is_valid_email_address(email)
-            @set(email_err: null)
-        else
-            @set(email_err: 'Email address is invalid!')
-
-    check_valid: () =>
-        s = @get('subject')?.trim().length > 0
-        b = @get('body')?.trim().length > 0
-        e = not @get('email_err')?
-        v = s and b and e
-        # console.log("support/actions/check_valid: #{v} (s: #{s}, b: #{b}, e: #{e})")
-        @set(valid: v)
-
-    project_id: ->
-        pid = @redux.getStore('page').get('active_top_tab')
-        if misc.is_valid_uuid_string(pid)
-            return pid
-        else
-            return null
-
-    projects: =>
-        @redux.getStore("projects")
-
-    project_title: ->
-        if @project_id()?
-            return @projects().get_title(@project_id())
-        else
-            return null
-
-    location: ->
-        window.location.pathname.slice(window.app_base_url.length)
-
-    # sends off the support request
-    support: () =>
-        account    = @redux.getStore('account')
-        account_id = account.get_account_id() # null if not authenticated
-        project_id = @project_id()
-
-        @set(state: STATE.CREATING)
-
-        if misc.is_valid_uuid_string(project_id)
-            proj_upgrades = @projects().get_total_project_upgrades(project_id)
-            quotas = @projects().get_total_project_quotas(project_id)
-        else
-            proj_upgrades = null
-            quotas = {}
-
-        tags = []
-
-        # all upgrades the user has available
-        # that's a sum of subscription benefits (see schema.coffee)
-        upgrades = account.get_total_upgrades()
-        if upgrades? and misc.sum(_.values(upgrades)) > 0
-            tags.push('member')
-        else
-            tags.push('free')
-
-        if proj_upgrades? and misc.sum(_.values(proj_upgrades)) > 0
-            tags.push('upgraded')
-
-        course = @projects()?.get_course_info(project_id)?.get('project_id')
-        if course?
-            tags.push('student')
-
-        info =  # additional data dict, like browser/OS
-            project_id : project_id
-            browser    : feature.get_browser()
-            user_agent : navigator?.userAgent
-            mobile     : feature.get_mobile() ? false
-            internet   : (quotas?.network ? 0) > 0
-            course     : course ? 'no'
-            quotas     : JSON.stringify(quotas)
-
-        name = account.get_fullname()
-        name = if name?.trim?().length > 0 then name else null
-        try
-            url = await webapp_client.support_tickets.create
-                username     : name
-                email_address: @get('email')
-                subject      : @get('subject')
-                body         : @get('body')
-                tags         : tags
-                location     : @location()
-                account_id   : account_id
-                info         : info
-            @set    # only clear subject/body, if there has been a success!
-                subject  : ''
-                body     : ''
-                url      : url
-                state    : STATE.CREATED
-        catch err
-            @set
-                state : STATE.ERROR
-                err   : err
 
 exports.SupportPage = rclass
     displayName : "SupportPage"
@@ -362,7 +187,7 @@ SupportInfo = rclass
        </div>
 
     default: () ->
-        title = @props.actions.project_title()
+        title = @props.project_title
         if title?
             loc  = @props.actions.location()
             fn   = loc.slice(47) # / projects / uuid /
@@ -565,6 +390,7 @@ exports.Support = rclass
             err          : rtypes.string
             email_err    : rtypes.string
             valid        : rtypes.bool
+            project_title : rtypes.string
         account:
             is_anonymous : rtypes.bool
 
@@ -603,6 +429,7 @@ exports.Support = rclass
 
     render_info: ->
         <SupportInfo
+            project_title = {@props.project_title}
             actions   = {@props.actions}
             state     = {@props.state}
             url       = {@props.url}
@@ -637,28 +464,6 @@ exports.Support = rclass
                     valid           = {@props.valid} />
         </Modal>
 
-init_redux = (redux) ->
-    if not redux.hasActions('support')
-        redux.createStore('support', SupportStore, {})
-        redux.createActions('support', SupportActions)
-init_redux(redux)
-
 # project wide public API
 
-exports.ShowSupportLink = rclass
-    displayName : 'ShowSupportLink'
-
-    propTypes :
-        text : rtypes.string
-
-    getDefaultProps: ->
-        text : 'support ticket'
-
-    show: (evt) ->
-        evt.preventDefault()
-        redux.getActions('support').show(true)
-
-    render: ->
-        <a onClick={@show} href='#' style={cursor: 'pointer'}>
-            {@props.text}
-        </a>
+exports.ShowSupportLink = support_rewrite.ShowSupportLink;
