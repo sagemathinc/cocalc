@@ -655,12 +655,18 @@ spec:
       volumeMounts:
         - name: home
           mountPath: /home/user
+        - name: share
+          mountPath: /home/user/share          
   automountServiceAccountToken: false
   volumes:
     - name: home
       nfs:
          server: {nfs_server_ip}
          path: "/{project_id}"
+    - name: share
+      nfs:
+         server: {nfs_server_ip}
+         path: "/share"         
 """.format(
             pod_name=pod_name,
             project_id=self.project_id,
