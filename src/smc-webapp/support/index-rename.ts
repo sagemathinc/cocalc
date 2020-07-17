@@ -11,7 +11,7 @@ export { SupportActions } from "./actions";
 export { ShowSupportLink } from "./link";
 import "./types";
 import "./actions";
-import "./footer";
+export { SupportFooter } from "./footer";
 import "./form";
 import "./tickets";
 import "./page";

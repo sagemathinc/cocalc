@@ -3,38 +3,40 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/*
-import { React, useRedux } from "../app-framework";
-import { Button, Modal } from "../antd-bootstrap";
-import { Icon } from "../r_misc";
+import { React, useActions, useTypedRedux } from "../app-framework";
+import { Button } from "../antd-bootstrap";
+import { Modal } from "react-bootstrap";
+import { Icon, Space } from "../r_misc";
 
 export const SupportFooter: React.FC = React.memo(() => {
-  let btn;
-  if (this.props.show_form) {
-    btn = (
-      <Button
-        bsStyle="primary"
-        tabIndex={4}
-        onClick={this.props.submit}
-        disabled={!this.props.valid}
-      >
-        <Icon name="medkit" /> Get Support
-      </Button>
-    );
-  } else {
-    btn = <span />;
-  }
+  const status = useTypedRedux("support", "status");
+  const valid = useTypedRedux("support", "valid");
+  const actions = useActions("support");
 
   return (
     <Modal.Footer>
-      {btn}
-      <Button tabIndex={5} bsStyle="default" onClick={this.props.close}>
+      <Button
+        tabIndex={5}
+        bsStyle="default"
+        onClick={() => actions.show(false)}
+      >
         Close
       </Button>
+      <Space />
+      {status == "new" && (
+        <Button
+          bsStyle="primary"
+          tabIndex={4}
+          onClick={actions.send_support_request}
+          disabled={!valid}
+        >
+          <Icon name="medkit" /> Get Support
+        </Button>
+      )}
     </Modal.Footer>
   );
 });
-*/
+
 /*
     propTypes : {
         close    : rtypes.func.isRequired,

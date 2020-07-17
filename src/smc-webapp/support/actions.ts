@@ -124,7 +124,7 @@ export class SupportActions extends Actions<SupportState> {
     const store = redux.getStore("support");
     const has_subject = !!store.get("subject").trim();
     const has_body = !!store.get("body").trim();
-    const has_valid_email = !!store.get("email_err");
+    const has_valid_email = !store.get("email_err");
     this.set({ valid: has_subject && has_body && has_valid_email });
   }
 
@@ -135,7 +135,7 @@ export class SupportActions extends Actions<SupportState> {
   public async send_support_request(): Promise<void> {
     const account = redux.getStore("account");
     const account_id = account.get_account_id(); // null if not authenticated
-    const project_id = redux.getStore("support").project_id();
+    const project_id = this.project_id();
 
     this.set({ status: "creating" });
 

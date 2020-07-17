@@ -24,16 +24,6 @@ STATE =
     CREATED    : 'created'  # ticket created
     ERROR      : 'error'    # there was a problem
 
-cmp_tickets = (t1, t2) ->
-    key = 'updated_at'
-    e1 = t1[key] # an iso date string is lexicographically sortable
-    e2 = t2[key]
-    if e1 > e2
-        return -1
-    else if e1 < e2
-        return 1
-    return 0
-
 date2str = (d) ->
     try
         if _.isString(d)
@@ -256,36 +246,8 @@ SupportInfo = rclass
             else
                 return @default()
 
-SupportFooter = rclass
-    displayName : 'Support-footer'
+SupportFooter = support_rewrite.SupportFooter;
 
-    propTypes :
-        close    : rtypes.func.isRequired
-        submit   : rtypes.func.isRequired
-        show_form: rtypes.bool.isRequired
-        valid    : rtypes.bool.isRequired
-
-    shouldComponentUpdate: (props) ->
-        return misc.is_different(@props, props, ['show_form', 'valid'])
-
-    render: ->
-        if @props.show_form
-            btn = <Button bsStyle  = 'primary'
-                          tabIndex = {4}
-                          onClick  = {@props.submit}
-                          disabled = {not @props.valid}>
-                       <Icon name='medkit' /> Get Support
-                   </Button>
-        else
-            btn = <span/>
-
-        <Modal.Footer>
-            {btn}
-            <Button
-                tabIndex  = {5}
-                bsStyle   ='default'
-                onClick   = {@props.close}>Close</Button>
-        </Modal.Footer>
 
 SupportForm = rclass
     displayName : 'Support-form'
@@ -457,11 +419,7 @@ exports.Support = rclass
             {@render_body(show_form)}
             </Modal.Body>
 
-            <SupportFooter
-                    show_form       = {show_form}
-                    close           = {=> @close()}
-                    submit          = {(e) => @submit(e)}
-                    valid           = {@props.valid} />
+            <SupportFooter />
         </Modal>
 
 # project wide public API
