@@ -29,7 +29,7 @@ function cmp_tickets(t1: Ticket, t2: Ticket): 0 | -1 | 1 {
 }
 
 export class SupportActions extends Actions<SupportState> {
-  private set(update: Partial<SupportState>): void {
+  public set(update: Partial<SupportState>): void {
     this.setState(update);
     for (const key in update) {
       if (key == "email_err" || key == "subject" || key == "body") {
@@ -104,7 +104,7 @@ export class SupportActions extends Actions<SupportState> {
   }
 
   private init_email_address(): void {
-    if (redux.getStore("support").get("email").length == 0) return;
+    if (redux.getStore("support").get("email")) return; // don't overwrite
     this.set_email(redux.getStore("account").get_email_address() ?? "");
   }
 

@@ -134,84 +134,13 @@ exports.SupportPage = rclass
             </div>
             <Footer/>
         </div>
+
 SupportInfo = support_rewrite.SupportInfo;
 
 SupportFooter = support_rewrite.SupportFooter;
 
 
-SupportForm = rclass
-    displayName : 'Support-form'
-
-    propTypes :
-        email     : rtypes.string.isRequired
-        email_err : rtypes.string
-        subject   : rtypes.string.isRequired
-        body      : rtypes.string.isRequired
-        show      : rtypes.bool.isRequired
-        submit    : rtypes.func.isRequired
-        actions   : rtypes.object.isRequired
-
-    email_change: ->
-        @props.actions.set_email(ReactDOM.findDOMNode(@refs.email).value)
-
-    data_change: ->
-        @props.actions.set
-            body     : ReactDOM.findDOMNode(@refs.body).value
-            subject  : ReactDOM.findDOMNode(@refs.subject).value
-
-    render: ->
-        if not @props.show
-            return <div />
-
-        ee = @props.email_err
-        email_info = if ee?.length > 0
-            <Alert bsStyle='danger'>
-                 <div>{ee}</div>
-            </Alert>
-        else
-            <Alert bsStyle='info'>
-                Please make sure your email address is correct.
-            </Alert>
-        <form>
-            <FormGroup validationState={if ee?.length > 0 then 'error'}>
-                <FormControl
-                    label       = 'Your email address'
-                    ref         = 'email'
-                    type        = 'text'
-                    tabIndex    = {1}
-                    placeholder = 'your_email@address.com'
-                    value       = {@props.email}
-                    onChange    = {@email_change} />
-            </FormGroup>
-            {email_info}
-            <FormGroup>
-                <FormControl
-                    ref         = 'subject'
-                    autoFocus
-                    type        = 'text'
-                    tabIndex    = {2}
-                    label       = 'Message'
-                    placeholder = "Very short summary..."
-                    value       = {@props.subject}
-                    onChange    = {@data_change} />
-            </FormGroup>
-            <FormGroup>
-                <b>
-                1. What did you do exactly?
-                2. What happened?
-                3. How did this differ from what you expected?
-                </b>
-                <br/>
-                <FormControl
-                    componentClass = "textarea"
-                    ref         = 'body'
-                    tabIndex    = {3}
-                    placeholder = 'Describe in detail...'
-                    rows        = {6}
-                    value       = {@props.body}
-                    onChange    = {@data_change} />
-            </FormGroup>
-        </form>
+SupportForm = support_rewrite.SupportForm;
 
 
 exports.Support = rclass
@@ -270,14 +199,7 @@ exports.Support = rclass
         if @props.is_anonymous
             return <h3>In order to create a support ticket first <a onClick={=>@show_account()}>create an account...</a></h3>
         else
-            <SupportForm
-                actions   = {@props.actions}
-                email     = {@props.email}
-                email_err = {@props.email_err}
-                subject   = {@props.subject}
-                body      = {@props.body}
-                show      = {show_form}
-                submit    = {(e) => @submit(e)} />
+            <SupportForm />
 
     render_info: ->
         <SupportInfo />

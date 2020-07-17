@@ -12,7 +12,7 @@ export { ShowSupportLink } from "./link";
 import "./types";
 import "./actions";
 export { SupportFooter } from "./footer";
-import "./form";
+export { SupportForm } from "./form";
 import "./tickets";
 import "./page";
 export { SupportInfo } from "./info";
