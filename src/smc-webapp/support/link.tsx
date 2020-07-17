@@ -11,7 +11,7 @@ interface Props {
 
 function show(evt) {
   evt.preventDefault();
-  redux.getActions("support").show(true);
+  redux.getActions("support").set_show(true);
 }
 
 export const ShowSupportLink: React.FC<Props> = React.memo(({ text }) => {

@@ -62,8 +62,8 @@ export const SupportInfo: React.FC = () => {
       const fn = loc.slice(47); // / projects / uuid /
       what = (
         <p>
-          If you have a problem involving "{fn}" in the project "{title}",
-          please create a support ticket below.
+          If you have a problem involving <code>"{fn}"</code> in the project{" "}
+          <code>"{title}"</code>, please create a support ticket below.
         </p>
       );
     } else {

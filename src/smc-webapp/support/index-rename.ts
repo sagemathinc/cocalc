@@ -9,10 +9,5 @@ export { SupportStore } from "./store";
 export { SupportActions } from "./actions";
 
 export { ShowSupportLink } from "./link";
-import "./types";
-import "./actions";
-export { SupportFooter } from "./footer";
-export { SupportForm } from "./form";
 import "./tickets";
-import "./page";
-export { SupportInfo } from "./info";
+export { CreateSupportTicket } from "./create-ticket";

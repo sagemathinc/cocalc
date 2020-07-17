@@ -18,7 +18,7 @@ export const SupportFooter: React.FC = React.memo(() => {
       <Button
         tabIndex={5}
         bsStyle="default"
-        onClick={() => actions.show(false)}
+        onClick={() => actions.set_show(false)}
       >
         Close
       </Button>

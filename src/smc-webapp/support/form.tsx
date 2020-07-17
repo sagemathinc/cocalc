@@ -19,15 +19,6 @@ export const SupportForm: React.FC = () => {
     return <div />;
   }
 
-  const email_info =
-    email_err.length > 0 ? (
-      <Alert bsStyle="danger" style={{ marginBottom: "15px" }}>
-        <div>{email_err}</div>
-      </Alert>
-    ) : (
-      <Alert bsStyle="info">Confirm that your email address is correct.</Alert>
-    );
-
   return (
     <form>
       <FormGroup validationState={email_err.length > 0 ? "error" : undefined}>
@@ -42,14 +33,23 @@ export const SupportForm: React.FC = () => {
           }}
         />
       </FormGroup>
-      {email_info}
+      {email_err.length > 0 ? (
+        <Alert bsStyle="danger">
+          <div>{email_err}</div>
+        </Alert>
+      ) : (
+        <Alert bsStyle="info">
+          Please double check your email address above.
+        </Alert>
+      )}
+      <br />
       <FormGroup>
         <FormControl
           autoFocus
           type="text"
           tabIndex={2}
           label="Message"
-          placeholder="Very short summary..."
+          placeholder="Short summary..."
           value={subject}
           onChange={(e) =>
             actions.set({ subject: (e.target as HTMLInputElement).value })
@@ -61,8 +61,8 @@ export const SupportForm: React.FC = () => {
           1. What did you do exactly? 2. What happened? 3. How did this differ
           from what you expected?
         </b>
-        <br />
         <FormControl
+          style={{ marginTop: "15px" }}
           componentClass="textarea"
           tabIndex={3}
           placeholder="Describe in detail..."

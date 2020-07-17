@@ -87,7 +87,7 @@ export class SupportActions extends Actions<SupportState> {
     });
   }
 
-  public show(show: boolean): void {
+  public set_show(show: boolean): void {
     if (redux.getStore("support").get("show") == show) {
       return;
     }

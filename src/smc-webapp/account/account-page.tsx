@@ -144,8 +144,7 @@ class AccountPage extends Component<Props> {
         redux.getActions("billing").update_customer();
         break;
       case "support":
-        // TODO: rewrite support in typescript...
-        (redux.getActions("support") as any).load_support_tickets();
+        redux.getActions("support").load_support_tickets();
         break;
       case "signout":
         return;
