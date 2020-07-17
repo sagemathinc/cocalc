@@ -134,117 +134,7 @@ exports.SupportPage = rclass
             </div>
             <Footer/>
         </div>
-
-SupportInfo = rclass
-    displayName : 'Support-info'
-
-    propTypes :
-        actions      : rtypes.object.isRequired
-        state        : rtypes.string.isRequired
-        url          : rtypes.string.isRequired
-        err          : rtypes.string.isRequired
-
-    shouldComponentUpdate: (props) ->
-        return misc.is_different(@props, props, ['state', 'url', 'err'])
-
-    error: () ->
-        <Alert bsStyle='danger' style={fontWeight:'bold'}>
-            <p>
-            Sorry, there has been an error creating the ticket.
-            <br/>
-            Please email <HelpEmailLink /> directly!  (NOTE: You can click "Help" again to reopen the support ticket form and copy your content to email.)
-            </p>
-            <p>Error message:</p>
-            <pre>{@props.err}</pre>
-        </Alert>
-
-    created: () ->
-        if @props.url?.length > 1
-            url = <a href={@props.url} target='_blank' rel='noopener'>{@props.url}</a>
-        else
-            url = 'no ticket'
-        <div style={textAlign:'center'}>
-          <p>
-              Ticket has been created successfully.
-              Keep this link in order to stay in contact with us:
-          </p>
-          <p style={fontSize:'120%'}>{url}</p>
-          <Button
-              bsStyle  = 'success'
-              style    = {marginTop:'3em'}
-              tabIndex = {4}
-              onClick  = {@props.actions.new_ticket}>Create New Ticket</Button>
-       </div>
-
-    default: () ->
-        title = @props.project_title
-        if title?
-            loc  = @props.actions.location()
-            fn   = loc.slice(47) # / projects / uuid /
-            what = <p>
-                       If you have a problem involving "{fn}" in the
-                       project "{title}", please create a support ticket below.
-                   </p>
-        else
-            what = <p>
-                       If you have a problem involving a specific project or file,
-                       close this dialog, navigate to that file, then click on
-                       {" "}<Icon name='medkit' />{" "}
-                       in the top right corner to open it again.
-                       Otherwise, please fill out this form.
-                   </p>
-        <div>
-            <h2 style={marginTop:'-5px'}>Frequent questions</h2>
-            <ul>
-                <li>
-                    <a href="https://doc.cocalc.com" target="_blank" rel="noopener"><b><SiteName/> Documentation and help</b></a>
-                </li>
-                <li>
-                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/subscriptions.html#what-if-your-subscription-does-not-seem-to-do-anything">Subscription problems</a>
-                </li>
-                <li>
-                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/missing-project.html">File or project seems gone</a>
-                </li>
-                <li>
-                   Jupyter notebook or SageMath worksheet  <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/slow-worksheet.html">slow</a> or <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">crashing</a>
-                </li>
-                <li>
-                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/sage-question.html">Questions about SageMath</a>
-                </li>
-                <li>
-                    <b>Trying to sign out:</b>  Click on Account on the top right, then click
-                    "Sign out..." in Preferences.
-                </li>
-                <li>
-                    <b>Hit a bug, just need to talk with us, or request that we install software:</b> Fill out the form below...
-                </li>
-                <li>
-                    Just <b>want to chat</b> with somebody?  Visit <A href={DISCORD_INVITE}>our Discord server</A>.
-                </li>
-            </ul>
-
-            <h2>Create a support ticket</h2>
-
-            {what}
-            <p>
-                After submitting a ticket, you{"'"}ll receive a link, which you should save until
-                you receive a confirmation email.
-                You can also check the status of your ticket under "Support"
-                in your account settings.
-                We typically respond to support requests from paying customers very quickly.
-            </p>
-        </div>
-
-    render: ->
-        switch @props.state
-            when STATE.ERROR
-                return @error()
-            when STATE.CREATING
-                return <Loading />
-            when STATE.CREATED
-                return @created()
-            else
-                return @default()
+SupportInfo = support_rewrite.SupportInfo;
 
 SupportFooter = support_rewrite.SupportFooter;
 
@@ -390,12 +280,7 @@ exports.Support = rclass
                 submit    = {(e) => @submit(e)} />
 
     render_info: ->
-        <SupportInfo
-            project_title = {@props.project_title}
-            actions   = {@props.actions}
-            state     = {@props.state}
-            url       = {@props.url}
-            err       = {@props.err} />
+        <SupportInfo />
 
     render_body: (show_form) ->
         <div style={color:'#333'}>

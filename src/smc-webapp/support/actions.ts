@@ -12,6 +12,7 @@ import { SupportState, Tags, Ticket } from "./types";
 import { get_browser, get_mobile } from "../feature";
 import { webapp_client } from "../webapp-client";
 import { values } from "lodash";
+import { location } from "./util";
 
 declare var DEBUG: boolean;
 
@@ -128,10 +129,6 @@ export class SupportActions extends Actions<SupportState> {
     this.set({ valid: has_subject && has_body && has_valid_email });
   }
 
-  private location(): string {
-    return window.location.pathname.slice(window.app_base_url.length);
-  }
-
   public async send_support_request(): Promise<void> {
     const account = redux.getStore("account");
     const account_id = account.get_account_id(); // null if not authenticated
@@ -194,7 +191,7 @@ export class SupportActions extends Actions<SupportState> {
         subject: store.get("subject"),
         body: store.get("body"),
         tags,
-        location: this.location(),
+        location: location(),
         account_id,
         info,
       });

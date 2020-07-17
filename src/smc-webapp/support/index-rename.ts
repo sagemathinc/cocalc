@@ -15,3 +15,4 @@ export { SupportFooter } from "./footer";
 import "./form";
 import "./tickets";
 import "./page";
+export { SupportInfo } from "./info";
