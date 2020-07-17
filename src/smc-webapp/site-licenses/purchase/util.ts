@@ -6,7 +6,18 @@
 export type User = "academic" | "business";
 export type Upgrade = "basic" | "standard" | "custom";
 export type Subscription = "no" | "monthly" | "yearly";
-export type CustomUpgrades = "ram" | "cpu" | "disk" | "always_on";
+export type CustomUpgrades =
+  | "ram"
+  | "cpu"
+  | "disk"
+  | "always_running"
+  | "member";
+
+export interface Cost {
+  cost: number;
+  discounted_cost: number;
+  cost_per_project_per_month: number;
+}
 
 export interface PurchaseInfo {
   user: User;
@@ -18,11 +29,12 @@ export interface PurchaseInfo {
   quote?: boolean;
   quote_info?: string;
   payment_method?: string;
-  cost?: { cost: number; discounted_cost: number; cost_per_project: number }; // use cost and discounted_cost as double check on backend only (i.e., don't trust them, but on other hand be careful not to charge more!)
+  cost?: Cost;
   custom_ram: number;
   custom_cpu: number;
   custom_disk: number;
-  custom_always_on: boolean;
+  custom_always_running: boolean;
+  custom_member: boolean;
 }
 
 // discount is the number we multiply the price by:
@@ -33,31 +45,66 @@ export interface PurchaseInfo {
 
 // See https://cloud.google.com/compute/vm-instance-pricing#e2_custommachinetypepricing
 // for the monthly GCE prices
-const GCE_COSTS = {
+export const GCE_COSTS = {
   ram: 0.67, // for pre-emptibles
   cpu: 5, // for pre-emptibles
   disk: 0.04, // per GB/month
-  non_pre_factor: 3.33, // factor for non-preemptible
+  non_pre_factor: 3.5, // Roughly Google's factor for non-preemptible's
 };
 
-const ACADEMIC_DISCOUNT = 0.6; // changing this doesn't change the actual academic prices -- it just changes the *business* prices.
-const COST_MULTIPLIER = 0.75; // we charge LESS than Google VM's, due to multiple users on a node at once.
+// Our price = GCE price times this.  We charge LESS than Google VM's, due to our gamble
+// on having multiple users on a node at once.
+const COST_MULTIPLIER = 0.75;
+// We gamble that projects are packed at least twice as densely on non-member
+// nodes (it's often worse).
+const NONMEMBER_DENSITY = 2;
+// Changing this doesn't change the actual academic prices --
+// it just changes the *business* prices.
+const ACADEMIC_DISCOUNT = 0.6;
+// Disk factor is based on how many copies of user data we have, plus guesses about
+// bandwidth to transfer data around (to/from cloud storage, backblaze, etc.).
+// 10 since we have about that many copies of user data, plus snapshots, and
+// we store their data long after they stop paying...
+const DISK_FACTOR = 10;
+
+// Extra charge if project will always be on. Really we are gambling that
+// projects that are not always on, are off much of the time (at least 50%).
+// We use this factor since a 50-simultaneous active projects license could
+// easily be used about half of the time during a week in a large class.
+const ALWAYS_RUNNING_FACTOR = 2;
+
+// Another gamble implicit in this is that pre's are available.  When they
+// aren't, cocalc.com switches to uses MUCH more expensive non-preemptibles.
+
 const CUSTOM_COST = {
-  ram: (COST_MULTIPLIER * GCE_COSTS.ram) / ACADEMIC_DISCOUNT,
-  cpu: (COST_MULTIPLIER * GCE_COSTS.cpu) / ACADEMIC_DISCOUNT,
-  disk: (10 * (COST_MULTIPLIER * GCE_COSTS.disk)) / ACADEMIC_DISCOUNT, // 10 since we have about that many copies of user data, plus snapshots, and we store their data long after they stop paying!
-  always_on: 2 * GCE_COSTS.non_pre_factor,  // factor of 2 since this is a gamble by us and we don't know they will use it for a full month; lots of uncertainty
+  ram:
+    (COST_MULTIPLIER * GCE_COSTS.ram) / ACADEMIC_DISCOUNT / NONMEMBER_DENSITY,
+  cpu:
+    (COST_MULTIPLIER * GCE_COSTS.cpu) / ACADEMIC_DISCOUNT / NONMEMBER_DENSITY,
+  disk: (DISK_FACTOR * COST_MULTIPLIER * GCE_COSTS.disk) / ACADEMIC_DISCOUNT,
+  always_running: ALWAYS_RUNNING_FACTOR,
+  member: NONMEMBER_DENSITY,
 } as const;
-const BASIC = { ram: 1, cpu: 1, disk: 1, always_on: 0 } as const;
-const STANDARD = { ram: 2, cpu: 2, disk: 3, always_on: 0 } as const;
+const BASIC = {
+  ram: 1,
+  cpu: 1,
+  disk: 1,
+  always_running: 0,
+  member: 1,
+} as const;
+const STANDARD = {
+  ram: 2,
+  cpu: 2,
+  disk: 3,
+  always_running: 0,
+  member: 1,
+} as const;
 export const COSTS: {
   user_discount: { [user in User]: number };
   sub_discount: { [sub in Subscription]: number };
   online_discount: number;
   min_quote: number;
   min_sale: number;
-  basic_cost: number;
-  standard_cost: number;
   custom_cost: { [key in CustomUpgrades]: number };
   custom_max: { [key in CustomUpgrades]: number };
   basic: { [key in CustomUpgrades]: number };
@@ -68,24 +115,19 @@ export const COSTS: {
   online_discount: 0.75,
   min_quote: 100,
   min_sale: 1,
-  basic_cost:
-    BASIC.ram * CUSTOM_COST.ram +
-    BASIC.cpu * CUSTOM_COST.cpu +
-    BASIC.disk * CUSTOM_COST.disk,
-  standard_cost:
-    STANDARD.ram * CUSTOM_COST.ram +
-    STANDARD.cpu * CUSTOM_COST.cpu +
-    STANDARD.disk * CUSTOM_COST.disk,
   custom_cost: CUSTOM_COST,
-  custom_max: { ram: 16, cpu: 4, disk: 20, always_on: 1 },
+  custom_max: { ram: 16, cpu: 4, disk: 20, always_running: 1, member: 1 },
   basic: BASIC,
   standard: STANDARD,
 } as const;
 
-// TODO: this is just a quick sample cost formula so we can see this work.
 export function compute_cost(
   info: PurchaseInfo
-): { cost: number; cost_per_project: number; discounted_cost: number } {
+): {
+  cost: number;
+  cost_per_project_per_month: number;
+  discounted_cost: number;
+} {
   let {
     quantity,
     user,
@@ -96,31 +138,55 @@ export function compute_cost(
     custom_ram,
     custom_cpu,
     custom_disk,
-    custom_always_on,
+    custom_always_running,
+    custom_member,
   } = info;
-  let cost_per_project = COSTS.basic_cost;
   if (upgrade == "standard") {
     // set custom_* to what they would be:
     custom_ram = STANDARD.ram;
     custom_cpu = STANDARD.cpu;
     custom_disk = STANDARD.disk;
-    custom_always_on = !!STANDARD.always_on;
+    custom_always_running = !!STANDARD.always_running;
+    custom_member = !!STANDARD.member;
   } else if (upgrade == "basic") {
     custom_ram = BASIC.ram;
     custom_cpu = BASIC.cpu;
     custom_disk = BASIC.disk;
-    custom_always_on = !!BASIC.always_on;
+    custom_always_running = !!BASIC.always_running;
+    custom_member = !!BASIC.member;
   }
-  cost_per_project +=
-    (custom_ram - COSTS.basic.ram) * COSTS.custom_cost.ram +
-    (custom_cpu - COSTS.basic.cpu) * COSTS.custom_cost.cpu +
-    (custom_disk - COSTS.basic.disk) * COSTS.custom_cost.disk;
-  if (custom_always_on) {
-    cost_per_project *= COSTS.custom_cost.always_on;
+
+  // We compute the cost for one project for one month.
+  // First we add the cost for RAM and CPU.
+  let cost_per_project_per_month =
+    custom_ram * COSTS.custom_cost.ram + custom_cpu * COSTS.custom_cost.cpu;
+  // If the project is always one, multiply the RAM/CPU cost by a factor.
+  if (custom_always_running) {
+    cost_per_project_per_month *= COSTS.custom_cost.always_running;
+    if (custom_member) {
+      // if it is member hosted and always on, we absolutely can't ever use
+      // pre-emptible for this project.  On the other hand,
+      // always on non-member means it gets restarted whenever the
+      // pre-empt gets killed, which is still potentially very useful
+      // for long-running computations that can be checkpointed and started.
+      cost_per_project_per_month *= GCE_COSTS.non_pre_factor;
+    }
   }
-  cost_per_project *=
+  // If the project is member hosted, multiply the RAM/CPU cost by a factor.
+  if (custom_member) {
+    cost_per_project_per_month *= COSTS.custom_cost.member;
+  }
+  // Add the disk cost, which doesn't depend on how frequently the project
+  // is used or the quality of hosting.
+  cost_per_project_per_month += custom_disk * COSTS.custom_cost.disk;
+  // Now give the academic and subscription discounts:
+  cost_per_project_per_month *=
     COSTS.user_discount[user] * COSTS.sub_discount[subscription];
-  let cost = quantity * cost_per_project;
+
+  // Multiply by the number of projects:
+  let cost = quantity * cost_per_project_per_month;
+
+  // Make cost properly account for period of purchase or subscription.
   if (subscription == "no") {
     if (end == null) {
       throw Error("end must be set if subscription is no");
@@ -132,10 +198,11 @@ export function compute_cost(
   } else if (subscription == "yearly") {
     cost *= 12;
   }
+
   return {
     cost: Math.max(COSTS.min_sale / COSTS.online_discount, cost),
     discounted_cost: Math.max(COSTS.min_sale, cost * COSTS.online_discount),
-    cost_per_project,
+    cost_per_project_per_month,
   };
 }
 

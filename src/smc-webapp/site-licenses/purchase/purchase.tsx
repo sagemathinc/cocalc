@@ -18,7 +18,7 @@ import * as moment from "moment";
 import { webapp_client } from "../../webapp-client";
 import { CSS, React, redux, useMemo, useState } from "../../app-framework";
 const { RangePicker } = DatePicker;
-import { ErrorDisplay, Space } from "../../r_misc";
+import { A, ErrorDisplay, Space } from "../../r_misc";
 import { PurchaseMethod } from "./purchase-method";
 import { RadioGroup } from "./radio-group";
 import { plural } from "smc-util/misc2";
@@ -44,6 +44,7 @@ import {
   Subscription,
   PurchaseInfo,
   COSTS,
+  GCE_COSTS,
   compute_cost,
   money,
   percent_discount,
@@ -60,10 +61,12 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   const [custom_ram, set_custom_ram] = useState<number>(COSTS.basic.ram);
   const [custom_cpu, set_custom_cpu] = useState<number>(COSTS.basic.cpu);
   const [custom_disk, set_custom_disk] = useState<number>(COSTS.basic.disk);
-  const [custom_always_on, set_custom_always_on] = useState<boolean>(
-    !!COSTS.basic.always_on
+  const [custom_always_running, set_custom_always_running] = useState<boolean>(
+    !!COSTS.basic.always_running
   );
-
+  const [custom_member, set_custom_member] = useState<boolean>(
+    !!COSTS.basic.member
+  );
   const [quantity, set_quantity] = useState<number>(1);
   const [subscription, set_subscription] = useState<Subscription>("monthly");
 
@@ -97,7 +100,11 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   );
 
   const cost = useMemo<
-    | { cost: number; cost_per_project: number; discounted_cost: number }
+    | {
+        cost: number;
+        cost_per_project_per_month: number;
+        discounted_cost: number;
+      }
     | undefined
   >(() => {
     if (
@@ -118,7 +125,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       custom_ram,
       custom_cpu,
       custom_disk,
-      custom_always_on,
+      custom_always_running,
+      custom_member,
     });
   }, [
     quantity,
@@ -130,8 +138,38 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     custom_ram,
     custom_cpu,
     custom_disk,
-    custom_always_on,
+    custom_always_running,
+    custom_member,
   ]);
+
+  const cost_per_project_per_month = useMemo<{
+    basic: number;
+    standard: number;
+  }>(() => {
+    const x = {
+      basic: 0,
+      standard: 0,
+    };
+    if (upgrade == null || user == null || quantity == null) {
+      return x;
+    }
+    for (const upgrade in x) {
+      x[upgrade] = compute_cost({
+        quantity,
+        user,
+        upgrade: upgrade as Upgrade,
+        subscription,
+        start,
+        end,
+        custom_ram,
+        custom_cpu,
+        custom_disk,
+        custom_always_running,
+        custom_member,
+      }).cost_per_project_per_month;
+    }
+    return x;
+  }, [quantity, user, upgrade, subscription]);
 
   function render_error() {
     if (error == "") return;
@@ -182,22 +220,18 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               icon: "battery-1",
               label: "Basic",
               value: "basic",
-              desc: `priority support, network access, ${COSTS.basic.cpu} vCPU, ${COSTS.basic.ram}GB RAM, ${COSTS.basic.disk}GB disk space`,
+              desc: `priority support, network access, member hosting, ${COSTS.basic.cpu} CPU cores, ${COSTS.basic.ram}GB RAM, ${COSTS.basic.disk}GB disk space`,
               cost: `${money(
-                COSTS.sub_discount[subscription] *
-                  COSTS.user_discount[user] *
-                  COSTS.basic_cost
+                cost_per_project_per_month.basic
               )}/month per project`,
             },
             {
               icon: "battery-2",
               label: "Standard",
               value: "standard",
-              desc: `priority support, network access, ${COSTS.standard.cpu} vCPU, ${COSTS.standard.ram}GB RAM, ${COSTS.standard.disk}GB disk space`,
+              desc: `priority support, network access, member hosting, ${COSTS.standard.cpu} CPU cores, ${COSTS.standard.ram}GB RAM, ${COSTS.standard.disk}GB disk space`,
               cost: `${money(
-                COSTS.sub_discount[subscription] *
-                  COSTS.user_discount[user] *
-                  COSTS.standard_cost
+                cost_per_project_per_month.standard
               )}/month per project`,
             },
             {
@@ -206,7 +240,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               value: "custom",
               cost:
                 upgrade == "custom"
-                  ? `${money(cost.cost_per_project)}/month per project`
+                  ? `${money(
+                      cost.cost_per_project_per_month
+                    )}/month per project`
                   : undefined,
             },
           ]}
@@ -240,10 +276,13 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             </Checkbox>
           </Col>
           <Col md={col_desc}>
-            priority support{" "}
-            {render_explanation("we respond to your support requests first")}
+            priority support
+            {render_explanation(
+              "we prioritize your support requests much higher (included with all licensed projects)"
+            )}
           </Col>
         </Row>
+
         <Row>
           <Col md={col_control}>
             <Checkbox checked={true} disabled={true}>
@@ -251,10 +290,54 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             </Checkbox>
           </Col>
           <Col md={col_desc}>
-            network access{" "}
+            network access
             {render_explanation(
-              "your project can connect to the Internet to clone git repositories, download files, send emails, etc."
+              "your project can connect to the Internet to clone git repositories, download files, send emails, etc.  (included with all licensed projects)"
             )}
+          </Col>
+        </Row>
+        <Row>
+          <Col md={col_control}>
+            <Checkbox
+              checked={custom_member}
+              onChange={(e) => set_custom_member(e.target.checked)}
+            >
+              Member
+            </Checkbox>
+          </Col>
+          <Col md={col_desc}>
+            member hosting (multiply RAM/CPU price by {COSTS.custom_cost.member}
+            )
+            {render_explanation(
+              "your project runs on computers with far less other projects"
+            )}
+          </Col>
+        </Row>
+
+        <Row>
+          <Col md={col_control}>
+            <Checkbox
+              checked={custom_always_running}
+              onChange={(e) => set_custom_always_running(e.target.checked)}
+            >
+              Always running
+            </Checkbox>
+          </Col>
+          <Col md={col_desc}>
+            Project is always running (multiply RAM/CPU price by{" "}
+            {COSTS.custom_cost.always_running * GCE_COSTS.non_pre_factor} for
+            member hosting or multiply by {COSTS.custom_cost.always_running}{" "}
+            without){" "}
+            {render_explanation(
+              "your project is always running, so you don't have to wait for it to start, and you can run long computations; otherwise, your project will stop after a while if it is not actively being used." +
+                (!custom_member
+                  ? " Because member hosting isn't selected, your project will restart at least once daily."
+                  : "")
+            )}
+            . See{" "}
+            <A href="https://doc.cocalc.com/project-init.html">
+              project init scripts.
+            </A>
           </Col>
         </Row>
         <Row>
@@ -270,13 +353,13 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             />
           </Col>
           <Col md={col_desc}>
-            Number of vCPU's (
+            number of CPU cores (
             {`${money(
               COSTS.user_discount[user] * COSTS.custom_cost.cpu
-            )}/vCPU per month`}
+            )}/CPU cores per month`}
             )
             {render_explanation(
-              "the are vCPUs on Google cloud, and they may be shared with other users"
+              "these are Google cloud vCPU's, which may be shared with other projects (member hosting significantly reduces sharing)"
             )}
           </Col>
         </Row>
@@ -319,25 +402,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             )}/GB per month`}
             )
             {render_explanation(
-              "this allows you to store a larger number of files; snapshots and complete file edit history is included at no additional charge"
-            )}
-          </Col>
-        </Row>
-
-        <Row>
-          <Col md={col_control}>
-            <Checkbox
-              checked={custom_always_on}
-              onChange={(e) => set_custom_always_on(e.target.checked)}
-            >
-              Always on
-            </Checkbox>
-          </Col>
-          <Col md={col_desc}>
-            Project is always on (multiply price by{" "}
-            {COSTS.custom_cost.always_on}){" "}
-            {render_explanation(
-              "enable so your project is always running, you don't have to wait for it to start, and you can run long computations; otherwise, your project will stop after a while if it is not actively being used."
+              "this allows you to store a larger number of files. Snapshots and complete file edit history is included at no additional charge."
             )}
           </Col>
         </Row>
@@ -605,7 +670,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       custom_ram,
       custom_cpu,
       custom_disk,
-      custom_always_on,
+      custom_always_running,
+      custom_member,
     };
     set_sending("active");
     try {
