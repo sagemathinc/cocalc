@@ -517,7 +517,6 @@ exports.cm_define_diffApply_extension = (cm) ->
         pos = {line:0, ch:0}  # start at the beginning
         last_pos = undefined
         for chunk in diff
-            #console.log(chunk)
             op  = chunk[0]  # 0 = stay same; -1 = delete; +1 = add
             val = chunk[1]  # the actual text to leave same, delete, or add
             pos1 = next_pos(val, pos)
@@ -761,10 +760,14 @@ exports.define_codemirror_extensions = () ->
         if changeObj?
             @apply_changeObj(changeObj)
 
-    # Set the value of the buffer to something new by replacing just the ranges
-    # that changed, so that the view/history/etc. doesn't get messed up.
-    # Setting scroll_last to ture sets cursor to last changed position and puts cursors
+    # Try to set the value of the buffer to something new by replacing just the ranges
+    # that changed, so that the viewport/history/etc. doesn't get messed up.
+    # Setting scroll_last to true sets cursor to last changed position and puts cursors
     # there; this is used for undo/redo.
+    # **NOTE:** there are no guarantees, since if the patch to transform from  current to
+    # value involves a "huge" (at least 500) number of chunks, then we just set the value
+    # directly since apply thousands of chunks will lock the cpu for seconds.  This will
+    # slightly mess up the scroll position, undo position, etc.  It's worth it.
     CodeMirror.defineExtension 'setValueNoJump', (value, scroll_last) ->
         if not value?
             # Special case -- trying to set to value=undefined.  This is the sort of thing
@@ -774,7 +777,7 @@ exports.define_codemirror_extensions = () ->
             return
         current_value = @getValue()
         if value == current_value
-            # Nothing to do
+            # Special case: nothing to do
             return
 
         r = @getOption('readOnly')
@@ -787,9 +790,23 @@ exports.define_codemirror_extensions = () ->
         b      = @setBookmark(line:@lineAtHeight(t, 'local'))
         before = @heightAtLine(@lineAtHeight(t, 'local'))
 
-        # Change the buffer in place by applying the diffs as we go; this avoids replacing the entire buffer,
-        # which would cause total chaos.
-        last_pos = @diffApply(dmp.diff_main(current_value, value))
+        # Compute patch that transforms current_value to new value:
+        diff = dmp.diff_main(current_value, value)
+        if diff.length >= 500
+            # special case -- a really weird change that will take
+            # an enormous amount of time to apply using diffApply.
+            # For example, something that changes every line in a file
+            # slightly could do this.  In this case, instead of blocking
+            # the user browser for several seconds, we just take the
+            # hit and possibly unset the cursor.  Most diffs involve
+            # a much smaller number of patches.
+            scroll = @getScrollInfo().top - (before - @heightAtLine(b.find().line))
+            @setValue(value)
+            @scrollTo(undefined, scroll)  # make some attempt to fix scroll.
+        else
+            # Change the buffer in place by applying the diffs as we go; this avoids replacing the entire buffer,
+            # which would cause total chaos.
+            last_pos = @diffApply(diff)
 
         # Now, if possible, restore the exact scroll position.
         n = b.find()?.line
