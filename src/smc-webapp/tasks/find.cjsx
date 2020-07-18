@@ -13,9 +13,9 @@ Searching for tasks by full text search and done/deleted status.
 
 {Button, Row, Col, FormControl, FormGroup, InputGroup} = require('react-bootstrap')
 
-{ShowToggle} = require('./show-toggle')
+{ShowToggle} = require('../frame-editors/task-editor/show-toggle')
 
-{EmptyTrash} = require('./empty-trash')
+{EmptyTrash} = require('../frame-editors/task-editor/empty-trash')
 
 exports.Find = rclass
     propTypes:

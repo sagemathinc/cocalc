@@ -16,7 +16,7 @@ A single task
 {Description}  = require('./desc')
 {Changed}      = require('../frame-editors/task-editor/changed')
 {DueDate}      = require('./due')
-{DragHandle}   = require('./drag')
+{DragHandle}   = require('../frame-editors/task-editor/drag')
 {DoneCheckbox} = require('../frame-editors/task-editor/done')
 {Timer}        = require('./timer')
 {header_part}  = require('./desc-rendering')
