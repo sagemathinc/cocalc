@@ -23,6 +23,7 @@ export {
   Navbar,
   Nav,
   NavItem,
+  Table,
 } from "react-bootstrap";
 
 import { React, Rendered } from "./app-framework";

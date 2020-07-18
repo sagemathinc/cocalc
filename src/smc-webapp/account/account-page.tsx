@@ -27,8 +27,8 @@ import { BillingPage } from "../billing/billing-page";
 import { UpgradesPage } from "./upgrades/upgrades-page";
 import { LicensesPage } from "./licenses/licenses-page";
 
-//import { SupportPage } from "../support";
-const { SupportPage } = require("../support");
+//import { SupportTickets } from "../support";
+const { SupportTickets } = require("../support");
 import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { Icon, Loading } from "../r_misc";
 import { SignOut } from "../account/sign-out";
@@ -304,7 +304,7 @@ class AccountPage extends Component<Props> {
             </span>
           }
         >
-          {this.props.active_page === "support" ? <SupportPage /> : undefined}
+          {this.props.active_page === "support" ? <SupportTickets /> : undefined}
         </Tab>
       );
     }

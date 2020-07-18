@@ -58,7 +58,7 @@ export class SupportActions extends Actions<SupportState> {
             created_at: new Date(),
             updated_at: new Date(),
           },
-        ],
+        ] as any,
         support_ticket_error: undefined,
       });
     } else {
@@ -67,7 +67,7 @@ export class SupportActions extends Actions<SupportState> {
         tickets = tickets.sort(cmp_tickets);
         this.setState({
           support_ticket_error: undefined,
-          support_tickets: tickets,
+          support_tickets: tickets as any, // shortcoming in stores vs typescript vs immutable js
         });
       } catch (support_ticket_error) {
         this.setState({

@@ -30,7 +30,7 @@ export const SupportFooter: React.FC = React.memo(() => {
           onClick={actions.send_support_request}
           disabled={!valid}
         >
-          <Icon name="medkit" /> Get Support
+          <Icon name="medkit" /> Get support
         </Button>
       )}
     </Modal.Footer>
