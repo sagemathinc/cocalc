@@ -68,7 +68,7 @@ import { apply_patch } from "smc-util/sync/editor/generic/util";
 
 import { default_opts } from "../codemirror/cm-options";
 
-const copypaste = require("smc-webapp/copy-paste-buffer");
+import { set_buffer, get_buffer } from "../../copy-paste-buffer";
 const { open_new_tab } = require("smc-webapp/misc_page");
 
 import {
@@ -1641,7 +1641,7 @@ export class Actions<
     const cm = this._get_cm(id);
     if (cm != null) {
       const doc = cm.getDoc();
-      copypaste.set_buffer(doc.getSelection());
+      set_buffer(doc.getSelection());
       doc.replaceSelection("");
       cm.focus();
     }
@@ -1653,7 +1653,7 @@ export class Actions<
     }
     const cm = this._get_cm(id);
     if (cm != null) {
-      copypaste.set_buffer(cm.getDoc().getSelection());
+      set_buffer(cm.getDoc().getSelection());
       cm.focus();
       return;
     }
@@ -1665,7 +1665,7 @@ export class Actions<
     }
     let value;
     if (value === true || value == null) {
-      value = copypaste.get_buffer();
+      value = get_buffer();
     }
     if (value === undefined) {
       // nothing to paste

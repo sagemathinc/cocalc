@@ -11,7 +11,7 @@ everything on *desktop*, once the user has signed in.
 declare var DEBUG: boolean;
 
 import { ProjectsNav } from "../projects/projects-nav";
-const { Support } = require("../support");
+const { CreateSupportTicket } = require("../support");
 
 import { COLORS } from "smc-util/theme";
 
@@ -245,7 +245,7 @@ export const Page: React.FC = () => {
         icon={"medkit"}
         inner_style={{ padding: "10px", display: "flex" }}
         active_top_tab={active_top_tab}
-        on_click={() => support_actions.show(true)}
+        on_click={() => support_actions.set_show(true)}
         hide_label={!show_label}
       />
     );
@@ -369,7 +369,7 @@ export const Page: React.FC = () => {
         </div>
       )}
       {show_connection && <ConnectionInfo />}
-      {show_support && <Support actions={support_actions} />}
+      {show_support && <CreateSupportTicket actions={support_actions} />}
       {new_version && <VersionWarning new_version={new_version} />}
       {cookie_warning && <CookieWarning />}
       {local_storage_warning && <LocalStorageWarning />}

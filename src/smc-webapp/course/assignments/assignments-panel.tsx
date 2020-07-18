@@ -742,7 +742,9 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         </Row>
       );
     }
-    return v;
+    /* The whiteSpace:'normal' here is because we put this in an
+       antd Card title, which has line wrapping disabled. */
+    return <div style={{ whiteSpace: "normal" }}>{v}</div>;
   }
 
   render_more() {

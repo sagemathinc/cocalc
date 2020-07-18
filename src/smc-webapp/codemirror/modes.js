@@ -1,14 +1,15 @@
-#########################################################################
-# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
-#########################################################################
+//########################################################################
+// This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+// License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+//########################################################################
 
-###
+
+/*
 Load javascript support for all modes that we support in CoCalc.
 
 NOTE: This is used by the share server, so we can't load css or other stuff
 that shouldn't also be used on the backend.
-###
+*/
 
 require('codemirror/mode/clike/clike.js')
 require('codemirror/mode/clojure/clojure.js')
@@ -74,7 +75,7 @@ require('codemirror/mode/yaml/yaml.js')
 require('codemirror/mode/yaml-frontmatter/yaml-frontmatter.js')
 require('codemirror/mode/z80/z80.js')
 
-###
+/*
 * In mode/python/python.js I add our unicode output character to be a comment starter:
 
       // Handle Comments
@@ -88,16 +89,16 @@ Also, it's critical to fix a bug by replacing the state function by
     }
     return state.scopes[state.scopes.length - 1];
   }
-###
+*/
 require('./mode/python.js')
 
 require('./mode/makefile.js')
 
-# In ReST mode/rst/rst.js, add Sage support:
-#  var rx_examples = new RegExp('^\\s+(?:>>>|sage:|In \\[\\d+\\]:)\\s');
+// In ReST mode/rst/rst.js, add Sage support:
+//  var rx_examples = new RegExp('^\\s+(?:>>>|sage:|In \\[\\d+\\]:)\\s');
 require('./mode/rst.js')
 
-# Modify the coffeescript mode to support cjsx.
+//  Modify the coffeescript mode to support cjsx.
 require('./mode/coffeescript2.js')
 
 require('./mode/less.js')

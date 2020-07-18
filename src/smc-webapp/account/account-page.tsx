@@ -27,8 +27,8 @@ import { BillingPage } from "../billing/billing-page";
 import { UpgradesPage } from "./upgrades/upgrades-page";
 import { LicensesPage } from "./licenses/licenses-page";
 
-//import { SupportPage } from "../support";
-const { SupportPage } = require("../support");
+//import { SupportTickets } from "../support";
+const { SupportTickets } = require("../support");
 import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { Icon, Loading } from "../r_misc";
 import { SignOut } from "../account/sign-out";
@@ -144,8 +144,7 @@ class AccountPage extends Component<Props> {
         redux.getActions("billing").update_customer();
         break;
       case "support":
-        // TODO: rewrite support in typescript...
-        (redux.getActions("support") as any).load_support_tickets();
+        redux.getActions("support").load_support_tickets();
         break;
       case "signout":
         return;
@@ -305,7 +304,7 @@ class AccountPage extends Component<Props> {
             </span>
           }
         >
-          {this.props.active_page === "support" ? <SupportPage /> : undefined}
+          {this.props.active_page === "support" ? <SupportTickets /> : undefined}
         </Tab>
       );
     }

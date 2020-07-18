@@ -23,6 +23,7 @@ export {
   Navbar,
   Nav,
   NavItem,
+  Table,
 } from "react-bootstrap";
 
 import { React, Rendered } from "./app-framework";
@@ -37,6 +38,7 @@ import * as antd from "antd";
 type ButtonStyle =
   | "primary"
   | "success"
+  | "default"
   | "info"
   | "warning"
   | "danger"
@@ -47,6 +49,7 @@ const BS_STYLE_TO_TYPE: {
 } = {
   primary: "primary",
   success: "default", // antd doesn't have this so we do it via style below.
+  default: "default",
   info: "dashed",
   warning: "default", // antd doesn't have this so we do it via style below.
   danger: "danger",
@@ -116,6 +119,7 @@ export function Button(props: {
   href?: string;
   target?: string;
   title?: string;
+  tabIndex?: number;
   id?: string;
 }) {
   // The span is needed inside below, otherwise icons and labels get squashed together
@@ -143,6 +147,7 @@ export function Button(props: {
       ghost={ghost}
       loading={loading}
       title={props.title}
+      tabIndex={props.tabIndex}
       id={props.id}
     >
       <span>{props.children}</span>

@@ -26,6 +26,7 @@ import { WebLinksAddon } from "xterm-addon-web-links";
 import { setTheme } from "./themes";
 import { project_websocket, touch, touch_project } from "../generic/client";
 import { Actions, CodeEditorState } from "../code-editor/actions";
+import { set_buffer, get_buffer } from "../../copy-paste-buffer";
 
 import {
   endswith,
@@ -41,10 +42,6 @@ import { file_associations } from "../../file-associations";
 
 declare const $: any;
 import { starts_with_cloud_url } from "smc-webapp/process-links";
-
-// import { debounce } from "lodash";
-
-const copypaste = require("smc-webapp/copy-paste-buffer");
 
 // NOTE: Keep this consistent with server.ts on the backend...  Someday make configurable.
 const SCROLLBACK = 5000;
@@ -731,13 +728,13 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   copy(): void {
     const sel: string = this.terminal.getSelection();
-    copypaste.set_buffer(sel);
+    set_buffer(sel);
     this.terminal.focus();
   }
 
   paste(): void {
     this.terminal.clearSelection();
-    this.terminal.paste(copypaste.get_buffer());
+    this.terminal.paste(get_buffer());
     this.terminal.focus();
   }
 
