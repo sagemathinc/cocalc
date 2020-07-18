@@ -14,7 +14,7 @@ A single task
 
 {MinToggle}    = require('./min-toggle')
 {Description}  = require('./desc')
-{Changed}      = require('./changed')
+{Changed}      = require('../frame-editors/task-editor/changed')
 {DueDate}      = require('./due')
 {DragHandle}   = require('./drag')
 {DoneCheckbox} = require('../frame-editors/task-editor/done')
