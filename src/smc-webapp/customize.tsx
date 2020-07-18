@@ -1,22 +1,14 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-/*
-CoCalc: Collaborative Calculation in the Cloud
-Copyright (C) 2016, Sagemath Inc.
----
 
-Site Customize -- dynamically customize the look of CoCalc for the client.
-*/
-import { redux, Redux, rclass, rtypes, Store } from "./app-framework";
+// Site Customize -- dynamically customize the look of CoCalc for the client.
+
+import { redux, Redux, rclass, rtypes, Store, Actions } from "./app-framework";
 import * as React from "react";
 import {
   Loading,
-  A,
   Space,
   smc_version,
   build_date,
@@ -29,6 +21,8 @@ import { callback2, retry_until_success } from "smc-util/async-utils";
 const misc = require("smc-util/misc");
 import * as theme from "smc-util/theme";
 import { site_settings_conf } from "smc-util/db-schema/site-defaults";
+
+export { TermsOfService } from "./customize/terms-of-service";
 
 import {
   KUCALC_DISABLED,
@@ -59,14 +53,49 @@ const defaults = misc.dict(result);
 defaults.is_commercial = defaults.commercial;
 defaults._is_configured = false; // will be true after set via call to server
 
-// TODO type the store. it's an extension of what's in SiteSettings
+// CustomizeState is maybe extension of what's in SiteSettings
+// so maybe there is a more clever way like this to do it than
+// what I did below.
 // type SiteSettings = { [k in keyof SiteSettingsConfig]: any  };
-//
-// interface CustomizeStoreState extends SiteSettings {
-//   _is_configured: any;
-// }
 
-class CustomizeStore extends Store<any> {
+export interface CustomizeState {
+  is_commercial: boolean;
+  ssh_gateway: boolean;
+  account_creation_email_instructions: string;
+  allow_anonymous_sign_in: boolean;
+  commercial: boolean;
+  default_quotas: "{}";
+  dns: "cocalc.com";
+  email_enabled: false;
+  email_signup: boolean;
+  google_analytics: string;
+  help_email: string;
+  iframe_comm_hosts: string[];
+  index_info_html: string;
+  is_cocalc_com: boolean;
+  kucalc: string;
+  logo_rectangular: string;
+  logo_square: string;
+  max_upgrades: string;
+  onprem_quota_heading: string;
+  organization_email: string;
+  organization_name: string;
+  organization_url: string;
+  site_description: string;
+  site_name: string;
+  splash_image: string;
+  terms_of_service: string;
+  terms_of_service_url: string;
+  theming: boolean;
+  verify_emails: false;
+  version_min_browser: number;
+  version_min_project: number;
+  version_recommended_browser: number;
+  versions: string;
+  _is_configured: boolean;
+}
+
+export class CustomizeStore extends Store<CustomizeState> {
   async until_configured(): Promise<void> {
     if (this.get("_is_configured")) return;
     await callback2(this.wait, { until: () => this.get("_is_configured") });
@@ -79,8 +108,10 @@ class CustomizeStore extends Store<any> {
   }
 }
 
-redux.createStore("customize", CustomizeStore, defaults);
-const actions = redux.createActions("customize");
+export class CustomizeActions extends Actions<CustomizeState> {}
+
+const store = redux.createStore("customize", CustomizeStore, defaults);
+const actions = redux.createActions("customize", CustomizeActions);
 // really simple way to have a default value -- gets changed below once the $?.get returns.
 actions.setState({ is_commercial: true, ssh_gateway: true });
 
@@ -353,57 +384,6 @@ export const CompanyName = function CompanyName() {
   return <span>{theme.COMPANY_NAME}</span>;
 };
 
-interface ReactProps {
-  style: React.CSSProperties;
-}
-
-interface ReduxProps {
-  terms_of_service: string;
-  terms_of_service_url: string;
-}
-
-const TermsOfService0 = rclass<ReactProps>(
-  class TermsOfService extends React.Component<ReactProps & ReduxProps> {
-    public static reduxProps = () => {
-      return {
-        customize: {
-          terms_of_service: rtypes.string,
-          terms_of_service_url: rtypes.string,
-        },
-      };
-    };
-
-    render() {
-      if (this.props.terms_of_service?.length > 0) {
-        return (
-          <div
-            style={this.props.style}
-            dangerouslySetInnerHTML={{ __html: this.props.terms_of_service }}
-          ></div>
-        );
-      } else if (this.props.terms_of_service_url?.length > 0) {
-        // only used in the context of signing up, hence that phrase...
-        return (
-          <div style={this.props.style}>
-            I agree to the{" "}
-            <A href={this.props.terms_of_service_url}>Terms of Service</A>.
-          </div>
-        );
-      } else {
-        return <div></div>;
-      }
-    }
-  }
-);
-
-export function TermsOfService(props: { style: React.CSSProperties }) {
-  return (
-    <Redux>
-      <TermsOfService0 style={props.style} />
-    </Redux>
-  );
-}
-
 interface AccountCreationEmailInstructionsProps {
   account_creation_email_instructions: string;
 }
@@ -502,3 +482,24 @@ export const PolicyPricingPageUrl = app_base_url + "/policies/pricing.html";
 export const PolicyPrivacyPageUrl = app_base_url + "/policies/privacy.html";
 export const PolicyCopyrightPageUrl = app_base_url + "/policies/copyright.html";
 export const PolicyTOSPageUrl = app_base_url + "/policies/terms.html";
+
+import { gtag_id } from "smc-util/theme";
+async function init_gtag() {
+  await store.until_configured();
+  if (!store.get("is_commercial")) return;
+  // for commercial setup, enable conversion tracking...
+  // the gtag initialization
+  (window as any).dataLayer = (window as any).dataLayer || [];
+  (window as any).gtag = function () {
+    (window as any).dataLayer.push(arguments);
+  };
+  (window as any).gtag("js", new Date());
+  (window as any).gtag("config", gtag_id);
+  // load tagmanager
+  const jtag = document.createElement("script");
+  jtag.src = `https://www.googletagmanager.com/gtag/js?id=${theme.gtag_id}`;
+  jtag.async = true;
+  document.getElementsByTagName("head")[0].appendChild(jtag);
+}
+
+init_gtag();

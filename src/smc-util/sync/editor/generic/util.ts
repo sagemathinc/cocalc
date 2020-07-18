@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { CompressedPatch, Patch } from "./types";
 
 const { diff_match_patch } = require("smc-util/dmp");

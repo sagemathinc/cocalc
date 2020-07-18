@@ -1,4 +1,7 @@
-/* Handle connection(s) between the browser client and backend hubs. */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import { callback } from "awaiting";
 import { throttle } from "lodash";
@@ -6,10 +9,6 @@ import { WebappClient } from "./client";
 declare var Primus: any;
 const { delete_cookie } = require("../misc_page");
 import { QueryParams } from "../misc/query-params";
-import {
-  do_anonymous_setup,
-  should_do_anonymous_setup,
-} from "./anonymous-setup";
 import {
   delete_local_storage,
   from_json_socket,
@@ -20,10 +19,24 @@ import {
 } from "smc-util/misc";
 import { copy_without, uuid } from "smc-util/misc2";
 import * as message from "smc-util/message";
+import {
+  do_anonymous_setup,
+  should_do_anonymous_setup,
+} from "./anonymous-setup";
 
 // Maximum number of outstanding concurrent messages (that have responses)
 // to send at once to hub-websocket.
-const MAX_CONCURRENT: number = 25;
+const MAX_CONCURRENT: number = 10;
+
+export interface MessageInfo {
+  count: number;
+  sent: number;
+  sent_length: number;
+  recv: number;
+  recv_length: number;
+  enqueued: number;
+  max_concurrent: number;
+}
 
 export class HubClient {
   private client: WebappClient;
@@ -64,7 +77,7 @@ export class HubClient {
     update things for no reason.  It also impacts the color of the
     connection indicator, so throttling will make that color change a
     bit more laggy.  That's probably worth it. */
-    this.emit_mesg_data = throttle(this.emit_mesg_data.bind(this), 10000);
+    this.emit_mesg_data = throttle(this.emit_mesg_data.bind(this), 3000);
 
     // never attempt to reconnect more than once per 10s, no matter what.
     this.reconnect = throttle(this.reconnect.bind(this), 10000);
@@ -74,7 +87,7 @@ export class HubClient {
   }
 
   private emit_mesg_data(): void {
-    const info: any = copy_without(this.mesg_data, ["queue"]);
+    const info: MessageInfo = copy_without(this.mesg_data, ["queue"]) as any;
     info.enqueued = this.mesg_data.queue.length;
     info.max_concurrent = MAX_CONCURRENT;
     this.client.emit("mesg_info", info);

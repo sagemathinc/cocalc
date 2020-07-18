@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Code Editor Actions
 */
 
@@ -58,22 +63,22 @@ import { TerminalManager } from "../terminal-editor/terminal-manager";
 import { CodeEditorManager, CodeEditor } from "./code-editor-manager";
 
 import { AvailableFeatures } from "../../project_configuration";
-import {
-  ext2parser,
-  parser2tool,
-  format_parser_for_extension,
-} from "smc-util/code-formatter";
 
 import { apply_patch } from "smc-util/sync/editor/generic/util";
 
-const copypaste = require("smc-webapp/copy-paste-buffer");
+import { default_opts } from "../codemirror/cm-options";
+
+import { set_buffer, get_buffer } from "../../copy-paste-buffer";
 const { open_new_tab } = require("smc-webapp/misc_page");
 
-import { Options as FormatterOptions } from "smc-project/formatters/prettier";
 import {
-  Parser as FormatterParser,
+  ext2syntax,
+  syntax2tool,
+  Syntax as FormatterSyntax,
   Exts as FormatterExts,
+  Tool as FormatterTool,
 } from "smc-util/code-formatter";
+import { Config as FormatterConfig } from "smc-project/formatters/prettier";
 import { SHELLS } from "./editor";
 
 interface gutterMarkerParams {
@@ -104,9 +109,10 @@ export interface CodeEditorState {
   local_view_state: any; // Generic use of Actions below makes this entirely befuddling...
   reload: Map<string, any>;
   resize: number;
-  misspelled_words: Set<string>;
+  misspelled_words: Set<string> | string;
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
+  show_uncommitted_changes: boolean;
   is_saving: boolean;
   is_loaded: boolean;
   gutter_markers: GutterMarkers;
@@ -115,7 +121,7 @@ export interface CodeEditorState {
   load_time_estimate: number;
   error: string;
   errorstyle?: ErrorStyles;
-  status: any;
+  status: string;
   read_only: boolean;
   settings: Map<string, any>; // settings specific to this file (but **not** this user or browser), e.g., spell check language.
   complete: Map<string, any>;
@@ -195,6 +201,7 @@ export class Actions<
       misspelled_words: Set(),
       has_unsaved_changes: false,
       has_uncommitted_changes: false,
+      show_uncommitted_changes: false,
       is_saving: false,
       gutter_markers: Map(),
       cursors: Map(),
@@ -343,13 +350,29 @@ export class Actions<
       this.close();
     });
 
-    this._syncstring.on("has-uncommitted-changes", (has_uncommitted_changes) =>
-      this.setState({ has_uncommitted_changes })
+    this._syncstring.on(
+      "has-uncommitted-changes",
+      (has_uncommitted_changes) => {
+        this.setState({ has_uncommitted_changes });
+        if (!has_uncommitted_changes) {
+          this.set_show_uncommitted_changes(false);
+        }
+      }
     );
 
     this._syncstring.on("has-unsaved-changes", (has_unsaved_changes) => {
       this.setState({ has_unsaved_changes });
+      if (!has_unsaved_changes) {
+        this.set_show_uncommitted_changes(false);
+      }
     });
+
+    this._syncstring.on("change", this.activity);
+  }
+
+  // Flag that there is activity (causes icon to turn orange).
+  private activity() : void {
+    this._get_project_actions().flag_file_activity(this.path);
   }
 
   // This is currently NOT used in this base class.  It's used in other
@@ -392,6 +415,8 @@ export class Actions<
         this.setState({ is_loaded: true });
       }
     });
+
+    this._syncdb.on("change", this.activity);
   }
 
   // Reload the document.  This is used mainly for *public* viewing of
@@ -774,8 +799,6 @@ export class Actions<
     // default path
     let path = this.path;
 
-    this.set_frame_tree({ id, type, path });
-
     if (this._cm[id] && type != "cm") {
       // Make sure to clear cm cache in case switching type away,
       // in case the component unmount doesn't do this.
@@ -803,7 +826,15 @@ export class Actions<
     if (!font_size) {
       font_size = get_default_font_size();
     }
-    this.set_font_size(id, font_size);
+    this.set_frame_tree({
+      id,
+      type,
+      path,
+      title: undefined,
+      connection_status: undefined,
+      is_paused: undefined,
+      font_size,
+    });
 
     this.store.emit("new-frame", { id, type });
   }
@@ -1193,12 +1224,6 @@ export class Actions<
     }
     this.set_frame_tree({ id, font_size });
     this.focus(id);
-    this.set_status_font_size(font_size, default_font_size);
-  }
-
-  set_status_font_size(font_size: number, default_font_size) {
-    const percent = Math.round((font_size * 100) / default_font_size);
-    this.set_status(`Set font size to ${font_size} (${percent}%)`, 1500);
   }
 
   increase_font_size(id: string): void {
@@ -1522,7 +1547,7 @@ export class Actions<
     focus?: boolean,
     id?: string // if given scroll this particular frame
   ): Promise<void> {
-    if (this._syncstring == null) {
+    if (this._syncstring == null || this._syncstring.is_fake) {
       // give up -- don't even have a syncstring...
       // A derived class that doesn't use a syncstring
       // might overload programmatical_goto_line to make
@@ -1616,7 +1641,7 @@ export class Actions<
     const cm = this._get_cm(id);
     if (cm != null) {
       const doc = cm.getDoc();
-      copypaste.set_buffer(doc.getSelection());
+      set_buffer(doc.getSelection());
       doc.replaceSelection("");
       cm.focus();
     }
@@ -1628,7 +1653,7 @@ export class Actions<
     }
     const cm = this._get_cm(id);
     if (cm != null) {
-      copypaste.set_buffer(cm.getDoc().getSelection());
+      set_buffer(cm.getDoc().getSelection());
       cm.focus();
       return;
     }
@@ -1640,7 +1665,7 @@ export class Actions<
     }
     let value;
     if (value === true || value == null) {
-      value = copypaste.get_buffer();
+      value = get_buffer();
     }
     if (value === undefined) {
       // nothing to paste
@@ -1750,8 +1775,8 @@ export class Actions<
 
     // hash combines state of file with spell check setting.
     // TODO: store /type fail.
-    const lang = (this.store.get("settings") as Map<string, any>).get("spell");
-    if (!lang) {
+    const lang: string | undefined = this.store.getIn(["settings", "spell"]);
+    if (lang == null) {
       // spell check configuration not yet initialized
       return;
     }
@@ -1762,15 +1787,19 @@ export class Actions<
     }
     this._update_misspelled_words_last_hash = hash;
     try {
-      const words: string[] = await misspelled_words({
+      const words: string[] | string = await misspelled_words({
         project_id: this.project_id,
         path: this.get_spellcheck_path(),
         lang,
         time,
       });
-      const x = Set(words);
-      if (!x.equals(this.store.get("misspelled_words"))) {
-        this.setState({ misspelled_words: x });
+      if (typeof words == "string") {
+        this.setState({ misspelled_words: words });
+      } else {
+        const x = Set(words);
+        if (!x.equals(this.store.get("misspelled_words"))) {
+          this.setState({ misspelled_words: x });
+        }
       }
     } catch (err) {
       this.set_error(err);
@@ -1889,19 +1918,28 @@ export class Actions<
     }
   }
 
-  public format_support_for_extension(
+  public format_support_for_syntax(
     available_features: AvailableFeatures,
-    ext: string
-  ): false | string {
+    syntax: FormatterSyntax
+  ): false | FormatterTool {
+    if (syntax == null) return false;
+    // first, check if there exists a tool for that syntax
+    const tool: FormatterTool = syntax2tool[syntax];
+    if (tool == null) return false;
+    // if so, check if this formatting tool is available in that project
     const formatting = available_features.get("formatting");
     if (formatting == null || formatting == false) return false;
     // Now formatting is either "true" or a map itself.
-    const parser = ext2parser[ext];
-    if (parser == null) return false;
-    const tool = parser2tool[parser];
-    if (tool == null) return false;
     if (formatting !== true && !formatting.get(tool)) return false;
     return tool;
+  }
+
+  public format_support_for_extension(
+    available_features: AvailableFeatures,
+    ext: string
+  ): false | FormatterTool {
+    const syntax = ext2syntax[ext];
+    return this.format_support_for_syntax(available_features, syntax);
   }
 
   // Not an action, but works to make code clean
@@ -1950,16 +1988,16 @@ export class Actions<
     // Definitely have format support
     cm.focus();
     const ext = filename_extension(this.path).toLowerCase() as FormatterExts;
-    const parser: FormatterParser = format_parser_for_extension(ext);
-    const options: FormatterOptions = {
-      parser,
+    const syntax: FormatterSyntax = ext2syntax[ext];
+    const config: FormatterConfig = {
+      syntax,
       tabWidth: cm.getOption("tabSize") as number,
       useTabs: cm.getOption("indentWithTabs") as boolean,
     };
 
     this.set_status("Running code formatter...");
     try {
-      const patch = await prettier(this.project_id, this.path, options);
+      const patch = await prettier(this.project_id, this.path, config);
       if (patch != null) {
         // Apply the patch.
         // NOTE: old backends that haven't restarted just return {status:'ok'}
@@ -2102,7 +2140,11 @@ export class Actions<
     if (this._spellcheck_is_supported) {
       if (!settings.get("spell")) {
         // ensure spellcheck is a possible setting, if necessary.
-        this.set_settings({ spell: "default" });
+        // Use browser spellcheck **by default** if that option is
+        // is configured, otherwise default backend spellcheck.
+        this.set_settings({
+          spell: default_opts(this.path).spellcheck ? "browser" : "default",
+        });
       }
       // initial spellcheck
       this.update_misspelled_words();
@@ -2491,5 +2533,9 @@ export class Actions<
       }
       if (match) return id;
     }
+  }
+
+  public set_show_uncommitted_changes(val: boolean): void {
+    this.setState({ show_uncommitted_changes: val });
   }
 }

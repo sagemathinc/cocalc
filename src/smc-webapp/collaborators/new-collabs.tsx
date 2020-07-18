@@ -1,6 +1,10 @@
 /*
-Add collaborators to a project
-*/
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// Add collaborators to a project
+
 import * as React from "react";
 import { rtypes, rclass, redux } from "../app-framework";
 import { ErrorDisplay, Icon, MarkdownInput, SettingBox } from "../r_misc";
@@ -11,12 +15,13 @@ import * as immutable from "immutable";
 import { User } from "../frame-editors/generic/client";
 import { FormGroup, FormControl, Button, ButtonToolbar } from "react-bootstrap";
 const { SITE_NAME } = require("smc-util/theme");
-const onecolor = require("onecolor");
 import { contains_url } from "smc-util/misc2";
 import { debounce } from "lodash";
+import { avatar_fontcolor } from "../account/avatar/font-color";
 
 import { has_internet_access } from "../upgrades/upgrade-utils";
 import { Project } from "smc-webapp/project/settings/types";
+import { ProjectInviteTokens } from "./project-invite-tokens";
 
 type UserAndProfile = User & {
   profile: { color?: string; image?: string };
@@ -146,7 +151,7 @@ export const AddCollaboratorsPanel = rclass<ReactProps>(
       }
       return (
         <>
-          Or, type a comma-separated list of email addresses:
+          Or type a comma-separated list of email addresses:
           <FormGroup style={{ margin: "15px" }}>
             <FormControl
               type="text"
@@ -175,6 +180,7 @@ export const AddCollaboratorsPanel = rclass<ReactProps>(
         );
       }
       const bg = u.profile.color || "#eee";
+      const color = avatar_fontcolor(bg);
       return (
         <span
           style={{
@@ -187,10 +193,7 @@ export const AddCollaboratorsPanel = rclass<ReactProps>(
             fontFamily: "sans-serif",
             fontSize: `${0.7 * size}px`,
             backgroundColor: bg,
-            color:
-              ((onecolor(bg).magenta && onecolor(bg).magenta()) || 0) >= 0.4
-                ? "white"
-                : "black",
+            color,
           }}
         >
           {u.first_name ? u.first_name.toUpperCase()[0] : "?"}
@@ -530,6 +533,11 @@ ${name}
               {this.render_buttons()}
             </>
           ) : undefined}
+          {
+            <ProjectInviteTokens
+              project_id={this.props.project?.get("project_id")}
+            />
+          }
         </SettingBox>
       );
     }

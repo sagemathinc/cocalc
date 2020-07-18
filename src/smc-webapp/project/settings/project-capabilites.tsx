@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { sortBy, keys } from "lodash";
 import { SettingBox, A, Icon, Loading } from "smc-webapp/r_misc";
@@ -6,6 +11,7 @@ import { Project } from "./types";
 import { Map } from "immutable";
 import * as misc from "smc-util/misc2";
 import { Button } from "antd";
+import { ReloadOutlined } from "@ant-design/icons";
 
 const { CUSTOM_SOFTWARE_HELP_URL } = require("../../custom-software/util");
 const { COLORS } = require("smc-util/theme");
@@ -202,7 +208,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
       return (
         <Button
           onClick={() => this.reload()}
-          icon={"reload"}
+          icon={<ReloadOutlined />}
           disabled={this.props.configuration_loading}
           style={{ float: "right", marginTop: "-7.5px" }} // that compensates for bootstrap's 15px's all over the place...
         >
@@ -219,7 +225,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
       const conf = this.props.configuration;
 
       return (
-        <SettingBox title_el={this.render_title()} icon={"clipboard-check"}>
+        <SettingBox title={this.render_title()} icon={"clipboard-check"}>
           {this.render_debug_info(conf)}
           {this.render_available()}
         </SettingBox>

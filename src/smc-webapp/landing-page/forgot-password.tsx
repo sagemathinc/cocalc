@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /* Dialog that is displayed when a person forgets their password
    and requests a reset.
 */
@@ -13,8 +18,8 @@ import { actions } from "./util";
 
 interface Props {
   initial_email_address: string;
-  forgot_password_error: string;
-  forgot_password_success: string;
+  forgot_password_error?: string;
+  forgot_password_success?: string;
 }
 
 interface State {

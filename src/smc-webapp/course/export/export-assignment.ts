@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Export collected homework assignments in a format that is easy to
 use in an external tool that knows nothing about Sage worksheets
 or Jupyter notebooks and with the directory structure removed.
@@ -9,7 +14,7 @@ the student name.
 */
 
 import { endswith, len, startswith } from "smc-util/misc";
-
+import { IPYNB2PDF } from "../../misc/commands";
 import { exec, project_api } from "../../frame-editors/generic/client";
 import { StudentsMap } from "../store";
 
@@ -89,7 +94,7 @@ async function export_one_directory(
       const html = name.slice(0, name.length - "ipynb".length) + "html";
       try {
         await exec({
-          command: "cc-ipynb-to-pdf",
+          command: IPYNB2PDF,
           args: [source + "/" + name],
           project_id,
           timeout,
@@ -102,7 +107,7 @@ async function export_one_directory(
       } catch (err) {
         try {
           log(
-            "Conversion using the cc-ipynb-to-pdf script failed, so try converting to html"
+            "Conversion using the ipynb to PDF script failed, so try converting to html"
           );
           await exec({
             command: "jupyter",

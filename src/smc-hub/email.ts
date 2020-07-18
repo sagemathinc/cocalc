@@ -1,23 +1,7 @@
-//##############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016 -- 2020, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 //########################################
 // Sending emails
@@ -473,22 +457,30 @@ export async function send_email(opts: Opts): Promise<void> {
   const pw_reset_smtp =
     opts.category == "password_reset" &&
     opts.settings.password_reset_override == "smtp";
+
+  const email_verify_smtp =
+    opts.category == "verify" &&
+    opts.settings.password_reset_override == "smtp";
+
   const email_backend = opts.settings.email_backend ?? "sendgrid";
 
   try {
-    // this is a password reset email, and we send it via smtp
-    if (pw_reset_smtp) {
+    // this is a password reset or email verification token email
+    // and we send it via smtp because the override is enabled
+    if (pw_reset_smtp || email_verify_smtp) {
       dbg("initializing PW SMTP server...");
       await init_pw_reset_smtp_server(opts);
 
-      //const ts = new Date().toISOString();
-      dbg("sending PW reset via SMTP server ...");
+      const html =
+        opts.category == "verify" ? opts.body : password_reset_body(opts);
+
+      dbg(`sending email category=${opts.category} via SMTP server ...`);
       const info = await smtp_pw_reset_server.sendMail({
         from: opts.settings.password_reset_smtp_from,
         replyTo: opts.settings.password_reset_smtp_from,
         to: opts.to,
         subject: opts.subject,
-        html: password_reset_body(opts),
+        html,
       });
 
       message = `password reset email sent via SMTP: ${info.messageId}`;
@@ -717,7 +709,7 @@ You can share your thoughts in a <strong>side chat</strong> next to each documen
 </ul>
 
 <p style="margin-top:0;margin-bottom:20px;">
-Visit our <a href="https://cocalc.com/static/doc/software.html">Software overview page</a> for more details!
+Visit our <a href="https://cocalc.com/doc/software.html">Software overview page</a> for more details!
 </p>
 
 

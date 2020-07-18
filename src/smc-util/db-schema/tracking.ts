@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Table } from "./types";
 
 /*
@@ -31,6 +36,10 @@ Table({
     account_id_time: {
       type: "timestamp",
       desc: "when the account id was set",
+    },
+    expire: {
+      type: "timestamp",
+      desc: "future date, when the entry will be deleted",
     },
   },
 });

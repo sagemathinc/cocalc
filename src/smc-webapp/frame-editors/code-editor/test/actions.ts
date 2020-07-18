@@ -1,4 +1,7 @@
-/* Systematically testing lots of actions */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import {
   TestEditor,
@@ -10,6 +13,7 @@ import {
 } from "../../generic/test/util";
 
 describe("CodeEditor - testing actions...", function () {
+  // @ts-ignore
   this.timeout(10000);
   let editor;
 

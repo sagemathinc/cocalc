@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Component that shows rendered HTML.
 */
 
@@ -7,7 +12,7 @@ import { is_different, path_split } from "smc-util/misc2";
 import { Map } from "immutable";
 import { throttle } from "underscore";
 import { React, Component, Rendered, ReactDOM } from "../../app-framework";
-import { MAX_WIDTH } from "./options";
+import { MAX_WIDTH } from "../options";
 import { HTML } from "smc-webapp/r_misc";
 
 interface PropTypes {
@@ -62,7 +67,7 @@ export class QuickHTMLPreview extends Component<PropTypes, {}> {
   post_hook(elt) {
     //  make html even more sane for editing inside cocalc (not an iframe)
     elt.find("link").remove(); // gets rid of external CSS style
-    return elt.find("style").remove();
+    elt.find("style").remove();
   } // gets rid of inline CSS style
 
   render(): Rendered {

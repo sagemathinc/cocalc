@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as immutable from "immutable";
 
 export type NotebookMode = "edit" | "escape";
@@ -8,10 +13,6 @@ export type Scroll =
   | number
   | "cell visible"
   | "cell top"
-  | "cell bottom"
-  | "cell center"
-  | "cell up"
-  | "cell down"
   | "list up"
   | "list down";
 

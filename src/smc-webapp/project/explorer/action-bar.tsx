@@ -1,7 +1,11 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import * as immutable from "immutable";
 import { COLORS, HiddenSM, Icon, Space } from "../../r_misc";
-import { analytics_event } from "../../tracker";
 import { ComputeImages } from "smc-webapp/custom-software/init";
 import { ProjectActions } from "smc-webapp/project_store";
 
@@ -184,7 +188,6 @@ export class ActionBar extends React.Component<Props, State> {
     };
     const handle_click = (_e: React.MouseEvent) => {
       this.props.actions.set_file_action(name, get_basename);
-      analytics_event("project_file_listing", "open " + name + " menu");
     };
 
     return (

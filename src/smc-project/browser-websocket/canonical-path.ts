@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /* Return a normalized version of the path, which is always
    relative to the user's home directory.
 
@@ -10,12 +15,14 @@ import { resolve } from "path";
 
 export function canonical_paths(paths: string[]): string[] {
   const v: string[] = [];
+
+  const { HOME } = process.env;
+  if (HOME == null) {
+    throw Error("HOME environment variable must be defined");
+  }
+
   for (let path of paths) {
     path = resolve(path);
-    const { HOME } = process.env;
-    if (HOME == null) {
-      throw Error("HOME environment variable must be defined");
-    }
     if (path.startsWith(HOME)) {
       v.push(path.slice(HOME.length + 1));
     } else {

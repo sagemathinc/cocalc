@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Actions involving working with assignments:
   - assigning, collecting, setting feedback, etc.
 */
@@ -41,7 +46,11 @@ import {
   NotebookScores,
 } from "../../jupyter/nbgrader/autograde";
 
-import { previous_step, assignment_identifier } from "../util";
+import {
+  previous_step,
+  assignment_identifier,
+  autograded_filename,
+} from "../util";
 import {
   AssignmentCopyType,
   LastAssignmentCopyType,
@@ -562,7 +571,7 @@ ${details}
     let errors: string = "";
     const peer: boolean = assignment.getIn(["peer_grade", "enabled"], false);
     const skip_grading: boolean = assignment.get("skip_grading", false);
-    async function f(student_id: string): Promise<void> {
+    const f: (student_id: string) => Promise<void> = async (student_id) => {
       if (this.course_actions.is_closed()) return;
       if (
         !store.last_copied(
@@ -594,13 +603,9 @@ ${details}
       } catch (err) {
         errors += `\n ${err}`;
       }
-    }
+    };
 
-    await map(
-      store.get_student_ids({ deleted: false }),
-      PARALLEL_LIMIT,
-      f.bind(this)
-    );
+    await map(store.get_student_ids({ deleted: false }), PARALLEL_LIMIT, f);
     if (errors) {
       finish(errors);
     } else {
@@ -818,8 +823,9 @@ ${details}
     // type = assigned, collected, graded, peer-assigned, peer-collected
     switch (type) {
       case "assigned":
-        await this.has_student_subdir(assignment_id); // make sure this is up to date
-        // create_due_date_file = true
+        // make sure listing is up to date, since it sets "has_student_subdir",
+        // which impacts the distribute semantics.
+        await this.update_listing(assignment_id);
         await this.copy_assignment_to_student(assignment_id, student_id, {
           create_due_date_file: true,
         });
@@ -854,7 +860,7 @@ ${details}
       new_only ? "who have not already received it" : ""
     }`;
     const short_desc = "copy to student";
-    await this.has_student_subdir(assignment_id); // make sure this is up to date
+    await this.update_listing(assignment_id); // make sure this is up to date
     if (this.course_actions.is_closed()) return;
     await this.copy_assignment_create_due_date_file(assignment_id);
     if (this.course_actions.is_closed()) return;
@@ -883,7 +889,7 @@ ${details}
     await this.assignment_action_all_students(
       assignment_id,
       new_only,
-      this.copy_assignment_from_student.bind(this),
+      this.copy_assignment_from_student,
       "collect",
       desc,
       short_desc
@@ -1267,28 +1273,44 @@ ${details}
     });
   }
 
-  // Update the database to properly reflect whether or not the assignment
-  // directory currently has a STUDENT_SUBDIR/ subdirectory.
-  // If there is a STUDENT_SUBDIR/, we also check heuristically if
-  // nbgrader is probably being used.
-  public async has_student_subdir(assignment_id: string): Promise<void> {
+  // Update datastore with directory listing of non-hidden content of the assignment.
+  // This also sets whether or not there is a STUDENT_SUBDIR directory.
+  public async update_listing(assignment_id: string): Promise<void> {
     const { store, assignment } = this.course_actions.resolve({
       assignment_id,
     });
     if (assignment == null) return;
     const project_id = store.get("course_project_id");
-    const command = "stat";
     const path = assignment.get("path");
-    const args = ["-c", "%F", path + "/" + STUDENT_SUBDIR];
-    const r = await exec({
-      project_id,
-      command,
-      args,
-      err_on_exit: false,
+    if (project_id == null || path == null) return;
+    let listing;
+    try {
+      const { files } = await webapp_client.project_client.directory_listing({
+        project_id,
+        path,
+        hidden: false,
+      });
+      listing = files;
+    } catch (err) {
+      // This might happen, e.g., if the assignment directory is deleted or user messes
+      // with permissions...
+      // In this case, just give up.
+      return;
+    }
+    if (listing == null || this.course_actions.is_closed()) return;
+    this.course_actions.set({
+      listing,
+      assignment_id,
+      table: "assignments",
     });
-    if (this.course_actions.is_closed()) return;
 
-    const has_student_subdir = r != null && r.stdout.trim() == "directory";
+    let has_student_subdir: boolean = false;
+    for (const entry of listing) {
+      if (entry.isdir && entry.name == STUDENT_SUBDIR) {
+        has_student_subdir = true;
+        break;
+      }
+    }
     const nbgrader = has_student_subdir
       ? await this.probably_uses_nbgrader(assignment, project_id)
       : false;
@@ -1361,16 +1383,16 @@ ${details}
 
     const result: { [path: string]: string } = {};
 
-    async function f(file: string): Promise<void> {
+    const f: (file: string) => Promise<void> = async (file) => {
       if (this.course_actions.is_closed()) return;
       const fullpath = path != "" ? path + "/" + file : file;
       const content = await jupyter_strip_notebook(project_id, fullpath);
       if (content.indexOf("nbgrader") != -1) {
         result[file] = content;
       }
-    }
+    };
 
-    await map(to_read, PARALLEL_LIMIT, f.bind(this));
+    await map(to_read, PARALLEL_LIMIT, f);
     return result;
   }
 
@@ -1384,7 +1406,9 @@ ${details}
       assignment_id
     );
     if (this.course_actions.is_closed()) return;
-    async function one_student(student_id: string): Promise<void> {
+    const one_student: (student_id: string) => Promise<void> = async (
+      student_id
+    ) => {
       if (this.course_actions.is_closed()) return;
       const store = this.get_store();
       if (!store.last_copied("collect", assignment_id, student_id, true)) {
@@ -1398,13 +1422,13 @@ ${details}
         instructor_ipynb_files,
         false
       );
-    }
+    };
     try {
       this.nbgrader_set_is_running(assignment_id);
       await map(
         this.get_store().get_student_ids({ deleted: false }),
         PARALLEL_LIMIT,
-        one_student.bind(this)
+        one_student
       );
       this.course_actions.syncdb.commit();
     } finally {
@@ -1585,7 +1609,7 @@ ${details}
     const result: { [path: string]: any } = {};
     const scores: { [filename: string]: NotebookScores | string } = {};
 
-    async function one_file(file: string): Promise<void> {
+    const one_file: (file: string) => Promise<void> = async (file) => {
       const activity_id = this.course_actions.set_activity({
         desc: `Running nbgrader on ${store.get_student_name(
           student_id
@@ -1645,7 +1669,7 @@ ${details}
       } finally {
         this.course_actions.clear_activity(activity_id);
       }
-    }
+    };
 
     // NOTE: we *could* run multipel files in parallel, but that causes
     // trouble for very little benefit.  It's better to run across all students in parallel,
@@ -1656,7 +1680,7 @@ ${details}
       this.nbgrader_set_is_running(assignment_id, student_id);
 
       for (const file in instructor_ipynb_files) {
-        await one_file.bind(this)(file);
+        await one_file(file);
       }
     } finally {
       this.nbgrader_set_is_done(assignment_id, student_id);
@@ -1673,6 +1697,18 @@ ${details}
       const r = result[filename];
       if (r == null) continue;
       if (r.output == null) continue;
+
+      // Depending on instructor options, write the graded version of
+      // the notebook to disk, so the student can see why their grade
+      // is what it is:
+
+      await this.write_autograded_notebook(
+        assignment,
+        student_id,
+        filename,
+        r.output
+      );
+
       const notebook = JSON.parse(r.output);
       scores[filename] = extract_auto_scores(notebook);
       if (
@@ -1696,6 +1732,26 @@ ${details}
       scores,
       commit
     );
+  }
+
+  public autograded_path(
+    assignment: AssignmentRecord,
+    student_id: string,
+    filename: string
+  ): string {
+    return autograded_filename(
+      assignment.get("collect_path") + "/" + student_id + "/" + filename
+    );
+  }
+
+  private async write_autograded_notebook(
+    assignment: AssignmentRecord,
+    student_id: string,
+    filename: string,
+    content: string
+  ): Promise<void> {
+    const path = this.autograded_path(assignment, student_id, filename);
+    await this.write_text_file_to_course_project({ path, content });
   }
 
   public async open_file_in_collected_assignment(

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // This makes it possible to communicate between a host page and CoCalc in an embedded IFrame in a clean way.
 //
 // It listens to `postMessage`'s and dispatches actions accordingly.
@@ -123,7 +128,7 @@ async function handle_open({ data, reply }) {
     return;
   }
 
-  // we're in kiosk mode and only want to open a single project (see init_app)
+  // we're in kiosk mode and only want to open a single project
   redux.getActions("page").setState({ kiosk_project_id: project_id });
 
   // copied from cocalc/src/smc-webapp/file-use/util.ts

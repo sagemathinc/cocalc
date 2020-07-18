@@ -1,10 +1,15 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 """
 Reporting of time-consuming events to the backend so we can improve
 the usability of CoCalc.
 """
 
 misc = require('smc-util/misc')
-{webapp_client} = require('./webapp_client')
+{webapp_client} = require('./webapp-client')
 
 # Only report events that take at least this long
 THRESH_S = 3

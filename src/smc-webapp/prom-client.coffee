@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 Use prom-client in browser!
 
@@ -28,7 +33,7 @@ exports.aggregators        = require('prom-client/lib/metricAggregators').aggreg
 # exports.register.setDefaultLabels(defaultLabels)
 
 exports.send = ->
-    {webapp_client} = require('./webapp_client')
+    {webapp_client} = require('./webapp-client')
     if not webapp_client.is_connected()
         #console.log("prom-client.send: not connected")
         return

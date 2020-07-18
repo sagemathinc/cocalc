@@ -1,50 +1,8 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 """
-Copyright (c) 2014 -- 2016   SageMath, Inc..
-
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 CONTRIBUTORS:
 
   - William Stein   - maintainer and initial author
@@ -54,9 +12,13 @@ CONTRIBUTORS:
 
 """
 
+from __future__ import absolute_import, print_function
+from .py23 import text_type, HTMLParser, quote, py2decodestr, PY2
 import sys
-reload(sys)
-sys.setdefaultencoding('utf8')
+if PY2:
+    # this is a python 2 hack, conciously used to handle the particular situation here, that's all
+    reload(sys)
+    sys.setdefaultencoding('utf8')
 
 MARKERS = {'cell': u"\uFE20", 'output': u"\uFE21"}
 
@@ -201,7 +163,7 @@ sensitive=true}
 """
 
 # this is part of the preamble above, although this time full of utf8 chars
-COMMON += ur"""
+COMMON += text_type(r"""
 % mathjax has \lt and \gt
 \newcommand{\lt}{<}
 \newcommand{\gt}{>}
@@ -221,12 +183,12 @@ COMMON += ur"""
   {â}{{\^a}}1 {ê}{{\^e}}1 {î}{{\^i}}1 {ô}{{\^o}}1 {û}{{\^u}}1
   {Â}{{\^A}}1 {Ê}{{\^E}}1 {Î}{{\^I}}1 {Ô}{{\^O}}1 {Û}{{\^U}}1
   {œ}{{\oe}}1 {Œ}{{\OE}}1 {æ}{{\ae}}1 {Æ}{{\AE}}1 {ß}{{\ss}}1
-  {ã}{{\~a}}1 {Ã}{{\~A}}1 {õ}{{\~o}}1 {Õ}{{\~O}}1
   {ç}{{\c c}}1 {Ç}{{\c C}}1 {ø}{{\o}}1 {å}{{\r a}}1 {Å}{{\r A}}1
+  {ã}{{\~a}}1 {Ã}{{\~A}}1 {õ}{{\~o}}1 {Õ}{{\~O}}1
   {€}{{\EUR}}1 {£}{{\pounds}}1
 }
 
-"""
+""")
 
 FOOTER = """
 %configuration={"latex_command":"xelatex -synctex=1 -interact=nonstopmode 'tmp.tex'"}
@@ -236,13 +198,13 @@ FOOTER = """
 # This will work fine inside KuCalc.
 BASE_URL = 'https://proxy'
 
-import argparse, base64, cPickle, json, os, shutil, sys, textwrap, HTMLParser, tempfile, urllib
+import argparse, base64, json, os, shutil, sys, textwrap, tempfile
 from uuid import uuid4
 
 
 def escape_path(s):
     # see http://stackoverflow.com/questions/946170/equivalent-javascript-functions-for-pythons-urllib-quote-and-urllib-unquote
-    s = urllib.quote(unicode(s).encode('utf-8'), safe='~@#$&()*!+=:;,.?/\'')
+    s = quote(text_type(s).encode('utf-8'), safe='~@#$&()*!+=:;,.?/\'')
     return s.replace('#', '%23').replace("?", '%3F')
 
 
@@ -252,8 +214,13 @@ def wrap(s, c=90):
 
 # used in texifyHTML and then again, in tex_escape
 # they're mapped to macros, defined in the latex preamble
-relational_signs = [('gt', 'gt'), ('lt', 'lt'), ('ge', 'gequal'),
-                    ('le', 'lequal'), ('ne', 'notequal')]
+relational_signs = [
+    ('gt', 'gt'),
+    ('lt', 'lt'),
+    ('ge', 'gequal'),
+    ('le', 'lequal'),
+    ('ne', 'notequal'),
+]
 
 
 def tex_escape(s):
@@ -286,7 +253,7 @@ def thread_map(callable, inputs, nb_threads=1):
     If an exception is raised by any thread, a RuntimeError exception
     is instead raised.
     """
-    print "Doing the following in parallel:\n%s" % ('\n'.join(inputs))
+    print("Doing the following in parallel:\n%s" % ('\n'.join(inputs)))
     from multiprocessing.pool import ThreadPool
     tp = ThreadPool(nb_threads)
     exceptions = []
@@ -294,7 +261,7 @@ def thread_map(callable, inputs, nb_threads=1):
     def callable_wrap(x):
         try:
             return callable(x)
-        except Exception, msg:
+        except Exception as msg:
             exceptions.append(msg)
 
     results = tp.map(callable_wrap, inputs)
@@ -306,9 +273,9 @@ def thread_map(callable, inputs, nb_threads=1):
 # create a subclass and override the handler methods
 
 
-class Parser(HTMLParser.HTMLParser):
+class Parser(HTMLParser):
     def __init__(self, cmds):
-        HTMLParser.HTMLParser.__init__(self)
+        HTMLParser.__init__(self)
         self.result = ''
         self._commands = cmds
         self._dont_close_img = False
@@ -414,7 +381,7 @@ class Parser(HTMLParser.HTMLParser):
 
 
 def sanitize_math_input(s):
-    from markdown2Mathjax import sanitizeInput
+    from .markdown2Mathjax import sanitizeInput
     # it's critical that $$ be first!
     delims = [('$$', '$$'), ('\\(', '\\)'), ('\\[', '\\]'),
               ('\\begin{equation}', '\\end{equation}'),
@@ -434,9 +401,9 @@ def sanitize_math_input(s):
 
 
 def reconstruct_math(s, tmp):
-    print "s ='%r'" % s
-    print "tmp = '%r'" % tmp
-    from markdown2Mathjax import reconstructMath
+    print("s ='%r'" % s)
+    print("tmp = '%r'" % tmp)
+    from .markdown2Mathjax import reconstructMath
     while len(tmp) > 1:
         s = reconstructMath(s, tmp[-1][0][1], equation_delims=tmp[-1][1])
         del tmp[-1]
@@ -518,9 +485,9 @@ class Cell(object):
                         self.output.append(json.loads(x))
                     except ValueError:
                         try:
-                            print "**WARNING:** Unable to de-json '%s'" % x
+                            print("**WARNING:** Unable to de-json '%s'" % x)
                         except:
-                            print "Unable to de-json some output"
+                            print("Unable to de-json some output")
         else:
             self.output = self.output_uuid = ''
 
@@ -542,7 +509,7 @@ class Cell(object):
             return ""
 
     def latex_output(self):
-        print "BASE_URL", BASE_URL
+        print("BASE_URL", BASE_URL)
         s = ''
         if 'o' in self.input_codes:  # hide output
             return s
@@ -590,8 +557,8 @@ class Cell(object):
                         if os.path.abspath(src) != os.path.abspath(filename):
                             try:
                                 shutil.copyfile(src, filename)
-                            except Exception, msg:
-                                print msg
+                            except Exception as msg:
+                                print(msg)
                         img = filename
                     else:
                         # Get the file from remote server
@@ -625,8 +592,8 @@ class Cell(object):
                         width = min(1, 1.2 * data.get('width', 0.5))
                         #print "width = ", width
                         if 'data-url' in data:
-                            data_url = data[
-                                'data-url']  # 'data:image/png;base64,iVBOR...'
+                            # 'data:image/png;base64,iVBOR...'
+                            data_url = data['data-url']
                             i = data_url.find('/')
                             j = data_url.find(";")
                             k = data_url.find(',')
@@ -634,8 +601,8 @@ class Cell(object):
                             image_data = data_url[k + 1:]
                             assert data_url[j + 1:k] == 'base64'
                             filename = str(uuid4()) + "." + image_ext
-                            open(filename, 'w').write(
-                                base64.b64decode(image_data))
+                            b64 = base64.b64decode(image_data)
+                            open(filename, 'w').write(b64)
                             s += '\\includegraphics[width=%s\\textwidth]{%s}\n' % (
                                 width, filename)
 
@@ -660,7 +627,7 @@ class Worksheet(object):
             self._filename = None
         if filename is not None:
             self._default_title = filename
-            self._init_from(open(filename).read().decode('utf8'))
+            self._init_from(py2decodestr(open(filename).read()))
         elif s is not None:
             self._init_from(s)
         else:
@@ -688,10 +655,10 @@ class Worksheet(object):
         top = top.format(timestamp=str(datetime.utcnow()))
         s = top + ENGINE + STYLES[style]
         s += COMMON
-        s += ur"\title{%s}" % tex_escape(title) + u"\n"
-        s += ur"\author{%s}" % tex_escape(author) + u"\n"
+        s += text_type(r"\title{%s}" % tex_escape(title) + u"\n")
+        s += text_type(r"\author{%s}" % tex_escape(author) + u"\n")
         if date:
-            s += ur"\date{%s}" % tex_escape(date) + u"\n"
+            s += text_type(r"\date{%s}" % tex_escape(date) + u"\n")
         s += u"\\begin{document}\n"
         s += u"\\maketitle\n"
         #if self._filename:
@@ -742,7 +709,7 @@ def sagews_to_pdf(filename,
         pdf = base + ".pdf"
     else:
         pdf = outfile
-    print "converting: %s --> %s" % (filename, pdf)
+    print("converting: %s --> %s" % (filename, pdf))
     W = Worksheet(filename)
     try:
         if work_dir is None:
@@ -751,29 +718,27 @@ def sagews_to_pdf(filename,
             if not os.path.exists(work_dir):
                 os.makedirs(work_dir)
         if not remove_tmpdir:
-            print "Temporary directory retained: %s" % work_dir
+            print("Temporary directory retained: %s" % work_dir)
         cur = os.path.abspath('.')
         os.chdir(work_dir)
         from codecs import open
         open('tmp.tex', 'w', 'utf8').write(
-            W.latex(
-                title=title,
-                author=author,
-                date=date,
-                contents=contents,
-                style=style))  #.encode('utf8'))
+            W.latex(title=title,
+                    author=author,
+                    date=date,
+                    contents=contents,
+                    style=style))  #.encode('utf8'))
         from subprocess import check_call
-        check_call(
-            'latexmk -pdf -xelatex -f -interaction=nonstopmode tmp.tex',
-            shell=True)
+        check_call('latexmk -pdf -xelatex -f -interaction=nonstopmode tmp.tex',
+                   shell=True)
         if os.path.exists('tmp.pdf'):
             shutil.move('tmp.pdf', os.path.join(cur, pdf))
-            print "Created", os.path.join(cur, pdf)
+            print("Created", os.path.join(cur, pdf))
     finally:
         if work_dir and remove_tmpdir:
             shutil.rmtree(work_dir)
         else:
-            print "Leaving latex files in '%s'" % work_dir
+            print("Leaving latex files in '%s'" % work_dir)
 
 
 def main():
@@ -782,28 +747,30 @@ def main():
     parser = argparse.ArgumentParser(
         description="convert a sagews worksheet to a pdf file via latex",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        "filename", nargs='+', help="name of sagews file (required)", type=str)
-    parser.add_argument(
-        "--author",
-        dest="author",
-        help="author name for printout",
-        type=str,
-        default="")
-    parser.add_argument(
-        "--title",
-        dest="title",
-        help="title for printout",
-        type=str,
-        default="")
-    parser.add_argument(
-        "--date", dest="date", help="date for printout", type=str, default="")
-    parser.add_argument(
-        "--contents",
-        dest="contents",
-        help="include a table of contents 'true' or 'false'",
-        type=str,
-        default='true')
+    parser.add_argument("filename",
+                        nargs='+',
+                        help="name of sagews file (required)",
+                        type=str)
+    parser.add_argument("--author",
+                        dest="author",
+                        help="author name for printout",
+                        type=str,
+                        default="")
+    parser.add_argument("--title",
+                        dest="title",
+                        help="title for printout",
+                        type=str,
+                        default="")
+    parser.add_argument("--date",
+                        dest="date",
+                        help="date for printout",
+                        type=str,
+                        default="")
+    parser.add_argument("--contents",
+                        dest="contents",
+                        help="include a table of contents 'true' or 'false'",
+                        type=str,
+                        default='true')
     parser.add_argument(
         "--outfile",
         dest="outfile",
@@ -837,13 +804,12 @@ def main():
         "JSON format file that contains extra data useful in printing this worksheet, e.g., 3d plots",
         type=str,
         default='')
-    parser.add_argument(
-        "--style",
-        dest="style",
-        help="Styling of the LaTeX document",
-        type=str,
-        choices=['classic', 'modern'],
-        default="modern")
+    parser.add_argument("--style",
+                        dest="style",
+                        help="Styling of the LaTeX document",
+                        type=str,
+                        choices=['classic', 'modern'],
+                        default="modern")
     parser.add_argument(
         "--base_url",
         dest="base_url",
@@ -882,18 +848,20 @@ def main():
         else:
             work_dir = None
 
+        title = py2decodestr(args.title)
+        author = py2decodestr(args.author)
+
         from subprocess import CalledProcessError
         try:
-            sagews_to_pdf(
-                filename,
-                title=args.title.decode('utf8'),
-                author=args.author.decode('utf8'),
-                date=args.date,
-                outfile=args.outfile,
-                contents=args.contents,
-                remove_tmpdir=remove_tmpdir,
-                work_dir=work_dir,
-                style=args.style)
+            sagews_to_pdf(filename,
+                          title=title,
+                          author=author,
+                          date=args.date,
+                          outfile=args.outfile,
+                          contents=args.contents,
+                          remove_tmpdir=remove_tmpdir,
+                          work_dir=work_dir,
+                          style=args.style)
         # subprocess.check_call might throw
         except CalledProcessError as e:
             sys.stderr.write('CalledProcessError: %s\n' % e)

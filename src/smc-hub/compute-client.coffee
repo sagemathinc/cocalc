@@ -1,23 +1,7 @@
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 require('coffee2-cache')
 
@@ -28,27 +12,19 @@ if process.env.DEVEL
     DEVEL = true
 
 
-###
-
-id='eb5c61ae-b37c-411f-9509-10adb51eb90b';require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);global.s=s; s.project(project_id:id,cb:(e,p)->global.p=p;cidonsole.log(e)))
-
-Another example with database on local host
-
-id='7fffd5b4-d140-4a34-a960-9f71fa7fc54b';require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);global.t=s; s.project(project_id:id,cb:(e, p)->global.p=p))
-
-###
+# id='eb5c61ae-b37c-411f-9509-10adb51eb90b';require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);global.s=s; s.project(project_id:id,cb:(e,p)->global.p=p;cidonsole.log(e)))
+#
+# Another example with database on local host
+#
+# id='7fffd5b4-d140-4a34-a960-9f71fa7fc54b';require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);global.t=s; s.project(project_id:id,cb:(e, p)->global.p=p))
 
 # obviously don't want to trigger this too quickly, since it may mean file loss.
 AUTOMATIC_FAILOVER_TIME_S = 60*3   # NOTE: actual failover is actually disabled below; instead this is the timeout for giving up on getting status.
 
 SERVER_STATUS_TIMEOUT_S = 7  # 7 seconds
 
-#################################################################
-#
 # compute-client -- a node.js client that connects to a TCP server
 # that is used by the hubs to organize compute nodes
-#
-#################################################################
 
 # IMPORTANT: see schema.coffee for some important information about the project states.
 STATES = require('smc-util/schema').COMPUTE_STATES
@@ -1357,6 +1333,8 @@ class ProjectClient extends EventEmitter
                     else
                         opts.cb()
             return
+        locals =
+            env: {}
         async.series([
             (cb) =>
                 if opts.set_quotas
@@ -1368,10 +1346,19 @@ class ProjectClient extends EventEmitter
             (cb) =>
                 @open(cb : cb)
             (cb) =>
+                @compute_server.database.get_project_extra_env
+                    project_id : @project_id
+                    cb         : (err, env) =>
+                        if err
+                            cb(err)
+                        else
+                            locals.env = Buffer.from(JSON.stringify(env)).toString('base64')
+                            cb()
+            (cb) =>
                 dbg("issuing the start command")
                 @_action
                     action : "start"
-                    args   : ['--base_url', @compute_server._base_url]
+                    args   : ['--base_url', @compute_server._base_url, '--extra_env', locals.env]
                     cb     : cb
             (cb) =>
                 dbg("waiting until running")
@@ -1859,21 +1846,40 @@ class ProjectClient extends EventEmitter
             cb(err, address)
         )
 
-    # This will keep trying for up to an hour to get the address, with exponential
+
+    address: (opts) =>
+        opts = defaults opts,
+            cb : required
+        dbg = @dbg("address-2")
+        dbg()
+        @_synctable?.connect()
+        @_address (err, address) =>
+            if not address and not err
+                err = "failed to get address"
+            dbg(err)  # do not log the address since maybe it's a more complicated object with the secret token? TODO
+            opts.cb(err, address)
+
+    # The following "reuse in flight" version keeps hanging on cc-in-cc dev
+    # and possibly on cocalc-docker (?), so I'm trying disabling it in favor
+    # of the above.  I think it's just an optimization anyways.
+
+    ###
+    # This will keep trying for up to 5 minutes to get the address, with exponential
     # decay backing off up to 15s between attempts.
     # If/when it works, the returned address object will definitely have the
     # host, port and secret_token set.
-    # In some cases it will ip set, which should be
+    # In some cases it will also have the ip set, which should be
     # preferred to host.
     address: (opts) =>
         opts = defaults opts,
             cb : required
+        dbg = @dbg("address")
         if @_address_cbs?
             @_address_cbs.push(opts.cb)
+            dbg("address already running, so adding callback to queue; it now has length #{@_address_cbs.length}")
             return
         @_synctable?.connect()
         @_address_cbs = [opts.cb]
-        dbg = @dbg("address")
         dbg()
         address = undefined
         misc.retry_until_success
@@ -1883,13 +1889,15 @@ class ProjectClient extends EventEmitter
                     cb(err)
             start_delay : 3000
             max_delay   : 15000
-            max_time    : 3600*1000
+            max_time    : 5*60*1000
             cb          : (err) =>
                 if not address and not err
                     err = "failed to get address"
-                for cb in @_address_cbs
-                    cb(err, address)
+                v = @_address_cbs
                 delete @_address_cbs
+                for cb in v
+                    cb(err, address)
+    ###
 
     copy_path: (opts) =>
         opts = defaults opts,
@@ -2054,7 +2062,7 @@ class ProjectClient extends EventEmitter
                             if err
                                 opts.cb(err)
                             else
-                                opts.cb(undefined, new Buffer(resp.base64, 'base64'))
+                                opts.cb(undefined, Buffer.from(resp.base64, 'base64'))
 
     get_quotas: (opts) =>
         opts = defaults opts,
@@ -2217,4 +2225,3 @@ class ProjectClient extends EventEmitter
                 quotas.cb = cb
                 @set_quotas(quotas)
         ], (err) => opts.cb(err))
-

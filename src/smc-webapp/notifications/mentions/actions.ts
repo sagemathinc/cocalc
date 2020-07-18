@@ -1,10 +1,15 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Actions } from "../../app-framework";
 import { MentionsState } from "./store";
 import { MentionInfo, MentionFilter } from "./types";
 
 import { once } from "smc-util/async-utils";
 
-const { webapp_client } = require("../../webapp_client");
+import { webapp_client } from "../../webapp-client";
 
 export class MentionsActions extends Actions<MentionsState> {
   update_state = (mentions): void => {

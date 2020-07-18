@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import {
   describe,
   before,
@@ -42,7 +47,7 @@ describe("tests exporting the most basic ipynb file -- ", () => {
       ],
       metadata: { kernelspec: {} },
       nbformat: 4,
-      nbformat_minor: 0,
+      nbformat_minor: 4,
     });
   });
   it("by calling function in the store", () => {
@@ -80,7 +85,7 @@ describe("tests exporting the most basic ipynb file -- ", () => {
       ],
       metadata: { kernelspec: {} },
       nbformat: 4,
-      nbformat_minor: 0,
+      nbformat_minor: 4,
     });
   });
 });

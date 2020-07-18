@@ -1,25 +1,29 @@
 /*
-Component that shows rendered markdown.
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-It also:
-
-   - [x] tracks and restores scroll position
-   - [x] is scrollable
-   - [x] is zoomable
-   - [x] math is properly typeset
-   - [x] checkbox in markdown are interactive (can click them, which edits file)
-*/
+// Component that shows rendered markdown.
+//
+// It also:
+//
+//    - [x] tracks and restores scroll position
+//    - [x] is scrollable
+//    - [x] is zoomable
+//    - [x] math is properly typeset
+//    - [x] checkbox in markdown are interactive (can click them, which edits file)
 
 import { Markdown } from "smc-webapp/r_misc";
 
 import { is_different, path_split } from "smc-util/misc2";
 import { throttle } from "underscore";
-import { React, Component, Rendered, ReactDOM } from "../../app-framework";
+import { React, ReactDOM, CSS } from "../../app-framework";
+import { use_font_size_scaling } from "../frame-tree/hooks";
 
 const { process_checkboxes } = require("smc-webapp/tasks/desc-rendering");
 const { apply_without_math } = require("smc-util/mathjax-utils-2");
 
-import { MAX_WIDTH } from "./options";
+import { MAX_WIDTH_NUM } from "../options";
 
 interface Props {
   actions: any;
@@ -33,93 +37,114 @@ interface Props {
   reload_images: boolean;
 }
 
-export class RenderedMarkdown extends Component<Props, {}> {
-  static displayName = "MarkdownEditor-RenderedMarkdown";
+function should_memoize(prev, next): boolean {
+  return !is_different(prev, next, [
+    "id",
+    "project_id",
+    "path",
+    "font_size",
+    "read_only",
+    "value",
+    "reload_images",
+  ]);
+}
 
-  shouldComponentUpdate(next): boolean {
-    return is_different(this.props, next, [
-      "id",
-      "project_id",
-      "path",
-      "font_size",
-      "read_only",
-      "value",
-      "reload_images",
-    ]);
-  }
+export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
+  const {
+    actions,
+    id,
+    path,
+    project_id,
+    font_size,
+    read_only,
+    value,
+    editor_state,
+    reload_images,
+  } = props;
 
-  on_scroll(): void {
-    const elt = ReactDOM.findDOMNode(this.refs.scroll);
+  const scroll = React.useRef<HTMLDivElement>(null);
+
+  const scaling = use_font_size_scaling(font_size);
+
+  // once when mounted
+  React.useEffect(() => {
+    restore_scroll();
+  }, []);
+
+  function on_scroll(): void {
+    const elt = ReactDOM.findDOMNode(scroll.current);
     if (elt == null) {
       return;
     }
-    const scroll = $(elt).scrollTop();
-    this.props.actions.save_editor_state(this.props.id, { scroll });
+    const scroll_val = $(elt).scrollTop();
+    actions.save_editor_state(id, { scroll_val });
   }
 
-  componentDidMount(): void {
-    this.restore_scroll();
-  }
-
-  async restore_scroll(): Promise<void> {
-    const scroll = this.props.editor_state.get("scroll");
-    const elt = $(ReactDOM.findDOMNode(this.refs.scroll));
+  async function restore_scroll(): Promise<void> {
+    const scroll_val = editor_state.get("scroll");
+    const elt = $(ReactDOM.findDOMNode(scroll.current));
     if (elt.length === 0) return;
-    elt.scrollTop(scroll);
+    elt.scrollTop(scroll_val);
     elt.find("img").on("load", function () {
-      elt.scrollTop(scroll);
+      elt.scrollTop(scroll_val);
     });
   }
 
-  on_click(e): void {
+  function on_click(e): void {
     // same idea as in tasks/desc-rendered.cjsx
-    if (this.props.read_only) {
+    if (read_only) {
       return;
     }
     if (!e.target) return;
     const data = e.target.dataset;
     if (!data || !data.checkbox) return;
     e.stopPropagation();
-    this.props.actions.toggle_markdown_checkbox(
-      this.props.id,
+    actions.toggle_markdown_checkbox(
+      id,
       parseInt(data.index),
       data.checkbox === "true"
     );
   }
 
-  render(): Rendered {
-    const value = apply_without_math(this.props.value, process_checkboxes);
-    return (
-      <div
-        style={{
-          overflowY: "auto",
-          width: "100%",
-          zoom: (this.props.font_size != null ? this.props.font_size : 16) / 16,
-        }}
-        ref={"scroll"}
-        onScroll={throttle(() => this.on_scroll(), 250)}
-        onClick={(e) => this.on_click(e)}
-        className={
-          "cocalc-editor-div"
-        } /* this cocalc-editor-div class is needed for a safari hack only */
-      >
-        <div
-          style={{
-            maxWidth: MAX_WIDTH,
-            margin: "10px auto",
-            padding: "0 10px",
-          }}
-        >
-          <Markdown
-            value={value}
-            project_id={this.props.project_id}
-            file_path={path_split(this.props.path).head}
-            safeHTML={true}
-            reload_images={this.props.reload_images}
-            highlight_code={true}
-          />
-        </div>
+  const value_md = apply_without_math(value, process_checkboxes);
+  const style: CSS = {
+    overflowY: "auto",
+    width: "100%",
+  };
+  const style_inner: CSS = {
+    ...{
+      maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
+      margin: "10px auto",
+      padding: "0 10px",
+    },
+    ...{
+      // transform: scale() and transformOrigin: "0 0" or "center 0"
+      // doesn't work well. Changing the base font size is fine.
+      fontSize: `${100 * scaling}%`,
+    },
+  };
+
+  return (
+    <div
+      style={style}
+      ref={scroll}
+      onScroll={throttle(() => on_scroll(), 250)}
+      onClick={(e) => on_click(e)}
+      /* this cocalc-editor-div class is needed for a safari hack only */
+      className={"cocalc-editor-div"}
+    >
+      <div style={style_inner}>
+        <Markdown
+          value={value_md}
+          project_id={project_id}
+          file_path={path_split(path).head}
+          safeHTML={true}
+          reload_images={reload_images}
+          highlight_code={true}
+        />
       </div>
-    );
-  }
-}
+    </div>
+  );
+}, should_memoize);
+
+RenderedMarkdown.displayName = "MarkdownEditor-RenderedMarkdown";

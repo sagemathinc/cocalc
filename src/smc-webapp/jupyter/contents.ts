@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Parse the Table of Contents information from the notebook structure.
 */
 
@@ -10,6 +15,7 @@ export interface TableOfContentsInfo {
   value: string;
   icon: string;
   number?: number[];
+  align: "center" | "top";
 }
 
 export function parse_headings(
@@ -33,6 +39,7 @@ export function parse_headings(
           level: last_level + 1,
           value: `Answer ${nbgrader_counter}`,
           icon: "graduation-cap",
+          align: "center",
         });
       } else if (nbgrader.get("grade")) {
         // solution is false but grade is true, so it's a test cell
@@ -41,6 +48,7 @@ export function parse_headings(
           level: last_level + 1,
           value: `Tests for answer ${nbgrader_counter}`,
           icon: "equals",
+          align: "center",
         });
       } else if (nbgrader.get("task")) {
         nbgrader_counter += 1;
@@ -49,6 +57,7 @@ export function parse_headings(
           level: last_level + 1,
           value: `Task ${nbgrader_counter}`,
           icon: "tasks",
+          align: "center",
         });
       }
     }
@@ -79,6 +88,7 @@ export function parse_headings(
         value,
         icon: "minus",
         number: section_counter.slice(0, level),
+        align: "top",
       });
     }
   });

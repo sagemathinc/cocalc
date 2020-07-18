@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 HTTP server for getting various information from Jupyter, without
 having to go through the websocket connection and messaging.  This is
 useful, e.g., for big images, general info about all available

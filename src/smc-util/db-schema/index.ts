@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 export { SCHEMA } from "./types";
 
 // The tables
@@ -24,6 +29,8 @@ import "./password-reset";
 import "./project-log";
 import "./projects";
 import "./public-paths";
+import "./project-invite-tokens";
+import "./registration-tokens";
 import "./server-settings";
 import "./site-licenses";
 import "./site-settings";

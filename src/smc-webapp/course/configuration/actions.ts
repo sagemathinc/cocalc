@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Actions involving configuration of the course.
 */
 
@@ -68,7 +73,10 @@ export class ConfigurationActions {
   // Set the pay option for the course, and ensure that the course fields are
   // set on every student project in the course (see schema.coffee for format
   // of the course field) to reflect this change in the database.
-  public async set_course_info(pay: string = ""): Promise<void> {
+  public async set_course_info(pay: string | Date = ""): Promise<void> {
+    if (typeof pay != "string") {
+      pay = pay.toISOString();
+    }
     this.set({
       pay,
       table: "settings",

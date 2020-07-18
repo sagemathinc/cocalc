@@ -1,6 +1,9 @@
 /*
-The static buttonbar at the top.
-*/
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// The static buttonbar at the top.
 
 import { React, Component, rclass, rtypes, Rendered } from "../app-framework";
 import * as immutable from "immutable";
@@ -298,25 +301,26 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     );
   }
 
+  private render_generate_student_version(): Rendered {
+    if (this.props.cell_toolbar != "create_assignment") return;
+    const assign = {
+      name: "nbgrader assign",
+      disabled: false,
+      label: "Generate student version...",
+    };
+    return this.render_button("nbgrader assign", assign);
+  }
+
   private render_nbgrader(): Rendered {
-    // TODO: only show if there is nbgrader metadata...
-    // or better, if there are nbgrader test cells.
     const validate = {
       name: "nbgrader validate",
       disabled: false,
       label: "Validate",
     };
-    const assign = {
-      name: "nbgrader assign",
-      disabled: false,
-      label: "Generate student version",
-    };
     return (
       <ButtonGroup style={{ marginLeft: "5px" }}>
         {this.render_button("nbgrader validate", validate)}
-        {this.props.cell_toolbar == "create_assignment"
-          ? this.render_button("nbgrader assign", assign)
-          : undefined}
+        {this.render_generate_student_version()}
       </ButtonGroup>
     );
   }

@@ -1,9 +1,14 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React, Component, Rendered } from "../app-framework";
 import { CoCalcLogo } from "./cocalc-logo";
 import { IsPublicFunction } from "./types";
-import { SITE_NAME } from "smc-util/theme";
 import { r_join } from "../r_misc/r_join";
 import { SiteSearch } from "./search";
+import { Settings } from "smc-hub/share/settings";
 
 interface TopBarProps {
   viewer?: string;
@@ -13,19 +18,16 @@ interface TopBarProps {
   site_name?: string;
   is_public: IsPublicFunction;
   launch_path?: string;
+  settings: Settings;
 }
 
 export class TopBar extends Component<TopBarProps> {
-  static defaultProps = {
-    site_name: SITE_NAME,
-  };
-
   private render_logo(top: string): Rendered {
     return (
       <span style={{ marginRight: "10px" }}>
         <a href={top} style={{ textDecoration: "none" }}>
-          <CoCalcLogo base_url={this.props.base_url} /> {this.props.site_name}{" "}
-          Public Files
+          <CoCalcLogo base_url={this.props.base_url} />{" "}
+          {this.props.settings.site_name} Public Files
         </a>
       </span>
     );
@@ -47,7 +49,6 @@ export class TopBar extends Component<TopBarProps> {
       path,
       launch_path,
       project_id,
-      site_name,
       is_public,
     } = this.props;
     let path_component: Rendered | Rendered[], top: string;
@@ -111,9 +112,9 @@ export class TopBar extends Component<TopBarProps> {
             href={cocalc_url}
             className="btn btn-success"
             rel="nofollow"
-            style={{ marginLeft: "30px", fontSize: "14pt" }}
+            style={{ marginLeft: "30px", fontSize: "14pt", maxWidth: "400px" }}
           >
-            Open in {site_name} with one click!
+            Open with one click!
           </a>
         );
       }

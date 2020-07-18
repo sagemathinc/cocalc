@@ -1,13 +1,18 @@
-import { React, Rendered } from "../app-framework";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-import { AccountCreationToken } from "./account-creation-token";
+import { React } from "../app-framework";
+
+import { RegistrationToken } from "./registration-token";
 import { SiteSettings } from "./site-settings";
 //import { SubscriptionManager } from "./subscription-manager";
 import { SystemNotifications } from "./system-notifications";
 import { UserSearch } from "./users/user-search";
 import { SiteLicenses } from "../site-licenses/admin/component";
 
-export function AdminPage(): Rendered {
+export const AdminPage: React.FC = React.memo(() => {
   return (
     <div
       style={{
@@ -24,9 +29,9 @@ export function AdminPage(): Rendered {
       <hr />
       <SiteSettings />
       <hr />
-      <AccountCreationToken />
+      <RegistrationToken />
       <hr />
       <SystemNotifications />
     </div>
   );
-}
+});

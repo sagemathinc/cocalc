@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Map, Set } from "immutable";
 import { TypedMap } from "../../app-framework";
 
@@ -86,17 +91,27 @@ export const license_fields: {
 
 // export const source_fields = ["expires", "activates", "created", "last_used"];
 
+export type ManagerInfo = TypedMap<{
+  license_id: string;
+  account_id: string;
+  email_address?: string;
+  first_name?: string;
+  last_name?: string;
+  created?: Date;
+  last_active?: Date;
+}>;
+
 export interface SiteLicensesState {
   view?: boolean; // if true, open for viewing/editing
   error?: string;
   loading?: boolean;
   creating?: boolean;
-  site_licenses?: SiteLicense[];
+  site_licenses?: SiteLicense[]; // licenses that match the search
   editing?: Set<string>; // id's of site licenses that are currently being edited.
   saving?: Set<string>; // id's of site licenses that are currently being saved to the backend.
   show_projects?: Map<string, Date | "now">; // id's where we should show the projects that are using the license and what cutoff date
   edits?: Map<string, TypedMap<SiteLicense>>;
   search?: string;
-  matches_search?: Set<string> | undefined; // id's of licenses that match search
   usage_stats?: Map<string, number>; // {license_id:number of running projects using that license}
+  manager_info?: ManagerInfo; // if given, show more info about this manager
 }

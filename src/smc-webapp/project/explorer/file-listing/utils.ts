@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { ProjectActions } from "../../../project_actions";
 import { file_actions } from "../../../project_store";
 
@@ -21,7 +26,7 @@ type Extension =
 
 // default extensions, in their order of precendence
 // the order of these buttons also determines the precedence of suggested file extensions
-// see also smc-webapp/project_files.cjsx
+// see also smc-webapp/project-files.ts
 export const EXTs: ReadonlyArray<Extension> = Object.freeze([
   "sagews",
   "ipynb",

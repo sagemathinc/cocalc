@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 Client = a client that is connected via a persistent connection to the hub
 ###
@@ -1486,19 +1491,36 @@ class exports.Client extends EventEmitter
 
     # NOTE: this is different than invite_collab, in that it is
     # much more similar to remove_collaborator.  It also supports
-    # adding multiple collabs to multiple projects in one
-    # transaction.
+    # adding multiple collabs to multiple projects (NOT in one
+    # transaction, though).
     mesg_add_collaborator: (mesg) =>
         @touch()
-        if not misc.is_array(mesg.project_id)
-            projects = [mesg.project_id]
-            accounts = [mesg.account_id]
-        else
-            projects = mesg.project_id
-            accounts = mesg.account_id
+        projects = mesg.project_id
+        accounts = mesg.account_id
+        tokens = mesg.token_id
+
+        is_single_token = false
+        if tokens
+            if not misc.is_array(tokens)
+                is_single_token = true
+                tokens = [tokens]
+            projects = ('' for _ in [0...tokens.length])  # will get mutated below as tokens are used
+        if not misc.is_array(projects)
+            projects = [projects]
+        if not misc.is_array(accounts)
+            accounts = [accounts]
+
         try
-            await @database.add_collaborators_to_projects(@account_id, accounts, projects)
-            @push_to_client(message.success(id:mesg.id))
+            await @database.add_collaborators_to_projects(@account_id, accounts, projects, tokens)
+            resp = message.success(id:mesg.id)
+            if tokens
+                # Tokens determine the projects, and it maybe useful to the client to know what
+                # project they just got added to!
+                if is_single_token
+                    resp.project_id = projects[0]
+                else
+                    resp.project_id = projects
+            @push_to_client(resp)
         catch err
             @error_to_client(id:mesg.id, error:"#{err}")
 

@@ -1,16 +1,23 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 The stopwatch component
 */
 
 import { Button, Row, Col } from "antd";
-
+import {
+  DeleteTwoTone,
+  PauseCircleTwoTone,
+  PlayCircleTwoTone,
+  StopTwoTone,
+} from "@ant-design/icons";
 import { Component, React, Rendered } from "../app-framework";
-
 import { TimerState } from "./actions";
-
 import { TextInput } from "../r_misc/text-input";
-
-const { webapp_client } = require("../webapp_client");
+import { webapp_client } from "../webapp-client";
 
 function assertNever(x: never): never {
   throw new Error("Unexpected object: " + x);
@@ -57,7 +64,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   private render_start_button(): Rendered {
     return (
       <Button
-        icon={"play-circle"}
+        icon={<PlayCircleTwoTone />}
         onClick={() => this.props.click_button("start")}
         style={!this.props.compact ? { width: "8em" } : undefined}
         size={this.props.compact ? "small" : undefined}
@@ -70,7 +77,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   private render_reset_button(): Rendered {
     return (
       <Button
-        icon={"stop"}
+        icon={<StopTwoTone />}
         onClick={() => this.props.click_button("reset")}
         size={this.props.compact ? "small" : undefined}
       >
@@ -82,7 +89,10 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   private render_delete_button(): Rendered {
     if (this.props.compact) return;
     return (
-      <Button icon={"delete"} onClick={() => this.props.click_button("delete")}>
+      <Button
+        icon={<DeleteTwoTone />}
+        onClick={() => this.props.click_button("delete")}
+      >
         {!this.props.compact ? "Delete" : undefined}
       </Button>
     );
@@ -91,7 +101,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   private render_pause_button(): Rendered {
     return (
       <Button
-        icon={"pause-circle"}
+        icon={<PauseCircleTwoTone />}
         onClick={() => this.props.click_button("pause")}
         style={!this.props.compact ? { width: "8em" } : undefined}
         size={this.props.compact ? "small" : undefined}

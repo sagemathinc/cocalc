@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Launch actions are certain "intentions" for specific actions,
 which are triggered upon launching the webapp.
 
@@ -18,14 +23,33 @@ the "Open in CoCalc" link on the share server, with minimal friction.
 import { redux, Actions, Store } from "../app-framework";
 import * as LS from "../misc/local-storage";
 import { QueryParams } from "../misc/query-params";
-import { launch_share } from "./share";
-import { launch_custom_software_image } from "./custom-image";
-import { launch_binder } from "./binder";
+import { ShareLauncher } from "./share";
+import { CSILauncher } from "./custom-image";
 
 export const NAME = "launch-actions";
 const LS_KEY = NAME;
 
-type LaunchTypes = "csi" | "share" | "binder" | undefined;
+export type LaunchTypes = "csi" | "share" | undefined;
+
+export function is_csi_launchvalue(launch: string) {
+  return (
+    typeof launch === "string" &&
+    launch.split("/")[0] === ("csi" as LaunchTypes)
+  );
+}
+
+export function launch_action_description(
+  type: NonNullable<LaunchTypes>
+): string|undefined {
+  switch (type) {
+    case "csi":
+      return "Run Custom Software Image";
+    case "share":
+      return "Open Shared File";
+    default:
+      return undefined;
+  }
+}
 
 interface LaunchData {
   launch?: string;
@@ -78,7 +102,7 @@ export function store() {
   }
 }
 
-export function launch() {
+export async function launch() {
   const data: LaunchData | undefined = LS.del<LaunchData>(LS_KEY);
   // console.log("launch-actions data=", data);
   if (data == null) return;
@@ -90,14 +114,12 @@ export function launch() {
   actions.setState(data);
   try {
     switch (type) {
-      case "binder":
-        launch_binder(launch, data.filepath, data.urlpath);
-        return;
       case "csi":
-        launch_custom_software_image(launch);
+        const image_id = launch.split("/")[1];
+        new CSILauncher(image_id).launch();
         return;
       case "share":
-        launch_share(launch);
+        new ShareLauncher(launch).launch();
         return;
       default:
         console.warn(`launch type "${type}" unknown`);

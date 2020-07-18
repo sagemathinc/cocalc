@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { delay } from "awaiting";
 
 import { get_local_storage, set_local_storage } from "smc-util/misc";
@@ -12,7 +17,7 @@ export class TimeClient {
   private last_server_time?: Date;
   private closed: boolean = false;
 
-  constructor(client: any  )  {
+  constructor(client: any) {
     this.client = client;
   }
 
@@ -133,7 +138,7 @@ export class TimeClient {
             smc.client.time_client.ping_test(delay_ms:100, packets:40, log:print)
         */
     const ping_times: number[] = [];
-    async function do_ping(i: number): Promise<void> {
+    const do_ping: (i: number) => Promise<void> = async (i) => {
       const t = new Date();
       const heading = `${i}/${opts.packets}: `;
       let bar, mesg, pong, ping_time;
@@ -165,7 +170,7 @@ export class TimeClient {
       }
       ping_times.push(ping_time);
       await delay(opts.delay_ms);
-    }
+    };
 
     for (let i = 0; i < opts.packets; i++) {
       await do_ping.bind(this)(i);

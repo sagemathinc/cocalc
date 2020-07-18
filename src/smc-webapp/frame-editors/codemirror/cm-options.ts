@@ -1,16 +1,21 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Compute the codemirror options for file with given name,
 using the given editor settings.
 */
 
 import * as CodeMirror from "codemirror";
-const { file_associations } = require("smc-webapp/file-associations");
-const feature = require("smc-webapp/feature");
+import { file_associations } from "../../file-associations";
+import * as feature from "../../feature";
 import { path_split } from "smc-util/misc2";
 import { get_editor_settings } from "../generic/client";
-const { EDITOR_COLOR_SCHEMES } = require("../../r_account");
+import { EDITOR_COLOR_SCHEMES } from "../../account/editor-settings/color-schemes";
 
-const { filename_extension_notilde, defaults } = require("misc");
+import { filename_extension_notilde, defaults } from "smc-util/misc";
 
 import { extra_alt_keys } from "./mobile";
 import { Map } from "immutable";
@@ -21,6 +26,14 @@ function save(cm) {
   (CodeMirror as any).commands.save(cm);
 }
 
+export function default_opts(filename) {
+  let key = filename_extension_notilde(filename).toLowerCase();
+  if (!key) {
+    key = `noext-${path_split(filename).tail}`.toLowerCase();
+  }
+  return file_associations[key]?.opts ?? {};
+}
+
 export function cm_options(
   filename: string, // extension determines editor mode
   editor_settings: Map<string, any>,
@@ -29,19 +42,6 @@ export function cm_options(
   frame_tree_actions: any = undefined,
   frame_id: string = ""
 ): object {
-  let key = filename_extension_notilde(filename).toLowerCase();
-  if (!key) {
-    key = `noext-${path_split(filename).tail}`.toLowerCase();
-  }
-  const default_opts =
-    (file_associations[key] != null
-      ? file_associations[key].opts
-      : undefined) != null
-      ? file_associations[key] != null
-        ? file_associations[key].opts
-        : undefined
-      : {};
-
   let theme = editor_settings.get("theme");
   // if we do not know the theme, fallback to default
   if (EDITOR_COLOR_SCHEMES[theme] == null) {
@@ -51,7 +51,8 @@ export function cm_options(
     theme = "default";
   }
 
-  const opts = defaults(default_opts, {
+  const opts = defaults(default_opts(filename), {
+    spellcheck: false,
     undoDepth: 0, // we use our own sync-aware undo.
     mode: "txt",
     show_trailing_whitespace: editor_settings.get(
@@ -77,6 +78,7 @@ export function cm_options(
     bindings: editor_settings.get("bindings"),
     theme: theme,
   });
+
   if (opts.mode == null) {
     // to satisfy typescript
     throw Error("mode must be specified");
@@ -240,7 +242,7 @@ export function cm_options(
 
       for (const cmd in keybindings) {
         const keys = keybindings[cmd];
-        for (key of keys.split(" ")) {
+        for (const key of keys.split(" ")) {
           f(key, cmd);
         }
       }
@@ -287,6 +289,7 @@ export function cm_options(
   }
 
   const options: any = {
+    spellcheck: opts.spellcheck,
     firstLineNumber: opts.first_line_number,
     autofocus: false,
     mode: { name: opts.mode, globalVars: true },
@@ -348,6 +351,15 @@ export function cm_options(
     // options.theme MUST be set to something because this code is in CodeMirror
     //    cm.options.theme.replace...
     options.theme = "default";
+  }
+
+  if (options.spellcheck) {
+    // Note -- using contenteditable is NOT without negative consequences. See
+    //   https://github.com/sagemathinc/cocalc/issues/4663
+    // However, it's worth it for the option of browser spellchecking, and
+    // for our main application (chat input) the line number issue doesn't
+    // matter since we don't have line numbers there...
+    options.inputStyle = "contenteditable";
   }
 
   return options;

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 The Store
 */
 
@@ -11,6 +16,7 @@ import { export_to_ipynb } from "./export-to-ipynb";
 import { DEFAULT_COMPUTE_IMAGE } from "../../smc-util/compute-images";
 import { Kernels, Kernel } from "./util";
 import { KernelInfo, Cell, CellToolbarName } from "./types";
+import { Syntax } from "../../smc-util/code-formatter";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -477,38 +483,32 @@ export class JupyterStore extends Store<JupyterStoreState> {
     return lang;
   }
 
-  // heuristic **attempt** to get what would be the filename
-  // extension for the kernel language.  Probably not very good.
-  // It does work for most of the kernels we have installed on June 2019.
-  public get_kernel_ext(): string | undefined {
+  // map the kernel language to the syntax of a language we know
+  public get_kernel_syntax(): Syntax | undefined {
     let lang = this.get_kernel_language();
     if (!lang) return undefined;
     lang = lang.toLowerCase();
     switch (lang) {
       case "python":
       case "python3":
-        return "py";
+        return "python3";
       case "r":
-        return "r";
-      case "julia":
-        return "jl";
-      case "octave":
-        return "m";
+        return "R";
       case "c++":
       case "c++17":
-        return "cpp";
-      case "bash":
-        return "sh";
-      case "gp":
-        return "gp";
+        return "c++";
+      case "javascript":
+        return "JavaScript";
     }
   }
 
   jupyter_kernel_key = (): string => {
     const project_id = this.get("project_id");
     const projects_store = this.redux.getStore("projects");
-    const path = ["project_map", project_id, "compute_image"];
-    const compute_image = projects_store.getIn(path, DEFAULT_COMPUTE_IMAGE);
+    const compute_image = projects_store.getIn(
+      ["project_map", project_id, "compute_image"],
+      DEFAULT_COMPUTE_IMAGE
+    );
     const key = [project_id, compute_image].join("::");
     // console.log("jupyter store / jupyter_kernel_key", key);
     return key;

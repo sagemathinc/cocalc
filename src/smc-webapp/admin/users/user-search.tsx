@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Functionality and UI to ensure a user with given email (or account_id) is sync'd with stripe.
 */
 
@@ -52,7 +57,7 @@ class UserSearch extends Component<ReduxProps> {
               width: "90%",
             }}
             value={this.props.query}
-            placeholder="Part of first name, last name, or email address..."
+            placeholder="Search for users by first name, last name, or email address..."
             onChange={(e) => actions.set_query(e.target.value)}
             onKeyDown={(e) => {
               if (e.keyCode === 13) {
@@ -63,11 +68,10 @@ class UserSearch extends Component<ReduxProps> {
         </Col>
         <Col md={6}>
           <Button
-            bsStyle="warning"
             disabled={this.props.query == ""}
             onClick={() => actions.search()}
           >
-            Search for User
+            Search for Users
           </Button>
         </Col>
       </Row>
@@ -107,7 +111,11 @@ class UserSearch extends Component<ReduxProps> {
 
   render_result(): Rendered[] | Rendered {
     if (!this.props.result || this.props.result.size == 0) {
-      return <div>No results</div>;
+      if (this.props.query && this.props.result != null) {
+        return <div>No results</div>;
+      } else {
+        return;
+      }
     }
     const v: Rendered[] = [this.render_user_header()];
     this.props.result.forEach((user) => {
@@ -135,9 +143,6 @@ class UserSearch extends Component<ReduxProps> {
     if (!this.props.view) return;
     return (
       <div style={{ margin: "0 30px" }}>
-        <div style={{ color: "#666", marginBottom: "5px" }}>
-          Search for users:
-        </div>
         <div>
           {this.render_form()}
           {this.render_status()}

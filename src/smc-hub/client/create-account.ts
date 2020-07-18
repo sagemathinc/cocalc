@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Client account creation and deletion
 */
 
@@ -14,10 +19,12 @@ import {
   required,
   defaults,
 } from "smc-util/misc";
+import { delay } from "awaiting";
 import { is_valid_email_address, len, to_json } from "smc-util/misc2";
 import { callback2 } from "smc-util/async-utils";
 import { PostgreSQL } from "../postgres/types";
 const { api_key_action } = require("../api/manage");
+import { get_server_settings, have_active_registration_tokens } from "../utils";
 
 export function is_valid_password(password: string) {
   if (typeof password !== "string") {
@@ -31,7 +38,7 @@ export function is_valid_password(password: string) {
 }
 
 function issues_with_create_account(mesg) {
-  const issues : any = {};
+  const issues: any = {};
   if (mesg.email_address && !is_valid_email_address(mesg.email_address)) {
     issues.email_address = "Email address does not appear to be valid.";
   }
@@ -42,6 +49,91 @@ function issues_with_create_account(mesg) {
     }
   }
   return issues;
+}
+
+async function get_db_client(db: PostgreSQL) {
+  const t0 = new Date().getTime();
+  while (new Date().getTime() - t0 < 10 * 1000) {
+    const client = db._client();
+    if (client != null) {
+      return client;
+    } else {
+      await delay(100);
+    }
+  }
+  throw new Error("Unable to get a database client");
+}
+
+// return true if allowed to continue creating an account (either no token required or token matches)
+async function check_registration_token(
+  db: PostgreSQL,
+  token: string | undefined
+): Promise<string | undefined> {
+  const have_tokens = await have_active_registration_tokens(db);
+
+  // if there are no tokens set, it's ok
+  if (!have_tokens) return;
+
+  if (token == null || token == "") {
+    return "No registration token provided";
+  }
+
+  // since we check the counter against the limit, we have to wrap this in a transaction
+  // otherwise there is a chance to increase the counter above the limit
+  const client = await get_db_client(db);
+
+  try {
+    await client.query("BEGIN");
+
+    // overview: first, we check if the token matches.
+    // → check if it is disabled?
+    // → check expiration date → abort if expired
+    // → if counter, check counter vs. limit
+    //   → true: increase the counter → ok
+    //   → false: ok
+    const q_match = `SELECT "expires", "counter", "limit", "disabled"
+                     FROM registration_tokens
+                     WHERE token = $1::TEXT
+                     FOR UPDATE`;
+    const match = await client.query(q_match, [token]);
+
+    if (match.rows.length != 1) {
+      return "Registration token is wrong.";
+    }
+    // e.g. { expires: 2020-12-04T11:54:52.889Z, counter: null, limit: 10, disabled: ... }
+    const {
+      expires,
+      counter: counter_raw,
+      limit,
+      disabled: disabled_raw,
+    } = match.rows[0];
+    const counter = counter_raw ?? 0;
+    const disabled = disabled_raw ?? false;
+
+    if (disabled) {
+      return "Registration token disabled.";
+    }
+
+    if (expires != null && expires.getTime() < new Date().getTime()) {
+      return "Registration token no longer valid.";
+    }
+
+    // we count in any case, but only enforce the limit if there is actually a limit set
+    if (limit != null && limit <= counter) {
+      return "Registration token used up.";
+    } else {
+      // increase counter
+      const q_inc = `UPDATE registration_tokens SET "counter" = coalesce("counter", 0) + 1
+                     WHERE token = $1::TEXT`;
+      await client.query(q_inc, [token]);
+    }
+
+    // all good, let's commit
+    await client.query("COMMIT");
+  } catch (e) {
+    await client.query("ROLLBACK");
+    throw e;
+  }
 }
 
 interface AccountCreationOptions {
@@ -97,6 +189,13 @@ export async function create_account(
 
   try {
     dbg("run tests on generic validity of input");
+
+    // check if we even allow account creating via email/password
+    const settings = await get_server_settings(opts.database);
+    if (!settings.email_signup) {
+      reason = { other: "Signing up via email/password is disabled." };
+      throw new Error("email/password signup disabled");
+    }
 
     // issues_with_create_account also does check is_valid_password!
     const issues = issues_with_create_account(opts.mesg);
@@ -162,11 +261,12 @@ export async function create_account(
     }
 
     dbg("check if a registration token is required");
-    const token = await callback2(opts.database.get_server_setting, {
-      name: "account_creation_token",
-    });
-    if (token && token !== opts.mesg.token) {
-      reason = { token: "Incorrect registration token." };
+    const check_token = await check_registration_token(
+      opts.database,
+      opts.mesg.token
+    );
+    if (check_token) {
+      reason = { token: check_token };
       throw Error();
     }
 
@@ -181,6 +281,14 @@ export async function create_account(
       created_by: opts.client.ip_address,
       usage_intent: opts.mesg.usage_intent,
     });
+
+    if (opts.mesg.token != null) {
+      // we also record that we used a registration token ...
+      await callback2(opts.database.log, {
+        event: "create_account_registration_token",
+        value: { token: opts.mesg.token, account_id },
+      });
+    }
 
     // log to database
     const data: CreateAccountData = {

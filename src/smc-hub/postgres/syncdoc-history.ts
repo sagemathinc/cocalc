@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // ../ prefix to make manage-pods work
 import { callback2 } from "../smc-util/async-utils";
 import { trunc } from "../smc-util/misc2";

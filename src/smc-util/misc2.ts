@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 This is a rewrite and SUCCESSOR to ./misc.js.
 
 Each function is rethought from scratch, and we try to implement
@@ -11,6 +16,9 @@ import * as sha1 from "sha1";
 export { sha1 };
 
 import * as lodash from "lodash";
+import { Moment } from "moment";
+import * as getRandomValues from "get-random-values";
+
 export const keys = lodash.keys;
 
 interface SplittedPath {
@@ -68,6 +76,7 @@ export function change_filename_extension(
 }
 
 // Like Python splitlines.
+// WARNING -- this is actually NOT like Python splitlines, since it just deletes whitespace lines. TODO: audit usage and fix.
 export function splitlines(s: string): string[] {
   const r = s.match(/[^\r\n]+/g);
   return r ? r : [];
@@ -240,27 +249,34 @@ export function cmp(a: any, b: any): -1 | 0 | 1 {
 compare two Date | undefined | null objects.
 
 null and undefined are considered equal to each other.
+
+null_last:
+  - true: nulls are infinitely in the future
+  - false: nulls are the dawn of mankind
 */
 
 export function cmp_Date(
   a: Date | undefined | null,
-  b: Date | undefined | null
+  b: Date | undefined | null,
+  null_last = false
 ): -1 | 0 | 1 {
   if (a == null) {
     if (b == null) {
       return 0;
     }
-    return -1;
+    return null_last ? 1 : -1;
   }
+  // a != null
   if (b == null) {
-    return 1;
+    return null_last ? -1 : 1;
   }
-  if (a < b) {
-    return -1;
-  } else if (a > b) {
-    return 1;
-  }
+  if (a < b) return -1;
+  if (a > b) return 1;
   return 0; // note: a == b for Date objects doesn't work as expected, but that's OK here.
+}
+
+export function cmp_moment(a?: Moment, b?: Moment, null_last = false) {
+  return cmp_Date(a?.toDate(), b?.toDate(), null_last);
 }
 
 // see https://stackoverflow.com/questions/728360/how-do-i-correctly-clone-a-javascript-object/30042948#30042948
@@ -551,10 +567,42 @@ export function unreachable(x: never) {
   throw new Error(`All types should be exhausted, but I got ${x}`);
 }
 
-export function bind_methods(obj: any, method_names: string[]): void {
+// Get *all* methods of an object (including from base classes!).
+// See https://flaviocopes.com/how-to-list-object-methods-javascript/
+// This is used by bind_methods below to bind all methods
+// of an instance of an object, all the way up the
+// prototype chain, just to be 100% sure!
+function get_methods(obj: object): string[] {
+  let properties = new Set<string>();
+  let current_obj = obj;
+  do {
+    Object.getOwnPropertyNames(current_obj).map((item) => properties.add(item));
+  } while ((current_obj = Object.getPrototypeOf(current_obj)));
+  return [...properties.keys()].filter(
+    (item) => typeof obj[item] === "function"
+  );
+}
+
+// Bind all or specified methods of the object.  If method_names
+// is not given, binds **all** methods.
+// For example, in a base class constructor, you can do
+//       bind_methods(this);
+// and every method will always be bound even for derived classes
+// (assuming they call super if they overload the constructor!).
+// Do this for classes that don't get created in a tight inner
+// loop and for which you want 'safer' semantics.
+export function bind_methods<T extends object>(
+  obj: T,
+  method_names: undefined | string[] = undefined
+): T {
+  if (method_names === undefined) {
+    method_names = get_methods(obj);
+    method_names.splice(method_names.indexOf("constructor"), 1);
+  }
   for (const method_name of method_names) {
     obj[method_name] = obj[method_name].bind(obj);
   }
+  return obj;
 }
 
 export function human_readable_size(bytes: number | null | undefined): string {
@@ -634,4 +682,40 @@ export function history_path(path: string): string {
 //        2. type Foo = typeof foo[number]; // bar | baz;
 export function tuple<T extends string[]>(o: T) {
   return o;
+}
+
+export function aux_file(path: string, ext: string): string {
+  const s = path_split(path);
+  s.tail += "." + ext;
+  if (s.head) {
+    return s.head + "/." + s.tail;
+  } else {
+    return "." + s.tail;
+  }
+}
+
+/*
+Generate a cryptographically safe secure random string with
+16 characters chosen to be reasonably unambiguous to look at.
+That is 93 bits of randomness, and there is an argument here
+that 64 bits is enough:
+
+https://security.stackexchange.com/questions/1952/how-long-should-a-random-nonce-be
+*/
+const BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+export function secure_random_token(
+  length: number = 16,
+  alphabet: string = BASE58 // default is this crypto base58 less ambiguous numbers/letters
+): string {
+  let s = "";
+  if (length == 0) return s;
+  if (alphabet.length == 0) {
+    throw Error("impossible, since alphabet is empty");
+  }
+  const v = new Uint32Array(length);
+  getRandomValues(v); // secure random numbers
+  for (const i of v) {
+    s += alphabet[i % alphabet.length];
+  }
+  return s;
 }

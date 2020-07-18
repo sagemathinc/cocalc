@@ -1,11 +1,14 @@
 /*
-The Menu bar across the top
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-File, Edit, etc....
-*/
+// The Menu bar across the top
+//
+// File, Edit, etc....
 
 import { React, Component, rclass, rtypes, Rendered } from "../app-framework";
-import { analytics_event } from "../tracker";
+import { user_activity } from "../tracker";
 import * as immutable from "immutable";
 import { ButtonGroup, SelectCallback } from "react-bootstrap";
 import { Icon, r_join, DropdownMenu, MenuItem, MenuDivider } from "../r_misc";
@@ -330,7 +333,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     this.props.actions.set_kernel(kernel_name);
     this.focus();
     this.props.actions.set_default_kernel(kernel_name);
-    analytics_event("cocal_jupyter", "change kernel", kernel_name);
+    user_activity("cocal_jupyter", "change kernel", kernel_name);
   }
 
   private render_kernel_item(kernel: any): Rendered {
@@ -372,7 +375,8 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
       "<Change kernel...",
     ]
       .concat((items as any) || [])
-      .concat(["", "refresh kernels"]);
+      .concat(["", "refresh kernels"])
+      .concat(["", "custom kernel"]);
 
     return this.render_menu({
       heading: "Kernel",
@@ -577,6 +581,14 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         {external_link(
           "Jupyter in CoCalc",
           "https://doc.cocalc.com/jupyter.html"
+        )}
+        {external_link(
+          "nbgrader in CoCalc",
+          "https://doc.cocalc.com/teaching-nbgrader.html"
+        )}
+        {external_link(
+          "Custom Jupyter kernels",
+          "https://doc.cocalc.com/howto/custom-jupyter-kernel.html"
         )}
         {external_link(
           "Markdown",

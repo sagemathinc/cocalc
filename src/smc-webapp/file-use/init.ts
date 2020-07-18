@@ -1,10 +1,15 @@
-const { redux } = require("../app-framework");
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { redux } from "../app-framework";
 
 import { FileUseStore } from "./store";
 import { FileUseActions } from "./actions";
 import { FileUseTable } from "./table";
 
-redux.createStore("file_use", FileUseStore, {});
+redux.createStore("file_use", FileUseStore, { notify_count: 0 });
 const actions = redux.createActions("file_use", FileUseActions);
 
 // We only initialize the actual FileUseTable when not in kiosk
@@ -16,5 +21,6 @@ if (redux.getStore("page").get("fullscreen") != "kiosk") {
 }
 actions._init(); // must be after making store
 
-// Function to updates the browser's awareness of a notification
-require("../browser").set_notify_count_function();
+// Initialize function to updates the browser's awareness of a notification
+import { set_notify_count_function } from "../browser";
+set_notify_count_function();

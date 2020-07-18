@@ -1,34 +1,17 @@
 #!/usr/bin/env python
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
+
+from __future__ import absolute_import
+import json, os, sys
+from .py23 import cPickle, text_type, PY3
+from uuid import uuid4
 
 MARKERS = {'cell': u"\uFE20", 'output': u"\uFE21"}
 
-import cPickle, json, os, sys
-
-from uuid import uuid4
-
 
 def uuid():
-    return unicode(uuid4())
+    return text_type(uuid4())
 
 
 def process_html(html):
@@ -103,17 +86,15 @@ def output_messages(output):
             messages.extend(process_output(output[:i]))
             j = output.find(HTML['close'])
             if j != -1:
-                messages.append({
-                    'html':
-                    process_html(output[i + len(HTML['open']):j])
-                })
+                messages.append(
+                    {'html': process_html(output[i + len(HTML['open']):j])})
                 output = output[j + len(HTML['close']):]
                 continue
 
         messages.extend(process_output(output))
         output = ''
 
-    return MARKERS['output'].join(unicode(json.dumps(x)) for x in messages)
+    return MARKERS['output'].join(text_type(json.dumps(x)) for x in messages)
 
 
 def migrate_input(s):
@@ -123,6 +104,7 @@ def migrate_input(s):
 
 
 def sws_body_to_sagews(body):
+    # body is already an utf8 string
 
     out = u""
     i = 0
@@ -155,18 +137,16 @@ def sws_body_to_sagews(body):
                 output = body[k2 + 4:k3]
                 i = k3 + 4
 
-        html = unicode(html.strip(), encoding='utf8')
-        input = unicode(migrate_input(input.strip()), encoding='utf8')
-        output = unicode(output.strip(), encoding='utf8')
+        html = html.strip()
+        input = migrate_input(input.strip())
+        output = output.strip()
 
         if html:
             out += MARKERS['cell'] + uuid() + 'i' + MARKERS['cell'] + u'\n'
             out += '%html\n'
             out += html + u'\n'
             out += (u'\n' + MARKERS['output'] + uuid() + MARKERS['output'] +
-                    json.dumps({
-                        'html': html
-                    }) + MARKERS['output']) + u'\n'
+                    json.dumps({'html': html}) + MARKERS['output']) + u'\n'
 
         if input or output:
             modes = ''
@@ -220,7 +200,7 @@ def sws_to_sagews(filename):
 
     OUTPUT:
     - creates a file foo[-n].sagews  and returns the name of the output file
-    
+
     .. NOTE::
 
         sws files from around 2009 are bzip2 archives with the following layout:
@@ -267,6 +247,8 @@ def sws_to_sagews(filename):
     if data_files:
         out += MARKERS['cell'] + uuid() + 'ai' + MARKERS[
             'cell'] + u'\n%%hide\n%%auto\nDATA="%s/"\n' % data_path
+    if PY3:
+        body = body.decode('utf8')
     out += sws_body_to_sagews(body)
 
     meta = {}
@@ -287,14 +269,14 @@ def sws_to_sagews(filename):
     outfile = base + '.sagews'
     if os.path.exists(outfile):
         sys.stderr.write(
-            "%s: Warning --Sagemath cloud worksheet '%s' already exists.  Not overwriting.\n"
+            "%s: Warning -- Sage Worksheet '%s' already exists.  Not overwriting.\n"
             % (sys.argv[0], outfile))
         sys.stderr.flush()
     else:
-        sys.stdout.write("%s: Creating Sagemath cloud worksheet '%s'\n" %
+        sys.stdout.write("%s: Creating Sage Worksheet '%s'\n" %
                          (sys.argv[0], outfile))
         sys.stdout.flush()
-        open(outfile, 'w').write(out.encode('utf8'))
+        open(outfile, 'wb').write(out.encode('utf8'))
 
 
 def main():

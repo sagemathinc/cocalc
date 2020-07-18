@@ -1,5 +1,11 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as misc from "smc-util/misc";
 import { file_associations } from "./file-associations";
+import { icon as file_icon } from "./file-editors";
 
 // Given a text file (defined by content), try to guess
 // what the extension should be.
@@ -26,8 +32,7 @@ const guess_file_extension_type = function (content) {
   return undefined;
 };
 
-export function file_options(filename, content) {
-  // content may be undefined
+export function file_options(filename:string, content?: string) {
   let x;
   let ext = misc.filename_extension_notilde(filename);
   if (ext != undefined) {
@@ -50,7 +55,7 @@ export function file_options(filename, content) {
   }
   if (x.icon == null) {
     // Use the new react editor icons first, if they exist...
-    const icon = require("./project_file").icon(ext);
+    const icon = file_icon(ext);
     if (icon != null) {
       x.icon = "fa-" + icon;
     } else {

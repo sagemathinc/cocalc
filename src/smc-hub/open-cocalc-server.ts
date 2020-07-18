@@ -1,8 +1,16 @@
-/* Open CoCalc Server
- * this is a small part of hub_http_server, which serves the main index page and associated assets.
- * - "webapp" refers to files in SMC_ROOT/webapp-lib
- * - several aspects can be modified via the administrator's tab / "site settings"
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
+
+/*
+ * license
+ */
+
+// Open CoCalc Server
+// this is a small part of hub_http_server, which serves the main index page and associated assets.
+// - "webapp" refers to files in SMC_ROOT/webapp-lib
+// - several aspects can be modified via the administrator's tab / "site settings"
 
 import { PostgreSQL } from "smc-hub/postgres/types";
 import { callback2 } from "smc-util/async-utils";
@@ -10,6 +18,7 @@ import * as express from "express";
 import * as path_module from "path";
 const auth = require("./auth");
 import { get_smc_root } from "./utils";
+import { have_active_registration_tokens } from "./utils";
 //import { SiteSettingsKeys } from "smc-util/db-schema/site-defaults";
 import * as winston from "winston";
 
@@ -31,7 +40,7 @@ function fallback(val: string | undefined, fallback: string): string {
 async function get_params(opts: GetData) {
   const { db, base_url } = opts;
   const settings = await callback2(db.get_server_settings_cached, {});
-  const ANONYMOUS_SIGNUP = !settings.account_creation_token;
+  const ANONYMOUS_SIGNUP = !(await have_active_registration_tokens(db));
   const NAME = settings.site_name;
   const DESCRIPTION = settings.site_description;
   const PREFIX = ""; // this is unrelated of base_url, used for subdirectories
@@ -46,7 +55,7 @@ async function get_params(opts: GetData) {
 
   const SPLASH_IMG = fallback(
     settings.splash_image,
-    "https://storage.googleapis.com/cocalc-extra/cocalc-screenshot-20200128-nq8.png"
+    base_url + "/res/pix/cocalc-screenshot-20200128-nq8.png"
   );
 
   const BASE_URL = base_url ?? "";
@@ -54,6 +63,7 @@ async function get_params(opts: GetData) {
   const ORGANIZATION_NAME = settings.organization_name;
   const ORGANIZATION_URL = settings.organization_url;
   const HELP_EMAIL = settings.help_email;
+  const COMMERCIAL = settings.commercial;
 
   const data = {
     // to be compatible with webpack
@@ -61,6 +71,7 @@ async function get_params(opts: GetData) {
       options: {
         BASE_URL,
         PREFIX,
+        COMMERCIAL,
       },
     },
     PREFIX,

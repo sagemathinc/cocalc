@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
  * DS207: Consider shorter variations of null checks
@@ -13,7 +18,7 @@ TODO: this is very similar to jupyter/register.coffee -- can this be refactored?
 const { register_file_editor } = require("../file-editors");
 import { alert_message } from "../alerts";
 import { redux_name } from "../app-framework";
-const { webapp_client } = require("../webapp_client");
+import { webapp_client } from "../webapp-client";
 
 const { TaskEditor } = require("./editor");
 const { TaskActions } = require("./actions");

@@ -1,4 +1,7 @@
-/* Open file that we are viewing the history of. */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import { Rendered, Component, React } from "../../app-framework";
 import { Button } from "react-bootstrap";

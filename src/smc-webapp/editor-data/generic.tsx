@@ -1,23 +1,19 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-/*
-"Editor" (really a read-only simple viewer) for generic data files
 
-See https://github.com/sagemathinc/cocalc/issues/2462
-*/
+// "Editor" (really a read-only simple viewer) for generic data files
+//
+// See https://github.com/sagemathinc/cocalc/issues/2462
 
-import { React, Component, Rendered } from "../app-framework";
-const { register_file_editor } = require("../project_file");
-
-import { Well } from "react-bootstrap";
-
+import { React, Rendered, useActions } from "../app-framework";
+import { register_file_editor } from "../project-file";
 import { Markdown } from "../r_misc";
 import { webapp_client } from "../webapp-client";
-
 import { keys, filename_extension } from "smc-util/misc2";
+import { COLORS } from "../../smc-util/theme";
+import { Button, Well } from "../antd-bootstrap";
 
 const hdf_file =
   "Hierarchical Data Format (HDF file) -- you can open this file using a Python or R library.";
@@ -27,9 +23,12 @@ const microsoft_word =
   'Microsoft Word file -- Create an ["X11" file](https://doc.cocalc.com/x11.html) and open the "Writer" application.';
 const microsoft_ppt =
   'Microsoft PowerPoint -- Create an ["X11" file](https://doc.cocalc.com/x11.html) and open the "Impress" application.';
+const windows_executable =
+  "Windows Executable -- you must download this program and run it on a computer";
 
 // ext: markdown string.
 const INFO = {
+  exe: windows_executable,
   h4: hdf_file,
   h5: hdf_file,
   xlsx: excel,
@@ -69,41 +68,55 @@ interface Props {
   path: string;
 }
 
-class DataGeneric extends Component<Props, {}> {
-  render_hint(): Rendered {
-    const ext = filename_extension(this.props.path);
+const DataGeneric: React.FC<Props> = React.memo((props) => {
+  const { project_id, path } = props;
+  const ext = filename_extension(path);
+  const src = webapp_client.project_client.read_file({ project_id, path });
+
+  function render_hint(): Rendered {
     const hint = INFO[ext];
     if (hint) {
-      return <Markdown value={hint} />;
+      return <Markdown value={`**Hint**: ${hint}`} />;
     }
     return (
-      <span style={{ color: "#666" }}>
+      <span style={{ color: COLORS.GRAY }}>
         You may be able to use this file from another program, for example, as a
         data file that is manipulated using a Jupyter notebook.
       </span>
     );
   }
 
-  render() {
-    const src = webapp_client.project_client.read_file({
-      project_id: this.props.project_id,
-      path: this.props.path,
-    });
+  function render_docx() {
+    if (ext !== "docx") return;
+    const pa = useActions({ project_id });
     return (
-      <Well style={{ margin: "15px", fontSize: "12pt" }}>
-        <h2>Data File</h2>
-        CoCalc does not have a special viewer or editor for{" "}
-        <a href={src} target="_blank">
-          {this.props.path}
-        </a>
-        .
+      <>
         <br />
-        <br />
-        {this.render_hint()}
-      </Well>
+        <div>
+          It is possible to{" "}
+          <Button onClick={() => pa.open_word_document(path)}>
+            convert this file to text
+          </Button>{" "}
+          .
+        </div>
+      </>
     );
   }
-}
+
+  return (
+    <Well style={{ margin: "15px", fontSize: "12pt" }}>
+      <h2>Data File</h2>
+      CoCalc does not have a special viewer or editor for{" "}
+      <a href={src} target="_blank">
+        {path}
+      </a>
+      .{render_docx()}
+      <br />
+      <br />
+      {render_hint()}
+    </Well>
+  );
+});
 
 register_file_editor({
   ext: keys(INFO),

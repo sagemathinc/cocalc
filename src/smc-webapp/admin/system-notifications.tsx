@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import {
   React,
   ReactDOM,
@@ -85,7 +90,7 @@ class SystemNotifications extends Component<Props, State> {
             componentClass="textarea"
             onChange={() =>
               this.setState({
-                mesg: ReactDOM.findDOMNode(this.refs.input).value,
+                mesg: ReactDOM.findDOMNode(this.refs.input)?.value,
               })
             }
           />

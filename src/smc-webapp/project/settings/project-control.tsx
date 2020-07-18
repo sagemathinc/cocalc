@@ -1,7 +1,13 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { rtypes, redux, rclass, Rendered } from "../../app-framework";
 import {
   COLORS,
+  CopyToClipBoard,
   Loading,
   ProjectState,
   TimeAgo,
@@ -18,7 +24,6 @@ import {
   CUSTOM_IMG_PREFIX,
 } from "../../custom-software/util";
 import { async } from "async";
-import { analytics_event } from "../../tracker";
 import {
   ButtonToolbar,
   Button,
@@ -29,7 +34,8 @@ import {
 import { alert_message } from "../../alerts";
 import { Project } from "./types";
 import { Map, fromJS } from "immutable";
-import { Popconfirm, Icon as AntIcon } from "antd";
+import { Popconfirm } from "antd";
+import { StopOutlined, SyncOutlined } from "@ant-design/icons";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 let {
   COMPUTE_IMAGES,
@@ -124,13 +130,15 @@ export const ProjectControl = rclass<ReactProps>(
     }
 
     render_idle_timeout() {
-      // get_idle_timeout_horizon depends on the project object, so this will update properly....
+      // get_idle_timeout_horizon depends on the project object, so this
+      // will update properly....
       const date = redux
         .getStore("projects")
         .get_idle_timeout_horizon(this.props.project.get("project_id"));
-      if (!date) {
-        // e.g., viewing as admin...
-        return;
+      if (date == null) {
+        // e.g., viewing as admin where the info about idle timeout
+        // horizon simply isn't known.
+        return <span style={{ color: "#666" }}>(not available)</span>;
       }
       return (
         <span style={{ color: "#666" }}>
@@ -147,14 +155,12 @@ export const ProjectControl = rclass<ReactProps>(
       redux
         .getActions("projects")
         .restart_project(this.props.project.get("project_id"));
-      analytics_event("project_settings", "restart project");
     };
 
     stop_project = () => {
       redux
         .getActions("projects")
         .stop_project(this.props.project.get("project_id"));
-      analytics_event("project_settings", "stop project");
     };
 
     render_stop_button(commands): Rendered {
@@ -171,7 +177,7 @@ export const ProjectControl = rclass<ReactProps>(
           placement={"bottom"}
           arrowPointAtCenter={true}
           title={text}
-          icon={<AntIcon type={"stop"} theme="outlined" />}
+          icon={<StopOutlined />}
           onConfirm={() => this.stop_project()}
           okText="Yes, stop project"
           cancelText="Cancel"
@@ -199,7 +205,7 @@ export const ProjectControl = rclass<ReactProps>(
           placement={"bottom"}
           arrowPointAtCenter={true}
           title={text}
-          icon={<AntIcon type={"sync"} theme="outlined" />}
+          icon={<SyncOutlined />}
           onConfirm={() => this.restart_project()}
           okText="Yes, restart project"
           cancelText="Cancel"
@@ -305,7 +311,6 @@ export const ProjectControl = rclass<ReactProps>(
       const actions = redux.getProjectActions(
         this.props.project.get("project_id")
       );
-      analytics_event("project_settings", "change compute image");
       try {
         await actions.set_compute_image(new_image);
         this.restart_project();
@@ -324,18 +329,30 @@ export const ProjectControl = rclass<ReactProps>(
     }
 
     render_compute_image_items() {
-      return COMPUTE_IMAGES.entrySeq().map((entry) => {
-        const [name, data] = entry;
-        return (
-          <MenuItem
-            key={name}
-            eventKey={name}
-            onSelect={this.set_compute_image.bind(this)}
-          >
-            {data.get("title")}
-          </MenuItem>
-        );
-      });
+      // we want "Default", "Previous", ... to come first
+      // then the timestamps in newest-first
+      // and then the exotic ones
+      const sorter = (a, b): number => {
+        const o1 = a.get("order", 0);
+        const o2 = b.get("order", 0);
+        if (o1 == o2) {
+          return a.get("title") < b.get("title") ? 1 : -1;
+        }
+        return o1 > o2 ? 1 : -1;
+      };
+      return COMPUTE_IMAGES.sort(sorter)
+        .entrySeq()
+        .map(([name, data]) => {
+          return (
+            <MenuItem
+              key={name}
+              eventKey={name}
+              onSelect={this.set_compute_image.bind(this)}
+            >
+              {data.get("title")}
+            </MenuItem>
+          );
+        });
     }
 
     render_select_compute_image_row() {
@@ -489,16 +506,13 @@ export const ProjectControl = rclass<ReactProps>(
       );
     }
 
-    rowstyle(delim?) {
-      const style: React.CSSProperties = {
-        marginBottom: "5px",
+    private rowstyle(delim?): React.CSSProperties | undefined {
+      if (!delim) return;
+      return {
+        borderBottom: "1px solid #ddd",
+        borderTop: "1px solid #ddd",
         paddingBottom: "10px",
       };
-      if (delim) {
-        style.borderBottom = "1px solid #ccc";
-        style.borderTop = "1px solid #ccc";
-      }
-      return style;
     }
 
     render() {
@@ -514,7 +528,10 @@ export const ProjectControl = rclass<ReactProps>(
             {this.render_action_buttons()}
           </LabeledRow>
           <LabeledRow key="project_id" label="Project id">
-            <pre>{this.props.project.get("project_id")}</pre>
+            <CopyToClipBoard
+              value={this.props.project.get("project_id")}
+              style={{ display: "inline-block", width: "50ex", margin: 0 }}
+            />
           </LabeledRow>
           {this.render_select_compute_image_row()}
         </SettingBox>

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as message from "smc-util/message";
 import { AsyncCall } from "./client";
 
@@ -53,8 +58,14 @@ export class ProjectCollaborators {
           project_id: string;
           account_id: string;
         }
+      | {
+          token_id: string;
+          account_id: string;
+        }
       | { project_id: string[]; account_id: string[] } // for adding more than one at once
-  ): Promise<any> {
+      | { account_id: string[]; token_id: string[] } // for adding more than one at once
+  ): Promise<{ event: "error" | "ok"; project_id?: string | string[] }> {
+    // project_id is a single string or an array of project id's in case of a token.
     return await this.call(message.add_collaborator(opts));
   }
 }

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // in "Files", this shows some information and action buttons related to the custom software environment
 
 import { Component, React } from "../app-framework";
@@ -15,7 +20,6 @@ const { open_new_tab } = require("smc-webapp/misc_page");
 import { Icon, Tip, HiddenXSSM, VisibleMDLG, VisibleXSSM } from "../r_misc";
 const { ButtonGroup, Button } = require("react-bootstrap");
 import { Available as AvailableFeatures } from "../project_configuration";
-//const { ROW_INFO_STYLE } = require("../project_files");
 const { jupyterlab_server_url } = require("../project/jupyterlab-server");
 const { jupyter_server_url } = require("../editor_jupyter");
 const { ButtonRetryUntilSuccess } = require("../widgets-misc/link-retry");
@@ -31,13 +35,6 @@ interface Props {
 }
 
 export class CustomSoftwareInfo extends Component<Props, {}> {
-  private props2img;
-
-  constructor(props) {
-    super(props);
-    this.props2img = props2img.bind(this);
-  }
-
   render_path = (path) => {
     if (!this.props.project_is_running) return null;
     if (path.length === 0) return null;
@@ -120,7 +117,7 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
   };
 
   render = () => {
-    const img = this.props2img();
+    const img = props2img(this.props);
     if (img == null) return null;
     const path = img.get("path", "");
 

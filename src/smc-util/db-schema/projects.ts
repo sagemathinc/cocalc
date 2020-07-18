@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { deep_copy } from "../misc";
 const { DEFAULT_QUOTAS } = require("../upgrade-spec");
 import { DEFAULT_COMPUTE_IMAGE } from "./defaults";
@@ -48,6 +53,7 @@ Table({
           compute_image: DEFAULT_COMPUTE_IMAGE,
           addons: null,
           created: null,
+          env: null,
         },
       },
       set: {
@@ -64,6 +70,7 @@ Table({
           compute_image: true,
           course: true,
           site_license: true,
+          env: true,
         },
 
         before_change(database, old_val, new_val, account_id, cb) {
@@ -267,6 +274,10 @@ Table({
     lti_data: {
       type: "map",
       desc: "extra information related to LTI",
+    },
+    env: {
+      type: "map",
+      desc: "Additional environment variables (TS: {[key:string]:string})",
     },
   },
 });

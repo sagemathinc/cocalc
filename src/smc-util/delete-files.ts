@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { path_split } from "./misc2";
 
 // NOTE: there are also .term files in subframes with history that doesn't get
@@ -16,6 +21,7 @@ export function deleted_file_variations(path: string): string[] {
     "sage-jupyter2",
     "time-travel",
     "sage-history",
+    "syncdb",
   ]) {
     variations.push(head + "." + tail + "." + ext);
   }

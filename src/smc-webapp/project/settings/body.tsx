@@ -1,5 +1,9 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
-import { analytics_event } from "../../tracker";
 const misc = require("smc-util/misc");
 import {
   Icon,
@@ -14,7 +18,7 @@ import {
   CurrentCollaboratorsPanel,
 } from "../../collaborators";
 
-import { TitleDescriptionBox } from "./title-description-box";
+import { AboutBox } from "./about-box";
 import { UpgradeUsage } from "./upgrade-usage";
 import { HideDeleteBox } from "./hide-delete-box";
 import { SagewsControl } from "./sagews-control";
@@ -23,10 +27,11 @@ import { ProjectControl } from "./project-control";
 import { Customer, ProjectMap, UserMap } from "smc-webapp/todo-types";
 import { Project } from "./types";
 import { SSHPanel } from "./ssh";
+import { Environment } from "./environment";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 
-const { webapp_client } = require("../../webapp_client");
-const { Col, Row } = require("react-bootstrap");
+import { webapp_client } from "../../webapp-client";
+import { Col, Row } from "react-bootstrap";
 
 interface ReactProps {
   project_id: string;
@@ -168,10 +173,11 @@ export const Body = rclass<ReactProps>(
           </h1>
           <Row>
             <Col sm={6}>
-              <TitleDescriptionBox
+              <AboutBox
                 project_id={id}
                 project_title={this.props.project.get("title") || ""}
                 description={this.props.project.get("description") || ""}
+                created={this.props.project.get("created")}
                 actions={redux.getActions("projects")}
               />
               <UpgradeUsage
@@ -210,6 +216,10 @@ export const Body = rclass<ReactProps>(
                   account_id={this.props.account_id}
                 />
               ) : undefined}
+              <Environment
+                key="environment"
+                project_id={this.props.project_id}
+              />
               <ProjectCapabilities
                 name={this.props.name}
                 key={"capabilities"}
@@ -225,9 +235,6 @@ export const Body = rclass<ReactProps>(
               <AddCollaboratorsPanel
                 key="new-collabs"
                 project={this.props.project}
-                on_invite={() =>
-                  analytics_event("project_settings", "add collaborator")
-                }
                 allow_urls={allow_urls}
               />
               <ProjectControl key="control" project={this.props.project} />

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { fromJS, List } from "immutable";
 
 import { Actions, redux } from "../../app-framework";
@@ -32,7 +37,7 @@ export class AdminUsersActions extends Actions<StoreState> {
     this.set_status("Searching...");
 
     const result = await user_search({
-      query: store.get("query"),
+      query: store.get("query").trim(),
       admin: true,
       limit: 100,
     });

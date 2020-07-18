@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 SyncDoc -- the core class for editing with a synchronized document.
 
 This code supports both string-doc and db-doc, for editing both
@@ -974,16 +979,16 @@ export class SyncDoc extends EventEmitter {
     // and we have to wait until
     // after they have been pulled from blob storage before
     // we init the patch table, load from disk, etc.
-    function is_not_archived(): boolean {
+    const is_not_archived: () => boolean = () => {
       const ss = this.syncstring_table_get_one();
       if (ss != null) {
         return !ss.get("archived");
       } else {
         return false;
       }
-    }
+    };
     dbg("waiting for syncstring to be not archived");
-    await this.syncstring_table.wait(is_not_archived.bind(this), 120);
+    await this.syncstring_table.wait(is_not_archived, 120);
   }
 
   // Used for internal debug logging
@@ -1081,7 +1086,7 @@ export class SyncDoc extends EventEmitter {
       }
     }
 
-    function is_init_and_not_archived(t: SyncTable): any {
+    const is_init_and_not_archived = (t: SyncTable) => {
       this.assert_not_closed("is_init_and_not_archived");
       const tbl = t.get_one();
       if (tbl == null) {
@@ -1098,7 +1103,7 @@ export class SyncDoc extends EventEmitter {
         dbg("not init yet");
         return false;
       }
-    }
+    };
     dbg("waiting for init...");
     const init = await this.syncstring_table.wait(
       is_init_and_not_archived.bind(this),
@@ -2442,7 +2447,10 @@ export class SyncDoc extends EventEmitter {
     let last_err = undefined;
     const f = async () => {
       dbg("f");
-      if (this.state != "ready" || this.client.is_deleted(this.path, this.project_id)) {
+      if (
+        this.state != "ready" ||
+        this.client.is_deleted(this.path, this.project_id)
+      ) {
         dbg("not ready or deleted - no longer trying to save.");
         return;
       }
@@ -2453,7 +2461,10 @@ export class SyncDoc extends EventEmitter {
         dbg("timed out after 15s");
         throw Error("timed out");
       }
-      if (this.state != "ready" || this.client.is_deleted(this.path, this.project_id)) {
+      if (
+        this.state != "ready" ||
+        this.client.is_deleted(this.path, this.project_id)
+      ) {
         dbg("not ready or deleted - no longer trying to save.");
         return;
       }
@@ -2472,7 +2483,10 @@ export class SyncDoc extends EventEmitter {
       max_tries: 8,
       desc: "wait_for_save_to_disk_done",
     });
-    if (this.state != "ready" || this.client.is_deleted(this.path, this.project_id)) {
+    if (
+      this.state != "ready" ||
+      this.client.is_deleted(this.path, this.project_id)
+    ) {
       return;
     }
     if (last_err && typeof this.client.log_error === "function") {

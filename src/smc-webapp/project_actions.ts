@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // TODO: we should refactor our code to not have these window/document/$ references here.
 declare let window, document, $;
 
@@ -8,7 +13,6 @@ import * as os_path from "path";
 
 import { client_db } from "smc-util/schema";
 
-const { reuseInFlight } = require("async-await-utils/hof");
 import {
   ConfigurationAspect,
   Configuration,
@@ -17,37 +21,22 @@ import {
   LIBRARY_INDEX_FILE,
   is_available as feature_is_available,
 } from "./project_configuration";
-const { SITE_NAME } = require("smc-util/theme");
 import { startswith, to_user_string } from "smc-util/misc2";
 import { query as client_query } from "./frame-editors/generic/client";
 import { callback, delay } from "awaiting";
 import { callback2, retry_until_success } from "smc-util/async-utils";
 import { exec } from "./frame-editors/generic/client";
 import { API } from "./project/websocket/api";
-
-import { editor_id, NewFilenames } from "./project/utils";
+import { NewFilenames, normalize } from "./project/utils";
 import { NEW_FILENAMES } from "smc-util/db-schema";
 
 import { transform_get_url } from "./project/transform-get-url";
 
 import { OpenFiles } from "./project/open-files";
+import { log_opened_time, open_file } from "./project/open-file";
 
-let project_file, wrapped_editors;
-if (typeof window !== "undefined" && window !== null) {
-  // don't import in case not in browser (for testing)
-  project_file = require("./project_file");
-  wrapped_editors = require("./editor_react_wrapper");
-}
-
-// Normalize path as in node, except '' is the home dir, not '.'.
-function normalize(path: string): string {
-  path = os_path.normalize(path);
-  if (path === ".") {
-    return "";
-  } else {
-    return path;
-  }
-}
+import * as project_file from "./project-file";
+import { get_editor } from "./editors/react-wrapper";
 
 import * as misc from "smc-util/misc";
 const { MARKERS } = require("smc-util/sagews");
@@ -55,6 +44,8 @@ import { alert_message } from "./alerts";
 import { webapp_client } from "./webapp-client";
 const { project_tasks } = require("./project_tasks");
 const { defaults, required } = misc;
+
+import { set_url } from "./history";
 
 import { delete_files } from "./project/delete-files";
 
@@ -64,6 +55,7 @@ import { Actions, project_redux_name, redux } from "./app-framework";
 
 import { ProjectStore, ProjectStoreState } from "./project_store";
 import { ProjectEvent } from "./project/history/types";
+import { DEFAULT_COMPUTE_IMAGE } from "../smc-util/compute-images";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%';
@@ -105,6 +97,7 @@ export const QUERIES = {
       last_edited: null,
       last_saved: null,
       counter: null,
+      compute_image: null,
     },
   },
 };
@@ -185,117 +178,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public project_id: string;
   private _last_history_state: string;
   private last_close_timer: number;
-  private _log_open_time: { [key: string]: { id: string; start: number } };
   private _activity_indicator_timers: { [key: string]: number };
   private _set_directory_files_lock: { [key: string]: Function[] };
   private _init_done = false;
   private new_filename_generator;
-  private open_files: OpenFiles;
+  public open_files: OpenFiles;
 
   constructor(a, b) {
     super(a, b);
     this.new_filename_generator = new NewFilenames("", false);
-    this.destroy = this.destroy.bind(this);
-    this._ensure_project_is_open = this._ensure_project_is_open.bind(this);
-    this.get_store = this.get_store.bind(this);
-    this.clear_all_activity = this.clear_all_activity.bind(this);
-    this.toggle_library = this.toggle_library.bind(this);
-    this.set_url_to_path = this.set_url_to_path.bind(this);
-    this._url_in_project = this._url_in_project.bind(this);
-    this.push_state = this.push_state.bind(this);
-    this.move_file_tab = this.move_file_tab.bind(this);
-    this.close_tab = this.close_tab.bind(this);
-    this.set_active_tab = this.set_active_tab.bind(this);
-    this.add_a_ghost_file_tab = this.add_a_ghost_file_tab.bind(this);
-    this.clear_ghost_file_tabs = this.clear_ghost_file_tabs.bind(this);
-    this.set_next_default_filename = this.set_next_default_filename.bind(this);
-    this.set_activity = this.set_activity.bind(this);
-    this.log = this.log.bind(this);
-    this.log_opened_time = this.log_opened_time.bind(this);
-    this.save_file = this.save_file.bind(this);
-    this.save_all_files = this.save_all_files.bind(this);
-    this.open_file = this.open_file.bind(this);
-    this.get_scroll_saver_for = this.get_scroll_saver_for.bind(this);
-    this.goto_line = this.goto_line.bind(this);
-    this._set_chat_state = this._set_chat_state.bind(this);
-    this.open_chat = this.open_chat.bind(this);
-    this.close_chat = this.close_chat.bind(this);
-    this.set_chat_width = this.set_chat_width.bind(this);
-    this.flag_file_activity = this.flag_file_activity.bind(this);
-    this.convert_sagenb_worksheet = this.convert_sagenb_worksheet.bind(this);
-    this.convert_docx_file = this.convert_docx_file.bind(this);
-    this.close_all_files = this.close_all_files.bind(this);
-    this.close_file = this.close_file.bind(this);
-    this.foreground_project = this.foreground_project.bind(this);
-    this.open_directory = this.open_directory.bind(this);
-    this.set_current_path = this.set_current_path.bind(this);
-    this.set_file_search = this.set_file_search.bind(this);
-    this.fetch_directory_listing = this.fetch_directory_listing.bind(this);
-    this.set_sorted_file_column = this.set_sorted_file_column.bind(this);
-    this.increment_selected_file_index = this.increment_selected_file_index.bind(
-      this
-    );
-    this.decrement_selected_file_index = this.decrement_selected_file_index.bind(
-      this
-    );
-    this.zero_selected_file_index = this.zero_selected_file_index.bind(this);
-    this.clear_selected_file_index = this.clear_selected_file_index.bind(this);
-    this.set_most_recent_file_click = this.set_most_recent_file_click.bind(
-      this
-    );
-    this.set_selected_file_range = this.set_selected_file_range.bind(this);
-    this.set_file_checked = this.set_file_checked.bind(this);
-    this.set_file_list_checked = this.set_file_list_checked.bind(this);
-    this.set_file_list_unchecked = this.set_file_list_unchecked.bind(this);
-    this.set_all_files_unchecked = this.set_all_files_unchecked.bind(this);
-    this._suggest_duplicate_filename = this._suggest_duplicate_filename.bind(
-      this
-    );
-    this.set_file_action = this.set_file_action.bind(this);
-    this.show_file_action_panel = this.show_file_action_panel.bind(this);
-    this.get_from_web = this.get_from_web.bind(this);
-    this._finish_exec = this._finish_exec.bind(this);
-    this.zip_files = this.zip_files.bind(this);
-    this._convert_to_displayed_path = this._convert_to_displayed_path.bind(
-      this
-    );
-    this.init_library = this.init_library.bind(this);
-    this.init_configuration = reuseInFlight(this.init_configuration.bind(this));
-    this.copy_from_library = this.copy_from_library.bind(this);
-    this.set_library_is_copying = this.set_library_is_copying.bind(this);
-    this.copy_paths = this.copy_paths.bind(this);
-    this.copy_paths_between_projects = this.copy_paths_between_projects.bind(
-      this
-    );
-    this.delete_files = this.delete_files.bind(this);
-    this.download_file = this.download_file.bind(this);
-    this.print_file = this.print_file.bind(this);
-    this.show_upload = this.show_upload.bind(this);
-    this._absolute_path = this._absolute_path.bind(this);
-    this.create_folder = this.create_folder.bind(this);
-    this.create_file = this.create_file.bind(this);
-    this.set_public_path = this.set_public_path.bind(this);
-    this.toggle_search_checkbox_subdirectories = this.toggle_search_checkbox_subdirectories.bind(
-      this
-    );
-    this.toggle_search_checkbox_case_sensitive = this.toggle_search_checkbox_case_sensitive.bind(
-      this
-    );
-    this.toggle_search_checkbox_hidden_files = this.toggle_search_checkbox_hidden_files.bind(
-      this
-    );
-    this.toggle_search_checkbox_git_grep = this.toggle_search_checkbox_git_grep.bind(
-      this
-    );
-    this.process_search_results = this.process_search_results.bind(this);
-    this.search = this.search.bind(this);
-    this.load_target = this.load_target.bind(this);
-    this.close_free_warning = this.close_free_warning.bind(this);
-    this.ask_filename = this.ask_filename.bind(this);
-
-    this._log_open_time = {};
     this._activity_indicator_timers = {};
-
     this.open_files = new OpenFiles(this);
   }
 
@@ -314,7 +206,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   };
 
   private save_session(): void {
-    (this.redux.getActions("page") as any).save_session();
+    this.redux.getActions("page").save_session();
   }
 
   remove_table = (table: string): void => {
@@ -334,7 +226,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   };
 
-  _ensure_project_is_open(cb): void {
+  public _ensure_project_is_open(cb): void {
     const s: any = this.redux.getStore("projects");
     if (!s.is_project_open(this.project_id)) {
       (this.redux.getActions("projects") as any).open_project({
@@ -440,7 +332,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return `/projects/${this.project_id}/${misc.encode_path(local_url)}`;
   }
 
-  push_state(local_url: string): void {
+  push_state(local_url?: string): void {
     if (local_url == null) {
       local_url = this._last_history_state;
     }
@@ -448,7 +340,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       local_url = `files/`;
     }
     this._last_history_state = local_url;
-    const { set_url } = require("./history");
     set_url(this._url_in_project(local_url));
   }
 
@@ -709,7 +600,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     obj.id = id;
     const query = { project_log: obj };
-    require("./webapp_client").webapp_client.query({
+    webapp_client.query({
       query,
       cb: (err) => {
         if (err) {
@@ -745,21 +636,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     await callback(this.log.bind(this), event, id);
   }
 
-  log_opened_time(path): void {
-    // Call log_opened with a path to update the log with the fact that
-    // this file successfully opened and rendered so that the user can
-    // actually see it.  This is used to get a sense for how long things
-    // are taking...
-    const data =
-      this._log_open_time != null ? this._log_open_time[path] : undefined;
-    if (data == null) {
-      // never setup log event recording the start of open (this would get set in @open_file)
-      return;
-    }
-    const { id, start } = data;
-    // do not allow recording the time more than once, which would be weird.
-    delete this._log_open_time[path];
-    this.log({ time: misc.server_time() - start }, id);
+  public log_opened_time(path): void {
+    log_opened_time(this.project_id, path);
   }
 
   // Save the given file in this project (if it is open) to disk.
@@ -815,68 +693,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  // get user's group releative to this project.
-  // Can't easily use wait, since this depends on both the account
-  // and project stores changing.
-  // TODO: actually properly use wait somehow, since obviously it is
-  // possible (just not easy).
-  private async get_my_group(): Promise<string> {
-    return await retry_until_success({
-      f: async () => {
-        const projects_store = this.redux.getStore("projects");
-        if (!projects_store) {
-          throw Error("projects store not defined");
-        }
-        const group: string | undefined = projects_store.get_my_group(
-          this.project_id
-        );
-        if (group) {
-          return group;
-        } else {
-          throw Error("group not yet known");
-        }
-      },
-      max_time: 60000,
-      max_delay: 3000,
-    });
-  }
-
-  private async open_sagenb_worksheet(opts): Promise<void> {
-    // sagenb worksheet (or backup of it created during unzip of
-    // multiple worksheets with same name)
-    alert_message({
-      type: "info",
-      message: `Opening converted CoCalc worksheet file instead of '${opts.path}...`,
-    });
-    try {
-      const path: string = await this.convert_sagenb_worksheet(opts.path);
-      await this.open_file({
-        path,
-        foreground: opts.foreground,
-        foreground_project: opts.foreground_project,
-        chat: opts.chat,
-      });
-    } catch (err) {
-      alert_message({
-        type: "error",
-        message: `Error converting Sage Notebook sws file -- ${err}`,
-      });
-    }
-  }
-
-  private async open_word_document(opts): Promise<void> {
+  public async open_word_document(path): Promise<void> {
     // Microsoft Word Document
     alert_message({
       type: "info",
-      message: `Opening converted plain text file instead of '${opts.path}...`,
+      message: `Opening converted plain text file instead of '${path}...`,
     });
     try {
-      const path: string = await this.convert_docx_file(opts.path);
+      const converted: string = await this.convert_docx_file(path);
       await this.open_file({
-        path,
-        foreground: opts.foreground,
-        foreground_project: opts.foreground_project,
-        chat: opts.chat,
+        path: converted,
+        foreground: true,
+        foreground_project: true,
       });
     } catch (err) {
       alert_message({
@@ -886,257 +714,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  private log_file_open(path: string): void {
-    this.redux.getActions("file_use")?.mark_file(this.project_id, path, "open");
-    const event = {
-      event: "open",
-      action: "open",
-      filename: path,
-    } as const;
-    const id = this.log(event);
-
-    // Save the log entry id, so it is possible to optionally
-    // record how long it took for the file to open.  This
-    // may happen via a call from random places in our codebase,
-    // since the idea of "finishing opening and rendering" is
-    // not simple to define.
-    if (id !== undefined) {
-      this._log_open_time[path] = {
-        id,
-        start: misc.server_time(),
-      };
-    }
-  }
-
-  private get_side_chat_state(opts: {
-    path: string;
-    chat?: boolean;
-    chat_width?: number;
-  }): void {
-    // grab chat state from local storage
-    const { local_storage } = require("./editor");
-    if (local_storage != null) {
-      if (opts.chat == null) {
-        opts.chat = local_storage(this.project_id, opts.path, "is_chat_open");
-      }
-      if (opts.chat_width == null) {
-        opts.chat_width = local_storage(
-          this.project_id,
-          opts.path,
-          "chat_width"
-        );
-      }
-    }
-
-    if (misc.filename_extension(opts.path) === "sage-chat") {
-      opts.chat = false;
-    }
-  }
-
   // Open the given file in this project.
-  public async open_file(opts: {
-    path: string;
-    foreground?: boolean;
-    foreground_project?: boolean;
-    chat?: any;
-    chat_width?: number;
-    ignore_kiosk?: boolean;
-    new_browser_window?: boolean;
-    change_history?: boolean;
-    // anchor -- if given, try to jump to scroll to this id in the editor, after it
-    // renders and is put in the foreground (ignored if foreground not true)
-    anchor?: string;
-  }): Promise<void> {
-    opts = defaults(opts, {
-      path: required,
-      foreground: true,
-      foreground_project: true,
-      chat: undefined,
-      chat_width: undefined,
-      ignore_kiosk: false,
-      new_browser_window: false,
-      change_history: true,
-      anchor: undefined,
-    });
-    opts.path = normalize(opts.path);
-    const ext = misc.filename_extension_notilde(opts.path).toLowerCase();
-
-    // intercept any requests if in kiosk mode
-    if (
-      !opts.ignore_kiosk &&
-      (redux.getStore("page") as any).get("fullscreen") === "kiosk"
-    ) {
-      alert_message({
-        type: "error",
-        message: `CoCalc is in Kiosk mode, so you may not open new files.  Please try visiting ${document.location.origin} directly.`,
-        timeout: 15,
-      });
-      return;
-    }
-
-    if (opts.new_browser_window) {
-      // options other than path are ignored in this case.
-      // TODO: do not ignore anchor option.
-      this.open_in_new_browser_window(opts.path);
-      return;
-    }
-
-    let store = this.get_store();
-    if (store == undefined) {
-      return;
-    }
-
-    let open_files = store.get("open_files");
-    if (!open_files.has(opts.path)) {
-      // Make the visible tab appear ASAP, even though
-      // some stuff that may await below needs to happen...
-      if (!this.open_files) return; // closed
-      this.open_files.set(opts.path, "component", {});
-    }
-
-    // Next get the group.
-    let group: string;
-    try {
-      group = await this.get_my_group();
-      if (this.get_store() == null) return;
-    } catch (err) {
-      this.set_activity({
-        id: misc.uuid(),
-        error: `opening file '${opts.path}' (error getting group) -- ${err}`,
-      });
-      return;
-    }
-    const is_public = group === "public";
-
-    if (!is_public) {
-      // Check if have capability to open this file.  Important
-      // to only do this if not public, since again, if public we
-      // are not even using the project (it is all client side).
-      // NOTE: I think this is wrong; we should always open any file
-      // and instead of saying "can't open it", instead just fall
-      // back to a codemirror text editor...   After all, that's what
-      // we already do with all uknown file types.
-      const can_open_file = await store.can_open_file_ext(ext, this);
-      if (!can_open_file) {
-        const SiteName =
-          redux.getStore("customize").get("site_name") || SITE_NAME;
-        alert_message({
-          type: "error",
-          message: `This ${SiteName} project cannot open ${ext} files!`,
-          timeout: 20,
-        });
-        // console.log(
-        //   `abort project_actions::open_file due to lack of support for "${ext}" files`
-        // );
-        return;
-      }
-
-      // Wait for the project to start opening (only do this if not public -- public users don't
-      // know anything about the state of the project).
-      try {
-        await callback(this._ensure_project_is_open);
-      } catch (err) {
-        this.set_activity({
-          id: misc.uuid(),
-          error: `Error opening file '${opts.path}' (error ensuring project is open) -- ${err}`,
-        });
-        return;
-      }
-      if (this.get_store() == null) return;
-    }
-
-    if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
-      await this.open_sagenb_worksheet(opts);
-      return;
-    }
-
-    if (!is_public && ext === "docx") {
-      await this.open_word_document(opts);
-      return;
-    }
-
-    if (!is_public) {
-      this.log_file_open(opts.path);
-      this.get_side_chat_state(opts);
-    }
-
-    store = this.get_store(); // because async stuff happened above.
-    if (store == undefined) return;
-
-    // Only generate the editor component if we don't have it already
-    // Also regenerate if view type (public/not-public) changes.
-    open_files = store.get("open_files");
-    if (open_files == null || this.open_files == null) {
-      // project is closing
-      return;
-    }
-    const file_info = open_files.getIn([opts.path, "component"], {
-      is_public: false,
-    });
-    if (!open_files.has(opts.path) || file_info.is_public !== is_public) {
-      const was_public = file_info.is_public;
-
-      if (was_public != null && was_public !== is_public) {
-        this.open_files.delete(opts.path);
-        project_file.remove(opts.path, this.redux, this.project_id, was_public);
-      }
-
-      // Add it to open files
-      this.open_files.set(opts.path, "component", { is_public });
-      this.open_files.set(opts.path, "is_chat_open", opts.chat);
-      this.open_files.set(opts.path, "chat_width", opts.chat_width);
-
-      if (opts.chat) {
-        require("./chat/register").init(
-          misc.meta_file(opts.path, "chat"),
-          this.redux,
-          this.project_id
-        );
-      }
-      // Closed by require('./project_file').remove
-      this.save_session();
-    }
-
-    if (opts.foreground) {
-      this.foreground_project(opts.change_history);
-      const tab = misc.path_to_tab(opts.path);
-      this.set_active_tab(tab, {
-        change_history: opts.change_history,
-      });
-      if (opts.anchor) {
-        // Scroll the *visible* one into view.  NOTE: it's possible
-        // that several notebooks (say) are all open in background tabs
-        // and all have the same anchor tag in them; we only want to
-        // try to scroll the visible one or ones.
-        // We also have no reliable way to know if the editor has
-        // fully loaded yet, so we just try until the tag appears
-        // up to 15s.  Someday, we will have to make it so editors
-        // somehow clearly indicate when they are done loading, and
-        // we can use that to do this right.
-        const start: number = new Date().valueOf();
-        const id = editor_id(this.project_id, opts.path);
-        while (new Date().valueOf() - start <= 15000) {
-          await delay(100);
-          const store = this.get_store();
-          if (store == undefined) break;
-          if (tab != store.get("active_project_tab")) break;
-          const e = $("#" + id).find("#" + opts.anchor);
-          if (e.length > 0) {
-            // We iterate through all of them in this visible editor.
-            // Because of easy editor splitting we could easily have multiple
-            // copies of the same id, and we move them all into view.
-            // Change this to break after the first one if this annoys people;
-            // it's not clear what the "right" design is.
-            for (const x of e) {
-              x.scrollIntoView();
-            }
-            break;
-          } else {
-            await delay(100);
-          }
-        }
-      }
-    }
+  public async open_file(opts): Promise<void> {
+    open_file(this, opts);
   }
 
   /* Initialize the redux store and react component for editing
@@ -1145,7 +725,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private init_file_react_redux(
     path: string,
     is_public: boolean
-  ): { name: string; Editor: any } {
+  ): { name: string | undefined; Editor: any } {
     // Initialize the file's store and actions
     const name = project_file.initialize(
       path,
@@ -1188,11 +768,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // If the given path is open, and editor supports going to line,
   // moves to the given line.
   // Otherwise, does nothing.
-  public goto_line(path, line): void {
+  public goto_line(path, line, cursor?: boolean, focus?: boolean): void {
     const a: any = redux.getEditorActions(this.project_id, path);
     if (a == null) {
       // try non-react editor
-      const editor = wrapped_editors.get_editor(this.project_id, path);
+      const editor = get_editor(this.project_id, path);
       if (
         editor != null &&
         typeof editor.programmatical_goto_line === "function"
@@ -1201,7 +781,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
     } else {
       if (typeof a.programmatical_goto_line === "function") {
-        a.programmatical_goto_line(line);
+        a.programmatical_goto_line(line, cursor, focus);
       }
     }
   }
@@ -1211,7 +791,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const a: any = redux.getEditorActions(this.project_id, path);
     if (a == null) {
       // try non-react editor
-      const editor = wrapped_editors.get_editor(this.project_id, path);
+      const editor = get_editor(this.project_id, path);
       if (editor != null) editor.show();
     } else {
       if (typeof a.show === "function") a.show();
@@ -1224,7 +804,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const a: any = redux.getEditorActions(this.project_id, path);
     if (a == null) {
       // try non-react editor
-      const editor = wrapped_editors.get_editor(this.project_id, path);
+      const editor = get_editor(this.project_id, path);
       if (editor != null) editor.hide();
     } else {
       if (typeof a.hide === "function") a.hide();
@@ -1232,33 +812,33 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Used by open/close chat below.
-  _set_chat_state(path: string, is_chat_open: boolean): void {
+  private set_chat_state(path: string, is_chat_open: boolean): void {
     this.open_files.set(path, "is_chat_open", is_chat_open);
   }
 
   // Open side chat for the given file, assuming the file is open, store is initialized, etc.
   open_chat(opts) {
     opts = defaults(opts, { path: required });
-    this._set_chat_state(opts.path, true);
+    // First create the chat actions:
     require("./chat/register").init(
       misc.meta_file(opts.path, "chat"),
       this.redux,
       this.project_id
     );
-    const editor = require("./editor");
-    editor
-      ? editor.local_storage(this.project_id, opts.path, "is_chat_open", true)
-      : undefined;
+    const { local_storage } = require("./editor");
+    local_storage(this.project_id, opts.path, "is_chat_open", true);
+    // Only then set state to say that the chat is opened!
+    // Otherwise when the opened chat is rendered actions is
+    // randomly not defined, and things break.
+    this.set_chat_state(opts.path, true);
   }
 
   // Close side chat for the given file, assuming the file itself is open
   close_chat(opts) {
     opts = defaults(opts, { path: required });
-    this._set_chat_state(opts.path, false);
-    const editor = require("./editor");
-    editor
-      ? editor.local_storage(this.project_id, opts.path, "is_chat_open", false)
-      : undefined;
+    const { local_storage } = require("./editor");
+    local_storage(this.project_id, opts.path, "is_chat_open", false);
+    this.set_chat_state(opts.path, false);
   }
 
   set_chat_width(opts): void {
@@ -1273,17 +853,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const open_files = store.get("open_files");
     if (open_files != null) {
       const width = misc.ensure_bound(opts.width, 0.05, 0.95);
-      const editor = require("./editor");
-      editor
-        ? editor.local_storage(this.project_id, opts.path, "chat_width", width)
-        : undefined;
+      const { local_storage } = require("./editor");
+      local_storage(this.project_id, opts.path, "chat_width", width);
       this.open_files.set(opts.path, "chat_width", width);
     }
   }
 
   // OPTIMIZATION: Some possible performance problems here. Debounce may be necessary
   flag_file_activity(filename: string): void {
-    if (filename == null || this.open_files == null) {
+    if (filename == null || !this.open_files?.has(filename)) {
+      // filename invalid or not currently open, see
+      //  https://github.com/sagemathinc/cocalc/issues/4717
       return;
     }
 
@@ -1293,7 +873,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     const set_inactive = () => {
-      if (this.open_files == null) return;
+      if (!this.open_files?.has(filename)) return;
       this.open_files.set(filename, "has_activity", false);
     };
 
@@ -1303,27 +883,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     );
 
     this.open_files.set(filename, "has_activity", true);
-  }
-
-  private async convert_sagenb_worksheet(filename: string): Promise<string> {
-    const ext = misc.filename_extension(filename);
-    if (ext != "sws") {
-      const i = filename.length - ext.length;
-      const new_filename = filename.slice(0, i - 1) + ext.slice(3) + ".sws";
-      await webapp_client.project_client.exec({
-        project_id: this.project_id,
-        command: "cp",
-        args: [filename, new_filename],
-      });
-      filename = new_filename;
-    }
-    await webapp_client.project_client.exec({
-      project_id: this.project_id,
-      command: "smc-sws2sagews",
-      args: [filename],
-    });
-
-    return filename.slice(0, filename.length - 3) + "sagews";
   }
 
   private async convert_docx_file(filename): Promise<string> {
@@ -1391,7 +950,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  open_directory(path, change_history = true): void {
+  open_directory(path, change_history = true, show_files = true): void {
     path = normalize(path);
     this._ensure_project_is_open((err) => {
       if (err) {
@@ -1412,10 +971,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (store == undefined) {
           return;
         }
-        this.set_active_tab("files", {
-          update_file_listing: false,
-          change_history: change_history,
-        });
+        if (show_files) {
+          this.set_active_tab("files", {
+            update_file_listing: false,
+            change_history: change_history,
+          });
+        }
         this.set_all_files_unchecked();
       }
     });
@@ -1443,7 +1004,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     let history_path = store.get("history_path") || "";
-    const is_adjacent = !`${history_path}/`.startsWith(`${path}/`);
+    const is_adjacent = path.length > 0 && !history_path.startsWith(path);
     // given is_adjacent is false, this tests if it is a subdirectory
     const is_nested = path.length > history_path.length;
     if (is_adjacent || is_nested) {
@@ -1851,18 +1412,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     let basename: string = "";
 
     switch (action) {
-      case "move":
-        const checked_files = store.get("checked_files").toArray();
-        (this.redux.getActions("projects") as any).fetch_directory_tree(
-          this.project_id,
-          { exclusions: checked_files }
-        );
-        break;
-      case "copy":
-        (this.redux.getActions("projects") as any).fetch_directory_tree(
-          this.project_id
-        );
-        break;
       case "duplicate":
         if (get_basename != undefined) {
           basename = get_basename();
@@ -2099,11 +1648,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    this.setState({
-      configuration: next,
-      available_features: feature_is_available(next),
-      configuration_loading: false,
-    });
+    this.setState(
+      immutable.fromJS({
+        configuration: next,
+        available_features: feature_is_available(next),
+        configuration_loading: false,
+      })
+    );
 
     return next.get(aspect) as Configuration;
   }
@@ -2379,9 +1930,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const { src } = opts;
     delete opts.src;
     const with_slashes = src.map(this._convert_to_displayed_path);
+    let dest: string | undefined = undefined;
+    if (opts.target_path != null) {
+      dest = opts.target_path;
+      if (!misc.endswith(dest, "/")) {
+        dest += "/";
+      }
+    }
     this.log({
       event: "file_action",
       action: "copied",
+      dest,
       files: with_slashes.slice(0, 3),
       count: src.length > 3 ? src.length : undefined,
       project: opts.target_project_id,
@@ -2704,6 +2263,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const project_id = this.project_id;
     const id = client_db.sha1(project_id, path);
 
+    const projects_store = redux.getStore("projects");
+    const compute_image =
+      projects_store.getIn(["project_map", project_id, "compute_image"]) ??
+      DEFAULT_COMPUTE_IMAGE;
+
     const table = this.redux.getProjectTable(project_id, "public_paths");
     let obj: undefined | immutable.Map<string, any> = table._table.get(id);
 
@@ -2713,6 +2277,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         project_id,
         path,
         created: now,
+        compute_image,
       });
     }
     if (obj == null) return; // make typescript happy
@@ -2722,6 +2287,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     obj = obj.delete("counter");
 
     obj = obj.set("last_edited", now);
+    obj = obj.set("compute_image", compute_image);
 
     for (const k in opts) {
       if (opts[k] != null) {
@@ -3010,12 +2576,29 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ free_warning_closed: true });
   }
 
-  async set_compute_image(new_image: string): Promise<void> {
+  async set_compute_image(compute_image: string): Promise<void> {
     await client_query({
       query: {
         projects: {
           project_id: this.project_id,
-          compute_image: new_image,
+          compute_image,
+        },
+      },
+    });
+  }
+
+  async set_environment(env: object): Promise<void> {
+    if (typeof env != "object") {
+      throw Error("env must be an object");
+    }
+    for (const key in env) {
+      env[key] = `${env[key]}`;
+    }
+    await client_query({
+      query: {
+        projects: {
+          project_id: this.project_id,
+          env,
         },
       },
     });

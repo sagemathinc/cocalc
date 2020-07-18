@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import {
   filename_extension_notilde,
   meta_file,
@@ -39,7 +44,9 @@ interface FileEditorSpec {
     project_id: string | undefined,
     content?: string
   ) => string; // returned string = redux name
-  remove?: (path: string, redux: any, project_id: string | undefined) => string; // returned string = redux name
+  remove?:
+    | ((path: string, redux: any, project_id: string | undefined) => string) // returned string = redux name  or undefined if not using redux
+    | ((path: string, redux: any, project_id: string | undefined) => void);
   save?: (
     path: string,
     redux: any,
@@ -69,7 +76,7 @@ export function icon(ext: string): string | undefined {
 }
 
 interface FileEditorInfo extends FileEditorSpec {
-  ext: string | string[]; // extension to associate the editor with
+  ext: string | readonly string[]; // extension(s) to associate the editor with
   is_public?: boolean;
 }
 
@@ -178,7 +185,7 @@ export async function remove(
   redux,
   project_id: string | undefined,
   is_public: boolean
-): Promise<string | undefined> {
+): Promise<void> {
   if (path == null) {
     return; // TODO: remove when all typescript
   }
@@ -198,14 +205,6 @@ export async function remove(
     save(path, redux, project_id, is_public);
   }
 
-  const e = get_ed(path, is_public);
-  // Wait until the next render cycle before actually removing,
-  // to give the UI a chance to save some state (e.g., scroll positions).
-  await delay(0);
-  if (typeof e.remove === "function") {
-    return e.remove(path, redux, project_id);
-  }
-
   if (!is_public) {
     // Also free the corresponding side chat, if it was created.
     require("./chat/register").remove(
@@ -214,6 +213,17 @@ export async function remove(
       project_id
     );
   }
+
+  const e = get_ed(path, is_public);
+  // Wait until the next render cycle before actually removing,
+  // to give the UI a chance to save some state (e.g., scroll positions).
+  await delay(0);
+
+  if (typeof e.remove === "function") {
+    e.remove(path, redux, project_id);
+    return;
+  }
+
 }
 
 // The save function may be called to request to save contents to disk.

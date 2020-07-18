@@ -1,8 +1,14 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import * as immutable from "immutable";
 import * as underscore from "underscore";
 import { rtypes, rclass, redux, TypedMap } from "../../app-framework";
 import {
+  A,
   ActivityDisplay,
   Icon,
   ProjectState,
@@ -37,11 +43,11 @@ import { ListingItem } from "./types";
 import { Col, Row, ButtonGroup, Button, Alert } from "react-bootstrap";
 const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
-const { SMC_Dropwrapper } = require("../../smc-dropzone");
+import { FileUploadWrapper } from "../../file-upload";
 import { ProjectNewForm } from "../new";
 const { Library } = require("../../library");
-const { webapp_client } = require("../../webapp_client");
-const { UsersViewing } = require("../../other-users");
+import { webapp_client } from "../../webapp-client";
+import { UsersViewing } from "../../account/avatar/users-viewing";
 
 const pager_range = function (page_size, page_number) {
   const start_index = page_size * page_number;
@@ -62,7 +68,6 @@ const error_style: React.CSSProperties = {
 interface ReactProps {
   project_id: string;
   actions: ProjectActions;
-  redux: any;
   name: string;
 }
 
@@ -123,7 +128,7 @@ interface State {
 }
 // TODO: change/rewrite Explorer to not have any rtypes.objects and
 // add a shouldComponentUpdate!!
-export const Explorer = rclass<ReactProps>(
+export const Explorer = rclass(
   class Explorer extends React.Component<ReactProps & ReduxProps, State> {
     static reduxProps = ({ name }) => {
       return {
@@ -203,7 +208,7 @@ export const Explorer = rclass<ReactProps>(
       // Prevents cascading changes which impact responsiveness
       // https://github.com/sagemathinc/cocalc/pull/3705#discussion_r268263750
       setTimeout(() => {
-        const billing = this.props.redux.getActions("billing");
+        const billing = redux.getActions("billing");
         if (billing != undefined) {
           billing.update_customer();
         }
@@ -336,7 +341,14 @@ export const Explorer = rclass<ReactProps>(
           <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
             <SettingBox
               icon={"book"}
-              title={"Library"}
+              title={
+                <span>
+                  Library{" "}
+                  <A href="https://doc.cocalc.com/project-library.html">
+                    (help...)
+                  </A>
+                </span>
+              }
               close={() => this.props.actions.toggle_library(false)}
             >
               <Library
@@ -431,10 +443,7 @@ export const Explorer = rclass<ReactProps>(
         <div style={{ marginTop: "10px" }}>
           <BillingPage is_simplified={true} for_course={true} />
           {cards && (
-            <PayCourseFee
-              project_id={this.props.project_id}
-              redux={this.props.redux}
-            />
+            <PayCourseFee project_id={this.props.project_id} redux={redux} />
           )}
         </div>
       );
@@ -536,7 +545,7 @@ export const Explorer = rclass<ReactProps>(
         );
       } else if (listing != undefined) {
         return (
-          <SMC_Dropwrapper
+          <FileUploadWrapper
             project_id={this.props.project_id}
             dest_path={this.props.current_path}
             event_handlers={{
@@ -568,12 +577,12 @@ export const Explorer = rclass<ReactProps>(
               sort_by={this.props.actions.set_sorted_file_column}
               other_settings={this.props.other_settings}
               library={this.props.library}
-              redux={this.props.redux}
+              redux={redux}
               show_new={this.props.show_new}
               last_scroll_top={this.props.file_listing_scroll_top}
               configuration_main={this.props.configuration?.get("main")}
             />
-          </SMC_Dropwrapper>
+          </FileUploadWrapper>
         );
       } else {
         return (
@@ -585,9 +594,7 @@ export const Explorer = rclass<ReactProps>(
     }
 
     on_click_start_project = () => {
-      this.props.redux
-        .getActions("projects")
-        .start_project(this.props.project_id);
+      redux.getActions("projects").start_project(this.props.project_id);
     };
 
     render_start_project_button(project_state?: ProjectStatus) {
@@ -692,11 +699,7 @@ export const Explorer = rclass<ReactProps>(
               marginBottom: "15px",
             }}
           >
-            <PathNavigator
-              current_path={this.props.current_path}
-              history_path={this.props.history_path}
-              actions={this.props.actions}
-            />
+            <PathNavigator project_id={this.props.project_id} />
           </div>
           {!public_view && (
             <>

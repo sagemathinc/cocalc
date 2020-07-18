@@ -1,24 +1,8 @@
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2015, CoCalc Authors
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
-#
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 # AUTHORS:
 #   - Christopher Swenson wrote the first version of this at Sage Days 64.25.
 
@@ -44,7 +28,6 @@ Dropbox = require('dropbox')
 fs = require('fs')
 path = require('path')
 readline = require("readline")
-mkdirp = require('mkdirp')
 gaze = require('gaze')
 
 # random uuid to put in the file cache to store cursor between session
@@ -195,7 +178,7 @@ onDropboxChanges = (db, delta, cb) ->
             return
         if change.stat.isFolder
             console.log('adding folder')
-            mkdirp(filepath, cb)
+            fs.mkdir(filepath, {recursive: true}, cb)
             return
 
         db.readFile change.path, { buffer: true, rev: change.stat.versionTag }, (error, data, stat, rangeInfo) ->
@@ -212,7 +195,7 @@ onDropboxChanges = (db, delta, cb) ->
                 if exists
                     writeFile(filepath, data, stat, cb)
                 else
-                    mkdirp path.dirname(filepath), (error) ->
+                    fs.mkdir path.dirname(filepath), {recursive: true}, (error) ->
                         console.log("mkdir error", error)
                         writeFile(filepath, data, stat, cb)
     # TODO: when the Dropbox.Client supports it, pass this in the /delta endpoint.

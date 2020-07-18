@@ -1,23 +1,7 @@
-//##############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 /*
 miniterm.cjsx -- a small terminal that lets you enter a single bash command.
@@ -31,11 +15,9 @@ IDEAS FOR LATER:
 
 */
 
-import { analytics_event } from "../../tracker";
+import { React, ReactDOM } from "../../app-framework";
+import { user_activity } from "../../tracker";
 import { ProjectActions } from "../../project_actions";
-import * as React from "react";
-import * as ReactDOM from "react-dom";
-
 const {
   Button,
   FormControl,
@@ -44,7 +26,8 @@ const {
 } = require("react-bootstrap");
 import { Icon } from "smc-webapp/r_misc";
 
-const { webapp_client } = require("../../webapp_client"); // used to run the command -- could change to use an action and the store.
+// used to run the command -- could change to use an action and the store.
+import { webapp_client } from "../../webapp-client";
 
 export const output_style_searchbox: React.CSSProperties = {
   position: "absolute",
@@ -135,7 +118,7 @@ export class MiniTerminal extends React.Component<Props, State> {
     this._id = this._id + 1;
     const id = this._id;
     const start_time = new Date().getTime();
-    analytics_event("mini_terminal", "exec", input);
+    user_activity("mini_terminal", "exec", input);
     webapp_client.exec({
       project_id: this.props.project_id,
       command: input0,
@@ -297,9 +280,9 @@ export class MiniTerminal extends React.Component<Props, State> {
                 placeholder="Terminal command..."
                 onChange={(e) => {
                   e.preventDefault();
-                  this.setState({
-                    input: (ReactDOM.findDOMNode(this.refs.input) as any).value,
-                  });
+                  const input = ReactDOM.findDOMNode(this.refs.input)?.value;
+                  if (input == null) return;
+                  this.setState({ input });
                 }}
                 onKeyDown={this.keydown}
               />

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as immutable from "immutable";
 import { JupyterActions } from "../browser-actions";
 import { ImmutableMetadata, Metadata } from "./types";
@@ -7,7 +12,6 @@ import { clear_hidden_tests } from "./clear-hidden-tests";
 import { clear_mark_regions } from "./clear-mark-regions";
 import { set_checksum } from "./compute-checksums";
 import { delay } from "awaiting";
-import { once } from "smc-util/async-utils";
 import { path_split } from "smc-util/misc2";
 import { STUDENT_SUBDIR } from "../../course/assignments/actions";
 
@@ -150,27 +154,21 @@ export class NBGraderActions {
     const project_actions = this.redux.getProjectActions(project_id);
     await project_actions.open_file({ path: filename, foreground: true });
     let actions = this.redux.getEditorActions(project_id, filename);
-    while (true) {
-      if (actions != null) break;
+    while (actions == null) {
       await delay(200);
+      actions = this.redux.getEditorActions(project_id, filename);
     }
-    if (actions.jupyter_actions.syncdb.get_state() == "init") {
-      await once(actions.jupyter_actions.syncdb, "ready");
-    }
+    await actions.jupyter_actions.wait_until_ready();
     actions.jupyter_actions.syncdb.from_str(
       this.jupyter_actions.syncdb.to_str()
     );
-    project_actions.close_file(filename);
-    await delay(200);
-    await project_actions.open_file({ path: filename, foreground: true });
-    while (true) {
-      actions = this.redux.getEditorActions(project_id, filename);
-      if (actions != null) break;
-      await delay(200);
-    }
-    if (actions.jupyter_actions.syncdb.get_state() == "init") {
-      await once(actions.jupyter_actions.syncdb, "ready");
-    }
+    // Important: we also have to fire a changes event with all
+    // records, since otherwise the Jupyter store doesn't get
+    // updated since we're using from_str.
+    // The complicated map/filter thing below is just to grab
+    // only the {type:?,id:?} parts of all the records.
+    actions.jupyter_actions.syncdb.emit("change", "all");
+    await actions.jupyter_actions.save();
     await actions.jupyter_actions.nbgrader_actions.apply_assign_transformations();
     await actions.jupyter_actions.save();
   }
@@ -194,11 +192,20 @@ export class NBGraderActions {
            done by computing a checksum of the cell contents and saving it
            into the cell metadata.
     */
+    //const log = (...args) => console.log("assign:", ...args);
+    // log("unlock everything");
+    this.assign_unlock_all_cells();
+    // log("clear solutions");
     this.assign_clear_solutions(); // step 3a
+    // log("clear hidden tests");
     this.assign_clear_hidden_tests(); // step 3b
+    // log("clear mark regions");
     this.assign_clear_mark_regions(); // step 3c
+    // log("clear all outputs");
     this.jupyter_actions.clear_all_outputs(false); // step 4
+    // log("assign save checksums");
     this.assign_save_checksums(); // step 5
+    // log("lock readonly cells");
     this.assign_lock_readonly_cells(); // step 2 -- needs to be last, since it stops cells from being editable!
     this.jupyter_actions.save_asap();
   }
@@ -238,7 +245,16 @@ export class NBGraderActions {
 
   private assign_clear_mark_regions(): void {
     this.jupyter_actions.store.get("cells").forEach((cell) => {
-      if (!cell.getIn(["metadata", "nbgrader", "task"])) return;
+      if (!cell.getIn(["metadata", "nbgrader", "grade"])) {
+        // We clear mark regions for any cell that is graded.
+        // In the official nbgrader docs, it seems that mark
+        // regions are only for **task** cells.  However,
+        // I've seen nbgrader use "in nature" that uses
+        // the mark regions in other grading cells, and also
+        // it just makes sense to be able to easily record
+        // how you will grade things even for non-task cells!
+        return;
+      }
       const cell2 = clear_mark_regions(cell);
       if (cell !== cell2) {
         // set the input
@@ -260,6 +276,21 @@ export class NBGraderActions {
         this.jupyter_actions.set_cell_metadata({
           id: cell.get("id"),
           metadata: { nbgrader: cell2.get("nbgrader") },
+          merge: true,
+          save: false,
+        });
+      }
+    });
+  }
+
+  private assign_unlock_all_cells(): void {
+    this.jupyter_actions.store.get("cells").forEach((cell) => {
+      if (cell == null || !cell.getIn(["metadata", "nbgrader", "locked"]))
+        return;
+      for (const key of ["editable", "deletable"]) {
+        this.jupyter_actions.set_cell_metadata({
+          id: cell.get("id"),
+          metadata: { [key]: true },
           merge: true,
           save: false,
         });

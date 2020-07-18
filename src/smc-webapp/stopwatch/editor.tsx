@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Time
 
 Right now this is the simplest possible imaginable stopwatch, with state synchronized properly.
@@ -19,6 +24,7 @@ Later, maybe:
 */
 
 import { Button } from "antd";
+import { PlusCircleTwoTone } from "@ant-design/icons";
 import { Loading } from "../r_misc/loading";
 import { Component, React, Rendered, rclass, rtypes } from "../app-framework";
 
@@ -99,7 +105,7 @@ class EditorTime extends Component<Props> {
   private render_add_stopwatch(): Rendered {
     return (
       <Button
-        icon="plus-circle"
+        icon={<PlusCircleTwoTone />}
         style={{ maxWidth: "200px", margin: "15px" }}
         key={"add-stopwatch"}
         onClick={() => this.props.actions.add_stopwatch()}

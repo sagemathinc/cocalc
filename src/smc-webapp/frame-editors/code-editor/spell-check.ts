@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Backend spell checking support
 */
 
@@ -14,10 +19,13 @@ interface Options {
   time?: number;
 }
 
-export async function misspelled_words(opts: Options): Promise<string[]> {
+export async function misspelled_words(
+  opts: Options
+): Promise<string[] | string> {
   if (!opts.lang) {
     opts.lang = language();
   }
+  if (opts.lang == "browser") return "browser";
   if (opts.lang === "disabled") {
     return [];
   }

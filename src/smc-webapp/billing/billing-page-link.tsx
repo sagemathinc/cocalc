@@ -1,6 +1,10 @@
-import { React, Rendered } from "../app-framework";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-const { load_target } = require("../history");
+import { React, Rendered } from "../app-framework";
+import { load_target } from "../history";
 
 export function BillingPageLink(opts: { text?: string }): Rendered {
   let { text } = opts;

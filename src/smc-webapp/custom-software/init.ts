@@ -1,14 +1,16 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Manage DB <-> UI integration of available *custom* compute images
 // TODO: also get rid of hardcoded official software images
 
 import { COCALC_MINIMAL } from "../fullscreen";
 const { redux, Store, Actions, Table } = require("../app-framework");
 import { Map as iMap } from "immutable";
-import { CUSTOM_IMG_PREFIX } from "./util";
-import { join as path_join } from "path";
+import { NAME } from "./util";
 const { capitalize } = require("smc-util/misc");
-
-export const NAME = "compute_images";
 
 // this must match db-schema.compute_images → field type → allowed values
 // official image names are "default", "exp", or a timestamp-string
@@ -32,22 +34,23 @@ export type ComputeImageKeys =
 export type ComputeImage = iMap<ComputeImageKeys, string>;
 export type ComputeImages = iMap<string, ComputeImage>;
 
-interface ComputeImagesState {
+export interface ComputeImagesState {
   images?: ComputeImages;
 }
 
-// derive the actual compute image name (which will be set in the DB) from the selected ID.
-export function custom_image_name(id: string): string {
-  let tag: string;
-  if (id.indexOf(":") >= 0) {
-    [id, tag] = id.split(":");
-  } else {
-    tag = "latest";
-  }
-  return path_join(CUSTOM_IMG_PREFIX, id, tag);
-}
+export class ComputeImagesStore extends Store<ComputeImagesState> {}
 
-class ComputeImagesStore extends Store<ComputeImagesState> {}
+export function launchcode2display(
+  images: ComputeImages,
+  launch: string
+): string | undefined {
+  // launch expected to be "csi/some-id/..."
+  const id = launch.split("/")[1];
+  if (!id) return undefined;
+  const img = images.get(id);
+  if (img == null) return undefined;
+  return img.get("display") || id2name(id);
+}
 
 class ComputeImagesActions<ComputeImagesState> extends Actions<
   ComputeImagesState
@@ -157,8 +160,10 @@ class ComputeImagesTable extends Table {
   }
 }
 
-if (!COCALC_MINIMAL) {
-  redux.createStore(NAME, ComputeImagesStore, {});
-  redux.createActions(NAME, ComputeImagesActions);
-  redux.createTable(NAME, ComputeImagesTable);
+export function init() {
+  if (!COCALC_MINIMAL && !redux.hasStore(NAME)) {
+    redux.createStore(NAME, ComputeImagesStore, {});
+    redux.createActions(NAME, ComputeImagesActions);
+    redux.createTable(NAME, ComputeImagesTable);
+  }
 }

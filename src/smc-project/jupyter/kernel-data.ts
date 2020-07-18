@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Use nteracts kernelspecs module to get data about all installed Jupyter kernels.
 
 The result is cached for 5s to avoid wasted effort in case of a flurry of calls.

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 ###############################################################################
 #
@@ -20,6 +21,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
+
+from __future__ import absolute_import, print_function, division
+from smc_pyutil.py23 import iteritems
 
 # used in naming streams -- changing this would break all existing data...
 TO = "-to-"
@@ -178,13 +182,13 @@ def thread_map(callable, inputs):
 
 class Project(object):
     def __init__(
-            self,
-            project_id,  # v4 uuid string
-            dev=False,  # if true, use special devel mode where everything run as same user (no sudo needed); totally insecure!
-            projects=PROJECTS,
-            single=False,
-            kucalc=False,
-            kubernetes=False):
+        self,
+        project_id,  # v4 uuid string
+        dev=False,  # if true, use special devel mode where everything run as same user (no sudo needed); totally insecure!
+        projects=PROJECTS,
+        single=False,
+        kucalc=False,
+        kubernetes=False):
         self._dev = dev
         self._single = single
         self._kucalc = kucalc
@@ -456,7 +460,7 @@ class Project(object):
         if changed:
             open(bashrc, 'w').write(s)
 
-    def dev_env(self):
+    def dev_env(self, extra_env=None):
         os.environ[
             'PATH'] = "{salvus_root}/smc-project/bin:{salvus_root}/smc_pyutil/smc_pyutil:{path}".format(
                 salvus_root=os.environ['SALVUS_ROOT'], path=os.environ['PATH'])
@@ -476,13 +480,15 @@ class Project(object):
         # to listen on localhost since that is where
         # the hub is running
         os.environ['SMC_PROXY_HOST'] = 'localhost'
+        if extra_env:
+            os.environ['COCALC_EXTRA_ENV'] = extra_env
 
     def start(self, cores, memory, cpu_shares, base_url, ephemeral_state,
-              ephemeral_disk, member, network):
+              ephemeral_disk, member, network, extra_env):
         if self._kubernetes:
             return self.kubernetes_start(cores, memory, cpu_shares, base_url,
                                          ephemeral_state, ephemeral_disk,
-                                         member, network)
+                                         member, network, extra_env)
 
         # start can be prevented by massive logs in ~/.smc; if project not stopped via stop, then they will still be there.
         self.remove_smc_path()
@@ -492,9 +498,8 @@ class Project(object):
         self.remove_snapshots_path()
         self.create_user()
         self.create_smc_path()
-        self.chown(
-            self.project_path, False
-        )  # Sometimes /projects/[project_id] doesn't have group/owner equal to that of the project.
+        # Sometimes /projects/[project_id] doesn't have group/owner equal to that of the project.
+        self.chown(self.project_path, False)
 
         os.environ['SMC_BASE_URL'] = base_url
 
@@ -513,7 +518,7 @@ class Project(object):
         if 'COCALC_SECRET_TOKEN' in os.environ:
             del os.environ['COCALC_SECRET_TOKEN']
         if self._dev:
-            self.dev_env()
+            self.dev_env(extra_env)
             os.chdir(self.project_path)
             self.cmd("smc-local-hub start")
 
@@ -525,6 +530,7 @@ class Project(object):
             while not started():
                 time.sleep(0.1)
                 i += 1
+                import sys
                 sys.stdout.flush()
                 if i >= 100:
                     return
@@ -553,6 +559,8 @@ class Project(object):
                     os.environ['COCALC_SECRET_TOKEN'] = os.path.join(
                         self.smc_path, 'secret_token')
                     os.environ['COCALC_PROJECT_ID'] = self.project_id
+                    if extra_env:
+                        os.environ['COCALC_EXTRA_ENV'] = extra_env
                     os.environ['USER'] = os.environ['USERNAME'] = os.environ[
                         'LOGNAME'] = os.environ[
                             'COCALC_USERNAME'] = self.username
@@ -603,7 +611,8 @@ class Project(object):
             delay = min(KUBECTL_MAX_DELAY_S, delay * 1.3)
 
     def kubernetes_start(self, cores, memory, cpu_shares, base_url,
-                         ephemeral_state, ephemeral_disk, member, network):
+                         ephemeral_state, ephemeral_disk, member, network,
+                         extra_env):
         log = self._log("kubernetes_start")
         if self.kubernetes_state()["state"] == 'running':
             log("already running")
@@ -630,6 +639,8 @@ spec:
       env:
         - name: COCALC_PROJECT_ID
           value: "{project_id}"
+        - name: COCALC_EXTRA_ENV
+          value: "{extra_env}"
       ports:
         - containerPort: 6000
           name: "local-hub"
@@ -658,15 +669,19 @@ spec:
       nfs:
          server: {nfs_server_ip}
          path: "/{project_id}"
-""".format(pod_name=pod_name,
-           project_id=self.project_id,
-           nfs_server_ip=nfs_server_ip,
-           registry=KUBERNETES_REGISTRY,
-           cores=max(1, cores),
-           memory=max(1000, memory),
-           cpu_shares=max(50, cpu_shares),  # TODO: this must be less than cores or won't start, but UI doesn't restrict that
-           network=network_label,
-           node_selector=node_selector)
+""".format(
+            pod_name=pod_name,
+            project_id=self.project_id,
+            nfs_server_ip=nfs_server_ip,
+            registry=KUBERNETES_REGISTRY,
+            cores=max(1, cores),
+            memory=max(1000, memory),
+            cpu_shares=max(
+                50, cpu_shares
+            ),  # TODO: this must be less than cores or won't start, but UI doesn't restrict that
+            network=network_label,
+            node_selector=node_selector,
+            extra_env=extra_env)
 
         # TODO: should use tempfile module
         path = "/tmp/project-{project_id}-{random}.yaml".format(
@@ -707,13 +722,13 @@ spec:
             self.cmd(cmd)
 
     def restart(self, cores, memory, cpu_shares, base_url, ephemeral_state,
-                ephemeral_disk, member, network):
+                ephemeral_disk, member, network, extra_env):
         log = self._log("restart")
         log("first stop")
         self.stop(ephemeral_state, ephemeral_disk)
         log("then start")
         self.start(cores, memory, cpu_shares, base_url, ephemeral_state,
-                   ephemeral_disk, member, network)
+                   ephemeral_disk, member, network, extra_env)
 
     def get_memory(self, s):
         return 0  # no longer supported
@@ -769,7 +784,7 @@ spec:
             # when the user's quota is exceeded, the last column is "ERROR"
             if quotas == "ERROR":
                 quotas = v[-2]
-            s['disk_MB'] = int(quotas.split()[-6].strip('*')) / 1000
+            s['disk_MB'] = int(int(quotas.split()[-6].strip('*')) / 1000)
         except Exception as mesg:
             log("error computing quota -- %s", mesg)
 
@@ -1008,7 +1023,7 @@ spec:
 
         # Fill in other OS information about each file
         #for obj in result:
-        for name, info in files.iteritems():
+        for name, info in iteritems(files):
             if os.path.isdir(os.path.join(abspath, name)):
                 info['isdir'] = True
             else:
@@ -1109,7 +1124,7 @@ spec:
             os.chdir(self.project_path)
 
             def makedirs(
-                    name
+                name
             ):  # modified from os.makedirs to chown each newly created path segment
                 head, tail = os.path.split(name)
                 if not tail:
@@ -1134,7 +1149,7 @@ spec:
             makedirs(path)
 
     def mkdir(
-            self, path
+        self, path
     ):  # relative path in project; must resolve to be under PROJECTS_PATH/project_id
         log = self._log("mkdir")
         log("ensuring path %s exists", path)
@@ -1149,17 +1164,17 @@ spec:
             self.makedirs(abspath)
 
     def copy_path(
-            self,
-            path,  # relative path to copy; must resolve to be under PROJECTS_PATH/project_id
-            target_hostname='localhost',  # list of hostnames (foo or foo:port) to copy files to
-            target_project_id="",  # project_id of destination for files; must be open on destination machine
-            target_path=None,  # path into project; defaults to path above.
-            overwrite_newer=False,  # if True, newer files in target are copied over (otherwise, uses rsync's --update)
-            delete_missing=False,  # if True, delete files in dest path not in source, **including** newer files
-            backup=False,  # if True, create backup files with a tilde
-            exclude_history=False,  # if True, don't copy .sage-history files.
-            timeout=None,
-            bwlimit=None,
+        self,
+        path,  # relative path to copy; must resolve to be under PROJECTS_PATH/project_id
+        target_hostname='localhost',  # list of hostnames (foo or foo:port) to copy files to
+        target_project_id="",  # project_id of destination for files; must be open on destination machine
+        target_path=None,  # path into project; defaults to path above.
+        overwrite_newer=False,  # if True, newer files in target are copied over (otherwise, uses rsync's --update)
+        delete_missing=False,  # if True, delete files in dest path not in source, **including** newer files
+        backup=False,  # if True, create backup files with a tilde
+        exclude_history=False,  # if True, don't copy .sage-history files.
+        timeout=None,
+        bwlimit=None,
     ):
         """
         Copy a path (directory or file) from one project to another.
@@ -1247,8 +1262,8 @@ spec:
             ] + exclude + w)
             # do the rsync
             self.cmd(v, verbose=2)
-        except Exception as mesg:
-            mesg = str(mesg)
+        except Exception as mesg_err:
+            mesg = str(mesg_err)
             # get rid of scary (and pointless) part of message
             s = "avoid man-in-the-middle attacks"
             i = mesg.rfind(s)
@@ -1413,6 +1428,12 @@ def main():
         default=False,
         action="store_const",
         const=True)
+    parser_start.add_argument(
+        "--extra_env",
+        help=
+        "base64 encded JSON string of a {[key:string]:string} map of additional environment variables",
+        type=str,
+        default='')
     f(parser_start)
 
     parser_status = subparsers.add_parser(
@@ -1552,6 +1573,12 @@ def main():
         default=False,
         action="store_const",
         const=True)
+    parser_restart.add_argument(
+        "--extra_env",
+        help=
+        "base64 encded JSON string of a {[key:string]:string} map of additional environment variables",
+        type=str,
+        default='')
     f(parser_restart)
 
     # directory listing

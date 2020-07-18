@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Used to make code cleaner without having to have lots of cases
 // depending on whether syncstring is defined or undefined.
 import { EventEmitter } from "events";
@@ -8,6 +13,7 @@ import { delay } from "awaiting";
 
 export class FakeSyncstring extends EventEmitter {
   _string_id: string = "";
+  public readonly is_fake = true;
 
   constructor() {
     super();

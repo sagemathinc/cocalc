@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 browser-actions: additional actions that are only available in the
 web browser frontend.
 */
@@ -10,12 +15,14 @@ import { WidgetManager } from "./widgets/manager";
 import { CursorManager } from "./cursor-manager";
 import { ConfirmDialogOptions } from "./confirm-dialog";
 import { callback } from "awaiting";
-import { callback2 } from "smc-util/async-utils";
+import { callback2, once } from "smc-util/async-utils";
 import { JUPYTER_CLASSIC_MODERN } from "smc-util/theme";
 const { instantiate_snippets } = require("../assistant/main");
 import { NBGraderActions } from "./nbgrader/actions";
 import { CellToolbarName } from "./types";
 import { exec } from "../frame-editors/generic/client";
+import { open_popup_window } from "../misc-page";
+import { IPYNB2PDF } from "../misc/commands";
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -48,6 +55,9 @@ export class JupyterActions extends JupyterActions0 {
     // Also maintain read_only state.
     this.syncdb.on("metadata-change", this.sync_read_only);
     this.syncdb.on("connected", this.sync_read_only);
+
+    // And activity indicator
+    this.syncdb.on("change", this.activity);
 
     // Load kernel (once ipynb file loads).
     this.set_kernel_after_load();
@@ -110,6 +120,10 @@ export class JupyterActions extends JupyterActions0 {
         "editor_settings"
       );
     }
+  }
+
+  private activity() : void {
+    this.redux.getProjectActions(this.project_id).flag_file_activity(this.path);
   }
 
   focus = (wait?: any) => {
@@ -465,7 +479,7 @@ export class JupyterActions extends JupyterActions0 {
       });
       await this.syncdb.commit();
       await exec({
-        command: "cc-ipynb-to-pdf",
+        command: IPYNB2PDF,
         args: [this.path],
         project_id: this.project_id,
       });
@@ -519,6 +533,7 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   public toggle_cell_line_numbers(id: string): void {
+    if (this._state === "closed") return;
     const cells = this.store.get("cells");
     const cell = cells.get(id);
     if (cell == null) throw Error(`no cell with id ${id}`);
@@ -629,5 +644,34 @@ export class JupyterActions extends JupyterActions0 {
       this.nbgrader_actions.update_metadata();
     }
     this.setState({ cell_toolbar: name });
+  }
+
+  public custom_jupyter_kernel_docs(): void {
+    open_popup_window(
+      "https://doc.cocalc.com/howto/custom-jupyter-kernel.html"
+    );
+  }
+
+  /* Wait until the syncdb is ready *and* there is at
+     least one cell in the notebook. For a brand new blank
+     notebook, the backend will create a blank cell.
+
+     If the current state is "closed" there is no way
+     it'll ever be ready, so we throw an Error.
+  */
+  public async wait_until_ready(): Promise<void> {
+    switch (this.syncdb.get_state()) {
+      case "init":
+        await once(this.syncdb, "ready");
+        break;
+      case "closed":
+        throw Error("syncdb is closed so will never be ready");
+    }
+    // Wait until there is at least one cell.  The backend is
+    // responsible for ensuring there is at least one cell.
+    while ((this.store.get("cell_list")?.size ?? 0) <= 0) {
+      // wait for a change event:
+      await once(this.store, "change");
+    }
   }
 }

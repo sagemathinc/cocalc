@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { callback } from "awaiting";
 declare const $: any; // jQuery
 import * as message from "smc-util/message";
@@ -106,67 +111,85 @@ export class AccountClient {
   public async change_password(
     old_password: string,
     new_password: string = ""
-  ): Promise<any> {
+  ): Promise<void> {
     if (this.client.account_id == null) {
       throw Error("must be signed in");
     }
-    return await this.call(
+    const x = await this.call(
       message.change_password({
         account_id: this.client.account_id,
         old_password,
         new_password,
       })
     );
+    if (x.error) {
+      throw Error(x.error);
+    }
   }
 
   public async change_email(
     new_email_address: string,
     password: string = ""
-  ): Promise<any> {
+  ): Promise<void> {
     if (this.client.account_id == null) {
       throw Error("must be logged in");
     }
-    return await this.call(
+    const x = await this.call(
       message.change_email_address({
         account_id: this.client.account_id,
         new_email_address,
         password,
       })
     );
+    if (x.error) {
+      throw Error(x.error);
+    }
   }
 
   public async send_verification_email(
-    account_id: string,
     only_verify: boolean = true
-  ): Promise<any> {
-    return await this.call(
+  ): Promise<void> {
+    const account_id = this.client.account_id;
+    if (!account_id) {
+      throw Error("must be signed in to an account");
+    }
+    const x = await this.call(
       message.send_verification_email({
         account_id,
         only_verify,
       })
     );
+    if (x.error) {
+      throw Error(x.error);
+    }
   }
 
   // forgot password -- send forgot password request to server
-  public async forgot_password(email_address: string): Promise<any> {
-    return await this.call(
+  public async forgot_password(email_address: string): Promise<void> {
+    const x = await this.call(
       message.forgot_password({
         email_address,
       })
     );
+    if (x.error) {
+      throw Error(x.error);
+    }
   }
 
   // forgot password -- send forgot password request to server
   public async reset_forgot_password(
     reset_code: string,
     new_password: string
-  ): Promise<any> {
-    return await this.call(
+  ): Promise<void> {
+    const resp = await this.call(
       message.reset_forgot_password({
         reset_code,
         new_password,
       })
     );
+    if (resp.error) {
+      throw Error(resp.error);
+    }
   }
 
   // forget about a given passport authentication strategy for this user
@@ -183,7 +206,7 @@ export class AccountClient {
   public async api_key(
     action: "get" | "delete" | "regenerate",
     password: string
-  ): Promise<any> {
+  ): Promise<string> {
     if (this.client.account_id == null) {
       throw Error("must be logged in");
     }

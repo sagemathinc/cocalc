@@ -1,8 +1,12 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { Configuration } from "./explorer";
 import { EXTs as ALL_FILE_BUTTON_TYPES } from "./file-listing/utils";
 import { Icon } from "../../r_misc";
-import { analytics_event } from "../../tracker";
 import { ProjectActions } from "smc-webapp/project_store";
 
 const { MenuItem, SplitButton } = require("react-bootstrap");
@@ -74,15 +78,12 @@ export class NewButton extends React.Component<Props> {
   on_create_button_clicked = (): void => {
     if (this.props.file_search.length === 0) {
       this.props.actions.toggle_new();
-      analytics_event("project_file_listing", "search_create_button", "empty");
     } else if (
       this.props.file_search[this.props.file_search.length - 1] === "/"
     ) {
       this.props.create_folder();
-      analytics_event("project_file_listing", "search_create_button", "folder");
     } else {
       this.props.create_file();
-      analytics_event("project_file_listing", "search_create_button", "file");
     }
   };
 

@@ -1,30 +1,15 @@
-//#############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 // React libraries
 import { Store } from "../app-framework";
 
-// SMC libraries
+// CoCalc libraries
 import * as misc from "smc-util/misc";
 import { set } from "smc-util/misc2";
+import { DirectoryListingEntry } from "smc-util/types";
 
 // Course Library
 import { STEPS } from "./util";
@@ -103,6 +88,7 @@ export type AssignmentRecord = TypedMap<{
   graded_path: string;
 
   nbgrader?: boolean; // if true, probably includes at least one nbgrader ipynb file
+  listing?: DirectoryListingEntry[];
 
   grades?: { [student_id: string]: string };
   comments?: { [student_id: string]: string };
@@ -818,10 +804,12 @@ export class CourseStore extends Store<CourseState> {
 
   public get_upgrade_plan(upgrade_goal: UpgradeGoal) {
     const account_store: any = this.redux.getStore("account");
+    const project_map = this.redux.getStore("projects").get("project_map");
+    if (project_map == null) throw Error("not fully loaded");
     const plan = project_upgrades.upgrade_plan({
       account_id: account_store.get_account_id(),
       purchased_upgrades: account_store.get_total_upgrades(),
-      project_map: this.redux.getStore("projects").get("project_map"),
+      project_map,
       student_project_ids: set(
         this.get_student_project_ids({
           include_deleted: true,

@@ -1,6 +1,9 @@
 /*
-Focused codemirror editor, which you can interactively type into.
-*/
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// Focused codemirror editor, which you can interactively type into.
 
 declare const $: any;
 
@@ -155,7 +158,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     // See https://github.com/jupyter/notebook/issues/2464 for discussion of this cell_list_top business.
     const cell_list_div = this.props.frame_actions.cell_list_div;
     if (cell_list_div != null) {
-      const cell_list_top = cell_list_div.offset().top;
+      const cell_list_top = cell_list_div.offset()?.top;
       if (
         cell_list_top != null &&
         this.cm.cursorCoords(true, "window").top < cell_list_top
@@ -600,7 +603,6 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     // expose this option, so we have to bypass it in the dangerous
     // way below, which could break were CodeMirror to be refactored!
     // TODO: send them a PR to expose this.
-    (window as any).cm = this.cm;
     if (this.cm.display == null || this.cm.display.input == null) return;
     if (this.cm.display.input.textarea != null) {
       this.cm.display.input.textarea.focus({ preventScroll: true });

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { PostgreSQL } from "../types";
 import { callback2 } from "../../smc-util/async-utils";
 import { copy_with, len } from "../../smc-util/misc2";
@@ -16,7 +21,7 @@ export async function number_of_running_projects_using_license(
   */
 
   const query = `SELECT COUNT(*) FROM projects WHERE state#>>'{state}' IN ('running', 'starting') AND site_license#>>'{${license_id}}'!='{}'`;
-  const x = await callback2(db._query.bind(db), { query });
+  const x = await db.async_query({ query });
   return parseInt(x.rows[0].count);
 }
 
@@ -36,7 +41,7 @@ export async function site_license_usage_stats(
 ): Promise<{ [license_id: string]: number }> {
   const query =
     "select site_license from projects where state#>>'{state}' in ('running', 'starting') and site_license!='{}'";
-  const result = await callback2(db._query.bind(db), { query });
+  const result = await db.async_query({ query });
   const usage: { [license_id: string]: number } = {};
   for (let row of result.rows) {
     for (const license_id in row.site_license) {
@@ -134,7 +139,7 @@ export async function number_of_projects_using_site_license(
     opts.cutoff
   );
 
-  const x = await callback2(db._query.bind(db), {
+  const x = await db.async_query({
     query: "SELECT COUNT(DISTINCT(projects.project_id)) " + query,
     params,
   });

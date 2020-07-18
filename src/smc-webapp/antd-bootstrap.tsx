@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 We use so little of react-bootstrap in CoCalc that for a first quick round
 of switching to antd, I'm going to see if it isn't easy to re-implement
 much of the same functionality on top of antd.
@@ -9,10 +14,19 @@ some serious problems / bug /issues with using our stupid old react-bootstrap
 *at all*, hence this.
 */
 
-// What we haven't converted yet, but do use in CoCalc:
-export { FormControl, FormGroup, Form, InputGroup } from "react-bootstrap";
+// TODO: What we haven't converted yet, but do use in CoCalc:
+export {
+  FormControl,
+  FormGroup,
+  Form,
+  InputGroup,
+  Navbar,
+  Nav,
+  NavItem,
+  Table,
+} from "react-bootstrap";
 
-import { React } from "./app-framework";
+import { React, Rendered } from "./app-framework";
 import { r_join, Space } from "./r_misc";
 
 import * as antd from "antd";
@@ -21,59 +35,130 @@ import * as antd from "antd";
 // only four in antd, and it we can't automatically collapse them down in a meaningful
 // way without fundamentally removing information and breaking our UI (e.g., buttons
 // change look after an assignment is sent successfully in a course).
-const BS_STYLE_TO_TYPE = {
+type ButtonStyle =
+  | "primary"
+  | "success"
+  | "default"
+  | "info"
+  | "warning"
+  | "danger"
+  | "link";
+
+const BS_STYLE_TO_TYPE: {
+  [name in ButtonStyle]: "primary" | "default" | "dashed" | "danger" | "link";
+} = {
   primary: "primary",
   success: "default", // antd doesn't have this so we do it via style below.
+  default: "default",
   info: "dashed",
   warning: "default", // antd doesn't have this so we do it via style below.
   danger: "danger",
   link: "link",
 };
 
-export function Button(props: any) {
-  const type = props.bsStyle ? BS_STYLE_TO_TYPE[props.bsStyle] : undefined;
-  let style: undefined | React.CSSProperties = props.style;
+function parse_bsStyle(props: {
+  bsStyle?: ButtonStyle;
+  style?: React.CSSProperties;
+  disabled?: boolean;
+}): {
+  type: "primary" | "default" | "dashed" | "link";
+  style: React.CSSProperties;
+  danger?: boolean;
+  ghost?: boolean;
+  disabled?: boolean;
+  loading?: boolean;
+} {
+  let type =
+    props.bsStyle == null
+      ? "default"
+      : BS_STYLE_TO_TYPE[props.bsStyle] ?? "default";
+
+  let style: React.CSSProperties | undefined = undefined;
+  // antd has no analogue of "success" & "warning", it's not clear to me what
+  // it should be so for now just copy the style from react-bootstrap.
   if (props.bsStyle === "warning") {
-    // antd has no analogue of "warning", it's not clear to me what it should be so for
+    // antd has no analogue of "warning", it's not clear to me what
+    // it should be so for
     // now just copy the style.
-    if (style == null) {
-      style = {};
-    }
-    style.backgroundColor = "#f0ad4e";
-    style.borderColor = "#eea236";
-    style.color = "#ffffff";
-    if (props.disabled) {
-      style.opacity = 0.65;
-    }
+    style = {
+      backgroundColor: "#f0ad4e",
+      borderColor: "#eea236",
+      color: "#ffffff",
+    };
   } else if (props.bsStyle === "success") {
-    // antd has no analogue of "success", it's not clear to me what it should be so for
-    // now just copy the style.
-    if (style == null) {
-      style = {};
-    }
-    style.backgroundColor = "#5cb85c";
-    style.borderColor = "#4cae4c";
-    style.color = "#ffffff";
-    if (props.disabled) {
-      style.opacity = 0.65;
-    }
+    style = {
+      backgroundColor: "#5cb85c",
+      borderColor: "#4cae4c",
+      color: "#ffffff",
+    };
+  }
+  if (props.disabled && style != null) {
+    style.opacity = 0.65;
   }
 
+  style = { ...style, ...props.style };
+  let danger: boolean | undefined = undefined;
+  let loading: boolean | undefined = undefined; // nothing mapped to this yet
+  let ghost: boolean | undefined = undefined; // nothing mapped to this yet
+  if (type == "danger") {
+    type = "default";
+    danger = true;
+  }
+  return { type, style, danger, ghost, loading };
+}
+
+export function Button(props: {
+  bsStyle?: ButtonStyle;
+  bsSize?: "large" | "small" | "xsmall";
+  style?: React.CSSProperties;
+  disabled?: boolean;
+  onClick?: (e?: any) => void;
+  key?: string;
+  children?: any;
+  className?: string;
+  href?: string;
+  target?: string;
+  title?: string;
+  tabIndex?: number;
+  id?: string;
+}) {
   // The span is needed inside below, otherwise icons and labels get squashed together
   // due to button having word-spacing 0.
+  const { type, style, danger, ghost, loading } = parse_bsStyle(props);
+  let size: "middle" | "large" | "small" | undefined = undefined;
+  if (props.bsSize == "large") {
+    size = "large";
+  } else if (props.bsSize == "small") {
+    size = "middle";
+  } else if (props.bsSize == "xsmall") {
+    size = "small";
+  }
   return (
     <antd.Button
       onClick={props.onClick}
       type={type}
       disabled={props.disabled}
       style={style}
+      size={size}
+      className={props.className}
+      href={props.href}
+      target={props.target}
+      danger={danger}
+      ghost={ghost}
+      loading={loading}
+      title={props.title}
+      tabIndex={props.tabIndex}
+      id={props.id}
     >
       <span>{props.children}</span>
     </antd.Button>
   );
 }
 
-export function ButtonGroup(props: any) {
+export function ButtonGroup(props: {
+  style?: React.CSSProperties;
+  children?: any;
+}) {
   return (
     <antd.Button.Group style={props.style}>{props.children}</antd.Button.Group>
   );
@@ -84,14 +169,30 @@ export function ButtonToolbar(props: any) {
 }
 
 export function Grid(props: any) {
-  return <div>{props.children}</div>;
+  return <div style={{ padding: "0 8px" }}>{props.children}</div>;
 }
 
-export function Well(props: any) {
-  let style: React.CSSProperties = props.style != null ? props.style : {};
-  style.backgroundColor = "#f5f5f5";
-  style.border = "1px solid #e3e3e3";
-  return <antd.Card style={style}>{props.children}</antd.Card>;
+export function Well(props: {
+  style?: React.CSSProperties;
+  children?: any;
+  className?: string;
+  onDoubleClick?;
+  onMouseDown?;
+}) {
+  let style: React.CSSProperties = {
+    ...{ backgroundColor: "white", border: "1px solid #e3e3e3" },
+    ...props.style,
+  };
+  return (
+    <antd.Card
+      style={style}
+      className={props.className}
+      onDoubleClick={props.onDoubleClick}
+      onMouseDown={props.onMouseDown}
+    >
+      {props.children}
+    </antd.Card>
+  );
 }
 
 export function Checkbox(props: any) {
@@ -121,17 +222,169 @@ export function Checkbox(props: any) {
   );
 }
 
-export const Row = antd.Row;
+export function Row(props: any) {
+  props = { ...{ gutter: 16 }, ...props };
+  return <antd.Row {...props}>{props.children}</antd.Row>;
+}
 
-export function Col(props: any) {
+export function Col(props: {
+  xs?: number;
+  sm?: number;
+  md?: number;
+  lg?: number;
+  xsOffset?: number;
+  smOffset?: number;
+  mdOffset?: number;
+  lgOffset?: number;
+  style?: React.CSSProperties;
+  className?: string;
+  onClick?;
+  children?: any;
+}) {
   const props2: any = {};
   for (const p of ["xs", "sm", "md", "lg"]) {
     if (props[p] != null) {
-      props2[p] = 2 * props[p];
+      if (props2[p] == null) {
+        props2[p] = {};
+      }
+      props2[p].span = 2 * props[p];
     }
     if (props[p + "Offset"] != null) {
-      props2["offset"] = 2 * props[p + "Offset"]; // loss of info
+      if (props2[p] == null) {
+        props2[p] = {};
+      }
+      props2[p].offset = 2 * props[p + "Offset"];
     }
   }
+  for (const p of ["className", "onClick", "style"]) {
+    props2[p] = props[p];
+  }
   return <antd.Col {...props2}>{props.children}</antd.Col>;
+}
+
+export function Tabs(props: {
+  id?: string;
+  key?: string;
+  activeKey: string;
+  onSelect?: (activeKey: string) => void;
+  animation?: boolean;
+  style?: React.CSSProperties;
+  tabBarExtraContent?: React.ReactNode;
+  children: any;
+}) {
+  // We do this because for antd, "There must be `tab` property on children of Tabs."
+  let tabs: Rendered[] | Rendered = [];
+  if (Symbol.iterator in Object(props.children)) {
+    for (const x of props.children) {
+      if (!x.props) continue;
+      tabs.push(Tab(x.props));
+    }
+  } else {
+    tabs = Tab(props.children);
+  }
+  return (
+    <antd.Tabs
+      activeKey={props.activeKey}
+      onChange={props.onSelect}
+      animated={props.animation ?? false}
+      style={props.style}
+      tabBarExtraContent={props.tabBarExtraContent}
+    >
+      {tabs}
+    </antd.Tabs>
+  );
+}
+
+export function Tab(props: {
+  id?: string;
+  key?: string;
+  eventKey?: string;
+  title: any;
+  children?: any;
+  style?: React.CSSProperties;
+}) {
+  let title = props.title;
+  if (!title) {
+    // In case of useless title, some sort of fallback.
+    // This is important since a tab with no title can't
+    // be selected.
+    title = props.eventKey ?? props.key;
+    if (!title) title = "Tab";
+  }
+  // Get rid of the fade transition, which is inconsistent with
+  // react-bootstrap (and also really annoying to me). See
+  // https://github.com/ant-design/ant-design/issues/951#issuecomment-176291275
+  const style = { ...{ transition: "0s" }, ...props.style };
+
+  return (
+    <antd.Tabs.TabPane key={props.eventKey} tab={title} style={style}>
+      {props.children}
+    </antd.Tabs.TabPane>
+  );
+}
+
+export function Modal(props: {
+  show?: boolean;
+  onHide: () => void;
+  children?: any;
+}) {
+  return (
+    <antd.Modal visible={props.show} footer={null} closable={false}>
+      {props.children}
+    </antd.Modal>
+  );
+}
+
+Modal.Body = function (props: any) {
+  return <>{props.children}</>;
+};
+
+export function Alert(props: {
+  key?: string;
+  bsStyle?: ButtonStyle;
+  style?: React.CSSProperties;
+  banner?: boolean;
+  children?: any;
+}) {
+  let type: "success" | "info" | "warning" | "error" | undefined = undefined;
+  // success, info, warning, error
+  if (
+    props.bsStyle == "success" ||
+    props.bsStyle == "warning" ||
+    props.bsStyle == "info"
+  ) {
+    type = props.bsStyle;
+  } else if (props.bsStyle == "danger") {
+    type = "error";
+  } else if (props.bsStyle == "link") {
+    type = "info";
+  } else if (props.bsStyle == "primary") {
+    type = "success";
+  }
+  return (
+    <antd.Alert
+      message={props.children}
+      type={type}
+      style={props.style}
+      banner={props.banner}
+    />
+  );
+}
+
+export function Panel(props: {
+  key?: string;
+  style?: React.CSSProperties;
+  header?: any;
+  children?: any;
+}) {
+  const style = { ...{ marginBottom: "20px" }, ...props.style };
+  return (
+    <antd.Card
+      style={style}
+      title={props.header}
+      headStyle={{ color: "#333", backgroundColor: "#f5f5f5" }}
+    >
+      {props.children}
+    </antd.Card>
+  );
 }

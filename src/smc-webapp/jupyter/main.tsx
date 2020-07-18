@@ -1,20 +1,18 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Top-level react component, which ties everything together
 */
-
-// Only use windowing when there are at least this many cells.
-// (Of course what really matters is the combination of the number
-// of cells and how long each takes to render, but that's really
-// complicated to check quickly, so we just take into account
-// the number.)  We may have to adjust this over time...
-const WINDOWED_LIST_THRESHOLD = 75;
 
 import { React, Component, Rendered, rclass, rtypes } from "../app-framework";
 import * as immutable from "immutable";
 
 import { ErrorDisplay } from "../r_misc/error-display";
 import { Loading } from "../r_misc/loading";
-import { is_safari } from "../frame-editors/generic/browser";
+//import { is_firefox, is_safari } from "../frame-editors/generic/browser";
 
 // React components that implement parts of the Jupyter notebook.
 import { TopMenubar } from "./top-menubar";
@@ -110,7 +108,6 @@ interface JupyterEditorProps {
   edit_attachments?: string;
   edit_cell_metadata?: immutable.Map<any, any>;
   editor_settings?: immutable.Map<any, any>;
-  raw_ipynb?: immutable.Map<any, any>;
   metadata?: immutable.Map<any, any>;
   trust?: boolean;
   kernel_info?: immutable.Map<any, any>;
@@ -152,7 +149,6 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         insert_image: rtypes.string, // show insert image dialog
         edit_attachments: rtypes.string,
         edit_cell_metadata: rtypes.immutable.Map,
-        raw_ipynb: rtypes.immutable.Map,
         metadata: rtypes.immutable.Map,
         trust: rtypes.bool,
         kernel_info: rtypes.immutable.Map,
@@ -284,6 +280,17 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   private use_windowed_list(): boolean {
+    // IMPORTANT: We are not using react-windowed at all
+    // for Jupyter, due to situations like this
+    //   https://github.com/sagemathinc/cocalc/issues/4727
+    // I'm going to leave all the code in for now though,
+    // since there is no harm and maybe some surprise
+    // will pop up.  Also, we could have a non-default
+    // option for huge notebooks that people might want to use.
+
+    return false;
+
+    /*
     if (
       this.props.frame_actions == null ||
       this.props.editor_settings == null ||
@@ -293,18 +300,15 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
       // very obvious reasons to disable windowing...
       return false;
     }
-    if (this.props.cell_list.size < WINDOWED_LIST_THRESHOLD) {
-      // Windowing is generally not as good and can cause subtle issues, so let's
-      // avoid it if possible for smaller notebooks.
-      return false;
-    }
-    // OK, we have a big notebook.  Let's window if we're not on Safari, where I
-    // don't know what is going on... (see #4320).
-    if (is_safari()) {
+    // OK, we have a big notebook.  Let's window if we're not on Safari/Firefox,
+    // where I don't know what is going on -- maybe some polyfill doesn't really
+    // work... (see #4320).
+    if (is_safari() || is_firefox()) {
       return false;
     }
     // OK, let's do it.
     return true;
+    */
   }
 
   render_cells() {
@@ -506,11 +510,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_raw_editor() {
-    if (
-      this.props.raw_ipynb == null ||
-      this.props.cm_options == null ||
-      this.props.font_size == null
-    ) {
+    if (this.props.cm_options == null || this.props.font_size == null) {
       return <Loading />;
     }
     return (
@@ -518,7 +518,6 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         name={this.props.name}
         actions={this.props.actions}
         font_size={this.props.font_size}
-        raw_ipynb={this.props.raw_ipynb}
         cm_options={this.props.cm_options.get("options")}
       />
     );

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Component, React, Rendered } from "../app-framework";
 import { ComputeImages, ComputeImage, ComputeImageTypes } from "./init";
 const { SiteName, CompanyName, HelpEmailLink } = require("../customize");
@@ -24,7 +29,7 @@ const {
 interface CSProps {
   images?: ComputeImages;
   // this should be Partial<State> ?
-  setParentState: (obj: any) => void;
+  setParentState: (obj : {image_selected?:string; title_text?:string; image_type?: ComputeImageTypes}) => void;
   image_type: ComputeImageTypes;
   image_selected?: string;
   // toggles form true → false after first edit

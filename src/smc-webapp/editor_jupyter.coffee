@@ -1,23 +1,8 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2014 -- 2016, SageMath, Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 # Jupyter Notebook Synchronization
 #
 # There are multiple representations of the notebook.
@@ -37,18 +22,15 @@
 # See the function set_nb below.  Incidentally, I came up with this approach from scratch after
 # trying a lot of ideas, though in hindsite it's exactly the same as what React.js does (though
 # I didn't know about React.js at the time).
-###############################################################################
 
-###
-NOTE: There's a lot of this in the main code below:
-
-        if @state != 'ready'
-            return
-
-Obviously, a better solution would involve two different classes, where this
-guarding of methods so they are no-ops when the relevant attributes aren't
-yet initialized would no longer be necessary.
-###
+# NOTE: There's a lot of this in the main code below:
+#
+#         if @state != 'ready'
+#             return
+#
+# Obviously, a better solution would involve two different classes, where this
+# guarding of methods so they are no-ops when the relevant attributes aren't
+# yet initialized would no longer be necessary.
 
 # How long to try to download Jupyter notebook before giving up with an error.  Load times in excess of
 # a minute can happen; this may be the CoCalc proxy being slow - not sure yet... but at least
@@ -65,10 +47,11 @@ stringify            = require('json-stable-stringify')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
 {dmp}                = require('smc-util/sync/editor/generic/util')
-{webapp_client}      = require('./webapp_client')
+{webapp_client}      = require('./webapp-client')
 {redux}              = require('./app-framework')
 syncdoc              = require('./syncdoc')
 misc_page            = require('./misc_page')
+{JUPYTER_CLASSIC_OPEN}  = require('./misc/commands')
 
 templates            = $(".smc-jupyter-templates")
 editor_templates     = $("#webapp-editor-templates")
@@ -874,7 +857,7 @@ class JupyterNotebook extends EventEmitter
 
     ensure_nonempty: (cb) =>
         webapp_client.exec
-            command    : 'cc-jupyter-classic-open'
+            command    : JUPYTER_CLASSIC_OPEN
             project_id : @project_id
             path       : @path
             args       : [@file]

@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-Copyright (c) 2017,  SageMath, Inc..
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
-All rights reserved.
-"""
+from __future__ import absolute_import, print_function
 
 import argparse, codecs, json, os
-
-import sagews2pdf
+from . import sagews2pdf
 
 
 def ipynb_string_list(s):
@@ -41,7 +39,7 @@ class Worksheet(sagews2pdf.Worksheet):
                 }
             },
             "nbformat": 4,
-            "nbformat_minor": 0
+            "nbformat_minor": 4
         }
         obj['cells'] = self.ipynb_cells()
         return obj
@@ -73,11 +71,10 @@ def sagews_to_pdf(filename):
 def main():
     parser = argparse.ArgumentParser(
         description="convert a sagews worksheet to a Jupyter Notebook")
-    parser.add_argument(
-        "filename",
-        nargs='+',
-        help="name of sagews files (required)",
-        type=str)
+    parser.add_argument("filename",
+                        nargs='+',
+                        help="name of sagews files (required)",
+                        type=str)
     args = parser.parse_args()
 
     for filename in args.filename:

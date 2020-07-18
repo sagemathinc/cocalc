@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Actions, redux } from "../app-framework";
 import { fromJS } from "immutable";
 import { webapp_client } from "../webapp-client";
@@ -13,9 +18,10 @@ class UsersActions extends Actions<UsersState> {
     try {
       obj = await webapp_client.users_client.get_username(account_id);
     } catch (err) {
-      return console.warn(
+      console.warn(
         `WARNING: unable to get username for account with id '${account_id}'`
       );
+      return;
     }
     // see https://github.com/sagemathinc/cocalc/issues/2828
     obj.account_id = account_id;

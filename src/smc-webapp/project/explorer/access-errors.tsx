@@ -1,6 +1,11 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { ErrorDisplay } from "smc-webapp/r_misc";
-const { AccountPage } = require("../../account_page");
+import { AccountPage } from "../../account/account-page";
 
 interface Props {
   public_view: boolean;

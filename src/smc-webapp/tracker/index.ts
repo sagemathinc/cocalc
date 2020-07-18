@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // `analytics` is a generalized wrapper for reporting data to google analytics, pwiki, parsley, ...
 // for now, it either does nothing or works with GA
 // this API basically allows to send off events by name and category
@@ -29,4 +34,10 @@ export function analytics_pageview(...args): void {
 
 export function analytics_event(...args): void {
   analytics("event", ...args);
+}
+
+export function user_activity(..._args): void {
+  // NOOP. arguments are tree like chains, where leaves are options/actions.
+  // the use case is to track certain UI usage of users to learn what is used and how.
+  // the reporting aspect must be reported properly.
 }

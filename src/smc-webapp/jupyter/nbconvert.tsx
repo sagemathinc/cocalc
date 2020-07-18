@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 NBConvert dialog -- for running nbconvert
 */
 import { React, Component } from "../app-framework";
@@ -9,6 +14,7 @@ const TimeAgo = require("react-timeago").default;
 const { Button, ButtonGroup, Modal } = require("react-bootstrap");
 const misc = require("smc-util/misc");
 import { JupyterActions } from "./browser-actions";
+import { IPYNB2PDF } from "../misc/commands";
 
 const NAMES = {
   python: { ext: "py", display: "Python", internal: true },
@@ -226,7 +232,7 @@ export class NBConvert extends Component<NBConvertProps> {
       this.props.nbconvert_dialog != null &&
       this.props.nbconvert_dialog.get("to") === "chromium-pdf"
     ) {
-      cmd = shell_escape(["cc-ipynb-to-pdf", tail]);
+      cmd = shell_escape([IPYNB2PDF, tail]);
     } else if (
       this.props.nbconvert_dialog != null &&
       this.props.nbconvert_dialog.get("to") === "sagews"
@@ -371,8 +377,8 @@ export class NBConvert extends Component<NBConvertProps> {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          Use View-->Slideshow to turn your Jupyter notebook into a slideshow.
-          One click display of slideshows is{" "}
+          Use View &rarr; Slideshow to turn your Jupyter notebook into a
+          slideshow. One click display of slideshows is{" "}
           <a
             target="_blank"
             rel="noopener"
@@ -381,7 +387,7 @@ export class NBConvert extends Component<NBConvertProps> {
             not yet implemented
           </a>
           . However, you can start a slideshow by copying and pasting the
-          following command in a terminal in CoCalc (+New-->Terminal):
+          following command in a terminal in CoCalc (+New &rarr; Terminal):
           <pre>{this.slides_command()}</pre>
           Then view your slides at
           <div style={{ textAlign: "center" }}>

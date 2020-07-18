@@ -1,26 +1,52 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { once } from "smc-util/async-utils";
 import { redux } from "../app-framework";
 import { QueryParams } from "../misc/query-params";
 const { APP_BASE_URL, get_cookie } = require("../misc_page");
 import { WelcomeFile } from "./welcome-file";
 import { WebappClient } from "./client";
+import { NAME as LAUNCH_NAME } from "../launch/actions";
+import { PROJECT_INVITE_QUERY_PARAM } from "../collaborators/handle-project-invite";
+
+export const ANON_PROJECT_TITLE = "Welcome to CoCalc!";
 
 /*
 If the anonymous query param is set at all (doesn't matter to what) during
-initial page load.
+initial page load.  Similar, if the project_invite query param is set
+that implies anonymous, so we also do anon setup there if the user isn't
+already (likely) signed in.
 
 Also do NOT make true of has_remember_me is set, since then probably
 the user has an account.
 */
+let project_invite_query_param = QueryParams.get(PROJECT_INVITE_QUERY_PARAM);
 export function should_do_anonymous_setup(): boolean {
   const anonymous_query_param = QueryParams.get("anonymous");
   // console.log("anonymous_query_param = ", anonymous_query_param);
+  // console.log("project_invite_query_param = ", project_invite_query_param);
   // console.log("cookie = ", get_cookie(`${APP_BASE_URL}has_remember_me`));
   const resp =
-    anonymous_query_param !== undefined &&
+    (anonymous_query_param != null || project_invite_query_param != null) &&
     get_cookie(`${APP_BASE_URL}has_remember_me`) != "true";
   // console.log("should_do_anonymous_setup ", resp);
   return resp;
+}
+
+async function setup_default_project(log) {
+  const actions = redux.getActions("projects");
+  log("creating project");
+  const project_id = await actions.create_project({
+    title: ANON_PROJECT_TITLE,
+    start: true,
+    description: "",
+  });
+  log("opening project");
+  actions.open_project({ project_id, switch_to: true });
+  await new WelcomeFile(project_id).open();
 }
 
 export async function do_anonymous_setup(client: WebappClient): Promise<void> {
@@ -33,7 +59,10 @@ export async function do_anonymous_setup(client: WebappClient): Promise<void> {
     redux.getActions("account").setState({ doing_anonymous_setup: true });
     log("creating account");
     try {
-      const resp = await client.account_client.create_account({});
+      const resp = await client.account_client.create_account({
+        first_name: "Anonymous",
+        last_name: `User-${Math.round(new Date().valueOf() / 1000)}`,
+      });
       if (resp?.event == "account_creation_failed") {
         throw Error(resp.error);
       }
@@ -49,25 +78,19 @@ export async function do_anonymous_setup(client: WebappClient): Promise<void> {
       log("waiting to be signed in");
       await once(client, "signed_in");
     }
-    const actions = redux.getActions("projects");
-    log("creating project");
-    const project_id = await actions.create_project({
-      title: "Welcome to CoCalc!",
-      start: true,
-      description: "",
-    });
-    log("opening project");
-    actions.open_project({ project_id, switch_to: true });
-
-    const launch_actions = redux.getStore("launch-actions");
-    if (launch_actions != null && launch_actions.get("launch")) {
-      console.log(
-        "anonymous setup: do nothing further since there is a launch action"
-      );
+    if (project_invite_query_param) {
+      // This will get handled elsewhere.  In particular, we
+      // don't need to do anything else besides make
+      // their anonymous account.
       return;
     }
 
-    await new WelcomeFile(project_id).open();
+    // "share" and "custom software images" create projects on their own!
+    const launch_store = redux.getStore(LAUNCH_NAME);
+    const need_project = !launch_store.get("type");
+    if (need_project) {
+      await setup_default_project(log);
+    }
   } catch (err) {
     console.warn("ERROR doing anonymous sign up -- ", err);
     log("err", err);

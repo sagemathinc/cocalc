@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Some extra functionality that is made available in the command line console
 for debugging and generally working with CoCalc.
 
@@ -39,6 +44,7 @@ export function setup_global_cocalc(client): void {
   cocalc.prom_client = require("../prom-client");
   cocalc.schema = require("smc-util/schema");
   cocalc.redux = redux;
+  cocalc.load_eruda = load_eruda;
   console.log(
     "DEBUG: Enabling extra CoCalc library functionality.  Type cocalc or cc.[tab]."
   );
@@ -51,10 +57,20 @@ export function setup_global_cocalc(client): void {
   (window as any).cocalc = (window as any).cc = cocalc;
 
   if (IS_TOUCH) {
-    // Debug mode and on a touch device -- e.g., iPad -- so make it possible to get a
-    // devel console via https://github.com/liriliri/eruda
-    // This pulls eruda from a CDN.
-    document.write('<script src="//cdn.jsdelivr.net/npm/eruda"></script>');
-    document.write("<script>eruda.init();</script>");
+    // Debug mode and on a touch device: always load eruda so we
+    // get a nice dev console!  This is very handy for iPad development.
+    load_eruda();
   }
+}
+
+function load_eruda(): void {
+  // -- e.g., iPad -- so make it possible to get a
+  // devel console via https://github.com/liriliri/eruda
+  // This pulls eruda from a CDN.
+  const script = document.createElement("script");
+  script.src = "//cdn.jsdelivr.net/npm/eruda";
+  document.body.appendChild(script);
+  script.onload = function () {
+    (window as any).eruda.init();
+  };
 }

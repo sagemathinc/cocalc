@@ -1,32 +1,12 @@
-//##############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
-
 /*
- *
- * Library for working with JSON messages for Salvus.
- *
- * We use functions to work with messages to ensure some level of
- * consistency, defaults, and avoid errors from typos, etc.
- *
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
+
+// Library for working with JSON messages for Salvus.
+//
+// We use functions to work with messages to ensure some level of
+// consistency, defaults, and avoid errors from typos, etc.
 
 const doc_intro = `\
 ## Purpose
@@ -340,7 +320,7 @@ message({
 }); // if set, eval scope contains an object cell that refers to the cell in the worksheet with this id.
 
 //###########################################
-// Information about several projects or accounts
+// Information about accounts
 //############################################
 
 API(
@@ -1463,20 +1443,24 @@ API(
         desc: "A unique UUID for the query",
       },
       project_id: {
-        init: required,
+        init: undefined,
         desc:
-          "project_id of project to add user to (can be an array to add multiple users to multiple projects)",
+          "project_id of project to add user to (can be an array to add multiple users to multiple projects); isn't needed if token_id is specified",
       },
       account_id: {
         init: required,
         desc:
           "account_id of user (can be an array to add multiple users to multiple projects)",
       },
+      token_id: {
+        init: undefined,
+        desc: "project_invite_token that is needed in case the user **making the request** is not already a project collab"
+      }
     },
     desc: `\
 Directly add a user to a CoCalc project.
-You must be owner or collaborator on the target project.
-You cannot remove the project owner.
+You must be owner or collaborator on the target project or provide,
+an optional valid token_id (the token determines the project).
 The user is NOT notified via email that they were added, and there
 is no confirmation process.  (Eventually, there will be
 an accept process, or this endpoint will only work
@@ -1519,7 +1503,7 @@ API(
     desc: `\
 Remove a user from a CoCalc project.
 You must be owner or collaborator on the target project.
-You cannot remove the project owner.
+The project owner cannot be removed.
 The user is NOT notified via email that they were removed.
 
 Example:

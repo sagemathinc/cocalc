@@ -1,6 +1,18 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Component that shows rendered HTML in an iFrame, so safe and no mangling needed...
 */
+
+// NOTE:
+//
+// The <iframe> tag is still in an ES6 component, because in Firefox
+// the iframe document's content is empty when using the <iframe>
+// tag in a functional component (it would be fine with chrome).
+// Some day in the future this might no longer be necessary ... (react 16.13.1)
 
 import * as $ from "jquery";
 import { Set } from "immutable";
@@ -11,16 +23,10 @@ import {
   list_alternatives,
 } from "smc-util/misc2";
 import { throttle } from "underscore";
-import { Component, React, ReactDOM, Rendered } from "../../app-framework";
+import { React, Component, ReactDOM, Rendered, CSS } from "../../app-framework";
+import { use_font_size_scaling } from "../frame-tree/hooks";
 
-import * as CSS from "csstype";
-
-const STYLE: CSS.Properties = {
-  overflowY: "auto",
-  width: "100%",
-};
-
-interface PropTypes {
+interface Props {
   id: string;
   actions: any;
   editor_state: Map<string, any>;
@@ -31,16 +37,42 @@ interface PropTypes {
   reload: number;
   font_size: number;
   mode: "rmd" | undefined;
-  style?: any;
+  style?: any; // style should be static; change does NOT cause update.
   derived_file_types: Set<string>;
-} // style should be static; change does NOT cause update.
+}
 
-export class IFrameHTML extends Component<PropTypes, {}> {
+function should_memoize(prev, next) {
+  return !is_different(prev, next, [
+    "reload",
+    "font_size",
+    "derived_file_types",
+  ]);
+}
+
+const with_font_size_scaling = (IFrameHTMLComponent) => {
+  return React.memo((props: Props) => {
+    const { font_size } = props;
+    const scaling = use_font_size_scaling(font_size);
+    return <IFrameHTMLComponent scaling={scaling} {...props} />;
+  }, should_memoize);
+};
+
+const STYLE: CSS = {
+  overflowY: "auto",
+  width: "100%",
+};
+
+interface PropTypes extends Props {
+  scaling: number;
+}
+
+class IFrameHTMLComponent extends Component<PropTypes, {}> {
   shouldComponentUpdate(next): boolean {
     return is_different(this.props, next, [
       "reload",
-      "font_size",
       "derived_file_types",
+      "scaling",
+      "font_size", // used for scaling, but also re-render on that
     ]);
   }
 
@@ -48,21 +80,22 @@ export class IFrameHTML extends Component<PropTypes, {}> {
     if (this.props.reload !== next.reload) {
       this.reload_iframe();
     }
-    if (this.props.font_size !== next.font_size) {
-      this.set_iframe_style(next.font_size);
+    if (
+      this.props.scaling !== next.scaling ||
+      this.props.font_size !== next.font_size
+    ) {
+      this.set_iframe_style(next.scaling);
     }
   }
 
   componentDidMount(): void {
     this.safari_hack();
-    this.set_iframe_style(this.props.font_size);
+    this.set_iframe_style(this.props.scaling);
   }
 
   on_scroll(): void {
     const elt = ReactDOM.findDOMNode(this.refs.iframe);
-    if (elt == null) {
-      return;
-    }
+    if (elt == null) return;
     const scroll = $(elt).contents().scrollTop();
     this.props.actions.save_editor_state(this.props.id, { scroll });
   }
@@ -128,7 +161,7 @@ export class IFrameHTML extends Component<PropTypes, {}> {
         height={"100%"}
         style={{ border: 0, opacity: 0 }}
         onLoad={() => {
-          this.set_iframe_style();
+          this.set_iframe_style(this.props.scaling);
           this.restore_scroll();
           this.init_scroll_handler();
           this.init_click_handler();
@@ -139,29 +172,23 @@ export class IFrameHTML extends Component<PropTypes, {}> {
 
   reload_iframe(): void {
     const elt = ReactDOM.findDOMNode(this.refs.iframe);
-    if (elt == null) {
-      return;
-    }
-    $(elt).css("opacity", 0);
+    if (elt == null || elt.contentDocument == null) return;
+    elt.style.opacity = 0;
     elt.contentDocument.location.reload(true);
   }
 
-  set_iframe_style(font_size?: number): void {
+  set_iframe_style(scaling: number): void {
     const elt = ReactDOM.findDOMNode(this.refs.iframe);
-    if (elt == null) {
-      return;
-    }
-    const j = $(elt);
-    j.css("opacity", 1);
-    const body = j.contents().find("body");
-    body.css("zoom", (font_size != null ? font_size : 16) / 16);
+    if (elt == null || elt.contentDocument == null) return;
+    elt.style.opacity = 1;
+    const body = elt.contentDocument.body;
+    // don't use "zoom: ...", which is not a standard property
+    // https://github.com/sagemathinc/cocalc/issues/4438
+    body.style.transform = `scale(${scaling})`;
+    body.style["transform-origin"] = "0 0";
     if (this.props.is_fullscreen && this.props.fullscreen_style != null) {
-      body.css(this.props.fullscreen_style);
+      body.style = { ...body.style, ...this.props.fullscreen_style };
     }
-  }
-
-  maximize(): void {
-    this.props.actions.set_frame_full(this.props.id);
   }
 
   safari_hack(): void {
@@ -196,3 +223,5 @@ export class IFrameHTML extends Component<PropTypes, {}> {
     );
   }
 }
+
+export const IFrameHTML = with_font_size_scaling(IFrameHTMLComponent);

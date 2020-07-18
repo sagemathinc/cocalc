@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
  * decaffeinate suggestions:
  * DS001: Remove Babel/TypeScript constructor workaround
  * DS102: Remove unnecessary code created because of implicit returns

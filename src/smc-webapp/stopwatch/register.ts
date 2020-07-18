@@ -1,10 +1,15 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Register the time editor -- stopwatch
   - set the file extension, icon, react component,
     and how to init and remove the actions/store
 */
 
-const { register_file_editor } = require("../project_file");
+import { register_file_editor } from "../project-file";
 import { redux_name, Store, AppRedux } from "../app-framework";
 import { alert_message } from "../alerts";
 

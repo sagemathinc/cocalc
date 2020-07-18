@@ -1,25 +1,9 @@
-//#############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2015 -- 2016, SageMath, Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // CoCalc specific wrapper around the redux library
-//##############################################################################
 
 // Important: code below now assumes that a global variable called "DEBUG" is **defined**!
 declare var DEBUG: boolean, smc;
@@ -45,27 +29,16 @@ import { Table, TableConstructor } from "./app-framework/Table";
 import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 
 // Relative import is temporary, until I figure this out -- needed for *project*
-import { keys, is_valid_uuid_string } from "../smc-util/misc2";
+import { bind_methods, keys, is_valid_uuid_string } from "../smc-util/misc2";
 
-import { AdminUsersActions } from "./admin/users/actions";
-import { AdminUsersStore } from "./admin/users/store";
-
-import { AccountStore, AccountActions } from "./account";
-
-import { MentionsActions, MentionsStore } from "./notifications";
-import { FileUseStore } from "./file-use/store";
-import { FileUseActions } from "./file-use/actions";
 export { TypedMap } from "./app-framework/TypedMap";
 
-// Only import the types
+import { NAME_TYPE as ComputeImageStoreType } from "./custom-software/util";
+
+import * as types from "./app-framework/actions-and-stores";
 declare type ProjectStore = import("./project_store").ProjectStore;
 declare type ProjectActions = import("./project_actions").ProjectActions;
-
-export const COLOR = {
-  BG_RED: "#d9534f", // the red bootstrap color of the button background
-  FG_RED: "#c9302c", // red used for text
-  FG_BLUE: "#428bca", // blue used for text
-};
+export { ProjectStore, ProjectActions };
 
 const action_set_state = function (change) {
   return {
@@ -118,27 +91,10 @@ export class AppRedux {
   private _stores: ClassMap<any, Store<any>>;
   private _actions: ClassMap<any, Actions<any>>;
   private _last_state: redux_state;
+  private changed_stores: Set<string> = new Set([]);
 
   constructor() {
-    this._redux_store_change = this._redux_store_change.bind(this);
-    this.show_state = this.show_state.bind(this);
-    this.log_states = this.log_states.bind(this);
-    this._set_state = this._set_state.bind(this);
-    this.createActions = this.createActions.bind(this);
-    this.getActions = this.getActions.bind(this);
-    this.createStore = this.createStore.bind(this);
-    this.getStore = this.getStore.bind(this);
-    this.createTable = this.createTable.bind(this);
-    this.removeTable = this.removeTable.bind(this);
-    this.removeStore = this.removeStore.bind(this);
-    this.removeActions = this.removeActions.bind(this);
-    this.getTable = this.getTable.bind(this);
-    this.getProjectStore = this.getProjectStore.bind(this);
-    this.getProjectActions = this.getProjectActions.bind(this);
-    this.getProjectTable = this.getProjectTable.bind(this);
-    this.removeProjectReferences = this.removeProjectReferences.bind(this);
-    this.getEditorStore = this.getEditorStore.bind(this);
-    this.getEditorActions = this.getEditorActions.bind(this);
+    bind_methods(this);
     this._tables = {};
     this._redux_store = createReduxStore(redux_app);
     this._stores = {};
@@ -148,6 +104,7 @@ export class AppRedux {
 
   // Only used by tests to completely reset the global redux instance
   __reset(): void {
+    this.changed_stores.clear();
     this._tables = {};
     this._redux_store = createReduxStore(redux_app);
     this._stores = {};
@@ -160,13 +117,15 @@ export class AppRedux {
     if (this._last_state == null) {
       this._last_state = immutable.Map();
     }
-    for (const name in this._stores) {
+    for (const name of this.changed_stores) {
       const store = this._stores[name];
+      if (store == null) continue;
       const s = state.get(name);
       if (this._last_state.get(name) !== s) {
         store._handle_store_change(s);
       }
     }
+    this.changed_stores.clear();
   }
 
   show_state(): void {
@@ -178,7 +137,8 @@ export class AppRedux {
     return this._redux_store.subscribe(this.show_state);
   }
 
-  _set_state(change): void {
+  _set_state(change, store_name: string): void {
+    this.changed_stores.add(store_name);
     this._redux_store.dispatch(action_set_state(change));
   }
 
@@ -205,13 +165,16 @@ export class AppRedux {
     return !!this._actions[name];
   }
 
-  getActions(name: "account"): AccountActions;
-  getActions(name: "projects"): any;
-  getActions(name: "billing"): any;
-  getActions(name: "page"): any;
-  getActions(name: "admin-users"): AdminUsersActions;
-  getActions(name: "mentions"): MentionsActions;
-  getActions(name: "file_use"): FileUseActions | undefined;
+  getActions(name: "account"): types.AccountActions;
+  getActions(name: "projects"): types.ProjectsActions;
+  getActions(name: "billing"): types.BillingActions;
+  getActions(name: "page"): types.PageActions;
+  getActions(name: "users"): types.UsersActions;
+  getActions(name: "support"): types.SupportActions;
+  getActions(name: "admin-users"): types.AdminUsersActions;
+  getActions(name: "admin-site-licenses"): types.SiteLicensesActions;
+  getActions(name: "mentions"): types.MentionsActions;
+  getActions(name: "file_use"): types.FileUseActions;
   getActions(name: { project_id: string }): ProjectActions;
   getActions<T, C extends Actions<T>>(name: string): C;
   getActions<T, C extends Actions<T>>(
@@ -252,13 +215,13 @@ export class AppRedux {
       // Put into store. WARNING: New set_states CAN OVERWRITE THESE FUNCTIONS
       let C = immutable.Map(S as {});
       C = C.delete("redux"); // No circular pointing
-      this._set_state({ [name]: C });
+      this._set_state({ [name]: C }, name);
     }
     if (typeof S.getInitialState === "function") {
       init = S.getInitialState();
     }
     if (init != null) {
-      this._set_state({ [name]: init });
+      this._set_state({ [name]: init }, name);
     }
     return S;
   }
@@ -267,18 +230,23 @@ export class AppRedux {
     return !!this._stores[name];
   }
 
-  getStore(name: "account"): AccountStore;
-  getStore(name: "projects"): any;
-  getStore(name: "billing"): any;
-  getStore(name: "page"): any;
-  getStore(name: "admin-users"): AdminUsersStore;
-  getStore(name: "mentions"): MentionsStore;
-  getStore(name: "file_use"): FileUseStore | undefined;
-  getStore(name: "customize"): any;
-  getStore(name: "users"): any;
+  getStore(name: "account"): types.AccountStore;
+  getStore(name: "projects"): types.ProjectsStore;
+  getStore(name: "billing"): types.BillingStore;
+  getStore(name: "page"): types.PageStore;
+  getStore(name: "support"): types.SupportStore;
+  getStore(name: "admin-users"): types.AdminUsersStore;
+  getStore(name: "admin-site-licenses"): types.SiteLicensesStore;
+  getStore(name: "mentions"): types.MentionsStore;
+  getStore(name: "file_use"): types.FileUseStore;
+  getStore(name: "customize"): types.CustomizeStore;
+  getStore(name: "users"): types.UsersStore;
+  getStore(name: ComputeImageStoreType): types.ComputeImagesStore;
+
   getStore<State>(name: string): Store<State>;
-  getStore<State, C extends Store<State>>(name: string): C | undefined;
-  getStore<State, C extends Store<State>>(name: string): C | undefined {
+  getStore<State, C extends Store<State>>(nam: string): C | undefined;
+  //  getStore<State, C extends Store<State>>(name: string): C | undefined
+  getStore(name) {
     if (!this.hasStore(name)) {
       return undefined;
     }
@@ -295,6 +263,12 @@ export class AppRedux {
     }
     const table = new table_class(name, this);
     return (tables[name] = table);
+  }
+
+  // Set the table; we assume that the table being overwritten
+  // has been cleaned up properly somehow...
+  setTable(name: string, table: Table): void {
+    this._tables[name] = table;
   }
 
   removeTable(name: string): void {
@@ -358,13 +332,16 @@ export class AppRedux {
     });
   }
 
-  // getProject... is safe to call any time. All structures will be created if they don't exist
+  // getProject... is safe to call any time. All structures will be created
+  // if they don't exist
   getProjectStore = (project_id: string): ProjectStore => {
     if (!is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectStore: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
+      // Right now importing project_store breaks the share server,
+      // so we don't yet.
       return require("./project_store").init(project_id, this);
     } else {
       return this.getStore(project_redux_name(project_id)) as any;
@@ -457,7 +434,6 @@ const computed = (rtype) => {
   return clone;
 };
 
-// For backward compatibility
 const rtypes = require("smc-util/opts").types;
 
 /*
@@ -685,7 +661,7 @@ export function project_redux_name(project_id: string, name?: string): string {
   return s;
 }
 
-class Redux extends React.Component {
+export class Redux extends React.Component {
   render() {
     return React.createElement(
       Provider,
@@ -711,8 +687,8 @@ export { rclass }; // use rclass to get access to reduxProps support
 export { rtypes }; // has extra rtypes.immutable, needed for reduxProps to leave value as immutable
 export { computed };
 export { React };
+export type CSS = React.CSSProperties;
 export const { Fragment } = React;
-export { Redux };
 export { redux }; // global redux singleton
 export { Actions };
 export { Table };
@@ -721,6 +697,12 @@ function UNSAFE_NONNULLABLE<T>(arg: T): NonNullable<T> {
   return arg as any;
 }
 export { UNSAFE_NONNULLABLE };
+
+// I'm explicitly disabling using typing with ReactDOM on purpose,
+// because it's basically impossibly to use, and I'll probably get
+// rid of all uses of ReactDOM.findDOMNode anyways.
+//import * as ReactDOM from "react-dom";
+//export { ReactDOM };
 export const ReactDOM = require("react-dom");
 
 if (DEBUG) {
@@ -751,3 +733,7 @@ export function redux_fields(spec) {
   }
   return v;
 }
+
+// Export common React Hooks for convenience:
+export * from "./app-framework/hooks";
+export * from "./app-framework/redux-hooks";

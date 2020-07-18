@@ -1,6 +1,12 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { AppRedux } from "../app-framework";
-// import { webapp_client } from "../webapp-client";
 import { WebappClient } from "../client/client";
+import { bind_methods } from "../../smc-util/misc2";
+
 declare let Primus;
 
 export type TableConstructor<T extends Table> = new (name, redux) => T;
@@ -24,7 +30,7 @@ export abstract class Table {
   }
 
   constructor(name, redux) {
-    this.set = this.set.bind(this);
+    bind_methods(this);
     this.name = name;
     this.redux = redux;
     if (typeof Primus === "undefined" || Primus === null) {

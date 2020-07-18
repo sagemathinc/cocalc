@@ -1,30 +1,12 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
-###
-This is the CoCalc Global HUB.  It runs as a daemon, sitting in the
-middle of the action, connected to potentially thousands of clients,
-many Sage sessions, and PostgreSQL database.  There are
-many HUBs running.
-###
+# This is the CoCalc Global HUB.  It runs as a daemon, sitting in the
+# middle of the action, connected to potentially thousands of clients,
+# many Sage sessions, and PostgreSQL database.  There are
+# many HUBs running.
 
 require('coffee2-cache')
 
@@ -68,6 +50,7 @@ client     = require('./client')
 sage       = require('./sage')               # sage server
 auth       = require('./auth')
 base_url   = require('./base-url')
+{migrate_account_token} = require('./postgres/migrate-account-token')
 
 {handle_mentions_loop} = require('./mentions/handle')
 
@@ -415,6 +398,8 @@ start_landing_service = (cb) ->
     {LandingServer} = require('./landing/landing.ts')
     async.series([
         (cb) ->
+            init_metrics(cb)
+        (cb) ->
             connect_to_database(error:99999, pool:5, cb:cb)
         (cb) ->
             landing_server = new LandingServer(port:program.port, db:database, base_url:BASE_URL)
@@ -473,6 +458,16 @@ stripe_sync = (dump_only, cb) ->
                 cb        : cb
     ], cb)
 
+init_metrics = (cb) ->
+    winston.debug("Initializing Metrics Recorder")
+    MetricsRecorder.init(winston, (err, mr) ->
+        if err?
+            cb(err)
+        else
+            metric_blocked = MetricsRecorder.new_counter('blocked_ms_total', 'accumulates the "blocked" time in the hub [ms]')
+            uncaught_exception_total =  MetricsRecorder.new_counter('uncaught_exception_total', 'counts "BUG"s')
+            cb()
+    )
 
 #############################################
 # Start everything running
@@ -520,15 +515,7 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             if not program.port
                 cb(); return
-            winston.debug("Initializing Metrics Recorder")
-            MetricsRecorder.init(winston, (err, mr) ->
-                if err?
-                    cb(err)
-                else
-                    metric_blocked = MetricsRecorder.new_counter('blocked_ms_total', 'accumulates the "blocked" time in the hub [ms]')
-                    uncaught_exception_total =  MetricsRecorder.new_counter('uncaught_exception_total', 'counts "BUG"s')
-                    cb()
-            )
+            init_metrics(cb)
         (cb) ->
             # this defines the global (to this file) database variable.
             winston.debug("Connecting to the database.")
@@ -550,6 +537,13 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             # This must happen *AFTER* update_schema above.
             init_smc_version(database, cb)
+        (cb) ->
+            try
+                await migrate_account_token(database)
+            catch err
+                cb(err)
+                return
+            cb()
         (cb) ->
             winston.debug("mentions=#{program.mentions}")
             if program.mentions
@@ -840,4 +834,3 @@ command_line = () ->
 
 if process.argv.length > 1
     command_line()
-

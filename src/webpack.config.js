@@ -1,4 +1,11 @@
-// CoCalc, by SageMath, Inc., (c) 2016, 2017 -- License: AGPLv3
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
+ * CoCalc, by SageMath, Inc., (c) 2016, 2017 -- License: AGPLv3
+ */
 
 /*
 * Webpack configuration file
@@ -36,7 +43,7 @@ This webpack config file might look scary, but it only consists of a few moving 
       Some css is inserted, but it doesn't work and no styles are applied. In the end,
       it doesn't matter to load it one way or the other. Furthermore, as .js is even better,
       because the initial page load is instant and doesn't require to get the compiled css styles.
-   2. lib: this is a compilation of the essential js files in webapp-lib (via webapp-lib.coffee)
+   2. lib: this is a compilation of the essential js files in webapp-lib (via webapp-lib.js)
    3. smc: the core smc library. besides this, there are also chunks ([number]-hash.js) that are
       loaded later on demand (read up on `require.ensure`).
       For example, such a chunkfile contains latex completions, the data for the wizard, etc.
@@ -119,6 +126,7 @@ const PRODMODE = NODE_ENV !== DEVEL;
 const COMP_ENV =
   (process.env.CC_COMP_ENV || PRODMODE) &&
   fs.existsSync("webapp-lib/compute-components.json");
+const COMMERCIAL = !!COMP_ENV; // assume to be in the commercial setup, if we show the compute environment
 let { CDN_BASE_URL } = process.env; // CDN_BASE_URL must have a trailing slash
 const DEVMODE = !PRODMODE;
 const MINIFY = !!process.env.WP_MINIFY;
@@ -298,23 +306,36 @@ while (base_url_html && base_url_html[base_url_html.length - 1] === "/") {
 // this is the main app.html file, which should be served without any caching
 // config: https://github.com/jantimon/html-webpack-plugin#configuration
 const pug2app = new HtmlWebpackPlugin({
-  date: BUILD_DATE,
-  title: TITLE,
-  description: DESCRIPTION,
-  BASE_URL: base_url_html,
-  theme,
-  COMP_ENV,
-  components: {}, // no data needed, empty is fine
-  inventory: {}, // no data needed, empty is fine
-  git_rev: GIT_REV,
-  mathjax: MATHJAX_URL,
   filename: "app.html",
   chunksSortMode: smcChunkSorter,
-  inject: "body",
   hash: PRODMODE,
   template: path.join(INPUT, "app.pug"),
   minify: htmlMinifyOpts,
-  GOOGLE_ANALYTICS,
+  inject: false,
+  templateParameters: function (compilation, assets, options) {
+    return {
+      files: assets,
+      htmlWebpackPlugin: {
+        options: {
+          ...options,
+          ...{
+            date: BUILD_DATE,
+            title: TITLE,
+            description: DESCRIPTION,
+            BASE_URL: base_url_html,
+            theme,
+            COMP_ENV,
+            components: {}, // no data needed, empty is fine
+            inventory: {}, // no data needed, empty is fine
+            git_rev: GIT_REV,
+            mathjax: MATHJAX_URL,
+            GOOGLE_ANALYTICS,
+            COMMERCIAL,
+          },
+        },
+      },
+    };
+  },
 });
 
 // global css loader configuration
@@ -371,9 +392,9 @@ plugins.push(...[setNODE_ENV, banner, loaderOptions]);
 
 // ATTN don't alter or add names here, without changing the sorting function above!
 entries = {
-  css: "webapp-css.coffee",
+  css: "webapp-css.js",
   fill: "@babel/polyfill",
-  smc: "webapp-smc.coffee",
+  smc: "webapp-cocalc.js",
   // code splitting: we take all of our vendor code and put it in a separate bundle (vendor.min.js)
   // this way it will have better caching/cache hits since it changes infrequently
   vendor: [
@@ -412,8 +433,7 @@ if (!DISABLE_TS_LOADER_OPTIMIZATIONS) {
       //     TSC_WATCHFILE=UseFsEventsWithFallbackDynamicPolling
       // in package.json's watch. See
       //  https://blog.johnnyreilly.com/2019/05/typescript-and-high-cpu-usage-watch.html
-      async: false,
-      measureCompilationTime: true,
+      async: true,
     })
   );
 }
@@ -485,15 +505,16 @@ module.exports = {
   optimization: {
     minimizer: [minimizer],
 
-    splitChunks: {
-      cacheGroups: {
-        commons: {
-          test: /[\\/]node_modules[\\/]/,
-          name: "vendor",
-          chunks: "all",
-        },
-      },
-    },
+    // this doesn't play nice with a loading indicator on the app page. probably best to not use it.
+    //splitChunks: {
+    //  cacheGroups: {
+    //    commons: {
+    //      test: /[\\/]node_modules[\\/]/,
+    //      name: "vendor",
+    //      chunks: "all",
+    //    },
+    //  },
+    //},
   },
 
   entry: entries,

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 nbgrader functionality: the create assignment toolbar.
 <Form inline>
   <FormGroup controlId="formInlineName">
@@ -154,7 +159,9 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
   }
 
   private set_grade_id(grade_id: string): void {
-    // TODO: check globally unique... or change to always just equal the cell id...
+    // TODO: check globally unique...?
+    // DO NOT allow whitespace (see https://github.com/sagemathinc/cocalc/issues/4743):
+    grade_id = grade_id.replace(/\s+/g, "");
     this.props.actions.nbgrader_actions.set_metadata(
       this.props.cell.get("id"),
       { grade_id }

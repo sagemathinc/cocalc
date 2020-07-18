@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Importing from an ipynb object (in-memory version of .ipynb file)
 */
 
@@ -20,7 +25,7 @@ const DEFAULT_IPYNB = {
     language_info: undefined,
   },
   nbformat: 4,
-  nbformat_minor: 0,
+  nbformat_minor: 4,
 };
 
 export class IPynbImporter {

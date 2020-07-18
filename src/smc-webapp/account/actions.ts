@@ -1,3 +1,9 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { fromJS } from "immutable";
 import { Actions } from "../app-framework/Actions";
 
 import { webapp_client } from "../webapp-client";
@@ -13,30 +19,12 @@ import * as misc from "smc-util/misc2";
 import { server_days_ago } from "smc-util/misc";
 import { define, required } from "smc-util/fill";
 
+import { set_url } from "../history";
+
 // Define account actions
 export class AccountActions extends Actions<AccountState> {
   private _last_history_state: string;
   private account_client: AccountClient = webapp_client.account_client;
-
-  constructor(name, redux) {
-    super(name, redux);
-    misc.bind_methods(this, [
-      "_init",
-      "derive_show_global_info",
-      "set_user_type",
-      "sign_in",
-      "create_account",
-      "delete_account",
-      "forgot_password",
-      "reset_password",
-      "sign_out",
-      "push_state",
-      "set_active_tab",
-      "add_ssh_key",
-      "delete_ssh_key",
-      "help",
-    ]);
-  }
 
   _init(store): void {
     store.on("change", this.derive_show_global_info);
@@ -101,7 +89,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
         email_address: email,
         password,
         remember_me: true,
-        get_api_key: this.redux.getStore("page").get("get_api_key"),
+        get_api_key: !!this.redux.getStore("page").get("get_api_key"),
       });
     } catch (err) {
       this.setState({
@@ -149,11 +137,13 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
         usage_intent,
         agreed_to_terms: true, // since never gets called if not set in UI
         token,
-        get_api_key: this.redux.getStore("page").get("get_api_key"),
+        get_api_key: !!this.redux.getStore("page").get("get_api_key"),
       });
     } catch (err) {
       // generic error.
-      this.setState({ sign_up_error: { generic: JSON.stringify(err) } });
+      this.setState(
+        fromJS({ sign_up_error: { generic: JSON.stringify(err) } })
+      );
       return;
     } finally {
       this.setState({ signing_up: false });
@@ -164,8 +154,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
         return;
       case "signed_in":
         this.redux.getActions("page").set_active_tab("projects");
-        const { analytics_event, track_conversion } = require("../misc_page");
-        analytics_event("account", "create_account"); // user created an account
+        const { track_conversion } = require("../misc_page");
         track_conversion("create_account");
         return;
       default:
@@ -247,18 +236,9 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     // disable redirection from main index page to landing page
     // (existence of cookie signals this is a known client)
     // note: similar code is in account.coffee → signed_in
-    let { APP_BASE_URL, analytics_event } = require("../misc_page");
+    let { APP_BASE_URL } = require("../misc_page");
     const exp = server_days_ago(-30).toGMTString();
     document.cookie = `${APP_BASE_URL}has_remember_me=false; expires=${exp} ;path=/`;
-
-    // record this event
-    let evt = "sign_out";
-    if (everywhere) {
-      evt += "_everywhere";
-    }
-
-    analytics_event("account", evt); // user explicitly signed out.
-
     // Send a message to the server that the user explicitly
     // requested to sign out.  The server must clean up resources
     // and *invalidate* the remember_me cookie for this client.
@@ -286,8 +266,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     window.location = (APP_BASE_URL + "/" + (sign_in ? "app" : "")) as any;
   }
 
-  push_state(url: string): void {
-    const { set_url } = require("../history");
+  push_state(url?: string): void {
     if (url == null) {
       url = this._last_history_state;
     }
@@ -300,6 +279,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
 
   public set_active_tab(tab: string): void {
     this.setState({ active_page: tab });
+    this.push_state("/" + tab);
   }
 
   // Add an ssh key for this user, with the given fingerprint, title, and value
@@ -331,5 +311,9 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
         [fingerprint]: null,
       },
     }); // null is how to tell the backend/synctable to delete this...
+  }
+
+  public set_account_table(obj: object): void {
+    this.redux.getTable("account").set(obj);
   }
 }

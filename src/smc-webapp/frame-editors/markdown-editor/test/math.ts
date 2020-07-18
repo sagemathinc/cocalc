@@ -1,4 +1,7 @@
-/* Test rendering of math */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import {
   TestEditor,
@@ -9,6 +12,7 @@ import {
 } from "../../generic/test/util";
 
 describe("Markdown - test rendering of math", function () {
+  // @ts-ignore
   this.timeout(5000);
 
   describe("open file, set various math content and observe the result", function () {

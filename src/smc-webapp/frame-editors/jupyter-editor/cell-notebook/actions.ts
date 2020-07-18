@@ -1,3 +1,12 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
+ * license
+ */
+
 import { Set } from "immutable";
 import { delay } from "awaiting";
 
@@ -65,6 +74,10 @@ export class NotebookFrameActions {
     this.windowed_list_ref = windowed_list_ref;
   }
 
+  public set_cell_list_div(node) {
+    this.cell_list_div = $(node);
+  }
+
   private init_syncdb_change_hook(): void {
     this.jupyter_actions.store.on(
       "syncdb-before-change",
@@ -94,7 +107,10 @@ export class NotebookFrameActions {
   */
   private compute_cell_position(id: string): number | undefined {
     const windowed_list = this.get_windowed_list();
-    if (windowed_list == null) return;
+    if (windowed_list == null) {
+      // directly use the DOM since not using windowed list
+      return $(this.cell_list_div).find(`#${id}`).offset()?.top;
+    }
 
     const cell_list = this.jupyter_actions.store.get("cell_list").toArray();
     let computed: number = 0;
@@ -109,9 +125,7 @@ export class NotebookFrameActions {
 
   // maintain scroll hook on change; critical for multiuser editing
   private syncdb_before_change(): void {
-    const windowed_list = this.get_windowed_list();
-    if (windowed_list == null) return;
-    windowed_list.disable_refresh();
+    this.get_windowed_list()?.disable_refresh();
     const cur_id = this.store.get("cur_id");
     const pos = this.compute_cell_position(cur_id);
     this.scroll_before_change = pos;
@@ -119,8 +133,6 @@ export class NotebookFrameActions {
   }
 
   private async syncdb_after_change(): Promise<void> {
-    const windowed_list = this.get_windowed_list();
-    if (windowed_list == null) return;
     try {
       const id = this.cur_id_before_change;
       if (this.scroll_before_change == null || id == null) {
@@ -138,20 +150,27 @@ export class NotebookFrameActions {
       let diff = after - this.scroll_before_change;
       if (after != this.scroll_before_change) {
         this.scroll(diff);
-        windowed_list.enable_refresh();
-        windowed_list.refresh();
+        const windowed_list = this.get_windowed_list();
+        if (windowed_list != null) {
+          windowed_list.enable_refresh();
+          windowed_list.refresh();
+          this.scroll_before_change = after;
+          await delay(0);
+          if (this.frame_id == null) return; // closed
+          after = this.compute_cell_position(id);
+          if (after == null) return;
+          diff = after - this.scroll_before_change;
+          this.scroll_before_change = after; // since we have compensated for it.
+          this.scroll(diff);
+        }
         this.scroll_before_change = after;
       }
-      await delay(0);
-      if (this.frame_id == null) return; // closed
-      after = this.compute_cell_position(id);
-      if (after == null) return;
-      diff = after - this.scroll_before_change;
-      this.scroll_before_change = after; // since we have compensated for it.
-      this.scroll(diff);
     } finally {
-      windowed_list.enable_refresh();
-      windowed_list.refresh();
+      const windowed_list = this.get_windowed_list();
+      if (windowed_list != null) {
+        windowed_list.enable_refresh();
+        windowed_list.refresh();
+      }
     }
   }
 

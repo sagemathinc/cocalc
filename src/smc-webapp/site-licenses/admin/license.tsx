@@ -1,8 +1,14 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import * as jsonic from "jsonic";
 import { React, Rendered, Component, TypedMap } from "../../app-framework";
 import { DebounceInput } from "react-debounce-input";
 import { SiteLicense } from "./types";
 import { actions } from "./actions";
-import { Button, ButtonGroup } from "../../antd-bootstrap";
+import { Button } from "../../antd-bootstrap";
 import { Alert, Row, Col } from "antd";
 import { license_fields, license_field_type } from "./types";
 import {
@@ -13,7 +19,14 @@ import {
   plural,
 } from "smc-util/misc2";
 import { hours_ago, days_ago, weeks_ago, months_ago } from "smc-util/misc";
-import { CopyToClipBoard, DateTimePicker, TimeAgo, Icon } from "../../r_misc";
+import {
+  A,
+  CopyToClipBoard,
+  DateTimePicker,
+  TimeAgo,
+  Icon,
+  Space,
+} from "../../r_misc";
 import { Checkbox } from "../../antd-bootstrap";
 import {
   DisplayUpgrades,
@@ -21,7 +34,9 @@ import {
   scale_by_display_factors,
 } from "./upgrades";
 import { Projects } from "../../admin/users/projects";
-import { DisplayManagers, EditManagers } from "./managers";
+import { Managers } from "./managers";
+import { UserMap } from "../../todo-types";
+import { ManagerInfo } from "./types";
 
 const BACKGROUNDS = ["white", "#f8f8f8"];
 
@@ -32,6 +47,8 @@ interface Props {
   license: TypedMap<SiteLicense>;
   edits?: TypedMap<SiteLicense>;
   usage_stats?: number; // for now this is just the number of projects running right now with the license; later it might have hourly/daily/weekly, active, etc.
+  user_map?: UserMap;
+  manager_info?: ManagerInfo;
 }
 
 function format_as_label(field: string): string {
@@ -156,11 +173,11 @@ export class License extends Component<Props> {
           break;
         case "account_id[]":
           x = (
-            <EditManagers
+            <Managers
               managers={val}
-              onChange={onChange}
+              user_map={this.props.user_map}
               license_id={this.props.license.get("id")}
-              license_field={field}
+              manager_info={this.props.manager_info}
             />
           );
           break;
@@ -195,20 +212,37 @@ export class License extends Component<Props> {
           );
           break;
         case "map":
+          let value: string = "";
+          if (val) {
+            if (typeof val != "string") {
+              value = JSON.stringify(val, undefined, 2);
+            } else {
+              value = val;
+            }
+          }
           x = (
-            <DebounceInput
-              element="textarea"
-              forceNotifyByEnter={false}
-              placeholder={
-                '{"invoice_id":"some-structured-JSON-data", "stripe_id": "more-data"}'
-              }
-              style={merge({ width: "100%" }, INPUT_STYLE)}
-              rows={4}
-              value={
-                typeof val == "string" ? val : JSON.stringify(val, undefined, 2)
-              }
-              onChange={(e) => onChange((e.target as any).value)}
-            />
+            <div>
+              <DebounceInput
+                element="textarea"
+                forceNotifyByEnter={false}
+                placeholder={
+                  '{"invoice_id":"some-structured-JSON-data", "stripe_id": "more-data"}'
+                }
+                style={merge({ width: "100%" }, INPUT_STYLE)}
+                rows={4}
+                value={value}
+                onChange={(e) => onChange((e.target as any).value)}
+                onBlur={() =>
+                  onChange(JSON.stringify(jsonic(value), undefined, 2))
+                }
+              />
+              <br />
+              Input forgivingly parsed using{" "}
+              <A href="https://github.com/rjrodger/jsonic/blob/master/README.md">
+                jsonic
+              </A>
+              ; deleting fields is not implemented.
+            </div>
           );
           break;
         case "readonly":
@@ -229,7 +263,7 @@ export class License extends Component<Props> {
                 background: val ? undefined : "yellow",
               }}
             >
-              {val ? val : "Please enter a description"}
+              {val ? val : "Enter a description"}
             </div>
           );
           break;
@@ -241,7 +275,7 @@ export class License extends Component<Props> {
                 background: val ? undefined : "yellow",
               }}
             >
-              {val ? val : "Please enter a title"}
+              {val ? val : "Enter a title"}
             </div>
           );
           break;
@@ -255,8 +289,8 @@ export class License extends Component<Props> {
             if (!val) {
               x = (
                 <span style={{ background: "yellow" }}>
-                  <Icon name="warning" /> Never expires -- you should probably
-                  set an expiration date
+                  <Icon name="warning" /> Never expires -- set an expiration
+                  date
                 </span>
               );
             } else if (val <= new Date()) {
@@ -282,8 +316,8 @@ export class License extends Component<Props> {
                     color: "white",
                   }}
                 >
-                  <Icon name="warning" /> Never actives -- please set an
-                  activation date!
+                  <Icon name="warning" /> Never actives -- set an activation
+                  date!
                 </div>
               );
             } else if (val > new Date()) {
@@ -303,7 +337,14 @@ export class License extends Component<Props> {
           }
           break;
         case "account_id[]":
-          x = <DisplayManagers managers={val} />;
+          x = (
+            <Managers
+              managers={val}
+              user_map={this.props.user_map}
+              license_id={this.props.license.get("id")}
+              manager_info={this.props.manager_info}
+            />
+          );
           break;
         case "upgrades":
           x = <DisplayUpgrades upgrades={val} />;
@@ -329,7 +370,7 @@ export class License extends Component<Props> {
               background: "yellow",
             }}
           >
-            <Icon name="warning" /> No limit -- you should probably set a limit
+            <Icon name="warning" /> No limit -- set a limit
           </div>
         );
       }
@@ -447,13 +488,14 @@ export class License extends Component<Props> {
     const id = this.props.license.get("id");
     if (this.props.editing) {
       buttons = (
-        <ButtonGroup>
+        <>
           <Button
             onClick={() => actions.cancel_editing(id)}
             disabled={this.props.saving}
           >
             Cancel
           </Button>
+          <Space />
           <Button
             disabled={
               this.props.edits == null ||
@@ -465,7 +507,7 @@ export class License extends Component<Props> {
           >
             <Icon name={"save"} /> {this.props.saving ? "Saving..." : "Save"}
           </Button>
-        </ButtonGroup>
+        </>
       );
     } else {
       buttons = <Button onClick={() => actions.start_editing(id)}>Edit</Button>;

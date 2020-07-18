@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /**
  * Sets up some hooks for webapp_client
  * This file is all side effects.
@@ -10,7 +15,6 @@ import * as misc from "smc-util/misc";
 import { webapp_client } from "./webapp-client";
 
 const {
-  analytics_event,
   APP_BASE_URL,
   should_load_target_url,
   get_cookie,
@@ -21,12 +25,10 @@ import { reset_password_key } from "./client/password-reset";
 let first_login = true;
 
 // load more of the app now that user is logged in.
-// TODO: Check for side effects otherwise this is unecessary...
-// projects.cjsx definitely has side effects
 const load_app = (cb) =>
   (require as any).ensure([], function () {
-    require("./r_account.cjsx"); // initialize react-related account page
-    require("./projects.cjsx"); // initialize project listing
+    require("./account/account-page"); // initialize react-related account page
+    require("./projects/actions"); // initialize projects list
     cb();
   });
 
@@ -41,7 +43,8 @@ webapp_client.on("mesg_info", function (info) {
   setTimeout(f, 1);
 });
 
-const signed_in = function (mesg) {
+import { load_target } from "./history";
+function signed_in(mesg) {
   // the has_remember_me cookie is for usability: After a sign in we "mark" this client as being "known"
   // next time the main landing page is visited, haproxy or hub will redirect to the client
   // note: similar code is in account/AccountActions.ts → AccountActions::sign_out
@@ -49,16 +52,14 @@ const signed_in = function (mesg) {
   document.cookie = `${APP_BASE_URL}has_remember_me=true; expires=${exp} ;path=/`;
   // Record which hub we're connected to.
   redux.getActions("account").setState({ hub: mesg.hub });
-  require("./file-use/init"); // initialize file_use notifications
   console.log(`Signed into ${mesg.hub} at ${new Date()}`);
   if (first_login) {
     first_login = false;
-    analytics_event("account", "signed_in"); // user signed in
     if (!should_load_target_url()) {
-      load_app(() => require("./history").load_target("projects"));
+      load_app(() => load_target("projects"));
     }
   }
-};
+}
 // loading a possible target is done after restoring a session -- see session.coffee
 
 // Listen for pushed sign_in events from the server.  This is one way that

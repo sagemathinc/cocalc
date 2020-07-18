@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Rst Editor Actions
 */
 
@@ -50,6 +55,19 @@ export class Actions extends CodeEditorActions {
           type: "rst",
         },
       };
+    }
+  }
+
+  reload(id: string, hash?: number) {
+    const node = this._get_frame_node(id);
+    if (!node) return;
+    const type = node.get("type");
+    if (type === "cm") {
+      this._run_rst2html();
+    } else {
+      // the html editor, which also has an iframe, calls somehow super.reload
+      hash = hash || new Date().getTime();
+      this.set_reload("rst", hash);
     }
   }
 

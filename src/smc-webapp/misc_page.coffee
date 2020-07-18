@@ -1,30 +1,15 @@
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
+## TODO: rewrite/refactor this in typescript and move to misc-page/
 
 $ = window.$
 
 {IS_MOBILE} = require('./feature')
 misc        = require('smc-util/misc')
 {dmp}       = require('smc-util/sync/editor/generic/util')
-buttonbar   = require('./buttonbar')
 markdown    = require('./markdown')
 theme       = require('smc-util/theme')
 {QueryParams} = require('./misc/query-params')
@@ -75,9 +60,9 @@ exports.is_enter       = (e) -> e.which is 13 and not e.shiftKey
 exports.is_ctrl_enter  = (e) -> e.which is 13 and e.ctrlKey
 exports.is_escape      = (e) -> e.which is 27
 
-{join} = require('path')
-exports.APP_BASE_URL = window?.app_base_url ? ''
-exports.BASE_URL = if window? then "#{window.location.protocol}//#{join(window.location.hostname, window.app_base_url ? '')}" else theme.DOMAIN_NAME
+base_url_lib = require("./misc/base-url")
+exports.APP_BASE_URL = base_url_lib.APP_BASE_URL
+exports.BASE_URL = base_url_lib.BASE_URL
 
 local_diff = exports.local_diff = (before, after) ->
     # Return object
@@ -532,7 +517,6 @@ exports.cm_define_diffApply_extension = (cm) ->
         pos = {line:0, ch:0}  # start at the beginning
         last_pos = undefined
         for chunk in diff
-            #console.log(chunk)
             op  = chunk[0]  # 0 = stay same; -1 = delete; +1 = add
             val = chunk[1]  # the actual text to leave same, delete, or add
             pos1 = next_pos(val, pos)
@@ -776,10 +760,14 @@ exports.define_codemirror_extensions = () ->
         if changeObj?
             @apply_changeObj(changeObj)
 
-    # Set the value of the buffer to something new by replacing just the ranges
-    # that changed, so that the view/history/etc. doesn't get messed up.
-    # Setting scroll_last to ture sets cursor to last changed position and puts cursors
+    # Try to set the value of the buffer to something new by replacing just the ranges
+    # that changed, so that the viewport/history/etc. doesn't get messed up.
+    # Setting scroll_last to true sets cursor to last changed position and puts cursors
     # there; this is used for undo/redo.
+    # **NOTE:** there are no guarantees, since if the patch to transform from  current to
+    # value involves a "huge" (at least 500) number of chunks, then we just set the value
+    # directly since apply thousands of chunks will lock the cpu for seconds.  This will
+    # slightly mess up the scroll position, undo position, etc.  It's worth it.
     CodeMirror.defineExtension 'setValueNoJump', (value, scroll_last) ->
         if not value?
             # Special case -- trying to set to value=undefined.  This is the sort of thing
@@ -789,7 +777,7 @@ exports.define_codemirror_extensions = () ->
             return
         current_value = @getValue()
         if value == current_value
-            # Nothing to do
+            # Special case: nothing to do
             return
 
         r = @getOption('readOnly')
@@ -802,9 +790,23 @@ exports.define_codemirror_extensions = () ->
         b      = @setBookmark(line:@lineAtHeight(t, 'local'))
         before = @heightAtLine(@lineAtHeight(t, 'local'))
 
-        # Change the buffer in place by applying the diffs as we go; this avoids replacing the entire buffer,
-        # which would cause total chaos.
-        last_pos = @diffApply(dmp.diff_main(current_value, value))
+        # Compute patch that transforms current_value to new value:
+        diff = dmp.diff_main(current_value, value)
+        if diff.length >= 500
+            # special case -- a really weird change that will take
+            # an enormous amount of time to apply using diffApply.
+            # For example, something that changes every line in a file
+            # slightly could do this.  In this case, instead of blocking
+            # the user browser for several seconds, we just take the
+            # hit and possibly unset the cursor.  Most diffs involve
+            # a much smaller number of patches.
+            scroll = @getScrollInfo().top - (before - @heightAtLine(b.find().line))
+            @setValue(value)
+            @scrollTo(undefined, scroll)  # make some attempt to fix scroll.
+        else
+            # Change the buffer in place by applying the diffs as we go; this avoids replacing the entire buffer,
+            # which would cause total chaos.
+            last_pos = @diffApply(diff)
 
         # Now, if possible, restore the exact scroll position.
         n = b.find()?.line
@@ -1019,8 +1021,6 @@ exports.define_codemirror_extensions = () ->
         CodeMirror.registerHelper("hint", "stex", tex_hint)
 
 
-    EDIT_COMMANDS = buttonbar.commands
-
     CodeMirror.defineExtension 'get_edit_mode', (opts) ->
         opts = defaults opts, {}
         cm = @
@@ -1091,6 +1091,14 @@ exports.define_codemirror_extensions = () ->
                     return src.slice(0,i) + src.slice(i+left.length,j) + src.slice(j+right.length)
 
         selections = cm.listSelections()
+
+        # TODO: can't be at top level because misc_page gets imported by
+        # share server; fix will be moving these extension definitions
+        # to their own module, when refactoring this file.
+        buttonbar = require('./editors/editor-button-bar')
+        EDIT_COMMANDS = buttonbar.commands
+        FONT_FACES = buttonbar.FONT_FACES
+
         #selections.reverse()
         for selection in selections
             mode = canonical_mode(cm.getModeAt(selection.head).name)
@@ -1667,8 +1675,6 @@ exports.define_codemirror_extensions = () ->
     #CodeMirror.defineExtension 'setLine', (n, value) ->
     #    @replaceRange()
 
-FONT_FACES = buttonbar.FONT_FACES
-
 cm_start_end = (selection) ->
     {head, anchor} = selection
     start = head
@@ -1756,7 +1762,7 @@ exports.load_coffeescript_compiler = (cb) ->
 
 # Convert html to text safely using jQuery (see http://api.jquery.com/jquery.parsehtml/)
 
-exports.html_to_text = (html) -> $($.parseHTML(html)).text()
+exports.html_to_text = require('./misc-page').html_to_text
 
 exports.language = () ->
     (if navigator?.languages then navigator?.languages[0] else (navigator?.language or navigator?.userLanguage))
@@ -1837,27 +1843,6 @@ return _sanitize_html_lib html,
         allowedAttributes: _sanitize_html_allowedAttributes
 ###
 
-# `analytics` is a generalized wrapper for reporting data to google analytics, pwiki, parsley, ...
-# for now, it either does nothing or works with GA
-# this API basically allows to send off events by name and category
-
-exports.analytics = (type, args...) ->
-    # GoogleAnalyticsObject contains the possibly customized function name of GA.
-    # It's a good idea to call it differently from the default 'ga' to avoid name clashes...
-    if window.GoogleAnalyticsObject?
-        ga = window[window.GoogleAnalyticsObject]
-        if ga?
-            switch type
-                when 'event', 'pageview'
-                    ga('send', type, args...)
-                else
-                    console.warn("unknown analytics event '#{type}'")
-
-exports.analytics_pageview = (args...) ->
-    exports.analytics('pageview', args...)
-
-exports.analytics_event = (args...) ->
-    exports.analytics('event', args...)
 
 # conversion tracking (commercial only)
 exports.track_conversion = (type, amount) ->
@@ -1891,9 +1876,9 @@ exports.drag_stop_iframe_enable = ->
 
 # for backward compatibility, and no circular import
 exports.open_popup_window = (args...) ->
-    require('./r_misc/open-browser-tab').open_popup_window(args...)
+    require('./misc-page/open-browser-tab').open_popup_window(args...)
 exports.open_new_tab = (args...) ->
-    require('./r_misc/open-browser-tab').open_new_tab(args...)
+    require('./misc-page/open-browser-tab').open_new_tab(args...)
 
 
 exports.get_cookie = (name) ->
@@ -1911,15 +1896,6 @@ exports.set_cookie = (name, value, days) ->
         date.setTime(date.getTime() + (days*24*60*60*1000))
         expires = "; expires=" + date.toUTCString()
     document.cookie = name + "=" + value + expires + "; path=/"
-
-# see http://stackoverflow.com/questions/3169786/clear-text-selection-with-javascript
-exports.clear_selection = ->
-    if window.getSelection?().empty?
-        window.getSelection().empty() # chrome
-    else if window.getSelection?().removeAllRanges?
-        window.getSelection().removeAllRanges() # firefox
-    else
-        document.selection?.empty?()
 
 # returns true, if a target page should be loaded
 exports.should_load_target_url = ->

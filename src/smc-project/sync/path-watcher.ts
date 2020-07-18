@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Slightly generalized fs.watch that works even when the directory doesn't exist,
 but also doesn't provide any information about what changed.
 

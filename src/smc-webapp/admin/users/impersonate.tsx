@@ -1,9 +1,14 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React, Component, Rendered } from "smc-webapp/app-framework";
 
 import { Loading } from "../../r_misc";
 const { APP_BASE_URL } = require("../../misc_page");
 
-const { webapp_client } = require("../../webapp_client");
+import { webapp_client } from "../../webapp-client";
 
 interface Props {
   account_id: string;
@@ -41,16 +46,21 @@ export class Impersonate extends Component<Props, State> {
     if (this.state.auth_token == null) {
       return <Loading />;
     }
+    const link = `${APP_BASE_URL}/settings/support/app?auth_token=${this.state.auth_token}`;
     return (
-      <a
-        href={`${APP_BASE_URL}/app?auth_token=${this.state.auth_token}`}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Right click and open this link in a new incognito window, where you will
-        be signed in as {this.props.first_name} {this.props.last_name}... Sign
-        out when done.
-      </a>
+      <div>
+        <a href={link} target="_blank" rel="noopener noreferrer">
+          Right click and open this link in a new incognito window, where you
+          will be signed in as {this.props.first_name} {this.props.last_name}...
+        </a>
+        <br />
+        The actual link:
+        <pre style={{ fontSize: "11pt", textAlign: "center" }}>
+          <a href={link} target="_blank" rel="noopener noreferrer">
+            {link}
+          </a>
+        </pre>
+      </div>
     );
   }
 
@@ -76,7 +86,7 @@ export class Impersonate extends Component<Props, State> {
         }}
       >
         <b>
-          Impersonate {this.props.first_name} {this.props.last_name}
+          Impersonate user "{this.props.first_name} {this.props.last_name}"
         </b>
         <br />
         {this.render_err()}

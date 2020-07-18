@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 Add collaborators to a project
 ###
@@ -8,7 +13,7 @@ Add collaborators to a project
 
 {Icon, LabeledRow, Loading, MarkdownInput, SearchInput, ErrorDisplay, TimeAgoElement} = require('../r_misc')
 
-{webapp_client}      = require('../webapp_client')
+{webapp_client}      = require('../webapp-client')
 
 { has_internet_access } = require("../upgrades/upgrade-utils");
 

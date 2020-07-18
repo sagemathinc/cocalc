@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Settings and configuration for editing this file.
 */
 
@@ -52,6 +57,9 @@ export class Settings extends Component<Props, {}> {
         // we could delete it like so -- this.props.actions.set_settings({[key]:null});
       }
     });
+    if (v.length == 0) {
+      v.push(<div>This editor currently has no configurable settings.</div>);
+    }
     return v;
   }
 

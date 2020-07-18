@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // 3rd Party Libraries
 import * as markdown from "../markdown";
 import { Button, ButtonToolbar, FormControl, FormGroup } from "react-bootstrap";
@@ -30,6 +35,13 @@ export function init(): void {
     MarkdownWidgetActions
   );
 }
+
+// separate string, in particular the `>` char is ambiguous in newer TSX
+export const TIP_TEXT = `\
+You may enter (Github flavored) markdown here. In particular, use #
+for headings, > for block quotes, *'s for italic text, **'s for bold
+text, - at the beginning of a line for lists, back ticks \` for code,
+and URL's will automatically become links.`;
 
 interface ReactProps {
   autoFocus: boolean;
@@ -194,14 +206,7 @@ class MarkdownInput0 extends Component<
     // Required here because of circular requiring otherwise.
     const { Tip, Icon } = require("../r_misc");
     if (this.state.editing || this.props.editing) {
-      const tip = (
-        <span>
-          You may enter (Github flavored) markdown here. In particular, use #
-          for headings, > for block quotes, *'s for italic text, **'s for bold
-          text, - at the beginning of a line for lists, back ticks ` for code,
-          and URL's will automatically become links.
-        </span>
-      );
+      const tip = <span>{TIP_TEXT}</span>;
       return (
         <div>
           <form onSubmit={this.save} style={{ marginBottom: "-20px" }}>
@@ -215,9 +220,11 @@ class MarkdownInput0 extends Component<
                 rows={this.props.rows != null ? this.props.rows : 4}
                 placeholder={this.props.placeholder}
                 value={this.state.value}
-                onChange={() =>
-                  this.set_value(ReactDOM.findDOMNode(this.refs.input).value)
-                }
+                onChange={() => {
+                  const value = ReactDOM.findDOMNode(this.refs.input)?.value;
+                  if (value == null) return;
+                  this.set_value(value);
+                }}
                 onKeyDown={this.keydown}
               />
             </FormGroup>

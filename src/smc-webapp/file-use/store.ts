@@ -1,13 +1,19 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { fromJS, List as iList, Map as iMap } from "immutable";
 import { Store } from "../app-framework";
-const { webapp_client } = require("../webapp_client");
-const misc = require("smc-util/misc");
-const { sha1 } = require("smc-util/schema").client_db;
+import { webapp_client } from "../webapp-client";
+import { cmp, max } from "smc-util/misc";
+import { client_db } from "smc-util/schema";
+const { sha1 } = client_db;
 
 export interface FileUseState {
   errors?: iList<string>;
   file_use?: iMap<string, any>;
-  notify_count?: number;
+  notify_count: number;
 }
 
 export class FileUseStore extends Store<FileUseState> {
@@ -17,26 +23,6 @@ export class FileUseStore extends Store<FileUseState> {
   private _account_id: string;
   private _cache_init: boolean = false;
   private _cache: any;
-
-  constructor(name, redux) {
-    super(name, redux);
-    this.get_errors = this.get_errors.bind(this);
-    this._initialize_cache = this._initialize_cache.bind(this);
-    this.clear_cache = this.clear_cache.bind(this);
-    this._search = this._search.bind(this);
-    this._process_users = this._process_users.bind(this);
-    this.get_notify_count = this.get_notify_count.bind(this);
-    this.get_sorted_file_use_list = this.get_sorted_file_use_list.bind(this);
-    this.get_sorted_file_use_list2 = this.get_sorted_file_use_list2.bind(this);
-    this.get_file_info = this.get_file_info.bind(this);
-    this.get_project_info = this.get_project_info.bind(this);
-    this.get_file_use_map = this.get_file_use_map.bind(this);
-    this._update_cache = this._update_cache.bind(this);
-    this.get_all_unread = this.get_all_unread.bind(this);
-    this.get_all_unseen = this.get_all_unseen.bind(this);
-    this.get_active_users = this.get_active_users.bind(this);
-    this.get_video_chat_users = this.get_video_chat_users.bind(this);
-  }
 
   get_errors(): iList<string> {
     return this.get("errors", iList()) as iList<string>;
@@ -123,7 +109,7 @@ export class FileUseStore extends Store<FileUseState> {
         you_last_read = user.last_read;
         you_last_chatseen = user.chatseen != null ? user.chatseen : 0;
       } else {
-        other_newest_edit_or_chat = misc.max([
+        other_newest_edit_or_chat = max([
           other_newest_edit_or_chat,
           user.last_edited,
           user.chat != null ? user.chat : 0,
@@ -132,7 +118,7 @@ export class FileUseStore extends Store<FileUseState> {
       v.push(user);
     }
     // sort users by their edit/chat time
-    v.sort((a, b) => misc.cmp(b.last_edited, a.last_edited));
+    v.sort((a, b) => cmp(b.last_edited, a.last_edited));
     y.users = v;
     y.newest_chat = newest_chat;
     if (y.last_edited == null) {
@@ -276,7 +262,7 @@ export class FileUseStore extends Store<FileUseState> {
         w2.push(a);
       }
     }
-    const c = (a, b) => misc.cmp(b.last_edited, a.last_edited);
+    const c = (a, b) => cmp(b.last_edited, a.last_edited);
     w0.sort(c);
     w1.sort(c);
     w2.sort(c);
@@ -353,10 +339,10 @@ export class FileUseStore extends Store<FileUseState> {
     const users = {};
     const now = webapp_client.server_time().valueOf();
     const cutoff = now - opts.max_age_s * 1000;
-    for (const _ in files) {
-      const info = files[_];
-      let user: any;
-      for (user of info.users) {
+    for (const id in files) {
+      const info = files[id];
+      for (const account_id in info.users) {
+        const user = info.users[account_id];
         const time = user.last_used != null ? user.last_used : 0;
         // Note: we filter in future, since would be bad/buggy data.  (database could disallow...?)
         if (time >= cutoff && time <= now + 60000) {

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 The schema below determines the PostgreSQL database schema.   The notation is as follows:
 
 schema.table_name =
@@ -219,6 +224,16 @@ interface UserOrProjectQuery<F extends Fields> {
       account_id: string,
       cb: (err?: string | Error) => void
     ) => void;
+
+    /* 4. instead_of_query */
+    instead_of_query?: (
+      database,
+      opts: {
+        query: any;
+        options: any[];
+      },
+      cb: (err?: string | Error) => void
+    ) => void;
   };
 }
 
@@ -246,3 +261,13 @@ import { SettingsExtras } from "./site-settings-extras";
 export type AllSiteSettings = {
   [key in keyof SiteSettings | keyof SettingsExtras]?: any;
 };
+
+
+export type RegistrationTokenSetFields =
+  | "token"
+  | "descr"
+  | "expires"
+  | "limit"
+  | "disabled";
+
+export type RegistrationTokenGetFields = RegistrationTokenSetFields | "counter";

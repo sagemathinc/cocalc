@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /* Use this component to make an anchor tag that
    opens in a new tab in the right way, namely
    with rel=noopener.  This avoids sharing cpu

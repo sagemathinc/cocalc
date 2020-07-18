@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 # Global app initialization
 ###
@@ -9,7 +14,7 @@ html = require('./console.html') + require('./editor.html') + require('./jupyter
 $('body').append(html)
 
 # deferred initialization of buttonbars until after global imports -- otherwise, the sagews sage mode bar might be blank
-{init_buttonbars} = require('./buttonbar')
+{init_buttonbars} = require('./editors/editor-button-bar')
 init_buttonbars()
 
 # Load/initialize Redux-based react functionality
@@ -19,18 +24,22 @@ init_buttonbars()
 require('./redux_server_stats')
 
 # Systemwide notifications that are broadcast to all users (and set by admins)
-require('./system_notifications')
+require('./system-notifications')
 
 require('./launch/actions')
 
-# Makes some things work. Like the save button
+# Various jquery plugins:
 require('./jquery_plugins')
+# Another jquery plugin:
+require('./process-links')
 
 ###
 # Initialize app stores, actions, etc.
 ###
-require('./init_app')
+require('./app/init')
+require("./custom-software/init").init()
 require('./account').init(redux)
+require("./file-use/init")
 require('./webapp-hooks')
 
 if not fullscreen.COCALC_MINIMAL
@@ -43,19 +52,8 @@ require('./widget-markdown-input/main').init(redux)
 if fullscreen.COCALC_MINIMAL
     require('./iframe-communication').init()
 
-mobile = require('./mobile_app')
-desktop = require('./desktop_app')
-
-# Feature must be loaded before account and anything that might use cookies or localStorage,
-# but after app-framework and the basic app definition.
-{IS_MOBILE, isMobile} = require('./feature')
-
-if IS_MOBILE and not isMobile.tablet()
-    # Cell-phone version of site, with different
-    # navigation system for selecting projects and files.
-    mobile.render()
-else
-    desktop.render()
+{render} = require('./app/render')
+render()
 
 $(window).on('beforeunload', redux.getActions('page').check_unload)
 

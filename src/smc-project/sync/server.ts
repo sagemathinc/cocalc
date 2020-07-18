@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 SyncTable server channel -- used for supporting realtime sync
 between project and browser client.
 
@@ -453,6 +458,9 @@ async function synctable_channel0(
   if (query?.syncstrings != null) {
     const path = query?.syncstrings[0]?.path;
     if (client.is_deleted(path)) {
+      logger.debug(
+        `synctable_channel -- refusing to open "${path}" since it is marked as deleted`
+      );
       throw Error(`${path} is deleted`);
     }
   }

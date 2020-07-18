@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 
 import { MentionsMap, MentionFilter } from "./mentions/types";
@@ -5,7 +10,7 @@ import { MentionRow } from "./mentions/mention-row";
 
 import { NoNewNotifications } from "./no-new-notifications";
 
-const { ProjectTitle } = require("../projects");
+import { ProjectTitle } from "../projects/project-title";
 
 const { Panel } = require("react-bootstrap");
 
@@ -111,7 +116,7 @@ function NoMentions({
       text = "No read mentions";
       break;
     case "saved":
-      text = "No saved Mentions";
+      text = "No saved mentions";
       break;
     case "all":
       text = "No mentions";

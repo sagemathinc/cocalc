@@ -18,13 +18,14 @@ data/
 \#*
 node_modules
 *.sass-cache
-.vscode/
 .vs/
 err
 log
 out
 
 src/cocalc-testcafe/package-lock.json
+
+src/tsconfig.tsbuildinfo
 
 src/static/
 src/static.git/

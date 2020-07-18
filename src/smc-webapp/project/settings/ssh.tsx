@@ -1,14 +1,19 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
-import { analytics_event } from "../../tracker";
 import * as misc from "smc-util/misc";
 import { Icon } from "../../r_misc";
 import { redux } from "../../app-framework";
 
 import { Project } from "./types";
 import { UserMap } from "smc-webapp/todo-types";
+import { webapp_client } from "../../webapp-client";
 
-const { webapp_client } = require("../../webapp_client");
-const { SSHKeyAdder, SSHKeyList } = require("../../widget-ssh-keys/main");
+import { SSHKeyAdder } from "../../account/ssh-keys/ssh-key-adder";
+import { SSHKeyList } from "../../account/ssh-keys/ssh-key-list";
 
 interface Props {
   project: Project;
@@ -20,7 +25,6 @@ export class SSHPanel extends React.Component<Props> {
   add_ssh_key = (opts) => {
     opts.project_id = this.props.project.get("project_id");
     redux.getActions("projects").add_ssh_key_to_project(opts);
-    analytics_event("project_settings", "add project ssh key");
   };
 
   delete_ssh_key = (fingerprint) => {
@@ -28,7 +32,6 @@ export class SSHPanel extends React.Component<Props> {
       fingerprint,
       project_id: this.props.project.get("project_id"),
     });
-    analytics_event("project_settings", "remove project ssh key");
   };
 
   render_ssh_notice() {
@@ -54,15 +57,16 @@ export class SSHPanel extends React.Component<Props> {
   }
 
   render() {
+    const ssh_keys = this.props.project.getIn([
+      "users",
+      webapp_client.account_id as string,
+      "ssh_keys",
+    ]);
     return (
       <div>
         <SSHKeyList
-          ssh_keys={this.props.project.getIn([
-            "users",
-            webapp_client.account_id,
-            "ssh_keys",
-          ])}
-          delete_key={this.delete_ssh_key}
+          ssh_keys={ssh_keys}
+          project_id={this.props.project.get("project_id")}
         >
           <div>
             <span>
@@ -75,7 +79,6 @@ export class SSHPanel extends React.Component<Props> {
             add_ssh_key={this.add_ssh_key}
             toggleable={true}
             style={{ marginBottom: "10px" }}
-            account_id={this.props.account_id}
           />
           {this.render_ssh_notice()}
         </SSHKeyList>

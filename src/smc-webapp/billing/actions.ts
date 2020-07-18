@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Billing actions.
 
 These are mainly for interfacing with Stripe.  They are
@@ -9,14 +14,14 @@ import { Map } from "immutable";
 import { redux, Actions, Store } from "../app-framework";
 import { reuse_in_flight_methods } from "smc-util/async-utils";
 import { server_minutes_ago, server_time } from "smc-util/misc";
-const { webapp_client } = require("../webapp_client");
+import { webapp_client } from "../webapp-client";
 import { StripeClient } from "../client/stripe";
 
 import { BillingStoreState } from "./store";
 
 require("./store"); // ensure 'billing' store is created so can set this.store below.
 
-class BillingActions extends Actions<BillingStoreState> {
+export class BillingActions extends Actions<BillingStoreState> {
   private store: Store<BillingStoreState>;
   private last_subscription_attempt?: any;
   private stripe: StripeClient;
@@ -35,6 +40,10 @@ class BillingActions extends Actions<BillingStoreState> {
   }
 
   public async update_customer(): Promise<void> {
+    const is_commercial = redux
+      .getStore("customize")
+      .get("is_commercial", false);
+    if (!is_commercial) return;
     this.setState({ action: "Updating billing information" });
     try {
       const resp = await this.stripe.get_customer();

@@ -1,23 +1,7 @@
-//#############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 // CoCalc libraries
 import * as misc from "smc-util/misc";
@@ -233,12 +217,13 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       }
       if (this.is_unmounted) return;
 
-      // Get the current collaborators/owners of the project that contains the course.
+      // Get the current collaborators/owners of the project that
+      // contains the course.
       const users = this.props.redux
         .getStore("projects")
         .get_users(this.props.project_id);
       // Make a map with keys the email or account_id is already part of the course.
-      const already_added = users.toJS(); // start with collabs on project
+      const already_added = users?.toJS() ?? {}; // start with collabs on project
       // also track **which** students are already part of the course
       const existing_students: any = {};
       existing_students.account = {};
@@ -290,6 +275,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     }
 
     student_add_button() {
+      if (this.state.add_search?.trim().length == 0) return;
       const icon = this.state.add_searching ? (
         <Icon name="cc-icon-cocalc-ring" spin />
       ) : (
@@ -403,7 +389,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       }
       const options = this.get_add_selector_options();
       return (
-        <FormGroup>
+        <FormGroup style={{ margin: "5px 0 15px 15px" }}>
           <FormControl
             componentClass="select"
             multiple
@@ -413,7 +399,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           >
             {options}
           </FormControl>
-          <div style={{ marginTop: "15px" }}>
+          <div style={{ marginTop: "5px" }}>
             {this.render_cancel()}
             <Space />
             {this.render_add_selector_button(options)}
@@ -576,7 +562,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       // using inline styles to undo the spacing screwups they cause, so it doesn't
       // look like total crap.
       return (
-        <div style={{ borderBottom: "1px solid #e5e5e5" }}>
+        <div>
           <Row>
             <Col md={6}>
               <SearchInput
@@ -596,23 +582,28 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
                 horizontal
                 style={{ marginLeft: "15px" }}
               >
-                <Col md={18}>
-                  <FormGroup style={{ marginRight: "15px" }}>
-                    <FormControl
-                      ref="student_add_input"
-                      componentClass="textarea"
-                      placeholder="Add students by name or email address..."
-                      value={this.state.add_search}
-                      onChange={() => this.student_add_input_onChange()}
-                      onKeyDown={(e) => this.student_add_input_onKeyDown(e)}
-                    />
-                  </FormGroup>
-                </Col>
-                <Col md={6}>
-                  <InputGroup.Button>
-                    {this.student_add_button()}
-                  </InputGroup.Button>
-                </Col>
+                <Row>
+                  <Col md={18}>
+                    <FormGroup style={{ margin: "0 0 5px 0" }}>
+                      <FormControl
+                        ref="student_add_input"
+                        componentClass="textarea"
+                        placeholder="Add students by name or email address..."
+                        value={this.state.add_search}
+                        onChange={() => this.student_add_input_onChange()}
+                        onKeyDown={(e) => this.student_add_input_onKeyDown(e)}
+                      />
+                    </FormGroup>
+                  </Col>
+                  <Col md={6}>
+                    <div style={{ marginLeft: "15px", width: "100%" }}>
+                      <InputGroup.Button>
+
+    {this.student_add_button()}
+                      </InputGroup.Button>
+                    </div>
+                  </Col>
+                </Row>
               </Form>
               {this.render_add_selector()}
             </Col>
@@ -1615,9 +1606,11 @@ class Student extends Component<StudentProps, StudentState> {
   render_more_panel() {
     return (
       <Row>
-        <Card title={this.render_panel_header()}>
-          {this.render_more_info()}
-        </Card>
+        <Col xs={24}>
+          <Card title={this.render_panel_header()}>
+            {this.render_more_info()}
+          </Card>
+        </Col>
       </Row>
     );
   }

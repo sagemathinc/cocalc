@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 This is some slightly complicated code to avoid needless duplication.
 
 It's a bit more complicated than you might expect partly due to the fact
@@ -128,7 +133,7 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
       <>
         {this.render_activity(name)}
         {this.render_error(name)}
-        {this.render_pay_banner(name)}
+        {this.render_pay_banner()}
         {this.render_tab_bar(name)}
         {React.createElement(this.props.course_panel, props)}
       </>
@@ -163,11 +168,16 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
     );
   }
 
-  private render_pay_banner(name: string): Rendered {
+  private render_pay_banner(): Rendered {
     if (this.props.students == null || this.props.settings == null) return;
     return (
       <PayBanner
-        name={name}
+        show_config={() => {
+          this.props.actions.set_frame_type(
+            this.props.id,
+            "course_configuration"
+          );
+        }}
         settings={this.props.settings}
         num_students={this.props.students.size}
         tab={this.props.desc.get("type", "").slice("course_".length)}
@@ -207,7 +217,7 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
   public render(): Rendered {
     return (
       <div
-        style={{ fontSize: `${this.props.font_size}px` }}
+        style={{ fontSize: `${this.props.font_size}px`, margin: "0 15px" }}
         className="smc-vfill"
       >
         {this.render_panel()}

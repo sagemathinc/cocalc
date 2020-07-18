@@ -1,23 +1,8 @@
-//##############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2015 -- 2016, SageMath, Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 let wrapped_editors;
 
 // TODO: we should refactor our code to now have these window/document references
@@ -27,7 +12,7 @@ let wrapped_editors;
 declare let window, document;
 if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
-  wrapped_editors = require("./editor_react_wrapper");
+  wrapped_editors = require("./editors/react-wrapper");
 }
 import * as immutable from "immutable";
 
@@ -51,14 +36,13 @@ import {
 
 import { ProjectConfiguration } from "./project_configuration";
 import { ProjectLogMap } from "./project/history/types";
-
 import { alert_message } from "./alerts";
-
 import { Listings, listings } from "./project/websocket/listings";
-
 import { deleted_file_variations } from "smc-util/delete-files";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
+
+const MASKED_FILENAMES = ["__pycache__"];
 
 const MASKED_FILE_EXTENSIONS = {
   py: ["pyc"],
@@ -79,14 +63,14 @@ export interface ProjectStoreState {
   history_path: string;
   open_files: immutable.Map<string, immutable.Map<string, any>>;
   open_files_order: immutable.List<string>;
-  public_paths?: immutable.List<string>;
+  public_paths?: immutable.List<TypedMap<{ disabled?: boolean; path: string }>>;
   directory_listings: immutable.Map<string, any>; // immutable,
   show_upload: boolean;
   create_file_alert: boolean;
   displayed_listing?: any; // computed(object),
   configuration?: ProjectConfiguration;
   configuration_loading: boolean; // for UI feedback
-  available_features?: AvailableFeatures;
+  available_features?: TypedMap<AvailableFeatures>;
   show_custom_software_reset: boolean;
 
   // Project Page
@@ -136,7 +120,7 @@ export interface ProjectStoreState {
   too_many_results?: boolean;
   command?: string;
   most_recent_search?: string;
-  most_recent_path?: string;
+  most_recent_path: string;
   subdirectories?: boolean;
   case_sensitive?: boolean;
   hidden_files?: boolean;
@@ -270,6 +254,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       // Project Find
       user_input: "",
       git_grep: true,
+      most_recent_path: "",
 
       // Project Settings
       stripped_public_paths: this.selectors.stripped_public_paths.fn,
@@ -678,6 +663,11 @@ function _compute_file_masks(listing): void {
   // in "listing" the attribute <file>.mask=true
   const filename_map = misc.dict(listing.map((item) => [item.name, item])); // map filename to file
   for (const file of listing) {
+    // mask certain known directories
+    if (MASKED_FILENAMES.indexOf(file.name) >= 0) {
+      filename_map[file.name].mask = true;
+    }
+
     // note: never skip already masked files, because of rnw/rtex->tex
 
     const ext = misc.filename_extension(file.name).toLowerCase();
@@ -696,7 +686,7 @@ function _compute_file_masks(listing): void {
 
     for (let mask_ext of MASKED_FILE_EXTENSIONS[ext] ?? []) {
       // check each possible compiled extension
-      var bn; // derived basename
+      let bn; // derived basename
       // some uppercase-strings have special meaning
       if (misc.startswith(mask_ext, "NODOT")) {
         bn = basename.slice(0, -1); // exclude the trailing dot

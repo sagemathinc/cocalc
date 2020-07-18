@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Convert R Markdown file to hidden Markdown file, then read.
 */
 
@@ -23,12 +28,10 @@ export async function convert(
     frontmatter.indexOf("self_contained") >= 0 ||
     frontmatter.indexOf("output:") >= 0
   ) {
-    // , output_file = '${outfile}'
     cmd = `rmarkdown::render('${infile}', output_format = NULL, run_pandoc = TRUE)`;
   } else {
     cmd = `rmarkdown::render('${infile}', output_format = NULL, run_pandoc = TRUE, output_options = list(self_contained = FALSE))`;
   }
-  // console.log("rmd cmd", cmd);
 
   return await exec({
     timeout: 4 * 60,
@@ -38,7 +41,7 @@ export async function convert(
     env: { MPLBACKEND: "Agg" }, // for python plots -- https://github.com/sagemathinc/cocalc/issues/4202
     project_id: project_id,
     path: x.head,
-    err_on_exit: true,
+    err_on_exit: false,
     aggregate: time,
   });
 }

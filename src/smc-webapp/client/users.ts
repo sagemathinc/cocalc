@@ -1,4 +1,7 @@
-/* information about users */
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import { aggregate } from "smc-util/aggregate";
 import * as message from "smc-util/message";
@@ -55,20 +58,27 @@ export class UsersClient {
     return results;
   }
 
-  // Gets username with given account_id.   The aggregate makes it so
-  // this never calls to the backend more than once at a time (per minute)
-  // for a given account_id.
+  // Gets username with given account_id.   We use caching and aggregate to
+  // makes it so this never calls to the backend more than once at a time
+  // (per minute) for a given account_id.
   public async get_username(
     account_id: string
-  ): Promise<{ first_name: string | null; last_name: string | null }> {
+  ): Promise<{ first_name: string; last_name: string }> {
     const v = await callback2(get_username, {
       call: this.call,
       aggregate: Math.floor(new Date().valueOf() / 60000),
       account_id,
     });
     const u = v[account_id];
-    if (u == null || u.first_name == undefined || u.last_name == undefined) {
-      throw Error("no user with account_id ${account_id}");
+    if (u == null) {
+      throw Error(`no user with account_id ${account_id}`);
+    }
+    // some accounts have these null for some reason sometimes, but it is nice if client code can assume not null.
+    if (u.first_name == null) {
+      u.first_name = "";
+    }
+    if (u.last_name == null) {
+      u.last_name = "";
     }
     return u;
   }

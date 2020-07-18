@@ -1,6 +1,12 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { TestEditor, describe, it, expect } from "../../generic/test/util";
 
 describe("CodeEditor - tests related to the format bar", function () {
+  // @ts-ignore
   this.timeout(10000);
 
   describe("checks that there is no format bar when editing a txt file", function () {

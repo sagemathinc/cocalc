@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Top-level react component for editing R markdown documents
 */
 
@@ -13,6 +18,7 @@ import { PDFJS } from "../latex-editor/pdfjs";
 import { pdfjs_buttons } from "../latex-editor/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
+import { BuildLog } from "./build-log";
 
 const EDITOR_SPEC = {
   cm: {
@@ -35,6 +41,7 @@ const EDITOR_SPEC = {
       "undo",
       "redo",
       "format",
+      "build",
     ]),
   },
 
@@ -87,6 +94,15 @@ const EDITOR_SPEC = {
       "time_travel",
       "reload",
     ]),
+  },
+
+  build: {
+    short: "Build Log",
+    name: "Build Log",
+    icon: "gears",
+    component: BuildLog,
+    style: { background: "#525659" },
+    buttons: set(["build", "decrease_font_size", "increase_font_size"]),
   },
 
   terminal,

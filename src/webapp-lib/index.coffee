@@ -1,6 +1,16 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 # CoCalc: Collaborative Calculation in the Cloud
 # Copyright (C) 2017, Sagemath Inc.
 # License: AGPLv3+
+
+###
+# WARNING -- parts of this file are evidently duplicated in various places, e.g.,
+# smc-webapp/info/usage.tsx
+###
 
 # this is embedded into index.pug to do some dynamic changes.
 # the overall goal is to be slick and simple to avoid any slowdowns whatsoever...
@@ -31,7 +41,7 @@ sum_clients = (stats) ->
 # improve understanding of large numbers
 fmt = (num) ->
     num = parseInt(num)
-    num.toLocaleString(undefined, {useGrouping:true, maximumSignificantDigits: 2})
+    num.toLocaleString(undefined, {useGrouping:true})
 
 update_stats = (stats) ->
     #console.log stats
@@ -128,13 +138,7 @@ init_magic_anchors = ->
             marker.appendChild(document.createTextNode('¶'))
             header.appendChild(marker)
 
-init_lozad = ->
-    imgs = document.querySelectorAll('img[data-src]')
-    observer = window.lozad(imgs)
-    observer.observe()
-
 document.addEventListener "DOMContentLoaded", ->
-    init_lozad()
     if document.getElementById('statstable')?
         get_stats()
     init_video()

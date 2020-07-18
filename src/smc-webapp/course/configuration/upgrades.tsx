@@ -1,24 +1,9 @@
-//#############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016 -- 2017, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//#############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Upgrading quotas for all student projects
-//#############################################################################
 
 import { UpgradeGoal } from "../types";
 import * as misc from "smc-util/misc";
@@ -218,7 +203,9 @@ class StudentProjectUpgrades extends Component<
             value={val}
             onChange={() => {
               const u = this.state.upgrades;
-              u[quota] = ReactDOM.findDOMNode(this.refs[ref]).value;
+              const value = ReactDOM.findDOMNode(this.refs[ref])?.value;
+              if (value == null) return;
+              u[quota] = value;
               this.setState({ upgrades: u });
               this.update_plan();
             }}
@@ -463,7 +450,8 @@ class StudentProjectUpgrades extends Component<
 
   save_admin_upgrade = (e) => {
     e.preventDefault();
-    const s = ReactDOM.findDOMNode(this.refs.admin_input).value;
+    const s = ReactDOM.findDOMNode(this.refs.admin_input)?.value;
+    if (s == null) return;
     const quotas = JSON.parse(s);
     // This console.log is intentional... because admin upgrade is only
     // for really advanced users (i.e., William).

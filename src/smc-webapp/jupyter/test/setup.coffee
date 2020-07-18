@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 Jupyter Notebook
 
@@ -27,7 +32,7 @@ exports.setup = (cb) ->
     smc_react.redux.getProjectStore(project_id)
 
     # Initialize/reset the testing client that the synctables connect to.
-    {webapp_client} = require('../../webapp_client')
+    {webapp_client} = require('../../webapp-client')
     global.webapp_client = webapp_client
     webapp_client.reset()
 

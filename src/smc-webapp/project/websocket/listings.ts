@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { EventEmitter } from "events";
 import { List, fromJS } from "immutable";
 import { throttle } from "lodash";
@@ -11,25 +16,19 @@ import { deleted_file_variations } from "smc-util/delete-files";
 import { exec, query } from "../../frame-editors/generic/client";
 
 import { get_directory_listing } from "../directory-listing";
+import { DirectoryListingEntry } from "smc-util/types";
 
 import { WATCH_TIMEOUT_MS } from "smc-util/db-schema/listings";
 export const WATCH_THROTTLE_MS = WATCH_TIMEOUT_MS / 2;
 
-interface PathEntry {
-  name: string;
-  mtime: number;
-  size: number;
-  isdir?: boolean;
-}
-
-type ImmutablePathEntry = TypedMap<PathEntry>;
+type ImmutablePathEntry = TypedMap<DirectoryListingEntry>;
 
 type State = "init" | "ready" | "closed";
 
 interface Listing {
   path: string;
   project_id?: string;
-  listing?: PathEntry[];
+  listing?: List<ImmutablePathEntry>;
   time?: Date;
   interest?: Date;
   missing?: number;
@@ -86,7 +85,7 @@ export class Listings extends EventEmitter {
     });
   }
 
-  public async get(path: string): Promise<PathEntry[] | undefined> {
+  public async get(path: string): Promise<DirectoryListingEntry[] | undefined> {
     if (this.state != "ready") {
       try {
         const listing = await this.get_using_database(path);
@@ -230,7 +229,7 @@ export class Listings extends EventEmitter {
 
   public async get_using_database(
     path: string
-  ): Promise<PathEntry[] | undefined> {
+  ): Promise<DirectoryListingEntry[] | undefined> {
     const q = await query({
       query: {
         listings: {
@@ -253,7 +252,7 @@ export class Listings extends EventEmitter {
       ?.get("missing");
   }
 
-  public async get_listing_directly(path: string): Promise<PathEntry[]> {
+  public async get_listing_directly(path: string): Promise<DirectoryListingEntry[]> {
     const store = redux.getStore("projects");
     // make sure that our relationship to this project is known.
     if (store == null) throw Error("bug");
@@ -318,6 +317,11 @@ export class Listings extends EventEmitter {
     if ((this.state as State) == "closed") return;
 
     this.table.on("change", async (keys: string[]) => {
+      if (this.state != "ready") {
+        // don't do anything if being initialized or already closed,
+        // since code below will break in weird ways.
+        return;
+      }
       // handle changes to directory listings and deleted files lists
       const paths: string[] = [];
       const deleted_paths: string[] = [];
@@ -359,7 +363,7 @@ export class Listings extends EventEmitter {
     if (
       this.state != "ready" ||
       this.table == null ||
-      this.table.get_state() != "connected"
+      this.table.get_state() == "closed"
     ) {
       throw Error("table not initialized ");
     }
@@ -381,7 +385,7 @@ export class Listings extends EventEmitter {
   private get_record(path: string): ImmutableListing | undefined {
     const x = this.get_table().get(JSON.stringify([this.project_id, path]));
     if (x == null) return x;
-    return x as unknown as ImmutableListing; // coercing to fight typescript.
+    return (x as unknown) as ImmutableListing; // coercing to fight typescript.
     // NOTE: That we have to use JSON.stringify above is an ugly shortcoming
     // of the get method in smc-util/sync/table/synctable.ts
     // that could probably be relatively easily fixed.

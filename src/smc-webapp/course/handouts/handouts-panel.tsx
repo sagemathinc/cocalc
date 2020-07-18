@@ -1,23 +1,7 @@
-//#############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2016, Sagemath Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 // CoCalc libraries
 import * as misc from "smc-util/misc";
@@ -1189,8 +1173,8 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
       <ButtonGroup key="open_recopy">
         {this.render_open_recopy_confirm(name, copy, copy_tip)}
         <Button key="open" onClick={open}>
-          <Tip title="Open handout" tip={open_tip}>
-            <Icon name="folder-open-o" /> Open
+          <Tip title="Open Directory" tip={open_tip}>
+            <Icon name="folder-open-o" /> Open directory...
           </Tip>
         </Button>
       </ButtonGroup>

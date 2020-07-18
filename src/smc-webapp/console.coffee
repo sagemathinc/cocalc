@@ -1,30 +1,9 @@
-###############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
-
-###########################################
-#
 # An Xterm Console Window
-#
-###########################################
 
 ACTIVE_INTERVAL_MS = 10000
 
@@ -49,6 +28,7 @@ console_template = templates.find(".webapp-console")
 {delay} = require('awaiting')
 
 feature = require('./feature')
+{webapp_client} = require('./webapp-client')
 
 # How long to wait after any full rerender.
 # Obviously, this is stupid code, but this code is slated to go away.
@@ -208,7 +188,6 @@ class Console extends EventEmitter
         #window.c = @
 
     connect: =>
-        {webapp_client} = require('./webapp_client')
         api = await webapp_client.project_client.api(@project_id)
         # aux_path for compat with new frame terminal editor.
         {aux_file} = require('./frame-editors/frame-tree/util')
@@ -308,57 +287,6 @@ class Console extends EventEmitter
         if not @_got_remote_data? or new Date() - @_got_remote_data >= 15000
             #console.log 'reconnecting since no recent data'
             @reconnect()
-
-    ###
-    set_session: (session) =>
-        if @session?
-            # Don't allow set_session to be called multiple times, since both sessions could
-            # display data at the same time.
-            console.warn("BUG: set_session called after session already set -- ignoring")
-            return
-
-        # Store the remote session, which is a connection to a HUB
-        # that is in turn connected to a console_server:
-        @session = session
-
-        @_connected = true
-        @_needs_resize = true
-
-        # Plug the remote session into the terminal.
-        # data = output *from the local terminal* to the remote pty.
-        # This is usually caused by the user typing,
-        # but can also be the result of a device attributes request.
-        @terminal.on 'data',  (data) =>
-            if @_ignore
-                return
-            if not @_connected
-                # not connected, so first connect, then write the data.
-                @session.reconnect (err) =>
-                    if not err
-                        @session.write_data(data)
-                return
-
-            @session.write_data(data)
-
-            # In case nothing comes back soon, we reconnect -- maybe the session is dead?
-            # We wait 20x the ping time (or 10s), so if connection is slow, this won't
-            # constantly reconnect, but it is very fast in case the connection is fast.
-            {webapp_client} = require('./webapp_client')
-            latency = webapp_client.latency()
-            if latency?
-                delay = Math.min(10000, latency*20)
-                setTimeout(@reconnect_if_no_recent_data, delay)
-
-        # The terminal receives a 'set my title' message.
-        @terminal.on 'title', (title) => @set_title(title)
-
-        @reset()
-
-        # We resize the terminal first before replaying history, etc. so that it looks better,
-        # and also the terminal has initialized so it can show the history.
-        @resize_terminal()
-        @config_session()
-    ###
 
     set_state_connected: =>
         @element.find(".webapp-console-terminal").css('opacity':'1')
@@ -717,7 +645,6 @@ class Console extends EventEmitter
         @element.find("a[href=\"#initfile\"]").click () =>
             initfn = misc.console_init_filename(@opts.filename)
             content = initfile_content(@opts.filename)
-            {webapp_client} = require('./webapp_client')
             webapp_client.exec
                 project_id  : @project_id
                 command     : "test ! -r '#{initfn}' && echo '#{content}' > '#{initfn}'"
@@ -739,7 +666,6 @@ class Console extends EventEmitter
     open_init_file: ()  =>
         initfn = misc.console_init_filename(@opts.filename)
         content = initfile_content(@opts.filename)
-        {webapp_client} = require('./webapp_client')
         webapp_client.exec
             project_id  : @project_id
             command     : "test ! -r '#{initfn}' && echo '#{content}' > '#{initfn}'"
@@ -1083,4 +1009,3 @@ $.fn.extend
                 opts0 = copy(opts)
                 opts0.element = this
                 return t.data('console', new Console(opts0))
-

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { List, Map, fromJS } from "immutable";
 import {
   React,
@@ -65,8 +70,7 @@ class TerminalCommandPanel extends Component<Props> {
     return (
       <div>
         <Form
-          onSubmit={(e) => {
-            e.preventDefault();
+          onFinish={() => {
             this.run_terminal_command();
           }}
         >

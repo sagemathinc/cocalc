@@ -1,11 +1,18 @@
-/* Websocket based request/response api.
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-All functionality here is of the form:
+/*
+ * License
+ */
 
- -- one request
- -- one response
-
-*/
+// Websocket based request/response api.
+//
+// All functionality here is of the form:
+//
+//  -- one request
+//  -- one response
 
 // This require is just because typescript is confused by
 // the path for now.  Growing pains.
@@ -25,6 +32,7 @@ import { syncdoc_call } from "../sync/sync-doc";
 import { get_configuration } from "../configuration";
 import { delete_files } from "./delete-files";
 import { rename_file, move_files } from "./move-files";
+import { realpath } from "./realpath";
 
 export function init_websocket_api(
   primus: any,
@@ -129,6 +137,8 @@ async function handle_api_call(
       return await syncdoc_call(data.path, logger, data.mesg);
     case "symmetric_channel":
       return await browser_symmetric_channel(client, primus, logger, data.name);
+    case "realpath":
+      return realpath(data.path);
     default:
       throw Error(
         `command "${data.cmd}" not implemented -- restart your project (in Project --> Settings)`
@@ -138,11 +148,12 @@ async function handle_api_call(
 
 /* implementation of the api calls */
 
-import { get_listing, ListingEntry } from "../directory-listing";
+import { get_listing } from "../directory-listing";
+import { DirectoryListingEntry } from "../../smc-util/types";
 async function listing(
   path: string,
   hidden?: boolean
-): Promise<ListingEntry[]> {
+): Promise<DirectoryListingEntry[]> {
   return await get_listing(path, hidden);
 }
 

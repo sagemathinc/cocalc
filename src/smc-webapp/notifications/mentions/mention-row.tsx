@@ -1,11 +1,15 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 
 import { redux } from "../../app-framework";
 import { MentionInfo } from "./types";
-
-const { Avatar } = require("../../other-users");
+import { Avatar } from "../../account/avatar/avatar";
 import { Icon, TimeAgo } from "../../r_misc";
-const { User } = require("../../users");
+import { User } from "../../users";
 
 export function MentionRow({
   id,

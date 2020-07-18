@@ -1,22 +1,7 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 async = require('async')
 
@@ -161,27 +146,6 @@ exports.Octicon = rclass
 exports.render_static_footer = ->
     {Footer} = require('smc-webapp/customize')
     <Footer />
-
-
-exports.MessageDisplay = MessageDisplay = rclass
-    displayName : 'Misc-MessageDisplay'
-
-    propTypes :
-        message : rtypes.string
-        onClose : rtypes.func
-
-    render: ->
-        <Row style={backgroundColor:'white', margin:'1ex', padding:'1ex', border:'1px solid lightgray', dropShadow:'3px 3px 3px lightgray', borderRadius:'3px'}>
-            <Col md={8} xs={8}>
-                <span style={color:'gray', marginRight:'1ex'}>{@props.message}</span>
-            </Col>
-            <Col md={4} xs={4}>
-                <Button className='pull-right' onClick={@props.onClose} bsSize='small'>
-                    <Icon name='times' />
-                </Button>
-            </Col>
-        </Row>
-
 
 help_text =
   backgroundColor: 'white'
@@ -507,6 +471,10 @@ exports.HTML = HTML = rclass
         file_path        : rtypes.string   # optional -- ...
         className        : rtypes.string   # optional class
         safeHTML         : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
+                                           # WARNING!!! ATTN!  This does not work.  scripts will NEVER be run.  See
+                                           # commit 1abcd43bd5fff811b5ffaf7c76cb86a0ad494498, which I've reverted, since it breaks
+                                           # katex... and on balance if we can get by with other approaches to this problem we should
+                                           # since script is dangerous.  See also https://github.com/sagemathinc/cocalc/issues/4695
         href_transform   : rtypes.func     # optional function that link/src hrefs are fed through
         post_hook        : rtypes.func     # optional function post_hook(elt), which should mutate elt, where elt is
                                            # the jQuery wrapped set that is created (and discarded!) in the course of
@@ -760,51 +728,6 @@ exports.SaveButton = rclass
             <Icon name='save' /> <VisibleMDLG>Sav{if @props.saving then <span>ing... <Icon name='cc-icon-cocalc-ring' spin /></span> else <span>e</span>}</VisibleMDLG>
         </Button>
 
-# Component to attempt opening a cocalc path in a project
-exports.PathLink = rclass
-    displayName : 'Misc-PathLink'
-
-    propTypes :
-        path         : rtypes.string.isRequired
-        project_id   : rtypes.string.isRequired
-        display_name : rtypes.string # if provided, show this as the link and show real name in popover
-        full         : rtypes.bool   # true = show full path, false = show only basename
-        trunc        : rtypes.number # truncate longer names and show a tooltip with the full name
-        style        : rtypes.object
-        link         : rtypes.bool   # set to false to make it not be a link
-
-    getDefaultProps: ->
-        style : {}
-        full  : false
-        link  : true
-
-    handle_click: (e) ->
-        e.preventDefault()
-        switch_to = misc.should_open_in_foreground(e)
-        redux.getProjectActions(@props.project_id).open_file
-            path               : @props.path
-            foreground         : switch_to
-            foreground_project : switch_to
-
-    render_link: (text) ->
-        if @props.link
-            <a onClick={@handle_click} style={@props.style} href=''>{text}</a>
-        else
-            <span style={@props.style}>{text}</span>
-
-    render: ->
-        name = if @props.full then @props.path else misc.path_split(@props.path).tail
-        if name.length > @props.trunc or (@props.display_name? and @props.display_name isnt name)
-            if @props.trunc?
-                text = misc.trunc_middle(@props.display_name ? name, @props.trunc)
-            else
-                text = @props.display_name ? name
-            <Tip title='' tip={name}>
-                {@render_link(text)}
-            </Tip>
-        else
-            @render_link(name)
-
 Globalize = require('globalize')
 globalizeLocalizer = require('react-widgets-globalize')
 globalizeLocalizer(Globalize)
@@ -835,7 +758,6 @@ exports.DeletedProjectWarning = ->
 exports.course_warning = (pay) ->
     if not pay
         return false
-    {webapp_client} = require('../webapp_client')
     return webapp_client.server_time() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
 
 project_warning_opts = (opts) ->
@@ -858,6 +780,7 @@ exports.CourseProjectExtraHelp = CourseProjectExtraHelp = ->
     </div>
 
 {BillingPageLink} = require('../billing/billing-page-link')
+
 exports.CourseProjectWarning = (opts) ->
     {total, used, avail, course_info, course_warning, account_id, email_address} = project_warning_opts(opts)
     if not course_warning
@@ -870,7 +793,6 @@ exports.CourseProjectWarning = (opts) ->
     else
         action = <BillingPageLink text="buy a course subscription" />
     is_student = account_id == course_info.get('account_id') or email_address == course_info.get('email_address')
-    {webapp_client} = require('../webapp_client')
     if pay > webapp_client.server_time()  # in the future
         if is_student
             deadline  = <span>Your instructor requires you to {action} within <TimeAgo date={pay}/>.</span>
@@ -1452,6 +1374,7 @@ exports.UpgradeAdjustor = rclass
 # Has a copy to clipboard button by default on the end
 # See prop descriptions for more details
 exports.CopyToClipBoard = rclass
+    displayName: 'CopyToClipBoard'
     propTypes:
         value         : rtypes.string
         button_before : rtypes.element # Optional button to place before the copy text

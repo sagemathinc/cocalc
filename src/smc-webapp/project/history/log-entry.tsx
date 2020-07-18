@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as misc from "smc-util/misc";
 import * as React from "react";
 
@@ -13,7 +18,7 @@ import { Icon, TimeAgo, PathLink, r_join, Space, Tip } from "../../r_misc";
 const { User } = require("../../users");
 import { file_actions } from "../../project_store";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { ProjectTitle } = require("../../projects");
+import { ProjectTitle } from "../../projects/project-title";
 import { file_associations } from "../../file-associations";
 import { SystemProcess } from "./system-process";
 import { UserMap } from "smc-webapp/todo-types";
@@ -153,7 +158,7 @@ export class LogEntry extends React.Component<Props> {
     );
   }
 
-  file_link(
+  private file_link(
     path: string,
     link: boolean,
     i: number,
@@ -191,8 +196,15 @@ export class LogEntry extends React.Component<Props> {
     return r_join(links);
   }
 
-  to_link(event: { project?: string; dest?: string }): React.ReactNode {
-    if (event.project != undefined) {
+  private to_link(event: { project?: string; dest?: string }) {
+    if (event.project != undefined && event.dest != null) {
+      return (
+        <>
+          {this.file_link(event.dest, true, 0, event.project)} in the project{" "}
+          {this.project_title({ project: event.project })}
+        </>
+      );
+    } else if (event.project != undefined) {
       return this.project_title({ project: event.project });
     } else if (event.dest != null) {
       return this.file_link(event.dest, true, 0);

@@ -1,6 +1,12 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as React from "react";
 import { ReactDOM, Rendered, redux } from "../app-framework";
 import { Passports } from "../passports";
+import { PassportStrategy } from "../account/passport-types";
 import { List } from "immutable";
 
 import { COLORS, UNIT, Icon, Loading } from "../r_misc";
@@ -29,18 +35,24 @@ const ERROR_STYLE: React.CSSProperties = {
   marginBottom: "5px",
 };
 
+export const WELL_STYLE: React.CSSProperties = {
+  marginTop: "10px",
+  borderColor: COLORS.LANDING.LOGIN_BAR_BG,
+};
+
 interface Props {
-  strategies: List<string>;
-  get_api_key: string;
-  sign_up_error: any;
-  token: boolean;
-  has_account: boolean;
-  signing_up: boolean;
-  style: React.CSSProperties;
-  has_remember_me: boolean;
-  help_email: string;
-  terms_of_service: string;
-  terms_of_service_url: string;
+  strategies?: List<PassportStrategy>;
+  email_signup?: boolean;
+  get_api_key?: string;
+  sign_up_error?: any;
+  token?: boolean;
+  has_account?: boolean;
+  signing_up?: boolean;
+  style?: React.CSSProperties;
+  has_remember_me?: boolean;
+  help_email?: string;
+  terms_of_service?: string;
+  terms_of_service_url?: string;
 }
 
 interface State {
@@ -67,10 +79,10 @@ export class SignUp extends React.Component<Props, State> {
     return redux
       .getActions("account")
       .create_account(
-        ReactDOM.findDOMNode(this.refs.first_name).value,
-        ReactDOM.findDOMNode(this.refs.last_name).value,
-        ReactDOM.findDOMNode(this.refs.email).value,
-        ReactDOM.findDOMNode(this.refs.password).value,
+        ReactDOM.findDOMNode(this.refs.first_name)?.value,
+        ReactDOM.findDOMNode(this.refs.last_name)?.value,
+        ReactDOM.findDOMNode(this.refs.email)?.value,
+        ReactDOM.findDOMNode(this.refs.password)?.value,
         this.state.user_token
       );
   };
@@ -100,6 +112,7 @@ export class SignUp extends React.Component<Props, State> {
           style={{ textAlign: "center" }}
           disabled={!this.state.terms_checkbox}
         />
+        <hr style={{ marginTop: 10, marginBottom: 10 }} />
         Or sign up via email
         <br />
       </div>
@@ -113,8 +126,9 @@ export class SignUp extends React.Component<Props, State> {
     return (
       <FormGroup>
         <FormControl
+          disabled={!this.state.terms_checkbox}
           type={"text"}
-          placeholder={"Enter the secret token"}
+          placeholder={"Enter secret token"}
           cocalc-test={"sign-up-token"}
           onChange={(e) => this.setState({ user_token: e.target.value })}
         />
@@ -207,7 +221,7 @@ export class SignUp extends React.Component<Props, State> {
   }
 
   question_blur() {
-    const question: string = ReactDOM.findDOMNode(this.refs.question).value;
+    const question: string = ReactDOM.findDOMNode(this.refs.question)?.value;
     if (!question) return;
     try {
       // We store the question in localStorage.
@@ -261,38 +275,36 @@ export class SignUp extends React.Component<Props, State> {
   render_creation_form(): Rendered {
     return (
       <div>
-        {this.render_token_input()}
-        {this.render_error("token")}
         {this.render_error("generic")}
         {this.render_error("account_creation_failed")}
         {this.render_error("other")}
         {this.render_passports()}
-        <form
-          style={{ marginTop: 20, marginBottom: 20 }}
-          onSubmit={this.make_account}
-        >
-          {this.render_first_name()}
-          {this.render_last_name()}
-          {this.render_email()}
-          {this.render_password()}
-          {this.render_button()}
-        </form>
+        {this.props.email_signup && (
+          <form
+            style={{ marginTop: 20, marginBottom: 20 }}
+            onSubmit={this.make_account}
+          >
+            {this.render_error("token")}
+            {this.render_token_input()}
+            {this.render_first_name()}
+            {this.render_last_name()}
+            {this.render_email()}
+            {this.render_password()}
+            {this.render_button()}
+          </form>
+        )}
       </div>
     );
   }
 
   render(): Rendered {
-    const well_style = {
-      marginTop: "10px",
-      borderColor: COLORS.LANDING.LOGIN_BAR_BG,
-    };
     return (
-      <Well style={well_style}>
+      <Well style={WELL_STYLE}>
         <AccountCreationEmailInstructions />
         {this.render_question()}
         {this.render_terms()}
         {this.render_creation_form()}
-        {this.props.help_email?.length > 0 ? (
+        {!!this.props.help_email ? (
           <div style={{ textAlign: "center" }}>
             Email <HelpEmailLink /> if you need help.
           </div>

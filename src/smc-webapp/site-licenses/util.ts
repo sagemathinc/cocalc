@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as LRU from "lru-cache";
 import { reuseInFlight } from "async-await-utils/hof";
 
@@ -30,8 +35,8 @@ export const site_license_public_info = reuseInFlight(async function (
     query: { site_license_public_info },
   };
 
-  const info: SiteLicensePublicInfo | undefined = (await query(q)).query
-    .site_license_public_info;
+  const info: SiteLicensePublicInfo | undefined = (await query(q))?.query
+    ?.site_license_public_info;
   site_license_public_info_cache.set(license_id, info);
   return info;
 });

@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+# run python3 in a "clean" way
+# the main purpose is to avoid user-installed python packages to break anything
+
+unset PYTHONPATH
+unset PYTHONHOME
+unset PYTHON_EGG_CACHE
+unset SAGE_ROOT
+unset LD_LIBRARY_PATH
+python3 -s "$@"

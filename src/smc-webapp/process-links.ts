@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Define a jQuery plugin that processes links.
 
  - Make all links open internally or in a new tab; etc.
@@ -209,7 +214,7 @@ function process_media_tags(e, opts: Options2) {
 }
 
 $.fn.process_smc_links = function (opts: Options = {}) {
-  this.each(function () {
+  this.each(() => {
     const e = $(this);
     // part #1: process <a> anchor tags
     process_anchor_tags(e, opts);

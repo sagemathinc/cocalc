@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 jQuery plugin to use KaTeX when possible to typeset all the math in a
 jQuery DOM tree.
 
@@ -36,6 +41,7 @@ function is_macro_definition(s: string): boolean {
 }
 
 function katex_plugin(): void {
+  // @ts-ignore
   const elt = $(this);
 
   // Run Mathjax's processor on this DOM node.
@@ -46,6 +52,7 @@ function katex_plugin(): void {
 
   // Select all the math and try to use katex on each part.
   elt.find("script").each(function () {
+    // @ts-ignore
     const node = $(this);
     if (
       (node[0] as any).type == "math/tex" ||
@@ -64,7 +71,7 @@ function katex_plugin(): void {
       }
       text = text.replace("\\newcommand{\\Bold}[1]{\\mathbf{#1}}", ""); // hack for sage kernel for now.
       if (is_macro_definition(text)) {
-        console.log("using mathjax for text since is a macro defn", text);
+        //console.log("using mathjax for text since is a macro defn", text);
         // Use mathjax for this.
         // 1. clear anything in cache involving the command
         const i = text.indexOf("{");
@@ -95,7 +102,7 @@ function katex_plugin(): void {
           math_cache.set(text, rendered.clone());
         } catch (err) {
           // Failed -- use mathjax.
-          console.log("WARNING -- ", err.toString()); // toString since the traceback has no real value.
+          console.log("WARNING -- ", err.toString(), ' (will fall back to mathjax)'); // toString since the traceback has no real value.
           // fallback to using mathjax on this -- should be rare; not horrible if this happens...
           // Except for this, this katex pluging is synchronous and does not depend on MathJax at all.
           const node0: any = node;

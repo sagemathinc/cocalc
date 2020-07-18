@@ -1,27 +1,9 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2016 -- 2017, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
-#
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
-###
-PostgreSQL -- basic queries and database interface
-###
+# PostgreSQL -- basic queries and database interface
 
 exports.DEBUG = true
 
@@ -42,6 +24,7 @@ fs      = require('fs')
 async   = require('async')
 escapeString = require('sql-string-escape')
 validator = require('validator')
+{callback2} = require('smc-util/async-utils')
 
 pg      = require('pg').native    # You might have to do: "apt-get install libpq5 libpq-dev"
 if not pg?
@@ -61,7 +44,7 @@ required = defaults.required
 
 {SCHEMA, client_db} = require('smc-util/schema')
 
-exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created']
+exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created', 'env']
 exports.PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJECT_COLUMNS)
 
 {read_db_password_from_disk} = require('./utils')
@@ -380,7 +363,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
     _dbg: (f) =>
         if @_debug
-            return (m) => winston.debug("PostgreSQL.#{f}: #{misc.trunc_middle(JSON.stringify(m), 1000)}")
+            return (m) => winston.debug("PostgreSQL.#{f}: #{misc.trunc_middle(JSON.stringify(m), 250)}")
         else
             return ->
 
@@ -395,6 +378,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             'Concurrent queries (started and finished)',
             ['state']
         )
+
+    async_query: (opts) =>
+        return await callback2(@_query.bind(@), opts)
 
     _query: (opts) =>
         opts  = defaults opts,

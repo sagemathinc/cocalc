@@ -1,10 +1,16 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { delay } from "awaiting";
 import { once } from "../smc-util/async-utils";
 import { SyncTable, SyncTableState } from "../smc-util/sync/table";
 import { TypedMap } from "../smc-webapp/app-framework";
 import { endswith, merge, path_split, startswith } from "../smc-util/misc2";
 import { field_cmp, seconds_ago } from "../smc-util/misc";
-import { get_listing, ListingEntry } from "../directory-listing";
+import { DirectoryListingEntry } from "../smc-util/types";
+import { get_listing } from "../directory-listing";
 import {
   WATCH_TIMEOUT_MS,
   MAX_FILES_PER_PATH,
@@ -16,7 +22,15 @@ import { remove_jupyter_backend } from "../jupyter/jupyter";
 // Update directory listing only when file changes stop for at least this long.
 // This is important since we don't want to fire off dozens of changes per second,
 // e.g., if a logfile is being updated.
-const WATCH_DEBOUNCE_MS = 2000;
+const WATCH_DEBOUNCE_MS = 1500;
+
+// See https://github.com/sagemathinc/cocalc/issues/4623
+// for one reason to put a slight delay in; basically,
+// a change could be to delete and then create a file quickly,
+// and that confuses our file deletion detection.   A light delay
+// is OK given our application.  No approach like this can
+// ever be perfect, of course.
+const DELAY_ON_CHANGE_MS = 50;
 
 // Watch directories for which some client has shown interest recently:
 const INTEREST_THRESH_SECONDS = WATCH_TIMEOUT_MS / 1000;
@@ -30,7 +44,7 @@ import { MAX_PATHS } from "../smc-util/db-schema/listings";
 interface Listing {
   path: string;
   project_id?: string;
-  listing?: ListingEntry[];
+  listing?: DirectoryListingEntry[];
   time?: Date;
   interest?: Date;
   missing?: number;
@@ -128,12 +142,13 @@ class ListingsTable {
     this.logger.debug("listings_table", ...args);
   }
 
+  private is_ready(): boolean {
+    return this.table?.is_ready();
+  }
+
   private get_table(): SyncTable {
-    if (
-      this.table == null ||
-      this.table.get_state() != ("connected" as SyncTableState)
-    ) {
-      throw Error("table not initialized ");
+    if (!this.is_ready()) {
+      throw Error("table not ready");
     }
     return this.table;
   }
@@ -209,7 +224,9 @@ class ListingsTable {
     let listing;
     try {
       listing = await get_listing(path, true);
+      if (!this.is_ready()) return;
     } catch (err) {
+      if (!this.is_ready()) return;
       this.set({ path, time, error: `${err}` });
       throw err;
     }
@@ -270,6 +287,8 @@ class ListingsTable {
     );
     this.watchers[path].on("change", async () => {
       try {
+        await delay(DELAY_ON_CHANGE_MS);
+        if (!this.is_ready()) return;
         await this.compute_listing(path);
       } catch (err) {
         this.log(`compute_listing("${path}") error: "${err}"`);
@@ -286,6 +305,7 @@ class ListingsTable {
 
   private async trim_old_paths(): Promise<void> {
     this.log("trim_old_paths");
+    if (!this.is_ready()) return;
     const table = this.get_table();
     let num_to_remove = table.size() - MAX_PATHS;
     this.log("trim_old_paths", num_to_remove);
@@ -321,6 +341,7 @@ class ListingsTable {
   }
 
   private async remove_path(path: string): Promise<void> {
+    if (!this.is_ready()) return;
     this.log("remove_path", path);
     await this.get_table().delete({ project_id: this.project_id, path });
   }
@@ -329,6 +350,13 @@ class ListingsTable {
   // for the containing path in the database.  (TODO: we may change this
   // to create the record if it doesn't exist.)
   public async set_deleted(filename: string): Promise<void> {
+    this.log(`set_deleted: ${filename}`);
+    if (!this.is_ready()) {
+      // set_deleted is a convenience, so dropping it in case of a project
+      // with no network is OK.
+      this.log(`set_deleted: skipping since not ready`);
+      return;
+    }
     if (filename[0] == "/") {
       // absolute path
       if (process.env.HOME == null || !startswith(filename, process.env.HOME)) {
@@ -349,21 +377,32 @@ class ListingsTable {
         deleted = deleted.toJS();
         deleted.push(tail);
       }
+      this.log(`set_deleted: recording "${deleted}" in "${head}"`);
       await this.set({ path: head, deleted });
+      if (!this.is_ready()) return;
     }
 
     // Also we need to close *all* syncdocs that are going to be deleted,
     // and wait until closing is done before we return.
     await close_all_syncdocs_in_tree(filename);
+    if (!this.is_ready()) return;
 
     // If it is a Jupyter kernel, close that too
     if (endswith(filename, ".ipynb")) {
       this.log(`set_deleted: handling jupyter kernel for ${filename}`);
       await remove_jupyter_backend(filename, this.project_id);
+      if (!this.is_ready()) return;
     }
   }
 
   public is_deleted(filename: string): boolean {
+    if (!this.is_ready()) {
+      // in case that listings are available, it is safe to just
+      // assume file not deleted.  Is_deleted is only used on the
+      // backend to redundantly reduce the chances of confusion,
+      // since the frontends do the same thing.
+      return false;
+    }
     const { head, tail } = path_split(filename);
     if (head != "" && this.is_deleted(head)) {
       // recursively check if filename is contained in a

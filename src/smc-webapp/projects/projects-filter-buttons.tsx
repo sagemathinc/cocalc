@@ -1,79 +1,55 @@
-import { React, Component, redux } from "../app-framework";
-import { analytics_event } from "../tracker";
-const { Button, ButtonGroup } = require("react-bootstrap");
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { React, useTypedRedux, useActions } from "../app-framework";
+import { user_activity } from "../tracker";
+import { Button, ButtonGroup } from "../antd-bootstrap";
 import { Icon } from "../r_misc";
 
-interface Props {
-  hidden: boolean;
-  deleted: boolean;
-  show_hidden_button?: boolean;
-  show_deleted_button?: boolean;
-}
+export const ProjectsFilterButtons: React.FC = () => {
+  const deleted = useTypedRedux("projects", "deleted");
+  const hidden = useTypedRedux("projects", "hidden");
+  const actions = useActions("projects");
 
-export class ProjectsFilterButtons extends Component<Props> {
-  static defaultProps = {
-    hidden: false,
-    deleted: false,
-    show_hidden_button: false,
-    show_deleted_button: false,
-  };
-
-  render_deleted_button() {
-    const style = this.props.deleted ? "warning" : "default";
-    if (this.props.show_deleted_button) {
-      return (
-        <Button
-          onClick={() => {
-            redux
-              .getActions("projects")
-              .display_deleted_projects(!this.props.deleted);
-            analytics_event("projects_page", "clicked_deleted_filter");
-          }}
-          bsStyle={style}
-          cocalc-test={"deleted-filter"}
-        >
-          <Icon
-            name={this.props.deleted ? "check-square-o" : "square-o"}
-            fixedWidth
-          />{" "}
-          Deleted
-        </Button>
-      );
-    } else {
-      return null;
-    }
-  }
-
-  render_hidden_button() {
-    const style = this.props.hidden ? "warning" : "default";
-    if (this.props.show_hidden_button) {
-      return (
-        <Button
-          onClick={() => {
-            redux
-              .getActions("projects")
-              .display_hidden_projects(!this.props.hidden);
-            analytics_event("projects_page", "clicked_hidden_filter");
-          }}
-          bsStyle={style}
-          cocalc-test={"hidden-filter"}
-        >
-          <Icon
-            name={this.props.hidden ? "check-square-o" : "square-o"}
-            fixedWidth
-          />{" "}
-          Hidden
-        </Button>
-      );
-    }
-  }
-
-  render() {
+  function render_deleted_button(): JSX.Element {
+    const style = deleted ? "warning" : undefined;
     return (
-      <ButtonGroup>
-        {this.render_deleted_button()}
-        {this.render_hidden_button()}
-      </ButtonGroup>
+      <Button
+        onClick={() => {
+          actions.display_deleted_projects(!deleted);
+          user_activity("projects_page", "clicked_deleted_filter");
+        }}
+        bsStyle={style}
+        cocalc-test={"deleted-filter"}
+      >
+        <Icon name={deleted ? "check-square-o" : "square-o"} fixedWidth />{" "}
+        Deleted
+      </Button>
     );
   }
-}
+
+  function render_hidden_button(): JSX.Element {
+    const style = hidden ? "warning" : undefined;
+    return (
+      <Button
+        onClick={() => {
+          actions.display_hidden_projects(!hidden);
+          user_activity("projects_page", "clicked_hidden_filter");
+        }}
+        bsStyle={style}
+        cocalc-test={"hidden-filter"}
+      >
+        <Icon name={hidden ? "check-square-o" : "square-o"} fixedWidth /> Hidden
+      </Button>
+    );
+  }
+
+  return (
+    <ButtonGroup>
+      {render_deleted_button()}
+      {render_hidden_button()}
+    </ButtonGroup>
+  );
+};

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Spec for editing LaTeX documents.
 */
 
@@ -81,7 +86,13 @@ const EDITOR_SPEC = {
     name: "Build Control and Log",
     icon: "terminal",
     component: Build,
-    buttons: set(["build", "force_build", "clean"]),
+    buttons: set([
+      "build",
+      "force_build",
+      "clean",
+      "decrease_font_size",
+      "increase_font_size",
+    ]),
   },
 
   pdf_embed: {

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { delay } from "awaiting";
 
 import {
@@ -18,15 +23,13 @@ import { Map as iMap } from "immutable";
 import { MentionsMap } from "../notifications/mentions/types";
 
 interface Props {
-  redux: any;
-
   // reduxProps
   file_use?: iMap<string, any>;
-  get_sorted_file_use_list2: Function;
+  get_sorted_file_use_list2?: Function;
   user_map?: iMap<string, any>;
   project_map?: iMap<string, any>;
-  mentions: MentionsMap;
-  get_unseen_size: (mentions: MentionsMap) => number;
+  mentions?: MentionsMap;
+  get_unseen_size?: (mentions: MentionsMap) => number;
 }
 
 class FileUsePage extends Component<Props, {}> {
@@ -57,16 +60,19 @@ class FileUsePage extends Component<Props, {}> {
   }
 
   render(): Rendered {
-    const account = this.props.redux.getStore("account");
+    const account = redux.getStore("account");
     if (account == null) {
       return <Loading />;
     }
     const account_id = account.get_account_id();
     if (
       this.props.file_use == null ||
-      this.props.redux == null ||
+      redux == null ||
       this.props.user_map == null ||
       this.props.project_map == null ||
+      this.props.mentions == null ||
+      this.props.get_sorted_file_use_list2 == null ||
+      this.props.get_unseen_size == null ||
       account_id == null
     ) {
       return <Loading />;
@@ -74,7 +80,7 @@ class FileUsePage extends Component<Props, {}> {
 
     return (
       <FileUseViewer
-        redux={this.props.redux}
+        redux={redux}
         file_use_list={this.props.get_sorted_file_use_list2()}
         user_map={this.props.user_map}
         project_map={this.props.project_map}

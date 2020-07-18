@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Mapping from file extension to what editor edits it.
 
 This is mainly used to support editor.coffee, which is legacy.
@@ -50,7 +55,7 @@ const codemirror_associations: { [ext: string]: string } = {
   ls: "text/x-livescript",
   lua: "lua",
   m: "text/x-octave",
-  md: "yaml-frontmatter",
+  md: "yaml-frontmatter", // See https://codemirror.net/mode/yaml-frontmatter/index.html; this is really "a YAML frontmatter at the start of a file, switching to " github flavored markdown after that.
   ml: "text/x-ocaml",
   mysql: "text/x-sql",
   patch: "text/x-diff",
@@ -88,7 +93,8 @@ const codemirror_associations: { [ext: string]: string } = {
   xml: "xml",
   cml: "xml", // http://www.xml-cml.org/, e.g. used by avogadro
   kml: "xml", // https://de.wikipedia.org/wiki/Keyhole_Markup_Language
-  xsl: "xsl",
+  xsl: "xml",
+  ptx: "xml", // https://pretextbook.org/
   v: "verilog",
   vh: "verilog",
   "": "text",
@@ -103,6 +109,7 @@ export interface FileSpec {
     indent_unit?: number;
     tab_size?: number;
     spaces_instead_of_tabs?: boolean;
+    spellcheck?: boolean; // Use browser spellcheck by default
   };
   name: string;
   exclude_from_menu?: boolean;
@@ -185,19 +192,29 @@ file_associations["html"] = {
 
 file_associations["md"] = file_associations["markdown"] = {
   icon: "cc-icon-markdown",
-  opts: { indent_unit: 4, tab_size: 4, mode: codemirror_associations["md"] },
+  opts: {
+    indent_unit: 4,
+    tab_size: 4,
+    mode: codemirror_associations["md"],
+    spellcheck: true,
+  },
   name: "markdown",
 };
 
 file_associations["rmd"] = {
   icon: "cc-icon-r",
-  opts: { indent_unit: 4, tab_size: 4, mode: codemirror_associations["rmd"] },
+  opts: {
+    indent_unit: 4,
+    tab_size: 4,
+    mode: codemirror_associations["rmd"],
+    spellcheck: true,
+  },
   name: "RMarkdown",
 };
 
 file_associations["rst"] = {
   icon: "fa-file-code-o",
-  opts: { indent_unit: 4, tab_size: 4, mode: "rst" },
+  opts: { indent_unit: 4, tab_size: 4, mode: "rst", spellcheck: true },
   name: "ReST",
 };
 
@@ -211,7 +228,7 @@ file_associations["java"] = {
 file_associations["mediawiki"] = file_associations["wiki"] = {
   editor: "html-md",
   icon: "fa-file-code-o",
-  opts: { indent_unit: 4, tab_size: 4, mode: "mediawiki" },
+  opts: { indent_unit: 4, tab_size: 4, mode: "mediawiki", spellcheck: true },
   name: "MediaWiki",
 };
 
@@ -232,7 +249,7 @@ file_associations["yml"] = file_associations["yaml"] = {
 file_associations["pug"] = file_associations["jade"] = {
   editor: "codemirror",
   icon: "fa-code",
-  opts: { mode: "text/x-pug", indent_unit: 2, tab_size: 2 },
+  opts: { mode: "text/x-pug", indent_unit: 2, tab_size: 2, spellcheck: true },
   name: "PUG",
 };
 

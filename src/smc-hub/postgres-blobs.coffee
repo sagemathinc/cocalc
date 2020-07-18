@@ -1,3 +1,8 @@
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
+
 ###
 PostgreSQL -- implementation of queries needed for storage and managing blobs,
 including backups, integration with google cloud storage, etc.
@@ -45,7 +50,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         if not Buffer.isBuffer(opts.blob)
             # CRITICAL: We assume everywhere below that opts.blob is a
             # buffer, e.g., in the .toString('hex') method!
-            opts.blob = new Buffer(opts.blob)
+            opts.blob = Buffer.from(opts.blob)
         if not opts.uuid?
             opts.uuid = misc_node.uuidsha1(opts.blob)
         else if opts.check
@@ -687,7 +692,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     cb(); return
                 dbg("create blob from patches")
                 try
-                    blob = new Buffer(JSON.stringify(patches))
+                    blob = Buffer.from(JSON.stringify(patches))
                 catch err
                     # TODO: This *will* happen if the total length of all patches is too big.
                     # need to break patches up...
@@ -880,7 +885,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         result = await callback_opts(@_query)(query : "SELECT profile FROM accounts WHERE account_id='#{account_id}'")
         image = result.rows[0].profile.image
         v = image.split(',')
-        data = new Buffer(v[1], 'base64')
+        data = Buffer.from(v[1], 'base64')
         data2 = await require('sharp')(data).resize(140,140).toBuffer()
         image2 = v[0] + ',' + data2.toString('base64')
         #return image2

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import * as misc from "smc-util/misc";
 import { webapp_client } from "../webapp-client";
 import { AccountActions } from "./actions";
@@ -58,7 +63,7 @@ export function init(redux) {
     if (autosave) {
       const save_all_files = function () {
         if (webapp_client.is_connected()) {
-          return redux.getActions("projects").save_all_files();
+          redux.getActions("projects")?.save_all_files();
         }
       };
       _autosave_interval = setInterval(save_all_files, autosave * 1000);

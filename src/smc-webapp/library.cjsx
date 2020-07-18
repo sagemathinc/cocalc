@@ -1,23 +1,7 @@
-##############################################################################
-#
-#    CoCalc: Collaborative Calculation in the Cloud
-#
-#    Copyright (C) 2017, Sagemath Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-##############################################################################
+#########################################################################
+# This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+#########################################################################
 
 $              = window.$
 underscore = _ = require('underscore')
@@ -28,7 +12,7 @@ os_path        = require('path')
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, Fragment}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Well, SplitButton, MenuItem, Alert, ListGroup, ListGroupItem} = require('react-bootstrap')
 {Markdown, Space, TimeAgo, ErrorDisplay, Icon, Loading, TimeAgo, Tip, Space, SearchInput} = require('./r_misc')
-{webapp_client} = require('./webapp_client')
+{webapp_client} = require('./webapp-client')
 {COLORS}        = require('smc-util/theme')
 
 # used for some styles
