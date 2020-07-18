@@ -12,7 +12,7 @@ A single task
 {Grid, Row, Col} = require('react-bootstrap')
 
 
-{MinToggle}    = require('./min-toggle')
+{MinToggle}    = require('../frame-editors/task-editor/min-toggle')
 {Description}  = require('./desc')
 {Changed}      = require('../frame-editors/task-editor/changed')
 {DueDate}      = require('./due')

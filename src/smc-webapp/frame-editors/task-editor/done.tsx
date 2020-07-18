@@ -12,7 +12,7 @@ import { Icon } from "../../r_misc";
 import { TaskActions } from "./types";
 
 interface Props {
-  actions: TaskActions;
+  actions?: TaskActions;
   done: boolean;
   read_only: boolean;
   task_id: string;
@@ -30,7 +30,7 @@ export const DoneCheckbox: React.FC<Props> = React.memo(
     return (
       <div
         onClick={() => {
-          if (read_only) return;
+          if (read_only || actions == null) return;
           if (done) {
             actions.set_task_not_done(task_id);
           } else {
