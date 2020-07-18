@@ -9,6 +9,7 @@ function is_sortable(actions): boolean {
     actions.store.getIn(["local_view_state", "sort", "column"])
   );
 }
+
 export function create_key_handler(actions): Function {
   return function (evt) {
     const read_only = !!actions.store.get("read_only");
