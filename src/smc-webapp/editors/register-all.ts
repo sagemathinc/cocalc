@@ -22,7 +22,6 @@ import { webapp_client } from "../webapp-client";
 import { register as jupyter_register } from "../jupyter/nbviewer/register";
 jupyter_register(webapp_client);
 
-import "../tasks/register";
 import "./media-viewer/register";
 
 // Raw data editors

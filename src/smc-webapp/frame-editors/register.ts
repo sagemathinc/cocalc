@@ -23,3 +23,4 @@ import "./jupyter-editor/register";
 import "./generic/test/init";
 import "./time-travel-editor/register";
 import "./course-editor/register";
+import "./task-editor/register";

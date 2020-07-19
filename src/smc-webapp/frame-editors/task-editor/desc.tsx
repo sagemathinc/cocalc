@@ -16,7 +16,7 @@ import { React } from "../../app-framework";
 import { Icon } from "../../r_misc";
 import { DescriptionRendered } from "./desc-rendered";
 import { DescriptionEditor } from "./desc-editor";
-import { TaskActions } from "./types";
+import { TaskActions } from "./actions";
 
 interface Props {
   actions: TaskActions;

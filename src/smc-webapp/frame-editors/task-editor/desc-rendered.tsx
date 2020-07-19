@@ -17,7 +17,7 @@ import {
 } from "./desc-rendering";
 import { path_split } from "smc-util/misc";
 import { apply_without_math } from "smc-util/mathjax-utils-2";
-import { TaskActions } from "./types";
+import { TaskActions } from "./actions";
 
 interface Props {
   actions: TaskActions;

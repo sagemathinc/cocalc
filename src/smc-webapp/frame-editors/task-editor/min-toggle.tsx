@@ -9,7 +9,7 @@ Toggle to minimize display of a task (just show first part or everything)
 
 import { CSS, React } from "../../app-framework";
 import { Icon } from "../../r_misc";
-import { TaskActions } from "./types";
+import { TaskActions } from "./actions";
 
 const STYLE: CSS = { fontSize: "17pt", color: "#888", float: "right" } as const;
 

@@ -9,10 +9,10 @@ Toggle whether or not to show tasks (deleted, done)
 
 import { React, useRef } from "../../app-framework";
 import { Icon, Space } from "../../r_misc";
-import { TaskActions } from "./types";
+import { TaskActions } from "./actions";
 
 interface Props {
-  actions?: TaskActions;
+  actions: TaskActions;
   type: "done" | "deleted";
   count: number;
   show?: boolean;
@@ -41,13 +41,15 @@ export const ShowToggle: React.FC<Props> = React.memo(
       last_call_ref.current = now;
 
       if (show) {
-        actions[`stop_showing_${type}`]();
+        if (type == "done") actions.stop_showing_done();
+        else if (type == "deleted") actions.stop_showing_deleted();
       } else {
         if (count === 0) {
           // do nothing
           return;
         }
-        actions[`show_${type}`]();
+        if (type == "done") actions.show_done();
+        else if (type == "deleted") actions.show_deleted();
       }
     }
 
