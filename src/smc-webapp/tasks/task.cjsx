@@ -13,13 +13,13 @@ A single task
 
 
 {MinToggle}    = require('../frame-editors/task-editor/min-toggle')
-{Description}  = require('./desc')
+{Description}  = require('../frame-editors/task-editor/desc')
 {Changed}      = require('../frame-editors/task-editor/changed')
 {DueDate}      = require('./due')
 {DragHandle}   = require('../frame-editors/task-editor/drag')
 {DoneCheckbox} = require('../frame-editors/task-editor/done')
 {Timer}        = require('./timer')
-{header_part}  = require('./desc-rendering')
+{header_part}  = require('../frame-editors/task-editor/desc-rendering')
 
 exports.Task = rclass
     propTypes :

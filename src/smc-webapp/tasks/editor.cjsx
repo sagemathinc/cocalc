@@ -14,7 +14,7 @@ Top-level react component for task list
 {TaskList}              = require('./list')
 {ButtonBar}             = require('./buttonbar.cjsx')
 {Find}                  = require('./find')
-{DescVisible}           = require('./desc-visible')
+{DescVisible}           = require('../frame-editors/task-editor/desc-visible')
 {HashtagBar}            = require('./hashtag-bar')
 {is_sortable} =  require('../frame-editors/task-editor/headings-info')
 {Headings} = require('./headings')

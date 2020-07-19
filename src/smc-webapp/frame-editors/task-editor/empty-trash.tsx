@@ -8,7 +8,7 @@ Button to empty the trash, thus "permanently" deleting all deleted tasks.
 */
 
 import { React } from "../../app-framework";
-import { Button } from "react-bootstrap";
+import { Button } from "../../antd-bootstrap";
 import { TaskActions } from "./types";
 
 interface Props {

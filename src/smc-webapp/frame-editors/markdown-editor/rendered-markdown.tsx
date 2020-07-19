@@ -14,15 +14,12 @@
 //    - [x] checkbox in markdown are interactive (can click them, which edits file)
 
 import { Markdown } from "smc-webapp/r_misc";
-
 import { is_different, path_split } from "smc-util/misc2";
 import { throttle } from "underscore";
 import { React, ReactDOM, CSS } from "../../app-framework";
 import { use_font_size_scaling } from "../frame-tree/hooks";
-
-const { process_checkboxes } = require("smc-webapp/tasks/desc-rendering");
-const { apply_without_math } = require("smc-util/mathjax-utils-2");
-
+import { process_checkboxes } from "../task-editor/desc-rendering";
+import { apply_without_math } from "smc-util/mathjax-utils-2";
 import { MAX_WIDTH_NUM } from "../options";
 
 interface Props {

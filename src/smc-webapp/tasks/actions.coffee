@@ -14,18 +14,12 @@ TASKS_HELP_URL = "https://doc.cocalc.com/tasks.html"
 immutable  = require('immutable')
 underscore = require('underscore')
 {delay} = require('awaiting')
-
 {Actions}  = require('../app-framework')
-
 misc = require('smc-util/misc')
-
 {HEADINGS, HEADINGS_DIR} = require('../frame-editors/task-editor/headings-info')
-
 {update_visible} = require('./update-visible')
-
 {create_key_handler} = require('../frame-editors/task-editor/keyboard')
-
-{toggle_checkbox} = require('./desc-rendering')
+{toggle_checkbox} = require('../frame-editors/task-editor/desc-rendering')
 
 class exports.TaskActions extends Actions
     _init: (project_id, path, syncdb, store, client) =>
