@@ -53,7 +53,7 @@ export const Description: React.FC<Props> = React.memo(
     }
 
     function render_editor() {
-      if (!editing) {
+      if (!editing || actions==null) {
         return;
       }
       return (
@@ -64,8 +64,6 @@ export const Description: React.FC<Props> = React.memo(
             desc={desc}
             is_current={is_current}
             font_size={font_size}
-            selected_hashtags={selected_hashtags}
-            search_terms={search_terms}
           />
           <div style={{ color: "#666", padding: "5px 0", float: "right" }}>
             Use{" "}

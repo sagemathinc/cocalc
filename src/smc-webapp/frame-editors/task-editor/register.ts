@@ -9,6 +9,14 @@ Register the task list editor
 TODO: this is very similar to jupyter/register.coffee -- can this be refactored?
 */
 
+// TODO: remove
+import './desc-editor'
+import './editor'
+import './hashtag-bar'
+import './headings'
+import './history-viewer'
+import './list'
+
 import { register_file_editor } from "../../file-editors";
 import { alert_message } from "../../alerts";
 import { redux_name } from "../../app-framework";
