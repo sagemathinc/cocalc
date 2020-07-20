@@ -22,17 +22,11 @@ import {
   keys,
 } from "smc-util/misc";
 import { HEADINGS, HEADINGS_DIR } from "./headings-info";
-//import { update_visible } from "../../tasks/update-visible";
-const { update_visible } = require("../../tasks/update-visible");
+import { update_visible } from "./update-visible";
 import { create_key_handler } from "./keyboard";
 import { toggle_checkbox } from "./desc-rendering";
 import { Actions } from "../../app-framework";
-import {
-  LocalViewStateMap,
-  Sort,
-  Task,
-  TaskState,
-} from "./types";
+import { LocalViewStateMap, Sort, Task, TaskMap, TaskState } from "./types";
 import { TaskStore } from "./store";
 import { SyncDB } from "smc-util/sync/editor/db";
 
@@ -203,12 +197,19 @@ export class TaskActions extends Actions<TaskState> {
 
   private __update_visible(): void {
     const tasks = this.store.get("tasks");
+    if (tasks == null) return;
     const view = this.store.get("local_view_state");
-    const local_tasks = this.store.get("local_task_state");
+    const local_task_state = this.store.get("local_task_state");
     const current_task_id = this.store.get("current_task_id");
     const counts = this.store.get("counts");
 
-    let obj = update_visible(tasks, local_tasks, view, counts, current_task_id);
+    let obj = update_visible(
+      tasks,
+      local_task_state,
+      view,
+      counts,
+      current_task_id
+    );
     // We make obj explicit to avoid giving update_visible power to
     // change anything about state...
     // This is just "explicit is better than implicit".
@@ -232,6 +233,7 @@ export class TaskActions extends Actions<TaskState> {
     const s = {};
     let unique = true;
     tasks.forEach((task, id) => {
+      if (tasks == null) return; // won't happpen, but TS doesn't know that.
       let pos = task.get("position");
       if (pos == null) {
         // no position set at all -- just arbitrarily set it to 0; it'll get
@@ -265,7 +267,7 @@ export class TaskActions extends Actions<TaskState> {
     }
   }
 
-  public set_local_task_state(task_id: string, obj: object): void {
+  public set_local_task_state(task_id: string | undefined, obj: object): void {
     if (this.is_closed) {
       return;
     }
@@ -307,11 +309,12 @@ export class TaskActions extends Actions<TaskState> {
         key == "font_size" ||
         key == "sort" ||
         key == "full_desc" ||
-        key == "selected_hashtags"
+        key == "selected_hashtags" ||
+        key == "search"
       ) {
         local = local.set(key as any, fromJS(value));
       } else {
-        throw Error(`bug setting local_view_state -- invalid field ${key}`);
+        throw Error(`bug setting local_view_state -- invalid field "${key}"`);
       }
     }
     this.setState({
@@ -344,7 +347,7 @@ export class TaskActions extends Actions<TaskState> {
     // create new task positioned before the current task
     const cur_pos = this.store.getIn([
       "tasks",
-      this.store.get("current_task_id"),
+      this.store.get("current_task_id") ?? "",
       "position",
     ]);
 
@@ -428,7 +431,7 @@ export class TaskActions extends Actions<TaskState> {
       // also set state directly in the tasks object locally
       // **immediately**; this would happen
       // eventually as a result of the syncdb set above.
-      let tasks = this.store.get("tasks");
+      let tasks = this.store.get("tasks") ?? fromJS({});
       task = tasks.get(task_id) ?? fromJS({ task_id });
       if (task == null) throw Error("bug");
       for (let k in obj) {
@@ -444,7 +447,7 @@ export class TaskActions extends Actions<TaskState> {
         ) {
           task = task.set(k as keyof Task, fromJS(v));
         } else {
-          throw Error(`bug setting task -- invalid field ${k}`);
+          throw Error(`bug setting task -- invalid field "${k}"`);
         }
       }
       tasks = tasks.set(task_id, task);
@@ -461,21 +464,29 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   public delete_current_task(): void {
-    this.delete_task(this.store.get("current_task_id"));
+    const task_id = this.store.get("current_task_id");
+    if (task_id == null) return;
+    this.delete_task(task_id);
   }
 
   public undelete_current_task(): void {
-    this.undelete_task(this.store.get("current_task_id"));
+    const task_id = this.store.get("current_task_id");
+    if (task_id == null) return;
+    this.undelete_task(task_id);
   }
 
   public move_task_to_top(): void {
-    this.set_task(this.store.get("current_task_id"), {
+    const task_id = this.store.get("current_task_id");
+    if (task_id == null) return;
+    this.set_task(task_id, {
       position: this.store.get_positions()[0] - 1,
     });
   }
 
   public move_task_to_bottom(): void {
-    this.set_task(this.store.get("current_task_id"), {
+    const task_id = this.store.get("current_task_id");
+    if (task_id == null) return;
+    this.set_task(task_id, {
       position: this.store.get_positions().slice(-1)[0] + 1,
     });
   }
@@ -503,6 +514,7 @@ export class TaskActions extends Actions<TaskState> {
     }
     // swap positions for i and j
     const tasks = this.store.get("tasks");
+    if (tasks == null) return;
     const pos_i = tasks.getIn([task_id, "position"]);
     const pos_j = tasks.getIn([visible.get(j), "position"]);
     this.set_task(task_id, { position: pos_j }, true);
@@ -567,21 +579,21 @@ export class TaskActions extends Actions<TaskState> {
     this.syncdb.commit();
   }
 
-  public set_task_not_done(task_id: string): void {
+  public set_task_not_done(task_id: string | undefined): void {
     if (task_id == null) {
       task_id = this.store.get("current_task_id");
     }
     this.set_task(task_id, { done: false });
   }
 
-  public set_task_done(task_id: string): void {
+  public set_task_done(task_id: string | undefined): void {
     if (task_id == null) {
       task_id = this.store.get("current_task_id");
     }
     this.set_task(task_id, { done: true });
   }
 
-  public toggle_task_done(task_id: string): void {
+  public toggle_task_done(task_id: string | undefined): void {
     if (task_id == null) {
       task_id = this.store.get("current_task_id");
     }
@@ -594,31 +606,31 @@ export class TaskActions extends Actions<TaskState> {
     }
   }
 
-  public stop_editing_due_date(task_id: string): void {
+  public stop_editing_due_date(task_id: string | undefined): void {
     this.set_local_task_state(task_id, { editing_due_date: false });
   }
 
-  public edit_due_date(task_id: string): void {
+  public edit_due_date(task_id: string | undefined): void {
     this.set_local_task_state(task_id, { editing_due_date: true });
   }
 
-  public stop_editing_desc(task_id: string): void {
+  public stop_editing_desc(task_id: string | undefined): void {
     this.set_local_task_state(task_id, { editing_desc: false });
   }
 
-  public edit_desc(task_id: string): void {
+  public edit_desc(task_id: string | undefined): void {
     this.set_local_task_state(task_id, { editing_desc: true });
   }
 
-  public set_due_date(task_id, date): void {
+  public set_due_date(task_id: string | undefined, date: Date): void {
     this.set_task(task_id, { due_date: date });
   }
 
-  public set_desc(task_id, desc): void {
+  public set_desc(task_id: string | undefined, desc: string): void {
     this.set_task(task_id, { desc });
   }
 
-  public toggle_full_desc(task_id: string): void {
+  public toggle_full_desc(task_id: string | undefined): void {
     if (task_id == null) {
       task_id = this.store.get("current_task_id");
     }
@@ -675,7 +687,7 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   public empty_trash(): void {
-    this.store.get("tasks")?.forEach((task, task_id) => {
+    this.store.get("tasks")?.forEach((task: TaskMap, task_id: string) => {
       if (task.get("deleted")) {
         this.syncdb.delete({ task_id });
       }
@@ -702,7 +714,7 @@ export class TaskActions extends Actions<TaskState> {
 
   // dir = 'asc' or 'desc'
   // columns are strings in headings.cjsx
-  publicset_sort_column(column, dir): void {
+  public set_sort_column(column, dir): void {
     let view = this.store.get("local_view_state");
     let sort = view.get("sort") ?? (fromJS({}) as Sort);
     sort = sort.set("column", column);

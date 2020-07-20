@@ -29,18 +29,22 @@ export interface LocalViewState {
   font_size?: number;
   sort?: Sort;
   full_desc?: Set<string>;
-  selected_hashtags?: Map<string, any>;
+  selected_hashtags?: Map<string, -1 | 1>;
+  search?: string;
 }
 
 export type LocalViewStateMap = TypedMap<LocalViewState>;
+export type LocalTaskStateMap = Map<string, any>;
+export type Counts = TypedMap<{ done: number; deleted: number }>;
 
+// State of the Store
 export interface TaskState {
   read_only: boolean;
-  tasks: Map<string, TaskMap>; // immutable map from task_id (uuidv4) to {desc:?, position:?, last_edited:?, due_date:?, task_id:?}
+  tasks?: Map<string, TaskMap>; // immutable map from task_id (uuidv4) to {desc:?, position:?, last_edited:?, due_date:?, task_id:?}
   local_view_state: LocalViewStateMap;
-  local_task_state: any;
-  current_task_id: string;
-  counts: TypedMap<{ done: number; deleted: number }>;
+  local_task_state: LocalTaskStateMap;
+  current_task_id?: string;
+  counts: Counts;
   search_desc: string;
   visible: List<string>; // ordered immutable js list of task_id's
   load_time_estimate?: number;
