@@ -66,7 +66,7 @@ export const DueDate: React.FC<Props> = React.memo(
             value={value}
             open={true}
             placeholder={"Set Task Due Date"}
-            onChange={(date) => set_due_date(date - 0)}
+            onChange={(date) => set_due_date(date?.valueOf())}
             onFocus={actions.disable_key_handler}
             onBlur={stop_editing}
           />
@@ -94,7 +94,7 @@ export const DueDate: React.FC<Props> = React.memo(
 
     function render_due_date() {
       let elt;
-      let style = undefined;
+      let style: CSS | undefined = undefined;
       if (due_date) {
         const date = new Date(due_date);
         if (date <= new Date() && !is_done) {

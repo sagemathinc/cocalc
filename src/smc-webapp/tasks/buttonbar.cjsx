@@ -100,7 +100,7 @@ exports.ButtonBar = rclass
                     key     = 'font-decrease'
                     onClick = {@props.actions.increase_font_size}
                     >
-                    <Icon style   = {fontSize:'11pt'} name='font' />
+                    <Icon style   = {fontSize:'10pt'} name='font' />
                 </Button>
             </ButtonGroup>
         </span>

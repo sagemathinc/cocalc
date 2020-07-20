@@ -87,7 +87,7 @@ export class TaskActions extends Actions<TaskState> {
     }
   }
 
-  private enable_key_handler(): void {
+  public enable_key_handler(): void {
     if (this.is_closed) {
       return;
     }
@@ -99,7 +99,7 @@ export class TaskActions extends Actions<TaskState> {
       .set_active_key_handler(this.key_handler, this.project_id, this.path);
   }
 
-  private disable_key_handler(): void {
+  public disable_key_handler(): void {
     this.redux.getActions("page").erase_active_key_handler(this.key_handler);
   }
 
@@ -622,7 +622,10 @@ export class TaskActions extends Actions<TaskState> {
     this.set_local_task_state(task_id, { editing_desc: true });
   }
 
-  public set_due_date(task_id: string | undefined, date: Date): void {
+  public set_due_date(
+    task_id: string | undefined,
+    date: number | undefined
+  ): void {
     this.set_task(task_id, { due_date: date });
   }
 
