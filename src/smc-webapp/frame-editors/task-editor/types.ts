@@ -11,7 +11,7 @@ export interface Task {
   deleted?: boolean;
   position?: number;
   desc?: string;
-  due_date?: Date;
+  due_date?: number;
   done?: boolean;
   last_edited?: number;
 }
@@ -21,6 +21,7 @@ export type HeadingsDir = "asc" | "desc";
 
 export type TaskMap = TypedMap<Task>;
 export type Sort = TypedMap<{ column: Headings; dir: HeadingsDir }>;
+export type SelectedHashtags = Map<string, -1 | 1>;
 
 export interface LocalViewState {
   show_deleted?: boolean;
@@ -29,7 +30,7 @@ export interface LocalViewState {
   font_size?: number;
   sort?: Sort;
   full_desc?: Set<string>;
-  selected_hashtags?: Map<string, -1 | 1>;
+  selected_hashtags?: SelectedHashtags;
   search?: string;
 }
 

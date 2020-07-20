@@ -9,7 +9,7 @@ Rendered view of the description of a single task
 
 import { React } from "../../app-framework";
 import { Markdown } from "../../r_misc";
-import { Map, Set } from "immutable";
+import { Set } from "immutable";
 import {
   process_hashtags,
   process_checkboxes,
@@ -18,16 +18,17 @@ import {
 import { path_split } from "smc-util/misc";
 import { apply_without_math } from "smc-util/mathjax-utils-2";
 import { TaskActions } from "./actions";
+import { SelectedHashtags } from "./types";
 
 interface Props {
-  actions: TaskActions;
+  actions?: TaskActions;
   task_id: string;
   desc: string;
-  path: string;
-  project_id: string;
+  path?: string;
+  project_id?: string;
   full_desc: boolean;
   read_only: boolean;
-  selected_hashtags: Map<string, any>;
+  selected_hashtags: SelectedHashtags;
   search_terms: Set<string>;
 }
 
@@ -61,7 +62,7 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
         <Markdown
           value={value}
           project_id={project_id}
-          file_path={path_split(path).head}
+          file_path={path ? path_split(path).head : undefined}
           highlight={search_terms}
         />
       );
@@ -74,7 +75,7 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
       }
       if (data.checkbox != null) {
         e.stopPropagation();
-        actions.toggle_desc_checkbox(
+        actions?.toggle_desc_checkbox(
           task_id,
           parseInt(data.index),
           data.checkbox === "true"
@@ -89,7 +90,7 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
         } else {
           new_state = 1;
         }
-        actions.set_hashtag_state(data.hashtag, new_state);
+        actions?.set_hashtag_state(data.hashtag, new_state);
       }
     }
 

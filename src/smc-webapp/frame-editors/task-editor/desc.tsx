@@ -19,9 +19,9 @@ import { DescriptionEditor } from "./desc-editor";
 import { TaskActions } from "./actions";
 
 interface Props {
-  actions: TaskActions;
-  path: string;
-  project_id: string;
+  actions?: TaskActions;
+  path?: string;
+  project_id?: string;
   task_id: string;
   desc: string;
   editing: boolean;
@@ -49,7 +49,7 @@ export const Description: React.FC<Props> = React.memo(
     search_terms,
   }) => {
     function edit() {
-      actions.edit_desc(task_id);
+      actions?.edit_desc(task_id);
     }
 
     function render_editor() {

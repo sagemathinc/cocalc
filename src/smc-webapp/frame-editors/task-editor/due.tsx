@@ -24,7 +24,7 @@ const STYLE: CSS = {
 } as const;
 
 interface Props {
-  actions: TaskActions;
+  actions?: TaskActions;
   task_id: string;
   due_date?: number;
   editing?: boolean;
@@ -35,16 +35,16 @@ interface Props {
 export const DueDate: React.FC<Props> = React.memo(
   ({ actions, task_id, due_date, editing, read_only, is_done }) => {
     function stop_editing() {
-      actions.stop_editing_due_date(task_id);
-      actions.enable_key_handler();
+      actions?.stop_editing_due_date(task_id);
+      actions?.enable_key_handler();
     }
 
     function edit() {
-      actions.edit_due_date(task_id);
+      actions?.edit_due_date(task_id);
     }
 
     function set_due_date(date) {
-      actions.set_due_date(task_id, date);
+      actions?.set_due_date(task_id, date);
       if (!date) {
         stop_editing();
       }
@@ -67,7 +67,7 @@ export const DueDate: React.FC<Props> = React.memo(
             open={true}
             placeholder={"Set Task Due Date"}
             onChange={(date) => set_due_date(date?.valueOf())}
-            onFocus={actions.disable_key_handler}
+            onFocus={actions?.disable_key_handler}
             onBlur={stop_editing}
           />
         </div>
@@ -85,7 +85,7 @@ export const DueDate: React.FC<Props> = React.memo(
             name="times"
             onClick={() => {
               set_due_date(null);
-              actions.stop_editing_due_date(task_id);
+              actions?.stop_editing_due_date(task_id);
             }}
           />
         </span>

@@ -21,7 +21,7 @@ misc = require('smc-util/misc')
 
 {WindowedList} = require('../r_misc/windowed-list')
 
-{Task} = require('./task')
+{Task} = require('../frame-editors/task-editor/task')
 SortableTask = SortableElement(Task)
 
 exports.TaskList = SortableContainer rclass

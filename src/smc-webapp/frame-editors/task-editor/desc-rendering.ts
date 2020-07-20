@@ -7,10 +7,9 @@
 Utility/parsing functions used in rendering task description.
 */
 
-import { Map } from "immutable";
-
 import { replace_all_function, parse_hashtags } from "smc-util/misc";
 import { apply_without_math } from "smc-util/mathjax-utils-2";
+import { SelectedHashtags } from "./types";
 
 // Make clever use of replace_all_function to toggle the state of a checkbox.
 export function toggle_checkbox(s, index, checked): string {
@@ -38,7 +37,7 @@ export function toggle_checkbox(s, index, checked): string {
 // assumes value is the text output by remove_math!
 export function process_hashtags(
   value: string,
-  selected_hashtags: Map<string, -1 | 1>
+  selected_hashtags: SelectedHashtags
 ): string {
   // replace hashtags by a span with appropriate class
   const v = parse_hashtags(value);
