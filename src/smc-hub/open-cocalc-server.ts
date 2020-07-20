@@ -21,6 +21,7 @@ import { get_smc_root } from "./utils";
 import { have_active_registration_tokens } from "./utils";
 //import { SiteSettingsKeys } from "smc-util/db-schema/site-defaults";
 import * as winston from "winston";
+import { versions as RES_VERSIONS } from "../webapp-lib/resources/versions";
 
 const WEBAPP_PATH = path_module.join(get_smc_root(), "webapp-lib");
 
@@ -70,6 +71,7 @@ async function get_params(opts: GetData) {
     htmlWebpackPlugin: {
       options: {
         BASE_URL,
+        RES_VERSIONS,
         PREFIX,
         COMMERCIAL,
       },
