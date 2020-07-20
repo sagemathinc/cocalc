@@ -15,10 +15,9 @@ A single task
 {MinToggle}    = require('../frame-editors/task-editor/min-toggle')
 {Description}  = require('../frame-editors/task-editor/desc')
 {Changed}      = require('../frame-editors/task-editor/changed')
-{DueDate}      = require('./due')
+{DueDate}      = require('../frame-editors/task-editor/due')
 {DragHandle}   = require('../frame-editors/task-editor/drag')
 {DoneCheckbox} = require('../frame-editors/task-editor/done')
-{Timer}        = require('./timer')
 {header_part}  = require('../frame-editors/task-editor/desc-rendering')
 
 exports.Task = rclass
@@ -58,12 +57,6 @@ exports.Task = rclass
             read_only = {@props.read_only}
             done      = {!!@props.task.get('done')}
             task_id   = {@props.task.get('task_id')}
-        />
-
-    render_timer: ->
-        <Timer
-            actions = {@props.actions}
-            task_id = {@props.task.get('task_id')}
         />
 
     render_min_toggle: (has_body) ->
