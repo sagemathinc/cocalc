@@ -109,6 +109,7 @@ const program = require("commander");
 
 const SMC_VERSION = require("smc-util/smc-version").version;
 const theme = require("smc-util/theme");
+const RES_VERSIONS = require("webapp-lib/resources/versions").versions;
 
 const git_head = child_process.execSync("git rev-parse HEAD");
 const GIT_REV = git_head.toString().trim();
@@ -323,6 +324,7 @@ const pug2app = new HtmlWebpackPlugin({
             title: TITLE,
             description: DESCRIPTION,
             BASE_URL: base_url_html,
+            RES_VERSIONS,
             theme,
             COMP_ENV,
             components: {}, // no data needed, empty is fine
