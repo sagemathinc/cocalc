@@ -8,10 +8,8 @@ Top-level react component for task list
 ###
 
 {React, rclass, rtypes} = require('../app-framework')
-
 {Loading}               = require('../r_misc')
-
-{TaskList}              = require('./list')
+{TaskList}              = require('../frame-editors/task-editor/list')
 {ButtonBar}             = require('../frame-editors/task-editor/button-bar')
 {Find}                  = require('../frame-editors/task-editor/find')
 {DescVisible}           = require('../frame-editors/task-editor/desc-visible')

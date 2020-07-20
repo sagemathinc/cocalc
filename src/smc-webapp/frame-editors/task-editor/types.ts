@@ -32,16 +32,20 @@ export interface LocalViewState {
   full_desc?: Set<string>;
   selected_hashtags?: SelectedHashtags;
   search?: string;
+  scroll?: number;
 }
 
 export type LocalViewStateMap = TypedMap<LocalViewState>;
 export type LocalTaskStateMap = Map<string, any>;
 export type Counts = TypedMap<{ done: number; deleted: number }>;
 
+// Tasks is an immutable map from task_id (uuidv4) to {desc:?, position:?, last_edited:?, due_date:?, task_id:?}
+export type Tasks = Map<string, TaskMap>;
+
 // State of the Store
 export interface TaskState {
   read_only: boolean;
-  tasks?: Map<string, TaskMap>; // immutable map from task_id (uuidv4) to {desc:?, position:?, last_edited:?, due_date:?, task_id:?}
+  tasks?: Tasks;
   local_view_state: LocalViewStateMap;
   local_task_state: LocalTaskStateMap;
   current_task_id?: string;

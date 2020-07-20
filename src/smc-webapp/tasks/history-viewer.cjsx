@@ -8,13 +8,10 @@ History viewer for Tasks notebooks  --- very similar to same file in jupyter/ di
 ###
 
 immutable  = require('immutable')
-
+{TaskList}              = require('../frame-editors/task-editor/list')
 {React, ReactDOM, rclass, rtypes, redux, Redux}  = require('../app-framework')
 {Icon} = require('../r_misc')
-
 misc         = require('smc-util/misc')
-
-{TaskList} = require('./list')
 
 SHOW_DONE_STYLE =
     fontSize     : '12pt'
