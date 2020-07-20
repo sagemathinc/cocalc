@@ -22,10 +22,10 @@ export type HeadingsDir = "asc" | "desc";
 export type TaskMap = TypedMap<Task>;
 export type Sort = TypedMap<{ column: Headings; dir: HeadingsDir }>;
 
-interface LocalViewState {
+export interface LocalViewState {
   show_deleted?: boolean;
   show_done?: boolean;
-  show_max?: boolean;
+  show_max?: number;
   font_size?: number;
   sort?: Sort;
   full_desc?: Set<string>;
@@ -45,6 +45,7 @@ export interface TaskState {
   visible: List<string>; // ordered immutable js list of task_id's
   load_time_estimate?: number;
   has_unsaved_changes?: boolean;
+  has_uncommitted_changes?: boolean;
   scroll_into_view?: boolean;
   focus_find_box?: boolean;
 }

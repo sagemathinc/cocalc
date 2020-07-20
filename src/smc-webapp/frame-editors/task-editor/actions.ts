@@ -28,7 +28,6 @@ import { create_key_handler } from "./keyboard";
 import { toggle_checkbox } from "./desc-rendering";
 import { Actions } from "../../app-framework";
 import {
-  LocalViewState,
   LocalViewStateMap,
   Sort,
   Task,
@@ -118,14 +117,8 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   private _load_local_view_state(): LocalViewStateMap {
-    let local_view_state: LocalViewStateMap | undefined = undefined;
     const x = localStorage[this.name];
-    if (x != null) {
-      local_view_state = fromJS(JSON.parse(x));
-    }
-    if (local_view_state == null) {
-      local_view_state = Map<string, any>();
-    }
+    let local_view_state: LocalViewStateMap = fromJS(JSON.parse(x) ?? {});
     if (!local_view_state.has("show_deleted")) {
       local_view_state = local_view_state.set("show_deleted", false);
     }
@@ -199,7 +192,7 @@ export class TaskActions extends Actions<TaskState> {
         tasks = tasks.delete(task_id);
       } else {
         // changed
-        tasks = tasks.set(task_id, t);
+        tasks = tasks.set(task_id, t as any);
       }
     });
 
@@ -262,7 +255,7 @@ export class TaskActions extends Actions<TaskState> {
     // 0 to n, arbitrarily breaking ties.
     const v: [number, string][] = [];
     tasks.forEach((task, id) => {
-      v.push([task.get("position"), id]);
+      v.push([task.get("position") ?? 0, id]);
     });
     v.sort((a, b) => cmp(a[0], b[0]));
     let position = 0;
