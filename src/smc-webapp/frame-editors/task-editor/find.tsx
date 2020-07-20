@@ -72,6 +72,7 @@ export const Find: React.FC<Props> = React.memo(
               type="text"
               ref={search_ref}
               componentClass="input"
+              placeholder={"Search for tasks..."}
               value={local_view_state.get("search") ?? ""}
               onChange={() =>
                 actions.set_local_view_state({

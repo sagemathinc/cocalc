@@ -12,7 +12,7 @@ Top-level react component for task list
 {Loading}               = require('../r_misc')
 
 {TaskList}              = require('./list')
-{ButtonBar}             = require('./buttonbar.cjsx')
+{ButtonBar}             = require('../frame-editors/task-editor/button-bar')
 {Find}                  = require('../frame-editors/task-editor/find')
 {DescVisible}           = require('../frame-editors/task-editor/desc-visible')
 {HashtagBar}            = require('./hashtag-bar')

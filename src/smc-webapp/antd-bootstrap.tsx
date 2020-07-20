@@ -50,7 +50,7 @@ const BS_STYLE_TO_TYPE: {
   primary: "primary",
   success: "default", // antd doesn't have this so we do it via style below.
   default: "default",
-  info: "dashed",
+  info: "default", // antd doesn't have this so we do it via style below.
   warning: "default", // antd doesn't have this so we do it via style below.
   danger: "danger",
   link: "link",
@@ -89,6 +89,12 @@ function parse_bsStyle(props: {
     style = {
       backgroundColor: "#5cb85c",
       borderColor: "#4cae4c",
+      color: "#ffffff",
+    };
+  } else if (props.bsStyle == "info") {
+    style = {
+      backgroundColor: "rgb(91, 192, 222)",
+      borderColor: "rgb(70, 184, 218)",
       color: "#ffffff",
     };
   }
