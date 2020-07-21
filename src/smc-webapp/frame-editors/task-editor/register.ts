@@ -9,20 +9,12 @@ Register the task list editor
 TODO: this is very similar to jupyter/register.coffee -- can this be refactored?
 */
 
-// TODO: remove
-import './desc-editor'
-import './editor'
-import './hashtag-bar'
-import './headings'
-import './history-viewer'
-import './list'
-
 import { register_file_editor } from "../../file-editors";
 import { alert_message } from "../../alerts";
 import { redux_name } from "../../app-framework";
 import { webapp_client } from "../../webapp-client";
 
-const { TaskEditor } = require("../../tasks/editor");
+import { TaskEditor } from "./editor";
 import { TaskActions } from "./actions";
 import { TaskStore } from "./store";
 
@@ -63,7 +55,7 @@ register_file_editor({
     return name;
   },
 
-  remove(path:string, redux, project_id:string) {
+  remove(path: string, redux, project_id: string) {
     const name = redux_name(project_id, path);
     const actions = redux.getActions(name);
     if (actions != null) {
@@ -79,7 +71,7 @@ register_file_editor({
     return name;
   },
 
-  save(path:string, redux, project_id:string) {
+  save(path: string, redux, project_id: string) {
     const name = redux_name(project_id, path);
     const actions = redux.getActions(name);
     return actions != null ? actions.save() : undefined;

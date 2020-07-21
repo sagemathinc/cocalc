@@ -54,9 +54,7 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
       }
       const v: Function[] = [process_checkboxes];
       v.push((x) => process_hashtags(x, selected_hashtags));
-      console.log("value before", value);
       value = apply_without_math(value, v);
-      console.log("value after", value);
 
       return (
         <Markdown

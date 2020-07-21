@@ -54,6 +54,7 @@ export const Task: React.FC<Props> = React.memo(
   }) => {
     const style: CSS = {
       margin: "2px 5px",
+      paddingTop: "5px",
       background: "white",
     };
     if (is_current) {

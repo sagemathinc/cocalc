@@ -135,22 +135,6 @@ const TaskListNonsort: React.FC<Props> = React.memo(
       );
     }
 
-    function render_tasks() {
-      return (
-        <WindowedList
-          ref={windowed_list_ref}
-          overscan_row_count={10}
-          estimated_row_size={44}
-          row_count={visible.size + 1}
-          row_renderer={(obj) => render_task(obj.index, obj.key)}
-          row_key={(index) => visible.get(index) ?? "filler"}
-          cache_id={actions?.name}
-          scroll_top={scrollTop}
-          hide_resize={false} // hide_resize is false so drag and drop works.
-        />
-      );
-    }
-
     function save_scroll_position() {
       if (actions == null) {
         return;
@@ -169,7 +153,17 @@ const TaskListNonsort: React.FC<Props> = React.memo(
 
     return (
       <div className="smc-vfill" ref={main_div_ref} onClick={on_click}>
-        {render_tasks()}
+        <WindowedList
+          ref={windowed_list_ref}
+          overscan_row_count={10}
+          estimated_row_size={44}
+          row_count={visible.size + 1}
+          row_renderer={(obj) => render_task(obj.index, obj.key)}
+          row_key={(index) => visible.get(index) ?? "filler"}
+          cache_id={actions?.name}
+          scroll_top={scrollTop}
+          hide_resize={false} // hide_resize is false so drag and drop works.
+        />
       </div>
     );
   }
