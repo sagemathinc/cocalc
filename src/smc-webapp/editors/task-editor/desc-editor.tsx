@@ -40,7 +40,6 @@ export const DescriptionEditor: React.FC<Props> = React.memo(
         onChange={(desc) => actions.set_desc(task_id, desc)}
         fontSize={font_size}
         onShiftEnter={done}
-        onEscape={done}
         onFocus={actions.disable_key_handler}
         onBlur={actions.enable_key_handler}
         enableUpload={true}
