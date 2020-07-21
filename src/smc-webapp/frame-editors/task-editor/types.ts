@@ -5,6 +5,7 @@
 
 import { List, Map, Set } from "immutable";
 import { TypedMap } from "../../app-framework";
+import { Estimate } from "../../r_misc";
 
 export interface Task {
   task_id: string;
@@ -28,12 +29,12 @@ export type HashtagState = -1 | 1;
 export type SelectedHashtags = Map<string, HashtagState>;
 
 export interface LocalViewState {
-  show_deleted?: boolean;
-  show_done?: boolean;
-  show_max?: number;
-  font_size?: number;
-  sort?: Sort;
-  full_desc?: Set<string>;
+  show_deleted: boolean;
+  show_done: boolean;
+  show_max: number;
+  font_size: number;
+  sort: Sort;
+  full_desc: Set<string>;
   selected_hashtags?: SelectedHashtags;
   search?: string;
   scroll?: number;
@@ -60,7 +61,7 @@ export interface TaskState {
   search_desc: string;
   search_terms?: Set<string>;
   visible: List<string>; // ordered immutable js list of task_id's
-  load_time_estimate?: number;
+  load_time_estimate?: Estimate;
   has_unsaved_changes?: boolean;
   has_uncommitted_changes?: boolean;
   scroll_into_view?: boolean;

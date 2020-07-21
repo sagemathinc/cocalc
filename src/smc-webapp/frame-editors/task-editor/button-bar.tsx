@@ -18,11 +18,11 @@ import { TaskActions } from "./actions";
 
 interface Props {
   actions: TaskActions;
-  read_only: boolean;
-  has_unsaved_changes: boolean;
-  has_uncommitted_changes: boolean;
-  current_task_id: string;
-  current_task_is_deleted: boolean;
+  read_only?: boolean;
+  has_unsaved_changes?: boolean;
+  has_uncommitted_changes?: boolean;
+  current_task_id?: string;
+  current_task_is_deleted?: boolean;
 }
 
 export const ButtonBar: React.FC<Props> = React.memo(

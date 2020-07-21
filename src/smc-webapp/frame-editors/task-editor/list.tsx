@@ -24,7 +24,7 @@ interface Props {
   visible: List<string>;
   current_task_id?: string;
   local_task_state?: LocalTaskStateMap;
-  full_desc?: Set<string>; // id's of tasks for which show full description
+  full_desc?: Set<string>; // id's of tasks for which show full description (all shown if actions is null)
   scrollTop?: number; // scroll position -- only used when initially mounted
   scroll_into_view?: boolean;
   font_size: number;

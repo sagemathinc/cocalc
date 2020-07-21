@@ -25,7 +25,7 @@ interface Props {
   actions: TaskActions;
   local_view_state: LocalViewStateMap;
   counts: Counts;
-  focus_find_box: boolean;
+  focus_find_box?: boolean;
 }
 
 export const Find: React.FC<Props> = React.memo(

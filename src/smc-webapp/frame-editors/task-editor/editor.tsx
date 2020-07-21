@@ -7,7 +7,11 @@
 Top-level react component for task list
 */
 
-import { React, useEffect, useRedux } from "../../app-framework";
+import {
+  React,
+  useEffect,
+  useEditorRedux,
+} from "../../app-framework";
 
 import { Row, Col } from "../../antd-bootstrap";
 import { Loading } from "../../r_misc";
@@ -20,7 +24,7 @@ import { is_sortable } from "./headings-info";
 import { Headings } from "./headings";
 
 import { TaskActions } from "./actions";
-//import { TaskState } from "./types";
+import { TaskState } from "./types";
 
 interface Props {
   actions: TaskActions;
@@ -30,33 +34,23 @@ interface Props {
 
 export const TaskEditor: React.FC<Props> = React.memo(
   ({ actions, path, project_id }) => {
-    const tasks = useRedux(["tasks"], project_id, path);
-    const counts = useRedux(["counts"], project_id, path);
-    const visible = useRedux(["visible"], project_id, path);
-    const current_task_id = useRedux(["current_task_id"], project_id, path);
-    const has_unsaved_changes = useRedux(
-      ["has_unsaved_changes"],
-      project_id,
-      path
-    );
-    const has_uncommitted_changes = useRedux(
-      ["has_uncommitted_changes"],
-      project_id,
-      path
-    );
-    const local_task_state = useRedux(["local_task_state"], project_id, path);
-    const local_view_state = useRedux(["local_view_state"], project_id, path);
-    const hashtags = useRedux(["hashtags"], project_id, path);
-    const search_terms = useRedux(["search_terms"], project_id, path);
-    const search_desc = useRedux(["search_desc"], project_id, path);
-    const focus_find_box = useRedux(["focus_find_box"], project_id, path);
-    const read_only = useRedux(["read_only"], project_id, path);
-    const scroll_into_view = useRedux(["scroll_into_view"], project_id, path);
-    const load_time_estimate = useRedux(
-      ["load_time_estimate"],
-      project_id,
-      path
-    );
+    const useEditor = useEditorRedux<TaskState>({ project_id, path });
+
+    const tasks = useEditor("tasks");
+    const counts = useEditor("counts");
+    const visible = useEditor("visible");
+    const current_task_id = useEditor("current_task_id");
+    const has_unsaved_changes = useEditor("has_unsaved_changes");
+    const has_uncommitted_changes = useEditor("has_uncommitted_changes");
+    const local_task_state = useEditor("local_task_state");
+    const local_view_state = useEditor("local_view_state");
+    const hashtags = useEditor("hashtags");
+    const search_terms = useEditor("search_terms");
+    const search_desc = useEditor("search_desc");
+    const focus_find_box = useEditor("focus_find_box");
+    const read_only = useEditor("read_only");
+    const scroll_into_view = useEditor("scroll_into_view");
+    const load_time_estimate = useEditor("load_time_estimate");
 
     useEffect(() => {
       actions.enable_key_handler();

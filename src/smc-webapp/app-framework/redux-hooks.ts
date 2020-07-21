@@ -212,8 +212,47 @@ export function useTypedRedux(
   a: keyof StoreStates | { project_id: string },
   field: string
 ) {
-  return useRedux(typeof a == "string" ? a : a.project_id, field);
+  if (typeof a == "string") {
+    return useRedux(a, field);
+  }
+  return useRedux(a.project_id, field);
 }
+
+export function useEditorRedux<State>(editor: { project_id; path }) {
+  function f<S extends keyof State>(field: S): State[S] {
+    return useReduxEditorStore(
+      [field as string],
+      editor.project_id,
+      editor.path
+    ) as any;
+  }
+  return f;
+}
+
+/*
+export function useEditorRedux<State, S extends keyof State>(editor: {
+  project_id: string;
+  path: string;
+}): State[S] {
+  return useReduxEditorStore(
+    [S as string],
+    editor.project_id,
+    editor.path
+  ) as any;
+}
+*/
+/*
+export function useEditorRedux(
+  editor: { project_id: string; path: string },
+  field
+): any {
+  return useReduxEditorStore(
+    [field as string],
+    editor.project_id,
+    editor.path
+  ) as any;
+}
+*/
 
 export function useRedux(
   path: string | string[],

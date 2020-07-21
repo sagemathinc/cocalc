@@ -63,8 +63,8 @@ export const Headings: React.FC<HeadingsProps> = React.memo(
     }
 
     function render_headings() {
-      const column = sort?.get("column") ?? HEADINGS[0];
-      const dir = sort?.get("dir") ?? HEADINGS_DIR[0];
+      const column = sort.get("column") ?? HEADINGS[0];
+      const dir = sort.get("dir") ?? HEADINGS_DIR[0];
       // NOTE: we use xs below so that the HEADING columns never wordwrap on
       // skinny screens, since they are really important for being
       // able to control the order.  On the other hand, if they wrap,

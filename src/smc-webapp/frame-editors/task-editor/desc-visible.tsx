@@ -7,9 +7,9 @@
 Summary line about what is being shown.
 */
 
-import { Map } from "immutable";
 import { CSS, React } from "../../app-framework";
 import { plural } from "smc-util/misc";
+import { LocalViewStateMap } from "./types";
 
 const STYLE: CSS = {
   padding: "10px 0px",
@@ -23,7 +23,7 @@ const STYLE: CSS = {
 interface Props {
   num_visible?: number;
   num_tasks?: number;
-  local_view_state: Map<string, any>;
+  local_view_state: LocalViewStateMap;
   search_desc: string;
 }
 
