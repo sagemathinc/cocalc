@@ -7,38 +7,49 @@
 Edit description of a single task
 */
 
-/*
-import { React, CSS } from "../../app-framework";
+import { React, useRef } from "../../app-framework";
 import { TaskActions } from "./actions";
-
-const STYLE: CSS = {
-  width: "100%",
-  overflow: "auto",
-  marginBottom: "1ex",
-  minheight: "2em",
-  padding: "5px",
-  border: "1px solid #ccc",
-  borderRadius: "3px",
-  background: "#fff",
-} as const;
+import { MarkdownInput } from "../../editors/markdown-input";
 
 interface Props {
   actions: TaskActions;
   task_id: string;
   desc: string;
-  is_current: boolean;
   font_size: number; // used only to cause refresh
+  project_id: string;
+  path: string;
 }
 
 export const DescriptionEditor: React.FC<Props> = React.memo(
-  ({ actions, task_id, desc, is_current, font_size }) => {
-    const editor_setting;
+  ({ actions, task_id, desc, font_size, project_id, path }) => {
+    const submitMentionsRef = useRef<Function>();
+
+    function done() {
+      const value = submitMentionsRef.current?.();
+      if (value != null) {
+        actions.set_desc(task_id, value);
+      }
+      actions.enable_key_handler();
+      actions.stop_editing_desc(task_id);
+    }
     return (
-      <div style={STYLE}>
-        <textarea value={desc} />
-      </div>
+      <MarkdownInput
+        value={desc}
+        project_id={project_id}
+        path={path}
+        onChange={(desc) => actions.set_desc(task_id, desc)}
+        fontSize={font_size}
+        onShiftEnter={done}
+        onEscape={done}
+        onFocus={actions.disable_key_handler}
+        onBlur={actions.enable_key_handler}
+        enableUpload={true}
+        enableMentions={true}
+        submitMentionsRef={submitMentionsRef}
+        height={"30vH"}
+        placeholder={"Enter a description..."}
+        lineWrapping={true}
+      />
     );
   }
-);*/
-
-export const { DescriptionEditor } = require("../../tasks/desc-editor");
+);

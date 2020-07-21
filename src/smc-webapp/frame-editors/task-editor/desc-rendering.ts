@@ -59,7 +59,7 @@ export function process_hashtags(
     }
     value0 +=
       value.slice(x0[1], x[0]) +
-      `<span style='border:1px solid #ddd;font-size:inherit;${bgcolor}' class='${cls}' data-hashtag='${hashtag}' data-state='${state}'>#` +
+      `<span style='border:1px solid #ddd;border-radius:5px;font-size:inherit;${bgcolor}' class='${cls}' data-hashtag='${hashtag}' data-state='${state}'>#` +
       hashtag +
       "</span>";
     x0 = x;

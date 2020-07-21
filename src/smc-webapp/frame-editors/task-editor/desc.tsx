@@ -53,28 +53,19 @@ export const Description: React.FC<Props> = React.memo(
     }
 
     function render_editor() {
-      if (!editing || actions==null) {
+      if (!editing || actions == null || project_id == null || path == null) {
         return;
       }
       return (
-        <div>
+        <div style={{marginBottom:'5px'}}>
           <DescriptionEditor
             actions={actions}
             task_id={task_id}
             desc={desc}
-            is_current={is_current}
             font_size={font_size}
+            project_id={project_id}
+            path={path}
           />
-          <div style={{ color: "#666", padding: "5px 0", float: "right" }}>
-            Use{" "}
-            <a
-              href="https://help.github.com/categories/writing-on-github/"
-              target="_blank"
-            >
-              Markdown
-            </a>
-            , LaTeX and #hashtags. Shift+Enter to close. Double click to edit.
-          </div>
         </div>
       );
     }
@@ -84,17 +75,18 @@ export const Description: React.FC<Props> = React.memo(
         return <></>;
       }
       return (
-        <div onDoubleClick={edit} onClick={!desc ? edit : undefined}>
+        <div onDoubleClick={edit}>
           <DescriptionRendered
             actions={actions}
             task_id={task_id}
             path={path}
             project_id={project_id}
             desc={desc}
-            full_desc={full_desc || is_current}
+            full_desc={full_desc}
             read_only={read_only}
             selected_hashtags={selected_hashtags}
             search_terms={search_terms}
+            is_current={is_current}
           />
         </div>
       );

@@ -337,6 +337,7 @@ export const MarkdownInput: React.FC<Props> = ({
       return;
     }
     cm.current.replaceRange(s, cm.current.getCursor());
+    onChange(cm.current.getValue());
   }
 
   function upload_complete(file: {
@@ -368,6 +369,7 @@ export const MarkdownInput: React.FC<Props> = ({
       s1 = upload_link(path, file);
     }
     cm.current.setValue(input.replace(s0, s1));
+    onChange(cm.current.getValue());
   }
 
   function upload_removed(file: { name: string; type: string }): void {
@@ -380,6 +382,7 @@ export const MarkdownInput: React.FC<Props> = ({
       return;
     }
     cm.current.setValue(input.replace(s, ""));
+    onChange(cm.current.getValue());
     // delete from project itself
     const target = join(aux_file(path, AUX_FILE_EXT), file.name);
     // console.log("deleting target", target, { paths: [target] });
@@ -437,8 +440,7 @@ export const MarkdownInput: React.FC<Props> = ({
     // TODO: make clicking on drag and drop thing pop up dialog
     return (
       <div style={{ fontSize: "12.5px", marginBottom: "5px" }}>
-        Shift+Enter to send.
-        {render_mention_instructions()}
+        Shift+Enter when done. {render_mention_instructions()}
         Use{" "}
         <A href="https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/">
           Markdown
@@ -460,7 +462,7 @@ export const MarkdownInput: React.FC<Props> = ({
     return (
       <>
         {" "}
-        Use @name to mention collaborators
+        Use @name to refer to collaborators
         {render_mention_email()}.{" "}
       </>
     );

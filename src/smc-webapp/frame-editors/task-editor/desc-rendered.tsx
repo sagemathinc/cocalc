@@ -30,6 +30,7 @@ interface Props {
   read_only: boolean;
   selected_hashtags?: SelectedHashtags;
   search_terms?: Set<string>;
+  is_current?: boolean;
 }
 
 export const DescriptionRendered: React.FC<Props> = React.memo(
@@ -43,26 +44,40 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
     read_only,
     selected_hashtags,
     search_terms,
+    is_current,
   }) => {
     function render_content() {
       let value = desc;
-      if (!(value != null ? value.trim() : undefined)) {
+      if (!value.trim()) {
         return <span style={{ color: "#666" }}>Enter a description...</span>;
       }
+      let show_more_link: boolean;
       if (!full_desc) {
-        value = header_part(value);
+        let header = header_part(value);
+        show_more_link =
+          !!is_current && actions != null && header.trim() != value.trim();
+        value = header;
+      } else {
+        show_more_link = false;
       }
       const v: Function[] = [process_checkboxes];
       v.push((x) => process_hashtags(x, selected_hashtags));
       value = apply_without_math(value, v);
 
       return (
-        <Markdown
-          value={value}
-          project_id={project_id}
-          file_path={path ? path_split(path).head : undefined}
-          highlight={search_terms}
-        />
+        <>
+          <Markdown
+            value={value}
+            project_id={project_id}
+            file_path={path ? path_split(path).head : undefined}
+            highlight={search_terms}
+          />
+          {show_more_link && (
+            <a onClick={() => actions?.toggle_full_desc(task_id)}>
+              Show more...
+            </a>
+          )}
+        </>
       );
     }
 
@@ -96,6 +111,7 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
       <div
         style={{ paddingTop: "5px" }}
         onClick={!read_only && actions != null ? on_click : undefined}
+        className="cocalc-task-description"
       >
         {render_content()}
       </div>
