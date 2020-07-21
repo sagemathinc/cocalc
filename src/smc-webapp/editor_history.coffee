@@ -19,7 +19,6 @@ misc = require('smc-util/misc')
 sagews  = require('./sagews/sagews')
 jupyter = require('./editor_jupyter')
 {jupyter_history_viewer_jquery_shim} = require('./jupyter/history-viewer')
-{tasks_history_viewer_jquery_shim} = require('./tasks/history-viewer')
 
 templates = $("#webapp-editor-templates")
 
@@ -120,10 +119,6 @@ class exports.HistoryEditor extends FileEditor
                     @_use_react = true
                     @view_doc = jupyter_history_viewer_jquery_shim(@syncstring)
                     @diff_doc = codemirror_session_editor(@project_id, @filename, opts)
-            when 'tasks'
-                @view_doc = tasks_history_viewer_jquery_shim(@syncstring)
-                @diff_doc = codemirror_session_editor(@project_id, @filename, opts)
-                @_use_react = true
             else
                 @view_doc = codemirror_session_editor(@project_id, @filename, opts)
 
@@ -278,8 +273,6 @@ class exports.HistoryEditor extends FileEditor
             switch @ext
                 when 'ipynb'  # must be classic since not handled above
                     @view_doc.dom.set(val)
-                when 'tasks'
-                    @view_doc.set_value(val)
                 else
                     @view_doc.codemirror.setValueNoJump(val)
 

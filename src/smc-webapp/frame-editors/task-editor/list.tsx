@@ -116,7 +116,6 @@ const TaskListNonsort: React.FC<Props> = React.memo(
       }
       return (
         <T
-          ref={task_id}
           key={task_id}
           index={index}
           actions={actions}

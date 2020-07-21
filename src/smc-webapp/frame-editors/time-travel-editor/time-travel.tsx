@@ -34,7 +34,7 @@ import { Export } from "./export";
 import * as json_stable from "json-stable-stringify";
 import { SyncDoc } from "smc-util/sync/editor/generic/sync-doc";
 
-const TasksHistoryViewer = require("../../tasks/history-viewer").HistoryViewer;
+import { TasksHistoryViewer } from "../task-editor/history-viewer";
 import {
   HistoryViewer as JupyterHistoryViewer,
   to_ipynb,

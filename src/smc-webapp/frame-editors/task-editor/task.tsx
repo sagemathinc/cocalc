@@ -52,76 +52,7 @@ export const Task: React.FC<Props> = React.memo(
     selected_hashtags,
     search_terms,
   }) => {
-    function render_drag_handle() {
-      return <DragHandle sortable={sortable} />;
-    }
-
-    function render_done_checkbox() {
-      // cast of done to bool for backward compat
-      return (
-        <DoneCheckbox
-          actions={actions}
-          read_only={read_only}
-          done={!!task.get("done")}
-          task_id={task.get("task_id")}
-        />
-      );
-    }
-
-    function render_min_toggle(has_body) {
-      return (
-        <MinToggle
-          actions={actions}
-          task_id={task.get("task_id")}
-          full_desc={full_desc}
-          has_body={has_body}
-        />
-      );
-    }
-
-    function render_desc() {
-      return (
-        <Description
-          actions={actions}
-          path={path}
-          project_id={project_id}
-          task_id={task.get("task_id")}
-          desc={task.get("desc") ?? ""}
-          full_desc={full_desc}
-          editing={editing_desc}
-          is_current={is_current}
-          font_size={font_size}
-          read_only={read_only}
-          selected_hashtags={selected_hashtags}
-          search_terms={search_terms}
-        />
-      );
-    }
-
-    function render_last_edited() {
-      return (
-        <span style={{ fontSize: "10pt", color: "#666" }}>
-          <Changed last_edited={task.get("last_edited")} />
-        </span>
-      );
-    }
-
-    function render_due_date() {
-      return (
-        <span style={{ fontSize: "10pt", color: "#666" }}>
-          <DueDate
-            actions={actions}
-            read_only={read_only}
-            task_id={task.get("task_id")}
-            due_date={task.get("due_date")}
-            editing={editing_due_date}
-            is_done={!!task.get("done")}
-          />
-        </span>
-      );
-    }
-
-    const style : CSS = {
+    const style: CSS = {
       margin: "2px 5px",
       background: "white",
     };
@@ -160,13 +91,58 @@ export const Task: React.FC<Props> = React.memo(
       >
         <Row>
           <Col sm={1}>
-            {render_drag_handle()}
-            {render_min_toggle(min_toggle)}
+            {actions != null && <DragHandle sortable={sortable} />}
+            {actions != null && (
+              <MinToggle
+                actions={actions}
+                task_id={task.get("task_id")}
+                full_desc={full_desc}
+                has_body={min_toggle}
+              />
+            )}
           </Col>
-          <Col sm={8}>{render_desc()}</Col>
-          <Col sm={1}>{render_due_date()}</Col>
-          <Col sm={1}>{render_last_edited()}</Col>
-          <Col sm={1}>{render_done_checkbox()}</Col>
+          <Col sm={8}>
+            <Description
+              actions={actions}
+              path={path}
+              project_id={project_id}
+              task_id={task.get("task_id")}
+              desc={task.get("desc") ?? ""}
+              full_desc={full_desc}
+              editing={editing_desc}
+              is_current={is_current}
+              font_size={font_size}
+              read_only={read_only}
+              selected_hashtags={selected_hashtags}
+              search_terms={search_terms}
+            />
+          </Col>
+          <Col sm={1}>
+            {" "}
+            <span style={{ fontSize: "10pt", color: "#666" }}>
+              <DueDate
+                actions={actions}
+                read_only={read_only}
+                task_id={task.get("task_id")}
+                due_date={task.get("due_date")}
+                editing={editing_due_date}
+                is_done={!!task.get("done")}
+              />
+            </span>
+          </Col>
+          <Col sm={1}>
+            <span style={{ fontSize: "10pt", color: "#666" }}>
+              <Changed last_edited={task.get("last_edited")} />
+            </span>
+          </Col>
+          <Col sm={1}>
+            <DoneCheckbox
+              actions={actions}
+              read_only={read_only}
+              done={!!task.get("done")}
+              task_id={task.get("task_id")}
+            />
+          </Col>
         </Row>
       </Grid>
     );
