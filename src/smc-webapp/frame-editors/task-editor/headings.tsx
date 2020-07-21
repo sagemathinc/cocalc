@@ -17,7 +17,7 @@ import { Icon, Space } from "../../r_misc";
 
 import { HEADINGS, HEADINGS_DIR } from "./headings-info";
 import { TaskActions } from "./actions";
-import { Sort } from "./types";
+import { Headings as ColumnHeadings, HeadingsDir, Sort } from "./types";
 
 const NEXT_DIR = {
   asc: "desc", // since @props.dir is defined, heading is currently selected
@@ -27,8 +27,8 @@ const NEXT_DIR = {
 
 interface HeadingProps {
   actions: TaskActions;
-  heading: string;
-  dir?: "desc" | "asc" | undefined;
+  heading: ColumnHeadings;
+  dir?: HeadingsDir;
 }
 
 const Heading: React.FC<HeadingProps> = React.memo(

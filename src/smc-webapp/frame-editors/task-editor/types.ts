@@ -21,7 +21,11 @@ export type HeadingsDir = "asc" | "desc";
 
 export type TaskMap = TypedMap<Task>;
 export type Sort = TypedMap<{ column: Headings; dir: HeadingsDir }>;
-export type SelectedHashtags = Map<string, -1 | 1>;
+
+
+// 1=selected, -1=negated  (-1 is NOT implemented in the UI; it seems annoying; use -#foo in the search box though)
+export type HashtagState = -1 | 1;
+export type SelectedHashtags = Map<string, HashtagState>;
 
 export interface LocalViewState {
   show_deleted?: boolean;
@@ -42,6 +46,9 @@ export type Counts = TypedMap<{ done: number; deleted: number }>;
 // Tasks is an immutable map from task_id (uuidv4) to {desc:?, position:?, last_edited:?, due_date:?, task_id:?}
 export type Tasks = Map<string, TaskMap>;
 
+// Hashtags.has('foo') if there is a *visible* (with current search/filters) task with hashtag #foo
+export type HashtagsOfVisibleTasks = Set<string>;
+
 // State of the Store
 export interface TaskState {
   read_only: boolean;
@@ -51,10 +58,12 @@ export interface TaskState {
   current_task_id?: string;
   counts: Counts;
   search_desc: string;
+  search_terms?: Set<string>;
   visible: List<string>; // ordered immutable js list of task_id's
   load_time_estimate?: number;
   has_unsaved_changes?: boolean;
   has_uncommitted_changes?: boolean;
   scroll_into_view?: boolean;
   focus_find_box?: boolean;
+  hashtags?: HashtagsOfVisibleTasks;
 }

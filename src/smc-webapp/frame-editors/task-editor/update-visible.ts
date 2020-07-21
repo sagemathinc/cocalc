@@ -95,10 +95,9 @@ export function update_visible(
   }
   // undefined always gets pushed to the bottom (only applies to due date in practice)
   const sort_default = sort_dir === "desc" ? -1e15 : 1e15;
-  const hashtags = {};
-  const v: [any, string][] = [];
+  let hashtags = Set<string>(); // contains all the hashtags of visible tasks
+  const v: [string | number | undefined, string][] = [];
   tasks.forEach((task: TaskMap, id: string) => {
-    let visible;
     if (task.get("done")) {
       new_counts.done += 1;
     }
@@ -112,22 +111,22 @@ export function update_visible(
     }
 
     const desc = task.get("desc") ?? "";
+    let visible: boolean;
     if (search_matches(search, desc) || editing_desc) {
-      visible = 1; // tag of a currently visible task
+      visible = true; // tag of a currently visible task
       if (id === current_task_id) {
         current_is_visible = true;
       }
       v.push([task.get(sort_key) ?? sort_default, id]);
     } else {
-      visible = 0; // not a tag of any currently visible task
+      visible = false; // not a tag of any currently visible task
     }
 
     for (const x of parse_hashtags(desc)) {
       const tag = desc.slice(x[0] + 1, x[1]).toLowerCase();
-      hashtags[tag] = Math.max(
-        hashtags[tag] != null ? hashtags[tag] : 0,
-        visible
-      );
+      if (visible) {
+        hashtags = hashtags.add(tag);
+      }
     }
   });
 

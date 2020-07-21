@@ -51,15 +51,16 @@ export function process_hashtags(
     const hashtag = value.slice(x[0] + 1, x[1]);
     const state =
       selected_hashtags != null ? selected_hashtags.get(hashtag) : undefined;
-    let cls = "webapp-tasks-hash";
+    let cls = "ant-tag ant-tag-checkable ";
+    let bgcolor = "";
     if (state === 1) {
-      cls += "-selected";
-    } else if (state === -1) {
-      cls += "-negated";
+      cls = "ant-tag ant-tag-checkable ant-tag-checkable-checked";
+    } else {
+      bgcolor = "background-color:white";
     }
     value0 +=
       value.slice(x0[1], x[0]) +
-      `<span class='${cls}' data-hashtag='${hashtag}' data-state='${state}'>#` +
+      `<span style='font-size:inherit;${bgcolor}' class='${cls}' data-hashtag='${hashtag}' data-state='${state}'>#` +
       hashtag +
       "</span>";
     x0 = x;

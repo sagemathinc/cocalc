@@ -26,7 +26,17 @@ import { update_visible } from "./update-visible";
 import { create_key_handler } from "./keyboard";
 import { toggle_checkbox } from "./desc-rendering";
 import { Actions } from "../../app-framework";
-import { LocalViewStateMap, Sort, Task, TaskMap, TaskState } from "./types";
+import {
+  HashtagState,
+  Headings,
+  HeadingsDir,
+  LocalViewStateMap,
+  SelectedHashtags,
+  Sort,
+  Task,
+  TaskMap,
+  TaskState,
+} from "./types";
 import { TaskStore } from "./store";
 import { SyncDB } from "smc-util/sync/editor/db";
 
@@ -112,7 +122,12 @@ export class TaskActions extends Actions<TaskState> {
 
   private _load_local_view_state(): LocalViewStateMap {
     const x = localStorage[this.name];
-    let local_view_state: LocalViewStateMap = fromJS(JSON.parse(x) ?? {});
+    let local_view_state: LocalViewStateMap;
+    try {
+      local_view_state = fromJS(JSON.parse(x) ?? {});
+    } catch (_) {
+      local_view_state = fromJS({});
+    }
     if (!local_view_state.has("show_deleted")) {
       local_view_state = local_view_state.set("show_deleted", false);
     }
@@ -310,7 +325,8 @@ export class TaskActions extends Actions<TaskState> {
         key == "sort" ||
         key == "full_desc" ||
         key == "selected_hashtags" ||
-        key == "search"
+        key == "search" ||
+        key == "scrollTop"
       ) {
         local = local.set(key as any, fromJS(value));
       } else {
@@ -697,17 +713,11 @@ export class TaskActions extends Actions<TaskState> {
     });
   }
 
-  // state = undefined/false-ish = not selected
-  // state = 1 = selected
-  // state = -1 = negated
-  public set_hashtag_state(tag, state: -1 | 1 | false): void {
-    if (tag == null) {
-      return;
-    }
-    let selected_hashtags =
+  public set_hashtag_state(tag: string, state?: HashtagState): void {
+    let selected_hashtags: SelectedHashtags =
       this.store.getIn(["local_view_state", "selected_hashtags"]) ??
-      Map<string, any>();
-    if (!state) {
+      Map<string, HashtagState>();
+    if (state == null) {
       selected_hashtags = selected_hashtags.delete(tag);
     } else {
       selected_hashtags = selected_hashtags.set(tag, state);
@@ -715,9 +725,7 @@ export class TaskActions extends Actions<TaskState> {
     this.set_local_view_state({ selected_hashtags });
   }
 
-  // dir = 'asc' or 'desc'
-  // columns are strings in headings.cjsx
-  public set_sort_column(column, dir): void {
+  public set_sort_column(column: Headings, dir: HeadingsDir): void {
     let view = this.store.get("local_view_state");
     let sort = view.get("sort") ?? (fromJS({}) as Sort);
     sort = sort.set("column", column);
@@ -779,7 +787,7 @@ export class TaskActions extends Actions<TaskState> {
     this.setState({ scroll_into_view: false });
   }
 
-  public set_show_max(show_max): void {
+  public set_show_max(show_max: number): void {
     this.set_local_view_state({ show_max }, false);
   }
 

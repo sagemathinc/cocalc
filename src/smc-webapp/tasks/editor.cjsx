@@ -13,9 +13,9 @@ Top-level react component for task list
 {ButtonBar}             = require('../frame-editors/task-editor/button-bar')
 {Find}                  = require('../frame-editors/task-editor/find')
 {DescVisible}           = require('../frame-editors/task-editor/desc-visible')
-{HashtagBar}            = require('./hashtag-bar')
-{is_sortable} =  require('../frame-editors/task-editor/headings-info')
-{Headings} = require('../frame-editors/task-editor/headings')
+{HashtagBar}            = require('../frame-editors/task-editor/hashtag-bar')
+{is_sortable}           = require('../frame-editors/task-editor/headings-info')
+{Headings}              = require('../frame-editors/task-editor/headings')
 {Row, Col}              = require('react-bootstrap')
 
 {IS_MOBILE} = require('../feature')
@@ -38,7 +38,7 @@ exports.TaskEditor = rclass ({name}) ->
             has_uncommitted_changes : rtypes.bool
             local_task_state        : rtypes.immutable.Map
             local_view_state        : rtypes.immutable.Map
-            hashtags                : rtypes.immutable.Map
+            hashtags                : rtypes.immutable.Set
             search_terms            : rtypes.immutable.Set
             search_desc             : rtypes.string
             focus_find_box          : rtypes.bool
@@ -74,7 +74,7 @@ exports.TaskEditor = rclass ({name}) ->
         <HashtagBar
             actions  = {@props.actions}
             hashtags = {@props.hashtags}
-            selected = {@props.local_view_state?.get('selected_hashtags')}
+            selected_hashtags = {@props.local_view_state?.get('selected_hashtags')}
             />
 
     render_find: ->
