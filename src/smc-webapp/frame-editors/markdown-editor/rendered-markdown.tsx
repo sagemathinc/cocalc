@@ -18,7 +18,7 @@ import { is_different, path_split } from "smc-util/misc2";
 import { throttle } from "underscore";
 import { React, ReactDOM, CSS } from "../../app-framework";
 import { use_font_size_scaling } from "../frame-tree/hooks";
-import { process_checkboxes } from "../task-editor/desc-rendering";
+import { process_checkboxes } from "../../editors/task-editor/desc-rendering";
 import { apply_without_math } from "smc-util/mathjax-utils-2";
 import { MAX_WIDTH_NUM } from "../options";
 

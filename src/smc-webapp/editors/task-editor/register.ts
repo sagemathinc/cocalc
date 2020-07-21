@@ -18,7 +18,7 @@ import { TaskEditor } from "./editor";
 import { TaskActions } from "./actions";
 import { TaskStore } from "./store";
 
-import { syncdb2 as new_syncdb } from "../generic/client";
+import { syncdb2 as new_syncdb } from "../../frame-editors/generic/client";
 
 register_file_editor({
   ext: ["tasks"],

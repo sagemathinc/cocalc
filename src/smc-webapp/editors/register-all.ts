@@ -30,5 +30,7 @@ import "../editor-data/generic";
 // All the non-react editors.
 require("../editor").register_nonreact_editors();
 
+import "./task-editor/register";
+
 // All the frame-tree editors
 import "../frame-editors/register";

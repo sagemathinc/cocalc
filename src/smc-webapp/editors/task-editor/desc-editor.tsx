@@ -9,7 +9,7 @@ Edit description of a single task
 
 import { React, useRef } from "../../app-framework";
 import { TaskActions } from "./actions";
-import { MarkdownInput } from "../../editors/markdown-input";
+import { MarkdownInput } from "../markdown-input";
 
 interface Props {
   actions: TaskActions;
@@ -49,6 +49,7 @@ export const DescriptionEditor: React.FC<Props> = React.memo(
         height={"30vH"}
         placeholder={"Enter a description..."}
         lineWrapping={true}
+        extraHelp={"Use #hashtags to easily label and filter your tasks."}
       />
     );
   }

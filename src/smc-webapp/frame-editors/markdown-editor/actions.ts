@@ -7,7 +7,7 @@
 Markdown Editor Actions
 */
 
-import { toggle_checkbox } from "../task-editor/desc-rendering";
+import { toggle_checkbox } from "../../editors/task-editor/desc-rendering";
 import * as $ from "jquery";
 import {
   Actions as CodeEditorActions,
