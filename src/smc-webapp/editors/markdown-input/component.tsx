@@ -107,7 +107,7 @@ interface Props {
   enableMentions?: boolean;
   submitMentionsRef?: any;
   style?: React.CSSProperties;
-  onShiftEnter?: () => void;
+  onShiftEnter?: () => void;  // also ctrl/alt/cmd-enter call this; see https://github.com/sagemathinc/cocalc/issues/1914
   onEscape?: () => void;
   onBlur?: () => void;
   onFocus?: () => void;
@@ -172,6 +172,9 @@ export const MarkdownInput: React.FC<Props> = ({
     const extraKeys: CodeMirror.KeyMap = {};
     if (onShiftEnter != null) {
       extraKeys["Shift-Enter"] = () => onShiftEnter();
+      extraKeys["Ctrl-Enter"] = () => onShiftEnter();
+      extraKeys["Alt-Enter"] = () => onShiftEnter();
+      extraKeys["Cmd-Enter"] = () => onShiftEnter();
     }
     if (onEscape != null) {
       extraKeys["Esc"] = () => {
