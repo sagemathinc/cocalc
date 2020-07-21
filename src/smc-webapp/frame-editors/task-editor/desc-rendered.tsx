@@ -28,8 +28,8 @@ interface Props {
   project_id?: string;
   full_desc: boolean;
   read_only: boolean;
-  selected_hashtags: SelectedHashtags;
-  search_terms: Set<string>;
+  selected_hashtags?: SelectedHashtags;
+  search_terms?: Set<string>;
 }
 
 export const DescriptionRendered: React.FC<Props> = React.memo(
@@ -52,11 +52,11 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
       if (!full_desc) {
         value = header_part(value);
       }
-      const v = [process_checkboxes];
-      if (actions != null) {
-        v.push((x) => process_hashtags(x, selected_hashtags));
-      }
+      const v: Function[] = [process_checkboxes];
+      v.push((x) => process_hashtags(x, selected_hashtags));
+      console.log("value before", value);
       value = apply_without_math(value, v);
+      console.log("value after", value);
 
       return (
         <Markdown

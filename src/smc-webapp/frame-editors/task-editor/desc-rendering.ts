@@ -37,7 +37,7 @@ export function toggle_checkbox(s, index, checked): string {
 // assumes value is the text output by remove_math!
 export function process_hashtags(
   value: string,
-  selected_hashtags: SelectedHashtags
+  selected_hashtags?: SelectedHashtags
 ): string {
   // replace hashtags by a span with appropriate class
   const v = parse_hashtags(value);
@@ -49,18 +49,17 @@ export function process_hashtags(
   let value0 = "";
   for (let x of v) {
     const hashtag = value.slice(x[0] + 1, x[1]);
-    const state =
-      selected_hashtags != null ? selected_hashtags.get(hashtag) : undefined;
+    const state = selected_hashtags?.get(hashtag);
     let cls = "ant-tag ant-tag-checkable ";
     let bgcolor = "";
     if (state === 1) {
       cls = "ant-tag ant-tag-checkable ant-tag-checkable-checked";
     } else {
-      bgcolor = "background-color:white";
+      bgcolor = "background-color:white;";
     }
     value0 +=
       value.slice(x0[1], x[0]) +
-      `<span style='font-size:inherit;${bgcolor}' class='${cls}' data-hashtag='${hashtag}' data-state='${state}'>#` +
+      `<span style='border:1px solid #ddd;font-size:inherit;${bgcolor}' class='${cls}' data-hashtag='${hashtag}' data-state='${state}'>#` +
       hashtag +
       "</span>";
     x0 = x;
