@@ -50,7 +50,7 @@ export function get_search(
   local_view_state: LocalViewStateMap,
   relevant_tags: { [tag: string]: true }
 ): string {
-  let search = local_view_state.get("search") ?? "";
+  let search = "";
   local_view_state
     .get("selected_hashtags")
     ?.forEach(function (state: -1 | 1, tag: string): void {
@@ -63,6 +63,5 @@ export function get_search(
         search += " -#" + tag + " ";
       }
     });
-
-  return search;
+  return search + " " + (local_view_state.get("search") ?? "");
 }

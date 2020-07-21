@@ -19,7 +19,6 @@ import {
   uuid,
   history_path,
   search_split,
-  keys,
 } from "smc-util/misc";
 import { HEADINGS, HEADINGS_DIR } from "./headings-info";
 import { update_visible } from "./update-visible";
@@ -392,17 +391,13 @@ export class TaskActions extends Actions<TaskState> {
       }
     }
 
-    const h = this.store
-      .getIn(["local_view_state", "selected_hashtags"])
-      ?.toJS();
-    let desc = h != null ? keys(h).join(" ") + "\n" : "";
-
-    let search = this.store.get("search_desc");
-    // do not include any negations
-    search = search_split(search)
+    // Default new task is search description, but
+    // do not include any negations.  This is handy and also otherwise
+    // you wouldn't see the new task!
+    const search = this.store.get("search_desc");
+    const desc = search_split(search)
       .filter((x) => x[0] !== "-")
       .join(" ");
-    desc += search;
 
     const task_id = uuid();
     this.set_task(task_id, { desc, position });
