@@ -20,7 +20,7 @@ export async function create_license(
     "info::JSONB": {
       purchased: { account_id, ...info },
     },
-    "activates::TIMESTAMP": info.start,
+    "activates::TIMESTAMP": info.subscription != "no" ? new Date() : info.start,
     "created::TIMESTAMP": new Date(),
     "managers::TEXT[]": [account_id],
     "quota::JSONB": {

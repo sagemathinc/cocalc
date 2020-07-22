@@ -6,7 +6,7 @@
 import { isEqual } from "lodash";
 
 export type User = "academic" | "business";
-export type Upgrade = "basic" | "standard" | "custom";
+export type Upgrade = "basic" | "standard" | "max" | "custom";
 export type Subscription = "no" | "monthly" | "yearly";
 export type CustomUpgrades =
   | "ram"
@@ -125,6 +125,13 @@ const STANDARD = {
   always_running: 0,
   member: 1,
 } as const;
+const MAX = {
+  ram: 16,
+  cpu: 4,
+  disk: 20,
+  always_running: 1,
+  member: 1,
+} as const;
 export const COSTS: {
   user_discount: { [user in User]: number };
   sub_discount: { [sub in Subscription]: number };
@@ -135,6 +142,7 @@ export const COSTS: {
   custom_max: { [key in CustomUpgrades]: number };
   basic: { [key in CustomUpgrades]: number };
   standard: { [key in CustomUpgrades]: number };
+  max: { [key in CustomUpgrades]: number };
 } = {
   user_discount: { academic: ACADEMIC_DISCOUNT, business: 1 },
   sub_discount: { no: 1, monthly: 0.9, yearly: 0.85 },
@@ -142,9 +150,10 @@ export const COSTS: {
   min_quote: 100,
   min_sale: 1,
   custom_cost: CUSTOM_COST,
-  custom_max: { ram: 16, cpu: 4, disk: 20, always_running: 1, member: 1 },
+  custom_max: MAX,
   basic: BASIC,
   standard: STANDARD,
+  max: MAX,
 } as const;
 
 export function compute_cost(
@@ -180,6 +189,12 @@ export function compute_cost(
     custom_disk = BASIC.disk;
     custom_always_running = !!BASIC.always_running;
     custom_member = !!BASIC.member;
+  } else if (upgrade == "max") {
+    custom_ram = MAX.ram;
+    custom_cpu = MAX.cpu;
+    custom_disk = MAX.disk;
+    custom_always_running = !!MAX.always_running;
+    custom_member = !!MAX.member;
   }
 
   // We compute the cost for one project for one month.

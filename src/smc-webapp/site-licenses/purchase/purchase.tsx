@@ -16,7 +16,7 @@ import {
   Row,
   Col,
 } from "antd";
-import {DownOutlined} from "@ant-design/icons"
+import { DownOutlined } from "@ant-design/icons";
 
 import * as moment from "moment";
 import { webapp_client } from "../../webapp-client";
@@ -28,6 +28,7 @@ import { RadioGroup } from "./radio-group";
 import { plural } from "smc-util/misc2";
 
 const LENGTH_PRESETS = [
+  { label: "1 Day", desc: { n: 1, key: "days" } },
   { label: "1 Week", desc: { n: 7, key: "days" } },
   { label: "1 Month", desc: { n: 1, key: "months" } },
   { label: "6 Weeks", desc: { n: 7 * 6, key: "days" } },
@@ -92,8 +93,14 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     moment().add(1, "month").toDate()
   );
   function set_end(date: Date) {
-    const next_week = moment(start).add(7, "day").toDate();
-    set_end_state(date <= next_week ? next_week : date);
+    const next_day = moment(start).add(1, "day").toDate();
+    const two_years = moment(start).add(2, "year").toDate();
+    if (date <= next_day) {
+      date = next_day;
+    } else if (date >= two_years) {
+      date = two_years;
+    }
+    set_end_state(date);
   }
 
   const [quote, set_quote] = useState<boolean | undefined>(undefined);
@@ -158,10 +165,12 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   const cost_per_project_per_month = useMemo<{
     basic: number;
     standard: number;
+    max: number;
   }>(() => {
     const x = {
       basic: 0,
       standard: 0,
+      max: 0,
     };
     if (upgrade == null || user == null || quantity == null) {
       return x;
@@ -245,6 +254,15 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               desc: `priority support, network access, member hosting, ${COSTS.standard.cpu} CPU cores, ${COSTS.standard.ram}GB RAM, ${COSTS.standard.disk}GB disk space`,
               cost: `${money(
                 cost_per_project_per_month.standard
+              )}/month per project`,
+            },
+            {
+              icon: "battery-4",
+              label: "Max",
+              value: "max",
+              desc: `priority support, network access, member hosting, ${COSTS.max.cpu} CPU cores, ${COSTS.max.ram}GB RAM, ${COSTS.max.disk}GB disk space`,
+              cost: `${money(
+                cost_per_project_per_month.max
               )}/month per project`,
             },
             {
@@ -364,6 +382,13 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
                 set_custom_cpu(Math.round(x));
               }}
             />
+            <Space />
+            <Button
+              disabled={custom_cpu == COSTS.custom_max.cpu}
+              onClick={() => set_custom_cpu(COSTS.custom_max.cpu)}
+            >
+              Max
+            </Button>
           </Col>
           <Col md={col_desc}>
             number of CPU cores (
@@ -387,6 +412,13 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
                 set_custom_ram(Math.round(x));
               }}
             />
+            <Space />
+            <Button
+              disabled={custom_ram == COSTS.custom_max.ram}
+              onClick={() => set_custom_ram(COSTS.custom_max.ram)}
+            >
+              Max
+            </Button>
           </Col>
           <Col md={col_desc}>
             GB RAM (
@@ -407,6 +439,13 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
                 set_custom_disk(Math.round(x));
               }}
             />
+            <Space />
+            <Button
+              disabled={custom_disk == COSTS.custom_max.disk}
+              onClick={() => set_custom_disk(COSTS.custom_max.disk)}
+            >
+              Max
+            </Button>
           </Col>
           <Col md={col_desc}>
             GB Disk Space (
@@ -486,7 +525,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               icon: "calendar-times-o",
               label: "Custom",
               desc:
-                "pay exactly once for a specific period of time (at least one week long)",
+                "pay for a specific period of time (as short as one day and as long as 2 years)",
               value: "no",
             },
           ]}
@@ -511,69 +550,48 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       upgrade == null ||
       user == null ||
       quantity == null ||
-      subscription == null
+      subscription != "no"
     )
       return;
-    if (subscription == "no") {
-      // range of dates: start date -- end date
-      // TODO: use "midnight UTC", or should we just give a
-      // day grace period on both ends (?).
-      const value = [moment(start), moment(end)];
-      const presets: JSX.Element[] = [];
-      for (const { label, desc } of LENGTH_PRESETS) {
-        presets.push(
-          <Menu.Item key={label}>
-            <a onClick={() => set_end_date(desc)}>{label}</a>
-          </Menu.Item>
-        );
-      }
-      const menu = <Menu>{presets}</Menu>;
-      const n = moment(end).diff(moment(start), "days");
-      return (
-        <div style={{ marginLeft: "60px" }}>
-          <br />
-          <h5>
-            Start and end dates ({n} {plural(n, "day")})
-          </h5>
-          <RangePicker
-            disabled={disabled}
-            value={value as any}
-            onChange={(value) => {
-              if (value == null || value[0] == null || value[1] == null) return;
-              set_start(value[0].toDate());
-              set_end(value[1].toDate());
-            }}
-          />
-          <Space />
-          <Space />
-          <Space />
-          <Dropdown overlay={menu}>
-            <a
-              className="ant-dropdown-link"
-              onClick={(e) => e.preventDefault()}
-            >
-              End after... <DownOutlined />
-            </a>
-          </Dropdown>
-        </div>
-      );
-    } else {
-      // just the start date (default to today)
-      return (
-        <div style={{ marginLeft: "60px" }}>
-          <br />
-          <h5>Start date</h5>
-          <DatePicker
-            disabled={disabled}
-            value={moment(start) as any}
-            onChange={(moment) => {
-              if (moment == null) return;
-              set_start(moment.toDate());
-            }}
-          />
-        </div>
+    // range of dates: start date -- end date
+    // TODO: use "midnight UTC", or should we just give a
+    // day grace period on both ends (?).
+    const value = [moment(start), moment(end)];
+    const presets: JSX.Element[] = [];
+    for (const { label, desc } of LENGTH_PRESETS) {
+      presets.push(
+        <Menu.Item key={label}>
+          <a onClick={() => set_end_date(desc)}>{label}</a>
+        </Menu.Item>
       );
     }
+    const menu = <Menu>{presets}</Menu>;
+    const n = moment(end).diff(moment(start), "days");
+    return (
+      <div style={{ marginLeft: "60px" }}>
+        <br />
+        <h5>
+          Start and end dates ({n} {plural(n, "day")})
+        </h5>
+        <RangePicker
+          disabled={disabled}
+          value={value as any}
+          onChange={(value) => {
+            if (value == null || value[0] == null || value[1] == null) return;
+            set_start(value[0].toDate());
+            set_end(value[1].toDate());
+          }}
+        />
+        <Space />
+        <Space />
+        <Space />
+        <Dropdown overlay={menu}>
+          <a className="ant-dropdown-link" onClick={(e) => e.preventDefault()}>
+            End after... <DownOutlined />
+          </a>
+        </Dropdown>
+      </div>
+    );
   }
 
   function render_cost() {
