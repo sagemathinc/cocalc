@@ -18,8 +18,8 @@ import { math_escape, math_unescape } from "smc-util/markdown-utils";
 const { remove_math, replace_math } = require("smc-util/mathjax-utils"); // from project Jupyter
 
 const checkboxes = function (s) {
-  s = misc.replace_all(s, "[ ]", "<i class='fa fa-square-o'></i>");
-  return misc.replace_all(s, "[x]", "<i class='fa fa-check-square-o'></i>");
+  s = misc.replace_all(s, "[ ]", "☐");
+  return misc.replace_all(s, "[x]", "🗹");
 };
 
 const OPTIONS: MarkdownIt.Options = {

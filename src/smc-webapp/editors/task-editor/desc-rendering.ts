@@ -72,14 +72,12 @@ export function process_checkboxes(value) {
   value = replace_all_function(
     value,
     "[ ]",
-    (index) =>
-      `<i class='fa fa-square-o'       data-index='${index}' data-checkbox='false'></i>`
+    (index) => `<span data-index='${index}' data-checkbox='false' style='cursor:pointer'>☐<span>`
   );
   value = replace_all_function(
     value,
     "[x]",
-    (index) =>
-      `<i class='fa fa-check-square-o' data-index='${index}' data-checkbox='true'></i>`
+    (index) => `<span data-index='${index}' data-checkbox='true' style='cursor:pointer'>🗹<span>`
   );
   return value;
 }
