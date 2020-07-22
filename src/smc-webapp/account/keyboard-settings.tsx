@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Component, React, Rendered } from "../app-framework";
+import { React, useTypedRedux } from "../app-framework";
 import { Icon, LabeledRow, Loading, SelectorInput } from "../r_misc";
 import { Panel } from "../antd-bootstrap";
 import { set_account_table } from "./util";
@@ -37,13 +37,11 @@ const EVALUATE_KEYS = {
   Enter: "enter (shift+enter for newline)",
 };
 
-interface Props {
-  evaluate_key?: string;
-}
+export const KeyboardSettings: React.FC = () => {
+  const evaluate_key = useTypedRedux("account", "evaluate_key");
 
-export class KeyboardSettings extends Component<Props> {
-  private render_keyboard_shortcuts(): Rendered[] {
-    const v: Rendered[] = [];
+  function render_keyboard_shortcuts(): JSX.Element[] {
+    const v: JSX.Element[] = [];
     for (const desc in KEYBOARD_SHORTCUTS) {
       const shortcut = KEYBOARD_SHORTCUTS[desc];
       v.push(
@@ -55,37 +53,35 @@ export class KeyboardSettings extends Component<Props> {
     return v;
   }
 
-  private eval_change(value): void {
+  function eval_change(value): void {
     set_account_table({ evaluate_key: value });
   }
 
-  private render_eval_shortcut(): Rendered {
-    if (this.props.evaluate_key == null) {
+  function render_eval_shortcut(): JSX.Element {
+    if (evaluate_key == null) {
       return <Loading />;
     }
     return (
       <LabeledRow label="Sage Worksheet evaluate key">
         <SelectorInput
           options={EVALUATE_KEYS}
-          selected={this.props.evaluate_key}
-          on_change={this.eval_change}
+          selected={evaluate_key}
+          on_change={eval_change}
         />
       </LabeledRow>
     );
   }
 
-  public render(): Rendered {
-    return (
-      <Panel
-        header={
-          <>
-            <Icon name="keyboard-o" /> Keyboard shortcuts
-          </>
-        }
-      >
-        {this.render_keyboard_shortcuts()}
-        {this.render_eval_shortcut()}
-      </Panel>
-    );
-  }
-}
+  return (
+    <Panel
+      header={
+        <>
+          <Icon name="keyboard-o" /> Keyboard shortcuts
+        </>
+      }
+    >
+      {render_keyboard_shortcuts()}
+      {render_eval_shortcut()}
+    </Panel>
+  );
+};

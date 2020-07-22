@@ -25,8 +25,6 @@ export const AccountPreferences: React.FC = () => {
   );
   const passports = useTypedRedux("account", "passports");
   const sign_out_error = useTypedRedux("account", "sign_out_error");
-  const terminal = useTypedRedux("account", "terminal");
-  const evaluate_key = useTypedRedux("account", "evaluate_key");
   const autosave = useTypedRedux("account", "autosave");
   const font_size = useTypedRedux("account", "font_size");
   const editor_settings = useTypedRedux("account", "editor_settings");
@@ -91,8 +89,8 @@ export const AccountPreferences: React.FC = () => {
               editor_settings={editor_settings as any}
               email_address={email_address}
             />
-            <TerminalSettings terminal={terminal} />
-            <KeyboardSettings evaluate_key={evaluate_key} />
+            <TerminalSettings />
+            <KeyboardSettings />
           </Col>
         </Row>
         <Footer />
