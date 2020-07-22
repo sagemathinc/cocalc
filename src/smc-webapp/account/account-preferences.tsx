@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Component, React, Rendered } from "../app-framework";
+import { React, useTypedRedux } from "../app-framework";
 import { ProfileSettings } from "./profile-settings";
 import { TerminalSettings } from "./terminal-settings";
 import { KeyboardSettings } from "./keyboard-settings";
@@ -14,86 +14,85 @@ import { OtherSettings } from "./other-settings";
 import { EditorSettings } from "./editor-settings/editor-settings";
 import { Loading } from "../r_misc";
 
-interface Props {
-  account_id?: string;
-  first_name?: string;
-  last_name?: string;
-  email_address?: string;
-  email_address_verified?;
-  passports?;
-  sign_out_error?: string;
-  terminal?;
-  evaluate_key?: string;
-  autosave?: number;
-  tab_size?: number;
-  font_size?: number;
-  editor_settings?;
-  other_settings?;
-  groups?;
-  stripe_customer?;
-  is_anonymous?: boolean;
-  email_enabled?: boolean;
-  verify_emails?: boolean;
-  created?: Date;
-  strategies?;
-}
+export const AccountPreferences: React.FC = () => {
+  const account_id = useTypedRedux("account", "account_id");
+  const first_name = useTypedRedux("account", "first_name");
+  const last_name = useTypedRedux("account", "last_name");
+  const email_address = useTypedRedux("account", "email_address");
+  const email_address_verified = useTypedRedux(
+    "account",
+    "email_address_verified"
+  );
+  const passports = useTypedRedux("account", "passports");
+  const sign_out_error = useTypedRedux("account", "sign_out_error");
+  const terminal = useTypedRedux("account", "terminal");
+  const evaluate_key = useTypedRedux("account", "evaluate_key");
+  const autosave = useTypedRedux("account", "autosave");
+  const font_size = useTypedRedux("account", "font_size");
+  const editor_settings = useTypedRedux("account", "editor_settings");
+  const stripe_customer = useTypedRedux("account", "stripe_customer");
+  const other_settings = useTypedRedux("account", "other_settings");
+  const is_anonymous = useTypedRedux("account", "is_anonymous");
+  const created = useTypedRedux("account", "created");
+  const strategies = useTypedRedux("account", "strategies");
+  const email_enabled = useTypedRedux("customize", "email_enabled");
+  const verify_emails = useTypedRedux("customize", "verify_emails");
 
-export class AccountPreferences extends Component<Props> {
-  private render_account_settings(): Rendered {
+  function render_account_settings(): JSX.Element {
     return (
       <AccountSettings
-        account_id={this.props.account_id}
-        first_name={this.props.first_name}
-        last_name={this.props.last_name}
-        email_address={this.props.email_address}
-        email_address_verified={this.props.email_address_verified}
-        passports={this.props.passports}
-        sign_out_error={this.props.sign_out_error}
-        other_settings={this.props.other_settings}
-        is_anonymous={this.props.is_anonymous}
-        email_enabled={this.props.email_enabled}
-        verify_emails={this.props.verify_emails}
-        created={this.props.created}
-        strategies={this.props.strategies}
+        account_id={account_id}
+        first_name={first_name}
+        last_name={last_name}
+        email_address={email_address}
+        email_address_verified={email_address_verified}
+        passports={passports}
+        sign_out_error={sign_out_error}
+        other_settings={other_settings as any}
+        is_anonymous={is_anonymous}
+        email_enabled={email_enabled}
+        verify_emails={verify_emails}
+        created={created}
+        strategies={strategies}
       />
     );
   }
 
-  private render_other_settings(): Rendered {
-    if (this.props.other_settings == null) return <Loading />;
+  function render_other_settings(): JSX.Element {
+    if (other_settings == null) return <Loading />;
     return (
       <OtherSettings
-        other_settings={this.props.other_settings}
+        other_settings={other_settings as any}
         is_stripe_customer={
-          !!this.props.stripe_customer?.getIn(["subscriptions", "total_count"])
+          !!stripe_customer?.getIn(["subscriptions", "total_count"])
         }
       />
     );
   }
 
-  private render_all_settings(): Rendered {
+  function render_all_settings(): JSX.Element {
     return (
       <div style={{ marginTop: "1em" }}>
         <Row>
           <Col xs={12} md={6}>
-            {this.render_account_settings()}
+            {render_account_settings()}
             <ProfileSettings
-              email_address={this.props.email_address}
-              first_name={this.props.first_name}
-              last_name={this.props.last_name}
+              email_address={email_address}
+              first_name={first_name}
+              last_name={last_name}
             />
-            {this.render_other_settings()}
+            {render_other_settings()}
           </Col>
           <Col xs={12} md={6}>
             <EditorSettings
-              autosave={this.props.autosave}
-              tab_size={this.props.tab_size}
-              font_size={this.props.font_size}
-              editor_settings={this.props.editor_settings}
-              email_address={this.props.email_address}
+              autosave={autosave}
+              tab_size={editor_settings?.get("tab_size")}
+              font_size={font_size}
+              editor_settings={editor_settings as any}
+              email_address={email_address}
             />
-            <TerminalSettings terminal={this.props.terminal} />
-            <KeyboardSettings evaluate_key={this.props.evaluate_key} />
+            <TerminalSettings terminal={terminal} />
+            <KeyboardSettings evaluate_key={evaluate_key} />
           </Col>
         </Row>
         <Footer />
@@ -101,11 +100,9 @@ export class AccountPreferences extends Component<Props> {
     );
   }
 
-  public render(): Rendered {
-    if (this.props.is_anonymous) {
-      return this.render_account_settings();
-    } else {
-      return this.render_all_settings();
-    }
+  if (is_anonymous) {
+    return render_account_settings();
+  } else {
+    return render_all_settings();
   }
-}
+};

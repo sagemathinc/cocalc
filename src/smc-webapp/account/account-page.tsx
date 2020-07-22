@@ -29,25 +29,7 @@ export const AccountPage: React.FC = () => {
   const active_page = useTypedRedux("account", "active_page");
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const account_id = useTypedRedux("account", "account_id");
-  const first_name = useTypedRedux("account", "first_name");
-  const last_name = useTypedRedux("account", "last_name");
-  const email_address = useTypedRedux("account", "email_address");
-  const email_address_verified = useTypedRedux(
-    "account",
-    "email_address_verified"
-  );
-  const passports = useTypedRedux("account", "passports");
-  const sign_out_error = useTypedRedux("account", "sign_out_error");
-  const terminal = useTypedRedux("account", "terminal");
-  const evaluate_key = useTypedRedux("account", "evaluate_key");
-  const autosave = useTypedRedux("account", "autosave");
-  const font_size = useTypedRedux("account", "font_size");
-  const editor_settings = useTypedRedux("account", "editor_settings");
-  const stripe_customer = useTypedRedux("account", "stripe_customer");
-  const other_settings = useTypedRedux("account", "other_settings");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
-  const groups = useTypedRedux("account", "groups");
-  const created = useTypedRedux("account", "created");
   const strategies = useTypedRedux("account", "strategies");
   const sign_up_error = useTypedRedux("account", "sign_up_error");
   const sign_in_error = useTypedRedux("account", "sign_in_error");
@@ -69,8 +51,6 @@ export const AccountPage: React.FC = () => {
   const has_remember_me = useTypedRedux("account", "has_remember_me");
 
   const kucalc = useTypedRedux("customize", "kucalc");
-  const email_enabled = useTypedRedux("customize", "email_enabled");
-  const verify_emails = useTypedRedux("customize", "verify_emails");
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
   const is_commercial = useTypedRedux("customize", "is_commercial");
 
@@ -87,34 +67,6 @@ export const AccountPage: React.FC = () => {
     }
     redux.getActions("account").set_active_tab(key);
     redux.getActions("account").push_state(`/${key}`);
-  }
-
-  function render_account_settings(): JSX.Element {
-    return (
-      <AccountPreferences
-        account_id={account_id}
-        first_name={first_name}
-        last_name={last_name}
-        email_address={email_address}
-        email_address_verified={email_address_verified}
-        passports={passports}
-        sign_out_error={sign_out_error}
-        terminal={terminal}
-        evaluate_key={evaluate_key}
-        autosave={autosave}
-        tab_size={editor_settings?.get("tab_size")}
-        font_size={font_size}
-        editor_settings={editor_settings}
-        stripe_customer={stripe_customer}
-        other_settings={other_settings}
-        is_anonymous={is_anonymous}
-        groups={groups}
-        email_enabled={email_enabled}
-        verify_emails={verify_emails}
-        created={created}
-        strategies={strategies}
-      />
-    );
   }
 
   function render_landing_page(): JSX.Element {
@@ -150,7 +102,7 @@ export const AccountPage: React.FC = () => {
         }
       >
         {(active_page == null || active_page === "account") &&
-          render_account_settings()}
+          <AccountPreferences />}
       </Tab>
     );
   }
@@ -247,7 +199,7 @@ export const AccountPage: React.FC = () => {
     }
     if (is_anonymous) {
       return (
-        <div style={{ margin: "15px 10%" }}>{render_account_settings()}</div>
+        <div style={{ margin: "15px 10%" }}><AccountPreferences /></div>
       );
     }
     const tabs: JSX.Element[] = [render_account_tab()].concat(
