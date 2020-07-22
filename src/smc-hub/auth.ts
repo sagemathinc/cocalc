@@ -470,7 +470,7 @@ class PassportManager {
     dbg("");
 
     // initialize use of middleware
-    this.router.use(express_session({ secret: misc.uuid() })); // secret is totally random and per-hub session
+    this.router.use(express_session({ secret: uuid.v4() })); // secret is totally random and per-hub session
     this.router.use(passport.initialize());
     this.router.use(passport.session());
 

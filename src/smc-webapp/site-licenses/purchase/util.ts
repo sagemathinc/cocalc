@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { isEqual } from "lodash";
+
 export type User = "academic" | "business";
 export type Upgrade = "basic" | "standard" | "custom";
 export type Subscription = "no" | "monthly" | "yearly";
@@ -35,6 +37,30 @@ export interface PurchaseInfo {
   custom_disk: number;
   custom_always_running: boolean;
   custom_member: boolean;
+}
+
+// throws an exception if it spots something funny...
+export function sanity_checks(info: PurchaseInfo) {
+  if (typeof info != "object") {
+    throw Error("must be an object");
+  }
+  if (info.start == null) {
+    throw Error("must have start date set");
+  }
+  if (info.end == null && info.subscription == "no") {
+    throw Error("must be a subscription if end is not set");
+  }
+
+  for (const x of ["ram", "cpu", "disk", "always_running", "member"]) {
+    const field = "custom_" + x;
+    if (info[field] == null) {
+      throw Error(`field "${field}" must be set`);
+    }
+  }
+
+  if (!isEqual(info.cost, compute_cost(info))) {
+    throw Error("cost does not match");
+  }
 }
 
 // discount is the number we multiply the price by:

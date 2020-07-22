@@ -11,9 +11,13 @@ import {
   Checkbox,
   DatePicker,
   InputNumber,
+  Menu,
+  Dropdown,
   Row,
   Col,
 } from "antd";
+import {DownOutlined} from "@ant-design/icons"
+
 import * as moment from "moment";
 import { webapp_client } from "../../webapp-client";
 import { CSS, React, redux, useMemo, useState } from "../../app-framework";
@@ -26,8 +30,17 @@ import { plural } from "smc-util/misc2";
 const LENGTH_PRESETS = [
   { label: "1 Week", desc: { n: 7, key: "days" } },
   { label: "1 Month", desc: { n: 1, key: "months" } },
+  { label: "6 Weeks", desc: { n: 7 * 6, key: "days" } },
+  { label: "2 Months", desc: { n: 2, key: "months" } },
   { label: "3 Months", desc: { n: 3, key: "months" } },
   { label: "4 Months", desc: { n: 4, key: "months" } },
+  { label: "5 Months", desc: { n: 5, key: "months" } },
+  { label: "6 Months", desc: { n: 6, key: "months" } },
+  { label: "7 Months", desc: { n: 7, key: "months" } },
+  { label: "8 Months", desc: { n: 8, key: "months" } },
+  { label: "9 Months", desc: { n: 9, key: "months" } },
+  { label: "10 Months", desc: { n: 10, key: "months" } },
+  { label: "11 Months", desc: { n: 11, key: "months" } },
   { label: "1 Year", desc: { n: 1, key: "years" } },
 ] as const;
 
@@ -509,11 +522,12 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       const presets: JSX.Element[] = [];
       for (const { label, desc } of LENGTH_PRESETS) {
         presets.push(
-          <Button key={label} onClick={() => set_end_date(desc)}>
-            {label}
-          </Button>
+          <Menu.Item key={label}>
+            <a onClick={() => set_end_date(desc)}>{label}</a>
+          </Menu.Item>
         );
       }
+      const menu = <Menu>{presets}</Menu>;
       const n = moment(end).diff(moment(start), "days");
       return (
         <div style={{ marginLeft: "60px" }}>
@@ -531,7 +545,16 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             }}
           />
           <Space />
-          <Button.Group>{presets}</Button.Group>
+          <Space />
+          <Space />
+          <Dropdown overlay={menu}>
+            <a
+              className="ant-dropdown-link"
+              onClick={(e) => e.preventDefault()}
+            >
+              End after... <DownOutlined />
+            </a>
+          </Dropdown>
         </div>
       );
     } else {
@@ -773,7 +796,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           <span style={{ fontWeight: 350 }}>
             Buy licenses or request a quote below. If you are planning on making
             a purchase, but need to test things out first,{" "}
-            <a onClick={() => redux.getActions("support").show(true)}>
+            <a onClick={() => redux.getActions("support").set_show(true)}>
               please request a free trial.
             </a>
           </span>
@@ -781,7 +804,6 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       }
       extra={<a onClick={onClose}>close</a>}
     >
-      {render_error()}
       {render_user()}
       {render_quantity()}
       {render_project_type()}
@@ -792,6 +814,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       {render_credit_card()}
       {render_quote_info()}
       {render_buy()}
+      {render_error()}
       {render_sending()}
       {render_purchase_resp()}
       <hr />

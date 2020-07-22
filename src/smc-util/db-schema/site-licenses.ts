@@ -75,7 +75,12 @@ Table({
     upgrades: {
       type: "map",
       desc:
-        "Map of the upgrades that are applied to a project when it has this site license; this is the same as the settings field of a project, so e.g., {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}.",
+        "Map of the upgrades that are applied to a project when it has this site license; this is the same as the settings field of a project, so e.g., {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}.  This matches with our older purchases and our internal system.  Instead of this one can give quota.",
+    },
+    quota: {
+      type: "map",
+      desc:
+        "The exact quota a project using this license gets -- {ram: total amount of memory in GB, cpu: total number of shared vCPUs, disk:total GB of disk space, always_running:true/false, member:true/false}.  (Plan is) that such a license does not provide upgrades, but instead a fixed quota.",
     },
     run_limit: {
       type: "integer",
@@ -87,6 +92,8 @@ Table({
       desc:
         "The maximum number of projects that may simultaneously have this license applied to them.  When this is exceeded, older projects have the license automatically removed.  If this changes how the projects are upgraded, then those projects are stopped.",
     },
+    // todo: add a subscription field in case this license is paid for by a subscription. We periodically check
+    // that the subscription is still valid, otherwise we expire the license.
   },
   rules: {
     desc: "Site Licenses",
@@ -110,6 +117,7 @@ Table({
           managers: null,
           restricted: null,
           upgrades: null,
+          quota: null,
           run_limit: null,
           apply_limit: null,
         },
@@ -128,6 +136,7 @@ Table({
           managers: null,
           restricted: null,
           upgrades: null,
+          quota: null,
           run_limit: null,
           apply_limit: null,
         },
@@ -155,6 +164,7 @@ Table({
     managers: true,
     restricted: true,
     upgrades: true,
+    quota: true,
     run_limit: true,
     apply_limit: true,
   },
@@ -180,6 +190,7 @@ Table({
           managers: null,
           restricted: null,
           upgrades: null,
+          quota: null,
           run_limit: null,
           apply_limit: null,
         },
@@ -434,6 +445,7 @@ Table({
     expires: SCHEMA.site_licenses.fields.expires,
     activates: SCHEMA.site_licenses.fields.activates,
     upgrades: SCHEMA.site_licenses.fields.upgrades,
+    quota: SCHEMA.site_licenses.fields.quota,
     run_limit: SCHEMA.site_licenses.fields.run_limit,
     running: {
       type: "integer",
@@ -460,6 +472,7 @@ Table({
           expires: null,
           activates: null,
           upgrades: null,
+          quota: null,
           run_limit: null,
           running: null,
           is_manager: null,

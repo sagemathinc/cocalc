@@ -14,15 +14,51 @@ What this does:
 - if the request is to make a purchase, makes that purchase and creates the license
 */
 
-import { PurchaseInfo } from "smc-webapp/site-licenses/purchase/util";
+import { PostgreSQL } from "../../postgres/types";
+import {
+  PurchaseInfo,
+  sanity_checks,
+} from "smc-webapp/site-licenses/purchase/util";
+import { charge_user_for_license } from "./charge";
+import { create_license } from "./create-license";
 
-// Does what should be done, and returns a string that should be passed to the user
-// summarizing what happening.
+// Does what should be done, and returns the license_id of the license that was created
+// and has user added to as a manager.
+
+// We don't allow a user to attempt a purchase more than once every THROTTLE_S seconds.
+// This is just standard good practice, and avoids "double clicks" and probably some
+// sort of attacks...
+const THROTTLE_S = 30;
+const last_attempt: { [account_id: string]: number } = {};
+
 export async function purchase_license(
+  database: PostgreSQL,
   account_id: string,
   info: PurchaseInfo,
   dbg: (...args) => void
 ): Promise<string> {
-  dbg(`got info=${JSON.stringify(info)} for ${account_id}`);
-  return "stub";
+  dbg(`purchase_license: got info=${JSON.stringify(info)} for ${account_id}`);
+
+  const now = new Date().valueOf();
+  if (now - (last_attempt[account_id] ?? 0) <= THROTTLE_S * 1000) {
+    throw Error(
+      "You must wait at least " +
+        THROTTLE_S.toString() +
+        " seconds between license purchases."
+    );
+  }
+  last_attempt[account_id] = now;
+
+  dbg("purchase_info: running sanity checks...");
+  sanity_checks(info);
+
+  dbg("purchase_info: charging user for license...");
+  await charge_user_for_license(database, account_id, info, (...args) =>
+    dbg("charge_user_for_license", ...args)
+  );
+
+  dbg("purchase_info: creating the license...");
+  return await create_license(database, account_id, info, (...args) =>
+    dbg("create_license", ...args)
+  );
 }

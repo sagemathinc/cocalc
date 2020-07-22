@@ -1975,7 +1975,7 @@ class exports.Client extends EventEmitter
 
     mesg_purchase_license: (mesg) =>
         try
-            resp = await purchase_license(@account_id, mesg.info, @dbg("purchase_license"))
+            resp = await purchase_license(@database, @account_id, mesg.info, @dbg("purchase_license"))
             @push_to_client(message.purchase_license_resp(id:mesg.id, resp:resp))
         catch err
             @error_to_client(id:mesg.id, error:err.toString())

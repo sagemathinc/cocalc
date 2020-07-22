@@ -21,7 +21,8 @@ export interface QueryOptions {
   table?: string;
   where?: QueryWhere;
   query?: string;
-  params?: (string | number | Date)[]; // todo -- maybe too specific?
+  params?: any[];
+  values?: { [key: string]: any };
   cache?: boolean;
   retry_until_success?: any; // todo
   cb?: Function;
