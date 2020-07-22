@@ -50,7 +50,7 @@ const BS_STYLE_TO_TYPE: {
   primary: "primary",
   success: "default", // antd doesn't have this so we do it via style below.
   default: "default",
-  info: "dashed",
+  info: "default", // antd doesn't have this so we do it via style below.
   warning: "default", // antd doesn't have this so we do it via style below.
   danger: "danger",
   link: "link",
@@ -89,6 +89,12 @@ function parse_bsStyle(props: {
     style = {
       backgroundColor: "#5cb85c",
       borderColor: "#4cae4c",
+      color: "#ffffff",
+    };
+  } else if (props.bsStyle == "info") {
+    style = {
+      backgroundColor: "rgb(91, 192, 222)",
+      borderColor: "rgb(70, 184, 218)",
       color: "#ffffff",
     };
   }
@@ -164,12 +170,31 @@ export function ButtonGroup(props: {
   );
 }
 
-export function ButtonToolbar(props: any) {
-  return <div style={props.style}>{r_join(props.children, <Space />)}</div>;
+export function ButtonToolbar(props: {
+  style?: React.CSSProperties;
+  children?: any;
+  className?: string;
+}) {
+  return (
+    <div className={props.className} style={props.style}>
+      {r_join(props.children, <Space />)}
+    </div>
+  );
 }
 
-export function Grid(props: any) {
-  return <div style={{ padding: "0 8px" }}>{props.children}</div>;
+export function Grid(props: {
+  onClick: any;
+  style?: React.CSSProperties;
+  children?: any;
+}) {
+  return (
+    <div
+      onClick={props.onClick}
+      style={{ ...{ padding: "0 8px" }, ...props.style }}
+    >
+      {props.children}
+    </div>
+  );
 }
 
 export function Well(props: {
@@ -195,7 +220,14 @@ export function Well(props: {
   );
 }
 
-export function Checkbox(props: any) {
+export function Checkbox(props: {
+  style?: React.CSSProperties;
+  children?: any;
+  autoFocus?: boolean;
+  checked?: boolean;
+  disabled?: boolean;
+  onChange?: any;
+}) {
   const style: React.CSSProperties = props.style != null ? props.style : {};
   if (style.fontWeight == null) {
     // Antd checkbox uses the label DOM element, and bootstrap css

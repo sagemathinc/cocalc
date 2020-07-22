@@ -4,27 +4,21 @@
  */
 
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
 Register the task list editor
 
 TODO: this is very similar to jupyter/register.coffee -- can this be refactored?
 */
 
-const { register_file_editor } = require("../file-editors");
-import { alert_message } from "../alerts";
-import { redux_name } from "../app-framework";
-import { webapp_client } from "../webapp-client";
+import { register_file_editor } from "../../file-editors";
+import { alert_message } from "../../alerts";
+import { redux_name } from "../../app-framework";
+import { webapp_client } from "../../webapp-client";
 
-const { TaskEditor } = require("./editor");
-const { TaskActions } = require("./actions");
-const { TaskStore } = require("./store");
+import { TaskEditor } from "./editor";
+import { TaskActions } from "./actions";
+import { TaskStore } from "./store";
 
-import { syncdb2 as new_syncdb } from "../frame-editors/generic/client";
+import { syncdb2 as new_syncdb } from "../../frame-editors/generic/client";
 
 register_file_editor({
   ext: ["tasks"],
@@ -35,7 +29,7 @@ register_file_editor({
 
   component: TaskEditor,
 
-  init(path, redux, project_id) {
+  init(path: string, redux, project_id: string) {
     const name = redux_name(project_id, path);
     if (redux.getActions(name) != null) {
       return name; // already initialized
@@ -61,7 +55,7 @@ register_file_editor({
     return name;
   },
 
-  remove(path, redux, project_id) {
+  remove(path: string, redux, project_id: string) {
     const name = redux_name(project_id, path);
     const actions = redux.getActions(name);
     if (actions != null) {
@@ -77,7 +71,7 @@ register_file_editor({
     return name;
   },
 
-  save(path, redux, project_id) {
+  save(path: string, redux, project_id: string) {
     const name = redux_name(project_id, path);
     const actions = redux.getActions(name);
     return actions != null ? actions.save() : undefined;

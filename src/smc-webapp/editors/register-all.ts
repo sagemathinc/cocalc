@@ -22,7 +22,6 @@ import { webapp_client } from "../webapp-client";
 import { register as jupyter_register } from "../jupyter/nbviewer/register";
 jupyter_register(webapp_client);
 
-import "../tasks/register";
 import "./media-viewer/register";
 
 // Raw data editors
@@ -30,6 +29,8 @@ import "../editor-data/generic";
 
 // All the non-react editors.
 require("../editor").register_nonreact_editors();
+
+import "./task-editor/register";
 
 // All the frame-tree editors
 import "../frame-editors/register";
