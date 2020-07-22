@@ -38,6 +38,7 @@ import {
 } from "./types";
 import { TaskStore } from "./store";
 import { SyncDB } from "smc-util/sync/editor/db";
+import { webapp_client } from "../../webapp-client";
 
 export class TaskActions extends Actions<TaskState> {
   private syncdb: SyncDB;
@@ -813,5 +814,41 @@ export class TaskActions extends Actions<TaskState> {
   public async show(): Promise<void> {
     await delay(1);
     this.enable_key_handler();
+  }
+
+  // Exports the currently visible tasks to a markdown file and opens it.
+  public async export_to_markdown(): Promise<void> {
+    const visible = this.store.get("visible");
+    if (visible == null) return;
+    const tasks = this.store.get("tasks");
+    if (tasks == null) return;
+    const v: string[] = [];
+    visible.forEach((task_id) => {
+      const task = tasks.get(task_id);
+      if (task == null) return;
+      let s = "";
+      if (task.get("deleted")) {
+        s += "**Deleted**\n\n";
+      }
+      if (task.get("done")) {
+        s += "**Done**\n\n";
+      }
+      const due = task.get("due_date");
+      if (due) {
+        s += `Due: ${new Date(due).toLocaleString()}\n\n`;
+      }
+      s += task.get("desc") ?? "";
+      v.push(s);
+    });
+    const content = v.join("\n\n---\n\n");
+    const path = this.path + ".md";
+    await webapp_client.project_client.write_text_file({
+      project_id: this.project_id,
+      path,
+      content,
+    });
+    this.redux
+      .getProjectActions(this.project_id)
+      .open_file({ path, foreground: true });
   }
 }
