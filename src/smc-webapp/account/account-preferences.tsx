@@ -3,16 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { List, Map } from "immutable";
-
-import { Component, React, Rendered, TypedMap } from "../app-framework";
+import { Component, React, Rendered } from "../app-framework";
 import { ProfileSettings } from "./profile-settings";
 import { TerminalSettings } from "./terminal-settings";
 import { KeyboardSettings } from "./keyboard-settings";
 import { AccountSettings } from "./settings/account-settings";
 import { Row, Col } from "../antd-bootstrap";
 import { Footer } from "../customize";
-import { PassportStrategy } from "./passport-types";
 import { OtherSettings } from "./other-settings";
 import { EditorSettings } from "./editor-settings/editor-settings";
 import { Loading } from "../r_misc";
@@ -22,24 +19,23 @@ interface Props {
   first_name?: string;
   last_name?: string;
   email_address?: string;
-  email_address_verified?: Map<string, any>;
-  passports?: Map<string, any>;
+  email_address_verified?;
+  passports?;
   sign_out_error?: string;
-  everywhere?: boolean;
-  terminal?: Map<string, any>;
+  terminal?;
   evaluate_key?: string;
   autosave?: number;
   tab_size?: number;
   font_size?: number;
-  editor_settings?: Map<string, any>;
-  other_settings?: Map<string, any>;
-  groups?: List<string>;
-  stripe_customer?: Map<string, any>;
+  editor_settings?;
+  other_settings?;
+  groups?;
+  stripe_customer?;
   is_anonymous?: boolean;
   email_enabled?: boolean;
   verify_emails?: boolean;
   created?: Date;
-  strategies?: List<TypedMap<PassportStrategy>>;
+  strategies?;
 }
 
 export class AccountPreferences extends Component<Props> {
@@ -53,7 +49,6 @@ export class AccountPreferences extends Component<Props> {
         email_address_verified={this.props.email_address_verified}
         passports={this.props.passports}
         sign_out_error={this.props.sign_out_error}
-        everywhere={this.props.everywhere}
         other_settings={this.props.other_settings}
         is_anonymous={this.props.is_anonymous}
         email_enabled={this.props.email_enabled}

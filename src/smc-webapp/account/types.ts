@@ -28,7 +28,7 @@ export interface AccountState {
     confirm_close: string;
     page_size?: number;
     new_filenames?: NewFilenameTypes;
-    no_free_warnings?:boolean;
+    no_free_warnings?: boolean;
   }>;
   stripe_customer?: TypedMap<{
     subscriptions: { data: immutable.Map<string, any> };
@@ -58,8 +58,11 @@ export interface AccountState {
   doing_anonymous_setup?: boolean;
   lti_id?: immutable.List<string>;
   created?: Date;
-  strategies?: immutable.List<PassportStrategy>;
+  strategies?: immutable.List<TypedMap<PassportStrategy>>;
   token?: string;
   keyboard_variant_options?: immutable.List<any>;
   show_forgot_password?: boolean;
+  email_address_verified?: immutable.Map<string, Date>;
+  evaluate_key?: string;
+  autosave?: number;
 }
