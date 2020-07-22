@@ -22,7 +22,7 @@ import * as moment from "moment";
 import { webapp_client } from "../../webapp-client";
 import { CSS, React, redux, useMemo, useState } from "../../app-framework";
 const { RangePicker } = DatePicker;
-import { A, ErrorDisplay, Space } from "../../r_misc";
+import { A, ErrorDisplay, Icon, Space } from "../../r_misc";
 import { PurchaseMethod } from "./purchase-method";
 import { RadioGroup } from "./radio-group";
 import { plural } from "smc-util/misc2";
@@ -201,7 +201,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   function render_user() {
     return (
       <div>
-        <h4>Discount</h4>
+        <h4>
+          <Icon name="percentage" /> Discount
+        </h4>
         <RadioGroup
           options={[
             {
@@ -234,7 +236,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div>
         <br />
-        <h4>Type</h4>
+        <h4><Icon name="laptop"/> Type</h4>
         <RadioGroup
           disabled={disabled}
           options={[
@@ -483,7 +485,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div>
         <br />
-        <h4>Quantity</h4>
+        <h4><Icon name="sort-amount-up"/> Quantity</h4>
         <div style={{ fontSize: "12pt", marginLeft: "30px" }}>
           Simultaneously use
           {render_quantity_input()}
@@ -501,7 +503,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div>
         <br />
-        <h4>Period</h4>
+        <h4><Icon name="calendar-week"/> Period</h4>
         <RadioGroup
           disabled={disabled}
           options={[
@@ -617,7 +619,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div style={{ fontSize: "12pt" }}>
         <br />
-        <h4>Cost: {desc}</h4>
+        <h4><Icon name="money-check"/> Cost: {desc}</h4>
       </div>
     );
   }
@@ -627,7 +629,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div>
         <br />
-        <h4>Purchase</h4>
+        <h4><Icon name="store"/> Purchase</h4>
         <RadioGroup
           disabled={disabled}
           options={[
@@ -665,7 +667,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       return (
         <div>
           <br />
-          <h4>Payment method</h4>
+          <h4><Icon name="credit-card"/> Payment method</h4>
           Use {payment_method}
           <br />
           <Button onClick={() => set_payment_method(undefined)}>
@@ -677,7 +679,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       return (
         <div>
           <br />
-          <h4>Select or enter payment method</h4>
+          <h4><Icon name="credit-card"/> Select or enter payment method</h4>
           <PurchaseMethod
             onClose={(id) => {
               set_payment_method(id);
@@ -812,8 +814,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         <>
           <h3>Buy a license</h3>
           <span style={{ fontWeight: 350 }}>
-            Buy licenses or request a quote below. If you are planning on making
-            a purchase, but need to test things out first,{" "}
+            Buy licenses or request a quote below.
+            If you are planning on making a purchase, but need to test things out first,{" "}
             <a onClick={() => redux.getActions("support").set_show(true)}>
               please request a free trial.
             </a>
