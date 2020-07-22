@@ -51,7 +51,6 @@ interface Props {
   email_address_verified?: Map<string, any>;
   passports?: Map<string, any>;
   sign_out_error?: string;
-  everywhere?: boolean;
   delete_account_error?: string;
   other_settings?: Map<string, any>;
   is_anonymous?: boolean;
