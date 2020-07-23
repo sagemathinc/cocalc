@@ -29,7 +29,7 @@ import { StripeClient } from "../../stripe/client";
 // We don't allow a user to attempt a purchase more than once every THROTTLE_S seconds.
 // This is just standard good practice, and avoids "double clicks" and probably some
 // sort of attacks...
-const THROTTLE_S = 30;
+const THROTTLE_S = 3; // TODO: change to 30s or more!
 const last_attempt: { [account_id: string]: number } = {};
 
 export async function purchase_license(

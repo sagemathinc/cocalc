@@ -161,7 +161,13 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
 
   function render_error() {
     if (error == "") return;
-    return <ErrorDisplay error={error} onClose={() => set_error("")} />;
+    return (
+      <ErrorDisplay
+        style={{ marginTop: "5px", maxWidth: "800px" }}
+        error={error}
+        onClose={() => set_error("")}
+      />
+    );
   }
 
   function render_user() {
@@ -760,8 +766,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           return (
             <div>
               Failed to {quote === true ? "request quote" : "complete purchase"}
-              <br />
-              You may want to try again later.
+              . You may want to try again later.
               <br />
               <Button onClick={onClose}>Close</Button>
             </div>
@@ -815,8 +820,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       {render_credit_card()}
       {render_quote_info()}
       {render_buy()}
-      {render_error()}
       {render_sending()}
+      {render_error()}
       {render_purchase_resp()}
       <hr />
       <br />

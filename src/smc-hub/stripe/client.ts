@@ -9,6 +9,8 @@ import { callback2 } from "smc-util/async-utils";
 import * as message from "smc-util/message";
 import { available_upgrades, get_total_upgrades } from "smc-util/upgrades";
 
+import Stripe from 'stripe';
+
 const { get_stripe } = require("./connect");
 const { stripe_sales_tax } = require("./sales-tax");
 
@@ -21,7 +23,6 @@ interface HubClient {
   assert_user_is_in_group: Function;
 }
 
-type StripeConnection = any;
 type StripeCustomer = any;
 type Message = any;
 type Coupon = any;
@@ -43,13 +44,13 @@ function get_nonnull_field(mesg: Message, name: string): any {
 
 export class StripeClient {
   private client: HubClient;
-  private stripe: StripeConnection;
+  public conn: Stripe;
   private stripe_customer_id?: string;
 
   constructor(client: HubClient) {
     this.client = client;
-    this.stripe = get_stripe();
-    if (this.stripe == null) throw Error("stripe billing not configured");
+    this.conn = get_stripe();
+    if (this.conn == null) throw Error("stripe billing not configured");
 
     this.get_customer_id = reuseInFlight(this.get_customer_id.bind(this));
   }
@@ -108,12 +109,13 @@ export class StripeClient {
 
   // We use this, since converting stripe api calls to use async/await
   // messes up the binding.
+  // NOTE: modern stripe now has a clean async api, so this is not needed.
   public async call_stripe_api(
     objname: string,
     method: string,
     ...args
   ): Promise<any> {
-    const obj = this.stripe[objname];
+    const obj = this.conn[objname];
     if (obj == null) throw Error(`unknown stripe objname "${objname}"`);
     const f = obj[method];
     if (f == null) throw Error(`unknown stripe method "${objname}.${method}"`);
@@ -166,8 +168,9 @@ export class StripeClient {
     if (customer_id != null) {
       customer = await this.get_customer(customer_id);
     }
+    // note -- we explicitly put the "publishable_key" property there...
     return message.stripe_customer({
-      stripe_publishable_key: this.stripe.publishable_key,
+      stripe_publishable_key: (this.conn as any).publishable_key,
       customer,
     });
   }
@@ -268,7 +271,7 @@ export class StripeClient {
     if (customer_id == null) return;
     await callback2(this.client.database.stripe_update_customer, {
       account_id: this.client.account_id,
-      stripe: this.stripe,
+      stripe: this.conn,
       customer_id,
     });
   }
@@ -544,7 +547,7 @@ export class StripeClient {
       );
       await callback2(this.client.database.stripe_update_customer, {
         account_id: mesg.account_id,
-        stripe: this.stripe,
+        stripe: this.conn,
         customer_id,
       });
     } else {
