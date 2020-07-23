@@ -5,6 +5,7 @@
 
 import { PurchaseInfo } from "smc-webapp/site-licenses/purchase/util";
 import { StripeClient } from "../../stripe/client";
+import Stripe from "stripe";
 
 export async function charge_user_for_license(
   stripe: StripeClient,
@@ -66,7 +67,7 @@ function get_product_name(info): string {
   } else {
     period = "subscription";
   }
-  let desc = info.user == "business" ? "License" : "Academic license";
+  let desc = info.user == "business" ? "Business License" : "Academic license";
   desc += ` for ${info.custom_ram}GB RAM, ${info.custom_cpu} CPU, ${info.custom_disk}GB disk`;
   if (info.custom_member) {
     desc += ", member host";
@@ -170,7 +171,7 @@ async function stripe_purchase_product(
   // TODO: we should probably check that this exists and if not create it...
   // right now manually creating it will make things work.
   // but that is pretty fragile! this should be the "25% off web discount"
-  //const coupon = "online-discount";
+  const coupon = "online-discount";
 
   dbg("stripe_purchase_product: get price");
   const prices = await stripe.conn.prices.list({
@@ -201,21 +202,39 @@ async function stripe_purchase_product(
   await stripe.conn.invoiceItems.create({ customer, price, quantity });
 
   // TODO: improve later to handle case of *multiple* items on one invoice
-  const options: any = {
+
+  // TODO: tax_percent is DEPRECATED (see stripe_create_subscription below).
+  const tax_percent = await stripe.sales_tax(customer);
+  const options: Stripe.InvoiceCreateParams = {
     customer,
     auto_advance: true,
     collection_method: "charge_automatically",
-  };
-
-  const tax_percent = await stripe.sales_tax(customer);
-  if (tax_percent) {
-    // TODO: tax_percent is DEPRECATED (see stripe_create_subscription below).
-    options.tax_percent = Math.round(tax_percent * 100 * 100) / 100;
-  }
+    tax_percent: tax_percent
+      ? Math.round(tax_percent * 100 * 100) / 100
+      : undefined,
+  } as const;
 
   dbg("stripe_purchase_product options=", JSON.stringify(options));
-  await stripe.conn.invoices.create(options);
+  await stripe.conn.customers.update(customer, { coupon });
+  const invoice_id = (await stripe.conn.invoices.create(options)).id;
+  await stripe.conn.invoices.finalizeInvoice(invoice_id, {
+    auto_advance: true,
+  });
+  const invoice = await stripe.conn.invoices.pay(invoice_id, {
+    payment_method: info.payment_method,
+  });
+  // remove coupon so it isn't automatically applied
+  await stripe.conn.customers.deleteDiscount(customer);
   await stripe.update_database();
+  if (!invoice.paid) {
+    // We void it so user doesn't get charged later.  Of course,
+    // we plan to rewrite this to keep trying and once they pay it
+    // somehow, then they get their license.  But that's a TODO!
+    await stripe.conn.invoices.voidInvoice(invoice_id);
+    throw Error(
+      "created invoice but not able to pay it -- invoice has been voided; please try again when you have a valid payment method on file"
+    );
+  }
 }
 
 async function stripe_create_subscription(
@@ -260,28 +279,25 @@ async function stripe_create_subscription(
         `price for subscription purchase missing -- product_id="${product_id}", subscription="${subscription}"`
       );
     }
-    throw Error(
-      `price for subscription missing -- product_id="${product_id}", subscription="${subscription}"`
-    );
   }
 
   // TODO: will need to improve to handle case of *multiple* items on one subscription
-  const options: any = {
+
+  // CRITICAL: if we don't just multiply by 100, since then sometimes
+  // stripe comes back with an error like this
+  //    "Error: Invalid decimal: 8.799999999999999; must contain at maximum two decimal places."
+  // TODO: tax_percent is DEPRECATED -- https://stripe.com/docs/billing/migration/taxes
+  // but fortunately it still works so we can rewrite this later.
+  const tax_percent = await stripe.sales_tax(customer);
+
+  const options = {
     customer,
     items: [{ price, quantity }],
-    quantity,
     coupon,
+    tax_percent: tax_percent
+      ? Math.round(tax_percent * 100 * 100) / 100
+      : undefined,
   };
-
-  const tax_percent = await stripe.sales_tax(customer);
-  if (tax_percent) {
-    // CRITICAL: if we don't just multiply by 100, since then sometimes
-    // stripe comes back with an error like this
-    //    "Error: Invalid decimal: 8.799999999999999; must contain at maximum two decimal places."
-    // TODO: tax_percent is DEPRECATED -- https://stripe.com/docs/billing/migration/taxes
-    // but fortunately it still works so we can rewrite this later.
-    options.tax_percent = Math.round(tax_percent * 100 * 100) / 100;
-  }
 
   await stripe.conn.subscriptions.create(options);
   await stripe.update_database();

@@ -374,6 +374,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             <Checkbox
               checked={custom_member}
               onChange={(e) => set_custom_member(e.target.checked)}
+              disabled={disabled}
             >
               Member hosting
             </Checkbox>
@@ -391,6 +392,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             <Checkbox
               checked={custom_always_running}
               onChange={(e) => set_custom_always_running(e.target.checked)}
+              disabled={disabled}
             >
               Always running
             </Checkbox>
@@ -622,7 +624,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
                 "purchase online now " +
                 (cost.discounted_cost < cost.cost
                   ? `and save ${money(cost.cost - cost.discounted_cost)} ${
-                      subscription != "no" ? subscription : ""
+                      subscription != "no" ? subscription + ' for the life of your subscription!' : ""
                     }`
                   : ""),
               value: false,

@@ -476,7 +476,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
 
     __do_query: (opts) =>
-        dbg = @_dbg("_query('#{opts.query}',id='#{misc.uuid().slice(0,6)}')")
+        dbg = @_dbg("_query('#{misc.trunc(opts.query.replace(/\n/g, " "),250)}',id='#{misc.uuid().slice(0,6)}')")
         if not @is_connected()
             # TODO: should also check that client is connected.
             opts.cb?("client not yet initialized")

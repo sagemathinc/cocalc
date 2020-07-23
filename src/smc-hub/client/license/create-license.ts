@@ -24,6 +24,7 @@ export async function create_license(
     "created::TIMESTAMP": new Date(),
     "managers::TEXT[]": [account_id],
     "quota::JSONB": {
+      user: info.user,
       ram: info.custom_ram,
       cpu: info.custom_cpu,
       disk: info.custom_disk,

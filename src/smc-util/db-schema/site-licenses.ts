@@ -80,7 +80,7 @@ Table({
     quota: {
       type: "map",
       desc:
-        "The exact quota a project using this license gets -- {ram: total amount of memory in GB, cpu: total number of shared vCPUs, disk:total GB of disk space, always_running:true/false, member:true/false}.  (Plan is) that such a license does not provide upgrades, but instead a fixed quota.",
+        "The exact quota a project using this license gets -- {ram: total amount of memory in GB, cpu: total number of shared vCPUs, disk:total GB of disk space, always_running:true/false, member:true/false, user:'academic'|'business'}.  (Plan is) that such a license does not provide upgrades, but instead a fixed quota.",
     },
     run_limit: {
       type: "integer",
