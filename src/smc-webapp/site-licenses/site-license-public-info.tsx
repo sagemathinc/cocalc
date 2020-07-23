@@ -42,18 +42,20 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
   async function fetch_info(force: boolean = false): Promise<void> {
     set_err("");
     set_loading(true);
+    let info;
+    let success = false;
+    info = await site_license_public_info(license_id, force);
     try {
-      let info = await site_license_public_info(license_id, force);
-      if (isMountedRef.current) {
-        set_info(info);
-      }
+      info = await site_license_public_info(license_id, force);
+      success = true;
     } catch (err) {
-      if (isMountedRef.current) {
-        set_err(`${err}`);
-      }
+      if (!isMountedRef.current) return;
+      set_err(`${err}`);
     } finally {
-      if (isMountedRef.current) {
-        set_loading(false);
+      if (!isMountedRef.current) return;
+      set_loading(false);
+      if (success) {
+        set_info(info);
       }
     }
   }
