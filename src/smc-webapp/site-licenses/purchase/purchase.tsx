@@ -70,7 +70,7 @@ interface Props {
 
 export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   const [user, set_user] = useState<User | undefined>(undefined);
-  const [upgrade, set_upgrade] = useState<Upgrade>("standard");
+  const [upgrade] = useState<Upgrade>("custom");
 
   const [custom_ram, set_custom_ram] = useState<number>(COSTS.basic.ram);
   const [custom_cpu, set_custom_cpu] = useState<number>(COSTS.basic.cpu);
@@ -124,15 +124,12 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         cost: number;
         cost_per_project_per_month: number;
         discounted_cost: number;
+        cost_sub_month: number;
+        cost_sub_year: number;
       }
     | undefined
   >(() => {
-    if (
-      upgrade == null ||
-      user == null ||
-      quantity == null ||
-      subscription == null
-    ) {
+    if (user == null || quantity == null || subscription == null) {
       return undefined;
     }
     return compute_cost({
@@ -161,37 +158,6 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     custom_always_running,
     custom_member,
   ]);
-
-  const cost_per_project_per_month = useMemo<{
-    basic: number;
-    standard: number;
-    max: number;
-  }>(() => {
-    const x = {
-      basic: 0,
-      standard: 0,
-      max: 0,
-    };
-    if (upgrade == null || user == null || quantity == null) {
-      return x;
-    }
-    for (const upgrade in x) {
-      x[upgrade] = compute_cost({
-        quantity,
-        user,
-        upgrade: upgrade as Upgrade,
-        subscription,
-        start,
-        end,
-        custom_ram,
-        custom_cpu,
-        custom_disk,
-        custom_always_running,
-        custom_member,
-      }).cost_per_project_per_month;
-    }
-    return x;
-  }, [quantity, user, upgrade, subscription]);
 
   function render_error() {
     if (error == "") return;
@@ -235,55 +201,16 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
 
     return (
       <div>
-        <br />
-        <h4><Icon name="laptop"/> Type</h4>
-        <RadioGroup
-          disabled={disabled}
-          options={[
-            {
-              icon: "battery-1",
-              label: "Basic",
-              value: "basic",
-              desc: `priority support, network access, member hosting, ${COSTS.basic.cpu} CPU cores, ${COSTS.basic.ram}GB RAM, ${COSTS.basic.disk}GB disk space`,
-              cost: `${money(
-                cost_per_project_per_month.basic
-              )}/month per project`,
-            },
-            {
-              icon: "battery-2",
-              label: "Standard",
-              value: "standard",
-              desc: `priority support, network access, member hosting, ${COSTS.standard.cpu} CPU cores, ${COSTS.standard.ram}GB RAM, ${COSTS.standard.disk}GB disk space`,
-              cost: `${money(
-                cost_per_project_per_month.standard
-              )}/month per project`,
-            },
-            {
-              icon: "battery-4",
-              label: "Max",
-              value: "max",
-              desc: `priority support, network access, member hosting, ${COSTS.max.cpu} CPU cores, ${COSTS.max.ram}GB RAM, ${COSTS.max.disk}GB disk space`,
-              cost: `${money(
-                cost_per_project_per_month.max
-              )}/month per project`,
-            },
-            {
-              icon: "battery-3",
-              label: "Custom",
-              value: "custom",
-              cost:
-                upgrade == "custom"
-                  ? `${money(
-                      cost.cost_per_project_per_month
-                    )}/month per project`
-                  : undefined,
-            },
-          ]}
-          onChange={(e) => set_upgrade(e.target.value)}
-          value={upgrade}
-          radioStyle={radioStyle}
-        />
-        {upgrade == "custom" && render_custom()}
+        <h4>
+          <Icon name="laptop" /> Type
+          {`: ${money(cost.cost_per_project_per_month)}/month per project`}
+        </h4>
+        <div style={{ fontSize: "12pt" }}>
+          Up to {quantity} projects can be running at once with the following
+          specs:
+          <br />
+        </div>
+        {render_custom()}
       </div>
     );
   }
@@ -298,82 +225,21 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
 
   function render_custom() {
     if (user == null) return;
-    const col_control = 4;
-    const col_desc = 20;
+    const col_control = 8;
+    const col_desc = 16;
+    const ROW_STYLE: CSS = {
+      border: "1px solid #eee",
+      padding: "5px",
+      margin: "5px",
+      borderRadius: "3px",
+    } as const;
+    const UNIT_STYLE: CSS = {
+      padding: "0 5px",
+      fontWeight: 400,
+    } as const;
     return (
-      <div style={{ marginLeft: "60px" }}>
-        <Row>
-          <Col md={col_control}>
-            <Checkbox checked={true} disabled={true}>
-              Support
-            </Checkbox>
-          </Col>
-          <Col md={col_desc}>
-            priority support
-            {render_explanation(
-              "we prioritize your support requests much higher (included with all licensed projects)"
-            )}
-          </Col>
-        </Row>
-
-        <Row>
-          <Col md={col_control}>
-            <Checkbox checked={true} disabled={true}>
-              Network
-            </Checkbox>
-          </Col>
-          <Col md={col_desc}>
-            network access
-            {render_explanation(
-              "your project can connect to the Internet to clone git repositories, download files, send emails, etc.  (included with all licensed projects)"
-            )}
-          </Col>
-        </Row>
-        <Row>
-          <Col md={col_control}>
-            <Checkbox
-              checked={custom_member}
-              onChange={(e) => set_custom_member(e.target.checked)}
-            >
-              Member
-            </Checkbox>
-          </Col>
-          <Col md={col_desc}>
-            member hosting (multiply RAM/CPU price by {COSTS.custom_cost.member}
-            )
-            {render_explanation(
-              "your project runs on computers with far less other projects"
-            )}
-          </Col>
-        </Row>
-
-        <Row>
-          <Col md={col_control}>
-            <Checkbox
-              checked={custom_always_running}
-              onChange={(e) => set_custom_always_running(e.target.checked)}
-            >
-              Always running
-            </Checkbox>
-          </Col>
-          <Col md={col_desc}>
-            Project is always running (multiply RAM/CPU price by{" "}
-            {COSTS.custom_cost.always_running * GCE_COSTS.non_pre_factor} for
-            member hosting or multiply by {COSTS.custom_cost.always_running}{" "}
-            without){" "}
-            {render_explanation(
-              "your project is always running, so you don't have to wait for it to start, and you can run long computations; otherwise, your project will stop after a while if it is not actively being used." +
-                (!custom_member
-                  ? " Because member hosting isn't selected, your project will restart at least once daily."
-                  : "")
-            )}
-            . See{" "}
-            <A href="https://doc.cocalc.com/project-init.html">
-              project init scripts.
-            </A>
-          </Col>
-        </Row>
-        <Row>
+      <div>
+        <Row style={ROW_STYLE}>
           <Col md={col_control}>
             <InputNumber
               min={COSTS.basic.cpu}
@@ -391,19 +257,22 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             >
               Max
             </Button>
+            <span style={UNIT_STYLE}>CPU {plural(custom_cpu, "core")}</span>
           </Col>
           <Col md={col_desc}>
-            number of CPU cores (
-            {`${money(
-              COSTS.user_discount[user] * COSTS.custom_cost.cpu
-            )}/CPU cores per month`}
-            )
+            <b>
+              CPU cores (
+              {`${money(
+                COSTS.user_discount[user] * COSTS.custom_cost.cpu
+              )}/CPU cores per month per project`}
+              )
+            </b>
             {render_explanation(
-              "these are Google cloud vCPU's, which may be shared with other projects (member hosting significantly reduces sharing)"
+              "Google cloud vCPU's shared with other projects (member hosting significantly reduces sharing)"
             )}
           </Col>
         </Row>
-        <Row>
+        <Row style={ROW_STYLE}>
           <Col md={col_control}>
             <InputNumber
               min={COSTS.basic.ram}
@@ -421,16 +290,20 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             >
               Max
             </Button>
+            <span style={UNIT_STYLE}>GB RAM</span>
           </Col>
           <Col md={col_desc}>
-            GB RAM (
-            {`${money(
-              COSTS.user_discount[user] * COSTS.custom_cost.ram
-            )}/GB per month`}
-            ){render_explanation("this RAM may be shared with other users")}
+            <b>
+              GB RAM (
+              {`${money(
+                COSTS.user_discount[user] * COSTS.custom_cost.ram
+              )}/GB RAM per month per project`}
+              )
+            </b>
+            {render_explanation("RAM may be shared with other users")}
           </Col>
         </Row>
-        <Row>
+        <Row style={ROW_STYLE}>
           <Col md={col_control}>
             <InputNumber
               min={COSTS.basic.disk}
@@ -448,16 +321,94 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             >
               Max
             </Button>
+            <span style={UNIT_STYLE}> GB disk space</span>
           </Col>
           <Col md={col_desc}>
-            GB Disk Space (
-            {`${money(
-              COSTS.user_discount[user] * COSTS.custom_cost.disk
-            )}/GB per month`}
-            )
+            <b>
+              GB Disk Space (
+              {`${money(
+                COSTS.user_discount[user] * COSTS.custom_cost.disk
+              )}/GB disk per month per project`}
+              )
+            </b>
             {render_explanation(
-              "this allows you to store a larger number of files. Snapshots and complete file edit history is included at no additional charge."
+              "store a larger number of files. Snapshots and file edit history is included at no additional charge."
             )}
+          </Col>
+        </Row>
+        <Row style={ROW_STYLE}>
+          <Col md={col_control}>
+            <Checkbox checked={true} disabled={true}>
+              Priority support
+            </Checkbox>
+          </Col>
+          <Col md={col_desc}>
+            priority support
+            {render_explanation(
+              "we prioritize your support requests much higher (included with all licensed projects)"
+            )}
+          </Col>
+        </Row>
+
+        <Row style={ROW_STYLE}>
+          <Col md={col_control}>
+            <Checkbox checked={true} disabled={true}>
+              Network access
+            </Checkbox>
+          </Col>
+          <Col md={col_desc}>
+            network access
+            {render_explanation(
+              "project can connect to the Internet to clone git repositories, download files, send emails, etc.  (included with all licensed projects)"
+            )}
+          </Col>
+        </Row>
+        <Row style={ROW_STYLE}>
+          <Col md={col_control}>
+            <Checkbox
+              checked={custom_member}
+              onChange={(e) => set_custom_member(e.target.checked)}
+            >
+              Member hosting
+            </Checkbox>
+          </Col>
+          <Col md={col_desc}>
+            member hosting{" "}
+            <b>(multiply RAM/CPU price by {COSTS.custom_cost.member})</b>
+            {render_explanation(
+              "project runs on computers with far less other projects"
+            )}
+          </Col>
+        </Row>
+        <Row style={ROW_STYLE}>
+          <Col md={col_control}>
+            <Checkbox
+              checked={custom_always_running}
+              onChange={(e) => set_custom_always_running(e.target.checked)}
+            >
+              Always running
+            </Checkbox>
+          </Col>
+          <Col md={col_desc}>
+            project is always running{" "}
+            <b>
+              (multiply RAM/CPU price by{" "}
+              {COSTS.custom_cost.always_running * GCE_COSTS.non_pre_factor} for
+              member hosting or multiply by {COSTS.custom_cost.always_running}{" "}
+              without)
+            </b>{" "}
+            {render_explanation(
+              "run long computations and never have to wait for project to start.  Without this, project will stop  if it is not actively being used." +
+                (!custom_member
+                  ? " Because member hosting isn't selected, project will restart at least once daily."
+                  : "")
+            )}{" "}
+            See{" "}
+            <A href="https://doc.cocalc.com/project-init.html">
+              project init scripts.
+            </A>{" "}
+            (Note: this is NOT guaranteed 100% uptime, since projects may
+            sometimes restart for security and maintenance reasons.)
           </Col>
         </Row>
       </div>
@@ -485,14 +436,34 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div>
         <br />
-        <h4><Icon name="sort-amount-up"/> Quantity</h4>
-        <div style={{ fontSize: "12pt", marginLeft: "30px" }}>
-          Simultaneously use
-          {render_quantity_input()}
-          {plural(quantity, "project")} with this license.
-          <br />
-          You can create multiple projects that use this license, but only{" "}
-          {quantity} can be used at once.
+        <h4>
+          <Icon name="sort-amount-up" /> Quantity: {render_quantity_input()}
+        </h4>
+        <div style={{ fontSize: "12pt" }}>
+          <ul>
+            <li>
+              Simultaneously use {quantity} {plural(quantity, "project")} with
+              this license.
+            </li>
+            <li>
+              {" "}
+              If you're{" "}
+              <A href="https://doc.cocalc.com/teaching-instructors.html">
+                teaching a course
+              </A>
+              , the quantity is typically <i>n+2</i>, where <i>n</i> is the
+              number of students: each student has a project, you will manage
+              the course from a project, and all students will have access to
+              one shared project. Contact us by clicking the "Help" button if
+              you need to change the quantity later in the course as more
+              students add.
+            </li>
+            <li>
+              {" "}
+              You can create hundreds of projects that use this license, but
+              only {quantity} can be running at once.
+            </li>
+          </ul>
         </div>
       </div>
     );
@@ -503,7 +474,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div>
         <br />
-        <h4><Icon name="calendar-week"/> Period</h4>
+        <h4>
+          <Icon name="calendar-week" /> Period
+        </h4>
         <RadioGroup
           disabled={disabled}
           options={[
@@ -619,7 +592,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div style={{ fontSize: "12pt" }}>
         <br />
-        <h4><Icon name="money-check"/> Cost: {desc}</h4>
+        <h4>
+          <Icon name="money-check" /> Cost: {desc}
+        </h4>
       </div>
     );
   }
@@ -629,7 +604,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div>
         <br />
-        <h4><Icon name="store"/> Purchase</h4>
+        <h4>
+          <Icon name="store" /> Purchase
+        </h4>
         <RadioGroup
           disabled={disabled}
           options={[
@@ -667,7 +644,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       return (
         <div>
           <br />
-          <h4><Icon name="credit-card"/> Payment method</h4>
+          <h4>
+            <Icon name="credit-card" /> Payment method
+          </h4>
           Use {payment_method}
           <br />
           <Button onClick={() => set_payment_method(undefined)}>
@@ -679,7 +658,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       return (
         <div>
           <br />
-          <h4><Icon name="credit-card"/> Select or enter payment method</h4>
+          <h4>
+            <Icon name="credit-card" /> Select or enter payment method
+          </h4>
           <PurchaseMethod
             onClose={(id) => {
               set_payment_method(id);
@@ -814,8 +795,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         <>
           <h3>Buy a license</h3>
           <span style={{ fontWeight: 350 }}>
-            Buy licenses or request a quote below.
-            If you are planning on making a purchase, but need to test things out first,{" "}
+            Buy licenses or request a quote below. If you are planning on making
+            a purchase, but need to test things out first,{" "}
             <a onClick={() => redux.getActions("support").set_show(true)}>
               please request a free trial.
             </a>

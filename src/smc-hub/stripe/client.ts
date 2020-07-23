@@ -88,7 +88,7 @@ export class StripeClient {
   }
 
   // Raise an exception if user is not yet registered with stripe.
-  private async need_customer_id(): Promise<string> {
+  public async need_customer_id(): Promise<string> {
     this.dbg("need_customer_id")();
     const customer_id = await this.get_customer_id();
     if (customer_id == null) {
@@ -108,7 +108,7 @@ export class StripeClient {
 
   // We use this, since converting stripe api calls to use async/await
   // messes up the binding.
-  private async call_stripe_api(
+  public async call_stripe_api(
     objname: string,
     method: string,
     ...args
@@ -262,7 +262,7 @@ export class StripeClient {
     await this.update_database();
   }
 
-  private async update_database(): Promise<void> {
+  public async update_database(): Promise<void> {
     this.dbg("update_database")();
     const customer_id = await this.get_customer_id();
     if (customer_id == null) return;
@@ -304,6 +304,12 @@ export class StripeClient {
     return message.stripe_plans({ plans });
   }
 
+  public async sales_tax(customer_id: string): Promise<number> {
+    return await callback2(stripe_sales_tax, {
+      customer_id,
+    });
+  }
+
   public async mesg_create_subscription(mesg: Message): Promise<void> {
     const dbg = this.dbg("mesg_create_subscription");
     dbg("create a subscription for this user, using some billing method");
@@ -326,9 +332,7 @@ export class StripeClient {
     };
 
     dbg("determine applicable tax");
-    const tax_rate = await callback2(stripe_sales_tax, {
-      customer_id,
-    });
+    const tax_rate = await callback2(stripe_sales_tax);
     dbg(`tax_rate = ${tax_rate}`);
     if (tax_rate) {
       // CRITICAL: if we don't just multiply by 100, since then sometimes

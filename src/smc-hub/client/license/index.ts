@@ -51,15 +51,15 @@ export async function purchase_license(
   }
   last_attempt[account_id] = now;
 
-  dbg("purchase_info: running sanity checks...");
+  dbg("purchase_license: running sanity checks...");
   sanity_checks(info);
 
-  dbg("purchase_info: charging user for license...");
-  await charge_user_for_license(database, stripe, account_id, info, (...args) =>
+  dbg("purchase_license: charging user for license...");
+  await charge_user_for_license(stripe, info, (...args) =>
     dbg("charge_user_for_license", ...args)
   );
 
-  dbg("purchase_info: creating the license...");
+  dbg("purchase_license: creating the license...");
   return await create_license(database, account_id, info, (...args) =>
     dbg("create_license", ...args)
   );
