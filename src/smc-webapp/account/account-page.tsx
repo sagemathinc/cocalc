@@ -101,8 +101,9 @@ export const AccountPage: React.FC = () => {
           </span>
         }
       >
-        {(active_page == null || active_page === "account") &&
-          <AccountPreferences />}
+        {(active_page == null || active_page === "account") && (
+          <AccountPreferences />
+        )}
       </Tab>
     );
   }
@@ -121,7 +122,7 @@ export const AccountPage: React.FC = () => {
           eventKey="billing"
           title={
             <span>
-              <Icon name="money" /> {"Subscriptions and Course Packages"}
+              <Icon name="money" /> {"Purchases"}
             </span>
           }
         >
@@ -199,7 +200,9 @@ export const AccountPage: React.FC = () => {
     }
     if (is_anonymous) {
       return (
-        <div style={{ margin: "15px 10%" }}><AccountPreferences /></div>
+        <div style={{ margin: "15px 10%" }}>
+          <AccountPreferences />
+        </div>
       );
     }
     const tabs: JSX.Element[] = [render_account_tab()].concat(

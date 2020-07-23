@@ -19,6 +19,8 @@ export interface Cost {
   cost: number;
   discounted_cost: number;
   cost_per_project_per_month: number;
+  cost_sub_month: number;
+  cost_sub_year: number;
 }
 
 export interface PurchaseInfo {
@@ -47,14 +49,34 @@ export function sanity_checks(info: PurchaseInfo) {
   if (info.start == null) {
     throw Error("must have start date set");
   }
-  if (info.end == null && info.subscription == "no") {
-    throw Error("must be a subscription if end is not set");
+  if (info.subscription == "no") {
+    if (info.start == null || info.end == null) {
+      throw Error(
+        "start and end dates must both be given if not a subscription"
+      );
+    }
+    const days = Math.round(
+      (info.end.valueOf() - info.start.valueOf()) / (24 * 60 * 60 * 1000)
+    );
+    if (days <= 0) {
+      throw Error("end date must be at least one day after start date");
+    }
   }
 
-  for (const x of ["ram", "cpu", "disk", "always_running", "member"]) {
+  for (const x of ["ram", "cpu", "disk"]) {
     const field = "custom_" + x;
-    if (info[field] == null) {
-      throw Error(`field "${field}" must be set`);
+    if (typeof info[field] != "number") {
+      throw Error(`field "${field}" must be number`);
+    }
+    if (info[field] < 1 || info[field] > MAX[field]) {
+      throw Error(`field "${field}" too small or too big`);
+    }
+  }
+
+  for (const x of ["always_running", "member"]) {
+    const field = "custom_" + x;
+    if (typeof info[field] != "boolean") {
+      throw Error(`field "${field}" must be boolean`);
     }
   }
 
@@ -156,13 +178,7 @@ export const COSTS: {
   max: MAX,
 } as const;
 
-export function compute_cost(
-  info: PurchaseInfo
-): {
-  cost: number;
-  cost_per_project_per_month: number;
-  discounted_cost: number;
-} {
+export function compute_cost(info: PurchaseInfo): Cost {
   let {
     quantity,
     user,
@@ -220,6 +236,20 @@ export function compute_cost(
   // Add the disk cost, which doesn't depend on how frequently the project
   // is used or the quality of hosting.
   cost_per_project_per_month += custom_disk * COSTS.custom_cost.disk;
+
+  // It's convenient in all cases to have the actual amount we will be
+  // for both monthly and early available (used by backend for setting up
+  // stripe products).
+  const cost_sub_month =
+    cost_per_project_per_month *
+    COSTS.user_discount[user] *
+    COSTS.sub_discount["monthly"];
+  const cost_sub_year =
+    cost_per_project_per_month *
+    12 *
+    COSTS.user_discount[user] *
+    COSTS.sub_discount["yearly"];
+
   // Now give the academic and subscription discounts:
   cost_per_project_per_month *=
     COSTS.user_discount[user] * COSTS.sub_discount[subscription];
@@ -244,6 +274,8 @@ export function compute_cost(
     cost: Math.max(COSTS.min_sale / COSTS.online_discount, cost),
     discounted_cost: Math.max(COSTS.min_sale, cost * COSTS.online_discount),
     cost_per_project_per_month,
+    cost_sub_month,
+    cost_sub_year,
   };
 }
 

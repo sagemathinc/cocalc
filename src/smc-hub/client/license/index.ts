@@ -21,6 +21,7 @@ import {
 } from "smc-webapp/site-licenses/purchase/util";
 import { charge_user_for_license } from "./charge";
 import { create_license } from "./create-license";
+import { StripeClient } from "../../stripe/client";
 
 // Does what should be done, and returns the license_id of the license that was created
 // and has user added to as a manager.
@@ -33,6 +34,7 @@ const last_attempt: { [account_id: string]: number } = {};
 
 export async function purchase_license(
   database: PostgreSQL,
+  stripe: StripeClient,
   account_id: string,
   info: PurchaseInfo,
   dbg: (...args) => void
@@ -53,7 +55,7 @@ export async function purchase_license(
   sanity_checks(info);
 
   dbg("purchase_info: charging user for license...");
-  await charge_user_for_license(database, account_id, info, (...args) =>
+  await charge_user_for_license(database, stripe, account_id, info, (...args) =>
     dbg("charge_user_for_license", ...args)
   );
 
