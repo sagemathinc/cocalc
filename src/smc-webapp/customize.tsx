@@ -18,7 +18,7 @@ import {
 
 // import { SiteSettings as SiteSettingsConfig } from "smc-util/db-schema/site-defaults";
 import { callback2, retry_until_success } from "smc-util/async-utils";
-const misc = require("smc-util/misc");
+import { dict, YEAR } from "smc-util/misc";
 import * as theme from "smc-util/theme";
 import { site_settings_conf } from "smc-util/db-schema/site-defaults";
 
@@ -49,7 +49,7 @@ for (const k in site_settings_conf) {
     typeof v.to_val === "function" ? v.to_val(v.default) : v.default;
   result.push([k, value]);
 }
-const defaults = misc.dict(result);
+const defaults = dict(result);
 defaults.is_commercial = defaults.commercial;
 defaults._is_configured = false; // will be true after set via call to server
 
@@ -458,7 +458,7 @@ const FooterElement = rclass<{}>(
             Terms of Service
           </a>{" "}
           &middot; <HelpEmailLink /> &middot;{" "}
-          <span title={yt}>&copy; {misc.YEAR}</span>
+          <span title={yt}>&copy; {YEAR}</span>
         </footer>
       );
     }
@@ -484,6 +484,9 @@ export const PolicyCopyrightPageUrl = app_base_url + "/policies/copyright.html";
 export const PolicyTOSPageUrl = app_base_url + "/policies/terms.html";
 
 import { gtag_id } from "smc-util/theme";
+
+declare var document;
+
 async function init_gtag() {
   await store.until_configured();
   if (!store.get("is_commercial")) return;
