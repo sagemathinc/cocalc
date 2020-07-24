@@ -248,6 +248,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         <Row style={ROW_STYLE}>
           <Col md={col_control}>
             <InputNumber
+              disabled={disabled}
               min={COSTS.basic.cpu}
               max={COSTS.custom_max.cpu}
               value={custom_cpu}
@@ -281,6 +282,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         <Row style={ROW_STYLE}>
           <Col md={col_control}>
             <InputNumber
+              disabled={disabled}
               min={COSTS.basic.ram}
               max={COSTS.custom_max.ram}
               value={custom_ram}
@@ -312,6 +314,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         <Row style={ROW_STYLE}>
           <Col md={col_control}>
             <InputNumber
+              disabled={disabled}
               min={COSTS.basic.disk}
               max={COSTS.custom_max.disk}
               value={custom_disk}
@@ -624,7 +627,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
                 "purchase online now " +
                 (cost.discounted_cost < cost.cost
                   ? `and save ${money(cost.cost - cost.discounted_cost)} ${
-                      subscription != "no" ? subscription + ' for the life of your subscription!' : ""
+                      subscription != "no"
+                        ? subscription + " for the life of your subscription!"
+                        : ""
                     }`
                   : ""),
               value: false,
@@ -705,6 +710,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       custom_always_running,
       custom_member,
     };
+    set_error("");
     set_sending("active");
     try {
       const resp = await webapp_client.stripe.purchase_license(info);

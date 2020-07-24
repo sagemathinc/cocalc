@@ -19,7 +19,7 @@ import {
   PurchaseInfo,
   sanity_checks,
 } from "smc-webapp/site-licenses/purchase/util";
-import { charge_user_for_license } from "./charge";
+import { charge_user_for_license, set_purchase_metadata } from "./charge";
 import { create_license } from "./create-license";
 import { StripeClient } from "../../stripe/client";
 
@@ -55,12 +55,20 @@ export async function purchase_license(
   sanity_checks(info);
 
   dbg("purchase_license: charging user for license...");
-  await charge_user_for_license(stripe, info, (...args) =>
+  const purchase = await charge_user_for_license(stripe, info, (...args) =>
     dbg("charge_user_for_license", ...args)
   );
 
   dbg("purchase_license: creating the license...");
-  return await create_license(database, account_id, info, (...args) =>
-    dbg("create_license", ...args)
+  const license_id = await create_license(
+    database,
+    account_id,
+    info,
+    (...args) => dbg("create_license", ...args)
   );
+
+  dbg("purchase_license: set metadata on purchase...");
+  set_purchase_metadata(stripe, purchase, { license_id, account_id });
+
+  return license_id;
 }

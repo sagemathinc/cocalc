@@ -3,26 +3,24 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { PurchaseInfo } from "smc-webapp/site-licenses/purchase/util";
+import { COSTS, PurchaseInfo } from "smc-webapp/site-licenses/purchase/util";
 import { StripeClient } from "../../stripe/client";
 import Stripe from "stripe";
+
+export type Purchase = { type: "invoice" | "subscription"; id: string };
 
 export async function charge_user_for_license(
   stripe: StripeClient,
   info: PurchaseInfo,
   dbg: (...args) => void
-): Promise<void> {
+): Promise<Purchase> {
   dbg("getting product_id");
   const product_id = await stripe_get_product(stripe, info);
   dbg("got product_id", product_id);
   if (info.subscription == "no") {
-    dbg("-stripe_purchase_product: trying...");
-    await stripe_purchase_product(stripe, product_id, info, dbg);
-    dbg("-stripe_purchase_product: success");
+    return await stripe_purchase_product(stripe, product_id, info, dbg);
   } else {
-    dbg("-stripe_create_subscription: trying...");
-    await stripe_create_subscription(stripe, product_id, info, dbg);
-    dbg("-stripe_create_subscription: success...");
+    return await stripe_create_subscription(stripe, product_id, info, dbg);
   }
 }
 
@@ -163,15 +161,12 @@ async function stripe_purchase_product(
   product_id: string,
   info: PurchaseInfo,
   dbg: (...args) => void
-): Promise<void> {
+): Promise<Purchase> {
   const { quantity } = info;
   dbg("stripe_purchase_product", product_id, quantity);
   const customer: string = await stripe.need_customer_id();
 
-  // TODO: we should probably check that this exists and if not create it...
-  // right now manually creating it will make things work.
-  // but that is pretty fragile! this should be the "25% off web discount"
-  const coupon = "online-discount";
+  const coupon = await get_self_service_discount_coupon(stripe.conn);
 
   dbg("stripe_purchase_product: get price");
   const prices = await stripe.conn.prices.list({
@@ -235,6 +230,7 @@ async function stripe_purchase_product(
       "created invoice but not able to pay it -- invoice has been voided; please try again when you have a valid payment method on file"
     );
   }
+  return { type: "invoice", id: invoice_id };
 }
 
 async function stripe_create_subscription(
@@ -242,11 +238,11 @@ async function stripe_create_subscription(
   product_id: string,
   info: PurchaseInfo,
   dbg: (...args) => void
-): Promise<void> {
+): Promise<Purchase> {
   const { quantity, subscription } = info;
   const customer: string = await stripe.need_customer_id();
 
-  const coupon = "online-discount";
+  const coupon = await get_self_service_discount_coupon(stripe.conn);
 
   const prices = await stripe.conn.prices.list({
     product: product_id,
@@ -299,6 +295,42 @@ async function stripe_create_subscription(
       : undefined,
   };
 
-  await stripe.conn.subscriptions.create(options);
+  const { id } = await stripe.conn.subscriptions.create(options);
   await stripe.update_database();
+  return { type: "subscription", id };
+}
+
+// Gets a coupon that matches the current online discount.
+const known_coupons: { [coupon_id: string]: boolean } = {};
+async function get_self_service_discount_coupon(conn: Stripe): Promise<string> {
+  const percent_off = Math.round(100 * (1 - COSTS.online_discount));
+  const id = `coupon_self_service_${percent_off}`;
+  if (known_coupons[id]) {
+    return id;
+  }
+  try {
+    await conn.coupons.retrieve(id);
+  } catch (_) {
+    // coupon doesn't exist, so we have to create it.
+    await conn.coupons.create({
+      id,
+      percent_off,
+      name: "Self-service discount",
+      duration: "forever",
+    });
+  }
+  known_coupons[id] = true;
+  return id;
+}
+
+export async function set_purchase_metadata(
+  stripe: StripeClient,
+  purchase: Purchase,
+  metadata
+): Promise<void> {
+  if (purchase.type == "subscription") {
+    stripe.conn.subscriptions.update(purchase.id, { metadata });
+  } else if (purchase.type == "invoice") {
+    stripe.conn.invoices.update(purchase.id, { metadata });
+  }
 }
