@@ -180,15 +180,21 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           options={[
             {
               label: "Academic",
-              desc: `students, teachers, academic researchers and hobbyists (${Math.round(
-                (1 - COSTS.user_discount["academic"]) * 100
-              )}% discount)`,
+              desc: (
+                <span>
+                  students, teachers, academic researchers and hobbyists{" "}
+                  <b>
+                    ({Math.round((1 - COSTS.user_discount["academic"]) * 100)}%
+                    discount)
+                  </b>
+                </span>
+              ),
               value: "academic",
               icon: "graduation-cap",
             },
             {
-              label: "Commercial",
-              desc: "for business purposes",
+              label: "Business",
+              desc: "for commercial business purposes",
               value: "business",
               icon: "briefcase",
             },

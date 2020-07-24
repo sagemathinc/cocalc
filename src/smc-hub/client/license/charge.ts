@@ -193,8 +193,16 @@ async function stripe_purchase_product(
   }
   dbg("stripe_purchase_product: got price", JSON.stringify(price));
 
+  if (info.start == null || info.end == null) {
+    throw Error("start and end must be defined");
+  }
+  const period = {
+    start: Math.round(info.start.valueOf() / 1000),
+    end: Math.round(info.end.valueOf() / 1000),
+  };
+
   // gets automatically put on the invoice created below.
-  await stripe.conn.invoiceItems.create({ customer, price, quantity });
+  await stripe.conn.invoiceItems.create({ customer, price, quantity, period });
 
   // TODO: improve later to handle case of *multiple* items on one invoice
 

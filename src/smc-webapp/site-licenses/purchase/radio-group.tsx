@@ -16,7 +16,7 @@ interface Props {
     label: string;
     value: any;
     disabled?: boolean;
-    desc?: string;
+    desc?: string | JSX.Element;
     cost?: string;
     icon?: string;
   }[];
@@ -49,7 +49,7 @@ export const RadioGroup: React.FC<Props> = ({
           )}
           <b>{x.label}</b>
           {x.cost ? ` (${x.cost})` : undefined}
-          {x.desc ? " - " + x.desc : undefined}
+          {x.desc && <> - {x.desc}</>}
         </span>
       </Radio>
     );
