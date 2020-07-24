@@ -94,8 +94,12 @@ export async function site_license_hook(
         is_valid = false;
       } else if (
         run_limit &&
-        run_limit <=
-          (await number_of_running_projects_using_license(db, license_id))
+        (await number_of_running_projects_using_license(db, license_id)) >=
+          run_limit + 1 // TODO: Temporary hack: we add 1 to avoid annoying issues with one project stopping while another is starting.
+                        // Nobody is going to complain about this since it is in users' favor.  Later maybe we change this.
+                        // Also, there will always be ways to "race" and accidentally have too many projects using a license at once,
+                        // so we will need to have a task that regularly checks for this and stops the less active
+                        // project automatically... and so maybe that is the way to resolve this nicely.
       ) {
         dbg(
           `site_license_hook -- License "${license_id}" won't be applied since it would exceed the run limit ${run_limit}.`
