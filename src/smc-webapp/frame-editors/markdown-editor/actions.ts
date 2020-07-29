@@ -6,8 +6,8 @@
 /*
 Markdown Editor Actions
 */
-const { toggle_checkbox } = require("smc-webapp/tasks/desc-rendering");
 
+import { toggle_checkbox } from "../../editors/task-editor/desc-rendering";
 import * as $ from "jquery";
 import {
   Actions as CodeEditorActions,

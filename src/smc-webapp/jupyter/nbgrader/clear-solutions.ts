@@ -35,6 +35,8 @@ Find a region in the cell's input that is delimeted by
 ### BEGIN SOLUTION and ### END SOLUTION). Replace that region either
 with the code stub or text stub, depending the cell type.
 
+If no solution delimiters at all, replace everything by a stub.
+
 Returns undefined if nothing changed; otherwise, returns the new input.
 */
 function replace_solution_region(
@@ -89,6 +91,14 @@ function replace_solution_region(
   // replace the cell source
   if (replaced_solution) {
     return new_lines.join("\n");
+  } else {
+    /* See https://github.com/sagemathinc/cocalc/issues/4764 --
+    "If the solution delimeters aren’t present, nbgrader will
+    replace the entire contents of all manually graded cells
+    and autograded cells with a code stub (if it is a code cell)
+    or a text stub "YOUR ANSWER HERE" (if it is a Markdown cell).
+    */
+    return (STUBS[language] ?? STUBS["python"]).join("\n");
   }
 }
 

@@ -84,7 +84,7 @@ export function MentionRow({
         <strong>
           <User account_id={source} user_map={user_map} />
         </strong>{" "}
-        mentioned you in a comment.
+        mentioned you.
         {description && (
           <div style={{ color: "rgb(100, 100, 100)", margin: "4px 10px" }}>
             "{description}"

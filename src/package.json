@@ -72,7 +72,7 @@
     "ts-jest": "^26.0.0",
     "ts-loader": "^4.4.1",
     "ts-node": "=7.0.0",
-    "tsd": "^0.7.4",
+    "tsd": "^0.13.1",
     "typescript": "^3.9.2",
     "uglify-js": "^3.9.3",
     "uglifyjs-webpack-plugin": "^1.3.0",

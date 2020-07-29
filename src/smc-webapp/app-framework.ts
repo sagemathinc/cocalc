@@ -244,8 +244,9 @@ export class AppRedux {
   getStore(name: ComputeImageStoreType): types.ComputeImagesStore;
 
   getStore<State>(name: string): Store<State>;
-  getStore<State, C extends Store<State>>(name: string): C | undefined;
-  getStore<State, C extends Store<State>>(name: string): C | undefined {
+  getStore<State, C extends Store<State>>(nam: string): C | undefined;
+  //  getStore<State, C extends Store<State>>(name: string): C | undefined
+  getStore(name) {
     if (!this.hasStore(name)) {
       return undefined;
     }

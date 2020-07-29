@@ -10,7 +10,7 @@ import { trunc } from "smc-util/misc";
 import { React } from "../app-framework";
 const { CheckableTag } = Tag;
 
-const STYLE: React.CSSProperties = {
+export const STYLE: React.CSSProperties = {  // this is used externally for a consistent hashtag look; change carefully!
   maxHeight: "18ex",
   overflowY: "auto",
   overflowX: "hidden",

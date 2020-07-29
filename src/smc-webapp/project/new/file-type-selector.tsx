@@ -181,13 +181,13 @@ export const FileTypeSelector: React.FC<Props> = ({
             </Tip>
           ) : undefined}
           <Tip
-            title="Task list"
+            title="Todo list"
             icon="tasks"
             tip="Create a todo list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates."
           >
             <NewFileButton
               icon="tasks"
-              name="Task list"
+              name="Todo list"
               on_click={create_file}
               ext="tasks"
             />

@@ -23,6 +23,7 @@ export {
   Navbar,
   Nav,
   NavItem,
+  Table,
 } from "react-bootstrap";
 
 import { React, Rendered } from "./app-framework";
@@ -37,6 +38,7 @@ import * as antd from "antd";
 type ButtonStyle =
   | "primary"
   | "success"
+  | "default"
   | "info"
   | "warning"
   | "danger"
@@ -47,7 +49,8 @@ const BS_STYLE_TO_TYPE: {
 } = {
   primary: "primary",
   success: "default", // antd doesn't have this so we do it via style below.
-  info: "dashed",
+  default: "default",
+  info: "default", // antd doesn't have this so we do it via style below.
   warning: "default", // antd doesn't have this so we do it via style below.
   danger: "danger",
   link: "link",
@@ -88,6 +91,12 @@ function parse_bsStyle(props: {
       borderColor: "#4cae4c",
       color: "#ffffff",
     };
+  } else if (props.bsStyle == "info") {
+    style = {
+      backgroundColor: "rgb(91, 192, 222)",
+      borderColor: "rgb(70, 184, 218)",
+      color: "#ffffff",
+    };
   }
   if (props.disabled && style != null) {
     style.opacity = 0.65;
@@ -116,6 +125,7 @@ export function Button(props: {
   href?: string;
   target?: string;
   title?: string;
+  tabIndex?: number;
   id?: string;
 }) {
   // The span is needed inside below, otherwise icons and labels get squashed together
@@ -143,6 +153,7 @@ export function Button(props: {
       ghost={ghost}
       loading={loading}
       title={props.title}
+      tabIndex={props.tabIndex}
       id={props.id}
     >
       <span>{props.children}</span>
@@ -159,12 +170,31 @@ export function ButtonGroup(props: {
   );
 }
 
-export function ButtonToolbar(props: any) {
-  return <div style={props.style}>{r_join(props.children, <Space />)}</div>;
+export function ButtonToolbar(props: {
+  style?: React.CSSProperties;
+  children?: any;
+  className?: string;
+}) {
+  return (
+    <div className={props.className} style={props.style}>
+      {r_join(props.children, <Space />)}
+    </div>
+  );
 }
 
-export function Grid(props: any) {
-  return <div style={{ padding: "0 8px" }}>{props.children}</div>;
+export function Grid(props: {
+  onClick: any;
+  style?: React.CSSProperties;
+  children?: any;
+}) {
+  return (
+    <div
+      onClick={props.onClick}
+      style={{ ...{ padding: "0 8px" }, ...props.style }}
+    >
+      {props.children}
+    </div>
+  );
 }
 
 export function Well(props: {
@@ -190,7 +220,14 @@ export function Well(props: {
   );
 }
 
-export function Checkbox(props: any) {
+export function Checkbox(props: {
+  style?: React.CSSProperties;
+  children?: any;
+  autoFocus?: boolean;
+  checked?: boolean;
+  disabled?: boolean;
+  onChange?: any;
+}) {
   const style: React.CSSProperties = props.style != null ? props.style : {};
   if (style.fontWeight == null) {
     // Antd checkbox uses the label DOM element, and bootstrap css

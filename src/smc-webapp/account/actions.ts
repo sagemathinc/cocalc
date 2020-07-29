@@ -312,4 +312,8 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
       },
     }); // null is how to tell the backend/synctable to delete this...
   }
+
+  public set_account_table(obj: object): void {
+    this.redux.getTable("account").set(obj);
+  }
 }

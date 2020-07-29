@@ -23,9 +23,12 @@ const microsoft_word =
   'Microsoft Word file -- Create an ["X11" file](https://doc.cocalc.com/x11.html) and open the "Writer" application.';
 const microsoft_ppt =
   'Microsoft PowerPoint -- Create an ["X11" file](https://doc.cocalc.com/x11.html) and open the "Impress" application.';
+const windows_executable =
+  "Windows Executable -- you must download this program and run it on a computer";
 
 // ext: markdown string.
 const INFO = {
+  exe: windows_executable,
   h4: hdf_file,
   h5: hdf_file,
   xlsx: excel,
@@ -85,7 +88,7 @@ const DataGeneric: React.FC<Props> = React.memo((props) => {
 
   function render_docx() {
     if (ext !== "docx") return;
-    const pa = useActions({project_id});
+    const pa = useActions({ project_id });
     return (
       <>
         <br />

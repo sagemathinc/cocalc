@@ -1,4 +1,5 @@
 - var BASE_URL = htmlWebpackPlugin.options.BASE_URL;
+- var RES_VERSIONS = htmlWebpackPlugin.options.RES_VERSIONS;
 
 meta(charset="utf-8")
 meta(name="apple-mobile-web-app-capable", content="yes")
@@ -22,10 +23,10 @@ meta(name="theme-color", content="#fbb635")
 // - I'm putting this here as a hack to minize the embarassing style flicker as -- I guess (?) -- react-bootstrap loads.
 // This is meant to be "better than nothing", but not much better!
 // See https://github.com/sagemathinc/cocalc/issues/2510
-link(rel="stylesheet", href=BASE_URL + "/res/bootstrap-3.4.1/bootstrap.min.css")
+link(rel="stylesheet", href=BASE_URL + "/res/bootstrap-" + RES_VERSIONS.bootstrap + "/bootstrap.min.css")
 
-link(rel="stylesheet", href=BASE_URL + "/res/roboto-fontface-0.10.0/css/roboto-slab/roboto-slab-fontface.css")
+link(rel="stylesheet", href=BASE_URL + "/res/roboto-fontface-" + RES_VERSIONS["roboto-fontface"] + "/css/roboto-slab/roboto-slab-fontface.css")
 
-link(rel="stylesheet", href=BASE_URL + "/res/katex-0.11.1/katex.min.css")
+link(rel="stylesheet", href=BASE_URL + "/res/katex-" + RES_VERSIONS.katex + "/katex.min.css")
 
-link(rel="stylesheet", href=BASE_URL + "/res/fontawesome-free-5.13.0/css/all.min.css")
+link(rel="stylesheet", href=BASE_URL + "/res/fontawesome-free-" + RES_VERSIONS["fontawesome-free"] + "/css/all.min.css")
