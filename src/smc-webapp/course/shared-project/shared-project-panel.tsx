@@ -61,8 +61,8 @@ export class SharedProjectPanel extends Component<SharedProjectPanelProps> {
           </p>
         </div>
         <br />
-        <Button onClick={this.open_project} size={"large"} icon={"project"}>
-          Open shared project
+        <Button onClick={this.open_project} size={"large"}>
+          Open shared project...
         </Button>
       </div>
     );

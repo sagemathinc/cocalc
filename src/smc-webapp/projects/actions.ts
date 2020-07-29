@@ -257,6 +257,10 @@ export class ProjectsActions extends Actions<State> {
       image: undefined,
       start: false,
     });
+    if (!opts2.image) {
+      // make falseish same as not specified.
+      delete opts2.image;
+    }
 
     const project_id = await webapp_client.project_client.create(opts2);
 

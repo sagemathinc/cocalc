@@ -6,14 +6,15 @@ import {
 } from "../../custom-software/selector";
 import { ConfigurationActions } from "./actions";
 import { Button, Card } from "antd";
+import { CustomImageDisplay } from "../../project/settings/project-control";
 
 interface Props {
   actions: ConfigurationActions;
-  software_environment_title?: string;
+  custom_image?: string;
 }
 export const CustomSoftwareEnvironment: React.FC<Props> = ({
   actions,
-  software_environment_title,
+  custom_image,
 }) => {
   const [changing, set_changing] = useState(false);
   const [state, set_state] = useState<CustomSoftwareState>({});
@@ -21,9 +22,7 @@ export const CustomSoftwareEnvironment: React.FC<Props> = ({
   function handleChange(state): void {
     set_state(state);
   }
-  const current_environment = software_environment_title
-    ? software_environment_title
-    : "Default";
+  const current_environment = <CustomImageDisplay image={custom_image} />;
 
   return (
     <Card
@@ -34,8 +33,8 @@ export const CustomSoftwareEnvironment: React.FC<Props> = ({
         </>
       }
     >
-      New student projects will be created using the{" "}
-      <b>{current_environment}</b> software environment.
+      New student projects will be created using the {current_environment}{" "}
+      software environment.
       <br />
       <br />
       <Button onClick={() => set_changing(true)} disabled={changing}>

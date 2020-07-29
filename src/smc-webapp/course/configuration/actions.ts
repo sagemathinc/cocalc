@@ -12,6 +12,7 @@ import { CourseActions } from "../actions";
 import { redux } from "../../app-framework";
 import { reuseInFlight } from "async-await-utils/hof";
 import { CustomSoftwareState } from "../../custom-software/selector";
+import { custom_image_name } from "../../custom-software/util";
 
 export class ConfigurationActions {
   private course_actions: CourseActions;
@@ -146,14 +147,12 @@ export class ConfigurationActions {
   }
 
   public set_software_environment(state: CustomSoftwareState): void {
-    const software_environment =
+    const custom_image =
       state.image_type == "custom" && state.image_selected != null
-        ? state.image_selected
+        ? custom_image_name(state.image_selected)
         : "";
-    const software_environment_title = state.title_text ?? "";
     this.set({
-      software_environment,
-      software_environment_title,
+      custom_image,
       table: "settings",
     });
   }

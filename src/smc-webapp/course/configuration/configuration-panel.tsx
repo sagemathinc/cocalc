@@ -638,9 +638,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             <br />
             <CustomSoftwareEnvironment
               actions={actions.configuration}
-              software_environment_title={settings.get(
-                "software_environment_title"
-              )}
+              custom_image={settings.get("custom_image")}
             />
           </Col>
         </Row>
