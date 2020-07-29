@@ -225,6 +225,20 @@ export class TaskActions extends Actions<TaskState> {
       counts,
       current_task_id
     );
+
+    if (obj.visible.size == 0 && view.get("search")?.trim().length == 0) {
+      // Deal with a weird edge case: https://github.com/sagemathinc/cocalc/issues/4763
+      // If nothing is visible and the search is blank, clear any selected hashtags.
+      this.clear_all_hashtags();
+      obj = update_visible(
+        tasks,
+        local_task_state,
+        view,
+        counts,
+        current_task_id
+      );
+    }
+
     // We make obj explicit to avoid giving update_visible power to
     // change anything about state...
     // This is just "explicit is better than implicit".
@@ -719,6 +733,12 @@ export class TaskActions extends Actions<TaskState> {
       selected_hashtags = selected_hashtags.set(tag, state);
     }
     this.set_local_view_state({ selected_hashtags });
+  }
+
+  public clear_all_hashtags(): void {
+    this.set_local_view_state({
+      selected_hashtags: Map<string, HashtagState>(),
+    });
   }
 
   public set_sort_column(column: Headings, dir: HeadingsDir): void {
