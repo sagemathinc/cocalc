@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useState } from "../app-framework";
+import { React, useTypedRedux, useState } from "../app-framework";
 import { ComputeImages, ComputeImage, ComputeImageTypes } from "./init";
 import { SiteName, CompanyName, HelpEmailLink } from "../customize";
 import { Markdown, SearchInput, Icon } from "../r_misc";
@@ -22,21 +22,6 @@ import {
 
 const BINDER_URL = "https://mybinder.readthedocs.io/en/latest/";
 
-const official: ComputeImageTypes = "official";
-const custom: ComputeImageTypes = "custom";
-
-interface Props {
-  images?: ComputeImages;
-  setParentState: (obj: {
-    image_selected?: string;
-    title_text?: string;
-    image_type?: ComputeImageTypes;
-  }) => void;
-  image_type: ComputeImageTypes;
-  image_selected?: string;
-  title_prefill: boolean; // toggles form true → false after first edit
-}
-
 const cs_list_style: Readonly<React.CSSProperties> = Object.freeze({
   height: "250px",
   overflowX: "hidden" as "hidden",
@@ -54,23 +39,40 @@ const entries_item_style: Readonly<React.CSSProperties> = Object.freeze({
   textAlign: "left" as "left",
 });
 
-export const CustomSoftware: React.FC<Props> = ({
-  images,
-  setParentState,
-  image_type,
-  image_selected,
-  title_prefill,
-}) => {
+export interface CustomSoftwareState {
+  image_selected?: string;
+  title_text?: string;
+  image_type?: ComputeImageTypes;
+}
+
+interface Props {
+  onChange: (obj: CustomSoftwareState) => void;
+}
+
+export const CustomSoftware: React.FC<Props> = ({ onChange }) => {
+  const images: ComputeImages | undefined = useTypedRedux(
+    "compute_images",
+    "images"
+  );
+
   const [search_img, set_search_img] = useState<string>("");
 
-  const select_image = (id: string, display: string) => {
-    setParentState({ image_selected: id });
-    // always overwrite the text, until the user edits it once
-    if (title_prefill) {
-      // keep title_prefill as it is
-      setParentState({ title_text: display });
-    }
-  };
+  const [image_selected, set_image_selected] = useState<string | undefined>(
+    undefined
+  );
+  const set_title_text = useState<string | undefined>(undefined)[1];
+  const [image_type, set_image_type] = useState<ComputeImageTypes>("official");
+
+  function set_state(
+    image_selected: string | undefined,
+    title_text: string | undefined,
+    image_type: ComputeImageTypes
+  ): void {
+    set_image_selected(image_selected);
+    set_title_text(title_text);
+    set_image_type(image_type);
+    onChange({ image_selected, title_text, image_type });
+  }
 
   function render_custom_image_entries() {
     if (images == null) return;
@@ -85,7 +87,7 @@ export const CustomSoftware: React.FC<Props> = ({
     })();
 
     const entries: JSX.Element[] = images
-      .filter((img) => img.get("type", "") === custom)
+      .filter((img) => img.get("type", "") === "custom")
       .filter(search_hit)
       .sortBy((img) => img.get("display", "").toLowerCase())
       .entrySeq()
@@ -96,7 +98,7 @@ export const CustomSoftware: React.FC<Props> = ({
           <ListGroupItem
             key={id}
             active={image_selected === id}
-            onClick={() => select_image(id, display)}
+            onClick={() => set_state(id, display, image_type)}
             style={entries_item_style}
             bsSize={"small"}
           >
@@ -117,13 +119,13 @@ export const CustomSoftware: React.FC<Props> = ({
     }
   }
 
-  const search = (val: string) => {
+  function search(val: string): void {
     set_search_img(val);
-    setParentState({ image_selected: undefined });
-  };
+    set_state(undefined, undefined, image_type);
+  }
 
   function render_custom_images() {
-    if (image_type !== custom) return;
+    if (image_type !== "custom") return;
 
     return (
       <>
@@ -147,7 +149,7 @@ export const CustomSoftware: React.FC<Props> = ({
   }
 
   function render_selected_custom_image_info() {
-    if (image_type !== custom || image_selected == null || images == null) {
+    if (image_type !== "custom" || image_selected == null || images == null) {
       return;
     }
 
@@ -210,9 +212,11 @@ export const CustomSoftware: React.FC<Props> = ({
 
         <FormGroup>
           <Radio
-            checked={image_type === official}
+            checked={image_type === "official"}
             id={"default-compute-image"}
-            onChange={() => setParentState({ image_type: official })}
+            onChange={() => {
+              set_state(undefined, undefined, "official");
+            }}
           >
             <b>Default</b>: large repository of software, maintained by{" "}
             <CompanyName />, running <SiteName />.{" "}
@@ -227,10 +231,12 @@ export const CustomSoftware: React.FC<Props> = ({
 
           {images != null && images.size > 0 ? (
             <Radio
-              checked={image_type === custom}
+              checked={image_type === "custom"}
               label={"Custom software environment"}
               id={"custom-compute-image"}
-              onChange={() => setParentState({ image_type: custom })}
+              onChange={() => {
+                set_state(undefined, undefined, "custom");
+              }}
             >
               <b>Custom</b>
               <sup>
