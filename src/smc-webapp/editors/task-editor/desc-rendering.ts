@@ -77,7 +77,7 @@ export function process_checkboxes(value) {
   value = replace_all_function(
     value,
     "[x]",
-    (index) => `<span data-index='${index}' data-checkbox='true' style='cursor:pointer'>🗹<span>`
+    (index) => `<span data-index='${index}' data-checkbox='true' style='cursor:pointer'>☑<span>`
   );
   return value;
 }
