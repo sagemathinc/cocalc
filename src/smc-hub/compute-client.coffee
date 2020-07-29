@@ -1712,10 +1712,12 @@ class ProjectClient extends EventEmitter
         m += if opts.target? then ",target='#{opts.target}')" else ")"
         dbg = @dbg(m)
         dbg("")
+
         if (@compute_server.storage_servers.get()?.size ? 0) == 0
             dbg('no storage servers -- so all _storage_requests trivially done')
-            opts.cb?()
-            return
+            no_storage_servers = true
+        else
+            no_storage_servers = false
         if @is_storage_request_running()
             opts.cb?("already doing a storage request")
             return
@@ -1749,6 +1751,9 @@ class ProjectClient extends EventEmitter
                 else
                     cb()
             (cb) =>
+                if no_storage_servers
+                    cb()
+                    return
                 dbg("update database with *request* to '#{misc.to_json(opts.action)}' -- this causes storage server to doing something")
                 @compute_server.database.set_project_storage_request
                     project_id : @project_id
@@ -1756,6 +1761,9 @@ class ProjectClient extends EventEmitter
                     target     : opts.target
                     cb         : cb
             (cb) =>
+                if no_storage_servers
+                    cb()
+                    return
                 dbg("wait for action to finish")
                 @wait_storage_request_finish
                     cb : (err) =>
