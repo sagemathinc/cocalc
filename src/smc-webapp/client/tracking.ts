@@ -41,7 +41,7 @@ export class TrackingClient {
     });
   }
 
-  public webapp_error(opts: object): void {
-    this.client.call({ message: message.webapp_error(opts) });
+  public async webapp_error(opts: object): Promise<void> {
+    await this.client.async_call({ message: message.webapp_error(opts) });
   }
 }
