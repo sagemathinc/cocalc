@@ -21,6 +21,8 @@ export interface SyncDBRecordSettings {
   nbgrader_grade_in_instructor_project?: boolean;
   nbgrader_cell_timeout_ms?: number;
   nbgrader_timeout_ms?: number;
+  software_environment?: string; // if falsy use default environment; if true-ish, use named custom environment for creating student projects
+  software_environment_title?: string; // what is displayed to user (this should just get computed as a function of software_environment, but I'm being lazy)
 }
 
 // This is closely related to store.AssignmentRecord...

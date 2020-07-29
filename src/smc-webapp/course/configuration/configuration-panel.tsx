@@ -55,6 +55,7 @@ import { Nbgrader } from "./nbgrader";
 import { upgrades } from "smc-util/upgrade-spec";
 import { StudentProjectsStartStopPanel } from "./start-stop-panel";
 import { DisableStudentCollaboratorsPanel } from "./disable-collaborators";
+import { CustomSoftwareEnvironment } from "./custom-software-environment";
 
 const STUDENT_COURSE_PRICE = upgrades.subscription.student_course.price.month4;
 
@@ -634,6 +635,13 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             {render_configure_all_projects()}
             <br />
             {render_push_missing_handouts_and_assignments()}
+            <br />
+            <CustomSoftwareEnvironment
+              actions={actions.configuration}
+              software_environment_title={settings.get(
+                "software_environment_title"
+              )}
+            />
           </Col>
         </Row>
       </div>
