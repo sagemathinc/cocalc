@@ -33,7 +33,7 @@ export class SharedProjectActions {
       description:
         settings.get("description") +
         "\n\n---\n\nThis project is shared with all students in the course.",
-      image: settings.get("software_environment"),
+      image: settings.get("custom_image"),
     };
   }
 

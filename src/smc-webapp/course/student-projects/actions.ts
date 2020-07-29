@@ -63,7 +63,7 @@ export class StudentProjectsActions {
       project_id = await redux.getActions("projects").create_project({
         title: store.get("settings").get("title"),
         description: store.get("settings").get("description"),
-        image: store.get("settings").get("software_environment"),
+        image: store.get("settings").get("custom_image"),
       });
     } catch (err) {
       this.course_actions.set_error(
