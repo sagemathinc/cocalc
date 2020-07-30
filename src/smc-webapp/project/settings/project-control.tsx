@@ -12,6 +12,7 @@ import {
   Rendered,
 } from "../../app-framework";
 import {
+  A,
   COLORS,
   CopyToClipBoard,
   Loading,
@@ -239,6 +240,18 @@ export const ProjectControl = rclass<ReactProps>(
     render_idle_timeout_row() {
       if (this.props.project.getIn(["state", "state"]) !== "running") {
         return;
+      }
+      if (this.props.project.getIn(["settings", "always_running"])) {
+        return (
+          <LabeledRow
+            key="idle-timeout"
+            label="Always Running"
+            style={this.rowstyle()}
+          >
+            Project will be <b>automatically started</b> if it stops for any reason (it will run any {" "}
+            <A href="https://doc.cocalc.com/project-init.html">init scripts</A>).
+          </LabeledRow>
+        );
       }
       return (
         <LabeledRow

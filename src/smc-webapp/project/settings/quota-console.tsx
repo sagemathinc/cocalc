@@ -111,11 +111,18 @@ export class QuotaConsole extends React.Component<Props, State> {
     },
     site_license: number
   ): Rendered {
-    if (this.props.kucalc == "no" && name != "mintime") {
-      // In anything except KuCalc, only the mintime quota is implemented.
+    if (
+      this.props.kucalc == "no" &&
+      name != "mintime" &&
+      name != "always_running"
+    ) {
+      // In anything except KuCalc, only the mintime and always_on quota is implemented.
       // NONE of the other quotas are.
       return;
     }
+    // if always_running is true, don't show idle timeout row, since not relevant
+    if (name == "mintime" && this.state["always_running"]) return;
+
     if (base_value == undefined) {
       base_value = 0;
     }
@@ -300,7 +307,11 @@ export class QuotaConsole extends React.Component<Props, State> {
         boxShadow: "0 0 10px red",
       };
     } else {
-      return { border: "1px solid lightgrey", borderRadius: "3px", padding: "5px" };
+      return {
+        border: "1px solid lightgrey",
+        borderRadius: "3px",
+        padding: "5px",
+      };
     }
   }
 
