@@ -2124,9 +2124,9 @@ class ProjectClient extends EventEmitter
         # Ignore any quotas that aren't in the list below: these are the only ones that
         # the local compute server supports.   It is convenient to allow the caller to
         # pass in additional quota settings.
-        opts = misc.copy_with(opts, ['disk_quota', 'cores', 'memory', 'cpu_shares', 'network', 'mintime', 'member_host', 'ephemeral_state', 'ephemeral_disk', 'cb'])
+        opts = misc.copy_with(opts, ['disk_quota', 'cores', 'memory', 'cpu_shares', 'network', 'mintime', 'member_host', 'ephemeral_state', 'ephemeral_disk', 'always_running', 'cb'])
         dbg = @dbg("set_quotas")
-        dbg("set various quotas")
+        dbg("set various quotas...")
         commands = undefined
         async.series([
             (cb) =>
@@ -2159,8 +2159,17 @@ class ProjectClient extends EventEmitter
                         else
                             cb()
                     (cb) =>
+                        # We make one potentially confusing and hack-ish change,
+                        # which is that if always_running is set, we just
+                        # change mintime to effectively infinite.  The main reason
+                        # we're doing this is that I don't want to have to deal
+                        # with changing the sqlite3 db schema in existing installations
+                        # editing a ton of coffeescript code in compute-server.coffee.
+                        if opts.always_running
+                            dbg("maxing mintime idle timeout due to always_running being true")
+                            opts.mintime = 9223372036854775807
                         if opts.mintime? and commands.indexOf('mintime') != -1
-                            dbg("update mintime quota on project")
+                            dbg("update mintime idle timeout on project to #{opts.mintime} seconds")
                             @_action
                                 action : 'mintime'
                                 args   : [opts.mintime]
