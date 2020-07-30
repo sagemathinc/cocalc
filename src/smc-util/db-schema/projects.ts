@@ -159,7 +159,7 @@ Table({
     settings: {
       type: "map",
       desc:
-        'This is a map that defines the free base quotas that a project has. It is of the form {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0, ephemeral_state:0, ephemeral_disk:0}.  WARNING: some of the values are strings not numbers in the database right now, e.g., disk_quota:"1000".',
+        'This is a map that defines the free base quotas that a project has. It is of the form {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0, ephemeral_state:0, ephemeral_disk:0, always_running:0}.  WARNING: some of the values are strings not numbers in the database right now, e.g., disk_quota:"1000".',
     },
     site_license: {
       type: "map",

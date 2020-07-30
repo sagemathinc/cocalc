@@ -1454,8 +1454,9 @@ API(
       },
       token_id: {
         init: undefined,
-        desc: "project_invite_token that is needed in case the user **making the request** is not already a project collab"
-      }
+        desc:
+          "project_invite_token that is needed in case the user **making the request** is not already a project collab",
+      },
     },
     desc: `\
 Directly add a user to a CoCalc project.
@@ -1892,8 +1893,9 @@ message({
   disk_quota: undefined, // disk quota in megabytes
   mintime: undefined, // time in **seconds** until idle projects are terminated
   network: undefined, // 1 or 0; if 1, full access to outside network
-  member_host: undefined,
-}); // 1 or 0; if 1, project will be run on a members-only machine
+  member_host: undefined, // 1 or 0; if 1, project will be run on a members-only machine
+  always_running: undefined, // 1 or 0: if 1, project kept running.
+});
 
 /*
 Printing Files

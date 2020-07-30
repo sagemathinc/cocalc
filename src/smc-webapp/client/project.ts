@@ -126,6 +126,7 @@ export class ProjectClient {
     mintime?: number;
     network?: number;
     member_host?: number;
+    always_running?: number;
   }): Promise<void> {
     await this.call(message.project_set_quotas(opts));
   }
@@ -211,7 +212,7 @@ export class ProjectClient {
     path: string;
     timeout?: number;
     hidden?: boolean;
-  }): Promise<{files:DirectoryListingEntry[]}> {
+  }): Promise<{ files: DirectoryListingEntry[] }> {
     if (opts.timeout == null) opts.timeout = 15;
     const api = await this.api(opts.project_id);
     const listing = await api.listing(

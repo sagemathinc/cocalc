@@ -30,6 +30,7 @@ exports.DEFAULT_QUOTAS = {
   member_host: 0,
   ephemeral_state: 0,
   ephemeral_disk: 0,
+  always_running: 0,
 };
 
 upgrades.max_per_project = {
@@ -43,6 +44,7 @@ upgrades.max_per_project = {
   member_host: 1,
   ephemeral_state: 1,
   ephemeral_disk: 1,
+  always_running: 1,
 };
 
 // this is only for on-prem kubernetes setups
@@ -145,6 +147,17 @@ upgrades.params = {
     desc:
       "Runs this project on a machine hosting less projects, aside from the free projects, and without random reboots.",
   },
+  always_running: {
+    display: "Always Running",
+    unit: "always running upgrade",
+    display_unit: "always running upgrade",
+    display_factor: 1,
+    pricing_unit: "project",
+    pricing_factor: 1,
+    input_type: "checkbox",
+    desc:
+      "Ensures this project is always running.  If the project stops or crashes for any reason, it is automatically started again.",
+  },
   ephemeral_state: {
     display: "Ephemeral State",
     unit: "state",
@@ -169,6 +182,7 @@ upgrades.params = {
 upgrades.field_order = [
   "member_host",
   "network",
+  "always_running",
   "mintime",
   "disk_quota",
   "memory",

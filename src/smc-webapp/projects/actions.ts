@@ -199,7 +199,7 @@ export class ProjectsActions extends Actions<State> {
     if (total == null) return;
     const applied = store.get_total_upgrades_you_have_applied();
     const to_upgrade = {};
-    for (let quota of ["member_host", "network"]) {
+    for (let quota of ["member_host", "network", "always_running"]) {
       const avail = (total[quota] ?? 0) - (applied?.[quota] ?? 0);
       if (avail > 0) {
         to_upgrade[quota] = 1;
