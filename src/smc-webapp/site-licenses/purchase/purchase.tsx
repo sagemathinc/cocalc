@@ -353,33 +353,6 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         </Row>
         <Row style={ROW_STYLE}>
           <Col md={col_control}>
-            <Checkbox checked={true} disabled={true}>
-              Priority support
-            </Checkbox>
-          </Col>
-          <Col md={col_desc}>
-            priority support
-            {render_explanation(
-              "we prioritize your support requests much higher (included with all licensed projects)"
-            )}
-          </Col>
-        </Row>
-
-        <Row style={ROW_STYLE}>
-          <Col md={col_control}>
-            <Checkbox checked={true} disabled={true}>
-              Network access
-            </Checkbox>
-          </Col>
-          <Col md={col_desc}>
-            network access
-            {render_explanation(
-              "project can connect to the Internet to clone git repositories, download files, send emails, etc.  (included with all licensed projects)"
-            )}
-          </Col>
-        </Row>
-        <Row style={ROW_STYLE}>
-          <Col md={col_control}>
             <Checkbox
               checked={custom_member}
               onChange={(e) => set_custom_member(e.target.checked)}
@@ -426,6 +399,37 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             </A>{" "}
             (Note: this is NOT guaranteed 100% uptime, since projects may
             sometimes restart for security and maintenance reasons.)
+          </Col>
+        </Row>
+
+        <Row style={ROW_STYLE}>
+          <Col md={col_control}>
+            <Checkbox checked={true} disabled={true}>
+              <span style={disabled ? undefined : { color: "rgba(0,0,0,.65)" }}>
+                Priority support
+              </span>
+            </Checkbox>
+          </Col>
+          <Col md={col_desc}>
+            priority support
+            {render_explanation(
+              "we prioritize your support requests much higher (included with all licensed projects)"
+            )}
+          </Col>
+        </Row>
+        <Row style={ROW_STYLE}>
+          <Col md={col_control}>
+            <Checkbox checked={true} disabled={true}>
+              <span style={disabled ? undefined : { color: "rgba(0,0,0,.65)" }}>
+                Network access
+              </span>
+            </Checkbox>
+          </Col>
+          <Col md={col_desc}>
+            network access
+            {render_explanation(
+              "project can connect to the Internet to clone git repositories, download files, send emails, etc.  (included with all licensed projects)"
+            )}
           </Col>
         </Row>
       </div>
