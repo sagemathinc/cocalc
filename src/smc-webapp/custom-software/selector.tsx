@@ -3,20 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Component, React, Rendered } from "../app-framework";
+import { React, useTypedRedux, useState } from "../app-framework";
 import { ComputeImages, ComputeImage, ComputeImageTypes } from "./init";
-const { SiteName, CompanyName, HelpEmailLink } = require("../customize");
+import { SiteName, CompanyName, HelpEmailLink } from "../customize";
 import { Markdown, SearchInput, Icon } from "../r_misc";
 import { CUSTOM_SOFTWARE_HELP_URL } from "./util";
+import { COLORS } from "smc-util/theme";
 
-const BINDER_URL = "https://mybinder.readthedocs.io/en/latest/";
-
-const official: ComputeImageTypes = "official";
-const custom: ComputeImageTypes = "custom";
-
-const COLORS = require("smc-util/theme").COLORS;
-
-const {
+import {
   Row,
   Col,
   FormGroup,
@@ -24,25 +18,9 @@ const {
   ListGroup,
   ListGroupItem,
   Radio,
-} = require("react-bootstrap");
+} from "react-bootstrap";
 
-interface CSProps {
-  images?: ComputeImages;
-  // this should be Partial<State> ?
-  setParentState: (obj : {image_selected?:string; title_text?:string; image_type?: ComputeImageTypes}) => void;
-  image_type: ComputeImageTypes;
-  image_selected?: string;
-  // toggles form true → false after first edit
-  title_prefill: boolean;
-}
-
-interface CSState {
-  search_img: string;
-}
-
-const CS_INIT_STATE: Readonly<CSState> = Object.freeze({
-  search_img: "",
-});
+const BINDER_URL = "https://mybinder.readthedocs.io/en/latest/";
 
 const cs_list_style: Readonly<React.CSSProperties> = Object.freeze({
   height: "250px",
@@ -61,37 +39,55 @@ const entries_item_style: Readonly<React.CSSProperties> = Object.freeze({
   textAlign: "left" as "left",
 });
 
-export class CustomSoftware extends Component<CSProps, CSState> {
-  constructor(props) {
-    super(props);
-    this.state = Object.assign({}, CS_INIT_STATE);
+export interface CustomSoftwareState {
+  image_selected?: string;
+  title_text?: string;
+  image_type?: ComputeImageTypes;
+}
+
+interface Props {
+  onChange: (obj: CustomSoftwareState) => void;
+}
+
+export const CustomSoftware: React.FC<Props> = ({ onChange }) => {
+  const images: ComputeImages | undefined = useTypedRedux(
+    "compute_images",
+    "images"
+  );
+
+  const [search_img, set_search_img] = useState<string>("");
+
+  const [image_selected, set_image_selected] = useState<string | undefined>(
+    undefined
+  );
+  const set_title_text = useState<string | undefined>(undefined)[1];
+  const [image_type, set_image_type] = useState<ComputeImageTypes>("official");
+
+  function set_state(
+    image_selected: string | undefined,
+    title_text: string | undefined,
+    image_type: ComputeImageTypes
+  ): void {
+    set_image_selected(image_selected);
+    set_title_text(title_text);
+    set_image_type(image_type);
+    onChange({ image_selected, title_text, image_type });
   }
 
-  select_image = (id: string, display: string) => {
-    this.props.setParentState({ image_selected: id });
-    // always overwrite the text, until the user edits it once
-    if (this.props.title_prefill) {
-      // keep title_prefill as it is
-      this.props.setParentState({ title_text: display });
-    }
-  };
-
-  render_custom_image_entries() {
-    if (this.props.images == null) return;
+  function render_custom_image_entries() {
+    if (images == null) return;
 
     const search_hit = (() => {
-      if (this.state.search_img.length > 0) {
+      if (search_img.length > 0) {
         return (img: ComputeImage) =>
-          img
-            .get("search_str", "")
-            .indexOf(this.state.search_img.toLowerCase()) >= 0;
+          img.get("search_str", "").indexOf(search_img.toLowerCase()) >= 0;
       } else {
         return (_img: ComputeImage) => true;
       }
     })();
 
-    const entries: Rendered[] = this.props.images
-      .filter((img) => img.get("type", "") === custom)
+    const entries: JSX.Element[] = images
+      .filter((img) => img.get("type", "") === "custom")
       .filter(search_hit)
       .sortBy((img) => img.get("display", "").toLowerCase())
       .entrySeq()
@@ -101,8 +97,8 @@ export class CustomSoftware extends Component<CSProps, CSState> {
         return (
           <ListGroupItem
             key={id}
-            active={this.props.image_selected === id}
-            onClick={() => this.select_image(id, display)}
+            active={image_selected === id}
+            onClick={() => set_state(id, display, image_type)}
             style={entries_item_style}
             bsSize={"small"}
           >
@@ -115,7 +111,7 @@ export class CustomSoftware extends Component<CSProps, CSState> {
     if (entries.length > 0) {
       return <ListGroup style={cs_list_style}>{entries}</ListGroup>;
     } else {
-      if (this.state.search_img.length > 0) {
+      if (search_img.length > 0) {
         return <div>No search hits.</div>;
       } else {
         return <div>No custom software available</div>;
@@ -123,13 +119,13 @@ export class CustomSoftware extends Component<CSProps, CSState> {
     }
   }
 
-  search = (val: string) => {
-    this.setState({ search_img: val });
-    this.props.setParentState({ image_selected: undefined });
-  };
+  function search(val: string): void {
+    set_search_img(val);
+    set_state(undefined, undefined, image_type);
+  }
 
-  render_custom_images() {
-    if (this.props.image_type !== custom) return;
+  function render_custom_images() {
+    if (image_type !== "custom") return;
 
     return (
       <>
@@ -137,13 +133,13 @@ export class CustomSoftware extends Component<CSProps, CSState> {
           <SearchInput
             placeholder={"Search…"}
             autoFocus={false}
-            value={this.state.search_img}
-            on_escape={() => this.setState({ search_img: "" })}
-            on_change={(val) => this.search(val)}
+            value={search_img}
+            on_escape={() => set_search_img("")}
+            on_change={search}
             style={{ flex: "1" }}
           />
         </div>
-        {this.render_custom_image_entries()}
+        {render_custom_image_entries()}
         <div style={{ color: COLORS.GRAY, margin: "15px 0" }}>
           Contact us to add more or give feedback:{" "}
           <HelpEmailLink color={COLORS.GRAY} />.
@@ -152,17 +148,13 @@ export class CustomSoftware extends Component<CSProps, CSState> {
     );
   }
 
-  render_selected_custom_image_info() {
-    if (
-      this.props.image_type !== custom ||
-      this.props.image_selected == null ||
-      this.props.images == null
-    ) {
+  function render_selected_custom_image_info() {
+    if (image_type !== "custom" || image_selected == null || images == null) {
       return;
     }
 
-    const id: string = this.props.image_selected;
-    const data = this.props.images.get(id);
+    const id: string = image_selected;
+    const data = images.get(id);
     if (data == null) {
       // we have a serious problem
       console.warn(`compute_image data missing for '${id}'`);
@@ -213,16 +205,18 @@ export class CustomSoftware extends Component<CSProps, CSState> {
     );
   }
 
-  render_type_selection() {
+  function render_type_selection() {
     return (
       <>
         <ControlLabel>Software environment</ControlLabel>
 
         <FormGroup>
           <Radio
-            checked={this.props.image_type === official}
+            checked={image_type === "official"}
             id={"default-compute-image"}
-            onChange={() => this.props.setParentState({ image_type: official })}
+            onChange={() => {
+              set_state(undefined, undefined, "official");
+            }}
           >
             <b>Default</b>: large repository of software, maintained by{" "}
             <CompanyName />, running <SiteName />.{" "}
@@ -235,12 +229,14 @@ export class CustomSoftware extends Component<CSProps, CSState> {
             </a>
           </Radio>
 
-          {this.props.images != null && this.props.images.size > 0 ? (
+          {images != null && images.size > 0 ? (
             <Radio
-              checked={this.props.image_type === custom}
+              checked={image_type === "custom"}
               label={"Custom software environment"}
               id={"custom-compute-image"}
-              onChange={() => this.props.setParentState({ image_type: custom })}
+              onChange={() => {
+                set_state(undefined, undefined, "custom");
+              }}
             >
               <b>Custom</b>
               <sup>
@@ -263,16 +259,14 @@ export class CustomSoftware extends Component<CSProps, CSState> {
     );
   }
 
-  render() {
-    return (
-      <Row>
-        <Col sm={12} style={{ marginTop: "10px" }}>
-          {this.render_type_selection()}
-        </Col>
+  return (
+    <Row>
+      <Col sm={12} style={{ marginTop: "10px" }}>
+        {render_type_selection()}
+      </Col>
 
-        <Col sm={6}>{this.render_custom_images()}</Col>
-        <Col sm={6}>{this.render_selected_custom_image_info()}</Col>
-      </Row>
-    );
-  }
-}
+      <Col sm={6}>{render_custom_images()}</Col>
+      <Col sm={6}>{render_selected_custom_image_info()}</Col>
+    </Row>
+  );
+};

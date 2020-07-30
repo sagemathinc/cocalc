@@ -11,6 +11,8 @@ import { SyncDBRecord, UpgradeGoal } from "../types";
 import { CourseActions } from "../actions";
 import { redux } from "../../app-framework";
 import { reuseInFlight } from "async-await-utils/hof";
+import { CustomSoftwareState } from "../../custom-software/selector";
+import { custom_image_name } from "../../custom-software/util";
 
 export class ConfigurationActions {
   private course_actions: CourseActions;
@@ -140,6 +142,17 @@ export class ConfigurationActions {
   public set_nbgrader_timeout_ms(value: number): void {
     this.set({
       nbgrader_timeout_ms: value,
+      table: "settings",
+    });
+  }
+
+  public set_software_environment(state: CustomSoftwareState): void {
+    const custom_image =
+      state.image_type == "custom" && state.image_selected != null
+        ? custom_image_name(state.image_selected)
+        : "";
+    this.set({
+      custom_image,
       table: "settings",
     });
   }

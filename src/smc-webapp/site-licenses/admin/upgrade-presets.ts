@@ -110,7 +110,7 @@ function scaled_product(sub: any, num_people: number, desc: string): Product {
     }
   }
   // scale network and member_host fields to 0 or 1, which is the only thing that makes sense.
-  for (const field of ["network", "member_host"]) {
+  for (const field of ["network", "member_host", "always_running"]) {
     if (upgrades[field]) {
       upgrades[field] = 1;
     }

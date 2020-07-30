@@ -19,7 +19,7 @@ const { remove_math, replace_math } = require("smc-util/mathjax-utils"); // from
 
 const checkboxes = function (s) {
   s = misc.replace_all(s, "[ ]", "☐");
-  return misc.replace_all(s, "[x]", "🗹");
+  return misc.replace_all(s, "[x]", "☑");
 };
 
 const OPTIONS: MarkdownIt.Options = {

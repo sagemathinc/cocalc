@@ -581,6 +581,7 @@ class Project
             args : required
             cb   : required
         dbg = @dbg("set_compute_quota")
+        dbg(JSON.stringify(opts.args))
         i = 0
         quotas = {}
         while i < opts.args.length
@@ -589,6 +590,7 @@ class Project
             quotas[k] = v
             @["_#{k}"] = v
             i += 2
+
         sqlite_db.update
             table : 'projects'
             set   : quotas

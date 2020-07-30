@@ -30,6 +30,7 @@ exports.DEFAULT_QUOTAS = {
   member_host: 0,
   ephemeral_state: 0,
   ephemeral_disk: 0,
+  always_running: 0,
 };
 
 upgrades.max_per_project = {
@@ -43,6 +44,7 @@ upgrades.max_per_project = {
   member_host: 1,
   ephemeral_state: 1,
   ephemeral_disk: 1,
+  always_running: 1,
 };
 
 // this is only for on-prem kubernetes setups
@@ -60,7 +62,7 @@ exports.ON_PREM_DEFAULT_QUOTAS = {
 // is assumed elsewhere.
 upgrades.params = {
   disk_quota: {
-    display: "Disk Space",
+    display: "Disk space",
     unit: "MB",
     display_unit: "MB",
     display_factor: 1,
@@ -113,7 +115,7 @@ upgrades.params = {
       "Guaranteed minimum number of CPU cores that are dedicated to your project.",
   },
   mintime: {
-    display: "Idle Timeout",
+    display: "Idle timeout",
     unit: "second",
     display_unit: "hour",
     display_factor: 1 / 3600, // multiply internal by this to get what should be displayed
@@ -124,7 +126,7 @@ upgrades.params = {
       "If the project is not used for this long, then it will be automatically stopped.",
   },
   network: {
-    display: "Internet Access",
+    display: "Internet access",
     unit: "internet upgrade",
     display_unit: "internet upgrade",
     display_factor: 1,
@@ -135,7 +137,7 @@ upgrades.params = {
       "Full internet access enables a project to connect to the computers outside of CoCalc, download software packages, etc.",
   },
   member_host: {
-    display: "Member Hosting",
+    display: "Member hosting",
     unit: "hosting upgrade",
     display_unit: "hosting upgrade",
     display_factor: 1,
@@ -145,8 +147,19 @@ upgrades.params = {
     desc:
       "Runs this project on a machine hosting less projects, aside from the free projects, and without random reboots.",
   },
+  always_running: {
+    display: "Always running",
+    unit: "always running upgrade",
+    display_unit: "always running upgrade",
+    display_factor: 1,
+    pricing_unit: "project",
+    pricing_factor: 1,
+    input_type: "checkbox",
+    desc:
+      "Ensures this project is always running.  If the project stops or crashes for any reason, it is automatically started again.",
+  },
   ephemeral_state: {
-    display: "Ephemeral State",
+    display: "Ephemeral state",
     unit: "state",
     display_unit: "state",
     display_factor: 1,
@@ -156,7 +169,7 @@ upgrades.params = {
     desc: "",
   },
   ephemeral_disk: {
-    display: "Ephemeral Disk",
+    display: "Ephemeral disk",
     unit: "disk",
     display_factor: 1,
     pricing_unit: "project",
@@ -169,6 +182,7 @@ upgrades.params = {
 upgrades.field_order = [
   "member_host",
   "network",
+  "always_running",
   "mintime",
   "disk_quota",
   "memory",

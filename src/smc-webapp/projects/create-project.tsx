@@ -15,16 +15,17 @@ import {
   useIsMountedRef,
   useRef,
   useState,
-  useRedux,
   useTypedRedux,
 } from "../app-framework";
 
-import { ComputeImages, ComputeImageTypes } from "../custom-software/init";
 import { custom_image_name } from "../custom-software/util";
 
 import { delay } from "awaiting";
 
-import { CustomSoftware } from "../custom-software/selector";
+import {
+  CustomSoftware,
+  CustomSoftwareState,
+} from "../custom-software/selector";
 
 import {
   Well,
@@ -39,9 +40,6 @@ import { Row, Col } from "antd";
 
 import { A, ErrorDisplay, Icon, Space } from "../r_misc";
 
-const official: ComputeImageTypes = "official";
-const custom: ComputeImageTypes = "custom";
-
 interface Props {
   start_in_edit_mode?: boolean;
   default_value?: string;
@@ -53,10 +51,6 @@ export const NewProjectCreator: React.FC<Props> = ({
   start_in_edit_mode,
   default_value,
 }: Props) => {
-  const images: ComputeImages | undefined = useRedux(
-    "compute_images",
-    "images"
-  );
   // view --> edit --> saving --> view
   const [state, set_state] = useState<EditState>(
     start_in_edit_mode ? "edit" : "view"
@@ -64,12 +58,11 @@ export const NewProjectCreator: React.FC<Props> = ({
   const [title_text, set_title_text] = useState<string>(default_value ?? "");
   const [error, set_error] = useState<string>("");
   const [show_advanced, set_show_advanced] = useState<boolean>(false);
-  const [image_selected, set_image_selected] = useState<string | undefined>(
-    undefined
-  );
-  const [image_type, set_image_type] = useState<ComputeImageTypes>(official);
-  // title_prefill toggles form true → false after first edit
   const [title_prefill, set_title_prefill] = useState<boolean>(true);
+
+  const [custom_software, set_custom_software] = useState<CustomSoftwareState>(
+    {}
+  );
 
   const new_project_title_ref = useRef(null);
 
@@ -98,9 +91,8 @@ export const NewProjectCreator: React.FC<Props> = ({
     set_state("view");
     set_title_text(default_value ?? "");
     set_error("");
+    set_custom_software({});
     set_show_advanced(false);
-    set_image_selected(undefined);
-    set_image_type(official);
     set_title_prefill(true);
   }
 
@@ -116,8 +108,9 @@ export const NewProjectCreator: React.FC<Props> = ({
     set_state("saving");
     const actions = redux.getActions("projects");
     const image: string =
-      image_type == custom && image_selected != null
-        ? custom_image_name(image_selected)
+      custom_software.image_type == "custom" &&
+      custom_software.image_selected != null
+        ? custom_image_name(custom_software.image_selected)
         : "default";
     let project_id: string;
     try {
@@ -215,7 +208,8 @@ export const NewProjectCreator: React.FC<Props> = ({
       // currently saving (?)
       state === "saving" ||
       // user wants a custom image, but hasn't selected one yet
-      (image_type === custom && image_selected == null)
+      (custom_software.image_type === "custom" &&
+        custom_software.image_selected == null)
     );
   }
 
@@ -237,33 +231,16 @@ export const NewProjectCreator: React.FC<Props> = ({
     }
   }
 
-  function customer_software_set_state(obj: {
-    image_selected?: string;
-    title_text?: string;
-    image_type?: ComputeImageTypes;
-  }): void {
-    if (obj.image_selected != null) {
-      set_image_selected(obj.image_selected);
+  function customer_software_set_state(obj: CustomSoftwareState): void {
+    if (obj.title_text != null && (!title_prefill || !title_text)) {
+      set_title(obj.title_text);
     }
-    if (obj.title_text != null) {
-      set_title_text(obj.title_text);
-    }
-    if (obj.image_type != null) {
-      set_image_type(obj.image_type);
-    }
+    set_custom_software(obj);
   }
 
   function render_advanced() {
     if (!show_advanced) return;
-    return (
-      <CustomSoftware
-        setParentState={customer_software_set_state}
-        images={images}
-        image_selected={image_selected}
-        image_type={image_type}
-        title_prefill={title_prefill}
-      />
-    );
+    return <CustomSoftware onChange={customer_software_set_state} />;
   }
 
   function render_advanced_toggle(): JSX.Element | undefined {

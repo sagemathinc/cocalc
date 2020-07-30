@@ -44,6 +44,7 @@ collab = require('./postgres/collab')
 {permanently_unlink_all_deleted_projects_of_user} = require('./postgres/delete-projects')
 {unlist_all_public_paths} = require('./postgres/public-paths')
 {get_remember_me} = require('./postgres/remember-me')
+{projects_that_need_to_be_started} = require('./postgres/always-running');
 
 SERVER_SETTINGS_EXTRAS = require("smc-util/db-schema/site-settings-extras").EXTRAS
 SITE_SETTINGS_CONF = require("smc-util/schema").site_settings_conf
@@ -3239,3 +3240,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # async function
     unlist_all_public_paths: (account_id, is_owner) =>
         return await unlist_all_public_paths(@, account_id, is_owner)
+
+    projects_that_need_to_be_started: () =>
+        return await projects_that_need_to_be_started(@)

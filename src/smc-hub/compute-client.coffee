@@ -1712,10 +1712,12 @@ class ProjectClient extends EventEmitter
         m += if opts.target? then ",target='#{opts.target}')" else ")"
         dbg = @dbg(m)
         dbg("")
+
         if (@compute_server.storage_servers.get()?.size ? 0) == 0
             dbg('no storage servers -- so all _storage_requests trivially done')
-            opts.cb?()
-            return
+            no_storage_servers = true
+        else
+            no_storage_servers = false
         if @is_storage_request_running()
             opts.cb?("already doing a storage request")
             return
@@ -1749,6 +1751,9 @@ class ProjectClient extends EventEmitter
                 else
                     cb()
             (cb) =>
+                if no_storage_servers
+                    cb()
+                    return
                 dbg("update database with *request* to '#{misc.to_json(opts.action)}' -- this causes storage server to doing something")
                 @compute_server.database.set_project_storage_request
                     project_id : @project_id
@@ -1756,6 +1761,9 @@ class ProjectClient extends EventEmitter
                     target     : opts.target
                     cb         : cb
             (cb) =>
+                if no_storage_servers
+                    cb()
+                    return
                 dbg("wait for action to finish")
                 @wait_storage_request_finish
                     cb : (err) =>
@@ -2116,9 +2124,9 @@ class ProjectClient extends EventEmitter
         # Ignore any quotas that aren't in the list below: these are the only ones that
         # the local compute server supports.   It is convenient to allow the caller to
         # pass in additional quota settings.
-        opts = misc.copy_with(opts, ['disk_quota', 'cores', 'memory', 'cpu_shares', 'network', 'mintime', 'member_host', 'ephemeral_state', 'ephemeral_disk', 'cb'])
+        opts = misc.copy_with(opts, ['disk_quota', 'cores', 'memory', 'cpu_shares', 'network', 'mintime', 'member_host', 'ephemeral_state', 'ephemeral_disk', 'always_running', 'cb'])
         dbg = @dbg("set_quotas")
-        dbg("set various quotas")
+        dbg("set various quotas...")
         commands = undefined
         async.series([
             (cb) =>
@@ -2151,8 +2159,17 @@ class ProjectClient extends EventEmitter
                         else
                             cb()
                     (cb) =>
+                        # We make one potentially confusing and hack-ish change,
+                        # which is that if always_running is set, we just
+                        # change mintime to effectively infinite.  The main reason
+                        # we're doing this is that I don't want to have to deal
+                        # with changing the sqlite3 db schema in existing installations
+                        # editing a ton of coffeescript code in compute-server.coffee.
+                        if opts.always_running
+                            dbg("maxing mintime idle timeout due to always_running being true")
+                            opts.mintime = 9223372036854775807
                         if opts.mintime? and commands.indexOf('mintime') != -1
-                            dbg("update mintime quota on project")
+                            dbg("update mintime idle timeout on project to #{opts.mintime} seconds")
                             @_action
                                 action : 'mintime'
                                 args   : [opts.mintime]
