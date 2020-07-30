@@ -238,6 +238,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   function render_custom() {
     if (user == null) return;
     const col_control = 8;
+    const col_max = 3;
     const col_desc = 16;
     const ROW_STYLE: CSS = {
       border: "1px solid #eee",
@@ -252,7 +253,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div>
         <Row style={ROW_STYLE}>
-          <Col md={col_control}>
+          <Col md={col_control - col_max}>
             <InputNumber
               disabled={disabled}
               min={COSTS.basic.cpu}
@@ -264,13 +265,15 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               }}
             />
             <Space />
+            <span style={UNIT_STYLE}>CPU {plural(custom_cpu, "core")}</span>
+          </Col>
+          <Col md={col_max}>
             <Button
               disabled={custom_cpu == COSTS.custom_max.cpu}
               onClick={() => set_custom_cpu(COSTS.custom_max.cpu)}
             >
               Max
             </Button>
-            <span style={UNIT_STYLE}>CPU {plural(custom_cpu, "core")}</span>
           </Col>
           <Col md={col_desc}>
             <b>
@@ -286,7 +289,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           </Col>
         </Row>
         <Row style={ROW_STYLE}>
-          <Col md={col_control}>
+          <Col md={col_control - col_max}>
             <InputNumber
               disabled={disabled}
               min={COSTS.basic.ram}
@@ -298,13 +301,15 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               }}
             />
             <Space />
+            <span style={UNIT_STYLE}>GB RAM</span>
+          </Col>
+          <Col md={col_max}>
             <Button
               disabled={custom_ram == COSTS.custom_max.ram}
               onClick={() => set_custom_ram(COSTS.custom_max.ram)}
             >
               Max
             </Button>
-            <span style={UNIT_STYLE}>GB RAM</span>
           </Col>
           <Col md={col_desc}>
             <b>
@@ -318,7 +323,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           </Col>
         </Row>
         <Row style={ROW_STYLE}>
-          <Col md={col_control}>
+          <Col md={col_control - col_max}>
             <InputNumber
               disabled={disabled}
               min={COSTS.basic.disk}
@@ -330,13 +335,15 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               }}
             />
             <Space />
+            <span style={UNIT_STYLE}>GB disk space</span>
+          </Col>
+          <Col md={col_max}>
             <Button
               disabled={custom_disk == COSTS.custom_max.disk}
               onClick={() => set_custom_disk(COSTS.custom_max.disk)}
             >
               Max
             </Button>
-            <span style={UNIT_STYLE}> GB disk space</span>
           </Col>
           <Col md={col_desc}>
             <b>
