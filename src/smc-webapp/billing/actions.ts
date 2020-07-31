@@ -254,8 +254,14 @@ export class BillingActions extends Actions<BillingStoreState> {
   }
 
   public async update_managed_licenses(): Promise<void> {
-    const managed_licenses = fromJS(await getManagedLicenses());
-    this.setState({ managed_licenses });
+    const v = await getManagedLicenses();
+    const managed_license_ids = fromJS(v.map((x) => x.id));
+    const x: { [license_id: string]: object } = {};
+    for (const license of v) {
+      x[license.id] = license;
+    }
+    const managed_licenses = fromJS(x);
+    this.setState({ managed_licenses, managed_license_ids });
   }
 }
 

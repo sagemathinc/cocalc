@@ -1,33 +1,47 @@
-import { ErrorDisplay, Loading } from "../../r_misc";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { Button } from "antd";
+import { ErrorDisplay, Icon, Loading, Space } from "../../r_misc";
 import {
   React,
-  useState,
   useActions,
-  useAsyncEffect,
+  useEffect,
+  useState,
   useTypedRedux,
+  useIsMountedRef,
 } from "../../app-framework";
 
 import { LicenseYouManage } from "./license-you-manage";
 
 export const ManagedLicenses: React.FC = () => {
   const [error, setError] = useState<string | undefined>(undefined);
-  const licenses = useTypedRedux("billing", "managed_licenses");
+  const [loading, setLoading] = useState<boolean>(false);
+  const licenses = useTypedRedux("billing", "managed_license_ids");
   const actions = useActions("billing");
+  const is_mounted_ref = useIsMountedRef();
+
+  async function reload() {
+    setLoading(true);
+    try {
+      await actions.update_managed_licenses();
+    } catch (err) {
+      if (!is_mounted_ref.current) return;
+      setError(err.toString());
+    } finally {
+      if (!is_mounted_ref.current) return;
+      setLoading(false);
+    }
+  }
 
   // When we first mount the component or when error gets cleared,
   // we try to load the managed licenses:
-  useAsyncEffect(
-    async (is_mounted) => {
-      if (error) return; // do nothing when error is set.
-      try {
-        await actions.update_managed_licenses();
-      } catch (err) {
-        if (!is_mounted()) return;
-        setError(err.toString());
-      }
-    },
-    [error]
-  );
+  useEffect(() => {
+    if (error) return; // do nothing when error is set.
+    reload();
+  }, [error]);
 
   function render_error() {
     if (!error) return;
@@ -51,7 +65,12 @@ export const ManagedLicenses: React.FC = () => {
 
   return (
     <div>
-      <h3>Licenses that you manage</h3>
+      <h3>
+        Licenses that you manage{" "}
+        <Button onClick={reload} disabled={loading} style={{ float: 'right' }}>
+          <Icon name="redo"/><Space/> {loading ? "Loading..." : "Refresh all"}
+        </Button>
+      </h3>
       {render_error()}
       {render_managed()}
     </div>

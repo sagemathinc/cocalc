@@ -1,16 +1,38 @@
 import { Map } from "immutable";
+import { reuseInFlight } from "async-await-utils/hof";
 import { webapp_client } from "../../webapp-client";
-import { field_cmp } from "smc-util/misc";
+import { field_cmp, cmp_Date } from "smc-util/misc";
+import { SiteLicense } from "smc-util/db-schema/site-licenses";
 
-export async function getManagedLicenses(): Promise<string[]> {
-  return (
+type FunctionType = () => Promise<SiteLicense[]>;
+
+export const getManagedLicenses: FunctionType = reuseInFlight(async () => {
+  const v = (
     await webapp_client.async_query({
       query: {
-        manager_site_licenses: [{ id: null }],
+        manager_site_licenses: [
+          {
+            id: null,
+            title: null,
+            description: null,
+            info: null,
+            expires: null,
+            activates: null,
+            created: null,
+            last_used: null,
+            managers: null,
+            upgrades: null,
+            quota: null,
+            run_limit: null,
+            apply_limit: null,
+          },
+        ],
       },
     })
-  ).query.manager_site_licenses.map((x) => x.id);
-}
+  ).query.manager_site_licenses;
+  // Sort by created with newest first
+  return v.sort((a, b) => cmp_Date(b.created, a.created));
+});
 
 // Return list of id's of projects that have at least one license applied to
 // them. The license may or may not be valid, in use, etc.

@@ -10,6 +10,6 @@ export interface SiteLicensePublicInfo {
   expires?: Date;
   run_limit?: number;
   upgrades?: { [field: string]: number };
-  running: number;
-  is_manager: boolean;
+  is_manager?: boolean;
+  running?: number;
 }

@@ -7,6 +7,7 @@ import { List, Map, Set } from "immutable";
 
 import { redux, Store, TypedMap } from "../app-framework";
 import { AppliedCoupons, CoursePay, Customer, Invoices } from "./types";
+import { SiteLicense } from "smc-util/db-schema/site-licenses";
 
 export interface BillingStoreState {
   stripe_publishable_key?: string;
@@ -21,7 +22,8 @@ export interface BillingStoreState {
   continue_first_purchase?: boolean;
   selected_plan?: string;
   course_pay: CoursePay;
-  managed_licenses?: List<string>;  // array of license code you manage. Not a changefeed -- you must explicitly call update_managed_licenses action.
+  managed_license_ids?: List<string[]>; // array of id's of license you manage. Not a changefeed -- you must explicitly call update_managed_licenses action.
+  managed_licenses?: Map<string, TypedMap<SiteLicense>>; // actual data of the licenses.
 }
 
 export class BillingStore extends Store<BillingStoreState> {}

@@ -36,6 +36,18 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
   const isMountedRef = useIsMountedRef();
 
   useEffect(() => {
+    // Optimization: check in redux store for first approximation of
+    // info already available locally
+    let info = redux
+      .getStore("billing")
+      .getIn(["managed_licenses", license_id]);
+    if (info != null) {
+      const info2 = info.toJS() as Info;
+      info2.is_manager = true;
+      set_info(info2);
+    }
+    // Now launch async fetch from database.  This has more info, e.g., number of
+    // projects that are running right now.
     fetch_info(true);
   }, []);
 
@@ -87,9 +99,9 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
   }
 
   function render_id(): JSX.Element | undefined {
-    if (loading) return;
-    // dumb minimal security -- only show this for now to admins.
-    // Later license managers will see it.   Of course, somebody could
+    if (!info?.is_manager) return;
+    // dumb minimal security -- only show this for now to managers.
+    // Of course, somebody could
     // sniff their browser traffic and get it so this is just to
     // discourage really trivial blatant misuse.  We will have other
     // layers of security.
@@ -145,7 +157,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
   }
 
   function render_running(): JSX.Element | undefined {
-    if (!info) return;
+    if (!info || info.running == null) return;
     return (
       <li>
         Currently {info.running}{" "}
@@ -277,7 +289,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
 
   function render_body(): JSX.Element | undefined {
     if (loading) {
-      return <Loading />;
+      return <Loading style={{ display: "inline" }} />;
     } else {
       return render_license();
     }

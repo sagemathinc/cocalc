@@ -21,6 +21,31 @@ import { is_valid_uuid_string } from "../misc2";
 import { Table } from "./types";
 import { SCHEMA } from "./index";
 
+// For typescript use of these from user side, we make this available:
+export interface SiteLicense {
+  id: string;
+  title?: string;
+  description?: string;
+  info?: object;
+  expires?: Date;
+  activates?: Date;
+  created: Date;
+  last_used?: Date;
+  managers?: string[];
+  restricted?: boolean;
+  upgrades?: object;
+  quota?: {
+    ram?: number;
+    cpu?: number;
+    disk?: number;
+    always_running?: boolean;
+    member?: boolean;
+    user?: "academic" | "business";
+  };
+  run_limit?: number;
+  apply_limit?: number;
+}
+
 Table({
   name: "site_licenses",
   fields: {
@@ -531,11 +556,23 @@ Table({
   },
 });
 
-/* Way to get the ids of the all the licenses that a given user is a manager of. */
+/* Way to get all the licenses that a given user is a manager of. */
 Table({
   name: "manager_site_licenses",
   fields: {
     id: true,
+    title: true,
+    description: true,
+    info: true,
+    expires: true,
+    activates: true,
+    created: true,
+    last_used: true,
+    managers: true,
+    upgrades: true,
+    quota: true,
+    run_limit: true,
+    apply_limit: true,
   },
   rules: {
     virtual: true, // don't make an actual table
@@ -547,6 +584,18 @@ Table({
         admin: false,
         fields: {
           id: null,
+          title: null,
+          description: null,
+          info: null,
+          expires: null,
+          activates: null,
+          created: null,
+          last_used: null,
+          managers: null,
+          upgrades: null,
+          quota: null,
+          run_limit: null,
+          apply_limit: null,
         },
         // Actual query is implemented using this code below rather than an actual query directly.
         // We also completely ignore the user-requested fields and just return everything, since

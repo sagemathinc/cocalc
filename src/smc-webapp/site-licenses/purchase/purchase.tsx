@@ -732,6 +732,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       const resp = await webapp_client.stripe.purchase_license(info);
       set_purchase_resp(resp);
       set_sending("success");
+      redux.getActions("billing").update_managed_licenses();
     } catch (err) {
       set_error(err.toString());
       set_sending("failed");
@@ -811,7 +812,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       <div style={{ margin: "30px 0" }}>
         Your newly purchased license code is
         <br />
-        <br/>
+        <br />
         <CopyToClipBoard
           value={purchase_resp}
           style={{ maxWidth: "60ex", marginLeft: "30px" }}
@@ -825,7 +826,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   function render_cancel() {
     return (
       <div>
-        <Button onClick={onClose}>Close</Button>
+        <Button disabled={sending == "active"} onClick={onClose}>
+          Close
+        </Button>
       </div>
     );
   }
