@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Map, Set } from "immutable";
+import { List, Map, Set } from "immutable";
 
 import { redux, Store, TypedMap } from "../app-framework";
 import { AppliedCoupons, CoursePay, Customer, Invoices } from "./types";
@@ -21,6 +21,7 @@ export interface BillingStoreState {
   continue_first_purchase?: boolean;
   selected_plan?: string;
   course_pay: CoursePay;
+  managed_licenses?: List<string>;  // array of license code you manage. Not a changefeed -- you must explicitly call update_managed_licenses action.
 }
 
 export class BillingStore extends Store<BillingStoreState> {}

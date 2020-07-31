@@ -10,12 +10,13 @@ These are mainly for interfacing with Stripe.  They are
 all async (no callbacks!).
 */
 
-import { Map } from "immutable";
+import { fromJS, Map } from "immutable";
 import { redux, Actions, Store } from "../app-framework";
 import { reuse_in_flight_methods } from "smc-util/async-utils";
 import { server_minutes_ago, server_time } from "smc-util/misc";
 import { webapp_client } from "../webapp-client";
 import { StripeClient } from "../client/stripe";
+import { getManagedLicenses } from "../account/licenses/util";
 
 import { BillingStoreState } from "./store";
 
@@ -250,6 +251,11 @@ export class BillingActions extends Actions<BillingStoreState> {
       }
     }
     this.setState({ selected_plan: plan });
+  }
+
+  public async update_managed_licenses(): Promise<void> {
+    const managed_licenses = fromJS(await getManagedLicenses());
+    this.setState({ managed_licenses });
   }
 }
 

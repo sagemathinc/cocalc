@@ -1,12 +1,18 @@
 import { ErrorDisplay, Loading } from "../../r_misc";
-import { React, useState, useAsyncEffect } from "../../app-framework";
-import { getManagedLicenses } from "./util";
+import {
+  React,
+  useState,
+  useActions,
+  useAsyncEffect,
+  useTypedRedux,
+} from "../../app-framework";
 
 import { LicenseYouManage } from "./license-you-manage";
 
 export const ManagedLicenses: React.FC = () => {
-  const [licenses, setLicenses] = useState<string[] | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
+  const licenses = useTypedRedux("billing", "managed_licenses");
+  const actions = useActions("billing");
 
   // When we first mount the component or when error gets cleared,
   // we try to load the managed licenses:
@@ -14,9 +20,7 @@ export const ManagedLicenses: React.FC = () => {
     async (is_mounted) => {
       if (error) return; // do nothing when error is set.
       try {
-        const v = await getManagedLicenses();
-        if (!is_mounted()) return;
-        setLicenses(v);
+        await actions.update_managed_licenses();
       } catch (err) {
         if (!is_mounted()) return;
         setError(err.toString());
@@ -35,12 +39,14 @@ export const ManagedLicenses: React.FC = () => {
     if (licenses == null) {
       return <Loading theme={"medium"} />;
     }
-    if (licenses.length == 0) {
+    if (licenses.size == 0) {
       return <div>You do not manage any licenses.</div>;
     }
-    return licenses.map((license_id) => (
-      <LicenseYouManage license_id={license_id} key={license_id} />
-    ));
+    return licenses
+      .toJS()
+      .map((license_id) => (
+        <LicenseYouManage license_id={license_id} key={license_id} />
+      ));
   }
 
   return (
