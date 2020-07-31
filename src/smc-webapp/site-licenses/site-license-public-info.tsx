@@ -13,7 +13,7 @@ import {
 } from "../app-framework";
 import { SiteLicensePublicInfo as Info } from "./types";
 import { site_license_public_info } from "./util";
-import { Icon, Loading, Space, TimeAgo } from "../r_misc";
+import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../r_misc";
 import { alert_message } from "../alerts";
 import { Alert, Button, Popconfirm } from "antd";
 import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
@@ -23,12 +23,14 @@ interface Props {
   license_id: string;
   project_id?: string; // if not given, just provide the public info about the license (nothing about if it is upgrading a specific project or not) -- this is used, e.g., for the course configuration page
   upgrades?: Map<string, number>;
+  onRemove?: () => void;
 }
 
 export const SiteLicensePublicInfo: React.FC<Props> = ({
   license_id,
   project_id,
   upgrades,
+  onRemove,
 }) => {
   const [info, set_info] = useState<Info | undefined>(undefined);
   const [err, set_err] = useState<string | undefined>(undefined);
@@ -56,7 +58,6 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
     set_loading(true);
     let info;
     let success = false;
-    info = await site_license_public_info(license_id, force);
     try {
       info = await site_license_public_info(license_id, force);
       success = true;
@@ -99,7 +100,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
   }
 
   function render_id(): JSX.Element | undefined {
-    if (!info?.is_manager) return;
+    if (!license_id) return;
     // dumb minimal security -- only show this for now to managers.
     // Of course, somebody could
     // sniff their browser traffic and get it so this is just to
@@ -112,9 +113,16 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
       <li>
         License code:
         <Space />
-        <span style={{ fontFamily: "monospace", whiteSpace: "nowrap" }}>
-          {info?.is_manager ? license_id : trunc_left(license_id, 14)}
-        </span>
+        {info?.is_manager ? (
+          <CopyToClipBoard
+            style={{ display: "inline-block", width: "50ex", margin: 0 }}
+            value={license_id}
+          />
+        ) : (
+          <span style={{ fontFamily: "monospace", whiteSpace: "nowrap" }}>
+            {trunc_left(license_id, 14)}
+          </span>
+        )}
       </li>
     );
   }
@@ -233,29 +241,34 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
       show_run = false; // no point in showing these
     } else if (!provides_upgrades()) {
       // not providing any upgrades -- why?
-      if (!info.run_limit || info.running < info.run_limit) {
-        provides = (
-          <>
-            <li>Currently providing no upgrades to this project. </li>
-            <li>
-              <Icon name="warning" />{" "}
-              <a onClick={restart_project}>Restart this project</a> to use the
-              upgrades provided by this license.
-            </li>
-          </>
-        );
+      if (info.running == null) {
+        // not loaded yet...
+        provides = <li>Currently providing no upgrades to this project. </li>;
       } else {
-        provides = (
-          <>
-            <li>Currently providing no upgrades to this project.</li>
-            <li>
-              <Icon name="warning" /> This license is already being used to
-              upgrade {info.running} other running projects, which is the limit.
-              If possible, stop one of those projects, then{" "}
-              <a onClick={restart_project}>restart this project.</a>
-            </li>
-          </>
-        );
+        if (!info.run_limit || info.running < info.run_limit) {
+          provides = (
+            <>
+              <li>Currently providing no upgrades to this project. </li>
+              <li>
+                <Icon name="warning" />{" "}
+                <a onClick={restart_project}>Restart this project</a> to use the
+                upgrades provided by this license.
+              </li>
+            </>
+          );
+        } else {
+          provides = (
+            <>
+              <li>Currently providing no upgrades to this project.</li>
+              <li>
+                <Icon name="warning" /> This license is already being used to
+                upgrade {info.running} other running projects, which is the
+                limit. If possible, stop one of those projects, then{" "}
+                <a onClick={restart_project}>restart this project.</a>
+              </li>
+            </>
+          );
+        }
       }
     } else {
       // not expired and is providing upgrades.
@@ -296,6 +309,9 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
   }
 
   async function remove_license(): Promise<void> {
+    if (onRemove != null) {
+      onRemove();
+    }
     if (!project_id) return;
     const actions = redux.getActions("projects");
     // newly added licenses
@@ -320,7 +336,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
   }
 
   function render_remove_button(): JSX.Element | undefined {
-    if (!project_id) return;
+    if (!project_id && onRemove == null) return;
     const extra = provides_upgrades() ? (
       <>
         <br />

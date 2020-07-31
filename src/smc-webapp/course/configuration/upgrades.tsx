@@ -24,6 +24,7 @@ import {
 import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
 import { SiteLicensePublicInfo } from "../../site-licenses/site-license-public-info";
+import { SiteLicenseInput } from "../../site-licenses/input";
 
 const { ShowSupportLink } = require("../../support");
 
@@ -50,16 +51,6 @@ import {
 
 import { Alert, Card } from "antd";
 
-export const LICENSE_STYLE = {
-  width: "100%",
-  margin: "15px 0",
-  padding: "10px",
-  borderRadius: "5px",
-  fontFamily: "monospace",
-  fontSize: "14pt",
-  color: "darkblue",
-};
-
 interface StudentProjectUpgradesProps {
   name: string;
   redux: AppRedux;
@@ -78,7 +69,6 @@ interface StudentProjectUpgradesState {
   upgrade_plan?: object;
   loading_all_projects?: boolean;
   show_site_license?: boolean;
-  site_license_id: string;
 }
 
 class StudentProjectUpgrades extends Component<
@@ -94,7 +84,6 @@ class StudentProjectUpgrades extends Component<
       upgrade_quotas: false, // true if display the quota upgrade panel
       upgrades: {},
       upgrade_plan: undefined,
-      site_license_id: "",
     };
   }
 
@@ -575,61 +564,46 @@ class StudentProjectUpgrades extends Component<
   render_upgrade_quotas_button() {
     if (this.state.loading_all_projects) {
       return (
-        <Button disabled={true} bsStyle="primary">
+        <Button disabled={true}>
           <Icon name="arrow-circle-up" /> Upgrade using a course package or
           subscription... (Loading)
         </Button>
       );
     }
     return (
-      <Button bsStyle="primary" onClick={this.adjust_quotas}>
+      <Button onClick={this.adjust_quotas}>
         <Icon name="arrow-circle-up" /> Upgrade using a course package or
         subscription...
       </Button>
     );
   }
 
+  private set_site_license_id(license_id: string): void {
+    const actions = this.get_actions();
+    actions.configuration.set_site_license_id(license_id);
+    actions.configuration.configure_all_projects();
+  }
+
   private render_site_license_text(): Rendered {
     if (!this.state.show_site_license) return;
-    const disabled =
-      this.state.site_license_id.length != 36 &&
-      this.state.site_license_id.length != 0;
     return (
       <div>
+        <br/>
         Enter a license key below to automatically apply upgrades from that
         license to this course project, all student projects, and the shared
         project whenever they are running. Clear the field below to stop
         applying those upgrades. Upgrades from the license are only applied when
         a project is started. Create a <ShowSupportLink /> if you would like to
         purchase a license key.
-        <input
-          style={LICENSE_STYLE}
-          type="text"
-          value={this.state.site_license_id}
-          onChange={(e) => this.setState({ site_license_id: e.target.value })}
+        <SiteLicenseInput
+          onSave={(license_id) => {
+            this.setState({ show_site_license: false });
+            this.set_site_license_id(license_id);
+          }}
+          onCancel={() => {
+            this.setState({ show_site_license: false });
+          }}
         />
-        <ButtonGroup>
-          {" "}
-          <Button onClick={() => this.setState({ show_site_license: false })}>
-            Cancel
-          </Button>
-          <Button
-            bsStyle="primary"
-            disabled={disabled}
-            onClick={() => {
-              const actions = this.get_actions();
-              actions.configuration.set_site_license_id(
-                this.state.site_license_id
-              );
-              actions.configuration.configure_all_projects();
-              this.setState({ show_site_license: false });
-            }}
-          >
-            Save
-          </Button>{" "}
-        </ButtonGroup>
-        <br />
-        {disabled ? "Valid license keys are 36 characters long." : ""}
       </div>
     );
   }
@@ -641,7 +615,12 @@ class StudentProjectUpgrades extends Component<
         This project and all student projects will be upgraded using the
         following license:
         <br />
-        <SiteLicensePublicInfo license_id={this.props.site_license_id} />
+        <SiteLicensePublicInfo
+          license_id={this.props.site_license_id}
+          onRemove={() => {
+            this.set_site_license_id("");
+          }}
+        />
       </div>
     );
   }
@@ -650,20 +629,18 @@ class StudentProjectUpgrades extends Component<
     return (
       <div>
         {this.render_current_license()}
-        <Button
-          onClick={() => {
-            this.setState({
-              show_site_license: true,
-              site_license_id: this.props.site_license_id ?? "",
-            });
-          }}
-          disabled={this.state.show_site_license}
-        >
-          <Icon name="key" />{" "}
-          {this.props.site_license_id
-            ? "Change or remove site license"
-            : "Upgrade using a license key..."}
-        </Button>
+        {!this.props.site_license_id && (
+          <Button
+            onClick={() => {
+              this.setState({
+                show_site_license: true,
+              });
+            }}
+            disabled={this.state.show_site_license}
+          >
+            <Icon name="key" /> Upgrade using a license key...
+          </Button>
+        )}
         {this.render_site_license_text()}
       </div>
     );

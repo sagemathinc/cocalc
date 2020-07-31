@@ -8,12 +8,11 @@
 
 import { Map } from "immutable";
 import { redux, Component, Rendered, React } from "../../app-framework";
-import { Button, ButtonGroup } from "../../antd-bootstrap";
-import { LICENSE_STYLE } from "../../course/configuration/upgrades";
-import { split } from "smc-util/misc2";
+import { Button } from "../../antd-bootstrap";
 import { Icon } from "../../r_misc";
 import { alert_message } from "../../alerts";
 import { SiteLicensePublicInfo } from "../../site-licenses/site-license-public-info";
+import { SiteLicenseInput } from "../../site-licenses/input";
 
 const { ShowSupportLink } = require("../../support");
 
@@ -35,24 +34,20 @@ export class SiteLicense extends Component<Props, State> {
     };
   }
 
-  private async set_licenses(): Promise<void> {
-    const license_ids = split(this.state.site_license_ids);
-
+  private async set_license(license_id: string): Promise<void> {
     const actions = redux.getActions("projects");
     // newly added licenses
-    for (const license_id of license_ids) {
-      try {
-        await actions.add_site_license_to_project(
-          this.props.project_id,
-          license_id
-        );
-      } catch (err) {
-        alert_message({
-          type: "error",
-          message: `Unable to add license key -- ${err}`,
-        });
-        return;
-      }
+    try {
+      await actions.add_site_license_to_project(
+        this.props.project_id,
+        license_id
+      );
+    } catch (err) {
+      alert_message({
+        type: "error",
+        message: `Unable to add license key -- ${err}`,
+      });
+      return;
     }
   }
 
@@ -60,33 +55,19 @@ export class SiteLicense extends Component<Props, State> {
     if (!this.state.show_site_license) return;
     return (
       <div>
+        <br/>
         Enter a license key below to automatically apply upgrades from that
         license to this project when it is started. Clear the field below to
         stop applying those upgrades. Upgrades from the license are only applied
         when a project is started. Create a <ShowSupportLink /> if you would
-        like to purchase a license key. (You can also enter more than one key
-        separated by a space.)
-        <input
-          style={LICENSE_STYLE}
-          type="text"
-          value={this.state.site_license_ids}
-          onChange={(e) => this.setState({ site_license_ids: e.target.value })}
+        like to purchase a license key.
+        <SiteLicenseInput
+          onSave={(license_id) => {
+            this.setState({ show_site_license: false });
+            this.set_license(license_id);
+          }}
+          onCancel={() => this.setState({ show_site_license: false })}
         />
-        <ButtonGroup>
-          {" "}
-          <Button onClick={() => this.setState({ show_site_license: false })}>
-            Cancel
-          </Button>
-          <Button
-            bsStyle="primary"
-            onClick={() => {
-              this.set_licenses();
-              this.setState({ show_site_license: false });
-            }}
-          >
-            Save
-          </Button>{" "}
-        </ButtonGroup>
         <br />
       </div>
     );
@@ -111,7 +92,9 @@ export class SiteLicense extends Component<Props, State> {
   public render(): Rendered {
     return (
       <div>
-        <h4><Icon name="key"/> Licenses</h4>
+        <h4>
+          <Icon name="key" /> Licenses
+        </h4>
         {this.render_current_licenses()}
         <br />
         <Button
