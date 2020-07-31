@@ -22,7 +22,14 @@ import * as moment from "moment";
 import { webapp_client } from "../../webapp-client";
 import { CSS, React, redux, useMemo, useState } from "../../app-framework";
 const { RangePicker } = DatePicker;
-import { A, ErrorDisplay, Icon, Space } from "../../r_misc";
+import {
+  A,
+  CopyToClipBoard,
+  ErrorDisplay,
+  Loading,
+  Icon,
+  Space,
+} from "../../r_misc";
 import { PurchaseMethod } from "./purchase-method";
 import { RadioGroup } from "./radio-group";
 import { plural } from "smc-util/misc2";
@@ -639,9 +646,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           disabled={disabled}
           options={[
             {
-              label: "Purchase now",
+              label: "Purchase online",
               desc:
-                "purchase online now " +
+                "purchase now with a credit card " +
                 (cost.discounted_cost < cost.cost
                   ? `and save ${money(cost.cost - cost.discounted_cost)} ${
                       subscription != "no"
@@ -653,7 +660,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             },
             {
               label: "Get a quote",
-              desc: `I need a quote, invoice, modified terms, a purchase order, to use PayPal, etc. (${money(
+              desc: `obtain a quote, invoice, modified terms, a purchase order, use PayPal or wire transfer, etc. (${money(
                 COSTS.min_quote
               )} minimum)`,
               value: true,
@@ -671,29 +678,21 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   function render_credit_card() {
     if (quote !== false) return;
     if (payment_method != null) {
-      return (
-        <div>
-          <br />
-          <h4>
-            <Icon name="credit-card" /> Payment method
-          </h4>
-          Use {payment_method}
-          <br />
-          <Button onClick={() => set_payment_method(undefined)}>
-            Change...
-          </Button>
-        </div>
-      );
+      // payment method already selected, which is only the case
+      // during payment and once it is done.
+      return;
     } else {
+      // ask them to confirm their method and pa.
       return (
         <div>
           <br />
           <h4>
-            <Icon name="credit-card" /> Select or enter payment method
+            <Icon name="credit-card" /> Payment
           </h4>
           <PurchaseMethod
             onClose={(id) => {
               set_payment_method(id);
+              submit();
             }}
           />
         </div>
@@ -748,26 +747,22 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         <br />
         <textarea
           disabled={disabled}
-          style={{ width: "100%" }}
+          style={{
+            width: "100%",
+            padding: "10px",
+            border: "1px solid grey",
+            borderRadius: "3px",
+            margin: "10px",
+          }}
           rows={4}
           value={quote_info}
           onChange={(event) => set_quote_info(event.target.value)}
         />
         <br />
-        <Button disabled={disabled} onClick={submit}>
-          Please contact me
-        </Button>
-      </div>
-    );
-  }
-
-  function render_buy() {
-    if (quote !== false) return;
-    return (
-      <div>
-        <br />
-        <Button onClick={submit} disabled={disabled || payment_method == null}>
-          Complete purchase
+        <Button disabled={disabled} onClick={submit} type="primary">
+          <Icon name="phone" />
+          <Space />
+          <Space /> Please contact me
         </Button>
       </div>
     );
@@ -776,24 +771,34 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   function render_sending() {
     switch (sending) {
       case "active":
-        return <div>Sending to server...</div>;
+        return (
+          <div style={{ margin: "10px 0" }}>
+            <h4>
+              <Loading />
+            </h4>
+          </div>
+        );
       case "success":
         return (
-          <div>
-            Successfully{" "}
-            {quote === true ? "requested quote" : "completed purchase"}
-            <br />
-            <Button onClick={onClose}>Close</Button>
+          <div style={{ margin: "10px 0" }}>
+            <h4>
+              Successfully{" "}
+              {quote === true
+                ? "requested quote; we will be in touch soon"
+                : "completed purchase"}
+              !
+            </h4>
           </div>
         );
       case "failed":
         if (error) {
           return (
-            <div>
-              Failed to {quote === true ? "request quote" : "complete purchase"}
-              . You may want to try again later.
-              <br />
-              <Button onClick={onClose}>Close</Button>
+            <div style={{ margin: "10px 0" }}>
+              <h4>
+                Failed to{" "}
+                {quote === true ? "request quote" : "complete purchase"}. Please
+                try again later.
+              </h4>
             </div>
           );
         } else return;
@@ -803,18 +808,24 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   function render_purchase_resp() {
     if (!purchase_resp) return;
     return (
-      <div>
+      <div style={{ margin: "30px 0" }}>
+        Your newly purchased license is
         <br />
-        {purchase_resp}
+        <br/>
+        <CopyToClipBoard
+          value={purchase_resp}
+          style={{ maxWidth: "50ex", marginLeft: "30px" }}
+        />
+        You should see it listed under "Licenses that you manage".
       </div>
     );
   }
 
-  // Just cancel everything
+  // Just cancel everything or close the dialog (since you're done).
   function render_cancel() {
     return (
       <div>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>Close</Button>
       </div>
     );
   }
@@ -844,7 +855,6 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       {render_quote()}
       {render_credit_card()}
       {render_quote_info()}
-      {render_buy()}
       {render_sending()}
       {render_error()}
       {render_purchase_resp()}

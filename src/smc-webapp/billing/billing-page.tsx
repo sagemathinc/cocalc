@@ -184,7 +184,7 @@ export const BillingPage = rclass<ReactProps>(
           // subscriptions but they deleted their card.
           return (
             <span>
-              Click "Add Payment Method..." to add a credit card so you can
+              Click "Add payment method..." to add a credit card so you can
               purchase or renew your subscriptions. Without a credit card any
               current subscriptions will run to completion, but will not renew.
               If you have any questions about subscriptions or billing (e.g.,

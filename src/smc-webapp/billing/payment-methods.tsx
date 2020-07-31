@@ -55,7 +55,7 @@ export class PaymentMethods extends Component<Props, State> {
         bsStyle="primary"
         className="pull-right"
       >
-        <Icon name="plus-circle" /> Add Payment Method...
+        <Icon name="plus-circle" /> Add payment method...
       </Button>
     );
   }

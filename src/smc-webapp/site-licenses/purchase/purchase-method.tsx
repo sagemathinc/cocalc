@@ -19,7 +19,7 @@ import {
   useTypedRedux,
   useState,
 } from "../../app-framework";
-import { Loading } from "../../r_misc";
+import { Icon, Loading, Space } from "../../r_misc";
 import { alert_message } from "../../alerts";
 import { PaymentMethods } from "../../billing/payment-methods";
 
@@ -48,7 +48,7 @@ export const PurchaseMethod: React.FC<Props> = React.memo(({ onClose }) => {
   }, []);
 
   if (!loaded) {
-    return <Loading />;
+    return <Loading theme="medium" />;
   }
   if (customer == null) {
     return <div>Billing not available</div>;
@@ -62,8 +62,9 @@ export const PurchaseMethod: React.FC<Props> = React.memo(({ onClose }) => {
         default={customer.get("default_source")}
       />
       {source && (
-        <Button onClick={() => onClose(source)}>
-          Use default method
+        <Button type="primary" onClick={() => onClose(source)}>
+          <Icon name="check" /> <Space /> Complete purchase using your default
+          payment method
         </Button>
       )}
     </div>
