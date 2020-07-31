@@ -809,12 +809,12 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     if (!purchase_resp) return;
     return (
       <div style={{ margin: "30px 0" }}>
-        Your newly purchased license is
+        Your newly purchased license code is
         <br />
         <br/>
         <CopyToClipBoard
           value={purchase_resp}
-          style={{ maxWidth: "50ex", marginLeft: "30px" }}
+          style={{ maxWidth: "60ex", marginLeft: "30px" }}
         />
         You should see it listed under "Licenses that you manage".
       </div>
