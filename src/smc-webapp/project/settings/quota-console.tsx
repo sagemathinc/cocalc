@@ -78,7 +78,6 @@ export class QuotaConsole extends React.Component<Props, State> {
         state[name] = misc.round2(base_value * factor);
       }
     }
-    console.log("state = ", state);
     this.state = state as any;
   }
 
