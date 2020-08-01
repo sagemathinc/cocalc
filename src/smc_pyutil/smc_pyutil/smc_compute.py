@@ -23,7 +23,7 @@
 ###############################################################################
 
 from __future__ import absolute_import, print_function, division
-from smc_pyutil.py23 import iteritems
+from smc_pyutil.py23 import iteritems, PY2
 
 # used in naming streams -- changing this would break all existing data...
 TO = "-to-"
@@ -127,7 +127,11 @@ def cmd(s,
 
 def check_uuid(u):
     try:
-        assert uuid.UUID(u).get_version() == 4
+        if PY2:
+            vers = uuid.UUID(u).get_version()
+        else:
+            vers = uuid.UUID(u).version
+        assert vers == 4
     except (AssertionError, ValueError):
         raise RuntimeError("invalid uuid (='%s')" % u)
 
