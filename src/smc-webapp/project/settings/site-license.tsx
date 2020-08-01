@@ -22,16 +22,13 @@ interface Props {
 }
 
 interface State {
-  show_site_license?: boolean;
-  site_license_ids: string;
+  show_site_license: boolean;
 }
 
 export class SiteLicense extends Component<Props, State> {
   constructor(props) {
     super(props);
-    this.state = {
-      site_license_ids: "",
-    };
+    this.state = { show_site_license: false };
   }
 
   private async set_license(license_id: string): Promise<void> {
@@ -55,13 +52,14 @@ export class SiteLicense extends Component<Props, State> {
     if (!this.state.show_site_license) return;
     return (
       <div>
-        <br/>
+        <br />
         Enter a license key below to automatically apply upgrades from that
         license to this project when it is started. Clear the field below to
         stop applying those upgrades. Upgrades from the license are only applied
         when a project is started. Create a <ShowSupportLink /> if you would
         like to purchase a license key.
         <SiteLicenseInput
+          exclude={this.props.site_license?.keySeq().toJS()}
           onSave={(license_id) => {
             this.setState({ show_site_license: false });
             this.set_license(license_id);

@@ -46,7 +46,7 @@ export const Complete: React.FC<Props> = ({
   }, [selected]);
   const selected_keys_ref = useRef<string>();
 
-  function select(key?: string): void {
+  function select(key?: string | number): void {
     if (key == null) {
       key = selected_keys_ref.current;
     }
@@ -54,7 +54,7 @@ export const Complete: React.FC<Props> = ({
       // best too just cancel.
       onCancel();
     } else {
-      onSelect(key);
+      onSelect(`${key}`);
     }
   }
 

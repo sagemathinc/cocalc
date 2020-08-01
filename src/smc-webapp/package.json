@@ -5,7 +5,7 @@
   "main": "index.js",
   "directories": {},
   "dependencies": {
-    "@ant-design/icons": "^4.1.0",
+    "@ant-design/icons": "^4.2.1",
     "@fortawesome/fontawesome-free": "^5.13.0",
     "@jupyter-widgets/base": "^1.2.3",
     "@jupyter-widgets/controls": "^1.4.3",
@@ -32,7 +32,7 @@
     "@types/react-window": "^1.8.2",
     "@zippytech/react-notify-resize": "^3.0.0",
     "ansi-to-react": "^6.0.5",
-    "antd": "^4.4.0",
+    "antd": "^4.5.1",
     "async": "^2.6.3",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
