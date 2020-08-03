@@ -2,9 +2,11 @@
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
 # License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
-from __future__ import absolute_import, print_function
-import json, os
 
+from __future__ import absolute_import, print_function
+import json, os, time
+
+REMOTE_TIMEOUT_S = 90
 SMC = os.environ['SMC']
 os.chdir(SMC)
 
@@ -34,7 +36,7 @@ def read(prop, filename, strip=False, int_value=False, to_int=False):
         status[prop] = False
 
 
-def main():
+def local_status():
     for daemon in ['local_hub', 'sage_server', 'console_server']:
         pidfile = os.path.join(os.path.join(SMC, daemon), '%s.pid' % daemon)
         if os.path.exists(pidfile):
@@ -57,7 +59,29 @@ def main():
         to_int = 'port' in name
         read(name.split('/')[-1], os.path.join(SMC, name), to_int=to_int)
 
-    print(json.dumps(status))
+
+def remote_status():
+    """
+    If there is a file ~/.smc/remote that is recent, then this project is assumed
+    to be uing "remote compute", so we stop the local hub and output the contents
+    of the file ~/.smc/remote.
+    """
+    remote = os.path.join(SMC, "remote")
+    if not os.path.exists(remote):
+        return False
+    if time.time() - os.path.getmtime(remote) >= REMOTE_TIMEOUT_S:
+        return False
+    return json.loads(open(remote).read())
+
+
+def main():
+    s = remote_status()
+    if s:
+        x = s
+    else:
+        local_status()
+        x = status
+    print(json.dumps(x))
 
 
 if __name__ == "__main__":
