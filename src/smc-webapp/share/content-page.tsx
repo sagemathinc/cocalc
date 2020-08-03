@@ -26,6 +26,7 @@ interface ContentPageProps {
   noindex: boolean;
   description?: string;
   launch_path?: string;
+  compute_image?: string;
 }
 
 export class ContentPage extends Component<ContentPageProps> {
@@ -49,6 +50,7 @@ export class ContentPage extends Component<ContentPageProps> {
           is_public={this.props.is_public}
           launch_path={this.props.launch_path}
           settings={this.props.settings}
+          compute_image={this.props.compute_image}
         />
         {this.props.children}
       </BasePage>

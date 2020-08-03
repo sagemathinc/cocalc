@@ -16,12 +16,12 @@ const COMPUTE_IMAGES = {
   // later, we'll switch DEFAULT_COMPUTE_IMAGE to be "ubuntu2004"
   default: {
     order: -10,
-    title: "Default",
+    title: "Default (Ubuntu 18.04)",
     descr: "Regularly updated, well tested.",
   },
   previous: {
     order: -9,
-    title: "Previous",
+    title: "Previous (Ubuntu 18.04)",
     descr: "One or two weeks behind 'default'",
   },
   exp: {
@@ -56,7 +56,7 @@ const COMPUTE_IMAGES = {
   ubuntu2004: {
     order: 1,
     title: "Ubuntu 20.04",
-    descr: "Experimental Ubuntu 20.04 (could be broken)",
+    descr: "Ubuntu 20.04 (will become the default)",
   },
   old: {
     order: 10,

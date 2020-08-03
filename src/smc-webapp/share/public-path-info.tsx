@@ -8,17 +8,13 @@ Display information about a public path.
 */
 
 import { Map } from "immutable";
-
 import { Rendered, React, Component } from "../app-framework";
-
 import { r_join } from "../r_misc/r_join";
-
 import { path_split, plural } from "smc-util/misc";
-
+import { COMPUTE_IMAGES } from "smc-util/compute-images";
+import { compute_image2name, CUSTOM_IMG_PREFIX } from "../custom-software/util";
 import { LICENSES } from "./config/licenses";
-
 import { Author } from "./types";
-
 import { AuthorLink } from "./author-link";
 
 const MAX_AUTHORS = 10;
@@ -138,6 +134,24 @@ export class PublicPathInfo extends Component<Props> {
     );
   }
 
+  private render_compute_image(): Rendered {
+    if (this.props.info == null) return;
+    // the fallback will always be "default" for Ubuntu 18.04!
+    const ci = this.props.info.get("compute_image") ?? "default";
+    // TODO handle custom images
+    const title = ci.startsWith(CUSTOM_IMG_PREFIX)
+      ? compute_image2name(ci)
+      : COMPUTE_IMAGES[ci] != null
+      ? COMPUTE_IMAGES[ci].title
+      : ci;
+    return (
+      <div key="compute_image" cocalc-test={"compute-image"}>
+        <Field name={"Compute Environment"} />
+        {title}
+      </div>
+    );
+  }
+
   public render(): Rendered {
     return (
       <div style={{ background: "#efefef", padding: "5px" }}>
@@ -146,6 +160,7 @@ export class PublicPathInfo extends Component<Props> {
         {this.render_views()}
         {this.render_license()}
         {this.render_desc()}
+        {this.render_compute_image()}
       </div>
     );
   }

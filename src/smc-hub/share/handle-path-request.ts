@@ -122,6 +122,7 @@ export async function handle_path_request(opts: {
   }
 
   const description: string | undefined = info.get("description");
+  const compute_image: string = info.get("compute_image") ?? "default";
 
   const dir: string = path_to_files(project_id);
   if (viewer == null) {
@@ -172,7 +173,8 @@ export async function handle_path_request(opts: {
           public_paths.is_public,
           settings,
           description,
-          `/${info.get("id")}/${path}`
+          `/${info.get("id")}/${path}`,
+          compute_image
         ),
         viewer,
         hidden: req.query.hidden,

@@ -19,6 +19,7 @@ interface TopBarProps {
   is_public: IsPublicFunction;
   launch_path?: string;
   settings: Settings;
+  compute_image?: string;
 }
 
 export class TopBar extends Component<TopBarProps> {
@@ -44,13 +45,7 @@ export class TopBar extends Component<TopBarProps> {
 
   public render(): Rendered {
     // TODO: break up this long function!
-    const {
-      viewer,
-      path,
-      launch_path,
-      project_id,
-      is_public,
-    } = this.props;
+    const { viewer, path, launch_path, project_id, is_public } = this.props;
     let path_component: Rendered | Rendered[], top: string;
     let project_link: Rendered = undefined;
     if (path === "/") {
@@ -103,6 +98,7 @@ export class TopBar extends Component<TopBarProps> {
         // friction from asking questions -- which kills like 80% of users -- with friction
         // for existing users).  Also note that path has the leading slash so that's why
         // it isn't "share/" below.
+        console.log("compute_image", this.props.compute_image);
         const cocalc_url = `${top}/../app?anonymous=true&launch=share${
           launch_path ? launch_path : path
         }`;
