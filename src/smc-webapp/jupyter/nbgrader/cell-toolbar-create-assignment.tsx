@@ -54,7 +54,6 @@ for (const x of CELLTYPE_INFO_LIST) {
     OPTIONS_NOTCODE.push(option);
   }
 }
-console.log(OPTIONS_CODE);
 
 interface CreateAssignmentProps {
   actions: JupyterActions;

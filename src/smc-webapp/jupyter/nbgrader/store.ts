@@ -12,7 +12,6 @@ export class NBGraderStore {
   }
 
   public autograder_tests_info(): { count: number } {
-    console.log(this.store);
     return { count: 1 };
   }
 }
