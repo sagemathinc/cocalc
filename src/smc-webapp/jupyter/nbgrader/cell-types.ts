@@ -21,7 +21,8 @@ interface CelltypeInfo {
   locked: boolean; // is it locked?
   solution: boolean; // is it a solution?
   task: boolean; // is it a task?
-  link: string; // link to some html help (the nbgrader docs)
+  remove?: boolean; // is it removed from the student version?  -- this is NOT in nbgrader's spec and is a nonstandard CoCalc extension.  See https://github.com/sagemathinc/cocalc/issues/4706
+  link?: string; // link to some html help (the nbgrader docs)
   hover: string; // hover text that is helpful about this cell type (summary of nbgrader docs)
   points?: number; // default number of points
   icon?: string; // icon that would make sense for this type of cell
@@ -182,6 +183,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     locked: false,
     solution: false,
     task: false,
+    remove: false,
     link:
       "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#developing-assignments-with-the-assignment-toolbar",
     hover:
@@ -202,6 +204,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     locked: false,
     solution: true,
     task: false,
+    remove: false,
     points: DEFAULT_POINTS,
     template: {
       python: PY_MANUAL_ANSWER,
@@ -228,6 +231,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     locked: true,
     solution: false,
     task: true,
+    remove: false,
     template: TASK_TEMPLATE,
     points: DEFAULT_POINTS,
     markdown_only: true,
@@ -247,6 +251,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     locked: false,
     solution: true,
     task: false,
+    remove: false,
     code_only: true,
     template: {
       python: PY_ANSWER,
@@ -269,6 +274,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     locked: true,
     solution: false,
     task: false,
+    remove: false,
     points: DEFAULT_POINTS,
     code_only: true,
     template: {
@@ -292,6 +298,21 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     locked: true,
     solution: false,
     task: false,
+    remove: false,
+  },
+  {
+    title: "Instructor only",
+    student_title: "Instructor only (will be removed from student version)",
+    student_tip: "WARNING: This is a CoCalc-only extension to nbgrader",
+    hover:
+      "This cell will only exist in the instructor version of this notebook.  It will be removed from the student version.  Place content here that is useful in developing this notebook, or which you might want to easily reference when grading.  (WARNING: only available in CoCalc!)",
+    value: "instructor",
+    icon: "user-secret",
+    grade: false,
+    locked: false,
+    solution: false,
+    task: false,
+    remove: true,
   },
 ];
 
@@ -312,16 +333,28 @@ export function state_to_value(state: Metadata): string {
   const locked: boolean = !!state.locked;
   const solution: boolean = !!state.solution;
   const task: boolean = !!state.task;
-  if (grade === false && solution === false && task === false) {
+  const remove: boolean = !!state.remove;
+
+  if (
+    remove === false &&
+    grade === false &&
+    solution === false &&
+    task === false
+  ) {
     // special case: either nothing or readonly
     return locked ? "readonly" : "";
   }
 
-  // other 7 possibilities for grade/solution/task state:
-  const key = JSON.stringify({ grade, solution, task });
+  // other possibilities for grade/solution/task/remove state:
+  const key = JSON.stringify({ grade, solution, task, remove });
   if (value_cache[key] != undefined) return value_cache[key];
   for (const x of CELLTYPE_INFO_LIST) {
-    if (x.grade == grade && x.solution == solution && x.task == task) {
+    if (
+      x.grade == grade &&
+      x.solution == solution &&
+      x.task == task &&
+      x.remove == remove
+    ) {
       value_cache[key] = x.value;
       return x.value;
     }
@@ -340,6 +373,7 @@ export function value_to_state(value: string): Metadata {
     solution: x.solution,
     task: x.task,
     points: x.points,
+    remove: x.remove,
   };
 }
 
@@ -352,6 +386,11 @@ export function value_to_template_content(
   language: string,
   type: string
 ): string {
+  if (value == "instructor") {
+    return type == "code"
+      ? "# Put anything here to help with developing this notebook.\n# It will be removed from the student version.\n"
+      : "Put anything here to help with developing this notebook.\nIt will be removed from the student version.";
+  }
   if (value == "manual" && type != "code") {
     // special case
     return "YOUR ANSWER HERE";
