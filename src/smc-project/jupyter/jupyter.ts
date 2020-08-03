@@ -91,7 +91,7 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
   R_MAKEVARS_USER: `${process.env.HOME}/.sage/R/Makevars.user`,
 });
 
-export function jupyter_backend(syncdb: SyncDB, client: any): void {
+export function jupyter_backend(syncdb: SyncDB, client: any): JupyterActions {
   const dbg = client.dbg("jupyter_backend");
   dbg();
   const app_framework = require("smc-webapp/app-framework");
@@ -119,6 +119,8 @@ export function jupyter_backend(syncdb: SyncDB, client: any): void {
 
   syncdb.once("error", (err) => dbg(`syncdb ERROR -- ${err}`));
   syncdb.once("ready", () => dbg("syncdb ready"));
+
+  return actions;
 }
 
 // Get rid of the store/actions for a given Jupyter notebook,

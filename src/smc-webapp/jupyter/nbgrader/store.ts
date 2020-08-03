@@ -6,9 +6,10 @@
 import { JupyterStore } from "../store";
 
 export class NBGraderStore {
-  private store: JupyterStore;
+  // private store: JupyterStore;
   constructor(store: JupyterStore) {
-    this.store = store;
+    store = store;
+    //this.store = store;
   }
 
   public autograder_tests_info(): { count: number } {
