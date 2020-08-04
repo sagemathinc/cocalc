@@ -19,7 +19,9 @@ export function is_likely_iframe(content: string): boolean {
   return (
     misc.startswith(content, '<iframe srcdoc="') ||
     content.indexOf("<!doctype html>") >= 0 ||
-    (content.indexOf("<html>") >= 0 && content.indexOf("<head>") >= 0)
+    (content.indexOf("<html>") >= 0 && content.indexOf("<head>") >= 0) ||
+    // special case "altair" inline html -- https://github.com/sagemathinc/cocalc/issues/4468
+    content.indexOf('id="altair-viz-') >= 0
   );
 }
 
@@ -28,8 +30,16 @@ export function process(content: string, blob_store: any) {
   const content_lower = content.toLowerCase();
   const i = content_lower.indexOf("<html>");
   const j = content_lower.lastIndexOf("</html>");
-  const src = unescape(content.slice(i, j + "</html>".length));
-  return blob_store.save(src, "text/html", content);
+  // trim content to the part inside the html tags – keep it otherwise
+  // this is necessary for wrapping inline html code like for
+  // https://github.com/sagemathinc/cocalc/issues/4468
+  let src = "";
+  if (i != -1 && j != -1) {
+    src = content.slice(i, j + "</html>".length);
+  } else {
+    src = `<html>${content}</html>`;
+  }
+  return blob_store.save(unescape(src), "text/html", content);
 }
 
 const entity_map = {
