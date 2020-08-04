@@ -381,16 +381,12 @@ class Project(object):
         if self._dev or self._kubernetes:
             return
         cfs_quota = int(100000 * cores)
+        if os.system("which cgcreate") != 0:
+            # cgroups not installed
+            return
 
         group = "memory,cpu:%s" % self.username
-        try:
-            self.cmd(["cgcreate", "-g", group])
-        except:
-            if os.system("cgcreate") != 0:
-                # cgroups not installed
-                return
-            else:
-                raise
+        self.cmd(["cgcreate", "-g", group])
         if memory:
             memory = quota_to_int(memory)
             open(
