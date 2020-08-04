@@ -82,6 +82,16 @@ export class NBGraderActions {
         // based on reading source code and actual ipynb files.
         nbgrader.schema_version = 3;
         // nbgrader schema_version=3 requires that all these are set:
+
+        // We only set "remove" if it is true. This violates the nbgrader schema, so *should*
+        // break processing the ipynb file in nbgrader, which is *good* since instructors
+        // won't silently push out content to students that students are not supposed to see.
+        // We do NOT put nbgrader['remove']=false in explicitly, since no point in
+        // breaking compatibility with official nbgrader if this cell type isn't being used.
+        if (!nbgrader["remove"]) {
+          delete nbgrader["remove"];
+        }
+
         for (const k of ["grade", "locked", "solution", "task"]) {
           if (nbgrader[k] == null) {
             nbgrader[k] = false;
@@ -201,6 +211,8 @@ export class NBGraderActions {
     this.assign_clear_hidden_tests(); // step 3b
     // log("clear mark regions");
     this.assign_clear_mark_regions(); // step 3c
+    // this is a nonstandard extension to nbgrader in cocalc only.
+    this.assign_delete_remove_cells();
     // log("clear all outputs");
     this.jupyter_actions.clear_all_outputs(false); // step 4
     // log("assign save checksums");
@@ -265,6 +277,20 @@ export class NBGraderActions {
         );
       }
     });
+  }
+
+  private assign_delete_remove_cells(): void {
+    const cells: string[] = [];
+    this.jupyter_actions.store.get("cells").forEach((cell) => {
+      if (!cell.getIn(["metadata", "nbgrader", "remove"])) {
+        // we delete cells that have remote true and this one doesn't.
+        return;
+      }
+      // delete the cell
+      cells.push(cell.get("id"));
+    });
+    if (cells.length == 0) return;
+    this.jupyter_actions.delete_cells(cells, false);
   }
 
   private assign_save_checksums(): void {
