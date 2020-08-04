@@ -45,6 +45,7 @@ export {
   NEW_FILENAMES,
   DEFAULT_NEW_FILENAMES,
   DEFAULT_COMPUTE_IMAGE,
+  FALLBACK_COMPUTE_IMAGE,
 } from "./defaults";
 
 export { site_settings_conf } from "./site-defaults";

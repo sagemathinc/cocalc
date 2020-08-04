@@ -44,11 +44,11 @@ import { fromJS } from "immutable";
 import { Popconfirm } from "antd";
 import { StopOutlined, SyncOutlined } from "@ant-design/icons";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
-let {
-  COMPUTE_IMAGES,
+import {
+  COMPUTE_IMAGES as COMPUTE_IMAGES_ORIG,
   DEFAULT_COMPUTE_IMAGE,
-} = require("smc-util/compute-images");
-COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES); // only because that's how all the ui code was written.
+} from "smc-util/compute-images";
+const COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES_ORIG); // only because that's how all the ui code was written.
 
 const { project_tasks } = require("../../project_tasks");
 const misc = require("smc-util/misc");
@@ -248,8 +248,10 @@ export const ProjectControl = rclass<ReactProps>(
             label="Always Running"
             style={this.rowstyle()}
           >
-            Project will be <b>automatically started</b> if it stops for any reason (it will run any {" "}
-            <A href="https://doc.cocalc.com/project-init.html">init scripts</A>).
+            Project will be <b>automatically started</b> if it stops for any
+            reason (it will run any{" "}
+            <A href="https://doc.cocalc.com/project-init.html">init scripts</A>
+            ).
           </LabeledRow>
         );
       }
