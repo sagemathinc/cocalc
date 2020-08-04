@@ -94,6 +94,8 @@ export class CouponAdder extends Component<Props, State> {
   }
 
   public render(): Rendered {
+    // We don't actually use coupons anymore and this stuff is getting deprecated soon anyways.
+    return <></>;
     // TODO: (Here or elsewhere) Your final cost is:
     //       $2 for the first month
     //       $14/mo after the first
@@ -140,7 +142,7 @@ export class CouponAdder extends Component<Props, State> {
         ) : undefined}
         {this.props.coupon_error ? (
           <SkinnyError
-            error_text={this.props.coupon_error}
+            error_text={this.props.coupon_error ?? ""}
             on_close={() => redux.getActions("billing").clear_coupon_error()}
           />
         ) : undefined}

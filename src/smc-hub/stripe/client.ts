@@ -12,7 +12,7 @@ import { available_upgrades, get_total_upgrades } from "smc-util/upgrades";
 import Stripe from "stripe";
 
 const { get_stripe } = require("./connect");
-const { stripe_sales_tax } = require("./sales-tax");
+import { stripe_sales_tax } from "./sales-tax";
 
 interface HubClient {
   account_id: string;
@@ -274,9 +274,7 @@ export class StripeClient {
   }
 
   public async sales_tax(customer_id: string): Promise<number> {
-    return await callback2(stripe_sales_tax, {
-      customer_id,
-    });
+    return await stripe_sales_tax(customer_id, this.dbg("sales_tax"));
   }
 
   public async mesg_create_subscription(mesg: Message): Promise<void> {
@@ -295,8 +293,8 @@ export class StripeClient {
     const quantity = mesg.quantity ? mesg.quantity : 1;
 
     dbg("determine applicable tax");
-    const tax_rate = await callback2(stripe_sales_tax);
-    // CRITICAL regarding setting tax_rate below: if we don't just multiply by 100, since then sometimes
+    const tax_percent = await this.sales_tax(customer_id);
+    // CRITICAL regarding setting tax_percent below: if we don't just multiply by 100, since then sometimes
     // stripe comes back with an error like this
     //    "Error: Invalid decimal: 8.799999999999999; must contain at maximum two decimal places."
 
@@ -305,7 +303,9 @@ export class StripeClient {
       items: [{ quantity, plan }],
       coupon: mesg.coupon_id,
       cancel_at_period_end: schema.cancel_at_period_end,
-      tax_rate: tax_rate ? Math.round(tax_rate * 100 * 100) / 100 : undefined,
+      tax_percent: tax_percent
+        ? Math.round(tax_percent * 100 * 100) / 100
+        : undefined,
     };
 
     dbg("add customer subscription to stripe");

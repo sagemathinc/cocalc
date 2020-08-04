@@ -151,14 +151,13 @@ export class BillingActions extends Actions<BillingStoreState> {
     }
     let coupon: any;
     this.setState({ error: "" });
-    // TODO: Support multiple coupons.
     const applied_coupons = this.store.get("applied_coupons");
     if (applied_coupons != null && applied_coupons.size > 0) {
       coupon = applied_coupons.first();
     }
     const opts = {
       plan,
-      coupon_id: coupon != null ? coupon.id : undefined,
+      coupon_id: coupon?.id,
     };
     await this.stripe_action(
       this.stripe.create_subscription,

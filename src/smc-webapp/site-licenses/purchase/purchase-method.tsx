@@ -62,9 +62,8 @@ export const PurchaseMethod: React.FC<Props> = React.memo(({ onClose }) => {
         default={customer.get("default_source")}
       />
       {source && (
-        <Button type="primary" onClick={() => onClose(source)}>
-          <Icon name="check" /> <Space /> Complete purchase using your default
-          payment method
+        <Button type="primary" size="large" onClick={() => onClose(source)}>
+          <Icon name="check" /> <Space /> <Space /> Buy License
         </Button>
       )}
     </div>

@@ -823,7 +823,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   }
 
   // Just cancel everything or close the dialog (since you're done).
-  function render_cancel() {
+  function render_close() {
     return (
       <div>
         <Button disabled={sending == "active"} onClick={onClose}>
@@ -862,8 +862,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       {render_error()}
       {render_purchase_resp()}
       <hr />
-      <br />
-      {render_cancel()}
+      {render_close()}
     </Card>
   );
 });
