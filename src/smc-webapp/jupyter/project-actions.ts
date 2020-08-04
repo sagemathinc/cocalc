@@ -22,6 +22,7 @@ import * as underscore from "underscore";
 import * as misc from "../../smc-util/misc";
 import * as json_stable from "json-stable-stringify";
 import { OutputHandler } from "./output-handler";
+import { RunAllLoop } from "./run-all-loop";
 
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
 
@@ -35,6 +36,7 @@ export class JupyterActions extends JupyterActions0 {
   private _run_nbconvert_lock: any;
   private _running_cells: any;
   private _throttled_ensure_positions_are_unique: any;
+  private run_all_loop?: RunAllLoop;
 
   private set_backend_state(state: BackendState): void {
     /*
@@ -97,6 +99,7 @@ export class JupyterActions extends JupyterActions0 {
     dbg();
     let cells = this.store.get("cells");
     if (cells != null) {
+      5;
       cells = cells.toJS();
     }
     dbg(`cells at manage_init = ${JSON.stringify(cells)}`);
@@ -190,6 +193,25 @@ export class JupyterActions extends JupyterActions0 {
               }
               if (record.get("backend_state") !== this._backend_state) {
                 this.set_backend_state(this._backend_state);
+              }
+
+              if (record.get("run_all_loop_s")) {
+                if (this.run_all_loop == null) {
+                  this.run_all_loop = new RunAllLoop(
+                    this,
+                    record.get("run_all_loop_s")
+                  );
+                } else {
+                  // ensure interval is correct
+                  this.run_all_loop.set_interval(record.get("run_all_loop_s"));
+                }
+              } else if (
+                !record.get("run_all_loop_s") &&
+                this.run_all_loop != null
+              ) {
+                // stop it.
+                this.run_all_loop.close();
+                delete this.run_all_loop;
               }
             }
             break;
@@ -1223,5 +1245,17 @@ export class JupyterActions extends JupyterActions0 {
       throw Error("syncdb's ipywidgets_state must be defined!");
     }
     return this.syncdb.ipywidgets_state.capture_output_message(mesg);
+  }
+
+  public close_project_only() {
+    if (this.run_all_loop) {
+      this.run_all_loop.close();
+      delete this.run_all_loop;
+    }
+  }
+
+  // not actually async...
+  public async signal(signal = "SIGINT"): Promise<void> {
+    this.jupyter_kernel?.signal(signal);
   }
 }
