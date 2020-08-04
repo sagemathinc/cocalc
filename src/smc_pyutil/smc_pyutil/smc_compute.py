@@ -145,7 +145,10 @@ def uid(project_id, kubernetes=False):
     # 2^31-1=max uid which works with FUSE and node (and Linux, which goes up to 2^32-2).
     # 2^29 was the biggest that seemed to work with Docker on my crostini pixelbook, so shrinking to that.
     # This is NOT used in production anymore, so should be fine.
-    n = int(hashlib.sha512(project_id).hexdigest()[:8], 16)  # up to 2^32
+    # 2020-08-04: But it's used for cc-in-cc dev projects, and probably also docker?
+    # adding .encode('utf-8') in order to fix a bug with Ubuntu 20.04's Python 3.8
+    # This works all the way back to Python 2 as well.
+    n = int(hashlib.sha512(project_id.encode('utf-8')).hexdigest()[:8], 16)  # up to 2^32
     n //= 8  # up to 2^29  (floor div so will work with python3 too)
     return n if n > 65537 else n + 65537  # 65534 used by linux for user sync, etc.
 
