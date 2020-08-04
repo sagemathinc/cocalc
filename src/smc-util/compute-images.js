@@ -7,9 +7,13 @@
 
 const { defaults, required } = require("smc-util/misc");
 
-const { DEFAULT_COMPUTE_IMAGE } = require("smc-util/db-schema");
+const {
+  DEFAULT_COMPUTE_IMAGE,
+  FALLBACK_COMPUTE_IMAGE,
+} = require("smc-util/db-schema");
 
 exports.DEFAULT_COMPUTE_IMAGE = DEFAULT_COMPUTE_IMAGE;
+exports.FALLBACK_COMPUTE_IMAGE = FALLBACK_COMPUTE_IMAGE;
 
 const COMPUTE_IMAGES = {
   // this is called "default", but treat it as if it is ubuntu1804

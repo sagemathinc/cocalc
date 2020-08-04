@@ -9,6 +9,8 @@ import {
   path_split,
 } from "smc-util/misc2";
 
+import { FALLBACK_COMPUTE_IMAGE } from "smc-util/compute-images";
+
 import {
   default_to_raw,
   has_special_viewer,
@@ -122,7 +124,8 @@ export async function handle_path_request(opts: {
   }
 
   const description: string | undefined = info.get("description");
-  const compute_image: string = info.get("compute_image") ?? "default";
+  const compute_image: string =
+    info.get("compute_image") ?? FALLBACK_COMPUTE_IMAGE;
 
   const dir: string = path_to_files(project_id);
   if (viewer == null) {

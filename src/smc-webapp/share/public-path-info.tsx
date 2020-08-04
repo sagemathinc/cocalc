@@ -11,7 +11,10 @@ import { Map } from "immutable";
 import { Rendered, React, Component } from "../app-framework";
 import { r_join } from "../r_misc/r_join";
 import { path_split, plural } from "smc-util/misc";
-import { COMPUTE_IMAGES } from "smc-util/compute-images";
+import {
+  COMPUTE_IMAGES,
+  FALLBACK_COMPUTE_IMAGE,
+} from "smc-util/compute-images";
 import { compute_image2name, CUSTOM_IMG_PREFIX } from "../custom-software/util";
 import { LICENSES } from "./config/licenses";
 import { Author } from "./types";
@@ -137,7 +140,7 @@ export class PublicPathInfo extends Component<Props> {
   private render_compute_image(): Rendered {
     if (this.props.info == null) return;
     // the fallback will always be "default" for Ubuntu 18.04!
-    const ci = this.props.info.get("compute_image") ?? "default";
+    const ci = this.props.info.get("compute_image") ?? FALLBACK_COMPUTE_IMAGE;
     // TODO handle custom images
     const title = ci.startsWith(CUSTOM_IMG_PREFIX)
       ? compute_image2name(ci)
