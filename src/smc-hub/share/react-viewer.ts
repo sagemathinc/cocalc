@@ -19,7 +19,6 @@ export function react_viewer(
   settings: Settings,
   description?: string,
   launch_path?: string,
-  compute_image?: string
 ): Function {
   return function (res, component, subtitle: string, noindex: boolean): void {
     const the_page = React.createElement(
@@ -36,7 +35,6 @@ export function react_viewer(
         is_public,
         noindex,
         launch_path,
-        compute_image,
       },
       component
     );
