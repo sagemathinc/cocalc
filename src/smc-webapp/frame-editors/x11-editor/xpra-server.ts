@@ -231,7 +231,6 @@ export class XpraServer {
       timeout: 5,
       args: ["--output"], // necessary in ubuntu 20.04, with a newer xpra
     });
-    console.log("get_clipboard", clip);
     return clip.stdout;
   }
 }
