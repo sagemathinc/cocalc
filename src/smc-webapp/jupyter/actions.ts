@@ -244,8 +244,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     throw Error("must define in derived client class");
   }
 
+  public is_closed(): boolean {
+    return this._state === "closed";
+  }
+
   public async close(): Promise<void> {
-    if (this._state === "closed") {
+    if (this.is_closed()) {
       return;
     }
     // ensure save to disk happens:
@@ -266,7 +270,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     if (!this.is_project) {
       this.close_client_only();
+    } else {
+      this.close_project_only();
     }
+  }
+
+  public close_project_only() {
+    // real version is in derived class that project runs.
   }
 
   fetch_jupyter_kernels = async (): Promise<void> => {
@@ -956,21 +966,29 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     switch (cell_type) {
       case "code":
         const code = this.get_cell_input(id).trim();
-        const cm_mode = this.store.getIn(["cm_options", "mode", "name"]);
-        const language = this.store.get_kernel_language();
-        switch (parsing.run_mode(code, cm_mode, language)) {
-          case "show_source":
-            this.introspect(code.slice(0, code.length - 2), 1);
-            break;
-          case "show_doc":
-            this.introspect(code.slice(0, code.length - 1), 0);
-            break;
-          case "empty":
-            this.clear_cell(id, save);
-            break;
-          case "execute":
-            this.run_code_cell(id, save, no_halt);
-            break;
+        if (this.is_project) {
+          // when the backend is running code, just don't worry about
+          // trying to parse things like "foo?" out. We can't do
+          // it without CodeMirror, and it isn't worth it for that
+          // application.
+          this.run_code_cell(id, save, no_halt);
+        } else {
+          const cm_mode = this.store.getIn(["cm_options", "mode", "name"]);
+          const language = this.store.get_kernel_language();
+          switch (parsing.run_mode(code, cm_mode, language)) {
+            case "show_source":
+              this.introspect(code.slice(0, code.length - 2), 1);
+              break;
+            case "show_doc":
+              this.introspect(code.slice(0, code.length - 1), 0);
+              break;
+            case "empty":
+              this.clear_cell(id, save);
+              break;
+            case "execute":
+              this.run_code_cell(id, save, no_halt);
+              break;
+          }
         }
         break;
     }
@@ -1742,14 +1760,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({ introspect: undefined });
   };
 
-  signal = async (signal = "SIGINT"): Promise<void> => {
+  public async signal(signal = "SIGINT"): Promise<void> {
     // TODO: some setStates, awaits, and UI to reflect this happening...
     try {
       await this.api_call("signal", { signal: signal }, 5000);
     } catch (err) {
       this.set_error(err);
     }
-  };
+  }
 
   restart = reuseInFlight(
     async (): Promise<void> => {

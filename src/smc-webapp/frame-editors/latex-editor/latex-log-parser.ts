@@ -200,7 +200,8 @@ export class LatexParser {
   }
 
   currentLineIsDependenciesList(): boolean {
-    return this.currentLine.startsWith("#===Dependents for");
+    // with ubuntu 20.04, this changed to #===Dependents, and related info, for ...
+    return this.currentLine.startsWith("#===Dependents");
   }
 
   currentLineIsDependenciesListEnd(): boolean {
