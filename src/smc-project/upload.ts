@@ -15,6 +15,9 @@ import { appendFile, mkdir, copyFile, rename, readFile, unlink } from "fs";
 import { join } from "path";
 import { IncomingForm } from "formidable";
 import { callback } from "awaiting";
+const {
+  ensure_containing_directory_exists,
+} = require("smc-util-node/misc_node");
 
 export function upload_endpoint(
   express,
@@ -58,12 +61,12 @@ export function upload_endpoint(
     form.uploadDir = uploadDir;
 
     try {
-      // ensure target path exists
+      // ensure target path existsJS
       dbg("ensure target path exists... ", options.uploadDir);
       await callback(mkdir, options.uploadDir, { recursive: true });
       dbg("parsing form data...");
       const { fields, files } = await callback(form_parse, form, req);
-      dbg("finished parsing form data.");
+      // dbg(`finished parsing form data. ${JSON.stringify({ fields, files })}`);
       if (files.file?.path == null || files.file?.name == null) {
         dbg("error parsing form data");
         throw Error("files.file.[path | name] is null");
@@ -80,9 +83,10 @@ export function upload_endpoint(
       const dest = join(
         process.env.HOME ?? "/home/user",
         req.query.dest_dir ?? "",
-        files.file.name
+        fields.fullPath ?? files.file.name
       );
-
+      dbg(`dest='${dest}'`);
+      await callback(ensure_containing_directory_exists, dest);
       dbg("append the next chunk onto the destination file...");
       await handle_chunk_data(
         parseInt(fields.dzchunkindex),

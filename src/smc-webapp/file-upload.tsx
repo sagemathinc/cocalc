@@ -398,6 +398,14 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
       }
     }
 
+    dropzone.current.on("sending", function (file, _xhr, data) {
+      // if file is actually a folder
+      // Thanks to https://stackoverflow.com/questions/28200717/dropzone-js-and-full-path-for-each-file
+      if (file.fullPath) {
+        data.append("fullPath", file.fullPath);
+      }
+    });
+
     dropzone.current.on("addedfile", (file) => {
       if (!file) return;
       set_files(files.concat([file]));
