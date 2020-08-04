@@ -48,13 +48,13 @@ def pull():
 
 
 def install_pyutil():
-    cmd(SUDO + "pip install --upgrade ./smc_pyutil")
+    cmd(SUDO + "pip3 install --upgrade ./smc_pyutil")
 
 
 def install_sagews():
     if os.system('which sage') == 0:
         cmd("sage -pip install --upgrade ./smc_sagews")
-    cmd(SUDO + "pip install --upgrade ./smc_sagews")  # as a fallback
+    cmd(SUDO + "pip3 install --upgrade ./smc_sagews")  # as a fallback
 
 
 def install_project():
