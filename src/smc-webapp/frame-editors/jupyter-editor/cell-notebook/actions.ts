@@ -29,6 +29,7 @@ import { isEqual } from "lodash";
 declare let DEBUG: boolean;
 
 export class NotebookFrameActions {
+  private _is_closed: boolean = false;
   private frame_tree_actions: JupyterEditorActions;
   private jupyter_actions: JupyterActions;
   private key_handler?: Function;
@@ -43,11 +44,7 @@ export class NotebookFrameActions {
   private windowed_list_ref?: any;
 
   constructor(frame_tree_actions: JupyterEditorActions, frame_id: string) {
-    bind_methods(this, [
-      "update_cur_id",
-      "syncdb_before_change",
-      "syncdb_after_change",
-    ]);
+    bind_methods(this);
 
     // General frame tree editor actions:
     this.frame_tree_actions = frame_tree_actions;
@@ -174,7 +171,12 @@ export class NotebookFrameActions {
     }
   }
 
+  public is_closed(): boolean {
+    return this._is_closed;
+  }
+
   public close(): void {
+    this._is_closed = true;
     this.jupyter_actions.store.removeListener(
       "syncdb-before-change",
       this.syncdb_before_change
