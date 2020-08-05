@@ -8,6 +8,7 @@ import { callback } from "awaiting";
 import { callback2 } from "smc-util/async-utils";
 import * as message from "smc-util/message";
 import { available_upgrades, get_total_upgrades } from "smc-util/upgrades";
+import { PostgreSQL } from "../postgres/types";
 
 import Stripe from "stripe";
 
@@ -17,7 +18,7 @@ import { stripe_sales_tax } from "./sales-tax";
 interface HubClient {
   account_id: string;
   dbg: (f: string) => Function;
-  database: any;
+  database: PostgreSQL;
   push_to_client: Function;
   error_to_client: Function;
   assert_user_is_in_group: Function;

@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import Stripe from "stripe";
 import { EventEmitter } from "events";
 import { Changes } from "./changefeed";
 import { Client } from "pg";
@@ -193,5 +194,36 @@ export interface PostgreSQL extends EventEmitter {
     cb: Function;
   });
   verify_email_check_token(opts: { email_address: string; token: string });
-  reset_server_settings_cache();
+  reset_server_settings_cache(): void;
+
+  stripe_update_customer(opts: {
+    account_id: string;
+    customer_id: string;
+    stripe: Stripe;
+    cb: Function;
+  }): void;
+
+  get_stripe_customer_id(opts: { account_id: string; cb: Function }): void;
+
+  set_stripe_customer_id(opts: {
+    account_id: string;
+    customer_id: string;
+    cb: Function;
+  }): void;
+
+  update_coupon_history(opts: {
+    account_id: string;
+    coupon_history;
+    cb: Function;
+  }): void;
+
+  get_coupon_history(opts: { account_id: string; cb: Function }): void;
+
+  get_user_project_upgrades(opts: { account_id: string; cb: Function }): void;
+
+  remove_all_user_project_upgrades(opts: {
+    account_id: string;
+    projects: string[];
+    cb: Function;
+  }): void;
 }

@@ -444,7 +444,7 @@ init_update_site_license_usage_log = (cb) ->
     update_site_license_usage_log(cb)
 
 
-stripe_sync = (dump_only, cb) ->
+stripe_sync = (cb) ->
     dbg = (m) -> winston.debug("stripe_sync: #{m}")
     dbg()
     async.series([
@@ -452,11 +452,13 @@ stripe_sync = (dump_only, cb) ->
             dbg("connect to the database")
             connect_to_database(error:99999, cb:cb)
         (cb) ->
-            require('./stripe/sync').stripe_sync
-                database  : database
-                dump_only : dump_only
-                logger    : winston
-                cb        : cb
+            try
+                await require('./stripe/sync').stripe_sync
+                    database  : database
+                    logger    : winston
+                cb()
+            catch err
+                cb(err)
     ], cb)
 
 init_metrics = (cb) ->
@@ -751,7 +753,6 @@ command_line = () ->
         .option('--passwd [email_address]', 'Reset password of given user', String, '')
         .option('--update', 'Update schema and primus on startup (always true for --dev; otherwise, false)')
         .option('--stripe_sync', 'Sync stripe subscriptions to database for all users with stripe id', String, 'yes')
-        .option('--stripe_dump', 'Dump stripe subscriptions info to ~/stripe/', String, 'yes')
         .option('--update_stats', 'Calculates the statistics for the /stats endpoint and stores them in the database', String, 'yes')
         .option('--delete_expired', 'Delete expired data from the database', String, 'yes')
         .option('--blob_maintenance', 'Do blob-related maintenance (dump to tarballs, offload to gcloud)', String, 'yes')
@@ -797,10 +798,7 @@ command_line = () ->
             reset_password(program.passwd, (err) -> process.exit())
         else if program.stripe_sync
             winston.debug("Stripe sync")
-            stripe_sync(false, (err) -> winston.debug("DONE", err); process.exit())
-        else if program.stripe_dump
-            winston.debug("Stripe dump")
-            stripe_sync(true, (err) -> winston.debug("DONE", err); process.exit())
+            stripe_sync((err) -> winston.debug("DONE", err); process.exit())
         else if program.delete_expired
             delete_expired (err) ->
                 winston.debug("DONE", err)
