@@ -57,13 +57,22 @@ export const SupportInfo: React.FC = () => {
   function render_default() {
     let what;
     const title = project_title;
+    const bugs = (
+      <b>
+        We want to know about{" "}
+        <A href="https://github.com/sagemathinc/cocalc/issues?q=is%3Aissue+is%3Aopen+label%3AI-bug">
+          every bug in CoCalc!
+        </A>
+      </b>
+    );
+
     if (title != null) {
       const loc = location();
       const fn = loc.slice(47); // / projects / uuid /
       what = (
         <p>
           If you have a problem involving <code>"{fn}"</code> in the project{" "}
-          <code>"{title}"</code>, please create a support ticket below.
+          <code>"{title}"</code>, please create a support ticket below. {bugs}
         </p>
       );
     } else {
@@ -72,7 +81,7 @@ export const SupportInfo: React.FC = () => {
           If you have a problem involving a specific project or file, close this
           dialog, navigate to that file, then click on <Icon name="medkit" /> in
           the top right corner to open it again. Otherwise, please fill out this
-          form.
+          form. {bugs}
         </p>
       );
     }
@@ -152,6 +161,7 @@ export const SupportInfo: React.FC = () => {
         <h2>Create a support ticket</h2>
 
         {what}
+
         <p>
           After submitting a ticket, you{"'"}ll receive a link, which you should
           save until you receive a confirmation email. You can also check the

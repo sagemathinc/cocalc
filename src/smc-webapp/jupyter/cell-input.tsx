@@ -140,7 +140,10 @@ export class CellInput extends Component<CellInputProps> {
   }
 
   private handle_md_double_click(): void {
-    if (this.props.frame_actions == null) {
+    if (
+      this.props.frame_actions == null ||
+      this.props.frame_actions.is_closed()
+    ) {
       return;
     }
     if (this.props.cell.getIn(["metadata", "editable"]) === false) {
