@@ -141,7 +141,7 @@ export class PublicPathInfo extends Component<Props> {
     if (this.props.info == null) return;
     // the fallback will always be "default" for Ubuntu 18.04!
     const ci = this.props.info.get("compute_image") ?? FALLBACK_COMPUTE_IMAGE;
-    // TODO handle custom images
+    // TODO handle custom image display names
     const title = ci.startsWith(CUSTOM_IMG_PREFIX)
       ? compute_image2name(ci)
       : COMPUTE_IMAGES[ci] != null

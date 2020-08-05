@@ -31,23 +31,15 @@ import {
   CUSTOM_IMG_PREFIX,
 } from "../../custom-software/util";
 import { async } from "async";
-import {
-  ButtonToolbar,
-  Button,
-  MenuItem,
-  Alert,
-  DropdownButton,
-} from "react-bootstrap";
+import { ButtonToolbar, Button, Alert } from "react-bootstrap";
 import { alert_message } from "../../alerts";
 import { Project } from "./types";
 import { fromJS } from "immutable";
 import { Popconfirm } from "antd";
 import { StopOutlined, SyncOutlined } from "@ant-design/icons";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
-import {
-  COMPUTE_IMAGES as COMPUTE_IMAGES_ORIG,
-  DEFAULT_COMPUTE_IMAGE,
-} from "smc-util/compute-images";
+import { ComputeImageSelector } from "./compute-image-selector";
+import { COMPUTE_IMAGES as COMPUTE_IMAGES_ORIG } from "smc-util/compute-images";
 const COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES_ORIG); // only because that's how all the ui code was written.
 
 const { project_tasks } = require("../../project_tasks");
@@ -341,37 +333,6 @@ export const ProjectControl = rclass<ReactProps>(
       this.setState({ compute_image: name });
     }
 
-    compute_image_info(name, type) {
-      return COMPUTE_IMAGES.getIn([name, type]);
-    }
-
-    render_compute_image_items() {
-      // we want "Default", "Previous", ... to come first
-      // then the timestamps in newest-first
-      // and then the exotic ones
-      const sorter = (a, b): number => {
-        const o1 = a.get("order", 0);
-        const o2 = b.get("order", 0);
-        if (o1 == o2) {
-          return a.get("title") < b.get("title") ? 1 : -1;
-        }
-        return o1 > o2 ? 1 : -1;
-      };
-      return COMPUTE_IMAGES.sort(sorter)
-        .entrySeq()
-        .map(([name, data]) => {
-          return (
-            <MenuItem
-              key={name}
-              eventKey={name}
-              onSelect={this.set_compute_image.bind(this)}
-            >
-              {data.get("title")}
-            </MenuItem>
-          );
-        });
-    }
-
     render_select_compute_image_row() {
       if (this.props.kucalc !== KUCALC_COCALC_COM) {
         return;
@@ -443,48 +404,24 @@ export const ProjectControl = rclass<ReactProps>(
       if (no_value || this.state.compute_image_changing) {
         return <Loading />;
       }
+
       if (COMPUTE_IMAGES.has("error")) {
         return this.render_select_compute_image_error();
       }
+
       // this will at least return a suitable default value
       const selected_image = this.state.compute_image;
-      const default_title = this.compute_image_info(
-        DEFAULT_COMPUTE_IMAGE,
-        "title"
-      );
-      const selected_title = this.compute_image_info(selected_image, "title");
 
       return (
-        <div style={{ color: "#666" }}>
-          <div style={{ fontSize: "12pt" }}>
-            <Icon name={"hdd"} />
-            <Space />
-            Selected image
-            <Space />
-            <DropdownButton
-              title={
-                selected_title != undefined ? selected_title : selected_image
-              }
-              id={selected_image}
-              onToggle={(open) =>
-                this.setState({ compute_image_focused: open })
-              }
-              onBlur={() => this.setState({ compute_image_focused: false })}
-            >
-              {this.render_compute_image_items()}
-            </DropdownButton>
-            <Space />
-            {selected_image !== DEFAULT_COMPUTE_IMAGE ? (
-              <span style={{ color: COLORS.GRAY, fontSize: "11pt" }}>
-                <br /> (If in doubt, select "{default_title}".)
-              </span>
-            ) : undefined}
-          </div>
-          <div style={{ marginTop: "10px" }}>
-            <span>
-              <i>{this.compute_image_info(selected_image, "descr")}</i>
-            </span>
-          </div>
+        <div style={{ color: COLORS.GRAY }}>
+          <ComputeImageSelector
+            selected_image={selected_image}
+            // onToggle={(open) => this.setState({ compute_image_focused: open })}
+            onFocus={() => this.setState({ compute_image_focused: true })}
+            onBlur={() => this.setState({ compute_image_focused: false })}
+            onSelect={(img) => this.set_compute_image(img)}
+          />
+
           {selected_image !== current_image ? (
             <div style={{ marginTop: "10px" }}>
               <Button

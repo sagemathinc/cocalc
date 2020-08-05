@@ -32,7 +32,7 @@
     "@types/react-window": "^1.8.2",
     "@zippytech/react-notify-resize": "^3.0.0",
     "ansi-to-react": "^6.0.5",
-    "antd": "^4.3.5",
+    "antd": "^4.5.2",
     "async": "^2.6.3",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
