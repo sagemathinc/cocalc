@@ -9,7 +9,7 @@ the usability of CoCalc.
 """
 
 misc = require('smc-util/misc')
-{webapp_client} = require('./webapp_client')
+{webapp_client} = require('./webapp-client')
 
 # Only report events that take at least this long
 THRESH_S = 3

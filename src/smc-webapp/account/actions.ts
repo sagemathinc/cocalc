@@ -26,26 +26,6 @@ export class AccountActions extends Actions<AccountState> {
   private _last_history_state: string;
   private account_client: AccountClient = webapp_client.account_client;
 
-  constructor(name, redux) {
-    super(name, redux);
-    misc.bind_methods(this, [
-      "_init",
-      "derive_show_global_info",
-      "set_user_type",
-      "sign_in",
-      "create_account",
-      "delete_account",
-      "forgot_password",
-      "reset_password",
-      "sign_out",
-      "push_state",
-      "set_active_tab",
-      "add_ssh_key",
-      "delete_ssh_key",
-      "help",
-    ]);
-  }
-
   _init(store): void {
     store.on("change", this.derive_show_global_info);
   }
@@ -299,6 +279,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
 
   public set_active_tab(tab: string): void {
     this.setState({ active_page: tab });
+    this.push_state("/" + tab);
   }
 
   // Add an ssh key for this user, with the given fingerprint, title, and value
@@ -330,5 +311,9 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
         [fingerprint]: null,
       },
     }); // null is how to tell the backend/synctable to delete this...
+  }
+
+  public set_account_table(obj: object): void {
+    this.redux.getTable("account").set(obj);
   }
 }

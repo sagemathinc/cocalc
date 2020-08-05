@@ -399,6 +399,7 @@ program.usage('[?] [options]')
     .option('--console_port <n>', 'port to find console server on (optional; uses port file if not given); if this is set we assume some other system is managing the console server and do not try to start it -- just assume it is listening on this port always', ((n)->parseInt(n)), 0)
     .option('--kucalc', "Running in the kucalc environment")
     .option('--test_firewall', 'Abort and exit w/ code 99 if internal GCE information is accessible')
+    .option('--test', "Start up everything, then immediately exit.  Used as a test and to ensure coffeescript and typescript is compiled/cache")
     .parse(process.argv)
 
 if program.kucalc
@@ -420,4 +421,7 @@ set_extra_env()
 start_server program.tcp_port, program.raw_port, (err) ->
     if err
         process.exit(1)
+    if program.test
+        winston.debug("Test mode -- now exiting")
+        process.exit(0)
 

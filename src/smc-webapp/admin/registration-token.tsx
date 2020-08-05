@@ -9,8 +9,8 @@ Input box for setting the account creation token.
 
 import { List } from "immutable";
 import * as moment from "moment";
-import { range, sortBy, pick } from "lodash";
-import { cmp_moment } from "smc-util/misc2";
+import { sortBy, pick } from "lodash";
+import { cmp_moment, secure_random_token } from "smc-util/misc2";
 import { round1 } from "smc-util/misc";
 import { RegistrationTokenSetFields } from "smc-util/db-schema/types";
 import { React, Rendered, redux, TypedMap } from "../app-framework";
@@ -31,9 +31,6 @@ import { ErrorDisplay, Saving, COLORS, Icon } from "../r_misc";
 import { PassportStrategy } from "../account/passport-types";
 import { query } from "../frame-editors/generic/client";
 //import { deep_copy } from "smc-util/misc2";
-
-// base 58, to avoid ambiguities when writing it down
-const chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 interface Token {
   key?: string; // used in the table, not for the database
@@ -209,14 +206,7 @@ function use_registration_tokens() {
   // we generate a random token and make sure it doesn't exist
   // TODO also let the user generate one with a validation check
   function new_random_token(): string {
-    const one_char = () =>
-      chars.charAt(Math.floor(Math.random() * chars.length));
-    while (true) {
-      const new_token = range(16).map(one_char).join("");
-      if (data == null || data[new_token] == null) {
-        return new_token;
-      }
-    }
+    return secure_random_token(16);
   }
 
   function edit_new_token(): void {
@@ -411,7 +401,7 @@ export const RegistrationToken: React.FC<{}> = () => {
           />
           <Table.Column<Token> title="Description" dataIndex="descr" />
           <Table.Column<Token>
-            title="Usages"
+            title="Uses"
             dataIndex="counter"
             render={(text) => text ?? 0}
           />
@@ -508,9 +498,11 @@ export const RegistrationToken: React.FC<{}> = () => {
     if (no_or_all_inactive) {
       return (
         <Alert bsStyle="warning">
-          No tokens, or there are no active tokens. This means anybody can use your server.
+          No tokens, or there are no active tokens. This means anybody can use
+          your server.
           <br />
-          Create at least one active token to prevent just anybody from signing up for your server!
+          Create at least one active token to prevent just anybody from signing
+          up for your server!
         </Alert>
       );
     }

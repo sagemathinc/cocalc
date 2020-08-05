@@ -27,14 +27,14 @@ export function compute_image2basename(compute_image: string): string {
   return name.split("/")[0];
 }
 
-export const title_style: React.CSSProperties = Object.freeze({
+export const title_style: React.CSSProperties = {
   textOverflow: "ellipsis",
   whiteSpace: "nowrap" as "nowrap",
   overflow: "hidden",
   paddingLeft: "10px",
   margin: "5px 10px",
   color: COLORS.GRAY,
-});
+} as const;
 
 export function props2img(props: {
   project_map?;

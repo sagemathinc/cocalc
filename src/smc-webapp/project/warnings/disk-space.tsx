@@ -23,7 +23,7 @@ export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
     [project, is_commercial]
   );
 
-  const actions = useActions(project_id);
+  const actions = useActions({project_id});
 
   if (
     !is_commercial ||

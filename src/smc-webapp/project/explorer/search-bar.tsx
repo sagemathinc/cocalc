@@ -9,10 +9,10 @@ import { Icon, SearchInput } from "../../r_misc";
 import { ProjectActions } from "smc-webapp/project_store";
 import { ListingItem } from "./types";
 import { output_style_searchbox } from "./mini-terminal";
-const { webapp_client } = require("../../webapp_client");
-const feature = require("../../feature");
-const { Alert } = require("react-bootstrap");
-const misc = require("smc-util/misc");
+import { webapp_client } from "../../webapp-client";
+import { IS_TOUCH } from "../../feature";
+import { Alert } from "react-bootstrap";
+import { path_to_file } from "smc-util/misc";
 
 interface Props {
   project_id: string; // Added by miniterm functionality
@@ -204,7 +204,7 @@ export class SearchBar extends React.Component<Props, State> {
       const command = value.slice(1, value.length);
       this.execute_command(command);
     } else if (this.props.selected_file) {
-      const new_path = misc.path_to_file(
+      const new_path = path_to_file(
         this.props.current_path,
         this.props.selected_file.name
       );
@@ -258,8 +258,8 @@ export class SearchBar extends React.Component<Props, State> {
     return (
       <span>
         <SearchInput
-          autoFocus={!feature.IS_TOUCH}
-          autoSelect={!feature.IS_TOUCH}
+          autoFocus={!IS_TOUCH}
+          autoSelect={!IS_TOUCH}
           placeholder="Search or create file"
           value={this.props.file_search}
           on_change={this.on_change}

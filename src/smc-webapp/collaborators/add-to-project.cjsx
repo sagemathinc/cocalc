@@ -13,7 +13,7 @@ Add collaborators to a project
 
 {Icon, LabeledRow, Loading, MarkdownInput, SearchInput, ErrorDisplay, TimeAgoElement} = require('../r_misc')
 
-{webapp_client}      = require('../webapp_client')
+{webapp_client}      = require('../webapp-client')
 
 { has_internet_access } = require("../upgrades/upgrade-utils");
 

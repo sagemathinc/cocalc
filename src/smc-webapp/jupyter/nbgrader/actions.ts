@@ -82,6 +82,16 @@ export class NBGraderActions {
         // based on reading source code and actual ipynb files.
         nbgrader.schema_version = 3;
         // nbgrader schema_version=3 requires that all these are set:
+
+        // We only set "remove" if it is true. This violates the nbgrader schema, so *should*
+        // break processing the ipynb file in nbgrader, which is *good* since instructors
+        // won't silently push out content to students that students are not supposed to see.
+        // We do NOT put nbgrader['remove']=false in explicitly, since no point in
+        // breaking compatibility with official nbgrader if this cell type isn't being used.
+        if (!nbgrader["remove"]) {
+          delete nbgrader["remove"];
+        }
+
         for (const k of ["grade", "locked", "solution", "task"]) {
           if (nbgrader[k] == null) {
             nbgrader[k] = false;
@@ -162,6 +172,12 @@ export class NBGraderActions {
     actions.jupyter_actions.syncdb.from_str(
       this.jupyter_actions.syncdb.to_str()
     );
+    // Important: we also have to fire a changes event with all
+    // records, since otherwise the Jupyter store doesn't get
+    // updated since we're using from_str.
+    // The complicated map/filter thing below is just to grab
+    // only the {type:?,id:?} parts of all the records.
+    actions.jupyter_actions.syncdb.emit("change", "all");
     await actions.jupyter_actions.save();
     await actions.jupyter_actions.nbgrader_actions.apply_assign_transformations();
     await actions.jupyter_actions.save();
@@ -195,6 +211,8 @@ export class NBGraderActions {
     this.assign_clear_hidden_tests(); // step 3b
     // log("clear mark regions");
     this.assign_clear_mark_regions(); // step 3c
+    // this is a nonstandard extension to nbgrader in cocalc only.
+    this.assign_delete_remove_cells();
     // log("clear all outputs");
     this.jupyter_actions.clear_all_outputs(false); // step 4
     // log("assign save checksums");
@@ -239,7 +257,16 @@ export class NBGraderActions {
 
   private assign_clear_mark_regions(): void {
     this.jupyter_actions.store.get("cells").forEach((cell) => {
-      if (!cell.getIn(["metadata", "nbgrader", "task"])) return;
+      if (!cell.getIn(["metadata", "nbgrader", "grade"])) {
+        // We clear mark regions for any cell that is graded.
+        // In the official nbgrader docs, it seems that mark
+        // regions are only for **task** cells.  However,
+        // I've seen nbgrader use "in nature" that uses
+        // the mark regions in other grading cells, and also
+        // it just makes sense to be able to easily record
+        // how you will grade things even for non-task cells!
+        return;
+      }
       const cell2 = clear_mark_regions(cell);
       if (cell !== cell2) {
         // set the input
@@ -250,6 +277,20 @@ export class NBGraderActions {
         );
       }
     });
+  }
+
+  private assign_delete_remove_cells(): void {
+    const cells: string[] = [];
+    this.jupyter_actions.store.get("cells").forEach((cell) => {
+      if (!cell.getIn(["metadata", "nbgrader", "remove"])) {
+        // we delete cells that have remote true and this one doesn't.
+        return;
+      }
+      // delete the cell
+      cells.push(cell.get("id"));
+    });
+    if (cells.length == 0) return;
+    this.jupyter_actions.delete_cells(cells, false);
   }
 
   private assign_save_checksums(): void {

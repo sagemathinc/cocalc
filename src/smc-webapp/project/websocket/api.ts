@@ -26,6 +26,7 @@ import {
   NBGraderAPIOptions,
   RunNotebookOptions,
 } from "../../jupyter/nbgrader/api";
+import { DirectoryListingEntry } from "smc-util/types";
 
 import { reuseInFlight } from "async-await-utils/hof";
 
@@ -69,7 +70,7 @@ export class API {
     path: string,
     hidden: boolean = false,
     timeout: number = 15000
-  ): Promise<object[]> {
+  ): Promise<DirectoryListingEntry[]> {
     return await this.call({ cmd: "listing", path, hidden }, timeout);
   }
 
@@ -179,6 +180,10 @@ export class API {
 
   async eval_code(code: string, timeout_ms: number = 20000): Promise<any> {
     return await this.call({ cmd: "eval_code", code }, timeout_ms);
+  }
+
+  async realpath(path: string): Promise<string> {
+    return await this.call({ cmd: "realpath", path }, 15000);
   }
 
   async terminal(path: string, options: object = {}): Promise<Channel> {

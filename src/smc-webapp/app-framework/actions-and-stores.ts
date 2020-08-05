@@ -56,11 +56,10 @@ export { ProjectsActions } from "../projects/actions";
 export { ProjectsStore } from "../projects/store";
 export { State as ProjectsState } from "../../projects/store";
 // support
-export type SupportStore = any;
-export type SupportActions = any;
-export type SupportState = any;
+export { SupportStore } from "../support/store";
+export { SupportActions } from "../support/actions";
+export { SupportState } from "../support/types";
 // users
 export { UsersStore } from "../users/store";
 export { UsersActions } from "../users/actions";
 export { UsersState } from "../users/types";
-

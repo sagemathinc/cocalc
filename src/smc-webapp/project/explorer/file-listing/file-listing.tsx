@@ -22,7 +22,6 @@ import { AppRedux, Rendered } from "../../../app-framework";
 import { NoFiles } from "./no-files";
 import { TerminalModeDisplay } from "./terminal-mode-display";
 import { ListingHeader } from "./listing-header";
-import { DirectoryRow } from "./directory-row";
 import { FileRow } from "./file-row";
 import { TERM_MODE_CHAR } from "./utils";
 import { MainConfiguration } from "../../../project_configuration";
@@ -103,7 +102,8 @@ export class FileListing extends React.Component<Props> {
     display_name,
     public_data,
     issymlink,
-    index: number
+    index: number,
+    link_target?: string // if given, is a known symlink to this file
   ): Rendered {
     let color;
     const checked = this.props.checked_files.has(
@@ -124,49 +124,28 @@ export class FileListing extends React.Component<Props> {
     const apply_border =
       index === this.props.selected_file_index &&
       this.props.file_search[0] !== TERM_MODE_CHAR;
-    if (isdir) {
-      return (
-        <DirectoryRow
-          name={name}
-          display_name={display_name}
-          time={time}
-          size={size}
-          issymlink={issymlink}
-          key={index}
-          color={color}
-          bordered={apply_border}
-          mask={mask}
-          public_data={public_data}
-          is_public={is_public}
-          checked={checked}
-          current_path={this.props.current_path}
-          actions={this.props.actions}
-          no_select={this.props.shift_is_down}
-          public_view={this.props.public_view}
-        />
-      );
-    } else {
-      return (
-        <FileRow
-          name={name}
-          display_name={display_name}
-          time={time}
-          size={size}
-          issymlink={issymlink}
-          color={color}
-          bordered={apply_border}
-          mask={mask}
-          public_data={public_data}
-          is_public={is_public}
-          checked={checked}
-          key={index}
-          current_path={this.props.current_path}
-          actions={this.props.actions}
-          no_select={this.props.shift_is_down}
-          public_view={this.props.public_view}
-        />
-      );
-    }
+    return (
+      <FileRow
+        isdir={isdir}
+        name={name}
+        display_name={display_name}
+        time={time}
+        size={size}
+        issymlink={issymlink}
+        color={color}
+        bordered={apply_border}
+        mask={mask}
+        public_data={public_data}
+        is_public={is_public}
+        checked={checked}
+        key={index}
+        current_path={this.props.current_path}
+        actions={this.props.actions}
+        no_select={this.props.shift_is_down}
+        public_view={this.props.public_view}
+        link_target={link_target}
+      />
+    );
   }
 
   private windowed_list_render_row({ index }): Rendered {
@@ -181,7 +160,8 @@ export class FileListing extends React.Component<Props> {
       a.display_name,
       a.public,
       a.issymlink,
-      index
+      index,
+      a.link_target
     );
   }
 

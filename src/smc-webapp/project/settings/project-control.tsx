@@ -3,9 +3,16 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
-import { rtypes, redux, rclass, Rendered } from "../../app-framework";
 import {
+  React,
+  useTypedRedux,
+  rtypes,
+  redux,
+  rclass,
+  Rendered,
+} from "../../app-framework";
+import {
+  A,
   COLORS,
   CopyToClipBoard,
   Loading,
@@ -33,7 +40,7 @@ import {
 } from "react-bootstrap";
 import { alert_message } from "../../alerts";
 import { Project } from "./types";
-import { Map, fromJS } from "immutable";
+import { fromJS } from "immutable";
 import { Popconfirm } from "antd";
 import { StopOutlined, SyncOutlined } from "@ant-design/icons";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
@@ -52,7 +59,6 @@ interface ReactProps {
 
 interface ReduxProps {
   kucalc: string;
-  images: Map<string, any>;
 }
 
 interface State {
@@ -68,9 +74,6 @@ export const ProjectControl = rclass<ReactProps>(
       return {
         customize: {
           kucalc: rtypes.string,
-        },
-        compute_images: {
-          images: rtypes.immutable.Map,
         },
       };
     }
@@ -238,6 +241,18 @@ export const ProjectControl = rclass<ReactProps>(
       if (this.props.project.getIn(["state", "state"]) !== "running") {
         return;
       }
+      if (this.props.project.getIn(["settings", "always_running"])) {
+        return (
+          <LabeledRow
+            key="idle-timeout"
+            label="Always Running"
+            style={this.rowstyle()}
+          >
+            Project will be <b>automatically started</b> if it stops for any reason (it will run any {" "}
+            <A href="https://doc.cocalc.com/project-init.html">init scripts</A>).
+          </LabeledRow>
+        );
+      }
       return (
         <LabeledRow
           key="idle-timeout"
@@ -386,35 +401,15 @@ export const ProjectControl = rclass<ReactProps>(
     }
 
     render_custom_compute_image() {
-      let display;
-      const current_image = this.props.project.get("compute_image");
-      const name = compute_image2name(current_image);
-      if (this.props.images == undefined) {
-        return undefined;
-      }
-      const img_id = compute_image2basename(current_image);
-      const img_data = this.props.images.get(img_id);
-      if (img_data == undefined) {
-        // this is quite unlikely, use ID as fallback
-        display = img_id;
-      } else {
-        display = (
-          <React.Fragment>
-            {img_data.get("display")}
-            <div style={{ color: COLORS.GRAY, fontFamily: "monospace" }}>
-              ({name})
-            </div>
-          </React.Fragment>
-        );
-      }
-
       return (
         <div style={{ color: "#666" }}>
           <div style={{ fontSize: "11pt" }}>
             <div>
               <Icon name={"hdd"} /> Custom image:
             </div>
-            {display}
+            <CustomImageDisplay
+              image={this.props.project.get("compute_image")}
+            />
             <Space />
             <span style={{ color: COLORS.GRAY, fontSize: "11pt" }}>
               <br /> You cannot change a custom software image. Instead, create
@@ -539,3 +534,32 @@ export const ProjectControl = rclass<ReactProps>(
     }
   }
 );
+
+interface DisplayProps {
+  image?: string;
+}
+export const CustomImageDisplay: React.FC<DisplayProps> = ({ image }) => {
+  const images = useTypedRedux("compute_images", "images");
+  if (images == null) {
+    return <Loading />;
+  }
+  if (!image) {
+    return <>Default</>;
+  }
+  const name = compute_image2name(image);
+  const img_id = compute_image2basename(image);
+  const img_data = images.get(img_id);
+  if (img_data == undefined) {
+    // this is quite unlikely, use ID as fallback
+    return <>{img_id}</>;
+  } else {
+    return (
+      <>
+        {img_data.get("display")}{" "}
+        <span style={{ color: COLORS.GRAY, fontFamily: "monospace" }}>
+          ({name})
+        </span>
+      </>
+    );
+  }
+};

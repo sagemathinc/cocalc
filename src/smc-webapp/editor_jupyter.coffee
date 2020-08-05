@@ -24,10 +24,10 @@
 # I didn't know about React.js at the time).
 
 # NOTE: There's a lot of this in the main code below:
-# 
+#
 #         if @state != 'ready'
 #             return
-# 
+#
 # Obviously, a better solution would involve two different classes, where this
 # guarding of methods so they are no-ops when the relevant attributes aren't
 # yet initialized would no longer be necessary.
@@ -47,7 +47,7 @@ stringify            = require('json-stable-stringify')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
 {dmp}                = require('smc-util/sync/editor/generic/util')
-{webapp_client}      = require('./webapp_client')
+{webapp_client}      = require('./webapp-client')
 {redux}              = require('./app-framework')
 syncdoc              = require('./syncdoc')
 misc_page            = require('./misc_page')

@@ -44,6 +44,7 @@ collab = require('./postgres/collab')
 {permanently_unlink_all_deleted_projects_of_user} = require('./postgres/delete-projects')
 {unlist_all_public_paths} = require('./postgres/public-paths')
 {get_remember_me} = require('./postgres/remember-me')
+{projects_that_need_to_be_started} = require('./postgres/always-running');
 
 SERVER_SETTINGS_EXTRAS = require("smc-util/db-schema/site-settings-extras").EXTRAS
 SITE_SETTINGS_CONF = require("smc-util/schema").site_settings_conf
@@ -2018,8 +2019,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cb        : opts.cb
 
     # async
-    add_collaborators_to_projects: (account_id, accounts, projects) =>
-        await collab.add_collaborators_to_projects(@, account_id, accounts, projects)
+    add_collaborators_to_projects: (account_id, accounts, projects, tokens) =>
+        await collab.add_collaborators_to_projects(@, account_id, accounts, projects, tokens)
 
     # Return a list of the account_id's of all collaborators of the given users.
     get_collaborator_ids: (opts) =>
@@ -2161,7 +2162,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             ]
             cb    : all_results('project_id', opts.cb)
 
-    # cb(err, true if user is in one of the groups for the project)
+    # cb(err, true if user is in one of the groups for the project **or an admin**)
     user_is_in_project_group: (opts) =>
         opts = defaults opts,
             project_id  : required
@@ -2188,6 +2189,24 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     @is_admin
                         account_id : opts.account_id
                         cb         : opts.cb
+                else
+                    opts.cb(err, n > 0)
+
+    # cb(err, true if user is an actual collab; ADMINS do not count)
+    user_is_collaborator: (opts) =>
+        opts = defaults opts,
+            project_id  : required
+            account_id  : required
+            cb          : required  # cb(err, true if is actual collab on project)
+        if not @_validate_opts(opts) then return
+        @_query
+            query : 'SELECT COUNT(*) FROM projects'
+            cache : opts.cache
+            where : ['project_id :: UUID = $1', "users ? $2"]
+            params: [opts.project_id, opts.account_id]
+            cb    : count_result (err, n) =>
+                if err
+                    opts.cb(err)
                 else
                     opts.cb(err, n > 0)
 
@@ -3221,3 +3240,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # async function
     unlist_all_public_paths: (account_id, is_owner) =>
         return await unlist_all_public_paths(@, account_id, is_owner)
+
+    projects_that_need_to_be_started: () =>
+        return await projects_that_need_to_be_started(@)

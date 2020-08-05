@@ -26,7 +26,8 @@ const {
 } = require("react-bootstrap");
 import { Icon } from "smc-webapp/r_misc";
 
-const { webapp_client } = require("../../webapp_client"); // used to run the command -- could change to use an action and the store.
+// used to run the command -- could change to use an action and the store.
+import { webapp_client } from "../../webapp-client";
 
 export const output_style_searchbox: React.CSSProperties = {
   position: "absolute",

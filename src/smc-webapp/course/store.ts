@@ -6,9 +6,10 @@
 // React libraries
 import { Store } from "../app-framework";
 
-// SMC libraries
+// CoCalc libraries
 import * as misc from "smc-util/misc";
 import { set } from "smc-util/misc2";
+import { DirectoryListingEntry } from "smc-util/types";
 
 // Course Library
 import { STEPS } from "./util";
@@ -87,6 +88,7 @@ export type AssignmentRecord = TypedMap<{
   graded_path: string;
 
   nbgrader?: boolean; // if true, probably includes at least one nbgrader ipynb file
+  listing?: DirectoryListingEntry[];
 
   grades?: { [student_id: string]: string };
   comments?: { [student_id: string]: string };

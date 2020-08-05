@@ -758,7 +758,7 @@ exports.DeletedProjectWarning = ->
 exports.course_warning = (pay) ->
     if not pay
         return false
-    {webapp_client} = require('../webapp_client')
+    {webapp_client} = require('../webapp-client')
     return webapp_client.server_time() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
 
 project_warning_opts = (opts) ->
@@ -781,6 +781,7 @@ exports.CourseProjectExtraHelp = CourseProjectExtraHelp = ->
     </div>
 
 {BillingPageLink} = require('../billing/billing-page-link')
+
 exports.CourseProjectWarning = (opts) ->
     {total, used, avail, course_info, course_warning, account_id, email_address} = project_warning_opts(opts)
     if not course_warning
@@ -793,7 +794,7 @@ exports.CourseProjectWarning = (opts) ->
     else
         action = <BillingPageLink text="buy a course subscription" />
     is_student = account_id == course_info.get('account_id') or email_address == course_info.get('email_address')
-    {webapp_client} = require('../webapp_client')
+    {webapp_client} = require('../webapp-client')
     if pay > webapp_client.server_time()  # in the future
         if is_student
             deadline  = <span>Your instructor requires you to {action} within <TimeAgo date={pay}/>.</span>
@@ -815,10 +816,6 @@ exports.CourseProjectWarning = (opts) ->
 
 exports.NonMemberProjectWarning = (opts) ->
     {total, used, avail, course_warning} = project_warning_opts(opts)
-
-    ## Disabled until a pay-in-place version gets implemented
-    #if course_warning
-    #    return exports.CourseProjectWarning(opts)
 
     if avail > 0
         # have upgrade available

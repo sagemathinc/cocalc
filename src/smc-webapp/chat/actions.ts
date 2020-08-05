@@ -229,4 +229,11 @@ export class ChatActions extends Actions<ChatState> {
     const font_size = this.store.get("font_size") + delta;
     this.setState({ font_size });
   }
+
+  // Scan through all messages and figure out what hashtags are used.
+  // Of course, at some point we should try to use efficient algorithms
+  // to make this faster incrementally.
+  public update_hashtags() : void {
+    
+  }
 }

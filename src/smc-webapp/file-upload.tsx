@@ -26,20 +26,25 @@ import { join } from "path";
 // and it should be plenty?
 const MAX_FILE_SIZE_MB = 3000;
 
-const CHUNK_SIZE_MB = 32;
+const CHUNK_SIZE_MB = 8;
+
+const TIMEOUT_S = 100;
+
 /*
 CHUNK_SIZE_MB being set properly is critical for cloudflare to work --
 we want this to be as big as possible, but MUST be smaller than
-200MB, and also must be uploadable in less than 100 seconds.
+200MB, and also must be uploadable in less than TIMEOUT_S seconds.
 
 The internet says "The average U.S. fixed broadband download speed was 64.17 Mbps
 (15th in the world) in the first half of 2017, while the average upload speed
 was 22.79 Mbps (24th in the world), according to data released today from
-internet speed test company Ookla". 23 Mbps is about 4MB/s.  If a user can
-do 1MB/s, then they can upload 100MB in 100 seconds, hence 32MB in 100
-seconds seems a reasonable assumption....  If it really takes over a minute
-to upload 32MB, then the user isn't going to upload a very big file anyways,
-given TIMEOUT_M.
+internet speed test company Ookla".  My personal cellphone with 4 bars and
+LTE gets about 8Mbs.    Since 8 Mbps is about 1MB/s.   Hence 8MB in 100
+seconds seems a *safe* assumption....  If it really takes over a minute
+to upload 8MB, then the user isn't going to upload a very big file anyways,
+given TIMEOUT_S.
+
+See also the discussion here: https://github.com/sagemathinc/cocalc-docker/issues/92
 */
 
 const UPLOAD_OPTIONS = {
@@ -48,8 +53,8 @@ const UPLOAD_OPTIONS = {
   chunking: true,
   chunkSize: CHUNK_SIZE_MB * 1000 * 1000,
   retryChunks: true, // might as well since it's a little more robust.
-  timeout: 1000 * 100, // matches what cloudflare imposes on us; this
-  // is *per chunk*, so much longer uploads should still work.
+  timeout: 1000 * TIMEOUT_S, // matches what cloudflare imposes on us; this
+  // is *per chunk*, so much larger uploads should still work.
 };
 
 const DROPSTYLE: React.CSSProperties = {
@@ -392,6 +397,14 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
         }
       }
     }
+
+    dropzone.current.on("sending", function (file, _xhr, data) {
+      // if file is actually a folder
+      // Thanks to https://stackoverflow.com/questions/28200717/dropzone-js-and-full-path-for-each-file
+      if (file.fullPath) {
+        data.append("fullPath", file.fullPath);
+      }
+    });
 
     dropzone.current.on("addedfile", (file) => {
       if (!file) return;

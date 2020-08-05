@@ -26,13 +26,14 @@ export class SharedProjectActions {
   }
 
   // return the default title and description of the shared project.
-  private settings(): { title: string; description: string } {
+  private settings(): { title: string; description: string; image?: string } {
     const settings = this.get_store().get("settings");
     return {
       title: `Shared Project -- ${settings.get("title")}`,
       description:
         settings.get("description") +
         "\n\n---\n\nThis project is shared with all students in the course.",
+      image: settings.get("custom_image"),
     };
   }
 

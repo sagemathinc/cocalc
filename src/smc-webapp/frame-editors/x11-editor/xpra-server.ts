@@ -225,12 +225,12 @@ export class XpraServer {
 
   // get the current contents of the X11 clipboard
   async get_clipboard(): Promise<string> {
-    return (
-      await this.exec({
-        command: "xsel",
-        err_on_exit: true,
-        timeout: 5,
-      })
-    ).stdout;
+    const clip = await this.exec({
+      command: "xsel",
+      err_on_exit: true,
+      timeout: 5,
+      args: ["--output"], // necessary in ubuntu 20.04, with a newer xpra
+    });
+    return clip.stdout;
   }
 }

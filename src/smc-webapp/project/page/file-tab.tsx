@@ -37,19 +37,19 @@ export const FIXED_PROJECT_TABS = {
     label: "New",
     icon: "plus-circle",
     tooltip: "Create new file, folder, worksheet or terminal",
-    no_anonymous: true,
+    no_anonymous: false,
   },
   log: {
     label: "Log",
     icon: "history",
     tooltip: "Log of project activity",
-    no_anonymous: true,
+    no_anonymous: false,
   },
   search: {
     label: "Find",
     icon: "search",
     tooltip: "Search files in the project",
-    no_anonymous: true,
+    no_anonymous: false,
   },
   settings: {
     label: "Settings",
@@ -83,7 +83,7 @@ type Props = PropsPath | PropsName;
 export const FileTab: React.FC<Props> = React.memo(
   ({ project_id, path, name, label }) => {
     const [x_hovered, set_x_hovered] = useState<boolean>(false);
-    const actions = useActions(project_id);
+    const actions = useActions({project_id});
     const active_project_tab = useTypedRedux(
       { project_id },
       "active_project_tab"

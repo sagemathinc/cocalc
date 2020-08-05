@@ -8,8 +8,8 @@ The actions -- what you can do with a timer, and also the
 underlying synchronized state.
 */
 
-const misc = require("smc-util/misc");
-const { webapp_client } = require("../webapp_client");
+import { history_path } from "smc-util/misc";
+import { webapp_client } from "../webapp-client";
 import { Actions, Store } from "../app-framework";
 import { TypedMap } from "../app-framework/TypedMap";
 import { List } from "immutable";
@@ -133,7 +133,7 @@ export const TimeActions = class TimeActions extends Actions<
 
   public time_travel(): void {
     this.redux.getProjectActions(this.project_id).open_file({
-      path: misc.history_path(this.path),
+      path: history_path(this.path),
       foreground: true,
     });
   }

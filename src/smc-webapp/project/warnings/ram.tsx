@@ -9,7 +9,7 @@ export const RamWarning: React.FC<{ project_id: string }> = ({
 }) => {
   const project = useRedux(["projects", "project_map", project_id]);
   const is_commercial = useTypedRedux("customize", "is_commercial");
-  const actions = useActions(project_id);
+  const actions = useActions({project_id});
 
   if (!is_commercial || project == null) {
     // never show a warning if project not loaded or commercial not set

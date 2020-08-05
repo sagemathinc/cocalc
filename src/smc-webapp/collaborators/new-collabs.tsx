@@ -21,6 +21,7 @@ import { avatar_fontcolor } from "../account/avatar/font-color";
 
 import { has_internet_access } from "../upgrades/upgrade-utils";
 import { Project } from "smc-webapp/project/settings/types";
+import { ProjectInviteTokens } from "./project-invite-tokens";
 
 type UserAndProfile = User & {
   profile: { color?: string; image?: string };
@@ -150,7 +151,7 @@ export const AddCollaboratorsPanel = rclass<ReactProps>(
       }
       return (
         <>
-          Or, type a comma-separated list of email addresses:
+          Or type a comma-separated list of email addresses:
           <FormGroup style={{ margin: "15px" }}>
             <FormControl
               type="text"
@@ -532,6 +533,11 @@ ${name}
               {this.render_buttons()}
             </>
           ) : undefined}
+          {
+            <ProjectInviteTokens
+              project_id={this.props.project?.get("project_id")}
+            />
+          }
         </SettingBox>
       );
     }

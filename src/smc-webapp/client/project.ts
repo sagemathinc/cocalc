@@ -14,6 +14,7 @@ import {
   is_valid_uuid_string,
 } from "smc-util/misc2";
 import * as message from "smc-util/message";
+import { DirectoryListingEntry } from "smc-util/types";
 import { connection_to_project } from "../project/websocket/connect";
 import { API } from "../project/websocket/api";
 import { redux } from "../app-framework";
@@ -125,6 +126,7 @@ export class ProjectClient {
     mintime?: number;
     network?: number;
     member_host?: number;
+    always_running?: number;
   }): Promise<void> {
     await this.call(message.project_set_quotas(opts));
   }
@@ -202,12 +204,15 @@ export class ProjectClient {
     }
   }
 
+  // Directly compute the directory listing.  No caching or other information
+  // is used -- this just sends a message over the websocket requesting
+  // the backend node.js project process to compute the listing.
   public async directory_listing(opts: {
     project_id: string;
     path: string;
     timeout?: number;
     hidden?: boolean;
-  }): Promise<any> {
+  }): Promise<{ files: DirectoryListingEntry[] }> {
     if (opts.timeout == null) opts.timeout = 15;
     const api = await this.api(opts.project_id);
     const listing = await api.listing(
@@ -411,5 +416,12 @@ export class ProjectClient {
   // Adding this right now only for debugging/dev purposes!
   public async disconnect_hub_from_project(project_id: string): Promise<void> {
     await this.call(message.disconnect_from_project({ project_id }));
+  }
+
+  public async realpath(opts: {
+    project_id: string;
+    path: string;
+  }): Promise<string> {
+    return (await this.api(opts.project_id)).realpath(opts.path);
   }
 }

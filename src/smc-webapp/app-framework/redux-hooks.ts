@@ -212,8 +212,47 @@ export function useTypedRedux(
   a: keyof StoreStates | { project_id: string },
   field: string
 ) {
-  return useRedux(typeof a == "string" ? a : a.project_id, field);
+  if (typeof a == "string") {
+    return useRedux(a, field);
+  }
+  return useRedux(a.project_id, field);
 }
+
+export function useEditorRedux<State>(editor: { project_id; path }) {
+  function f<S extends keyof State>(field: S): State[S] {
+    return useReduxEditorStore(
+      [field as string],
+      editor.project_id,
+      editor.path
+    ) as any;
+  }
+  return f;
+}
+
+/*
+export function useEditorRedux<State, S extends keyof State>(editor: {
+  project_id: string;
+  path: string;
+}): State[S] {
+  return useReduxEditorStore(
+    [S as string],
+    editor.project_id,
+    editor.path
+  ) as any;
+}
+*/
+/*
+export function useEditorRedux(
+  editor: { project_id: string; path: string },
+  field
+): any {
+  return useReduxEditorStore(
+    [field as string],
+    editor.project_id,
+    editor.path
+  ) as any;
+}
+*/
 
 export function useRedux(
   path: string | string[],
@@ -291,27 +330,36 @@ export function useActions(name: "projects"): types.ProjectsActions;
 export function useActions(name: "support"): types.SupportActions;
 export function useActions(name: "users"): types.UsersActions;
 
-// If it is none of the explicitly named ones... it's a project.
-export function useActions(name_or_project_id: string): ProjectActions;
+// If it is none of the explicitly named ones... it's a project or just some general actions
+export function useActions(x: string): any;
+
+export function useActions<T>({ name: string }): T;
+export function useActions({ project_id: string }): ProjectActions;
 
 // Or an editor actions (any for now)
-export function useActions(name_or_project_id: string, path: string): any;
-export function useActions(name_or_project_id: string, path?: string) {
+export function useActions(x: string, path: string): any;
+
+export function useActions(x, path?: string) {
   return React.useMemo(() => {
-    if (path == null) {
-      if (is_valid_uuid_string(name_or_project_id)) {
-        return redux.getProjectActions(name_or_project_id);
-      } else {
-        return redux.getActions(name_or_project_id);
-      }
+    let actions;
+    if (path != null) {
+      actions = redux.getEditorActions(x, path);
     } else {
-      const actions = redux.getEditorActions(name_or_project_id, path);
-      if (actions == null) {
-        throw Error(`BUG: actions for "${path}" must be defined but is not`);
+      if (x?.name != null) {
+        actions = redux.getActions(x.name);
+      } else if (x?.project_id != null) {
+        actions = redux.getProjectActions(x.project_id);
+      } else if (is_valid_uuid_string(x)) {
+        actions = redux.getProjectActions(x);
+      } else {
+        actions = redux.getActions(x);
       }
-      return actions;
     }
-  }, [name_or_project_id, path]);
+    if (actions == null) {
+      throw Error(`BUG: actions for "${path}" must be defined but is not`);
+    }
+    return actions;
+  }, [x, path]);
 }
 
 // WARNING: I tried to define this Stores interface
@@ -337,19 +385,25 @@ export interface Stores {
 // If it is none of the explicitly named ones... it's a project.
 //export function useStore(name: "projects"): types.ProjectsStore;
 export function useStore<T extends keyof Stores>(name: T): Stores[T];
-export function useStore(project_id: string): ProjectStore;
+export function useStore(x: { project_id: string }): ProjectStore;
+export function useStore<T>(x: { name: string }): T;
 // Or an editor store (any for now):
 //export function useStore(project_id: string, path: string): Store<any>;
-export function useStore(name_or_project_id: string): any {
+export function useStore(x): any {
   return React.useMemo(() => {
-    if (is_valid_uuid_string(name_or_project_id)) {
-      return redux.getProjectStore(name_or_project_id);
+    let store;
+    if (x?.project_id != null) {
+      store = redux.getProjectStore(x.project_id);
+    } else if (x?.name != null) {
+      store = redux.getStore(x.name);
+    } else if (is_valid_uuid_string(x)) {
+      store = redux.getProjectStore(x);
     } else {
-      const store = redux.getStore(name_or_project_id);
-      if (store == null) {
-        throw Error("store must be defined");
-      }
-      return store;
+      store = redux.getStore(x);
     }
-  }, [name_or_project_id]) as Store<any>;
+    if (store == null) {
+      throw Error("store must be defined");
+    }
+    return store;
+  }, [x]) as Store<any>;
 }

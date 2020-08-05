@@ -600,7 +600,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     obj.id = id;
     const query = { project_log: obj };
-    require("./webapp_client").webapp_client.query({
+    webapp_client.query({
       query,
       cb: (err) => {
         if (err) {

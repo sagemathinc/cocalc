@@ -9,7 +9,7 @@ import { MentionInfo, MentionFilter } from "./types";
 
 import { once } from "smc-util/async-utils";
 
-const { webapp_client } = require("../../webapp_client");
+import { webapp_client } from "../../webapp-client";
 
 export class MentionsActions extends Actions<MentionsState> {
   update_state = (mentions): void => {

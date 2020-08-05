@@ -54,6 +54,7 @@ for (const x of CELLTYPE_INFO_LIST) {
     OPTIONS_NOTCODE.push(option);
   }
 }
+
 interface CreateAssignmentProps {
   actions: JupyterActions;
   cell: Map<string, any>;
@@ -120,14 +121,10 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
     }
   }
 
-  private render_locked(): Rendered {
-    const locked: boolean = !!this.props.cell.getIn([
-      "metadata",
-      "nbgrader",
-      "locked",
-    ]);
-    if (!locked) return;
-    return <Icon name={"lock"} style={{ float: "left", padding: "5px" }} />;
+  private render_icon(value: string): Rendered {
+    const name = CELLTYPE_INFO_MAP[value]?.icon;
+    if (name == null) return;
+    return <Icon name={name} style={{ float: "left", padding: "5px" }} />;
   }
 
   private render_points(): Rendered {
@@ -159,7 +156,9 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
   }
 
   private set_grade_id(grade_id: string): void {
-    // TODO: check globally unique... or change to always just equal the cell id...
+    // TODO: check globally unique...?
+    // DO NOT allow whitespace (see https://github.com/sagemathinc/cocalc/issues/4743):
+    grade_id = grade_id.replace(/\s+/g, "");
     this.props.actions.nbgrader_actions.set_metadata(
       this.props.cell.get("id"),
       { grade_id }
@@ -216,7 +215,7 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
   private click_help(): void {
     const value = this.get_value();
     const info = CELLTYPE_INFO_MAP[value];
-    if (info == null) return;
+    if (info == null || info.link == null) return;
     popup(info.link, 750);
   }
 
@@ -248,7 +247,7 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
     }
     return (
       <div style={{ width: "100%", background, color, padding: "3px" }}>
-        {this.render_locked()}
+        {this.render_icon(value)}
         <Form inline style={{ float: "right" }}>
           {this.render_points()}
           {this.render_id()}

@@ -33,7 +33,7 @@ exports.aggregators        = require('prom-client/lib/metricAggregators').aggreg
 # exports.register.setDefaultLabels(defaultLabels)
 
 exports.send = ->
-    {webapp_client} = require('./webapp_client')
+    {webapp_client} = require('./webapp-client')
     if not webapp_client.is_connected()
         #console.log("prom-client.send: not connected")
         return

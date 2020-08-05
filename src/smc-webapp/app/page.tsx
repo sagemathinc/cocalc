@@ -11,7 +11,7 @@ everything on *desktop*, once the user has signed in.
 declare var DEBUG: boolean;
 
 import { ProjectsNav } from "../projects/projects-nav";
-const { Support } = require("../support");
+const { CreateSupportTicket } = require("../support");
 
 import { COLORS } from "smc-util/theme";
 
@@ -120,7 +120,10 @@ export const Page: React.FC = () => {
   const account_id = useTypedRedux("account", "account_id");
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
-  const doing_anonymous_setup = useTypedRedux("account", "doing_anonymous_setup");
+  const doing_anonymous_setup = useTypedRedux(
+    "account",
+    "doing_anonymous_setup"
+  );
   const when_account_created = useTypedRedux("account", "created");
   const groups = useTypedRedux("account", "groups");
 
@@ -148,13 +151,12 @@ export const Page: React.FC = () => {
       style = { fontWeight: "bold", opacity: 0 };
       if (
         when_account_created &&
-        new Date().valueOf() - when_account_created.valueOf() >=
-          1000 * 60 * 60 * 24 * 3
+        new Date().valueOf() - when_account_created.valueOf() >= 1000 * 60 * 60
       ) {
         mesg = "Sign Up NOW to avoid losing all of your work!";
         style.width = "400px";
       } else {
-        mesg = "Sign Up";
+        mesg = "Sign Up!";
       }
       label = (
         <Button id="anonymous-sign-up" bsStyle="success" style={style}>
@@ -243,7 +245,7 @@ export const Page: React.FC = () => {
         icon={"medkit"}
         inner_style={{ padding: "10px", display: "flex" }}
         active_top_tab={active_top_tab}
-        on_click={() => support_actions.show(true)}
+        on_click={() => support_actions.set_show(true)}
         hide_label={!show_label}
       />
     );
@@ -298,7 +300,7 @@ export const Page: React.FC = () => {
           inner_style={{ padding: "0px" }}
           active_top_tab={active_top_tab}
         >
-          {show_label && !is_anonymous && (
+          {show_label && (
             <div
               style={PROJECTS_STYLE}
               cocalc-test="project-button"
@@ -367,13 +369,13 @@ export const Page: React.FC = () => {
         </div>
       )}
       {show_connection && <ConnectionInfo />}
-      {show_support && <Support actions={support_actions} />}
+      {show_support && <CreateSupportTicket actions={support_actions} />}
       {new_version && <VersionWarning new_version={new_version} />}
       {cookie_warning && <CookieWarning />}
       {local_storage_warning && <LocalStorageWarning />}
       {!fullscreen && (
         <Navbar className="smc-top-bar" style={TOP_BAR_STYLE}>
-          {is_logged_in && !is_anonymous && render_project_nav_button()}
+          {is_logged_in && render_project_nav_button()}
           <ProjectsNav />
           {render_right_nav()}
         </Navbar>

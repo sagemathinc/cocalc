@@ -79,8 +79,25 @@ sendError = (opts) ->
     opts.uptime      = misc.get_uptime()
     opts.start_time  = misc.get_start_time_ts()
     if DEBUG then console.info('error reporter sending:', opts)
-    {webapp_client} = require('smc-webapp/webapp_client')
-    webapp_client.tracking_client.webapp_error(opts)
+    try
+        # During initial load in some situations evidently webapp_client
+        # is not yet initialized, and webapp_client is undefined.  (Maybe
+        # a typescript rewrite of everything relevant will help...).  In
+        # any case, for now we
+        #   https://github.com/sagemathinc/cocalc/issues/4769
+        # As an added bonus, by try/catching and retrying once at least,
+        # we are more likely to get the error report in case of a temporary
+        # network or other glitch....
+        {webapp_client} = require('smc-webapp/webapp-client')   # can possibly be undefined
+        await webapp_client.tracking_client.webapp_error(opts)  # might fail.
+    catch err
+        console.info("failed to report error; trying again in 10 seconds", err)
+        await delay(10000)
+        try
+            {webapp_client} = require('smc-webapp/webapp-client')
+            await webapp_client.tracking_client.webapp_error(opts)
+        catch err
+            console.info("failed to report error", err)
 
 # neat trick to get a stacktrace when there is none
 generateStacktrace = () ->

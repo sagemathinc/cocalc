@@ -11,6 +11,7 @@ import { SiteSettings } from "./site-settings";
 import { SystemNotifications } from "./system-notifications";
 import { UserSearch } from "./users/user-search";
 import { SiteLicenses } from "../site-licenses/admin/component";
+import { UsageStatistics } from "./stats/page";
 
 export const AdminPage: React.FC = React.memo(() => {
   return (
@@ -32,6 +33,8 @@ export const AdminPage: React.FC = React.memo(() => {
       <RegistrationToken />
       <hr />
       <SystemNotifications />
+      <hr />
+      <UsageStatistics />
     </div>
   );
 });

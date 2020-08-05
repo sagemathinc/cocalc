@@ -48,6 +48,7 @@ interface QuotaParams {
   mintime: number;
   network: number;
   member_host: number;
+  always_running?: number;
 }
 
 type State = Assign<
@@ -109,11 +110,18 @@ export class QuotaConsole extends React.Component<Props, State> {
     },
     site_license: number
   ): Rendered {
-    if (this.props.kucalc == "no" && name != "mintime") {
-      // In anything except KuCalc, only the mintime quota is implemented.
+    if (
+      this.props.kucalc == "no" &&
+      name != "mintime" &&
+      name != "always_running"
+    ) {
+      // In anything except KuCalc, only the mintime and always_on quota is implemented.
       // NONE of the other quotas are.
       return;
     }
+    // if always_running is true, don't show idle timeout row, since not relevant
+    if (name == "mintime" && this.state["always_running"]) return;
+
     if (base_value == undefined) {
       base_value = 0;
     }
@@ -191,6 +199,7 @@ export class QuotaConsole extends React.Component<Props, State> {
         mintime: Math.floor(this.state.mintime * 3600),
         network: this.state.network,
         member_host: this.state.member_host,
+        always_running: this.state.always_running,
       });
       alert_message({
         type: "success",
@@ -231,15 +240,15 @@ export class QuotaConsole extends React.Component<Props, State> {
     }
 
     for (const name in this.props.quota_params) {
-      const data = this.props.quota_params[name] || {};
-      if (settings.get(name) == undefined) {
-        continue;
+      if (this.props.quota_params[name] == null) {
+        throw Error("bug -- invalid quota schema");
       }
-      const factor = data.display_factor;
-      const cur_val = settings.get(name) * factor;
+      const data = this.props.quota_params[name];
+      const factor = data.display_factor ?? 1;
+      const cur_val = (settings.get(name) ?? 0) * factor;
       const new_val = misc.parse_number_input(this.state[name]);
-      if (new_val == undefined) {
-        return false;
+      if (new_val == null) {
+        continue;
       }
       if (cur_val !== new_val) {
         changed = true;
@@ -296,11 +305,21 @@ export class QuotaConsole extends React.Component<Props, State> {
         borderColor: "red",
         boxShadow: "0 0 10px red",
       };
+    } else {
+      return {
+        border: "1px solid lightgrey",
+        borderRadius: "3px",
+        padding: "5px",
+      };
     }
   }
 
   private render_input(label: keyof QuotaParams): Rendered {
-    if (label === "network" || label === "member_host") {
+    if (
+      label === "network" ||
+      label === "member_host" ||
+      label === "always_running"
+    ) {
       return (
         <Checkbox
           ref={label}
@@ -518,6 +537,17 @@ export class QuotaConsole extends React.Component<Props, State> {
           </b>
         ),
         edit: this.render_input("member_host"),
+      },
+      always_running: {
+        view: (
+          <b>
+            {this.props.project_settings.get("always_running") ||
+            total_quotas["always_running"]
+              ? "Yes"
+              : "No"}
+          </b>
+        ),
+        edit: this.render_input("always_running"),
       },
     };
 

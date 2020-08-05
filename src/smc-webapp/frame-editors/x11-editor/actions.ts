@@ -20,7 +20,7 @@ import { Map, Set as immutableSet, fromJS } from "immutable";
 
 import { project_api } from "../generic/client";
 
-const copypaste = require("smc-webapp/copy-paste-buffer");
+import { set_buffer, get_buffer } from "../../copy-paste-buffer";
 
 import { reuseInFlight } from "async-await-utils/hof";
 import { callback, delay } from "awaiting";
@@ -446,7 +446,7 @@ export class Actions extends BaseActions<X11EditorState> {
     }
     if (leaf.get("type") === "x11") {
       if (value === undefined || value === true) {
-        value = copypaste.get_buffer();
+        value = get_buffer();
       }
       if (value === undefined) {
         // nothing to paste
@@ -465,7 +465,7 @@ export class Actions extends BaseActions<X11EditorState> {
     }
     if (leaf.get("type") === "x11") {
       const value = await this.client.get_clipboard();
-      copypaste.set_buffer(value);
+      set_buffer(value);
     } else {
       super.copy(id);
     }

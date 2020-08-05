@@ -51,6 +51,7 @@ sage       = require('./sage')               # sage server
 auth       = require('./auth')
 base_url   = require('./base-url')
 {migrate_account_token} = require('./postgres/migrate-account-token')
+{init_start_always_running_projects} = require('./postgres/always-running')
 
 {handle_mentions_loop} = require('./mentions/handle')
 
@@ -600,6 +601,11 @@ exports.start_server = start_server = (cb) ->
             if not program.dev
                 cb(); return
             init_update_site_license_usage_log(cb)
+        (cb) ->
+            if not (program.dev or program.single or program.kubernetes)
+                cb(); return
+            init_start_always_running_projects(database)  # is async but runs forever, so don't wait for it!
+            cb(); return
         (cb) ->
             if not program.port
                 cb(); return

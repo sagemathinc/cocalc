@@ -50,7 +50,7 @@ export const Environment: React.FC<Props> = ({ project_id }) => {
   const [focused, set_focused] = useState<boolean>(false);
   const [editing, set_editing] = useState<string>(to_json(env?.toJS()));
   const [error, set_error] = useState<string>("");
-  const actions = useActions(project_id);
+  const actions = useActions({project_id});
   const is_mounted_ref = useIsMountedRef();
   const [saving, set_saving] = useState<boolean>(false);
   const disabled = useMemo(() => {

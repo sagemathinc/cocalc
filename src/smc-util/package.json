@@ -22,6 +22,7 @@
     "coffee-register-cache": "0.0.0",
     "coffeelint": "^2.1.0",
     "coffeescript": "^2.5.1",
+    "get-random-values": "^1.2.0",
     "immutable": "^3.8.2",
     "jest": "^26.0.1",
     "json-stable-stringify": "^1.0.1",
@@ -41,7 +42,7 @@
   "devDependencies": {
     "coffee-coverage": "^3.0.1",
     "expect": "^1.12.2",
-    "mocha": "^6.2.2",
+    "mocha": "^8.0.1",
     "should": "^7.1.1",
     "should-sinon": "0.0.3",
     "sinon": "^4.5.0"

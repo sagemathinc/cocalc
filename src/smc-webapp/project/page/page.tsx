@@ -7,7 +7,12 @@ import { NavItem, Nav } from "react-bootstrap";
 import { DeletedProjectWarning, Loading } from "../../r_misc";
 import { Content } from "./content";
 import { tab_to_path } from "smc-util/misc";
-import { React, useActions, useRedux, useTypedRedux } from "../../app-framework";
+import {
+  React,
+  useActions,
+  useRedux,
+  useTypedRedux,
+} from "../../app-framework";
 import { SortableContainer, SortableElement } from "react-sortable-hoc";
 import { ChatIndicator } from "../../chat/chat-indicator";
 import { ShareIndicator } from "../../share/share-indicator";
@@ -17,6 +22,7 @@ import { DiskSpaceWarning } from "../warnings/disk-space";
 import { RamWarning } from "../warnings/ram";
 import { OOMWarning } from "../warnings/oom";
 import { TrialBanner } from "../trial-banner";
+import { AnonymousName } from "../anonymous-name";
 
 import {
   DEFAULT_FILE_TAB_STYLES,
@@ -50,7 +56,7 @@ interface Props {
 }
 
 export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
-  const actions = useActions(project_id);
+  const actions = useActions({ project_id });
   const is_deleted = useRedux([
     "projects",
     "project_map",
@@ -313,6 +319,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
 
   return (
     <div className="container-content" style={style}>
+      <AnonymousName project_id={project_id} />
       <DiskSpaceWarning project_id={project_id} />
       <RamWarning project_id={project_id} />
       <OOMWarning project_id={project_id} />

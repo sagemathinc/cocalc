@@ -7,6 +7,7 @@ import { React, Component, AppRedux, Rendered } from "../../app-framework";
 import { CourseActions } from "../actions";
 import { CourseSettingsRecord } from "../store";
 import { HiddenXS, Icon, Tip, VisibleMDLG } from "../../r_misc";
+import { UsergroupAddOutlined } from "@ant-design/icons";
 
 import { Button, Popconfirm } from "antd";
 
@@ -60,8 +61,8 @@ export class SharedProjectPanel extends Component<SharedProjectPanelProps> {
           </p>
         </div>
         <br />
-        <Button onClick={this.open_project} size={"large"} icon={"project"}>
-          Open shared project
+        <Button onClick={this.open_project} size={"large"}>
+          Open shared project...
         </Button>
       </div>
     );
@@ -110,7 +111,7 @@ export class SharedProjectPanel extends Component<SharedProjectPanelProps> {
           okText="Create Shared Project"
           cancelText="Cancel"
         >
-          <Button size={"large"} icon={"usergroup-add"}>
+          <Button size={"large"} icon={<UsergroupAddOutlined />}>
             Create shared project...
           </Button>
         </Popconfirm>

@@ -7,6 +7,7 @@ import { Component, React, Rendered } from "../app-framework";
 import { Map } from "immutable";
 import { webapp_client } from "../webapp-client";
 import { Checkbox, Panel } from "../antd-bootstrap";
+import { Card, InputNumber } from "antd";
 import { IS_MOBILE, IS_TOUCH } from "../feature";
 import {
   A,
@@ -18,7 +19,7 @@ import {
 } from "../r_misc";
 import { NEW_FILENAMES } from "smc-util/db-schema";
 import { NewFilenameFamilies, NewFilenames } from "../project/utils";
-
+import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
 import { set_account_table } from "./util";
 
 interface Props {
@@ -180,21 +181,67 @@ export class OtherSettings extends Component<Props> {
   }
 
   private render_dark_mode(): Rendered {
+    const checked = !!this.props.other_settings.get("dark_mode");
+    const config = get_dark_mode_config(this.props.other_settings);
+    const label_style = { width: "100px", display: "inline-block" } as const;
     return (
-      <Checkbox
-        checked={!!this.props.other_settings.get("dark_mode")}
-        onChange={(e) => this.on_change("dark_mode", e.target.checked)}
-        style={{
-          color: "rgba(229, 224, 216, 0.65)",
-          backgroundColor: "rgb(36, 37, 37)",
-          marginLeft: "-5px",
-          padding: "5px",
-          borderRadius: "3px",
-        }}
-      >
-        Dark mode: reduce eye strain by showing a dark background (via{" "}
-        <A href="https://darkreader.org/">Dark Reader</A>)
-      </Checkbox>
+      <div>
+        <Checkbox
+          checked={checked}
+          onChange={(e) => this.on_change("dark_mode", e.target.checked)}
+          style={{
+            color: "rgba(229, 224, 216, 0.65)",
+            backgroundColor: "rgb(36, 37, 37)",
+            marginLeft: "-5px",
+            padding: "5px",
+            borderRadius: "3px",
+          }}
+        >
+          Dark mode: reduce eye strain by showing a dark background (via{" "}
+          <A
+            style={{ color: "#e96c4d", fontWeight: 700 }}
+            href="https://darkreader.org/"
+          >
+            DARK READER
+          </A>
+          )
+        </Checkbox>
+        {checked && (
+          <Card size="small" title="Dark Mode Configuration">
+            <span style={label_style}>Brightness</span>
+            <InputNumber
+              min={dark_mode_mins.brightness}
+              max={100}
+              value={config.brightness}
+              onChange={(x) => this.on_change("dark_mode_brightness", x)}
+            />
+            <br />
+            <span style={label_style}>Contrast</span>
+            <InputNumber
+              min={dark_mode_mins.contrast}
+              max={100}
+              value={config.contrast}
+              onChange={(x) => this.on_change("dark_mode_contrast", x)}
+            />
+            <br />
+            <span style={label_style}>Sepia</span>
+            <InputNumber
+              min={dark_mode_mins.sepia}
+              max={100}
+              value={config.sepia}
+              onChange={(x) => this.on_change("dark_mode_sepia", x)}
+            />
+            <br />
+            <span style={label_style}>Grayscale</span>
+            <InputNumber
+              min={dark_mode_mins.grayscale}
+              max={100}
+              value={config.grayscale}
+              onChange={(x) => this.on_change("dark_mode_grayscale", x)}
+            />
+          </Card>
+        )}
+      </div>
     );
   }
 

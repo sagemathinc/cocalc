@@ -199,7 +199,7 @@ export class ProjectsActions extends Actions<State> {
     if (total == null) return;
     const applied = store.get_total_upgrades_you_have_applied();
     const to_upgrade = {};
-    for (let quota of ["member_host", "network"]) {
+    for (let quota of ["member_host", "network", "always_running"]) {
       const avail = (total[quota] ?? 0) - (applied?.[quota] ?? 0);
       if (avail > 0) {
         to_upgrade[quota] = 1;
@@ -257,6 +257,10 @@ export class ProjectsActions extends Actions<State> {
       image: undefined,
       start: false,
     });
+    if (!opts2.image) {
+      // make falseish same as not specified.
+      delete opts2.image;
+    }
 
     const project_id = await webapp_client.project_client.create(opts2);
 
