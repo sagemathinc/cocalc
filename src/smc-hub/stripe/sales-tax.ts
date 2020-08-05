@@ -8,7 +8,7 @@ Compute sales tax for a given customer in WA state.
 */
 
 const { sales_tax } = require("smc-util-node/misc_node");
-const { get_stripe } = require("./connect");
+import { get_stripe } from "./connect";
 
 export async function stripe_sales_tax(
   customer_id: string,
@@ -20,6 +20,11 @@ export async function stripe_sales_tax(
     throw Error("stripe not initialized -- please try again");
   }
   const customer = await stripe.customers.retrieve(customer_id);
+  if (customer.deleted) {
+    // mainly have this check so Typescript is happy
+    dbg("customer was deleted");
+    return 0;
+  }
   if (customer.default_source == null) {
     dbg("no default source");
     return 0;
@@ -27,7 +32,7 @@ export async function stripe_sales_tax(
   let zip = undefined;
   for (const x of customer.sources.data) {
     if (x.id == customer.default_source) {
-      zip = x.address_zip?.slice(0, 5);
+      zip = (x as any).address_zip?.slice(0, 5);  // as any due to bug in Stripe's types
       break;
     }
   }

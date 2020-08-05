@@ -556,10 +556,11 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             if not program.port
                 cb(); return
-            require('./stripe/connect').init_stripe
-                database : database
-                logger   : winston
-                cb       : cb
+            try
+                await require('./stripe/connect').init_stripe(database, winston)
+                cb()
+            catch err
+                cb(err)
         (cb) ->
             if not program.port
                 cb(); return

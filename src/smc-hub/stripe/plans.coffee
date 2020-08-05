@@ -32,12 +32,11 @@ exports.create_missing_plans = (opts) ->
     async.series([
         (cb) ->
             dbg("initialize stripe connection")
-            init_stripe
-                logger    : opts.logger
-                database  : opts.database
-                cb        : (err, stripe) ->
-                    locals.stripe = stripe
-                    cb(err)
+            try
+                locals.stripe = await init_stripe(opts.database, opts.logger)
+                cb()
+            catch err
+                cb(err)
         (cb) ->
             dbg("get already created plans")
             locals.stripe.plans.list {limit:999}, (err, plans) ->
@@ -81,12 +80,11 @@ exports.create_plan = (opts) ->
     async.series([
         (cb) ->
             dbg("initialize stripe connection")
-            init_stripe
-                logger    : opts.logger
-                database  : opts.database
-                cb        : (err, stripe) ->
-                    locals.stripe = stripe
-                    cb(err)
+            try
+                locals.stripe = await init_stripe(opts.database, opts.logger)
+                cb()
+            catch err
+                cb(err)
         (cb) ->
             try
                 locals.plans = spec_to_plans(opts.name, locals.spec, opts.known)

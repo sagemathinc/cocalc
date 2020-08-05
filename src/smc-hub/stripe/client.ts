@@ -11,7 +11,7 @@ import { available_upgrades, get_total_upgrades } from "smc-util/upgrades";
 
 import Stripe from "stripe";
 
-const { get_stripe } = require("./connect");
+import { get_stripe } from "./connect";
 import { stripe_sales_tax } from "./sales-tax";
 
 interface HubClient {
@@ -49,8 +49,9 @@ export class StripeClient {
 
   constructor(client: HubClient) {
     this.client = client;
-    this.conn = get_stripe();
-    if (this.conn == null) throw Error("stripe billing not configured");
+    const conn = get_stripe();
+    if (conn == null) throw Error("stripe billing not configured");
+    this.conn = conn;
 
     this.get_customer_id = reuseInFlight(this.get_customer_id.bind(this));
   }

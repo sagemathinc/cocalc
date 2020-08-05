@@ -174,7 +174,7 @@ export class Invoice extends Component<Props, State> {
           )}
         </Col>
         <Col md={1}>{this.render_paid_status()}</Col>
-        <Col md={2}>{stripe_date(this.props.invoice.get("date"))}</Col>
+        <Col md={2}>{stripe_date(this.props.invoice.get("created"))}</Col>
         <Col md={6}>
           {this.render_description()} {this.render_line_items()}
         </Col>

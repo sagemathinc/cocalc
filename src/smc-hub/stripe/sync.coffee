@@ -16,6 +16,7 @@ misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
 plans = require('./plans')
+{get_stripe, init_stripe} = require('./connect')
 
 exports.stripe_sync = (opts) ->
     opts = defaults opts,
@@ -34,10 +35,11 @@ exports.stripe_sync = (opts) ->
 
     async.series([
         (cb) ->
-            require('./connect').init_stripe
-                logger    : opts.logger
-                database  : opts.database
-                cb        : cb
+            try
+                await init_stripe(opts.database, opts.logger)
+                cb()
+            catch err
+                cb(err)
         (cb) ->
             dbg("ensure all plans are defined in stripe")
             plans.create_missing_plans
@@ -56,7 +58,7 @@ exports.stripe_sync = (opts) ->
                 cb()
                 return
             dbg("got #{users.length} users with stripe info")
-            stripe = require('./connect').get_stripe()
+            stripe = get_stripe()
             f = (x, cb) ->
                 dbg("updating customer #{x.account_id} data to our local database")
                 opts.database.stripe_update_customer
