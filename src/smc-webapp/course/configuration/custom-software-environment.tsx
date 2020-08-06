@@ -33,7 +33,7 @@ export const CustomSoftwareEnvironment: React.FC<Props> = ({
         </>
       }
     >
-      New student projects will be created using the {current_environment}{" "}
+      Student projects will be using the "{current_environment}"{" "}
       software environment.
       <br />
       <br />

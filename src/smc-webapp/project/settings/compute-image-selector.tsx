@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+// This is for selecting the "standard" compute images Ubuntu XX.YY, etc.
+
 import {
   React,
   // useTypedRedux,

@@ -4,12 +4,6 @@
  */
 
 import { React, useTypedRedux, useState } from "../app-framework";
-import { ComputeImages, ComputeImage, ComputeImageTypes } from "./init";
-import { SiteName, CompanyName, HelpEmailLink } from "../customize";
-import { Markdown, SearchInput, Icon, Space } from "../r_misc";
-import { CUSTOM_SOFTWARE_HELP_URL } from "./util";
-import { COLORS } from "smc-util/theme";
-import { DEFAULT_COMPUTE_IMAGE, COMPUTE_IMAGES } from "smc-util/compute-images";
 import { Divider } from "antd";
 import {
   Row,
@@ -20,6 +14,16 @@ import {
   ListGroupItem,
   Radio,
 } from "react-bootstrap";
+import { ComputeImages, ComputeImage, ComputeImageTypes } from "./init";
+import { SiteName, CompanyName, HelpEmailLink } from "../customize";
+import { Markdown, SearchInput, Icon, Space } from "../r_misc";
+import { unreachable } from "smc-util/misc2";
+import { CUSTOM_SOFTWARE_HELP_URL, custom_image_name } from "./util";
+import { COLORS } from "smc-util/theme";
+import {
+  DEFAULT_COMPUTE_IMAGE,
+  COMPUTE_IMAGES as STANDARD_COMPUTE_IMAGES,
+} from "smc-util/compute-images";
 
 import { ComputeImageSelector } from "../project/settings/compute-image-selector";
 
@@ -46,6 +50,27 @@ export interface CustomSoftwareState {
   image_selected?: string;
   title_text?: string;
   image_type?: ComputeImageTypes;
+}
+
+// this is used in create-project and course/configuration/actions
+// this derives the proper image name from the image type & image selection of CustomSoftwareState
+export function derive_project_img_name(
+  custom_software: CustomSoftwareState
+): string {
+  const { image_type, image_selected } = custom_software;
+  if (image_selected == null || image_type == null) {
+    return DEFAULT_COMPUTE_IMAGE;
+  }
+  switch (image_type) {
+    case "custom":
+      return custom_image_name(image_selected);
+    case "default":
+    case "standard":
+      return image_selected;
+    default:
+      unreachable(image_type);
+      return DEFAULT_COMPUTE_IMAGE; // make TS happy
+  }
 }
 
 interface Props {
@@ -283,7 +308,7 @@ export const CustomSoftware: React.FC<Props> = ({ onChange }) => {
           selected_image={image_selected ?? DEFAULT_COMPUTE_IMAGE}
           layout={"horizontal"}
           onSelect={(img) => {
-            const display = COMPUTE_IMAGES[img].title;
+            const display = STANDARD_COMPUTE_IMAGES[img].title;
             set_state(img, display, "standard");
           }}
         />

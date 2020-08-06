@@ -477,6 +477,9 @@ export const ProjectControl = rclass<ReactProps>(
 interface DisplayProps {
   image?: string;
 }
+
+// this is also used for standard images !!!
+// in course/configuration/custom-software-environment
 export const CustomImageDisplay: React.FC<DisplayProps> = ({ image }) => {
   const images = useTypedRedux("compute_images", "images");
   if (images == null) {
@@ -485,20 +488,29 @@ export const CustomImageDisplay: React.FC<DisplayProps> = ({ image }) => {
   if (!image) {
     return <>Default</>;
   }
-  const name = compute_image2name(image);
-  const img_id = compute_image2basename(image);
-  const img_data = images.get(img_id);
-  if (img_data == undefined) {
-    // this is quite unlikely, use ID as fallback
-    return <>{img_id}</>;
+  if (!image.startsWith(CUSTOM_IMG_PREFIX)) {
+    const img = COMPUTE_IMAGES.get(image);
+    if (img == null) {
+      return <>{image}</>;
+    } else {
+      return <>{img.get("title")}</>;
+    }
   } else {
-    return (
-      <>
-        {img_data.get("display")}{" "}
-        <span style={{ color: COLORS.GRAY, fontFamily: "monospace" }}>
-          ({name})
-        </span>
-      </>
-    );
+    const name = compute_image2name(image);
+    const img_id = compute_image2basename(image);
+    const img_data = images.get(img_id);
+    if (img_data == undefined) {
+      // this is quite unlikely, use ID as fallback
+      return <>{img_id}</>;
+    } else {
+      return (
+        <>
+          {img_data.get("display")}{" "}
+          <span style={{ color: COLORS.GRAY, fontFamily: "monospace" }}>
+            ({name})
+          </span>
+        </>
+      );
+    }
   }
 };
