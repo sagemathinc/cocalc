@@ -11,7 +11,7 @@
   "author": "SageMath, Inc.",
   "license": "GPL-3.0",
   "dependencies": {
-    "@marts2007/node-memwatch": "^2.0.0",
+    "@airbnb/node-memwatch": "^2.0.0",
     "async": "^1.5.2",
     "coffee-cache": "^1.0.2",
     "coffee-register-cache": "0.0.0",
