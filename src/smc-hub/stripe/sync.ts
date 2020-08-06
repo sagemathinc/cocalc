@@ -10,8 +10,7 @@ Should get done eventually mostly via webhooks, etc., -- but for now this is OK.
 */
 
 import { delay } from "awaiting";
-//import { create_missing_plans } from "./plans";
-const { create_missing_plans } = require("./plans");
+import { create_missing_plans } from "./plans";
 import { get_stripe, init_stripe } from "./connect";
 import { callback2 } from "smc-util/async-utils";
 import { PostgreSQL } from "../postgres/types";
@@ -28,16 +27,11 @@ export async function stripe_sync({
   if (!delay_ms) {
     delay_ms = 100;
   }
-  const dbg = (m?) => {
-    logger.debug(`stripe_sync: ${m}`);
-  };
+  const dbg = (m?) => logger.debug(`stripe_sync: ${m}`);
   dbg();
   await init_stripe(database, logger);
   dbg("ensure all plans are defined in stripe");
-  await callback2(create_missing_plans, {
-    database: database,
-    logger: logger,
-  });
+  await create_missing_plans(logger, database);
   dbg(
     "get all customers from the database with stripe that have been active in the last month"
   );
