@@ -61,7 +61,11 @@ export class ProjectsActions extends Actions<State> {
   // Save all open files in all projects to disk
   public save_all_files(): void {
     store.get("open_projects").filter((project_id) => {
-      this.redux.getProjectActions(project_id).save_all_files();
+      // ? is fine here since if project just got closed or collaborator
+      // removed from it, etc., that would be fine.  Save all is
+      // just a convenience for autosave. See
+      // https://github.com/sagemathinc/cocalc/issues/4789
+      this.redux.getProjectActions(project_id)?.save_all_files();
     });
   }
 
