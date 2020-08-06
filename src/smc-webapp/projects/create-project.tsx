@@ -17,7 +17,7 @@ import {
   useState,
   useTypedRedux,
 } from "../app-framework";
-
+import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 import { custom_image_name } from "../custom-software/util";
 
 import { delay } from "awaiting";
@@ -67,6 +67,7 @@ export const NewProjectCreator: React.FC<Props> = ({
   const new_project_title_ref = useRef(null);
 
   const is_anonymous = useTypedRedux("account", "is_anonymous");
+  const customize_kucalc = useTypedRedux("customize", "kucalc");
 
   useEffect(() => {
     select_text();
@@ -207,8 +208,9 @@ export const NewProjectCreator: React.FC<Props> = ({
       title_text === "" ||
       // currently saving (?)
       state === "saving" ||
-      // user wants a custom image, but hasn't selected one yet
-      (custom_software.image_type === "custom" &&
+      // user wants a non-default image, but hasn't selected one yet
+      ((custom_software.image_type === "custom" ||
+        custom_software.image_type === "standard") &&
         custom_software.image_selected == null)
     );
   }
@@ -231,7 +233,7 @@ export const NewProjectCreator: React.FC<Props> = ({
     }
   }
 
-  function customer_software_set_state(obj: CustomSoftwareState): void {
+  function custom_software_on_change(obj: CustomSoftwareState): void {
     if (obj.title_text != null && (!title_prefill || !title_text)) {
       set_title(obj.title_text);
     }
@@ -240,10 +242,12 @@ export const NewProjectCreator: React.FC<Props> = ({
 
   function render_advanced() {
     if (!show_advanced) return;
-    return <CustomSoftware onChange={customer_software_set_state} />;
+    return <CustomSoftware onChange={custom_software_on_change} />;
   }
 
   function render_advanced_toggle(): JSX.Element | undefined {
+    // we only support custom images on cocalc.com
+    if (customize_kucalc !== KUCALC_COCALC_COM) return;
     if (show_advanced) return;
     return (
       <div style={{ margin: "10px 0 0" }}>
