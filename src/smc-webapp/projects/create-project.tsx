@@ -19,8 +19,9 @@ import {
 } from "../app-framework";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 import { custom_image_name } from "../custom-software/util";
-
+import { DEFAULT_COMPUTE_IMAGE } from "smc-util/compute-images";
 import { delay } from "awaiting";
+import { unreachable } from "smc-util/misc2";
 
 import {
   CustomSoftware,
@@ -105,19 +106,31 @@ export const NewProjectCreator: React.FC<Props> = ({
     }
   }
 
+  function create_project_img_name(): string {
+    const { image_type, image_selected } = custom_software;
+    if (image_selected == null || image_type == null) {
+      return DEFAULT_COMPUTE_IMAGE;
+    }
+    switch (image_type) {
+      case "custom":
+        return custom_image_name(image_selected);
+      case "default":
+      case "standard":
+        return image_selected;
+      default:
+        unreachable(image_type);
+        return DEFAULT_COMPUTE_IMAGE; // make TS happy
+    }
+  }
+
   async function create_project(): Promise<void> {
     set_state("saving");
     const actions = redux.getActions("projects");
-    const image: string =
-      custom_software.image_type == "custom" &&
-      custom_software.image_selected != null
-        ? custom_image_name(custom_software.image_selected)
-        : "default";
     let project_id: string;
     try {
       project_id = await actions.create_project({
         title: title_text,
-        image,
+        image: create_project_img_name(),
         start: false, // do NOT want to start, due to apply_default_upgrades
       });
     } catch (err) {
