@@ -34,6 +34,7 @@ import {
 import { PurchaseMethod } from "./purchase-method";
 import { RadioGroup } from "./radio-group";
 import { plural } from "smc-util/misc2";
+import { DebounceInput } from "react-debounce-input";
 
 const LENGTH_PRESETS = [
   { label: "1 Day", desc: { n: 1, key: "days" } },
@@ -616,18 +617,31 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           <Icon name="info-circle" /> Title and description (optional)
         </h4>
         Optionally set the title and description of this license. You can easily
-        change the title and description at any time later.
-        <Input
-          placeholder={"Title"}
-          value={title}
-          onChange={(e) => set_title(e.target.value)}
-        />
+        change them later.
         <br />
-        <Input
-          placeholder={"Description"}
-          value={description}
-          onChange={(e) => set_description(e.target.value)}
-        />
+        <br />
+        <Row gutter={[16, 16]}>
+          <Col md={2}>Title</Col>
+          <Col md={8}>
+            <DebounceInput
+              placeholder={"Title"}
+              value={title}
+              element={Input as any}
+              onChange={(e) => set_title(e.target.value)}
+            />
+          </Col>
+          <Col md={1}></Col>
+          <Col md={3}>Description</Col>
+          <Col md={10}>
+            <DebounceInput
+              autoSize={{ minRows: 2, maxRows: 6 }}
+              element={Input.TextArea as any}
+              placeholder={"Description"}
+              value={description}
+              onChange={(e) => set_description(e.target.value)}
+            />
+          </Col>
+        </Row>
       </div>
     );
   }
@@ -759,7 +773,6 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     set_error("");
     set_sending("active");
     try {
-      console.log("sending ", info);
       const resp = await webapp_client.stripe.purchase_license(info);
       set_purchase_resp(resp);
       set_sending("success");
@@ -858,7 +871,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div>
         <Button disabled={sending == "active"} onClick={onClose}>
-          Close
+          {disabled ? "Close" : "Cancel"}
         </Button>
       </div>
     );

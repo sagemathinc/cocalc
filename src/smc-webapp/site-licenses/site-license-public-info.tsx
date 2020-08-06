@@ -111,8 +111,6 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
     // license display for specific project
     return (
       <li>
-        License code:
-        <Space />
         {info?.is_manager ? (
           <CopyToClipBoard
             style={{ display: "inline-block", width: "50ex", margin: 0 }}
@@ -387,7 +385,10 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
   function render_description(): JSX.Element | undefined {
     const description = info?.description;
     if (!description) return;
-    return <li>Description: {description}</li>;
+    return <li style={{    whiteSpace: 'pre-wrap',
+    border: '1px solid lightgrey',
+    background: 'white',
+    padding: '5px'}}>{description}</li>;
   }
 
   function render_err(): JSX.Element | undefined {
@@ -407,7 +408,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
         {render_refresh_button()}
         {render_remove_button()}
       </Button.Group>
-      <Icon name="key" /> {render_body()}
+      {project_id != null && <Icon name="key" /> }{render_body()}
       <br />
       {render_upgrades()}
       {render_err()}
