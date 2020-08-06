@@ -63,7 +63,7 @@ export class Subscription extends Component<Props, State> {
         <Col md={2}>{capitalize(sub.status)}</Col>
         <Col md={4} style={{ color: "#666" }}>
           {stripe_date(sub.current_period_start)} –{" "}
-          {stripe_date(sub.current_period_end)} (start: {stripe_date(sub.start)}
+          {stripe_date(sub.current_period_end)} (start: {stripe_date(sub.created)}
           ){this.render_cancel_at_end()}
         </Col>
         <Col md={2}>

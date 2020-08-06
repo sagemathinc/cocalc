@@ -51,7 +51,7 @@ export interface InvoiceLine {
 export type InvoiceLineMap = TypedMap<InvoiceLine>;
 
 export interface Invoice {
-  date: number;
+  created: number;
   id: string;
   paid: boolean;
   description: string;
@@ -61,6 +61,7 @@ export interface Invoice {
   tax_percent: number;
   lines?: {
     data: InvoiceLine[];
+    total_count: number;
   };
 }
 
@@ -89,7 +90,7 @@ export interface Subscription {
   current_period_end: number;
   plan: Plan;
   status: string;
-  start: number;
+  created: number;
 }
 
 export type PeriodName = "month" | "week" | "year" | "year1" | "month4";

@@ -3,73 +3,59 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Row, Col } from "react-bootstrap";
-import { Component, React, Rendered, redux } from "../app-framework";
-import { Icon } from "../r_misc/icon";
-const { download_file } = require("../misc_page");
+import { React, useState } from "../app-framework";
+import { Row, Col } from "../antd-bootstrap";
+import { Icon } from "../r_misc";
+import { open_popup_window } from "../misc-page/open-browser-tab";
 import { stripe_date } from "smc-util/misc";
 import { render_amount } from "./util";
-require("./types");
 import { InvoiceMap, InvoiceLineMap } from "./types";
 
 interface Props {
   invoice: InvoiceMap;
 }
 
-interface State {
-  hide_line_items: boolean;
-}
+export const Invoice: React.FC<Props> = ({ invoice }) => {
+  const [hide_line_items, set_hide_line_items] = useState<boolean>(true);
 
-export class Invoice extends Component<Props, State> {
-  constructor(props, state) {
-    super(props, state);
-    this.state = { hide_line_items: true };
-  }
-
-  private download_invoice(e): void {
+  function download(e): void {
     e.preventDefault();
-    const { invoice } = this.props;
-    const username = redux.getStore("account").get_username();
-    download_file(
-      `${
-        (window as any).app_base_url
-      }/invoice/cocalc-${username}-receipt-${new Date(
-        invoice.get("date") * 1000
-      )
-        .toISOString()
-        .slice(0, 10)}-${invoice.get("id")}.pdf`
-    );
-  }
-
-  private render_paid_status(): Rendered {
-    if (this.props.invoice.get("paid")) {
-      return <span>PAID {this.state.hide_line_items ? "" : " Thanks!"}</span>;
-    } else {
-      return <span style={{ color: "red" }}>UNPAID</span>;
+    for (const [x, val] of invoice) {
+      if (x.endsWith("_url")) {
+        open_popup_window(val as string);
+        return;
+      }
     }
   }
 
-  private render_description(): Rendered {
-    if (
-      this.state.hide_line_items &&
-      this.props.invoice.getIn(["lines", "data", "size"]) == 1
-    ) {
+  function render_paid_status(): JSX.Element {
+    if (invoice.get("paid")) {
+      return <span>PAID {hide_line_items ? "" : " Thanks!"}</span>;
+    } else {
+      return <a style={{ color: "red" }} onClick={download}>UNPAID (click to pay)</a>;
+    }
+  }
+
+  function render_description(): JSX.Element {
+    const cnt = invoice.getIn(["lines", "total_count"]) ?? 0;
+    if (hide_line_items && cnt > 0) {
       // This is much more useful as a summary than the totally generic description we usually have...
       return (
         <span>
-          {this.props.invoice.getIn(["lines", "data", 0, "description"])}
+          {invoice.getIn(["lines", "data", 0, "description"])}
+          {cnt > 1 ? ", etc." : ""}
         </span>
       );
     }
-    if (this.props.invoice.get("description")) {
-      return <span>{this.props.invoice.get("description")}</span>;
+    if (invoice.get("description")) {
+      return <span>{invoice.get("description")}</span>;
     } else {
       // This is what the description always is when it is non-empty, and it seems useful enough...
       return <span>Thank you for using CoCalc by Sagemath, Inc.</span>;
     }
   }
 
-  private render_line_description(line: InvoiceLineMap): string[] {
+  function render_line_description(line: InvoiceLineMap): string[] {
     const v: string[] = [];
     if (line.get("quantity") > 1) {
       v.push(`${line.get("quantity")} × `);
@@ -84,107 +70,91 @@ export class Invoice extends Component<Props, State> {
     return v;
   }
 
-  private render_line_item(line: InvoiceLineMap, n): Rendered {
+  function render_line_item(line: InvoiceLineMap, n): JSX.Element {
     return (
       <Row key={line.get("id")} style={{ borderBottom: "1px solid #aaa" }}>
         <Col sm={1}>{n}.</Col>
-        <Col sm={9}>{this.render_line_description(line)}</Col>
+        <Col sm={9}>{render_line_description(line)}</Col>
         <Col sm={2}>
-          {render_amount(
-            line.get("amount"),
-            this.props.invoice.get("currency")
-          )}
+          {render_amount(line.get("amount"), invoice.get("currency"))}
         </Col>
       </Row>
     );
   }
 
-  private render_tax(): Rendered {
+  function render_tax(): JSX.Element {
     return (
       <Row key="tax" style={{ borderBottom: "1px solid #aaa" }}>
         <Col sm={1} />
-        <Col sm={9}>
-          WA State Sales Tax ({this.props.invoice.get("tax_percent")}%)
-        </Col>
+        <Col sm={9}>WA State Sales Tax ({invoice.get("tax_percent")}%)</Col>
         <Col sm={2}>
-          {render_amount(
-            this.props.invoice.get("tax"),
-            this.props.invoice.get("currency")
-          )}
+          {render_amount(invoice.get("tax"), invoice.get("currency"))}
         </Col>
       </Row>
     );
   }
 
-  private render_line_items(): Rendered | Rendered[] {
-    if (this.props.invoice.get("lines") == null) return;
-    if (this.state.hide_line_items) {
+  function render_line_items(): undefined | JSX.Element | JSX.Element[] {
+    if (invoice.get("lines") == null) return;
+    if (hide_line_items) {
       return (
         <a
           href=""
           onClick={(e) => {
             e.preventDefault();
-            return this.setState({ hide_line_items: false });
+            set_hide_line_items(false);
           }}
         >
           (show details)
         </a>
       );
     } else {
-      const v: Rendered[] = [];
+      const v: JSX.Element[] = [];
       v.push(
         <a
           key="hide"
           href=""
           onClick={(e) => {
             e.preventDefault();
-            this.setState({ hide_line_items: true });
+            set_hide_line_items(true);
           }}
         >
           (hide details)
         </a>
       );
       let n = 1;
-      for (const line of this.props.invoice.getIn(
-        ["lines", "data"],
-        [] as any
-      )) {
-        v.push(this.render_line_item(line, n));
+      for (const line of invoice.getIn(["lines", "data"], [] as any)) {
+        v.push(render_line_item(line, n));
         n += 1;
       }
-      if (this.props.invoice.get("tax")) {
-        v.push(this.render_tax());
+      if (invoice.get("tax")) {
+        v.push(render_tax());
       }
       return v;
     }
   }
 
-  render() {
-    const style: React.CSSProperties = {
-      borderBottom: "1px solid #999",
-      padding: this.state.hide_line_items ? "0" : "15px 0",
-      margin: "0",
-    };
-    return (
-      <Row style={style}>
-        <Col md={1}>
-          {render_amount(
-            this.props.invoice.get("amount_due"),
-            this.props.invoice.get("currency")
-          )}
-        </Col>
-        <Col md={1}>{this.render_paid_status()}</Col>
-        <Col md={2}>{stripe_date(this.props.invoice.get("created"))}</Col>
-        <Col md={6}>
-          {this.render_description()} {this.render_line_items()}
-        </Col>
-        <Col md={2}>
-          <a onClick={this.download_invoice.bind(this)} href="">
-            <Icon name="cloud-download" />
-            {this.state.hide_line_items ? "" : " Download"}
-          </a>
-        </Col>
-      </Row>
-    );
-  }
-}
+  const style: React.CSSProperties = {
+    borderBottom: "1px solid #999",
+    padding: hide_line_items ? "0" : "15px 0",
+    margin: "0",
+  };
+  return (
+    <Row style={style}>
+      <Col md={1}>
+        {render_amount(invoice.get("amount_due"), invoice.get("currency"))}
+      </Col>
+      <Col md={1}>{render_paid_status()}</Col>
+      <Col md={2}>{stripe_date(invoice.get("created"))}</Col>
+      <Col md={6}>
+        {render_description()} {render_line_items()}
+      </Col>
+      <Col md={2}>
+        <a onClick={download} href="">
+          <Icon name="external-link-alt" />
+          {hide_line_items ? "" : " Download..."}
+        </a>
+      </Col>
+    </Row>
+  );
+};

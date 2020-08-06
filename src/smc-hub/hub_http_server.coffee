@@ -37,9 +37,6 @@ MetricsRecorder  = require('./metrics-recorder')
 
 open_cocalc = require('./open-cocalc-server')
 
-# Rendering stripe invoice server side to PDF in memory
-{stripe_render_invoice} = require('./stripe/invoice')
-
 SMC_ROOT    = process.env.SMC_ROOT
 STATIC_PATH = path_module.join(SMC_ROOT, 'static')
 WEBAPP_RES_PATH = path_module.join(SMC_ROOT, 'webapp-lib', 'resources')
@@ -213,25 +210,9 @@ exports.init_express_http_server = (opts) ->
                     res.send(resp)
 
     # stripe invoices:  /invoice/[invoice_id].pdf
-    stripe_connections = require('./stripe/connect').get_stripe()
-    if stripe_connections?
-        router.get '/invoice/*', (req, res) ->
-            winston.debug("/invoice/* (hub --> client): #{misc.to_json(req.query)}, #{req.path}")
-            path = req.path.slice(req.path.lastIndexOf('/') + 1)
-            i = path.lastIndexOf('-')
-            if i != -1
-                path = path.slice(i+1)
-            i = path.lastIndexOf('.')
-            if i == -1
-                res.status(404).send("invoice must end in .pdf")
-                return
-            invoice_id = path.slice(0,i)
-            winston.debug("id='#{invoice_id}'")
-
-            stripe_render_invoice(stripe_connections, invoice_id, true, res)
-    else
-        router.get '/invoice/*', (req, res) ->
-            res.status(404).send("stripe not configured")
+    # Now deprecated, since stripe provides this as a service now!
+    router.get '/invoice/*', (req, res) ->
+        res.status(404).send("stripe invoice endpoint is deprecated")
 
     # return uuid-indexed blobs (mainly used for graphics)
     router.get '/blobs/*', (req, res) ->
