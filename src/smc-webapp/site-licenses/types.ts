@@ -6,6 +6,7 @@
 export interface SiteLicensePublicInfo {
   id: string;
   title: string;
+  description: string;
   activates?: Date;
   expires?: Date;
   run_limit?: number;

@@ -219,6 +219,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
           {render_run_limit()}
           {render_running()}
           {render_activated()}
+          {render_description()}
         </div>
       );
     }
@@ -296,6 +297,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
         {show_run ? render_run_limit() : undefined}
         {show_run ? render_running() : undefined}
         {render_activated()}
+        {render_description()}
       </ul>
     );
   }
@@ -380,6 +382,12 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
         </li>
       );
     }
+  }
+
+  function render_description(): JSX.Element | undefined {
+    const description = info?.description;
+    if (!description) return;
+    return <li>Description: {description}</li>;
   }
 
   function render_err(): JSX.Element | undefined {

@@ -15,6 +15,7 @@ import {
   Dropdown,
   Row,
   Col,
+  Input,
 } from "antd";
 import { DownOutlined } from "@ant-design/icons";
 
@@ -78,6 +79,8 @@ interface Props {
 export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   const [user, set_user] = useState<User | undefined>(undefined);
   const [upgrade] = useState<Upgrade>("custom");
+  const [title, set_title] = useState<string>("");
+  const [description, set_description] = useState<string>("");
 
   const [custom_ram, set_custom_ram] = useState<number>(COSTS.basic.ram);
   const [custom_cpu, set_custom_cpu] = useState<number>(COSTS.basic.cpu);
@@ -604,6 +607,31 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     );
   }
 
+  function render_title_desc() {
+    if (cost == null) return;
+    return (
+      <div style={{ fontSize: "12pt" }}>
+        <br />
+        <h4>
+          <Icon name="info-circle" /> Title and description (optional)
+        </h4>
+        Optionally set the title and description of this license. You can easily
+        change the title and description at any time later.
+        <Input
+          placeholder={"Title"}
+          value={title}
+          onChange={(e) => set_title(e.target.value)}
+        />
+        <br />
+        <Input
+          placeholder={"Description"}
+          value={description}
+          onChange={(e) => set_description(e.target.value)}
+        />
+      </div>
+    );
+  }
+
   function render_cost() {
     if (cost == null) return;
 
@@ -725,10 +753,13 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       custom_disk,
       custom_always_running,
       custom_member,
+      title,
+      description,
     };
     set_error("");
     set_sending("active");
     try {
+      console.log("sending ", info);
       const resp = await webapp_client.stripe.purchase_license(info);
       set_purchase_resp(resp);
       set_sending("success");
@@ -854,6 +885,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       {render_project_type()}
       {render_subscription()}
       {render_date()}
+      {render_title_desc()}
       {render_cost()}
       {render_quote()}
       {render_credit_card()}

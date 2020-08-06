@@ -13,7 +13,7 @@ export async function create_license(
   info: PurchaseInfo,
   dbg: (...args) => void
 ): Promise<string> {
-  dbg("creating a license...");
+  dbg(`creating a license... info=${JSON.stringify(info)}`);
   const license_id = uuid();
   const values: { [key: string]: any } = {
     "id::UUID": license_id,
@@ -22,7 +22,7 @@ export async function create_license(
     },
     "activates::TIMESTAMP":
       info.subscription != "no"
-        ? new Date(new Date().valueOf() - 60000)  // one minute in past to avoid any funny confusion.
+        ? new Date(new Date().valueOf() - 60000) // one minute in past to avoid any funny confusion.
         : info.start,
     "created::TIMESTAMP": new Date(),
     "managers::TEXT[]": [account_id],
@@ -34,6 +34,8 @@ export async function create_license(
       always_running: info.custom_always_running,
       member: info.custom_member,
     },
+    "title::TEXT": info.title,
+    "description::TEXT": info.description,
     "run_limit::INTEGER": info.quantity,
   };
   if (info.end != null) {

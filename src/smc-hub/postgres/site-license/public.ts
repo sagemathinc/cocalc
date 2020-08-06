@@ -16,6 +16,7 @@ export async function site_license_public_info(
     db,
     select: [
       "title",
+      "description",
       "expires",
       "activates",
       "upgrades",

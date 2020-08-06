@@ -39,6 +39,8 @@ export interface PurchaseInfo {
   custom_disk: number;
   custom_always_running: boolean;
   custom_member: boolean;
+  title?: string;
+  description?: string;
 }
 
 // throws an exception if it spots something funny...

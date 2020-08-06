@@ -467,6 +467,7 @@ Table({
   fields: {
     id: SCHEMA.site_licenses.fields.id, // must be specified or it is an error
     title: SCHEMA.site_licenses.fields.title,
+    description: SCHEMA.site_licenses.fields.description,
     expires: SCHEMA.site_licenses.fields.expires,
     activates: SCHEMA.site_licenses.fields.activates,
     upgrades: SCHEMA.site_licenses.fields.upgrades,
@@ -494,6 +495,7 @@ Table({
         fields: {
           id: null,
           title: null,
+          description: null,
           expires: null,
           activates: null,
           upgrades: null,
