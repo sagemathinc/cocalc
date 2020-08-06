@@ -9,7 +9,9 @@ import {
 } from "../../app-framework";
 import { fromJS } from "immutable";
 import { Icon, COLORS, Space } from "../../r_misc";
+import { unreachable } from "smc-util/misc2";
 import { Button, Menu, Dropdown } from "antd";
+import { Row, Col } from "../../antd-bootstrap";
 import { DownOutlined } from "@ant-design/icons";
 import {
   GROUPS,
@@ -32,16 +34,16 @@ const COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES_ORIG).sort(img_sorter);
 
 interface ComputeImageSelectorProps {
   selected_image: string;
-  //onToggle: (open: boolean) => void;
-  onBlur: () => void;
-  onFocus: () => void;
+  layout: "vertical" | "horizontal";
+  onBlur?: () => void;
+  onFocus?: () => void;
   onSelect: (e) => void;
 }
 
 export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
   props: ComputeImageSelectorProps
 ) => {
-  const { selected_image, onFocus, onBlur, onSelect } = props;
+  const { selected_image, onFocus, onBlur, onSelect, layout } = props;
 
   function compute_image_info(name, type) {
     return COMPUTE_IMAGES.getIn([name, type]);
@@ -98,32 +100,48 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
     } else {
       return (
         <span style={{ color: COLORS.GRAY, fontSize: "11pt" }}>
-          <br /> (If in doubt, select "{default_title}".)
+          <br /> (If in doubt, select "{default_title}")
         </span>
       );
     }
   }
 
-  function render_info() {
-    return (
-      <span>
-        <i>{compute_image_info(selected_image, "descr")}</i>
-      </span>
-    );
+  function render_info(italic: boolean) {
+    const desc = compute_image_info(selected_image, "descr");
+    return <span>{italic ? <i>{desc}</i> : desc}</span>;
   }
 
-  return (
-    <>
-      <div style={{ fontSize: "12pt" }}>
-        <Icon name={"hdd"} />
-        <Space />
-        Selected image
-        <Space />
-        {render_selector()}
-        <Space />
-        {render_doubt()}
-      </div>
-      <div style={{ marginTop: "10px" }}>{render_info()}</div>
-    </>
-  );
+  switch (layout) {
+    case "vertical":
+      // used in project settings → project control
+      return (
+        <Col xs={12}>
+          <Row style={{ fontSize: "12pt" }}>
+            <Icon name={"hdd"} />
+            <Space />
+            Selected image
+            <Space />
+            {render_selector()}
+            <Space />
+            {render_doubt()}
+          </Row>
+          <Row>{render_info(true)}</Row>
+        </Col>
+      );
+    case "horizontal":
+      // used in projects → create new project
+      return (
+        <Col xs={12}>
+          <Icon name={"hdd"} />
+          <Space />
+          <span style={{ fontSize: "12pt", fontWeight: "bold" }}>
+            {render_selector()}
+          </span>
+          <span style={{ marginLeft: "10px" }}>{render_info(false)}</span>
+        </Col>
+      );
+    default:
+      unreachable(layout);
+      return null;
+  }
 };

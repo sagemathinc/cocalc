@@ -38,7 +38,7 @@ import {
 
 import { Row, Col } from "antd";
 
-import { A, ErrorDisplay, Icon, Space } from "../r_misc";
+import { A, ErrorDisplay, Icon, Space, COLORS } from "../r_misc";
 
 interface Props {
   start_in_edit_mode?: boolean;
@@ -251,7 +251,7 @@ export const NewProjectCreator: React.FC<Props> = ({
           onClick={() => set_show_advanced(true)}
           style={{ cursor: "pointer" }}
         >
-          <b>Software environment...</b>
+          <b>Customize the software environment...</b>
         </a>
       </div>
     );
@@ -277,7 +277,7 @@ export const NewProjectCreator: React.FC<Props> = ({
             {render_advanced_toggle()}
           </Col>
           <Col sm={12}>
-            <div style={{ color: "#666", marginLeft: "30px" }}>
+            <div style={{ color: COLORS.GRAY, marginLeft: "30px" }}>
               A <A href="https://doc.cocalc.com/project.html">project</A> is an
               isolated private computational workspace that you can share with
               others. You can easily change the project's title at any time in

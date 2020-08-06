@@ -416,7 +416,7 @@ export const ProjectControl = rclass<ReactProps>(
         <div style={{ color: COLORS.GRAY }}>
           <ComputeImageSelector
             selected_image={selected_image}
-            // onToggle={(open) => this.setState({ compute_image_focused: open })}
+            layout={"vertical"}
             onFocus={() => this.setState({ compute_image_focused: true })}
             onBlur={() => this.setState({ compute_image_focused: false })}
             onSelect={(img) => this.set_compute_image(img)}

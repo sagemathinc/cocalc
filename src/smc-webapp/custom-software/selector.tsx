@@ -6,10 +6,11 @@
 import { React, useTypedRedux, useState } from "../app-framework";
 import { ComputeImages, ComputeImage, ComputeImageTypes } from "./init";
 import { SiteName, CompanyName, HelpEmailLink } from "../customize";
-import { Markdown, SearchInput, Icon } from "../r_misc";
+import { Markdown, SearchInput, Icon, Space } from "../r_misc";
 import { CUSTOM_SOFTWARE_HELP_URL } from "./util";
 import { COLORS } from "smc-util/theme";
-
+import { DEFAULT_COMPUTE_IMAGE, COMPUTE_IMAGES } from "smc-util/compute-images";
+import { Divider } from "antd";
 import {
   Row,
   Col,
@@ -19,6 +20,8 @@ import {
   ListGroupItem,
   Radio,
 } from "react-bootstrap";
+
+import { ComputeImageSelector } from "../project/settings/compute-image-selector";
 
 const BINDER_URL = "https://mybinder.readthedocs.io/en/latest/";
 
@@ -56,12 +59,11 @@ export const CustomSoftware: React.FC<Props> = ({ onChange }) => {
   );
 
   const [search_img, set_search_img] = useState<string>("");
-
   const [image_selected, set_image_selected] = useState<string | undefined>(
     undefined
   );
   const set_title_text = useState<string | undefined>(undefined)[1];
-  const [image_type, set_image_type] = useState<ComputeImageTypes>("official");
+  const [image_type, set_image_type] = useState<ComputeImageTypes>("default");
 
   function set_state(
     image_selected: string | undefined,
@@ -205,57 +207,111 @@ export const CustomSoftware: React.FC<Props> = ({ onChange }) => {
     );
   }
 
+  function render_default() {
+    return (
+      <Radio
+        checked={image_type === "default"}
+        id={"default-compute-image"}
+        onChange={() => {
+          set_state(undefined, undefined, "default");
+        }}
+      >
+        <b>Default</b>: large repository of software, well tested – maintained
+        by <CompanyName />, running <SiteName />.{" "}
+        <a
+          href={`${window.app_base_url}/doc/software.html`}
+          target={"_blank"}
+          rel={"noopener"}
+        >
+          More info...
+        </a>
+      </Radio>
+    );
+  }
+
+  function render_standard() {
+    return (
+      <Radio
+        checked={image_type === "standard"}
+        id={"default-compute-image"}
+        onChange={() => {
+          set_state(undefined, undefined, "standard");
+        }}
+      >
+        <b>Standard</b>: upcoming and archived versions of the "Default"
+        software environment.
+      </Radio>
+    );
+  }
+
+  function render_custom() {
+    if (images == null || images.size == 0) {
+      return "There are no customized software environments available.";
+    } else {
+      return (
+        <Radio
+          checked={image_type === "custom"}
+          label={"Custom software environment"}
+          id={"custom-compute-image"}
+          onChange={() => {
+            set_state(undefined, undefined, "custom");
+          }}
+        >
+          <b>Custom</b>
+          <sup>
+            <em>beta</em>
+          </sup>
+          : 3rd party software environments, e.g.{" "}
+          <a href={BINDER_URL} target={"_blank"} rel={"noopener"}>
+            Binder
+          </a>
+          .{" "}
+          <a href={CUSTOM_SOFTWARE_HELP_URL} target={"_blank"}>
+            More info...
+          </a>
+        </Radio>
+      );
+    }
+  }
+
+  function render_standard_image_selector() {
+    if (image_type !== "standard") return;
+
+    return (
+      <Col sm={12}>
+        <ComputeImageSelector
+          selected_image={image_selected ?? DEFAULT_COMPUTE_IMAGE}
+          layout={"horizontal"}
+          onSelect={(img) => {
+            const display = COMPUTE_IMAGES[img].title;
+            set_state(img, display, "standard");
+          }}
+        />
+        <Space />
+      </Col>
+    );
+  }
+
   function render_type_selection() {
     return (
       <>
         <ControlLabel>Software environment</ControlLabel>
 
         <FormGroup>
-          <Radio
-            checked={image_type === "official"}
-            id={"default-compute-image"}
-            onChange={() => {
-              set_state(undefined, undefined, "official");
-            }}
-          >
-            <b>Default</b>: large repository of software, maintained by{" "}
-            <CompanyName />, running <SiteName />.{" "}
-            <a
-              href={`${window.app_base_url}/doc/software.html`}
-              target={"_blank"}
-              rel={"noopener"}
-            >
-              More info...
-            </a>
-          </Radio>
-
-          {images != null && images.size > 0 ? (
-            <Radio
-              checked={image_type === "custom"}
-              label={"Custom software environment"}
-              id={"custom-compute-image"}
-              onChange={() => {
-                set_state(undefined, undefined, "custom");
-              }}
-            >
-              <b>Custom</b>
-              <sup>
-                <em>beta</em>
-              </sup>
-              : 3rd party software environments, e.g.{" "}
-              <a href={BINDER_URL} target={"_blank"} rel={"noopener"}>
-                Binder
-              </a>
-              .{" "}
-              <a href={CUSTOM_SOFTWARE_HELP_URL} target={"_blank"}>
-                More info...
-              </a>
-            </Radio>
-          ) : (
-            "There are no customized software environments available."
-          )}
+          {render_default()}
+          {render_standard()}
+          {render_custom()}
         </FormGroup>
       </>
+    );
+  }
+
+  function render_divider() {
+    if (image_type === "default") return;
+    return (
+      <Divider orientation="left" plain>
+        Configuration
+      </Divider>
     );
   }
 
@@ -265,6 +321,8 @@ export const CustomSoftware: React.FC<Props> = ({ onChange }) => {
         {render_type_selection()}
       </Col>
 
+      {render_divider()}
+      {render_standard_image_selector()}
       <Col sm={6}>{render_custom_images()}</Col>
       <Col sm={6}>{render_selected_custom_image_info()}</Col>
     </Row>
