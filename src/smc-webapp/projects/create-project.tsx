@@ -17,14 +17,13 @@ import {
   useState,
   useTypedRedux,
 } from "../app-framework";
-
-import { custom_image_name } from "../custom-software/util";
-
+import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 import { delay } from "awaiting";
 
 import {
-  CustomSoftware,
-  CustomSoftwareState,
+  SoftwareEnvironment,
+  SoftwareEnvironmentState,
+  derive_project_img_name,
 } from "../custom-software/selector";
 
 import {
@@ -38,7 +37,7 @@ import {
 
 import { Row, Col } from "antd";
 
-import { A, ErrorDisplay, Icon, Space } from "../r_misc";
+import { A, ErrorDisplay, Icon, Space, COLORS } from "../r_misc";
 
 interface Props {
   start_in_edit_mode?: boolean;
@@ -60,13 +59,14 @@ export const NewProjectCreator: React.FC<Props> = ({
   const [show_advanced, set_show_advanced] = useState<boolean>(false);
   const [title_prefill, set_title_prefill] = useState<boolean>(true);
 
-  const [custom_software, set_custom_software] = useState<CustomSoftwareState>(
+  const [custom_software, set_custom_software] = useState<SoftwareEnvironmentState>(
     {}
   );
 
   const new_project_title_ref = useRef(null);
 
   const is_anonymous = useTypedRedux("account", "is_anonymous");
+  const customize_kucalc = useTypedRedux("customize", "kucalc");
 
   useEffect(() => {
     select_text();
@@ -107,16 +107,11 @@ export const NewProjectCreator: React.FC<Props> = ({
   async function create_project(): Promise<void> {
     set_state("saving");
     const actions = redux.getActions("projects");
-    const image: string =
-      custom_software.image_type == "custom" &&
-      custom_software.image_selected != null
-        ? custom_image_name(custom_software.image_selected)
-        : "default";
     let project_id: string;
     try {
       project_id = await actions.create_project({
         title: title_text,
-        image,
+        image: derive_project_img_name(custom_software),
         start: false, // do NOT want to start, due to apply_default_upgrades
       });
     } catch (err) {
@@ -207,8 +202,9 @@ export const NewProjectCreator: React.FC<Props> = ({
       title_text === "" ||
       // currently saving (?)
       state === "saving" ||
-      // user wants a custom image, but hasn't selected one yet
-      (custom_software.image_type === "custom" &&
+      // user wants a non-default image, but hasn't selected one yet
+      ((custom_software.image_type === "custom" ||
+        custom_software.image_type === "standard") &&
         custom_software.image_selected == null)
     );
   }
@@ -231,7 +227,7 @@ export const NewProjectCreator: React.FC<Props> = ({
     }
   }
 
-  function customer_software_set_state(obj: CustomSoftwareState): void {
+  function custom_software_on_change(obj: SoftwareEnvironmentState): void {
     if (obj.title_text != null && (!title_prefill || !title_text)) {
       set_title(obj.title_text);
     }
@@ -240,10 +236,12 @@ export const NewProjectCreator: React.FC<Props> = ({
 
   function render_advanced() {
     if (!show_advanced) return;
-    return <CustomSoftware onChange={customer_software_set_state} />;
+    return <SoftwareEnvironment onChange={custom_software_on_change} />;
   }
 
   function render_advanced_toggle(): JSX.Element | undefined {
+    // we only support custom images on cocalc.com
+    if (customize_kucalc !== KUCALC_COCALC_COM) return;
     if (show_advanced) return;
     return (
       <div style={{ margin: "10px 0 0" }}>
@@ -251,7 +249,7 @@ export const NewProjectCreator: React.FC<Props> = ({
           onClick={() => set_show_advanced(true)}
           style={{ cursor: "pointer" }}
         >
-          <b>Software environment...</b>
+          <b>Customize the software environment...</b>
         </a>
       </div>
     );
@@ -277,7 +275,7 @@ export const NewProjectCreator: React.FC<Props> = ({
             {render_advanced_toggle()}
           </Col>
           <Col sm={12}>
-            <div style={{ color: "#666", marginLeft: "30px" }}>
+            <div style={{ color: COLORS.GRAY, marginLeft: "30px" }}>
               A <A href="https://doc.cocalc.com/project.html">project</A> is an
               isolated private computational workspace that you can share with
               others. You can easily change the project's title at any time in

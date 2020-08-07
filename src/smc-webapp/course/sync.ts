@@ -87,7 +87,8 @@ export function create_sync_db(
       redux.getProjectActions(project_id).flag_file_activity(filename)
     );
 
-    const p = redux.getProjectActions(store.get("course_project_id"));
+    const course_project_id = store.get("course_project_id");
+    const p = redux.getProjectActions(course_project_id);
     if (p != null) {
       p.log_opened_time(store.get("course_filename"));
     }
@@ -108,6 +109,21 @@ export function create_sync_db(
       return;
     }
     actions.students.lookup_nonregistered_students();
+
+    const course_compute_image = actions
+      .get_store()
+      .getIn(["settings", "custom_image"]);
+    if (course_compute_image == null) {
+      const course_project_compute_image = projects_store.getIn([
+        "project_map",
+        course_project_id,
+        "compute_image",
+      ]);
+      actions.set(
+        { custom_image: course_project_compute_image, table: "settings" },
+        true
+      );
+    }
     actions.configuration.configure_all_projects();
 
     // Also

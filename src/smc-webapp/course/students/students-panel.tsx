@@ -889,7 +889,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       const { students, num_omitted, num_deleted } = this.get_student_list();
 
       return (
-        <div className="smc-vfill" style={{ margin: "0 15px" }}>
+        <div className="smc-vfill" style={{ margin: "0" }}>
           {this.render_header(num_omitted)}
           {this.render_student_info(students, num_deleted)}
         </div>

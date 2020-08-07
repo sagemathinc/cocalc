@@ -172,7 +172,7 @@ export async function handle_path_request(opts: {
           public_paths.is_public,
           settings,
           description,
-          `/${info.get("id")}/${path}`
+          `/${info.get("id")}/${path}`,
         ),
         viewer,
         hidden: req.query.hidden,

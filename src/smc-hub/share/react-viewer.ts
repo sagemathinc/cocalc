@@ -18,7 +18,7 @@ export function react_viewer(
   is_public: IsPublicFunction,
   settings: Settings,
   description?: string,
-  launch_path?: string
+  launch_path?: string,
 ): Function {
   return function (res, component, subtitle: string, noindex: boolean): void {
     const the_page = React.createElement(

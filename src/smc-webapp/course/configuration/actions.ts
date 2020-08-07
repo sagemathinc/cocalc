@@ -11,8 +11,10 @@ import { SyncDBRecord, UpgradeGoal } from "../types";
 import { CourseActions } from "../actions";
 import { redux } from "../../app-framework";
 import { reuseInFlight } from "async-await-utils/hof";
-import { CustomSoftwareState } from "../../custom-software/selector";
-import { custom_image_name } from "../../custom-software/util";
+import {
+  SoftwareEnvironmentState,
+  derive_project_img_name,
+} from "../../custom-software/selector";
 
 export class ConfigurationActions {
   private course_actions: CourseActions;
@@ -146,14 +148,13 @@ export class ConfigurationActions {
     });
   }
 
-  public set_software_environment(state: CustomSoftwareState): void {
-    const custom_image =
-      state.image_type == "custom" && state.image_selected != null
-        ? custom_image_name(state.image_selected)
-        : "";
+  public set_software_environment(state: SoftwareEnvironmentState): void {
+    const custom_image = derive_project_img_name(state);
     this.set({
       custom_image,
       table: "settings",
     });
+    this.course_actions.student_projects.configure_all_projects();
+    this.course_actions.shared_project.set_project_compute_image();
   }
 }
