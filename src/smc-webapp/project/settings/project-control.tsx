@@ -370,7 +370,7 @@ export const ProjectControl = rclass<ReactProps>(
             <div>
               <Icon name={"hdd"} /> Custom image:
             </div>
-            <CustomImageDisplay
+            <SoftwareImageDisplay
               image={this.props.project.get("compute_image")}
             />
             <Space />
@@ -480,7 +480,7 @@ interface DisplayProps {
 
 // this is also used for standard images !!!
 // in course/configuration/custom-software-environment
-export const CustomImageDisplay: React.FC<DisplayProps> = ({ image }) => {
+export const SoftwareImageDisplay: React.FC<DisplayProps> = ({ image }) => {
   const images = useTypedRedux("compute_images", "images");
   if (images == null) {
     return <Loading />;

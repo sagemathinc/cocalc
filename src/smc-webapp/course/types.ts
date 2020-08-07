@@ -21,7 +21,7 @@ export interface SyncDBRecordSettings {
   nbgrader_grade_in_instructor_project?: boolean;
   nbgrader_cell_timeout_ms?: number;
   nbgrader_timeout_ms?: number;
-  custom_image?: string; // if falsy use default environment; if true-ish, use named custom environment for creating student projects
+  custom_image?: string; // if falsy use default environment; if true-ish, use this software image for student projects. it should be called compute_image or software_image
 }
 
 // This is closely related to store.AssignmentRecord...

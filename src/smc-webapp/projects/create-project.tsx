@@ -21,8 +21,8 @@ import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 import { delay } from "awaiting";
 
 import {
-  CustomSoftware,
-  CustomSoftwareState,
+  SoftwareEnvironment,
+  SoftwareEnvironmentState,
   derive_project_img_name,
 } from "../custom-software/selector";
 
@@ -59,7 +59,7 @@ export const NewProjectCreator: React.FC<Props> = ({
   const [show_advanced, set_show_advanced] = useState<boolean>(false);
   const [title_prefill, set_title_prefill] = useState<boolean>(true);
 
-  const [custom_software, set_custom_software] = useState<CustomSoftwareState>(
+  const [custom_software, set_custom_software] = useState<SoftwareEnvironmentState>(
     {}
   );
 
@@ -227,7 +227,7 @@ export const NewProjectCreator: React.FC<Props> = ({
     }
   }
 
-  function custom_software_on_change(obj: CustomSoftwareState): void {
+  function custom_software_on_change(obj: SoftwareEnvironmentState): void {
     if (obj.title_text != null && (!title_prefill || !title_text)) {
       set_title(obj.title_text);
     }
@@ -236,7 +236,7 @@ export const NewProjectCreator: React.FC<Props> = ({
 
   function render_advanced() {
     if (!show_advanced) return;
-    return <CustomSoftware onChange={custom_software_on_change} />;
+    return <SoftwareEnvironment onChange={custom_software_on_change} />;
   }
 
   function render_advanced_toggle(): JSX.Element | undefined {

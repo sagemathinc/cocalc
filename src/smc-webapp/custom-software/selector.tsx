@@ -18,7 +18,12 @@ import { ComputeImages, ComputeImage, ComputeImageTypes } from "./init";
 import { SiteName, CompanyName, HelpEmailLink } from "../customize";
 import { Markdown, SearchInput, Icon, Space } from "../r_misc";
 import { unreachable } from "smc-util/misc2";
-import { CUSTOM_SOFTWARE_HELP_URL, custom_image_name } from "./util";
+import {
+  CUSTOM_SOFTWARE_HELP_URL,
+  custom_image_name,
+  is_custom_image,
+  compute_image2basename,
+} from "./util";
 import { COLORS } from "smc-util/theme";
 import {
   DEFAULT_COMPUTE_IMAGE,
@@ -46,16 +51,16 @@ const entries_item_style: Readonly<React.CSSProperties> = Object.freeze({
   textAlign: "left" as "left",
 });
 
-export interface CustomSoftwareState {
+export interface SoftwareEnvironmentState {
   image_selected?: string;
   title_text?: string;
   image_type?: ComputeImageTypes;
 }
 
 // this is used in create-project and course/configuration/actions
-// this derives the proper image name from the image type & image selection of CustomSoftwareState
+// this derives the proper image name from the image type & image selection of SoftwareEnvironmentState
 export function derive_project_img_name(
-  custom_software: CustomSoftwareState
+  custom_software: SoftwareEnvironmentState
 ): string {
   const { image_type, image_selected } = custom_software;
   if (image_selected == null || image_type == null) {
@@ -74,10 +79,15 @@ export function derive_project_img_name(
 }
 
 interface Props {
-  onChange: (obj: CustomSoftwareState) => void;
+  onChange: (obj: SoftwareEnvironmentState) => void;
+  default_image?: string; // which one to initialize state to
 }
 
-export const CustomSoftware: React.FC<Props> = ({ onChange }) => {
+// this is a selector for the software environment of a project
+export const SoftwareEnvironment: React.FC<Props> = ({
+  onChange,
+  default_image,
+}) => {
   const images: ComputeImages | undefined = useTypedRedux(
     "compute_images",
     "images"
@@ -100,6 +110,27 @@ export const CustomSoftware: React.FC<Props> = ({ onChange }) => {
     set_image_type(image_type);
     onChange({ image_selected, title_text, image_type });
   }
+
+  // initialize selection, if there is a default image set
+  React.useEffect(() => {
+    if (default_image == null || default_image === DEFAULT_COMPUTE_IMAGE) {
+      // do nothing, that's the initial state already!
+    } else if (is_custom_image(default_image)) {
+      if (images == null) return;
+      const id = compute_image2basename(default_image);
+      const img: ComputeImage | undefined = images.get(id);
+      if (img == null) {
+        // ignore, user has to select from scratch
+      } else {
+        set_state(id, img.get("display", ""), "custom");
+      }
+    } else {
+      // must be standard image
+      const img = STANDARD_COMPUTE_IMAGES[default_image];
+      const display = img != null ? img.title ?? "" : "";
+      set_state(default_image, display, "standard");
+    }
+  }, []);
 
   function render_custom_image_entries() {
     if (images == null) return;

@@ -12,7 +12,7 @@ import { CourseActions } from "../actions";
 import { redux } from "../../app-framework";
 import { reuseInFlight } from "async-await-utils/hof";
 import {
-  CustomSoftwareState,
+  SoftwareEnvironmentState,
   derive_project_img_name,
 } from "../../custom-software/selector";
 
@@ -148,7 +148,7 @@ export class ConfigurationActions {
     });
   }
 
-  public set_software_environment(state: CustomSoftwareState): void {
+  public set_software_environment(state: SoftwareEnvironmentState): void {
     const custom_image = derive_project_img_name(state);
     this.set({
       custom_image,

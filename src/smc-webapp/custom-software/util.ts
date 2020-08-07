@@ -59,9 +59,6 @@ export function custom_image_name(id: string): string {
   return path_join(CUSTOM_IMG_PREFIX, id, tag);
 }
 
-
-
-
-
-
-
+export function is_custom_image(img: string): boolean {
+  return img.startsWith(CUSTOM_IMG_PREFIX);
+}
