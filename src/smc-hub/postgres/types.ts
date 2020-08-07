@@ -22,6 +22,7 @@ export interface QueryOptions {
   table?: string;
   where?: QueryWhere;
   query?: string;
+  set?: { [key: string]: any };
   params?: any[];
   values?: { [key: string]: any };
   cache?: boolean;

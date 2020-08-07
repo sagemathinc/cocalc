@@ -15,9 +15,11 @@ import { SiteLicensePublicInfo as Info } from "./types";
 import { site_license_public_info } from "./util";
 import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../r_misc";
 import { alert_message } from "../alerts";
-import { Alert, Button, Popconfirm } from "antd";
+import { Alert, Button, Input, Popconfirm } from "antd";
 import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
 import { plural, trunc_left } from "smc-util/misc2";
+import { DebounceInput } from "react-debounce-input";
+import { webapp_client } from "../webapp-client";
 
 interface Props {
   license_id: string;
@@ -36,6 +38,12 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
   const [err, set_err] = useState<string | undefined>(undefined);
   const [loading, set_loading] = useState<boolean>(true);
   const isMountedRef = useIsMountedRef();
+  const [is_editing_description, set_is_editing_description] = useState<
+    boolean
+  >(false);
+  const [is_editing_title, set_is_editing_title] = useState<boolean>(false);
+  const [title, set_title] = useState<string>("");
+  const [description, set_description] = useState<string>("");
 
   useEffect(() => {
     // Optimization: check in redux store for first approximation of
@@ -45,7 +53,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
       .getIn(["managed_licenses", license_id]);
     if (info != null) {
       const info2 = info.toJS() as Info;
-      info2.is_manager = true;
+      info2.is_manager = true; // redux store *only* has entries that are managed.
       set_info(info2);
     }
     // Now launch async fetch from database.  This has more info, e.g., number of
@@ -383,12 +391,45 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
   }
 
   function render_description(): JSX.Element | undefined {
-    const description = info?.description;
-    if (!description) return;
-    return <li style={{    whiteSpace: 'pre-wrap',
-    border: '1px solid lightgrey',
-    background: 'white',
-    padding: '5px'}}>{description}</li>;
+    if (is_editing_description) {
+      return (
+        <DebounceInput
+          autoSize={{ minRows: 2, maxRows: 6 }}
+          element={Input.TextArea as any}
+          placeholder={"Description"}
+          value={description}
+          onChange={(e) => set_description(e.target.value)}
+          onBlur={async () => {
+            if (description == info?.description) return;
+            const query = {
+              manager_site_licenses: { id: license_id, description },
+            };
+            await webapp_client.query({ query });
+          }}
+        />
+      );
+    }
+    if (!info?.description) return;
+    return (
+      <li
+        style={{
+          whiteSpace: "pre-wrap",
+          border: "1px solid lightgrey",
+          background: "white",
+          padding: "5px",
+        }}
+        onClick={
+          info?.is_manager
+            ? () => {
+                set_is_editing_description(true);
+                set_description(info?.description);
+              }
+            : undefined
+        }
+      >
+        {info?.description}
+      </li>
+    );
   }
 
   function render_err(): JSX.Element | undefined {
@@ -408,7 +449,8 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
         {render_refresh_button()}
         {render_remove_button()}
       </Button.Group>
-      {project_id != null && <Icon name="key" /> }{render_body()}
+      {project_id != null && <Icon name="key" />}
+      {render_body()}
       <br />
       {render_upgrades()}
       {render_err()}

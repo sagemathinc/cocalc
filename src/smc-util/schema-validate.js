@@ -35,7 +35,11 @@ exports.validate_client_query = function validate_client_query(
 
   let v = misc.keys(query);
   if (v.length !== 1) {
-    return warn("must specify exactly one key in the query");
+    return warn(
+      `must specify exactly one key in the query, but the query is empty ${JSON.stringify(
+        query
+      )}`
+    );
   }
   const table = v[0];
   // Check that the table is in the schema

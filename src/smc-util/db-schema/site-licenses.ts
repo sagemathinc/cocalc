@@ -577,7 +577,7 @@ Table({
     apply_limit: true,
   },
   rules: {
-    virtual: true, // don't make an actual table
+    virtual: "site_licenses", // don't make an actual table
     desc: "Licenses that user doing the query is a manager of.",
     anonymous: false,
     primary_key: ["id"],
@@ -613,6 +613,29 @@ Table({
               undefined,
               await database.manager_site_licenses(opts.account_id)
             );
+          } catch (err) {
+            cb(err);
+          }
+        },
+      },
+      set: {
+        // set is so managers of a license can easily change the title/description at any time
+        admin: false,
+        fields: {
+          id: true,
+          title: true,
+          description: true,
+        },
+        async instead_of_change(
+          database,
+          _old_value,
+          new_val,
+          account_id,
+          cb
+        ): Promise<void> {
+          try {
+            await database.site_license_manager_set(account_id, new_val);
+            cb();
           } catch (err) {
             cb(err);
           }
