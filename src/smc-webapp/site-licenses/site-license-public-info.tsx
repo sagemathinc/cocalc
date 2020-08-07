@@ -142,7 +142,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
     }
     return (
       <span>
-        {info.title}
+        {render_title()}
         {render_expires()}
       </span>
     );
@@ -390,11 +390,68 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
     }
   }
 
+  function render_title(): JSX.Element | undefined {
+    if (is_editing_title) {
+      return (
+        <DebounceInput
+          element={Input as any}
+          placeholder={"Title"}
+          value={title}
+          onChange={(e) => set_title(e.target.value)}
+          onBlur={async () => {
+            if (title == info?.title) return;
+            const query = {
+              manager_site_licenses: { id: license_id, title },
+            };
+            await webapp_client.query({ query });
+            if (!isMountedRef.current) return;
+            await fetch_info(true);
+            if (!isMountedRef.current) return;
+            set_is_editing_title(false);
+          }}
+        />
+      );
+    }
+    if (!info?.title) {
+      if (!info?.is_manager) return;
+      return (
+        <Button
+          onClick={() => {
+            set_is_editing_title(true);
+            set_title(info?.title);
+          }}
+        >
+          Set title...
+        </Button>
+      );
+    }
+    return (
+      <span
+        style={{
+          whiteSpace: "pre-wrap",
+          border: "1px solid lightgrey",
+          background: "white",
+          padding: "4px 11px",
+        }}
+        onClick={
+          info?.is_manager
+            ? () => {
+                set_is_editing_title(true);
+                set_title(info?.title);
+              }
+            : undefined
+        }
+      >
+        {info?.title}
+      </span>
+    );
+  }
+
   function render_description(): JSX.Element | undefined {
     if (is_editing_description) {
       return (
         <DebounceInput
-          autoSize={{ minRows: 2, maxRows: 6 }}
+          autoSize={{ minRows: 1, maxRows: 6 }}
           element={Input.TextArea as any}
           placeholder={"Description"}
           value={description}
@@ -405,18 +462,34 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
               manager_site_licenses: { id: license_id, description },
             };
             await webapp_client.query({ query });
+            set_is_editing_description(false);
+            if (!isMountedRef.current) return;
+            await fetch_info(true);
+            if (!isMountedRef.current) return;
           }}
         />
       );
     }
-    if (!info?.description) return;
+    if (!info?.description) {
+      if (!info?.is_manager) return;
+      return (
+        <Button
+          onClick={() => {
+            set_is_editing_description(true);
+            set_description(info?.description);
+          }}
+        >
+          Set description...
+        </Button>
+      );
+    }
     return (
       <li
         style={{
           whiteSpace: "pre-wrap",
           border: "1px solid lightgrey",
           background: "white",
-          padding: "5px",
+          padding: "4px 11px",
         }}
         onClick={
           info?.is_manager

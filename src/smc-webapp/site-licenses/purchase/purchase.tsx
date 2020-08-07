@@ -634,7 +634,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           <Col md={3}>Description</Col>
           <Col md={10}>
             <DebounceInput
-              autoSize={{ minRows: 2, maxRows: 6 }}
+              autoSize={{ minRows: 1, maxRows: 6 }}
               element={Input.TextArea as any}
               placeholder={"Description"}
               value={description}
