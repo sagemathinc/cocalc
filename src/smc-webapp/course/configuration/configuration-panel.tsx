@@ -604,7 +604,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
     return (
       <div className="smc-vfill" style={{ overflowY: "scroll" }}>
         <Row>
-          <Col md={12} style={{ padding: "15px" }}>
+          <Col md={12} style={{ padding: "15px 15px 15px 0" }}>
             {render_require_students_pay()}
             {is_commercial && <br />}
             {render_require_institute_pay()}
