@@ -23,6 +23,7 @@ import {
   DEFAULT_COMPUTE_IMAGE,
 } from "smc-util/compute-images";
 const COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES_ORIG); // only because that's how all the ui code was written.
+import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 
 interface Props {
   actions: ConfigurationActions;
@@ -33,6 +34,8 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
   actions,
   software_image,
 }) => {
+  const customize_kucalc = useTypedRedux("customize", "kucalc");
+
   const [changing, set_changing] = useState(false);
   const [state, set_state] = useState<SoftwareEnvironmentState>({});
 
@@ -118,6 +121,9 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
       );
     }
   }
+
+  // this selector only make sense for cocalc.com
+  if (customize_kucalc !== KUCALC_COCALC_COM) return null;
 
   return (
     <Card
