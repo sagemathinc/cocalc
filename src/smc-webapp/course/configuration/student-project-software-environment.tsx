@@ -5,17 +5,18 @@
 
 import { React, useState, useTypedRedux } from "../../app-framework";
 import { fromJS } from "immutable";
-import { Icon, Markdown } from "../../r_misc";
+import { Icon, Markdown, A } from "../../r_misc";
 import {
   SoftwareEnvironment,
   SoftwareEnvironmentState,
 } from "../../custom-software/selector";
 import { ConfigurationActions } from "./actions";
 import { Button, Card, Alert } from "antd";
+import { HelpEmailLink } from "../../customize";
 import { SoftwareImageDisplay } from "../../project/settings/project-control";
 import {
-  is_custom_image,
   compute_image2basename,
+  is_custom_image,
 } from "../../custom-software/util";
 import { ComputeImage, ComputeImages } from "../../custom-software/init";
 import {
@@ -24,6 +25,9 @@ import {
 } from "smc-util/compute-images";
 const COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES_ORIG); // only because that's how all the ui code was written.
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
+
+const CSI_HELP =
+  "https://doc.cocalc.com/software.html#custom-software-environment";
 
 interface Props {
   actions: ConfigurationActions;
@@ -109,17 +113,34 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
     } else {
       const img = COMPUTE_IMAGES.get(img_id);
       if (img != null) {
-        descr = img.get("descr");
+        descr = `<i>(${img.get("descr")})</i>`;
       }
     }
     if (descr) {
       return (
         <Markdown
-          style={{ display: "block", maxHeight: "200px", overflowY: "auto" }}
+          style={{
+            display: "block",
+            maxHeight: "200px",
+            overflowY: "auto",
+            marginTop: "10px",
+            marginBottom: "10px",
+          }}
           value={descr}
         />
       );
     }
+  }
+
+  function render_custom_info() {
+    if (software_image != null && is_custom_image(software_image)) return;
+    return (
+      <p>
+        If you need additional software or a fully{" "}
+        <A href={CSI_HELP}>customized software environment</A>, please contact{" "}
+        <HelpEmailLink />.
+      </p>
+    );
   }
 
   // this selector only make sense for cocalc.com
@@ -134,11 +155,12 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
         </>
       }
     >
-      Student projects will be using the "{current_environment}" software
-      environment.
-      <br />
+      <p>
+        Student projects will be using the software environment:{" "}
+        <em>{current_environment}</em>
+      </p>
       {render_description()}
-      <br />
+      {render_custom_info()}
       <Button onClick={() => set_changing(true)} disabled={changing}>
         Change...
       </Button>
