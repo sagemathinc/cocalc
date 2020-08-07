@@ -55,7 +55,7 @@ import { Nbgrader } from "./nbgrader";
 import { upgrades } from "smc-util/upgrade-spec";
 import { StudentProjectsStartStopPanel } from "./start-stop-panel";
 import { DisableStudentCollaboratorsPanel } from "./disable-collaborators";
-import { CustomSoftwareEnvironment } from "./custom-software-environment";
+import { StudentProjectSoftwareEnvironment } from "./student-project-software-environment";
 
 const STUDENT_COURSE_PRICE = upgrades.subscription.student_course.price.month4;
 
@@ -604,7 +604,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
     return (
       <div className="smc-vfill" style={{ overflowY: "scroll" }}>
         <Row>
-          <Col md={12} style={{ padding: "15px" }}>
+          <Col md={12} style={{ padding: "15px 15px 15px 0" }}>
             {render_require_students_pay()}
             {is_commercial && <br />}
             {render_require_institute_pay()}
@@ -636,9 +636,9 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             <br />
             {render_push_missing_handouts_and_assignments()}
             <br />
-            <CustomSoftwareEnvironment
+            <StudentProjectSoftwareEnvironment
               actions={actions.configuration}
-              custom_image={settings.get("custom_image")}
+              software_image={settings.get("custom_image")}
             />
           </Col>
         </Row>

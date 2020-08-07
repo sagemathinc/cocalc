@@ -52,7 +52,10 @@ import { callback2, once, retry_until_success } from "smc-util/async-utils";
 import { len, uuid } from "smc-util/misc";
 import { alert_message } from "../alerts";
 import { ANON_PROJECT_TITLE } from "../client/anonymous-setup";
-import { DEFAULT_COMPUTE_IMAGE } from "../../smc-util/compute-images";
+import {
+  is_valid as is_valid_comp_img,
+  FALLBACK_COMPUTE_IMAGE,
+} from "../../smc-util/compute-images";
 import { CSILauncher } from "../launch/custom-image";
 import { CUSTOM_IMG_PREFIX } from "../custom-software/util";
 
@@ -121,9 +124,9 @@ export class ShareLauncher {
       info.path = info.path.slice(0, info.path.length - 1);
     }
 
-    // the compute image's default is "default" (from the time before this field existed)
+    // the compute image's fallback value is "default" (from the time before this field existed)
     // don't change it to DEFAULT_COMPUTE_IMAGE
-    info.compute_image = info.compute_image ?? "default";
+    info.compute_image = info.compute_image ?? FALLBACK_COMPUTE_IMAGE;
 
     // What is our relationship to this public_path?
     const relationship: Relationship = await this.get_relationship_to_share(
@@ -224,26 +227,10 @@ export class ShareLauncher {
     compute_image,
   }): Promise<string> {
     try {
-      if (
-        compute_image === "default" ||
-        compute_image === DEFAULT_COMPUTE_IMAGE
-      ) {
-        // this is the default project
-        const actions = redux.getActions("projects");
-        console.log("creating anonymous default image project");
-        const project_id = await actions.create_project({
-          title,
-          start: true,
-          description: "",
-        });
-        actions.open_project({ project_id, switch_to: true });
-        return project_id;
-      } else {
+      // check, if this is a custom software image and use specific setup code
+      if (compute_image.startsWith(CUSTOM_IMG_PREFIX)) {
         console.log("creating anonymous custom software project");
         // compute_image is like "custom/[image id]/latest"
-        if (!compute_image.startsWith(CUSTOM_IMG_PREFIX)) {
-          throw new Error(`unable to handle compute_image='${compute_image}'`);
-        }
         const image_id = compute_image.split("/")[1];
         const csi = new CSILauncher(image_id);
         const project_id = await csi.launch();
@@ -251,6 +238,20 @@ export class ShareLauncher {
           throw new Error(`image ${compute_image} does not exist`);
         }
         return project_id;
+      } else if (is_valid_comp_img(compute_image)) {
+        // This is one of the standard software images
+        const actions = redux.getActions("projects");
+        console.log("creating anonymous default image project");
+        const project_id = await actions.create_project({
+          title,
+          start: true,
+          description: "",
+          image: compute_image,
+        });
+        actions.open_project({ project_id, switch_to: true });
+        return project_id;
+      } else {
+        throw new Error(`unable to handle compute_image='${compute_image}'`);
       }
     } catch (err) {
       throw Error(`unable to create project -- ${err} -- something is wrong`);

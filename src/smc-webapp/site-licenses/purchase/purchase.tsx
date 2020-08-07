@@ -614,10 +614,10 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       <div style={{ fontSize: "12pt" }}>
         <br />
         <h4>
-          <Icon name="info-circle" /> Title and description (optional)
+          <Icon name="info-circle" /> Title and description
         </h4>
         Optionally set the title and description of this license. You can easily
-        change them later.
+        change this later.
         <br />
         <br />
         <Row gutter={[16, 16]}>

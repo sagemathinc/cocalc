@@ -44,13 +44,7 @@ export class TopBar extends Component<TopBarProps> {
 
   public render(): Rendered {
     // TODO: break up this long function!
-    const {
-      viewer,
-      path,
-      launch_path,
-      project_id,
-      is_public,
-    } = this.props;
+    const { viewer, path, launch_path, project_id, is_public } = this.props;
     let path_component: Rendered | Rendered[], top: string;
     let project_link: Rendered = undefined;
     if (path === "/") {
