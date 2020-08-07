@@ -394,12 +394,15 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
     if (is_editing_title) {
       return (
         <DebounceInput
+          style={{ width: "50%" }}
           element={Input as any}
           placeholder={"Title"}
           value={title}
           onChange={(e) => set_title(e.target.value)}
           onBlur={async () => {
-            if (title == info?.title) return;
+            if (title == info?.title) {
+              set_is_editing_title(false);
+            }
             const query = {
               manager_site_licenses: { id: license_id, title },
             };
@@ -426,12 +429,14 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
       );
     }
     return (
-      <span
+      <div
         style={{
           whiteSpace: "pre-wrap",
           border: "1px solid lightgrey",
           background: "white",
           padding: "4px 11px",
+          display: "inline-block",
+          margin: "5px 0",
         }}
         onClick={
           info?.is_manager
@@ -443,7 +448,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
         }
       >
         {info?.title}
-      </span>
+      </div>
     );
   }
 
@@ -457,7 +462,9 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
           value={description}
           onChange={(e) => set_description(e.target.value)}
           onBlur={async () => {
-            if (description == info?.description) return;
+            if (description == info?.description) {
+              set_is_editing_description(false);
+            }
             const query = {
               manager_site_licenses: { id: license_id, description },
             };
