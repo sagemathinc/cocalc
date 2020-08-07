@@ -5,13 +5,13 @@
 
 import { React, useState, useTypedRedux } from "../../app-framework";
 import { fromJS } from "immutable";
-import { Icon } from "../../r_misc";
+import { Icon, Markdown } from "../../r_misc";
 import {
   SoftwareEnvironment,
   SoftwareEnvironmentState,
 } from "../../custom-software/selector";
 import { ConfigurationActions } from "./actions";
-import { Button, Card } from "antd";
+import { Button, Card, Alert } from "antd";
 import { SoftwareImageDisplay } from "../../project/settings/project-control";
 import {
   is_custom_image,
@@ -48,6 +48,21 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
 
   function render_controls() {
     if (!changing) return;
+    const csi_warning = (
+      <Alert
+        type={"warning"}
+        message={
+          <>
+            <strong>Warning:</strong> Do not change a custom image once there is
+            already one setup and deployed!
+          </>
+        }
+        description={
+          "The associated user files will not be updated and the software environment changes might break the functionality of existing files."
+        }
+      />
+    );
+
     return (
       <>
         <Button
@@ -73,6 +88,7 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
           onChange={handleChange}
           default_image={software_image}
         />
+        {state.image_type === "custom" && csi_warning}
       </>
     );
   }
@@ -95,10 +111,10 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
     }
     if (descr) {
       return (
-        <>
-          <br />
-          <i>{descr}</i>
-        </>
+        <Markdown
+          style={{ display: "block", maxHeight: "200px", overflowY: "auto" }}
+          value={descr}
+        />
       );
     }
   }
@@ -113,8 +129,9 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
       }
     >
       Student projects will be using the "{current_environment}" software
-      environment. {render_description()}
+      environment.
       <br />
+      {render_description()}
       <br />
       <Button onClick={() => set_changing(true)} disabled={changing}>
         Change...
