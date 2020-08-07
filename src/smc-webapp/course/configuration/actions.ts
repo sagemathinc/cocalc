@@ -155,5 +155,6 @@ export class ConfigurationActions {
       table: "settings",
     });
     this.course_actions.student_projects.configure_all_projects();
+    this.course_actions.shared_project.set_project_compute_image();
   }
 }

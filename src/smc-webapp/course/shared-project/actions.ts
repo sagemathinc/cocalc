@@ -12,6 +12,8 @@ import { redux } from "../../app-framework";
 import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
 
+import { DEFAULT_COMPUTE_IMAGE } from "smc-util/compute-images";
+
 export class SharedProjectActions {
   private actions: CourseActions;
 
@@ -150,11 +152,24 @@ export class SharedProjectActions {
         // ensure no license set
         await actions.remove_site_license_from_project(shared_project_id);
       }
+      await this.set_project_compute_image();
     } catch (err) {
       this.actions.set_error(`Error configuring shared project - ${err}`);
     } finally {
       this.actions.set_activity({ id });
     }
+  }
+
+  public async set_project_compute_image(): Promise<void> {
+    const store = this.get_store();
+    const shared_project_id = store.get_shared_project_id();
+    if (!shared_project_id) {
+      return; // no shared project
+    }
+    const img_id =
+      store.get("settings").get("custom_image") ?? DEFAULT_COMPUTE_IMAGE;
+    const actions = redux.getProjectActions(shared_project_id);
+    await actions.set_compute_image(img_id);
   }
 
   // set the shared project id in our syncdb
