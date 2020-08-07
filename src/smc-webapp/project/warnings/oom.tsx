@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Alert, Button } from "../../antd-bootstrap";
 import { React, useEffect, useRedux, useState, useTypedRedux } from "../../app-framework";
 import { A, Icon } from "../../r_misc";

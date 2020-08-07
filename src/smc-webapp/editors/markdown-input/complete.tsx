@@ -46,12 +46,13 @@ export const Complete: React.FC<Props> = ({
   }, [selected]);
   const selected_keys_ref = useRef<string>();
 
-  function select(key?: string): void {
-    if (key == null) {
+  function select(key_orig?: string | number): void {
+    let key: string | undefined;
+    if (key_orig == null) {
       key = selected_keys_ref.current;
     }
-    if (key == null) {
-      // best too just cancel.
+    if (key == null || typeof key_orig === "number") {
+      // best to just cancel.
       onCancel();
     } else {
       onSelect(key);
