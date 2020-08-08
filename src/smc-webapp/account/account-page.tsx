@@ -118,6 +118,19 @@ export const AccountPage: React.FC = () => {
     if (is_commercial) {
       v.push(
         <Tab
+          key="licenses"
+          eventKey="licenses"
+          title={
+            <span>
+              <Icon name="key" /> Licenses
+            </span>
+          }
+        >
+          {active_page === "licenses" && <LicensesPage />}
+        </Tab>
+      );
+      v.push(
+        <Tab
           key="billing"
           eventKey="billing"
           title={
@@ -140,20 +153,6 @@ export const AccountPage: React.FC = () => {
           }
         >
           {active_page === "upgrades" && <UpgradesPage />}
-        </Tab>
-      );
-      // Hide for dev purposes.
-      v.push(
-        <Tab
-          key="licenses"
-          eventKey="licenses"
-          title={
-            <span>
-              <Icon name="key" /> Licenses
-            </span>
-          }
-        >
-          {active_page === "licenses" && <LicensesPage />}
         </Tab>
       );
     }

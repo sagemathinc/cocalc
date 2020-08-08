@@ -12,6 +12,7 @@ export const SupportForm: React.FC = () => {
   const email = useTypedRedux("support", "email");
   const body = useTypedRedux("support", "body");
   const subject = useTypedRedux("support", "subject");
+  const hide_extra_info = useTypedRedux("support", "hide_extra_info");
 
   const actions = useActions("support");
 
@@ -57,10 +58,12 @@ export const SupportForm: React.FC = () => {
         />
       </FormGroup>
       <FormGroup>
-        <b>
-          1. What did you do exactly? 2. What happened? 3. How did this differ
-          from what you expected?
-        </b>
+        {!hide_extra_info && (
+          <b>
+            1. What did you do exactly? 2. What happened? 3. How did this differ
+            from what you expected?
+          </b>
+        )}
         <FormControl
           style={{ marginTop: "15px" }}
           componentClass="textarea"

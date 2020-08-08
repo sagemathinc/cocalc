@@ -15,6 +15,7 @@ export const SupportInfo: React.FC = () => {
   const project_title = useTypedRedux("support", "project_title");
   const status = useTypedRedux("support", "status");
   const actions = useActions("support");
+  const hide_extra_info = useTypedRedux("support", "hide_extra_info");
 
   function render_error() {
     return (
@@ -55,6 +56,16 @@ export const SupportInfo: React.FC = () => {
   }
 
   function render_default() {
+    const how = (
+      <p>
+        After submitting a ticket, you{"'"}ll receive a link, which you should
+        save until you receive a confirmation email. You can also check the
+        status of your ticket under "Support" in your account settings. We
+        typically respond to support requests from paying customers very
+        quickly.
+      </p>
+    );
+    if (hide_extra_info) return how;
     let what;
     const title = project_title;
     const bugs = (
@@ -162,13 +173,7 @@ export const SupportInfo: React.FC = () => {
 
         {what}
 
-        <p>
-          After submitting a ticket, you{"'"}ll receive a link, which you should
-          save until you receive a confirmation email. You can also check the
-          status of your ticket under "Support" in your account settings. We
-          typically respond to support requests from paying customers very
-          quickly.
-        </p>
+        {how}
       </div>
     );
   }

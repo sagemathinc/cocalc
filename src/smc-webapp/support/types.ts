@@ -34,6 +34,7 @@ export interface SupportState {
   valid: boolean; // valid means "ready to submit"
   status: Status;
   project_title?: string;
+  hide_extra_info: boolean;
 
   // This is for the list of existing support tickets page
   // (todo: should be an entirely different store?)

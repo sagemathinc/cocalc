@@ -35,6 +35,7 @@ import { PurchaseMethod } from "./purchase-method";
 import { RadioGroup } from "./radio-group";
 import { plural } from "smc-util/misc2";
 import { DebounceInput } from "react-debounce-input";
+import { create_quote_support_ticket } from "./get-a-quote";
 
 const LENGTH_PRESETS = [
   { label: "1 Day", desc: { n: 1, key: "days" } },
@@ -460,7 +461,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         style={{ margin: "0 5px" }}
         disabled={disabled}
         min={1}
-        max={1000}
+        max={10000}
         value={quantity}
         onChange={(x) => {
           if (typeof x != "number") return;
@@ -771,15 +772,21 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       description,
     };
     set_error("");
-    set_sending("active");
-    try {
-      const resp = await webapp_client.stripe.purchase_license(info);
-      set_purchase_resp(resp);
+    if (quote) {
       set_sending("success");
-      redux.getActions("billing").update_managed_licenses();
-    } catch (err) {
-      set_error(err.toString());
-      set_sending("failed");
+      create_quote_support_ticket(info);
+      onClose();
+    } else {
+      set_sending("active");
+      try {
+        const resp = await webapp_client.stripe.purchase_license(info);
+        set_purchase_resp(resp);
+        set_sending("success");
+        redux.getActions("billing").update_managed_licenses();
+      } catch (err) {
+        set_error(err.toString());
+        set_sending("failed");
+      }
     }
   }
 
@@ -790,7 +797,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       <div>
         Enter additional information about your quote request:
         <br />
-        <textarea
+        <DebounceInput
+          autoSize={{ minRows: 1, maxRows: 6 }}
+          element={Input.TextArea as any}
           disabled={disabled}
           style={{
             width: "100%",
@@ -799,15 +808,19 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             borderRadius: "3px",
             margin: "10px",
           }}
-          rows={4}
           value={quote_info}
           onChange={(event) => set_quote_info(event.target.value)}
         />
         <br />
-        <Button disabled={disabled} onClick={submit} type="primary">
-          <Icon name="phone" />
+        <Button
+          size="large"
+          disabled={disabled}
+          onClick={submit}
+          type="primary"
+        >
+          <Icon name="envelope-o" />
           <Space />
-          <Space /> Please contact me
+          <Space /> Please contact me...
         </Button>
       </div>
     );

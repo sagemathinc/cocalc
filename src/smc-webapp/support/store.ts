@@ -19,6 +19,7 @@ const DEFAULT_STATE: SupportState = {
   email_err: "",
   valid: false,
   status: "new",
+  hide_extra_info: false,
 } as const;
 
 export const store = redux.createStore("support", SupportStore, DEFAULT_STATE);

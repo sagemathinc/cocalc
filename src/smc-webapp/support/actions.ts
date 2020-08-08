@@ -84,6 +84,7 @@ export class SupportActions extends Actions<SupportState> {
       status: "new",
       err: undefined,
       valid: false,
+      hide_extra_info: false,
     });
   }
 
