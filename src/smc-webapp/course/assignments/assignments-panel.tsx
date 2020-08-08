@@ -380,7 +380,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       );
 
       return (
-        <div className={"smc-vfill"} style={{ margin: "0 15px" }}>
+        <div className={"smc-vfill"} style={{ margin: "0" }}>
           {header}
           {shown_assignments.length > 0
             ? this.render_assignment_table_header()

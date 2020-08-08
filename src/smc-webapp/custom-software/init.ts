@@ -13,10 +13,10 @@ import { NAME } from "./util";
 const { capitalize } = require("smc-util/misc");
 
 // this must match db-schema.compute_images → field type → allowed values
-// official image names are "default", "exp", or a timestamp-string
+// "standard" image names are "default", "exp", "ubuntu2020", or a timestamp-string
 // custom iamges are "custom/<image-id>/<tag, usually latest>"
 // the "custom/" string is supposed to be CUSTOM_IMG_PREFIX!
-export type ComputeImageTypes = "official" | "custom";
+export type ComputeImageTypes = "default" | "standard" | "custom";
 
 // this must be compatible with db-schema.compute_images → field keys
 export type ComputeImageKeys =

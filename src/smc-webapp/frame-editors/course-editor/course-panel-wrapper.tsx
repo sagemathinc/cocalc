@@ -217,7 +217,7 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
   public render(): Rendered {
     return (
       <div
-        style={{ fontSize: `${this.props.font_size}px`, margin: "0 15px" }}
+        style={{ fontSize: `${this.props.font_size}px`, margin: "0 0 0 15px" }}
         className="smc-vfill"
       >
         {this.render_panel()}

@@ -17,6 +17,7 @@ import { SITE_NAME } from "smc-util/theme";
 import { markdown_to_html } from "../../markdown";
 import { UpgradeGoal } from "../types";
 import { run_in_all_projects, Result } from "./run-in-all-projects";
+import { DEFAULT_COMPUTE_IMAGE } from "smc-util/compute-images";
 
 export class StudentProjectsActions {
   private course_actions: CourseActions;
@@ -63,7 +64,8 @@ export class StudentProjectsActions {
       project_id = await redux.getActions("projects").create_project({
         title: store.get("settings").get("title"),
         description: store.get("settings").get("description"),
-        image: store.get("settings").get("custom_image"),
+        image:
+          store.get("settings").get("custom_image") ?? DEFAULT_COMPUTE_IMAGE,
       });
     } catch (err) {
       this.course_actions.set_error(
@@ -429,16 +431,30 @@ export class StudentProjectsActions {
     if (student_project_id == null) {
       await this.create_student_project(student_id);
     } else {
-      await this.configure_project_users(
-        student_project_id,
-        student_id,
-        do_not_invite_student_by_email,
-        force_send_invite_by_email
-      );
-      await this.configure_project_visibility(student_project_id);
-      await this.configure_project_title(student_project_id, student_id);
-      await this.configure_project_description(student_project_id);
+      await Promise.all([
+        this.configure_project_users(
+          student_project_id,
+          student_id,
+          do_not_invite_student_by_email,
+          force_send_invite_by_email
+        ),
+        this.configure_project_visibility(student_project_id),
+        this.configure_project_title(student_project_id, student_id),
+        this.configure_project_description(student_project_id),
+        this.configure_project_compute_image(student_project_id),
+      ]);
     }
+  }
+
+  private async configure_project_compute_image(
+    student_project_id: string
+  ): Promise<void> {
+    const store = this.get_store();
+    if (store == null) return;
+    const img_id =
+      store.get("settings").get("custom_image") ?? DEFAULT_COMPUTE_IMAGE;
+    const actions = redux.getProjectActions(student_project_id);
+    await actions.set_compute_image(img_id);
   }
 
   private async delete_student_project(student_id: string): Promise<void> {

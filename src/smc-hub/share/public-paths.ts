@@ -238,6 +238,7 @@ export class PublicPaths extends EventEmitter {
         "unlisted",
         "license",
         "token",
+        "compute_image",
       ],
       where: "disabled IS NOT TRUE",
     });
