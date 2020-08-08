@@ -6,6 +6,7 @@
 import { Button } from "antd";
 import { ErrorDisplay, Icon, Loading, Space } from "../../r_misc";
 import {
+  CSS,
   React,
   useActions,
   useEffect,
@@ -15,6 +16,15 @@ import {
 } from "../../app-framework";
 
 import { LicenseYouManage } from "./license-you-manage";
+
+export const LICENSES_STYLE: CSS = {
+  margin: "15px 30px",
+  maxHeight: "70vh",
+  overflowY: "auto",
+  border: "1px solid #ccc",
+  padding: "5px",
+  borderRadius: "3px",
+} as const;
 
 export const ManagedLicenses: React.FC = () => {
   const [error, setError] = useState<string | undefined>(undefined);
@@ -67,12 +77,13 @@ export const ManagedLicenses: React.FC = () => {
     <div>
       <h3>
         Licenses that you manage{" "}
-        <Button onClick={reload} disabled={loading} style={{ float: 'right' }}>
-          <Icon name="redo"/><Space/> {loading ? "Loading..." : "Refresh all"}
+        <Button onClick={reload} disabled={loading} style={{ float: "right" }}>
+          <Icon name="redo" />
+          <Space /> {loading ? "Loading..." : "Refresh all"}
         </Button>
       </h3>
       {render_error()}
-      {render_managed()}
+      <div style={LICENSES_STYLE}>{render_managed()}</div>
     </div>
   );
 };

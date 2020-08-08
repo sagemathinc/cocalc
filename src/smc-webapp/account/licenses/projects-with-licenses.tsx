@@ -10,6 +10,7 @@ import {
 import { Loading, TimeAgo, WindowedList } from "../../r_misc";
 import { projects_with_licenses } from "./util";
 import { plural, trunc_middle } from "smc-util/misc2";
+import { LICENSES_STYLE } from "./managed-licenses";
 
 function open_project(project_id: string): void {
   redux.getActions("projects").open_project({ project_id });
@@ -20,7 +21,7 @@ export const ProjectsWithLicenses: React.FC = () => {
   const project_map = useTypedRedux("projects", "project_map");
   const all_projects_have_been_loaded = useTypedRedux(
     "projects",
-    "all_projects_have_been_loaded",
+    "all_projects_have_been_loaded"
   );
   const projects = useMemo(() => projects_with_licenses(project_map), [
     project_map,
@@ -42,8 +43,8 @@ export const ProjectsWithLicenses: React.FC = () => {
           open_project(project_id);
         }}
       >
-        <Col span={12}>
-          {trunc_middle(project_map.getIn([project_id, "title"]), 80)}
+        <Col span={12} style={{ paddingLeft: "15px" }}>
+          <a>{trunc_middle(project_map.getIn([project_id, "title"]), 80)}</a>
         </Col>
         <Col span={6}>
           {num_licenses} {plural(num_licenses, "License")}
@@ -55,7 +56,10 @@ export const ProjectsWithLicenses: React.FC = () => {
 
   function render_projects_with_license() {
     return (
-      <div style={{ height: "50vh" }} className={"smc-vfill"}>
+      <div
+        style={{ ...LICENSES_STYLE, height: "50vh" }}
+        className={"smc-vfill"}
+      >
         <WindowedList
           row_count={projects.length}
           row_renderer={row_renderer}

@@ -529,7 +529,9 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
         {render_refresh_button()}
         {render_remove_button()}
       </Button.Group>
-      {project_id != null && <Icon name="key" />}
+      {project_id != null && (
+        <Icon style={{ marginRight: "15px" }} name="key" />
+      )}
       {render_body()}
       <br />
       {render_upgrades()}
