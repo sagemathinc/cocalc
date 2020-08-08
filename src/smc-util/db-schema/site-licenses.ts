@@ -57,6 +57,7 @@ export function describe_quota(quota: Quota): string {
   if (quota.always_running) {
     desc += ", always running";
   }
+  desc += ", network"; // always provided, because we trust customers.
   return desc;
 }
 

@@ -256,7 +256,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
       provides = <li>This license is expired.</li>;
       show_run = false; // no point in showing these
     } else if (!provides_upgrades()) {
-      // not providing any upgrades -- why?
+      // not providing any upgrades -- tell them why
       if (info.running == null) {
         // not loaded yet...
         provides = <li>Currently providing no upgrades to this project. </li>;
@@ -266,9 +266,10 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
             <>
               <li>Currently providing no upgrades to this project. </li>
               <li>
-                <Icon name="warning" />{" "}
+                <Icon name="sync" />{" "}
                 <a onClick={restart_project}>Restart this project</a> to use the
-                upgrades provided by this license.
+                upgrades provided by this license
+                {info?.quota ? " - " + describe_quota(info.quota) : "."}
               </li>
             </>
           );
