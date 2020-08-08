@@ -5,6 +5,7 @@
 
 import { Map, Set } from "immutable";
 import { TypedMap } from "../../app-framework";
+import { Quota } from "smc-util/db-schema/site-licenses";
 
 export type upgrade_fields_type =
   | "disk_quota"
@@ -41,6 +42,7 @@ export interface SiteLicense {
   managers?: string[];
   restricted?: boolean;
   upgrades?: Upgrades;
+  quota?: Quota;
   run_limit?: number;
   apply_limit?: number;
 }
@@ -68,6 +70,7 @@ export type license_field_names =
   | "managers"
   // | "restricted" // hide for now since not implemented at all
   | "upgrades"
+  | "quota"
   | "run_limit";
 // | "apply_limit" // hide for now since not implemented at all
 
@@ -85,6 +88,7 @@ export const license_fields: {
   managers: "account_id[]",
   // restricted: "boolean",  // hide for now since not implemented at all
   upgrades: "upgrades",
+  quota: "map",
   run_limit: "number",
   //apply_limit: "number" // hide for now since not implemented at all
 };

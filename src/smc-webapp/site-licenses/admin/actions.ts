@@ -71,6 +71,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
               managers: null,
               restricted: null,
               upgrades: null,
+              quota: null,
               run_limit: null,
               apply_limit: null,
             },
@@ -160,6 +161,14 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
         }
         // We have to set info differently since otherwise it gets deep
         // merged in.
+      }
+      if (site_licenses.quota != null) {
+        try {
+          site_licenses.quota = jsonic(site_licenses.quota);
+        } catch (err) {
+          this.set_error(`unable to parse JSON quota field -- ${err}`);
+          return;
+        }
       }
       if (site_licenses.run_limit) {
         const val = parseInt(site_licenses.run_limit);

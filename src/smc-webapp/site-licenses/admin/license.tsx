@@ -87,6 +87,15 @@ export class License extends Component<Props> {
           val = scale_by_display_factors(val);
         }
       }
+      if (
+        field == "upgrades" &&
+        val == null &&
+        this.props.license.get("quota") != null
+      ) {
+        // do not sow "upgrades" if quota is set, since it shouldn't use
+        // both upgrades and quota.  Yes, this is confusing.
+        continue;
+      }
       const backgroundColor = BACKGROUNDS[i % 2];
       i += 1;
       let x = this.render_value(field, val);
@@ -232,9 +241,9 @@ export class License extends Component<Props> {
                 rows={4}
                 value={value}
                 onChange={(e) => onChange((e.target as any).value)}
-                onBlur={() =>
-                  onChange(JSON.stringify(jsonic(value), undefined, 2))
-                }
+                onBlur={() => {
+                  onChange(JSON.stringify(jsonic(value), undefined, 2));
+                }}
               />
               <br />
               Input forgivingly parsed using{" "}
@@ -528,12 +537,18 @@ export class License extends Component<Props> {
       return { is_active: false, why_not: "it has expired" };
     // Any actual upgrades?
     const upgrades = this.props.license.get("upgrades");
-    if (upgrades == null || upgrades.size == 0)
-      return { is_active: false, why_not: "no upgrades are configured" };
-
-    for (let [field, val] of upgrades) {
-      field = field; // typescript
-      if (val) return { is_active: true }; // actual upgrade, so yes is having an impact.
+    if (upgrades != null) {
+      for (let [field, val] of upgrades) {
+        field = field; // typescript
+        if (val) return { is_active: true }; // actual upgrade, so yes is having an impact.
+      }
+    }
+    const quota = this.props.license.get("quota");
+    if (quota != null) {
+      for (let [field, val] of quota) {
+        field = field; // typescript
+        if (val) return { is_active: true }; // actual quota, so yes is having an impact.
+      }
     }
     return { is_active: false, why_not: "no upgrades are configured" };
   }
