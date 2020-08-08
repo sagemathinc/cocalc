@@ -20,6 +20,7 @@ import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
 import { plural, trunc_left } from "smc-util/misc2";
 import { DebounceInput } from "react-debounce-input";
 import { webapp_client } from "../webapp-client";
+import { describe_quota } from "smc-util/db-schema/site-licenses";
 
 interface Props {
   license_id: string;
@@ -191,7 +192,10 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
   }
 
   function render_what_license_provides_overall(): JSX.Element | undefined {
-    if (!info) return;
+    if (info == null) return;
+    if (info.quota != null) {
+      return render_quota();
+    }
     if (!info.upgrades) return <div>Provides no upgrades.</div>;
     return (
       <div>
@@ -207,6 +211,11 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
         />
       </div>
     );
+  }
+
+  function render_quota(): JSX.Element {
+    if (info?.quota == null) return <></>;
+    return <div>{describe_quota(info.quota)}</div>;
   }
 
   function restart_project(): void {

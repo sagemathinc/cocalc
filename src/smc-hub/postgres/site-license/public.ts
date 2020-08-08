@@ -20,6 +20,7 @@ export async function site_license_public_info(
       "expires",
       "activates",
       "upgrades",
+      "quota",
       "run_limit",
       "managers",
     ],

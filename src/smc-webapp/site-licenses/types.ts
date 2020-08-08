@@ -13,4 +13,12 @@ export interface SiteLicensePublicInfo {
   upgrades?: { [field: string]: number };
   is_manager?: boolean;
   running?: number;
+  quota?: {
+    ram?: number;
+    cpu?: number;
+    disk?: number;
+    always_running?: boolean;
+    member?: boolean;
+    user?: "academic" | "business";
+  };
 }

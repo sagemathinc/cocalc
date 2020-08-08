@@ -21,6 +21,15 @@ import { is_valid_uuid_string } from "../misc2";
 import { Table } from "./types";
 import { SCHEMA } from "./index";
 
+export interface Quota {
+  ram?: number;
+  cpu?: number;
+  disk?: number;
+  always_running?: boolean;
+  member?: boolean;
+  user?: "academic" | "business";
+}
+
 // For typescript use of these from user side, we make this available:
 export interface SiteLicense {
   id: string;
@@ -34,16 +43,21 @@ export interface SiteLicense {
   managers?: string[];
   restricted?: boolean;
   upgrades?: object;
-  quota?: {
-    ram?: number;
-    cpu?: number;
-    disk?: number;
-    always_running?: boolean;
-    member?: boolean;
-    user?: "academic" | "business";
-  };
+  quota?: Quota;
   run_limit?: number;
   apply_limit?: number;
+}
+
+export function describe_quota(quota: Quota): string {
+  let desc = quota.user == "business" ? "Business License" : "Academic license";
+  desc += ` providing ${quota.ram}GB RAM, ${quota.cpu} CPU, ${quota.disk}GB disk`;
+  if (quota.member) {
+    desc += ", member hosting";
+  }
+  if (quota.always_running) {
+    desc += ", always running";
+  }
+  return desc;
 }
 
 Table({

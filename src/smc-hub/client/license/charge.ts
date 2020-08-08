@@ -5,6 +5,7 @@
 
 import { COSTS, PurchaseInfo } from "smc-webapp/site-licenses/purchase/util";
 import { StripeClient } from "../../stripe/client";
+import { describe_quota } from "smc-util/db-schema/site-licenses";
 import Stripe from "stripe";
 
 export type Purchase = { type: "invoice" | "subscription"; id: string };
@@ -65,14 +66,14 @@ function get_product_name(info): string {
   } else {
     period = "subscription";
   }
-  let desc = info.user == "business" ? "Business License" : "Academic license";
-  desc += ` for ${info.custom_ram}GB RAM, ${info.custom_cpu} CPU, ${info.custom_disk}GB disk`;
-  if (info.custom_member) {
-    desc += ", member host";
-  }
-  if (info.always_running) {
-    desc += ", always running";
-  }
+  let desc = describe_quota({
+    user: info.user,
+    ram: info.custom_ram,
+    cpu: info.custom_cpu,
+    disk: info.custom_disk,
+    member: info.custom_member,
+    always_running: info.always_running,
+  });
   desc += " - " + period;
   return desc;
 }
