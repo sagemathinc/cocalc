@@ -18,6 +18,7 @@ import {
   Input,
 } from "antd";
 import { DownOutlined } from "@ant-design/icons";
+import { describe_quota } from "smc-util/db-schema/site-licenses";
 
 import * as moment from "moment";
 import { webapp_client } from "../../webapp-client";
@@ -538,7 +539,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             },
             {
               icon: "calendar-times-o",
-              label: "Custom",
+              label: "Start and end dates",
               desc:
                 "pay for a specific period of time (as short as one day and as long as 2 years)",
               value: "no",
@@ -719,7 +720,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   }
 
   function render_credit_card() {
-    if (quote !== false) return;
+    if (quote !== false || cost == null) return;
     if (payment_method != null) {
       // payment method already selected, which is only the case
       // during payment and once it is done.
@@ -733,6 +734,14 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             <Icon name="credit-card" /> Payment
           </h4>
           <PurchaseMethod
+            amount={money(cost.discounted_cost)}
+            description={`${quantity} × ${describe_quota({
+              ram: custom_ram,
+              cpu: custom_cpu,
+              disk: custom_cpu,
+              always_running: custom_always_running,
+              member: custom_member,
+            })}`}
             onClose={(id) => {
               set_payment_method(id);
               submit();

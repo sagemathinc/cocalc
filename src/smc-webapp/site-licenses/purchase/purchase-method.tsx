@@ -25,47 +25,65 @@ import { PaymentMethods } from "../../billing/payment-methods";
 
 interface Props {
   onClose: (id: string | undefined) => void;
+  amount: string; // amount formated as a currency
+  description: string;
 }
 
-export const PurchaseMethod: React.FC<Props> = React.memo(({ onClose }) => {
-  const customer = useTypedRedux("billing", "customer");
-  const actions = useActions("billing");
-  const [loaded, set_loaded] = useState<boolean>(false);
+export const PurchaseMethod: React.FC<Props> = React.memo(
+  ({ amount, description, onClose }) => {
+    const customer = useTypedRedux("billing", "customer");
+    const actions = useActions("billing");
+    const [loaded, set_loaded] = useState<boolean>(false);
+    const [buy_confirm, set_buy_confirm] = useState<boolean>(false);
 
-  useAsyncEffect(async (isMounted) => {
-    // update billing info whenever component mounts
-    try {
-      await actions.update_customer();
-    } catch (err) {
-      alert_message({
-        type: "error",
-        message: `Problem loading customer info -- ${err}`,
-      });
+    useAsyncEffect(async (isMounted) => {
+      // update billing info whenever component mounts
+      try {
+        await actions.update_customer();
+      } catch (err) {
+        alert_message({
+          type: "error",
+          message: `Problem loading customer info -- ${err}`,
+        });
+      }
+      if (isMounted()) {
+        set_loaded(true);
+      }
+    }, []);
+
+    if (!loaded) {
+      return <Loading theme="medium" />;
     }
-    if (isMounted()) {
-      set_loaded(true);
+    if (customer == null) {
+      return <div>Billing not available</div>;
     }
-  }, []);
 
-  if (!loaded) {
-    return <Loading theme="medium" />;
+    const source = customer.get("default_source");
+    return (
+      <div>
+        <PaymentMethods
+          sources={customer.get("sources")?.toJS()}
+          default={customer.get("default_source")}
+        />
+        {source && (
+          <Button
+            disabled={buy_confirm}
+            type={!buy_confirm ? "primary" : undefined}
+            size="large"
+            onClick={() => set_buy_confirm(true)}
+          >
+            <Icon name="check" /> <Space /> <Space /> Checkout...
+          </Button>
+        )}
+        {source && buy_confirm && (
+          <div style={{ marginTop: "5px" }}>
+            <Button type="primary" size="large" onClick={() => onClose(source)}>
+              <Icon name="credit-card" /> <Space /> <Space /> Charge the default
+              card {amount} plus any applicable tax for {description}.
+            </Button>
+          </div>
+        )}
+      </div>
+    );
   }
-  if (customer == null) {
-    return <div>Billing not available</div>;
-  }
-
-  const source = customer.get("default_source");
-  return (
-    <div>
-      <PaymentMethods
-        sources={customer.get("sources")?.toJS()}
-        default={customer.get("default_source")}
-      />
-      {source && (
-        <Button type="primary" size="large" onClick={() => onClose(source)}>
-          <Icon name="check" /> <Space /> <Space /> Buy License
-        </Button>
-      )}
-    </div>
-  );
-});
+);

@@ -83,10 +83,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
   }
 
   function render_expires(): JSX.Element | undefined {
-    if (!info) return;
-    if (!info.expires) {
-      return <span> (no expiration date set)</span>;
-    }
+    if (!info?.expires) return;
     let word: string = new Date() >= info.expires ? "expired" : "will expire";
     return (
       <span>
@@ -429,6 +426,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
       if (!info?.is_manager) return;
       return (
         <Button
+          style={{ marginBottom: "5px" }}
           onClick={() => {
             set_is_editing_title(true);
             set_title(info?.title);

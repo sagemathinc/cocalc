@@ -73,10 +73,15 @@ export const ProjectsWithLicenses: React.FC = () => {
     );
   }
 
+  function render_count() {
+    if (projects == null || projects.length == 0) return;
+    return <>({projects.length})</>;
+  }
+
   return (
     <div>
       {" "}
-      <h3>Projects with licenses</h3>
+      <h3>Projects with licenses {render_count()}</h3>
       {render_projects_with_license()}
     </div>
   );

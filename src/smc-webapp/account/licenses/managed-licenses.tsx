@@ -73,10 +73,16 @@ export const ManagedLicenses: React.FC = () => {
       ));
   }
 
+  function render_count() {
+    if (licenses != null && licenses.size > 0) {
+      return <>({licenses.size})</>;
+    }
+  }
+
   return (
     <div>
       <h3>
-        Licenses that you manage{" "}
+        Licenses that you manage {render_count()}
         <Button onClick={reload} disabled={loading} style={{ float: "right" }}>
           <Icon name="redo" />
           <Space /> {loading ? "Loading..." : "Refresh all"}
