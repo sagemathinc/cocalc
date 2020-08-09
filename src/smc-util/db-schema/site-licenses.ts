@@ -20,6 +20,7 @@ for students).
 import { is_valid_uuid_string } from "../misc2";
 import { Table } from "./types";
 import { SCHEMA } from "./index";
+import { TypedMap } from "../../smc-webapp/app-framework/TypedMap";
 
 export interface Quota {
   ram?: number;
@@ -29,6 +30,8 @@ export interface Quota {
   member?: boolean;
   user?: "academic" | "business";
 }
+
+export type QuotaMap = TypedMap<Quota>;
 
 // For typescript use of these from user side, we make this available:
 export interface SiteLicense {

@@ -12,7 +12,7 @@
 
 import { Map as iMap } from "immutable";
 import { KNITR_EXTS } from "./frame-editors/latex-editor/constants";
-import { TypedMap } from "./app-framework/TypedMap";
+import { TypedMap } from "./app-framework";
 import { WebappClient } from "./webapp-client";
 
 export const LIBRARY_INDEX_FILE = "/ext/library/cocalc-examples/index.json";

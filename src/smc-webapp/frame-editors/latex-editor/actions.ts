@@ -50,7 +50,7 @@ import { KNITR_EXTS } from "./constants";
 import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import { FrameTree } from "../frame-tree/types";
 import { Store } from "../../app-framework";
-import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
+import { createTypedMap, TypedMap } from "../../app-framework";
 import { print_html } from "../frame-tree/print";
 import { raw_url } from "../frame-tree/util";
 import {

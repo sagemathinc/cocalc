@@ -4,7 +4,7 @@
  */
 
 import { Map } from "immutable";
-import { TypedMap } from "../../app-framework/TypedMap";
+import { TypedMap } from "../../app-framework";
 
 type UserRecord = TypedMap<{
   group: string;

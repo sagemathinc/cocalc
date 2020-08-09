@@ -10,8 +10,7 @@ underlying synchronized state.
 
 import { history_path } from "smc-util/misc";
 import { webapp_client } from "../webapp-client";
-import { Actions, Store } from "../app-framework";
-import { TypedMap } from "../app-framework/TypedMap";
+import { Actions, Store, TypedMap } from "../app-framework";
 import { List } from "immutable";
 
 export interface StopwatchEditorState {

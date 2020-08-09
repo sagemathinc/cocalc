@@ -14,7 +14,7 @@ import { DirectoryListingEntry } from "smc-util/types";
 // Course Library
 import { STEPS } from "./util";
 import { Map, Set, List } from "immutable";
-import { TypedMap, createTypedMap } from "../app-framework/TypedMap";
+import { TypedMap, createTypedMap } from "../app-framework";
 
 import { SITE_NAME } from "smc-util/theme";
 

@@ -56,7 +56,7 @@ import * as CodeMirror from "codemirror";
 import "../generic/codemirror-plugins";
 import * as tree_ops from "../frame-tree/tree-ops";
 import { Actions as BaseActions, Store } from "../../app-framework";
-import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
+import { createTypedMap, TypedMap } from "../../app-framework";
 
 import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";

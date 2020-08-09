@@ -4,7 +4,7 @@
  */
 
 import { Map } from "immutable";
-import { TypedMap, createTypedMap } from "./app-framework/TypedMap";
+import { TypedMap, createTypedMap } from "./app-framework";
 
 // This file lists entities that still need to be well typed.
 export type ProjectsActions = any;

@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { TypedMap } from "../../app-framework/TypedMap";
+import { TypedMap } from "../../app-framework";
 import { Map } from "immutable";
 
 export type MentionsMap = Map<string, MentionInfo>;

@@ -5,7 +5,7 @@
 
 import * as React from "react";
 import { Icon } from "./icon";
-import { TypedMap } from "../app-framework/TypedMap";
+import { TypedMap } from "../app-framework";
 
 export type Estimate = TypedMap<{
   time: number; // Time in seconds

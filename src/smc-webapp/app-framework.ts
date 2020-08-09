@@ -31,7 +31,7 @@ import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 // Relative import is temporary, until I figure this out -- needed for *project*
 import { bind_methods, keys, is_valid_uuid_string } from "../smc-util/misc2";
 
-export { TypedMap } from "./app-framework/TypedMap";
+export { TypedMap, createTypedMap } from "./app-framework/TypedMap";
 
 import { NAME_TYPE as ComputeImageStoreType } from "./custom-software/util";
 

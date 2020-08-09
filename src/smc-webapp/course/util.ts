@@ -4,7 +4,7 @@
  */
 
 import { Map } from "immutable";
-import { TypedMap } from "../app-framework/TypedMap";
+import { TypedMap } from "../app-framework";
 import { StudentsMap } from "./store";
 import { AssignmentCopyStep } from "./types";
 import { separate_file_extension } from "smc-util/misc2";

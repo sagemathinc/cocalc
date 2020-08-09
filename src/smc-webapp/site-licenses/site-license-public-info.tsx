@@ -191,7 +191,10 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
   function render_what_license_provides_overall(): JSX.Element | undefined {
     if (info == null) return;
     if (info.quota != null) {
-      return render_quota();
+      return render_quota(info.quota);
+    }
+    if (info.upgrades?.quota != null) {
+      return render_quota(info.upgrades.quota);
     }
     if (!info.upgrades) return <div>Provides no upgrades.</div>;
     return (
@@ -210,9 +213,8 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
     );
   }
 
-  function render_quota(): JSX.Element {
-    if (info?.quota == null) return <></>;
-    return <div>{describe_quota(info.quota)}</div>;
+  function render_quota(quota): JSX.Element {
+    return <div>{describe_quota(quota)}</div>;
   }
 
   function restart_project(): void {
@@ -287,21 +289,27 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
     } else {
       // not expired and is providing upgrades.
       if (upgrades == null) throw Error("make typescript happy");
-      provides = (
-        <li>
-          Currently providing the following {plural(upgrades.size, "upgrade")}
-          :
-          <DisplayUpgrades
-            upgrades={scale_by_display_factors(upgrades)}
-            style={{
-              border: "1px solid #ddd",
-              padding: "0 15px",
-              backgroundColor: "white",
-              margin: "5px 15px",
-            }}
-          />
-        </li>
-      );
+      if (upgrades.has("quota")) {
+        provides = (
+          <li>{render_quota((upgrades.get("quota") as any)?.toJS())}</li>
+        );
+      } else {
+        provides = (
+          <li>
+            Currently providing the following {plural(upgrades.size, "upgrade")}
+            :
+            <DisplayUpgrades
+              upgrades={scale_by_display_factors(upgrades)}
+              style={{
+                border: "1px solid #ddd",
+                padding: "0 15px",
+                backgroundColor: "white",
+                margin: "5px 15px",
+              }}
+            />
+          </li>
+        );
+      }
     }
     return (
       <ul>

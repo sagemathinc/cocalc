@@ -11,7 +11,7 @@ import { Map } from "immutable";
 import { sortBy } from "lodash";
 import { capitalize, is_different, path_split } from "smc-util/misc2";
 import { React, Rendered, useRedux } from "../../app-framework";
-import { TypedMap } from "../../app-framework/TypedMap";
+import { TypedMap } from "../../app-framework";
 import { BuildLogs } from "./actions";
 import { Icon, Loading } from "smc-webapp/r_misc";
 import { COLORS } from "../../../smc-util/theme";

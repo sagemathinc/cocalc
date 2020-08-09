@@ -11,6 +11,7 @@ import { TypedMap } from "../../../smc-webapp/app-framework";
 import { is_valid_uuid_string, len } from "../../smc-util/misc2";
 import { callback2 } from "../../smc-util/async-utils";
 import { number_of_running_projects_using_license } from "./analytics";
+import { QuotaMap } from "../../smc-util/db-schema/site-licenses";
 
 let licenses: any = undefined;
 
@@ -20,6 +21,7 @@ interface License {
   expires?: Date;
   activates?: Date;
   upgrades?: Map<string, number>;
+  quota?: QuotaMap;
   run_limit?: number;
 }
 
@@ -28,7 +30,14 @@ async function get_valid_licenses(db): Promise<Map<string, TypedMap<License>>> {
   if (licenses == null) {
     licenses = await callback2(db.synctable.bind(db), {
       table: "site_licenses",
-      columns: ["title", "expires", "activates", "upgrades", "run_limit"],
+      columns: [
+        "title",
+        "expires",
+        "activates",
+        "upgrades",
+        "quota",
+        "run_limit",
+      ],
       // TODO: Not bothing with the where condition will be fine up to a few thousand (?) site
       // licenses, but after that it could take nontrivial time/memory during hub startup.
       // So... this is a ticking time bomb.
@@ -95,11 +104,7 @@ export async function site_license_hook(
       } else if (
         run_limit &&
         (await number_of_running_projects_using_license(db, license_id)) >=
-          run_limit + 1 // TODO: Temporary hack: we add 1 to avoid annoying issues with one project stopping while another is starting.
-                        // Nobody is going to complain about this since it is in users' favor.  Later maybe we change this.
-                        // Also, there will always be ways to "race" and accidentally have too many projects using a license at once,
-                        // so we will need to have a task that regularly checks for this and stops the less active
-                        // project automatically... and so maybe that is the way to resolve this nicely.
+          run_limit
       ) {
         dbg(
           `site_license_hook -- License "${license_id}" won't be applied since it would exceed the run limit ${run_limit}.`
@@ -112,29 +117,28 @@ export async function site_license_hook(
 
     if (is_valid) {
       if (license == null) throw Error("bug");
-      const upgrades = license.get("upgrades");
-      if (upgrades != null) {
-        const x = upgrades.toJS();
-        // remove any zero values to make frontend client code simpler and avoid waste/clutter.
-        // NOTE: I do assume these 0 fields are removed in some client code, so don't just not do this!
-        for (const field in x) {
-          if (!x[field]) {
-            delete x[field];
-          }
+      // Licenses can specify what they do in two distinct ways: upgrades and quota.
+      const upgrades: object = license.get("upgrades")?.toJS() ?? {};
+      const quota = license.get("quota")?.toJS();
+      if (quota) {
+        upgrades["quota"] = quota;
+      }
+      // remove any zero values to make frontend client code simpler and avoid waste/clutter.
+      // NOTE: I do assume these 0 fields are removed in some client code, so don't just not do this!
+      for (const field in upgrades) {
+        if (!upgrades[field]) {
+          delete upgrades[field];
         }
-        dbg(
-          `site_license_hook -- Found a valid license "${license_id}".  Upgrade using it to ${JSON.stringify(
-            x
-          )}.`
-        );
-        if (!isEqual(site_license[license_id], x)) {
-          site_license[license_id] = x;
-          changed = true;
-        }
-      } else {
-        dbg(
-          `site_license_hook -- Found a valid license "${license_id}", but it offers no upgrades.`
-        );
+      }
+
+      dbg(
+        `site_license_hook -- Found a valid license "${license_id}".  Upgrade using it to ${JSON.stringify(
+          upgrades
+        )}.`
+      );
+      if (!isEqual(site_license[license_id], upgrades)) {
+        site_license[license_id] = upgrades;
+        changed = true;
       }
     } else {
       dbg(

@@ -20,7 +20,7 @@ export async function number_of_running_projects_using_license(
   select project_id, site_license, state from projects where state#>>'{state}' in ('running', 'starting') and site_license#>>'{f3942ea1-ff3f-4d9f-937a-c5007babc693}'!='{}';
   */
 
-  const query = `SELECT COUNT(*) FROM projects WHERE state#>>'{state}' IN ('running', 'starting') AND site_license#>>'{${license_id}}'!='{}'`;
+  const query = `SELECT COUNT(*) FROM projects WHERE state#>>'{state}' = 'running' AND site_license#>>'{${license_id}}'!='{}'`;
   const x = await db.async_query({ query });
   return parseInt(x.rows[0].count);
 }
