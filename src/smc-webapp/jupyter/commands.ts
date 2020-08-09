@@ -895,11 +895,19 @@ export function commands(
     "toggle hide input": {
       m: "Toggle hide input of cells",
       f: () => frame_actions.toggle_source_hidden(),
+      k: [
+        { alt: true, which: 72 },
+        { meta: true, which: 72 },
+      ],
     },
 
     "toggle hide output": {
       m: "Toggle hide output of cells",
       f: () => frame_actions.toggle_outputs_hidden(),
+      k: [
+        { alt: true, shift: true, which: 72 },
+        { meta: true, shift: true, which: 72 },
+      ],
     },
 
     "format cells": {
