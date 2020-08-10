@@ -31,7 +31,6 @@ function useComputeImage(project_id) {
   );
   const project_map = useTypedRedux("projects", "project_map");
   const current_image = project_map.getIn([project_id, "compute_image"]);
-  console.log("current_image", current_image);
   if (current_image != compute_image) {
     set_compute_image(current_image);
   }
@@ -50,8 +49,6 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
 
   if (compute_image == null) return null;
 
-  console.log("UPDATING compute_image:", compute_image);
-
   const oldname = COMPUTE_IMAGES[compute_image].title;
   const newname = COMPUTE_IMAGES[DEFAULT_COMPUTE_IMAGE].title;
 
@@ -59,7 +56,6 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
     set_updating(true);
     const actions = redux.getProjectActions(project_id);
     try {
-      console.log(`updating to ${image}`);
       await actions.set_compute_image(image);
       await redux.getActions("projects").restart_project(project_id);
     } catch (err) {
@@ -69,7 +65,6 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
   }
 
   function render_controls() {
-    console.log("RENDERING compute_image:", compute_image);
     if (updating) {
       return <Loading text={"Updating ..."} />;
     } else {
@@ -95,9 +90,9 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
         <div style={{ display: "flex" }}>
           <div style={{ flex: "1 1 auto" }}>
             <Icon name="exclamation-triangle" />{" "}
-            <strong>Software Update Available!</strong>
-            Update this project's software environment from "{oldname}" to "
-            {newname}". <A href={"https://doc.cocalc.com/"}>Lean more …</A>
+            <strong>Software Update Available!</strong> Update this project's
+            software environment from "{oldname}" to "{newname}".{" "}
+            <A href={"https://doc.cocalc.com/"}>Lean more …</A>
             <br />
             <span style={{ color: COLORS.GRAY }}>
               (You can also upgrade or downgrade this project later in Project
