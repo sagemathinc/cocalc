@@ -4,10 +4,12 @@
  */
 
 import { React, redux, useTypedRedux } from "../../app-framework";
-import { A, Icon, COLORS } from "../../r_misc";
+import { A, Icon, COLORS, Loading } from "../../r_misc";
 import { ALERT_STYLE } from "../warnings/common";
+import { alert_message } from "../../alerts";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 import { Alert, Button } from "../../antd-bootstrap";
+import { Space as AntdSpace } from "antd";
 import {
   FALLBACK_COMPUTE_IMAGE,
   DEFAULT_COMPUTE_IMAGE,
@@ -19,8 +21,22 @@ const UPGRADE_STYLE: React.CSSProperties = {
   ...{ fontSize: "11pt", padding: "15px" },
 };
 
-// default, previous and experimental 18.04 images
+// we only upgrade from not-frozen 18.04 images to the new default.
+// do not bother about any other names, including ubuntu1804
 const TO_UPGRADE = [FALLBACK_COMPUTE_IMAGE, "previous", "exp"];
+
+function useComputeImage(project_id) {
+  const [compute_image, set_compute_image] = React.useState<string | undefined>(
+    undefined
+  );
+  const project_map = useTypedRedux("projects", "project_map");
+  const current_image = project_map.getIn([project_id, "compute_image"]);
+  console.log("current_image", current_image);
+  if (current_image != compute_image) {
+    set_compute_image(current_image);
+  }
+  return current_image;
+}
 
 export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
   project_id,
@@ -29,42 +45,68 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   if (customize_kucalc !== KUCALC_COCALC_COM) return null;
 
-  const projects_store = redux.getStore("projects");
-  const compute_image =
-    projects_store.getIn(["project_map", project_id, "compute_image"]) ??
-    FALLBACK_COMPUTE_IMAGE;
+  const [updating, set_updating] = React.useState(false);
+  const compute_image = useComputeImage(project_id);
 
-  // we only upgrade from not-frozen 18.04 images the new default. do not bother about any other names!
-  if (TO_UPGRADE.indexOf(compute_image) == -1) return null;
+  if (compute_image == null) return null;
+
+  console.log("UPDATING compute_image:", compute_image);
 
   const oldname = COMPUTE_IMAGES[compute_image].title;
   const newname = COMPUTE_IMAGES[DEFAULT_COMPUTE_IMAGE].title;
 
-  return (
-    <Alert bsStyle={"info"} style={UPGRADE_STYLE}>
-      <div style={{ display: "flex" }}>
-        <div style={{ flex: "1" }}>
-          <Icon name="exclamation-triangle" /> Software Update Available! Update
-          this project running on {oldname} to {newname}.{" "}
-          <A href={"https://doc.cocalc.com/"}>Lean more …</A>.
-          <br />
-          <span style={{ color: COLORS.GRAY }}>
-            (You can also upgrade or downgrade later in Project Settings →
-            Project Control)
-          </span>
-        </div>
-        <div style={{ flex: "0" }}>
-          <Button onClick={() => alert("nope :-(")} style={{ float: "right" }}>
-            Dismiss
-          </Button>
+  async function set_image(image: string) {
+    set_updating(true);
+    const actions = redux.getProjectActions(project_id);
+    try {
+      console.log(`updating to ${image}`);
+      await actions.set_compute_image(image);
+      await redux.getActions("projects").restart_project(project_id);
+    } catch (err) {
+      alert_message({ type: "error", message: err });
+      set_updating(false);
+    }
+  }
+
+  function render_controls() {
+    console.log("RENDERING compute_image:", compute_image);
+    if (updating) {
+      return <Loading text={"Updating ..."} />;
+    } else {
+      return (
+        <AntdSpace style={{ flex: "0 1 auto" }}>
+          <Button onClick={() => set_image("ubuntu1804")}>Dismiss</Button>
           <Button
-            onClick={() => alert("yay upgrade!")}
-            style={{ float: "right" }}
+            onClick={() => set_image(DEFAULT_COMPUTE_IMAGE)}
+            bsStyle={"primary"}
           >
             Upgrade
           </Button>
+        </AntdSpace>
+      );
+    }
+  }
+
+  // we only want to re-render if it is really necessary. the "project_map" changes quite often…
+  return React.useMemo(() => {
+    if (TO_UPGRADE.indexOf(compute_image) == -1) return null;
+    return (
+      <Alert bsStyle={"info"} style={UPGRADE_STYLE}>
+        <div style={{ display: "flex" }}>
+          <div style={{ flex: "1 1 auto" }}>
+            <Icon name="exclamation-triangle" />{" "}
+            <strong>Software Update Available!</strong>
+            Update this project's software environment from "{oldname}" to "
+            {newname}". <A href={"https://doc.cocalc.com/"}>Lean more …</A>
+            <br />
+            <span style={{ color: COLORS.GRAY }}>
+              (You can also upgrade or downgrade this project later in Project
+              Settings → Project Control)
+            </span>
+          </div>
+          {render_controls()}
         </div>
-      </div>
-    </Alert>
-  );
+      </Alert>
+    );
+  }, [compute_image, updating]);
 };

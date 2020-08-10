@@ -31,16 +31,18 @@ interface ComputeImage {
 }
 
 export const COMPUTE_IMAGES: { [key: string]: ComputeImage } = {
-  // this is called "default", but treat it as if it is ubuntu1804
-  // later, we'll switch DEFAULT_COMPUTE_IMAGE to be "ubuntu2004"
+  // "default" or "undefined" is what was used for "ubuntu1804" until summer 2020
+  // nowdays, DEFAULT_COMPUTE_IMAGE is "ubuntu2004"
   default: {
+    order: 1,
     title: "Ubuntu 18.04 (Deprecated)",
     short: "Ubuntu 18.04 (Deprecated)",
     descr: "Reached end of life in fall 2020",
     group: "Main",
+    hidden: true,
   },
   ubuntu1804: {
-    // actually synonym for "default", but with a specific functionality!
+    // a synonym of "default", but with a specific functionality!
     // we use it as a marker: if a "default" project (before the 20.04 upgrade) was set to stay at 18.04, this image is selected.
     order: 1,
     title: "Ubuntu 18.04 (Stable)",
