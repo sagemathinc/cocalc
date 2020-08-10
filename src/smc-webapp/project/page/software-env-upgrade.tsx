@@ -19,6 +19,9 @@ const UPGRADE_STYLE: React.CSSProperties = {
   ...{ fontSize: "11pt", padding: "15px" },
 };
 
+// default, previous and experimental 18.04 images
+const TO_UPGRADE = [FALLBACK_COMPUTE_IMAGE, "previous", "exp"];
+
 export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
   project_id,
 }) => {
@@ -31,10 +34,10 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
     projects_store.getIn(["project_map", project_id, "compute_image"]) ??
     FALLBACK_COMPUTE_IMAGE;
 
-  // we only upgrade from the old fallback "default" to the new default. do not bother about any other names!
-  if (compute_image !== FALLBACK_COMPUTE_IMAGE) return null;
+  // we only upgrade from not-frozen 18.04 images the new default. do not bother about any other names!
+  if (TO_UPGRADE.indexOf(compute_image) == -1) return null;
 
-  const oldname = COMPUTE_IMAGES[FALLBACK_COMPUTE_IMAGE].title;
+  const oldname = COMPUTE_IMAGES[compute_image].title;
   const newname = COMPUTE_IMAGES[DEFAULT_COMPUTE_IMAGE].title;
 
   return (

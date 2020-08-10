@@ -29,6 +29,8 @@ required = defaults.required
 
 {SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, COMPUTE_STATES, RECENT_TIMES, RECENT_TIMES_KEY, site_settings_conf} = require('smc-util/schema')
 
+{ DEFAULT_COMPUTE_IMAGE } = require("smc-util/compute-images")
+
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
 {PROJECT_COLUMNS, one_result, all_results, count_result, expire_time} = require('./postgres-base')
@@ -1807,7 +1809,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             title       : undefined
             description : undefined
             lti_id      : undefined   # array of strings
-            image       : 'default'   # probably ok to leave it undefined
+            image       : DEFAULT_COMPUTE_IMAGE   # probably ok to leave it undefined
             cb          : required    # cb(err, project_id)
         if not @_validate_opts(opts) then return
         project_id = misc.uuid()

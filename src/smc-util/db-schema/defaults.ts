@@ -11,7 +11,7 @@ export const DEFAULT_NEW_FILENAMES = "iso";
 
 // better make sure the storage server has something available under "default"
 // at some point, we will change this to ubuntu2004 or similar
-export const DEFAULT_COMPUTE_IMAGE = "default";
+export const DEFAULT_COMPUTE_IMAGE = "ubuntu2004";
 
 // this is the fallback value to use for the compute image, in case it isn't set
 // in particular, for projects and public_path shares!
