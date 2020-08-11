@@ -72,6 +72,7 @@ interface Quota {
   cpu_request?: number;
   privileged?: boolean;
   idle_timeout?: number;
+  always_running?: boolean;
 }
 
 interface Users {
@@ -89,6 +90,7 @@ interface Settings {
   privileged?: boolean;
   idle_timeout?: number;
   cpu_shares?: string;
+  always_running?: number;
 }
 
 interface Upgrades {
@@ -102,6 +104,7 @@ interface Upgrades {
   member_host: number;
   ephemeral_state: number;
   ephemeral_disk: number;
+  always_running: number;
 }
 
 // special quotas for on-prem setups.
@@ -138,6 +141,7 @@ const BASE_QUOTAS: Quota = {
   memory_limit: DEFAULT_QUOTAS.memory, // upper bound on RAM in MB
   cpu_limit: DEFAULT_QUOTAS.cores, // upper bound on vCPU's
   idle_timeout: DEFAULT_QUOTAS.mintime, // minimum uptime
+  always_running: false, // if true, a service restarts the project if it isn't running
 } as const;
 
 // sanitize the overcommitment ratio or discard it
@@ -240,7 +244,7 @@ exports.quota = function (
     }
   }
 
-  // member hosting, which translates to "not pre-emptible"
+  // member hosting, which translates to better hosting conditions of the project
   if (max_upgrades.member_host == 0) {
     quota.member_host = false;
   } else if (!quota.member_host) {
@@ -262,6 +266,35 @@ exports.quota = function (
           const val = site_license[license_id];
           if (val != null && val.member_host) {
             quota.member_host = true;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // always_running – deal with it just like with member_hosting
+  if (max_upgrades.always_running == 0) {
+    quota.always_running = false;
+  } else if (!quota.always_running) {
+    if (settings.always_running) {
+      // free admin-set
+      quota.always_running = true;
+    } else {
+      // paid by some user
+      for (const userid in users) {
+        const val = users[userid];
+        if (val != null && val.upgrades && val.upgrades.always_running) {
+          quota.always_running = true;
+          break;
+        }
+      }
+      // or some site license
+      if (!quota.always_running && site_license != null) {
+        for (const license_id in site_license) {
+          const val = site_license[license_id];
+          if (val != null && val.always_running) {
+            quota.always_running = true;
             break;
           }
         }
