@@ -54,16 +54,13 @@ export const PurchaseMethod: React.FC<Props> = React.memo(
     if (!loaded) {
       return <Loading theme="medium" />;
     }
-    if (customer == null) {
-      return <div>Billing not available</div>;
-    }
 
-    const source = customer.get("default_source");
+    const source = customer?.get("default_source");
     return (
       <div>
         <PaymentMethods
-          sources={customer.get("sources")?.toJS()}
-          default={customer.get("default_source")}
+          sources={customer?.get("sources")?.toJS()}
+          default={customer?.get("default_source")}
         />
         {source && (
           <Button

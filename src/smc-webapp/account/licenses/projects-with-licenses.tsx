@@ -55,6 +55,14 @@ export const ProjectsWithLicenses: React.FC = () => {
   }
 
   function render_projects_with_license() {
+    if (projects == null || projects.length == 0) {
+      return (
+        <span>
+          You do not have any licensed projects yet. Please purchase a license
+          or apply a license to one of your projects in Project Settings.
+        </span>
+      );
+    }
     return (
       <div
         style={{ ...LICENSES_STYLE, height: "50vh" }}

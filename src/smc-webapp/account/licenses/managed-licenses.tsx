@@ -64,13 +64,15 @@ export const ManagedLicenses: React.FC = () => {
       return <Loading theme={"medium"} />;
     }
     if (licenses.size == 0) {
-      return <div>You do not manage any licenses.</div>;
+      return <div>You are not the manager of any licenses yet.</div>;
     }
-    return licenses
-      .toJS()
-      .map((license_id) => (
-        <LicenseYouManage license_id={license_id} key={license_id} />
-      ));
+    return (
+      <div style={LICENSES_STYLE}>
+        {licenses.toJS().map((license_id) => (
+          <LicenseYouManage license_id={license_id} key={license_id} />
+        ))}
+      </div>
+    );
   }
 
   function render_count() {
@@ -89,7 +91,7 @@ export const ManagedLicenses: React.FC = () => {
         </Button>
       </h3>
       {render_error()}
-      <div style={LICENSES_STYLE}>{render_managed()}</div>
+      {render_managed()}
     </div>
   );
 };

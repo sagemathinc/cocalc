@@ -68,7 +68,7 @@ export class SubscriptionList extends Component<Props, State> {
     return (
       <Row>
         <Col sm={6}>
-          <Icon name="list-alt" /> Subscriptions and course packages
+          <Icon name="list-alt" /> Subscriptions
         </Col>
         <Col sm={6}>{this.render_add_subscription_button()}</Col>
       </Row>

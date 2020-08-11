@@ -29,6 +29,7 @@ export interface Source {
 
 export interface Plan {
   name: string;
+  active: boolean;
   amount: number;
   currency: string;
   interval_count: number;

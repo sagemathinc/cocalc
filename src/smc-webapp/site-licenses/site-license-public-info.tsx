@@ -21,6 +21,7 @@ import { plural, trunc_left } from "smc-util/misc2";
 import { DebounceInput } from "react-debounce-input";
 import { webapp_client } from "../webapp-client";
 import { describe_quota } from "smc-util/db-schema/site-licenses";
+import { LicensePurchaseInfo } from "./purchase-info-about-license";
 
 interface Props {
   license_id: string;
@@ -233,6 +234,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
           {render_run_limit()}
           {render_running()}
           {render_activated()}
+          {render_purchased()}
           {render_description()}
         </div>
       );
@@ -318,6 +320,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
         {show_run ? render_run_limit() : undefined}
         {show_run ? render_running() : undefined}
         {render_activated()}
+        {render_purchased()}
         {render_description()}
       </ul>
     );
@@ -387,6 +390,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
     );
   }
 
+  // render information about when the license was activated
   function render_activated(): JSX.Element | undefined {
     const activates = info?.activates;
     if (activates == null) return;
@@ -403,6 +407,12 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
         </li>
       );
     }
+  }
+
+  // render information about when and how the license was purchased
+  function render_purchased(): JSX.Element | undefined {
+    if (!info?.is_manager) return;   // definitely didn't purchase this license
+    return <li><LicensePurchaseInfo license_id={license_id} /></li>
   }
 
   function render_title(): JSX.Element | undefined {
