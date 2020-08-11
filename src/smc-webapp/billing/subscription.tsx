@@ -5,12 +5,14 @@
 
 import { Alert, Button, ButtonToolbar, Col, Row } from "react-bootstrap";
 import { stripe_amount, stripe_date, capitalize } from "smc-util/misc";
+import { A } from "../r_misc";
 import {
   CSS,
   React,
   useActions,
   useState,
   useIsMountedRef,
+  useTypedRedux,
 } from "../app-framework";
 const { HelpEmailLink } = require("../customize");
 import { Subscription as StripeSubscription } from "./types";
@@ -24,22 +26,51 @@ interface Props {
 export const Subscription: React.FC<Props> = ({ subscription, style }) => {
   const [confirm_cancel, set_confirm_cancel] = useState(false);
   const [cancelling, set_cancelling] = useState(false);
+  const invoices = useTypedRedux("billing", "invoices");
   const actions = useActions("billing");
   const is_mounted_ref = useIsMountedRef();
 
-  function quantity(): string | undefined {
-    const q = subscription.quantity;
-    if (q > 1) {
-      return `${q} × `;
+  function render_description(): JSX.Element | undefined {
+    // if this invoice for this subscription is available in the browser (since loaded, and recent enough),
+    // use it to provide a nice description of what was paid for most recently by this subscription.
+    if (invoices == null) return;
+    const invoice_id = subscription.latest_invoice;
+    if (invoice_id == null) return;
+    for (const invoice of invoices.get("data")) {
+      if (invoice.get("id") == invoice_id) {
+        // got it
+        const cnt = invoice.getIn(["lines", "total_count"]) ?? 0; // always 1 for subscription?
+        const url = invoice.get("hosted_invoice_url");
+        return (
+          <div>
+            {invoice.getIn(["lines", "data", 0, "description"])}
+            {cnt > 1 ? ", etc. " : " "}
+            {url && (
+              <div>
+                <A href={url}>Invoice...</A>
+              </div>
+            )}
+          </div>
+        );
+      }
     }
   }
 
-  function render_cancel_at_end(): JSX.Element | undefined {
+  function render_cancel_at_end_or_price(): JSX.Element {
     if (subscription.cancel_at_period_end) {
-      return (
-        <span style={{ marginLeft: "15px" }}>Will cancel at period end.</span>
-      );
+      return <div>Will cancel at period end.</div>;
+    } else {
+      return <div>{render_price()}</div>;
     }
+  }
+
+  function render_price(): JSX.Element {
+    return (
+      <span>
+        {stripe_amount(subscription.plan.amount, subscription.plan.currency)}{" "}
+        for {plan_interval(subscription.plan)}
+      </span>
+    );
   }
 
   function render_info(): JSX.Element {
@@ -51,18 +82,14 @@ export const Subscription: React.FC<Props> = ({ subscription, style }) => {
     );
     return (
       <Row style={{ paddingBottom: "5px", paddingTop: "5px" }}>
-        <Col md={4}>
-          {quantity()} {sub.plan.name} (
-          {stripe_amount(sub.plan.amount, sub.plan.currency)} for{" "}
-          {plan_interval(sub.plan)})
-        </Col>
-        <Col md={2}>{capitalize(sub.status)}</Col>
+        <Col md={6}>{render_description()}</Col>
+        <Col md={1}>{capitalize(sub.status)}</Col>
         <Col md={4} style={{ color: "#666" }}>
           {stripe_date(sub.current_period_start)} –{" "}
           {stripe_date(sub.current_period_end)} (start:{" "}
-          {stripe_date(sub.created)}){render_cancel_at_end()}
+          {stripe_date(sub.created)}){render_cancel_at_end_or_price()}
         </Col>
-        <Col md={2}>
+        <Col md={1}>
           {cancellable ? (
             <Button
               style={{ float: "right" }}

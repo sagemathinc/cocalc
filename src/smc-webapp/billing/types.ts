@@ -92,6 +92,7 @@ export interface Subscription {
   plan: Plan;
   status: string;
   created: number;
+  latest_invoice?: string;
 }
 
 export type PeriodName = "month" | "week" | "year" | "year1" | "month4";
