@@ -32,6 +32,12 @@ function get_days(info): number {
   );
 }
 
+// When we change pricing, the products in stripe will already
+// exist with old prices (often grandfathered) so we may want to
+// instead change the version so new products get created
+// automatically.
+const VERSION = 0;
+
 function get_product_id(info: PurchaseInfo): string {
   /* We generate a unique identifier that represents the parameters of the purchase.
      The following parameters determine what "product" they are purchasing:
@@ -53,7 +59,7 @@ function get_product_id(info: PurchaseInfo): string {
     info.user == "business" ? 1 : 0
   }c${info.custom_cpu}d${info.custom_disk}m${
     info.custom_member ? 1 : 0
-  }p${period}r${info.custom_ram}`;
+  }p${period}r${info.custom_ram}_v${VERSION}`;
 }
 
 function get_product_name(info): string {
@@ -98,7 +104,9 @@ async function stripe_create_price(
 ): Promise<void> {
   const product = get_product_id(info);
   // Add the pricing info:
-  //  - if sub then we set the price for monthly and yearly.
+  //  - if sub then we set the price for monthly and yearly
+  //    and build in the 25% discount since subscriptions are
+  //    self-service by default.
   //  - if number of days, we set price for that many days.
   if (info.cost == null) throw Error("cost must be defined");
   if (info.subscription == "no") {
@@ -109,16 +117,22 @@ async function stripe_create_price(
       product,
     });
   } else {
-    // create the two recurring subscription costs
+    // create the two recurring subscription costs. Build
+    // in the self-service discount, which is:
+    //    COSTS.online_discount
     await stripe.conn.prices.create({
       currency: "usd",
-      unit_amount: Math.round(info.cost.cost_sub_month * 100),
+      unit_amount: Math.round(
+        COSTS.online_discount * info.cost.cost_sub_month * 100
+      ),
       product,
       recurring: { interval: "month" },
     });
     await stripe.conn.prices.create({
       currency: "usd",
-      unit_amount: Math.round(info.cost.cost_sub_year * 100),
+      unit_amount: Math.round(
+        COSTS.online_discount * info.cost.cost_sub_year * 100
+      ),
       product,
       recurring: { interval: "year" },
     });
@@ -251,8 +265,6 @@ async function stripe_create_subscription(
   const { quantity, subscription } = info;
   const customer: string = await stripe.need_customer_id();
 
-  const coupon = await get_self_service_discount_coupon(stripe.conn);
-
   const prices = await stripe.conn.prices.list({
     product: product_id,
     type: "recurring",
@@ -298,7 +310,6 @@ async function stripe_create_subscription(
   const options = {
     customer,
     items: [{ price, quantity }],
-    coupon,
     tax_percent: tax_percent
       ? Math.round(tax_percent * 100 * 100) / 100
       : undefined,
