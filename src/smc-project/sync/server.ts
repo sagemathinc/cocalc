@@ -47,6 +47,8 @@ import {
 
 // Only uncomment this for an intense level of debugging.
 // set_debug(true);
+// @ts-ignore -- typescript nonsense.
+const _ = set_debug;
 
 import { init_syncdoc } from "./sync-doc";
 
