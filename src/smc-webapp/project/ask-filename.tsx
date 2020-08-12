@@ -21,7 +21,7 @@ import { NEW_FILENAMES } from "smc-util/db-schema";
 
 interface Props {
   actions: any;
-  ext_selection: string;
+  ext_selection: string; // if it is '/' then make a folder instead
   current_path: string;
   new_filename?: string;
   other_settings: any;
@@ -60,12 +60,20 @@ export class AskNewFilename extends Component<Props, State> {
 
   create = (name, focus): void => {
     this.props.actions.ask_filename(undefined);
-    this.props.actions.create_file({
-      name: name,
-      ext: this.props.ext_selection,
-      current_path: this.props.current_path,
-      switch_over: focus,
-    });
+    if (this.props.ext_selection == "/") {
+      this.props.actions.create_folder({
+        name: name,
+        current_path: this.props.current_path,
+        switch_over: focus,
+      });
+    } else {
+      this.props.actions.create_file({
+        name: name,
+        ext: this.props.ext_selection,
+        current_path: this.props.current_path,
+        switch_over: focus,
+      });
+    }
   };
 
   submit = (val: string, opts: any): void => {
@@ -97,7 +105,8 @@ export class AskNewFilename extends Component<Props, State> {
       <Row style={{ marginBottom: "10px" }}>
         <Col md={6} mdOffset={0} lg={4} lgOffset={0}>
           <ControlLabel>
-            Enter name for new {this.filename()} file:
+            Enter name for new {this.filename()}{" "}
+            {this.props.ext_selection == "/" ? "folder" : "file"}:
           </ControlLabel>
           <Form>
             <SearchInput
