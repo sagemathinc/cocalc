@@ -74,6 +74,14 @@ export class NewButton extends React.Component<Props> {
     }
   }
 
+  on_create_folder_button_clicked = () : void => {
+    if (this.props.file_search.length === 0) {
+      this.props.actions.ask_filename('/');
+    } else {
+      this.props.create_folder();
+    }
+  }
+
   // Go to new file tab if no file is specified
   on_create_button_clicked = (): void => {
     if (this.props.file_search.length === 0) {
@@ -103,7 +111,7 @@ export class NewButton extends React.Component<Props> {
         <MenuItem
           eventKey="folder"
           key="folder"
-          onSelect={this.props.create_folder}
+          onSelect={this.on_create_folder_button_clicked}
         >
           <Icon name="folder" /> Folder
         </MenuItem>

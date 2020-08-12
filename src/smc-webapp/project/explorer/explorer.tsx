@@ -853,7 +853,7 @@ export const Explorer = rclass(
             {this.render_error()}
             {this.render_activity()}
             {this.render_control_row(public_view, visible_listing)}
-            {this.props.ext_selection ? (
+            {this.props.ext_selection != null ? (
               <AskNewFilename
                 actions={this.props.actions}
                 current_path={this.props.current_path}
