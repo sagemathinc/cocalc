@@ -106,11 +106,11 @@ def cmd(s,
                     stderr=PIPE,
                     shell=not isinstance(s, list))
         x = out.stdout.read() + out.stderr.read()
-        e = out.wait(
-        )  # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
+        # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
+        e = out.wait()
         if e:
             if ignore_errors:
-                return (x + "ERROR").strip()
+                return (x.decode("utf-8") + "ERROR").strip()
             else:
                 raise RuntimeError(x)
         if verbose >= 2:
