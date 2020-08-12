@@ -252,7 +252,9 @@ export class Listings extends EventEmitter {
       ?.get("missing");
   }
 
-  public async get_listing_directly(path: string): Promise<DirectoryListingEntry[]> {
+  public async get_listing_directly(
+    path: string
+  ): Promise<DirectoryListingEntry[]> {
     const store = redux.getStore("projects");
     // make sure that our relationship to this project is known.
     if (store == null) throw Error("bug");
@@ -311,7 +313,7 @@ export class Listings extends EventEmitter {
           },
         ],
       },
-      []
+      [{ persistent: true }]
     );
 
     if ((this.state as State) == "closed") return;
