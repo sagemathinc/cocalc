@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, redux, useTypedRedux } from "../../app-framework";
+import { React, redux, useTypedRedux, useStore } from "../../app-framework";
 import { A, Icon, COLORS, Loading } from "../../r_misc";
 import { ALERT_STYLE } from "../warnings/common";
 import { alert_message } from "../../alerts";
@@ -18,7 +18,7 @@ import {
 
 const UPGRADE_STYLE: React.CSSProperties = {
   ...ALERT_STYLE,
-  ...{ fontSize: "11pt", padding: "15px" },
+  ...{ fontSize: "11pt", padding: "5px 10px" },
 };
 
 // we only upgrade from not-frozen 18.04 images to the new default.
@@ -46,8 +46,12 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
 
   const [updating, set_updating] = React.useState(false);
   const compute_image = useComputeImage(project_id);
-
   if (compute_image == null) return null;
+
+  // don't tell students to update. Less surprises and let the teacher controls this…
+  const projects_store = useStore("projects");
+  const is_student_project = projects_store.is_student_project(project_id);
+  if (is_student_project) return null;
 
   const oldname = COMPUTE_IMAGES[compute_image].title;
   const newname = COMPUTE_IMAGES[DEFAULT_COMPUTE_IMAGE].title;
@@ -91,12 +95,12 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
           <div style={{ flex: "1 1 auto" }}>
             <Icon name="exclamation-triangle" />{" "}
             <strong>Software Update Available!</strong> Update this project's
-            software environment from "{oldname}" to "{newname}".{" "}
-            <A href={"https://doc.cocalc.com/"}>Lean more …</A>
+            software environment from "{oldname}" to "{newname}". Learn more
+            about <A href={"https://doc.cocalc.com/"}>all upgrades</A>.
             <br />
             <span style={{ color: COLORS.GRAY }}>
-              (You can also upgrade or downgrade this project later in Project
-              Settings → Project Control)
+              Alternatively, you can also upgrade or downgrade this project
+              later in Project Settings → Project Control.
             </span>
           </div>
           {render_controls()}
