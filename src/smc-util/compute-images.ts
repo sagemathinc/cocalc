@@ -37,18 +37,18 @@ export const COMPUTE_IMAGES: { [key: string]: ComputeImage } = {
     order: 1,
     title: "Ubuntu 18.04 (Deprecated)",
     short: "Ubuntu 18.04 (Deprecated)",
-    descr: "Reached end of life in fall 2020",
+    descr: "Reached end of life in August 2020",
     group: "Main",
     hidden: true,
   },
   ubuntu1804: {
     // a synonym of "default", but with a specific functionality!
-    // we use it as a marker: if a "default" project (before the 20.04 upgrade) was set to stay at 18.04, this image is selected.
+    // we use it as a marker: if a "default" project (before the 20.04 upgrade) is set to stay at 18.04, this image is selected.
     order: 1,
     title: "Ubuntu 18.04 (Stable)",
-    short: "Default",
-    descr: "Reached end of life in fall 2020",
-    group: "Ubuntu 18.04",
+    short: "Stable",
+    descr: "Reached end of life in August 2020",
+    group: "Main",
   },
   ubuntu2004: {
     order: 0,
@@ -67,7 +67,7 @@ export const COMPUTE_IMAGES: { [key: string]: ComputeImage } = {
     order: -2,
     title: "Ubuntu 18.04 (Previous)",
     short: "Previous",
-    descr: "One or two weeks behind 'Ubuntu 18.04'",
+    descr: "Reached end of life in August 2020",
     group: "Ubuntu 18.04",
     hidden: true,
   },
@@ -75,7 +75,7 @@ export const COMPUTE_IMAGES: { [key: string]: ComputeImage } = {
     order: -1,
     title: "Ubuntu 18.04 (Experimental)",
     short: "Experimental",
-    descr: "Reached end of life in fall 2020",
+    descr: "Reached end of life in August 2020",
     group: "Ubuntu 18.04",
     hidden: true,
   },

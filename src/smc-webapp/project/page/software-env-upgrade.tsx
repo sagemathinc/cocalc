@@ -4,7 +4,14 @@
  */
 
 import { React, redux, useTypedRedux, useStore } from "../../app-framework";
-import { A, Icon, COLORS, Loading } from "../../r_misc";
+import {
+  A,
+  Icon,
+  COLORS,
+  Loading,
+  VisibleMDLG,
+  VisibleXSSM,
+} from "../../r_misc";
 import { ALERT_STYLE } from "../warnings/common";
 import { alert_message } from "../../alerts";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
@@ -20,6 +27,8 @@ const UPGRADE_STYLE: React.CSSProperties = {
   ...ALERT_STYLE,
   ...{ fontSize: "11pt", padding: "5px 10px" },
 };
+
+const DOC_UBUNTU_2004 = "https://doc.cocalc.com/news/ubuntu-2004.html";
 
 // we only upgrade from not-frozen 18.04 images to the new default.
 // do not bother about any other names, including ubuntu1804
@@ -73,7 +82,7 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
       return <Loading text={"Updating ..."} />;
     } else {
       return (
-        <AntdSpace style={{ flex: "0 1 auto" }}>
+        <AntdSpace>
           <Button onClick={() => set_image("ubuntu1804")}>Dismiss</Button>
           <Button
             onClick={() => set_image(DEFAULT_COMPUTE_IMAGE)}
@@ -94,14 +103,23 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
         <div style={{ display: "flex" }}>
           <div style={{ flex: "1 1 auto" }}>
             <Icon name="exclamation-triangle" />{" "}
-            <strong>Software Update Available!</strong> Update this project's
-            software environment from "{oldname}" to "{newname}". Learn more
-            about <A href={"https://doc.cocalc.com/"}>all upgrades</A>.
-            <br />
-            <span style={{ color: COLORS.GRAY }}>
-              Alternatively, you can also upgrade or downgrade this project
-              later in Project Settings → Project Control.
-            </span>
+            <strong>Software Update Available!</strong>{" "}
+            <VisibleMDLG>
+              Update this project's software environment from "{oldname}" to "
+              {newname}". Learn more about{" "}
+              <A href={DOC_UBUNTU_2004}>all updates</A>.
+            </VisibleMDLG>
+            <VisibleXSSM>
+              {" "}
+              <A href={DOC_UBUNTU_2004}>Learn more ...</A>
+            </VisibleXSSM>
+            <VisibleMDLG>
+              <br />
+              <span style={{ color: COLORS.GRAY }}>
+                Alternatively, you can keep this project's software environment
+                and upgrade later in Project Settings → Project Control.
+              </span>
+            </VisibleMDLG>
           </div>
           {render_controls()}
         </div>
