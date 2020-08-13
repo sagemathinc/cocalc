@@ -31,6 +31,7 @@ costs add).
 
 import { DEFAULT_QUOTAS, upgrades } from "smc-util/upgrade-spec";
 import { Quota as SiteLicenseQuota } from "smc-util/db-schema/site-licenses";
+import { len } from "smc-util/misc";
 
 const MAX_UPGRADES = upgrades.max_per_project;
 
@@ -69,6 +70,7 @@ type Str2Num = (s: string) => number;
 interface Quota {
   network?: boolean;
   member_host?: boolean;
+  always_running?: boolean;
   disk_quota?: number;
   memory_limit?: number;
   memory_request?: number;
@@ -76,7 +78,6 @@ interface Quota {
   cpu_request?: number;
   privileged?: boolean;
   idle_timeout?: number;
-  always_running?: boolean;
 }
 
 interface Users {
@@ -201,7 +202,7 @@ export function quota(
   users_arg?: Users,
   site_license?: { [license_id: string]: Settings },
   site_settings?: SiteSettingsQuotas
-) {
+): Quota {
   // we want settings and users to be defined below and make sure the
   // arguments can't be modified
   const settings: Readonly<Settings> = Object.freeze(
@@ -412,7 +413,55 @@ export function quota(
   // ensure minimum memory limit is met
   cap_lower_bound(quota, "memory_limit", MIN_MEMORY_LIMIT);
 
+  if (site_license != null) {
+    // If there is new license.quota, compute it and max with it.
+    const license_quota = site_license_quota(site_license);
+    for (const field in license_quota) {
+      if (typeof license_quota[field] == "number") {
+        quota[field] = Math.max(license_quota[field], quota[field] ?? 0);
+      } else {
+        // boolean
+        quota[field] = !!license_quota[field] || !!quota[field];
+      }
+    }
+  }
+
   return quota;
+}
+
+// Compute the contribution to quota coming from the quota field of the site licenses.
+// This is max'd with the quota computed using settings, the rest of the licenses, etc.
+function site_license_quota(site_license: {
+  [license_id: string]: Settings;
+}): SiteLicenseQuota {
+  const total_quota: Quota = {};
+  for (const license_id in site_license) {
+    const license = site_license[license_id];
+    if (license == null) continue;
+    const { quota } = license;
+    if (quota == null || len(quota) == 0) continue;
+    // If there is any nontrivial new quota contribution, then
+    // project automatically gets network access... we trust it.
+    total_quota.network = true;
+    if (quota.member) {
+      total_quota.member_host = true;
+    }
+    if (quota.always_running) {
+      total_quota.always_running = true;
+    }
+    if (quota.cpu) {
+      total_quota.cpu_limit = (total_quota.cpu_limit ?? 0) + quota.cpu;
+    }
+    if (quota.ram) {
+      total_quota.memory_limit =
+        (total_quota.memory_limit ?? 0) + 1000 * quota.ram;
+    }
+    if (quota.disk) {
+      total_quota.disk_quota =
+        (total_quota.disk_quota ?? 0) + 1000 ** quota.disk;
+    }
+  }
+  return total_quota;
 }
 
 // TODO name is <K extends keyof Quota>, but that causes troubles ...
