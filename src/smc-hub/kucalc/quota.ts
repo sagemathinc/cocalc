@@ -3,31 +3,36 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// computing project quotas based on settings (by admin/system) and user contributions ("upgrades")
+/* Compute project quotas based on:
 
-// historical note:
-// previously there was a "hardcoded" cpu_shares value in the setting, which was stored in the DB.
-// we no longer have that in kucalc, but the values were still there.
-// this quota code subtracted 256 unconditionally from that value to compensate for this.
-// in December 2018, we removed almost all cpu_shares from the DB (LIMIT 1000 to avoid locking the db too long)
+    - settings:
+        - by admins
+        - system-wide customizable site defaults
+    - old plans:
+        - upgrades coming from about-to-be-deprecated subscriptions and course packages
+    - site licenses:
+        - old format which is the same as upgrades
+        - new format quota object
 
-/*
-WITH s256 AS (
-    SELECT project_id
-    FROM projects
-    WHERE (settings ->> 'cpu_shares')::float BETWEEN 1 AND 256
-    ORDER BY created ASC
-    LIMIT 1000
-)
-UPDATE projects AS p
-SET    settings = jsonb_set(settings, '{cpu_shares}', '0')
-FROM   s256
-WHERE  p.project_id = s256.project_id
-RETURNING p.project_id;
+The quota from coming from settings and user contributions and the
+old site license formats all just add together.
+
+The new format SiteLicenseQuota quota object just specifies precisely what the quotas should be
+on the project using straightforward human units (with the new quotas all
+adding together), rather than adding to some base built in default.  These
+have to coexist for about a year.   The way they will combine is that we
+first compute the total upgrades coming from everything but the SiteLicenseQuota.
+We then compute the total upgrades defined by the SiteLicenseQuota (always
+including network automatically, but capping them at whatever maxes we've defined).
+Then final quota is the *max* of these two along each parameter.  Old and
+new don't add, but of course multiple SiteLicenseQuota do add (since their
+costs add).
 */
 
-const { DEFAULT_QUOTAS } = require("smc-util/upgrade-spec");
-const MAX_UPGRADES = require("smc-util/upgrade-spec").upgrades.max_per_project;
+import { DEFAULT_QUOTAS, upgrades } from "smc-util/upgrade-spec";
+import { Quota as SiteLicenseQuota } from "smc-util/db-schema/site-licenses";
+
+const MAX_UPGRADES = upgrades.max_per_project;
 
 interface Limit {
   readonly member: number;
@@ -59,7 +64,6 @@ const MIN_MEMORY_LIMIT: Limit = Object.freeze({
 
 type NumParser = (s: string | undefined) => number;
 type Str2Num = (s: string) => number;
-type NumParserGen = (fn: Str2Num) => NumParser;
 
 // the end result
 interface Quota {
@@ -91,6 +95,7 @@ interface Settings {
   idle_timeout?: number;
   cpu_shares?: string;
   always_running?: number;
+  quota?: SiteLicenseQuota;
 }
 
 interface Upgrades {
@@ -145,51 +150,53 @@ const BASE_QUOTAS: Quota = {
 } as const;
 
 // sanitize the overcommitment ratio or discard it
-function sani_oc(oc: number | undefined): number | undefined {
+function sanitize_overcommit(oc: number | undefined): number | undefined {
   if (typeof oc == "number" && !isNaN(oc)) {
     return Math.max(1, oc);
   }
   return undefined;
 }
 
+// {"cfb75fa5-3dd8-4c8d-aa8f-0a91275019e5": {"quota": {"cpu": 1, "ram": 1, "disk": 1, "user": "academic", "member": true, "always_running": false}}}
+
 function calc_default_quotas(site_settings?: SiteSettingsQuotas): Quota {
-  const q: Quota = Object.assign({}, BASE_QUOTAS);
+  const quota: Quota = Object.assign({}, BASE_QUOTAS);
 
   // overwrite/set extras for any set default quota in the site setting
   if (site_settings != null && site_settings.default_quotas != null) {
-    const dq = site_settings.default_quotas;
+    const defaults = site_settings.default_quotas;
 
-    if (typeof dq.disk_quota == "number") {
-      q.disk_quota = dq.disk_quota;
+    if (typeof defaults.disk_quota == "number") {
+      quota.disk_quota = defaults.disk_quota;
     }
-    if (typeof dq.internet == "boolean") {
-      q.network = dq.internet;
+    if (typeof defaults.internet == "boolean") {
+      quota.network = defaults.internet;
     }
-    if (typeof dq.idle_timeout == "number") {
-      q.idle_timeout = dq.idle_timeout as number;
+    if (typeof defaults.idle_timeout == "number") {
+      quota.idle_timeout = defaults.idle_timeout as number;
     }
-    if (typeof dq.mem == "number") {
-      q.memory_limit = dq.mem;
-      const oc = sani_oc(dq.mem_oc);
+    if (typeof defaults.mem == "number") {
+      quota.memory_limit = defaults.mem;
+      const oc = sanitize_overcommit(defaults.mem_oc);
       // ratio is 1:mem_oc -- sanitize it first
       if (oc != null) {
-        q.memory_request = Math.round(dq.mem / oc);
+        quota.memory_request = Math.round(defaults.mem / oc);
       }
     }
-    if (typeof dq.cpu == "number") {
-      q.cpu_limit = dq.cpu as number;
+    if (typeof defaults.cpu == "number") {
+      quota.cpu_limit = defaults.cpu as number;
       // ratio is 1:cpu_oc -- sanitize it first
-      const oc = sani_oc(dq.cpu_oc);
+      const oc = sanitize_overcommit(defaults.cpu_oc);
       if (oc != null) {
-        q.cpu_request = dq.cpu / oc;
+        quota.cpu_request = defaults.cpu / oc;
       }
     }
   }
 
-  return q;
+  return quota;
 }
 
-exports.quota = function (
+export function quota(
   settings_arg?: Settings,
   users_arg?: Users,
   site_license?: { [license_id: string]: Settings },
@@ -318,7 +325,7 @@ exports.quota = function (
   // Little helper to calculate the quotas, contributions, and limits.
   // name: of the computed quota, upgrade the quota config key,
   // parse_num for converting numbers, and factor for conversions
-  const calc = function (
+  function calc(
     name: string, // keyof Quota, but only the numeric ones
     upgrade: string, // keyof Settings, but only the numeric ones
     parse_num: NumParser,
@@ -326,16 +333,15 @@ exports.quota = function (
   ): void {
     if (factor == null) factor = 1;
 
-    const dflt_quota = quota[name];
+    const default_quota = quota[name];
 
-    const base: number = ((): number => {
-      // there are no limits to settings "admin" upgrades
-      if (settings[upgrade]) {
-        return factor * parse_num(settings[upgrade]);
-      } else {
-        return Math.min(quota[name], factor * max_upgrades[upgrade]);
-      }
-    })();
+    let base: number;
+    // there are no limits to settings "admin" upgrades
+    if (settings[upgrade]) {
+      base = factor * parse_num(settings[upgrade]);
+    } else {
+      base = Math.min(quota[name], factor * max_upgrades[upgrade]);
+    }
 
     // contributions can come from user upgrades or site licenses
     let contribs = 0;
@@ -355,13 +361,13 @@ exports.quota = function (
     if (site_settings?.default_quotas != null) {
       const { mem_oc, cpu_oc } = site_settings.default_quotas;
       if (name == "cpu_request" && quota.cpu_limit != null) {
-        const oc = sani_oc(cpu_oc);
+        const oc = sanitize_overcommit(cpu_oc);
         if (oc != null) {
           const oc_cpu = quota.cpu_limit / oc;
           contribs = Math.max(contribs, oc_cpu - base);
         }
       } else if (name == "memory_request" && quota.memory_limit != null) {
-        const oc = sani_oc(mem_oc);
+        const oc = sanitize_overcommit(mem_oc);
         if (oc != null) {
           const oc_mem = Math.round(quota.memory_limit / oc);
           contribs = Math.max(contribs, oc_mem - base);
@@ -371,12 +377,12 @@ exports.quota = function (
     // limit the contributions by the overall maximum (except for the defaults!)
     const contribs_limit = Math.max(
       0,
-      factor * max_upgrades[upgrade] - dflt_quota
+      factor * max_upgrades[upgrade] - default_quota
     );
     contribs = Math.min(contribs, contribs_limit);
     // base is the default or the modified admin upgrades
     quota[name] = base + contribs;
-  };
+  }
 
   // disk space quota in MB
   calc("disk_quota", "disk_quota", to_int, undefined);
@@ -384,7 +390,8 @@ exports.quota = function (
   // memory limit
   calc("memory_limit", "memory", to_int, undefined);
 
-  // idle timeout: not used for setting up the project quotas, but necessary to know for precise scheduling on nodes
+  // idle timeout: not used for setting up the project quotas, but necessary
+  // to know for precise scheduling on nodes
   calc("idle_timeout", "mintime", to_int, undefined);
 
   // memory request -- must come AFTER memory_limit calculation
@@ -406,17 +413,17 @@ exports.quota = function (
   cap_lower_bound(quota, "memory_limit", MIN_MEMORY_LIMIT);
 
   return quota;
-};
+}
 
 // TODO name is <K extends keyof Quota>, but that causes troubles ...
 // at this point we already know that we only look for numeric properties and they're all != null
-const cap_lower_bound = function (quota: Quota, name: string, MIN_SPEC) {
+function cap_lower_bound(quota: Quota, name: string, MIN_SPEC): void {
   const cap = quota.member_host ? MIN_SPEC.member : MIN_SPEC.nonmember;
-  return (quota[name] = Math.max(quota[name], cap));
-};
+  quota[name] = Math.max(quota[name], cap);
+}
 
-const make_number_parser: NumParserGen = function (fn: Str2Num) {
-  return (s: string | undefined) => {
+function make_number_parser(fn: Str2Num): NumParser {
+  return (s: string | undefined): number => {
     if (s == null) return 0;
     try {
       const n = fn(s);
@@ -429,7 +436,7 @@ const make_number_parser: NumParserGen = function (fn: Str2Num) {
       return 0;
     }
   };
-};
+}
 
 const to_int: NumParser = make_number_parser(parseInt);
 
