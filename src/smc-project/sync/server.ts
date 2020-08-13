@@ -13,6 +13,13 @@ TODO:
 silently swallowed in persistent mode...
 */
 
+// How long to wait from when we hit 0 clients until closing this channel.
+// Making this short can save some memory and cpu.
+// Making it longer reduces the potential time to open a file, e.g., if you
+// disconnect then reconnect.  Also, it should be at least as long as the
+// time it takes to save unsaved changes to the database.
+const CLOSE_DELAY_MS = 60 * 1000;
+
 // This is a hard upper bound on the number of browser sessions that could
 // have the same file open at once.  We put some limit on it, to at least
 // limit problems from bugs which crash projects (since each connection uses
@@ -35,7 +42,13 @@ import {
   synctable_no_database,
   SyncTable,
   VersionedChange,
+  set_debug,
 } from "../smc-util/sync/table";
+
+// Only uncomment this for an intense level of debugging.
+// set_debug(true);
+// @ts-ignore -- typescript nonsense.
+const _ = set_debug;
 
 import { init_syncdoc } from "./sync-doc";
 
@@ -99,6 +112,10 @@ class SyncTableChannel {
   private query_string: string;
   private channel: Channel;
   private closed: boolean = false;
+  private num_connections: { n: number; changed: Date } = {
+    n: 0,
+    changed: new Date(),
+  };
 
   // If true, do not use a database at all, even on the backend.
   // Table is reset any time this object is created.  This is
@@ -178,9 +195,10 @@ class SyncTableChannel {
   }
 
   private log(...args): void {
-    if (this.closed) return;
     this.logger.debug(
-      `SyncTableChannel('${this.name}', '${this.query_string}'): `,
+      `SyncTableChannel('${this.name}', '${this.query_string}'${
+        this.closed ? ",CLOSED" : ""
+      }): `,
       ...args
     );
   }
@@ -204,6 +222,8 @@ class SyncTableChannel {
     this.synctable = create_synctable(this.query, this.options, this.client);
 
     // if the synctable closes, then the channel should also close.
+    // I think this should happen, e.g., when we "close and halt"
+    // a jupyter notebook, which closes the synctable, triggering this.
     this.synctable.once("closed", this.close.bind(this));
 
     if (this.query[this.synctable.get_table()][0].string_id != null) {
@@ -249,7 +269,8 @@ class SyncTableChannel {
 
   private async new_connection(spark: Spark): Promise<void> {
     // Now handle the connection
-    const n = this.num_connections();
+    const n = this.num_connections.n + 1;
+    this.num_connections = { n, changed: new Date() };
 
     // account for new connection from this particular client.
     const m = this.increment_connection_count(spark);
@@ -317,11 +338,15 @@ class SyncTableChannel {
   }
 
   private async end_connection(spark: Spark): Promise<void> {
+    // This should never go below 0 (that would be a bug), but let's
+    // just ewnsure it doesn't since if it did that would weirdly break
+    // things for users as the table would keep trying to close.
+    const n = Math.max(0, this.num_connections.n - 1);
+    this.num_connections = { n, changed: new Date() };
+
     const m = this.decrement_connection_count(spark);
     this.log(
-      `spark event -- end connection ${spark.address.ip} -- ${
-        spark.id
-      }  -- num_connections = ${this.num_connections()}  (from this client = ${m})`
+      `spark event -- end connection ${spark.address.ip} -- ${spark.id}  -- num_connections = ${n}  (from this client = ${m})`
     );
     this.check_if_should_close();
   }
@@ -345,24 +370,13 @@ class SyncTableChannel {
       // don't bother if either already closed, or the persistent option is set.
       return;
     }
-    const n = this.num_connections();
+    const { n } = this.num_connections;
     if (n === 0) {
-      this.log("check_if_should_close -- ", n, " closing");
-      this.close();
+      this.log("check_if_should_close -- ", n, " -- do a save and maybe close");
+      this.save_and_close_if_possible();
     } else {
-      this.log("check_if_should_close -- ", n, " do not close");
+      this.log("check_if_should_close -- ", n, " -- do not close");
     }
-  }
-
-  private num_connections(): number {
-    let n = 0;
-    if (this.channel == null) {
-      return n;
-    }
-    this.channel.forEach((_: Spark) => {
-      n += 1;
-    });
-    return n;
   }
 
   private async handle_mesg_from_browser(
@@ -393,19 +407,51 @@ class SyncTableChannel {
     this.channel.write(x);
   }
 
-  public async close(): Promise<void> {
-    if (this.closed) return;
+  private async save_and_close_if_possible(): Promise<void> {
+    this.log("save_and_close_if_possible: no connections, so saving...");
+    await this.synctable.save();
+    const { n, changed } = this.num_connections;
+    const delay = new Date().valueOf() - changed.valueOf();
+    this.log(
+      `save_and_close_if_possible: after save there are ${n} connections and delay=${delay}`
+    );
+    if (n === 0) {
+      if (delay < CLOSE_DELAY_MS) {
+        this.log(`save_and_close_if_possible: wait a bit then try again`);
+        setTimeout(
+          this.check_if_should_close.bind(this),
+          1000 + CLOSE_DELAY_MS - delay
+        );
+      } else {
+        this.log(
+          `save_and_close_if_possible: close this SyncTableChannel atomically`
+        );
+        // actually close
+        this.close();
+      }
+    } else {
+      this.log(`save_and_close_if_possible: NOT closing this SyncTableChannel`);
+    }
+  }
+
+  private close(): void {
+    if (this.closed) {
+      this.log("close: already closed!");
+      return;
+    }
+    this.log("close: closing");
     this.closed = true;
     delete synctable_channels[this.name];
     this.channel.destroy();
     delete this.channel;
     delete this.client;
-    delete this.logger;
     delete this.query;
     delete this.query_string;
     delete this.options;
-    await this.synctable.close();
+    this.synctable.close_no_async();
     delete this.synctable;
+    this.log("close: closed");
+    delete this.logger; // don't call this.log after this!
   }
 
   public get_synctable(): SyncTable {
