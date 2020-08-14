@@ -56,12 +56,15 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
   const [updating, set_updating] = React.useState(false);
   const compute_image = useComputeImage(project_id);
   if (compute_image == null) return null;
+  if (TO_UPGRADE.indexOf(compute_image) == -1) return null;
 
   // don't tell students to update. Less surprises and let the teacher controls this…
   const projects_store = useStore("projects");
   const is_student_project = projects_store.is_student_project(project_id);
   if (is_student_project) return null;
 
+  // just a safety measure, before accessing .title
+  if (COMPUTE_IMAGES[compute_image] == null) return null;
   const oldname = COMPUTE_IMAGES[compute_image].title;
   const newname = COMPUTE_IMAGES[DEFAULT_COMPUTE_IMAGE].title;
 
@@ -97,7 +100,6 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
 
   // we only want to re-render if it is really necessary. the "project_map" changes quite often…
   return React.useMemo(() => {
-    if (TO_UPGRADE.indexOf(compute_image) == -1) return null;
     return (
       <Alert bsStyle={"info"} style={UPGRADE_STYLE}>
         <div style={{ display: "flex" }}>
