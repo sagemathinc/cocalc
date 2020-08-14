@@ -559,7 +559,7 @@ exports.start_server = start_server = (cb) ->
             if not program.port
                 cb(); return
             try
-                await require('./stripe/connect').init_stripe(database, winston)
+                await require('./stripe').init_stripe(database, winston)
                 cb()
             catch err
                 cb(err)

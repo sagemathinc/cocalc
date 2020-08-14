@@ -11,7 +11,7 @@ Stripe API docs https://stripe.com/docs/api/node#create_plan
 
 import Stripe from "stripe";
 import { upgrades } from "smc-util/upgrade-spec";
-import { init_stripe } from "./connect";
+import { init_stripe } from "./connection";
 import { PostgreSQL } from "../postgres/types";
 
 // Create all plans that are missing

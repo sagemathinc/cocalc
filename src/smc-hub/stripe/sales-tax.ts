@@ -8,7 +8,7 @@ Compute sales tax for a given customer in WA state.
 */
 
 const { sales_tax } = require("smc-util-node/misc_node");
-import { get_stripe } from "./connect";
+import { get_stripe } from "./connection";
 
 export async function stripe_sales_tax(
   customer_id: string,

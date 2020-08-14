@@ -12,7 +12,7 @@ import { PostgreSQL } from "../postgres/types";
 
 import Stripe from "stripe";
 
-import { get_stripe } from "./connect";
+import { get_stripe } from "./connection";
 import { stripe_sales_tax } from "./sales-tax";
 
 interface HubClient {

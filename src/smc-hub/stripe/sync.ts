@@ -11,7 +11,7 @@ Should get done eventually mostly via webhooks, etc., -- but for now this is OK.
 
 import { delay } from "awaiting";
 import { create_missing_plans } from "./plans";
-import { get_stripe, init_stripe } from "./connect";
+import { get_stripe, init_stripe } from "./connection";
 import { callback2 } from "smc-util/async-utils";
 import { PostgreSQL } from "../postgres/types";
 
