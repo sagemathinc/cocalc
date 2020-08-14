@@ -490,19 +490,25 @@ declare var document;
 async function init_gtag() {
   await store.until_configured();
   if (!store.get("is_commercial")) return;
+  const w: any = window;
+  if (w?.document == null) {
+    // Make it so this code can be run on the backend (not in a browser).
+    // see https://github.com/sagemathinc/cocalc-landing/issues/2
+    return;
+  }
   // for commercial setup, enable conversion tracking...
   // the gtag initialization
-  (window as any).dataLayer = (window as any).dataLayer || [];
-  (window as any).gtag = function () {
-    (window as any).dataLayer.push(arguments);
+  w.dataLayer = w.dataLayer || [];
+  w.gtag = function () {
+    w.dataLayer.push(arguments);
   };
-  (window as any).gtag("js", new Date());
-  (window as any).gtag("config", gtag_id);
+  w.gtag("js", new Date());
+  w.gtag("config", gtag_id);
   // load tagmanager
-  const jtag = document.createElement("script");
+  const jtag = w.document.createElement("script");
   jtag.src = `https://www.googletagmanager.com/gtag/js?id=${theme.gtag_id}`;
   jtag.async = true;
-  document.getElementsByTagName("head")[0].appendChild(jtag);
+  w.document.getElementsByTagName("head")[0].appendChild(jtag);
 }
 
 init_gtag();
