@@ -107,7 +107,7 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
             <VisibleMDLG>
               Update this project's software environment from "{oldname}" to "
               {newname}". Learn more about{" "}
-              <A href={DOC_UBUNTU_2004}>all updates</A>.
+              <A href={DOC_UBUNTU_2004}>all changes</A>.
             </VisibleMDLG>
             <VisibleXSSM>
               {" "}
