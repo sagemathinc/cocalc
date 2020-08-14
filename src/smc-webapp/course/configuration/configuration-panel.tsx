@@ -345,6 +345,10 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
 
     function handle_student_pay_choice(e): void {
       actions.configuration.set_pay_choice("student", e.target.checked);
+      if (e.target.checked) {
+        set_show_students_pay(true);
+        actions.configuration.set_course_info(get_student_pay_when());
+      }
     }
 
     function render_require_students_pay_desc() {
