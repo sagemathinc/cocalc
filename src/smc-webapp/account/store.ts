@@ -118,7 +118,7 @@ export class AccountStore extends Store<AccountState> {
   }
 
   // Total ugprades this user is paying for (sum of all upgrades from subscriptions)
-  get_total_upgrades(): { [key: string]: number } {
+  get_total_upgrades(): { [key: string]: number } | undefined {
     const stripe_data = this.getIn([
       "stripe_customer",
       "subscriptions",

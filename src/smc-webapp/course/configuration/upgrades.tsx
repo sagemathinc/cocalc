@@ -346,12 +346,9 @@ class StudentProjectUpgrades extends Component<
     const result: any[] = [];
     for (const quota of schema.PROJECT_UPGRADES.field_order) {
       const total = purchased_upgrades[quota];
-      const yours = your_upgrades[quota] != null ? your_upgrades[quota] : 0;
-      const available =
-        total -
-        (applied_upgrades[quota] != null ? applied_upgrades[quota] : 0) +
-        yours;
-      const current = total_upgrades[quota] != null ? total_upgrades[quota] : 0;
+      const yours = your_upgrades[quota] ?? 0;
+      const available = total - (applied_upgrades[quota] ?? 0) + yours;
+      const current = total_upgrades[quota] ?? 0;
       result.push(
         this.render_upgrade_row(quota, available, current, yours, num_projects)
       );
