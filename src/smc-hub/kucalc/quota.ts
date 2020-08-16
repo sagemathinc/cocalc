@@ -29,9 +29,11 @@ new don't add, but of course multiple SiteLicenseQuota do add (since their
 costs add).
 */
 
-import { DEFAULT_QUOTAS, upgrades } from "smc-util/upgrade-spec";
-import { Quota as SiteLicenseQuota } from "smc-util/db-schema/site-licenses";
-import { len } from "smc-util/misc";
+// TODO: relative path just needed in manage-*
+
+import { DEFAULT_QUOTAS, upgrades } from "../../smc-util/upgrade-spec";
+import { Quota as SiteLicenseQuota } from "../../smc-util/db-schema/site-licenses";
+import { len } from "../../smc-util/misc";
 
 const MAX_UPGRADES = upgrades.max_per_project;
 
