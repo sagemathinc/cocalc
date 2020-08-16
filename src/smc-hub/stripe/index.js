@@ -1,1 +1,1 @@
-export { init_stripe } from "./connection";
+exports.init_stripe = require("./connection").init_stripe;

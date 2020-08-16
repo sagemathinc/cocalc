@@ -559,6 +559,7 @@ exports.start_server = start_server = (cb) ->
             if not program.port
                 cb(); return
             try
+                winston.debug("initializing stripe support...")
                 await require('./stripe').init_stripe(database, winston)
                 cb()
             catch err
@@ -566,8 +567,10 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             if not program.port
                 cb(); return
+            winston.debug("initializing zendesk support...")
             init_support(cb)
         (cb) ->
+            winston.debug("initializing compute server...")
             init_compute_server(cb)
         (cb) ->
             if not program.dev or process.env.USER.length == 32
@@ -578,6 +581,7 @@ exports.start_server = start_server = (cb) ->
             # all projects are stopped, since assuming they are
             # running when they are not is bad.  Something similar
             # is done in cocalc-docker.
+            winston.debug("killing dev projects...")
             misc_node.execute_code  # in the scripts/ path...
                 command : "cocalc_kill_all_dev_projects.py"
 
