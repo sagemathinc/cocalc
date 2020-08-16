@@ -4,7 +4,6 @@
  */
 
 import { PostgreSQL } from "../types";
-import { copy_with } from "smc-util/misc";
 import { query } from "../query";
 
 export async function site_license_is_manager(
@@ -37,7 +36,7 @@ export async function site_license_manager_set(
   // Now do the query
   await db.async_query({
     query: "UPDATE site_licenses",
-    set: copy_with(info, ["title", "description"]),
+    set: { title: info.title, description: info.description },
     where: { id: info.id },
   });
 }
