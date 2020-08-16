@@ -460,7 +460,7 @@ function site_license_quota(site_license: {
     }
     if (quota.disk) {
       total_quota.disk_quota =
-        (total_quota.disk_quota ?? 0) + 1000 ** quota.disk;
+        (total_quota.disk_quota ?? 0) + 1000 * quota.disk;
     }
   }
   return total_quota;
