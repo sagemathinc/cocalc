@@ -15,7 +15,10 @@ function get_total_upgrades(stripe_subscriptions_data) {
   if (subs == null) {
     return {};
   }
-  let total = {};
+  // always running isn't in any of the subscriptions and I don't want to edit benefits
+  // for all of them, so just put a zero 0 (since this whole old upgrades thing
+  // will eventually go away). https://github.com/sagemathinc/cocalc/issues/4802
+  let total = { always_running: 0 };
   for (let sub of subs) {
     const info = PROJECT_UPGRADES.subscription[sub.plan.id.split("-")[0]];
     if (info == null) {
