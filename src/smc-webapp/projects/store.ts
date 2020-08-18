@@ -125,6 +125,10 @@ export class ProjectsStore extends Store<State> {
     return this.getIn(["project_map", project_id, "course"]);
   }
 
+  public is_student_project(project_id: string): boolean {
+    return !!this.get_course_info(project_id);
+  }
+
   /*
   If a course payment is required for this project from the signed in user,
   returns time when it will be required; otherwise, returns undefined.

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Alert } from "../../antd-bootstrap";
 import {
   React,
@@ -23,7 +28,7 @@ export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
     [project, is_commercial]
   );
 
-  const actions = useActions({project_id});
+  const actions = useActions({ project_id });
 
   if (
     !is_commercial ||
