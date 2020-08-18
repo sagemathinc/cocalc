@@ -30,6 +30,8 @@ const UPGRADE_STYLE: React.CSSProperties = {
 
 const DOC_UBUNTU_2004 = "https://doc.cocalc.com/news/ubuntu-2004.html";
 
+const DISMISS_IMG = "ubuntu1804";
+
 // we only upgrade from not-frozen 18.04 images to the new default.
 // do not bother about any other names, including ubuntu1804
 const TO_UPGRADE = [FALLBACK_COMPUTE_IMAGE, "previous", "exp"];
@@ -73,7 +75,9 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
     const actions = redux.getProjectActions(project_id);
     try {
       await actions.set_compute_image(image);
-      await redux.getActions("projects").restart_project(project_id);
+      if (image != DISMISS_IMG) {
+        await redux.getActions("projects").restart_project(project_id);
+      }
     } catch (err) {
       alert_message({ type: "error", message: err });
       set_updating(false);
@@ -86,7 +90,7 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
     } else {
       return (
         <AntdSpace>
-          <Button onClick={() => set_image("ubuntu1804")}>Dismiss</Button>
+          <Button onClick={() => set_image(DISMISS_IMG)}>Dismiss</Button>
           <Button
             onClick={() => set_image(DEFAULT_COMPUTE_IMAGE)}
             bsStyle={"primary"}
