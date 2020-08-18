@@ -742,10 +742,13 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         cb(err)
             (cb) =>
                 # TODO maybe expire tokens after some time
-                if locals.old_challenge?.token?
-                    locals.token = locals.old_challenge.token
-                    cb()
-                    return
+                if locals.old_challenge?
+                    old = locals.old_challenge
+                    # return the same token if the is one for the same email
+                    if old.token? and old.email == locals.email_address
+                        locals.token = locals.old_challenge.token
+                        cb()
+                        return
 
                 {generate} = require("random-key")
                 locals.token = generate(16).toLowerCase()
