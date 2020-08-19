@@ -5,7 +5,7 @@
 
 import { deep_copy } from "../misc";
 const { DEFAULT_QUOTAS } = require("../upgrade-spec");
-import { DEFAULT_COMPUTE_IMAGE } from "./defaults";
+import { FALLBACK_COMPUTE_IMAGE } from "./defaults";
 import { SCHEMA as schema } from "./index";
 import { Table } from "./types";
 
@@ -50,7 +50,8 @@ Table({
           last_active: null,
           action_request: null, // last requested action -- {action:?, time:?, started:?, finished:?, err:?}
           course: null,
-          compute_image: DEFAULT_COMPUTE_IMAGE,
+          // if the value is not set, we have to use the old default prior to summer 2020 (Ubuntu 18.04, not 20.04!)
+          compute_image: FALLBACK_COMPUTE_IMAGE,
           addons: null,
           created: null,
           env: null,
@@ -259,7 +260,7 @@ Table({
     },
     compute_image: {
       type: "string",
-      desc: `Specify the name of the underlying (kucalc) compute image (default: '${DEFAULT_COMPUTE_IMAGE}')`,
+      desc: `Specify the name of the underlying (kucalc) compute image.`,
     },
     addons: {
       type: "map",

@@ -23,6 +23,7 @@ import { webapp_client } from "../webapp-client";
 import { set_window_title } from "../browser";
 import { once } from "smc-util/async-utils";
 import { COCALC_MINIMAL } from "../fullscreen";
+import { DEFAULT_COMPUTE_IMAGE } from "smc-util/compute-images";
 
 // Define projects actions
 export class ProjectsActions extends Actions<State> {
@@ -258,7 +259,7 @@ export class ProjectsActions extends Actions<State> {
     } = defaults(opts, {
       title: "No Title",
       description: "No Description",
-      image: undefined,
+      image: DEFAULT_COMPUTE_IMAGE,
       start: false,
     });
     if (!opts2.image) {
