@@ -16,8 +16,8 @@ type Group = "Main" | "Ubuntu 18.04" | "Ubuntu 20.04" | "Ubuntu 16.04";
 // this defines their ordering
 export const GROUPS: Group[] = [
   "Main",
-  "Ubuntu 18.04",
   "Ubuntu 20.04",
+  "Ubuntu 18.04",
   "Ubuntu 16.04",
 ];
 
@@ -31,27 +31,30 @@ interface ComputeImage {
 }
 
 export const COMPUTE_IMAGES: { [key: string]: ComputeImage } = {
-  // this is called "default", but treat it as if it is ubuntu1804
-  // later, we'll switch DEFAULT_COMPUTE_IMAGE to be "ubuntu2004"
+  // "default" or "undefined" is what was used for "ubuntu1804" until summer 2020
+  // nowdays, DEFAULT_COMPUTE_IMAGE is "ubuntu2004"
   default: {
-    title: "Ubuntu 18.04 (Default)",
-    short: "Ubuntu 18.04 (Default)",
-    descr: "Regularly updated, well tested.",
+    order: 1,
+    title: "Ubuntu 18.04 (Deprecated)",
+    short: "Ubuntu 18.04 (Deprecated)",
+    descr: "Ubuntu 18.04 reached end of life in August 2020",
     group: "Main",
+    hidden: true,
   },
   ubuntu1804: {
-    // just a synonym, at least for now, hidden!
-    title: "Ubuntu 18.04 (Default)",
-    short: "Default",
-    descr: "end of life fall 2020",
-    hidden: true,
-    group: "Ubuntu 18.04",
+    // a synonym of "default", but with a specific functionality!
+    // we use it as a marker: if a "default" project (before the 20.04 upgrade) is set to stay at 18.04, this image is selected.
+    order: 1,
+    title: "Ubuntu 18.04 (Stable)",
+    short: "Ubuntu 18.04 (Stable)",
+    descr: "Ubuntu 18.04 reached end of life in August 2020",
+    group: "Main",
   },
   ubuntu2004: {
-    order: 1,
-    title: "Ubuntu 20.04 (Upcoming)",
-    short: "Ubuntu 20.04 (Upcoming)",
-    descr: "Will become the default environment in fall 2020",
+    order: 0,
+    title: "Ubuntu 20.04 (Default)",
+    short: "Ubuntu 20.04 (Default)",
+    descr: "Regular updates, well tested",
     group: "Main",
   },
   "ubuntu2004-dev": {
@@ -64,15 +67,17 @@ export const COMPUTE_IMAGES: { [key: string]: ComputeImage } = {
     order: -2,
     title: "Ubuntu 18.04 (Previous)",
     short: "Previous",
-    descr: "One or two weeks behind 'Ubuntu 18.04 (Default)'",
+    descr: "Ubuntu 18.04 Reached end of life in August 2020",
     group: "Ubuntu 18.04",
+    hidden: true,
   },
   exp: {
     order: -1,
     title: "Ubuntu 18.04 (Experimental)",
     short: "Experimental",
-    descr: "Cutting-edge software updates (could be broken)",
+    descr: "Reached end of life in August 2020",
     group: "Ubuntu 18.04",
+    hidden: true,
   },
   "stable-2018-08-27": {
     title: "Ubuntu 18.04 @ 2018-08-27",

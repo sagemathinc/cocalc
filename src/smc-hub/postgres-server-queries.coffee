@@ -29,6 +29,8 @@ required = defaults.required
 
 {SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, COMPUTE_STATES, RECENT_TIMES, RECENT_TIMES_KEY, site_settings_conf} = require('smc-util/schema')
 
+{ DEFAULT_COMPUTE_IMAGE } = require("smc-util/compute-images")
+
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
 {PROJECT_COLUMNS, one_result, all_results, count_result, expire_time} = require('./postgres-base')
@@ -740,10 +742,13 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         cb(err)
             (cb) =>
                 # TODO maybe expire tokens after some time
-                if locals.old_challenge?.token?
-                    locals.token = locals.old_challenge.token
-                    cb()
-                    return
+                if locals.old_challenge?
+                    old = locals.old_challenge
+                    # return the same token if the is one for the same email
+                    if old.token? and old.email == locals.email_address
+                        locals.token = locals.old_challenge.token
+                        cb()
+                        return
 
                 {generate} = require("random-key")
                 locals.token = generate(16).toLowerCase()
@@ -1807,7 +1812,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             title       : undefined
             description : undefined
             lti_id      : undefined   # array of strings
-            image       : 'default'   # probably ok to leave it undefined
+            image       : DEFAULT_COMPUTE_IMAGE   # probably ok to leave it undefined
             cb          : required    # cb(err, project_id)
         if not @_validate_opts(opts) then return
         project_id = misc.uuid()
