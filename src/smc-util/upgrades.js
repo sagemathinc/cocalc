@@ -21,8 +21,9 @@ function get_total_upgrades(stripe_subscriptions_data) {
   let total = { always_running: 0 };
   for (let sub of subs) {
     for (let q = 0; q < sub.quantity; q++) {
-      const benefits =
-        PROJECT_UPGRADES.subscription[sub.plan.id.split("-")[0]]?.benefits;
+      const spec = PROJECT_UPGRADES.subscription[sub.plan.id.split("-")[0]];
+      if (spec == null) continue;
+      const benefits = spec.benefits;
       if (benefits != null) {
         total = misc.map_sum(total, benefits);
       }
