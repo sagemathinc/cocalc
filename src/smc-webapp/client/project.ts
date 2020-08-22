@@ -132,8 +132,16 @@ export class ProjectClient {
   }
 
   public async websocket(project_id: string): Promise<any> {
-    const group = redux.getStore("projects").get_my_group(project_id);
-    if (group == null || group === "public") {
+    const store = redux.getStore("projects");
+    // get_my_group returns undefined when the various info to
+    // determine this isn't yet loaded.  For some connections
+    // this websocket function gets called before that info is
+    // loaded, which can cause trouble.
+    let group: string | undefined;
+    await store.async_wait({
+      until: () => (group = store.get_my_group(project_id)) != null,
+    });
+    if (group == "public") {
       throw Error("no access to project websocket");
     }
     return await connection_to_project(project_id);
