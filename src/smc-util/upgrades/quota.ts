@@ -31,9 +31,9 @@ costs add).
 
 // TODO: relative path just needed in manage-*
 
-import { DEFAULT_QUOTAS, upgrades } from "../../smc-util/upgrade-spec";
-import { Quota as SiteLicenseQuota } from "../../smc-util/db-schema/site-licenses";
-import { len } from "../../smc-util/misc";
+import { DEFAULT_QUOTAS, upgrades } from "../upgrade-spec";
+import { Quota as SiteLicenseQuota } from "../db-schema/site-licenses";
+import { len } from "../misc";
 
 const MAX_UPGRADES = upgrades.max_per_project;
 
@@ -418,22 +418,26 @@ export function quota(
   if (site_license != null) {
     // If there is new license.quota, compute it and max with it.
     const license_quota = site_license_quota(site_license);
-    for (const field in license_quota) {
-      if (typeof license_quota[field] == "number") {
-        quota[field] = Math.max(license_quota[field], quota[field] ?? 0);
-      } else {
-        // boolean
-        quota[field] = !!license_quota[field] || !!quota[field];
-      }
-    }
+    max_quota(quota, license_quota);
   }
 
   return quota;
 }
 
+export function max_quota(quota: Quota, license_quota: SiteLicenseQuota): void {
+  for (const field in license_quota) {
+    if (typeof license_quota[field] == "number") {
+      quota[field] = Math.max(license_quota[field], quota[field] ?? 0);
+    } else {
+      // boolean
+      quota[field] = !!license_quota[field] || !!quota[field];
+    }
+  }
+}
+
 // Compute the contribution to quota coming from the quota field of the site licenses.
 // This is max'd with the quota computed using settings, the rest of the licenses, etc.
-function site_license_quota(site_license: {
+export function site_license_quota(site_license: {
   [license_id: string]: Settings;
 }): SiteLicenseQuota {
   const total_quota: Quota = {};

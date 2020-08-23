@@ -16,6 +16,7 @@ import {
   months_before,
 } from "smc-util/misc";
 import { CUSTOM_IMG_PREFIX } from "../custom-software/util";
+import { max_quota, site_license_quota } from "smc-util/upgrades/quota";
 
 import { PROJECT_UPGRADES } from "smc-util/schema";
 import { fromPairs } from "lodash";
@@ -394,8 +395,9 @@ export class ProjectsStore extends Store<State> {
       project_id,
       "site_license",
     ])?.toJS();
-    const upgrades = Object.assign({}, ZERO_QUOTAS);
+    let upgrades = Object.assign({}, ZERO_QUOTAS);
     if (site_license != null) {
+      // contributions from old-format site license contribution
       for (let license_id in site_license) {
         const info = site_license[license_id];
         const object = info != null ? info : {};
@@ -429,10 +431,54 @@ export class ProjectsStore extends Store<State> {
       copy(ZERO_QUOTAS);
     coerce_codomain_to_numbers(base_values);
     const upgrades = this.get_total_project_upgrades(project_id);
-    const site_license = this.get_total_site_license_upgrades_to_project(
+    const site_license_upgrades = this.get_total_site_license_upgrades_to_project(
       project_id
     );
-    return map_sum(map_sum(base_values, upgrades), site_license);
+    const quota = map_sum(
+      map_sum(base_values, upgrades),
+      site_license_upgrades
+    );
+    this.new_format_license_quota(project_id, quota);
+
+    return quota;
+  }
+
+  public is_always_running(project_id: string): boolean {
+    // always_running can only be in settings (used by admins),
+    // or in quota field of some license
+    if (this.getIn(["project_map", project_id, "settings", "always_running"])) {
+      return true;
+    }
+    const site_license = this.getIn([
+      "project_map",
+      project_id,
+      "site_license",
+    ])?.toJS();
+    if (site_license != null) {
+      for (const license_id in site_license) {
+        if (site_license[license_id]?.quota?.always_running) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // include contribution from new format of quotas for licenses
+  private new_format_license_quota(project_id: string, quota): void {
+    const site_license = this.getIn([
+      "project_map",
+      project_id,
+      "site_license",
+    ])?.toJS();
+    if (site_license != null) {
+      // TS: using "any" since we add some fields below
+      const license_quota: any = site_license_quota(site_license);
+      // some different names are used for the frontend:
+      license_quota.cores = license_quota.cpu_limit;
+      license_quota.memory = license_quota.memory_limit;
+      max_quota(quota, license_quota);
+    }
   }
 
   // we allow URLs in projects, which have member hosting or internet access

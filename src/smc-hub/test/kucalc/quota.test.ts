@@ -19,7 +19,7 @@
 
 import * as expect from "expect";
 // import * as misc from "smc-util/misc";
-const { quota } = require("smc-hub/kucalc/quota");
+const { quota } = require("smc-util/upgrades/quota");
 
 describe("default quota", () => {
   it("basics are fine", () => {

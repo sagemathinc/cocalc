@@ -120,7 +120,12 @@ export class QuotaConsole extends React.Component<Props, State> {
       return;
     }
     // if always_running is true, don't show idle timeout row, since not relevant
-    if (name == "mintime" && this.state["always_running"]) return;
+    if (
+      name == "mintime" &&
+      ((this.state["always_running"] && this.state["editing"]) ||
+        this.props.total_project_quotas?.["always_running"])
+    )
+      return;
 
     if (base_value == undefined) {
       base_value = 0;

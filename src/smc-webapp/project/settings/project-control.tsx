@@ -233,7 +233,11 @@ export const ProjectControl = rclass<ReactProps>(
       if (this.props.project.getIn(["state", "state"]) !== "running") {
         return;
       }
-      if (this.props.project.getIn(["settings", "always_running"])) {
+      if (
+        redux
+          .getStore("projects")
+          .is_always_running(this.props.project.get("project_id"))
+      ) {
         return (
           <LabeledRow
             key="idle-timeout"

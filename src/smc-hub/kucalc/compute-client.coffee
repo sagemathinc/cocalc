@@ -66,7 +66,7 @@ class Dbg extends EventEmitter
 
 project_cache = {}
 
-quota_compute = require('./quota')
+quota_compute = require('../../smc-util/upgrades/quota')
 
 class Client
     constructor: (@database, @logger) ->

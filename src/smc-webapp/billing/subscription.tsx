@@ -82,8 +82,8 @@ export const Subscription: React.FC<Props> = ({ subscription, style }) => {
     );
     return (
       <Row style={{ paddingBottom: "5px", paddingTop: "5px" }}>
-        <Col md={6}>{render_description()}</Col>
-        <Col md={1}>{capitalize(sub.status)}</Col>
+        <Col md={5}>{render_description()}</Col>
+        <Col md={2}>{capitalize(sub.status)}</Col>
         <Col md={4} style={{ color: "#666" }}>
           {stripe_date(sub.current_period_start)} –{" "}
           {stripe_date(sub.current_period_end)} (start:{" "}
@@ -92,11 +92,11 @@ export const Subscription: React.FC<Props> = ({ subscription, style }) => {
         <Col md={1}>
           {cancellable ? (
             <Button
-              style={{ float: "right" }}
+              style={{ float: "right", fontSize: "11px" }}
               disabled={cancelling}
               onClick={() => set_confirm_cancel(true)}
             >
-              {cancelling ? "Cancelling..." : "Cancel..."}
+              {cancelling ? "Cancelling..." : "End..."}
             </Button>
           ) : undefined}
         </Col>
@@ -128,7 +128,10 @@ export const Subscription: React.FC<Props> = ({ subscription, style }) => {
           </Col>
           <Col md={6}>
             <ButtonToolbar>
-              <Button onClick={() => set_confirm_cancel(false)}>
+              <Button
+                style={{ marginBottom: "5px" }}
+                onClick={() => set_confirm_cancel(false)}
+              >
                 Make no change
               </Button>
               <Button
