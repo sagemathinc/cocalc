@@ -411,8 +411,12 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
 
   // render information about when and how the license was purchased
   function render_purchased(): JSX.Element | undefined {
-    if (!info?.is_manager) return;   // definitely didn't purchase this license
-    return <li><LicensePurchaseInfo license_id={license_id} /></li>
+    if (!info?.is_manager) return; // definitely didn't purchase this license
+    return (
+      <li>
+        <LicensePurchaseInfo license_id={license_id} />
+      </li>
+    );
   }
 
   function render_title(): JSX.Element | undefined {
@@ -429,7 +433,10 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
               set_is_editing_title(false);
             }
             const query = {
-              manager_site_licenses: { id: license_id, title },
+              manager_site_licenses: {
+                id: license_id,
+                title,
+              },
             };
             await webapp_client.query({ query });
             if (!isMountedRef.current) return;
@@ -492,7 +499,10 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
               set_is_editing_description(false);
             }
             const query = {
-              manager_site_licenses: { id: license_id, description },
+              manager_site_licenses: {
+                id: license_id,
+                description,
+              },
             };
             await webapp_client.query({ query });
             set_is_editing_description(false);

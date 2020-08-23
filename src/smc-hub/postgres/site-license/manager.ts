@@ -33,10 +33,13 @@ export async function site_license_manager_set(
   if (!(await site_license_is_manager(db, account_id, info.id))) {
     throw Error("user must be a manager of the license to change it");
   }
+  const set: { title?: string; description?: string } = {};
+  if (info.title != null) set.title = info.title;
+  if (info.description != null) set.description = info.description;
   // Now do the query
   await db.async_query({
     query: "UPDATE site_licenses",
-    set: { title: info.title, description: info.description },
+    set,
     where: { id: info.id },
   });
 }
