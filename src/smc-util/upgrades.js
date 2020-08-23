@@ -26,6 +26,7 @@ function get_total_upgrades(stripe_subscriptions_data) {
       continue;
     }
     const benefits = info.benefits;
+    // TODO: add a quantity third field to map_sum to make this not so naive...
     for (let q = 0; q < sub.quantity; q++) {
       total = misc.map_sum(total, benefits);
     }
