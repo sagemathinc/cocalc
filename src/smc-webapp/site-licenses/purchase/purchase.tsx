@@ -738,7 +738,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             description={`${quantity} × ${describe_quota({
               ram: custom_ram,
               cpu: custom_cpu,
-              disk: custom_cpu,
+              disk: custom_disk,
               always_running: custom_always_running,
               member: custom_member,
             })}`}
