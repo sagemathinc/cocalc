@@ -288,6 +288,13 @@ export class Listings extends EventEmitter {
     delete this.throttled_watch;
   }
 
+  // This is used to possibly work around a rare bug.
+  // https://github.com/sagemathinc/cocalc/issues/4790
+  private async re_init(): Promise<void> {
+    this.state = "init";
+    await this.init();
+  }
+
   private async init(): Promise<void> {
     if (this.state != "init") {
       throw Error("must be in init state");
@@ -375,11 +382,17 @@ export class Listings extends EventEmitter {
   }
 
   private async set(obj: Listing): Promise<void> {
-    this.get_table().set(
-      merge({ project_id: this.project_id }, obj),
-      "shallow"
-    );
-    await this.get_table().save();
+    let table;
+    try {
+      table = this.get_table();
+    } catch (err) {
+      // See https://github.com/sagemathinc/cocalc/issues/4790
+      console.warn("Error getting table -- ", err);
+      await this.re_init();
+      table = this.get_table();
+    }
+    table.set(merge({ project_id: this.project_id }, obj), "shallow");
+    await table.save();
   }
 
   public is_ready(): boolean {
