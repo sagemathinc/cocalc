@@ -252,7 +252,9 @@ export class Listings extends EventEmitter {
       ?.get("missing");
   }
 
-  public async get_listing_directly(path: string): Promise<DirectoryListingEntry[]> {
+  public async get_listing_directly(
+    path: string
+  ): Promise<DirectoryListingEntry[]> {
     const store = redux.getStore("projects");
     // make sure that our relationship to this project is known.
     if (store == null) throw Error("bug");
@@ -360,12 +362,14 @@ export class Listings extends EventEmitter {
   }
 
   private get_table(): SyncTable {
-    if (
-      this.state != "ready" ||
-      this.table == null ||
-      this.table.get_state() == "closed"
-    ) {
+    if (this.state != "ready") {
       throw Error("table not initialized ");
+    }
+    if (this.table == null) {
+      throw Error("table is null");
+    }
+    if (this.table.get_state() == "closed") {
+      throw Error("table is closed");
     }
     return this.table;
   }
