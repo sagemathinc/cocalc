@@ -8,11 +8,8 @@ Password reset modal dialog
 */
 
 import { Component, React, ReactDOM, redux, Rendered } from "../app-framework";
-
 import { HelpEmailLink } from "../customize";
-
 import { Modal, FormGroup, FormControl, Row, Button } from "../antd-bootstrap";
-
 import { Space } from "../r_misc";
 
 interface Props {

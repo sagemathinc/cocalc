@@ -14,6 +14,7 @@ import { alert_message } from "../alerts";
 import { show_announce_start, show_announce_end } from "./dates";
 import { AccountState } from "./types";
 import { AccountClient } from "../client/account";
+import { delete_password_cookie } from "../client/password-reset";
 
 import * as misc from "smc-util/misc2";
 import { server_days_ago } from "smc-util/misc";
@@ -224,6 +225,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     // success
     // TODO: can we automatically log them in?  Should we?  Seems dangerous.
     window.history.pushState("", document.title, window.location.pathname);
+    delete_password_cookie();
     this.setState({ reset_key: "", reset_password_error: "" });
   }
 
