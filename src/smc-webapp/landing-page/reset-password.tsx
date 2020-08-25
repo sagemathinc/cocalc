@@ -7,10 +7,22 @@
 Password reset modal dialog
 */
 
-import { Component, React, ReactDOM, redux, Rendered } from "../app-framework";
+import {
+  React,
+  ReactDOM,
+  redux,
+  Rendered,
+} from "../app-framework";
 import { HelpEmailLink } from "../customize";
-import { Modal, FormGroup, FormControl, Row, Button } from "../antd-bootstrap";
-import { Space } from "../r_misc";
+import {
+  Modal,
+  FormGroup,
+  FormControl,
+  Row,
+  Button,
+} from "../antd-bootstrap";
+import { Space, Loading } from "../r_misc";
+import { unreachable } from "smc-util/misc2";
 
 interface Props {
   reset_key: string;
@@ -18,29 +30,28 @@ interface Props {
   help_email?: string;
 }
 
-interface State {
-  resetting: boolean;
-}
+type Mode = "start" | "resetting" | "error";
 
-export class ResetPassword extends Component<Props, State> {
-  constructor(props, state) {
-    super(props, state);
-    this.state = { resetting: false };
-  }
+export const ResetPassword: React.FC<Props> = (props: Props) => {
+  const { reset_key, reset_password_error, help_email } = props;
+  const [mode, set_mode] = React.useState<Mode>("start");
+  const ref_password = React.useRef(null);
 
-  private async reset_password(e): Promise<void> {
+  React.useEffect(() => {
+    // if there is an error, go back to start state
+    if (reset_password_error) {
+      set_mode("error");
+    }
+  }, [reset_password_error]);
+
+  async function reset_password(e): Promise<void> {
     e.preventDefault();
-    this.setState({ resetting: true });
-    await redux
-      .getActions("account")
-      .reset_password(
-        this.props.reset_key,
-        ReactDOM.findDOMNode(this.refs.password)?.value
-      );
-    this.setState({ resetting: false });
+    set_mode("resetting");
+    const newpw = ReactDOM.findDOMNode(ref_password.current)?.value;
+    await redux.getActions("account").reset_password(reset_key, newpw);
   }
 
-  private hide_reset_password(e): void {
+  function hide_reset_password(e): void {
     e.preventDefault();
     history.pushState("", document.title, window.location.pathname);
     redux.getActions("account").setState({
@@ -49,72 +60,74 @@ export class ResetPassword extends Component<Props, State> {
     });
   }
 
-  private display_error(): Rendered {
-    if (this.props.reset_password_error) {
+  function display_error(): Rendered {
+    if (reset_password_error) {
       return (
         <span style={{ color: "white", background: "red", padding: "5px" }}>
-          {this.props.reset_password_error}
+          {reset_password_error}
         </span>
       );
     }
   }
 
-  private render_email(): Rendered {
-    if (!this.props.help_email) return;
+  function render_email(): Rendered {
+    if (!help_email) return;
     return (
-      <>
+      <div style={{ marginBottom: "10px" }}>
         Not working? Email us at <HelpEmailLink />
-      </>
+      </div>
     );
   }
 
-  private render_title(): Rendered {
-    if (this.state.resetting) {
-      return <h1>Resetting Password...</h1>;
-    } else {
-      return <h1>Reset Password?</h1>;
+  function render_title(): Rendered {
+    switch (mode) {
+      case "start":
+        return <h1>New Password</h1>;
+      case "resetting":
+        return <h1>Resetting Password...</h1>;
+      case "error":
+        return <h1>Problem resetting password...</h1>;
+      default:
+        unreachable(mode);
+        return undefined;
     }
   }
 
-  public render(): Rendered {
-    return (
-      <Modal show={true} onHide={() => {}}>
-        <Modal.Body>
-          <div>
-            {this.render_title()}
-            Enter your new password
-          </div>
-          <br />
-          <form onSubmit={this.reset_password.bind(this)}>
-            <FormGroup>
-              <FormControl
-                name="password"
-                ref="password"
-                type="password"
-                placeholder="New Password"
-              />
-            </FormGroup>
-            {this.display_error()}
-            <hr />
-            {this.render_email()}
-            <Row>
-              <div style={{ textAlign: "right", paddingRight: 15 }}>
-                <Button onClick={this.hide_reset_password.bind(this)}>
-                  Cancel
-                </Button>
-                <Space />
-                <Button
-                  bsStyle="primary"
-                  disabled={this.state.resetting}
-                  onClick={this.reset_password.bind(this)}
-                >
-                  Reset Password
-                </Button>
-              </div>
-            </Row>
-          </form>
-        </Modal.Body>
-      </Modal>
-    );
-  }
-}
+  return (
+    <Modal show={true} onHide={() => {}}>
+      <Modal.Body>
+        <div>
+          {render_title()}
+          Enter your new password
+        </div>
+        <br />
+        <form onSubmit={(e) => reset_password(e)}>
+          <FormGroup>
+            <FormControl
+              name="password"
+              ref={ref_password}
+              type="password"
+              placeholder="New Password"
+            />
+          </FormGroup>
+          {display_error()}
+          <hr />
+          {render_email()}
+          <Row>
+            <div style={{ textAlign: "right", paddingRight: 15 }}>
+              <Button onClick={(e) => hide_reset_password(e)}>Cancel</Button>
+              <Space />
+              <Button
+                bsStyle="primary"
+                disabled={mode === "resetting"}
+                onClick={(e) => reset_password(e)}
+              >
+                {mode === "resetting" && <Loading />} Reset Password
+              </Button>
+            </div>
+          </Row>
+        </form>
+      </Modal.Body>
+    </Modal>
+  );
+};
