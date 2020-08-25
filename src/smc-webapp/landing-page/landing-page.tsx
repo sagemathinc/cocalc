@@ -41,7 +41,6 @@ const DESC_FONT = "sans-serif";
 // import { ShowSupportLink } from "../support";
 const { ShowSupportLink } = require("../support");
 import { PassportStrategy } from "../account/passport-types";
-import { reset_password_key } from "../client/password-reset";
 import { capitalize } from "smc-util/misc2";
 import { DOC_URL } from "smc-util/theme";
 import { APP_ICON_WHITE, APP_LOGO_NAME_WHITE } from "../art";
@@ -134,7 +133,7 @@ class LandingPage extends Component<Props & reduxProps, State> {
   }
 
   private render_password_reset(): Rendered {
-    const reset_key = reset_password_key();
+    const reset_key = this.props.reset_key;
     if (!reset_key) {
       return;
     }
