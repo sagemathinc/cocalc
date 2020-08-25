@@ -23,13 +23,13 @@ winston      = require('./winston-metrics').get_logger('hub_http_server')
 
 misc         = require('smc-util/misc')
 {defaults, required} = misc
-{DNS}        = require('smc-util/theme')
 misc_node    = require('smc-util-node/misc_node')
 hub_register = require('./hub_register')
 auth         = require('./auth')
 access       = require('./access')
 hub_projects = require('./projects')
 MetricsRecorder  = require('./metrics-recorder')
+{WebappConfiguration} = require('./webapp-configuration')
 
 {http_message_api_v1} = require('./api/handler')
 {setup_analytics_js} = require('./analytics')
@@ -61,6 +61,7 @@ exports.init_express_http_server = (opts) ->
     app    = express()
     http_server = http.createServer(app)
     app.use(cookieParser())
+    webapp_config = new WebappConfiguration(db:opts.database)
 
     # Enable compression, as
     # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
@@ -272,11 +273,12 @@ exports.init_express_http_server = (opts) ->
 
     if server_settings?
         router.get '/customize', (req, res) ->
+            config = webapp_config.get(req)
             if req.query.type == 'embed'
                 res.header("Content-Type", "text/javascript")
-                res.send("window.CUSTOMIZE = Object.freeze(#{JSON.stringify(server_settings.pub)})")
+                res.send("window.CUSTOMIZE = Object.freeze(#{JSON.stringify(config)})")
             else
-                res.json(server_settings.pub)
+                res.json(config)
 
     # Save other paths in # part of URL then redirect to the single page app.
     router.get ['/projects*', '/help*', '/settings*', '/admin*', '/dashboard*', '/notifications*'], (req, res) ->
