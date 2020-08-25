@@ -61,6 +61,7 @@ interface StudentProjectUpgradesProps {
 
   // redux props
   all_projects_have_been_loaded?: boolean;
+  shared_project_id?: string;
 }
 
 interface StudentProjectUpgradesState {
@@ -585,7 +586,7 @@ class StudentProjectUpgrades extends Component<
     if (!this.state.show_site_license) return;
     return (
       <div>
-        <br/>
+        <br />
         Enter a license key below to automatically apply upgrades from that
         license to this course project, all student projects, and the shared
         project whenever they are running. Clear the field below to stop
@@ -616,6 +617,15 @@ class StudentProjectUpgrades extends Component<
           license_id={this.props.site_license_id}
           onRemove={() => {
             this.set_site_license_id("");
+          }}
+          warn_if={(info) => {
+            const n =
+              this.get_store().get_student_ids().length +
+              1 +
+              (this.props.shared_project_id ? 1 : 0);
+            if (info.run_limit < n) {
+              return `NOTE: This license can only upgrade ${info.run_limit} simultaneous running projects, but there are ${n} projects associated to this course.`;
+            }
           }}
         />
       </div>
