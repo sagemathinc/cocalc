@@ -7,20 +7,9 @@
 Password reset modal dialog
 */
 
-import {
-  React,
-  ReactDOM,
-  redux,
-  Rendered,
-} from "../app-framework";
+import { React, ReactDOM, redux, Rendered } from "../app-framework";
 import { HelpEmailLink } from "../customize";
-import {
-  Modal,
-  FormGroup,
-  FormControl,
-  Row,
-  Button,
-} from "../antd-bootstrap";
+import { Modal, FormGroup, FormControl, Row, Button } from "../antd-bootstrap";
 import { Space, Loading } from "../r_misc";
 import { unreachable } from "smc-util/misc2";
 
@@ -122,7 +111,10 @@ export const ResetPassword: React.FC<Props> = (props: Props) => {
                 disabled={mode === "resetting"}
                 onClick={(e) => reset_password(e)}
               >
-                {mode === "resetting" && <Loading />} Reset Password
+                {mode === "resetting" && (
+                  <Loading text={""} style={{ display: "inline" }} />
+                )}{" "}
+                Reset Password
               </Button>
             </div>
           </Row>

@@ -9,10 +9,10 @@
 
 import * as React from "react";
 import { Row, FormGroup, FormControl, Modal, Button } from "react-bootstrap";
-import { bind_methods, is_valid_email_address } from "smc-util/misc2";
+import { is_valid_email_address } from "smc-util/misc2";
 import { Rendered } from "../app-framework";
 const { HelpEmailLink } = require("../customize");
-import { Icon } from "../r_misc/icon";
+import { Icon, Loading } from "../r_misc";
 
 import { actions } from "./util";
 
@@ -22,60 +22,60 @@ interface Props {
   forgot_password_success?: string;
 }
 
-interface State {
-  email_address: string;
-  is_email_valid: boolean;
-}
+type Mode = "init" | "resetting" | "error" | "sent";
 
-export class ForgotPassword extends React.Component<Props, State> {
-  constructor(props) {
-    super(props);
-    this.state = {
-      email_address: this.props.initial_email_address,
-      is_email_valid: is_valid_email_address(this.props.initial_email_address),
-    };
-    bind_methods(this, [
-      "forgot_password",
-      "set_email",
-      "hide_forgot_password",
-    ]);
-  }
+export const ForgotPassword: React.FC<Props> = (props: Props) => {
+  const {
+    initial_email_address,
+    forgot_password_error,
+    forgot_password_success,
+  } = props;
+  const [email_address, set_email_address] = React.useState<string>(
+    initial_email_address
+  );
+  const [is_email_valid, set_is_email_valid] = React.useState<boolean>(
+    is_valid_email_address(initial_email_address)
+  );
+  const [mode, set_mode] = React.useState<Mode>("init");
 
-  forgot_password(e): void {
+  React.useEffect(() => {
+    if (forgot_password_error) {
+      set_mode("error");
+    } else if (forgot_password_success) {
+      set_mode("sent");
+    }
+  }, [forgot_password_success, forgot_password_error]);
+
+  async function forgot_password(e): Promise<void> {
     e.preventDefault();
-    const value = this.state.email_address;
+    const value = email_address;
+    set_mode("resetting");
     if (is_valid_email_address(value)) {
-      actions("account").forgot_password(value);
+      await actions("account").forgot_password(value);
     }
   }
 
-  set_email(evt): void {
+  function set_email(evt): void {
     const email_address = evt.target.value;
-    this.setState({
-      email_address,
-      is_email_valid: is_valid_email_address(email_address),
-    });
+    set_email_address(email_address);
+    set_is_email_valid(is_valid_email_address(email_address));
   }
 
-  hide_forgot_password(): void {
+  function hide_forgot_password(): void {
     const a = actions("account");
     a.setState({ show_forgot_password: false });
     a.setState({ forgot_password_error: undefined });
     a.setState({ forgot_password_success: undefined });
   }
 
-  render_error(): Rendered {
-    if (this.props.forgot_password_error == null) return;
-    return (
-      <span style={{ color: "red" }}>{this.props.forgot_password_error}</span>
-    );
+  function render_error(): Rendered {
+    if (forgot_password_error == null) return;
+    return <span style={{ color: "red" }}>{forgot_password_error}</span>;
   }
 
-  render_success(): Rendered {
-    if (this.props.forgot_password_success == null) return;
-    const s = this.props.forgot_password_success.split(
-      "check your spam folder"
-    );
+  function render_success(): Rendered {
+    if (forgot_password_success == null) return;
+    const s = forgot_password_success.split("check your spam folder");
     return (
       <span>
         {s[0]}
@@ -87,58 +87,59 @@ export class ForgotPassword extends React.Component<Props, State> {
     );
   }
 
-  render_valid_message(): Rendered {
-    if (this.state.email_address != "" && !this.state.is_email_valid) {
+  function render_valid_message(): Rendered {
+    if (email_address != "" && !is_email_valid) {
       return (
         <div style={{ color: "red" }}>Please enter a valid email address.</div>
       );
     }
   }
 
-  render() {
-    return (
-      <Modal show={true} onHide={this.hide_forgot_password}>
-        <Modal.Body>
-          <div>
-            <h4>
-              <Icon name="unlock-alt" /> Forgot Password?
-            </h4>
-            Enter your email address to reset your password
-          </div>
-          <form onSubmit={this.forgot_password} style={{ marginTop: "1em" }}>
-            <FormGroup>
-              <FormControl
-                ref="email"
-                type="email"
-                placeholder="Email address"
-                name="email"
-                autoFocus={true}
-                value={this.state.email_address}
-                onChange={this.set_email}
-              />
-            </FormGroup>
-            {this.props.forgot_password_error
-              ? this.render_error()
-              : this.render_success()}
-            {this.render_valid_message()}
-            <hr />
-            Not working? Email us at <HelpEmailLink />.
-            <Row>
-              <div style={{ textAlign: "right", paddingRight: 15 }}>
-                <Button
-                  disabled={!this.state.is_email_valid}
-                  type="submit"
-                  bsStyle="primary"
-                  style={{ marginRight: 10 }}
-                >
-                  Reset Password
-                </Button>
-                <Button onClick={this.hide_forgot_password}>Close</Button>
-              </div>
-            </Row>
-          </form>
-        </Modal.Body>
-      </Modal>
-    );
-  }
-}
+  const disabled = ["resetting", "sent"].includes(mode);
+
+  return (
+    <Modal show={true} onHide={hide_forgot_password}>
+      <Modal.Body>
+        <div>
+          <h4>
+            <Icon name="unlock-alt" /> Forgot Password?
+          </h4>
+          Enter your email address to reset your password
+        </div>
+        <form onSubmit={forgot_password} style={{ marginTop: "1em" }}>
+          <FormGroup>
+            <FormControl
+              type="email"
+              placeholder="Email address"
+              name="email"
+              disabled={disabled}
+              autoFocus={true}
+              value={email_address}
+              onChange={(e) => set_email(e)}
+            />
+          </FormGroup>
+          {forgot_password_error ? render_error() : render_success()}
+          {render_valid_message()}
+          <hr />
+          Not working? Email us at <HelpEmailLink />.
+          <Row>
+            <div style={{ textAlign: "right", paddingRight: 15 }}>
+              <Button
+                disabled={!is_email_valid || disabled}
+                type="submit"
+                bsStyle="primary"
+                style={{ marginRight: 10 }}
+              >
+                {mode === "resetting" && (
+                  <Loading style={{ display: "inline" }} text={""} />
+                )}{" "}
+                Reset Password
+              </Button>
+              <Button onClick={() => hide_forgot_password()}>Close</Button>
+            </div>
+          </Row>
+        </form>
+      </Modal.Body>
+    </Modal>
+  );
+};
