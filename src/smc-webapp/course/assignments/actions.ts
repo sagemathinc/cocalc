@@ -905,6 +905,13 @@ ${details}
       desc += " who have not already received their copy";
     }
     const short_desc = "copy to student for peer grading";
+    // CRITICAL: be sure to run this update once before doing the
+    // assignment.  Otherwise, since assignment runs more than once
+    // in parallel, two will launch at about the same time and
+    // the *condition* to know if it is done depends on the store,
+    // which defers when it gets updated.  Anyway, this line is critical:
+    this.update_peer_assignment(assignment_id)
+    // OK, now do the assignment... in parallel.
     await this.assignment_action_all_students(
       assignment_id,
       new_only,
@@ -1034,7 +1041,8 @@ ${details}
 
     const peers = peer_map[student.get("student_id")];
     if (peers == null) {
-      // empty peer assignment for this student (maybe student added after peer assignment already created?)
+      // empty peer assignment for this student (maybe student added after
+      // peer assignment already created?)
       finish();
       return;
     }
@@ -1056,13 +1064,13 @@ ${details}
       assignment.get("collect_path") + "/GRADING-GUIDE.md";
 
     const target_base_path = assignment.get("path") + "-peer-grade";
-    const f = async (student_id: string): Promise<void> => {
+    const f = async (peer_student_id: string) => {
       if (this.course_actions.is_closed()) return;
-      const src_path = assignment.get("collect_path") + "/" + student_id;
-      const target_path = target_base_path + "/" + student_id;
+      const src_path = assignment.get("collect_path") + "/" + peer_student_id;
+      const target_path = target_base_path + "/" + peer_student_id;
       // delete the student's name so that grading is anonymous; also, remove original
       // due date to avoid confusion.
-      const name = store.get_student_name_extra(student_id);
+      const name = store.get_student_name_extra(peer_student_id);
       await webapp_client.project_client.exec({
         project_id: store.get("course_project_id"),
         command: "rm",

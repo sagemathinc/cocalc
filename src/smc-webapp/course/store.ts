@@ -70,7 +70,7 @@ export type AssignmentRecord = TypedMap<{
   peer_grade?: {
     enabled: boolean;
     due_date: number;
-    map: { [student_id: string]: string[] };
+    map: { [student_id: string]: string[] }; // map from student_id to *who* will grade that student
   };
   note: string;
 
