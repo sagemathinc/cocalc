@@ -28,6 +28,7 @@ interface Props {
   project_id?: string; // if not given, just provide the public info about the license (nothing about if it is upgrading a specific project or not) -- this is used, e.g., for the course configuration page
   upgrades?: Map<string, number>;
   onRemove?: () => void;
+  warn_if?: (info) => void | string;
 }
 
 export const SiteLicensePublicInfo: React.FC<Props> = ({
@@ -35,6 +36,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
   project_id,
   upgrades,
   onRemove,
+  warn_if,
 }) => {
   const [info, set_info] = useState<Info | undefined>(undefined);
   const [err, set_err] = useState<string | undefined>(undefined);
@@ -559,6 +561,18 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
     }
   }
 
+  function render_warning(): JSX.Element | undefined {
+    if (warn_if == null || info == null) return;
+    const s = warn_if(info);
+    if (!s) return;
+    return (
+      <div>
+        <hr />
+        {s}
+      </div>
+    );
+  }
+
   const message = (
     <div>
       <Button.Group style={{ float: "right" }}>
@@ -572,6 +586,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
       <br />
       {render_upgrades()}
       {render_err()}
+      {render_warning()}
     </div>
   );
   return (
