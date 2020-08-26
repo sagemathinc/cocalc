@@ -910,7 +910,7 @@ ${details}
     // in parallel, two will launch at about the same time and
     // the *condition* to know if it is done depends on the store,
     // which defers when it gets updated.  Anyway, this line is critical:
-    this.update_peer_assignment(assignment_id)
+    this.update_peer_assignment(assignment_id);
     // OK, now do the assignment... in parallel.
     await this.assignment_action_all_students(
       assignment_id,
