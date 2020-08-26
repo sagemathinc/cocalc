@@ -6,10 +6,18 @@
 // this manages the webapp's configuration based on the hostname (allows whitelabeling)
 
 import { parseDomain, ParseResultType } from "parse-domain";
-
+//import * as lodash from "lodash";
+import * as debug from "debug";
+const L = debug("hub:webapp-config");
+import { callback2 as cb2 } from "../smc-util/async-utils";
 import { PostgreSQL } from "./postgres/types";
-
 const server_settings = require("./server-settings");
+//import { get_server_settings } from "./utils";
+import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "smc-util/db-schema/site-settings-extras";
+import { site_settings_conf as SITE_SETTINGS_CONF } from "smc-util/schema";
+//import { ThemeKeys } from "smc-util/db-schema/site-whitelabeling";
+
+type Theme = { [key: string]: string | boolean };
 
 export class WebappConfiguration {
   readonly db: PostgreSQL;
@@ -30,26 +38,48 @@ export class WebappConfiguration {
     return undefined;
   }
 
-  public get(req) {
+  private async theme(vid: string): Promise<Theme> {
+    //const base = lodash.pick(await get_server_settings(this.db), ThemeKeys);
+    const res = await cb2(this.db._query, {
+      query: "SELECT id, theme FROM whitelabeling",
+      cache: true,
+      where: { "id = $::TEXT": vid },
+    });
+    const data = res.rows[0];
+    if (data != null) {
+      // post-process data, but do not set default values…
+      const theme: Theme = {};
+      for (const [key, value] of Object.entries(data.theme)) {
+        const config = SITE_SETTINGS_CONF[key] ?? SERVER_SETTINGS_EXTRAS[key];
+        if (typeof config?.to_val == "function") {
+          theme[key] = config.to_val(value);
+        } else {
+          if (typeof value == "string" || typeof value == "boolean") {
+            theme[key] = value;
+          }
+        }
+      }
+      L(`vanity theme=${JSON.stringify(theme)}`);
+      return theme;
+    } else {
+      L(`theme id=${vid} not found`);
+      return {};
+    }
+  }
+
+  public async get(req) {
     const host = req.headers["host"];
     const vid = this.vanity(host);
-    if (vid) {
-      return {
-        organization_url: `https://${vid}.edu`,
-        site_name: `Co${vid}`,
-        site_description: `Vanity: ${vid}`,
-        theming: "yes",
+    L(`vanity ID = "${vid}"`);
+    if (vid != null) {
+      // these are special values, but can be overwritten by the specific theme
+      const hardcoded = {
         dns: host,
-        commercial: "no",
-        ssh_gateway: "no",
-        organization_email: `contact@${vid}.edu`,
-        organization_name: `Vanity University of ${vid}`,
-        verify_emails: "yes",
-        help_email: `help@${vid}.edu`,
-        email_enabled: "yes",
-        kucalc: "yes",
         allow_anonymous_sign_in: false,
+        //kucalc: "onprem", // TODO: maybe do this, not sure
+        //commercial: false,
       };
+      return { ...this.data.pub, ...hardcoded, ...(await this.theme(vid)) };
     } else {
       // the default
       return this.data.pub;

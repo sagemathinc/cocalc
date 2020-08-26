@@ -273,7 +273,7 @@ exports.init_express_http_server = (opts) ->
 
     if server_settings?
         router.get '/customize', (req, res) ->
-            config = webapp_config.get(req)
+            config = await webapp_config.get(req)
             if req.query.type == 'embed'
                 res.header("Content-Type", "text/javascript")
                 res.send("window.CUSTOMIZE = Object.freeze(#{JSON.stringify(config)})")

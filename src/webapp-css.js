@@ -41,5 +41,5 @@ import 'webapp-lib/cocalc-icons-font/style.css';
 
 // info at the bottom about the next step in startup sequence
 if (window.smcLoadStatus != null) {
-    window.smcLoadStatus("Loading CoCalc...");
+    window.smcLoadStatus("Loading ...");
 }
