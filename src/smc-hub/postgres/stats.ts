@@ -189,10 +189,11 @@ GROUP BY member`;
 async function calc_running_projects({ db }): Promise<RunningProjects> {
   const data = { free: 0, member: 0 };
   const res = await cb2(db._query, { query: running_projects_q });
+  // yes, "member" is really string
   for (const row of res.rows) {
-    if (row.member === true) {
+    if (row.member === "true") {
       data.member = parseInt(row.count);
-    } else if (row.member === false) {
+    } else if (row.member === "false") {
       data.free = parseInt(row.count);
     }
   }
