@@ -25,6 +25,12 @@ interface Opts {
 
 type Data = { [key: string]: number };
 
+interface RunningProjects {
+  free: number;
+  member: number;
+}
+
+// TODO type this to fit with fields defined in db-schema/stats.ts
 interface Stats {
   id: string;
   time: Date;
@@ -33,6 +39,7 @@ interface Stats {
   projects_created: Data;
   projects_edited: Data;
   accounts_created: Data;
+  running_projects: RunningProjects;
   hub_servers: any;
   files_opened: {
     distinct: Data;
@@ -173,6 +180,25 @@ async function check_db_cache({
   }
 }
 
+const running_projects_q = `\
+SELECT count(*), run_quota ->> 'member_host' AS member
+FROM projects
+WHERE state ->> 'state' in ('running', 'starting')
+GROUP BY member`;
+
+async function calc_running_projects({ db }): Promise<RunningProjects> {
+  const data = { free: 0, member: 0 };
+  const res = await cb2(db._query, { query: running_projects_q });
+  for (const row of res.rows) {
+    if (row.member === true) {
+      data.member = parseInt(row.count);
+    } else if (row.member === false) {
+      data.free = parseInt(row.count);
+    }
+  }
+  return data;
+}
+
 async function _calc_stats({ db, dbg, start_t }): Promise<Stats> {
   const stats: Stats = {
     id: misc.uuid(),
@@ -184,6 +210,7 @@ async function _calc_stats({ db, dbg, start_t }): Promise<Stats> {
     accounts_created: {},
     files_opened: { distinct: {}, total: {} },
     hub_servers: [],
+    running_projects: { free: 0, member: 0 },
   };
   const R = RECENT_TIMES;
   const K = RECENT_TIMES_KEY;
@@ -191,14 +218,17 @@ async function _calc_stats({ db, dbg, start_t }): Promise<Stats> {
   stats.accounts = await _count_timespan(db, {
     table: "accounts",
   });
+
   stats.projects = await _count_timespan(db, {
     table: "projects",
   });
+
   stats.projects_edited[K.active] = await _count_timespan(db, {
     table: "projects",
     field: "last_edited",
     age_m: R.active,
   });
+
   await new Promise((done, reject) => {
     db._query({
       query: "SELECT expire, host, clients FROM hub_servers",
@@ -219,6 +249,7 @@ async function _calc_stats({ db, dbg, start_t }): Promise<Stats> {
       }),
     });
   });
+
   // this was running in parallel, but there is no hurry updating the stats...
   for (const tkey of ["last_month", "last_week", "last_day", "last_hour"]) {
     await _count_opened_files(db, {
@@ -250,6 +281,8 @@ async function _calc_stats({ db, dbg, start_t }): Promise<Stats> {
     });
   }
 
+  stats.running_projects = await calc_running_projects({ db });
+
   const elapsed_t = process.hrtime(start_t);
   const duration_s = (elapsed_t[0] + elapsed_t[1] / 1e9).toFixed(4);
   dbg(
@@ -272,34 +305,31 @@ export async function calc_stats(db: PostgreSQL, opts: Opts) {
   const dbg = db._dbg("get_stats");
 
   let stats: Stats | null = null;
-
-  dbg("using cached stats?");
   stats = check_local_cache({ update, ttl_dt, ttl, ttl_db, dbg });
   if (stats == null) {
     dbg("checking db cache?");
     stats = await check_db_cache({ db, update, ttl, ttl_dt, dbg });
   }
 
-  dbg(`stats is now:  ${misc.to_json(stats)}`);
-
   if (stats != null) {
-    dbg(`stats != null: ${misc.to_json(stats)} → nothing to do`);
+    dbg(`stats != null → nothing to do`);
   } else if (!update) {
     dbg("warning: no recent stats but not allowed to update");
   } else {
     dbg("we're actually recomputing the stats");
     try {
       stats = await _calc_stats({ db, dbg, start_t });
-      cb?.(undefined, stats);
     } catch (err) {
+      dbg(`error calculating stats: err=${err}`);
       cb?.(err, null);
+      return;
     }
   }
 
-  dbg(`get_stats=${misc.to_json(stats)})`);
-
-  // fully debug the resulting stats object
-  console.debug(JSON.stringify(stats, null, 2));
-  process.exit();
+  dbg(`stats=${misc.to_json(stats)})`);
+  // uncomment to fully debug the resulting stats object
+  //console.debug(JSON.stringify(stats, null, 2));
+  //process.exit();
+  cb?.(undefined, stats);
   return stats;
 }
