@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-const async = require("async");
 const misc = require("smc-util/misc");
 //import { promisify } from "util";
 const { defaults } = misc;
@@ -12,7 +11,7 @@ const _ = require("underscore");
 
 import { PostgreSQL } from "./types";
 import { callback2 as cb2 } from "../smc-util/async-utils";
-const { one_result, all_results } = require("../postgres-base");
+const { all_results } = require("../postgres-base");
 
 import { RECENT_TIMES, RECENT_TIMES_KEY } from "smc-util/schema";
 
@@ -24,8 +23,22 @@ interface Opts {
   cb: (err, stats) => void;
 }
 
-// TODO make this an interface
-type Stats = any;
+type Data = { [key: string]: number };
+
+interface Stats {
+  id: string;
+  time: Date;
+  accounts: number;
+  projects: number;
+  projects_created: Data;
+  projects_edited: Data;
+  accounts_created: Data;
+  hub_servers: any;
+  files_opened: {
+    distinct: Data;
+    total: Data;
+  };
+}
 
 let _stats_cached: any = null;
 let _stats_cached_db_query: Date | null = null;
@@ -94,162 +107,199 @@ ORDER BY ext
   data[key] = values;
 }
 
+function check_local_cache({ update, ttl_dt, ttl, ttl_db, dbg }): Stats | null {
+  if (_stats_cached == null) return null;
+
+  // decide if cache should be used -- tighten interval if we are allowed to update
+  const offset_dt = update ? ttl_dt : 0;
+  const is_cache_recent =
+    _stats_cached.time > misc.seconds_ago(ttl - offset_dt);
+  // in case we aren't allowed to update and the cache is outdated, do not query db too often
+  const did_query_recently =
+    _stats_cached_db_query != null &&
+    _stats_cached_db_query > misc.seconds_ago(ttl_db);
+  if (is_cache_recent || did_query_recently) {
+    dbg(
+      `using locally cached stats from ${
+        (new Date().getTime() - _stats_cached.time) / 1000
+      } secs ago.`
+    );
+    return _stats_cached;
+  }
+  return null;
+}
+
+async function check_db_cache({
+  db,
+  update,
+  ttl,
+  ttl_dt,
+  dbg,
+}): Promise<Stats | null> {
+  try {
+    const res = await cb2(db._query, {
+      query: "SELECT * FROM stats ORDER BY time DESC LIMIT 1",
+    });
+    if (res?.rows?.length != 1) {
+      dbg("no data (1)");
+      return null;
+    }
+
+    const x = misc.map_without_undefined(res.rows[0]);
+    if (x == null) {
+      dbg("no data (2)");
+      return null;
+    }
+
+    dbg(`check_db_cache x = ${misc.to_json(x)}`);
+
+    _stats_cached_db_query = new Date();
+    if (update && x.time < misc.seconds_ago(ttl - ttl_dt)) {
+      dbg("cache outdated -- will update stats");
+      return null;
+    } else {
+      dbg(
+        `using db stats from ${
+          (new Date().getTime() - x.time) / 1000
+        } secs ago.`
+      );
+      // storing still valid result in local cache
+      _stats_cached = misc.deep_copy(x);
+      return _stats_cached;
+    }
+  } catch (err) {
+    dbg("problem with query -- no stats in db?");
+    throw err;
+  }
+}
+
+async function _calc_stats({ db, dbg, start_t }): Promise<Stats> {
+  const stats: Stats = {
+    id: misc.uuid(),
+    time: new Date(),
+    accounts: 0,
+    projects: 0,
+    projects_created: {},
+    projects_edited: {},
+    accounts_created: {},
+    files_opened: { distinct: {}, total: {} },
+    hub_servers: [],
+  };
+  const R = RECENT_TIMES;
+  const K = RECENT_TIMES_KEY;
+
+  stats.accounts = await _count_timespan(db, {
+    table: "accounts",
+  });
+  stats.projects = await _count_timespan(db, {
+    table: "projects",
+  });
+  stats.projects_edited[K.active] = await _count_timespan(db, {
+    table: "projects",
+    field: "last_edited",
+    age_m: R.active,
+  });
+  await new Promise((done, reject) => {
+    db._query({
+      query: "SELECT expire, host, clients FROM hub_servers",
+      cb: all_results((err, hub_servers) => {
+        if (err) {
+          reject(err);
+        } else {
+          const now = new Date();
+          stats.hub_servers = [];
+          for (let x of hub_servers) {
+            if (x.expire > now) {
+              delete x.expire;
+              stats.hub_servers.push(x);
+            }
+          }
+          done();
+        }
+      }),
+    });
+  });
+  // this was running in parallel, but there is no hurry updating the stats...
+  for (const tkey of ["last_month", "last_week", "last_day", "last_hour"]) {
+    await _count_opened_files(db, {
+      age_m: R[tkey],
+      key: K[tkey],
+      data: stats.files_opened.distinct,
+      distinct: true,
+    });
+    await _count_opened_files(db, {
+      age_m: R[tkey],
+      key: K[tkey],
+      data: stats.files_opened.total,
+      distinct: false,
+    });
+    stats.projects_edited[K[tkey]] = await _count_timespan(db, {
+      table: "projects",
+      field: "last_edited",
+      age_m: R[tkey],
+    });
+    stats.projects_created[K[tkey]] = await _count_timespan(db, {
+      table: "projects",
+      field: "created",
+      age_m: R[tkey],
+    });
+    stats.accounts_created[K[tkey]] = await _count_timespan(db, {
+      table: "accounts",
+      field: "created",
+      age_m: R[tkey],
+    });
+  }
+
+  const elapsed_t = process.hrtime(start_t);
+  const duration_s = (elapsed_t[0] + elapsed_t[1] / 1e9).toFixed(4);
+  dbg(
+    `everything succeeded above after ${duration_s} secs -- now insert stats`
+  );
+  // storing in local and db cache
+  _stats_cached = misc.deep_copy(stats);
+  await cb2(db._query, {
+    query: "INSERT INTO stats",
+    values: stats,
+  });
+
+  return stats;
+}
+
 export async function calc_stats(db: PostgreSQL, opts: Opts) {
   const { ttl_dt, ttl, ttl_db, update, cb } = opts;
-  let stats: Stats = undefined;
+
   const start_t = process.hrtime();
   const dbg = db._dbg("get_stats");
-  async.series(
-    [
-      (cb) => {
-        dbg("using cached stats?");
-        if (_stats_cached != null) {
-          // decide if cache should be used -- tighten interval if we are allowed to update
-          const offset_dt = update ? ttl_dt : 0;
-          const is_cache_recent =
-            _stats_cached.time > misc.seconds_ago(ttl - offset_dt);
-          // in case we aren't allowed to update and the cache is outdated, do not query db too often
-          const did_query_recently =
-            _stats_cached_db_query != null &&
-            _stats_cached_db_query > misc.seconds_ago(ttl_db);
-          if (is_cache_recent || did_query_recently) {
-            stats = _stats_cached;
-            dbg(
-              `using locally cached stats from ${
-                (new Date().getTime() - stats.time) / 1000
-              } secs ago.`
-            );
-            cb();
-          }
-        }
-        db._query({
-          query: "SELECT * FROM stats ORDER BY time DESC LIMIT 1",
-          cb: one_result((err, x) => {
-            if (err || x == null) {
-              dbg("problem with query -- no stats in db?");
-              cb(err);
-            }
-            // query successful, since x exists
-            _stats_cached_db_query = new Date();
-            if (update && x.time < misc.seconds_ago(ttl - ttl_dt)) {
-              dbg("cache outdated -- will update stats");
-              cb();
-            } else {
-              dbg(
-                `using db stats from ${
-                  (new Date().getTime() - x.time) / 1000
-                } secs ago.`
-              );
-              stats = x;
-              // storing still valid result in local cache
-              _stats_cached = misc.deep_copy(stats);
-              cb();
-            }
-          }),
-        });
-      },
-      async (cb) => {
-        if (stats != null) {
-          cb();
-        } else if (!update) {
-          dbg("warning: no recent stats but not allowed to update");
-          cb();
-        }
-        dbg("querying all stats from the DB");
-        stats = {
-          time: new Date(),
-          projects_created: {},
-          projects_edited: {},
-          accounts_created: {},
-          files_opened: { distinct: {}, total: {} },
-        };
-        const R = RECENT_TIMES;
-        const K = RECENT_TIMES_KEY;
 
-        stats.accounts = await _count_timespan(db, {
-          table: "accounts",
-        });
-        stats.projects = await _count_timespan(db, {
-          table: "projects",
-        });
-        stats.projects_edited[K.active] = await _count_timespan(db, {
-          table: "projects",
-          field: "last_edited",
-          age_m: R.active,
-        });
-        await cb2(db._query, {
-          query: "SELECT expire, host, clients FROM hub_servers",
-          cb: all_results((err, hub_servers) => {
-            if (err) {
-              cb(err);
-            } else {
-              const now = new Date();
-              stats.hub_servers = [];
-              for (let x of hub_servers) {
-                if (x.expire > now) {
-                  delete x.expire;
-                  stats.hub_servers.push(x);
-                }
-              }
-              cb();
-            }
-          }),
-        });
-        // this was running in parallel, but there is no hurry updating the stats...
-        for (const tkey of [
-          "last_month",
-          "last_week",
-          "last_day",
-          "last_hour",
-        ]) {
-          await _count_opened_files(db, {
-            age_m: R[tkey],
-            key: K[tkey],
-            data: stats.files_opened.distinct,
-            distinct: true,
-          });
-          await _count_opened_files(db, {
-            age_m: R[tkey],
-            key: K[tkey],
-            data: stats.files_opened.total,
-            distinct: false,
-          });
-          stats.projects_edited[K[tkey]] = await _count_timespan(db, {
-            table: "projects",
-            field: "last_edited",
-            age_m: R[tkey],
-          });
-          stats.projects_created[K[tkey]] = await _count_timespan(db, {
-            table: "projects",
-            field: "created",
-            age_m: R[tkey],
-          });
-          stats.accounts_created[K[tkey]] = await _count_timespan(db, {
-            table: "accounts",
-            field: "created",
-            age_m: R[tkey],
-          });
-        }
+  let stats: Stats | null = null;
 
-        const elapsed_t = process.hrtime(start_t);
-        const duration_s = (elapsed_t[0] + elapsed_t[1] / 1e9).toFixed(4);
-        dbg(
-          `everything succeeded above after ${duration_s} secs -- now insert stats`
-        );
-        // storing in local and db cache
-        stats.id = misc.uuid();
-        _stats_cached = misc.deep_copy(stats);
-        await cb2(db._query, {
-          query: "INSERT INTO stats",
-          values: stats,
-        });
-      },
-    ],
-    (err) => {
-      dbg(`get_stats final CB: (${misc.to_json(err)}, ${misc.to_json(stats)})`);
-      // fully debug the resulting stats object
-      //console.debug(JSON.stringify(stats, null, 2)); process.exit();
-      cb?.(err, stats);
+  dbg("using cached stats?");
+  stats = check_local_cache({ update, ttl_dt, ttl, ttl_db, dbg });
+  if (stats == null) {
+    dbg("checking db cache?");
+    stats = await check_db_cache({ db, update, ttl, ttl_dt, dbg });
+  }
+
+  dbg(`stats is now:  ${misc.to_json(stats)}`);
+
+  if (stats != null) {
+    dbg(`stats != null: ${misc.to_json(stats)} → nothing to do`);
+  } else if (!update) {
+    dbg("warning: no recent stats but not allowed to update");
+  } else {
+    dbg("we're actually recomputing the stats");
+    try {
+      stats = await _calc_stats({ db, dbg, start_t });
+      cb?.(undefined, stats);
+    } catch (err) {
+      cb?.(err, null);
     }
-  );
+  }
+
+  dbg(`get_stats=${misc.to_json(stats)})`);
+
+  // fully debug the resulting stats object
+  console.debug(JSON.stringify(stats, null, 2));
+  process.exit();
+  return stats;
 }
