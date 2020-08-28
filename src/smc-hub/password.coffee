@@ -128,8 +128,8 @@ exports.forgot_password = (opts) ->
             SITE_NAME   = locals.settings.site_name  ? theme.SITE_NAME
 
             base_url      = require('./base-url').base_url()
-            path          = require('path').join('/', base_url, '/app')
-            RESET_URL     = "#{DOMAIN_NAME}#{path}?forgot=#{id}"
+            path          = require('path').join('/', base_url, '/auth/password_reset')
+            RESET_URL     = "#{DOMAIN_NAME}#{path}?token=#{id}"
 
             body = """
                 <div>Hello,</div>

@@ -519,6 +519,26 @@ class PassportManager {
       }
     });
 
+    // reset password: user email link contains a token, which we store in a session cookie.
+    // this prevents leaking that token to 3rd parties as a referrer
+    // endpoint has to match with smc-hub/password
+    this.router.get(`${AUTH_BASE}/password_reset`, (req, res) => {
+      if (typeof req.query.token !== "string") {
+        res.send("ERROR: reset token must be set");
+      } else {
+        const token = req.query.token.toLowerCase();
+        const cookies = new Cookies(req, res);
+        // to match smc-webapp/client/password-reset
+        const name = encodeURIComponent(`${this.base_url}PWRESET`);
+        cookies.set(name, token, {
+          secure: true,
+          overwrite: true,
+          httpOnly: false,
+        });
+        res.redirect("../app");
+      }
+    });
+
     // prerequisite for setting up any SSO endpoints
     await this.init_passport_settings();
 
