@@ -9,6 +9,7 @@ import { ProgressBar, Table } from "react-bootstrap";
 import { RECENT_TIMES_KEY } from "smc-util/schema";
 import { li_style } from "./style";
 import { Col } from "../antd-bootstrap";
+import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 
 // improve understanding of large numbers
 function fmt_large(num) {
@@ -37,14 +38,23 @@ interface Props {
     total: { [key in RecentTimes]: { [ext: string]: number } };
     distinct: { [key in RecentTimes]: { [ext: string]: number } };
   };
+  running_projects?: {
+    free: number;
+    member: number;
+  };
+  kucalc?: string;
 }
 
 class Usage extends Component<Props> {
   public static reduxProps(): object {
     return {
+      customize: {
+        kucalc: rtypes.string,
+      },
       server_stats: {
         loading: rtypes.bool.isRequired,
         hub_servers: rtypes.array,
+        running_projects: rtypes.object,
         time: rtypes.object,
         accounts: rtypes.number,
         projects: rtypes.number,
@@ -70,7 +80,16 @@ class Usage extends Component<Props> {
     }
   }
 
-  private render_active_users_stats(): Rendered {
+  private number_of_running_projects(): number {
+    if (this.props.running_projects == null) {
+      return 0;
+    } else {
+      const { free, member } = this.props.running_projects;
+      return (free ?? 0) + (member ?? 0);
+    }
+  }
+
+  private render_live_stats(): Rendered {
     if (this.props.loading) {
       return (
         <div>
@@ -80,15 +99,30 @@ class Usage extends Component<Props> {
       );
     } else {
       const n = this.number_of_active_users();
+      const p = this.number_of_running_projects();
+      const pmax = Math.max(2000, Math.ceil(p / 1000) * 1000);
       return (
-        <div style={{ textAlign: "center" }}>
-          Currently connected users
-          <ProgressBar
-            style={{ marginBottom: 10 }}
-            now={Math.max(n / 12, 45 / 8)}
-            label={`${n} connected users`}
-          />
-        </div>
+        <>
+          <div style={{ textAlign: "center" }}>
+            Currently connected users
+            <ProgressBar
+              style={{ marginBottom: "10px" }}
+              now={Math.max(n / 12, 45 / 8)}
+              label={`${n} connected users`}
+            />
+          </div>
+          {this.props.kucalc == KUCALC_COCALC_COM && (
+            <div style={{ textAlign: "center" }}>
+              Currently running projects
+              <ProgressBar
+                style={{ marginBottom: "10px" }}
+                max={pmax}
+                now={Math.max(p, pmax * 0.05)}
+                label={`${p} running projects`}
+              />
+            </div>
+          )}
+        </>
       );
     }
   }
@@ -219,7 +253,7 @@ class Usage extends Component<Props> {
           {this.render_when_updated()}
         </h3>
         <div>
-          {this.render_active_users_stats()}
+          {this.render_live_stats()}
           <div style={{ marginTop: 20, textAlign: "center" }}>
             Recent user activity
           </div>
