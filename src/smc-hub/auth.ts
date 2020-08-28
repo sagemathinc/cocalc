@@ -34,6 +34,7 @@
 // Then restart the hubs.
 
 import { Router } from "express";
+import * as ms from "ms";
 import { callback2 as cb2 } from "../smc-util/async-utils";
 import * as debug from "debug";
 const LOG = debug("hub:auth");
@@ -531,6 +532,7 @@ class PassportManager {
         // to match smc-webapp/client/password-reset
         const name = encodeURIComponent(`${this.base_url}PWRESET`);
         cookies.set(name, token, {
+          maxAge: ms("10 minutes"),
           secure: true,
           overwrite: true,
           httpOnly: false,
