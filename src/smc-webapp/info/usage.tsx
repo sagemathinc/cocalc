@@ -104,21 +104,21 @@ class Usage extends Component<Props> {
       return (
         <>
           <div style={{ textAlign: "center" }}>
-            Currently connected users
+            Currently active users
             <ProgressBar
               style={{ marginBottom: "10px" }}
               now={Math.max(n / 12, 45 / 8)}
-              label={`${n} connected users`}
+              label={`${n} active users`}
             />
           </div>
           {this.props.kucalc == KUCALC_COCALC_COM && (
             <div style={{ textAlign: "center" }}>
-              Currently running projects
+              Currently active projects
               <ProgressBar
                 style={{ marginBottom: "10px" }}
                 max={pmax}
                 now={Math.max(p, pmax * 0.05)}
-                label={`${p} running projects`}
+                label={`${p} active projects`}
               />
             </div>
           )}
