@@ -39,6 +39,9 @@ Table({
       type: "array",
       pg_type: "JSONB[]",
     },
+    running_projects: {
+      type: "map",
+    },
   },
   rules: {
     primary_key: "id",

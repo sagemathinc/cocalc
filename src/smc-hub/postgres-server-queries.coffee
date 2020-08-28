@@ -48,6 +48,7 @@ collab = require('./postgres/collab')
 {unlist_all_public_paths} = require('./postgres/public-paths')
 {get_remember_me} = require('./postgres/remember-me')
 {projects_that_need_to_be_started} = require('./postgres/always-running');
+{calc_stats} = require('./postgres/stats')
 
 SERVER_SETTINGS_EXTRAS = require("smc-util/db-schema/site-settings-extras").EXTRAS
 SITE_SETTINGS_CONF = require("smc-util/schema").site_settings_conf
@@ -2660,67 +2661,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 else
                     opts.cb(undefined, env ? {})
 
-    ###
-    Stats
-    ###
-    _count_timespan: (opts) =>
-        opts = defaults opts,
-            table    : required
-            field    : undefined
-            age_m    : undefined
-            upper_m  : undefined  # defaults to zero minutes (i.e. "now")
-            cb       : required
-        where = {}
-        if opts.field?
-            if opts.age_m?
-                where["#{opts.field} >= $::TIMESTAMP"] = misc.minutes_ago(opts.age_m)
-            if opts.upper_m?
-                where["#{opts.field} <= $::TIMESTAMP"] = misc.minutes_ago(opts.upper_m)
-        @_query
-            query : "SELECT COUNT(*) FROM #{opts.table}"
-            where : where
-            cb    : count_result(opts.cb)
-
-    _count_opened_files: (opts) =>
-        opts = defaults opts,
-            age_m    : undefined
-            key      : required
-            data     : required
-            distinct : required # true or false
-            cb       : required
-        q = """
-            WITH filenames AS (
-                SELECT #{if opts.distinct then 'DISTINCT' else ''} event ->> 'filename' AS fn
-                FROM project_log
-                WHERE time BETWEEN $1::TIMESTAMP AND NOW()
-                  AND event @> '{"action" : "open"}'::jsonb
-            ), ext_count AS (
-                SELECT COUNT(*) as cnt, lower(reverse(split_part(reverse(fn), '.', 1))) AS ext
-                FROM filenames
-                GROUP BY ext
-            )
-            SELECT ext, cnt
-            FROM ext_count
-            WHERE ext IN ('sagews', 'ipynb', 'tex', 'rtex', 'rnw', 'x11',
-                          'rmd', 'txt', 'py', 'md', 'sage', 'term', 'rst', 'lean',
-                          'png', 'svg', 'jpeg', 'jpg', 'pdf',
-                          'tasks', 'course', 'sage-chat', 'chat')
-            ORDER BY ext
-            """
-
-        post_process = (err, rows) ->
-            if err
-                opts.cb(err); return
-            else
-                _ = require('underscore')
-                values = _.object(_.pluck(rows, 'ext'), _.pluck(rows, 'cnt'))
-                opts.data[opts.key] = values
-                opts.cb(undefined)
-
-        @_query
-            query : q
-            params : [misc.minutes_ago(opts.age_m)]
-            cb     : all_results(post_process)
 
     recent_projects: (opts) =>
         opts = defaults opts,
@@ -2765,102 +2705,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             ttl_db : 30       # how long a valid result from a db query is cached in any case
             update : true     # true: recalculate if older than ttl; false: don't recalculate and pick it from the DB (locally cached for ttl secs)
             cb     : undefined
-        stats   = undefined
-        start_t = process.hrtime()
-        dbg     = @_dbg('get_stats')
-        async.series([
-            (cb) =>
-                dbg("using cached stats?")
-                if @_stats_cached?
-                    # decide if cache should be used -- tighten interval if we are allowed to update
-                    offset_dt = if opts.update then opts.ttl_dt else 0
-                    is_cache_recent = @_stats_cached.time > misc.seconds_ago(opts.ttl - offset_dt)
-                    # in case we aren't allowed to update and the cache is outdated, do not query db too often
-                    did_query_recently = @_stats_cached_db_query > misc.seconds_ago(opts.ttl_db)
-                    if is_cache_recent or did_query_recently
-                        stats = @_stats_cached
-                        dbg("using locally cached stats from #{(new Date() - stats.time) / 1000} secs ago.")
-                        cb(); return
-                @_query
-                    query : "SELECT * FROM stats ORDER BY time DESC LIMIT 1"
-                    cb    : one_result (err, x) =>
-                        if err or not x?
-                            dbg("problem with query -- no stats in db?")
-                            cb(err); return
-                        # query successful, since x exists
-                        @_stats_cached_db_query = new Date()
-                        if opts.update and x.time < misc.seconds_ago(opts.ttl - opts.ttl_dt)
-                            dbg("cache outdated -- will update stats")
-                            cb()
-                        else
-                            dbg("using db stats from #{(new Date() - x.time) / 1000} secs ago.")
-                            stats = x
-                            # storing still valid result in local cache
-                            @_stats_cached = misc.deep_copy(stats)
-                            cb()
-            (cb) =>
-                if stats?
-                    cb(); return
-                else if not opts.update
-                    dbg("warning: no recent stats but not allowed to update")
-                    cb(); return
-                dbg("querying all stats from the DB")
-                stats =
-                    time             : new Date()
-                    projects_created : {}
-                    projects_edited  : {}
-                    accounts_created : {}
-                    files_opened     : {distinct: {}, total:{}}
-                R = RECENT_TIMES
-                K = RECENT_TIMES_KEY
-                stats_tasks = [
-                    (cb) => @_count_timespan(table:'accounts', cb:(err, x) => stats.accounts = x; cb(err))
-                    (cb) => @_count_timespan(table:'projects', cb:(err, x) => stats.projects = x; cb(err))
-                    (cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R.active, cb: (err, x) => stats.projects_edited[K.active] = x; cb(err))
-                    (cb) =>
-                        @_query
-                            query : 'SELECT expire, host, clients FROM hub_servers'
-                            cb    : all_results (err, hub_servers) =>
-                                if err
-                                    cb(err)
-                                else
-                                    now = new Date()
-                                    stats.hub_servers = []
-                                    for x in hub_servers
-                                        if x.expire > now
-                                            delete x.expire
-                                            stats.hub_servers.push(x)
-                                    cb()
-                ]
-                for tkey in ['last_month', 'last_week', 'last_day', 'last_hour']
-                    do (tkey) =>
-                        stats_tasks.push((cb) => @_count_opened_files(age_m:R[tkey], key:K[tkey], data:stats.files_opened.distinct, distinct:true,  cb:cb))
-                        stats_tasks.push((cb) => @_count_opened_files(age_m:R[tkey], key:K[tkey], data:stats.files_opened.total,    distinct:false, cb:cb))
-                        stats_tasks.push((cb) => @_count_timespan(table:'projects', field: 'last_edited', age_m: R[tkey], cb: (err, x) => stats.projects_edited[K[tkey]] = x; cb(err)))
-                        stats_tasks.push((cb) => @_count_timespan(table:'projects', field: 'created', age_m: R[tkey], cb: (err, x) => stats.projects_created[K[tkey]] = x; cb(err)))
-                        stats_tasks.push((cb) => @_count_timespan(table:'accounts', field: 'created', age_m: R[tkey], cb: (err, x) => stats.accounts_created[K[tkey]] = x; cb(err)))
-
-                # this was running in parallel, but there is no hurry updating the stats...
-                # async.parallelLimit(stats_tasks, MAP_LIMIT, (err) =>
-                async.series(stats_tasks, (err) =>
-                    if err
-                        cb(err)
-                    else
-                        elapsed_t = process.hrtime(start_t)
-                        duration_s = (elapsed_t[0] + elapsed_t[1] / 1e9).toFixed(4)
-                        dbg("everything succeeded above after #{duration_s} secs -- now insert stats")
-                        # storing in local and db cache
-                        stats.id = misc.uuid()
-                        @_stats_cached = misc.deep_copy(stats)
-                        @_query
-                            query  : 'INSERT INTO stats'
-                            values : stats
-                            cb     : cb
-                )
-        ], (err) =>
-            dbg("get_stats final CB: (#{misc.to_json(err)}, #{misc.to_json(stats)})")
-            opts.cb?(err, stats)
-        )
+        return await calc_stats(@, opts)
 
     get_active_student_stats: (opts) =>
         opts = defaults opts,
