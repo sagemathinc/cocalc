@@ -5,6 +5,7 @@
 
 import { QueryParams } from "../misc/query-params";
 const { APP_BASE_URL } = require("../misc_page");
+
 const NAME = `${encodeURIComponent(APP_BASE_URL)}PWRESET`;
 
 import Cookies from "universal-cookie";
