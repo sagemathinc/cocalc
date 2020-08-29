@@ -34,6 +34,7 @@ export type SiteSettingsKeys =
   | "commercial"
   | "google_analytics"
   | "kucalc"
+  | "free_projects_limit"
   | "dns"
   | "ssh_gateway"
   | "versions"
@@ -288,6 +289,14 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    show: only_cocalc_com,
+  },
+  free_projects_limit: {
+    name: "Limit Free Projects",
+    desc: "Maximum number of free projects ('0' disables it)",
+    default: "0",
+    to_val: to_int,
+    valid: only_nonneg_int,
     show: only_cocalc_com,
   },
   onprem_quota_heading: {
