@@ -109,7 +109,9 @@ export class SiteLicense extends Component<Props, State> {
         {this.render_site_license_text()}
         <br />
         <br />
-        <PurchaseOneLicenseLink />
+        <span style={{ fontSize: "13pt" }}>
+          <PurchaseOneLicenseLink />
+        </span>
       </div>
     );
   }

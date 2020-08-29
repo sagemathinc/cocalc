@@ -58,8 +58,7 @@ const LENGTH_PRESETS = [
 
 const radioStyle: CSS = {
   display: "block",
-  height: "30px",
-  lineHeight: "30px",
+  whiteSpace: "normal",
   fontWeight: "inherit", // this is to undo what react-bootstrap does to the labels.
 } as const;
 
@@ -633,8 +632,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             />
           </Col>
           <Col md={1}></Col>
-          <Col md={3}>Description</Col>
-          <Col md={10}>
+          <Col md={4}>Description</Col>
+          <Col md={9}>
             <DebounceInput
               autoSize={{ minRows: 1, maxRows: 6 }}
               element={Input.TextArea as any}
@@ -899,22 +898,28 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     );
   }
 
+  function render_instructions() {
+    return (
+      <div style={{ marginBottom: "15px" }}>
+        Buy licenses or request a quote below. If you are planning on making a
+        significant purchase, but need to test things out first,{" "}
+        <a onClick={() => redux.getActions("support").set_show(true)}>
+          please request a free trial.
+        </a>
+      </div>
+    );
+  }
+
   return (
     <Card
       title={
         <>
           <h3>Buy a license</h3>
-          <span style={{ fontWeight: 350 }}>
-            Buy licenses or request a quote below. If you are planning on making
-            a purchase, but need to test things out first,{" "}
-            <a onClick={() => redux.getActions("support").set_show(true)}>
-              please request a free trial.
-            </a>
-          </span>
         </>
       }
       extra={<a onClick={onClose}>close</a>}
     >
+      {render_instructions()}
       {render_user()}
       {render_quantity()}
       {render_project_type()}
