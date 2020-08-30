@@ -63,7 +63,19 @@ export async function set_state(
     // the cm instance before the above css font-size change has been rendered.
     // Also, the opacity business avoids some really painful "flicker".
     await delay(0);
-    // now in next render loop
+    // This is because the cm editor can get created when the project page is
+    // in the background, so it has height 0.  We just wait until it has nonzero
+    // height or is just closed (in which case the document no longer contains it).
+    // This is a pretty simplistic approach, compared to using ResizeObserver
+    // or trying to be more clever regarding what event brings this tab into
+    // focus.  It should, however, be very robust to whatever else is going on.
+    // And this is a rare case, so shouldn't result in any performance issues.
+    // See https://github.com/sagemathinc/cocalc/issues/4814
+    while (elt.height() == 0) {
+      if (!document.body.contains(elt[0])) return;
+      await delay(250);
+    }
+    // now in next render loop and height is positive.
     elt.css("opacity", 1);
     cm.scrollTo(0, cm.cursorCoords(state.pos, "local").top);
     cm.refresh();
