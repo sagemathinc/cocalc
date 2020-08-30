@@ -230,8 +230,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           {`: ${money(cost.cost_per_project_per_month)}/month per project`}
         </h4>
         <div style={{ fontSize: "12pt" }}>
-          Up to {quantity} projects can be running at once with the following
-          specs:
+          Up to {quantity} projects can be running at once, <b>each</b> with the
+          following specs:
           <br />
         </div>
         {render_custom()}
@@ -277,7 +277,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               }}
             />
             <Space />
-            <span style={UNIT_STYLE}>CPU {plural(custom_cpu, "core")}</span>
+            <span style={UNIT_STYLE}>
+              shared CPU {plural(custom_cpu, "core")}
+            </span>
           </Col>
           <Col md={col_max}>
             <Button
@@ -289,7 +291,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           </Col>
           <Col md={col_desc}>
             <b>
-              CPU cores (
+              shared CPU cores (
               {`${money(
                 COSTS.user_discount[user] * COSTS.custom_cost.cpu
               )}/CPU cores per month per project`}
@@ -313,7 +315,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               }}
             />
             <Space />
-            <span style={UNIT_STYLE}>GB RAM</span>
+            <span style={UNIT_STYLE}>GB shared RAM</span>
           </Col>
           <Col md={col_max}>
             <Button
@@ -477,13 +479,15 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       <div>
         <br />
         <h4>
-          <Icon name="sort-amount-up" /> Quantity: {render_quantity_input()}
+          <Icon name="sort-amount-up" /> Number of Projects:{" "}
+          {render_quantity_input()}
         </h4>
         <div style={{ fontSize: "12pt" }}>
           <ul>
             <li>
-              Simultaneously use {quantity} {plural(quantity, "project")} with
-              this license.
+              Simultaneously run {quantity} {plural(quantity, "project")} with
+              this license. You, and anyone you share the license code with, can
+              apply the license to any number of projects (in project settings).
             </li>
             <li>
               {" "}
@@ -491,12 +495,12 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               <A href="https://doc.cocalc.com/teaching-instructors.html">
                 teaching a course
               </A>
-              , the quantity is typically <i>n+2</i>, where <i>n</i> is the
-              number of students: each student has a project, you will manage
-              the course from a project, and all students will have access to
-              one shared project. Contact us by clicking the "Help" button if
-              you need to change the quantity later in the course as more
-              students add.
+              , the number of projects is typically <i>n+2</i>, where <i>n</i>{" "}
+              is the number of students in the class: each student has a
+              project, you will manage the course from a project, and all
+              students will have access to one shared project. Contact us by
+              clicking the "Help" button if you need to change the quantity
+              later in the course as more students add.
             </li>
             <li>
               {" "}
@@ -901,8 +905,12 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   function render_instructions() {
     return (
       <div style={{ marginBottom: "15px" }}>
-        Buy licenses or request a quote below. If you are planning on making a
-        significant purchase, but need to test things out first,{" "}
+        Buy licenses or request a quote below, as{" "}
+        <A href="https://doc.cocalc.com/account-settings.html#buy-a-license">
+          explained here
+        </A>
+        . If you are planning on making a significant purchase, but need to test
+        things out first,{" "}
         <a onClick={() => redux.getActions("support").set_show(true)}>
           please request a free trial.
         </a>
