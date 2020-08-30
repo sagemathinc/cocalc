@@ -426,11 +426,12 @@ export function quota(
 
 export function max_quota(quota: Quota, license_quota: SiteLicenseQuota): void {
   for (const field in license_quota) {
-    if (typeof license_quota[field] == "number") {
-      quota[field] = Math.max(license_quota[field], quota[field] ?? 0);
-    } else {
+    if (license_quota[field] == null) continue;
+    if (typeof license_quota[field] == "boolean") {
       // boolean
       quota[field] = !!license_quota[field] || !!quota[field];
+    } else {
+      quota[field] = Math.max(license_quota[field], quota[field] ?? 0);
     }
   }
 }
