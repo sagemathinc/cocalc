@@ -163,35 +163,29 @@ export class ExportActions {
 
     for (const student of store.get_sorted_students()) {
       const student_id = student.get("student_id");
-      let grades = (() => {
-        const result1: any[] = [];
-        for (assignment of assignments) {
-          const assignment_id = assignment.get("assignment_id");
-          const grade = store
-            .get_grade(assignment_id, student_id)
-            .replace(/'/g, "\\'")
-            .replace(/\n/g, "\\n");
-          result1.push("'" + grade + "'");
-        }
-        return result1;
-      })().join(",");
-      let comments = (() => {
-        const result2: any[] = [];
-        for (assignment of assignments) {
-          const assignment_id = assignment.get("assignment_id");
-          const comment = store
-            .get_comments(assignment_id, student_id)
-            .replace(/'/g, "\\'")
-            .replace(/\n/g, "\\n");
-          result2.push("'" + comment + "'");
-        }
-        return result2;
-      })().join(",");
+      const grades: string[] = [];
+      for (assignment of assignments) {
+        const assignment_id = assignment.get("assignment_id");
+        const grade = store
+          .get_grade(assignment_id, student_id)
+          .replace(/'/g, "\\'")
+          .replace(/\n/g, "\\n");
+        grades.push(grade);
+      }
+      const comments: string[] = [];
+      for (assignment of assignments) {
+        const assignment_id = assignment.get("assignment_id");
+        const comment = store
+          .get_comments(assignment_id, student_id)
+          .replace(/'/g, "\\'")
+          .replace(/\n/g, "\\n");
+        comments.push(comment);
+      }
       const name = store.get_student_name(student_id);
       let email = store.get_student_email(student_id);
       email = email != null ? `'${email}'` : "None";
       const id = student.get("student_id");
-      const line = `    {'name':'${name}', 'id':'${id}', 'email':${email}, 'grades':[${grades}], 'comments':[${comments}]},`;
+      const line = JSON.stringify({ name, id, email, grades, comments });
       content += line + "\n";
     }
     content += "]\n";
