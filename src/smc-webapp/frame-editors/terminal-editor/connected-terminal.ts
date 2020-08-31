@@ -564,16 +564,20 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   private use_subframe(path: string): boolean {
-    const this_path = filename_extension(this.actions.path);
-    if (this_path == "term") {
-      // This is a .term tab, so always open the path in a new tab.
+    const this_path_ext = filename_extension(this.actions.path);
+    if (this_path_ext == "term") {
+      // This is a .term tab, so always open the path in a new editor tab (not in the frame tre).
       return false;
     }
     const ext = filename_extension(path);
-    // Open file in this tab of it can be edited as source code.
     const a = file_associations[ext];
-    if (a == null || a.editor == "codemirror") return true;
-    if (this_path == "tex" && a.editor == "latex") return true;
+    // Latex editor -- open tex files in same frame:
+    if (this_path_ext == "tex" && a.editor == "latex") return true;
+    // Open file in this tab of it can be edited as code, or no editor
+    // so text is the fallback.
+    if (a == null || a.editor == "codemirror") {
+      return true;
+    }
     return false;
   }
 

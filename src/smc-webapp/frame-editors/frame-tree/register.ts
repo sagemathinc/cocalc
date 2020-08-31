@@ -113,8 +113,8 @@ function register(
 
 const REGISTRY: { [key: string]: any } = {};
 
-export function get_file_editor(ext: string, is_public: boolean) {
-  return REGISTRY[key(ext, is_public)];
+export function get_file_editor(ext: string, is_public: boolean=false) {
+  return REGISTRY[key(ext, is_public)]
 }
 
 function key(ext: string, is_public: boolean): string {
