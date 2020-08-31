@@ -900,7 +900,6 @@ export const Explorer = rclass(
               display: "flex",
               flexDirection: "column",
               padding: "0 5px 5px 5px",
-              minHeight: "400px",
             }}
           >
             {public_view && !directory_error
