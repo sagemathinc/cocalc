@@ -643,6 +643,8 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             <StudentProjectSoftwareEnvironment
               actions={actions.configuration}
               software_image={settings.get("custom_image")}
+              course_project_id={project_id}
+              inherit_compute_image={settings.get("inherit_compute_image")}
             />
           </Col>
         </Row>
