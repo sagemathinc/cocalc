@@ -141,19 +141,19 @@ export const ProjectsPage: React.FC = () => {
       style={{ overflowY: "auto", paddingTop: "20px" }}
     >
       <Row>
-        <Col sm={4}>
+        <Col md={4}>
           {" "}
           <div style={PROJECTS_TITLE_STYLE}>
             <Icon name="edit" /> Projects{" "}
           </div>
         </Col>
-        <Col sm={2}>
+        <Col md={3}>
           {!is_anonymous && <ProjectsFilterButtons />}
         </Col>
-        <Col sm={3}>
+        <Col md={2}>
           <UsersViewing style={{ width: "100%" }} />
         </Col>
-        <Col sm={3}>
+        <Col md={3}>
           {!is_anonymous && <AddToProjectToken />}
         </Col>
       </Row>
