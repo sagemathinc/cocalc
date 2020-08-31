@@ -1428,14 +1428,14 @@ ${details}
         assignment_id,
         student_id,
         instructor_ipynb_files,
-        false
+        true
       );
     };
     try {
       this.nbgrader_set_is_running(assignment_id);
       await map(
         this.get_store().get_student_ids({ deleted: false }),
-        PARALLEL_LIMIT,
+        1,  // TODO: not actually in parallel for now; I had trouble with it in parallel
         one_student
       );
       this.course_actions.syncdb.commit();
@@ -1665,11 +1665,11 @@ ${details}
           path: student_path,
           project_id: grade_project_id,
         });
-        /* console.log("nbgrader finished successfully", {
+        /*console.log("nbgrader finished successfully", {
           student_id,
           file,
-          r
-        }); */
+          r,
+        });*/
         result[file] = r;
       } catch (err) {
         // console.log("nbgrader failed", { student_id, file, err });
