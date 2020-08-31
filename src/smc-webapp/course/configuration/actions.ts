@@ -148,6 +148,10 @@ export class ConfigurationActions {
     });
   }
 
+  public set_inherit_compute_image(inherit: boolean): void {
+    this.set({ inherit_compute_image: inherit, table: "settings" });
+  }
+
   public set_software_environment(state: SoftwareEnvironmentState): void {
     const custom_image = derive_project_img_name(state);
     this.set({

@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useState, useTypedRedux } from "../../app-framework";
+import { React, useState, useTypedRedux, CSS } from "../../app-framework";
 import { fromJS } from "immutable";
 import { Icon, Markdown, A } from "../../r_misc";
 import {
@@ -11,7 +11,7 @@ import {
   SoftwareEnvironmentState,
 } from "../../custom-software/selector";
 import { ConfigurationActions } from "./actions";
-import { Button, Card, Alert } from "antd";
+import { Button, Card, Alert, Radio, Divider } from "antd";
 import { HelpEmailLink } from "../../customize";
 import { SoftwareImageDisplay } from "../../project/settings/project-control";
 import {
@@ -29,19 +29,30 @@ import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 const CSI_HELP =
   "https://doc.cocalc.com/software.html#custom-software-environment";
 
+const RADIO_STYLE: CSS = {
+  display: "block",
+  height: "30px",
+  lineHeight: "30px",
+  fontWeight: "normal",
+};
+
 interface Props {
   actions: ConfigurationActions;
   software_image?: string;
+  inherit_compute_image?: boolean;
 }
 
 export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
   actions,
   software_image,
+  inherit_compute_image,
 }) => {
   const customize_kucalc = useTypedRedux("customize", "kucalc");
 
-  const [changing, set_changing] = useState(false);
+  // by default, we inherit the software image from the project where this course is run from
+  const inherit = inherit_compute_image ?? true;
   const [state, set_state] = useState<SoftwareEnvironmentState>({});
+  const [changing, set_changing] = useState(false);
 
   function handleChange(state): void {
     set_state(state);
@@ -52,6 +63,15 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
     "compute_images",
     "images"
   );
+
+  function on_inherit_change(inherit: boolean) {
+    actions.set_inherit_compute_image(inherit);
+    if (inherit) {
+      actions.set_software_environment(state);
+    } else {
+      set_changing(true);
+    }
+  }
 
   function render_controls() {
     if (!changing) return;
@@ -72,12 +92,10 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
 
     return (
       <>
-        <Button
-          style={{ margin: "0 5px 0 30px" }}
-          onClick={() => set_changing(false)}
-        >
-          Cancel
-        </Button>
+        <Divider orientation="left" plain>
+          Configure
+        </Divider>
+        <Button onClick={() => set_changing(false)}>Cancel</Button>
         <Button
           disabled={
             state.image_type === "custom" && state.image_selected == null
@@ -143,6 +161,25 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
     );
   }
 
+  function render_inherit() {
+    return (
+      <Radio.Group
+        onChange={(e) => on_inherit_change(e.target.value)}
+        value={inherit}
+        style={{ display: "block" }}
+      >
+        <Radio style={RADIO_STYLE} value={true}>
+          <strong>Inherit</strong> student projects software environments from
+          this teacher project.
+        </Radio>
+        <Radio style={RADIO_STYLE} value={false}>
+          <strong>Explicitly</strong> specify student project software
+          environments.
+        </Radio>
+      </Radio.Group>
+    );
+  }
+
   // this selector only make sense for cocalc.com
   if (customize_kucalc !== KUCALC_COCALC_COM) return null;
 
@@ -161,6 +198,7 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
       </p>
       {render_description()}
       {render_custom_info()}
+      {render_inherit()}
       <Button onClick={() => set_changing(true)} disabled={changing}>
         Change...
       </Button>
