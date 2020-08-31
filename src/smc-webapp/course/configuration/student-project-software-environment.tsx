@@ -3,7 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useState, useTypedRedux, CSS } from "../../app-framework";
+import {
+  React,
+  redux,
+  useState,
+  useTypedRedux,
+  CSS,
+  Rendered,
+} from "../../app-framework";
 import { fromJS } from "immutable";
 import { Icon, Markdown, A } from "../../r_misc";
 import {
@@ -38,12 +45,14 @@ const RADIO_STYLE: CSS = {
 
 interface Props {
   actions: ConfigurationActions;
+  course_project_id: string;
   software_image?: string;
   inherit_compute_image?: boolean;
 }
 
 export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
   actions,
+  course_project_id,
   software_image,
   inherit_compute_image,
 }) => {
@@ -65,17 +74,28 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
   );
 
   function on_inherit_change(inherit: boolean) {
-    actions.set_inherit_compute_image(inherit);
     if (inherit) {
-      actions.set_software_environment(state);
+      // we have to get the compute image name from the course project
+      const projects_store = redux.getStore("projects");
+      const course_project_compute_image = projects_store.getIn([
+        "project_map",
+        course_project_id,
+        "compute_image",
+      ]);
+      actions.set_inherit_compute_image(course_project_compute_image);
     } else {
-      set_changing(true);
+      actions.set_inherit_compute_image();
     }
   }
 
-  function render_controls() {
-    if (!changing) return;
-    const csi_warning = (
+  React.useEffect(() => {
+    if (inherit) {
+      set_changing(false);
+    }
+  }, [inherit]);
+
+  function csi_warning(): Rendered {
+    return (
       <Alert
         type={"warning"}
         message={
@@ -89,36 +109,55 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
         }
       />
     );
+  }
 
+  function render_controls_body(): Rendered {
+    if (!changing) {
+      return (
+        <Button onClick={() => set_changing(true)} disabled={changing}>
+          Change...
+        </Button>
+      );
+    } else {
+      return (
+        <>
+          <Button onClick={() => set_changing(false)}>Cancel</Button>
+          <Button
+            disabled={
+              state.image_type === "custom" && state.image_selected == null
+            }
+            type="primary"
+            onClick={() => {
+              set_changing(false);
+              actions.set_software_environment(state);
+            }}
+          >
+            Save
+          </Button>
+          <br />
+          <SoftwareEnvironment
+            onChange={handleChange}
+            default_image={software_image}
+          />
+          {state.image_type === "custom" && csi_warning()}
+        </>
+      );
+    }
+  }
+
+  function render_controls(): Rendered {
+    if (inherit) return;
     return (
       <>
         <Divider orientation="left" plain>
           Configure
         </Divider>
-        <Button onClick={() => set_changing(false)}>Cancel</Button>
-        <Button
-          disabled={
-            state.image_type === "custom" && state.image_selected == null
-          }
-          type="primary"
-          onClick={() => {
-            set_changing(false);
-            actions.set_software_environment(state);
-          }}
-        >
-          Save
-        </Button>
-        <br />
-        <SoftwareEnvironment
-          onChange={handleChange}
-          default_image={software_image}
-        />
-        {state.image_type === "custom" && csi_warning}
+        {render_controls_body()}
       </>
     );
   }
 
-  function render_description() {
+  function render_description(): Rendered {
     const img_id = software_image ?? DEFAULT_COMPUTE_IMAGE;
     let descr: string | undefined;
     if (is_custom_image(img_id)) {
@@ -150,7 +189,7 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
     }
   }
 
-  function render_custom_info() {
+  function render_custom_info(): Rendered {
     if (software_image != null && is_custom_image(software_image)) return;
     return (
       <p>
@@ -161,7 +200,7 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
     );
   }
 
-  function render_inherit() {
+  function render_inherit(): Rendered {
     return (
       <Radio.Group
         onChange={(e) => on_inherit_change(e.target.value)}
@@ -199,9 +238,6 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
       {render_description()}
       {render_custom_info()}
       {render_inherit()}
-      <Button onClick={() => set_changing(true)} disabled={changing}>
-        Change...
-      </Button>
       {render_controls()}
     </Card>
   );
