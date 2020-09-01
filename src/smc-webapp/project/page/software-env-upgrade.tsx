@@ -16,6 +16,7 @@ import { ALERT_STYLE } from "../warnings/common";
 import { alert_message } from "../../alerts";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 import { Alert, Button } from "../../antd-bootstrap";
+import { CloseX } from "smc-webapp/r_misc";
 import { Space as AntdSpace } from "antd";
 import {
   FALLBACK_COMPUTE_IMAGE,
@@ -56,6 +57,7 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
   if (customize_kucalc !== KUCALC_COCALC_COM) return null;
 
   const [updating, set_updating] = React.useState(false);
+  const [hide, set_hide] = React.useState(false);
   const compute_image = useComputeImage(project_id);
   if (compute_image == null) return null;
   if (TO_UPGRADE.indexOf(compute_image) == -1) return null;
@@ -90,13 +92,14 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
     } else {
       return (
         <AntdSpace>
-          <Button onClick={() => set_image(DISMISS_IMG)}>Dismiss</Button>
+          <Button onClick={() => set_image(DISMISS_IMG)}>Keep</Button>
           <Button
             onClick={() => set_image(DEFAULT_COMPUTE_IMAGE)}
             bsStyle={"primary"}
           >
             Upgrade
           </Button>
+          <CloseX on_close={() => set_hide(true)} />
         </AntdSpace>
       );
     }
@@ -104,32 +107,37 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
 
   // we only want to re-render if it is really necessary. the "project_map" changes quite often…
   return React.useMemo(() => {
-    return (
-      <Alert bsStyle={"info"} style={UPGRADE_STYLE}>
-        <div style={{ display: "flex" }}>
-          <div style={{ flex: "1 1 auto" }}>
-            <Icon name="exclamation-triangle" />{" "}
-            <strong>Software Update Available!</strong>{" "}
-            <VisibleMDLG>
-              Update this project's software environment from "{oldname}" to "
-              {newname}". Learn more about{" "}
-              <A href={DOC_UBUNTU_2004}>all changes</A>.
-            </VisibleMDLG>
-            <VisibleXSSM>
-              {" "}
-              <A href={DOC_UBUNTU_2004}>Learn more ...</A>
-            </VisibleXSSM>
-            <VisibleMDLG>
-              <br />
-              <span style={{ color: COLORS.GRAY }}>
-                Alternatively, you can keep this project's software environment
-                and upgrade later in Project Settings → Project Control.
-              </span>
-            </VisibleMDLG>
+    if (hide) {
+      return null;
+    } else {
+      return (
+        <Alert bsStyle={"info"} style={UPGRADE_STYLE}>
+          <div style={{ display: "flex" }}>
+            <div style={{ flex: "1 1 auto" }}>
+              <Icon name="exclamation-triangle" />{" "}
+              <strong>Software Update Available!</strong>{" "}
+              <VisibleMDLG>
+                Update this project's software environment from "{oldname}" to "
+                {newname}". Learn more about{" "}
+                <A href={DOC_UBUNTU_2004}>all changes</A>.
+              </VisibleMDLG>
+              <VisibleXSSM>
+                {" "}
+                <A href={DOC_UBUNTU_2004}>Learn more ...</A>
+              </VisibleXSSM>
+              <VisibleMDLG>
+                <br />
+                <span style={{ color: COLORS.GRAY }}>
+                  Alternatively, you can keep this project's software
+                  environment and upgrade later in Project Settings → Project
+                  Control.
+                </span>
+              </VisibleMDLG>
+            </div>
+            {render_controls()}
           </div>
-          {render_controls()}
-        </div>
-      </Alert>
-    );
-  }, [compute_image, updating]);
+        </Alert>
+      );
+    }
+  }, [compute_image, updating, hide]);
 };
