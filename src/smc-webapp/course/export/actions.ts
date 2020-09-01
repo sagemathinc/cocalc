@@ -186,7 +186,7 @@ export class ExportActions {
       email = email != null ? `'${email}'` : "None";
       const id = student.get("student_id");
       const line = JSON.stringify({ name, id, email, grades, comments });
-      content += line + "\n";
+      content += `${line},\n`;
     }
     content += "]\n";
     this.write_file(this.path("py", "grades"), content);
