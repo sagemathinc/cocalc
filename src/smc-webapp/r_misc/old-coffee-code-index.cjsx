@@ -491,6 +491,7 @@ exports.HTML = HTML = rclass
         highlight_code   : rtypes.bool     # if true, highlight some <code class='language-r'> </code> blocks.  See misc_page for how tiny this is!
         id               : rtypes.string
         mathjax_selector : rtypes.string   # if given, only run mathjax on result of jquery select with this selector and never use katex.
+        onClick          : rtypes.func
 
     getDefaultProps: ->
         auto_render_math : true
@@ -603,7 +604,10 @@ exports.HTML = HTML = rclass
                 key                     = {Math.random()}
                 className               = {@props.className}
                 dangerouslySetInnerHTML = {@render_html()}
-                style                   = {@props.style} >
+                style                   = {@props.style}
+                onClick                 = {@props.onClick}
+                onDoubleClick           = {@props.onDoubleClick}
+                >
             </div>
         else
             <span
@@ -611,7 +615,10 @@ exports.HTML = HTML = rclass
                 key                     = {Math.random()}
                 className               = {@props.className}
                 dangerouslySetInnerHTML = {@render_html()}
-                style                   = {@props.style} >
+                style                   = {@props.style}
+                onClick                 = {@props.onClick}
+                onDoubleClick           = {@props.onDoubleClick}
+                >
             </span>
 
 exports.Markdown = rclass
@@ -633,6 +640,9 @@ exports.Markdown = rclass
         reload_images    : rtypes.bool
         smc_image_scaling: rtypes.bool
         highlight_code   : rtypes.bool
+        onClick          : rtypes.func
+        onDoubleClick          : rtypes.func
+        line_numbers : rtypes.bool   # injects data attributes with line numbers to enable reverse search
 
     getDefaultProps: ->
         safeHTML         : true
@@ -645,7 +655,7 @@ exports.Markdown = rclass
     to_html: ->
         if not @props.value
             return
-        return markdown.markdown_to_html(@props.value)
+        return markdown.markdown_to_html(@props.value, {line_numbers:@props.line_numbers})
 
     render: ->
         <HTML
@@ -663,7 +673,10 @@ exports.Markdown = rclass
             reload_images    = {@props.reload_images}
             smc_image_scaling= {@props.smc_image_scaling}
             highlight_code   = {@props.highlight_code}
-            content_editable = {@props.content_editable} />
+            content_editable = {@props.content_editable}
+            onClick          = {@props.onClick}
+            onDoubleClick    = {@props.onDoubleClick}
+            />
 
 
 activity_style =
