@@ -148,6 +148,13 @@ export class ConfigurationActions {
     });
   }
 
+  public set_nbgrader_include_hidden_tests(value: boolean): void {
+    this.set({
+      nbgrader_include_hidden_tests: value,
+      table: "settings",
+    });
+  }
+
   public set_inherit_compute_image(image?: string): void {
     this.set({ inherit_compute_image: image != null, table: "settings" });
     if (image != null) {

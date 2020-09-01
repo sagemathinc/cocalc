@@ -50,6 +50,32 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
     );
   }
 
+  function render_include_hidden_tests(): JSX.Element {
+    return (
+      <div
+        style={{
+          border: "1px solid lightgrey",
+          padding: "10px",
+          borderRadius: "5px",
+        }}
+      >
+        <Checkbox
+          checked={settings?.get("nbgrader_include_hidden_tests")}
+          onChange={(e) =>
+            actions.configuration.set_nbgrader_include_hidden_tests(
+              (e.target as any).checked
+            )
+          }
+        >
+          Include the hidden tests in autograded notebooks returned to students.
+          Check this if you want the students to see why their answers failed
+          your hidden tests. The drawback is that you've revealed all the hidden
+          tests to the students.
+        </Checkbox>
+      </div>
+    );
+  }
+
   function render_timeouts(): JSX.Element {
     const timeout = Math.round(
       settings.get("nbgrader_timeout_ms", NBGRADER_TIMEOUT_MS) / 1000
@@ -102,6 +128,8 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
       }
     >
       {render_grade_in_instructor_project()}
+      <br />
+      {render_include_hidden_tests()}
       <br />
       {render_timeouts()}
     </Card>
