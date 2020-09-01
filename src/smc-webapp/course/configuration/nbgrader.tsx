@@ -3,25 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import {
-  React,
-  Component,
-  Rendered,
-  rtypes,
-  redux,
-  rclass,
-} from "../../app-framework";
-
+import { React, useRedux, useActions } from "../../app-framework";
 import { Card } from "antd";
-
 import { Checkbox } from "../../antd-bootstrap";
-
 import { Icon, NumberInput } from "../../r_misc";
-
 import { CourseActions } from "../actions";
-
-import { ConfigurationActions } from "../configuration/actions";
-
 import {
   NBGRADER_CELL_TIMEOUT_MS,
   NBGRADER_TIMEOUT_MS,
@@ -29,27 +15,16 @@ import {
 
 interface Props {
   name: string;
-
-  // redux Props
-  settings?: any;
 }
 
-class Nbgrader extends Component<Props> {
-  private actions: ConfigurationActions;
-
-  constructor(props) {
-    super(props);
-    const actions: CourseActions = redux.getActions(this.props.name);
-    if (actions == null) throw Error("bug");
-    this.actions = actions.configuration;
-  }
-  static reduxProps({ name }) {
-    return {
-      [name]: { settings: rtypes.immutable.Map },
-    };
+export const Nbgrader: React.FC<Props> = ({ name }) => {
+  const settings = useRedux([name, "settings"]);
+  const actions: CourseActions = useActions({ name });
+  if (actions == null) {
+    throw Error("bug");
   }
 
-  private render_grade_in_instructor_project(): Rendered {
+  function render_grade_in_instructor_project(): JSX.Element {
     return (
       <div
         style={{
@@ -59,11 +34,9 @@ class Nbgrader extends Component<Props> {
         }}
       >
         <Checkbox
-          checked={this.props.settings?.get(
-            "nbgrader_grade_in_instructor_project"
-          )}
+          checked={settings?.get("nbgrader_grade_in_instructor_project")}
           onChange={(e) =>
-            this.actions.set_nbgrader_grade_in_instructor_project(
+            actions.configuration.set_nbgrader_grade_in_instructor_project(
               (e.target as any).checked
             )
           }
@@ -77,15 +50,12 @@ class Nbgrader extends Component<Props> {
     );
   }
 
-  private render_timeouts(): Rendered {
+  function render_timeouts(): JSX.Element {
     const timeout = Math.round(
-      this.props.settings.get("nbgrader_timeout_ms", NBGRADER_TIMEOUT_MS) / 1000
+      settings.get("nbgrader_timeout_ms", NBGRADER_TIMEOUT_MS) / 1000
     );
     const cell_timeout = Math.round(
-      this.props.settings.get(
-        "nbgrader_cell_timeout_ms",
-        NBGRADER_CELL_TIMEOUT_MS
-      ) / 1000
+      settings.get("nbgrader_cell_timeout_ms", NBGRADER_CELL_TIMEOUT_MS) / 1000
     );
     return (
       <div
@@ -99,7 +69,9 @@ class Nbgrader extends Component<Props> {
         than <i>{timeout} seconds</i>, then it is terminated with a timeout
         error.
         <NumberInput
-          on_change={(n) => this.actions.set_nbgrader_timeout_ms(n * 1000)}
+          on_change={(n) =>
+            actions.configuration.set_nbgrader_timeout_ms(n * 1000)
+          }
           min={30}
           max={3600}
           number={timeout}
@@ -109,7 +81,7 @@ class Nbgrader extends Component<Props> {
         terminated with a timeout error.
         <NumberInput
           on_change={(n) =>
-            this.actions.set_nbgrader_cell_timeout_ms(
+            actions.configuration.set_nbgrader_cell_timeout_ms(
               Math.min(n * 1000, timeout * 1000)
             )
           }
@@ -120,22 +92,18 @@ class Nbgrader extends Component<Props> {
       </div>
     );
   }
-  render(): Rendered {
-    return (
-      <Card
-        title={
-          <>
-            <Icon name="graduation-cap" /> Nbgrader
-          </>
-        }
-      >
-        {this.render_grade_in_instructor_project()}
-        <br />
-        {this.render_timeouts()}
-      </Card>
-    );
-  }
-}
 
-const tmp = rclass(Nbgrader);
-export { tmp as Nbgrader };
+  return (
+    <Card
+      title={
+        <>
+          <Icon name="graduation-cap" /> Nbgrader
+        </>
+      }
+    >
+      {render_grade_in_instructor_project()}
+      <br />
+      {render_timeouts()}
+    </Card>
+  );
+};
