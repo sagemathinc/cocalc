@@ -730,36 +730,6 @@ exports.define_codemirror_extensions = () ->
     exports.cm_define_diffApply_extension(CodeMirror)
     exports.cm_define_testbot(CodeMirror)
 
-    # Delete all trailing whitespace from the editor's buffer.
-    CodeMirror.defineExtension 'delete_trailing_whitespace', (opts={}) ->
-        opts = defaults opts,
-            omit_lines : {}
-        # We *could* easily make a one-line version of this function that
-        # just uses setValue.  However, that would mess up the undo
-        # history (!), and potentially feel jumpy.
-        changeObj = undefined
-        val       = @getValue()
-        text1     = val.split('\n')
-        text2     = misc.delete_trailing_whitespace(val).split('\n')    # a very fast regexp.
-        pos       = @getCursor()
-        if text1.length != text2.length
-            console.log("Internal error -- there is a bug in misc.delete_trailing_whitespace; please report.")
-            return
-        opts.omit_lines[pos.line] = true
-        for i in [0...text1.length]
-            if opts.omit_lines[i]?
-                continue
-            if text1[i].length != text2[i].length
-                obj = {from:{line:i,ch:text2[i].length}, to:{line:i,ch:text1[i].length}, text:[""]}
-                if not changeObj?
-                    changeObj = obj
-                    currentObj = changeObj
-                else
-                    currentObj.next = obj
-                    currentObj = obj
-        if changeObj?
-            @apply_changeObj(changeObj)
-
     # Try to set the value of the buffer to something new by replacing just the ranges
     # that changed, so that the viewport/history/etc. doesn't get messed up.
     # Setting scroll_last to true sets cursor to last changed position and puts cursors
