@@ -3,7 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, redux, useTypedRedux, useStore } from "../../app-framework";
+import {
+  React,
+  redux,
+  useMemo,
+  useTypedRedux,
+  useState,
+  useStore,
+} from "../../app-framework";
 import {
   A,
   Icon,
@@ -38,7 +45,7 @@ const DISMISS_IMG = "ubuntu1804";
 const TO_UPGRADE = [FALLBACK_COMPUTE_IMAGE, "previous", "exp"];
 
 function useComputeImage(project_id) {
-  const [compute_image, set_compute_image] = React.useState<string | undefined>(
+  const [compute_image, set_compute_image] = useState<string | undefined>(
     undefined
   );
   const project_map = useTypedRedux("projects", "project_map");
@@ -55,9 +62,14 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
   // if we're outside cocalc.com, this is not applicable. we can assume this value never changes.
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   if (customize_kucalc !== KUCALC_COCALC_COM) return null;
+  return <SoftwareEnvUpgradeAlert project_id={project_id} />;
+};
 
-  const [updating, set_updating] = React.useState(false);
-  const [hide, set_hide] = React.useState(false);
+const SoftwareEnvUpgradeAlert: React.FC<{ project_id: string }> = ({
+  project_id,
+}) => {
+  const [updating, set_updating] = useState(false);
+  const [hide, set_hide] = useState(false);
   const compute_image = useComputeImage(project_id);
   const projects_store = useStore("projects");
 
@@ -98,7 +110,7 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
   }
 
   // we only want to re-render if it is really necessary. the "project_map" changes quite often…
-  return React.useMemo(() => {
+  return useMemo(() => {
     if (hide) return null;
     if (compute_image == null) return null;
     if (TO_UPGRADE.indexOf(compute_image) == -1) return null;
