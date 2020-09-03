@@ -11,11 +11,11 @@ import { QuotaEditor } from "../purchase/quota-editor";
 type QuotaMap = TypedMap<Quota>;
 
 interface Props {
-  quota: QuotaMap;
+  quota?: QuotaMap;
 }
 
 export const DisplayQuota: React.FC<Props> = React.memo(({ quota }) => {
-  return <pre>{JSON.stringify(quota.toJS(), undefined, 2)}</pre>;
+  return <pre>{JSON.stringify(quota?.toJS(), undefined, 2)}</pre>;
 });
 
 interface EditProps {
