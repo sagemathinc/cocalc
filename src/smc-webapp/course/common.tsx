@@ -571,7 +571,7 @@ export class StudentAssignmentInfo extends Component<
     return (
       <div key="open_recopy">
         {this.render_open_recopy_confirm(name, copy, copy_tip, placement)}
-        <Space/>
+        <Space />
         <Button key="open" onClick={open}>
           <Tip title="Open assignment" placement={placement} tip={open_tip}>
             <Icon name="folder-open-o" /> Open
@@ -748,26 +748,15 @@ export class StudentAssignmentInfo extends Component<
     );
     const skip_collect: boolean = !!this.props.assignment.get("skip_collect");
     if (peer_grade) {
-      show_grade_col =
-        !skip_grading &&
-        this.props.info.last_peer_collect &&
-        !this.props.info.last_peer_collect.error;
+      show_grade_col = !skip_grading && this.props.info.last_peer_collect;
       show_return_graded =
-        this.props.grade ||
-        (skip_grading &&
-          this.props.info.last_peer_collect &&
-          !this.props.info.last_peer_collect.error);
+        this.props.grade || (skip_grading && this.props.info.last_peer_collect);
     } else {
       show_grade_col =
-        (!skip_grading &&
-          this.props.info.last_collect &&
-          !this.props.info.last_collect.error) ||
-        skip_collect;
+        (!skip_grading && this.props.info.last_collect) || skip_collect;
       show_return_graded =
         this.props.grade ||
-        (skip_grading &&
-          this.props.info.last_collect &&
-          !this.props.info.last_collect.error) ||
+        (skip_grading && this.props.info.last_collect) ||
         (skip_grading && skip_collect);
     }
 
