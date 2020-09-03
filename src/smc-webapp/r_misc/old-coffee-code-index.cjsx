@@ -846,8 +846,7 @@ exports.NonMemberProjectWarning = (opts) ->
             <Space />
             Projects running on free servers compete for resources with a large number of other free projects.
             The free servers are <b><i>randomly rebooted frequently</i></b>,
-            and are often <b><i>much more heavily loaded</i></b> than members-only servers.
-            {suggestion}
+            and are often <b><i>much more heavily loaded</i></b> than members-only servers. {suggestion}
         </p>
     </Alert>
 
