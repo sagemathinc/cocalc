@@ -3,11 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Component, React, rclass, rtypes, Rendered } from "../app-framework";
+import { React, useRedux, useTypedRedux } from "../app-framework";
 import { Icon, Loading, TimeAgo } from "../r_misc";
 import { ProgressBar, Table } from "react-bootstrap";
 import { RECENT_TIMES_KEY } from "smc-util/schema";
-import { li_style } from "./style";
 import { Col } from "../antd-bootstrap";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 
@@ -23,74 +22,46 @@ function fmt_large(num) {
   }
 }
 
-type RecentTimes = "1d" | "1h" | "7d" | "30d";
+export const Usage: React.FC<{}> = () => {
+  const kucalc = useTypedRedux("customize", "kucalc");
+  const loading = useRedux(["server_stats", "loading"]) ?? true;
+  const hub_servers = useRedux(["server_stats", "hub_servers"])?.toJS();
+  const running_projects = useRedux([
+    "server_stats",
+    "running_projects",
+  ])?.toJS();
+  const time = useRedux(["server_stats", "time"]);
+  const accounts_created = useRedux([
+    "server_stats",
+    "accounts_created",
+  ])?.toJS();
+  const accounts_active = useRedux(["server_stats", "accounts_active"])?.toJS();
+  const projects_created = useRedux([
+    "server_stats",
+    "projects_created",
+  ])?.toJS();
+  const projects_edited = useRedux(["server_stats", "projects_edited"])?.toJS();
+  const files_opened = useRedux(["server_stats", "files_opened"])?.toJS();
 
-interface Props {
-  loading?: boolean;
-  hub_servers?: { clients: number }[];
-  time?: Date;
-  accounts?: number;
-  projects?: number;
-  accounts_created?: { [key in RecentTimes]: number };
-  projects_created?: { [key in RecentTimes]: number };
-  projects_edited?: { [key in RecentTimes]: number };
-  files_opened?: {
-    total: { [key in RecentTimes]: { [ext: string]: number } };
-    distinct: { [key in RecentTimes]: { [ext: string]: number } };
-  };
-  running_projects?: {
-    free: number;
-    member: number;
-  };
-  kucalc?: string;
-}
-
-class Usage extends Component<Props> {
-  public static reduxProps(): object {
-    return {
-      customize: {
-        kucalc: rtypes.string,
-      },
-      server_stats: {
-        loading: rtypes.bool.isRequired,
-        hub_servers: rtypes.array,
-        running_projects: rtypes.object,
-        time: rtypes.object,
-        accounts: rtypes.number,
-        projects: rtypes.number,
-        accounts_created: rtypes.object, // {RECENT_TIMES.key → number, ...}
-        projects_created: rtypes.object, // {RECENT_TIMES.key → number, ...}
-        projects_edited: rtypes.object, // {RECENT_TIMES.key → number, ...}
-        files_opened: rtypes.object,
-      },
-    };
-  }
-
-  public static get defaultProps() {
-    return { loading: true };
-  }
-
-  private number_of_active_users(): number {
-    if (this.props.hub_servers == null || this.props.hub_servers.length === 0) {
+  function number_of_active_users(): number {
+    if (hub_servers == null || hub_servers.length === 0) {
       return 0;
     } else {
-      return this.props.hub_servers
-        .map((x) => x.clients)
-        .reduce((s, t) => s + t);
+      return hub_servers.map((x) => x.clients).reduce((s, t) => s + t);
     }
   }
 
-  private number_of_running_projects(): number {
-    if (this.props.running_projects == null) {
+  function number_of_running_projects(): number {
+    if (running_projects == null) {
       return 0;
     } else {
-      const { free, member } = this.props.running_projects;
+      const { free, member } = running_projects;
       return (free ?? 0) + (member ?? 0);
     }
   }
 
-  private render_live_stats(): Rendered {
-    if (this.props.loading) {
+  function render_live_stats(): JSX.Element {
+    if (loading) {
       return (
         <div>
           {" "}
@@ -98,8 +69,8 @@ class Usage extends Component<Props> {
         </div>
       );
     } else {
-      const n = this.number_of_active_users();
-      const p = this.number_of_running_projects();
+      const n = number_of_active_users();
+      const p = number_of_running_projects();
       const pmax = Math.max(2000, Math.ceil(p / 1000) * 1000);
       return (
         <>
@@ -111,7 +82,7 @@ class Usage extends Component<Props> {
               label={`${n} active users`}
             />
           </div>
-          {this.props.kucalc == KUCALC_COCALC_COM && (
+          {kucalc == KUCALC_COCALC_COM && (
             <div style={{ textAlign: "center" }}>
               Currently active projects
               <ProgressBar
@@ -127,21 +98,22 @@ class Usage extends Component<Props> {
     }
   }
 
-  private timespan_keys(): string[] {
+  function timespan_keys(): string[] {
     return ["last_hour", "last_day", "last_week", "last_month"];
   }
 
-  private recent_usage_stats_rows(): Rendered[] {
+  function recent_usage_stats_rows(): JSX.Element[] {
     const stats = [
-      ["Active projects", this.props.projects_edited],
-      ["New projects", this.props.projects_created],
-      ["New accounts", this.props.accounts_created],
+      ["Active users", accounts_active],
+      ["Active projects", projects_edited],
+      ["New users", accounts_created],
+      ["New projects", projects_created],
     ];
 
     return stats.map((stat) => (
       <tr key={stat[0] as string}>
         <th style={{ textAlign: "left" }}>{stat[0]}</th>
-        {this.timespan_keys().map((k) => (
+        {timespan_keys().map((k) => (
           <td key={k}>
             {fmt_large(
               stat[1] != null ? stat[1][RECENT_TIMES_KEY[k]] : undefined
@@ -152,13 +124,13 @@ class Usage extends Component<Props> {
     ));
   }
 
-  private render_filetype_stats_totals_row(ext: string): Rendered[] {
-    const result: Rendered[] = [];
-    for (const timespan of this.timespan_keys()) {
+  function render_filetype_stats_totals_row(ext: string): JSX.Element[] {
+    const result: JSX.Element[] = [];
+    for (const timespan of timespan_keys()) {
       const k = RECENT_TIMES_KEY[timespan];
       let total: number = 0;
-      if (this.props.files_opened != null) {
-        const t = this.props.files_opened.total;
+      if (files_opened != null) {
+        const t = files_opened.total;
         if (t != null && t[k] != null && t[k][ext] != null) {
           total = t[k][ext];
         }
@@ -168,27 +140,31 @@ class Usage extends Component<Props> {
     return result;
   }
 
-  private render_filetype_stats_rows(): Rendered[] {
+  function render_filetype_stats_rows(): JSX.Element[] {
     const stats = [
-      ["Sage Worksheets", "sagews"],
       ["Jupyter Notebooks", "ipynb"],
+      ["Linux Terminals", "term"],
+      ["Python Files", "py"],
+      ["PDF Files", "pdf"],
+      ["Sage Worksheets", "sagews"],
       ["LaTeX Documents", "tex"],
       ["Markdown Documents", "md"],
+      ["R Markdown Documents", "rmd"],
     ];
-    const result: Rendered[] = [];
+    const result: JSX.Element[] = [];
     for (const [name, ext] of stats) {
       result.push(
         <tr key={name}>
-          <th style={{ textAlign: "left" }}>{name}</th>
-          {this.render_filetype_stats_totals_row(ext)}
+          <td style={{ textAlign: "left" }}>{name}</td>
+          {render_filetype_stats_totals_row(ext)}
         </tr>
       );
     }
     return result;
   }
 
-  private render_recent_usage_stats(): Rendered {
-    if (this.props.loading) {
+  function render_recent_usage_stats(): JSX.Element | undefined {
+    if (loading) {
       return;
     }
     return (
@@ -203,7 +179,7 @@ class Usage extends Component<Props> {
           </tr>
         </thead>
         <tbody>
-          {this.recent_usage_stats_rows()}
+          {recent_usage_stats_rows()}
           <tr>
             <td colSpan={5}>&nbsp;</td>
           </tr>
@@ -211,60 +187,37 @@ class Usage extends Component<Props> {
             <th style={{ textAlign: "left" }}>Edited files</th>
             <td colSpan={4}>&nbsp;</td>
           </tr>
-          {this.render_filetype_stats_rows()}
+          {render_filetype_stats_rows()}
         </tbody>
       </Table>
     );
   }
 
-  private render_historical_metrics(): Rendered {
-    return; // disabled, due to being broken...
-    return (
-      <li key="usage_metrics" style={li_style}>
-        <a
-          target="_blank"
-          href="https://cocalc.com/b97f6266-fe6f-4b40-bd88-9798994a04d1/raw/metrics/metrics.html"
-        >
-          <Icon name="area-chart" fixedWidth />
-          Historical system metrics
-        </a>{" "}
-        &mdash; CPU usage, running projects and software instances, etc
-      </li>
-    );
-  }
-
-  private render_when_updated(): Rendered {
-    if (!this.props.time) return;
+  function render_when_updated(): JSX.Element | undefined {
+    if (!time) return;
     return (
       <span style={{ fontSize: "9pt", marginLeft: "20px", color: "#666" }}>
-        updated <TimeAgo date={new Date(this.props.time)} />
+        updated <TimeAgo date={new Date(time)} />
       </span>
     );
   }
 
-  public render(): Rendered {
-    // TODO: I changed to the share link since the raw link is no longer support (XSS attacks).
-    // Unfortunately, it *will* be stale until we improve how things work; the only workaround
-    // is to sign into that project and manually edit something right now...
-    return (
-      <Col sm={12} md={6}>
-        <h3>
-          <Icon name="dashboard" /> Statistics
-          {this.render_when_updated()}
-        </h3>
-        <div>
-          {this.render_live_stats()}
-          <div style={{ marginTop: 20, textAlign: "center" }}>
-            Recent user activity
-          </div>
-          {this.render_recent_usage_stats()}
-          <br />
-          {this.render_historical_metrics()}
+  // TODO: I changed to the share link since the raw link is no longer support (XSS attacks).
+  // Unfortunately, it *will* be stale until we improve how things work; the only workaround
+  // is to sign into that project and manually edit something right now...
+  return (
+    <Col sm={12} md={6}>
+      <h3>
+        <Icon name="dashboard" /> Statistics
+        {render_when_updated()}
+      </h3>
+      <div>
+        {render_live_stats()}
+        <div style={{ marginTop: 20, textAlign: "center" }}>
+          Recent user activity
         </div>
-      </Col>
-    );
-  }
-}
-
-const t = rclass(Usage);
-export { t as Usage };
+        {render_recent_usage_stats()}
+      </div>
+    </Col>
+  );
+};

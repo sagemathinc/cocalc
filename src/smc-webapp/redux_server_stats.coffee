@@ -5,6 +5,30 @@
 
 ###
 Redux: server stats
+
+This could be useful when typescripting this file:
+
+type RecentTimes = "1d" | "1h" | "7d" | "30d";
+
+interface Props {
+  loading?: boolean;
+  hub_servers?: { clients: number }[];
+  time?: Date;
+  accounts?: number;
+  projects?: number;
+  accounts_created?: { [key in RecentTimes]: number };
+  projects_created?: { [key in RecentTimes]: number };
+  projects_edited?: { [key in RecentTimes]: number };
+  files_opened?: {
+    total: { [key in RecentTimes]: { [ext: string]: number } };
+    distinct: { [key in RecentTimes]: { [ext: string]: number } };
+  };
+  running_projects?: {
+    free: number;
+    member: number;
+  };
+  kucalc?: string;
+}
 ###
 
 {COCALC_MINIMAL} = require ("./fullscreen")
