@@ -10,7 +10,7 @@ https://www.gnu.org/software/emacs/manual/html_node/emacs/Fill-Commands.html
 */
 
 import * as CodeMirror from "codemirror";
-import { ChangeObject, Pos } from "./types";
+import { Pos } from "./types";
 import { split } from "smc-util/misc2";
 
 function is_white_space(s: string): boolean {
@@ -22,7 +22,6 @@ CodeMirror.defineExtension("fill_paragraph", function (opts: {
 }): void {
   // @ts-ignore
   const cm: CodeMirror.Editor = this;
-  const val = cm.getValue();
   const pos: Pos = cm.getCursor();
 
   const cols = opts?.cols ?? 80;
@@ -87,7 +86,7 @@ CodeMirror.defineExtension("fill_paragraph", function (opts: {
   cm.replaceRange(formatted, from, to);
 
   if (cursor != "") {
-    for (const line = from.line; line <= to.line; line++) {
+    for (let line = from.line; line <= to.line; line++) {
       const x = cm.getLine(line);
       if (x == null) continue;
       const ch = x.indexOf(cursor);
