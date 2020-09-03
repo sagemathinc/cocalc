@@ -1060,7 +1060,7 @@ export class Actions<
   // Delete trailing whitespace, avoiding any line that contains
   // a cursor.  Also, is a no-op if no actual codemirror editor
   // is initialized.
-  delete_trailing_whitespace(): void {
+  public delete_trailing_whitespace(): void {
     const cm = this._get_cm();
     if (cm == null) {
       return;

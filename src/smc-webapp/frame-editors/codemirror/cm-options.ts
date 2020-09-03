@@ -84,6 +84,8 @@ export function cm_options(
     throw Error("mode must be specified");
   }
 
+  console.log("defining extraKeys");
+
   const extraKeys = {
     "Ctrl-'": "indentAuto",
     "Cmd-'": "indentAuto",
@@ -96,6 +98,8 @@ export function cm_options(
       tab_key(cm, opts.spaces_instead_of_tabs);
     },
     "Shift-Tab"(cm) {
+      console.log("Shift-Tab");
+      (window as any).cm = cm;
       cm.unindent_selection();
     },
     "Shift-Cmd-L"(cm) {
@@ -103,6 +107,12 @@ export function cm_options(
     },
     "Shift-Ctrl-L"(cm) {
       cm.align_assignments();
+    },
+    "Alt-Q"(cm) {
+      cm.fill_paragraph();
+    },
+    "Cmd-Q"(cm) {
+      cm.fill_paragraph();
     },
   };
 
@@ -237,7 +247,7 @@ export function cm_options(
       const f = (key, cmd) =>
         (extraKeys[key] = (cm) => {
           cm.edit_selection({ cmd });
-          return editor_actions.set_syncstring_to_codemirror();
+          editor_actions.set_syncstring_to_codemirror();
         });
 
       for (const cmd in keybindings) {
@@ -328,7 +338,6 @@ export function cm_options(
 
   if (opts.code_folding) {
     extraKeys["Ctrl-Q"] = (cm) => cm.foldCodeSelectionAware();
-    extraKeys["Alt-Q"] = (cm) => cm.foldCodeSelectionAware();
     options.foldGutter = true;
     options.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"];
   } else {

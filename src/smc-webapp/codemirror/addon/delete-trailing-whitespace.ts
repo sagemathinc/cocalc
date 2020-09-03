@@ -5,19 +5,9 @@
 
 import * as CodeMirror from "codemirror";
 import { delete_trailing_whitespace } from "smc-util/misc";
+import { ChangeObject } from "./types";
 
 type OmittedLines = { [line: number]: boolean };
-
-interface Pos {
-  line: number;
-  ch: number;
-}
-interface ChangeObject {
-  from: Pos;
-  to: Pos;
-  text: string[];
-  next?: ChangeObject;
-}
 
 // Delete all trailing whitespace from the editor's buffer.
 CodeMirror.defineExtension("delete_trailing_whitespace", function (
