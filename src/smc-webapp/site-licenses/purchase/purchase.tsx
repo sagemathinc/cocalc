@@ -8,7 +8,6 @@
 import {
   Button,
   Card,
-  Checkbox,
   DatePicker,
   InputNumber,
   Menu,
@@ -37,6 +36,7 @@ import { RadioGroup } from "./radio-group";
 import { plural } from "smc-util/misc2";
 import { DebounceInput } from "react-debounce-input";
 import { create_quote_support_ticket } from "./get-a-quote";
+import { QuotaEditor } from "./quota-editor";
 
 const LENGTH_PRESETS = [
   { label: "1 Day", desc: { n: 1, key: "days" } },
@@ -68,7 +68,6 @@ import {
   Subscription,
   PurchaseInfo,
   COSTS,
-  GCE_COSTS,
   compute_cost,
   money,
   percent_discount,
@@ -239,221 +238,28 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     );
   }
 
-  function render_explanation(s): JSX.Element {
-    return (
-      <span style={{ color: "#888" }}>
-        <Space /> - {s}
-      </span>
-    );
-  }
-
   function render_custom() {
     if (user == null) return;
-    const col_control = 8;
-    const col_max = 3;
-    const col_desc = 16;
-    const ROW_STYLE: CSS = {
-      border: "1px solid #eee",
-      padding: "5px",
-      margin: "5px",
-      borderRadius: "3px",
-    } as const;
-    const UNIT_STYLE: CSS = {
-      padding: "0 5px",
-      fontWeight: 400,
-    } as const;
     return (
-      <div>
-        <Row style={ROW_STYLE}>
-          <Col md={col_control - col_max}>
-            <InputNumber
-              disabled={disabled}
-              min={COSTS.basic.cpu}
-              max={COSTS.custom_max.cpu}
-              value={custom_cpu}
-              onChange={(x) => {
-                if (typeof x != "number") return;
-                set_custom_cpu(Math.round(x));
-              }}
-            />
-            <Space />
-            <span style={UNIT_STYLE}>
-              shared CPU {plural(custom_cpu, "core")}
-            </span>
-          </Col>
-          <Col md={col_max}>
-            <Button
-              disabled={custom_cpu == COSTS.custom_max.cpu}
-              onClick={() => set_custom_cpu(COSTS.custom_max.cpu)}
-            >
-              Max
-            </Button>
-          </Col>
-          <Col md={col_desc}>
-            <b>
-              shared CPU cores (
-              {`${money(
-                COSTS.user_discount[user] * COSTS.custom_cost.cpu
-              )}/CPU cores per month per project`}
-              )
-            </b>
-            {render_explanation(
-              "Google cloud vCPU's shared with other projects (member hosting significantly reduces sharing)"
-            )}
-          </Col>
-        </Row>
-        <Row style={ROW_STYLE}>
-          <Col md={col_control - col_max}>
-            <InputNumber
-              disabled={disabled}
-              min={COSTS.basic.ram}
-              max={COSTS.custom_max.ram}
-              value={custom_ram}
-              onChange={(x) => {
-                if (typeof x != "number") return;
-                set_custom_ram(Math.round(x));
-              }}
-            />
-            <Space />
-            <span style={UNIT_STYLE}>GB shared RAM</span>
-          </Col>
-          <Col md={col_max}>
-            <Button
-              disabled={custom_ram == COSTS.custom_max.ram}
-              onClick={() => set_custom_ram(COSTS.custom_max.ram)}
-            >
-              Max
-            </Button>
-          </Col>
-          <Col md={col_desc}>
-            <b>
-              GB RAM (
-              {`${money(
-                COSTS.user_discount[user] * COSTS.custom_cost.ram
-              )}/GB RAM per month per project`}
-              )
-            </b>
-            {render_explanation("RAM may be shared with other users")}
-          </Col>
-        </Row>
-        <Row style={ROW_STYLE}>
-          <Col md={col_control - col_max}>
-            <InputNumber
-              disabled={disabled}
-              min={COSTS.basic.disk}
-              max={COSTS.custom_max.disk}
-              value={custom_disk}
-              onChange={(x) => {
-                if (typeof x != "number") return;
-                set_custom_disk(Math.round(x));
-              }}
-            />
-            <Space />
-            <span style={UNIT_STYLE}>GB disk space</span>
-          </Col>
-          <Col md={col_max}>
-            <Button
-              disabled={custom_disk == COSTS.custom_max.disk}
-              onClick={() => set_custom_disk(COSTS.custom_max.disk)}
-            >
-              Max
-            </Button>
-          </Col>
-          <Col md={col_desc}>
-            <b>
-              GB Disk Space (
-              {`${money(
-                COSTS.user_discount[user] * COSTS.custom_cost.disk
-              )}/GB disk per month per project`}
-              )
-            </b>
-            {render_explanation(
-              "store a larger number of files. Snapshots and file edit history is included at no additional charge."
-            )}
-          </Col>
-        </Row>
-        <Row style={ROW_STYLE}>
-          <Col md={col_control}>
-            <Checkbox
-              checked={custom_member}
-              onChange={(e) => set_custom_member(e.target.checked)}
-              disabled={disabled}
-            >
-              Member hosting
-            </Checkbox>
-          </Col>
-          <Col md={col_desc}>
-            member hosting{" "}
-            <b>(multiply RAM/CPU price by {COSTS.custom_cost.member})</b>
-            {render_explanation(
-              "project runs on computers with far less other projects"
-            )}
-          </Col>
-        </Row>
-        <Row style={ROW_STYLE}>
-          <Col md={col_control}>
-            <Checkbox
-              checked={custom_always_running}
-              onChange={(e) => set_custom_always_running(e.target.checked)}
-              disabled={disabled}
-            >
-              Always running
-            </Checkbox>
-          </Col>
-          <Col md={col_desc}>
-            project is always running{" "}
-            <b>
-              (multiply RAM/CPU price by{" "}
-              {COSTS.custom_cost.always_running * GCE_COSTS.non_pre_factor} for
-              member hosting or multiply by {COSTS.custom_cost.always_running}{" "}
-              without)
-            </b>{" "}
-            {render_explanation(
-              "run long computations and never have to wait for project to start.  Without this, project will stop  if it is not actively being used." +
-                (!custom_member
-                  ? " Because member hosting isn't selected, project will restart at least once daily."
-                  : "")
-            )}{" "}
-            See{" "}
-            <A href="https://doc.cocalc.com/project-init.html">
-              project init scripts.
-            </A>{" "}
-            (Note: this is NOT guaranteed 100% uptime, since projects may
-            sometimes restart for security and maintenance reasons.)
-          </Col>
-        </Row>
-
-        <Row style={ROW_STYLE}>
-          <Col md={col_control}>
-            <Checkbox checked={true} disabled={true}>
-              <span style={disabled ? undefined : { color: "rgba(0,0,0,.65)" }}>
-                Priority support
-              </span>
-            </Checkbox>
-          </Col>
-          <Col md={col_desc}>
-            priority support
-            {render_explanation(
-              "we prioritize your support requests much higher (included with all licensed projects)"
-            )}
-          </Col>
-        </Row>
-        <Row style={ROW_STYLE}>
-          <Col md={col_control}>
-            <Checkbox checked={true} disabled={true}>
-              <span style={disabled ? undefined : { color: "rgba(0,0,0,.65)" }}>
-                Network access
-              </span>
-            </Checkbox>
-          </Col>
-          <Col md={col_desc}>
-            network access
-            {render_explanation(
-              "project can connect to the Internet to clone git repositories, download files, send emails, etc.  (included with all licensed projects)"
-            )}
-          </Col>
-        </Row>
-      </div>
+      <QuotaEditor
+        hideExtra={false}
+        quota={{
+          cpu: custom_cpu,
+          ram: custom_ram,
+          disk: custom_disk,
+          always_running: custom_always_running,
+          member: custom_member,
+          user,
+        }}
+        onChange={(change) => {
+          if (change.cpu != null) set_custom_cpu(change.cpu);
+          if (change.ram != null) set_custom_ram(change.ram);
+          if (change.disk != null) set_custom_disk(change.disk);
+          if (change.member != null) set_custom_member(change.member);
+          if (change.always_running != null)
+            set_custom_always_running(change.always_running);
+        }}
+      />
     );
   }
 

@@ -55,6 +55,7 @@ export type license_field_type =
   | "map"
   | "boolean"
   | "upgrades"
+  | "quota"
   | "number"
   | "readonly";
 
