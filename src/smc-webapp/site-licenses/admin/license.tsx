@@ -33,6 +33,7 @@ import {
   EditUpgrades,
   scale_by_display_factors,
 } from "./upgrades";
+import { DisplayQuota, EditQuota, scale_by_display_factors } from "./quota";
 import { Projects } from "../../admin/users/projects";
 import { Managers } from "./managers";
 import { UserMap } from "../../todo-types";
@@ -208,6 +209,16 @@ export class License extends Component<Props> {
             />
           );
           break;
+        case "quota":
+          x = (
+            <EditQuota
+              quota={val}
+              onChange={onChange}
+              license_id={this.props.license.get("id")}
+              license_field={field}
+            />
+          );
+          break;
         case "number":
           x = (
             <span>
@@ -357,6 +368,9 @@ export class License extends Component<Props> {
           break;
         case "upgrades":
           x = <DisplayUpgrades upgrades={val} />;
+          break;
+        case "upgrades":
+          x = <DisplayQuota quota={val} />;
           break;
         case "map":
           if (!val) {
