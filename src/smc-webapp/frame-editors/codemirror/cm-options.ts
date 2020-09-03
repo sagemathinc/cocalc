@@ -84,8 +84,6 @@ export function cm_options(
     throw Error("mode must be specified");
   }
 
-  console.log("defining extraKeys");
-
   const extraKeys = {
     "Ctrl-'": "indentAuto",
     "Cmd-'": "indentAuto",
