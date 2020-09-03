@@ -906,7 +906,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div style={{ marginBottom: "15px" }}>
         Buy licenses or request a quote below, as{" "}
-        <A href="https://doc.cocalc.com/account-settings.html#buy-a-license">
+        <A href="https://doc.cocalc.com/account/licenses.html#buy-a-license">
           explained here
         </A>
         . If you are planning on making a significant purchase, but need to test
