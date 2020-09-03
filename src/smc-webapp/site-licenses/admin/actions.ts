@@ -202,7 +202,6 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
     field: license_field_names,
     value: any
   ): void {
-    console.log("set_edit", { license_id, field, value });
     let edits: Map<string, TypedMap<SiteLicense>> = store.get("edits", Map());
     let y = edits.get(license_id, Map({ id: license_id }));
     y = y.set(field, value);
