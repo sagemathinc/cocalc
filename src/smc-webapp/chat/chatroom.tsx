@@ -230,6 +230,17 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
     );
   }
 
+  function render_export_button(): JSX.Element {
+    return (
+      <Button
+        onClick={() => actions.export_to_markdown()}
+        style={{ marginLeft: "5px" }}
+      >
+        <Icon name="external-link-square" /> Export
+      </Button>
+    );
+  }
+
   function render_save_button() {
     return (
       <SaveButton
@@ -283,6 +294,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             {render_decrease_font_size()}
             {render_increase_font_size()}
           </ButtonGroup>
+          {render_export_button()}
         </Col>
         <Col xs={3} md={3} style={{ padding: "2px" }}>
           {render_search()}

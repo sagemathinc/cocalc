@@ -17,10 +17,11 @@ import {
 } from "./utils";
 import { Markdown } from "./markdown";
 
-import { React, useMemo, useRef, useState } from "../app-framework";
+import { redux, React, useMemo, useRef, useState } from "../app-framework";
 import { Icon, Space, TimeAgo, Tip } from "../r_misc";
 import { Button } from "../antd-bootstrap";
 import { Row, Col } from "antd";
+import { get_user_name } from "./chat-log";
 
 import { HistoryTitle, HistoryFooter, History } from "./history";
 import { ChatInput } from "./input";
@@ -395,3 +396,16 @@ export const Message: React.FC<Props> = React.memo((props) => {
   }
   return <Row>{cols}</Row>;
 }, areEqual);
+
+// Used for exporting chat to markdown file
+export function message_to_markdown(message): string {
+  let value = newest_content(message);
+  value = smiley({
+    s: value,
+    wrap: ['<span class="smc-editor-chat-smiley">', "</span>"],
+  });
+  const user_map = redux.getStore("users").get("user_map");
+  const sender = get_user_name(user_map, message.get("sender_id"));
+  const date = message.get("date").toString();
+  return `*From:* ${sender}  \n*Date:* ${date}  \n\n${value}`;
+}
