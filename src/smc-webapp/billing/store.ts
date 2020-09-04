@@ -24,6 +24,7 @@ export interface BillingStoreState {
   course_pay: CoursePay;
   managed_license_ids?: List<string[]>; // array of id's of license you manage. Not a changefeed -- you must explicitly call update_managed_licenses action.
   managed_licenses?: Map<string, TypedMap<SiteLicense>>; // actual data of the licenses.
+  subscription_list_state?: "view" | "buy_upgrades" | "buy_license";
 }
 
 export class BillingStore extends Store<BillingStoreState> {}

@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useState, useActions } from "../app-framework";
+import { React, useActions, useTypedRedux } from "../app-framework";
 import { Button, Col, Row, Panel } from "../antd-bootstrap";
 import { Icon, Space } from "../r_misc";
 import { Subscription } from "./subscription";
@@ -19,15 +19,16 @@ interface Props {
   coupon_error?: string;
 }
 
-type ComponentState = "view" | "buy_upgrades" | "buy_license";
-
 export const SubscriptionList: React.FC<Props> = ({
   customer,
   selected_plan,
   applied_coupons,
   coupon_error,
 }) => {
-  const [state, set_state] = useState<ComponentState>("view");
+  const state = useTypedRedux("billing", "subscription_list_state") ?? "view";
+  function set_state(subscription_list_state) {
+    actions.setState({ subscription_list_state });
+  }
   const actions = useActions("billing");
 
   function close_buy_upgrades(): void {
