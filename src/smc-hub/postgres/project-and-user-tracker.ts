@@ -34,23 +34,23 @@ type State = "init" | "ready" | "closed";
 export class ProjectAndUserTracker extends EventEmitter {
   private state: State = "init";
 
-  private db?: PostgreSQL;
+  private db: PostgreSQL;
 
   private feed?: Changes;
 
   // by a "set" we mean map to boolean...
   // set of accounts we care about
-  private accounts?: SetOfAccounts = {};
+  private accounts: SetOfAccounts = {};
 
   // map from from project_id to set of users of a given project
-  private users?: { [project_id: string]: SetOfAccounts } = {};
+  private users: { [project_id: string]: SetOfAccounts } = {};
 
   // map from account_id to set of projects of a given user
-  private projects?: { [account_id: string]: SetOfProjects } = {};
+  private projects: { [account_id: string]: SetOfProjects } = {};
 
   // map from account_id to map from account_ids to *number* of
   // projects the two users have in common.
-  private collabs?: {
+  private collabs: {
     [account_id: string]: { [account_id: string]: number };
   } = {};
 
@@ -81,20 +81,21 @@ export class ProjectAndUserTracker extends EventEmitter {
 
     try {
       // create changefeed listening on changes to projects table
-      this.feed = await callback2(this.db.changefeed, {
+      const feed = await callback2(this.db.changefeed, {
         table: "projects",
         select: { project_id: "UUID" },
         watch: ["users"],
         where: {},
       });
+      this.feed = feed;
+      feed.on("change", this.handle_change.bind(this));
+      feed.on("error", this.handle_error.bind(this));
+      feed.on("close", () => this.handle_error("changefeed closed"));
       dbg("Success");
     } catch (err) {
       this.handle_error(err);
       return;
     }
-    this.feed.on("change", this.handle_change.bind(this));
-    this.feed.on("error", this.handle_error.bind(this));
-    this.feed.on("close", () => this.handle_error("changefeed closed"));
     this.set_state("ready");
   }
 
@@ -127,11 +128,11 @@ export class ProjectAndUserTracker extends EventEmitter {
       this.feed.close();
     }
     delete this.feed;
-    delete this.db;
-    delete this.accounts;
-    delete this.users;
-    delete this.projects;
-    delete this.collabs;
+    // reset fields to aid garbage collection
+    this.accounts = {};
+    this.users = {};
+    this.projects = {};
+    this.collabs = {};
 
     if (this.register_todo != null) {
       // clear any outstanding callbacks
@@ -143,7 +144,7 @@ export class ProjectAndUserTracker extends EventEmitter {
           }
         }
       }
-      delete this.register_todo;
+      this.register_todo = {};
     }
   }
 

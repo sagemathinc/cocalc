@@ -48,12 +48,12 @@ export class Changes extends EventEmitter {
   private watch: string[];
   private where: WhereCondition;
 
-  private trigger_name?: string;
+  private trigger_name: string;
   private closed: boolean;
   private condition?: { [field: string]: Function };
   private match_condition: Function;
 
-  private val_update_cache?: { [key: string]: any } = {};
+  private val_update_cache: { [key: string]: any } = {};
 
   constructor(
     db: PostgreSQL,
@@ -99,10 +99,7 @@ export class Changes extends EventEmitter {
       cb(err);
       return;
     }
-    if (this.trigger_name != null) {
-      // checking to make typescript happy
-      this.db.on(this.trigger_name, this.handle_change);
-    }
+    this.db.on(this.trigger_name, this.handle_change);
     // NOTE: we close on *connect*, not on disconnect, since then clients
     // that try to reconnect will only try to do so when we have an actual
     // connection to the database.  No point in worrying them while trying
@@ -133,15 +130,9 @@ export class Changes extends EventEmitter {
     this.closed = true;
     this.emit("close", { action: "close" });
     this.removeAllListeners();
-    if (this.trigger_name != null) {
-      // checking to make typescript happy
-      this.db.removeListener(this.trigger_name, this.handle_change);
-    }
+    this.db.removeListener(this.trigger_name, this.handle_change);
     this.db.removeListener("connect", this.close);
     this.db._stop_listening(this.table, this.select, this.watch);
-    delete this.trigger_name;
-    delete this.condition;
-    delete this.val_update_cache;
   }
 
   public async insert(where): Promise<void> {
@@ -247,7 +238,7 @@ export class Changes extends EventEmitter {
 
     // we do know from stacktraces that new_val_update is called after closed
     // this must have happened during waiting on the query. aborting early.
-    if (this.closed || this.val_update_cache == null) {
+    if (this.closed) {
       return;
     }
 
@@ -289,7 +280,7 @@ export class Changes extends EventEmitter {
   ):
     | { new_val: { [key: string]: any }; action: "insert" | "update" }
     | undefined {
-    if (this.closed || this.val_update_cache == null) {
+    if (this.closed) {
       return;
     }
     const prev_val = this.val_update_cache[key];
@@ -329,7 +320,7 @@ export class Changes extends EventEmitter {
       w = this.where as object[];
     }
 
-    let condition = (this.condition = {});
+    const condition = (this.condition = {});
     const add_condition = (field: string, op: string, val: any): void => {
       let f: Function, g: Function;
       field = field.trim();

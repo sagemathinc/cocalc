@@ -39,11 +39,11 @@ export type ImmutableListing = TypedMap<Listing>;
 
 export class Listings extends EventEmitter {
   private table?: SyncTable;
-  private project_id?: string;
-  private last_version?: { [path: string]: any } = {}; // last version emitted via change event.
+  private project_id: string;
+  private last_version: { [path: string]: any } = {}; // last version emitted via change event.
   private last_deleted: { [path: string]: any } = {};
   private state: State = "init";
-  private throttled_watch?: { [path: string]: Function } = {};
+  private throttled_watch: { [path: string]: Function } = {};
 
   constructor(project_id: string) {
     super();
@@ -62,7 +62,6 @@ export class Listings extends EventEmitter {
       await this._watch(path);
       return;
     }
-    if (this.throttled_watch == null) throw Error("already closed");
     if (this.throttled_watch[path] == null) {
       this.throttled_watch[path] = throttle(
         () => this._watch(path),
@@ -145,7 +144,7 @@ export class Listings extends EventEmitter {
 
   public async undelete(path: string): Promise<void> {
     if (path == "") return;
-    if (this.state == ("closed" as State) || this.project_id == null) return;
+    if (this.state == ("closed" as State)) return;
     if (this.state != ("ready" as State)) {
       await once(this, "state");
       if (this.state != ("ready" as State)) return;
@@ -258,7 +257,7 @@ export class Listings extends EventEmitter {
   ): Promise<DirectoryListingEntry[]> {
     const store = redux.getStore("projects");
     // make sure that our relationship to this project is known.
-    if (store == null || this.project_id == null) throw Error("bug");
+    if (store == null) throw Error("bug");
     const group = await store.async_wait({
       until: (s) => (s as any).get_my_group(this.project_id),
       timeout: 60,
@@ -284,9 +283,7 @@ export class Listings extends EventEmitter {
       delete this.table;
     }
     this.removeAllListeners();
-    delete this.last_version;
-    delete this.project_id;
-    delete this.throttled_watch;
+    this.throttled_watch = {};
   }
 
   // This is used to possibly work around a rare bug.
@@ -300,10 +297,9 @@ export class Listings extends EventEmitter {
     if (this.state != "init") {
       throw Error("must be in init state");
     }
-    if (this.project_id == null) throw Error("already closed");
     // Make sure there is a working websocket to the project
     await webapp_client.project_client.websocket(this.project_id);
-    if ((this.state as State) == "closed" || this.project_id == null) return;
+    if ((this.state as State) == "closed") return;
 
     // Now create the table.
     this.table = await webapp_client.sync_client.synctable_project(
@@ -328,7 +324,7 @@ export class Listings extends EventEmitter {
     if ((this.state as State) == "closed") return;
 
     this.table.on("change", async (keys: string[]) => {
-      if (this.state != "ready" || this.last_version == null) {
+      if (this.state != "ready") {
         // don't do anything if being initialized or already closed,
         // since code below will break in weird ways.
         return;
