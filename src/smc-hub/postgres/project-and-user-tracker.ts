@@ -34,23 +34,23 @@ type State = "init" | "ready" | "closed";
 export class ProjectAndUserTracker extends EventEmitter {
   private state: State = "init";
 
-  private db: PostgreSQL;
+  private db?: PostgreSQL;
 
-  private feed: Changes;
+  private feed?: Changes;
 
   // by a "set" we mean map to boolean...
   // set of accounts we care about
-  private accounts: SetOfAccounts = {};
+  private accounts?: SetOfAccounts = {};
 
   // map from from project_id to set of users of a given project
-  private users: { [project_id: string]: SetOfAccounts } = {};
+  private users?: { [project_id: string]: SetOfAccounts } = {};
 
   // map from account_id to set of projects of a given user
-  private projects: { [account_id: string]: SetOfProjects } = {};
+  private projects?: { [account_id: string]: SetOfProjects } = {};
 
   // map from account_id to map from account_ids to *number* of
   // projects the two users have in common.
-  private collabs: {
+  private collabs?: {
     [account_id: string]: { [account_id: string]: number };
   } = {};
 

@@ -53,11 +53,11 @@ function key(obj: { [key: string]: any }): string {
 type State = "ready" | "closed";
 
 class ThrottledTableQueue extends EventEmitter {
-  private table: string;
-  private queue: { [key: string]: TableQuery } = {};
-  private db: PostgreSQL;
-  private process_timer: any;
-  private interval_ms: number;
+  private table?: string;
+  private queue?: { [key: string]: TableQuery } = {};
+  private db?: PostgreSQL;
+  private process_timer?: any;
+  private interval_ms?: number;
   private state: State = "ready";
 
   constructor(db: PostgreSQL, table: string, interval_ms: number) {
@@ -71,8 +71,8 @@ class ThrottledTableQueue extends EventEmitter {
     this.setMaxListeners(100);
   }
 
-  private dbg(f): Function {
-    return this.db._dbg(`ThrottledTableQueue('${this.table}').${f}`);
+  private dbg(f): Function | undefined {
+    return this.db?._dbg(`ThrottledTableQueue('${this.table}').${f}`);
   }
 
   public close(): void {
@@ -97,13 +97,13 @@ class ThrottledTableQueue extends EventEmitter {
   }
 
   public enqueue(query: TableQuery): string {
-    if (this.state == "closed") {
+    if (this.state == "closed" || this.queue == null) {
       throw Error("trying to enqueue after close");
     }
     const k = key(query);
     this.queue[k] = query;
     if (this.process_timer == null) {
-      this.dbg("enqueue")(`will process queue in ${this.interval_ms}ms...`);
+      this.dbg?.("enqueue")?.(`will process queue in ${this.interval_ms}ms...`);
       this.process_timer = setTimeout(
         this.process_queue.bind(this),
         this.interval_ms
@@ -130,7 +130,7 @@ class ThrottledTableQueue extends EventEmitter {
     this.queue = {};
 
     for (const k in queue) {
-      dbg(k);
+      dbg?.(k);
       const { select, where } = queue[k];
 
       try {
@@ -142,11 +142,11 @@ class ThrottledTableQueue extends EventEmitter {
           where
         );
         if (this.state == "closed") return;
-        dbg("success", k);
+        dbg?.("success", k);
         this.emit(k, undefined, result);
       } catch (err) {
         if (this.state == "closed") return;
-        dbg("fail", k);
+        dbg?.("fail", k);
         this.emit(k, err, undefined);
       }
     }

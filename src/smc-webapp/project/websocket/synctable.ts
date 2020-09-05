@@ -34,7 +34,7 @@ interface Options {
 import { EventEmitter } from "events";
 
 class SyncTableChannel extends EventEmitter {
-  public synctable: SyncTable;
+  public synctable?: SyncTable;
   private project_id: string;
   private client: WebappClient;
   private channel?: any;
@@ -161,6 +161,7 @@ class SyncTableChannel extends EventEmitter {
   }
 
   private init_synctable_handlers(): void {
+    if (this.synctable == null) return;
     this.synctable.on("timed-changes", (timed_changes) => {
       this.send_mesg_to_project({ timed_changes });
     });
