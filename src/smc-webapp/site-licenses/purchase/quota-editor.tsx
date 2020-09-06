@@ -15,7 +15,7 @@ Editing a quota
 
 import { Button, Checkbox, InputNumber, Row, Col } from "antd";
 import { A, Space } from "../../r_misc";
-import { CSS, React } from "../../app-framework";
+import { CSS, React, useState } from "../../app-framework";
 import { Quota } from "smc-util/db-schema/site-licenses";
 import { COSTS, GCE_COSTS, money } from "./util";
 import { plural } from "smc-util/misc2";
@@ -53,6 +53,7 @@ export const QuotaEditor: React.FC<Props> = ({
   hideExtra,
   disabled,
 }) => {
+  const [show_advanced, set_show_advanced] = useState<boolean>(false);
   const col = hideExtra
     ? { control: 18, max: 6 }
     : { control: 8, max: 3, desc: 16 };
@@ -208,7 +209,7 @@ export const QuotaEditor: React.FC<Props> = ({
             member hosting{" "}
             <b>(multiply RAM/CPU price by {COSTS.custom_cost.member})</b>
             {render_explanation(
-              "project runs on computers with far less other projects"
+              "project runs on computers with far less other projects.  If not selected your project runs on very, very heavily loaded trial servers, which might be OK depending on your application."
             )}
           </Col>
         )}
@@ -299,15 +300,37 @@ export const QuotaEditor: React.FC<Props> = ({
     );
   }
 
+  function render_show_advanced_link() {
+    if (show_advanced) {
+      return (
+        <a
+          style={{ marginLeft: "5px", fontSize: "12pt" }}
+          onClick={() => set_show_advanced(false)}
+        >
+          Hide advanced options
+        </a>
+      );
+    } else
+      return (
+        <a
+          style={{ marginLeft: "5px", fontSize: "12pt" }}
+          onClick={() => set_show_advanced(true)}
+        >
+          Show advanced options...
+        </a>
+      );
+  }
+
   return (
     <div>
       {render_cpu()}
       {render_ram()}
       {render_disk()}
-      {render_member()}
-      {render_always_running()}
       {!hideExtra && render_support()}
       {!hideExtra && render_network()}
+      {render_show_advanced_link()}
+      {show_advanced && render_member()}
+      {show_advanced && render_always_running()}
     </div>
   );
   //
