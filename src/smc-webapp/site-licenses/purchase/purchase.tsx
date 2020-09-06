@@ -97,20 +97,25 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
 
   const [start, set_start_state] = useState<Date>(new Date());
   function set_start(date: Date) {
-    set_start_state(date < start ? new Date() : date);
+    date = date < start ? new Date() : date;
+    // start at midnight (local user time) on that day
+    date = moment(date).startOf("day").toDate();
+    set_start_state(date);
   }
 
   const [end, set_end_state] = useState<Date>(
     moment().add(1, "month").toDate()
   );
   function set_end(date: Date) {
-    const next_day = moment(start).add(1, "day").toDate();
+    const today = moment(start).endOf("day").toDate();
     const two_years = moment(start).add(2, "year").toDate();
-    if (date <= next_day) {
-      date = next_day;
+    if (date <= today) {
+      date = today;
     } else if (date >= two_years) {
       date = two_years;
     }
+    // ends at the last moment (local user time) for the user on that day
+    date = moment(date).endOf("day").toDate();
     set_end_state(date);
   }
 
@@ -350,7 +355,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               icon: "calendar-times-o",
               label: "Start and end dates",
               desc:
-                "pay for a specific period of time (as short as one day and as long as 2 years)",
+                "pay for a specific period of time (as short as one day and as long as 2 years).  Licenses start at 0:00 in your local timezone on the start date and end at 23:59 your local time zpone on the ending date.",
               value: "no",
             },
           ]}
@@ -365,6 +370,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   function set_end_date(x): void {
     set_end(
       moment(start)
+        .subtract(1, "day")
         .add(x.n as any, x.key)
         .toDate()
     );
@@ -391,7 +397,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       );
     }
     const menu = <Menu>{presets}</Menu>;
-    const n = moment(end).diff(moment(start), "days");
+    // +1 since moment rounds down (it's a fraction of a second less than a full day)
+    const n =
+      moment(end).endOf("day").diff(moment(start).startOf("day"), "days") + 1;
     return (
       <div style={{ marginLeft: "60px" }}>
         <br />
