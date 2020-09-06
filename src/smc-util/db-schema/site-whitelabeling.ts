@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// This is for the commerical setup only!
+// This is for the commercial setup only!
 // The basic idea is to allow whitelabeling for specific subdomains.
 // This works by sending the "site-default" configuration,
 // but with modifications coming from an entry in this table.
@@ -58,6 +58,10 @@ Table({
     theme: {
       type: "map",
       desc: "a map of {[key:ThemeKeys] : string}",
+    },
+    settings: {
+      type: "map",
+      desc: "to customize server-side settings",
     },
   },
   rules: {

@@ -29,7 +29,7 @@ auth         = require('./auth')
 access       = require('./access')
 hub_projects = require('./projects')
 MetricsRecorder  = require('./metrics-recorder')
-{WebappConfiguration} = require('./webapp-configuration')
+{WhitelabelConfiguration} = require('./whitelabel-configuration')
 
 {http_message_api_v1} = require('./api/handler')
 {setup_analytics_js} = require('./analytics')
@@ -61,7 +61,7 @@ exports.init_express_http_server = (opts) ->
     app    = express()
     http_server = http.createServer(app)
     app.use(cookieParser())
-    webapp_config = new WebappConfiguration(db:opts.database)
+    whitelabel_config = new WhitelabelConfiguration(db:opts.database)
 
     # Enable compression, as
     # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
@@ -273,7 +273,7 @@ exports.init_express_http_server = (opts) ->
 
     if server_settings?
         router.get '/customize', (req, res) ->
-            config = await webapp_config.get(req)
+            config = await whitelabel_config.webapp(req)
             if req.query.type == 'embed'
                 res.header("Content-Type", "text/javascript")
                 res.send("window.CUSTOMIZE = Object.freeze(#{JSON.stringify(config)})")

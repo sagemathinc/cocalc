@@ -6,26 +6,39 @@
 // this manages the webapp's configuration based on the hostname (allows whitelabeling)
 
 import { parseDomain, ParseResultType } from "parse-domain";
-//import * as lodash from "lodash";
 import * as debug from "debug";
 const L = debug("hub:webapp-config");
 import { callback2 as cb2 } from "../smc-util/async-utils";
 import { PostgreSQL } from "./postgres/types";
 const server_settings = require("./server-settings");
-//import { get_server_settings } from "./utils";
 import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "smc-util/db-schema/site-settings-extras";
 import { site_settings_conf as SITE_SETTINGS_CONF } from "smc-util/schema";
-//import { ThemeKeys } from "smc-util/db-schema/site-whitelabeling";
 
 type Theme = { [key: string]: string | boolean };
 
-export class WebappConfiguration {
+export class WhitelabelConfiguration {
   readonly db: PostgreSQL;
   private data: any;
 
   constructor({ db }) {
     this.db = db;
     this.data = server_settings(this.db);
+  }
+
+  // server settings with whitelabeling settings
+  // TODO post-process all values
+  public async settings(vid: string) {
+    const res = await cb2(this.db._query, {
+      query: "SELECT id, settings FROM whitelabeling",
+      cache: true,
+      where: { "id = $::TEXT": vid },
+    });
+    const data = res.rows[0];
+    if (data != null) {
+      return { ...this.data.all, ...data.settings };
+    } else {
+      return this.data.all;
+    }
   }
 
   // derive the vanity ID from the host string
@@ -39,7 +52,6 @@ export class WebappConfiguration {
   }
 
   private async theme(vid: string): Promise<Theme> {
-    //const base = lodash.pick(await get_server_settings(this.db), ThemeKeys);
     const res = await cb2(this.db._query, {
       query: "SELECT id, theme FROM whitelabeling",
       cache: true,
@@ -67,7 +79,7 @@ export class WebappConfiguration {
     }
   }
 
-  public async get(req) {
+  public async webapp(req) {
     const host = req.headers["host"];
     const vid = this.vanity(host);
     L(`vanity ID = "${vid}"`);
