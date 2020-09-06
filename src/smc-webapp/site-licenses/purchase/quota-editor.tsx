@@ -209,7 +209,7 @@ export const QuotaEditor: React.FC<Props> = ({
             member hosting{" "}
             <b>(multiply RAM/CPU price by {COSTS.custom_cost.member})</b>
             {render_explanation(
-              "project runs on computers with far less other projects.  If not selected your project runs on very, very heavily loaded trial servers, which might be OK depending on your application."
+              "project runs on computers with far fewer other projects.  If not selected your project runs on very, very heavily loaded trial servers, which might be OK depending on your application."
             )}
           </Col>
         )}
