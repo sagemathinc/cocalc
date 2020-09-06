@@ -21,8 +21,11 @@ export class CodeEditor {
     this.project_id = project_id;
     this.path = path;
     const ext = filename_extension(path);
-    const editor = get_file_editor(ext, false);
-    if (editor == null) throw Error("bug -- editor must exist");
+    let editor = get_file_editor(ext, false);
+    if (editor == null) {
+      // fallback to text
+      editor = get_file_editor('txt', false);
+    }
     const name = editor.init(this.path, redux, this.project_id);
     this.actions = (redux.getActions(name) as unknown) as Actions; // definitely right
   }

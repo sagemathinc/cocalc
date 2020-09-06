@@ -41,6 +41,7 @@ import {
 import { map } from "awaiting";
 
 import { nbgrader, jupyter_strip_notebook } from "../../jupyter/nbgrader/api";
+import { ipynb_clear_hidden_tests } from "../../jupyter/nbgrader/clear-hidden-tests";
 import {
   extract_auto_scores,
   NotebookScores,
@@ -905,6 +906,13 @@ ${details}
       desc += " who have not already received their copy";
     }
     const short_desc = "copy to student for peer grading";
+    // CRITICAL: be sure to run this update once before doing the
+    // assignment.  Otherwise, since assignment runs more than once
+    // in parallel, two will launch at about the same time and
+    // the *condition* to know if it is done depends on the store,
+    // which defers when it gets updated.  Anyway, this line is critical:
+    this.update_peer_assignment(assignment_id);
+    // OK, now do the assignment... in parallel.
     await this.assignment_action_all_students(
       assignment_id,
       new_only,
@@ -1034,7 +1042,8 @@ ${details}
 
     const peers = peer_map[student.get("student_id")];
     if (peers == null) {
-      // empty peer assignment for this student (maybe student added after peer assignment already created?)
+      // empty peer assignment for this student (maybe student added after
+      // peer assignment already created?)
       finish();
       return;
     }
@@ -1056,13 +1065,13 @@ ${details}
       assignment.get("collect_path") + "/GRADING-GUIDE.md";
 
     const target_base_path = assignment.get("path") + "-peer-grade";
-    const f = async (student_id: string): Promise<void> => {
+    const f = async (peer_student_id: string) => {
       if (this.course_actions.is_closed()) return;
-      const src_path = assignment.get("collect_path") + "/" + student_id;
-      const target_path = target_base_path + "/" + student_id;
+      const src_path = assignment.get("collect_path") + "/" + peer_student_id;
+      const target_path = target_base_path + "/" + peer_student_id;
       // delete the student's name so that grading is anonymous; also, remove original
       // due date to avoid confusion.
-      const name = store.get_student_name_extra(student_id);
+      const name = store.get_student_name_extra(peer_student_id);
       await webapp_client.project_client.exec({
         project_id: store.get("course_project_id"),
         command: "rm",
@@ -1420,14 +1429,14 @@ ${details}
         assignment_id,
         student_id,
         instructor_ipynb_files,
-        false
+        true
       );
     };
     try {
       this.nbgrader_set_is_running(assignment_id);
       await map(
         this.get_store().get_student_ids({ deleted: false }),
-        PARALLEL_LIMIT,
+        1, // TODO: not actually in parallel for now; I had trouble with it in parallel
         one_student
       );
       this.course_actions.syncdb.commit();
@@ -1570,6 +1579,11 @@ ${details}
       "nbgrader_grade_in_instructor_project",
     ]);
 
+    const nbgrader_include_hidden_tests: boolean = !!store.getIn([
+      "settings",
+      "nbgrader_include_hidden_tests",
+    ]);
+
     const course_project_id = store.get("course_project_id");
 
     let grade_project_id: string;
@@ -1657,11 +1671,11 @@ ${details}
           path: student_path,
           project_id: grade_project_id,
         });
-        /* console.log("nbgrader finished successfully", {
+        /*console.log("nbgrader finished successfully", {
           student_id,
           file,
-          r
-        }); */
+          r,
+        });*/
         result[file] = r;
       } catch (err) {
         // console.log("nbgrader failed", { student_id, file, err });
@@ -1701,14 +1715,6 @@ ${details}
       // Depending on instructor options, write the graded version of
       // the notebook to disk, so the student can see why their grade
       // is what it is:
-
-      await this.write_autograded_notebook(
-        assignment,
-        student_id,
-        filename,
-        r.output
-      );
-
       const notebook = JSON.parse(r.output);
       scores[filename] = extract_auto_scores(notebook);
       if (
@@ -1724,6 +1730,20 @@ ${details}
           }
         }
       }
+
+      if (!nbgrader_include_hidden_tests) {
+        // IMPORTANT: this *must* happen after extracting scores above!
+        // Otherwise students get perfect grades.
+        ipynb_clear_hidden_tests(notebook);
+      }
+
+      await this.write_autograded_notebook(
+        assignment,
+        student_id,
+        filename,
+        JSON.stringify(notebook, undefined, 2)
+      );
+
     }
 
     this.set_nbgrader_scores_for_one_student(

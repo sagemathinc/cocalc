@@ -55,6 +55,7 @@ export type license_field_type =
   | "map"
   | "boolean"
   | "upgrades"
+  | "quota"
   | "number"
   | "readonly";
 
@@ -88,7 +89,7 @@ export const license_fields: {
   managers: "account_id[]",
   // restricted: "boolean",  // hide for now since not implemented at all
   upgrades: "upgrades",
-  quota: "map",
+  quota: "quota",
   run_limit: "number",
   //apply_limit: "number" // hide for now since not implemented at all
 };

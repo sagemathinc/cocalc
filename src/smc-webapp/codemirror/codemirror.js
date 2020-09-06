@@ -124,3 +124,7 @@ require("./mode/mediawiki/mediawiki.css");
 // impact of some of the above themes... (namely idea and darcula
 // at time of writing).
 require("./addon/show-hint.css");
+
+// Various extentions that I wrote since I needed them to implement CoCalc
+require("./addon/delete-trailing-whitespace");
+require("./addon/fill-paragraph");

@@ -4,3 +4,4 @@
  */
 
 export { PurchaseOneLicense } from "./purchase";
+export { PurchaseOneLicenseLink } from "./link";

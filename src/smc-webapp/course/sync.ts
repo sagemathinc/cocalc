@@ -110,17 +110,22 @@ export function create_sync_db(
     }
     actions.students.lookup_nonregistered_students();
 
-    const course_compute_image = actions
-      .get_store()
-      .getIn(["settings", "custom_image"]);
-    if (course_compute_image == null) {
+    const course_compute_image = store.getIn(["settings", "custom_image"]);
+    const inherit_compute_image =
+      store.getIn(["settings", "inherit_compute_image"]) ?? true;
+    // if the compute image isn't set or should be inherited, we configure it for all controlled projects
+    if (course_compute_image == null || inherit_compute_image) {
       const course_project_compute_image = projects_store.getIn([
         "project_map",
         course_project_id,
         "compute_image",
       ]);
       actions.set(
-        { custom_image: course_project_compute_image, table: "settings" },
+        {
+          custom_image: course_project_compute_image,
+          inherit_compute_image,
+          table: "settings",
+        },
         true
       );
     }

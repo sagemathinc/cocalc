@@ -148,13 +148,31 @@ export class ConfigurationActions {
     });
   }
 
-  public set_software_environment(state: SoftwareEnvironmentState): void {
-    const custom_image = derive_project_img_name(state);
+  public set_nbgrader_include_hidden_tests(value: boolean): void {
     this.set({
-      custom_image,
+      nbgrader_include_hidden_tests: value,
+      table: "settings",
+    });
+  }
+
+  public set_inherit_compute_image(image?: string): void {
+    this.set({ inherit_compute_image: image != null, table: "settings" });
+    if (image != null) {
+      this.set_compute_image(image);
+    }
+  }
+
+  public set_compute_image(image: string) {
+    this.set({
+      custom_image: image,
       table: "settings",
     });
     this.course_actions.student_projects.configure_all_projects();
     this.course_actions.shared_project.set_project_compute_image();
+  }
+
+  public set_software_environment(state: SoftwareEnvironmentState): void {
+    const image = derive_project_img_name(state);
+    this.set_compute_image(image);
   }
 }

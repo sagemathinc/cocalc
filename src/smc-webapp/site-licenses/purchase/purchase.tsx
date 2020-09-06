@@ -8,7 +8,6 @@
 import {
   Button,
   Card,
-  Checkbox,
   DatePicker,
   InputNumber,
   Menu,
@@ -37,6 +36,7 @@ import { RadioGroup } from "./radio-group";
 import { plural } from "smc-util/misc2";
 import { DebounceInput } from "react-debounce-input";
 import { create_quote_support_ticket } from "./get-a-quote";
+import { QuotaEditor } from "./quota-editor";
 
 const LENGTH_PRESETS = [
   { label: "1 Day", desc: { n: 1, key: "days" } },
@@ -58,8 +58,7 @@ const LENGTH_PRESETS = [
 
 const radioStyle: CSS = {
   display: "block",
-  height: "30px",
-  lineHeight: "30px",
+  whiteSpace: "normal",
   fontWeight: "inherit", // this is to undo what react-bootstrap does to the labels.
 } as const;
 
@@ -69,7 +68,6 @@ import {
   Subscription,
   PurchaseInfo,
   COSTS,
-  GCE_COSTS,
   compute_cost,
   money,
   percent_discount,
@@ -231,8 +229,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           {`: ${money(cost.cost_per_project_per_month)}/month per project`}
         </h4>
         <div style={{ fontSize: "12pt" }}>
-          Up to {quantity} projects can be running at once with the following
-          specs:
+          Up to {quantity} projects can be running at once, <b>each</b> with the
+          following specs:
           <br />
         </div>
         {render_custom()}
@@ -240,219 +238,28 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     );
   }
 
-  function render_explanation(s): JSX.Element {
-    return (
-      <span style={{ color: "#888" }}>
-        <Space /> - {s}
-      </span>
-    );
-  }
-
   function render_custom() {
     if (user == null) return;
-    const col_control = 8;
-    const col_max = 3;
-    const col_desc = 16;
-    const ROW_STYLE: CSS = {
-      border: "1px solid #eee",
-      padding: "5px",
-      margin: "5px",
-      borderRadius: "3px",
-    } as const;
-    const UNIT_STYLE: CSS = {
-      padding: "0 5px",
-      fontWeight: 400,
-    } as const;
     return (
-      <div>
-        <Row style={ROW_STYLE}>
-          <Col md={col_control - col_max}>
-            <InputNumber
-              disabled={disabled}
-              min={COSTS.basic.cpu}
-              max={COSTS.custom_max.cpu}
-              value={custom_cpu}
-              onChange={(x) => {
-                if (typeof x != "number") return;
-                set_custom_cpu(Math.round(x));
-              }}
-            />
-            <Space />
-            <span style={UNIT_STYLE}>CPU {plural(custom_cpu, "core")}</span>
-          </Col>
-          <Col md={col_max}>
-            <Button
-              disabled={custom_cpu == COSTS.custom_max.cpu}
-              onClick={() => set_custom_cpu(COSTS.custom_max.cpu)}
-            >
-              Max
-            </Button>
-          </Col>
-          <Col md={col_desc}>
-            <b>
-              CPU cores (
-              {`${money(
-                COSTS.user_discount[user] * COSTS.custom_cost.cpu
-              )}/CPU cores per month per project`}
-              )
-            </b>
-            {render_explanation(
-              "Google cloud vCPU's shared with other projects (member hosting significantly reduces sharing)"
-            )}
-          </Col>
-        </Row>
-        <Row style={ROW_STYLE}>
-          <Col md={col_control - col_max}>
-            <InputNumber
-              disabled={disabled}
-              min={COSTS.basic.ram}
-              max={COSTS.custom_max.ram}
-              value={custom_ram}
-              onChange={(x) => {
-                if (typeof x != "number") return;
-                set_custom_ram(Math.round(x));
-              }}
-            />
-            <Space />
-            <span style={UNIT_STYLE}>GB RAM</span>
-          </Col>
-          <Col md={col_max}>
-            <Button
-              disabled={custom_ram == COSTS.custom_max.ram}
-              onClick={() => set_custom_ram(COSTS.custom_max.ram)}
-            >
-              Max
-            </Button>
-          </Col>
-          <Col md={col_desc}>
-            <b>
-              GB RAM (
-              {`${money(
-                COSTS.user_discount[user] * COSTS.custom_cost.ram
-              )}/GB RAM per month per project`}
-              )
-            </b>
-            {render_explanation("RAM may be shared with other users")}
-          </Col>
-        </Row>
-        <Row style={ROW_STYLE}>
-          <Col md={col_control - col_max}>
-            <InputNumber
-              disabled={disabled}
-              min={COSTS.basic.disk}
-              max={COSTS.custom_max.disk}
-              value={custom_disk}
-              onChange={(x) => {
-                if (typeof x != "number") return;
-                set_custom_disk(Math.round(x));
-              }}
-            />
-            <Space />
-            <span style={UNIT_STYLE}>GB disk space</span>
-          </Col>
-          <Col md={col_max}>
-            <Button
-              disabled={custom_disk == COSTS.custom_max.disk}
-              onClick={() => set_custom_disk(COSTS.custom_max.disk)}
-            >
-              Max
-            </Button>
-          </Col>
-          <Col md={col_desc}>
-            <b>
-              GB Disk Space (
-              {`${money(
-                COSTS.user_discount[user] * COSTS.custom_cost.disk
-              )}/GB disk per month per project`}
-              )
-            </b>
-            {render_explanation(
-              "store a larger number of files. Snapshots and file edit history is included at no additional charge."
-            )}
-          </Col>
-        </Row>
-        <Row style={ROW_STYLE}>
-          <Col md={col_control}>
-            <Checkbox
-              checked={custom_member}
-              onChange={(e) => set_custom_member(e.target.checked)}
-              disabled={disabled}
-            >
-              Member hosting
-            </Checkbox>
-          </Col>
-          <Col md={col_desc}>
-            member hosting{" "}
-            <b>(multiply RAM/CPU price by {COSTS.custom_cost.member})</b>
-            {render_explanation(
-              "project runs on computers with far less other projects"
-            )}
-          </Col>
-        </Row>
-        <Row style={ROW_STYLE}>
-          <Col md={col_control}>
-            <Checkbox
-              checked={custom_always_running}
-              onChange={(e) => set_custom_always_running(e.target.checked)}
-              disabled={disabled}
-            >
-              Always running
-            </Checkbox>
-          </Col>
-          <Col md={col_desc}>
-            project is always running{" "}
-            <b>
-              (multiply RAM/CPU price by{" "}
-              {COSTS.custom_cost.always_running * GCE_COSTS.non_pre_factor} for
-              member hosting or multiply by {COSTS.custom_cost.always_running}{" "}
-              without)
-            </b>{" "}
-            {render_explanation(
-              "run long computations and never have to wait for project to start.  Without this, project will stop  if it is not actively being used." +
-                (!custom_member
-                  ? " Because member hosting isn't selected, project will restart at least once daily."
-                  : "")
-            )}{" "}
-            See{" "}
-            <A href="https://doc.cocalc.com/project-init.html">
-              project init scripts.
-            </A>{" "}
-            (Note: this is NOT guaranteed 100% uptime, since projects may
-            sometimes restart for security and maintenance reasons.)
-          </Col>
-        </Row>
-
-        <Row style={ROW_STYLE}>
-          <Col md={col_control}>
-            <Checkbox checked={true} disabled={true}>
-              <span style={disabled ? undefined : { color: "rgba(0,0,0,.65)" }}>
-                Priority support
-              </span>
-            </Checkbox>
-          </Col>
-          <Col md={col_desc}>
-            priority support
-            {render_explanation(
-              "we prioritize your support requests much higher (included with all licensed projects)"
-            )}
-          </Col>
-        </Row>
-        <Row style={ROW_STYLE}>
-          <Col md={col_control}>
-            <Checkbox checked={true} disabled={true}>
-              <span style={disabled ? undefined : { color: "rgba(0,0,0,.65)" }}>
-                Network access
-              </span>
-            </Checkbox>
-          </Col>
-          <Col md={col_desc}>
-            network access
-            {render_explanation(
-              "project can connect to the Internet to clone git repositories, download files, send emails, etc.  (included with all licensed projects)"
-            )}
-          </Col>
-        </Row>
-      </div>
+      <QuotaEditor
+        hideExtra={false}
+        quota={{
+          cpu: custom_cpu,
+          ram: custom_ram,
+          disk: custom_disk,
+          always_running: custom_always_running,
+          member: custom_member,
+          user,
+        }}
+        onChange={(change) => {
+          if (change.cpu != null) set_custom_cpu(change.cpu);
+          if (change.ram != null) set_custom_ram(change.ram);
+          if (change.disk != null) set_custom_disk(change.disk);
+          if (change.member != null) set_custom_member(change.member);
+          if (change.always_running != null)
+            set_custom_always_running(change.always_running);
+        }}
+      />
     );
   }
 
@@ -478,13 +285,15 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       <div>
         <br />
         <h4>
-          <Icon name="sort-amount-up" /> Quantity: {render_quantity_input()}
+          <Icon name="sort-amount-up" /> Number of Projects:{" "}
+          {render_quantity_input()}
         </h4>
         <div style={{ fontSize: "12pt" }}>
           <ul>
             <li>
-              Simultaneously use {quantity} {plural(quantity, "project")} with
-              this license.
+              Simultaneously run {quantity} {plural(quantity, "project")} with
+              this license. You, and anyone you share the license code with, can
+              apply the license to any number of projects (in project settings).
             </li>
             <li>
               {" "}
@@ -492,12 +301,12 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               <A href="https://doc.cocalc.com/teaching-instructors.html">
                 teaching a course
               </A>
-              , the quantity is typically <i>n+2</i>, where <i>n</i> is the
-              number of students: each student has a project, you will manage
-              the course from a project, and all students will have access to
-              one shared project. Contact us by clicking the "Help" button if
-              you need to change the quantity later in the course as more
-              students add.
+              , the number of projects is typically <i>n+2</i>, where <i>n</i>{" "}
+              is the number of students in the class: each student has a
+              project, you will manage the course from a project, and all
+              students will have access to one shared project. Contact us by
+              clicking the "Help" button if you need to change the quantity
+              later in the course as more students add.
             </li>
             <li>
               {" "}
@@ -633,8 +442,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             />
           </Col>
           <Col md={1}></Col>
-          <Col md={3}>Description</Col>
-          <Col md={10}>
+          <Col md={4}>Description</Col>
+          <Col md={9}>
             <DebounceInput
               autoSize={{ minRows: 1, maxRows: 6 }}
               element={Input.TextArea as any}
@@ -899,22 +708,32 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     );
   }
 
+  function render_instructions() {
+    return (
+      <div style={{ marginBottom: "15px" }}>
+        Buy licenses or request a quote below, as{" "}
+        <A href="https://doc.cocalc.com/account/licenses.html#buy-a-license">
+          explained here
+        </A>
+        . If you are planning on making a significant purchase, but need to test
+        things out first,{" "}
+        <a onClick={() => redux.getActions("support").set_show(true)}>
+          please request a free trial.
+        </a>
+      </div>
+    );
+  }
+
   return (
     <Card
       title={
         <>
           <h3>Buy a license</h3>
-          <span style={{ fontWeight: 350 }}>
-            Buy licenses or request a quote below. If you are planning on making
-            a purchase, but need to test things out first,{" "}
-            <a onClick={() => redux.getActions("support").set_show(true)}>
-              please request a free trial.
-            </a>
-          </span>
         </>
       }
       extra={<a onClick={onClose}>close</a>}
     >
+      {render_instructions()}
       {render_user()}
       {render_quantity()}
       {render_project_type()}

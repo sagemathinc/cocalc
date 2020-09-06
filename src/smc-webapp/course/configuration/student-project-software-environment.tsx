@@ -3,7 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useState, useTypedRedux } from "../../app-framework";
+import {
+  React,
+  redux,
+  useState,
+  useTypedRedux,
+  CSS,
+  Rendered,
+} from "../../app-framework";
 import { fromJS } from "immutable";
 import { Icon, Markdown, A } from "../../r_misc";
 import {
@@ -11,7 +18,7 @@ import {
   SoftwareEnvironmentState,
 } from "../../custom-software/selector";
 import { ConfigurationActions } from "./actions";
-import { Button, Card, Alert } from "antd";
+import { Button, Card, Alert, Radio, Divider } from "antd";
 import { HelpEmailLink } from "../../customize";
 import { SoftwareImageDisplay } from "../../project/settings/project-control";
 import {
@@ -29,19 +36,32 @@ import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 const CSI_HELP =
   "https://doc.cocalc.com/software.html#custom-software-environment";
 
+const RADIO_STYLE: CSS = {
+  display: "block",
+  height: "30px",
+  lineHeight: "30px",
+  fontWeight: "normal",
+};
+
 interface Props {
   actions: ConfigurationActions;
+  course_project_id: string;
   software_image?: string;
+  inherit_compute_image?: boolean;
 }
 
 export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
   actions,
+  course_project_id,
   software_image,
+  inherit_compute_image,
 }) => {
   const customize_kucalc = useTypedRedux("customize", "kucalc");
 
-  const [changing, set_changing] = useState(false);
+  // by default, we inherit the software image from the project where this course is run from
+  const inherit = inherit_compute_image ?? true;
   const [state, set_state] = useState<SoftwareEnvironmentState>({});
+  const [changing, set_changing] = useState(false);
 
   function handleChange(state): void {
     set_state(state);
@@ -53,9 +73,29 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
     "images"
   );
 
-  function render_controls() {
-    if (!changing) return;
-    const csi_warning = (
+  function on_inherit_change(inherit: boolean) {
+    if (inherit) {
+      // we have to get the compute image name from the course project
+      const projects_store = redux.getStore("projects");
+      const course_project_compute_image = projects_store.getIn([
+        "project_map",
+        course_project_id,
+        "compute_image",
+      ]);
+      actions.set_inherit_compute_image(course_project_compute_image);
+    } else {
+      actions.set_inherit_compute_image();
+    }
+  }
+
+  React.useEffect(() => {
+    if (inherit) {
+      set_changing(false);
+    }
+  }, [inherit]);
+
+  function csi_warning(): Rendered {
+    return (
       <Alert
         type={"warning"}
         message={
@@ -69,38 +109,55 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
         }
       />
     );
+  }
 
+  function render_controls_body(): Rendered {
+    if (!changing) {
+      return (
+        <Button onClick={() => set_changing(true)} disabled={changing}>
+          Change...
+        </Button>
+      );
+    } else {
+      return (
+        <>
+          <Button onClick={() => set_changing(false)}>Cancel</Button>
+          <Button
+            disabled={
+              state.image_type === "custom" && state.image_selected == null
+            }
+            type="primary"
+            onClick={() => {
+              set_changing(false);
+              actions.set_software_environment(state);
+            }}
+          >
+            Save
+          </Button>
+          <br />
+          <SoftwareEnvironment
+            onChange={handleChange}
+            default_image={software_image}
+          />
+          {state.image_type === "custom" && csi_warning()}
+        </>
+      );
+    }
+  }
+
+  function render_controls(): Rendered {
+    if (inherit) return;
     return (
       <>
-        <Button
-          style={{ margin: "0 5px 0 30px" }}
-          onClick={() => set_changing(false)}
-        >
-          Cancel
-        </Button>
-        <Button
-          disabled={
-            state.image_type === "custom" && state.image_selected == null
-          }
-          type="primary"
-          onClick={() => {
-            set_changing(false);
-            actions.set_software_environment(state);
-          }}
-        >
-          Save
-        </Button>
-        <br />
-        <SoftwareEnvironment
-          onChange={handleChange}
-          default_image={software_image}
-        />
-        {state.image_type === "custom" && csi_warning}
+        <Divider orientation="left" plain>
+          Configure
+        </Divider>
+        {render_controls_body()}
       </>
     );
   }
 
-  function render_description() {
+  function render_description(): Rendered {
     const img_id = software_image ?? DEFAULT_COMPUTE_IMAGE;
     let descr: string | undefined;
     if (is_custom_image(img_id)) {
@@ -132,7 +189,7 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
     }
   }
 
-  function render_custom_info() {
+  function render_custom_info(): Rendered {
     if (software_image != null && is_custom_image(software_image)) return;
     return (
       <p>
@@ -140,6 +197,25 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
         <A href={CSI_HELP}>customized software environment</A>, please contact{" "}
         <HelpEmailLink />.
       </p>
+    );
+  }
+
+  function render_inherit(): Rendered {
+    return (
+      <Radio.Group
+        onChange={(e) => on_inherit_change(e.target.value)}
+        value={inherit}
+        style={{ display: "block" }}
+      >
+        <Radio style={RADIO_STYLE} value={true}>
+          <strong>Inherit</strong> student projects software environments from
+          this teacher project.
+        </Radio>
+        <Radio style={RADIO_STYLE} value={false}>
+          <strong>Explicitly</strong> specify student project software
+          environments.
+        </Radio>
+      </Radio.Group>
     );
   }
 
@@ -161,9 +237,7 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
       </p>
       {render_description()}
       {render_custom_info()}
-      <Button onClick={() => set_changing(true)} disabled={changing}>
-        Change...
-      </Button>
+      {render_inherit()}
       {render_controls()}
     </Card>
   );

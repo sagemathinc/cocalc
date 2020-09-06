@@ -22,6 +22,9 @@ Table({
     accounts_created: {
       type: "map",
     },
+    accounts_active: {
+      type: "map",
+    },
     files_opened: {
       type: "map",
     },
@@ -38,6 +41,9 @@ Table({
     hub_servers: {
       type: "array",
       pg_type: "JSONB[]",
+    },
+    running_projects: {
+      type: "map",
     },
   },
   rules: {

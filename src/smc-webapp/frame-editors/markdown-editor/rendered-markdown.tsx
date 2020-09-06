@@ -103,6 +103,18 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
+  function goto_source_line(event) {
+    let elt = event.target;
+    const line = elt.dataset?.sourceLine;
+    // TODO: if line is null could move around in DOM
+    // trying to find "closest" DOM node where not null;
+    // alternatively, improve the line number markdown plugin.
+    if (line != null) {
+      actions.programmatical_goto_line(line);
+      return;
+    }
+  }
+
   const value_md = apply_without_math(value, process_checkboxes);
   const style: CSS = {
     overflowY: "auto",
@@ -132,6 +144,8 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
     >
       <div style={style_inner}>
         <Markdown
+          line_numbers={true}
+          onDoubleClick={goto_source_line}
           value={value_md}
           project_id={project_id}
           file_path={path_split(path).head}

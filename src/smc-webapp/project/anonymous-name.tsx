@@ -53,7 +53,7 @@ const AnonymousNameInput: React.FC<Props> = React.memo(({ project_id }) => {
     </>
   );
   let mesg;
-  if ((project.get("users")?.size ?? 1) <= 1) {
+  if ((project?.get("users")?.size ?? 1) <= 1) {
     // no need to encourage a name -- they are alone.
     mesg = (
       <div>

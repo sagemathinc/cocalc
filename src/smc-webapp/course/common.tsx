@@ -30,6 +30,7 @@ import {
   ErrorDisplay,
   Icon,
   MarkdownInput,
+  Space,
   TimeAgo,
   Tip,
   is_different_date,
@@ -568,14 +569,15 @@ export class StudentAssignmentInfo extends Component<
   ): Rendered {
     const placement = name === "Return" ? "left" : "right";
     return (
-      <ButtonGroup key="open_recopy">
+      <div key="open_recopy">
         {this.render_open_recopy_confirm(name, copy, copy_tip, placement)}
+        <Space />
         <Button key="open" onClick={open}>
           <Tip title="Open assignment" placement={placement} tip={open_tip}>
             <Icon name="folder-open-o" /> Open
           </Tip>
         </Button>
-      </ButtonGroup>
+      </div>
     );
   }
 
@@ -623,7 +625,7 @@ export class StudentAssignmentInfo extends Component<
       error.indexOf("No such file or directory") !== -1 ||
       error.indexOf("ENOENT") != -1
     ) {
-      error = `The student probably renamed the directory that contained their assignment.  Open their project and see what happened.   If they renamed it, you could rename it back, then collect the assignment again.\n${error}`;
+      error = `The student might have renamed or deleted the directory that contained their assignment.  Open their project and see what happened.   If they renamed it, you could rename it back, then collect the assignment again.\n${error}`;
     } else {
       error = `Try to ${name.toLowerCase()} again:\n` + error;
     }
@@ -746,26 +748,15 @@ export class StudentAssignmentInfo extends Component<
     );
     const skip_collect: boolean = !!this.props.assignment.get("skip_collect");
     if (peer_grade) {
-      show_grade_col =
-        !skip_grading &&
-        this.props.info.last_peer_collect &&
-        !this.props.info.last_peer_collect.error;
+      show_grade_col = !skip_grading && this.props.info.last_peer_collect;
       show_return_graded =
-        this.props.grade ||
-        (skip_grading &&
-          this.props.info.last_peer_collect &&
-          !this.props.info.last_peer_collect.error);
+        this.props.grade || (skip_grading && this.props.info.last_peer_collect);
     } else {
       show_grade_col =
-        (!skip_grading &&
-          this.props.info.last_collect &&
-          !this.props.info.last_collect.error) ||
-        skip_collect;
+        (!skip_grading && this.props.info.last_collect) || skip_collect;
       show_return_graded =
         this.props.grade ||
-        (skip_grading &&
-          this.props.info.last_collect &&
-          !this.props.info.last_collect.error) ||
+        (skip_grading && this.props.info.last_collect) ||
         (skip_grading && skip_collect);
     }
 

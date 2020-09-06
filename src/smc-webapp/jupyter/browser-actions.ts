@@ -122,7 +122,7 @@ export class JupyterActions extends JupyterActions0 {
     }
   }
 
-  private activity() : void {
+  private activity(): void {
     this.redux.getProjectActions(this.project_id).flag_file_activity(this.path);
   }
 
@@ -453,6 +453,10 @@ export class JupyterActions extends JupyterActions0 {
     if (this.nbconvert_has_started()) {
       // can't run it while it is already running.
       throw Error("nbconvert is already running");
+    }
+    if (this.syncdb == null) {
+      console.warn("nbconvert: syncdb not available, aborting...");
+      return;
     }
     this.syncdb.set({
       type: "nbconvert",

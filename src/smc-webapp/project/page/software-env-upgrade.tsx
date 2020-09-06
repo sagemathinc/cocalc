@@ -3,7 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, redux, useTypedRedux, useStore } from "../../app-framework";
+import {
+  React,
+  redux,
+  useMemo,
+  useTypedRedux,
+  useState,
+  useStore,
+} from "../../app-framework";
 import {
   A,
   Icon,
@@ -16,6 +23,7 @@ import { ALERT_STYLE } from "../warnings/common";
 import { alert_message } from "../../alerts";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 import { Alert, Button } from "../../antd-bootstrap";
+import { CloseX } from "smc-webapp/r_misc";
 import { Space as AntdSpace } from "antd";
 import {
   FALLBACK_COMPUTE_IMAGE,
@@ -37,7 +45,7 @@ const DISMISS_IMG = "ubuntu1804";
 const TO_UPGRADE = [FALLBACK_COMPUTE_IMAGE, "previous", "exp"];
 
 function useComputeImage(project_id) {
-  const [compute_image, set_compute_image] = React.useState<string | undefined>(
+  const [compute_image, set_compute_image] = useState<string | undefined>(
     undefined
   );
   const project_map = useTypedRedux("projects", "project_map");
@@ -51,24 +59,22 @@ function useComputeImage(project_id) {
 export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
   project_id,
 }) => {
-  // if we're outside cocalc.com, this is not applicable
+  // if we're outside cocalc.com, this is not applicable. we can assume this value never changes.
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   if (customize_kucalc !== KUCALC_COCALC_COM) return null;
+  return <SoftwareEnvUpgradeAlert project_id={project_id} />;
+};
 
-  const [updating, set_updating] = React.useState(false);
+const SoftwareEnvUpgradeAlert: React.FC<{ project_id: string }> = ({
+  project_id,
+}) => {
+  const [updating, set_updating] = useState(false);
+  const [hide, set_hide] = useState(false);
   const compute_image = useComputeImage(project_id);
-  if (compute_image == null) return null;
-  if (TO_UPGRADE.indexOf(compute_image) == -1) return null;
+  const projects_store = useStore("projects");
 
   // don't tell students to update. Less surprises and let the teacher controls this…
-  const projects_store = useStore("projects");
   const is_student_project = projects_store.is_student_project(project_id);
-  if (is_student_project) return null;
-
-  // just a safety measure, before accessing .title
-  if (COMPUTE_IMAGES[compute_image] == null) return null;
-  const oldname = COMPUTE_IMAGES[compute_image].title;
-  const newname = COMPUTE_IMAGES[DEFAULT_COMPUTE_IMAGE].title;
 
   async function set_image(image: string) {
     set_updating(true);
@@ -90,20 +96,31 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
     } else {
       return (
         <AntdSpace>
-          <Button onClick={() => set_image(DISMISS_IMG)}>Dismiss</Button>
+          <Button onClick={() => set_image(DISMISS_IMG)}>Keep</Button>
           <Button
             onClick={() => set_image(DEFAULT_COMPUTE_IMAGE)}
             bsStyle={"primary"}
           >
             Upgrade
           </Button>
+          <CloseX on_close={() => set_hide(true)} />
         </AntdSpace>
       );
     }
   }
 
   // we only want to re-render if it is really necessary. the "project_map" changes quite often…
-  return React.useMemo(() => {
+  return useMemo(() => {
+    if (hide) return null;
+    if (compute_image == null) return null;
+    if (TO_UPGRADE.indexOf(compute_image) == -1) return null;
+    if (is_student_project) return null;
+
+    // just a safety measure, before accessing .title
+    if (COMPUTE_IMAGES[compute_image] == null) return null;
+    const oldname = COMPUTE_IMAGES[compute_image].title;
+    const newname = COMPUTE_IMAGES[DEFAULT_COMPUTE_IMAGE].title;
+
     return (
       <Alert bsStyle={"info"} style={UPGRADE_STYLE}>
         <div style={{ display: "flex" }}>
@@ -131,5 +148,5 @@ export const SoftwareEnvUpgrade: React.FC<{ project_id: string }> = ({
         </div>
       </Alert>
     );
-  }, [compute_image, updating]);
+  }, [compute_image, updating, hide]);
 };

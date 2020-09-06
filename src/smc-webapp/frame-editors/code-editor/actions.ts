@@ -371,7 +371,7 @@ export class Actions<
   }
 
   // Flag that there is activity (causes icon to turn orange).
-  private activity() : void {
+  private activity(): void {
     this._get_project_actions().flag_file_activity(this.path);
   }
 
@@ -980,7 +980,6 @@ export class Actions<
   // immutable.js before storing.  For example, this could be used
   // to save the scroll position of the editor.
   save_editor_state(id: string, new_editor_state?: any): void {
-    let left;
     if (this._state === "closed") {
       return;
     }
@@ -988,8 +987,7 @@ export class Actions<
     if (local == null) {
       return;
     }
-    let editor_state =
-      (left = local.get("editor_state")) != null ? left : Map();
+    let editor_state = local.get("editor_state") ?? Map();
     if (new_editor_state == null) {
       if (!editor_state.has(id)) {
         return;
@@ -1062,7 +1060,7 @@ export class Actions<
   // Delete trailing whitespace, avoiding any line that contains
   // a cursor.  Also, is a no-op if no actual codemirror editor
   // is initialized.
-  delete_trailing_whitespace(): void {
+  public delete_trailing_whitespace(): void {
     const cm = this._get_cm();
     if (cm == null) {
       return;

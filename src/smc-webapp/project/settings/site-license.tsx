@@ -13,6 +13,7 @@ import { Icon } from "../../r_misc";
 import { alert_message } from "../../alerts";
 import { SiteLicensePublicInfo } from "../../site-licenses/site-license-public-info";
 import { SiteLicenseInput } from "../../site-licenses/input";
+import { PurchaseOneLicenseLink } from "../../site-licenses/purchase";
 
 const { ShowSupportLink } = require("../../support");
 
@@ -106,6 +107,11 @@ export class SiteLicense extends Component<Props, State> {
           <Icon name="key" /> Upgrade using a license key...
         </Button>
         {this.render_site_license_text()}
+        <br />
+        <br />
+        <span style={{ fontSize: "13pt" }}>
+          <PurchaseOneLicenseLink />
+        </span>
       </div>
     );
   }

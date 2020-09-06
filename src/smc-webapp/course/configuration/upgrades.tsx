@@ -25,6 +25,7 @@ import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
 import { SiteLicensePublicInfo } from "../../site-licenses/site-license-public-info";
 import { SiteLicenseInput } from "../../site-licenses/input";
+import { PurchaseOneLicenseLink } from "../../site-licenses/purchase";
 
 const { ShowSupportLink } = require("../../support");
 
@@ -649,6 +650,11 @@ class StudentProjectUpgrades extends Component<
           </Button>
         )}
         {this.render_site_license_text()}
+        <br />
+        <br/>
+        <div style={{ fontSize: "13pt" }}>
+          <PurchaseOneLicenseLink />
+        </div>
       </div>
     );
   }
@@ -676,11 +682,11 @@ class StudentProjectUpgrades extends Component<
   render_details() {
     return (
       <div>
+        {this.render_site_license()}
+        <hr />
         {this.state.upgrade_quotas
           ? this.render_upgrade_quotas()
           : this.render_upgrade_quotas_button()}
-        <hr />
-        {this.render_site_license()}
         <hr />
         <div style={{ color: "#666" }}>
           <p>

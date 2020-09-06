@@ -365,25 +365,20 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   // Clear output in the list of cell id's.
+  // NOTE: clearing output *is* allowed for non-editable cells, since the definition
+  // of editable is that the *input* is editable.
+  // See https://github.com/sagemathinc/cocalc/issues/4805
   public clear_outputs(cell_ids: string[], save: boolean = true): void {
     const cells = this.store.get("cells");
     if (cells == null) return; // nothing to do
-    let not_editable: number = 0;
     for (const id of cell_ids) {
       const cell = cells.get(id);
-      if (!this.store.is_cell_editable(id)) {
-        not_editable += 1;
-        continue;
-      }
       if (cell.get("output") != null || cell.get("exec_count")) {
         this._set({ type: "cell", id, output: null, exec_count: null }, false);
       }
     }
     if (save) {
       this._sync();
-    }
-    if (not_editable > 0) {
-      this.show_not_editable_error(not_editable);
     }
   }
 

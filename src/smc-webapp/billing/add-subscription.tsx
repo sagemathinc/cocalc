@@ -23,6 +23,7 @@ import { powered_by_stripe } from "./util";
 import { ExplainResources } from "./explain-resources";
 import { SubscriptionGrid } from "./subscription-grid";
 import { CouponAdder } from "./coupon-adder";
+const { HelpEmailLink } = require("../customize");
 
 interface Props {
   on_close: Function;
@@ -147,7 +148,46 @@ export class AddSubscription extends Component<Props, State> {
     }
   }
 
+  private is_deprecated(): boolean {
+    // dumb code since we'll just delete it soon anyways.
+    return (
+      this.state.selected_button == "week" ||
+      this.state.selected_button == "month4" ||
+      this.state.selected_button == "year1"
+    );
+  }
+
   private render_subscription_grid(): Rendered {
+    if (this.is_deprecated()) {
+      return (
+        <Well
+          style={{
+            fontSize: "12pt",
+            background: "white",
+            margin: "auto",
+            maxWidth: "800px",
+          }}
+        >
+          Please{" "}
+          <a
+            onClick={() => {
+              redux
+                .getActions("billing")
+                ?.setState({ subscription_list_state: "buy_license" });
+            }}
+          >
+            purchase one of our new much more flexible licenses instead.
+          </a>{" "}
+          The new licenses let you specify exactly how many students you have,
+          when the course starts and ends, and how much memory, disk space, and
+          cpu each student gets.
+          <br />
+          <br />
+          If for some reason you need to purchase one of the old course package,
+          please contact <HelpEmailLink />.
+        </Well>
+      );
+    }
     return (
       <SubscriptionGrid
         periods={[this.state.selected_button]}
@@ -243,6 +283,7 @@ export class AddSubscription extends Component<Props, State> {
   }
 
   private render_create_subscription_buttons(): Rendered {
+    if (this.is_deprecated()) return;
     return (
       <Row>
         <Col sm={4}>{powered_by_stripe()}</Col>
