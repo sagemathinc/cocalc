@@ -27,7 +27,7 @@ init_buttonbars();
 import { redux } from "./app-framework";
 
 // Initialize server stats redux store
-require("./redux_server_stats");
+import "./server-stats";
 
 // Systemwide notifications that are broadcast to all users (and set by admins)
 import "./system-notifications";
