@@ -2096,7 +2096,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return s;
   }
 
-  create_folder(opts) {
+  async create_folder(opts: {
+    name: string;
+    current_path?: string;
+    switch_over?: boolean;
+  }): Promise<void> {
     let p;
     opts = defaults(opts, {
       name: required,
@@ -2114,20 +2118,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.setState({ file_creation_error: e.message });
       return;
     }
-    return project_tasks(this.project_id).ensure_directory_exists({
-      path: p,
-      cb: (err) => {
-        if (err) {
-          this.setState({
-            file_creation_error: `Error creating directory '${p}' -- ${err}`,
-          });
-        } else if (switch_over) {
-          this.open_directory(p);
-        } else {
-          this.fetch_directory_listing();
-        }
-      },
-    });
+    try {
+      await this.ensure_directory_exists(p);
+    } catch (err) {
+      this.setState({
+        file_creation_error: `Error creating directory '${p}' -- ${err}`,
+      });
+      return;
+    }
+    if (switch_over) {
+      this.open_directory(p);
+    } else {
+      this.fetch_directory_listing();
+    }
   }
 
   async create_file(opts) {
@@ -2630,5 +2633,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const a = store.get("active_project_tab");
     if (!startswith(a, "editor-")) return;
     this.hide_file(misc.tab_to_path(a));
+  }
+
+  async ensure_directory_exists(path: string): Promise<void> {
+    await webapp_client.exec({
+      project_id: this.project_id,
+      command: "mkdir",
+      args: ["-p", path],
+    });
   }
 }

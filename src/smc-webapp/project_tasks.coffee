@@ -34,25 +34,6 @@ class ProjectTasks
             cb          : (err) ->
                 opts.cb?(err)
 
-    # makes sure that the given directory opts.path exists
-    ensure_directory_exists: (opts) =>
-        opts = defaults opts,
-            path  : required
-            cb    : undefined  # cb(true or false)
-            alert : true
-        webapp_client.exec
-            project_id : @project_id
-            command    : "mkdir"
-            timeout    : 15
-            args       : ['-p', opts.path]
-            cb         : (err, result) =>
-                if opts.alert
-                    if err
-                        alert_message(type:"error", message:err)
-                    else if result.event == 'error'
-                        alert_message(type:"error", message:result.error)
-                opts.cb?(err or result.event == 'error')
-
     # returns the full URL path to the file (not the "raw" server)
     url_fullpath: (path) ->
         {join} = require('path')
