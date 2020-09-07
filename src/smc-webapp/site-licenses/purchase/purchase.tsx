@@ -355,7 +355,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               icon: "calendar-times-o",
               label: "Start and end dates",
               desc:
-                "pay for a specific period of time (as short as one day and as long as 2 years).  Licenses start at 0:00 in your local timezone on the start date and end at 23:59 your local time zpone on the ending date.",
+                "pay for a specific period of time (as short as one day and as long as 2 years).  Licenses start at 0:00 in your local timezone on the start date and end at 23:59 your local time zone on the ending date.",
               value: "no",
             },
           ]}
