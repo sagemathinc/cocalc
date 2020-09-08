@@ -49,6 +49,7 @@ export interface MainCapabilities {
   spellcheck: boolean;
   library: boolean;
   sshd: boolean;
+  html2pdf: boolean; // via chrome/chromium
 }
 
 export interface Available {
@@ -61,12 +62,13 @@ export interface Available {
   rmd: boolean; // TODO besides R, what's necessary?
   spellcheck: boolean;
   library: boolean;
+  html2pdf: boolean;
   formatting: Capabilities | boolean;
 }
 
 export type AvailableFeatures = TypedMap<Available>;
 
-const NO_AVAIL: Readonly<Available> = Object.freeze({
+const NO_AVAIL: Readonly<Available> = {
   jupyter_lab: false,
   jupyter_notebook: false,
   jupyter: false,
@@ -77,9 +79,10 @@ const NO_AVAIL: Readonly<Available> = Object.freeze({
   spellcheck: false,
   library: false,
   formatting: false,
-});
+  html2pdf: false,
+} as const;
 
-export const ALL_AVAIL: Readonly<Available> = Object.freeze({
+export const ALL_AVAIL: Readonly<Available> = {
   jupyter_lab: true,
   jupyter_notebook: true,
   jupyter: true,
@@ -90,7 +93,8 @@ export const ALL_AVAIL: Readonly<Available> = Object.freeze({
   spellcheck: true,
   library: true,
   formatting: true,
-});
+  html2pdf: true,
+} as const;
 
 // detecting certain datastructures, only used for TS typing
 function isMainCapabilities(
@@ -185,6 +189,7 @@ export function is_available(configuration?: ProjectConfiguration): Available {
       x11: !!capabilities.x11,
       spellcheck: !!capabilities.spellcheck,
       library: !!capabilities.library,
+      html2pdf: capabilities.html2pdf ?? true,
       formatting,
     };
   } else {
