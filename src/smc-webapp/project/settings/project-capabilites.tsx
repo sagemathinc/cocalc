@@ -60,6 +60,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
         ["library", "Library of documents"],
         ["x11", "Graphical applications"],
         ["latex", "LaTeX editor"],
+        ["html2pdf", "HTML to PDF via Chrome/Chromium"],
       ];
       const features: JSX.Element[] = [];
       let any_nonavail = false;
