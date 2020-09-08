@@ -1673,11 +1673,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         cb("no store");
         return;
       }
-      if (
-        (store.get("library") != null
-          ? store.get("library").get(k)
-          : undefined) != null
-      ) {
+      if (store.get("library")?.get(k) != null) {
         cb("already done");
         return;
       }
@@ -1698,8 +1694,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
               return;
             }
             let library = store.get("library");
-            library = library.set(k, output.exit_code === 0);
-            this.setState({ library });
+            if (library != null) {
+              library = library.set(k, output.exit_code === 0);
+              this.setState({ library });
+            }
           }
           return cb(err);
         },
@@ -1720,7 +1718,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       if (store == undefined) {
         return;
       }
-      library = store.get("library").set("examples", data);
+      library = store.get("library")?.set("examples", data);
       this.setState({ library });
       return;
     }
@@ -1753,7 +1751,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             cb("no store");
             return;
           }
-          library = store.get("library").set("examples", data);
+          library = store.get("library")?.set("examples", data);
           this.setState({ library });
           _init_library_index_cache[this.project_id] = data;
           cb();
