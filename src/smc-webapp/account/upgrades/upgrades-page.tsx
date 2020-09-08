@@ -95,7 +95,10 @@ class UpgradesPage extends Component<reduxProps> {
   private render_upgrade(param, amount, used, darker): JSX.Element {
     const info = PROJECT_UPGRADES.params[param];
     const n = round1(amount != null ? info.display_factor * amount : 0);
-    const u = round1(used != null ? info.display_factor * used : 0);
+    let u = round1(used != null ? info.display_factor * used : 0);
+    if (u > n) {
+      u = n;
+    }
     const percent_used = Math.round((u / n) * 100);
     return (
       <Row key={param} style={darker ? { backgroundColor: "#eee" } : undefined}>
