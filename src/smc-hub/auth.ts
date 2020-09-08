@@ -34,6 +34,7 @@
 // Then restart the hubs.
 
 import { Router } from "express";
+import * as ms from "ms";
 import { callback2 as cb2 } from "../smc-util/async-utils";
 import * as debug from "debug";
 const LOG = debug("hub:auth");
@@ -516,6 +517,27 @@ class PassportManager {
         res.send(email_verified_successfully(url));
       } catch (err) {
         res.send(email_verification_problem(url, err));
+      }
+    });
+
+    // reset password: user email link contains a token, which we store in a session cookie.
+    // this prevents leaking that token to 3rd parties as a referrer
+    // endpoint has to match with smc-hub/password
+    this.router.get(`${AUTH_BASE}/password_reset`, (req, res) => {
+      if (typeof req.query.token !== "string") {
+        res.send("ERROR: reset token must be set");
+      } else {
+        const token = req.query.token.toLowerCase();
+        const cookies = new Cookies(req, res);
+        // to match smc-webapp/client/password-reset
+        const name = encodeURIComponent(`${this.base_url}PWRESET`);
+        cookies.set(name, token, {
+          maxAge: ms("5 minutes"),
+          secure: true,
+          overwrite: true,
+          httpOnly: false,
+        });
+        res.redirect("../app");
       }
     });
 

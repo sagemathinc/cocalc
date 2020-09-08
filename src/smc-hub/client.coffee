@@ -51,6 +51,8 @@ underscore = require('underscore')
 
 {SENDGRID_ASM_INVITES} = require('smc-util/theme')
 
+{PW_RESET_ENDPOINT, PW_RESET_KEY} = require('./password')
+
 DEBUG2 = !!process.env.SMC_DEBUG2
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
@@ -2171,7 +2173,7 @@ class exports.Client extends EventEmitter
             # as admins send one manually, they typically need more time, so 1 day instead.
             # We used 8 hours for a while and it is often not enough time.
             id = await callback2(@database.set_password_reset, {email_address : mesg.email_address, ttl:24*60*60});
-            mesg.link = "/app?forgot=#{id}"
+            mesg.link = "#{PW_RESET_ENDPOINT}?#{PW_RESET_KEY}=#{id}"
             @push_to_client(mesg)
         catch err
             dbg("failed -- #{err}")
