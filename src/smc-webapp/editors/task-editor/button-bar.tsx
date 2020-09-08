@@ -65,7 +65,7 @@ export const ButtonBar: React.FC<Props> = React.memo(
           {spacer}
           <ButtonGroup>
             <Button key="font-increase" onClick={actions.export_to_markdown}>
-              <Icon name="external-link-square" /> Export...
+              <Icon name="external-link-square" /> Export
             </Button>
           </ButtonGroup>
         </span>

@@ -39,24 +39,8 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
     const user_map = useTypedRedux("users", "user_map");
     const account_id = useTypedRedux("account", "account_id");
     const sorted_dates = useMemo<string[]>(() => {
-      // WARNING: This code is technically wrong since the keys are the string
-      // representations of ms since epoch.  However, it won't fail until over
-      // 200 years from now, so we leave it to future generations to worry about.
-      let m = messages;
-      if (m == null) return [];
-      if (search) {
-        const search_terms = search_split(search.toLowerCase());
-        m = m.filter((message) => search_matches(message, search_terms));
-      }
-      return m.keySeq().sort().toJS();
+      return get_sorted_dates(messages, search);
     }, [messages, search, project_id, path]);
-
-    function get_user_name(account_id: string): string {
-      if (user_map == null) return "Unknown";
-      const account = user_map.get(account_id);
-      if (account == null) return "Unknown";
-      return account.get("first_name", "") + " " + account.get("last_name", "");
-    }
 
     // Given the date of the message as an ISO string, return rendered version.
     function render_message(date: string, i: number): JSX.Element | undefined {
@@ -78,7 +62,7 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
             show_heads && !is_next_message_sender(i, sorted_dates, messages)
           }
           include_avatar_col={show_heads}
-          get_user_name={get_user_name}
+          get_user_name={(account_id) => get_user_name(user_map, account_id)}
           scroll_into_view={() => windowed_list_ref?.current?.scrollToRow(i)}
         />
       );
@@ -183,4 +167,24 @@ function search_matches(message: MessageMap, search_terms: string[]): boolean {
   const first = message.get("history", List()).first();
   if (first == null) return false;
   return search_match(first.get("content", "").toLowerCase(), search_terms);
+}
+
+export function get_sorted_dates(messages, search) {
+  // WARNING: This code is technically wrong since the keys are the string
+  // representations of ms since epoch.  However, it won't fail until over
+  // 200 years from now, so we leave it to future generations to worry about.
+  let m = messages;
+  if (m == null) return [];
+  if (search) {
+    const search_terms = search_split(search.toLowerCase());
+    m = m.filter((message) => search_matches(message, search_terms));
+  }
+  return m.keySeq().sort().toJS();
+}
+
+export function get_user_name(user_map, account_id: string): string {
+  if (user_map == null) return "Unknown";
+  const account = user_map.get(account_id);
+  if (account == null) return "Unknown";
+  return account.get("first_name", "") + " " + account.get("last_name", "");
 }

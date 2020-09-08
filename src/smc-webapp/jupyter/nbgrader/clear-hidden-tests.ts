@@ -71,3 +71,30 @@ export function clear_hidden_tests(cell: Map<string, any>): Map<string, any> {
   const input2: string | undefined = replace_hidden_tests_region(input);
   return input2 != null ? cell.set("input", input2) : cell;
 }
+
+/* Mutate the ipynb JSON object to remove hidden tests from the input *and* ouptut of cells.
+   This is done before returning work to students but after grading.
+*/
+export function ipynb_clear_hidden_tests(ipynb: object): void {
+  const cells = ipynb["cells"];
+  if (cells == null) return;
+  for (const cell of cells) {
+    const source = cell["source"];
+    if (source == null) continue;
+    const r = replace_hidden_tests_region(source.join(""));
+    if (r == null) continue; // no hidden tests here
+    cell["source"] = r.split("\n").map((line) => line + "\n");
+    // Tracebacks, etc., in output might also expose hidden tests, so we remove those.
+    const outputs = cell["outputs"];
+    if (outputs == null) continue;
+    cell["outputs"] = outputs.map((x) =>
+      JSON.stringify(x).indexOf(begin_hidden_tests_delimiter) == -1
+        ? x
+        : {
+            name: "stderr",
+            output_type: "stream",
+            text: ["A HIDDEN TEST failed"],
+          }
+    );
+  }
+}

@@ -11,6 +11,8 @@ import { user_tracking } from "../user-tracking";
 import { Actions } from "../app-framework";
 import { webapp_client } from "../webapp-client";
 import { ChatState, ChatStore } from "./store";
+import { get_sorted_dates } from "./chat-log";
+import { message_to_markdown } from "./message";
 
 export class ChatActions extends Actions<ChatState> {
   private syncdb?: SyncDB;
@@ -233,7 +235,31 @@ export class ChatActions extends Actions<ChatState> {
   // Scan through all messages and figure out what hashtags are used.
   // Of course, at some point we should try to use efficient algorithms
   // to make this faster incrementally.
-  public update_hashtags() : void {
-    
+  public update_hashtags(): void {}
+
+  // Exports the currently visible chats to a markdown file and opens it.
+  public async export_to_markdown(): Promise<void> {
+    if (!this.store) return;
+    const messages = this.store.get("messages");
+    if (messages == null) return;
+    const path = this.store.get("path") + ".md";
+    const project_id = this.store.get("project_id");
+    if (project_id == null) return;
+    const sorted_dates = get_sorted_dates(messages, this.store.get("search"));
+    const v: string[] = [];
+    for (const date of sorted_dates) {
+      const message = messages.get(date);
+      if (message == null) continue;
+      v.push(message_to_markdown(message));
+    }
+    const content = v.join("\n\n---\n\n");
+    await webapp_client.project_client.write_text_file({
+      project_id,
+      path,
+      content,
+    });
+    this.redux
+      .getProjectActions(project_id)
+      .open_file({ path, foreground: true });
   }
 }

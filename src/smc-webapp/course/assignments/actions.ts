@@ -41,6 +41,7 @@ import {
 import { map } from "awaiting";
 
 import { nbgrader, jupyter_strip_notebook } from "../../jupyter/nbgrader/api";
+import { ipynb_clear_hidden_tests } from "../../jupyter/nbgrader/clear-hidden-tests";
 import {
   extract_auto_scores,
   NotebookScores,
@@ -1428,14 +1429,14 @@ ${details}
         assignment_id,
         student_id,
         instructor_ipynb_files,
-        false
+        true
       );
     };
     try {
       this.nbgrader_set_is_running(assignment_id);
       await map(
         this.get_store().get_student_ids({ deleted: false }),
-        PARALLEL_LIMIT,
+        1, // TODO: not actually in parallel for now; I had trouble with it in parallel
         one_student
       );
       this.course_actions.syncdb.commit();
@@ -1578,6 +1579,11 @@ ${details}
       "nbgrader_grade_in_instructor_project",
     ]);
 
+    const nbgrader_include_hidden_tests: boolean = !!store.getIn([
+      "settings",
+      "nbgrader_include_hidden_tests",
+    ]);
+
     const course_project_id = store.get("course_project_id");
 
     let grade_project_id: string;
@@ -1665,11 +1671,11 @@ ${details}
           path: student_path,
           project_id: grade_project_id,
         });
-        /* console.log("nbgrader finished successfully", {
+        /*console.log("nbgrader finished successfully", {
           student_id,
           file,
-          r
-        }); */
+          r,
+        });*/
         result[file] = r;
       } catch (err) {
         // console.log("nbgrader failed", { student_id, file, err });
@@ -1709,14 +1715,6 @@ ${details}
       // Depending on instructor options, write the graded version of
       // the notebook to disk, so the student can see why their grade
       // is what it is:
-
-      await this.write_autograded_notebook(
-        assignment,
-        student_id,
-        filename,
-        r.output
-      );
-
       const notebook = JSON.parse(r.output);
       scores[filename] = extract_auto_scores(notebook);
       if (
@@ -1732,6 +1730,20 @@ ${details}
           }
         }
       }
+
+      if (!nbgrader_include_hidden_tests) {
+        // IMPORTANT: this *must* happen after extracting scores above!
+        // Otherwise students get perfect grades.
+        ipynb_clear_hidden_tests(notebook);
+      }
+
+      await this.write_autograded_notebook(
+        assignment,
+        student_id,
+        filename,
+        JSON.stringify(notebook, undefined, 2)
+      );
+
     }
 
     this.set_nbgrader_scores_for_one_student(

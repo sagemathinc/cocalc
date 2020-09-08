@@ -27,7 +27,6 @@ _ = underscore = require('underscore')
 {webapp_client} = require('./webapp-client')
 {EventEmitter}  = require('events')
 {alert_message} = require('./alerts')
-{project_tasks} = require('./project_tasks')
 
 feature = require('./feature')
 IS_MOBILE = feature.IS_MOBILE
@@ -49,6 +48,8 @@ require('./console')
 syncdoc  = require('./syncdoc')
 sagews   = require('./sagews/sagews')
 printing = require('./printing')
+
+{file_nonzero_size} = require('./project/utils')
 
 {render_snippets_dialog} = require('./assistant/legacy')
 
@@ -1143,16 +1144,13 @@ class CodeMirrorEditor extends FileEditor
                     if is_subdir or not pdf?
                         cb(); return
                     # does the pdf file exist?
-                    project_tasks(@project_id).file_nonzero_size
-                        path    : pdf
-                        cb      : (err) =>
-                            if err
-                                err_msg = 'Unable to convert file to PDF. '
-                                if not is_subdir
-                                    err_msg += "Enable 'Keep generated files in a sub-directory...' and check for Latex errors."
-                                cb(err_msg)
-                            else
-                                cb()
+                    if not await file_nonzero_size(@project_id, pdf)
+                        err_msg = 'Unable to convert file to PDF. '
+                        if not is_subdir
+                            err_msg += "Enable 'Keep generated files in a sub-directory...' and check for Latex errors."
+                        cb(err_msg)
+                    else
+                        cb()
                 (cb) =>
                     if is_subdir or not pdf?
                         cb(); return
@@ -1168,22 +1166,19 @@ class CodeMirrorEditor extends FileEditor
                     {join} = require('path')
                     subdir_texfile = join(p.head, "#{base}-sagews2pdf", "tmp.tex")
                     # check if generated tmp.tex exists and has nonzero size
-                    project_tasks(@project_id).file_nonzero_size
-                        path    : subdir_texfile
-                        cb      : (err) =>
-                            if err
-                                cb('Unable to create directory of temporary Latex files.')
-                            else
-                                tempdir_link = $('<a>').text('Click to open temporary file')
-                                tempdir_link.click =>
-                                    redux.getProjectActions(@project_id).open_file
-                                        path       : subdir_texfile
-                                        foreground : true
-                                    dialog.modal('hide')
-                                    return false
-                                $print_tempdir.html(tempdir_link)
-                                $print_tempdir.show()
-                                cb()
+                    if not await file_nonzero_size(@project_id, subdir_texfile)
+                        cb('Unable to create directory of temporary Latex files.')
+                    else
+                        tempdir_link = $('<a>').text('Click to open temporary file')
+                        tempdir_link.click =>
+                            redux.getProjectActions(@project_id).open_file
+                                path       : subdir_texfile
+                                foreground : true
+                            dialog.modal('hide')
+                            return false
+                        $print_tempdir.html(tempdir_link)
+                        $print_tempdir.show()
+                        cb()
                 (cb) =>
                     # if there is no subdirectory of temporary files, print generated pdf file
                     if not is_subdir

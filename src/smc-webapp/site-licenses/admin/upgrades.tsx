@@ -94,7 +94,6 @@ interface EditProps {
   license_id: string;
   license_field: license_field_names;
   upgrades: undefined | Map<string, number | string>;
-  onChange: Function;
 }
 
 export class EditUpgrades extends Component<EditProps> {

@@ -22,6 +22,9 @@ Table({
     accounts_created: {
       type: "map",
     },
+    accounts_active: {
+      type: "map",
+    },
     files_opened: {
       type: "map",
     },

@@ -202,7 +202,9 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
   private render_error(name: string): Rendered {
     if (!this.props.error) return;
     return (
-      <div style={{ margin: "5px 15px" }}>
+      <div
+        style={{ margin: "5px 15px", maxHeight: "30vh", overflowY: "scroll" }}
+      >
         <ErrorDisplay
           error={this.props.error}
           onClose={() => {

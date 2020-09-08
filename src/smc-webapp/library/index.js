@@ -3,5 +3,4 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export { PurchaseOneLicense } from "./purchase";
-export { PurchaseOneLicenseLink } from "./link";
+export { Library } from "./component";

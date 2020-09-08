@@ -320,7 +320,6 @@ export class CodemirrorEditor extends Component<Props, State> {
       this.init_new_codemirror();
     }
 
-    // (window as any).cm = this.cm;
     if (props.editor_state != null) {
       codemirror_state.set_state(this.cm, props.editor_state.toJS() as any);
     }

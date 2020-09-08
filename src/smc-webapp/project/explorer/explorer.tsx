@@ -45,7 +45,7 @@ const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
 import { FileUploadWrapper } from "../../file-upload";
 import { ProjectNewForm } from "../new";
-const { Library } = require("../../library");
+import { Library } from "../../library";
 import { webapp_client } from "../../webapp-client";
 import { UsersViewing } from "../../account/avatar/users-viewing";
 
@@ -353,9 +353,7 @@ export const Explorer = rclass(
             >
               <Library
                 project_id={this.props.project_id}
-                name={this.props.name}
-                actions={this.props.actions}
-                close={() => this.props.actions.toggle_library(false)}
+                onClose={() => this.props.actions.toggle_library(false)}
               />
             </SettingBox>
           </Col>
@@ -900,7 +898,6 @@ export const Explorer = rclass(
               display: "flex",
               flexDirection: "column",
               padding: "0 5px 5px 5px",
-              minHeight: "400px",
             }}
           >
             {public_view && !directory_error

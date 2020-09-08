@@ -132,69 +132,66 @@ export class ExportActions {
     this.write_file(this.path("csv", "grades"), content);
   }
 
-  public async to_py(): Promise<void> {
-    /*
-        example:
-        course = 'title'
-        exported = 'iso date'
-        assignments = ['Assignment 1', 'Assignment 2']
-        students=[
-            {'name':'Foo Bar', 'email': 'foo@bar.com', 'grades':[85,37], 'comments':['Good job', 'Not as good as assignment one :(']},
-            {'name':'Bar None', 'email': 'bar@school.edu', 'grades':[15,50], 'comments':['some_comments','Better!']},
-        ]
-        */
-    let assignment;
-    const timestamp = webapp_client.server_time().toISOString();
+  private export_grades(): object {
+    const obj: any = {};
     const store = this.get_store();
     const assignments = store.get_sorted_assignments();
-    let content = `course = '${store.getIn(["settings", "title"])}'\n`;
-    content += `exported = '${timestamp}'\n`;
-    content += "assignments = [";
-    content +=
-      (() => {
-        const result: any[] = [];
-        for (assignment of assignments) {
-          result.push(`'${assignment.get("path")}'`);
-        }
-        return result;
-      })().join(",") + "]\n";
-
-    content += "students = [\n";
-
+    obj.course = store.getIn(["settings", "title"]);
+    obj.exported = webapp_client.server_time().toISOString();
+    obj.assignments = [] as string[];
+    for (const assignment of assignments) {
+      obj.assignments.push(assignment.get("path"));
+    }
+    const students: any[] = [];
     for (const student of store.get_sorted_students()) {
       const student_id = student.get("student_id");
-      let grades = (() => {
-        const result1: any[] = [];
-        for (assignment of assignments) {
-          const assignment_id = assignment.get("assignment_id");
-          const grade = store
-            .get_grade(assignment_id, student_id)
-            .replace(/'/g, "\\'")
-            .replace(/\n/g, "\\n");
-          result1.push("'" + grade + "'");
+      const grades: string[] = [];
+      for (const assignment of assignments) {
+        const assignment_id = assignment.get("assignment_id");
+        const grade = store.get_grade(assignment_id, student_id);
+        grades.push(grade);
+      }
+      const comments: string[] = [];
+      for (const assignment of assignments) {
+        const assignment_id = assignment.get("assignment_id");
+        const comment = store.get_comments(assignment_id, student_id);
+        comments.push(comment);
+      }
+      const nbgrader: any[] = [];
+      for (const assignment of assignments) {
+        const x =
+          assignment.getIn(["nbgrader_scores", student_id])?.toJS() ?? {};
+        for (const path in x) {
+          for (const id in x[path]) {
+            const entry = x[path][id];
+            delete entry.manual;
+          }
         }
-        return result1;
-      })().join(",");
-      let comments = (() => {
-        const result2: any[] = [];
-        for (assignment of assignments) {
-          const assignment_id = assignment.get("assignment_id");
-          const comment = store
-            .get_comments(assignment_id, student_id)
-            .replace(/'/g, "\\'")
-            .replace(/\n/g, "\\n");
-          result2.push("'" + comment + "'");
-        }
-        return result2;
-      })().join(",");
+        nbgrader.push(x);
+      }
       const name = store.get_student_name(student_id);
-      let email = store.get_student_email(student_id);
-      email = email != null ? `'${email}'` : "None";
+      let email = store.get_student_email(student_id) ?? "None";
       const id = student.get("student_id");
-      const line = `    {'name':'${name}', 'id':'${id}', 'email':${email}, 'grades':[${grades}], 'comments':[${comments}]},`;
-      content += line + "\n";
+      students.push({ name, id, email, grades, nbgrader, comments });
     }
-    content += "]\n";
+    obj.students = students;
+    return obj;
+  }
+
+  public async to_json(): Promise<void> {
+    const obj = this.export_grades();
+    this.write_file(
+      this.path("json", "grades"),
+      JSON.stringify(obj, undefined, 2)
+    );
+  }
+
+  public async to_py(): Promise<void> {
+    const obj = this.export_grades();
+    let content = "";
+    for (const key in obj) {
+      content += `${key} = ${JSON.stringify(obj[key], undefined, 2)}\n`;
+    }
     this.write_file(this.path("py", "grades"), content);
   }
 

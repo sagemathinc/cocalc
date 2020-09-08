@@ -31,6 +31,31 @@ const OPTIONS: MarkdownIt.Options = {
 const markdown_it = new MarkdownIt(OPTIONS);
 
 /*
+Inject line numbers for sync.
+ - We track only headings and paragraphs, at any level.
+ - TODO Footnotes content causes jumps. Level limit filters it automatically.
+
+See https://github.com/digitalmoksha/markdown-it-inject-linenumbers/blob/master/index.js
+*/
+function inject_linenumbers_plugin(md) {
+  function injectLineNumbers(tokens, idx, options, env, slf) {
+    if (tokens[idx].map) {
+      const line = tokens[idx].map[0];
+      tokens[idx].attrJoin("class", "source-line");
+      tokens[idx].attrSet("data-source-line", String(line));
+    }
+    return slf.renderToken(tokens, idx, options, env, slf);
+  }
+
+  md.renderer.rules.paragraph_open = injectLineNumbers;
+  md.renderer.rules.heading_open = injectLineNumbers;
+  md.renderer.rules.list_item_open = injectLineNumbers;
+  md.renderer.rules.table_open = injectLineNumbers;
+}
+const markdown_it_line_numbers = new MarkdownIt(OPTIONS);
+markdown_it_line_numbers.use(inject_linenumbers_plugin);
+
+/*
 Turn the given markdown *string* into an HTML *string*.
 We heuristically try to remove and put back the math via
 remove_math, so that checkboxes and markdown itself don't
@@ -53,7 +78,8 @@ export interface MD2html {
 
 function process(
   markdown_string: string,
-  mode: "default" | "frontmatter"
+  mode: "default" | "frontmatter",
+  options?: { line_numbers?: boolean }
 ): MD2html {
   let text: string;
   let math: string[];
@@ -77,7 +103,11 @@ function process(
     );
     html = md_frontmatter.render(text);
   } else {
-    html = markdown_it.render(text);
+    if (options?.line_numbers) {
+      html = markdown_it_line_numbers.render(text);
+    } else {
+      html = markdown_it.render(text);
+    }
   }
 
   // console.log(3, JSON.stringify(html));
@@ -93,6 +123,9 @@ export function markdown_to_html_frontmatter(s: string): MD2html {
   return process(s, "frontmatter");
 }
 
-export function markdown_to_html(s: string): string {
-  return process(s, "default").html;
+export function markdown_to_html(
+  s: string,
+  options?: { line_numbers?: boolean }
+): string {
+  return process(s, "default", options).html;
 }

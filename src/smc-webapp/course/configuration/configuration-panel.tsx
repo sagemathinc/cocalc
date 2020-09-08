@@ -143,6 +143,10 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
       await actions.export.to_py();
     }
 
+    async function save_grades_to_json() {
+      await actions.export.to_json();
+    }
+
     function render_save_grades() {
       return (
         <Card title={render_grades_header()}>
@@ -150,6 +154,9 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
           <ButtonGroup>
             <Button onClick={save_grades_to_csv}>
               <Icon name="file-text-o" /> CSV file...
+            </Button>
+            <Button onClick={save_grades_to_json}>
+              <Icon name="file-code-o" /> JSON file...
             </Button>
             <Button onClick={save_grades_to_py}>
               <Icon name="file-code-o" /> Python file...
@@ -643,6 +650,8 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             <StudentProjectSoftwareEnvironment
               actions={actions.configuration}
               software_image={settings.get("custom_image")}
+              course_project_id={project_id}
+              inherit_compute_image={settings.get("inherit_compute_image")}
             />
           </Col>
         </Row>

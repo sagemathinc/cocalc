@@ -11,7 +11,7 @@ async           = require('async')
 misc            = require('smc-util/misc')
 {webapp_client} = require('./webapp-client')
 {redux}         = require('./app-framework')
-{project_tasks} = require('./project_tasks')
+{file_nonzero_size, url_fullpath} = require('./project/utils')
 markdown        = require('./markdown')
 
 # abstract class
@@ -27,16 +27,13 @@ class Printer
 
     show_print_new_tab : (cb) ->
         # if the output file exists and has nonzero size, we open it in a new tab and print it
-        project_tasks(@project_id).file_nonzero_size
-            path        : @output_file
-            cb          : (err) =>
-                if err
-                    cb?('Generated file for printing does not exist.')
-                else
-                    redux.getProjectActions(@project_id).download_file
-                        path : @output_file
-                        print: true
-                    cb?()
+        if await file_nonzero_size(@project_id, @output_file)
+            redux.getProjectActions(@project_id).download_file
+                path : @output_file
+                print: true
+            cb?()
+        else
+            cb?('Generated file for printing does not exist.')
 
 class PandocPrinter extends Printer
     @supported : ['md', 'html', 'htm', 'rst', 'wiki', 'mediawiki', 'txt'] # , 'csv']
@@ -582,7 +579,7 @@ class SagewsPrinter extends Printer
                 cb?('Unable to download and serialize the Sage Worksheet.')
                 return
 
-            file_url = project_tasks(@editor.project_id).url_fullpath(@editor.filename)
+            file_url = url_fullpath(@editor.project_id, @editor.filename)
             content = @generate_html
                 title       : @_title ? @editor.filename
                 filename    : @editor.filename

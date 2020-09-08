@@ -3,13 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Component, React, Rendered, redux } from "../app-framework";
-import { Button, Col, Row } from "react-bootstrap";
-import { Icon } from "../r_misc/icon";
-const { Panel } = require("react-bootstrap");
+import { React, useActions, useTypedRedux } from "../app-framework";
+import { Button, Col, Row, Panel } from "../antd-bootstrap";
+import { Icon, Space } from "../r_misc";
 import { Subscription } from "./subscription";
 import { AppliedCoupons, Customer } from "./types";
 import { AddSubscription } from "./add-subscription";
+import { PurchaseOneLicense } from "../site-licenses/purchase";
+import { AboutLicenses } from "../account/licenses/about-licenses";
 
 interface Props {
   customer?: Customer;
@@ -18,83 +19,125 @@ interface Props {
   coupon_error?: string;
 }
 
-type ComponentState = "view" | "add_new"; // view <-> add_new
-
-interface State {
-  state: ComponentState;
-}
-
-export class SubscriptionList extends Component<Props, State> {
-  constructor(props, state) {
-    super(props, state);
-    this.state = { state: "view" };
+export const SubscriptionList: React.FC<Props> = ({
+  customer,
+  selected_plan,
+  applied_coupons,
+  coupon_error,
+}) => {
+  const state = useTypedRedux("billing", "subscription_list_state") ?? "view";
+  function set_state(subscription_list_state) {
+    actions.setState({ subscription_list_state });
   }
+  const actions = useActions("billing");
 
-  private close_add_subscription(): void {
-    this.setState({ state: "view" });
-    const actions = redux.getActions("billing");
-    if (actions == null) return;
+  function close_buy_upgrades(): void {
+    set_state("view");
     actions.set_selected_plan("");
     actions.remove_all_coupons();
   }
 
-  private render_add_subscription_button(): Rendered {
+  function render_buy_license_button(): JSX.Element {
     return (
       <Button
         bsStyle="primary"
-        disabled={this.state.state !== "view"}
-        onClick={() => this.setState({ state: "add_new" })}
-        className="pull-right"
+        disabled={state != "view"}
+        onClick={() => set_state("buy_license")}
       >
-        <Icon name="plus-circle" /> Add Subscription or Course Package...
+        <Icon name="plus-circle" /> Buy a License...
       </Button>
     );
   }
 
-  private render_add_subscription(): Rendered {
-    if (this.state.state !== "add_new") return;
+  function render_buy_license(): JSX.Element {
     return (
-      <AddSubscription
-        on_close={this.close_add_subscription.bind(this)}
-        selected_plan={this.props.selected_plan}
-        applied_coupons={this.props.applied_coupons}
-        coupon_error={this.props.coupon_error}
-        customer={this.props.customer}
-      />
+      <div>
+        <div style={{ fontSize: "11pt" }}>
+          <AboutLicenses />
+        </div>
+        <br />
+        <PurchaseOneLicense
+          onClose={() => {
+            set_state("view");
+          }}
+        />
+      </div>
     );
   }
 
-  private render_header(): Rendered {
+  function render_buy_upgrades_button(): JSX.Element {
+    return (
+      <Button
+        bsStyle="primary"
+        disabled={state != "view"}
+        onClick={() => set_state("buy_upgrades")}
+      >
+        <Icon name="plus-circle" /> Buy Upgrades...
+      </Button>
+    );
+  }
+
+  function render_buy_upgrades(): JSX.Element {
+    return (
+      <div>
+        <div style={{ fontSize: "11pt" }}>
+          Upgrades let you increase the quotas for specific projects. The{" "}
+          <a
+            onClick={() => {
+              set_state("buy_license");
+            }}
+          >
+            new licenses
+          </a>{" "}
+          are much more flexible and you should probably buy a license instead.
+          Upgrades are still available, but will be going away soon.
+        </div>
+        <br />
+        <br />
+        <AddSubscription
+          on_close={close_buy_upgrades}
+          selected_plan={selected_plan}
+          applied_coupons={applied_coupons}
+          coupon_error={coupon_error}
+          customer={customer}
+        />
+      </div>
+    );
+  }
+
+  function render_header(): JSX.Element {
     return (
       <Row>
         <Col sm={6}>
           <Icon name="list-alt" /> Subscriptions
         </Col>
-        <Col sm={6}>{this.render_add_subscription_button()}</Col>
+        <Col sm={6}>
+          <div style={{ float: "right" }}>
+            {render_buy_license_button()}
+            <Space /> {render_buy_upgrades_button()}
+          </div>
+        </Col>
       </Row>
     );
   }
 
-  private render_subscriptions(): Rendered[] | Rendered {
-    if (
-      this.props.customer == null ||
-      this.props.customer.subscriptions == null
-    ) {
+  function render_subscriptions(): JSX.Element[] | JSX.Element | void {
+    if (customer == null || customer.subscriptions == null) {
       return;
     }
-    const v: Rendered[] = [];
-    for (const sub of this.props.customer.subscriptions.data) {
+    const v: JSX.Element[] = [];
+    for (const sub of customer.subscriptions.data) {
       v.push(<Subscription key={sub.id} subscription={sub} />);
     }
     return v;
   }
 
-  public render(): Rendered {
-    return (
-      <Panel header={this.render_header()}>
-        {this.render_add_subscription()}
-        {this.render_subscriptions()}
-      </Panel>
-    );
-  }
-}
+  return (
+    <Panel header={render_header()}>
+      {state == "buy_upgrades" && render_buy_upgrades()}
+      {state == "buy_license" && render_buy_license()}
+      {state != "view" && <hr />}
+      {render_subscriptions()}
+    </Panel>
+  );
+};

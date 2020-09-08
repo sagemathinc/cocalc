@@ -21,6 +21,7 @@ const KEYBOARD_SHORTCUTS = {
   Find: "control+F",
   "Find next": "control+G",
   "Fold/unfold selected code": "control+Q",
+  "Fill paragraph (like in Emacs)": "alt+Q; cmd+Q",
   "Shift selected text right": "tab",
   "Shift selected text left": "shift+tab",
   "Split view in Sage worksheet": "shift+control+I",

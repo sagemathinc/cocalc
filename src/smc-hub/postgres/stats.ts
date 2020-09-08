@@ -39,6 +39,7 @@ interface Stats {
   projects_created: Data;
   projects_edited: Data;
   accounts_created: Data;
+  accounts_active: Data;
   running_projects: RunningProjects;
   hub_servers: any;
   files_opened: {
@@ -209,6 +210,7 @@ async function _calc_stats({ db, dbg, start_t }): Promise<Stats> {
     projects_created: {},
     projects_edited: {},
     accounts_created: {},
+    accounts_active: {},
     files_opened: { distinct: {}, total: {} },
     hub_servers: [],
     running_projects: { free: 0, member: 0 },
@@ -227,6 +229,12 @@ async function _calc_stats({ db, dbg, start_t }): Promise<Stats> {
   stats.projects_edited[K.active] = await _count_timespan(db, {
     table: "projects",
     field: "last_edited",
+    age_m: R.active,
+  });
+
+  stats.accounts_active[K.active] = await _count_timespan(db, {
+    table: "accounts",
+    field: "last_active",
     age_m: R.active,
   });
 
@@ -273,6 +281,11 @@ async function _calc_stats({ db, dbg, start_t }): Promise<Stats> {
     stats.projects_created[K[tkey]] = await _count_timespan(db, {
       table: "projects",
       field: "created",
+      age_m: R[tkey],
+    });
+    stats.accounts_active[K[tkey]] = await _count_timespan(db, {
+      table: "accounts",
+      field: "last_active",
       age_m: R[tkey],
     });
     stats.accounts_created[K[tkey]] = await _count_timespan(db, {

@@ -14,7 +14,7 @@ import { generate_click_for } from "./utils";
 import { COLORS, TimeAgo, Tip, Icon } from "../../../r_misc";
 const { Button, Row, Col } = require("react-bootstrap");
 const misc = require("smc-util/misc");
-const { project_tasks } = require("../../../project_tasks");
+import { url_href } from "../../utils";
 
 interface Props {
   isdir: boolean;
@@ -244,9 +244,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
 
   // See https://github.com/sagemathinc/cocalc/issues/1020
   // support right-click → copy url for the download button
-  const url_href = project_tasks(props.actions.project_id).url_href(
-    full_path()
-  );
+  const url = url_href(props.actions.project_id, full_path());
 
   return (
     <Row
@@ -275,7 +273,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
         ) : (
           <span className="pull-right" style={{ color: "#666" }}>
             {misc.human_readable_size(props.size)}
-            {render_download_button(url_href)}
+            {render_download_button(url)}
           </span>
         )}
       </Col>

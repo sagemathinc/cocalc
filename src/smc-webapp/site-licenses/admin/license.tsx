@@ -33,6 +33,7 @@ import {
   EditUpgrades,
   scale_by_display_factors,
 } from "./upgrades";
+import { DisplayQuota, EditQuota } from "./quota";
 import { Projects } from "../../admin/users/projects";
 import { Managers } from "./managers";
 import { UserMap } from "../../todo-types";
@@ -202,7 +203,15 @@ export class License extends Component<Props> {
           x = (
             <EditUpgrades
               upgrades={val}
-              onChange={onChange}
+              license_id={this.props.license.get("id")}
+              license_field={field}
+            />
+          );
+          break;
+        case "quota":
+          x = (
+            <EditQuota
+              quota={val}
               license_id={this.props.license.get("id")}
               license_field={field}
             />
@@ -358,6 +367,9 @@ export class License extends Component<Props> {
         case "upgrades":
           x = <DisplayUpgrades upgrades={val} />;
           break;
+        case "quota":
+          x = <DisplayQuota quota={val} />;
+          break;
         case "map":
           if (!val) {
             x = "";
@@ -440,7 +452,7 @@ export class License extends Component<Props> {
       style.fontWeight = "bold";
     }
     return (
-      <span>
+      <div style={{ marginLeft: "5px" }}>
         <span style={style}>
           {this.props.usage_stats ?? 0} running{" "}
           {plural(this.props.usage_stats, "project")} currently using this
@@ -488,7 +500,7 @@ export class License extends Component<Props> {
         >
           month
         </a>
-      </span>
+      </div>
     );
   }
 
