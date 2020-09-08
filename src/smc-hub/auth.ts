@@ -532,7 +532,7 @@ class PassportManager {
         // to match smc-webapp/client/password-reset
         const name = encodeURIComponent(`${this.base_url}PWRESET`);
         cookies.set(name, token, {
-          maxAge: ms("10 minutes"),
+          maxAge: ms("5 minutes"),
           secure: true,
           overwrite: true,
           httpOnly: false,

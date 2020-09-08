@@ -16,7 +16,7 @@ export function reset_password_key() {
   const forgot_cookie = cookies.get(NAME);
   if (forgot_cookie != null) {
     // we immediately get rid of the cookie with the secret token
-    cookies.remove(NAME);
+    cookies.remove(NAME, { path: "/" });
     return forgot_cookie.toLowerCase();
   } else {
     // some mail transport agents will uppercase the URL -- see https://github.com/sagemathinc/cocalc/issues/294
