@@ -4,7 +4,7 @@
  */
 
 import * as os_path from "path";
-const { to_iso_path } = require("smc-util/misc");
+import { encode_path, path_split, to_iso_path } from "smc-util/misc";
 import {
   unreachable,
   capitalize,
@@ -12,11 +12,13 @@ import {
   separate_file_extension,
 } from "smc-util/misc2";
 import { generate as heroku } from "project-name-generator";
-const superb = require("superb");
-const catNames = require("cat-names");
-const dogNames = require("dog-names");
-const { file_options } = require("../editor-tmp");
+import * as superb from "superb";
+import * as catNames from "cat-names";
+import * as dogNames from "dog-names";
+import { file_options } from "../editor-tmp";
 import { DEFAULT_NEW_FILENAMES } from "smc-util/db-schema";
+import { webapp_client } from "../webapp-client";
+const { BASE_URL } = require("../misc_page");
 
 export type NewFilenameTypes =
   | "iso"
@@ -212,7 +214,6 @@ export function editor_id(project_id: string, path: string): string {
   return `cocalc-editor-${sha1(project_id + path)}`;
 }
 
-
 // Normalize path as in node, except '' is the home dir, not '.'.
 export function normalize(path: string): string {
   path = os_path.normalize(path);
@@ -221,4 +222,47 @@ export function normalize(path: string): string {
   } else {
     return path;
   }
+}
+
+// test, if the given file exists and has nonzero size
+export async function file_nonzero_size(
+  project_id: string,
+  path: string
+): Promise<boolean> {
+  const f = path_split(path);
+  try {
+    await webapp_client.exec({
+      project_id,
+      command: "test",
+      args: ["-s", f.tail] /* "FILE exists and has a size greater than zero" */,
+      path: f.head,
+      err_on_exit: true,
+    });
+  } catch (err) {
+    return false;
+  }
+  return true;
+}
+
+// returns the full URL path to the file (not the "raw" server)
+export function url_fullpath(project_id: string, path: string): string {
+  return os_path.join(
+    BASE_URL,
+    "projects",
+    project_id,
+    "files",
+    `${encode_path(path)}`
+  );
+}
+
+// returns the URL for the file at the given path
+export function url_href(project_id: string, path: string): string {
+  return `${(window as any).app_base_url}/${project_id}/raw/${encode_path(
+    path
+  )}`;
+}
+
+// returns the download URL for a file at a given path
+export function download_href(project_id: string, path: string): string {
+  return `${url_href(project_id, path)}?download`;
 }

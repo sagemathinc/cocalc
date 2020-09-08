@@ -42,7 +42,6 @@ import * as misc from "smc-util/misc";
 const { MARKERS } = require("smc-util/sagews");
 import { alert_message } from "./alerts";
 import { webapp_client } from "./webapp-client";
-const { project_tasks } = require("./project_tasks");
 const { defaults, required } = misc;
 
 import { set_url } from "./history";
@@ -56,6 +55,7 @@ import { Actions, project_redux_name, redux } from "./app-framework";
 import { ProjectStore, ProjectStoreState } from "./project_store";
 import { ProjectEvent } from "./project/history/types";
 import { DEFAULT_COMPUTE_IMAGE } from "../smc-util/compute-images";
+import { download_href, url_href } from "./project/utils";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%';
@@ -2056,10 +2056,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     if (opts.auto && !opts.print) {
-      url = project_tasks(this.project_id).download_href(opts.path);
+      url = download_href(this.project_id, opts.path);
       return download_file(url);
     } else {
-      url = project_tasks(this.project_id).url_href(opts.path);
+      url = url_href(this.project_id, opts.path);
       const tab = open_new_tab(url);
       if (tab != null && opts.print) {
         // "?" since there might be no print method -- could depend on browser API
