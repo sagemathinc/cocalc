@@ -129,10 +129,12 @@ interface UserOrProjectQuery<F extends Fields> {
     fields: { [key in keyof Partial<F>]: any };
     throttle_changes?: number;
     pg_where?: string[] | { [key: string]: string }[];
+    pg_where_load?: string[] | { [key: string]: string }[]; // used instead of pg_where if server is under "heavy load"
     pg_changefeed?: string;
     remove_from_query?: string[];
     admin?: boolean;
     options?: any; // [{ limit: 1 }]
+    options_load?: any; // used instead of options if server is under "heavy load"
     instead_of_query?: (
       database,
       opts: {
@@ -261,7 +263,6 @@ import { SettingsExtras } from "./site-settings-extras";
 export type AllSiteSettings = {
   [key in keyof SiteSettings | keyof SettingsExtras]?: any;
 };
-
 
 export type RegistrationTokenSetFields =
   | "token"
