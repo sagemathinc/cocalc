@@ -80,6 +80,7 @@ export class PaymentMethods extends Component<Props, State> {
   }
 
   private render_payment_method(source: Source): Rendered {
+    if (source.object != "card") return; // non credit cards not yet supported.
     return (
       <PaymentMethod
         key={source.id}
