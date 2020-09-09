@@ -24,8 +24,7 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
     for (const id in this.terminals) {
       this.close_terminal(id);
     }
-    delete this.actions;
-    delete this.terminals;
+    this.terminals = {};
   }
 
   _node_number(id: string, command: string | undefined): number {

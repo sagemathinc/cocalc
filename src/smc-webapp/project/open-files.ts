@@ -46,11 +46,6 @@ export class OpenFiles {
     this.store = store;
   }
 
-  public close(): void {
-    delete this.actions;
-    delete this.store;
-  }
-
   private setState(
     open_files: OpenFilesType | undefined,
     open_files_order?: OpenFilesOrderType

@@ -138,6 +138,9 @@ function getMouse(
   ev: MouseEvent,
   surface: Surface
 ): { x: number; y: number; button: number; buttons: number[] } | undefined {
+  if (surface.canvas == null) {
+    return; // already destroyed
+  }
   const { top, left, bottom, right } = surface.canvas.getBoundingClientRect();
   if (
     ev.clientX < left ||

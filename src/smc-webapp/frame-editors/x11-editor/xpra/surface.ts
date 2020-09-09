@@ -35,7 +35,7 @@ export class Surface {
   public h: number; // height of the actual window on the xpra server
   public parent: Surface | undefined;
   public is_overlay: boolean = false;
-  public canvas: HTMLCanvasElement;
+  public canvas?: HTMLCanvasElement;
   public jq_canvas: JQuery;
   public context: CanvasRenderingContext2D;
   public metadata: { title?: string };
@@ -138,10 +138,8 @@ export class Surface {
       return;
     }
     this.renderer.stop();
-    delete this.renderer;
     delete this.canvas;
     this.jq_canvas.remove(); // remove from DOM.
-    delete this.jq_canvas;
     delete this.parent;
   }
 

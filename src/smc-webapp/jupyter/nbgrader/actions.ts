@@ -27,9 +27,8 @@ export class NBGraderActions {
     );
   }
 
-  public close(): void {
-    delete this.jupyter_actions;
-  }
+  // TODO is close used anywhere?
+  public close(): void {}
 
   // Ensure all nbgrader metadata is updated to the latest version we support.
   // The update is done as a single commit to the syncdb.

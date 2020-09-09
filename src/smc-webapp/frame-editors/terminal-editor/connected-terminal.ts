@@ -61,7 +61,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private project_id: string;
   private path: string;
   private term_path: string;
-  private number: number;
   private id: string;
   readonly rendererType: "dom" | "canvas";
   private terminal: XTerminal;
@@ -120,7 +119,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.rendererType = "dom";
     const cmd = command ? "-" + replace_all(command, "/", "-") : "";
     this.term_path = aux_file(`${this.path}-${number}${cmd}`, "term");
-    this.number = number;
     this.id = id;
     this.terminal = new XTerminal(this.get_xtermjs_options());
     this.webLinksAddon = new WebLinksAddon(handleLink);
@@ -181,15 +179,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.state = "closed";
     clearInterval(this.touch_interval);
     this.account_store.removeListener("change", this.update_settings);
-    delete this.actions;
-    delete this.account_store;
-    delete this.terminal_settings;
-    delete this.project_id;
-    delete this.path;
-    delete this.term_path;
-    delete this.number;
-    delete this.render_buffer;
-    delete this.history;
     this.terminal.dispose();
     if (this.conn != null) {
       this.disconnect();

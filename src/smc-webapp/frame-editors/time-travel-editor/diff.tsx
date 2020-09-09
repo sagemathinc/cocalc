@@ -34,7 +34,7 @@ interface Props {
 
 export class Diff extends Component<Props> {
   private update: Function;
-  private cm: CodeMirror.Editor;
+  private cm?: CodeMirror.Editor;
   private textarea_ref: React.RefObject<HTMLTextAreaElement> = React.createRef<
     HTMLTextAreaElement
   >();
@@ -71,7 +71,7 @@ export class Diff extends Component<Props> {
     if (props.v0 != this.props.v0 || props.v1 != this.props.v1) {
       this.update(props.v0, props.v1);
     }
-    this.cm.refresh();
+    this.cm?.refresh();
   }
 
   public render(): Rendered {

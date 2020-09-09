@@ -48,7 +48,7 @@ export const ProjectSettings = rclass<ReactProps>(
     State
   > {
     private _table;
-    private _admin_project: string;
+    private _admin_project: string | undefined;
 
     public static reduxProps() {
       return {
@@ -77,7 +77,7 @@ export const ProjectSettings = rclass<ReactProps>(
     }
 
     componentWillUnmount() {
-      delete this._admin_project;
+      this._admin_project = undefined;
       this._table != undefined ? this._table.close() : undefined; // if admin, stop listening for changes
     }
 

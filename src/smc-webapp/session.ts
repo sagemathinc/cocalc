@@ -208,7 +208,7 @@ class SessionManager {
       console.warn("FAILED to restore state", err);
       this._save_to_local_storage(); // set back to a valid state
     } finally {
-      delete this._ignore;
+      this._ignore = false;
     }
   }
 

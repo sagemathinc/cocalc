@@ -29,11 +29,11 @@ export class SagewsControl extends React.Component<Props, State> {
   }
 
   componentDidMount() {
-    return (this._mounted = true);
+    this._mounted = true;
   }
 
   componentWillUnmount() {
-    return delete this._mounted;
+    this._mounted = false;
   }
 
   restart_worksheet = async () => {

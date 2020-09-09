@@ -73,7 +73,7 @@ export class Comm implements IClassicComm {
   ): string {
     this.dbg("close")(data, callbacks, metadata, buffers);
     if (this.callbacks.on_close != null) this.callbacks.on_close();
-    delete this.callbacks;
+    this.callbacks = {};
     return "";
   }
 

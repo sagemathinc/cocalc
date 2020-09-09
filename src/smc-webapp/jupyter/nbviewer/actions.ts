@@ -18,7 +18,7 @@ import { WebappClient } from "../../webapp-client";
 import { NBViewerState, NBViewerStore } from "./store";
 
 export class NBViewerActions extends Actions<NBViewerState> {
-  private store: NBViewerStore;
+  private store?: NBViewerStore;
   private client?: WebappClient;
   private _state: "ready" | "closed";
 
@@ -55,8 +55,8 @@ export class NBViewerActions extends Actions<NBViewerState> {
   };
 
   private load_ipynb = async (): Promise<void> => {
-    if (this.client == null) {
-      throw Error("load_ipynb requires that client is set");
+    if (this.client == null || this.store == null) {
+      throw Error("load_ipynb requires that client and store are set");
     }
     if (this.store.get("loading")) {
       return;

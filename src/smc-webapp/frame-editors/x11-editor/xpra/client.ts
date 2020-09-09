@@ -144,7 +144,7 @@ export class Client {
       delete this.ping_interval;
     }
     this.bus.removeAllListeners();
-    delete this.surfaces;
+    this.surfaces = {};
     delete this.surfaces_before_disconnect;
   }
 

@@ -189,14 +189,10 @@ export class NotebookFrameActions {
       "syncdb-after-change",
       this.syncdb_after_change
     );
-    delete this.commands;
-    delete this.frame_tree_actions;
-    delete this.jupyter_actions;
-    delete this.frame_id;
+    this.commands = {};
     delete this.key_handler;
-    delete this.input_editors;
+    this.input_editors = {};
     this.store.close();
-    delete this.store;
     delete this.cell_list_div;
   }
 

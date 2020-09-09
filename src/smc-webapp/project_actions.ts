@@ -201,8 +201,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     for (const table in QUERIES) {
       this.remove_table(table);
     }
-    this.open_files.close();
-    delete this.open_files;
   };
 
   private save_session(): void {

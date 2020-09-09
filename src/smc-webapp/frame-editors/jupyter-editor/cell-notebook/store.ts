@@ -52,10 +52,7 @@ export class NotebookFrameStore {
     this.frame_tree_actions.set_frame_data(merge({ id: this.id }, obj));
   }
 
-  public close(): void {
-    delete this.frame_tree_actions;
-    delete this.id;
-  }
+  public close(): void {}
 
   /***
    * convenience functions

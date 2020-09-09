@@ -68,6 +68,7 @@ export class XpraClient extends EventEmitter {
   private idle_interval: any; // TODO: really Timer
   private idle_timed_out: boolean = false; // true when disconnected due to idle timeout
   private display: number;
+  private _closed = false;
 
   constructor(options: Options) {
     super();
@@ -118,17 +119,16 @@ export class XpraClient extends EventEmitter {
   }
 
   close(): void {
-    if (this.client === undefined) {
+    if (this._closed) {
       return;
     }
+    this._closed = true;
     this.server.destroy();
     this.blur();
     this.client.destroy();
     this.removeAllListeners();
     clearInterval(this.touch_interval);
     clearInterval(this.idle_interval);
-    delete this.options;
-    delete this.client;
   }
 
   async close_and_halt(): Promise<void> {
@@ -394,6 +394,11 @@ export class XpraClient extends EventEmitter {
     if (surface.parent == null) {
       throw Error(`insert_child_in_dom: ${wid} must be a child`);
     }
+    if (surface.canvas == null || surface.parent.canvas == null) {
+      throw Error(
+        `insert_child_in_dom: surface.canvas or surface.parent.canvas is null`
+      );
+    }
 
     const e = $(surface.canvas);
     e.css("position", "absolute");
@@ -434,7 +439,7 @@ export class XpraClient extends EventEmitter {
   }
 
   overlay_destroy(overlay: Surface): void {
-    if (overlay.parent == null) {
+    if (overlay.parent == null || overlay.canvas == null) {
       return; // make typescript happy
     }
     this.emit("child:destroy", overlay.parent.wid, overlay.wid);

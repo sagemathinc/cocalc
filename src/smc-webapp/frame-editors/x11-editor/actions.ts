@@ -56,11 +56,12 @@ interface X11EditorState extends CodeEditorState {
 
 export class Actions extends BaseActions<X11EditorState> {
   // no need to open any syncstring for xwindow -- they don't use database sync.
-  private channel: Channel;
+  private channel?: Channel;
   private wid_history: number[] = []; // array of wid that were active
   protected doctype: string = "none";
   public store: Store<X11EditorState>;
   client: XpraClient;
+  private _closed = false;
 
   async _init2(): Promise<void> {
     await this.check_capabilities();
@@ -158,12 +159,11 @@ export class Actions extends BaseActions<X11EditorState> {
   }
 
   close(): void {
-    if (this.client == null) {
+    if (this._closed) {
       return;
     }
     this.client.close();
-    delete this.client;
-    if (this.channel !== undefined) {
+    if (this.channel != null) {
       try {
         this.channel.end();
       } catch (_) {
@@ -441,7 +441,7 @@ export class Actions extends BaseActions<X11EditorState> {
 
   async paste(id: string, value?: string | true): Promise<void> {
     const leaf = this._get_frame_node(id);
-    if (leaf == null) {
+    if (leaf == null || this.channel == null) {
       return;
     }
     if (leaf.get("type") === "x11") {
@@ -621,6 +621,9 @@ export class Actions extends BaseActions<X11EditorState> {
       this.set_status("");
     }
     // Launch the command
+    if (this.channel == null) {
+      throw Error("x11/actions::launch this.channel == null");
+    }
     this.channel.write({ cmd: "launch", command, args });
     // TODO: wait for a status message back...
 

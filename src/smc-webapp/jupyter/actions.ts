@@ -262,7 +262,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this._state = "closed";
     if (this.syncdb != null) {
       this.syncdb.close();
-      delete this.syncdb;
     }
     if (this._file_watcher != null) {
       this._file_watcher.close();
