@@ -17,12 +17,23 @@ import {
 } from "../r_misc";
 import { endswith, capitalize } from "smc-util/misc2";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+import { Cells, CellType } from "./types";
+
+type ButtonDescription =
+  | string
+  | {
+      name: string;
+      disabled?: boolean;
+      style?: CSS;
+      label?: string | JSX.Element;
+      className?: string;
+    };
 
 interface Props {
   frame_actions: NotebookFrameActions;
   cur_id: string; // id of currently selected cell
-  sel_ids: immutable.Set<any>; // set of selected cells
-  cells: immutable.Map<any, any>; // map from id to cells
+  sel_ids: immutable.Set<string>; // set of selected cells
+  cells: Cells; // map from id to cells
   cell_toolbar?: string;
   name: string;
 }
@@ -48,18 +59,7 @@ export const TopButtonbar: React.FC<Props> = React.memo(
       };
     }
 
-    function render_button(
-      key: string,
-      name:
-        | string
-        | {
-            name: string;
-            disabled?: boolean;
-            style?: CSS;
-            label?: string | JSX.Element;
-            className?: string;
-          }
-    ) {
+    function render_button(key: string, name: ButtonDescription) {
       let className: string | undefined = undefined;
       let disabled: boolean | undefined = false;
       let label: string | JSX.Element | undefined = "";
@@ -102,7 +102,7 @@ export const TopButtonbar: React.FC<Props> = React.memo(
       );
     }
 
-    function render_buttons(names: any) {
+    function render_buttons(names: ButtonDescription[]) {
       const result: JSX.Element[] = [];
       for (const key in names) {
         result.push(render_button(key, names[key]));
@@ -110,7 +110,10 @@ export const TopButtonbar: React.FC<Props> = React.memo(
       return result;
     }
 
-    function render_button_group(names: any, hide_xs?: any) {
+    function render_button_group(
+      names: ButtonDescription[],
+      hide_xs?: boolean
+    ) {
       return (
         <ButtonGroup className={hide_xs ? "hidden-xs" : ""}>
           {render_buttons(names)}
@@ -146,12 +149,12 @@ export const TopButtonbar: React.FC<Props> = React.memo(
       ]);
     }
 
-    function cell_select_type(key: any): void {
-      frame_actions.set_selected_cell_type(key);
+    function cell_select_type(type: CellType): void {
+      frame_actions.set_selected_cell_type(type);
       focus();
     }
 
-    function cell_type_title(key): string {
+    function cell_type_title(key: string): string {
       switch (key) {
         case "multi":
           return "-";
@@ -161,14 +164,8 @@ export const TopButtonbar: React.FC<Props> = React.memo(
     }
 
     function render_select_cell_type() {
-      const cell_type = (() => {
-        if (sel_ids.size > 1) {
-          return "multi";
-        } else {
-          return cells.getIn([cur_id, "cell_type"], "code");
-        }
-      })();
-
+      const cell_type =
+        sel_ids.size > 1 ? "multi" : cells.getIn([cur_id, "cell_type"], "code");
       const title = cell_type_title(cell_type);
 
       return (
@@ -182,7 +179,7 @@ export const TopButtonbar: React.FC<Props> = React.memo(
             key={"cell-type"}
             title={title}
             disabled={read_only}
-            onClick={(key) => cell_select_type(key)}
+            onClick={cell_select_type}
           >
             <MenuItem cocalc-test={"code"} key={"code"}>
               {cell_type_title("code")}

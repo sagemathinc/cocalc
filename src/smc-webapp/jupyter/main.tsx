@@ -90,8 +90,8 @@ interface JupyterEditorProps {
   fatal?: string; // *FATAL* error; user must edit file to fix.
   toolbar?: boolean;
   has_unsaved_changes?: boolean;
-  cell_list?: immutable.List<any>; // list of ids of cells in order
-  cells?: immutable.Map<any, any>; // map from ids to cells
+  cell_list?: immutable.List<string>; // list of ids of cells in order
+  cells?: immutable.Map<string, any>; // map from ids to cells
   project_id?: string;
   directory?: string;
   version?: any;
