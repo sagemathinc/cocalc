@@ -10,7 +10,10 @@ faster and more reliable, but potentially doesn't "look" as good,
 depending on your tastes.  It also has a dependency on chromium.
 """
 
+# ATTN: make sure to keep dependencies of this in sync with smc-project/configuration.ts
+
 from __future__ import absolute_import, print_function
+from shutil import which
 import os, sys, time
 from subprocess import check_call
 
@@ -22,6 +25,16 @@ def ipynb_to_pdf(path):
     if not path.endswith('.ipynb'):
         err = "every path must end in '.ipynb' but '%s' does not" % path
         raise ValueError(err)
+
+    browser = None
+    if which("chromium-browser") is not None:
+        browser = "chromium-browser"
+    elif which("google-chrome") is not None:
+        browser = "google-chrome"
+    else:
+        raise Exception("Neither Chrome nor Chromium installed!")
+    print(f"using {browser} to convert to PDF")
+
     path = os.path.abspath(path)
     base = path[:-len('ipynb')]
     pdf = base + 'pdf'
@@ -36,7 +49,7 @@ def ipynb_to_pdf(path):
     ])
     # --no-sandbox so it works in cocalc-docker (see https://stackoverflow.com/questions/43665276/how-to-run-google-chrome-headless-in-docker); should be OK, given our security model...
     check_call([
-        "chromium-browser",
+        browser,
         "--headless",
         "--disable-gpu",
         "--no-sandbox",

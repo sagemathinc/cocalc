@@ -25,6 +25,7 @@ export interface Source {
   address_country: string;
   address_state: string;
   address_zip: string;
+  object: string; // this equals "card" for a credit card source; stripe has many other types of sources that we do NOT support yet.
 }
 
 export interface Plan {

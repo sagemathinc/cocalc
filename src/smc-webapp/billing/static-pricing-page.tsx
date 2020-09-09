@@ -18,12 +18,14 @@ export function render_static_pricing_page(): Rendered {
       <ExplainPlan type="personal" />
       <SubscriptionGrid periods={["month", "year"]} is_static={true} />
       <hr />
-      <ExplainPlan type="course" />
-      <SubscriptionGrid
-        periods={["week", "month4", "year1"]}
-        is_static={true}
-      />
-      <hr />
+      {false && <ExplainPlan type="course" />}
+      {false && (
+        <SubscriptionGrid
+          periods={["week", "month4", "year1"]}
+          is_static={true}
+        />
+      )}
+      {false && <hr />}
       <DedicatedVM />
     </div>
   );

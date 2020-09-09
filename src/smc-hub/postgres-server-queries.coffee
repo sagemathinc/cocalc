@@ -44,6 +44,7 @@ collab = require('./postgres/collab')
 {site_license_public_info} = require('./postgres/site-license/public')
 {site_license_manager_set} = require('./postgres/site-license/manager')
 {matching_site_licenses, manager_site_licenses} = require('./postgres/site-license/search')
+{sync_site_license_subscriptions} = require('./postgres/site-license/sync-subscriptions')
 {permanently_unlink_all_deleted_projects_of_user} = require('./postgres/delete-projects')
 {unlist_all_public_paths} = require('./postgres/public-paths')
 {get_remember_me} = require('./postgres/remember-me')
@@ -906,7 +907,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             account_id  : required   # user's account_id
             stripe      : undefined  # api connection to stripe
             customer_id : undefined  # will be looked up if not known
-            cb          : undefined
+            cb          : undefined  # cb(err, new stripe customer record)
         locals =
             customer : undefined
             email_address : undefined
@@ -1002,7 +1003,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     set   : 'stripe_customer::JSONB' : locals.customer
                     where : 'account_id = $::UUID'   : opts.account_id
                     cb    : cb
-        ], opts.cb)
+        ], (err) => opts.cb(err, locals.customer))
 
     ###
     Auxillary billing related queries
@@ -2537,7 +2538,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     #    (3) they do NOT touch upgrades on any projects again.
     ensure_all_user_project_upgrades_are_valid: (opts) =>
         opts = defaults opts,
-            limit : 1                   # We only default to 1 at a time, since there is no hurry.
+            limit : 1          # We only default to 1 at a time, since there is no hurry.
             cb    : required
         dbg = @_dbg("ensure_all_user_project_upgrades_are_valid")
         locals = {}
@@ -2561,6 +2562,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         cb         : cb
                 async.mapLimit(locals.account_ids, opts.limit, f, cb)
         ], opts.cb)
+
+    # Ensure all (or just for given account_id) site license subscriptions
+    # are non-expired iff subscription in stripe is "active" or "trialing"
+    # account_id is optional; if not given iterates over all users
+    # with stripe_customer field set.
+    # async/await:
+    sync_site_license_subscriptions: (account_id) =>
+        return await sync_site_license_subscriptions(@, account_id)
 
     # Return the sum total of all user upgrades to a particular project
     get_project_upgrades: (opts) =>

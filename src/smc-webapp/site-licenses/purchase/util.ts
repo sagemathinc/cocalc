@@ -151,7 +151,7 @@ const STANDARD = {
 } as const;
 const MAX = {
   ram: 16,
-  cpu: 4,
+  cpu: 3,
   disk: 20,
   always_running: 1,
   member: 1,

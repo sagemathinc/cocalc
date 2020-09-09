@@ -204,6 +204,8 @@ export interface PostgreSQL extends EventEmitter {
     cb: Function;
   }): void;
 
+  sync_site_license_subscriptions(account_id?: string): Promise<number>;
+
   get_stripe_customer_id(opts: { account_id: string; cb: Function }): void;
 
   set_stripe_customer_id(opts: {

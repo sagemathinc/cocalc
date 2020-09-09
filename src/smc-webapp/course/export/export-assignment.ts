@@ -144,11 +144,15 @@ async function export_one_directory(
         log(`WARNING -- problem copying ${name} -- ${err}`);
       }
     }
-    // Always copy original file over
-    await exec({
-      command: "cp",
-      args: [source + "/" + name, target + "/" + prefix + "-" + name],
-      project_id,
-    });
+    try {
+      // Always copy original file over (failure is NON fatal)
+      await exec({
+        command: "cp",
+        args: [source + "/" + name, target + "/" + prefix + "-" + name],
+        project_id,
+      });
+    } catch (err) {
+      log(`WARNING -- problem copying ${name} -- ${err}`);
+    }
   }
 }

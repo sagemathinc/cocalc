@@ -136,6 +136,12 @@ async function sshd(): Promise<boolean> {
   return await have("/usr/sbin/sshd");
 }
 
+// we check if we can use cc-ipynb-to-pdf, which uses chrome or chromium
+// smc_pyutil/ipynb_to_pdf.py
+async function html2pdf(): Promise<boolean> {
+  return (await have("chromium-browser")) || (await have("google-chrome"));
+}
+
 // this is for rnw RMarkdown files.
 // This just tests R, which provides knitr out of the box?
 async function rmd(): Promise<boolean> {
@@ -211,6 +217,7 @@ async function capabilities(): Promise<MainCapabilities> {
     spellcheck: await spellcheck(),
     library: await library(),
     sshd: await sshd(),
+    html2pdf: await html2pdf(),
   };
   const sage = await sage_info_future;
   caps.sage = sage.exists;
