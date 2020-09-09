@@ -7,7 +7,7 @@
 
 /*
 Ensure all (or just for given account_id) site license subscriptions
-are non-expired iff subscription in stripe is "active".  This actually
+are non-expired iff subscription in stripe is "active" or "trialing".  This actually
 uses the "stripe_customer" field of the user account, so its important
 that *that* is valid.
 */
@@ -55,7 +55,7 @@ export async function sync_site_license_subscriptions(
         continue; // not a license
       }
       const expires = licenses[sub.metadata.license_id];
-      if (sub.status == "active") {
+      if (sub.status == "active" || sub.status == "trialing") {
         // make sure expires is not set
         if (expires != null) {
           await db.async_query({

@@ -2564,7 +2564,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         ], opts.cb)
 
     # Ensure all (or just for given account_id) site license subscriptions
-    # are non-expired iff subscription in stripe is "active".
+    # are non-expired iff subscription in stripe is "active" or "trialing"
     # account_id is optional; if not given iterates over all users
     # with stripe_customer field set.
     # async/await:

@@ -20,7 +20,7 @@ function get_total_upgrades(stripe_subscriptions_data) {
   // will eventually go away). https://github.com/sagemathinc/cocalc/issues/4802
   let total = { always_running: 0 };
   for (let sub of subs) {
-    if (sub.status != "active") {
+    if (sub.status != "active" && sub.status != "trialing") {
       // not yet paid for or no longer available.
       continue;
     }
