@@ -20,16 +20,22 @@ export async function sync_site_license_subscriptions(
 ): Promise<number> {
   // Get all license expire times from database at once, so we don't
   // have to query for each one individually, which would take a long time.
+  // If account_id is given, we only get the licenses with that user
+  // as a manager.
   // TODO: SCALABILITY WARNING
-  const results = await db.async_query({
+  const query = {
     select: ["id", "expires"],
     table: "site_licenses",
-  });
+  } as { select: string[]; table: string; where?: string; params?: string[] };
+  if (account_id != null) {
+    query.where = "$1 = ANY(managers)";
+    query.params = [account_id];
+  }
+  const results = await db.async_query(query);
   const licenses: { [license_id: string]: Date | undefined } = {};
   for (const x of results.rows) {
     licenses[x.id] = x.expires;
   }
-
   // Get *all* stripe subscription data from the database.
   // TODO: SCALABILITY WARNING
   // TODO: Only the last 10 subs are here, I think, so an old sub might not get properly expired

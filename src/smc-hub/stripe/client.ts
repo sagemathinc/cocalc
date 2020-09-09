@@ -559,4 +559,13 @@ export class StripeClient {
       projects: mesg.projects,
     });
   }
+
+  public async mesg_sync_site_license_subscriptions(): Promise<void> {
+    const dbg = this.dbg("mesg_sync_site_license_subscriptions");
+    dbg();
+    if (this.client.account_id == null) throw Error("you must be signed in");
+    await this.client.database.sync_site_license_subscriptions(
+      this.client.account_id
+    );
+  }
 }
