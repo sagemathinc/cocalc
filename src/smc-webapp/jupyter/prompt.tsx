@@ -21,7 +21,7 @@ const INPUT_STYLE: React.CSSProperties = {
   minWidth: PROMPT_MIN_WIDTH,
   fontFamily: "monospace",
   textAlign: "right",
-  paddingRight: "1ex",
+  paddingRight: "5px",
   cursor: "pointer",
 };
 
@@ -101,7 +101,7 @@ const OUTPUT_STYLE: React.CSSProperties = {
   minWidth: PROMPT_MIN_WIDTH,
   fontFamily: "monospace",
   textAlign: "right",
-  paddingRight: ".4em",
+  paddingRight: "5px",
   paddingBottom: "2px",
 };
 
