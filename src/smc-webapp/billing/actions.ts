@@ -253,6 +253,10 @@ export class BillingActions extends Actions<BillingStoreState> {
   }
 
   public async update_managed_licenses(): Promise<void> {
+    // Make sure the license subscriptions in the backend are sync'd
+    // with stripe subscriptions (e.g., expire state).
+    await webapp_client.stripe.sync_site_license_subscriptions();
+    // Update the license state in the frontend
     const v = await getManagedLicenses();
     const managed_license_ids = fromJS(v.map((x) => x.id));
     const x: { [license_id: string]: object } = {};

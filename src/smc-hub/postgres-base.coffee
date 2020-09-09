@@ -65,6 +65,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                                     # identical permission checks in a single user query.
             cache_size      : 300   # cache this many queries; use @_query(cache:true, ...) to cache result
             concurrent_warn : 500
+            concurrent_heavily_loaded : 100 # when concurrent hits this, consider load "heavy"; this changes home some queries behave to be faster but provide less info
             ensure_exists   : true  # ensure database exists on startup (runs psql in a shell)
             timeout_ms      : DEFAULT_TIMEOUS_MS # **IMPORTANT: if *any* query takes this long, entire connection is terminated and recreated!**
             timeout_delay_ms : DEFAULT_TIMEOUT_DELAY_MS # Only reconnect on timeout this many ms after connect.  Motivation: on initial startup queries may take much longer due to competition with other clients.
@@ -85,6 +86,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             @_host = opts.host
             @_port = 5432
         @_concurrent_warn = opts.concurrent_warn
+        @_concurrent_heavily_loaded = opts.concurrent_heavily_loaded
         @_user = opts.user
         @_database = opts.database
         @_password = opts.password ? read_db_password_from_disk()
@@ -1200,6 +1202,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
     # Return the number of outstanding concurrent queries.
     concurrent: =>
         return @_concurrent_queries ? 0
+
+    is_heavily_loaded: =>
+        return @_concurrent_queries >= @_concurrent_heavily_loaded
 
     # Compute the sha1 hash (in hex) of the input arguments, which are
     # converted to strings (via json) if they are not strings, then concatenated.

@@ -15,6 +15,9 @@ email                = require('./email')
 {is_valid_password}  = require('./client/create-account')
 auth                 = require('./auth')
 
+exports.PW_RESET_ENDPOINT = PW_RESET_ENDPOINT = '/auth/password_reset'
+exports.PW_RESET_KEY = PW_RESET_KEY = 'token'
+
 exports.forgot_password = (opts) ->
     opts = defaults opts,
         mesg       : required
@@ -128,8 +131,8 @@ exports.forgot_password = (opts) ->
             SITE_NAME   = locals.settings.site_name  ? theme.SITE_NAME
 
             base_url      = require('./base-url').base_url()
-            path          = require('path').join('/', base_url, '/app')
-            RESET_URL     = "#{DOMAIN_NAME}#{path}?forgot=#{id}"
+            path          = require('path').join('/', base_url, PW_RESET_ENDPOINT)
+            RESET_URL     = "#{DOMAIN_NAME}#{path}?#{PW_RESET_KEY}=#{id}"
 
             body = """
                 <div>Hello,</div>

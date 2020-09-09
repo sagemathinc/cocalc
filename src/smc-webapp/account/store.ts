@@ -18,21 +18,6 @@ export class AccountStore extends Store<AccountState> {
   //   - 'signed_in'  : user has successfully authenticated and has an id
   constructor(name, redux) {
     super(name, redux);
-    misc.bind_methods(this, [
-      "get_user_type",
-      "get_account_id",
-      "get_terminal_settings",
-      "get_editor_settings",
-      "get_fullname",
-      "get_first_name",
-      "get_color",
-      "get_username",
-      "get_email_address",
-      "get_confirm_close",
-      "get_total_upgrades",
-      "is_paying_member",
-      "get_page_size",
-    ]);
     this.setup_selectors();
   }
 

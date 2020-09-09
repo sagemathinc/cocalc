@@ -42,7 +42,6 @@ import * as misc from "smc-util/misc";
 const { MARKERS } = require("smc-util/sagews");
 import { alert_message } from "./alerts";
 import { webapp_client } from "./webapp-client";
-const { project_tasks } = require("./project_tasks");
 const { defaults, required } = misc;
 
 import { set_url } from "./history";
@@ -56,6 +55,7 @@ import { Actions, project_redux_name, redux } from "./app-framework";
 import { ProjectStore, ProjectStoreState } from "./project_store";
 import { ProjectEvent } from "./project/history/types";
 import { DEFAULT_COMPUTE_IMAGE } from "../smc-util/compute-images";
+import { download_href, url_href } from "./project/utils";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%';
@@ -1673,11 +1673,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         cb("no store");
         return;
       }
-      if (
-        (store.get("library") != null
-          ? store.get("library").get(k)
-          : undefined) != null
-      ) {
+      if (store.get("library")?.get(k) != null) {
         cb("already done");
         return;
       }
@@ -1698,8 +1694,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
               return;
             }
             let library = store.get("library");
-            library = library.set(k, output.exit_code === 0);
-            this.setState({ library });
+            if (library != null) {
+              library = library.set(k, output.exit_code === 0);
+              this.setState({ library });
+            }
           }
           return cb(err);
         },
@@ -1720,7 +1718,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       if (store == undefined) {
         return;
       }
-      library = store.get("library").set("examples", data);
+      library = store.get("library")?.set("examples", data);
       this.setState({ library });
       return;
     }
@@ -1753,7 +1751,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             cb("no store");
             return;
           }
-          library = store.get("library").set("examples", data);
+          library = store.get("library")?.set("examples", data);
           this.setState({ library });
           _init_library_index_cache[this.project_id] = data;
           cb();
@@ -2056,10 +2054,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     if (opts.auto && !opts.print) {
-      url = project_tasks(this.project_id).download_href(opts.path);
+      url = download_href(this.project_id, opts.path);
       return download_file(url);
     } else {
-      url = project_tasks(this.project_id).url_href(opts.path);
+      url = url_href(this.project_id, opts.path);
       const tab = open_new_tab(url);
       if (tab != null && opts.print) {
         // "?" since there might be no print method -- could depend on browser API
@@ -2096,7 +2094,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return s;
   }
 
-  create_folder(opts) {
+  async create_folder(opts: {
+    name: string;
+    current_path?: string;
+    switch_over?: boolean;
+  }): Promise<void> {
     let p;
     opts = defaults(opts, {
       name: required,
@@ -2114,20 +2116,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.setState({ file_creation_error: e.message });
       return;
     }
-    return project_tasks(this.project_id).ensure_directory_exists({
-      path: p,
-      cb: (err) => {
-        if (err) {
-          this.setState({
-            file_creation_error: `Error creating directory '${p}' -- ${err}`,
-          });
-        } else if (switch_over) {
-          this.open_directory(p);
-        } else {
-          this.fetch_directory_listing();
-        }
-      },
-    });
+    try {
+      await this.ensure_directory_exists(p);
+    } catch (err) {
+      this.setState({
+        file_creation_error: `Error creating directory '${p}' -- ${err}`,
+      });
+      return;
+    }
+    if (switch_over) {
+      this.open_directory(p);
+    } else {
+      this.fetch_directory_listing();
+    }
   }
 
   async create_file(opts) {
@@ -2630,5 +2631,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const a = store.get("active_project_tab");
     if (!startswith(a, "editor-")) return;
     this.hide_file(misc.tab_to_path(a));
+  }
+
+  async ensure_directory_exists(path: string): Promise<void> {
+    await webapp_client.exec({
+      project_id: this.project_id,
+      command: "mkdir",
+      args: ["-p", path],
+    });
   }
 }

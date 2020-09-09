@@ -4,7 +4,7 @@
  */
 
 import { deep_copy } from "../misc";
-const { DEFAULT_QUOTAS } = require("../upgrade-spec");
+import { DEFAULT_QUOTAS } from "../upgrade-spec";
 import { FALLBACK_COMPUTE_IMAGE } from "./defaults";
 import { SCHEMA as schema } from "./index";
 import { Table } from "./types";
@@ -30,7 +30,9 @@ Table({
       get: {
         // if you change the interval, change the text in projects.cjsx
         pg_where: ["last_edited >= NOW() - interval '10 days'", "projects"],
+        pg_where_load: ["last_edited >= NOW() - interval '2 days'", "projects"],
         options: [{ limit: 20, order_by: "-last_edited" }],
+        options_load: [{ limit: 10, order_by: "-last_edited" }],
         pg_changefeed: "projects",
         throttle_changes: 2000,
         fields: {

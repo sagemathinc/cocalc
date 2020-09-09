@@ -30,7 +30,6 @@ import {
   compute_image2basename,
   CUSTOM_IMG_PREFIX,
 } from "../../custom-software/util";
-import { async } from "async";
 import { ButtonToolbar, Button, Alert } from "react-bootstrap";
 import { alert_message } from "../../alerts";
 import { Project } from "./types";
@@ -42,7 +41,6 @@ import { ComputeImageSelector } from "./compute-image-selector";
 import { COMPUTE_IMAGES as COMPUTE_IMAGES_ORIG } from "smc-util/compute-images";
 const COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES_ORIG); // only because that's how all the ui code was written.
 
-const { project_tasks } = require("../../project_tasks");
 const misc = require("smc-util/misc");
 
 interface ReactProps {
@@ -91,26 +89,6 @@ export const ProjectControl = rclass<ReactProps>(
           compute_image_changing: false,
         });
       }
-    }
-
-    open_authorized_keys(e) {
-      e.preventDefault();
-      const project_id = this.props.project.get("project_id");
-      return async.series([
-        (cb) => {
-          return project_tasks(project_id).ensure_directory_exists({
-            path: ".ssh",
-            cb,
-          });
-        },
-        (cb) => {
-          redux.getActions({ project_id }).open_file({
-            path: ".ssh/authorized_keys",
-            foreground: true,
-          });
-          return cb();
-        },
-      ]);
     }
 
     render_state() {

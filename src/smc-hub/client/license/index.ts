@@ -22,6 +22,8 @@ import {
 import { charge_user_for_license, set_purchase_metadata } from "./charge";
 import { create_license } from "./create-license";
 import { StripeClient } from "../../stripe/client";
+import { callback2 } from "smc-util/async-utils";
+import { delay } from "awaiting";
 
 // Does what should be done, and returns the license_id of the license that was created
 // and has user added to as a manager.
@@ -68,7 +70,29 @@ export async function purchase_license(
   );
 
   dbg("purchase_license: set metadata on purchase...");
-  set_purchase_metadata(stripe, purchase, { license_id, account_id });
+  await set_purchase_metadata(stripe, purchase, { license_id, account_id });
+
+  // We have to try a few times, since the metadata sometimes doesn't appear
+  // when querying stripe for the customer, even after it was written in the
+  // above line.  Also, this gives the credit card a first chance to work.
+  for (let i = 0; i < 3; i++) {
+    const customer = await callback2(database.stripe_update_customer, {
+      account_id,
+    });
+    const data = customer?.subscriptions?.data;
+    if (data != null) {
+      for (const sub of data) {
+        if (sub.metadata?.license_id == license_id && sub.status == "active") {
+          // metadata is set and status is active -- yes
+          break;
+        }
+      }
+    }
+    await delay(2000);
+  }
+
+  // Sets the license expire date if the subscription is NOT active at this point (e.g., due to credit card failure).
+  await database.sync_site_license_subscriptions(account_id);
 
   return license_id;
 }

@@ -107,10 +107,9 @@ export interface ProjectStoreState {
   default_filename?: string;
   file_creation_error?: string;
   downloading_file: boolean;
-  library: immutable.Map<any, any>;
-  library_selected?: object;
-  library_is_copying: boolean; // for the copy button, to signal an ongoing copy process
-  library_docs_sorted?: any; //computed(immutable.List),
+  library?: immutable.Map<string, any>;
+  library_selected?: immutable.Map<string, any>;
+  library_is_copying?: boolean; // for the copy button, to signal an ongoing copy process
   library_search?: string; // if given, restricts to library entries that match the search
 
   // Project Find
@@ -437,40 +436,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
         }
       },
     },
-
-    library_docs_sorted: {
-      dependencies: ["library", "library_search"] as const,
-      fn: () => {
-        let docs = this.get("library").getIn(["examples", "documents"]);
-        const metadata = this.get("library").getIn(["examples", "metadata"]);
-        if (this.get("library_search")) {
-          const search = misc.search_split(this.get("library_search"));
-          // Using JSON of the doc is pretty naive but it's fast enough
-          // and I don't want to spend much time on this!
-          docs = docs.filter((doc) =>
-            misc.search_match(JSON.stringify(doc.toJS()).toLowerCase(), search)
-          );
-        }
-
-        if (docs != null) {
-          // sort by a triplet: idea is to have the docs sorted by their category,
-          // where some categories have weights (e.g. "introduction" comes first, no matter what)
-          const sortfn = function (doc) {
-            return [
-              metadata.getIn(["categories", doc.get("category"), "weight"]) ||
-                0,
-              metadata
-                .getIn(["categories", doc.get("category"), "name"])
-                .toLowerCase(),
-              (doc.get("title") && doc.get("title").toLowerCase()) ||
-                doc.get("id"),
-            ];
-          };
-          return docs.sortBy(sortfn);
-        }
-      },
-    },
   };
+
   // Returns the cursor positions for the given project_id/path, if that
   // file is opened, and supports cursors and is either old (and ...) or
   // is in react and has store with a cursors key.

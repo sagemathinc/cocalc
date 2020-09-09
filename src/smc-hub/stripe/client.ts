@@ -150,15 +150,10 @@ export class StripeClient {
   public async mesg_get_customer(_mesg: Message): Promise<Message> {
     const dbg = this.dbg("mesg_get_customer");
     dbg("get information from stripe: subscriptions, payment methods, etc.");
-    const customer_id = await this.get_customer_id();
-    let customer: undefined | StripeCustomer;
-    if (customer_id != null) {
-      customer = await this.get_customer(customer_id);
-    }
     // note -- we explicitly put the "publishable_key" property there...
     return message.stripe_customer({
       stripe_publishable_key: (this.conn as any).publishable_key,
-      customer,
+      customer: await this.update_database(),
     });
   }
 
@@ -248,11 +243,14 @@ export class StripeClient {
     await this.update_database();
   }
 
-  public async update_database(): Promise<void> {
+  // update_database queries stripe for customer record, stores
+  // it in the database, and  returns the new customer record
+  // if it exists
+  public async update_database(): Promise<any> {
     this.dbg("update_database")();
     const customer_id = await this.get_customer_id();
     if (customer_id == null) return;
-    await callback2(this.client.database.stripe_update_customer, {
+    return await callback2(this.client.database.stripe_update_customer, {
       account_id: this.client.account_id,
       stripe: this.conn,
       customer_id,
@@ -526,7 +524,7 @@ export class StripeClient {
 
     dbg("get stripe customer data");
     const customer = await this.get_customer();
-    if (customer == null && customer.subscriptions == null) {
+    if (customer == null || customer.subscriptions == null) {
       // no upgrades since not even a stripe account.
       return message.available_upgrades({
         total: {},
@@ -560,5 +558,14 @@ export class StripeClient {
       account_id: this.client.account_id,
       projects: mesg.projects,
     });
+  }
+
+  public async mesg_sync_site_license_subscriptions(): Promise<void> {
+    const dbg = this.dbg("mesg_sync_site_license_subscriptions");
+    dbg();
+    if (this.client.account_id == null) throw Error("you must be signed in");
+    await this.client.database.sync_site_license_subscriptions(
+      this.client.account_id
+    );
   }
 }

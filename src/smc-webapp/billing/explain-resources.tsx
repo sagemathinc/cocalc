@@ -37,12 +37,14 @@ export class ExplainResources extends Component<Props> {
             </b>
             : upgrade your projects
           </li>
-          <li>
-            <b>
-              <a href="#courses">Course packages</a>
-            </b>
-            : upgrade student projects for teaching a course
-          </li>
+          {false && (
+            <li>
+              <b>
+                <a href="#courses">Course packages</a>
+              </b>
+              : upgrade student projects for teaching a course
+            </li>
+          )}
           <li>
             <b>
               <a href="#dedicated">Dedicated VMs</a>
@@ -155,6 +157,21 @@ export class ExplainResources extends Component<Props> {
                 order to increase the total amount of upgrades available to you.
               </li>
             </ul>
+            <Space />
+
+            <h4>Site licenses</h4>
+            <div>
+              <A href="https://doc.cocalc.com/account/licenses.html">
+                License Keys
+              </A>{" "}
+              are applied to your projects or set in the{" "}
+              <A href="https://doc.cocalc.com/teaching-notes.html#site-license-course-setup">
+                course management interface
+              </A>{" "}
+              to be applied to all student projects. One key upgrades up to
+              certain number of simultaneously running projects with a specific
+              upgrade schema.
+            </div>
             <Space />
 
             {this.render_toc()}
