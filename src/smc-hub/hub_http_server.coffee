@@ -272,11 +272,17 @@ exports.init_express_http_server = (opts) ->
 
     if server_settings?
         router.get '/customize', (req, res) ->
+            # if we're behind cloudflare, we expose the detected country in the client
+            # use a lib like https://github.com/michaelwittig/node-i18n-iso-countries
+            # to read the ISO 3166-1 Alpha 2 codes.
+            # if it is unknown, the code will be XX and K1 is the Tor-Network.
+            country = req.headers['cf-ipcountry'] ? 'XX'
+            data = Object.assign({}, server_settings.pub, {country: country})
             if req.query.type == 'embed'
                 res.header("Content-Type", "text/javascript")
-                res.send("window.CUSTOMIZE = Object.freeze(#{JSON.stringify(server_settings.pub)})")
+                res.send("window.CUSTOMIZE = Object.freeze(#{JSON.stringify(data)})")
             else
-                res.json(server_settings.pub)
+                res.json(data)
 
     # Save other paths in # part of URL then redirect to the single page app.
     router.get ['/projects*', '/help*', '/settings*', '/admin*', '/dashboard*', '/notifications*'], (req, res) ->
