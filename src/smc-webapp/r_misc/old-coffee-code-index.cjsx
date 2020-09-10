@@ -948,6 +948,14 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
         style     : {marginRight:'2px', whiteSpace: 'nowrap'}
 
     handle_click: (name) ->
+        if name == 'new'
+            new_ext = misc.filename_extension(@props.filename)
+            if new_ext == ''
+                # otherwise 'foo' leads to 'random.'
+                new_ext = undefined
+            # Special calse -- not an action on this one file
+            @props.actions.set_active_tab('new', {new_ext:new_ext})
+            return
         # ugly: fix when refactor this code.
         {file_actions} = require('../project_store')
         for action, v of file_actions
@@ -962,18 +970,21 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
         </MenuItem>
 
     render_menu_items: ->
+        v = []
         if @props.is_public
             # Fewer options when viewing the action dropdown in public mode:
             items =
                 'download' : 'cloud-download'
                 'copy'     : 'files-o'
         else
+            v.push(@render_menu_item('new', 'plus-circle'))
             # dynamically create a map from 'key' to 'icon'
             {file_actions} = require('../project_store')
-            items = underscore.object(([v.name, v.icon] for k, v of file_actions))
+            items = underscore.object(([x.name, x.icon] for k, x of file_actions))
 
         for name, icon of items
-            @render_menu_item(name, icon)
+            v.push(@render_menu_item(name, icon))
+        return v
 
     render_title: ->
         <span>

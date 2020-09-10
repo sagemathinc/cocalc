@@ -37,6 +37,7 @@ export const NewFileButton = React.memo(function NewFileButton({
 
   return (
     <Button
+      size="large"
       onClick={(): void => {
         on_click?.(ext);
       }}

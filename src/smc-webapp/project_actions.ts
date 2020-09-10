@@ -394,7 +394,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Updates the URL
   public set_active_tab(
     key: string,
-    opts: { update_file_listing?: boolean; change_history?: boolean } = {
+    opts: {
+      update_file_listing?: boolean;
+      change_history?: boolean;
+      new_ext?: string;
+    } = {
       update_file_listing: true,
       change_history: true,
     }
@@ -431,7 +435,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           this.push_state(`new/${store.get("current_path")}`);
         }
         const new_fn = require("./account").default_filename(
-          undefined,
+          opts.new_ext,
           this.project_id
         );
         this.set_next_default_filename(new_fn);
