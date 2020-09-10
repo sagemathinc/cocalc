@@ -165,7 +165,8 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
   }
 
   // we want this to be between 10 to 14 and growing over time (weeks)
-  const proj_created = project_map.getIn([project_id, "created"], new Date(0));
+  const proj_created =
+    project_map?.getIn([project_id, "created"]) ?? new Date(0);
 
   const min_fontsize = 10;
   const age_ms: number = server_time().getTime() - proj_created.getTime();

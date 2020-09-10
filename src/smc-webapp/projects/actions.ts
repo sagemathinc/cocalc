@@ -13,7 +13,7 @@ import {
   defaults,
 } from "smc-util/misc";
 import { Set } from "immutable";
-import { State, store } from "./store";
+import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
 import { alert_message } from "../alerts";
 import { markdown_to_html } from "../markdown";
@@ -26,7 +26,7 @@ import { COCALC_MINIMAL } from "../fullscreen";
 import { DEFAULT_COMPUTE_IMAGE } from "smc-util/compute-images";
 
 // Define projects actions
-export class ProjectsActions extends Actions<State> {
+export class ProjectsActions extends Actions<ProjectsState> {
   private async projects_table_set(
     obj: object,
     merge: "deep" | "shallow" | "none" | undefined = "deep"

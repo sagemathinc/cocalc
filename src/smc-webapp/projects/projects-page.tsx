@@ -67,10 +67,7 @@ export const ProjectsPage: React.FC = () => {
     "selected_hashtags"
   );
 
-  const project_map: Map<string, any> = useTypedRedux(
-    "projects",
-    "project_map"
-  );
+  const project_map = useTypedRedux("projects", "project_map");
   const user_map = useTypedRedux("users", "user_map");
   const visible_projects: string[] = useMemo(
     () =>
@@ -147,15 +144,11 @@ export const ProjectsPage: React.FC = () => {
             <Icon name="edit" /> Projects{" "}
           </div>
         </Col>
-        <Col md={3}>
-          {!is_anonymous && <ProjectsFilterButtons />}
-        </Col>
+        <Col md={3}>{!is_anonymous && <ProjectsFilterButtons />}</Col>
         <Col md={2}>
           <UsersViewing style={{ width: "100%" }} />
         </Col>
-        <Col md={3}>
-          {!is_anonymous && <AddToProjectToken />}
-        </Col>
+        <Col md={3}>{!is_anonymous && <AddToProjectToken />}</Col>
       </Row>
       <Row>
         <Col sm={4}>
