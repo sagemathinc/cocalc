@@ -15,7 +15,7 @@ export class Changefeed extends EventEmitter {
   private query_cancel: Function;
   private state: State = "disconnected";
   private table: string;
-  private id: string;
+  private id?: string;
   private options: any;
   private handle_update_queue: { err?: any; resp?: any }[] = [];
 
@@ -143,7 +143,7 @@ export class Changefeed extends EventEmitter {
 
   public close(): void {
     this.state = "closed";
-    delete this.handle_update_queue;
+    this.handle_update_queue = [];
     if (this.id != null) {
       // stop listening for future updates
       this.cancel_query(this.id);

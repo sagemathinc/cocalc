@@ -32,6 +32,7 @@ export function init(path: string, redux, project_id: string): string {
     project_id,
     path,
     primary_keys: ["date"],
+    string_cols: [],
   });
 
   syncdb.once("error", (err) => {

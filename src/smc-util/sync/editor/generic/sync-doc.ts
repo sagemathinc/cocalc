@@ -181,7 +181,7 @@ export class SyncDoc extends EventEmitter {
 
   public ipywidgets_state?: IpywidgetsState;
 
-  private patch_list: SortedPatchList;
+  private patch_list?: SortedPatchList;
 
   private last: Document;
   private doc: Document;
@@ -223,6 +223,9 @@ export class SyncDoc extends EventEmitter {
 
   private ephemeral: boolean = false;
 
+  // throttled this._emit_change
+  private emit_change?: Function;
+
   constructor(opts: SyncOpts) {
     super();
     if (opts.string_id === undefined) {
@@ -260,7 +263,7 @@ export class SyncDoc extends EventEmitter {
     ]);
 
     if (this.change_throttle) {
-      this.emit_change = throttle(this.emit_change, this.change_throttle);
+      this.emit_change = throttle(this._emit_change, this.change_throttle);
     }
 
     this.setMaxListeners(100);
@@ -306,7 +309,7 @@ export class SyncDoc extends EventEmitter {
     // Success -- everything perfectly initialized with no issues.
     this.set_state("ready");
     this.init_watch();
-    this.emit_change(); // from nothing to something.
+    this.emit_change?.(); // from nothing to something.
   }
 
   /* Set this user's cursors to the given locs. */
@@ -429,7 +432,7 @@ export class SyncDoc extends EventEmitter {
     }
     // console.log(`sync-doc.set_doc("${doc.to_str()}")`);
     this.doc = doc;
-    this.emit_change();
+    this.emit_change?.();
   }
 
   // Convenience function to avoid having to do
@@ -483,6 +486,7 @@ export class SyncDoc extends EventEmitter {
   // If not fully initialized, will throw exception.
   public version(time?: Date): Document {
     this.assert_table_is_ready("patches");
+    if (this.patch_list == null) throw Error("patch_list undefined");
     return this.patch_list.value(time);
   }
 
@@ -491,6 +495,7 @@ export class SyncDoc extends EventEmitter {
      used for implementing undo functionality for client editors. */
   public version_without(times: Date[]): Document {
     this.assert_table_is_ready("patches");
+    if (this.patch_list == null) throw Error("patch_list undefined");
     return this.patch_list.value(undefined, undefined, times);
   }
 
@@ -678,6 +683,7 @@ export class SyncDoc extends EventEmitter {
      when offline! */
   public time_sent(time: Date): Date | undefined {
     this.assert_table_is_ready("patches");
+    if (this.patch_list == null) throw Error("patch_list undefined");
     return this.patch_list.time_sent(time);
   }
 
@@ -685,6 +691,7 @@ export class SyncDoc extends EventEmitter {
   // point in time.
   public user_id(time: Date): number {
     this.assert_table_is_ready("patches");
+    if (this.patch_list == null) throw Error("patch_list undefined");
     return this.patch_list.user_id(time);
   }
 
@@ -749,6 +756,7 @@ export class SyncDoc extends EventEmitter {
      is sorted from oldest to newest. */
   public all_versions(): Date[] {
     this.assert_table_is_ready("patches");
+    if (this.patch_list == null) throw Error("patch_list undefined");
     return this.patch_list.versions();
   }
 
@@ -810,18 +818,16 @@ export class SyncDoc extends EventEmitter {
       this.project_autosave_timer = 0;
     }
 
-    delete this.cursor_map;
-    delete this.users;
+    this.cursor_map = Map();
+    this.users = [];
     this.patch_update_queue = [];
 
     if (this.syncstring_table != null) {
       await this.syncstring_table.close();
-      delete this.syncstring_table;
     }
 
     if (this.patches_table != null) {
       await this.patches_table.close();
-      delete this.patches_table;
     }
 
     if (this.patch_list != null) {
@@ -831,7 +837,6 @@ export class SyncDoc extends EventEmitter {
 
     if (this.cursors_table != null) {
       await this.cursors_table.close();
-      delete this.cursors_table;
     }
 
     if (this.client.is_project()) {
@@ -848,7 +853,7 @@ export class SyncDoc extends EventEmitter {
       delete this.ipywidgets_state;
     }
 
-    delete this.settings;
+    this.settings = Map();
   }
 
   // TODO: We **have** to do this on the client, since the backend
@@ -1114,6 +1119,7 @@ export class SyncDoc extends EventEmitter {
       throw Error(init.error);
     }
 
+    if (this.patch_list == null) throw Error("patch_list undefined");
     if (this.client.is_user() && this.patch_list.count() === 0 && init.size) {
       dbg("waiting for patches for nontrivial file");
       // normally this only happens in a later event loop,
@@ -1596,6 +1602,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   private next_patch_time(): Date {
+    if (this.patch_list == null) throw Error("patch_list undefined");
     let time = this.client.server_time();
     const min_time = this.patch_list.newest_patch_time();
     if (min_time != null && min_time >= time) {
@@ -1611,6 +1618,7 @@ export class SyncDoc extends EventEmitter {
 
   private commit_patch(time: Date, patch: XPatch): void {
     this.assert_not_closed("commit_patch");
+    if (this.patch_list == null) throw Error("patch_list undefined");
     const obj: any = {
       // version for database
       string_id: this.string_id,
@@ -1650,6 +1658,7 @@ export class SyncDoc extends EventEmitter {
      be the time of an existing patch.
   */
   private async snapshot(time: Date, force: boolean = false): Promise<void> {
+    if (this.patch_list == null) throw Error("patch_list undefined");
     const x = this.patch_list.patch(time);
     if (x == null) {
       throw Error(`no patch at time ${time}`);
@@ -1747,6 +1756,7 @@ export class SyncDoc extends EventEmitter {
   private async snapshot_if_necessary(): Promise<void> {
     const dbg = this.dbg("snapshot_if_necessary");
     if (this.get_state() !== "ready") return;
+    if (this.patch_list == null) return;
     const max_size = Math.floor(1.2 * MAX_FILE_SIZE_MB * 1000000);
     const interval = this.snapshot_interval;
     dbg("check if we need to make a snapshot:", { interval, max_size });
@@ -1893,13 +1903,15 @@ export class SyncDoc extends EventEmitter {
         v.push(p);
       }
     });
+
+    if (this.patch_list == null) throw Error("patch_list undefined");
     this.patch_list.add(v);
     this.load_full_history_done = true;
     return;
   }
 
   public show_history(opts = {}): void {
-    this.patch_list.show_history(opts);
+    this.patch_list?.show_history(opts);
   }
 
   public async set_snapshot_interval(n: number): Promise<void> {
@@ -1917,6 +1929,7 @@ export class SyncDoc extends EventEmitter {
     //dbg = this.dbg("handle_offline")
     //dbg("data='#{misc.to_json(data)}'")
     this.assert_not_closed("handle_offline");
+    if (this.patch_list == null) throw Error("patch_list undefined");
     const now: Date = this.client.server_time();
     let oldest: Date | undefined = undefined;
     for (const obj of data) {
@@ -2412,6 +2425,7 @@ export class SyncDoc extends EventEmitter {
      document to a simple JSON-able object. */
   public export_history(options: HistoryExportOptions = {}): HistoryEntry[] {
     this.assert_is_ready("export_history");
+    if (this.patch_list == null) throw Error("patch_list undefined");
     const info = this.syncstring_table.get_one();
     if (info == null || !info.has("users")) {
       throw Error("syncstring table must be defined and users initialized");
@@ -2631,6 +2645,7 @@ export class SyncDoc extends EventEmitter {
   their timestamp gets added to this.patch_update_queue.
   */
   private async handle_patch_update_queue(): Promise<void> {
+    if (this.patch_list == null) throw Error("patch_list undefined");
     const dbg = this.dbg("handle_patch_update_queue");
     try {
       this.handle_patch_update_queue_running = true;
@@ -2695,6 +2710,7 @@ export class SyncDoc extends EventEmitter {
     if (this.last == null || this.doc == null) {
       return;
     }
+    if (this.patch_list == null) throw Error("patch_list undefined");
 
     if (this.state == "ready") {
       // First save any unsaved changes from our live version.
@@ -2726,12 +2742,12 @@ export class SyncDoc extends EventEmitter {
       this.last = this.doc = new_remote;
       if (this.state == "ready") {
         this.emit("after-change");
-        this.emit_change();
+        this.emit_change?.();
       }
     }
   }
 
-  private emit_change(): void {
+  private _emit_change(): void {
     this.emit("change", this.doc.changes(this.before_change));
     this.before_change = this.doc;
   }

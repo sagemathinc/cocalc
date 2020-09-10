@@ -15,7 +15,7 @@ import { SyncDoc, SyncOpts0 } from "smc-util/sync/editor/generic/sync-doc";
 interface SyncOpts extends Omit<SyncOpts0, "client"> {}
 
 import { SyncDB, SyncDBOpts0 } from "smc-util/sync/editor/db";
-interface SyncDBOpts extends Omit<SyncDBOpts, "client"> {}
+interface SyncDBOpts extends Omit<SyncDBOpts0, "client"> {}
 
 import { SyncString } from "smc-util/sync/editor/string/sync";
 import {

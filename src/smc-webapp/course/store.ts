@@ -839,6 +839,7 @@ export class CourseStore extends Store<CourseState> {
     const actions = this.redux.getActions(this.name);
     if (actions == null) return {};
     const x = (actions as CourseActions).resolve(opts);
+    // @ts-ignore
     delete x.store;
     return x;
   }

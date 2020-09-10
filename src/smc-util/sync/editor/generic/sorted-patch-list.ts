@@ -44,12 +44,6 @@ export class SortedPatchList extends EventEmitter {
 
   public close(): void {
     this.removeAllListeners();
-    delete this.from_str;
-    delete this.patches;
-    delete this.times;
-    delete this.versions_cache;
-    delete this.cache;
-    delete this.all_snapshot_times;
   }
 
   /* Choose the next available time in ms that is congruent to

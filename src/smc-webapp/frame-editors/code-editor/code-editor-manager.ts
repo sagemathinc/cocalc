@@ -24,7 +24,7 @@ export class CodeEditor {
     let editor = get_file_editor(ext, false);
     if (editor == null) {
       // fallback to text
-      editor = get_file_editor('txt', false);
+      editor = get_file_editor("txt", false);
     }
     const name = editor.init(this.path, redux, this.project_id);
     this.actions = (redux.getActions(name) as unknown) as Actions; // definitely right
@@ -53,8 +53,7 @@ export class CodeEditorManager<T extends CodeEditorState = CodeEditorState> {
     for (let id in this.code_editors) {
       this.close_code_editor(id);
     }
-    delete this.actions;
-    delete this.code_editors;
+    this.code_editors = {};
   }
 
   close_code_editor(id: string): void {

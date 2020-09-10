@@ -46,7 +46,7 @@ export class Evaluator {
   private client: Client;
   private inputs_table: SyncTable;
   private outputs_table: SyncTable;
-  private sage_session: any;
+  private sage_session: any; // TODO add some typing info here
   private state: State = "init";
   private table_options: any[] = [];
   private create_synctable: Function;
@@ -78,15 +78,12 @@ export class Evaluator {
   public async close(): Promise<void> {
     if (this.inputs_table != null) {
       await this.inputs_table.close();
-      delete this.inputs_table;
     }
     if (this.outputs_table != null) {
       await this.outputs_table.close();
-      delete this.outputs_table;
     }
     if (this.sage_session != null) {
       this.sage_session.close();
-      delete this.sage_session;
     }
     this.set_state("closed");
   }

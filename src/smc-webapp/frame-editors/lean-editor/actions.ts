@@ -168,7 +168,6 @@ export class Actions extends BaseActions<LeanEditorState> {
       } catch (err) {
         // pass
       }
-      delete this.channel;
     }
     super.close();
   }

@@ -69,7 +69,7 @@ interface State {
 }
 
 export class CodemirrorEditor extends Component<Props, State> {
-  private cm: CodeMirror.Editor;
+  private cm?: CodeMirror.Editor;
   private style_active_line: boolean = false;
   static defaultProps = { value: "" };
   private manager?: CodeEditor;
@@ -144,6 +144,7 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   cm_highlight_misspelled_words(words: Set<string> | string): void {
+    if (this.cm == null) return;
     if (words == "browser") {
       // just ensure browser spellcheck is enabled
       this.cm.setOption("spellcheck", true);
@@ -338,6 +339,7 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   init_new_codemirror(): void {
+    if (!this.cm) return;
     (this.cm as any)._actions = this.editor_actions;
 
     if (this.props.is_public) {
@@ -494,7 +496,11 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   render_gutter_markers(): Rendered {
-    if (!this.state.has_cm || this.props.gutter_markers == null) {
+    if (
+      !this.state.has_cm ||
+      this.cm == null ||
+      this.props.gutter_markers == null
+    ) {
       return;
     }
     return (

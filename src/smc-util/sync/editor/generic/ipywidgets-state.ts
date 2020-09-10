@@ -32,7 +32,7 @@ export type ModelState = { [key: string]: any };
 export class IpywidgetsState extends EventEmitter {
   private syncdoc: SyncDoc;
   private client: Client;
-  private table: SyncTable;
+  private table?: SyncTable;
   private state: State = "init";
   private table_options: any[] = [];
   private create_synctable: Function;
@@ -72,13 +72,13 @@ export class IpywidgetsState extends EventEmitter {
         },
       ],
     };
-    this.table = await this.create_synctable(query, this.table_options, 0);
-
+    const table = await this.create_synctable(query, this.table_options, 0);
+    this.table = table;
     // TODO: here the project should clear the table.
 
     this.set_state("ready");
 
-    this.table.on("change", (keys) => {
+    table.on("change", (keys) => {
       this.emit("change", keys);
     });
   }
@@ -86,6 +86,7 @@ export class IpywidgetsState extends EventEmitter {
   public keys(): any {
     // return type is immutable js iterator
     this.assert_state("ready");
+    if (this.table == null) throw Error("SyncTable 'table' not available");
     const x = this.table.get();
     if (x == null) {
       return [];
@@ -95,6 +96,7 @@ export class IpywidgetsState extends EventEmitter {
   }
 
   public get(model_id: string, type: string): iMap<string, any> | undefined {
+    if (this.table == null) throw Error("SyncTable 'table' not available");
     const key: string = JSON.stringify([
       this.syncdoc.get_string_id(),
       model_id,
@@ -200,6 +202,7 @@ export class IpywidgetsState extends EventEmitter {
     data: any,
     fire_change_event: boolean = true
   ): void {
+    if (this.table == null) throw Error("SyncTable 'table' not available");
     const string_id = this.syncdoc.get_string_id();
     if (typeof data != "object") {
       throw Error("TypeError -- data must be a map");
@@ -226,6 +229,7 @@ export class IpywidgetsState extends EventEmitter {
   }
 
   public async save(): Promise<void> {
+    if (this.table == null) throw Error("SyncTable 'table' not available");
     await this.table.save();
   }
 

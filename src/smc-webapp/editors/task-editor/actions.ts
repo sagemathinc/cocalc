@@ -88,9 +88,6 @@ export class TaskActions extends Actions<TaskState> {
     this.is_closed = true;
     this.__save_local_view_state();
     this.syncdb.close();
-    delete this.syncdb;
-    delete this._save_local_view_state;
-    delete this._update_visible;
     if (this.key_handler != null) {
       this.redux.getActions("page").erase_active_key_handler(this.key_handler);
       delete this.key_handler;
