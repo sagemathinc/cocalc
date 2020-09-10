@@ -17,7 +17,7 @@ import {
   close_jupyter_actions,
 } from "./jupyter-actions";
 
-interface JupyterEditorState extends CodeEditorState {
+export interface JupyterEditorState extends CodeEditorState {
   slideshow?: {
     state?: "built" | "building" | "";
     url?: string;

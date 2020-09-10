@@ -1177,7 +1177,7 @@ export class Actions<
         case "terminal":
           return "https://doc.cocalc.com/terminal.html";
         case "time_travel":
-          return "https://github.com/sagemathinc/cocalc/wiki/TimeTravel";
+          return "https://doc.cocalc.com/time-travel.html";
         default:
           return WIKI_HELP_URL + type + "-help";
       }

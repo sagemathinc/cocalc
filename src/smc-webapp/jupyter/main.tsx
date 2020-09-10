@@ -12,7 +12,6 @@ import * as immutable from "immutable";
 
 import { ErrorDisplay } from "../r_misc/error-display";
 import { Loading } from "../r_misc/loading";
-//import { is_firefox, is_safari } from "../frame-editors/generic/browser";
 
 // React components that implement parts of the Jupyter notebook.
 import { TopMenubar } from "./top-menubar";
@@ -91,8 +90,8 @@ interface JupyterEditorProps {
   fatal?: string; // *FATAL* error; user must edit file to fix.
   toolbar?: boolean;
   has_unsaved_changes?: boolean;
-  cell_list?: immutable.List<any>; // list of ids of cells in order
-  cells?: immutable.Map<any, any>; // map from ids to cells
+  cell_list?: immutable.List<string>; // list of ids of cells in order
+  cells?: immutable.Map<string, any>; // map from ids to cells
   project_id?: string;
   directory?: string;
   version?: any;
@@ -237,13 +236,13 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
       this.props.frame_actions == null ||
       this.props.cells == null ||
       this.props.sel_ids == null ||
-      this.props.cur_id == null
+      this.props.cur_id == null ||
+      this.props.name == null
     ) {
       return;
     } else {
       return (
         <TopButtonbar
-          actions={this.props.actions}
           frame_actions={this.props.frame_actions}
           name={this.props.name}
           cells={this.props.cells}

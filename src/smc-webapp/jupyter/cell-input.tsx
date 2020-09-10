@@ -128,6 +128,9 @@ export class CellInput extends Component<CellInputProps> {
         kernel={this.props.cell.get("kernel")}
         start={this.props.cell.get("start")}
         end={this.props.cell.get("end")}
+        actions={this.props.actions}
+        frame_actions={this.props.frame_actions}
+        id={this.props.id}
       />
     );
   }

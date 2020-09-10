@@ -44,7 +44,9 @@ export const ProjectsWithLicenses: React.FC = () => {
         }}
       >
         <Col span={12} style={{ paddingLeft: "15px" }}>
-          <a>{trunc_middle(project_map.getIn([project_id, "title"]), 80)}</a>
+          <a>
+            {trunc_middle(project_map?.getIn([project_id, "title"]) ?? "", 80)}
+          </a>
         </Col>
         <Col span={6}>
           {num_licenses} {plural(num_licenses, "License")}

@@ -12,7 +12,6 @@ export const OUT_STYLE: React.CSSProperties = {
   fontFamily: "monospace",
   paddingTop: "5px",
   paddingBottom: "5px",
-  paddingLeft: "5px",
 };
 
 export const STDOUT_STYLE: React.CSSProperties = OUT_STYLE;

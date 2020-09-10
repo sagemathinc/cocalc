@@ -52,8 +52,8 @@ export class OutputToggle extends Component<OutputToggleProps> {
         onClick={this.toggle_scrolled}
         onDoubleClick={this.collapse_output}
       >
-        <div style={{ flex: 1 }} /> {/* use up all space */}
         {this.props.children}
+        <div style={{ flex: 1 }} /> {/* use up all space */}
       </div>
     );
   }

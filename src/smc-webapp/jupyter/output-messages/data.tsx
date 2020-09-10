@@ -51,7 +51,7 @@ export class Data extends Component<DataProps> {
 
   render_html(value: string): Rendered {
     return (
-      <div>
+      <div style={{ margin: "5px 0" }}>
         <HTML
           value={value}
           auto_render_math={true}
@@ -65,7 +65,7 @@ export class Data extends Component<DataProps> {
 
   render_markdown(value: string): Rendered {
     return (
-      <div>
+      <div style={{ margin: "5px 0" }}>
         <Markdown
           value={value}
           project_id={this.props.project_id}

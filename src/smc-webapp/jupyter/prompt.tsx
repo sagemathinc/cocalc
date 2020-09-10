@@ -7,8 +7,11 @@
 Components for rendering input and output prompts.
 */
 
-import { React, Component } from "../app-framework";
+import { React } from "../app-framework";
 import { Icon, TimeAgo, Tip } from "../r_misc";
+import { Button } from "antd";
+import { JupyterActions } from "./browser-actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 const misc = require("smc-util/misc");
 
@@ -21,7 +24,7 @@ const INPUT_STYLE: React.CSSProperties = {
   minWidth: PROMPT_MIN_WIDTH,
   fontFamily: "monospace",
   textAlign: "right",
-  paddingRight: "1ex",
+  paddingRight: "5px",
   cursor: "pointer",
 };
 
@@ -32,76 +35,114 @@ interface InputPromptProps {
   kernel?: string;
   start?: number;
   end?: number;
+  actions?: JupyterActions;
+  frame_actions?: NotebookFrameActions;
+  id: string;
 }
 
-export class InputPrompt extends Component<InputPromptProps> {
-  render() {
-    let n;
-    if (this.props.type !== "code") {
-      return <div style={INPUT_STYLE} />;
-    }
-    const kernel = misc.capitalize(
-      this.props.kernel != null ? this.props.kernel : ""
-    );
-    let tip: string | JSX.Element = "Enter code to be evaluated.";
-    switch (this.props.state) {
-      case "start":
-        n = <Icon name="arrow-circle-o-left" style={{ fontSize: "80%" }} />;
-        tip = `Sending to be evaluated using ${kernel}.`;
-        break;
-      case "run":
-        n = <Icon name="circle-o" style={{ fontSize: "80%" }} />;
-        tip = `Waiting for another computation to finish first. Will evaluate using ${kernel}.`;
-        break;
-      case "busy":
-        n = (
-          <Icon name="circle" style={{ fontSize: "80%", color: "#5cb85c" }} />
+export const InputPrompt: React.FC<InputPromptProps> = (props) => {
+  let n;
+  if (props.type !== "code") {
+    return <div style={INPUT_STYLE} />;
+  }
+  const kernel = misc.capitalize(props.kernel != null ? props.kernel : "");
+  let tip: string | JSX.Element = "Enter code to be evaluated.";
+  switch (props.state) {
+    case "start":
+      n = <Icon name="arrow-circle-o-left" style={{ fontSize: "80%" }} />;
+      tip = `Sending to be evaluated using ${kernel}.`;
+      break;
+    case "run":
+      n = <Icon name="circle-o" style={{ fontSize: "80%" }} />;
+      tip = `Waiting for another computation to finish first. Will evaluate using ${kernel}.`;
+      break;
+    case "busy":
+      n = <Icon name="circle" style={{ fontSize: "80%", color: "#5cb85c" }} />;
+      if (props.start != null) {
+        tip = (
+          <span>
+            Running since <TimeAgo date={new Date(props.start)} /> using{" "}
+            {kernel}.
+          </span>
         );
-        if (this.props.start != null) {
+      } else {
+        tip = `Running using ${kernel}.`;
+      }
+      break;
+    default:
+      // done (or never run)
+      if (props.exec_count) {
+        n = props.exec_count;
+        if (props.end != null) {
           tip = (
             <span>
-              Running since <TimeAgo date={new Date(this.props.start)} /> using{" "}
-              {kernel}.
+              Evaluated <TimeAgo date={new Date(props.end)} /> using {kernel}.
             </span>
           );
-        } else {
-          tip = `Running using ${kernel}.`;
+        } else if (kernel) {
+          tip = `Last evaluated using ${kernel}.`;
         }
-        break;
-      default:
-        // done (or never run)
-        if (this.props.exec_count) {
-          n = this.props.exec_count;
-          if (this.props.end != null) {
-            tip = (
-              <span>
-                Evaluated <TimeAgo date={new Date(this.props.end)} /> using{" "}
-                {kernel}.
-              </span>
-            );
-          } else if (kernel) {
-            tip = `Last evaluated using ${kernel}.`;
-          }
-        } else {
-          n = " ";
-        }
-    }
-    return (
-      <div style={INPUT_STYLE}>
-        <Tip title={"Code Cell"} tip={tip} placement="right">
-          In [{n}]:
-        </Tip>
-      </div>
-    );
+      } else {
+        n = " ";
+      }
   }
-}
+
+  function move_cell(delta): void {
+    props.frame_actions?.unselect_all_cells();
+    props.frame_actions?.select_cell(props.id);
+    props.frame_actions?.move_selected_cells(delta);
+  }
+
+  function cut_cell(): void {
+    props.frame_actions?.unselect_all_cells();
+    props.frame_actions?.select_cell(props.id);
+    props.frame_actions?.cut_selected_cells();
+  }
+
+  const title = (
+    <div>
+      {props.actions != null && props.frame_actions != null ? (
+        <div style={{ float: "right", color: "#666" }}>
+          <Button size="small" onClick={() => move_cell(-1)}>
+            <Icon name="arrow-up" />
+          </Button>
+          <Button size="small" onClick={() => move_cell(1)}>
+            <Icon name="arrow-down" />
+          </Button>{" "}
+          <Button
+            size="small"
+            onClick={() => props.actions?.run_cell(props.id)}
+          >
+            <Icon name="step-forward" />
+          </Button>
+          <Button size="small" onClick={() => props.actions?.signal("SIGINT")}>
+            <Icon name="stop" />
+          </Button>
+          <Button size="small" onClick={cut_cell}>
+            <Icon name="cut" />
+          </Button>{" "}
+        </div>
+      ) : (
+        "Code Cell"
+      )}
+    </div>
+  );
+
+  return (
+    <div style={INPUT_STYLE}>
+      <Tip title={title} tip={tip} placement="top">
+        In [{n}]:
+      </Tip>
+    </div>
+  );
+};
 
 const OUTPUT_STYLE: React.CSSProperties = {
   color: "#D84315",
   minWidth: PROMPT_MIN_WIDTH,
   fontFamily: "monospace",
   textAlign: "right",
-  paddingRight: ".4em",
+  paddingRight: "5px",
   paddingBottom: "2px",
 };
 
@@ -111,17 +152,15 @@ interface OutputPromptProps {
   collapsed?: boolean;
 }
 
-export class OutputPrompt extends Component<OutputPromptProps> {
-  render() {
-    let n;
-    if (this.props.collapsed || !this.props.exec_count) {
-      n = undefined;
-    } else {
-      n = this.props.exec_count != null ? this.props.exec_count : " ";
-    }
-    if (n == null) {
-      return <div style={OUTPUT_STYLE} />;
-    }
-    return <div style={OUTPUT_STYLE}>Out[{n}]:</div>;
+export const OutputPrompt: React.FC<OutputPromptProps> = (props) => {
+  let n;
+  if (props.collapsed || !props.exec_count) {
+    n = undefined;
+  } else {
+    n = props.exec_count != null ? props.exec_count : " ";
   }
-}
+  if (n == null) {
+    return <div style={OUTPUT_STYLE} />;
+  }
+  return <div style={OUTPUT_STYLE}>Out[{n}]:</div>;
+};

@@ -54,7 +54,7 @@ export { PageState, PageStore } from "../app/store";
 // projects
 export { ProjectsActions } from "../projects/actions";
 export { ProjectsStore } from "../projects/store";
-export { State as ProjectsState } from "../../projects/store";
+export { ProjectsState } from "../projects/store";
 // support
 export { SupportStore } from "../support/store";
 export { SupportActions } from "../support/actions";
