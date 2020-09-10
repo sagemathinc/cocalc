@@ -79,7 +79,10 @@ import { JupyterStore } from "../smc-webapp/jupyter/store";
 
 import { JupyterKernelInterface } from "../smc-webapp/jupyter/project-interface";
 
-import {launch_jupyter_kernel, LaunchJupyterOpts } from "./launch_jupyter_kernel"
+import {
+  launch_jupyter_kernel,
+  LaunchJupyterOpts,
+} from "./launch_jupyter_kernel";
 
 /*
 We set a few extra user-specific options for the environment in which
@@ -281,7 +284,11 @@ export class JupyterKernel extends EventEmitter
     const dbg = this.dbg("spawn1");
     dbg("spawning kernel...");
 
-    const opts: LaunchJupyterOpts = { detached: true, stdio: "ignore", env: {} };
+    const opts: LaunchJupyterOpts = {
+      detached: true,
+      stdio: "ignore",
+      env: {},
+    };
 
     if (this.name.indexOf("sage") == 0) {
       dbg("setting special environment for sage.* kernels");
@@ -518,7 +525,7 @@ export class JupyterKernel extends EventEmitter
       for (const code_snippet of this._execute_code_queue) {
         code_snippet.close();
       }
-      delete this._execute_code_queue;
+      this._execute_code_queue = [];
     }
   }
 

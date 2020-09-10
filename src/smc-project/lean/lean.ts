@@ -47,8 +47,7 @@ export class Lean extends EventEmitter {
 
   close(): void {
     this.kill();
-    delete this.client;
-    delete this.paths;
+    this.paths = {};
     delete this._server;
   }
 

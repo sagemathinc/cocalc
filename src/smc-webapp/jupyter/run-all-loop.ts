@@ -55,8 +55,6 @@ export class RunAllLoop {
 
   public close() {
     this.dbg("close");
-    delete this.actions;
-    delete this.interval_s;
     this.closed = true;
   }
 }

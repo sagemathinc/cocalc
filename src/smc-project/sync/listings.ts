@@ -69,13 +69,10 @@ class ListingsTable {
 
   public close(): void {
     this.log("close");
-    delete this.table;
-    delete this.logger;
-    delete this.project_id;
     for (const path in this.watchers) {
       this.stop_watching(path);
     }
-    delete this.watchers;
+    this.watchers = {};
   }
 
   // Start watching any paths that have recent interest (so this is not

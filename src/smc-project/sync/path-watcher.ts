@@ -94,8 +94,6 @@ export class Watcher extends EventEmitter {
   }
 
   public close(): void {
-    delete this.path;
-    delete this.debounce_ms;
     if (this.watch_contents != null) {
       this.watch_contents.close();
       delete this.watch_contents;

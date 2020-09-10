@@ -76,11 +76,6 @@ export class OutputHandler extends EventEmitter {
   close = (): void => {
     this._state = "closed";
     this.emit("done");
-    delete this._opts;
-    delete this._n;
-    delete this._clear_before_next_output;
-    delete this._output_length;
-    delete this._in_more_output_mode;
     this.removeAllListeners();
   };
 

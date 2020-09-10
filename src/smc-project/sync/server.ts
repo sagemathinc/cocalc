@@ -443,15 +443,8 @@ class SyncTableChannel {
     this.closed = true;
     delete synctable_channels[this.name];
     this.channel.destroy();
-    delete this.channel;
-    delete this.client;
-    delete this.query;
-    delete this.query_string;
-    delete this.options;
     this.synctable.close_no_async();
-    delete this.synctable;
     this.log("close: closed");
-    delete this.logger; // don't call this.log after this!
   }
 
   public get_synctable(): SyncTable {
