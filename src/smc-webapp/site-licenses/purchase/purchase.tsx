@@ -543,7 +543,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       // during payment and once it is done.
       return;
     } else {
-      // ask them to confirm their method and pa.
+      // ask them to confirm their method and pay.
       return (
         <div>
           <br />
