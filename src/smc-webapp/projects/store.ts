@@ -30,6 +30,7 @@ import { has_internet_access } from "../upgrades/upgrade-utils";
 import { WebsocketState } from "../project/websocket/websocket-state";
 
 export type ProjectMap = Map<string, Map<string, any>>;
+type ProjectSelectionList = { id: string; title: string }[];
 
 export interface ProjectsState {
   project_map?: ProjectMap;
@@ -600,13 +601,13 @@ export class ProjectsStore extends Store<ProjectsState> {
   public get_project_select_list(
     current_project_id: string,
     show_hidden: boolean = true
-  ): undefined | { id: string; title: string }[] {
+  ): undefined | ProjectSelectionList {
     let map = this.get("project_map");
     if (map == null) {
       return;
     }
     const { account_id } = webapp_client;
-    let list: { id: string; title: string }[] = [];
+    const list: ProjectSelectionList = [];
     if (current_project_id != null && map.has(current_project_id)) {
       list.push({
         id: current_project_id,
@@ -623,7 +624,7 @@ export class ProjectsStore extends Store<ProjectsState> {
       }
       return 0;
     });
-    const others: { id: string; title: string }[] = [];
+    const others: ProjectSelectionList = [];
     for (let i of v) {
       // Deleted projects have a map node " 'deleted': true ". Standard projects do not have this property.
       if (
@@ -633,8 +634,7 @@ export class ProjectsStore extends Store<ProjectsState> {
         others.push({ id: i.get("project_id"), title: i.get("title") });
       }
     }
-    list = list.concat(others);
-    return list;
+    return list.concat(others);
   }
 }
 
