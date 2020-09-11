@@ -65,43 +65,6 @@ exports.render_static_footer = ->
     {Footer} = require('smc-webapp/customize')
     <Footer />
 
-help_text =
-  backgroundColor: 'white'
-  padding        : '10px'
-  borderRadius   : '5px'
-  margin         : '5px'
-
-exports.HelpIcon = rclass
-    displayName : 'Misc-Help'
-
-    propTypes :
-        title        : rtypes.string.isRequired
-
-    getDefaultProps: ->
-        title        : 'Help'
-
-    getInitialState: ->
-        closed : true
-
-    close: ->
-        @setState(closed : true)
-
-    render: ->
-        if @state.closed
-            <a onClick={(e)=>e.preventDefault();@setState(closed:false)}><Icon style={color:'#5bc0de'} name='question-circle'/></a>
-        else if not @state.closed
-            <Modal show={not @state.closed} onHide={@close}>
-                <Modal.Header closeButton>
-                    <Modal.Title>{@props.title}</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    {@props.children}
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button onClick={@close}>Close</Button>
-                </Modal.Footer>
-            </Modal>
-
 ###
 # Customized TimeAgo support
 # TODO: internationalize this formatter -- see https://www.npmjs.com/package/react-timeago

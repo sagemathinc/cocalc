@@ -34,7 +34,10 @@ export const HelpIcon: React.FC<Props> = ({ title, children }) => {
       visible={visible}
       onVisibleChange={set_visible}
     >
-      <Icon style={{ color: "#5bc0de" }} name="question-circle" />
+      <Icon
+        style={{ color: "#5bc0de", cursor: "pointer" }}
+        name="question-circle"
+      />
     </Popover>
   );
 };
