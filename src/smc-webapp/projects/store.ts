@@ -31,8 +31,8 @@ import { WebsocketState } from "../project/websocket/websocket-state";
 
 export type ProjectMap = Map<string, Map<string, any>>;
 
-export interface State {
-  project_map: ProjectMap | undefined;
+export interface ProjectsState {
+  project_map?: ProjectMap;
   open_projects: List<string>; // the opened projects in *tab* order
 
   search: string;
@@ -48,7 +48,7 @@ export interface State {
 }
 
 // Define projects store
-export class ProjectsStore extends Store<State> {
+export class ProjectsStore extends Store<ProjectsState> {
   // Return true if the given project_id is of a project that is
   // currently known.
   public has_project(project_id: string): boolean {
@@ -641,10 +641,6 @@ export class ProjectsStore extends Store<State> {
 // WARNING: A lot of code relies on the assumption project_map is
 // undefined until it is loaded from the server.
 const init_store = {
-  // TODO: "undefined as any" is due to typescript requiring this
-  // to somehow have a more general type than in State above
-  // (which is weird/backwards to me...)
-  project_map: undefined as any,
   open_projects: List<string>(), // ordered list of open projects
 
   search: "",
@@ -657,7 +653,7 @@ const init_store = {
   public_project_titles: Map<string, any>(),
 
   project_websockets: Map<string, WebsocketState>(),
-};
+} as ProjectsState;
 
 export const store = redux.createStore("projects", ProjectsStore, init_store);
 

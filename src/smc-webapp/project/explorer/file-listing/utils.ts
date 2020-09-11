@@ -28,19 +28,19 @@ type Extension =
 // the order of these buttons also determines the precedence of suggested file extensions
 // see also smc-webapp/project-files.ts
 export const EXTs: ReadonlyArray<Extension> = Object.freeze([
-  "sagews",
   "ipynb",
-  "tex",
   "term",
-  "x11",
+  "sagews",
+  "tex",
+  "md",
+  "py",
   "rnw",
   "rtex",
   "rmd",
-  "md",
   "tasks",
   "course",
+  "x11",
   "sage",
-  "py",
   "sage-chat",
 ]);
 

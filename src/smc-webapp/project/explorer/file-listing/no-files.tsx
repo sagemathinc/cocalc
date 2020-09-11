@@ -79,11 +79,12 @@ export class NoFiles extends React.PureComponent<Props> {
 
   render_file_type_selection() {
     return (
-      <div>
+      <div style={{ marginTop: "15px" }}>
         <h4 style={{ color: "#666" }}>Or select a file type</h4>
         <FileTypeSelector
           project_id={this.props.project_id}
           create_file={this.props.create_file}
+          create_folder={this.props.create_folder}
         />
       </div>
     );

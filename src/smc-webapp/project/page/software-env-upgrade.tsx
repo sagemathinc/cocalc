@@ -49,7 +49,8 @@ function useComputeImage(project_id) {
     undefined
   );
   const project_map = useTypedRedux("projects", "project_map");
-  const current_image = project_map.getIn([project_id, "compute_image"]);
+  // ? below because reported to be null in some cases of iframe embedding.
+  const current_image = project_map?.getIn([project_id, "compute_image"]);
   if (current_image != compute_image) {
     set_compute_image(current_image);
   }

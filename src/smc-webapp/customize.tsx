@@ -92,6 +92,11 @@ export interface CustomizeState {
   version_min_project: number;
   version_recommended_browser: number;
   versions: string;
+  // extra setting, injected by the hub, not the DB
+  // we expect this to follow "ISO 3166-1 Alpha 2" + K1 (Tor network) + XX (unknown)
+  // use a lib like https://github.com/michaelwittig/node-i18n-iso-countries
+  country: string;
+  // flag to signal "global.CUSTOMIZE" was applied
   _is_configured: boolean;
 }
 

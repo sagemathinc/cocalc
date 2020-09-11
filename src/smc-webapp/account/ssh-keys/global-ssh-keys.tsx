@@ -31,10 +31,10 @@ export const SSHKeysPage: React.FC = () => {
       <div>
         To SSH into a project, use the following{" "}
         <span style={{ color: "#666" }}>username@host:</span>
-        <pre>[projectIdWithoutDashes]@ssh.cocalc.com </pre>
+        <pre>[project-id-without-dashes]@ssh.cocalc.com </pre>
         The project id without dashes can be found in the part of project
         settings about SSH keys. To SSH between projects, use{" "}
-        <pre>[projectIdWithoutDashes]@ssh</pre>
+        <pre>[project-id-without-dashes]@ssh</pre>
       </div>
     );
   }

@@ -28,6 +28,17 @@ export { WindowedList } from "./windowed-list";
 export { UncommittedChanges } from "./uncommited-changes";
 export { DateTimePicker } from "./date-time-picker";
 export { PathLink } from "./path-link";
+export { HelpIcon } from "./help-icon";
+export { TimeAgo, TimeAgoElement, is_different_date } from "./time-ago";
+export {
+  HiddenXS,
+  HiddenSM,
+  HiddenXSSM,
+  VisibleMDLG,
+  VisibleLG,
+  VisibleXSSM,
+} from "./hidden-visible";
+export { LoginLink } from "./login-link";
 
 export const {
   MarkdownInput,
@@ -35,28 +46,19 @@ export const {
   BS_BLUE_BGRND,
   COLORS,
   ImmutablePureRenderMixin,
-  SetIntervalMixin,
-  SetIntervalHOC,
   Octicon,
   Footer,
   render_static_footer,
-  HelpIcon,
-  is_different_date,
-  TimeAgoElement,
-  TimeAgo,
   SearchInput,
   HTML,
   Markdown,
   ActivityDisplay,
-  SaveButton,
-  Calendar,
   DeletedProjectWarning,
   course_warning,
   CourseProjectExtraHelp,
   CourseProjectWarning,
   NonMemberProjectWarning,
   NoNetworkProjectWarning,
-  LoginLink,
   ProjectState,
   EditorFileInfoDropdown,
   render_file_info_dropdown,
@@ -64,12 +66,6 @@ export const {
   NoUpgrades,
   UpgradeAdjustor,
   CopyToClipBoard,
-  HiddenXS,
-  HiddenSM,
-  HiddenXSSM,
-  VisibleMDLG,
-  VisibleLG,
-  VisibleXSSM,
   ErrorBoundary,
   smc_version,
   build_date,

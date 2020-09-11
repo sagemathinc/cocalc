@@ -150,6 +150,7 @@ export const Usage: React.FC<{}> = () => {
       ["LaTeX Documents", "tex"],
       ["Markdown Documents", "md"],
       ["R Markdown Documents", "rmd"],
+      ["Chat", "sage-chat"]
     ];
     const result: JSX.Element[] = [];
     for (const [name, ext] of stats) {

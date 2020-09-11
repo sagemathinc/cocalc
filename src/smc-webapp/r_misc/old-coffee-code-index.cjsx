@@ -31,6 +31,7 @@ copy_to_clipboard = require('copy-to-clipboard')
 {NumberInput} = require("./number-input")
 {LabeledRow} = require('./labeled-row')
 {TimeElapsed} = require('./time-elapsed')
+{TimeAgo} = require('./time-ago')
 
 share_server = require('./share-server');
 
@@ -60,279 +61,10 @@ exports.BS_BLUE_BGRND = theme.COLORS.BS_BLUE_BGRND
 # This is the applications color scheme
 exports.COLORS = theme.COLORS
 
-# Checks whether two immutable variables (either ImmutableJS objects or actual
-# immutable types) are equal. Gives a warning and returns false (no matter what) if either variable is mutable.
-immutable_equals_single = (a, b) ->
-    if typeof(a) == "object" or typeof(b) == "object"
-        if (is_redux(a) and is_redux(b)) or (is_redux_actions(a) and is_redux_actions(b))
-            return a == b
-        if immutable.Iterable.isIterable(a) and immutable.Iterable.isIterable(b)
-            return immutable.is(a, b)
-        if (a? and not b?) or (not a? and b?)
-            # if one is undefined and the other is defined, they aren't equal
-            return false
-        console.warn("Using mutable object in ImmutablePureRenderMixin:", a, b)
-        return false
-    return a == b
-
-immutable_equals = (objA, objB) ->
-    if immutable.is(objA, objB)
-        return true
-    keysA = misc.keys(objA)
-    keysB = misc.keys(objB)
-    if keysA.length != keysB.length
-        return false
-
-    for key in keysA
-        if not objB.hasOwnProperty(key) or not immutable_equals_single(objA[key], objB[key])
-            return false
-    return true
-
-# Like PureRenderMixin, except only for immutable variables. Will always
-# re-render if any props are mutable objects.
-exports.ImmutablePureRenderMixin = ImmutablePureRenderMixin =
-    shouldComponentUpdate: (nextProps, nextState) ->
-        not immutable_equals(@props, nextProps) or not immutable_equals(@state, nextState)
-
-# Gives components a setInterval method that takes a function and time x milliseconds
-# then calls that function every x milliseconds. Automatically stops calling
-# when component is unmounted. Can be called multiple times for multiple intervals.
-exports.SetIntervalMixin =
-    componentWillMount: ->
-        @intervals = []
-    setInterval: (fn, ms) ->
-        @intervals.push setInterval fn, ms
-    componentWillUnmount: ->
-        @intervals.forEach clearInterval
-
-exports.SetIntervalHOC = (Comp) ->
-    class SetIntervalWrapper extends Component
-        componentWillMount: ->
-            @intervals = []
-
-        setInterval: (fn, ms) ->
-            @intervals.push setInterval fn, ms
-
-        componentWillUnmount: ->
-            @intervals.forEach clearInterval
-
-        render: ->
-            Comp.setInterval = @setInterval
-            return React.createElement(Comp, @props, @props.children)
-
-# this Octicon icon class requires the CSS file in octicons/octicons/octicons.css (see landing.coffee)
-exports.Octicon = rclass
-    displayName : 'Octicon'
-
-    propTypes :
-        name   : rtypes.string.isRequired
-        mega   : rtypes.bool
-        spin   : rtypes.bool
-
-    getDefaultProps: ->
-        name : 'flame'
-        mega : false
-        spin : false
-
-    render: ->
-        classNames = ['octicon', "octicon-#{@props.name}"]
-        if @props.spin
-            classNames.push('spin-octicon')
-        if @props.mega
-            classNames.push('mega-octicon')
-        return <span className={classNames.join(' ')} />
-
 # required for hub-landing -- in all other contexts import directly from customize
 exports.render_static_footer = ->
     {Footer} = require('smc-webapp/customize')
     <Footer />
-
-help_text =
-  backgroundColor: 'white'
-  padding        : '10px'
-  borderRadius   : '5px'
-  margin         : '5px'
-
-exports.HelpIcon = rclass
-    displayName : 'Misc-Help'
-
-    propTypes :
-        title        : rtypes.string.isRequired
-
-    getDefaultProps: ->
-        title        : 'Help'
-
-    getInitialState: ->
-        closed : true
-
-    close: ->
-        @setState(closed : true)
-
-    render: ->
-        if @state.closed
-            <a onClick={(e)=>e.preventDefault();@setState(closed:false)}><Icon style={color:'#5bc0de'} name='question-circle'/></a>
-        else if not @state.closed
-            <Modal show={not @state.closed} onHide={@close}>
-                <Modal.Header closeButton>
-                    <Modal.Title>{@props.title}</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    {@props.children}
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button onClick={@close}>Close</Button>
-                </Modal.Footer>
-            </Modal>
-
-###
-# Customized TimeAgo support
-# TODO: internationalize this formatter -- see https://www.npmjs.com/package/react-timeago
-###
-
-timeago_formatter = (value, unit, suffix, date) ->
-    if value == 0
-        return 'now'
-    if unit == 'second'
-        return "less than a minute #{suffix}"
-    if value != 1
-        unit += 's'
-    return "#{value} #{unit} #{suffix}"
-
-TimeAgo = require('react-timeago').default
-
-# date0 and date1 are string, Date object or number
-# This is just used for updates, so is_different if there
-# is a chance they are different
-exports.is_different_date = is_different_date = (date0, date1) ->
-    t0 = typeof(date0)
-    t1 = typeof(date1)
-    if t0 != t1
-        return true
-    switch t0
-        when 'object'
-            return date0 - date1 != 0
-        else
-            return date0 != date1
-
-# this "element" can also be used without being connected to a redux store - e.g. for the "shared" statically rendered pages
-exports.TimeAgoElement = rclass
-    displayName : 'Misc-TimeAgoElement'
-
-    propTypes :
-        popover           : rtypes.bool
-        placement         : rtypes.string
-        tip               : rtypes.string     # optional body of the tip popover with title the original time.
-        live              : rtypes.bool       # whether or not to auto-update
-        time_ago_absolute : rtypes.bool
-        date              : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
-        style             : rtypes.object
-
-    getDefaultProps: ->
-        popover   : true
-        minPeriod : 45    # "minPeriod and maxPeriod now accept seconds not milliseconds. This matches the documentation."
-        placement : 'top'
-        # Also, given our custom formatter, anything more frequent than about 45s is pointless (since we don't show seconds)
-        time_ago_absolute : false
-
-    render_timeago_element: (d) ->
-        <TimeAgo
-            title     = ''
-            date      = {d}
-            style     = {@props.style}
-            formatter = {timeago_formatter}
-            minPeriod = {@props.minPeriod}
-            live      = {@props.live ? true}
-        />
-
-    render_timeago: (d) ->
-        if @props.popover
-            try
-                s = d.toLocaleString()
-            catch err
-                s = "#{err}"
-            <Tip title={s} tip={@props.tip} placement={@props.placement}>
-                {@render_timeago_element(d)}
-            </Tip>
-        else
-            @render_timeago_element(d)
-
-    render_absolute: (d) ->
-        try
-            s = d.toLocaleString()
-        catch err
-            s = "#{err}"
-        <span>{s}</span>
-
-    render: ->
-        d = if misc.is_date(@props.date) then @props.date else new Date(@props.date)
-        try
-            d.toISOString()
-        catch
-            # NOTE: Using isNaN might not work on all browsers, so we use try/except
-            # See https://github.com/sagemathinc/cocalc/issues/2069
-            return <span>Invalid Date</span>
-
-        if @props.time_ago_absolute
-            @render_absolute(d)
-        else
-            @render_timeago(d)
-
-TimeAgoWrapper = rclass
-    displayName : 'Misc-TimeAgoWrapper'
-
-    propTypes :
-        popover   : rtypes.bool
-        placement : rtypes.string
-        tip       : rtypes.string     # optional body of the tip popover with title the original time.
-        live      : rtypes.bool       # whether or not to auto-update
-        date      : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
-
-    reduxProps :
-        account :
-            other_settings : rtypes.immutable.Map
-
-    shouldComponentUpdate: (props) ->
-        return is_different_date(@props.date, props.date) or \
-               misc.is_different(@props, props, ['popover', 'placement', 'tip', 'live']) or \
-               @props.other_settings?.get('time_ago_absolute') != props.other_settings?.get('time_ago_absolute')
-
-    render: ->
-        <exports.TimeAgoElement
-            date              = {@props.date}
-            popover           = {@props.popover}
-            placement         = {@props.placement}
-            tip               = {@props.tip}
-            live              = {@props.live}
-            time_ago_absolute = {@props.other_settings?.get('time_ago_absolute') ? false}
-        />
-
-# The TimeAgoWrapper above is absolutely really necessary **until** the react rewrite is completely
-# done.  The reason is that currently we have some non-redux new react stuff that has timeago init,
-# e.g., for the TimeTravel view.
-exports.TimeAgo = rclass
-    displayName : 'Misc-TimeAgo-redux'
-
-    propTypes :
-        popover   : rtypes.bool
-        placement : rtypes.string
-        tip       : rtypes.string     # optional body of the tip popover with title the original time.
-        live      : rtypes.bool       # whether or not to auto-update
-        date      : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
-
-    shouldComponentUpdate: (props) ->
-        return is_different_date(@props.date, props.date) or \
-               misc.is_different(@props, props, ['popover', 'placement', 'tip', 'live'])
-
-    render: ->
-        <Redux redux={redux}>
-            <TimeAgoWrapper
-                date      = {@props.date}
-                popover   = {@props.popover}
-                placement = {@props.placement}
-                tip       = {@props.tip}
-                live      = {@props.live}
-            />
-        </Redux>
 
 # Important:
 # widget can be controlled or uncontrolled -- use default_value for an *uncontrolled* widget
@@ -728,37 +460,9 @@ exports.ActivityDisplay = rclass
         else
             <span />
 
-exports.SaveButton = rclass
-    displayName : 'Misc-SaveButton'
-
-    propTypes :
-        unsaved  : rtypes.bool
-        disabled : rtypes.bool
-        on_click : rtypes.func.isRequired
-
-    render: ->
-        <Button bsStyle='success' disabled={@props.saving or not @props.unsaved} onClick={@props.on_click}>
-            <Icon name='save' /> <VisibleMDLG>Sav{if @props.saving then <span>ing... <Icon name='cc-icon-cocalc-ring' spin /></span> else <span>e</span>}</VisibleMDLG>
-        </Button>
-
 Globalize = require('globalize')
 globalizeLocalizer = require('react-widgets-globalize')
 globalizeLocalizer(Globalize)
-
-Calendar = require('react-widgets/lib/Calendar')
-
-exports.Calendar = rclass
-    displayName : 'Misc-Calendar'
-
-    propTypes :
-        value     : rtypes.oneOfType([rtypes.string, rtypes.object])
-        on_change : rtypes.func.isRequired
-
-    render: ->
-        <Calendar
-            defaultValue = {@props.value}
-            onChange     = {@props.on_change}
-        />
 
 # A warning to put on pages when the project is deleted
 # TODO: use this in more places
@@ -870,18 +574,6 @@ exports.NoNetworkProjectWarning = (opts) ->
         </p>
     </Alert>
 
-exports.LoginLink = rclass
-    displayName : 'Misc-LoginLink'
-
-    render: ->  # TODO: the code to switch page below will change when we get a top-level navigation store.
-        <Alert bsStyle='info' style={margin:'15px'}>
-            <Icon name='sign-in' style={fontSize:'13pt', marginRight:'10px'} /> Please<Space/>
-            <a style={cursor: 'pointer'}
-                onClick={=>redux.getActions('page').set_active_tab('account')}>
-                login or create an account...
-            </a>
-        </Alert>
-
 COMPUTE_STATES = require('smc-util/schema').COMPUTE_STATES
 exports.ProjectState = rclass
     displayName : 'Misc-ProjectState'
@@ -910,7 +602,7 @@ exports.ProjectState = rclass
     render_time: ->
         time = @props.state?.get?('time')
         if time
-            return <span><Space/> (<exports.TimeAgo date={time} />)</span>
+            return <span><Space/> (<TimeAgo date={time} />)</span>
 
     render: ->
         s = COMPUTE_STATES[@props.state?.get?('state')]
@@ -948,6 +640,14 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
         style     : {marginRight:'2px', whiteSpace: 'nowrap'}
 
     handle_click: (name) ->
+        if name == 'new'
+            new_ext = misc.filename_extension(@props.filename)
+            if new_ext == ''
+                # otherwise 'foo' leads to 'random.'
+                new_ext = undefined
+            # Special calse -- not an action on this one file
+            @props.actions.set_active_tab('new', {new_ext:new_ext})
+            return
         # ugly: fix when refactor this code.
         {file_actions} = require('../project_store')
         for action, v of file_actions
@@ -962,18 +662,21 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
         </MenuItem>
 
     render_menu_items: ->
+        v = []
         if @props.is_public
             # Fewer options when viewing the action dropdown in public mode:
             items =
                 'download' : 'cloud-download'
                 'copy'     : 'files-o'
         else
+            v.push(@render_menu_item('new', 'plus-circle'))
             # dynamically create a map from 'key' to 'icon'
             {file_actions} = require('../project_store')
-            items = underscore.object(([v.name, v.icon] for k, v of file_actions))
+            items = underscore.object(([x.name, x.icon] for k, x of file_actions))
 
         for name, icon of items
-            @render_menu_item(name, icon)
+            v.push(@render_menu_item(name, icon))
+        return v
 
     render_title: ->
         <span>
@@ -1437,45 +1140,6 @@ exports.CopyToClipBoard = rclass
             </InputGroup>
         </FormGroup>
 
-# See https://getbootstrap.com/docs/3.3/css/
-# HiddenXS = hide if width < 768px
-exports.HiddenXS = rclass
-    render: ->
-        <span className={'hidden-xs'}>
-            {@props.children}
-        </span>
-
-exports.HiddenSM = rclass
-    render: ->
-        <span className={'hidden-sm'}>
-            {@props.children}
-        </span>
-
-exports.HiddenXSSM = rclass
-    render: ->
-        <span className={'hidden-xs hidden-sm'}>
-            {@props.children}
-        </span>
-
-# VisibleMDLG = visible on medium or large devices (anything with width > 992px)
-exports.VisibleMDLG = VisibleMDLG = rclass
-    render: ->
-        <span className={'visible-md-inline visible-lg-inline'}>
-            {@props.children}
-        </span>
-
-# VisibleMDLG = visible on medium or large devices (anything with width > 992px)
-exports.VisibleLG = rclass
-    render: ->
-        <span className={'visible-lg-inline'}>
-            {@props.children}
-        </span>
-
-exports.VisibleXSSM = rclass
-    render: ->
-        <span className={'visible-xs-inline visible-sm-inline'}>
-            {@props.children}
-        </span>
 
 # Error boundry. Pass components in as children to create one.
 # https://reactjs.org/blog/2017/07/26/error-handling-in-react-16.html

@@ -7,7 +7,7 @@ import * as immutable from "immutable";
 
 export type NotebookMode = "edit" | "escape";
 
-export type CellType = "raw" | "markdown" | "code";
+export type CellType = "raw" | "markdown" | "code" | "multi";
 
 export type Scroll =
   | number
@@ -29,3 +29,5 @@ export type CellToolbarName =
 
 // TODO -- this is pretty complicated, but will ne nice to nail down.
 export type Cell = immutable.Map<string, any>;
+
+export type Cells = immutable.Map<string, Cell>;

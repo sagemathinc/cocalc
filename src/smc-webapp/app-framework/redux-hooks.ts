@@ -218,7 +218,10 @@ export function useTypedRedux(
   return useRedux(a.project_id, field);
 }
 
-export function useEditorRedux<State>(editor: { project_id; path }) {
+export function useEditorRedux<State>(editor: {
+  project_id: string;
+  path: string;
+}) {
   function f<S extends keyof State>(field: S): State[S] {
     return useReduxEditorStore(
       [field as string],

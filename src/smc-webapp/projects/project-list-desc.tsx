@@ -47,7 +47,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
   const actions = useActions("projects");
 
   function render_header(): JSX.Element | undefined {
-    if (project_map.size > 0 && (hidden || deleted)) {
+    if ((project_map?.size ?? 0) > 0 && (hidden || deleted)) {
       const d = deleted ? "deleted " : "";
       const h = hidden ? "hidden " : "";
       const a = hidden && deleted ? " and " : "";
@@ -225,7 +225,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     // Determine visible projects this user does NOT own.
     return visible_projects.filter(
       (project_id) =>
-        project_map.getIn([project_id, "users", account_id, "group"]) !==
+        project_map?.getIn([project_id, "users", account_id, "group"]) !==
         "owner"
     );
   }

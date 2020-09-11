@@ -35,14 +35,6 @@ const file_type_list = function (list: string[], exclude: boolean): string[] {
   return extensions;
 };
 
-function ButtonIcon(): JSX.Element {
-  return (
-    <span>
-      <Icon name="file" /> File
-    </span>
-  );
-}
-
 function FileDropDownItem({
   ext,
   on_select,
@@ -93,7 +85,11 @@ export const NewFileDropdown = React.memo(function NewFileDropdown({
     >
       <SplitButton
         id={"new_file_dropdown"}
-        title={<ButtonIcon />}
+        title={
+          <span>
+            <Icon name="file" /> More file types...
+          </span>
+        }
         onClick={(): void => {
           create_file();
         }}

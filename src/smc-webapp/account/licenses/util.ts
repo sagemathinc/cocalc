@@ -37,8 +37,9 @@ export const getManagedLicenses: FunctionType = reuseInFlight(async () => {
 // Return list of id's of projects that have at least one license applied to
 // them. The license may or may not be valid, in use, etc.
 export function projects_with_licenses(
-  project_map: Map<string, any>
+  project_map: undefined | Map<string, any>
 ): { last_edited?: Date; project_id: string; num_licenses: number }[] {
+  if (project_map == null) return [];
   const v: {
     last_edited?: Date;
     project_id: string;

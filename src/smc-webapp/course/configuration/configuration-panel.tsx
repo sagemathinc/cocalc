@@ -26,7 +26,6 @@ import { Alert, Card, Row, Col } from "antd";
 // CoCalc Components
 import {
   DateTimePicker,
-  HiddenXS,
   Icon,
   LabeledRow,
   Loading,
@@ -34,7 +33,6 @@ import {
   Space,
   TextInput,
   TimeAgo,
-  Tip,
   ErrorDisplay,
 } from "../../r_misc";
 
@@ -660,16 +658,3 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
   }
 );
 
-export const ConfigurationPanelHeader: React.FC = () => {
-  return (
-    <Tip
-      delayShow={1300}
-      title="Configuration"
-      tip="Configure various things about your course here, including the title and description.  You can also export all grades in various formats from this page."
-    >
-      <span>
-        <Icon name="cogs" /> <HiddenXS>Configuration</HiddenXS>
-      </span>
-    </Tip>
-  );
-};

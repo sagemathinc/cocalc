@@ -6,6 +6,7 @@
 import * as humanizeList from "humanize-list";
 import { server_time } from "../frame-editors/generic/client";
 import {
+  CSS,
   React,
   redux,
   useMemo,
@@ -60,8 +61,8 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
       </strong>
     );
     const no_internet =
-      "you can't install Python packages, clone from GitHub, or download datasets";
-    const no_host = ["expect poor performance", "random interruptions"];
+      "you can't install packages, clone from GitHub, or download datasets";
+    const no_host = ["expect poor performance"];
     const inetquota =
       "https://doc.cocalc.com/billing.html#what-exactly-is-the-internet-access-quota";
     const memberquota =
@@ -72,10 +73,10 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
           style={a_style}
           onClick={() => {
             redux.getActions("page").set_active_tab("account");
-            redux.getActions("account").set_active_tab("billing");
+            redux.getActions("account").set_active_tab("licenses");
           }}
         >
-          buy a subscription
+          buy a license (about $3/month!)
         </a>{" "}
         and{" "}
         <a
@@ -84,14 +85,14 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
             redux.getProjectActions(project_id).set_active_tab("settings");
           }}
         >
-          apply upgrades
+          and apply it to this project
         </a>
       </>
     );
     if (host && internet) {
       return (
         <span>
-          {trial_project} – {buy_and_upgrade} or{" "}
+          {trial_project} – {buy_and_upgrade}. Otherwise,{" "}
           {humanizeList([...no_host, no_internet])}
           {"."}
         </span>
@@ -164,24 +165,21 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
   }
 
   // we want this to be between 10 to 14 and growing over time (weeks)
-  const proj_created = project_map.getIn([project_id, "created"], new Date(0));
+  const proj_created =
+    project_map?.getIn([project_id, "created"]) ?? new Date(0);
 
   const min_fontsize = 10;
   const age_ms: number = server_time().getTime() - proj_created.getTime();
   const age_days = age_ms / (24 * 60 * 60 * 1000);
   const font_size = Math.min(14, min_fontsize + age_days / 15);
-  const style: React.CSSProperties = {
+  const style = {
     padding: "5px 10px",
     marginBottom: 0,
     fontSize: font_size + "pt",
     borderRadius: 0,
-    marginTop: "-3px",
-  };
-  // turns red after about 1 month (2 * 15, see above)
-  if (host && font_size > min_fontsize + 2) {
-    style.color = "white";
-    style.background = "red";
-  }
+    color: "white",
+    background: "red",
+  } as CSS;
 
   const mesg = message(host, internet, style.color);
 

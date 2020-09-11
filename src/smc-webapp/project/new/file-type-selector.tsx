@@ -17,6 +17,7 @@ import { useTypedRedux, useState } from "../../app-framework";
 
 interface Props {
   create_file: (name?: string) => void;
+  create_folder: (name?: string) => void;
   project_id: string;
   children?: React.ReactNode;
 }
@@ -25,6 +26,7 @@ interface Props {
 // Could be changed to auto adjust to a list of pre-defined button names.
 export const FileTypeSelector: React.FC<Props> = ({
   create_file,
+  create_folder,
   project_id,
   children,
 }: Props): JSX.Element | null => {
@@ -52,20 +54,6 @@ export const FileTypeSelector: React.FC<Props> = ({
     <>
       <Row style={row_style}>
         <Col sm={12}>
-          {available.sage ? (
-            <Tip
-              icon="cc-icon-sagemath-bold"
-              title="Sage worksheet"
-              tip="Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc."
-            >
-              <NewFileButton
-                icon="cc-icon-sagemath-bold"
-                name="Sage worksheet"
-                on_click={create_file}
-                ext="sagews"
-              />
-            </Tip>
-          ) : undefined}
           {available.jupyter_notebook ? (
             <Tip
               icon="cc-icon-jupyter"
@@ -77,6 +65,32 @@ export const FileTypeSelector: React.FC<Props> = ({
                 name="Jupyter notebook"
                 on_click={create_file}
                 ext={"ipynb"}
+              />
+            </Tip>
+          ) : undefined}
+          <Tip
+            title="Linux terminal"
+            icon="terminal"
+            tip="Create a command line Linux terminal.  CoCalc includes a full Linux environment.  Run command line software, vim, emacs and more."
+          >
+            <NewFileButton
+              icon="terminal"
+              name="Linux terminal"
+              on_click={create_file}
+              ext="term"
+            />
+          </Tip>
+          {available.sage ? (
+            <Tip
+              icon="cc-icon-sagemath-bold"
+              title="Sage worksheet"
+              tip="Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc."
+            >
+              <NewFileButton
+                icon="cc-icon-sagemath-bold"
+                name="Sage worksheet"
+                on_click={create_file}
+                ext="sagews"
               />
             </Tip>
           ) : undefined}
@@ -94,18 +108,6 @@ export const FileTypeSelector: React.FC<Props> = ({
               />
             </Tip>
           ) : undefined}
-          <Tip
-            title="Linux terminal"
-            icon="terminal"
-            tip="Create a command line Linux terminal.  CoCalc includes a full Linux environment.  Run command line software, vim, emacs and more."
-          >
-            <NewFileButton
-              icon="terminal"
-              name="Linux terminal"
-              on_click={create_file}
-              ext="term"
-            />
-          </Tip>
           {available.x11 ? (
             <Tip
               title="X11 desktop"
@@ -120,6 +122,20 @@ export const FileTypeSelector: React.FC<Props> = ({
               />
             </Tip>
           ) : undefined}
+          <Tip
+            title={"Folder"}
+            placement={"left"}
+            icon={"folder-open-o"}
+            tip={
+              "Create a folder (sub-directory) in which to store and organize your files.  CoCalc provides a full featured filesystem."
+            }
+          >
+            <NewFileButton
+              icon={"folder-open-o"}
+              name={"Folder"}
+              on_click={create_folder}
+            />
+          </Tip>
         </Col>
       </Row>
       <Row style={row_style}>

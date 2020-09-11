@@ -53,7 +53,7 @@ const file_action_icons = {
 
 interface Props {
   id: string;
-  time: object;
+  time: Date;
   event: ProjectEvent | string;
   account_id: string;
   user_map?: UserMap;
