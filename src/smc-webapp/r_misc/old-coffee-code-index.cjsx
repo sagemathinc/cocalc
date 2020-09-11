@@ -574,18 +574,6 @@ exports.NoNetworkProjectWarning = (opts) ->
         </p>
     </Alert>
 
-exports.LoginLink = rclass
-    displayName : 'Misc-LoginLink'
-
-    render: ->  # TODO: the code to switch page below will change when we get a top-level navigation store.
-        <Alert bsStyle='info' style={margin:'15px'}>
-            <Icon name='sign-in' style={fontSize:'13pt', marginRight:'10px'} /> Please<Space/>
-            <a style={cursor: 'pointer'}
-                onClick={=>redux.getActions('page').set_active_tab('account')}>
-                login or create an account...
-            </a>
-        </Alert>
-
 COMPUTE_STATES = require('smc-util/schema').COMPUTE_STATES
 exports.ProjectState = rclass
     displayName : 'Misc-ProjectState'
