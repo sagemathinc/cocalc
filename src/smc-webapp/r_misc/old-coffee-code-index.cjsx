@@ -460,10 +460,6 @@ exports.ActivityDisplay = rclass
         else
             <span />
 
-Globalize = require('globalize')
-globalizeLocalizer = require('react-widgets-globalize')
-globalizeLocalizer(Globalize)
-
 # A warning to put on pages when the project is deleted
 # TODO: use this in more places
 exports.DeletedProjectWarning = ->

@@ -23,12 +23,10 @@ const {
   Alert,
   Checkbox,
 } = require("react-bootstrap");
+import { Select } from "antd";
 const account = require("../../account");
 
 const ConfigureShare = require("../../share/config/config").Configure;
-
-// TODO: delete this when the combobox is in r_misc
-const Combobox = require("react-widgets/lib/Combobox");
 
 type FileAction = undefined | keyof typeof file_actions;
 
@@ -488,26 +486,41 @@ export const ActionBox = rclass<ReactProps>(
     render_different_project_dialog(): JSX.Element | undefined {
       if (this.state.show_different_project) {
         const data = this.props.get_project_select_list(this.props.project_id);
-        if (data == undefined) {
+        if (data == null) {
           return <Loading />;
         }
+        const list: JSX.Element[] = data.map((v) => (
+          <Select.Option key={v.id} value={v.id}>
+            {v.title}
+          </Select.Option>
+        ));
+        const filter = (input, option) => {
+          if (option == null) {
+            return true; // we don't expect this to happen
+          } else {
+            return (
+              option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+            );
+          }
+        };
         return (
           <Col sm={4} style={{ color: "#666", marginBottom: "15px" }}>
             <h4>In the project</h4>
-            <Combobox
-              valueField="id"
-              textField="title"
-              data={data}
-              filter="contains"
+            <Select
+              showSearch={true}
+              style={{ width: "100%" }}
+              placeholder={"Select a project..."}
+              optionFilterProp={"children"}
               defaultValue={
-                !this.props.public_view ? this.props.project_id : undefined
+                this.props.public_view ? undefined : this.props.project_id
               }
-              placeholder="Select a project..."
-              onSelect={(value) =>
-                this.setState({ copy_destination_project_id: value.id })
+              onChange={(value) =>
+                this.setState({ copy_destination_project_id: value })
               }
-              messages={{ emptyFilter: "", emptyList: "" }}
-            />
+              filterOption={filter}
+            >
+              {list}
+            </Select>
             {this.render_copy_different_project_options()}
           </Col>
         );
