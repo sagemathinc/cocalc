@@ -13,7 +13,8 @@ export type ProjectMap = Map<any, any>;
 
 export const ProjectStatus = createTypedMap<ProjectStatus>();
 export type ProjectStatus = TypedMap<{
-  state: "running" | "saving" | "opened" | "closed" | "archived";
+  state: "opened" | "running" | "starting" | "stopping" | "closed" | "archived";
+  time?: Date;
 }>;
 
 export type UserMap = Map<any, any>;

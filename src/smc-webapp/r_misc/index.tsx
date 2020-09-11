@@ -39,6 +39,7 @@ export {
   VisibleXSSM,
 } from "./hidden-visible";
 export { LoginLink } from "./login-link";
+export { ProjectState } from "./project-state";
 
 export const {
   MarkdownInput,
@@ -60,7 +61,6 @@ export const {
   CourseProjectWarning,
   NonMemberProjectWarning,
   NoNetworkProjectWarning,
-  ProjectState,
   EditorFileInfoDropdown,
   render_file_info_dropdown,
   UPGRADE_ERROR_STYLE,

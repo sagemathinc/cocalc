@@ -614,7 +614,7 @@ export const Explorer = rclass(
 
     render_project_state(project_state?: ProjectStatus) {
       const state = project_state?.get("state");
-      if (state == "running" || state == "saving") return;
+      if (state == "running") return;
       return (
         <div
           style={{

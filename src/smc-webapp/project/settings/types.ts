@@ -5,6 +5,7 @@
 
 import { Map } from "immutable";
 import { TypedMap } from "../../app-framework";
+import { ProjectStatus } from "../../todo-types";
 
 type UserRecord = TypedMap<{
   group: string;

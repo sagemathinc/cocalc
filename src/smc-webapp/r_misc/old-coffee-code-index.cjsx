@@ -574,48 +574,6 @@ exports.NoNetworkProjectWarning = (opts) ->
         </p>
     </Alert>
 
-COMPUTE_STATES = require('smc-util/schema').COMPUTE_STATES
-exports.ProjectState = rclass
-    displayName : 'Misc-ProjectState'
-
-    propTypes :
-        state     : rtypes.immutable.Map     # {state: 'running', time:'timestamp when switched to that state'}
-        show_desc : rtypes.bool
-
-    getDefaultProps: ->
-        state     : immutable.Map()
-        show_desc : false
-
-    render_spinner:  ->
-        <span style={{marginRight:'15px'}}>... <Icon name='cc-icon-cocalc-ring' spin /></span>
-
-    render_desc: (desc) ->
-        if not @props.show_desc
-            return
-        <span>
-            <span style={fontSize:'11pt'}>
-                {desc}
-                {@render_time()}
-            </span>
-        </span>
-
-    render_time: ->
-        time = @props.state?.get?('time')
-        if time
-            return <span><Space/> (<TimeAgo date={time} />)</span>
-
-    render: ->
-        s = COMPUTE_STATES[@props.state?.get?('state')]
-        if not s?
-            return <Loading />
-        {display, desc, icon, stable} = s
-        <span>
-            <Icon name={icon} /> {display}
-            <Space />
-            {@render_spinner() if not stable}
-            {@render_desc(desc)}
-        </span>
-
 
 # info button inside the editor when editing a file. links you back to the file listing with the action prompted
 # TODO: move this somewhere else once editor is rewritten
