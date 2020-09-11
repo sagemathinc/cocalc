@@ -79,11 +79,13 @@ export class WhitelabelConfiguration {
     }
   }
 
+  // returns the global configuration + eventually vanity specific site config settings
+  // it's always a shallow copy, hence you can modify/add keys in the returned map!
   public async webapp(req) {
     const host = req.headers["host"];
     const vid = this.vanity(host);
-    L(`vanity ID = "${vid}"`);
-    if (vid != null) {
+    if (vid != null && vid !== "") {
+      L(`vanity ID = "${vid}"`);
       // these are special values, but can be overwritten by the specific theme
       const hardcoded = {
         dns: host,
@@ -94,7 +96,7 @@ export class WhitelabelConfiguration {
       return { ...this.data.pub, ...hardcoded, ...(await this.theme(vid)) };
     } else {
       // the default
-      return this.data.pub;
+      return { ...this.data.pub };
     }
   }
 }

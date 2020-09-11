@@ -273,19 +273,18 @@ exports.init_express_http_server = (opts) ->
 
     if server_settings?
         router.get '/customize', (req, res) ->
-            # ATTN do not modify "config"
+            # this returns a shallow copy of the global config, you can modify it
             config = await whitelabel_config.webapp(req)
             # if we're behind cloudflare, we expose the detected country in the client
             # use a lib like https://github.com/michaelwittig/node-i18n-iso-countries
             # to read the ISO 3166-1 Alpha 2 codes.
             # if it is unknown, the code will be XX and K1 is the Tor-Network.
-            country = req.headers['cf-ipcountry'] ? 'XX'
-            data = Object.assign({}, config, {country: country})
+            config.country = req.headers['cf-ipcountry'] ? 'XX'
             if req.query.type == 'embed'
                 res.header("Content-Type", "text/javascript")
-                res.send("window.CUSTOMIZE = Object.freeze(#{JSON.stringify(data)})")
+                res.send("window.CUSTOMIZE = Object.freeze(#{JSON.stringify(config)})")
             else
-                res.json(data)
+                res.json(config)
 
     # Save other paths in # part of URL then redirect to the single page app.
     router.get ['/projects*', '/help*', '/settings*', '/admin*', '/dashboard*', '/notifications*'], (req, res) ->
