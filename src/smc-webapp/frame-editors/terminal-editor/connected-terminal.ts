@@ -22,6 +22,7 @@ require("xterm/css/xterm.css");
 
 import { FitAddon } from "xterm-addon-fit";
 import { WebLinksAddon } from "xterm-addon-web-links";
+import { WebglAddon } from "xterm-addon-webgl";
 
 import { setTheme } from "./themes";
 import { project_websocket, touch, touch_project } from "../generic/client";
@@ -117,18 +118,26 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.path = actions.path;
     this.command = command;
     this.args = args;
-    this.rendererType = "dom";
+    this.rendererType = "canvas";
     const cmd = command ? "-" + replace_all(command, "/", "-") : "";
     this.term_path = aux_file(`${this.path}-${number}${cmd}`, "term");
     this.number = number;
     this.id = id;
+
     this.terminal = new XTerminal(this.get_xtermjs_options());
+
     this.webLinksAddon = new WebLinksAddon(handleLink);
     this.terminal.loadAddon(this.webLinksAddon);
+
     this.fitAddon = new FitAddon();
     this.terminal.loadAddon(this.fitAddon);
 
     this.terminal.open(parent);
+    if (this.terminal.element == null) {
+      throw Error("terminal.element must be defined");
+    }
+    this.terminal.loadAddon(new WebglAddon());
+
     this.element = this.terminal.element;
     this.update_settings();
     this.init_title();

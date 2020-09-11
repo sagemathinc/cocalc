@@ -12,7 +12,7 @@ import { Assign } from "utility-types";
 import { LabeledRow, Tip, Icon, Space, Loading } from "../../r_misc";
 import { alert_message } from "../../alerts";
 import { ProjectSettings, ProjectStatus } from "./types";
-const misc = require("smc-util/misc");
+import * as misc from "smc-util/misc";
 const { User } = require("../../users");
 import { webapp_client } from "../../webapp-client";
 const { PROJECT_UPGRADES } = require("smc-util/schema");
