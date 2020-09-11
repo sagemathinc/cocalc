@@ -558,6 +558,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               disk: custom_disk,
               always_running: custom_always_running,
               member: custom_member,
+              user,
             })}`}
             onClose={(id) => {
               set_payment_method(id);
