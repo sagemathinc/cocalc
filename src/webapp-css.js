@@ -30,9 +30,6 @@ import "dropzone/css/dropzone.css";
 // Datetime picker plugin
 import "datetimepicker/bootstrap-datetimepicker.min.css";
 
-// Needed by DateTimePicker - http://jquense.github.io/react-widgets/docs/#/i18n
-import 'react-widgets/lib/less/react-widgets.less';
-
 // custom cocalc icon font
 import 'webapp-lib/cocalc-icons-font/style.css';
 
