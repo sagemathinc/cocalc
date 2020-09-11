@@ -29,7 +29,7 @@ export { UncommittedChanges } from "./uncommited-changes";
 export { DateTimePicker } from "./date-time-picker";
 export { PathLink } from "./path-link";
 export { HelpIcon } from "./help-icon";
-export { TimeAgo, TimeAgoElement } from "./time-ago";
+export { TimeAgo, TimeAgoElement, is_different_date } from "./time-ago";
 export {
   HiddenXS,
   HiddenSM,
@@ -49,7 +49,6 @@ export const {
   Octicon,
   Footer,
   render_static_footer,
-  is_different_date,
   SearchInput,
   HTML,
   Markdown,
