@@ -149,10 +149,19 @@ async function stripe_get_product(
     // now we have to create the product.
     const metadata = get_product_metadata(info) as any; // avoid dealing with TS typings for metadata for now.
     const name = get_product_name(info);
+    let statement_descriptor = "COCALC LICENSE ";
+    if (info.subscription != "no") {
+      statement_descriptor += "SUB";
+    } else {
+      const n = get_days(info);
+      // n<100 logic to fit in 22 characters
+      statement_descriptor += `${n}${n < 100 ? " " : ""}DAYS`;
+    }
     await stripe.conn.products.create({
       id: product_id,
       name,
       metadata,
+      statement_descriptor,
     });
     stripe_create_price(stripe, info);
   }
