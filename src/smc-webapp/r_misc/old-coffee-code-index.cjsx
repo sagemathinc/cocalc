@@ -464,21 +464,6 @@ Globalize = require('globalize')
 globalizeLocalizer = require('react-widgets-globalize')
 globalizeLocalizer(Globalize)
 
-Calendar = require('react-widgets/lib/Calendar')
-
-exports.Calendar = rclass
-    displayName : 'Misc-Calendar'
-
-    propTypes :
-        value     : rtypes.oneOfType([rtypes.string, rtypes.object])
-        on_change : rtypes.func.isRequired
-
-    render: ->
-        <Calendar
-            defaultValue = {@props.value}
-            onChange     = {@props.on_change}
-        />
-
 # A warning to put on pages when the project is deleted
 # TODO: use this in more places
 exports.DeletedProjectWarning = ->

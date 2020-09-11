@@ -53,7 +53,6 @@ export const {
   HTML,
   Markdown,
   ActivityDisplay,
-  Calendar,
   DeletedProjectWarning,
   course_warning,
   CourseProjectExtraHelp,
