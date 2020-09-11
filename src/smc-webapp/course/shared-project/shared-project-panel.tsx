@@ -6,7 +6,7 @@
 import { React, Component, AppRedux, Rendered } from "../../app-framework";
 import { CourseActions } from "../actions";
 import { CourseSettingsRecord } from "../store";
-import { HiddenXS, Icon, Tip, VisibleMDLG } from "../../r_misc";
+import { Icon } from "../../r_misc";
 import { UsergroupAddOutlined } from "@ant-design/icons";
 
 import { Button, Popconfirm } from "antd";
@@ -137,24 +137,4 @@ export class SharedProjectPanel extends Component<SharedProjectPanelProps> {
       </div>
     );
   }
-}
-
-// TODO: delete this
-export function SharedProjectPanelHeader(props: { project_exists: boolean }) {
-  let tip;
-  if (props.project_exists) {
-    tip = "Shared project that everybody involved in this course may use.";
-  } else {
-    tip = "Create a shared project that everybody in this course may use.";
-  }
-  return (
-    <Tip delayShow={1300} title="Shared project" tip={tip}>
-      <span>
-        <Icon name="share-alt" />{" "}
-        <HiddenXS>
-          Shared <VisibleMDLG>Project</VisibleMDLG>
-        </HiddenXS>
-      </span>
-    </Tip>
-  );
 }

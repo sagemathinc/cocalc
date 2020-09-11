@@ -460,19 +460,6 @@ exports.ActivityDisplay = rclass
         else
             <span />
 
-exports.SaveButton = rclass
-    displayName : 'Misc-SaveButton'
-
-    propTypes :
-        unsaved  : rtypes.bool
-        disabled : rtypes.bool
-        on_click : rtypes.func.isRequired
-
-    render: ->
-        <Button bsStyle='success' disabled={@props.saving or not @props.unsaved} onClick={@props.on_click}>
-            <Icon name='save' /> <VisibleMDLG>Sav{if @props.saving then <span>ing... <Icon name='cc-icon-cocalc-ring' spin /></span> else <span>e</span>}</VisibleMDLG>
-        </Button>
-
 Globalize = require('globalize')
 globalizeLocalizer = require('react-widgets-globalize')
 globalizeLocalizer(Globalize)
@@ -1180,45 +1167,6 @@ exports.CopyToClipBoard = rclass
             </InputGroup>
         </FormGroup>
 
-# See https://getbootstrap.com/docs/3.3/css/
-# HiddenXS = hide if width < 768px
-exports.HiddenXS = rclass
-    render: ->
-        <span className={'hidden-xs'}>
-            {@props.children}
-        </span>
-
-exports.HiddenSM = rclass
-    render: ->
-        <span className={'hidden-sm'}>
-            {@props.children}
-        </span>
-
-exports.HiddenXSSM = rclass
-    render: ->
-        <span className={'hidden-xs hidden-sm'}>
-            {@props.children}
-        </span>
-
-# VisibleMDLG = visible on medium or large devices (anything with width > 992px)
-exports.VisibleMDLG = VisibleMDLG = rclass
-    render: ->
-        <span className={'visible-md-inline visible-lg-inline'}>
-            {@props.children}
-        </span>
-
-# VisibleMDLG = visible on medium or large devices (anything with width > 992px)
-exports.VisibleLG = rclass
-    render: ->
-        <span className={'visible-lg-inline'}>
-            {@props.children}
-        </span>
-
-exports.VisibleXSSM = rclass
-    render: ->
-        <span className={'visible-xs-inline visible-sm-inline'}>
-            {@props.children}
-        </span>
 
 # Error boundry. Pass components in as children to create one.
 # https://reactjs.org/blog/2017/07/26/error-handling-in-react-16.html

@@ -30,6 +30,14 @@ export { DateTimePicker } from "./date-time-picker";
 export { PathLink } from "./path-link";
 export { HelpIcon } from "./help-icon";
 export { TimeAgo, TimeAgoElement } from "./time-ago";
+export {
+  HiddenXS,
+  HiddenSM,
+  HiddenXSSM,
+  VisibleMDLG,
+  VisibleLG,
+  VisibleXSSM,
+} from "./hidden-visible";
 
 export const {
   MarkdownInput,
@@ -45,7 +53,6 @@ export const {
   HTML,
   Markdown,
   ActivityDisplay,
-  SaveButton,
   Calendar,
   DeletedProjectWarning,
   course_warning,
@@ -61,12 +68,6 @@ export const {
   NoUpgrades,
   UpgradeAdjustor,
   CopyToClipBoard,
-  HiddenXS,
-  HiddenSM,
-  HiddenXSSM,
-  VisibleMDLG,
-  VisibleLG,
-  VisibleXSSM,
   ErrorBoundary,
   smc_version,
   build_date,
