@@ -28,6 +28,7 @@ export { WindowedList } from "./windowed-list";
 export { UncommittedChanges } from "./uncommited-changes";
 export { DateTimePicker } from "./date-time-picker";
 export { PathLink } from "./path-link";
+export { HelpIcon } from "./help-icon";
 
 export const {
   MarkdownInput,
@@ -35,12 +36,9 @@ export const {
   BS_BLUE_BGRND,
   COLORS,
   ImmutablePureRenderMixin,
-  SetIntervalMixin,
-  SetIntervalHOC,
   Octicon,
   Footer,
   render_static_footer,
-  HelpIcon,
   is_different_date,
   TimeAgoElement,
   TimeAgo,
