@@ -29,6 +29,7 @@ export { UncommittedChanges } from "./uncommited-changes";
 export { DateTimePicker } from "./date-time-picker";
 export { PathLink } from "./path-link";
 export { HelpIcon } from "./help-icon";
+export { TimeAgo, TimeAgoElement } from "./time-ago";
 
 export const {
   MarkdownInput,
@@ -40,8 +41,6 @@ export const {
   Footer,
   render_static_footer,
   is_different_date,
-  TimeAgoElement,
-  TimeAgo,
   SearchInput,
   HTML,
   Markdown,
