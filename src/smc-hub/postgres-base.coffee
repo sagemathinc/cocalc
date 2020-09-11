@@ -65,7 +65,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                                     # identical permission checks in a single user query.
             cache_size      : 300   # cache this many queries; use @_query(cache:true, ...) to cache result
             concurrent_warn : 500
-            concurrent_heavily_loaded : 100 # when concurrent hits this, consider load "heavy"; this changes home some queries behave to be faster but provide less info
+            concurrent_heavily_loaded : 70 # when concurrent hits this, consider load "heavy"; this changes home some queries behave to be faster but provide less info
             ensure_exists   : true  # ensure database exists on startup (runs psql in a shell)
             timeout_ms      : DEFAULT_TIMEOUS_MS # **IMPORTANT: if *any* query takes this long, entire connection is terminated and recreated!**
             timeout_delay_ms : DEFAULT_TIMEOUT_DELAY_MS # Only reconnect on timeout this many ms after connect.  Motivation: on initial startup queries may take much longer due to competition with other clients.
