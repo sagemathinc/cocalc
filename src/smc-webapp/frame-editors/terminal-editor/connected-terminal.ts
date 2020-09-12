@@ -136,7 +136,11 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     if (this.terminal.element == null) {
       throw Error("terminal.element must be defined");
     }
-    this.terminal.loadAddon(new WebglAddon());
+    try {
+      this.terminal.loadAddon(new WebglAddon());
+    } catch (err) {
+      console.log("WebGL Terminal not available; falling back to canvas.");
+    }
 
     this.element = this.terminal.element;
     this.update_settings();
