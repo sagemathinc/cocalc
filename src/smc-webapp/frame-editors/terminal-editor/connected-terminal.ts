@@ -48,6 +48,9 @@ import { starts_with_cloud_url } from "smc-webapp/process-links";
 const SCROLLBACK = 5000;
 const MAX_HISTORY_LENGTH = 100 * SCROLLBACK;
 
+export const DEFAULT_TERMINAL_RENDERER = "canvas";
+export const TERMINAL_RENDERER = ["dom", "canvas"];
+
 interface Path {
   file?: string;
   directory?: string;
@@ -64,7 +67,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private term_path: string;
   private number: number;
   private id: string;
-  readonly rendererType: "dom" | "canvas";
+  readonly rendererType: typeof TERMINAL_RENDERER[number];
   private terminal: XTerminal;
   private is_paused: boolean = false;
   private keyhandler_initialized: boolean = false;
@@ -155,13 +158,13 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   private get_xtermjs_options(): any {
-    const rendererType = this.rendererType;
     const settings = this.account_store.get("terminal");
     if (settings == null) {
       // not fully loaded yet.
-      return { rendererType };
+      return { rendererType: DEFAULT_TERMINAL_RENDERER };
     }
     const scrollback = settings.get("scrollback", SCROLLBACK);
+    const rendererType = settings.get("renderer", DEFAULT_TERMINAL_RENDERER);
 
     // Tell the terminal to use the browser's setting
     // for the generic "monospace" font family.

@@ -8,6 +8,8 @@ import { set_account_table } from "./util";
 import { Icon, LabeledRow, SelectorInput, Loading } from "../r_misc";
 import { Panel } from "../antd-bootstrap";
 
+import { TERMINAL_RENDERER } from "../frame-editors/terminal-editor/connected-terminal";
+
 const TERMINAL_COLOR_SCHEMES: { [name: string]: string } = {};
 
 // This global Terminal object is from old xterm.js, and the color_schemes
@@ -40,6 +42,16 @@ export const TerminalSettings: React.FC = () => {
           options={TERMINAL_COLOR_SCHEMES}
           on_change={(color_scheme) =>
             set_account_table({ terminal: { color_scheme } })
+          }
+        />
+      </LabeledRow>
+
+      <LabeledRow label="Terminal renderer">
+        <SelectorInput
+          selected={terminal?.get("renderer")}
+          options={TERMINAL_RENDERER}
+          on_change={(renderer) =>
+            set_account_table({ terminal: { renderer } })
           }
         />
       </LabeledRow>

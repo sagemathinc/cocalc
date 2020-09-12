@@ -241,6 +241,7 @@ Table({
             font_size: DEFAULT_FONT_SIZE,
             color_scheme: "default",
             font: "monospace",
+            renderer: "canvas", // use DEFAULT_TERMINAL_RENDERER
           },
           autosave: 45,
           evaluate_key: "Shift-Enter",
