@@ -25,6 +25,7 @@ import { SyncTable } from "../../table/synctable";
 import { to_key } from "../../table/util";
 import { Client } from "./types";
 import { sagews, MARKERS, FLAGS } from "../../../sagews";
+import { close } from "../../../misc2";
 
 const {
   from_json,
@@ -41,12 +42,19 @@ type Program = "sage" | "bash";
 // Object whose meaning depends on the program
 type Input = any;
 
+interface SageSession {
+  close: () => void;
+  is_running: () => boolean;
+  init_socket: (cb: Function) => void;
+  call: (obj: { input: object; cb: Function }) => void;
+}
+
 export class Evaluator {
   private syncdoc: SyncDoc;
   private client: Client;
   private inputs_table: SyncTable;
   private outputs_table: SyncTable;
-  private sage_session: any;
+  private sage_session: SageSession;
   private state: State = "init";
   private table_options: any[] = [];
   private create_synctable: Function;
@@ -78,16 +86,14 @@ export class Evaluator {
   public async close(): Promise<void> {
     if (this.inputs_table != null) {
       await this.inputs_table.close();
-      delete this.inputs_table;
     }
     if (this.outputs_table != null) {
       await this.outputs_table.close();
-      delete this.outputs_table;
     }
     if (this.sage_session != null) {
       this.sage_session.close();
-      delete this.sage_session;
     }
+    close(this);
     this.set_state("closed");
   }
 

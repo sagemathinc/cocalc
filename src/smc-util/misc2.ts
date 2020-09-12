@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-
 /*
 This is a rewrite and SUCCESSOR to ./misc.js.
 
@@ -719,4 +718,12 @@ export function secure_random_token(
     s += alphabet[i % alphabet.length];
   }
   return s;
+}
+
+// Called when an object will not be used further, to avoid
+// it references anything that could lead to memory leaks.
+export function close(obj: object): void {
+  Object.keys(obj).forEach(function (key) {
+    delete obj[key];
+  });
 }
