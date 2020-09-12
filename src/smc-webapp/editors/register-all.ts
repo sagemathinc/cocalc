@@ -13,7 +13,6 @@ One you add a new built in editor, it should go here.
 // This should be a comprehensive list of all React editors
 
 import "../chat/register";
-
 import "./archive/actions";
 import "../stopwatch/register";
 
@@ -34,3 +33,6 @@ import "./task-editor/register";
 
 // All the frame-tree editors
 import "../frame-editors/register";
+
+// The whiteboard
+import "./whiteboard/register";
