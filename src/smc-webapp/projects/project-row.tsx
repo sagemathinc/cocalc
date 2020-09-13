@@ -7,6 +7,7 @@
 Render a single project entry, which goes in the list of projects
 */
 
+import { fromJS } from "immutable";
 import {
   React,
   useState,
@@ -214,7 +215,9 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
         <Col sm={2} onClick={open_project_settings}>
           {!is_anonymous && (
             <a>
-              <ProjectState state={project.get("state", { state: "closed" })} />
+              <ProjectState
+                state={project.get("state", fromJS({ state: "closed" }))}
+              />
             </a>
           )}
         </Col>
