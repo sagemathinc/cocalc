@@ -64,10 +64,10 @@ export const ProjectLog = rclass<ReactProps>(
     static defaultProps = { search: "" }; // search that user has requested
 
     private windowed_list_ref: React.RefObject<any>;
-    private _log: immutable.List<TypedMap<EventRecord>>;
+    private _log?: immutable.List<TypedMap<EventRecord>>;
     private _search_cache: { [key: string]: string };
     private _loading_table: boolean;
-    private _next_cursor_pos: number;
+    private _next_cursor_pos?: number;
 
     constructor(props) {
       super(props);
@@ -205,7 +205,7 @@ export const ProjectLog = rclass<ReactProps>(
 
     load_all(): void {
       this._next_cursor_pos = this.get_log().size - 1;
-      delete this._loading_table;
+      this._loading_table = false;
       this.props.actions.project_log_load_all();
     }
 

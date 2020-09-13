@@ -26,6 +26,7 @@ export const MIN_WIDTH = 10;
 export const MIN_HEIGHT = 10;
 
 import { Renderer } from "./renderer";
+import { close } from "smc-util/misc2";
 
 export class Surface {
   public wid: number;
@@ -138,11 +139,8 @@ export class Surface {
       return;
     }
     this.renderer.stop();
-    delete this.renderer;
-    delete this.canvas;
     this.jq_canvas.remove(); // remove from DOM.
-    delete this.jq_canvas;
-    delete this.parent;
+    close(this);
   }
 
   updateGeometry(swidth: number, sheight: number, scale: number): void {

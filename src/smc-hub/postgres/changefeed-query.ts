@@ -27,7 +27,7 @@ import { EventEmitter } from "events";
 import { callback } from "awaiting";
 
 import { once } from "../smc-util/async-utils";
-import { copy } from "../smc-util/misc2";
+import { close, copy } from "../smc-util/misc2";
 
 const { one_result, all_results } = require("../postgres-base");
 
@@ -79,7 +79,6 @@ class ThrottledTableQueue extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
-    this.state = "closed";
     if (this.process_timer != null) {
       clearTimeout(this.process_timer);
     }
@@ -88,12 +87,8 @@ class ThrottledTableQueue extends EventEmitter {
     }
     this.emit("closed");
     this.removeAllListeners();
-
-    delete this.table;
-    delete this.queue;
-    delete this.db;
-    delete this.process_timer;
-    delete this.interval_ms;
+    close(this);
+    this.state = "closed";
   }
 
   public enqueue(query: TableQuery): string {

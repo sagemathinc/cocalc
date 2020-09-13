@@ -182,7 +182,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private _set_directory_files_lock: { [key: string]: Function[] };
   private _init_done = false;
   private new_filename_generator;
-  public open_files: OpenFiles;
+  public open_files?: OpenFiles;
 
   constructor(a, b) {
     super(a, b);
@@ -196,6 +196,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   destroy = (): void => {
+    if (this.open_files == null) return;
     must_define(this.redux);
     this.close_all_files();
     for (const table in QUERIES) {
@@ -344,6 +345,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   move_file_tab(opts: { old_index: number; new_index: number }): void {
+    if (this.open_files == null) return;
     this.open_files.move(opts);
     this.save_session();
   }
@@ -485,6 +487,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         // Finally, ensure that the react/redux stuff is initialized, so
         // the component will be rendered.
         if (info.redux_name == null || info.Editor == null) {
+          if (this.open_files == null) return;
           const { name, Editor } = this.init_file_react_redux(path, is_public);
           info.redux_name = name;
           info.Editor = Editor;
@@ -817,6 +820,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Used by open/close chat below.
   private set_chat_state(path: string, is_chat_open: boolean): void {
+    if (this.open_files == null) return;
     this.open_files.set(path, "is_chat_open", is_chat_open);
   }
 
@@ -856,6 +860,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const open_files = store.get("open_files");
     if (open_files != null) {
+      if (this.open_files == null) return;
       const width = misc.ensure_bound(opts.width, 0.05, 0.95);
       const { local_storage } = require("./editor");
       local_storage(this.project_id, opts.path, "chat_width", width);
@@ -865,7 +870,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // OPTIMIZATION: Some possible performance problems here. Debounce may be necessary
   flag_file_activity(filename: string): void {
-    if (filename == null || !this.open_files?.has(filename)) {
+    if (this.open_files == null) return;
+    if (filename == null || !this.open_files.has(filename)) {
       // filename invalid or not currently open, see
       //  https://github.com/sagemathinc/cocalc/issues/4717
       return;
@@ -911,7 +917,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       project_file.remove(path, this.redux, this.project_id, is_public);
     });
 
-    this.open_files.close_all();
+    this.open_files?.close_all();
   }
 
   // Closes the file and removes all references.
@@ -925,7 +931,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const open_files = store.get("open_files");
     const component_data = open_files.getIn([path, "component"]);
     if (component_data == null) return; // nothing to do since already closed.
-    this.open_files.delete(path);
+    this.open_files?.delete(path);
     project_file.remove(
       path,
       this.redux,

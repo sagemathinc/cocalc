@@ -4,8 +4,8 @@
  */
 
 import { EventEmitter } from "events";
-
 import { callback, delay } from "awaiting";
+import { close } from "../../misc2";
 
 type State = "closed" | "disconnected" | "connecting" | "connected";
 
@@ -143,14 +143,14 @@ export class Changefeed extends EventEmitter {
 
   public close(): void {
     this.state = "closed";
-    delete this.handle_update_queue;
     if (this.id != null) {
       // stop listening for future updates
       this.cancel_query(this.id);
-      delete this.id;
     }
     this.emit("close");
     this.removeAllListeners();
+    close(this);
+    this.state = "closed";
   }
 
   private async cancel_query(id: string): Promise<void> {

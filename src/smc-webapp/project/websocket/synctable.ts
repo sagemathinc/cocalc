@@ -8,14 +8,11 @@ Synctable that uses the project websocket rather than the database.
 */
 
 import { delay } from "awaiting";
-
 import { reuseInFlight } from "async-await-utils/hof";
-
 import { synctable_no_database, SyncTable } from "smc-util/sync/table";
-
 import { once, retry_until_success } from "smc-util/async-utils";
-
 import { WebappClient } from "../../webapp-client";
+import { assertDefined } from "smc-util/misc2";
 
 // Always wait at least this long between connect attempts.  This
 // avoids flooding the project with connection requests if, e.g., the
@@ -34,7 +31,7 @@ interface Options {
 import { EventEmitter } from "events";
 
 class SyncTableChannel extends EventEmitter {
-  public synctable: SyncTable;
+  public synctable?: SyncTable;
   private project_id: string;
   private client: WebappClient;
   private channel?: any;
@@ -161,6 +158,7 @@ class SyncTableChannel extends EventEmitter {
   }
 
   private init_synctable_handlers(): void {
+    assertDefined(this.synctable);
     this.synctable.on("timed-changes", (timed_changes) => {
       this.send_mesg_to_project({ timed_changes });
     });

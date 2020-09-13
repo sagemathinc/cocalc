@@ -16,6 +16,7 @@ import { IPynbImporter } from "../import-from-ipynb";
 import { WebappClient } from "../../webapp-client";
 
 import { NBViewerState, NBViewerStore } from "./store";
+import { close } from "smc-util/misc2";
 
 export class NBViewerActions extends Actions<NBViewerState> {
   private store: NBViewerStore;
@@ -146,8 +147,7 @@ export class NBViewerActions extends Actions<NBViewerState> {
     });
   };
   close = () => {
-    delete this.store;
-    delete this.client;
-    return (this._state = "closed");
+    close(this);
+    this._state = "closed";
   };
 }

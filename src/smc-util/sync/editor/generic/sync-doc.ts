@@ -57,6 +57,8 @@ import {
 import { wait } from "../../../async-wait";
 
 import {
+  assertDefined,
+  close,
   cmp_Date,
   endswith,
   filename_extension,
@@ -181,7 +183,7 @@ export class SyncDoc extends EventEmitter {
 
   public ipywidgets_state?: IpywidgetsState;
 
-  private patch_list: SortedPatchList;
+  private patch_list?: SortedPatchList;
 
   private last: Document;
   private doc: Document;
@@ -483,6 +485,7 @@ export class SyncDoc extends EventEmitter {
   // If not fully initialized, will throw exception.
   public version(time?: Date): Document {
     this.assert_table_is_ready("patches");
+    assertDefined(this.patch_list);
     return this.patch_list.value(time);
   }
 
@@ -491,6 +494,7 @@ export class SyncDoc extends EventEmitter {
      used for implementing undo functionality for client editors. */
   public version_without(times: Date[]): Document {
     this.assert_table_is_ready("patches");
+    assertDefined(this.patch_list);
     return this.patch_list.value(undefined, undefined, times);
   }
 
@@ -678,6 +682,7 @@ export class SyncDoc extends EventEmitter {
      when offline! */
   public time_sent(time: Date): Date | undefined {
     this.assert_table_is_ready("patches");
+    assertDefined(this.patch_list);
     return this.patch_list.time_sent(time);
   }
 
@@ -685,6 +690,7 @@ export class SyncDoc extends EventEmitter {
   // point in time.
   public user_id(time: Date): number {
     this.assert_table_is_ready("patches");
+    assertDefined(this.patch_list);
     return this.patch_list.user_id(time);
   }
 
@@ -749,6 +755,7 @@ export class SyncDoc extends EventEmitter {
      is sorted from oldest to newest. */
   public all_versions(): Date[] {
     this.assert_table_is_ready("patches");
+    assertDefined(this.patch_list);
     return this.patch_list.versions();
   }
 
@@ -796,13 +803,11 @@ export class SyncDoc extends EventEmitter {
       // Cancel any pending file_use calls.
       cancel_scheduled(this.throttled_file_use);
       (this.throttled_file_use as any).cancel();
-      delete this.throttled_file_use;
     }
 
     if (this.emit_change != null) {
       // Cancel any pending change emit calls.
       cancel_scheduled(this.emit_change);
-      delete this.emit_change;
     }
 
     if (this.project_autosave_timer) {
@@ -810,28 +815,22 @@ export class SyncDoc extends EventEmitter {
       this.project_autosave_timer = 0;
     }
 
-    delete this.cursor_map;
-    delete this.users;
     this.patch_update_queue = [];
 
     if (this.syncstring_table != null) {
       await this.syncstring_table.close();
-      delete this.syncstring_table;
     }
 
     if (this.patches_table != null) {
       await this.patches_table.close();
-      delete this.patches_table;
     }
 
     if (this.patch_list != null) {
       await this.patch_list.close();
-      delete this.patch_list;
     }
 
     if (this.cursors_table != null) {
       await this.cursors_table.close();
-      delete this.cursors_table;
     }
 
     if (this.client.is_project()) {
@@ -840,15 +839,14 @@ export class SyncDoc extends EventEmitter {
 
     if (this.evaluator != null) {
       await this.evaluator.close();
-      delete this.evaluator;
     }
 
     if (this.ipywidgets_state != null) {
       await this.ipywidgets_state.close();
-      delete this.ipywidgets_state;
     }
 
-    delete this.settings;
+    close(this);
+    this.set_state("closed");
   }
 
   // TODO: We **have** to do this on the client, since the backend
@@ -1114,12 +1112,14 @@ export class SyncDoc extends EventEmitter {
       throw Error(init.error);
     }
 
+    assertDefined(this.patch_list);
     if (this.client.is_user() && this.patch_list.count() === 0 && init.size) {
       dbg("waiting for patches for nontrivial file");
       // normally this only happens in a later event loop,
       // so force it now.
       dbg("handling patch update queue since", this.patch_list.count());
       await this.handle_patch_update_queue();
+      assertDefined(this.patch_list);
       dbg("done handling, now ", this.patch_list.count());
       if (this.patch_list.count() === 0) {
         // wait for a change -- i.e., project loading the file from
@@ -1597,6 +1597,7 @@ export class SyncDoc extends EventEmitter {
 
   private next_patch_time(): Date {
     let time = this.client.server_time();
+    assertDefined(this.patch_list);
     const min_time = this.patch_list.newest_patch_time();
     if (min_time != null && min_time >= time) {
       time = new Date(min_time.valueOf() + 1);
@@ -1641,6 +1642,7 @@ export class SyncDoc extends EventEmitter {
     const x = this.patches_table.set(obj, "none");
     const y = this.process_patch(x, undefined, undefined, patch);
     if (y != null) {
+      assertDefined(this.patch_list);
       this.patch_list.add([y]);
     }
   }
@@ -1650,6 +1652,7 @@ export class SyncDoc extends EventEmitter {
      be the time of an existing patch.
   */
   private async snapshot(time: Date, force: boolean = false): Promise<void> {
+    assertDefined(this.patch_list);
     const x = this.patch_list.patch(time);
     if (x == null) {
       throw Error(`no patch at time ${time}`);
@@ -1750,6 +1753,7 @@ export class SyncDoc extends EventEmitter {
     const max_size = Math.floor(1.2 * MAX_FILE_SIZE_MB * 1000000);
     const interval = this.snapshot_interval;
     dbg("check if we need to make a snapshot:", { interval, max_size });
+    assertDefined(this.patch_list);
     const time = this.patch_list.time_of_unmade_periodic_snapshot(
       interval,
       max_size
@@ -1893,12 +1897,14 @@ export class SyncDoc extends EventEmitter {
         v.push(p);
       }
     });
+    assertDefined(this.patch_list);
     this.patch_list.add(v);
     this.load_full_history_done = true;
     return;
   }
 
   public show_history(opts = {}): void {
+    assertDefined(this.patch_list);
     this.patch_list.show_history(opts);
   }
 
@@ -1937,6 +1943,7 @@ export class SyncDoc extends EventEmitter {
     }
     if (oldest) {
       //dbg("oldest=#{oldest}, so check whether any snapshots need to be recomputed")
+      assertDefined(this.patch_list);
       for (const snapshot_time of this.patch_list.snapshot_times()) {
         if (snapshot_time >= oldest) {
           //console.log("recomputing snapshot #{snapshot_time}")
@@ -2417,6 +2424,7 @@ export class SyncDoc extends EventEmitter {
       throw Error("syncstring table must be defined and users initialized");
     }
     const account_ids: string[] = info.get("users").toJS();
+    assertDefined(this.patch_list);
     return export_history(account_ids, this.patch_list, options);
   }
 
@@ -2654,6 +2662,7 @@ export class SyncDoc extends EventEmitter {
           }
         }
         this.patch_update_queue = [];
+        assertDefined(this.patch_list);
         this.patch_list.add(v);
 
         // NOTE: The below sync_remote_and_doc can sometimes
@@ -2719,6 +2728,7 @@ export class SyncDoc extends EventEmitter {
     // to properly set the state of this.doc to the value
     // of the patch list (e.g., not doing this 100% breaks
     // opening a file for the first time on cocalc-docker).
+    assertDefined(this.patch_list);
     const new_remote = this.patch_list.value();
     if (!this.doc.is_equal(new_remote)) {
       // There is a possibility that live document changed, so

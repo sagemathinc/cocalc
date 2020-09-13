@@ -5,7 +5,7 @@
 
 import { Set } from "immutable";
 
-import { merge } from "smc-util/misc2";
+import { close, merge } from "smc-util/misc2";
 
 import { JupyterEditorActions } from "../actions";
 
@@ -53,8 +53,7 @@ export class NotebookFrameStore {
   }
 
   public close(): void {
-    delete this.frame_tree_actions;
-    delete this.id;
+    close(this);
   }
 
   /***

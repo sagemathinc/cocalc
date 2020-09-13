@@ -24,6 +24,7 @@ import { set_buffer, get_buffer } from "../../copy-paste-buffer";
 
 import { reuseInFlight } from "async-await-utils/hof";
 import { callback, delay } from "awaiting";
+import { assertDefined } from "smc-util/misc2";
 
 import {
   X11Configuration,
@@ -56,11 +57,11 @@ interface X11EditorState extends CodeEditorState {
 
 export class Actions extends BaseActions<X11EditorState> {
   // no need to open any syncstring for xwindow -- they don't use database sync.
-  private channel: Channel;
+  private channel?: Channel;
   private wid_history: number[] = []; // array of wid that were active
   protected doctype: string = "none";
   public store: Store<X11EditorState>;
-  client: XpraClient;
+  client?: XpraClient;
 
   async _init2(): Promise<void> {
     await this.check_capabilities();
@@ -142,13 +143,16 @@ export class Actions extends BaseActions<X11EditorState> {
       }
       this.set_frame_tree({ id, wid: undefined, title: "" });
       // Just update this for all x11 frames for now.
-      this.set_x11_connection_status(this.client._ws_status);
+      if (this.client != null) {
+        this.set_x11_connection_status(this.client._ws_status);
+      }
       this.update_x11_tabs();
     });
   }
 
   // overrides parent class method
   get_term_env() {
+    assertDefined(this.client);
     const DISPLAY = `:${this.client.get_display()}`;
     // This supports url forwarding via xdg-open wrapper:
     const XPRA_XDG_OPEN_SERVER_SOCKET = this.client.get_socket_path();
@@ -163,7 +167,7 @@ export class Actions extends BaseActions<X11EditorState> {
     }
     this.client.close();
     delete this.client;
-    if (this.channel !== undefined) {
+    if (this.channel != null) {
       try {
         this.channel.end();
       } catch (_) {
@@ -358,7 +362,7 @@ export class Actions extends BaseActions<X11EditorState> {
     }
     const title = window.get("title");
     this.set_frame_tree({ id, wid, title });
-    this.client.focus_window(wid);
+    this.client?.focus_window(wid);
     if (!do_not_ensure) {
       this._ensure_only_one_tab_has_wid(id, wid);
     }
@@ -387,7 +391,7 @@ export class Actions extends BaseActions<X11EditorState> {
   close_window(id: string, wid: number): void {
     const leaf = this._get_frame_node(id);
     if (leaf != null && leaf.get("type") === "x11") {
-      this.client.close_window(wid);
+      this.client?.close_window(wid);
     }
   }
 
@@ -406,7 +410,7 @@ export class Actions extends BaseActions<X11EditorState> {
       return;
     }
 
-    const parent_wid = this.client.get_parent(wid);
+    const parent_wid = this.client?.get_parent(wid);
     if (parent_wid) {
       this.set_focused_window_in_frame(id, parent_wid);
       return;
@@ -452,7 +456,7 @@ export class Actions extends BaseActions<X11EditorState> {
         // nothing to paste
         return;
       }
-      this.channel.write({ cmd: "paste", value });
+      this.channel?.write({ cmd: "paste", value });
     } else {
       super.paste(id, value);
     }
@@ -464,15 +468,17 @@ export class Actions extends BaseActions<X11EditorState> {
       return;
     }
     if (leaf.get("type") === "x11") {
-      const value = await this.client.get_clipboard();
-      set_buffer(value);
+      if (this.client) {
+        const value = await this.client.get_clipboard();
+        set_buffer(value);
+      }
     } else {
       super.copy(id);
     }
   }
 
   private async init_channel(): Promise<void> {
-    if (this._state === "closed") return;
+    if (this._state === "closed" || this.client == null) return;
     const api = await project_api(this.project_id);
     this.channel = await api.x11_channel(this.path, this.client.get_display());
     const channel: any = this.channel;
@@ -591,6 +597,7 @@ export class Actions extends BaseActions<X11EditorState> {
   // this to reconnect.  This is a NO-OP if client
   // is not idle.
   x11_not_idle(): void {
+    if (this.client == null) return;
     if (this.store.get("x11_is_idle")) {
       this.setState({ windows: Map() });
       this.client.connect();
@@ -598,6 +605,7 @@ export class Actions extends BaseActions<X11EditorState> {
   }
 
   public async close_and_halt(_: string): Promise<void> {
+    if (this.client == null) return;
     await this.client.close_and_halt();
     // and close this window
     const project_actions = this._get_project_actions();
@@ -605,23 +613,24 @@ export class Actions extends BaseActions<X11EditorState> {
   }
 
   async launch(command: string, args?: string[]): Promise<void> {
+    if (this.client == null) return;
     if (this.client._ws_status !== "connected") {
       // Wait until connected
       this.set_status(`Waiting until connected before launching ${command}...`);
       const wait = (cb) => {
         const f = (status) => {
           if (status === "connected") {
-            this.client.removeListener("ws:status", f);
+            this.client?.removeListener("ws:status", f);
             cb();
           }
         };
-        this.client.addListener("ws:status", f);
+        this.client?.addListener("ws:status", f);
       };
       await callback(wait);
       this.set_status("");
     }
     // Launch the command
-    this.channel.write({ cmd: "launch", command, args });
+    this.channel?.write({ cmd: "launch", command, args });
     // TODO: wait for a status message back...
 
     const project_actions = this._get_project_actions();

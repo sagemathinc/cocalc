@@ -6,30 +6,20 @@
 // Use Xpra to provide X11 server.
 
 import { retry_until_success } from "smc-util/async-utils";
-
 import { reuseInFlight } from "async-await-utils/hof";
-
 import { ConnectionStatus } from "../frame-tree/types";
-
 import { Client } from "./xpra/client";
-
 import { Surface } from "./xpra/surface";
-
 import { XpraServer, ExecOpts0 } from "./xpra-server";
 import { ExecOutput } from "../generic/client";
-
 import { touch, touch_project } from "../generic/client";
-
 import { throttle } from "underscore";
-
 const { open_new_tab } = require("smc-webapp/misc_page");
-
 import { is_copy } from "./xpra/util";
-
-const { alert_message } = require("smc-webapp/alerts");
-
+import { alert_message } from "smc-webapp/alerts";
 const sha1 = require("sha1");
-const { hash_string } = require("smc-util/misc");
+import { hash_string } from "smc-util/misc";
+import { close } from "smc-util/misc2";
 
 const BASE_DPI: number = 96;
 
@@ -127,8 +117,7 @@ export class XpraClient extends EventEmitter {
     this.removeAllListeners();
     clearInterval(this.touch_interval);
     clearInterval(this.idle_interval);
-    delete this.options;
-    delete this.client;
+    close(this);
   }
 
   async close_and_halt(): Promise<void> {

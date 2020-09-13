@@ -724,6 +724,13 @@ export function secure_random_token(
 // it references anything that could lead to memory leaks.
 export function close(obj: object): void {
   Object.keys(obj).forEach(function (key) {
+    console.log(`delete obj.${key}`);
     delete obj[key];
   });
+}
+
+export function assertDefined<T>(val: T): asserts val is NonNullable<T> {
+  if (val === undefined || val === null) {
+    throw new Error(`Expected 'val' to be defined, but received ${val}`);
+  }
 }

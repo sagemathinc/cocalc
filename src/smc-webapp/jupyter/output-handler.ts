@@ -29,6 +29,8 @@ OutputHandler emits two events:
 import { callback } from "awaiting";
 import { EventEmitter } from "events";
 
+// using require because this file is used in smc-project and import is messe
+const { close } = require("smc-util/misc2");
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
 
@@ -74,14 +76,10 @@ export class OutputHandler extends EventEmitter {
   }
 
   close = (): void => {
-    this._state = "closed";
     this.emit("done");
-    delete this._opts;
-    delete this._n;
-    delete this._clear_before_next_output;
-    delete this._output_length;
-    delete this._in_more_output_mode;
     this.removeAllListeners();
+    close(this);
+    this._state = "closed";
   };
 
   _clear_output = (save?: any): void => {

@@ -18,7 +18,7 @@ import { EventEmitter } from "events";
 import { callback } from "awaiting";
 import { callback2 } from "../smc-util/async-utils";
 
-import { len } from "../smc-util/misc2";
+import { close, len } from "../smc-util/misc2";
 
 import { PostgreSQL, QueryOptions, QueryResult } from "./types";
 
@@ -126,13 +126,6 @@ export class ProjectAndUserTracker extends EventEmitter {
     if (this.feed != null) {
       this.feed.close();
     }
-    delete this.feed;
-    delete this.db;
-    delete this.accounts;
-    delete this.users;
-    delete this.projects;
-    delete this.collabs;
-
     if (this.register_todo != null) {
       // clear any outstanding callbacks
       for (const account_id in this.register_todo) {
@@ -143,8 +136,9 @@ export class ProjectAndUserTracker extends EventEmitter {
           }
         }
       }
-      delete this.register_todo;
     }
+    close(this);
+    this.state = "closed";
   }
 
   private handle_change_delete(old_val): void {

@@ -68,12 +68,12 @@ async function x11_apps(): Promise<Capabilities> {
 }
 
 // determines if X11 support exists at all
-async function x11(): Promise<boolean> {
+async function get_x11(): Promise<boolean> {
   return await have("xpra");
 }
 
 // do we have "sage"? which version?
-async function sage_info(): Promise<{
+async function get_sage_info(): Promise<{
   exists: boolean;
   version: number[] | undefined;
 }> {
@@ -105,7 +105,7 @@ async function sage_info(): Promise<{
 }
 
 // this checks the level of jupyter support. none (false), or classical, lab, ...
-async function jupyter(): Promise<Capabilities | boolean> {
+async function get_jupyter(): Promise<Capabilities | boolean> {
   if (await have("jupyter")) {
     return {
       lab: await have("jupyter-lab"),
@@ -119,7 +119,7 @@ async function jupyter(): Promise<Capabilities | boolean> {
 
 // to support latex, we need a couple of executables available
 // TODO dumb down the UI to also work with less tools (e.g. without synctex)
-async function latex(hashsums: Capabilities): Promise<boolean> {
+async function get_latex(hashsums: Capabilities): Promise<boolean> {
   const prereq: string[] = ["pdflatex", "latexmk", "synctex"];
   const have_prereq = (await Promise.all(prereq.map(have))).every((p) => p);
   // TODO webapp only uses sha1sum. use a fallback if not available.
@@ -127,30 +127,30 @@ async function latex(hashsums: Capabilities): Promise<boolean> {
 }
 
 // plain text editors (md, tex, ...) use aspell → disable calling aspell if not available.
-async function spellcheck(): Promise<boolean> {
+async function get_spellcheck(): Promise<boolean> {
   return await have("aspell");
 }
 
 // without sshd we cannot copy to this project. that's vital for courses.
-async function sshd(): Promise<boolean> {
+async function get_sshd(): Promise<boolean> {
   return await have("/usr/sbin/sshd");
 }
 
 // we check if we can use cc-ipynb-to-pdf, which uses chrome or chromium
 // smc_pyutil/ipynb_to_pdf.py
-async function html2pdf(): Promise<boolean> {
+async function get_html2pdf(): Promise<boolean> {
   return (await have("chromium-browser")) || (await have("google-chrome"));
 }
 
 // this is for rnw RMarkdown files.
 // This just tests R, which provides knitr out of the box?
-async function rmd(): Promise<boolean> {
+async function get_rmd(): Promise<boolean> {
   return await have("R");
 }
 
 // check if we can read that json file.
 // if it exists, show the corresponding button in "Files".
-async function library(): Promise<boolean> {
+async function get_library(): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
     fs_access(LIBRARY_INDEX_FILE, fs_constaints.R_OK, (err) => {
       resolve(err ? false : true);
@@ -161,7 +161,7 @@ async function library(): Promise<boolean> {
 // formatting code, e.g. python, javascript, etc.
 // we check this here, because the frontend should offer these choices if available.
 // in some cases like python, there could be multiple ways (yapf, yapf3, black, autopep8, ...)
-async function formatting(): Promise<Capabilities> {
+async function get_formatting(): Promise<Capabilities> {
   const status: Promise<boolean>[] = [];
   const tools = new Array(
     ...new Set(Object.keys(syntax2tool).map((k) => syntax2tool[k]))
@@ -203,21 +203,42 @@ async function get_hashsums(): Promise<Capabilities> {
 
 // assemble capabilities object
 async function capabilities(): Promise<MainCapabilities> {
+  const sage_info_future = get_sage_info();
   const hashsums = await get_hashsums();
-  const sage_info_future = sage_info();
+  const [
+    formatting,
+    latex,
+    jupyter,
+    spellcheck,
+    html2pdf,
+    sshd,
+    library,
+    x11,
+    rmd,
+  ] = await Promise.all([
+    get_formatting(),
+    get_latex(hashsums),
+    get_jupyter(),
+    get_spellcheck(),
+    get_html2pdf(),
+    get_sshd(),
+    get_library(),
+    get_x11(),
+    get_rmd(),
+  ]);
   const caps: MainCapabilities = {
-    jupyter: await jupyter(),
-    formatting: await formatting(),
+    jupyter,
+    formatting,
     hashsums,
-    latex: await latex(hashsums),
+    latex,
     sage: false,
     sage_version: undefined,
-    x11: await x11(),
-    rmd: await rmd(),
-    spellcheck: await spellcheck(),
-    library: await library(),
-    sshd: await sshd(),
-    html2pdf: await html2pdf(),
+    x11,
+    rmd,
+    spellcheck,
+    library,
+    sshd,
+    html2pdf,
   };
   const sage = await sage_info_future;
   caps.sage = sage.exists;

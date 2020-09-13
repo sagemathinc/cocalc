@@ -12,7 +12,7 @@ import { clear_hidden_tests } from "./clear-hidden-tests";
 import { clear_mark_regions } from "./clear-mark-regions";
 import { set_checksum } from "./compute-checksums";
 import { delay } from "awaiting";
-import { path_split } from "smc-util/misc2";
+import { close, path_split } from "smc-util/misc2";
 import { STUDENT_SUBDIR } from "../../course/assignments/actions";
 
 export class NBGraderActions {
@@ -28,7 +28,7 @@ export class NBGraderActions {
   }
 
   public close(): void {
-    delete this.jupyter_actions;
+    close(this);
   }
 
   // Ensure all nbgrader metadata is updated to the latest version we support.

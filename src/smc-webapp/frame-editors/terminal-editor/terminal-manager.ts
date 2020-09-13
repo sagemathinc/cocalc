@@ -9,7 +9,7 @@ Manage a collection of terminals in the frame tree.
 
 import { Actions, CodeEditorState } from "../code-editor/actions";
 import * as tree_ops from "../frame-tree/tree-ops";
-import { len } from "smc-util/misc2";
+import { close, len } from "smc-util/misc2";
 import { Terminal } from "./connected-terminal";
 
 export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
@@ -24,30 +24,25 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
     for (const id in this.terminals) {
       this.close_terminal(id);
     }
-    delete this.actions;
-    delete this.terminals;
+    close(this);
   }
 
-  _node_number(id: string, command: string | undefined): number {
+  _node_number(id: string): number {
     /* All this complicated code starting here is just to get
        a stable number for this frame. Sorry it is so complicated! */
-    const node = this.actions._get_frame_node(id);
+    let node = this.actions._get_frame_node(id);
     if (node === undefined) {
       throw Error(`no node with id ${id}`);
     }
     let number = node.get("number");
 
     const numbers = {};
-    for (const id0 in this.actions._get_leaf_ids()) {
+    for (let id0 in this.actions._get_leaf_ids()) {
       const node0 = tree_ops.get_node(this.actions._get_tree(), id0);
-      if (
-        node0 == null ||
-        node0.get("type") != "terminal" ||
-        node0.get("command") != command
-      ) {
+      if (node0 == null || node0.get("type") != "terminal") {
         continue;
       }
-      const n = node0.get("number");
+      let n = node0.get("number");
       if (n !== undefined) {
         if (numbers[n] && n === number) {
           number = undefined;
@@ -83,7 +78,7 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
       }
       this.terminals[id] = new Terminal<T>(
         this.actions,
-        this._node_number(id, command),
+        this._node_number(id),
         id,
         parent,
         command,

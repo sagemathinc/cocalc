@@ -48,7 +48,7 @@ export const ProjectSettings = rclass<ReactProps>(
     State
   > {
     private _table;
-    private _admin_project: string;
+    private _admin_project?: string;
 
     public static reduxProps() {
       return {
@@ -78,7 +78,7 @@ export const ProjectSettings = rclass<ReactProps>(
 
     componentWillUnmount() {
       delete this._admin_project;
-      this._table != undefined ? this._table.close() : undefined; // if admin, stop listening for changes
+      this._table?.close(); // stop listening for changes
     }
 
     init_admin_view() {

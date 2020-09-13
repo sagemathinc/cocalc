@@ -25,7 +25,7 @@ import {
 import { FrameTree } from "../frame-tree/types";
 
 import { project_api } from "../generic/client";
-import { capitalize } from "smc-util/misc2";
+import { capitalize, close } from "smc-util/misc2";
 
 import { Channel } from "smc-webapp/project/websocket/types";
 
@@ -168,8 +168,8 @@ export class Actions extends BaseActions<LeanEditorState> {
       } catch (err) {
         // pass
       }
-      delete this.channel;
     }
+    close(this);
     super.close();
   }
 

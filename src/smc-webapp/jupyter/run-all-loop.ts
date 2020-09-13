@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+// using require because this file is used in smc-project and import is messe
+const { close } = require("smc-util/misc2");
 import { delay } from "awaiting";
 import { JupyterActions } from "./project-actions";
 
@@ -55,8 +57,7 @@ export class RunAllLoop {
 
   public close() {
     this.dbg("close");
-    delete this.actions;
-    delete this.interval_s;
+    close(this);
     this.closed = true;
   }
 }

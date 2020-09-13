@@ -518,7 +518,7 @@ export class JupyterKernel extends EventEmitter
       for (const code_snippet of this._execute_code_queue) {
         code_snippet.close();
       }
-      delete this._execute_code_queue;
+      this._execute_code_queue = [];
     }
   }
 

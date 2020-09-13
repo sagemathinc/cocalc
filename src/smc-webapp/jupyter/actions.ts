@@ -32,6 +32,7 @@ import { debounce } from "lodash";
 import { callback2, retry_until_success } from "../../smc-util/async-utils";
 import * as misc from "../../smc-util/misc";
 const { required, defaults } = misc;
+import { close } from "../../smc-util/misc2";
 
 import * as awaiting from "awaiting";
 import { three_way_merge } from "../../smc-util/sync/editor/generic/util";
@@ -259,20 +260,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     await this.save();
 
     this.set_local_storage("cur_id", this.store.get("cur_id"));
-    this._state = "closed";
     if (this.syncdb != null) {
       this.syncdb.close();
-      delete this.syncdb;
     }
     if (this._file_watcher != null) {
       this._file_watcher.close();
-      delete this._file_watcher;
     }
     if (!this.is_project) {
       this.close_client_only();
     } else {
       this.close_project_only();
     }
+    close(this);
+    this._state = "closed";
   }
 
   public close_project_only() {

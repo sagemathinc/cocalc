@@ -11,7 +11,7 @@ import { Set } from "immutable";
 import { delay } from "awaiting";
 
 import { enumerate, is_whitespace, lstrip } from "smc-util/misc";
-import { bind_methods } from "smc-util/misc2";
+import { bind_methods, close } from "smc-util/misc2";
 
 import { JupyterEditorActions } from "../actions";
 import { NotebookFrameStore } from "./store";
@@ -176,7 +176,6 @@ export class NotebookFrameActions {
   }
 
   public close(): void {
-    this._is_closed = true;
     this.jupyter_actions.store.removeListener(
       "syncdb-before-change",
       this.syncdb_before_change
@@ -189,15 +188,9 @@ export class NotebookFrameActions {
       "syncdb-after-change",
       this.syncdb_after_change
     );
-    delete this.commands;
-    delete this.frame_tree_actions;
-    delete this.jupyter_actions;
-    delete this.frame_id;
-    delete this.key_handler;
-    delete this.input_editors;
     this.store.close();
-    delete this.store;
-    delete this.cell_list_div;
+    close(this);
+    this._is_closed = true;
   }
 
   /***

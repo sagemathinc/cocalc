@@ -58,7 +58,7 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { once } from "../smc-util/async-utils";
 import { delay } from "awaiting";
 
-const { deep_copy, len } = require("../smc-util/misc2");
+const { close, deep_copy, len } = require("../smc-util/misc2");
 
 import { register_listings_table } from "./listings";
 
@@ -440,18 +440,12 @@ class SyncTableChannel {
       return;
     }
     this.log("close: closing");
-    this.closed = true;
     delete synctable_channels[this.name];
     this.channel.destroy();
-    delete this.channel;
-    delete this.client;
-    delete this.query;
-    delete this.query_string;
-    delete this.options;
     this.synctable.close_no_async();
-    delete this.synctable;
     this.log("close: closed");
-    delete this.logger; // don't call this.log after this!
+    close(this); // don't call this.log after this!
+    this.closed = true;
   }
 
   public get_synctable(): SyncTable {

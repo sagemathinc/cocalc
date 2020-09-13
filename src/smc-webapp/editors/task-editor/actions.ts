@@ -20,6 +20,7 @@ import {
   history_path,
   search_split,
 } from "smc-util/misc";
+import { close } from "smc-util/misc2";
 import { HEADINGS, HEADINGS_DIR } from "./headings-info";
 import { update_visible } from "./update-visible";
 import { create_key_handler } from "./keyboard";
@@ -88,13 +89,11 @@ export class TaskActions extends Actions<TaskState> {
     this.is_closed = true;
     this.__save_local_view_state();
     this.syncdb.close();
-    delete this.syncdb;
-    delete this._save_local_view_state;
-    delete this._update_visible;
     if (this.key_handler != null) {
       this.redux.getActions("page").erase_active_key_handler(this.key_handler);
-      delete this.key_handler;
     }
+    close(this);
+    this.is_closed = true;
   }
 
   public enable_key_handler(): void {

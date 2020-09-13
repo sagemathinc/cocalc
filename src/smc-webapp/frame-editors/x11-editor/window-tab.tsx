@@ -91,7 +91,7 @@ export class WindowTab extends Component<Props, {}> {
             this.props.id,
             this.props.info.get("wid")
           );
-          this.props.actions.client.focus();
+          this.props.actions.client?.focus();
           evt.stopPropagation();
         }}
         style={{

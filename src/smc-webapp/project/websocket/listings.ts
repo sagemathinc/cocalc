@@ -10,7 +10,7 @@ import { throttle } from "lodash";
 import { SyncTable } from "smc-util/sync/table";
 import { webapp_client } from "../../webapp-client";
 import { redux, TypedMap } from "../../app-framework";
-import { merge, path_split } from "smc-util/misc2";
+import { close, merge, path_split } from "smc-util/misc2";
 import { once } from "smc-util/async-utils";
 import { deleted_file_variations } from "smc-util/delete-files";
 import { exec, query } from "../../frame-editors/generic/client";
@@ -280,12 +280,10 @@ export class Listings extends EventEmitter {
     this.set_state("closed");
     if (this.table != null) {
       this.table.close();
-      delete this.table;
     }
     this.removeAllListeners();
-    delete this.last_version;
-    delete this.project_id;
-    delete this.throttled_watch;
+    close(this);
+    this.set_state("closed");
   }
 
   // This is used to possibly work around a rare bug.

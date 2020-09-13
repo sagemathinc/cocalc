@@ -30,6 +30,7 @@ import { Actions, CodeEditorState } from "../code-editor/actions";
 import { set_buffer, get_buffer } from "../../copy-paste-buffer";
 
 import {
+  close,
   endswith,
   filename_extension,
   replace_all,
@@ -62,7 +63,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private project_id: string;
   private path: string;
   private term_path: string;
-  private number: number;
   private id: string;
   readonly rendererType: "dom" | "canvas";
   private terminal: XTerminal;
@@ -120,8 +120,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.args = args;
     this.rendererType = "canvas";
     const cmd = command ? "-" + replace_all(command, "/", "-") : "";
+    // This is the one and only place number is used.
+    // It's very important though.
     this.term_path = aux_file(`${this.path}-${number}${cmd}`, "term");
-    this.number = number;
     this.id = id;
 
     this.terminal = new XTerminal(this.get_xtermjs_options());
@@ -194,19 +195,12 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.state = "closed";
     clearInterval(this.touch_interval);
     this.account_store.removeListener("change", this.update_settings);
-    delete this.actions;
-    delete this.account_store;
-    delete this.terminal_settings;
-    delete this.project_id;
-    delete this.path;
-    delete this.term_path;
-    delete this.number;
-    delete this.render_buffer;
-    delete this.history;
     this.terminal.dispose();
     if (this.conn != null) {
       this.disconnect();
     }
+    close(this);
+    this.state = "closed";
   }
 
   disconnect(): void {

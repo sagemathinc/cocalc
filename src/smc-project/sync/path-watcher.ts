@@ -27,6 +27,7 @@ import { debounce } from "lodash";
 import { exists } from "../jupyter/async-utils-node";
 
 import { path_split } from "../smc-util/misc";
+import { close } from "../smc-util/misc2";
 
 export class Watcher extends EventEmitter {
   private path: string;
@@ -94,15 +95,12 @@ export class Watcher extends EventEmitter {
   }
 
   public close(): void {
-    delete this.path;
-    delete this.debounce_ms;
     if (this.watch_contents != null) {
       this.watch_contents.close();
-      delete this.watch_contents;
     }
     if (this.watch_existence != null) {
       this.watch_existence.close();
-      delete this.watch_existence;
     }
+    close(this);
   }
 }

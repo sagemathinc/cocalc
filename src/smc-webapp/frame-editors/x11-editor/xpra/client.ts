@@ -36,6 +36,7 @@ import {
 } from "./util";
 
 import { EventEmitter } from "events";
+import { close } from "smc-util/misc2";
 
 function createConfiguration(defaults = {}, append = {}) {
   return Object.assign(
@@ -144,8 +145,7 @@ export class Client {
       delete this.ping_interval;
     }
     this.bus.removeAllListeners();
-    delete this.surfaces;
-    delete this.surfaces_before_disconnect;
+    close(this);
   }
 
   // ping server if we are connected.

@@ -17,6 +17,7 @@ You must recreate it.
 import { EventEmitter } from "events";
 
 import * as misc from "../smc-util/misc";
+import { close } from "../smc-util/misc2";
 
 import { callback } from "awaiting";
 
@@ -50,7 +51,7 @@ export class Changes extends EventEmitter {
 
   private trigger_name: string;
   private closed: boolean;
-  private condition: { [field: string]: Function };
+  private condition?: { [field: string]: Function };
   private match_condition: Function;
 
   private val_update_cache: { [key: string]: any } = {};
@@ -127,15 +128,13 @@ export class Changes extends EventEmitter {
     if (this.closed) {
       return;
     }
-    this.closed = true;
     this.emit("close", { action: "close" });
     this.removeAllListeners();
     this.db.removeListener(this.trigger_name, this.handle_change);
     this.db.removeListener("connect", this.close);
     this.db._stop_listening(this.table, this.select, this.watch);
-    delete this.trigger_name;
-    delete this.condition;
-    delete this.val_update_cache;
+    close(this);
+    this.closed = true;
   }
 
   public async insert(where): Promise<void> {
@@ -325,6 +324,7 @@ export class Changes extends EventEmitter {
 
     this.condition = {};
     const add_condition = (field: string, op: string, val: any): void => {
+      if (this.condition == null) return;  // won't happen
       let f: Function, g: Function;
       field = field.trim();
       if (field[0] === '"') {

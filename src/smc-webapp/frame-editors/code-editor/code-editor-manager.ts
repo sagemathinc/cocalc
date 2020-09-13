@@ -7,7 +7,7 @@
 Manage a collection of code editors of various files in frame trees...
 */
 
-import { filename_extension } from "smc-util/misc2";
+import { close, filename_extension } from "smc-util/misc2";
 import { Actions, CodeEditorState } from "../code-editor/actions";
 import { get_file_editor } from "../frame-tree/register";
 import { redux } from "../../app-framework";
@@ -53,8 +53,7 @@ export class CodeEditorManager<T extends CodeEditorState = CodeEditorState> {
     for (let id in this.code_editors) {
       this.close_code_editor(id);
     }
-    delete this.actions;
-    delete this.code_editors;
+    close(this);
   }
 
   close_code_editor(id: string): void {

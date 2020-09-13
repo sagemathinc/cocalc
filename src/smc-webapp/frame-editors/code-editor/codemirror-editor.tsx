@@ -69,7 +69,7 @@ interface State {
 }
 
 export class CodemirrorEditor extends Component<Props, State> {
-  private cm: CodeMirror.Editor;
+  private cm?: CodeMirror.Editor;
   private style_active_line: boolean = false;
   static defaultProps = { value: "" };
   private manager?: CodeEditor;
@@ -139,11 +139,12 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   private cm_refresh(): void {
-    if (!this.cm) return;
+    if (this.cm == null) return;
     this.cm.refresh();
   }
 
   cm_highlight_misspelled_words(words: Set<string> | string): void {
+    if (this.cm == null) return;
     if (words == "browser") {
       // just ensure browser spellcheck is enabled
       this.cm.setOption("spellcheck", true);
@@ -166,7 +167,7 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   cm_update_font_size(): void {
-    if (!this.cm) return;
+    if (this.cm == null) return;
     // It's important to move the scroll position upon zooming -- otherwise the cursor line
     // move UP/DOWN after zoom, which is very annoying.
     const state = codemirror_state.get_state(this.cm);
@@ -338,6 +339,7 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   init_new_codemirror(): void {
+    if (this.cm == null) return;
     (this.cm as any)._actions = this.editor_actions;
 
     if (this.props.is_public) {
@@ -405,9 +407,7 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   update_codemirror(props: Props, options?): void {
-    if (!this.cm) {
-      return;
-    }
+    if (this.cm == null) return;
     if (!options) {
       options = cm_options(
         props.path,
@@ -443,9 +443,7 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   tab_nothing_selected = (): void => {
-    if (this.cm == null) {
-      return;
-    }
+    if (this.cm == null) return;
     const cursor = this.cm.getDoc().getCursor();
     if (
       cursor.ch === 0 ||
@@ -464,9 +462,7 @@ export class CodemirrorEditor extends Component<Props, State> {
   };
 
   tab_key = (): void => {
-    if (this.cm == null) {
-      return;
-    }
+    if (this.cm == null) return;
     if ((this.cm as any).somethingSelected()) {
       (CodeMirror as any).commands.defaultTab(this.cm);
     } else {
@@ -479,9 +475,7 @@ export class CodemirrorEditor extends Component<Props, State> {
   // ways of completing -- see "show-hint.js" at
   // https://codemirror.net/doc/manual.html#addons
   complete_at_cursor = (): void => {
-    if (this.cm == null) {
-      return;
-    }
+    if (this.cm == null) return;
     this.cm.execCommand("autocomplete");
   };
 
@@ -494,7 +488,7 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   render_gutter_markers(): Rendered {
-    if (!this.state.has_cm || this.props.gutter_markers == null) {
+    if (!this.state.has_cm || this.props.gutter_markers == null || this.cm == null) {
       return;
     }
     return (
