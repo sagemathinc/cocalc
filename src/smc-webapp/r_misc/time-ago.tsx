@@ -158,7 +158,8 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
     );
   },
   (props, next) => {
-    return (
+    // areEqual
+    return !(
       is_different_date(props.date, next.date) ||
       misc_is_different(props, next, ["popover", "placement", "tip", "live"])
     );
