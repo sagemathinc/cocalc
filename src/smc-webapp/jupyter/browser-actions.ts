@@ -36,7 +36,7 @@ export class JupyterActions extends JupyterActions0 {
   // Only run this code on the browser frontend (not in project).
   protected init_client_only(): void {
     const do_set = () => {
-      if (this.syncdb == null) return;
+      if (this.syncdb == null || this._state === "closed") return;
       const has_unsaved_changes = this.syncdb.has_unsaved_changes();
       const has_uncommitted_changes = this.syncdb.has_uncommitted_changes();
       this.setState({ has_unsaved_changes, has_uncommitted_changes });
@@ -123,6 +123,7 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   private activity(): void {
+    if (this._state === "closed") return;
     this.redux.getProjectActions(this.project_id).flag_file_activity(this.path);
   }
 
