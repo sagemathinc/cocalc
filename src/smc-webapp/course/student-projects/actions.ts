@@ -180,9 +180,11 @@ export class StudentProjectsActions {
 
     // Set license key if known; remove if not.
     const site_license_id = s.getIn(["settings", "site_license_id"]);
+    const licenses = site_license_id.split(",");
     const strategy = s.getIn(["settings", "site_license_strategy"]);
     const actions = redux.getActions("projects");
-    if (strategy == "parallel") {
+    if (strategy == "parallel" || licenses.length <= 1) {
+      // EASY case.
       // NOTE: if students were to add their own extra license, this is going to remove it.
       // TODO: it would be nice to recognize that case, and not remove licenses managed by
       // somebody else or something.  But this is not easy to get right, and students maybe
@@ -190,7 +192,6 @@ export class StudentProjectsActions {
       await actions.set_site_license(student_project_id, site_license_id);
     } else {
       // serial is the only other (and the default) strategy.
-      
     }
 
     // Regarding student_account_id !== undefined below, see https://github.com/sagemathinc/cocalc/pull/3259
@@ -416,7 +417,8 @@ export class StudentProjectsActions {
     student_id,
     do_not_invite_student_by_email,
     student_project_id?: string,
-    force_send_invite_by_email?: boolean
+    force_send_invite_by_email?: boolean,
+    license_strategy?: { [license_id: string]: number } // relevant for serial license strategy only
   ): Promise<void> {
     // student_project_id is optional. Will be used instead of from student_id store if provided.
     // Configure project for the given student so that it has the right title,
@@ -495,6 +497,10 @@ export class StudentProjectsActions {
       // currently running already.
       return;
     }
+    const license_strategy: { [license_id: string]: number } = {};
+    if (store.getIn(["settings", "site_license_strategy"]) == "serial") {
+    }
+
     let id: number = -1;
     try {
       this.course_actions.setState({ configuring_projects: true });
@@ -512,7 +518,13 @@ export class StudentProjectsActions {
         const id1: number = this.course_actions.set_activity({
           desc: `Configuring student project ${i} of ${ids.length}`,
         });
-        await this.configure_project(student_id, false, undefined, force);
+        await this.configure_project(
+          student_id,
+          false,
+          undefined,
+          force,
+          license_strategy
+        );
         this.course_actions.set_activity({ id: id1 });
         await delay(0); // give UI, etc. a solid chance to render
       } // always re-invite students on running this.

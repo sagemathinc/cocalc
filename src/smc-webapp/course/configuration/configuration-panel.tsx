@@ -556,11 +556,12 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
       return (
         <StudentProjectUpgrades
           name={name}
-          redux={redux}
           upgrade_goal={settings?.get("upgrade_goal")}
           institute_pay={settings?.get("institute_pay")}
           student_pay={settings?.get("student_pay")}
           site_license_id={settings?.get("site_license_id")}
+          site_license_strategy={settings?.get("site_license_strategy")}
+          shared_project_id={settings?.get("shared_project_id")}
         />
       );
     }
@@ -657,4 +658,3 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
     );
   }
 );
-

@@ -11,6 +11,8 @@ export interface SyncDBRecordBase {
   table: string;
 }
 
+export type SiteLicenseStrategy = "serial" | "parallel";
+
 export interface SyncDBRecordSettings {
   table: string;
   upgrade_goal?: UpgradeGoal;
@@ -18,7 +20,7 @@ export interface SyncDBRecordSettings {
   shared_project_id?: string;
   pay?: string;
   site_license_id?: string;
-  site_license_strategy?: "serial" | "parallel";
+  site_license_strategy?: SiteLicenseStrategy;
   nbgrader_grade_in_instructor_project?: boolean;
   nbgrader_include_hidden_tests?: boolean;
   nbgrader_cell_timeout_ms?: number;

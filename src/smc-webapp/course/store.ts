@@ -21,7 +21,12 @@ import { SITE_NAME } from "smc-util/theme";
 // Upgrades
 import * as project_upgrades from "./project-upgrades";
 
-import { AssignmentCopyStep, AssignmentStatus, UpgradeGoal } from "./types";
+import {
+  AssignmentCopyStep,
+  AssignmentStatus,
+  SiteLicenseStrategy,
+  UpgradeGoal,
+} from "./types";
 
 import { NotebookScores } from "../jupyter/nbgrader/autograde";
 
@@ -126,7 +131,7 @@ export type CourseSettingsRecord = TypedMap<{
   title: string;
   upgrade_goal: Map<any, any>;
   site_license_id?: string;
-  site_license_strategy?: "serial" | "parallel";
+  site_license_strategy?: SiteLicenseStrategy;
   nbgrader_grade_in_instructor_project?: boolean;
   nbgrader_include_hidden_tests?: boolean;
   nbgrader_cell_timeout_ms?: number;

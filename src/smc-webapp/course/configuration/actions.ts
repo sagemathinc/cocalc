@@ -7,7 +7,7 @@
 Actions involving configuration of the course.
 */
 
-import { SyncDBRecord, UpgradeGoal } from "../types";
+import { SiteLicenseStrategy, SyncDBRecord, UpgradeGoal } from "../types";
 import { CourseActions } from "../actions";
 import { redux } from "../../app-framework";
 import { reuseInFlight } from "async-await-utils/hof";
@@ -64,6 +64,12 @@ export class ConfigurationActions {
       }
     }
     this.set({ site_license_id: v.join(","), table: "settings" });
+  }
+
+  public set_site_license_strategy(
+    site_license_strategy: SiteLicenseStrategy
+  ): void {
+    this.set({ site_license_strategy, table: "settings" });
   }
 
   public set_pay_choice(type: string, value: boolean): void {
