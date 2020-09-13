@@ -22,7 +22,7 @@ require("xterm/css/xterm.css");
 
 import { FitAddon } from "xterm-addon-fit";
 import { WebLinksAddon } from "xterm-addon-web-links";
-import { WebglAddon } from "xterm-addon-webgl";
+//import { WebglAddon } from "xterm-addon-webgl";
 
 import { setTheme } from "./themes";
 import { project_websocket, touch, touch_project } from "../generic/client";
@@ -136,11 +136,18 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     if (this.terminal.element == null) {
       throw Error("terminal.element must be defined");
     }
+    // Uncomment this to enable a webgl terminal, with fallback to
+    // canvas if webgl isn't available.  I'm disabling this since it
+    // isn't noticeably faster over the web at least.  Also, I had
+    // it crash on latest chrome and a solid modern laptop, perha due to
+    // https://github.com/xtermjs/xterm.js/issues/2253
+    /*
     try {
       this.terminal.loadAddon(new WebglAddon());
     } catch (err) {
       console.log("WebGL Terminal not available; falling back to canvas.");
     }
+    */
 
     this.element = this.terminal.element;
     this.update_settings();
