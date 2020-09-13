@@ -724,7 +724,6 @@ export function secure_random_token(
 // it references anything that could lead to memory leaks.
 export function close(obj: object): void {
   Object.keys(obj).forEach(function (key) {
-    console.log(`delete obj.${key}`);
     delete obj[key];
   });
 }
