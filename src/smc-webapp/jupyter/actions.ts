@@ -202,6 +202,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   sync_read_only = (): void => {
+    if (this._state == "closed") return;
     const a = this.store.get("read_only");
     const b = this.syncdb != null ? this.syncdb.is_read_only() : undefined;
     if (a !== b) {
@@ -2637,6 +2638,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   public update_contents(): void {
+    if (this._state == "closed") return;
     const cells = this.store.get("cells");
     if (cells == null) return;
     const cell_list = this.store.get("cell_list");
