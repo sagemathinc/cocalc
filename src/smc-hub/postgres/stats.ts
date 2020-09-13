@@ -3,17 +3,16 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-const misc = require("smc-util/misc");
-//import { promisify } from "util";
+import { callback2 as cb2 } from "../smc-util/async-utils";
+import { RECENT_TIMES, RECENT_TIMES_KEY } from "../smc-util/schema";
+import * as misc from "../smc-util/misc";
 const { defaults } = misc;
 const required = defaults.required;
 const _ = require("underscore");
 
 import { PostgreSQL } from "./types";
-import { callback2 as cb2 } from "../smc-util/async-utils";
 const { all_results } = require("../postgres-base");
 
-import { RECENT_TIMES, RECENT_TIMES_KEY } from "smc-util/schema";
 
 interface Opts {
   ttl_dt: number; // 15 secs subtracted from ttl to compensate for computation duration when called via a cronjob
