@@ -44,8 +44,26 @@ export class ConfigurationActions {
     this.course_actions.shared_project.set_project_description();
   }
 
-  public set_site_license_id(site_license_id: string): void {
+  // NOTE: site_license_id can be a single id, or multiple id's separate by a comma.
+  public add_site_license_id(license_id: string): void {
+    const store = this.course_actions.get_store();
+    let site_license_id = store.getIn(["settings", "site_license_id"]) ?? "";
+    if (site_license_id.indexOf(license_id) != -1) return; // already known
+    site_license_id += (site_license_id.length > 0 ? "," : "") + license_id;
     this.set({ site_license_id, table: "settings" });
+  }
+
+  public remove_site_license_id(license_id: string): void {
+    const store = this.course_actions.get_store();
+    let cur = store.getIn(["settings", "site_license_id"]) ?? "";
+    if (cur.indexOf(license_id) == -1) return; // already removed
+    const v: string[] = [];
+    for (const id of cur.split(",")) {
+      if (id != license_id) {
+        v.push(id);
+      }
+    }
+    this.set({ site_license_id: v.join(","), table: "settings" });
   }
 
   public set_pay_choice(type: string, value: boolean): void {
@@ -93,8 +111,10 @@ export class ConfigurationActions {
   public async configure_host_project(): Promise<void> {
     const id = this.course_actions.set_activity({
       desc: "Configuring host project.",
-    }); // Set license key if known; remove if not.
+    });
     try {
+      // NOTE: we never remove it or any other licenses from the host project,
+      // since instructor may want to augment license with another license.
       const store = this.course_actions.get_store();
       const site_license_id = store.getIn(["settings", "site_license_id"]);
       const actions = redux.getActions("projects");

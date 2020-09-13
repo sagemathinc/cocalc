@@ -577,9 +577,15 @@ class StudentProjectUpgrades extends Component<
     );
   }
 
-  private set_site_license_id(license_id: string): void {
+  private add_site_license_id(license_id: string): void {
     const actions = this.get_actions();
-    actions.configuration.set_site_license_id(license_id);
+    actions.configuration.add_site_license_id(license_id);
+    actions.configuration.configure_all_projects();
+  }
+
+  private remove_site_license_id(license_id: string): void {
+    const actions = this.get_actions();
+    actions.configuration.remove_site_license_id(license_id);
     actions.configuration.configure_all_projects();
   }
 
@@ -597,7 +603,7 @@ class StudentProjectUpgrades extends Component<
         <SiteLicenseInput
           onSave={(license_id) => {
             this.setState({ show_site_license: false });
-            this.set_site_license_id(license_id);
+            this.add_site_license_id(license_id);
           }}
           onCancel={() => {
             this.setState({ show_site_license: false });
@@ -607,28 +613,61 @@ class StudentProjectUpgrades extends Component<
     );
   }
 
-  render_current_license(): Rendered {
+  private render_license(license_id: string): JSX.Element {
+    return (
+      <SiteLicensePublicInfo
+        key={license_id}
+        license_id={license_id}
+        onRemove={() => {
+          this.remove_site_license_id(license_id);
+        }}
+        warn_if={(info) => {
+          const n =
+            this.get_store().get_student_ids().length +
+            1 +
+            (this.props.shared_project_id ? 1 : 0);
+          if (info.run_limit < n) {
+            return `NOTE: This license can only upgrade ${info.run_limit} simultaneous running projects, but there are ${n} projects associated to this course.`;
+          }
+        }}
+      />
+    );
+  }
+
+  render_site_license_strategy() {
+    return (
+      <div
+        style={{
+          margin: "15px",
+          border: "1px solid lightgrey",
+          padding: "15px",
+        }}
+      >
+        Sicne you have multiple licenses, there are two different ways they can
+        be used, depending on whether you're trying to maximize the number of
+        covered students are the upgrades per project:
+        <br />
+        - [ ] apply all licenses to all projects associated to this course
+        <br />- [ ] distribute one of your licenses to each projects associated
+        to this course.
+      </div>
+    );
+  }
+
+  private render_current_licenses(): Rendered {
     if (!this.props.site_license_id) return;
+    const licenses = this.props.site_license_id.split(",");
+    const v: JSX.Element[] = [];
+    for (const license_id of licenses) {
+      v.push(this.render_license(license_id));
+    }
     return (
       <div style={{ margin: "15px 0" }}>
         This project and all student projects will be upgraded using the
-        following license:
+        following license{licenses.length > 1 ? "s" : ""}:
         <br />
-        <SiteLicensePublicInfo
-          license_id={this.props.site_license_id}
-          onRemove={() => {
-            this.set_site_license_id("");
-          }}
-          warn_if={(info) => {
-            const n =
-              this.get_store().get_student_ids().length +
-              1 +
-              (this.props.shared_project_id ? 1 : 0);
-            if (info.run_limit < n) {
-              return `NOTE: This license can only upgrade ${info.run_limit} simultaneous running projects, but there are ${n} projects associated to this course.`;
-            }
-          }}
-        />
+        {v}
+        {licenses.length > 1 && this.render_site_license_strategy()}
       </div>
     );
   }
@@ -636,22 +675,20 @@ class StudentProjectUpgrades extends Component<
   render_site_license() {
     return (
       <div>
-        {this.render_current_license()}
-        {!this.props.site_license_id && (
-          <Button
-            onClick={() => {
-              this.setState({
-                show_site_license: true,
-              });
-            }}
-            disabled={this.state.show_site_license}
-          >
-            <Icon name="key" /> Upgrade using a license key...
-          </Button>
-        )}
+        {this.render_current_licenses()}
+        <Button
+          onClick={() => {
+            this.setState({
+              show_site_license: true,
+            });
+          }}
+          disabled={this.state.show_site_license}
+        >
+          <Icon name="key" /> Upgrade using a license key...
+        </Button>
         {this.render_site_license_text()}
         <br />
-        <br/>
+        <br />
         <div style={{ fontSize: "13pt" }}>
           <PurchaseOneLicenseLink />
         </div>

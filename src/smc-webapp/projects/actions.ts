@@ -598,10 +598,18 @@ export class ProjectsActions extends Actions<ProjectsState> {
 
   // Use a site license key to upgrade a project.  This only has an
   // impact on actual upgrades when the project is restarted.
+  // Multiple licenses can be included in license_id separated
+  // by commas to add several at once.
   public async add_site_license_to_project(
     project_id: string,
     license_id: string
   ): Promise<void> {
+    if (license_id.indexOf(",") != -1) {
+      for (const id of license_id.split(",")) {
+        await this.add_site_license_to_project(project_id, id);
+      }
+      return;
+    }
     if (!is_valid_uuid_string(license_id)) {
       throw Error(
         `invalid license key '${license_id}' -- it must be a 36-character valid v4 uuid`
@@ -619,12 +627,21 @@ export class ProjectsActions extends Actions<ProjectsState> {
     await this.projects_table_set({ project_id, site_license }, "shallow");
   }
 
-  // Removes a given (or all) site licenses from a project. If license_id is not
-  // set then removes all of them.
+  // Removes a given (or all) site licenses from a project. If license_id is empty
+  // string (or not set) then removes all of them.
+  // Multiple licenses can be included in license_id separated
+  // by commas to remove several at once.
   public async remove_site_license_from_project(
     project_id: string,
     license_id: string = ""
   ): Promise<void> {
+    if (license_id.indexOf(",") != -1) {
+      for (const id of license_id.split(",")) {
+        await this.remove_site_license_from_project(project_id, id);
+      }
+      return;
+    }
+
     const project = store.getIn(["project_map", project_id]);
     if (project == null) {
       return; // nothing to do
@@ -647,6 +664,40 @@ export class ProjectsActions extends Actions<ProjectsState> {
       }
     }
     await this.projects_table_set({ project_id, site_license }, "shallow");
+  }
+
+  // Sets site licenses for project to exactly license_id.
+  // Multiple licenses can be included in license_id separated
+  // by commas to set several at once.
+  public async set_site_license(
+    project_id: string,
+    license_id: string = ""
+  ): Promise<void> {
+    const project = store.getIn(["project_map", project_id]);
+    if (project == null) {
+      return; // nothing to do -- not a project we know/manage
+    }
+    const site_license = project.get("site_license")?.toJS() ?? {};
+    if (!license_id && len(site_license) === 0) {
+      // common special case that is easy -- set to empty and is already empty
+      return;
+    }
+    let changed: boolean = false;
+    for (const id in site_license) {
+      if (license_id.indexOf(id) == -1) {
+        changed = true;
+        site_license[id] = null;
+      }
+    }
+    for (const id of license_id.split(",")) {
+      if (site_license[id] == null) {
+        changed = true;
+        site_license[id] = {};
+      }
+    }
+    if (changed) {
+      await this.projects_table_set({ project_id, site_license }, "shallow");
+    }
   }
 
   public async start_project(project_id: string): Promise<void> {

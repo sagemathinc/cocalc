@@ -180,15 +180,17 @@ export class StudentProjectsActions {
 
     // Set license key if known; remove if not.
     const site_license_id = s.getIn(["settings", "site_license_id"]);
+    const strategy = s.getIn(["settings", "site_license_strategy"]);
     const actions = redux.getActions("projects");
-    if (site_license_id) {
-      await actions.add_site_license_to_project(
-        student_project_id,
-        site_license_id
-      );
+    if (strategy == "parallel") {
+      // NOTE: if students were to add their own extra license, this is going to remove it.
+      // TODO: it would be nice to recognize that case, and not remove licenses managed by
+      // somebody else or something.  But this is not easy to get right, and students maybe
+      // never do this (?).
+      await actions.set_site_license(student_project_id, site_license_id);
     } else {
-      // ensure no license set
-      await actions.remove_site_license_from_project(student_project_id);
+      // serial is the only other (and the default) strategy.
+      
     }
 
     // Regarding student_account_id !== undefined below, see https://github.com/sagemathinc/cocalc/pull/3259

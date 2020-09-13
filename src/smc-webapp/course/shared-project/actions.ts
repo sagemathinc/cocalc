@@ -141,17 +141,19 @@ export class SharedProjectActions {
           await actions.invite_collaborator(shared_project_id, account_id);
         }
       }
-      // Set license key if known; remove if not.
+
+      // Set license key(s) on the shared project too, if there is one
+      // NOTE: we never remove it or any other licenses from the shared project,
+      // since instructor may want to augment license with another.
       const site_license_id = store.getIn(["settings", "site_license_id"]);
       if (site_license_id) {
         await actions.add_site_license_to_project(
           shared_project_id,
           site_license_id
         );
-      } else {
-        // ensure no license set
-        await actions.remove_site_license_from_project(shared_project_id);
       }
+
+      // Also set the compute image
       await this.set_project_compute_image();
     } catch (err) {
       this.actions.set_error(`Error configuring shared project - ${err}`);

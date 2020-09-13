@@ -18,6 +18,7 @@ export interface SyncDBRecordSettings {
   shared_project_id?: string;
   pay?: string;
   site_license_id?: string;
+  site_license_strategy?: "serial" | "parallel";
   nbgrader_grade_in_instructor_project?: boolean;
   nbgrader_include_hidden_tests?: boolean;
   nbgrader_cell_timeout_ms?: number;
