@@ -445,24 +445,34 @@ export function site_license_quota(site_license: {
   [license_id: string]: Settings;
 }): SiteLicenseQuota {
   const total_quota: Quota = {};
+  // We do member separately first, since we don't count ram and cpu upgrades
+  // for a *nonmember* license if member is set.
+  for (const license_id in site_license) {
+    if (site_license[license_id]?.quota?.member) {
+      total_quota.member_host = true;
+    }
+  }
+
   for (const license_id in site_license) {
     const license = site_license[license_id];
     if (license == null) continue;
     const { quota } = license;
     if (quota == null || len(quota) == 0) continue;
+
+    // member is true unless the overall max includes member_host
+    // and this quota doesn't.
+    const member_check = !(total_quota.member_host && !quota.member);
+
     // If there is any nontrivial new quota contribution, then
     // project automatically gets network access... we trust it.
     total_quota.network = true;
-    if (quota.member) {
-      total_quota.member_host = true;
-    }
-    if (quota.always_running) {
+    if (quota.always_running && member_check) {
       total_quota.always_running = true;
     }
-    if (quota.cpu) {
+    if (quota.cpu && member_check) {
       total_quota.cpu_limit = (total_quota.cpu_limit ?? 0) + quota.cpu;
     }
-    if (quota.ram) {
+    if (quota.ram && member_check) {
       total_quota.memory_limit =
         (total_quota.memory_limit ?? 0) + 1000 * quota.ram;
     }
