@@ -583,11 +583,13 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
         >
           <Radio value={"serial"} key={"serial"} style={radioStyle}>
             <b>Maximize number of covered students:</b> apply one license to
-            each projects associated to this course
+            each project associated to this course (e.g., you bought a license
+            to handle a few more students who added your course)
           </Radio>
           <Radio value={"parallel"} key={"parallel"} style={radioStyle}>
             <b>Maximize upgrades to each project:</b> apply all licenses to all
-            projects associated to this course.
+            projects associated to this course (e.g., you bought a license to
+            increase the RAM or CPU for all students)
           </Radio>
         </Radio.Group>
       </div>
