@@ -18,6 +18,7 @@ import { markdown_to_html } from "../../markdown";
 import { UpgradeGoal } from "../types";
 import { run_in_all_projects, Result } from "./run-in-all-projects";
 import { DEFAULT_COMPUTE_IMAGE } from "smc-util/compute-images";
+import { site_license_public_info } from "../../site-licenses/util";
 
 export class StudentProjectsActions {
   private course_actions: CourseActions;
@@ -178,22 +179,6 @@ export class StudentProjectsActions {
       }
     }
 
-    // Set license key if known; remove if not.
-    const site_license_id = s.getIn(["settings", "site_license_id"]);
-    const licenses = site_license_id.split(",");
-    const strategy = s.getIn(["settings", "site_license_strategy"]);
-    const actions = redux.getActions("projects");
-    if (strategy == "parallel" || licenses.length <= 1) {
-      // EASY case.
-      // NOTE: if students were to add their own extra license, this is going to remove it.
-      // TODO: it would be nice to recognize that case, and not remove licenses managed by
-      // somebody else or something.  But this is not easy to get right, and students maybe
-      // never do this (?).
-      await actions.set_site_license(student_project_id, site_license_id);
-    } else {
-      // serial is the only other (and the default) strategy.
-    }
-
     // Regarding student_account_id !== undefined below, see https://github.com/sagemathinc/cocalc/pull/3259
     // The problem is that student_account_id might not yet be known to the .course, even though
     // the student has been added and the account_id exists, and is known to the account opening
@@ -217,6 +202,24 @@ export class StudentProjectsActions {
         }
       }
     }
+  }
+
+  private async configure_project_license(
+    student_project_id: string,
+    license_id?: string
+  ): Promise<void> {
+    const actions = redux.getActions("projects");
+    if (license_id != null) {
+      await actions.set_site_license(student_project_id, license_id);
+      return;
+    }
+    const store = this.get_store();
+    // Set license key if known; remove if not.
+    const site_license_id = store.getIn(["settings", "site_license_id"]);
+    // EASY case.
+    // NOTE/TODO: if students were to add their own extra license, this is
+    // going to remove it.
+    await actions.set_site_license(student_project_id, site_license_id);
   }
 
   private async configure_project_visibility(
@@ -418,7 +421,7 @@ export class StudentProjectsActions {
     do_not_invite_student_by_email,
     student_project_id?: string,
     force_send_invite_by_email?: boolean,
-    license_strategy?: { [license_id: string]: number } // relevant for serial license strategy only
+    license_id?: string // relevant for serial license strategy only
   ): Promise<void> {
     // student_project_id is optional. Will be used instead of from student_id store if provided.
     // Configure project for the given student so that it has the right title,
@@ -446,6 +449,7 @@ export class StudentProjectsActions {
         this.configure_project_title(student_project_id, student_id),
         this.configure_project_description(student_project_id),
         this.configure_project_compute_image(student_project_id),
+        this.configure_project_license(student_project_id, license_id),
       ]);
     }
   }
@@ -497,8 +501,31 @@ export class StudentProjectsActions {
       // currently running already.
       return;
     }
-    const license_strategy: { [license_id: string]: number } = {};
-    if (store.getIn(["settings", "site_license_strategy"]) == "serial") {
+
+    let license_run_limits:
+      | { [license_id: string]: number }
+      | undefined = undefined;
+    const site_license_id = store.getIn(["settings", "site_license_id"]);
+    if (site_license_id) {
+      const licenses = site_license_id.split(",");
+      if (
+        store.getIn(["settings", "site_license_strategy"], "serial") ==
+          "serial" &&
+        licenses.length > 1
+      ) {
+        const has_shared_project = !!store.getIn([
+          "settings",
+          "shared_project_id",
+        ]);
+        license_run_limits = {};
+        // get the run limit for each license, but subtract for course project
+        // and shared project.
+        for (const license_id of licenses) {
+          const info = await site_license_public_info(license_id, force);
+          license_run_limits[license_id] =
+            info.run_limit - 1 - (has_shared_project ? 1 : 0);
+        }
+      }
     }
 
     let id: number = -1;
@@ -512,18 +539,53 @@ export class StudentProjectsActions {
         return;
       }
       let i = 0;
+      const project_map = redux.getStore("projects").get("project_map");
       for (const student_id of ids) {
         if (this.course_actions.is_closed()) return;
         i += 1;
         const id1: number = this.course_actions.set_activity({
           desc: `Configuring student project ${i} of ${ids.length}`,
         });
+        let license_id: string | undefined = undefined;
+        if (license_run_limits != null) {
+          // licenses being allocated globally.
+          // What is there now for this project?
+          const student_project_id = store.getIn([
+            "students",
+            student_id,
+            "project_id",
+          ]);
+          const site_license = project_map?.getIn([
+            student_project_id,
+            "site_license",
+          ]);
+          let already_done: boolean = false;
+          for (const id in site_license) {
+            if (license_run_limits[id] != null) {
+              license_run_limits[id] -= 1;
+              if (license_run_limits[id] >= 0) {
+                already_done = true;
+              }
+            }
+          }
+          if (!already_done) {
+            license_id = ""; // if don't get one below, will remove all licenses from project
+            // choose an available license
+            for (const id in license_run_limits) {
+              if (license_run_limits[id] > 0) {
+                license_id = id;
+                license_run_limits[id] -= 1;
+                break;
+              }
+            }
+          }
+        }
         await this.configure_project(
           student_id,
           false,
           undefined,
           force,
-          license_strategy
+          license_id
         );
         this.course_actions.set_activity({ id: id1 });
         await delay(0); // give UI, etc. a solid chance to render

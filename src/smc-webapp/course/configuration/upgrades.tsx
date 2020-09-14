@@ -66,6 +66,7 @@ interface Props {
   site_license_id?: string;
   site_license_strategy?: SiteLicenseStrategy;
   shared_project_id?: string;
+  disabled?: boolean;
 }
 
 export const StudentProjectUpgrades: React.FC<Props> = (props) => {
@@ -571,12 +572,14 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
         maximize the number of covered students or the upgrades per students:
         <br />
         <Radio.Group
-          onChange={(e) =>
-            get_actions().configuration.set_site_license_strategy(
-              e.target.value
-            )
-          }
-          value={props.site_license_strategy}
+          disabled={props.disabled}
+          style={{ marginLeft: "15px", marginTop: "15px" }}
+          onChange={(e) => {
+            const actions = get_actions();
+            actions.configuration.set_site_license_strategy(e.target.value);
+            actions.configuration.configure_all_projects(true);
+          }}
+          value={props.site_license_strategy ?? "serial"}
         >
           <Radio value={"serial"} key={"serial"} style={radioStyle}>
             <b>Maximize number of covered students:</b> apply one license to
