@@ -521,9 +521,12 @@ export class StudentProjectsActions {
         // get the run limit for each license, but subtract for course project
         // and shared project.
         for (const license_id of licenses) {
-          const info = await site_license_public_info(license_id, force);
+          let { run_limit } = await site_license_public_info(license_id, force);
+          if (!run_limit) {
+            run_limit = 999999999999999; // effectively unlimited
+          }
           license_run_limits[license_id] =
-            info.run_limit - 1 - (has_shared_project ? 1 : 0);
+            run_limit - 1 - (has_shared_project ? 1 : 0);
         }
       }
     }

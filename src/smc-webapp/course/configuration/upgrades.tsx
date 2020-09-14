@@ -638,7 +638,9 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
           disabled={show_site_license}
         >
           <Icon name="key" />{" "}
-          {n == 0 ? "Upgrade using a license key" : "Add another license key"}
+          {n == 0
+            ? "Upgrade using a license key"
+            : "Add another license key (more students or better upgrades)"}
           ...
         </Button>
         {render_site_license_text()}
