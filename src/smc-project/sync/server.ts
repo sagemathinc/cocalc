@@ -436,7 +436,6 @@ class SyncTableChannel {
 
   private close(): void {
     if (this.closed) {
-      this.log("close: already closed!");
       return;
     }
     this.log("close: closing");
