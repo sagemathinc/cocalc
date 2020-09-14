@@ -438,9 +438,10 @@ export function max_quota(quota: Quota, license_quota: SiteLicenseQuota): void {
 
 // Compute the contribution to quota coming from the quota field of the site licenses.
 // This is max'd with the quota computed using settings, the rest of the licenses, etc.
-// TODO:  change slightly to not count memory and cpu toward the running total if they
-// come from a license without member hosting but some license includes member hosting.
-// Disk is fine.  It shouldn't be too hard.
+// We do not count memory and cpu toward the running total if they
+// come from a license without member hosting but some license
+// includes member hosting, since otherwise you can cheat and get
+// very cheap cpu/memory/always running.  Disk is fine.
 export function site_license_quota(site_license: {
   [license_id: string]: Settings;
 }): SiteLicenseQuota {
