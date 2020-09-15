@@ -34,8 +34,8 @@ interface State {
 }
 
 class SessionManager {
-  private name: string;
-  private redux: AppRedux;
+  private readonly name: string;
+  private readonly redux: AppRedux;
   private _local_storage_name: LS.CustomKey;
   private _local_storage_name_closed: LS.CustomKey;
   private _state: State[];
@@ -118,7 +118,7 @@ class SessionManager {
 
       // we're done -- restore session
       if (this.name) {
-        this.restore();
+        await this.restore();
       }
 
       this._initialized = true;
@@ -169,17 +169,17 @@ class SessionManager {
     LS.set(this._local_storage_name_closed, this._state_closed);
   }
 
-  restore(project_id?: string): void {
+  private async restore(project_id?: string): Promise<void> {
     if (project_id != null) {
-      this._restore_project(project_id);
+      await this.restore_project(project_id);
     } else {
-      this._restore_all();
+      await this.restore_all();
     }
   }
 
   // Call right when you open a project.  It returns all files that should automatically
   // be opened, then removes that list from localStorage.  Returns undefined if nothing known.
-  private _restore_project(project_id): void {
+  private async restore_project(project_id): Promise<void> {
     if (this._state_closed == null || !this._initialized) {
       return;
     }
@@ -187,17 +187,18 @@ class SessionManager {
     delete this._state_closed[project_id];
     if (open_files != null && !this._ignore) {
       const project = this.redux.getProjectActions(project_id);
-      open_files.map((path) =>
-        project.open_file({
-          path,
-          foreground: false,
-          foreground_project: false,
-        })
+      open_files.forEach(
+        async (path) =>
+          await project.open_file({
+            path,
+            foreground: false,
+            foreground_project: false,
+          })
       );
     }
   }
 
-  private _restore_all(): void {
+  private restore_all(): void {
     if (this._local_storage_name == null) {
       return;
     }
@@ -263,11 +264,11 @@ function get_session_state(redux: AppRedux): State[] {
 
 // reset_first is currently not used.  If true, then you get *exactly* the
 // saved session; if not set (the default) the current state and the session are merged.
-function restore_session_state(
+async function restore_session_state(
   redux: AppRedux,
   state: State[],
   reset_first?: boolean
-): void {
+): Promise<void> {
   let project_id;
   if (reset_first == null) {
     reset_first = false;
@@ -282,7 +283,7 @@ function restore_session_state(
     redux
       .getStore("projects")
       .get("open_projects")
-      .map((project_id) => page.close_project_tab(project_id));
+      .forEach((project_id) => page.close_project_tab(project_id));
   }
 
   const projects = redux.getActions("projects");
@@ -297,8 +298,8 @@ function restore_session_state(
       });
       if (paths.length > 0) {
         const project = redux.getProjectActions(project_id);
-        paths.map((path) => {
-          project.open_file({
+        paths.forEach(async (path) => {
+          await project.open_file({
             path,
             foreground: false,
             foreground_project: false,

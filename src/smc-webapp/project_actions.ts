@@ -723,7 +723,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Open the given file in this project.
   public async open_file(opts): Promise<void> {
-    open_file(this, opts);
+    await open_file(this, opts);
   }
 
   /* Initialize the redux store and react component for editing
