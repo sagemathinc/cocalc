@@ -125,7 +125,7 @@ export function isMainConfiguration(
 // if prettier exists, this adds all syntaxes to format via prettier
 function formatting_prettier(formatting: Capabilities): Capabilities {
   if (formatting.prettier) {
-    formatting.postcss = true;
+    formatting.css = true;
     formatting.babel = true;
     formatting.typescript = true;
     formatting.json = true;
