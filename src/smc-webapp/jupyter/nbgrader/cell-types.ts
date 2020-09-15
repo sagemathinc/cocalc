@@ -5,7 +5,7 @@
 
 import { Metadata } from "./types";
 
-type Language = "python" | "julia" | "r" | "sage";
+type Language = "python" | "julia" | "r" | "sage" | "octave";
 
 // I think the default points in official nbgrader is 0, but I find that very confusing
 // and it forces you to think.  Since partial credit with autograder doesn't exist, just
@@ -162,6 +162,51 @@ function foo(a, b)
     ### END SOLUTION
 end`;
 
+const OCTAVE_TEST = `
+# [Modify the tests below for your own problem]
+# Check that squares returns the correct output for several inputs:
+assert(squares(1), [1])
+assert(squares(2), [1 4])
+
+# Check that squares raises an error for invalid input:
+number_of_errors = 0;
+for n = [0 -1]
+    try
+        squares(n);
+    catch
+      number_of_errors++;
+    end_try_catch
+endfor
+assert(number_of_errors, 2)
+
+### BEGIN HIDDEN TESTS
+# students will NOT see these extra tests
+assert(squares(10), [1 4 9 16 25 36 49 64 81 100])
+### END HIDDEN TESTS`;
+
+const OCTAVE_ANSWER = `
+function sqs = squares(n)
+    # Compute the squares of the numbers from 1 to n.
+
+    ### BEGIN SOLUTION
+    # Put correct code here. This code is removed for the student version, but is
+    # used to confirm that your tests are valid.
+    if (n <= 0)
+        error("n must be positive")
+    endif
+    sqs = (1:n).^2;
+    ### END SOLUTION
+endfunction`;
+
+const OCTAVE_MANUAL_ANSWER = `
+function s = foo(a, b)
+    # Compute the sum of a and b.
+
+    ### BEGIN SOLUTION
+    s = a + b;
+    ### END SOLUTION
+endfunction`;
+
 const TASK_TEMPLATE = `
 Describe the task here, e.g., "Process the data and create
 a plot to illustrate your results."
@@ -210,6 +255,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
       python: PY_MANUAL_ANSWER,
       r: R_MANUAL_ANSWER,
       julia: JULIA_MANUAL_ANSWER,
+      octave: OCTAVE_MANUAL_ANSWER,
     },
   },
   {
@@ -257,6 +303,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
       python: PY_ANSWER,
       r: R_ANSWER,
       julia: JULIA_ANSWER,
+      octave: OCTAVE_ANSWER,
     },
   },
   {
@@ -281,6 +328,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
       python: PY_TEST,
       r: R_TEST,
       julia: JULIA_TEST,
+      octave: OCTAVE_TEST,
     },
   },
   {
