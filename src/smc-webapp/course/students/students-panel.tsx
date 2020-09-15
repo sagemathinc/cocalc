@@ -138,6 +138,9 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           active_feedback_edits: rtypes.immutable.Map,
           nbgrader_run_info: rtypes.immutable.Map,
         },
+        projects: {
+          project_map: rtypes.immutable.Map,
+        },
       };
     };
 
@@ -152,6 +155,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           "students",
           "user_map",
           "active_student_sort",
+          "project_map",
         ])
       ) {
         delete this.student_list;
@@ -598,8 +602,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
                   <Col md={6}>
                     <div style={{ marginLeft: "15px", width: "100%" }}>
                       <InputGroup.Button>
-
-    {this.student_add_button()}
+                        {this.student_add_button()}
                       </InputGroup.Button>
                     </div>
                   </Col>
@@ -753,7 +756,9 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
             <Col md={8}>
               {this.render_sort_link("last_active", "Last Active")}
             </Col>
-            <Col md={6}>{this.render_sort_link("hosting", "Hosting Type")}</Col>
+            <Col md={6}>
+              {this.render_sort_link("hosting", "Project Status")}
+            </Col>
           </Row>
         </div>
       );
@@ -1129,13 +1134,13 @@ class Student extends Component<StudentProps, StudentState> {
   render_hosting() {
     const student_project_id = this.props.student.get("project_id");
     if (student_project_id) {
-      const upgrades = redux
-        .getStore("projects")
-        .get_total_project_quotas(student_project_id);
+      const store = redux.getStore("projects");
+      const upgrades = store.get_total_project_quotas(student_project_id);
       if (upgrades == null) {
         // user opening the course isn't a collaborator on this student project yet
         return;
       }
+      const state = store.get_state(student_project_id);
       if (upgrades.member_host) {
         return (
           <Tip
@@ -1148,27 +1153,44 @@ class Student extends Component<StudentProps, StudentState> {
             tip="Projects is on a members-only server, which is much more robust and has priority support."
           >
             <span style={{ color: "#888", cursor: "pointer" }}>
-              <Icon name="check" /> Members-only
+              <Icon name="check" /> Members-only ({state})
             </span>
           </Tip>
         );
-      } else {
+      }
+      const licenses = store.get_site_license_ids(student_project_id);
+      if (licenses.length > 0) {
         return (
           <Tip
             placement="left"
             title={
               <span>
-                <Icon name="exclamation-triangle" /> Free hosting
+                <Icon name="check" /> Licensed
               </span>
             }
-            tip="Project is hosted on a free server, so it may be overloaded and will be rebooted frequently.  Please upgrade in course settings."
+            tip="Project is properly licensed and should work well. Thank you!"
           >
             <span style={{ color: "#888", cursor: "pointer" }}>
-              <Icon name="exclamation-triangle" /> Free
+              <Icon name="check" /> Licensed ({state})
             </span>
           </Tip>
         );
       }
+      return (
+        <Tip
+          placement="left"
+          title={
+            <span>
+              <Icon name="exclamation-triangle" /> Trial
+            </span>
+          }
+          tip="Project is a trial project hosted on a free server, so it may be overloaded and will be rebooted frequently.  Please upgrade in course configuration."
+        >
+          <span style={{ color: "#888", cursor: "pointer" }}>
+            <Icon name="exclamation-triangle" /> Free Trial ({state})
+          </span>
+        </Tip>
+      );
     }
   }
 
