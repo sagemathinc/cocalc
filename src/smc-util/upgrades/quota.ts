@@ -78,6 +78,7 @@ interface Quota {
   memory_request?: number;
   cpu_limit?: number;
   cpu_shares?: number;
+  cpu_request?: number;
   privileged?: boolean;
   idle_timeout?: number;
 }
@@ -498,6 +499,11 @@ export function site_license_quota(site_license: {
       total_quota.disk_quota =
         (total_quota.disk_quota ?? 0) + 1000 * quota.disk;
     }
+  }
+  if (total_quota.cpu_shares) {
+    // cpu_request is what is used in k8s-api.coffee.  However, the quota
+    // function may produce cpu_shares.
+    total_quota.cpu_request = total_quota.cpu_shares / 1024;
   }
   return total_quota;
 }
