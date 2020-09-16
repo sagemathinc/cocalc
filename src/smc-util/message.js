@@ -1232,6 +1232,11 @@ API(
         init: undefined,
         desc: "(optional) image ID",
       },
+      license: {
+        init: undefined,
+        desc:
+          "(optional) license id (or multiple ids separated by commas) -- if given, project will be created with this license",
+      },
       start: {
         init: false,
         desc:

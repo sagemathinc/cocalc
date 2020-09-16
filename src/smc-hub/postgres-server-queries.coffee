@@ -1816,10 +1816,19 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             description : undefined
             lti_id      : undefined   # array of strings
             image       : DEFAULT_COMPUTE_IMAGE   # probably ok to leave it undefined
+            license     : undefined   # string -- "license_id1,license_id2,..."
             cb          : required    # cb(err, project_id)
         if not @_validate_opts(opts) then return
         project_id = misc.uuid()
         now = new Date()
+
+        if opts.license
+            site_license = {}
+            for x in opts.license.split(',')
+                site_license[x] = {}
+        else
+            site_license = undefined
+
         @_query
             query  : "INSERT INTO projects"
             values :
@@ -1828,6 +1837,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 description   : opts.description
                 compute_image : opts.image
                 lti_id        : opts.lti_id
+                site_license  : site_license
                 created       : now
                 last_edited   : now
                 users         : {"#{opts.account_id}":{group:'owner'}}

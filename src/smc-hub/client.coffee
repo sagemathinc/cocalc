@@ -980,6 +980,7 @@ class exports.Client extends EventEmitter
                     title       : mesg.title
                     description : mesg.description
                     image       : mesg.image
+                    license     : mesg.license
                     cb          : (err, _project_id) =>
                         project_id = _project_id; cb(err)
             (cb) =>

@@ -406,6 +406,7 @@ export class ProjectClient {
     description: string;
     image?: string;
     start?: boolean;
+    license?: string; // "license_id1,license_id2,..." -- if given, create project with these licenses applied
   }): Promise<string> {
     const { project_id } = await this.client.async_call({
       allow_post: false, // since gets called for anonymous and cookie not yet set.
