@@ -18,8 +18,9 @@ export function init(redux) {
     require("smc-util/schema").SCHEMA.accounts.user_query.get.fields
   );
   // ... except for show_global_info2 (null or a timestamp)
-  // REGISTER is injected in app.html via the /customize endpoint -- do not delete it!
+  // REGISTER and STRATEGIES are injected in app.html via the /customize endpoint -- do not delete them!
   init.token = global["REGISTER"];
+  init.strategies = global["STRATEGIES"];
   init.other_settings.show_global_info2 = "loading"; // indicates there is no data yet
   init.editor_settings.physical_keyboard = "NO_DATA"; // indicator that there is no data
   init.user_type = misc.get_local_storage(webapp_client.remember_me_key())

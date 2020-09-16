@@ -10,7 +10,7 @@ declare var $;
 import { fromJS } from "immutable";
 import { redux } from "../../app-framework";
 
-export function load_strategies_from_server(): void {
+function fallback_load_strategies(): void {
   $.get(`${window.app_base_url}/auth/strategies?v=2`, function (
     strategies,
     status
@@ -22,4 +22,10 @@ export function load_strategies_from_server(): void {
       return setTimeout(load_strategies_from_server, 60000);
     }
   });
+}
+
+export function load_strategies_from_server(): void {
+  if (global["STRATEGIES"] == null) {
+    fallback_load_strategies();
+  }
 }

@@ -10,15 +10,36 @@
 
 import { parseDomain, ParseResultType } from "parse-domain";
 import * as debug from "debug";
+import * as ms from "ms";
 const L = debug("hub:webapp-config");
+import { delay } from "awaiting";
 import { callback2 as cb2 } from "../smc-util/async-utils";
 import { PostgreSQL } from "./postgres/types";
+import { PassportManager, get_passport_manager } from "./auth";
 const server_settings = require("./server-settings");
 import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "smc-util/db-schema/site-settings-extras";
 import { site_settings_conf as SITE_SETTINGS_CONF } from "smc-util/schema";
 import { have_active_registration_tokens } from "./utils";
 
+import * as LRUCache from "expiring-lru-cache";
+const CACHE = LRUCache({ size: 10, expiry: ms("10 minutes") });
+
 type Theme = { [key: string]: string | boolean };
+
+async function get_passport_manager_async(): Promise<PassportManager> {
+  // the only issue here is, that the http server already starts up before the
+  // passport manager is configured – but, the passport manager depends on the http server
+  // we just retry during that initial period of uncertainty…
+  while (true) {
+    const pp_manager = get_passport_manager();
+    if (pp_manager != null) {
+      return pp_manager;
+    } else {
+      L(`Passport Manager not available yet -- trying again in 100ms`);
+      await delay(100);
+    }
+  }
+}
 
 // these are special values, but can be overwritten by the specific theme
 const VANITY_HARDCODED = {
@@ -30,11 +51,17 @@ const VANITY_HARDCODED = {
 export class WebappConfiguration {
   private readonly db: PostgreSQL;
   private readonly data: any;
+  private passport_manager: PassportManager;
 
   constructor({ db }) {
     this.db = db;
     // this.data.pub updates automatically – do not modify it!
     this.data = server_settings(this.db);
+    this.init();
+  }
+
+  private async init(): Promise<void> {
+    this.passport_manager = await get_passport_manager_async();
   }
 
   // server settings with whitelabeling settings
@@ -111,12 +138,23 @@ export class WebappConfiguration {
     return { ...config, ...vanity, ...{ country, dns: host } };
   }
 
+  private get_strategies(): object {
+    const key = "strategies";
+    let strategies = CACHE.get(key);
+    if (strategies == null) {
+      strategies = this.passport_manager.get_strategies_v2();
+      CACHE.set(key, strategies);
+    }
+    return strategies;
+  }
+
   // it returns a shallow copy, hence you can modify/add keys in the returned map!
   public async get({ country, host }) {
     const [configuration, registration] = await Promise.all([
       this.get_configuration({ host, country }),
       have_active_registration_tokens(this.db),
     ]);
-    return { configuration, registration };
+    const strategies = this.get_strategies();
+    return { configuration, registration, strategies };
   }
 }

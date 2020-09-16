@@ -154,7 +154,7 @@ if (typeof $ !== "undefined" && $ != undefined && global["BACKEND"] !== true) {
     reload_configuration();
   }
 }
-reload_configuration
+
 function process_customize(obj) {
   // TODO make this a to_val function in site_settings_conf.kucalc
   obj.kucalc = validate_kucalc(obj.kucalc);

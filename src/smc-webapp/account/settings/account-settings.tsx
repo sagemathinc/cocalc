@@ -39,7 +39,7 @@ import { PassportStrategy } from "../passport-types";
 import { PassportStrategyIcon, strategy2display } from "../../passports";
 
 import { load_strategies_from_server } from "./strategies";
-load_strategies_from_server();
+load_strategies_from_server(); // this is just a fallback call
 
 type ImmutablePassportStrategy = TypedMap<PassportStrategy>;
 
