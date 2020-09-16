@@ -39,7 +39,7 @@ import { create_quote_support_ticket } from "./get-a-quote";
 import { QuotaEditor } from "./quota-editor";
 
 const LENGTH_PRESETS = [
-  { label: "1 Day", desc: { n: 1, key: "days" } },
+  { label: "2 Days", desc: { n: 2, key: "days" } },
   { label: "1 Week", desc: { n: 7, key: "days" } },
   { label: "1 Month", desc: { n: 1, key: "months" } },
   { label: "6 Weeks", desc: { n: 7 * 6, key: "days" } },
