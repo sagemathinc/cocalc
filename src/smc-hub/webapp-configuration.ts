@@ -3,6 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+// this unifies the entire webapp configuration – endpoint /customize?type=full
+// the main goal is to optimize this, to use as little DB interactions as necessary, use caching, etc.
+
 // this manages the webapp's configuration based on the hostname (allows whitelabeling)
 
 import { parseDomain, ParseResultType } from "parse-domain";
@@ -13,15 +16,24 @@ import { PostgreSQL } from "./postgres/types";
 const server_settings = require("./server-settings");
 import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "smc-util/db-schema/site-settings-extras";
 import { site_settings_conf as SITE_SETTINGS_CONF } from "smc-util/schema";
+import { have_active_registration_tokens } from "./utils";
 
 type Theme = { [key: string]: string | boolean };
 
-export class WhitelabelConfiguration {
-  readonly db: PostgreSQL;
-  private data: any;
+// these are special values, but can be overwritten by the specific theme
+const VANITY_HARDCODED = {
+  allow_anonymous_sign_in: false,
+  //kucalc: "onprem", // TODO: maybe do this, not sure
+  //commercial: false,
+} as const;
+
+export class WebappConfiguration {
+  private readonly db: PostgreSQL;
+  private readonly data: any;
 
   constructor({ db }) {
     this.db = db;
+    // this.data.pub updates automatically – do not modify it!
     this.data = server_settings(this.db);
   }
 
@@ -42,7 +54,7 @@ export class WhitelabelConfiguration {
   }
 
   // derive the vanity ID from the host string
-  private vanity(host: string): string | undefined {
+  private get_vanity_id(host: string): string | undefined {
     const host_parsed = parseDomain(host);
     if (host_parsed.type === ParseResultType.Listed) {
       // vanity for vanity.cocalc.com or foo.p for foo.p.cocalc.com
@@ -79,24 +91,32 @@ export class WhitelabelConfiguration {
     }
   }
 
-  // returns the global configuration + eventually vanity specific site config settings
-  // it's always a shallow copy, hence you can modify/add keys in the returned map!
-  public async webapp(req) {
-    const host = req.headers["host"];
-    const vid = this.vanity(host);
+  private async get_vanity(vid): Promise<object> {
     if (vid != null && vid !== "") {
       L(`vanity ID = "${vid}"`);
-      // these are special values, but can be overwritten by the specific theme
-      const hardcoded = {
-        dns: host,
-        allow_anonymous_sign_in: false,
-        //kucalc: "onprem", // TODO: maybe do this, not sure
-        //commercial: false,
+      return {
+        ...VANITY_HARDCODED,
+        ...(await this.theme(vid)),
       };
-      return { ...this.data.pub, ...hardcoded, ...(await this.theme(vid)) };
     } else {
-      // the default
-      return { ...this.data.pub };
+      return {};
     }
+  }
+
+  // returns the global configuration + eventually vanity specific site config settings
+  private async get_configuration({ host, country }) {
+    const vid = this.get_vanity_id(host);
+    const config = this.data.pub;
+    const vanity = this.get_vanity(vid);
+    return { ...config, ...vanity, ...{ country, dns: host } };
+  }
+
+  // it returns a shallow copy, hence you can modify/add keys in the returned map!
+  public async get({ country, host }) {
+    const [configuration, registration] = await Promise.all([
+      this.get_configuration({ host, country }),
+      have_active_registration_tokens(this.db),
+    ]);
+    return { configuration, registration };
   }
 }

@@ -145,15 +145,16 @@ export function reload_configuration() {
 
 // BACKEND injected by jsdom-support.ts
 if (typeof $ !== "undefined" && $ != undefined && global["BACKEND"] !== true) {
-  // the app.html page already loads the configuration, this is just a failsafe
+  // the app.html page loads the configuration and here we unpack the data
   const data = global["CUSTOMIZE"];
   if (data != null) {
     process_customize(Object.assign({}, data));
   } else {
+    // this is a fallback, in case something went terribly wrong
     reload_configuration();
   }
 }
-
+reload_configuration
 function process_customize(obj) {
   // TODO make this a to_val function in site_settings_conf.kucalc
   obj.kucalc = validate_kucalc(obj.kucalc);
