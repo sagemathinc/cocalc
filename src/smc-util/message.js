@@ -1365,6 +1365,46 @@ Email and string search types may be mixed in a single query:
   })
 );
 
+API(
+  message2({
+    event: "add_license_to_project",
+    fields: {
+      id: {
+        init: undefined,
+        desc: "A unique UUID for the message",
+      },
+      project_id: {
+        init: required,
+        desc: "project_id",
+      },
+      license_id: {
+        init: required,
+        desc: "id of a license",
+      },
+    },
+  })
+);
+
+API(
+  message2({
+    event: "remove_license_from_project",
+    fields: {
+      id: {
+        init: undefined,
+        desc: "A unique UUID for the message",
+      },
+      project_id: {
+        init: required,
+        desc: "project_id",
+      },
+      license_id: {
+        init: required,
+        desc: "id of a license",
+      },
+    },
+  })
+);
+
 // hub --> client
 message({
   event: "user_search_results",

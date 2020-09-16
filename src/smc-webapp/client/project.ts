@@ -433,4 +433,23 @@ export class ProjectClient {
   }): Promise<string> {
     return (await this.api(opts.project_id)).realpath(opts.path);
   }
+
+  // Add and remove a license from a project.  Note that these
+  // might not be used to implement anything in the client frontend, but
+  // are used via the API, and this is a convenient way to test them.
+  public async add_license_to_project(
+    project_id: string,
+    license_id: string
+  ): Promise<void> {
+    await this.call(message.add_license_to_project({ project_id, license_id }));
+  }
+
+  public async remove_license_from_project(
+    project_id: string,
+    license_id: string
+  ): Promise<void> {
+    await this.call(
+      message.remove_license_from_project({ project_id, license_id })
+    );
+  }
 }
