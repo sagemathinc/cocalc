@@ -420,7 +420,7 @@ describe("default quota", () => {
   });
 
   it("site-license upgrades /1", () => {
-    const site_licenses = {
+    const site_license = {
       "1234-5678-asdf-yxcv": {
         member_host: true,
         network: true,
@@ -433,7 +433,7 @@ describe("default quota", () => {
       },
     };
 
-    const q1 = quota({}, { userX: {} }, site_licenses);
+    const q1 = quota({}, { userX: {} }, site_license);
 
     expect(q1).toEqual({
       idle_timeout: 24 * 3600 + 1800,
@@ -485,6 +485,43 @@ describe("default quota", () => {
     expect(q1.network).toBe(true);
     expect(q1.cpu_limit).toBe(1.25);
     expect(q1.always_running).toBe(true);
+  });
+
+  it("site-license quota upgrades /1", () => {
+    const site_license = {
+      "1234-5678-asdf-yxcv": {
+        quota: {
+          ram: 2000,
+          dedicated_ram: 1000,
+          cpu: 1,
+          dedicated_cpu: 0.5,
+          disk: 1234,
+          always_running: true,
+          member: true,
+          user: "academic",
+        },
+      },
+    };
+    const users = {
+      user1: {
+        upgrades: {
+          memory: 1313,
+        },
+      },
+    };
+    const q1 = quota({}, users, site_license);
+    expect(q1).toEqual({
+      network: true,
+      member_host: true,
+      memory_request: 1000000,
+      cpu_request: 0.5,
+      privileged: false,
+      disk_quota: 1234000,
+      memory_limit: 3000000,
+      cpu_limit: 1.5,
+      idle_timeout: 1800,
+      always_running: true,
+    });
   });
 
   it("uses different default_quotas", () => {

@@ -459,7 +459,7 @@ export function site_license_quota(site_license: {
   for (const license_id in site_license) {
     const license = site_license[license_id];
     if (license == null) continue;
-    const { quota } = license;
+    const quota: SiteLicenseQuota | undefined = license.quota;
     if (quota == null || len(quota) == 0) continue;
 
     // member is true unless the overall max includes member_host
