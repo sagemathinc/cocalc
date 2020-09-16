@@ -50,7 +50,12 @@ export class HubClient {
   private signed_in_mesg: object;
 
   private call_callbacks: {
-    [id: string]: { error_event: boolean; first: boolean; cb: Function };
+    [id: string]: {
+      timeout?: any;
+      error_event: boolean;
+      first: boolean;
+      cb: Function;
+    };
   } = {};
 
   private mesg_data: {
@@ -77,7 +82,7 @@ export class HubClient {
     update things for no reason.  It also impacts the color of the
     connection indicator, so throttling will make that color change a
     bit more laggy.  That's probably worth it. */
-    this.emit_mesg_data = throttle(this.emit_mesg_data.bind(this), 3000);
+    this.emit_mesg_data = throttle(this.emit_mesg_data.bind(this), 2000);
 
     // never attempt to reconnect more than once per 10s, no matter what.
     this.reconnect = throttle(this.reconnect.bind(this), 10000);
@@ -251,6 +256,15 @@ export class HubClient {
     }
     const { id } = opts.message;
     let called_cb: boolean = false;
+    if (this.call_callbacks[id] != null) {
+      // User is requesting to send a message with the same id as
+      // a currently  outstanding message.  This typically happens
+      // when disconnecting and reconnecting.  It's critical to
+      // clear up the existing call before overwritting
+      // call_callbacks[id].  The point is the message id's are
+      // NOT at all guaranteed to be random.
+      this.clear_call(id);
+    }
 
     this.call_callbacks[id] = {
       cb: (...args) => {
@@ -271,7 +285,7 @@ export class HubClient {
     this.send(opts.message);
 
     if (opts.timeout) {
-      setTimeout(() => {
+      this.call_callbacks[id].timeout = setTimeout(() => {
         if (this.call_callbacks[id] == null || this.call_callbacks[id].first) {
           const error = "Timeout after " + opts.timeout + " seconds";
           if (!called_cb) {
@@ -295,7 +309,7 @@ export class HubClient {
           cb();
         }
       };
-      setTimeout(f, 60 * 1000);
+      this.call_callbacks[id].timeout = setTimeout(f, 60 * 1000);
     }
   }
 
@@ -362,11 +376,20 @@ export class HubClient {
     });
   }
 
+  private clear_call(id: string): void {
+    const obj = this.call_callbacks[id];
+    if (obj == null) return;
+    delete this.call_callbacks[id];
+    obj.cb("disconnect");
+    if (obj.timeout) {
+      clearTimeout(obj.timeout);
+      delete obj.timeout;
+    }
+  }
+
   private clear_call_queue(): void {
     for (const id in this.call_callbacks) {
-      const obj = this.call_callbacks[id];
-      delete this.call_callbacks[id];
-      obj.cb("disconnect");
+      this.clear_call(id);
     }
     this.emit_mesg_data();
   }
