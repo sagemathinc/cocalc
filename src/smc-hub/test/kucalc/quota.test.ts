@@ -420,7 +420,7 @@ describe("default quota", () => {
   });
 
   it("site-license upgrades /1", () => {
-    const site_license = {
+    const site_licenses = {
       "1234-5678-asdf-yxcv": {
         member_host: true,
         network: true,
@@ -433,7 +433,7 @@ describe("default quota", () => {
       },
     };
 
-    const q1 = quota({}, { userX: {} }, site_license);
+    const q1 = quota({}, { userX: {} }, site_licenses);
 
     expect(q1).toEqual({
       idle_timeout: 24 * 3600 + 1800,

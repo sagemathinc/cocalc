@@ -77,7 +77,6 @@ interface Quota {
   memory_limit?: number;
   memory_request?: number;
   cpu_limit?: number;
-  cpu_shares?: number;
   cpu_request?: number;
   privileged?: boolean;
   idle_timeout?: number;
@@ -144,7 +143,7 @@ const BASE_QUOTAS: Quota = {
   network: false,
   member_host: false,
   memory_request: 0, // will hold guaranteed RAM in MB
-  cpu_shares: 0, // will hold guaranteed min number of vCPU's as a float from 0 to infinity.
+  cpu_request: 0, // will hold guaranteed min number of vCPU's as a float from 0 to infinity.
   privileged: false, // for elevated docker privileges (FUSE mounting, later more)
   disk_quota: DEFAULT_QUOTAS.disk_quota,
   memory_limit: DEFAULT_QUOTAS.memory, // upper bound on RAM in MB
@@ -192,7 +191,7 @@ function calc_default_quotas(site_settings?: SiteSettingsQuotas): Quota {
       // ratio is 1:cpu_oc -- sanitize it first
       const oc = sanitize_overcommit(defaults.cpu_oc);
       if (oc != null) {
-        quota.cpu_limit = defaults.cpu / oc;
+        quota.cpu_request = defaults.cpu / oc;
       }
     }
   }
@@ -404,6 +403,9 @@ export function quota(
   // "cores" is the hard upper bound the project container should get
   calc("cpu_limit", "cores", to_float, undefined);
 
+  // cpu_shares is the minimum cpu usage to request -- must come AFTER cpu_limit calculation
+  calc("cpu_request", "cpu_shares", to_float, 1 / 1024);
+
   if (site_license != null) {
     // If there is new license.quota, compute it and max with it.
     const license_quota = site_license_quota(site_license);
@@ -420,9 +422,6 @@ export function quota(
 
   // ensure minimum memory limit is met
   cap_lower_bound(quota, "memory_limit", MIN_MEMORY_LIMIT);
-
-  // cpu_shares is the minimum cpu usage to request -- must come AFTER cpu_limit calculation
-  calc("cpu_request", "cpu_shares", to_float, 1 / 1024);
 
   return quota;
 }
@@ -447,7 +446,7 @@ export function max_quota(quota: Quota, license_quota: SiteLicenseQuota): void {
 // very cheap cpu/memory/always running.  Disk is fine.
 export function site_license_quota(site_license: {
   [license_id: string]: Settings;
-}): SiteLicenseQuota {
+}): Quota {
   const total_quota: Quota = {};
   // We do member separately first, since we don't count ram and cpu upgrades
   // for a *nonmember* license if member is set.
@@ -481,8 +480,8 @@ export function site_license_quota(site_license: {
         (total_quota.memory_limit ?? 0) + 1000 * quota.ram;
     }
     if (quota.dedicated_cpu && member_check) {
-      total_quota.cpu_shares =
-        (total_quota.cpu_shares ?? 0) + 1024 * quota.dedicated_cpu;
+      total_quota.cpu_request =
+        (total_quota.cpu_request ?? 0) + quota.dedicated_cpu;
       // dedicated CPU also contributes to the shared cpu limit:
       total_quota.cpu_limit =
         (total_quota.cpu_limit ?? 0) + quota.dedicated_cpu;
@@ -499,11 +498,6 @@ export function site_license_quota(site_license: {
       total_quota.disk_quota =
         (total_quota.disk_quota ?? 0) + 1000 * quota.disk;
     }
-  }
-  if (total_quota.cpu_shares) {
-    // cpu_request is what is used in k8s-api.coffee.  However, the quota
-    // function may produce cpu_shares.
-    total_quota.cpu_request = total_quota.cpu_shares / 1024;
   }
   return total_quota;
 }
