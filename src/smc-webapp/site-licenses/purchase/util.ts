@@ -74,7 +74,7 @@ export function sanity_checks(info: PurchaseInfo) {
     if (typeof info[field] != "number") {
       throw Error(`field "${field}" must be number`);
     }
-    if (info[field] <= 0 || info[field] > MAX[field]) {
+    if (info[field] < 0 || info[field] > MAX[field]) {
       throw Error(`field "${field}" too small or too big`);
     }
   }

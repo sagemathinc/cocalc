@@ -403,8 +403,13 @@ export function quota(
   // "cores" is the hard upper bound the project container should get
   calc("cpu_limit", "cores", to_float, undefined);
 
-  // cpu_shares is the minimum cpu usage to request -- must come AFTER cpu_limit calculation
-  calc("cpu_request", "cpu_shares", to_float, 1 / 1024);
+  if (site_license != null) {
+    // If there is new license.quota, compute it and max with it.
+    const license_quota = site_license_quota(site_license);
+    max_quota(quota, license_quota);
+  }
+
+  // Finally apply all caps and also compute cpu_request in terms of cpu_shares.
 
   // ensure minimum cpu are met
   cap_lower_bound(quota, "cpu_request", MIN_POSSIBLE_CPU);
@@ -415,11 +420,8 @@ export function quota(
   // ensure minimum memory limit is met
   cap_lower_bound(quota, "memory_limit", MIN_MEMORY_LIMIT);
 
-  if (site_license != null) {
-    // If there is new license.quota, compute it and max with it.
-    const license_quota = site_license_quota(site_license);
-    max_quota(quota, license_quota);
-  }
+  // cpu_shares is the minimum cpu usage to request -- must come AFTER cpu_limit calculation
+  calc("cpu_request", "cpu_shares", to_float, 1 / 1024);
 
   return quota;
 }
@@ -480,10 +482,17 @@ export function site_license_quota(site_license: {
     if (quota.dedicated_cpu && member_check) {
       total_quota.cpu_shares =
         (total_quota.cpu_shares ?? 0) + 1024 * quota.dedicated_cpu;
+      // dedicated CPU also contributes to the shared cpu limit:
+      total_quota.cpu_limit =
+        (total_quota.cpu_limit ?? 0) + quota.dedicated_cpu;
     }
     if (quota.dedicated_ram && member_check) {
       total_quota.memory_request =
         (total_quota.memory_request ?? 0) + 1000 * quota.dedicated_ram;
+      // The dedicated RAM **also** contributes "for free" to the shared RAM
+      // which is an upper bound.
+      total_quota.memory_limit =
+        (total_quota.memory_limit ?? 0) + 1000 * quota.dedicated_ram;
     }
     if (quota.disk) {
       total_quota.disk_quota =

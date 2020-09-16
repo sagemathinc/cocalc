@@ -203,7 +203,7 @@ export const QuotaEditor: React.FC<Props> = ({
               )
             </b>
             {render_explanation(
-              "Google cloud vCPU's NOT shared with other projects"
+              "Google cloud vCPU's NOT shared with other projects.  You can enter a fractional value, e.g., 0.5 for a half dedicated core."
             )}
           </Col>
         )}

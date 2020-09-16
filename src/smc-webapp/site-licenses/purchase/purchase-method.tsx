@@ -74,9 +74,13 @@ export const PurchaseMethod: React.FC<Props> = React.memo(
         )}
         {source && buy_confirm && (
           <div style={{ marginTop: "5px" }}>
+            <div style={{ fontSize: "12pt" }}>
+              Charge the default card {amount} plus any applicable tax for{" "}
+              {description}.
+            </div>
+            <br />
             <Button type="primary" size="large" onClick={() => onClose(source)}>
-              <Icon name="credit-card" /> <Space /> <Space /> Charge the default
-              card {amount} plus any applicable tax for {description}.
+              <Icon name="credit-card" /> <Space /> Complete Purchase
             </Button>
           </div>
         )}
