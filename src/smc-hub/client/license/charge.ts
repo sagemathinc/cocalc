@@ -43,9 +43,11 @@ function get_product_id(info: PurchaseInfo): string {
      The following parameters determine what "product" they are purchasing:
         - custom_always_running
         - custom_cpu
+        - custom_dedicated_cpu
         - custom_disk
         - custom_member
         - custom_ram
+        - custom_dedicated_ram
         - period: subscription or set number of days
       We encode these in a string which serves to identify the product.
   */
@@ -59,7 +61,13 @@ function get_product_id(info: PurchaseInfo): string {
     info.user == "business" ? 1 : 0
   }c${info.custom_cpu}d${info.custom_disk}m${
     info.custom_member ? 1 : 0
-  }p${period}r${info.custom_ram}_v${VERSION}`;
+  }p${period}r${info.custom_ram}${
+    info.custom_dedicated_ram ? "y" + info.custom_dedicated_ram : ""
+  }${
+    info.custom_dedicated_cpu
+      ? "z" + Math.round(10 * info.custom_dedicated_cpu)
+      : ""
+  }_v${VERSION}`;
 }
 
 function get_product_name(info): string {
@@ -76,6 +84,8 @@ function get_product_name(info): string {
     user: info.user,
     ram: info.custom_ram,
     cpu: info.custom_cpu,
+    dedicated_ram: info.custom_dedicated_ram,
+    dedicated_cpu: info.custom_dedicated_cpu,
     disk: info.custom_disk,
     member: info.custom_member,
     always_running: info.always_running,
@@ -89,6 +99,8 @@ function get_product_metadata(info): object {
     user: info.user,
     ram: info.custom_ram,
     cpu: info.custom_cpu,
+    dedicated_ram: info.custom_dedicated_ram,
+    dedicated_cpu: info.custom_dedicated_cpu,
     disk: info.custom_disk,
     always_running: info.custom_always_running,
     member: info.custom_member,

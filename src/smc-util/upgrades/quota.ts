@@ -77,7 +77,7 @@ interface Quota {
   memory_limit?: number;
   memory_request?: number;
   cpu_limit?: number;
-  cpu_request?: number;
+  cpu_shares?: number;
   privileged?: boolean;
   idle_timeout?: number;
 }
@@ -143,7 +143,7 @@ const BASE_QUOTAS: Quota = {
   network: false,
   member_host: false,
   memory_request: 0, // will hold guaranteed RAM in MB
-  cpu_request: 0, // will hold guaranteed min number of vCPU's as a float from 0 to infinity.
+  cpu_shares: 0, // will hold guaranteed min number of vCPU's as a float from 0 to infinity.
   privileged: false, // for elevated docker privileges (FUSE mounting, later more)
   disk_quota: DEFAULT_QUOTAS.disk_quota,
   memory_limit: DEFAULT_QUOTAS.memory, // upper bound on RAM in MB
@@ -191,7 +191,7 @@ function calc_default_quotas(site_settings?: SiteSettingsQuotas): Quota {
       // ratio is 1:cpu_oc -- sanitize it first
       const oc = sanitize_overcommit(defaults.cpu_oc);
       if (oc != null) {
-        quota.cpu_request = defaults.cpu / oc;
+        quota.cpu_limit = defaults.cpu / oc;
       }
     }
   }
@@ -476,6 +476,14 @@ export function site_license_quota(site_license: {
     if (quota.ram && member_check) {
       total_quota.memory_limit =
         (total_quota.memory_limit ?? 0) + 1000 * quota.ram;
+    }
+    if (quota.dedicated_cpu && member_check) {
+      total_quota.cpu_shares =
+        (total_quota.cpu_shares ?? 0) + 1024 * quota.dedicated_cpu;
+    }
+    if (quota.dedicated_ram && member_check) {
+      total_quota.memory_request =
+        (total_quota.memory_request ?? 0) + 1000 * quota.dedicated_ram;
     }
     if (quota.disk) {
       total_quota.disk_quota =

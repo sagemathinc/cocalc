@@ -15,10 +15,11 @@ Editing a quota
 
 import { Button, Checkbox, InputNumber, Row, Col } from "antd";
 import { A, Space } from "../../r_misc";
-import { CSS, React, useState } from "../../app-framework";
+import { CSS, React, useMemo, useState } from "../../app-framework";
 import { Quota } from "smc-util/db-schema/site-licenses";
 import { COSTS, GCE_COSTS, money } from "./util";
 import { plural } from "smc-util/misc2";
+import { round1 } from "smc-util/misc";
 
 const ROW_STYLE: CSS = {
   border: "1px solid #eee",
@@ -54,6 +55,14 @@ export const QuotaEditor: React.FC<Props> = ({
   disabled,
 }) => {
   const [show_advanced, set_show_advanced] = useState<boolean>(false);
+  const hosting_multiplier = useMemo(() => {
+    return (
+      (quota.member ? COSTS.custom_cost.member : 1) *
+      (quota.always_running ? COSTS.custom_cost.always_running : 1) *
+      (quota.member && quota.always_running ? GCE_COSTS.non_pre_factor : 1)
+    );
+  }, [quota]);
+
   const col = hideExtra
     ? { control: 18, max: 6 }
     : { control: 8, max: 3, desc: 16 };
@@ -95,7 +104,9 @@ export const QuotaEditor: React.FC<Props> = ({
             <b>
               shared CPU cores (
               {`${money(
-                COSTS.user_discount[user()] * COSTS.custom_cost.cpu
+                COSTS.user_discount[user()] *
+                  COSTS.custom_cost.cpu *
+                  hosting_multiplier
               )}/CPU cores per month per project`}
               )
             </b>
@@ -123,7 +134,7 @@ export const QuotaEditor: React.FC<Props> = ({
             }}
           />
           <Space />
-          <span style={UNIT_STYLE}>GB shared RAM</span>
+          <span style={UNIT_STYLE}>shared GB RAM</span>
         </Col>
         <Col md={col.max}>
           <Button
@@ -138,11 +149,107 @@ export const QuotaEditor: React.FC<Props> = ({
             <b>
               GB RAM (
               {`${money(
-                COSTS.user_discount[user()] * COSTS.custom_cost.ram
+                COSTS.user_discount[user()] *
+                  COSTS.custom_cost.ram *
+                  hosting_multiplier
               )}/GB RAM per month per project`}
               )
             </b>
             {render_explanation("RAM may be shared with other users")}
+          </Col>
+        )}
+      </Row>
+    );
+  }
+
+  function render_dedicated_cpu() {
+    return (
+      <Row style={ROW_STYLE}>
+        <Col md={col.control - col.max}>
+          <InputNumber
+            disabled={disabled}
+            min={COSTS.basic.dedicated_cpu}
+            max={COSTS.custom_max.dedicated_cpu}
+            value={quota.dedicated_cpu}
+            onChange={(x) => {
+              if (typeof x != "number") return;
+              onChange({ dedicated_cpu: round1(x) });
+            }}
+          />
+          <Space />
+          <span style={UNIT_STYLE}>
+            dedicated CPU {plural(quota.dedicated_cpu, "core")}
+          </span>
+        </Col>
+        <Col md={col.max}>
+          <Button
+            disabled={quota.dedicated_cpu == COSTS.custom_max.dedicated_cpu}
+            onClick={() =>
+              onChange({ dedicated_cpu: COSTS.custom_max.dedicated_cpu })
+            }
+          >
+            Max
+          </Button>
+        </Col>
+        {!hideExtra && (
+          <Col md={col.desc}>
+            <b>
+              dedicated CPU cores (
+              {`${money(
+                COSTS.user_discount[user()] *
+                  COSTS.custom_cost.dedicated_cpu *
+                  hosting_multiplier
+              )}/CPU cores per month per project`}
+              )
+            </b>
+            {render_explanation(
+              "Google cloud vCPU's NOT shared with other projects"
+            )}
+          </Col>
+        )}
+      </Row>
+    );
+  }
+
+  function render_dedicated_ram() {
+    return (
+      <Row style={ROW_STYLE}>
+        <Col md={col.control - col.max}>
+          <InputNumber
+            disabled={disabled}
+            min={COSTS.basic.dedicated_ram}
+            max={COSTS.custom_max.dedicated_ram}
+            value={quota.dedicated_ram}
+            onChange={(x) => {
+              if (typeof x != "number") return;
+              onChange({ dedicated_ram: Math.round(x) });
+            }}
+          />
+          <Space />
+          <span style={UNIT_STYLE}>dedicated GB RAM</span>
+        </Col>
+        <Col md={col.max}>
+          <Button
+            disabled={quota.dedicated_ram == COSTS.custom_max.dedicated_ram}
+            onClick={() =>
+              onChange({ dedicated_ram: COSTS.custom_max.dedicated_ram })
+            }
+          >
+            Max
+          </Button>
+        </Col>
+        {!hideExtra && (
+          <Col md={col.desc}>
+            <b>
+              dedicated GB RAM (
+              {`${money(
+                COSTS.user_discount[user()] *
+                  COSTS.custom_cost.dedicated_ram *
+                  hosting_multiplier
+              )}/GB RAM per month per project`}
+              )
+            </b>
+            {render_explanation("RAM is not shared with other users")}
           </Col>
         )}
       </Row>
@@ -207,7 +314,7 @@ export const QuotaEditor: React.FC<Props> = ({
         {!hideExtra && (
           <Col md={col.desc}>
             member hosting{" "}
-            <b>(multiply RAM/CPU price by {COSTS.custom_cost.member})</b>
+            <b>(multiplies RAM/CPU price by {COSTS.custom_cost.member})</b>
             {render_explanation(
               "project runs on computers with far fewer other projects.  If not selected your project runs on very, very heavily loaded trial servers, which might be OK depending on your application."
             )}
@@ -233,7 +340,7 @@ export const QuotaEditor: React.FC<Props> = ({
           <Col md={col.desc}>
             project is always running{" "}
             <b>
-              (multiply RAM/CPU price by{" "}
+              (multiplies RAM/CPU price by{" "}
               {COSTS.custom_cost.always_running * GCE_COSTS.non_pre_factor} for
               member hosting or multiply by {COSTS.custom_cost.always_running}{" "}
               without)
@@ -321,6 +428,16 @@ export const QuotaEditor: React.FC<Props> = ({
       );
   }
 
+  function render_dedicated() {
+    return (
+      <div style={ROW_STYLE}>
+        We also offer <b>dedicated virtual machines</b>, which are usually a
+        much better value than always running dedicated cpu's. Request a quote
+        below and explain that you're interested in a dedicated VM.
+      </div>
+    );
+  }
+
   return (
     <div>
       {render_cpu()}
@@ -331,6 +448,9 @@ export const QuotaEditor: React.FC<Props> = ({
       {render_show_advanced_link()}
       {show_advanced && render_member()}
       {show_advanced && render_always_running()}
+      {show_advanced && render_dedicated_cpu()}
+      {show_advanced && render_dedicated_ram()}
+      {show_advanced && !hideExtra && render_dedicated()}
     </div>
   );
   //

@@ -30,6 +30,8 @@ export async function create_license(
       user: info.user,
       ram: info.custom_ram,
       cpu: info.custom_cpu,
+      dedicated_ram: info.custom_dedicated_ram,
+      dedicated_cpu: info.custom_dedicated_cpu,
       disk: info.custom_disk,
       always_running: info.custom_always_running,
       member: info.custom_member,

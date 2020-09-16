@@ -85,6 +85,12 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
 
   const [custom_ram, set_custom_ram] = useState<number>(COSTS.basic.ram);
   const [custom_cpu, set_custom_cpu] = useState<number>(COSTS.basic.cpu);
+  const [custom_dedicated_ram, set_custom_dedicated_ram] = useState<number>(
+    COSTS.basic.dedicated_ram
+  );
+  const [custom_dedicated_cpu, set_custom_dedicated_cpu] = useState<number>(
+    COSTS.basic.dedicated_cpu
+  );
   const [custom_disk, set_custom_disk] = useState<number>(COSTS.basic.disk);
   const [custom_always_running, set_custom_always_running] = useState<boolean>(
     !!COSTS.basic.always_running
@@ -157,6 +163,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       end,
       custom_ram,
       custom_cpu,
+      custom_dedicated_ram,
+      custom_dedicated_cpu,
       custom_disk,
       custom_always_running,
       custom_member,
@@ -170,6 +178,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     end,
     custom_ram,
     custom_cpu,
+    custom_dedicated_ram,
+    custom_dedicated_cpu,
     custom_disk,
     custom_always_running,
     custom_member,
@@ -251,6 +261,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         quota={{
           cpu: custom_cpu,
           ram: custom_ram,
+          dedicated_cpu: custom_dedicated_cpu,
+          dedicated_ram: custom_dedicated_ram,
           disk: custom_disk,
           always_running: custom_always_running,
           member: custom_member,
@@ -259,6 +271,10 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         onChange={(change) => {
           if (change.cpu != null) set_custom_cpu(change.cpu);
           if (change.ram != null) set_custom_ram(change.ram);
+          if (change.dedicated_cpu != null)
+            set_custom_dedicated_cpu(change.dedicated_cpu);
+          if (change.dedicated_ram != null)
+            set_custom_dedicated_ram(change.dedicated_ram);
           if (change.disk != null) set_custom_disk(change.disk);
           if (change.member != null) set_custom_member(change.member);
           if (change.always_running != null)
@@ -555,6 +571,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             description={`${quantity} × ${describe_quota({
               ram: custom_ram,
               cpu: custom_cpu,
+              dedicated_ram: custom_dedicated_ram,
+              dedicated_cpu: custom_dedicated_cpu,
               disk: custom_disk,
               always_running: custom_always_running,
               member: custom_member,
@@ -592,6 +610,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       cost,
       custom_ram,
       custom_cpu,
+      custom_dedicated_ram,
+      custom_dedicated_cpu,
       custom_disk,
       custom_always_running,
       custom_member,

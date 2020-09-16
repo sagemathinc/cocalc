@@ -24,7 +24,9 @@ import { TypedMap } from "../../smc-webapp/app-framework/TypedMap";
 
 export interface Quota {
   ram?: number;
+  dedicated_ram?: number;
   cpu?: number;
+  dedicated_cpu?: number;
   disk?: number;
   always_running?: boolean;
   member?: boolean;
@@ -54,6 +56,12 @@ export interface SiteLicense {
 export function describe_quota(quota: Quota): string {
   let desc = quota.user == "business" ? "Business License" : "Academic license";
   desc += ` providing ${quota.ram}GB RAM, ${quota.cpu} CPU, ${quota.disk}GB disk`;
+  if (quota.dedicated_ram) {
+    desc += `, ${quota.dedicated_ram}GB dedicated RAM`;
+  }
+  if (quota.dedicated_cpu) {
+    desc += `, ${quota.dedicated_cpu}GB dedicated CPU`;
+  }
   if (quota.member) {
     desc += ", member hosting";
   }

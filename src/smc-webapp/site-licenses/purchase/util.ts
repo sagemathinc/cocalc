@@ -10,7 +10,9 @@ export type Upgrade = "basic" | "standard" | "max" | "custom";
 export type Subscription = "no" | "monthly" | "yearly";
 export type CustomUpgrades =
   | "ram"
+  | "dedicated_ram"
   | "cpu"
+  | "dedicated_cpu"
   | "disk"
   | "always_running"
   | "member";
@@ -35,7 +37,9 @@ export interface PurchaseInfo {
   payment_method?: string;
   cost?: Cost;
   custom_ram: number;
+  custom_dedicated_ram: number;
   custom_cpu: number;
+  custom_dedicated_cpu: number;
   custom_disk: number;
   custom_always_running: boolean;
   custom_member: boolean;
@@ -65,12 +69,12 @@ export function sanity_checks(info: PurchaseInfo) {
     }
   }
 
-  for (const x of ["ram", "cpu", "disk"]) {
+  for (const x of ["ram", "cpu", "disk", "dedicated_ram", "dedicated_cpu"]) {
     const field = "custom_" + x;
     if (typeof info[field] != "number") {
       throw Error(`field "${field}" must be number`);
     }
-    if (info[field] < 1 || info[field] > MAX[field]) {
+    if (info[field] <= 0 || info[field] > MAX[field]) {
       throw Error(`field "${field}" too small or too big`);
     }
   }
@@ -117,6 +121,12 @@ const ACADEMIC_DISCOUNT = 0.6;
 // we store their data long after they stop paying...
 const DISK_FACTOR = 10;
 
+// These are based on what we observe in practice, what works well,
+// and what is configured in our backend autoscalers.  This only
+// impacts the cost of dedicated cpu and RAM.
+const RAM_OVERCOMMIT = 5;
+const CPU_OVERCOMMIT = 10;
+
 // Extra charge if project will always be on. Really we are gambling that
 // projects that are not always on, are off much of the time (at least 50%).
 // We use this factor since a 50-simultaneous active projects license could
@@ -129,8 +139,16 @@ const ALWAYS_RUNNING_FACTOR = 2;
 const CUSTOM_COST = {
   ram:
     (COST_MULTIPLIER * GCE_COSTS.ram) / ACADEMIC_DISCOUNT / NONMEMBER_DENSITY,
+  dedicated_ram:
+    (RAM_OVERCOMMIT * (COST_MULTIPLIER * GCE_COSTS.ram)) /
+    ACADEMIC_DISCOUNT /
+    NONMEMBER_DENSITY,
   cpu:
     (COST_MULTIPLIER * GCE_COSTS.cpu) / ACADEMIC_DISCOUNT / NONMEMBER_DENSITY,
+  dedicated_cpu:
+    (CPU_OVERCOMMIT * (COST_MULTIPLIER * GCE_COSTS.cpu)) /
+    ACADEMIC_DISCOUNT /
+    NONMEMBER_DENSITY,
   disk: (DISK_FACTOR * COST_MULTIPLIER * GCE_COSTS.disk) / ACADEMIC_DISCOUNT,
   always_running: ALWAYS_RUNNING_FACTOR,
   member: NONMEMBER_DENSITY,
@@ -139,12 +157,16 @@ const BASIC = {
   ram: 1,
   cpu: 1,
   disk: 1,
+  dedicated_ram: 0,
+  dedicated_cpu: 0,
   always_running: 0,
   member: 1,
 } as const;
 const STANDARD = {
   ram: 2,
   cpu: 2,
+  dedicated_ram: 0,
+  dedicated_cpu: 0,
   disk: 3,
   always_running: 0,
   member: 1,
@@ -152,6 +174,8 @@ const STANDARD = {
 const MAX = {
   ram: 16,
   cpu: 3,
+  dedicated_ram: 8,
+  dedicated_cpu: 2,
   disk: 20,
   always_running: 1,
   member: 1,
@@ -190,6 +214,8 @@ export function compute_cost(info: PurchaseInfo): Cost {
     end,
     custom_ram,
     custom_cpu,
+    custom_dedicated_ram,
+    custom_dedicated_cpu,
     custom_disk,
     custom_always_running,
     custom_member,
@@ -210,6 +236,8 @@ export function compute_cost(info: PurchaseInfo): Cost {
   } else if (upgrade == "max") {
     custom_ram = MAX.ram;
     custom_cpu = MAX.cpu;
+    custom_dedicated_ram = MAX.dedicated_ram;
+    custom_dedicated_cpu = MAX.dedicated_cpu;
     custom_disk = MAX.disk;
     custom_always_running = !!MAX.always_running;
     custom_member = !!MAX.member;
@@ -218,7 +246,10 @@ export function compute_cost(info: PurchaseInfo): Cost {
   // We compute the cost for one project for one month.
   // First we add the cost for RAM and CPU.
   let cost_per_project_per_month =
-    custom_ram * COSTS.custom_cost.ram + custom_cpu * COSTS.custom_cost.cpu;
+    custom_ram * COSTS.custom_cost.ram +
+    custom_cpu * COSTS.custom_cost.cpu +
+    custom_dedicated_ram * COSTS.custom_cost.dedicated_ram +
+    custom_dedicated_cpu * COSTS.custom_cost.dedicated_cpu;
   // If the project is always one, multiply the RAM/CPU cost by a factor.
   if (custom_always_running) {
     cost_per_project_per_month *= COSTS.custom_cost.always_running;
@@ -300,4 +331,3 @@ export function money(n: number): string {
   }
   return "USD " + s;
 }
-

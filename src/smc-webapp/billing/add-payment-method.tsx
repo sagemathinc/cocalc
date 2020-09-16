@@ -15,7 +15,7 @@ import { Component, React, Rendered, redux } from "../app-framework";
 
 import { ErrorDisplay, Loading } from "../r_misc";
 
-const { HelpEmailLink } = require("../customize");
+import { HelpEmailLink } from "../customize";
 
 import { powered_by_stripe } from "./util";
 import { load_stripe, StripeCard } from "./stripe";
