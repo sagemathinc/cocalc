@@ -14,7 +14,8 @@ that it simultaneously manages numerous sessions, since simultaneously
 doing a lot of IO-based things is what Node.JS is good at.
 ###
 
-require('ts-node').register(project:"#{__dirname}/tsconfig.json", cacheDirectory:'/tmp')
+ts_node = require('ts-node')
+ts_node.register(project:"#{__dirname}/tsconfig.json", cacheDirectory:'/tmp')
 
 path    = require('path')
 async   = require('async')
@@ -25,6 +26,8 @@ uuid    = require('uuid')
 winston = require('winston')
 request = require('request')
 program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
+
+winston.debug("Running ts-node version #{ts_node.VERSION}")
 
 init_gitconfig = require('./gitconfig').init_gitconfig
 

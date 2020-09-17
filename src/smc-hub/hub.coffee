@@ -11,7 +11,8 @@
 require('coffee2-cache')
 
 # Make loading typescript just work.
-require('ts-node').register({ cacheDirectory: process.env.HOME + '/.ts-node-cache' })
+ts_node = require('ts-node')
+ts_node.register({ cacheDirectory: process.env.HOME + '/.ts-node-cache' })
 
 DEBUG = false
 
@@ -29,6 +30,8 @@ underscore     = require('underscore')
 mime           = require('mime')
 winston        = require('./winston-metrics').get_logger('hub')
 memory         = require('smc-util-node/memory')
+
+winston.debug("Running ts-node version #{ts_node.VERSION}")
 
 program = undefined  # defined below -- can't import with nodev6 at module level when hub.coffee used as a module.
 
