@@ -1382,6 +1382,14 @@ API(
         desc: "id of a license",
       },
     },
+    desc: `\
+Add a license to a project.
+
+Example:
+\`\`\`
+   example not available yet
+\`\`\`\
+`,
   })
 );
 
@@ -1402,6 +1410,14 @@ API(
         desc: "id of a license",
       },
     },
+    desc: `\
+Remove a license from a project.
+
+Example:
+\`\`\`
+   example not available yet
+\`\`\`\
+`,
   })
 );
 
