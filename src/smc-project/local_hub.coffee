@@ -27,8 +27,6 @@ winston = require('winston')
 request = require('request')
 program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 
-winston.debug("Running ts-node version #{ts_node.VERSION}")
-
 init_gitconfig = require('./gitconfig').init_gitconfig
 
 BUG_COUNTER = 0
@@ -48,6 +46,8 @@ exports.get_bugs_total = ->
 # Set the log level
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+
+winston.debug("Running ts-node version #{ts_node.VERSION}")
 
 require('coffeescript/register')
 
