@@ -1,4 +1,4 @@
-#!/usr/bin/env -S node -r "ts-node/register"
+#!/usr/bin/env ts-node-script
 
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
