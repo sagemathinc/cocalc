@@ -26,7 +26,7 @@ import {
 
 // Maximum number of outstanding concurrent messages (that have responses)
 // to send at once to hub-websocket.
-const MAX_CONCURRENT: number = 10;
+const MAX_CONCURRENT: number = 17;
 
 export interface MessageInfo {
   count: number;
