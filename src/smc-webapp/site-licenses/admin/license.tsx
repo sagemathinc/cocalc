@@ -88,15 +88,6 @@ export class License extends Component<Props> {
           val = scale_by_display_factors(val);
         }
       }
-      if (
-        field == "upgrades" &&
-        val == null &&
-        this.props.license.get("quota") != null
-      ) {
-        // do not sow "upgrades" if quota is set, since it shouldn't use
-        // both upgrades and quota.  Yes, this is confusing.
-        continue;
-      }
       const backgroundColor = BACKGROUNDS[i % 2];
       i += 1;
       let x = this.render_value(field, val);

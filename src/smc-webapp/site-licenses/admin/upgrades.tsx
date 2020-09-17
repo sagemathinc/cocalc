@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Component, React, Rendered } from "../../app-framework";
+import { Component, React, Rendered, useState } from "../../app-framework";
 import { fromJS, Map } from "immutable";
 import { DebounceInput } from "react-debounce-input";
 import { upgrades } from "smc-util/upgrade-spec";
@@ -69,13 +69,8 @@ export class DisplayUpgrades extends Component<DisplayProps> {
 
   private render_no_upgrades_warning(): Rendered {
     return (
-      <div
-        style={{
-          background: "darkred",
-          color: "white",
-        }}
-      >
-        <Icon name="warning" /> No upgrades -- please edit to set some upgrades!
+      <div>
+        <Icon name="warning" /> No upgrades (deprecated)
       </div>
     );
   }
@@ -96,24 +91,26 @@ interface EditProps {
   upgrades: undefined | Map<string, number | string>;
 }
 
-export class EditUpgrades extends Component<EditProps> {
-  private on_change(field: upgrade_fields_type, val: string): void {
-    let upgrades = this.props.upgrades == null ? Map() : this.props.upgrades;
+export const EditUpgrades: React.FC<EditProps> = (props) => {
+  const [show, set_show] = useState<boolean>(false);
+
+  function on_change(field: upgrade_fields_type, val: string): void {
+    let upgrades = props.upgrades == null ? Map() : props.upgrades;
     upgrades = upgrades.set(field, val);
-    actions.set_edit(this.props.license_id, this.props.license_field, upgrades);
+    actions.set_edit(props.license_id, props.license_field, upgrades);
   }
 
-  private render_edit(field: upgrade_fields_type): Rendered {
+  function render_edit(field: upgrade_fields_type): Rendered {
     let val: string | number | undefined | number | undefined;
-    if (this.props.upgrades == null || this.props.upgrades.get(field) == null) {
+    if (props.upgrades == null || props.upgrades.get(field) == null) {
       val = "";
     } else {
-      val = `${this.props.upgrades.get(field)}`;
+      val = `${props.upgrades.get(field)}`;
     }
     return (
       <span>
         <DebounceInput
-          onChange={(e) => this.on_change(field, (e.target as any).value)}
+          onChange={(e) => on_change(field, (e.target as any).value)}
           value={val}
           style={INPUT_STYLE}
         />{" "}
@@ -122,26 +119,26 @@ export class EditUpgrades extends Component<EditProps> {
     );
   }
 
-  private render_rows(): Rendered[] {
+  function render_rows(): Rendered[] {
     const rows: Rendered[] = [];
     for (const field of upgrade_fields) {
       rows.push(
         <Row key={field}>
           <Col md={8}>{params(field).display}</Col>
-          <Col md={16}>{this.render_edit(field)}</Col>
+          <Col md={16}>{render_edit(field)}</Col>
         </Row>
       );
     }
     return rows;
   }
 
-  private render_preset_item(product): Rendered {
+  function render_preset_item(product): Rendered {
     return (
       <Menu.Item
         onClick={() =>
           actions.set_edit(
-            this.props.license_id,
-            this.props.license_field,
+            props.license_id,
+            props.license_field,
             scale_by_display_factors(fromJS(product.upgrades))
           )
         }
@@ -152,11 +149,11 @@ export class EditUpgrades extends Component<EditProps> {
     );
   }
 
-  private render_presets(): Rendered {
+  function render_presets(): Rendered {
     const v: Rendered[] = [];
     const PRESETS = presets();
     for (const preset in PRESETS) {
-      v.push(this.render_preset_item(PRESETS[preset]));
+      v.push(render_preset_item(PRESETS[preset]));
     }
     return (
       <Row key={"presets"}>
@@ -172,15 +169,23 @@ export class EditUpgrades extends Component<EditProps> {
     );
   }
 
-  public render(): Rendered {
+  if (!show) {
     return (
       <div>
-        {this.render_presets()}
-        {this.render_rows()}
+        <a onClick={() => set_show(true)}>
+          Upgrades will be deprecated (click to edit anyways)...
+        </a>
       </div>
     );
   }
-}
+
+  return (
+    <div>
+      {render_presets()}
+      {render_rows()}
+    </div>
+  );
+};
 
 export function normalize_upgrades_for_save(
   obj: {
