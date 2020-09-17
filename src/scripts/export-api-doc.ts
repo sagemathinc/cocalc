@@ -3,9 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// run via
-// $ tsc export-api-doc.ts  && node export-api-doc.js
-// or if you have node-ts: $ ts-node scripts/export-api-doc.ts
+// run via node-ts:
+// $ ts-node scripts/export-api-doc.ts
 // then copy 'api.json' over to the root of cocalc-doc
 
 import { writeFileSync } from "fs";
