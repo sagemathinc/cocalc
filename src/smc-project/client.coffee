@@ -26,14 +26,17 @@ as a result.
 
 fs     = require('fs')
 {join} = require('path')
-
 {EventEmitter} = require('events')
 
 {callback2, once} = require("smc-util/async-utils");
-
 async   = require('async')
 
-require('coffeescript/register')
+{do_not_laod_transpilers} = require('./init-program')
+
+if do_not_laod_transpilers
+    console.warn("coffeescript transpiler is not enabled!")
+else
+    require('coffeescript/register')
 
 message    = require('smc-util/message')
 misc       = require('smc-util/misc')
