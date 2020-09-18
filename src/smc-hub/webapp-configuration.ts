@@ -24,6 +24,10 @@ import { have_active_registration_tokens } from "./utils";
 import * as LRUCache from "expiring-lru-cache";
 const CACHE = LRUCache({ size: 10, expiry: ms("10 minutes") });
 
+export function clear_cache(): void {
+  CACHE.reset();
+}
+
 type Theme = { [key: string]: string | boolean };
 
 async function get_passport_manager_async(): Promise<PassportManager> {
@@ -148,13 +152,25 @@ export class WebappConfiguration {
     return strategies;
   }
 
-  // it returns a shallow copy, hence you can modify/add keys in the returned map!
-  public async get({ country, host }) {
+  private async get_config({ country, host }) {
     const [configuration, registration] = await Promise.all([
       this.get_configuration({ host, country }),
       have_active_registration_tokens(this.db),
     ]);
     const strategies = this.get_strategies();
     return { configuration, registration, strategies };
+  }
+
+  // it returns a shallow copy, hence you can modify/add keys in the returned map!
+  public async get({ country, host }) {
+    const key = `config::${country}::${host}`;
+    let config = CACHE.get(key);
+    if (config == null) {
+      config = await this.get_config({ country, host });
+      CACHE.set(key, config);
+    } else {
+      L(`cache hit -- '${key}'`);
+    }
+    return config;
   }
 }
