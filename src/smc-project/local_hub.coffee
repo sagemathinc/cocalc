@@ -121,11 +121,13 @@ if process.env.SMC_LOCAL_HUB_HOME?
 if not process.env.SMC?
     process.env.SMC = path.join(process.env.HOME, '.smc')
 
-SMC = process.env.SMC
+SMC = if program.test then '/tmp' else process.env.SMC
 
 process.chdir(process.env.HOME)
 
 DATA = path.join(SMC, 'local_hub')
+
+winston.debug("DATA='#{DATA}'")
 
 # See https://github.com/sagemathinc/cocalc/issues/174 -- some stupid (?)
 # code sometimes assumes this exists, and it's not so hard to just ensure
@@ -340,13 +342,16 @@ start_server = (tcp_port, raw_port, cb) ->
             fs.writeFile(misc_node.abspath("#{DATA}/local_hub.pid"), "#{process.pid}", cb)
         (cb) ->
             winston.debug("initializing secret token...")
-            secret_token.init_secret_token (err, token) ->
-                if err
-                    cb(err)
-                else
-                    the_secret_token = token
-                    exports.client.secret_token = token
-                    cb()
+            if program.test
+                exports.client.secret_token = "1234567890"
+            else
+                secret_token.init_secret_token (err, token) ->
+                    if err
+                        cb(err)
+                    else
+                        the_secret_token = token
+                        exports.client.secret_token = token
+                        cb()
         (cb) ->
             winston.debug("start API server...")
             try
