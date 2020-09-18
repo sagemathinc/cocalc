@@ -312,10 +312,10 @@ export function compute_cost(info: PurchaseInfo): Cost {
   };
 }
 
-export function percent_discount(
-  cost: number,
-  discounted_cost: number
-): number {
+export function percent_discount({
+  cost,
+  discounted_cost,
+}: Pick<Cost, "cost" | "discounted_cost">): number {
   return Math.round(100 * (1 - discounted_cost / cost));
 }
 
@@ -331,3 +331,7 @@ export function money(n: number): string {
   }
   return "USD " + s;
 }
+
+export const discount_pct = Math.round(
+  (1 - COSTS.user_discount["academic"]) * 100
+);
