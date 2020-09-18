@@ -271,7 +271,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
   cost_per_project_per_month += custom_disk * COSTS.custom_cost.disk;
 
   // It's convenient in all cases to have the actual amount we will be
-  // for both monthly and early available (used by backend for setting up
+  // for both monthly and yearly available (used by backend for setting up
   // stripe products).
   const cost_sub_month =
     cost_per_project_per_month *
