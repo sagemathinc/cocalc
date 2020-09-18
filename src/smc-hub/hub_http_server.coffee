@@ -280,18 +280,16 @@ exports.init_express_http_server = (opts) ->
             # if it is unknown, the code will be XX and K1 is the Tor-Network.
             country = req.headers['cf-ipcountry'] ? 'XX'
             host = req.headers["host"]
+            config = await webapp_config.get(host:host, country:country)
             if req.query.type == 'full'
-                config = await webapp_config.get(host:host, country:country)
                 res.header("Content-Type", "text/javascript")
                 mapping = '{configuration:window.CUSTOMIZE, registration:window.REGISTER, strategies:window.STRATEGIES}'
                 res.send("(#{mapping} = Object.freeze(#{JSON.stringify(config)}))")
             else
                 # this is deprecated
-                webapp_config = await webapp_config.get(host:host, country:country)
-                config = webapp_config.configuration
                 if req.query.type == 'embed'
                     res.header("Content-Type", "text/javascript")
-                    res.send("window.CUSTOMIZE = Object.freeze(#{JSON.stringify(config)})")
+                    res.send("window.CUSTOMIZE = Object.freeze(#{JSON.stringify(config.configuration)})")
                 else
                     # even more deprecated
                     res.json(config)
