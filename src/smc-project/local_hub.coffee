@@ -413,10 +413,11 @@ set_extra_env()
 start_server program.tcp_port, program.raw_port, (err) ->
     if err
         process.exit(1)
-    if program.test
-        winston.debug("Test mode -- waiting 5 seconds")
-        setTimeout ->
-            winston.debug("Test mode -- now exiting")
-            process.exit(0)
-        , 5000
+
+if program.test
+    winston.debug("Test mode -- waiting 10 seconds")
+    setTimeout ->
+        winston.debug("Test mode -- now exiting")
+        process.exit(0)
+    , 10000
 
