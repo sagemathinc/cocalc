@@ -475,9 +475,17 @@ export class ProjectsStore extends Store<ProjectsState> {
     if (site_license != null) {
       // TS: using "any" since we add some fields below
       const license_quota: any = site_license_quota(site_license);
-      // some different names are used for the frontend:
+      // Some different names/units are used for the frontend quota_console.
+      // It makes more sense to add them in here, rather than have confusing
+      // redundancy in the site_license_quota function.  Optimally, we would
+      // unify everything in the frontend ui and never have two different names
+      // and units for the same thing.
       license_quota.cores = license_quota.cpu_limit;
+      delete license_quota["cpu_limit"];
       license_quota.memory = license_quota.memory_limit;
+      delete license_quota["memory_limit"];
+      license_quota.cpu_shares = 1024 * license_quota.cpu_request;
+      delete license_quota["cpu_request"];
       max_quota(quota, license_quota);
     }
   }

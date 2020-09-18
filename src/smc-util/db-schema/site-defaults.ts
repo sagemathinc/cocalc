@@ -32,6 +32,7 @@ export type SiteSettingsKeys =
   | "terms_of_service"
   | "terms_of_service_url"
   | "commercial"
+  | "nonfree_countries"
   | "google_analytics"
   | "kucalc"
   | "dns"
@@ -105,6 +106,8 @@ const valid_dns_name = (val) => val.match(/^[a-zA-Z0-9.-]+$/g);
 
 export const split_iframe_comm_hosts = (hosts) =>
   hosts.match(/[a-z0-9.-]+/g) || [];
+
+const split_strings = (str) => str.match(/[a-zA-Z0-9]+/g) || [];
 
 function num_dns_hosts(val): string {
   return `Found ${split_iframe_comm_hosts(val).length} hosts.`;
@@ -288,6 +291,13 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    show: only_cocalc_com,
+  },
+  nonfree_countries: {
+    name: "Nonfree Countries",
+    desc: "ISO 3166-1 Alpha 2 country codes where restrictions apply",
+    default: "",
+    to_val: split_strings,
     show: only_cocalc_com,
   },
   onprem_quota_heading: {

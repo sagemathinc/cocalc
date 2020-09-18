@@ -17,6 +17,7 @@ interface QueryOpts {
   select?: string[];
   set?: string;
   jsonb_set?: object;
+  jsonb_merge?: object;
   table?: string;
   where?: QueryWhere;
   one?: boolean; // if true get back one result; if false get list of all results.
@@ -35,6 +36,7 @@ export async function query(opts: QueryOpts): Promise<any> {
     opts.set,
     opts.query,
     opts.jsonb_set,
+    opts.jsonb_merge,
     opts.order_by,
     opts.limit,
     opts.params
@@ -49,6 +51,7 @@ function all_query(
   set,
   query,
   jsonb_set,
+  jsonb_merge,
   order_by,
   limit,
   params,
@@ -61,6 +64,7 @@ function all_query(
     set,
     query,
     jsonb_set,
+    jsonb_merge,
     order_by,
     limit,
     params,
@@ -76,6 +80,7 @@ function one_query(
   set,
   query,
   jsonb_set,
+  jsonb_merge,
   order_by,
   limit,
   params,
@@ -88,6 +93,7 @@ function one_query(
     set,
     query,
     jsonb_set,
+    jsonb_merge,
     order_by,
     limit,
     params,

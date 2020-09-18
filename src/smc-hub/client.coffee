@@ -1327,6 +1327,35 @@ class exports.Client extends EventEmitter
                             @push_to_client(message.success(id:mesg.id))
                 )
 
+    mesg_add_license_to_project: (mesg) =>
+        dbg = @dbg('mesg_add_license_to_project')
+        dbg()
+        @touch()
+        @_check_project_access mesg.project_id, (err) =>
+            if err
+                dbg("failed -- #{err}")
+                @error_to_client(id:mesg.id, error:"must have write access to #{mesg.project_id} -- #{err}")
+                return
+            try
+                await @database.add_license_to_project(mesg.project_id, mesg.license_id)
+                @success_to_client(id:mesg.id)
+            catch err
+                @error_to_client(id:mesg.id, error:"#{err}")
+
+    mesg_remove_license_from_project: (mesg) =>
+        dbg = @dbg('mesg_remove_license_from_project')
+        dbg()
+        @touch()
+        @_check_project_access mesg.project_id, (err) =>
+            if err
+                dbg("failed -- #{err}")
+                @error_to_client(id:mesg.id, error:"must have write access to #{mesg.project_id} -- #{err}")
+                return
+            try
+                await @database.remove_license_from_project(mesg.project_id, mesg.license_id)
+                @success_to_client(id:mesg.id)
+            catch err
+                @error_to_client(id:mesg.id, error:"#{err}")
 
     mesg_invite_noncloud_collaborators: (mesg) =>
         dbg = @dbg('mesg_invite_noncloud_collaborators')
