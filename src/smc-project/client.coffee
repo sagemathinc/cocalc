@@ -34,7 +34,7 @@ async   = require('async')
 {do_not_laod_transpilers} = require('./init-program')
 
 if do_not_laod_transpilers
-    console.warn("coffeescript transpiler is not enabled!")
+    console.warn("[project/client] coffeescript transpiler is not enabled!")
 else
     require('coffeescript/register')
 

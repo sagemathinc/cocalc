@@ -34,7 +34,17 @@ import { EventEmitter } from "events";
 import { exists, unlink } from "./async-utils-node";
 import * as pidusage from "pidusage";
 
-require("coffee-register");
+const { do_not_laod_transpilers } = require("../init-program");
+
+if (do_not_laod_transpilers) {
+  console.warn(
+    "[project/jupyter] coffeescript transpiler is not enabled!"
+  );
+} else {
+  // because of misc and misc_node below.  Delete this when those are typescript'd
+  require("coffee-register");
+}
+
 const {
   merge,
   copy,
@@ -79,7 +89,10 @@ import { JupyterStore } from "../smc-webapp/jupyter/store";
 
 import { JupyterKernelInterface } from "../smc-webapp/jupyter/project-interface";
 
-import {launch_jupyter_kernel, LaunchJupyterOpts } from "./launch_jupyter_kernel"
+import {
+  launch_jupyter_kernel,
+  LaunchJupyterOpts,
+} from "./launch_jupyter_kernel";
 
 /*
 We set a few extra user-specific options for the environment in which
@@ -281,7 +294,11 @@ export class JupyterKernel extends EventEmitter
     const dbg = this.dbg("spawn1");
     dbg("spawning kernel...");
 
-    const opts: LaunchJupyterOpts = { detached: true, stdio: "ignore", env: {} };
+    const opts: LaunchJupyterOpts = {
+      detached: true,
+      stdio: "ignore",
+      env: {},
+    };
 
     if (this.name.indexOf("sage") == 0) {
       dbg("setting special environment for sage.* kernels");
