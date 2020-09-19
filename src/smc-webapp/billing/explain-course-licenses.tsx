@@ -287,8 +287,8 @@ export const ExplainLicenses: React.FC<{}> = () => {
       <>
         <h4>Examples</h4>
         <p>
-          Here are three possible configuration. All parameters can be adjusted
-          to your needs!
+          Here are three exemplary configurations. All parameters can be
+          adjusted to fit your needs! Exact prices may vary.
         </p>
         <Space />
         <div style={{ marginBottom: "10px" }}>
