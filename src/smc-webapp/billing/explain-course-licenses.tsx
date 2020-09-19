@@ -41,8 +41,8 @@ const p1data = {
   upgrade: "custom" as Upgrade,
   quantity: 20 + 2,
   subscription: "no" as Subscription,
-  start: new Date("2020-01-01Z00:00"),
-  end: new Date("2020-02-01Z00:00"),
+  start: new Date("2020-01-01T12:00Z"),
+  end: new Date("2020-02-01T11:59:59.999Z"),
   custom_ram: 2,
   custom_cpu: 1,
   custom_disk: 1,
@@ -58,8 +58,8 @@ const p2data = {
   upgrade: "custom" as Upgrade,
   quantity: 5 + 1,
   subscription: "no" as Subscription,
-  start: new Date("2020-01-01Z00:00"),
-  end: new Date("2020-01-05Z00:00"),
+  start: new Date("2020-01-01T12:00Z"),
+  end: new Date("2020-01-06T11:59:59.999Z"),
   custom_ram: 2,
   custom_cpu: 1,
   custom_disk: 5,
@@ -75,8 +75,8 @@ const p3data = {
   upgrade: "custom" as Upgrade,
   quantity: 120 + 2,
   subscription: "no" as Subscription,
-  start: new Date("2020-01-01Z00:00"),
-  end: new Date("2020-05-01Z00:00"),
+  start: new Date("2020-01-01T12:00Z"),
+  end: new Date("2020-05-01T11:59:59.999Z"),
   custom_ram: 1,
   custom_cpu: 1,
   custom_disk: 1,
@@ -89,7 +89,7 @@ const Price3 = compute_cost(p3data);
 
 const EXAMPLES: Example[] = [
   {
-    title: "Professinal Training",
+    title: "Professional Training",
     icon: "battery-quarter",
     lines: [
       { value: 1, unit: "Trainer", resource: "Project" },
@@ -119,7 +119,7 @@ const EXAMPLES: Example[] = [
       { value: 1, unit: "Instructor", resource: "Project" },
       { value: 1, unit: "Shared", resource: "Project" },
       { value: p1data.quantity - 2, unit: "Student", resource: "Projects" },
-      { value: 1, unit: "months", resource: "Duration" },
+      { value: 1, unit: "month", resource: "Duration" },
       { value: p1data.custom_ram, unit: "GB", resource: "Shared RAM" },
       { value: p1data.custom_cpu, unit: "cores", resource: "Shared CPU" },
       { value: p1data.custom_disk, unit: "GB", resource: "Disk space" },
@@ -138,7 +138,7 @@ const EXAMPLES: Example[] = [
     lines: [
       { value: 1, unit: "Instructor", resource: "Project" },
       { value: 1, unit: "Shared", resource: "Project" },
-      { value: p1data.quantity - 2, unit: "Student", resource: "Projects" },
+      { value: p3data.quantity - 2, unit: "Student", resource: "Projects" },
       { value: 4, unit: "months", resource: "Duration" },
       { value: p3data.custom_ram, unit: "GB", resource: "Shared RAM" },
       { value: p3data.custom_cpu, unit: "cores", resource: "Shared CPU" },
@@ -189,10 +189,10 @@ export const ExplainLicenses: React.FC<{}> = () => {
             and CPU.
           </li>
           <li>Duration</li>
-          <li>Invoicing/Billing</li>
+          <li>Online purchasing vs. invoicing/billing</li>
         </ul>
         <p>
-          Please be also aware that you can aquire several licenses: e.g. to
+          Please be also aware that you can acquire several licenses: e.g. to
           partition a semester into smaller parts or to keep upgrades separate
           between certain groups.
         </p>
@@ -238,14 +238,14 @@ export const ExplainLicenses: React.FC<{}> = () => {
     );
   }
 
-  function render_example_price({ price, period }) {
+  function render_example_price({ price }) {
     return (
       <>
         <span style={{ whiteSpace: "nowrap", color: COLORS.GRAY }}>
           <span style={{ fontSize: "16px", verticalAlign: "super" }}>$</span>
           <Space />
           <span style={{ fontSize: "30px" }}>{round2(price.cost)}</span>
-          <span style={{ fontSize: "14px" }}> / {period}</span>
+          <span style={{ fontSize: "14px" }}> / retail price</span>
         </span>
         <br />
         <span style={{ whiteSpace: "nowrap", fontWeight: "bold" }}>
@@ -263,7 +263,8 @@ export const ExplainLicenses: React.FC<{}> = () => {
   function render_example({ title, icon, lines, price, period }: Example) {
     const header = (
       <div style={{ paddingLeft: "10px" }}>
-        <Icon name={icon} /> <span style={{ fontWeight: "bold" }}>{title}</span>
+        <Icon name={icon} /> <span style={{ fontWeight: "bold" }}>{title}</span>{" "}
+        ({period})
       </div>
     );
     return (
@@ -274,7 +275,7 @@ export const ExplainLicenses: React.FC<{}> = () => {
           <Space />
 
           <div style={{ textAlign: "center", marginTop: "10px" }}>
-            {render_example_price({ price, period })}
+            {render_example_price({ price })}
           </div>
         </Panel>
       </Col>
@@ -284,11 +285,15 @@ export const ExplainLicenses: React.FC<{}> = () => {
   function render_examples() {
     return (
       <>
+        <h4>Examples</h4>
+        <p>
+          Here are three possible configuration. All parameters can be adjusted
+          to your needs!
+        </p>
         <Space />
         <div style={{ marginBottom: "10px" }}>
           {EXAMPLES.map((ex) => render_example(ex))}
         </div>
-        <Space />
       </>
     );
   }
@@ -311,9 +316,13 @@ export const ExplainLicenses: React.FC<{}> = () => {
       <h3>{TITLE}</h3>
       <div>
         {render_intro()}
+        <Space />
         {render_licenses()}
+        <Space />
         {render_payment_opts()}
+        <Space />
         {render_examples()}
+        <Space />
         {render_contact()}
       </div>
     </div>
