@@ -25,6 +25,8 @@ export interface QueryOptions {
   set?: { [key: string]: any };
   params?: any[];
   values?: { [key: string]: any };
+  jsonb_set?: object;
+  jsonb_merge?: object;
   cache?: boolean;
   retry_until_success?: any; // todo
   cb?: Function;

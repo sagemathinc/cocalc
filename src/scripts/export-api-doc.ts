@@ -1,11 +1,12 @@
+#!/usr/bin/env ts-node-script
+
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// run via
-// $ tsc export-api-doc.ts  && node export-api-doc.js
-// or if you have node-ts: $ ts-node scripts/export-api-doc.ts
+// run this file as usual: $ export-api-doc.ts (exec in your PATH) or
+// $ ts-node scripts/export-api-doc.ts
 // then copy 'api.json' over to the root of cocalc-doc
 
 import { writeFileSync } from "fs";
