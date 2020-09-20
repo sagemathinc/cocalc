@@ -3,24 +3,25 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Component, Rendered } from "../app-framework";
+import { React } from "../app-framework";
 const { HelpEmailLink, SiteName } = require("../customize");
 import { A } from "../r_misc";
-import { STUDENT_COURSE_PRICE } from "./data";
+import {
+  STUDENT_COURSE_PRICE,
+  TEACHER_PAYS,
+  STUDENT_PAYS,
+  INSTRUCTOR_GUIDE,
+} from "./data";
 import { Space } from "../r_misc/space";
 
 interface Props {
   type: "personal" | "course";
 }
 
-const TEACHER_PAYS =
-  "https://doc.cocalc.com/teaching-create-course.html#option-2-teacher-or-institution-pays-for-upgrades";
-const STUDENT_PAYS =
-  "https://doc.cocalc.com/teaching-create-course.html#option-1-students-pay-for-upgrades";
-const INSTRUCTOR_GUIDE = "https://doc.cocalc.com/teaching-instructors.html";
+export const ExplainPlan: React.FC<Props> = (props: Props) => {
+  const { type } = props;
 
-export class ExplainPlan extends Component<Props> {
-  private render_dedicated(): Rendered {
+  function render_dedicated() {
     return (
       <div>
         For highly intensive workloads you can also purchase{" "}
@@ -28,7 +29,7 @@ export class ExplainPlan extends Component<Props> {
       </div>
     );
   }
-  private render_personal(): Rendered {
+  function render_personal() {
     return (
       <div style={{ marginBottom: "10px" }}>
         <a id="subscriptions" />
@@ -53,13 +54,13 @@ export class ExplainPlan extends Component<Props> {
         <Space />
 
         <br />
-        {this.render_dedicated()}
+        {render_dedicated()}
         <br />
       </div>
     );
   }
 
-  private render_course(): Rendered {
+  function render_course() {
     return (
       <div style={{ marginBottom: "10px" }}>
         <a id="courses" />
@@ -130,14 +131,12 @@ export class ExplainPlan extends Component<Props> {
     );
   }
 
-  public render(): Rendered {
-    switch (this.props.type) {
-      case "personal":
-        return this.render_personal();
-      case "course":
-        return this.render_course();
-      default:
-        throw Error(`unknown plan type ${this.props.type}`);
-    }
+  switch (type) {
+    case "personal":
+      return render_personal();
+    case "course":
+      return render_course();
+    default:
+      throw Error(`unknown plan type ${type}`);
   }
-}
+};
