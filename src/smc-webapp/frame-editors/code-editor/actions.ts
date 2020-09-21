@@ -2335,10 +2335,13 @@ export class Actions<
   }
 
   public async clear_terminal(id: string) {
-    this.set_frame_tree({ id, command: undefined, args: undefined });
-    await this.terminals.kill(id);
-    await delay(2000); // wait for respan (await kill does not do anything)
-    this.terminals.get(id)?.conn_write("reset\n");
+    this.clear_terminal_command(id);
+    const t = this.terminals.get(id);
+    // we also wait until it is "back again with a prompt" and issue the reset command
+    if (t == null) return;
+    await t.wait_for_next_render();
+    await delay(1); // also wait a little bit
+    t.conn_write("reset\n");
   }
 
   public set_active_key_handler(key_handler: Function): void {
