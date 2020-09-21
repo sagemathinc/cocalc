@@ -5,9 +5,7 @@
 
 import { React } from "../app-framework";
 const { HelpEmailLink, SiteName } = require("../customize");
-const { Panel } = require("react-bootstrap");
-import { Col } from "react-bootstrap";
-import { A, Space, Icon } from "../r_misc";
+import { A, Space } from "../r_misc";
 import {
   STUDENT_COURSE_PRICE,
   TEACHER_PAYS,
@@ -15,26 +13,16 @@ import {
   INSTRUCTOR_GUIDE,
   DOC_LICENSE_URL,
 } from "./data";
-import { COLORS } from "smc-util/theme";
 import {
   compute_cost,
   discount_pct,
   User,
   Upgrade,
   Subscription,
-  Cost,
 } from "../site-licenses/purchase/util";
-import { round2 } from "smc-util/misc";
+import { LicenseExamples } from "./license-examples";
 
 export const TITLE = "Course licenses";
-
-interface Example {
-  title: string;
-  icon: string;
-  lines: { value: number; unit: string; resource: string }[];
-  price: Cost;
-  period: string;
-}
 
 const p1data = {
   user: "academic" as User,
@@ -87,10 +75,11 @@ const p3data = {
 };
 const Price3 = compute_cost(p3data);
 
-const EXAMPLES: Example[] = [
+const EXAMPLES = [
   {
     title: "Professional Training",
     icon: "battery-quarter",
+    user: p2data.user,
     lines: [
       { value: 1, unit: "Trainer", resource: "Project" },
       { value: p2data.quantity - 1, unit: "Participant", resource: "Projects" },
@@ -115,6 +104,7 @@ const EXAMPLES: Example[] = [
   {
     title: `${p1data.quantity - 2} Students`,
     icon: "battery-three-quarters",
+    user: p1data.user,
     lines: [
       { value: 1, unit: "Instructor", resource: "Project" },
       { value: 1, unit: "Shared", resource: "Project" },
@@ -135,6 +125,7 @@ const EXAMPLES: Example[] = [
   {
     title: `${p3data.quantity - 2} Students`,
     icon: "battery-full",
+    user: p3data.user,
     lines: [
       { value: 1, unit: "Instructor", resource: "Project" },
       { value: 1, unit: "Shared", resource: "Project" },
@@ -226,76 +217,8 @@ export const ExplainLicenses: React.FC<{}> = () => {
     );
   }
 
-  function render_example_line({ value, unit, resource }) {
-    return (
-      <div style={{ marginBottom: "5px", marginLeft: "10px" }}>
-        <span style={{ fontWeight: "bold", color: "#444" }}>
-          {value} {unit}
-        </span>
-        <Space />
-        <span style={{ color: COLORS.GRAY }}>{resource}</span>
-      </div>
-    );
-  }
-
-  function render_example_price({ price }) {
-    return (
-      <>
-        <span style={{ whiteSpace: "nowrap", color: COLORS.GRAY }}>
-          <span style={{ fontSize: "16px", verticalAlign: "super" }}>$</span>
-          <Space />
-          <span style={{ fontSize: "30px" }}>{round2(price.cost)}</span>
-          <span style={{ fontSize: "14px" }}> / retail price</span>
-        </span>
-        <br />
-        <span style={{ whiteSpace: "nowrap", fontWeight: "bold" }}>
-          <span style={{ fontSize: "16px", verticalAlign: "super" }}>$</span>
-          <Space />
-          <span style={{ fontSize: "30px" }}>
-            {round2(price.discounted_cost)}
-          </span>
-          <span style={{ fontSize: "14px" }}> / purchased online</span>
-        </span>
-      </>
-    );
-  }
-
-  function render_example({ title, icon, lines, price, period }: Example) {
-    const header = (
-      <div style={{ paddingLeft: "10px" }}>
-        <Icon name={icon} /> <span style={{ fontWeight: "bold" }}>{title}</span>{" "}
-        ({period})
-      </div>
-    );
-    return (
-      <Col sm={4}>
-        <Panel header={header} bsStyle={"info"}>
-          <Space />
-          {lines.map((line) => render_example_line(line))}
-          <Space />
-
-          <div style={{ textAlign: "center", marginTop: "10px" }}>
-            {render_example_price({ price })}
-          </div>
-        </Panel>
-      </Col>
-    );
-  }
-
   function render_examples() {
-    return (
-      <>
-        <h4>Examples</h4>
-        <p>
-          Here are three exemplary configurations. All parameters can be
-          adjusted to fit your needs! Exact prices may vary.
-        </p>
-        <Space />
-        <div style={{ marginBottom: "10px" }}>
-          {EXAMPLES.map((ex) => render_example(ex))}
-        </div>
-      </>
-    );
+    return <LicenseExamples examples={EXAMPLES} />;
   }
 
   function render_contact() {
