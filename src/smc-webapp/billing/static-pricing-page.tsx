@@ -9,7 +9,6 @@ import { ExplainResources } from "./explain-resources";
 import { ExplainLicenses } from "./explain-course-licenses";
 import { SubscriptionLicenses } from "./subscription-licenses";
 import { ExplainPlan } from "./explain-plan";
-import { SubscriptionGrid } from "./subscription-grid";
 import { DedicatedVM } from "./dedicated-vm";
 
 export function render_static_pricing_page(): Rendered {

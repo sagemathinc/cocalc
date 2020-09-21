@@ -36,7 +36,7 @@ export const ExplainResources: React.FC<Props> = (props: Props) => {
         <ul style={{ paddingLeft: "20px" }}>
           <li>
             <b>
-              <a href="#subscriptions">Personal subscriptions</a>
+              <a href="#subscriptions">Service subscriptions</a>
             </b>
             : upgrade your projects
           </li>
