@@ -2334,6 +2334,13 @@ export class Actions<
     this.terminals.kill(id);
   }
 
+  public async clear_terminal(id: string) {
+    this.set_frame_tree({ id, command: undefined, args: undefined });
+    await this.terminals.kill(id);
+    await delay(2000); // wait for respan (await kill does not do anything)
+    this.terminals.get(id)?.conn_write("reset\n");
+  }
+
   public set_active_key_handler(key_handler: Function): void {
     (this.redux.getActions("page") as any).set_active_key_handler(
       key_handler,

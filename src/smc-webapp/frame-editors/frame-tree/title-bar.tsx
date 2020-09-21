@@ -1154,6 +1154,22 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     );
   }
 
+  function render_clear_terminal(): Rendered {
+    if (!is_visible("clear_terminal")) {
+      return;
+    }
+    return (
+      <Button
+        key={"clear_terminal"}
+        bsSize={button_size()}
+        onClick={() => props.actions.clear_terminal(props.id)}
+        title={"Clear terminal"}
+      >
+        <Icon name={"trash"} />{" "}
+      </Button>
+    );
+  }
+
   function render_close_and_halt(labels: boolean): Rendered {
     if (!is_visible("close_and_halt")) {
       return;
@@ -1265,6 +1281,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
       v.push(render_format_group());
     }
     v.push(render_edit_init_script());
+    v.push(render_clear_terminal());
     v.push(render_count_words());
     v.push(render_table_of_contents());
     v.push(render_kick_other_users_out());
