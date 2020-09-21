@@ -11,4 +11,3 @@ if (!process.env.SMC) {
 }
 
 exports.local_hub = require("./local_hub.coffee");
-exports.console_server = require("./console_server.coffee");
