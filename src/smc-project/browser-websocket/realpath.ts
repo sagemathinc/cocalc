@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // path is assumed relative to the HOME directory
 // return value is also relative to HOME directory -- if it is
 // a symlink to something outside of the HOME directory, we just

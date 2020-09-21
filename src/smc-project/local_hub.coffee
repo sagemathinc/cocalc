@@ -79,10 +79,6 @@ secret_token = require('./secret_token')
 
 start_api_server = require('./http-api/server').start_server
 
-# Console sessions
-console_session_manager = require('./console_session_manager')
-console_sessions = new console_session_manager.ConsoleSessions()
-
 # Ports for the various servers
 port_manager = require('./port_manager')
 
@@ -175,23 +171,10 @@ connect_to_session = (socket, mesg) ->
     winston.debug("connect_to_session -- type='#{mesg.type}'")
     switch mesg.type
         when 'console'
-            console_sessions.connect(socket, mesg)
+            throw Error("Console Unsupported")
         else
             err = message.error(id:mesg.id, error:"Unsupported session type '#{mesg.type}'")
             socket.write_mesg('json', err)
-
-# Kill an existing session.
-terminate_session = (socket, mesg) ->
-    cb = (err) ->
-        if err
-            mesg = message.error(id:mesg.id, error:err)
-        socket.write_mesg('json', mesg)
-
-    sid = mesg.session_uuid
-    if console_sessions.session_exists(sid)
-        console_sessions.terminate_session(sid, cb)
-    else
-        cb()
 
 # Handle a message from the hub
 handle_mesg = (socket, mesg, handler) ->
@@ -228,7 +211,7 @@ handle_mesg = (socket, mesg, handler) ->
                 # send back confirmation that a signal was sent
                 socket.write_mesg('json', message.signal_sent(id:mesg.id))
         when 'terminate_session'
-            terminate_session(socket, mesg)
+            throw Error("'terminate_session' unsupported")
         when 'save_blob'
             blobs.handle_save_blob_message(mesg)
         when 'error'
@@ -312,8 +295,6 @@ start_tcp_server = (secret_token, port, cb) ->
 # Start listening for connections on the socket.
 start_server = (tcp_port, raw_port, cb) ->
     the_secret_token = undefined
-    if program.console_port
-        console_sessions.set_port(program.console_port)
 
     # We run init_info_json to determine the INFO variable.
     # However, we do NOT wait for the cb of init_info_json to be called, since we don't care in this process that the file info.json was written.
@@ -351,7 +332,6 @@ start_server = (tcp_port, raw_port, cb) ->
                     cb(err)
                 else
                     the_secret_token = token
-                    console_sessions.set_secret_token(token)
                     exports.client.secret_token = token
                     cb()
         (cb) ->
