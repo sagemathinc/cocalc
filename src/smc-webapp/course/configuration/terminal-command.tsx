@@ -15,7 +15,7 @@ import {
 
 import { Button, Card, Form, Input } from "antd";
 
-import { Icon } from "../../r_misc";
+import { Icon, Space } from "../../r_misc";
 
 import { Result } from "../student-projects/run-in-all-projects";
 
@@ -56,7 +56,7 @@ class TerminalCommandPanel extends Component<Props> {
         disabled={running}
       >
         <Icon name={running ? "cc-icon-cocalc-ring" : "play"} spin={running} />{" "}
-        Run
+        <Space /> Run
       </Button>
     );
   }
