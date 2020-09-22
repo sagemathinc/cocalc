@@ -20,7 +20,7 @@ import {
   get_default_font_size,
   log_error,
   public_get_text_file,
-  prettier,
+  formatter,
   syncstring,
   syncdb2,
   syncstring2,
@@ -78,7 +78,7 @@ import {
   Exts as FormatterExts,
   Tool as FormatterTool,
 } from "smc-util/code-formatter";
-import { Config as FormatterConfig } from "smc-project/formatters/prettier";
+import { Config as FormatterConfig } from "smc-project/formatters";
 import { SHELLS } from "./editor";
 
 interface gutterMarkerParams {
@@ -1995,7 +1995,7 @@ export class Actions<
 
     this.set_status("Running code formatter...");
     try {
-      const patch = await prettier(this.project_id, this.path, config);
+      const patch = await formatter(this.project_id, this.path, config);
       if (patch != null) {
         // Apply the patch.
         // NOTE: old backends that haven't restarted just return {status:'ok'}

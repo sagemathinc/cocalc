@@ -8,7 +8,7 @@ API for direct connection to a project; implemented using the websocket.
 */
 
 import { callback } from "awaiting";
-import { Channel } from "./types";
+import { Channel, Mesg } from "./types";
 import {
   ConfigurationAspect,
   Capabilities,
@@ -21,7 +21,7 @@ import { syntax2tool } from "smc-util/code-formatter";
 import {
   Options as FormatterOptions,
   Config as FormatterConfig,
-} from "smc-project/formatters/prettier";
+} from "smc-project/formatters";
 import {
   NBGraderAPIOptions,
   RunNotebookOptions,
@@ -29,6 +29,7 @@ import {
 import { DirectoryListingEntry } from "smc-util/types";
 
 import { reuseInFlight } from "async-await-utils/hof";
+
 
 export class API {
   private conn: any;
@@ -40,7 +41,7 @@ export class API {
     this.listing = reuseInFlight(this.listing.bind(this));
   }
 
-  async call(mesg: object, timeout_ms: number): Promise<any> {
+  async call(mesg: Mesg, timeout_ms: number): Promise<any> {
     const resp = await callback(call, this.conn, mesg, timeout_ms);
     if (resp != null && resp.status === "error") {
       throw Error(resp.error);
@@ -141,13 +142,15 @@ export class API {
   // We return a patch rather than the entire file, since often
   // the file is very large, but the formatting is tiny.  This is purely
   // a data compression technique.
-  async prettier(path: string, config: FormatterConfig): Promise<any> {
+  async formatter(path: string, config: FormatterConfig): Promise<any> {
     const options: FormatterOptions = this.check_formatter_available(config);
+    // TODO change this to "formatter" at some point in the future (Sep 2020)
     return await this.call({ cmd: "prettier", path: path, options }, 15000);
   }
 
-  async prettier_string(str: string, config: FormatterConfig): Promise<any> {
+  async formatter_string(str: string, config: FormatterConfig): Promise<any> {
     const options: FormatterOptions = this.check_formatter_available(config);
+    // TODO change this to "formatter_string" at some point in the future (Sep 2020)
     return await this.call(
       {
         cmd: "prettier_string",
