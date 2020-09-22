@@ -153,9 +153,10 @@ export class ConfigurationActions {
     }
   }
 
-  public set_nbgrader_grade_in_instructor_project(value: boolean): void {
+  // project_id is a uuid *or* empty string.
+  public set_nbgrader_grade_project(project_id: string): void {
     this.set({
-      nbgrader_grade_in_instructor_project: value,
+      nbgrader_grade_project: project_id,
       table: "settings",
     });
   }

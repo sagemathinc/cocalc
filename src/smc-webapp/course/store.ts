@@ -132,7 +132,8 @@ export type CourseSettingsRecord = TypedMap<{
   upgrade_goal: Map<any, any>;
   site_license_id?: string;
   site_license_strategy?: SiteLicenseStrategy;
-  nbgrader_grade_in_instructor_project?: boolean;
+  nbgrader_grade_in_instructor_project?: boolean;   // deprecated
+  nbgrader_grade_project?: string;
   nbgrader_include_hidden_tests?: boolean;
   nbgrader_cell_timeout_ms?: number;
   nbgrader_timeout_ms?: number;

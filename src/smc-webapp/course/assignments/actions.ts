@@ -37,6 +37,7 @@ import {
   mswalltime,
   defaults,
   split,
+  trunc,
 } from "smc-util/misc";
 import { map } from "awaiting";
 
@@ -1574,9 +1575,9 @@ ${details}
       return; // nothing case.
     }
 
-    const nbgrader_grade_in_instructor_project: boolean = !!store.getIn([
+    const nbgrader_grade_project: string | undefined = store.getIn([
       "settings",
-      "nbgrader_grade_in_instructor_project",
+      "nbgrader_grade_project",
     ]);
 
     const nbgrader_include_hidden_tests: boolean = !!store.getIn([
@@ -1587,10 +1588,8 @@ ${details}
     const course_project_id = store.get("course_project_id");
 
     let grade_project_id: string;
-    let where_grade: string;
-    if (nbgrader_grade_in_instructor_project) {
-      grade_project_id = course_project_id;
-      where_grade = "instructor project";
+    if (nbgrader_grade_project) {
+      grade_project_id = nbgrader_grade_project;
     } else {
       const student_project_id = student.get("project_id");
       if (student_project_id == null) {
@@ -1600,8 +1599,9 @@ ${details}
         throw Error("student has no project, so can't run nbgrader");
       }
       grade_project_id = student_project_id;
-      where_grade = "student's project";
     }
+    const where_grade =
+      redux.getStore("projects").get_title(grade_project_id) ?? "a project";
 
     if (instructor_ipynb_files == null) {
       instructor_ipynb_files = await this.nbgrader_instructor_ipynb_files(
@@ -1627,7 +1627,7 @@ ${details}
       const activity_id = this.course_actions.set_activity({
         desc: `Running nbgrader on ${store.get_student_name(
           student_id
-        )}'s "${file}" in ${where_grade}`,
+        )}'s "${file}" in '${trunc(where_grade, 40)}'`,
       });
       if (assignment == null || student == null) {
         // This won't happen, but it makes Typescript happy.
@@ -1743,7 +1743,6 @@ ${details}
         filename,
         JSON.stringify(notebook, undefined, 2)
       );
-
     }
 
     this.set_nbgrader_scores_for_one_student(
