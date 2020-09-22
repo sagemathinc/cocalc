@@ -1409,8 +1409,10 @@ ${details}
   // Run nbgrader for all students for which this assignment
   // has been collected at least once.
   public async run_nbgrader_for_all_students(
-    assignment_id: string
+    assignment_id: string,
+    ungraded_only?: boolean
   ): Promise<void> {
+    console.log({ ungraded_only });
     // console.log("run_nbgrader_for_all_students", assignment_id);
     const instructor_ipynb_files = await this.nbgrader_instructor_ipynb_files(
       assignment_id
