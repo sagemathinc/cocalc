@@ -71,6 +71,7 @@ import {
   compute_cost,
   money,
   percent_discount,
+  discount_pct,
 } from "./util";
 
 interface Props {
@@ -209,10 +210,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               desc: (
                 <span>
                   students, teachers, academic researchers and hobbyists{" "}
-                  <b>
-                    ({Math.round((1 - COSTS.user_discount["academic"]) * 100)}%
-                    discount)
-                  </b>
+                  <b>({discount_pct}% discount)</b>
                 </span>
               ),
               value: "academic",
@@ -494,7 +492,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           {" or "}
           {money(cost.discounted_cost)}
           {subscription != "no" ? " " + subscription : ""}, if you purchase
-          online now ({percent_discount(cost.cost, cost.discounted_cost)}% off!)
+          online now ({percent_discount(cost)}% off!)
         </>
       );
     } else {

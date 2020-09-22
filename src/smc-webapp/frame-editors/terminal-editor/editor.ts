@@ -26,11 +26,17 @@ export const terminal = {
     "kick_other_users_out",
     "pause",
     "edit_init_script",
+    "clear",
     "help",
     "connection_status",
     /*"reload" */
   ]),
   hide_public: true, // never show this editor option for public view
+  clear_info: {
+    text:
+      "Clearing this Terminal terminates a running program, respawns the shell, and cleans up the display buffer.",
+    confirm: "Yes, clean up!",
+  },
 };
 
 const EDITOR_SPEC = {

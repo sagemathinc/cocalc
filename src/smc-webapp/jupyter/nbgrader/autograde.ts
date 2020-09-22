@@ -164,13 +164,113 @@ export function extract_auto_scores(notebook: JupyterNotebook): NotebookScores {
       // distinct cells...
       let score: number = points;
       for (const output of outputs) {
-        if (output["traceback"] != null) {
+        const s = get_score(output);
+        if (s === undefined) {
+          // no information about score yet
+          continue;
+        }
+        if (s === 0) {
           score = 0;
           break; // game over.
         }
+        // must be an actual score.
+        // avoid cheating by somehow outputting something larger than max number of points
+        score = Math.min(s, points);
+        // Important: at this point we do NOT break, because a *later* output could
+        // easily reduce the score to 0, and we don't want students to easily cheat (?).
+        // This potentially diverges from official nbgrader behavior.
       }
       scores[nbgrader.grade_id] = { score, points, manual };
     }
   }
   return scores;
 }
+
+// See comment/rant below...
+function get_score(output): number | undefined {
+  if (output["traceback"] != null) {
+    // If there is any traceback at all, it's 0 points.
+    return 0;
+  }
+  if (output["text"] == null) {
+    // no impact on score
+    return undefined;
+  }
+  if (output["text"] != null) {
+    if (output["text"].toLowerCase().indexOf("error") != -1) {
+      // With Octave assertions output text that contains the word "error".
+      // Official nbgrader would give this full credit, but with CoCalc we will
+      // give it 0 credit.
+      // We can't just make *any* output give 0 credit though, e.g., it might be
+      // valid to put some print logging in a solution.
+      return 0;
+    }
+    // if output can cast to finite float, use that as the score (partial credit)
+    try {
+      const x = parseFloat(output["text"]);
+      if (isFinite(x)) {
+        return x;
+      }
+    } catch (_) {}
+  }
+
+  return undefined;
+}
+
+/* Comment/rant:
+
+As of Sept 20, 2020: here's what the official nbgrader docs say about autograder test cells:
+
+> "Test cells should contain assert statements (or similar). When run through
+nbgrader autograde (see Autograde assignments), the cell will pass if no
+errors are raised, and fail otherwise. You must specify the number of points
+that each test cell is worth; then, if the tests pass during autograding,
+students will receive the specified number of points, and **otherwise will
+receive zero points**." https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#autograder-tests-cells
+
+The official nbgrader source code [here](https://github.com/jupyter/nbgrader/blob/master/nbgrader/utils.py#L97):
+
+```
+        # for code cells, we look at the output. There are three options:
+        # 1. output contains an error (no credit);
+        # 2. output is a value greater than 0 (partial credit);
+        # 3. output is something else, or nothing (full credit).
+        for output in cell.outputs:
+            # option 1: error, return 0
+            if output.output_type == 'error' or output.output_type == "stream" and output.name == "stderr":
+                return 0, max_points
+            # if not error, then check for option 2, partial credit
+            if output.output_type == 'execute_result':
+                # is there a single result that can be cast to a float?
+                partial_grade = get_partial_grade(output, max_points, log)
+                return partial_grade, max_points
+
+        # otherwise, assume all fine and return all the points
+        return max_points, max_points
+
+...
+        warning_msg = """For autograder tests, expecting output to indicate partial
+        credit and be single value between 0.0 and max_points. Currently treating other
+        output as full credit, but future releases may treat as error.""""
+```
+
+As far as I can tell, the octave kernel doesn't create stderr or error
+output_types when there is an assertion failure. So it seems like the Octave
+kernel is unusable with this.  Octave does this:
+```
+   "name": "stdout",
+   "output_type": "stream",
+     "text": [
+      "error: No Answer Given!...]
+```
+
+So here are CoCalc's rules:
+
+  - same as nbgrader, except if there is "error" in the output
+  - then different.
+
+Also, we do NOT stop checking for errors in output even if there is partial credit
+output, since that seems like a possible way students can cheat (!?)
+
+
+*/

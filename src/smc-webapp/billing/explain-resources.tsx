@@ -4,7 +4,7 @@
  */
 
 import { Col, Row } from "react-bootstrap";
-import { Component, React, Rendered } from "../app-framework";
+import { React } from "../app-framework";
 import { Space } from "../r_misc/space";
 import { A } from "../r_misc/A";
 const {
@@ -16,15 +16,18 @@ import { ProjectQuotaFreeTable } from "./project-quota-free-table";
 import { ProjectQuotaBoundsTable } from "./project-quota-bounds-table";
 import { DEDICATED_VM_TEXT } from "./dedicated-vm";
 import { FAQ } from "./faq";
+import { TITLE as COURSE_TITLE } from "./explain-course-licenses";
 
 interface Props {
   type: "shared" | "dedicated";
   is_static?: boolean;
 }
 
-export class ExplainResources extends Component<Props> {
-  private render_toc(): Rendered {
-    if (!this.props.is_static) {
+export const ExplainResources: React.FC<Props> = (props: Props) => {
+  const { type, is_static } = props;
+
+  function render_toc() {
+    if (!is_static) {
       return;
     }
     return (
@@ -37,14 +40,12 @@ export class ExplainResources extends Component<Props> {
             </b>
             : upgrade your projects
           </li>
-          {false && (
-            <li>
-              <b>
-                <a href="#courses">Course packages</a>
-              </b>
-              : upgrade student projects for teaching a course
-            </li>
-          )}
+          <li>
+            <b>
+              <a href="#courses">{COURSE_TITLE}</a>
+            </b>
+            : upgrade student projects for teaching a course
+          </li>
           <li>
             <b>
               <a href="#dedicated">Dedicated VMs</a>
@@ -57,7 +58,7 @@ export class ExplainResources extends Component<Props> {
     );
   }
 
-  private render_shared(): Rendered {
+  function render_shared() {
     return (
       <div>
         <Row>
@@ -65,7 +66,7 @@ export class ExplainResources extends Component<Props> {
             <h4>Questions</h4>
             <div style={{ fontSize: "12pt" }}>
               Please immediately email us at <HelpEmailLink />,{" "}
-              {!this.props.is_static ? (
+              {!is_static ? (
                 <span>
                   {" "}
                   click the Help button above or read our{" "}
@@ -174,7 +175,7 @@ export class ExplainResources extends Component<Props> {
             </div>
             <Space />
 
-            {this.render_toc()}
+            {render_toc()}
 
             <Space />
             <h4>More information</h4>
@@ -195,18 +196,16 @@ export class ExplainResources extends Component<Props> {
     );
   }
 
-  private render_dedicated(): Rendered {
+  function render_dedicated() {
     return DEDICATED_VM_TEXT;
   }
 
-  public render(): Rendered {
-    switch (this.props.type) {
-      case "shared":
-        return this.render_shared();
-      case "dedicated":
-        return this.render_dedicated();
-      default:
-        throw Error(`unknown type ${this.props.type}`);
-    }
+  switch (type) {
+    case "shared":
+      return render_shared();
+    case "dedicated":
+      return render_dedicated();
+    default:
+      throw Error(`unknown type ${type}`);
   }
-}
+};

@@ -5,7 +5,7 @@
 
 // IMPORTANT: If you change this file, also update this date, which appears in webapp-lib/policies/pricing.pug
 
-exports.CURRENT_DATE = "August 2019";
+exports.CURRENT_DATE = "September 2020";
 
 // Define upgrades to projects.
 //

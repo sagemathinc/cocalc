@@ -97,6 +97,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private fitAddon: FitAddon;
   private webLinksAddon: WebLinksAddon;
 
+  private render_done: Function[] = [];
+
   constructor(
     actions: Actions<T>,
     number: number,
@@ -357,6 +359,17 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       );
     }
     this.terminal.write(data);
+    // tell anyone who waited for output coming back about this
+    while (this.render_done.length > 0) {
+      this.render_done.pop()?.();
+    }
+  }
+
+  // blocks until the next call to this.render
+  async wait_for_next_render(): Promise<void> {
+    return new Promise((done, _) => {
+      this.render_done.push(done);
+    });
   }
 
   init_title(): void {
