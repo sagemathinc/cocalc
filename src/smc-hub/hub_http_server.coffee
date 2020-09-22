@@ -29,7 +29,7 @@ auth         = require('./auth')
 access       = require('./access')
 hub_projects = require('./projects')
 MetricsRecorder  = require('./metrics-recorder')
-{WhitelabelConfiguration} = require('./whitelabel-configuration')
+{WebappConfiguration} = require('./webapp-configuration')
 
 {http_message_api_v1} = require('./api/handler')
 {setup_analytics_js} = require('./analytics')
@@ -61,7 +61,7 @@ exports.init_express_http_server = (opts) ->
     app    = express()
     http_server = http.createServer(app)
     app.use(cookieParser())
-    whitelabel_config = new WhitelabelConfiguration(db:opts.database)
+    webapp_config = new WebappConfiguration(db:opts.database)
 
     # Enable compression, as
     # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
@@ -264,6 +264,7 @@ exports.init_express_http_server = (opts) ->
 
     # Used to determine whether or not a token is needed for
     # the user to create an account.
+    # DEPRECATED: moved to /customize
     if server_settings?
         router.get '/registration', (req, res) ->
             if await have_active_registration_tokens(opts.database)
@@ -273,18 +274,25 @@ exports.init_express_http_server = (opts) ->
 
     if server_settings?
         router.get '/customize', (req, res) ->
-            # this returns a shallow copy of the global config, you can modify it
-            config = await whitelabel_config.webapp(req)
             # if we're behind cloudflare, we expose the detected country in the client
             # use a lib like https://github.com/michaelwittig/node-i18n-iso-countries
             # to read the ISO 3166-1 Alpha 2 codes.
             # if it is unknown, the code will be XX and K1 is the Tor-Network.
-            config.country = req.headers['cf-ipcountry'] ? 'XX'
-            if req.query.type == 'embed'
+            country = req.headers['cf-ipcountry'] ? 'XX'
+            host = req.headers["host"]
+            config = await webapp_config.get(host:host, country:country)
+            if req.query.type == 'full'
                 res.header("Content-Type", "text/javascript")
-                res.send("window.CUSTOMIZE = Object.freeze(#{JSON.stringify(config)})")
+                mapping = '{configuration:window.CUSTOMIZE, registration:window.REGISTER, strategies:window.STRATEGIES}'
+                res.send("(#{mapping} = Object.freeze(#{JSON.stringify(config)}))")
             else
-                res.json(config)
+                # this is deprecated
+                if req.query.type == 'embed'
+                    res.header("Content-Type", "text/javascript")
+                    res.send("window.CUSTOMIZE = Object.freeze(#{JSON.stringify(config.configuration)})")
+                else
+                    # even more deprecated
+                    res.json(config)
 
     # Save other paths in # part of URL then redirect to the single page app.
     router.get ['/projects*', '/help*', '/settings*', '/admin*', '/dashboard*', '/notifications*'], (req, res) ->

@@ -58,7 +58,7 @@ document.addEventListener("DOMContentLoaded", function () {
     load_assets();
   };
   document.head.appendChild(customizeScript);
-  customizeScript.src = `${window.app_base_url}/customize?type=embed`;
+  customizeScript.src = `${window.app_base_url}/customize?type=full`;
 });
 
 function error_msg({ msg, lineNo, columnNo, url, stack, show_explanation }) {
