@@ -11,6 +11,7 @@ import { rtypes, rclass } from "../../app-framework";
 import { Icon, Loading, LoginLink } from "../../r_misc";
 import { DirectorySelector } from "../directory-selector";
 import { file_actions, ProjectActions } from "../../project_store";
+import { SelectProject } from "../../projects/select-project";
 const misc = require("smc-util/misc");
 const {
   Button,
@@ -23,7 +24,6 @@ const {
   Alert,
   Checkbox,
 } = require("react-bootstrap");
-import { Select } from "antd";
 const account = require("../../account");
 
 const ConfigureShare = require("../../share/config/config").Configure;
@@ -48,7 +48,6 @@ interface ReduxProps {
   get_total_project_quotas: (
     project_id: string
   ) => { network: boolean } | undefined;
-  get_project_select_list: (project_id: string) => any;
 }
 
 interface State {
@@ -69,8 +68,7 @@ export const ActionBox = rclass<ReactProps>(
     static reduxProps = () => {
       return {
         projects: {
-          get_project_select_list: rtypes.func,
-          // get_total_project_quotas relys on this data
+          // get_total_project_quotas relies on this data
           // Will be removed by #1084
           project_map: rtypes.immutable.Map,
           get_total_project_quotas: rtypes.func,
@@ -485,42 +483,16 @@ export const ActionBox = rclass<ReactProps>(
 
     render_different_project_dialog(): JSX.Element | undefined {
       if (this.state.show_different_project) {
-        const data = this.props.get_project_select_list(this.props.project_id);
-        if (data == null) {
-          return <Loading />;
-        }
-        const list: JSX.Element[] = data.map((v) => (
-          <Select.Option key={v.id} value={v.id}>
-            {v.title}
-          </Select.Option>
-        ));
-        const filter = (input, option) => {
-          if (option == null) {
-            return true; // we don't expect this to happen
-          } else {
-            return (
-              option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-            );
-          }
-        };
         return (
           <Col sm={4} style={{ color: "#666", marginBottom: "15px" }}>
             <h4>In the project</h4>
-            <Select
-              showSearch={true}
-              style={{ width: "100%" }}
-              placeholder={"Select a project..."}
-              optionFilterProp={"children"}
-              defaultValue={
-                this.props.public_view ? undefined : this.props.project_id
+            <SelectProject
+              at_top={[this.props.project_id]}
+              value={this.state.copy_destination_project_id}
+              onChange={(copy_destination_project_id) =>
+                this.setState({ copy_destination_project_id })
               }
-              onChange={(value) =>
-                this.setState({ copy_destination_project_id: value })
-              }
-              filterOption={filter}
-            >
-              {list}
-            </Select>
+            />
             {this.render_copy_different_project_options()}
           </Col>
         );
@@ -559,7 +531,7 @@ export const ActionBox = rclass<ReactProps>(
           onClick={() => this.setState({ show_different_project: true })}
           style={{ padding: "0px 5px 5px", fontWeight: 500 }}
         >
-          A Possibly Different Project
+          A Possibly Different Project...
         </Button>
       );
     }

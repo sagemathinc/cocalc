@@ -24,6 +24,7 @@ interface Props {
   at_top?: string[]; // include these projects at the top of the selector first (assuming they are in the project_map)
   onChange: (project_id: string) => void; // called when specific project selected
   value?: string; // currently selected project
+  defaultValue?: string;
   style?: CSS;
 }
 
@@ -32,6 +33,7 @@ export const SelectProject: React.FC<Props> = ({
   at_top,
   onChange,
   value,
+  defaultValue,
   style,
 }) => {
   const project_map = useTypedRedux("projects", "project_map");
@@ -119,6 +121,7 @@ export const SelectProject: React.FC<Props> = ({
           placeholder={"Select a project..."}
           optionFilterProp={"children"}
           value={value}
+          defaultValue={defaultValue}
           onChange={onChange}
           filterOption={(input, option) =>
             (option?.children.toLowerCase().indexOf(input.toLowerCase()) ??
