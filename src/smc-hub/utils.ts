@@ -30,6 +30,7 @@ export async function have_active_registration_tokens(
   const resp = await cb2(db._query, {
     query:
       "SELECT EXISTS(SELECT 1 FROM registration_tokens WHERE disabled IS NOT true) AS have_tokens",
+    cache: true,
   });
   return resp.rows[0]?.have_tokens === true;
 }
