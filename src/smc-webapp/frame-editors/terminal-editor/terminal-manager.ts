@@ -132,6 +132,7 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
     this.terminals[id].kill();
   }
 
+
   set_command(
     id: string,
     command: string | undefined,

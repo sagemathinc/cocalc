@@ -141,7 +141,7 @@ export class Actions<
   protected _key_handler: any;
   protected _cm: { [key: string]: CodeMirror.Editor } = {};
 
-  private terminals: TerminalManager<CodeEditorState>;
+  protected terminals: TerminalManager<CodeEditorState>;
   private code_editors: CodeEditorManager<CodeEditorState>;
 
   protected doctype: string = "syncstring";
@@ -2332,16 +2332,6 @@ export class Actions<
     // also, restart that terminal...
     this.terminals.set_command(id, undefined, undefined);
     this.terminals.kill(id);
-  }
-
-  public async clear_terminal(id: string) {
-    this.clear_terminal_command(id);
-    const t = this.terminals.get(id);
-    // we also wait until it is "back again with a prompt" and issue the reset command
-    if (t == null) return;
-    await t.wait_for_next_render();
-    await delay(1); // also wait a little bit
-    t.conn_write("reset\n");
   }
 
   public set_active_key_handler(key_handler: Function): void {

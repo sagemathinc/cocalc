@@ -20,7 +20,7 @@ import {
 } from "../../app-framework";
 import { is_safari } from "../generic/browser";
 import * as CSS from "csstype";
-
+import { Popconfirm } from "antd";
 import { SaveButton } from "./save-button";
 
 const { debounce } = require("underscore");
@@ -39,15 +39,10 @@ import {
 } from "smc-webapp/r_misc";
 
 const { IS_TOUCH } = require("smc-webapp/feature");
-
 import { capitalize, copy } from "smc-util/misc";
-
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
-
 import { path_split, trunc_middle } from "smc-util/misc2";
-
 import { ConnectionStatus, EditorSpec, EditorDescription } from "./types";
-
 import { Actions } from "../code-editor/actions";
 
 // Certain special frame editors (e.g., for latex) have extra
@@ -62,6 +57,7 @@ interface FrameActions extends Actions {
   build?: (id: string, boolean) => void;
   force_build?: (id: string) => void;
   clean?: (id: string) => void;
+  clear?: (id: string) => void;
   word_count?: (time: number, force: boolean) => void;
   close_and_halt?: (id: string) => void;
 }
@@ -1154,19 +1150,30 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     );
   }
 
-  function render_clear_terminal(): Rendered {
-    if (!is_visible("clear_terminal")) {
+  function render_clear(): Rendered {
+    if (!is_visible("clear")) {
       return;
     }
+    const info = props.editor_spec[props.type].clear_info ?? {
+      text: "Clear this frame?",
+      confirm: "Yes",
+    };
+    const title = <div style={{ maxWidth: "250px" }}>{info.text}</div>;
+    const icon = <Icon name={"trash"} />;
     return (
-      <Button
-        key={"clear_terminal"}
-        bsSize={button_size()}
-        onClick={() => props.actions.clear_terminal(props.id)}
-        title={"Clear terminal"}
+      <Popconfirm
+        key={"clear"}
+        placement={"bottom"}
+        title={title}
+        icon={icon}
+        onConfirm={() => props.actions.clear?.(props.id)}
+        okText={info.confirm}
+        cancelText={"Cancel"}
       >
-        <Icon name={"trash"} />{" "}
-      </Button>
+        <Button bsSize={button_size()} title={"Clear"}>
+          {icon}{" "}
+        </Button>
+      </Popconfirm>
     );
   }
 
@@ -1281,7 +1288,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
       v.push(render_format_group());
     }
     v.push(render_edit_init_script());
-    v.push(render_clear_terminal());
+    v.push(render_clear());
     v.push(render_count_words());
     v.push(render_table_of_contents());
     v.push(render_kick_other_users_out());
