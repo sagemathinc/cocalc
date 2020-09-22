@@ -25,14 +25,4 @@ export class TerminalActions extends Actions {
   help(): void {
     open_new_tab(HELP_URL);
   }
-
-  public async clear(id: string) {
-    this.clear_terminal_command(id);
-    const t = this.terminals.get(id);
-    // we also wait until it is "back again with a prompt" and issue the reset command
-    if (t == null) return;
-    await t.wait_for_next_render();
-    await delay(1); // also wait a little bit
-    t.conn_write("reset\n");
-  }
 }

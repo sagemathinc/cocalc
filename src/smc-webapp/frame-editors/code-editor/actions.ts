@@ -2334,6 +2334,22 @@ export class Actions<
     this.terminals.kill(id);
   }
 
+  public async clear(id: string) {
+    // this is for terminals only
+    const type = this._get_frame_node(id)?.get("type");
+    if (type == "terminal") {
+      this.clear_terminal_command(id);
+      const t = this.terminals.get(id);
+      // we also wait until it is "back again with a prompt" and issue the reset command
+      if (t == null) return;
+      await t.wait_for_next_render();
+      await delay(1); // also wait a little bit
+      t.conn_write("reset\n");
+    } else {
+      throw Error(`"clear" for type="${type}" not implemented`);
+    }
+  }
+
   public set_active_key_handler(key_handler: Function): void {
     (this.redux.getActions("page") as any).set_active_key_handler(
       key_handler,

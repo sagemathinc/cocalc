@@ -57,7 +57,6 @@ interface FrameActions extends Actions {
   build?: (id: string, boolean) => void;
   force_build?: (id: string) => void;
   clean?: (id: string) => void;
-  clear?: (id: string) => void;
   word_count?: (time: number, force: boolean) => void;
   close_and_halt?: (id: string) => void;
 }
