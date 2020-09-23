@@ -52,6 +52,12 @@ export const ExplainResources: React.FC<Props> = (props: Props) => {
             </b>
             : a node in the cluster for large workloads
           </li>
+          <li>
+            <b>
+              <a href="#onprem">On-Premises</a>
+            </b>
+            : run <SiteName /> on your own hardware
+          </li>
         </ul>
         <Space />
       </>

@@ -10,6 +10,7 @@ import { ExplainLicenses } from "./explain-course-licenses";
 import { SubscriptionLicenses } from "./subscription-licenses";
 import { ExplainPlan } from "./explain-plan";
 import { DedicatedVM } from "./dedicated-vm";
+import { OnPrem } from "./on-prem";
 
 export function render_static_pricing_page(): Rendered {
   return (
@@ -22,6 +23,8 @@ export function render_static_pricing_page(): Rendered {
       <ExplainLicenses />
       <hr />
       <DedicatedVM />
+      <hr />
+      <OnPrem />
     </div>
   );
 }
