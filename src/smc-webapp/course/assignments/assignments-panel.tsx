@@ -1414,7 +1414,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       : "square-o";
     return (
       <Button onClick={this.toggle_skip_grading}>
-        <Icon name={icon} /> Skip grading
+        <Icon name={icon} /> Skip entering grades
       </Button>
     );
   }

@@ -43,32 +43,56 @@ export const NbgraderButton: React.FC<Props> = React.memo(
       return nbgrader_status(assignment);
     }, [assignment]); // also depends on all student ids, but not worrying about that for now.
 
+    const running = useMemo(() => {
+      if (nbgrader_run_info == null) return false;
+      const t = nbgrader_run_info.get(assignment_id);
+      if (t && new Date().valueOf() - t <= 1000 * 60 * 10) {
+        // Time starting is set and it's also within the last few minutes.
+        // This "few minutes" is just in case -- we probably shouldn't need
+        // that at all ever, but it could make cocalc state usable in case of
+        // weird issues, I guess).  User could also just close and re-open
+        // the course file, which resets this state completely.
+        return true;
+      }
+      return false;
+    }, [nbgrader_run_info]);
+
     function render_more_info() {
       if (status == null) return <span />;
       const todo = status.not_attempted + status.failed;
       const total = status.attempted + status.not_attempted;
-      const failed = status.failed > 0 ? ` ${status.failed} failed.` : "";
+      const failed =
+        status.failed > 0 ? ` ${status.failed} failed autograding.` : "";
       const not_attempted =
-        status.not_attempted > 0 ? ` ${status.not_attempted} not graded.` : "";
+        status.not_attempted > 0
+          ? ` ${status.not_attempted} not autograded.`
+          : "";
       return (
         <Alert
           style={{ marginTop: "5px" }}
           type="success"
-          message={`Graded ${status.succeeded}/${total} students.${failed}${not_attempted}`}
+          message={
+            <span style={{ fontSize: "14px" }}>
+              Autograded {status.succeeded}/{total} assignments.{failed}
+              {not_attempted}
+            </span>
+          }
           description={
             <div>
               {todo > 0 && (
                 <span>
                   <br />
                   <Button
+                    disabled={running}
                     type={"primary"}
                     onClick={() => {
                       actions?.assignments.run_nbgrader_for_all_students(
-                        assignment_id
+                        assignment_id,
+                        true
                       );
                     }}
                   >
-                    Autograde {todo} not graded {plural(todo, "student")}
+                    Autograde {todo} not-graded {plural(todo, "assignment")}
                   </Button>
                 </span>
               )}
@@ -86,8 +110,12 @@ export const NbgraderButton: React.FC<Props> = React.memo(
                       );
                     }}
                   >
-                    <Button danger style={{ marginTop: "5px" }}>
-                      Grade all {total} {plural(total, "student")}...
+                    <Button
+                      danger
+                      style={{ marginTop: "5px" }}
+                      disabled={running}
+                    >
+                      Autograde all {total} {plural(total, "assignment")}...
                     </Button>
                   </Popconfirm>
                 </span>
@@ -98,18 +126,6 @@ export const NbgraderButton: React.FC<Props> = React.memo(
       );
     }
 
-    let running = false;
-    if (nbgrader_run_info != null) {
-      const t = nbgrader_run_info.get(assignment_id);
-      if (t && new Date().valueOf() - t <= 1000 * 60 * 10) {
-        // Time starting is set and it's also within the last few minutes.
-        // This "few minutes" is just in case -- we probably shouldn't need
-        // that at all ever, but it could make cocalc state usable in case of
-        // weird issues, I guess).  User could also just close and re-open
-        // the course file, which resets this state completely.
-        running = true;
-      }
-    }
     const label = running ? (
       <span>
         {" "}

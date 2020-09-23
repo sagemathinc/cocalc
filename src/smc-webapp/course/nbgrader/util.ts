@@ -15,36 +15,34 @@ export function nbgrader_status(
 } {
   const student_ids = assignment.get("last_collect").keySeq().toJS(); // students whose work has been collected
   const scores = assignment.get("nbgrader_scores");
-  let succeeded = 0;
-  let failed = 0;
-  let not_attempted = 0;
+  const result = { succeeded: 0, failed: 0, not_attempted: 0, attempted: 0 };
   if (scores == null) {
-    not_attempted = student_ids.length;
+    result.not_attempted = student_ids.length;
   } else {
     for (const student_id of student_ids) {
-      const x = scores.get(student_id);
-      if (x == null) {
-        not_attempted += 1;
-      } else {
-        let did_fail = false;
-        for (const [_, val] of x) {
-          if (typeof val == "string") {
-            failed += 1;
-            did_fail = true;
-            break;
-          }
-        }
-        if (!did_fail) {
-          succeeded += 1;
-        }
-      }
+      const state = grading_state(student_id, scores);
+      result[state] += 1;
     }
   }
+  result.attempted = result.succeeded + result.failed;
+  return result;
+}
 
-  return {
-    succeeded,
-    failed,
-    not_attempted,
-    attempted: succeeded + failed,
-  };
+type GradingState = "succeeded" | "failed" | "not_attempted";
+
+export function grading_state(
+  student_id: string,
+  nbgrader_scores
+): GradingState {
+  const x = nbgrader_scores?.get(student_id);
+  if (x == null) {
+    return "not_attempted";
+  } else {
+    for (const [_, val] of x) {
+      if (typeof val == "string") {
+        return "failed";
+      }
+    }
+    return "succeeded";
+  }
 }

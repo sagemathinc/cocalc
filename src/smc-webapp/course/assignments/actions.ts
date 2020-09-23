@@ -42,6 +42,7 @@ import {
 import { map } from "awaiting";
 
 import { nbgrader, jupyter_strip_notebook } from "../../jupyter/nbgrader/api";
+import { grading_state } from "../nbgrader/util";
 import { ipynb_clear_hidden_tests } from "../../jupyter/nbgrader/clear-hidden-tests";
 import {
   extract_auto_scores,
@@ -1418,14 +1419,26 @@ ${details}
       assignment_id
     );
     if (this.course_actions.is_closed()) return;
+    const store = this.get_store();
+    const nbgrader_scores = store.getIn([
+      "assignments",
+      assignment_id,
+      "nbgrader_scores",
+    ]);
     const one_student: (student_id: string) => Promise<void> = async (
       student_id
     ) => {
       if (this.course_actions.is_closed()) return;
-      const store = this.get_store();
       if (!store.last_copied("collect", assignment_id, student_id, true)) {
         // Do not try to grade the assignment, since it wasn't
-        // already successfully collected.
+        // already successfully collected yet.
+        return;
+      }
+      if (
+        ungraded_only &&
+        grading_state(student_id, nbgrader_scores) == "succeeded"
+      ) {
+        // Do not try to grade assignment, if it has already been successfully graded.
         return;
       }
       await this.run_nbgrader_for_one_student(
