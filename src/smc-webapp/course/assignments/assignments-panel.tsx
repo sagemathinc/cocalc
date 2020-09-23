@@ -66,8 +66,8 @@ import {
 
 import { Progress } from "../common/progress";
 import { SkipCopy } from "./skip";
-
 import { ConfigurePeerGrading } from "./configure-peer";
+import { NbgraderButton } from "../nbgrader/nbgrader-button";
 
 interface AssignmentsPanelReactProps {
   frame_id?: string;
@@ -1414,7 +1414,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       : "square-o";
     return (
       <Button onClick={this.toggle_skip_grading}>
-        <Icon name={icon} /> Skip grading
+        <Icon name={icon} /> Skip entering grades
       </Button>
     );
   }
@@ -1429,42 +1429,12 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       // decided to skip grading this.
       return;
     }
-    let running = false;
-    if (this.props.nbgrader_run_info != null) {
-      const t = this.props.nbgrader_run_info.get(
-        this.props.assignment.get("assignment_id")
-      );
-      if (t && new Date().valueOf() - t <= 1000 * 60 * 10) {
-        // Time starting is set and it's also within the last few minutes.
-        // This "few minutes" is just in case -- we probably shouldn't need
-        // that at all ever, but it could make cocalc state usable in case of
-        // weird issues, I guess).  User could also just close and re-open
-        // the course file, which resets this state completely.
-        running = true;
-      }
-    }
-    const label = running ? (
-      <span>
-        {" "}
-        <Icon name="cc-icon-cocalc-ring" spin /> Running nbgrader
-      </span>
-    ) : (
-      <span>Run nbgrader</span>
-    );
+
     return (
-      <div style={{ marginBottom: "5px 0" }}>
-        <Button
-          disabled={running}
-          key="nbgrader"
-          onClick={() => {
-            this.get_actions().assignments.run_nbgrader_for_all_students(
-              this.props.assignment.get("assignment_id")
-            );
-          }}
-        >
-          <Icon name="graduation-cap" /> {label}
-        </Button>
-      </div>
+      <NbgraderButton
+        assignment_id={this.props.assignment.get("assignment_id")}
+        name={this.props.name}
+      />
     );
   }
 

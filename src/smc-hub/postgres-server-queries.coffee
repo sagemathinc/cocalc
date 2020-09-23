@@ -57,6 +57,7 @@ SERVER_SETTINGS_EXTRAS = require("smc-util/db-schema/site-settings-extras").EXTR
 SITE_SETTINGS_CONF = require("smc-util/schema").site_settings_conf
 SERVER_SETTINGS_CACHE = require("expiring-lru-cache")({ size: 10, expiry: 60 * 1000 })
 {pii_expire} = require("./utils")
+webapp_config_clear_cache = require("./webapp-configuration").clear_cache
 
 # log events, which contain personal information (email, account_id, ...)
 PII_EVENTS = ['create_account',
@@ -253,6 +254,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     reset_server_settings_cache: =>
         SERVER_SETTINGS_CACHE.reset()
+        webapp_config_clear_cache()
 
     get_server_setting: (opts) =>
         opts = defaults opts,

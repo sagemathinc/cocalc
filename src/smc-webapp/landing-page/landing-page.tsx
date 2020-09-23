@@ -9,14 +9,7 @@ The Landing Page
 
 import * as immutable from "immutable";
 
-import {
-  Component,
-  rclass,
-  React,
-  redux,
-  rtypes,
-  Rendered,
-} from "../app-framework";
+import { Component, rclass, React, rtypes, Rendered } from "../app-framework";
 
 import { Row, Col, Alert } from "../antd-bootstrap";
 import { UNIT, COLORS } from "../r_misc";
@@ -44,12 +37,8 @@ import { PassportStrategy } from "../account/passport-types";
 import { capitalize } from "smc-util/misc2";
 import { DOC_URL } from "smc-util/theme";
 import { APP_ICON_WHITE, APP_LOGO_NAME_WHITE } from "../art";
-
-$.get(window.app_base_url + "/registration", function (obj, status) {
-  if (status === "success") {
-    return redux.getActions("account").setState({ token: obj.token });
-  }
-});
+import { init } from "./registration";
+init(); // this is a fallback
 
 interface Props {
   strategies?: immutable.List<PassportStrategy>;

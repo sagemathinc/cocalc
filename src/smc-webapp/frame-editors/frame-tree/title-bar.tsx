@@ -20,7 +20,7 @@ import {
 } from "../../app-framework";
 import { is_safari } from "../generic/browser";
 import * as CSS from "csstype";
-
+import { Popconfirm } from "antd";
 import { SaveButton } from "./save-button";
 
 const { debounce } = require("underscore");
@@ -39,15 +39,10 @@ import {
 } from "smc-webapp/r_misc";
 
 const { IS_TOUCH } = require("smc-webapp/feature");
-
 import { capitalize, copy } from "smc-util/misc";
-
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
-
 import { path_split, trunc_middle } from "smc-util/misc2";
-
 import { ConnectionStatus, EditorSpec, EditorDescription } from "./types";
-
 import { Actions } from "../code-editor/actions";
 
 // Certain special frame editors (e.g., for latex) have extra
@@ -1154,6 +1149,33 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     );
   }
 
+  function render_clear(): Rendered {
+    if (!is_visible("clear")) {
+      return;
+    }
+    const info = props.editor_spec[props.type].clear_info ?? {
+      text: "Clear this frame?",
+      confirm: "Yes",
+    };
+    const title = <div style={{ maxWidth: "250px" }}>{info.text}</div>;
+    const icon = <Icon name={"trash"} />;
+    return (
+      <Popconfirm
+        key={"clear"}
+        placement={"bottom"}
+        title={title}
+        icon={icon}
+        onConfirm={() => props.actions.clear?.(props.id)}
+        okText={info.confirm}
+        cancelText={"Cancel"}
+      >
+        <Button bsSize={button_size()} title={"Clear"}>
+          {icon}{" "}
+        </Button>
+      </Popconfirm>
+    );
+  }
+
   function render_close_and_halt(labels: boolean): Rendered {
     if (!is_visible("close_and_halt")) {
       return;
@@ -1265,6 +1287,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
       v.push(render_format_group());
     }
     v.push(render_edit_init_script());
+    v.push(render_clear());
     v.push(render_count_words());
     v.push(render_table_of_contents());
     v.push(render_kick_other_users_out());

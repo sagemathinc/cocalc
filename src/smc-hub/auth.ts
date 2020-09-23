@@ -324,6 +324,13 @@ interface InitPassport {
   cb: (err?) => void;
 }
 
+// singleton
+let pp_manager: PassportManager | null = null;
+
+export function get_passport_manager() {
+  return pp_manager;
+}
+
 export async function init_passport(opts: InitPassport) {
   opts = defaults(opts, {
     router: required,
@@ -333,9 +340,11 @@ export async function init_passport(opts: InitPassport) {
     cb: required,
   });
 
-  const pp_initializer = new PassportManager(opts);
   try {
-    await pp_initializer.init();
+    if (pp_manager == null) {
+      pp_manager = new PassportManager(opts);
+      await pp_manager.init();
+    }
     opts.cb();
   } catch (err) {
     opts.cb(err);
@@ -364,7 +373,7 @@ interface PassportLoginLocals {
   api_key: string | undefined;
 }
 
-class PassportManager {
+export class PassportManager {
   // express js, passed in from hub's main file
   readonly router: Router;
   // the database, for various server queries
@@ -446,9 +455,7 @@ class PassportManager {
     res.json(data);
   }
 
-  // version 2 tells the web client a little bit more.
-  // the additional info is used to render customizeable SSO icons.
-  private strategies_v2(res): void {
+  public get_strategies_v2(): PassportStrategy[] {
     const data: PassportStrategy[] = [];
     for (const name in this.strategies) {
       if (name === "site_conf") continue;
@@ -462,7 +469,13 @@ class PassportManager {
       ]);
       data.push(info);
     }
-    res.json(data);
+    return data;
+  }
+
+  // version 2 tells the web client a little bit more.
+  // the additional info is used to render customizeable SSO icons.
+  private strategies_v2(res): void {
+    res.json(this.get_strategies_v2());
   }
 
   async init(): Promise<void> {
