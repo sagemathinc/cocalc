@@ -457,6 +457,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           this.push_state("settings");
         }
         break;
+      case "info":
+        if (opts.change_history) {
+          this.push_state("info");
+        }
+        break;
       default:
         // editor...
         const path = misc.tab_to_path(key);

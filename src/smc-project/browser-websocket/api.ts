@@ -33,6 +33,7 @@ import { get_configuration } from "../configuration";
 import { delete_files } from "./delete-files";
 import { rename_file, move_files } from "./move-files";
 import { realpath } from "./realpath";
+import { project_info } from "../project-info";
 
 export function init_websocket_api(
   primus: any,
@@ -139,6 +140,8 @@ async function handle_api_call(
       return await browser_symmetric_channel(client, primus, logger, data.name);
     case "realpath":
       return realpath(data.path);
+    case "project_info":
+      return await project_info(primus, logger);
     default:
       throw Error(
         `command "${data.cmd}" not implemented -- restart your project (in Project --> Settings)`
