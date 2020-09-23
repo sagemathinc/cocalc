@@ -72,6 +72,8 @@ import {
   money,
   percent_discount,
   discount_pct,
+  discount_monthly_pct,
+  discount_yearly_pct,
 } from "./util";
 
 interface Props {
@@ -353,17 +355,13 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               icon: "calendar-alt",
               label: "Monthly subscription",
               value: "monthly",
-              desc: `pay once every month (${Math.round(
-                (1 - COSTS.sub_discount["monthly"]) * 100
-              )}% discount)`,
+              desc: `pay once every month (${discount_monthly_pct}% discount)`,
             },
             {
               icon: "calendar-check",
               label: "Yearly subscription",
               value: "yearly",
-              desc: `pay once every year (${Math.round(
-                (1 - COSTS.sub_discount["yearly"]) * 100
-              )}% discount)`,
+              desc: `pay once every year (${discount_yearly_pct}% discount)`,
             },
             {
               icon: "calendar-times-o",

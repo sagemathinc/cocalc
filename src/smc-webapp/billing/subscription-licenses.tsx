@@ -29,7 +29,11 @@ const p1data = {
   custom_dedicated_cpu: 0,
   custom_always_running: false,
 };
-const Price1 = compute_cost(p1data);
+const Price1m = compute_cost(p1data);
+const Price1y = compute_cost({
+  ...p1data,
+  ...{ subscription: "yearly" as Subscription },
+});
 
 const p2data = {
   user: "academic" as User,
@@ -46,7 +50,11 @@ const p2data = {
   custom_dedicated_cpu: 0,
   custom_always_running: false,
 };
-const Price2 = compute_cost(p2data);
+const Price2m = compute_cost(p2data);
+const Price2y = compute_cost({
+  ...p2data,
+  ...{ subscription: "yearly" as Subscription },
+});
 
 const p3data = {
   user: "business" as User,
@@ -63,7 +71,11 @@ const p3data = {
   custom_dedicated_cpu: 1,
   custom_always_running: false,
 };
-const Price3 = compute_cost(p3data);
+const Price3m = compute_cost(p3data);
+const Price3y = compute_cost({
+  ...p3data,
+  ...{ subscription: "yearly" as Subscription },
+});
 
 const EXAMPLES = [
   {
@@ -77,11 +89,15 @@ const EXAMPLES = [
         resource: plural(p1data.quantity, "Project"),
       },
       { value: p1data.custom_ram, unit: "GB", resource: "Shared RAM" },
-      { value: p1data.custom_cpu, unit: "cores", resource: "Shared CPU" },
+      {
+        value: p1data.custom_cpu,
+        unit: plural(p1data.custom_cpu, "core"),
+        resource: "Shared CPU",
+      },
       { value: p1data.custom_disk, unit: "GB", resource: "Disk space" },
     ],
-    price: Price1,
-    period: "per month",
+    price_monthly: Price1m,
+    price_yearly: Price1y,
   },
   {
     title: "Academic Research",
@@ -99,11 +115,15 @@ const EXAMPLES = [
         unit: "GB",
         resource: "Dedicated RAM",
       },
-      { value: p2data.custom_cpu, unit: "cores", resource: "Shared CPU" },
+      {
+        value: p2data.custom_cpu,
+        unit: plural(p2data.custom_cpu, "core"),
+        resource: "Shared CPU",
+      },
       { value: p2data.custom_disk, unit: "GB", resource: "Disk space" },
     ],
-    price: Price2,
-    period: "per month",
+    price_monthly: Price2m,
+    price_yearly: Price2y,
   },
   {
     title: "Professional Workgroup",
@@ -121,16 +141,20 @@ const EXAMPLES = [
         unit: "GB",
         resource: "Dedicated RAM",
       },
-      { value: p3data.custom_cpu, unit: "cores", resource: "Shared CPU" },
+      {
+        value: p3data.custom_cpu,
+        unit: plural(p3data.custom_cpu, "core"),
+        resource: "Shared CPU",
+      },
       {
         value: p3data.custom_dedicated_cpu,
-        unit: "cores",
+        unit: plural(p3data.custom_dedicated_cpu, "core"),
         resource: "Dedicated CPU",
       },
       { value: p3data.custom_disk, unit: "GB", resource: "Disk space" },
     ],
-    price: Price3,
-    period: "per month",
+    price_monthly: Price3m,
+    price_yearly: Price3y,
   },
 ];
 
@@ -152,5 +176,5 @@ for (const ex of EXAMPLES) {
 }
 
 export const SubscriptionLicenses: React.FC<{}> = () => {
-  return <LicenseExamples examples={EXAMPLES} />;
+  return <LicenseExamples examples={EXAMPLES} show_discount_pct={true} />;
 };

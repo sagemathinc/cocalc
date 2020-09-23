@@ -218,7 +218,7 @@ export const ExplainLicenses: React.FC<{}> = () => {
   }
 
   function render_examples() {
-    return <LicenseExamples examples={EXAMPLES} />;
+    return <LicenseExamples examples={EXAMPLES} show_discount_pct={false} />;
   }
 
   function render_contact() {
