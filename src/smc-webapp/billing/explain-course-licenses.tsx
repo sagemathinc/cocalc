@@ -163,25 +163,24 @@ export const ExplainLicenses: React.FC<{}> = () => {
   function render_licenses() {
     return (
       <>
-        <h4>Which license upgrades?</h4>
+        <h4>How to get started?</h4>
         <p>
           Go to your Account Settings &rarr; Licenses in order to start
           purchasing a license for your course:{" "}
-          <A href={DOC_LICENSE_URL}>licenses documentation</A>. The following
-          parameters determine the pricing:
+          <A href={DOC_LICENSE_URL}>licenses documentation</A>.
         </p>
-        <ul style={{ paddingLeft: "20px" }}>
-          <li>The number of projects</li>
-          <li>If you qualify for an academic discount</li>
-          <li>
-            The upgrade schema per project: a small 1 GB memory / 1 shared CPU
-            upgrade is fine for basic calculations, but we find that many data
-            and computational science courses run better with the additional RAM
-            and CPU.
-          </li>
-          <li>Duration</li>
-          <li>Online purchasing vs. invoicing/billing</li>
-        </ul>
+        <p>
+          Minimal upgrades might be okay for beginner courses, but we find that
+          many data and computational science courses run better with additional
+          RAM and CPU. Contact us for a trial license: <HelpEmailLink />.
+        </p>
+        <p>
+          Once you got your key, don't forget to register it in the{" "}
+          <A href="https://doc.cocalc.com/teaching-notes.html#site-license-course-setup">
+            course management interface
+          </A>{" "}
+          to be applied to all student projects.
+        </p>
         <p>
           Please be also aware that you can acquire several licenses: e.g. to
           partition a semester into smaller parts or to keep upgrades separate

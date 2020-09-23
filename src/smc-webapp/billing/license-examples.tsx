@@ -68,7 +68,9 @@ export const LicenseExamples: React.FC<Props> = ({
     const e = emph ? { fontWeight: "bold" as "bold" } : { color: COLORS.GRAY };
     const style = { ...{ whiteSpace: "nowrap" as "nowrap" }, ...e };
     if (!online && usd < MIN_QUOTE) {
-      return <span style={{ color: COLORS.GRAY_L }}>N/A</span>;
+      return (
+        <span style={{ fontSize: largepx, color: COLORS.GRAY_L }}>N/A</span>
+      );
     } else {
       return (
         <span style={style}>

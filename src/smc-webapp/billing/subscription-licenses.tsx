@@ -46,7 +46,7 @@ const p2data = {
   custom_cpu: 2,
   custom_disk: 10,
   custom_member: true,
-  custom_dedicated_ram: 0,
+  custom_dedicated_ram: 1,
   custom_dedicated_cpu: 0,
   custom_always_running: false,
 };
@@ -111,7 +111,7 @@ const EXAMPLES = [
       },
       { value: p2data.custom_ram, unit: "GB", resource: "Shared RAM" },
       {
-        value: p3data.custom_dedicated_ram,
+        value: p2data.custom_dedicated_ram,
         unit: "GB",
         resource: "Dedicated RAM",
       },
