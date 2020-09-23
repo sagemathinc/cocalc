@@ -7,6 +7,7 @@ import {
   RunNotebookOptions,
 } from "../../jupyter/nbgrader/api";
 import { Options } from "../../smc-project/formatters";
+import { ConfigurationAspect } from "../smc-webapp/project_configuration";
 
 interface MesgExec {
   cmd: "exec";
@@ -22,6 +23,7 @@ interface MesgFormatterString {
   cmd:
     | "prettier_string" // deprecated, use "formatter_string"
     | "formatter_string";
+  path: string | undefined;
   str: string;
   options: Options;
 }
@@ -59,7 +61,7 @@ interface MesgCanonicalPaths {
 
 interface MesgConfiguration {
   cmd: "configuration";
-  aspect: string;
+  aspect: ConfigurationAspect;
   no_cache: boolean;
 }
 

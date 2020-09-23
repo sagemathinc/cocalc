@@ -144,7 +144,9 @@ async function handle_api_call(
       return realpath(data.path);
     default:
       throw Error(
-        `command "${data.cmd}" not implemented -- restart your project (in Project --> Settings)`
+        `command "${
+          (data as any).cmd
+        }" not implemented -- restart your project (in Project --> Settings)`
       );
   }
 }
