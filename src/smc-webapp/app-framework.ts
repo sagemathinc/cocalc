@@ -294,7 +294,7 @@ export class AppRedux {
     if (this._actions[name] != null) {
       const A = this._actions[name];
       delete this._actions[name];
-      A.destroy();
+      A?.destroy();
     }
   }
 

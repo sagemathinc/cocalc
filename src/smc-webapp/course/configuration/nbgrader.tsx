@@ -3,15 +3,23 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useRedux, useActions } from "../../app-framework";
-import { Card } from "antd";
+import { CSS, React, redux, useRedux, useActions } from "../../app-framework";
+import { Card, Radio } from "antd";
 import { Checkbox } from "../../antd-bootstrap";
-import { Icon, NumberInput } from "../../r_misc";
+import { A, Icon, NumberInput } from "../../r_misc";
+import { SelectProject } from "../../projects/select-project";
+
 import { CourseActions } from "../actions";
 import {
   NBGRADER_CELL_TIMEOUT_MS,
   NBGRADER_TIMEOUT_MS,
 } from "../assignments/actions";
+
+const radioStyle: CSS = {
+  display: "block",
+  whiteSpace: "normal",
+  fontWeight: "inherit",
+};
 
 interface Props {
   name: string;
@@ -19,12 +27,16 @@ interface Props {
 
 export const Nbgrader: React.FC<Props> = ({ name }) => {
   const settings = useRedux([name, "settings"]);
+  const course_project_id = useRedux([name, "course_project_id"]);
   const actions: CourseActions = useActions({ name });
   if (actions == null) {
     throw Error("bug");
   }
 
-  function render_grade_in_instructor_project(): JSX.Element {
+  function render_grade_project(): JSX.Element {
+    const location = settings?.get("nbgrader_grade_project")
+      ? "project"
+      : "student";
     return (
       <div
         style={{
@@ -33,19 +45,59 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
           borderRadius: "5px",
         }}
       >
-        <Checkbox
-          checked={settings?.get("nbgrader_grade_in_instructor_project")}
-          onChange={(e) =>
-            actions.configuration.set_nbgrader_grade_in_instructor_project(
-              (e.target as any).checked
-            )
-          }
+        <h6>Where to autograde assignments</h6>
+        <Radio.Group
+          onChange={(e) => {
+            if (e.target.value == "student") {
+              actions.configuration.set_nbgrader_grade_project("");
+            } else {
+              actions.configuration.set_nbgrader_grade_project(
+                course_project_id
+              );
+            }
+          }}
+          value={location}
         >
-          Grade in instructor project: run autograding in the instructor's
-          project instead of the student's projects; less secure, but it doesn't
-          require starting the student projects, and the instructor project may
-          have much more memory.
-        </Checkbox>
+          <Radio value={"student"} key={"student"} style={radioStyle}>
+            Grade assignments in each student's own project
+          </Radio>
+          <Radio value={"project"} key={"project"} style={radioStyle}>
+            Grade assignments in a project of your choice
+          </Radio>
+        </Radio.Group>
+        <br />
+        {location == "project" && (
+          <div>
+            <SelectProject
+              style={{ width: "100%", padding: "5px 25px" }}
+              onChange={actions.configuration.set_nbgrader_grade_project}
+              value={settings?.get("nbgrader_grade_project")}
+            />
+            {settings?.get("nbgrader_grade_project") &&
+              settings?.get("nbgrader_grade_project") != course_project_id && (
+                <a
+                  style={{ marginLeft: "25px" }}
+                  onClick={() =>
+                    redux.getActions("projects").open_project({
+                      project_id: settings?.get("nbgrader_grade_project"),
+                      switch_to: true,
+                    })
+                  }
+                >
+                  Open grading project...
+                </a>
+              )}
+          </div>
+        )}
+        <hr />
+        Where to grade: choose the project in which to run autograding. We
+        recommend that you create a new project dedicated to running nbgrader,
+        upgrade or license it appropriately, and copy any files to it that
+        student work depends on. You can also grade all student work in the
+        student's own project, which is good because the code runs in the same
+        environment as the student work (and won't harm any files you have), but
+        can be significantly slower since each student project has too be
+        running.
       </div>
     );
   }
@@ -59,6 +111,7 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
           borderRadius: "5px",
         }}
       >
+        <h6>Hidden tests</h6>
         <Checkbox
           checked={settings?.get("nbgrader_include_hidden_tests")}
           onChange={(e) =>
@@ -68,7 +121,7 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
           }
         >
           Include the hidden tests in autograded notebooks returned to students.
-          Check this if you want the students to see why their answers failed
+          Select this if you want the students to see why their answers failed
           your hidden tests. The drawback is that you've revealed all the hidden
           tests to the students.
         </Checkbox>
@@ -91,6 +144,7 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
           borderRadius: "5px",
         }}
       >
+        <h6>Timeouts</h6>
         Grading timeout in seconds: if grading a student notebook takes longer
         than <i>{timeout} seconds</i>, then it is terminated with a timeout
         error.
@@ -122,12 +176,12 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
   return (
     <Card
       title={
-        <>
+        <A href="https://doc.cocalc.com/teaching-nbgrader.html">
           <Icon name="graduation-cap" /> Nbgrader
-        </>
+        </A>
       }
     >
-      {render_grade_in_instructor_project()}
+      {render_grade_project()}
       <br />
       {render_include_hidden_tests()}
       <br />

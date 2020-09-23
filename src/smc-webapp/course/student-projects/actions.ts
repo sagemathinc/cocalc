@@ -563,6 +563,11 @@ export class StudentProjectsActions {
             "site_license",
           ]);
           let already_done: boolean = false;
+          if (store.get_student(student_id)?.get("deleted")) {
+            // remove license if student is deleted
+            license_id = "";
+            already_done = true;
+          }
           for (const id in site_license) {
             if (license_run_limits[id] != null) {
               license_run_limits[id] -= 1;

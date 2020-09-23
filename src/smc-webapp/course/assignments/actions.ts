@@ -37,10 +37,12 @@ import {
   mswalltime,
   defaults,
   split,
+  trunc,
 } from "smc-util/misc";
 import { map } from "awaiting";
 
 import { nbgrader, jupyter_strip_notebook } from "../../jupyter/nbgrader/api";
+import { grading_state } from "../nbgrader/util";
 import { ipynb_clear_hidden_tests } from "../../jupyter/nbgrader/clear-hidden-tests";
 import {
   extract_auto_scores,
@@ -1408,21 +1410,34 @@ ${details}
   // Run nbgrader for all students for which this assignment
   // has been collected at least once.
   public async run_nbgrader_for_all_students(
-    assignment_id: string
+    assignment_id: string,
+    ungraded_only?: boolean
   ): Promise<void> {
     // console.log("run_nbgrader_for_all_students", assignment_id);
     const instructor_ipynb_files = await this.nbgrader_instructor_ipynb_files(
       assignment_id
     );
     if (this.course_actions.is_closed()) return;
+    const store = this.get_store();
+    const nbgrader_scores = store.getIn([
+      "assignments",
+      assignment_id,
+      "nbgrader_scores",
+    ]);
     const one_student: (student_id: string) => Promise<void> = async (
       student_id
     ) => {
       if (this.course_actions.is_closed()) return;
-      const store = this.get_store();
       if (!store.last_copied("collect", assignment_id, student_id, true)) {
         // Do not try to grade the assignment, since it wasn't
-        // already successfully collected.
+        // already successfully collected yet.
+        return;
+      }
+      if (
+        ungraded_only &&
+        grading_state(student_id, nbgrader_scores) == "succeeded"
+      ) {
+        // Do not try to grade assignment, if it has already been successfully graded.
         return;
       }
       await this.run_nbgrader_for_one_student(
@@ -1574,9 +1589,9 @@ ${details}
       return; // nothing case.
     }
 
-    const nbgrader_grade_in_instructor_project: boolean = !!store.getIn([
+    const nbgrader_grade_project: string | undefined = store.getIn([
       "settings",
-      "nbgrader_grade_in_instructor_project",
+      "nbgrader_grade_project",
     ]);
 
     const nbgrader_include_hidden_tests: boolean = !!store.getIn([
@@ -1587,10 +1602,8 @@ ${details}
     const course_project_id = store.get("course_project_id");
 
     let grade_project_id: string;
-    let where_grade: string;
-    if (nbgrader_grade_in_instructor_project) {
-      grade_project_id = course_project_id;
-      where_grade = "instructor project";
+    if (nbgrader_grade_project) {
+      grade_project_id = nbgrader_grade_project;
     } else {
       const student_project_id = student.get("project_id");
       if (student_project_id == null) {
@@ -1600,8 +1613,9 @@ ${details}
         throw Error("student has no project, so can't run nbgrader");
       }
       grade_project_id = student_project_id;
-      where_grade = "student's project";
     }
+    const where_grade =
+      redux.getStore("projects").get_title(grade_project_id) ?? "a project";
 
     if (instructor_ipynb_files == null) {
       instructor_ipynb_files = await this.nbgrader_instructor_ipynb_files(
@@ -1627,7 +1641,7 @@ ${details}
       const activity_id = this.course_actions.set_activity({
         desc: `Running nbgrader on ${store.get_student_name(
           student_id
-        )}'s "${file}" in ${where_grade}`,
+        )}'s "${file}" in '${trunc(where_grade, 40)}'`,
       });
       if (assignment == null || student == null) {
         // This won't happen, but it makes Typescript happy.
@@ -1743,7 +1757,6 @@ ${details}
         filename,
         JSON.stringify(notebook, undefined, 2)
       );
-
     }
 
     this.set_nbgrader_scores_for_one_student(

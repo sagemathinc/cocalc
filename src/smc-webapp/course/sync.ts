@@ -137,6 +137,15 @@ export function create_sync_db(
       actions.handle_projects_store_update.bind(actions)
     );
     actions.handle_projects_store_update(projects_store);
+
+    // Handle deprecation
+    if (store.getIn(["settings", "nbgrader_grade_in_instructor_project"])) {
+      actions.set({
+        nbgrader_grade_in_instructor_project: false,
+        nbgrader_grade_project: course_project_id,
+        table: "settings",
+      });
+    }
   });
 
   return syncdb;

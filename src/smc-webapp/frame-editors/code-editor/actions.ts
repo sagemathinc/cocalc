@@ -522,7 +522,7 @@ export class Actions<
   }
 
   __save_local_view_state(): void {
-    if (!this.store.get("local_view_state")) return;
+    if (!this.store?.get("local_view_state")) return;
     localStorage[this.name] = JSON.stringify(
       this.store.get("local_view_state")
     );
