@@ -7,9 +7,10 @@ import { React, Rendered } from "../app-framework";
 
 import { ExplainResources } from "./explain-resources";
 import { ExplainLicenses } from "./explain-course-licenses";
+import { SubscriptionLicenses } from "./subscription-licenses";
 import { ExplainPlan } from "./explain-plan";
-import { SubscriptionGrid } from "./subscription-grid";
 import { DedicatedVM } from "./dedicated-vm";
+import { OnPrem } from "./on-prem";
 
 export function render_static_pricing_page(): Rendered {
   return (
@@ -17,11 +18,13 @@ export function render_static_pricing_page(): Rendered {
       <ExplainResources type="shared" is_static={true} />
       <hr />
       <ExplainPlan type="personal" />
-      <SubscriptionGrid periods={["month", "year"]} is_static={true} />
+      <SubscriptionLicenses />
       <hr />
       <ExplainLicenses />
       <hr />
       <DedicatedVM />
+      <hr />
+      <OnPrem />
     </div>
   );
 }

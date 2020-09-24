@@ -180,6 +180,7 @@ const MAX = {
   always_running: 1,
   member: 1,
 } as const;
+export const MIN_QUOTE = 100;
 export const COSTS: {
   user_discount: { [user in User]: number };
   sub_discount: { [sub in Subscription]: number };
@@ -195,7 +196,7 @@ export const COSTS: {
   user_discount: { academic: ACADEMIC_DISCOUNT, business: 1 },
   sub_discount: { no: 1, monthly: 0.9, yearly: 0.85 },
   online_discount: 0.75,
-  min_quote: 100,
+  min_quote: MIN_QUOTE,
   min_sale: 1,
   custom_cost: CUSTOM_COST,
   custom_max: MAX,
@@ -334,4 +335,12 @@ export function money(n: number): string {
 
 export const discount_pct = Math.round(
   (1 - COSTS.user_discount["academic"]) * 100
+);
+
+export const discount_monthly_pct = Math.round(
+  (1 - COSTS.sub_discount["monthly"]) * 100
+);
+
+export const discount_yearly_pct = Math.round(
+  (1 - COSTS.sub_discount["yearly"]) * 100
 );
