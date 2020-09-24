@@ -154,7 +154,7 @@ export class API {
     return await this.call(
       {
         cmd: "prettier_string",
-        str: str,
+        str,
         options,
       },
       15000

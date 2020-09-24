@@ -23,7 +23,7 @@ interface MesgFormatterString {
   cmd:
     | "prettier_string" // deprecated, use "formatter_string"
     | "formatter_string";
-  path: string | undefined;
+  path?: string | undefined;
   str: string;
   options: Options;
 }
