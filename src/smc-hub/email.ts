@@ -16,18 +16,18 @@ const fs_readFile_prom = promisify(fs.readFile);
 const async = require("async");
 const winston = require("./winston-metrics").get_logger("email");
 import { template } from "lodash";
-import { AllSiteSettings } from "smc-util/db-schema/types";
+import { AllSiteSettings } from "../smc-util/db-schema/types";
 
 // sendgrid API v3: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
 import * as sendgrid from "@sendgrid/client";
 
 import * as nodemailer from "nodemailer";
 
-const misc = require("smc-util/misc");
+const misc = require("../smc-util/misc");
 const { defaults, required } = misc;
-import { site_settings_conf } from "smc-util/db-schema/site-defaults";
+import { site_settings_conf } from "../smc-util/db-schema/site-defaults";
 import * as sanitizeHtml from "sanitize-html";
-import { contains_url } from "smc-util-node/misc2_node";
+import { contains_url } from "../smc-util-node/misc2_node";
 
 const {
   SENDGRID_TEMPLATE_ID,
