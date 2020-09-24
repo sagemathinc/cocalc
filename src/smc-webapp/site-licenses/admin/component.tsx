@@ -137,7 +137,7 @@ class SiteLicenses extends Component<Props> {
         disabled={this.props.loading || !this.props.search}
         style={{ margin: "15px 0" }}
       >
-        Search for licenses
+        Update Search
       </Button>
     );
   }
@@ -165,23 +165,29 @@ class SiteLicenses extends Component<Props> {
   private render_search(): Rendered {
     if (!this.props.view) return;
     return (
-      <DebounceInput
-        placeholder={"Search for licenses..."}
-        style={{
-          marginLeft: "5px",
-          width: "40ex",
-          padding: "5px",
-          border: "1px solid lightgrey",
-          borderRadius: "3px",
-        }}
-        value={this.props.search ?? ""}
-        onChange={(e) => actions.set_search((e.target as any).value)}
-        onKeyUp={(e) => {
-          if (e.keyCode === 13) {
-            actions.load();
-          }
-        }}
-      />
+      <div>
+        <DebounceInput
+          placeholder={"Search..."}
+          style={{
+            marginLeft: "5px",
+            width: "40ex",
+            padding: "5px",
+            border: "1px solid lightgrey",
+            borderRadius: "3px",
+          }}
+          value={this.props.search ?? ""}
+          onChange={(e) => actions.set_search((e.target as any).value)}
+          onKeyUp={(e) => {
+            if (e.keyCode === 13) {
+              actions.load();
+            }
+          }}
+        />
+        <div style={{ color: "#666" }}>
+          Search licenses by id, title, description, info, manager name and
+          email address.
+        </div>
+      </div>
     );
   }
 

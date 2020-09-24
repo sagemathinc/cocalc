@@ -16,15 +16,17 @@ export async function matching_site_licenses(
   let i = 1;
   for (const s of search_split(search.toLowerCase())) {
     where.push(
-      `(lower(title) LIKE $${i}::TEXT OR lower(description) LIKE $${i}::TEXT OR id::TEXT LIKE $${i}::TEXT OR lower(info::TEXT) LIKE $${i}::TEXT )`
+      `(lower(site_licenses.title) LIKE $${i}::TEXT OR lower(site_licenses.description) LIKE $${i}::TEXT OR site_licenses.id::TEXT LIKE $${i}::TEXT OR lower(site_licenses.info::TEXT) LIKE $${i}::TEXT OR lower(accounts.first_name) LIKE $${i}::TEXT OR lower(accounts.last_name) LIKE $${i}::TEXT OR lower(accounts.email_address) LIKE $${i}::TEXT)`
     );
     params.push(`%${s}%`);
     i += 1;
   }
-  let query = "SELECT id FROM site_licenses";
-  query += ` WHERE (${where.join(" AND ")})`;
+  let query =
+    "SELECT DISTINCT(site_licenses.id) AS id, site_licenses.last_used FROM site_licenses, accounts WHERE accounts.account_id::TEXT = ANY(site_licenses.managers) AND";
+  query += ` (${where.join(" AND ")})`;
+
   // recently active licenses are much more relevant than old ones
-  query += " ORDER BY last_used DESC NULLS LAST";
+  query += " ORDER BY site_licenses.last_used DESC NULLS LAST";
   query += ` LIMIT $${i}::INTEGER`;
   params.push(limit);
   i += 1;
