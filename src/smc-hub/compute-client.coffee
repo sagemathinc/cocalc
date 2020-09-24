@@ -2130,6 +2130,13 @@ class ProjectClient extends EventEmitter
         commands = undefined
         async.series([
             (cb) =>
+                dbg("merge quotas into the run_quota")
+                try
+                    await @compute_server.database.set_run_quota(@project_id, misc.copy_without(opts, ['cb']))
+                    cb()
+                catch err
+                    cb(err)
+            (cb) =>
                 if not opts.member_host?
                     cb()
                 else

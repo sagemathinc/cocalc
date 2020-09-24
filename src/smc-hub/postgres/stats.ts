@@ -13,7 +13,6 @@ const _ = require("underscore");
 import { PostgreSQL } from "./types";
 const { all_results } = require("../postgres-base");
 
-
 interface Opts {
   ttl_dt: number; // 15 secs subtracted from ttl to compensate for computation duration when called via a cronjob
   ttl: number; // how long cached version lives (in seconds)
@@ -180,20 +179,19 @@ async function check_db_cache({
   }
 }
 
-const running_projects_q = `\
-SELECT count(*), run_quota ->> 'member_host' AS member
+const running_projects_query = `\
+SELECT count(*), run_quota -> 'member_host' AS member
 FROM projects
 WHERE state ->> 'state' in ('running', 'starting')
 GROUP BY member`;
 
-async function calc_running_projects({ db }): Promise<RunningProjects> {
+async function calc_running_projects(db): Promise<RunningProjects> {
   const data = { free: 0, member: 0 };
-  const res = await cb2(db._query, { query: running_projects_q });
-  // yes, "member" is really string
+  const res = await cb2(db._query, { query: running_projects_query });
   for (const row of res.rows) {
-    if (row.member === "true") {
+    if (row.member) {
       data.member = parseInt(row.count);
-    } else if (row.member === "false") {
+    } else {
       data.free = parseInt(row.count);
     }
   }
@@ -294,7 +292,7 @@ async function _calc_stats({ db, dbg, start_t }): Promise<Stats> {
     });
   }
 
-  stats.running_projects = await calc_running_projects({ db });
+  stats.running_projects = await calc_running_projects(db);
 
   const elapsed_t = process.hrtime(start_t);
   const duration_s = (elapsed_t[0] + elapsed_t[1] / 1e9).toFixed(4);

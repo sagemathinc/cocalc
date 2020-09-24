@@ -3124,5 +3124,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     unlist_all_public_paths: (account_id, is_owner) =>
         return await unlist_all_public_paths(@, account_id, is_owner)
 
+    # async
     projects_that_need_to_be_started: () =>
         return await projects_that_need_to_be_started(@)
+
+    # async
+    # this *merges* in the run_quota; it doesn't replace it.
+    set_run_quota: (project_id, run_quota) =>
+        return await @async_query
+            query       : "UPDATE projects"
+            jsonb_merge : {run_quota:run_quota}
+            where       : {project_id:project_id}
