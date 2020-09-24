@@ -7,11 +7,7 @@ const { writeFile, readFile, unlink } = require("fs");
 const tmp = require("tmp");
 const { callback } = require("awaiting");
 const { spawn } = require("child_process");
-
-interface ParserOptions {
-  parser: string;
-  tabWidth: number;
-}
+import { Options } from "./index";
 
 function close(proc, cb): void {
   proc.on("close", (code) => cb(undefined, code));
@@ -31,8 +27,8 @@ function run_clang_format(
 
 export async function clang_format(
   input: string,
-  options: ParserOptions,
   ext: string,
+  options: Options,
   logger: any
 ): Promise<string> {
   // create input temp file
