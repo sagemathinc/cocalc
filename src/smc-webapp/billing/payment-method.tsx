@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Component, React, Rendered } from "../app-framework";
+import { React, Rendered, useState } from "../app-framework";
 import { Alert, Button, ButtonToolbar, Row, Col } from "react-bootstrap";
 import { Icon } from "../r_misc/icon";
 import { Space } from "../r_misc/space";
@@ -18,29 +18,17 @@ interface Props {
   delete_method?: Function; // called when this card should be deleted
 }
 
-interface State {
-  confirm_default: boolean;
-  confirm_delete: boolean;
-}
+export const PaymentMethod: React.FC<Props> = (props) => {
+  const [confirm_default, set_confirm_default] = useState<boolean>(false);
+  const [confirm_delete, set_confirm_delete] = useState<boolean>(false);
 
-export class PaymentMethod extends Component<Props, State> {
-  constructor(props, state) {
-    super(props, state);
-    this.state = {
-      confirm_default: false,
-      confirm_delete: false,
-    };
-  }
-
-  private icon_name(): string {
+  function icon_name(): string {
     return brand_to_icon_name(
-      this.props.source.brand != null
-        ? this.props.source.brand.toLowerCase()
-        : undefined
+      props.source.brand != null ? props.source.brand.toLowerCase() : undefined
     );
   }
 
-  private render_confirm_default(): Rendered {
+  function render_confirm_default(): Rendered {
     return (
       <Alert bsStyle="warning">
         <Row>
@@ -59,17 +47,14 @@ export class PaymentMethod extends Component<Props, State> {
             <ButtonToolbar>
               <Button
                 onClick={() => {
-                  this.setState({ confirm_default: false });
-                  if (this.props.set_as_default != null)
-                    this.props.set_as_default();
+                  set_confirm_default(false);
+                  if (props.set_as_default != null) props.set_as_default();
                 }}
                 bsStyle="warning"
               >
                 <Icon name="trash" /> Set to Default
               </Button>
-              <Button onClick={() => this.setState({ confirm_default: false })}>
-                Cancel
-              </Button>
+              <Button onClick={() => set_confirm_default(false)}>Cancel</Button>
             </ButtonToolbar>
           </Col>
         </Row>
@@ -77,7 +62,7 @@ export class PaymentMethod extends Component<Props, State> {
     );
   }
 
-  private render_confirm_delete(): Rendered {
+  function render_confirm_delete(): Rendered {
     return (
       <Alert bsStyle="danger">
         <Row>
@@ -89,16 +74,13 @@ export class PaymentMethod extends Component<Props, State> {
               <Button
                 bsStyle="danger"
                 onClick={() => {
-                  this.setState({ confirm_delete: false });
-                  if (this.props.delete_method != null)
-                    this.props.delete_method();
+                  set_confirm_delete(false);
+                  if (props.delete_method != null) props.delete_method();
                 }}
               >
                 <Icon name="trash" /> Delete Payment Method
               </Button>
-              <Button onClick={() => this.setState({ confirm_delete: false })}>
-                Cancel
-              </Button>
+              <Button onClick={() => set_confirm_delete(false)}>Cancel</Button>
             </ButtonToolbar>
           </Col>
         </Row>
@@ -106,50 +88,50 @@ export class PaymentMethod extends Component<Props, State> {
     );
   }
 
-  private render_card(): Rendered {
+  function render_card(): Rendered {
     return (
       <Row>
         <Col md={2}>
-          <Icon name={this.icon_name()} /> {this.props.source.brand}
+          <Icon name={icon_name()} /> {props.source.brand}
         </Col>
         <Col md={1}>
           <em>····</em>
-          {this.props.source.last4}
+          {props.source.last4}
         </Col>
         <Col md={1}>
-          {this.props.source.exp_month}/{this.props.source.exp_year}
+          {props.source.exp_month}/{props.source.exp_year}
         </Col>
-        <Col md={2}>{this.props.source.name}</Col>
-        <Col md={1}>{this.props.source.address_country}</Col>
+        <Col md={2}>{props.source.name}</Col>
+        <Col md={1}>{props.source.address_country}</Col>
         <Col md={2}>
-          {this.props.source.address_state}
+          {props.source.address_state}
           <Space />
           <Space />
-          {this.props.source.address_zip}
+          {props.source.address_zip}
         </Col>
-        {this.props.set_as_default != null || this.props.delete_method != null
-          ? this.render_action_buttons()
+        {props.set_as_default != null || props.delete_method != null
+          ? render_action_buttons()
           : undefined}
       </Row>
     );
   }
 
-  private render_action_buttons(): Rendered {
+  function render_action_buttons(): Rendered {
     return (
       <Col md={3}>
         <ButtonToolbar style={{ float: "right" }}>
-          {this.props.set_as_default != null ? (
+          {props.set_as_default != null ? (
             <Button
-              onClick={() => this.setState({ confirm_default: true })}
-              disabled={this.props.default}
-              bsStyle={this.props.default ? "primary" : "default"}
+              onClick={() => set_confirm_default(true)}
+              disabled={props.default}
+              bsStyle={props.default ? "primary" : "default"}
             >
-              Default{!this.props.default ? <span>... </span> : undefined}
+              Default{!props.default ? <span>... </span> : undefined}
             </Button>
           ) : undefined}
 
-          {this.props.delete_method != null ? (
-            <Button onClick={() => this.setState({ confirm_delete: true })}>
+          {props.delete_method != null ? (
+            <Button onClick={() => set_confirm_delete(true)}>
               <Icon name="trash" /> Delete
             </Button>
           ) : undefined}
@@ -158,19 +140,17 @@ export class PaymentMethod extends Component<Props, State> {
     );
   }
 
-  public render(): Rendered {
-    return (
-      <div
-        style={{
-          borderBottom: "1px solid #999",
-          paddingTop: "5px",
-          paddingBottom: "5px",
-        }}
-      >
-        {this.render_card()}
-        {this.state.confirm_default ? this.render_confirm_default() : undefined}
-        {this.state.confirm_delete ? this.render_confirm_delete() : undefined}
-      </div>
-    );
-  }
-}
+  return (
+    <div
+      style={{
+        borderBottom: "1px solid #999",
+        paddingTop: "5px",
+        paddingBottom: "5px",
+      }}
+    >
+      {render_card()}
+      {confirm_default ? render_confirm_default() : undefined}
+      {confirm_delete ? render_confirm_delete() : undefined}
+    </div>
+  );
+};
