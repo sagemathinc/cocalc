@@ -14,7 +14,12 @@ that it simultaneously manages numerous sessions, since simultaneously
 doing a lot of IO-based things is what Node.JS is good at.
 ###
 
-require('ts-node').register(project:"#{__dirname}/tsconfig.json", cacheDirectory:'/tmp')
+{program, do_not_laod_transpilers} = require('./init-program')
+
+if do_not_laod_transpilers
+    console.warn("ts-node transpiler is not enabled!")
+else
+    require('ts-node').register(project:"#{__dirname}/tsconfig.json", cacheDirectory:'/tmp')
 
 path    = require('path')
 async   = require('async')
@@ -24,7 +29,6 @@ net     = require('net')
 uuid    = require('uuid')
 winston = require('winston')
 request = require('request')
-program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 
 init_gitconfig = require('./gitconfig').init_gitconfig
 
@@ -108,11 +112,13 @@ if process.env.SMC_LOCAL_HUB_HOME?
 if not process.env.SMC?
     process.env.SMC = path.join(process.env.HOME, '.smc')
 
-SMC = process.env.SMC
+SMC = if program.test then '/tmp' else process.env.SMC
 
 process.chdir(process.env.HOME)
 
 DATA = path.join(SMC, 'local_hub')
+
+winston.debug("DATA='#{DATA}'")
 
 # See https://github.com/sagemathinc/cocalc/issues/174 -- some stupid (?)
 # code sometimes assumes this exists, and it's not so hard to just ensure
@@ -327,13 +333,16 @@ start_server = (tcp_port, raw_port, cb) ->
             fs.writeFile(misc_node.abspath("#{DATA}/local_hub.pid"), "#{process.pid}", cb)
         (cb) ->
             winston.debug("initializing secret token...")
-            secret_token.init_secret_token (err, token) ->
-                if err
-                    cb(err)
-                else
-                    the_secret_token = token
-                    exports.client.secret_token = token
-                    cb()
+            if program.test
+                exports.client.secret_token = "1234567890"
+            else
+                secret_token.init_secret_token (err, token) ->
+                    if err
+                        cb(err)
+                    else
+                        the_secret_token = token
+                        exports.client.secret_token = token
+                        cb()
         (cb) ->
             winston.debug("start API server...")
             try
@@ -373,14 +382,8 @@ set_extra_env = ->
         # we report and ignore errors
         winston.debug("ERROR set_extra_env -- cannot process '#{process.env.COCALC_EXTRA_ENV}' -- #{err}")
 
-program.usage('[?] [options]')
-    .option('--tcp_port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
-    .option('--raw_port <n>', 'RAW server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
-    .option('--console_port <n>', 'port to find console server on (optional; uses port file if not given); if this is set we assume some other system is managing the console server and do not try to start it -- just assume it is listening on this port always', ((n)->parseInt(n)), 0)
-    .option('--kucalc', "Running in the kucalc environment")
-    .option('--test_firewall', 'Abort and exit w/ code 99 if internal GCE information is accessible')
-    .option('--test', "Start up everything, then immediately exit.  Used as a test and to ensure coffeescript and typescript is compiled/cache")
-    .parse(process.argv)
+
+# Final steps: kucalc specific setup, environment variable cleanup, and then we issue the "start_server" command …
 
 if program.kucalc
     winston.debug("running in kucalc")
@@ -401,7 +404,11 @@ set_extra_env()
 start_server program.tcp_port, program.raw_port, (err) ->
     if err
         process.exit(1)
-    if program.test
+
+if program.test
+    winston.debug("Test mode -- waiting 10 seconds")
+    setTimeout ->
         winston.debug("Test mode -- now exiting")
         process.exit(0)
+    , 10000
 

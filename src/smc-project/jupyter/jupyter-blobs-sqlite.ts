@@ -7,7 +7,16 @@
 Jupyter's in-memory blob store (based on sqlite), which hooks into the raw http server.
 */
 
-require("coffee-register"); // because of misc and misc_node below.  Delete this when those are typescript'd
+const { do_not_laod_transpilers } = require("../init-program");
+
+if (do_not_laod_transpilers) {
+  console.warn(
+    "[project/jupyter-blobs] coffeescript transpiler is not enabled!"
+  );
+} else {
+  // because of misc and misc_node below.  Delete this when those are typescript'd
+  require("coffee-register");
+}
 
 import { BlobStoreInterface } from "../smc-webapp/jupyter/project-interface";
 
