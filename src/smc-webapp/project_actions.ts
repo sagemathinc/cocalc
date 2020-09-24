@@ -2517,7 +2517,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const full_path = segments.slice(1).join("/");
     const parent_path = segments.slice(1, segments.length - 1).join("/");
     const last = segments.slice(-1).join();
-    switch (segments[0]) {
+    const main_segment = segments[0];
+    switch (main_segment) {
       case "files":
         if (target[target.length - 1] === "/" || full_path === "") {
           //if DEBUG then console.log("ProjectStore::load_target → open_directory", parent_path)
@@ -2585,6 +2586,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       case "search":
         this.set_current_path(full_path);
         this.set_active_tab("search", { change_history: change_history });
+        break;
+
+      case "info":
+        this.set_active_tab("info", { change_history: change_history });
+        break;
+
+      default:
+        console.warn(`project/load_target: don't know segment ${main_segment}`);
     }
   }
 
