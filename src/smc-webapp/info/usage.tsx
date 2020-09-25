@@ -75,7 +75,7 @@ export const Usage: React.FC<{}> = () => {
       return (
         <>
           <div style={{ textAlign: "center" }}>
-            Currently active users
+            Active users
             <ProgressBar
               style={{ marginBottom: "10px" }}
               now={Math.max(n / 12, 45 / 8)}
@@ -84,7 +84,7 @@ export const Usage: React.FC<{}> = () => {
           </div>
           {kucalc == KUCALC_COCALC_COM && (
             <div style={{ textAlign: "center" }}>
-              Currently active projects
+              Active projects
               <ProgressBar
                 style={{ marginBottom: "10px" }}
                 max={pmax}
@@ -150,7 +150,7 @@ export const Usage: React.FC<{}> = () => {
       ["LaTeX Documents", "tex"],
       ["Markdown Documents", "md"],
       ["R Markdown Documents", "rmd"],
-      ["Chat", "sage-chat"]
+      ["Chat", "sage-chat"],
     ];
     const result: JSX.Element[] = [];
     for (const [name, ext] of stats) {
@@ -215,7 +215,7 @@ export const Usage: React.FC<{}> = () => {
       <div>
         {render_live_stats()}
         <div style={{ marginTop: 20, textAlign: "center" }}>
-          Recent user activity
+          Recent activity
         </div>
         {render_recent_usage_stats()}
       </div>
