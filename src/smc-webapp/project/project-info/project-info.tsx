@@ -70,8 +70,13 @@ export function ProjectInfo({ project_id /*, actions*/ }: Props): JSX.Element {
       <Col md={12} mdOffset={0} lg={10} lgOffset={1}>
         <h1>Project Info</h1>
         <div>
-          timestamp: <code>{new Date(info.timestamp).toLocaleString()}</code> |{" "}
-          connected: <code>{`${chan != null}`}</code> | status:{" "}
+          timestamp:{" "}
+          {info.timestamp != null ? (
+            <code>{new Date(info.timestamp).toLocaleString()}</code>
+          ) : (
+            "no timestamp"
+          )}{" "}
+          | connected: <code>{`${chan != null}`}</code> | status:{" "}
           <code>{status}</code>
         </div>
         <div>commands: {render_kill()}</div>

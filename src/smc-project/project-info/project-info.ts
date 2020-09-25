@@ -4,74 +4,13 @@
  */
 
 /*
-Project information server
+Project information
 */
 
-import { delay } from "awaiting";
-import { exec as child_process_exec } from "child_process";
-import { promisify } from "util";
-const exec = promisify(child_process_exec);
-import { EventEmitter } from "events";
-import { ProjectInfo, ProjectInfoCmds, Processes } from "./types";
+import { ProjectInfoCmds } from "./types";
+import { ProjectInfoServer } from "./server";
 
-class ProjectInfoServer extends EventEmitter {
-  dbg: Function;
-  last?: ProjectInfo;
-
-  constructor(L) {
-    super();
-    this.dbg = (...msg) => L("ProjectInfoServer", ...msg);
-    this.start();
-  }
-
-  private async processes(): Promise<Processes> {
-    const procs: Processes = [];
-    for (const i of [123, 94923, 832]) {
-      procs.push({
-        pid: i,
-        ppid: i + 1,
-        cmd: `cmd=${i}`,
-        args: ["asdf", "fdsa", `${i}`],
-        category: "other",
-        cpu: i,
-        mem: i + 100,
-      });
-    }
-    return procs;
-  }
-
-  private async ps(): Promise<string> {
-    try {
-      const out = await exec("ps auxwwf");
-      return out.stdout.trim();
-    } catch (err) {
-      return `Error -- ${err}`;
-    }
-  }
-
-  public new_listener(send_data) {
-    if (this.last != null) send_data(this.last);
-  }
-
-  private async start() {
-    this.dbg("start");
-    while (true) {
-      // TODO disable info collection if there is nobody listening for a few minutes…
-      this.dbg(`listeners on 'info': ${this.listenerCount("info")}`);
-      const [ps, processes] = await Promise.all([this.ps(), this.processes()]);
-      const info: ProjectInfo = {
-        timestamp: new Date().getTime(),
-        ps,
-        processes,
-      };
-      this.last = info;
-      this.emit("info", info);
-      await delay(5000);
-    }
-  }
-}
-
-// singleton
+// singleton, we instantiate it when we need it
 let _info: ProjectInfoServer | undefined = undefined;
 
 function init(L: Function): ProjectInfoServer {
