@@ -5,7 +5,7 @@ export const AboutLicenses: React.FC = () => {
   return (
     <div>
       <h3>About</h3>
-      <A href="https://doc.cocalc.com/news.html#site-license-news">
+      <A href="https://doc.cocalc.com/account/licenses.html">
         Licenses
       </A>{" "}
       allow you to automatically upgrade projects whenever they start up, so

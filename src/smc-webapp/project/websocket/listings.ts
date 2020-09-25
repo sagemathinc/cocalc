@@ -6,6 +6,7 @@
 import { EventEmitter } from "events";
 import { List, fromJS } from "immutable";
 import { throttle } from "lodash";
+import { delay } from "awaiting";
 
 import { SyncTable } from "smc-util/sync/table";
 import { webapp_client } from "../../webapp-client";
@@ -298,7 +299,15 @@ export class Listings extends EventEmitter {
       throw Error("must be in init state");
     }
     // Make sure there is a working websocket to the project
-    await webapp_client.project_client.websocket(this.project_id);
+    while (true) {
+      try {
+        await webapp_client.project_client.websocket(this.project_id);
+        break;
+      } catch (_) {
+        if (this.state == ("closed" as State)) return;
+        await delay(3000);
+      }
+    }
     if ((this.state as State) == "closed") return;
 
     // Now create the table.

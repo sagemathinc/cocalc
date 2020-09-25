@@ -24,6 +24,7 @@ import { set_window_title } from "../browser";
 import { once } from "smc-util/async-utils";
 import { COCALC_MINIMAL } from "../fullscreen";
 import { DEFAULT_COMPUTE_IMAGE } from "smc-util/compute-images";
+import { allow_project_to_run } from "../project/client-side-throttle";
 
 // Define projects actions
 export class ProjectsActions extends Actions<ProjectsState> {
@@ -701,6 +702,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
   }
 
   public async start_project(project_id: string): Promise<void> {
+    if (!allow_project_to_run(project_id)) {
+      return;
+    }
     await this.projects_table_set({
       project_id,
       action_request: { action: "start", time: webapp_client.server_time() },
@@ -724,6 +728,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
   }
 
   public async restart_project(project_id: string): Promise<void> {
+    if (!allow_project_to_run(project_id)) {
+      return;
+    }
     await this.projects_table_set({
       project_id,
       action_request: { action: "restart", time: webapp_client.server_time() },

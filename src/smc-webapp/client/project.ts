@@ -19,6 +19,10 @@ import { connection_to_project } from "../project/websocket/connect";
 import { API } from "../project/websocket/api";
 import { redux } from "../app-framework";
 import { WebappClient } from "./client";
+import {
+  allow_project_to_run,
+  too_many_free_projects,
+} from "../project/client-side-throttle";
 
 import { Configuration, ConfigurationAspect } from "../project_configuration";
 
@@ -133,6 +137,19 @@ export class ProjectClient {
 
   public async websocket(project_id: string): Promise<any> {
     const store = redux.getStore("projects");
+    // Wait until project is running (or admin and not on project)
+    await store.async_wait({
+      until: () => {
+        const state = store.get_state(project_id);
+        if (state == null && redux.getStore("account")?.get("is_admin")) {
+          // is admin so doesn't know project state -- just immediately
+          // try, which  will cause project to run
+          return true;
+        }
+        return state == "running";
+      },
+    });
+
     // get_my_group returns undefined when the various info to
     // determine this isn't yet loaded.  For some connections
     // this websocket function gets called before that info is
@@ -346,9 +363,18 @@ export class ProjectClient {
   }
 
   public async touch(project_id: string): Promise<void> {
-    if (!this.client.is_signed_in()) {
-      // silently ignore if not signed in
-      return;
+    const state = redux.getStore("projects")?.get_state(project_id);
+    if (!(state == null && redux.getStore("account")?.get("is_admin"))) {
+      // not trying to view project as admin so do some checks
+      if (!allow_project_to_run(project_id)) return;
+      if (!this.client.is_signed_in()) {
+        // silently ignore if not signed in
+        return;
+      }
+      if (state != "running") {
+        // not running so don't touch (user must explicitly start first)
+        return;
+      }
     }
 
     // Throttle -- so if this function is called with the same project_id
@@ -408,6 +434,10 @@ export class ProjectClient {
     start?: boolean;
     license?: string; // "license_id1,license_id2,..." -- if given, create project with these licenses applied
   }): Promise<string> {
+    if (opts.start && too_many_free_projects()) {
+      // don't auto-start it if too many projects already running.
+      opts.start = false;
+    }
     const { project_id } = await this.client.async_call({
       allow_post: false, // since gets called for anonymous and cookie not yet set.
       message: message.create_project(opts),

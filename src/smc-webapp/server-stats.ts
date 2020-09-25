@@ -7,7 +7,6 @@
 Redux: server stats
 */
 
-import { COCALC_MINIMAL } from "./fullscreen";
 import { redux, Actions, Store } from "./app-framework";
 
 type RecentTimes = "1d" | "1h" | "7d" | "30d";
@@ -41,15 +40,18 @@ const actions = redux.createActions(name, StatsActions);
 
 const { $ } = window as any;
 const { BASE_URL } = require("misc_page");
-function get_stats() {
+
+function get_stats_once() {
   $.getJSON(`${BASE_URL}/stats`, function (data) {
     data.time = new Date(data.time);
     data.loading = false;
     actions.setState(data);
   });
+}
+
+function get_stats() {
+  get_stats_once();
   setTimeout(get_stats, 90 * 1000);
 }
 
-if (!COCALC_MINIMAL) {
-  get_stats();
-}
+get_stats();

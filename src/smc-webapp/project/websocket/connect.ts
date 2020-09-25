@@ -27,6 +27,7 @@ import { redux } from "../../app-framework";
 
 import { set_project_websocket_state, WebsocketState } from "./websocket-state";
 import { webapp_client } from "../../webapp-client";
+import { allow_project_to_run } from "../client-side-throttle";
 
 const connections = {};
 
@@ -35,7 +36,10 @@ const connections = {};
 // of the target, hence causing multiple projects to have the same websocket.
 let READING_PRIMUS_JS = false;
 
-async function start_project(project_id: string) {
+async function wait_for_project_to_start(project_id: string) {
+  if (!allow_project_to_run(project_id)) {
+    throw Error("not allowing right now");
+  }
   // also check if the project is supposedly running and if
   // not wait for it to be.
   const projects = redux.getStore("projects");
@@ -43,11 +47,8 @@ async function start_project(project_id: string) {
     throw Error("projects store must exist");
   }
 
-  // Encourage project to start running, if it isn't already...
-
-  await webapp_client.project_client.touch(project_id);
-  if (projects.get_my_group(project_id) == "admin") {
-    // must be viewing as admin, so can't start as below.  Just touch and be done.
+  if (!projects.is_collaborator(project_id)) {
+    // wait below not useful:
     return;
   }
   await callback2(projects.wait, {
@@ -95,7 +96,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
         }
 
         log("start_project...");
-        await start_project(project_id);
+        await wait_for_project_to_start(project_id);
         log("start_project: done");
 
         // Now project is thought to be running, so maybe this will work:

@@ -11,7 +11,6 @@ import {
   A,
   ActivityDisplay,
   Icon,
-  ProjectState,
   TimeAgo,
   ErrorDisplay,
   Loading,
@@ -49,10 +48,10 @@ import { Library } from "../../library";
 import { webapp_client } from "../../webapp-client";
 import { UsersViewing } from "../../account/avatar/users-viewing";
 
-const pager_range = function (page_size, page_number) {
+function pager_range(page_size, page_number) {
   const start_index = page_size * page_number;
   return { start_index, end_index: start_index + page_size };
-};
+}
 
 export type Configuration = ShallowTypedMap<{ main: MainConfiguration }>;
 
@@ -591,45 +590,6 @@ export const Explorer = rclass(
       }
     }
 
-    on_click_start_project = () => {
-      redux.getActions("projects").start_project(this.props.project_id);
-    };
-
-    render_start_project_button(project_state?: ProjectStatus) {
-      const needle = (project_state && project_state.get("state")) || "";
-      const enabled = ["opened", "closed", "archived"].includes(needle);
-      return (
-        <span style={{ marginLeft: "30px" }}>
-          <Button
-            disabled={!enabled}
-            bsStyle="primary"
-            bsSize="large"
-            onClick={this.on_click_start_project}
-          >
-            <Icon name="flash" /> Start Project
-          </Button>
-        </span>
-      );
-    }
-
-    render_project_state(project_state?: ProjectStatus) {
-      const state = project_state?.get("state");
-      if (state == "running") return;
-      return (
-        <div
-          style={{
-            fontSize: "40px",
-            textAlign: "center",
-            color: "#666666",
-            marginBottom: "15px",
-          }}
-        >
-          <ProjectState state={project_state} show_desc={true} />
-          {this.render_start_project_button(project_state)}
-        </div>
-      );
-    }
-
     file_listing_page_size() {
       return (
         this.props.other_settings &&
@@ -903,7 +863,6 @@ export const Explorer = rclass(
             {public_view && !directory_error
               ? this.render_access_error(public_view)
               : undefined}
-            {this.render_project_state(project_state)}
             {this.render_file_listing(
               visible_listing,
               file_map,

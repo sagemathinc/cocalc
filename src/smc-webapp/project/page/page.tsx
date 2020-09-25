@@ -24,6 +24,7 @@ import { OOMWarning } from "../warnings/oom";
 import { TrialBanner } from "../trial-banner";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade"
 import { AnonymousName } from "../anonymous-name";
+import { StartButton } from "../start-button";
 
 import {
   DEFAULT_FILE_TAB_STYLES,
@@ -328,6 +329,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
       <TrialBanner project_id={project_id} />
       {!fullscreen && render_file_tabs()}
       {is_deleted && <DeletedProjectWarning />}
+      <StartButton project_id={project_id} />
       {render_project_content()}
     </div>
   );

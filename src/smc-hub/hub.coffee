@@ -418,7 +418,7 @@ update_stats = (cb) ->
     ], (err) -> cb?(err))
 
 init_update_stats = (cb) ->
-    setInterval(update_stats, 60000)
+    setInterval(update_stats, 30000)
     update_stats(cb)
 
 
@@ -601,9 +601,10 @@ exports.start_server = start_server = (cb) ->
             )
 
         (cb) ->
-            if not program.dev
-                cb(); return
-            init_update_stats(cb)
+            if program.dev or program.single
+                init_update_stats(cb)
+            else
+                cb()
         (cb) ->
             if not program.dev
                 cb(); return
