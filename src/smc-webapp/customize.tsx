@@ -5,6 +5,8 @@
 
 // Site Customize -- dynamically customize the look of CoCalc for the client.
 
+import { List } from "immutable";
+
 import { redux, Redux, rclass, rtypes, Store, Actions } from "./app-framework";
 import * as React from "react";
 import {
@@ -77,6 +79,7 @@ export interface CustomizeState {
   logo_rectangular: string;
   logo_square: string;
   max_upgrades: string;
+  nonfree_countries?: List<string>;
   onprem_quota_heading: string;
   organization_email: string;
   organization_name: string;

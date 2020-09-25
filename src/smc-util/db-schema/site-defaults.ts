@@ -295,9 +295,9 @@ export const site_settings_conf: SiteSettings = {
     show: only_cocalc_com,
   },
   max_trial_projects: {
-    name: "Max. Trial Projects",
+    name: "Maximum Trial Projects",
     desc:
-      "Limit, where we start blocking trial projects from running. (0 means disabled)",
+      "Limit where we start blocking trial projects from running in nonfree countries. (0 means disabled)",
     default: "0",
     to_val: to_int,
     valid: only_nonneg_int,
@@ -305,7 +305,7 @@ export const site_settings_conf: SiteSettings = {
   },
   nonfree_countries: {
     name: "Nonfree Countries",
-    desc: "ISO 3166-1 Alpha 2 country codes where restrictions apply",
+    desc: "ISO 3166-1 Alpha 2 country codes where extra usage restrictions apply",
     default: "",
     to_val: split_strings,
     show: only_cocalc_com,

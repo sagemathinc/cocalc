@@ -22,7 +22,7 @@ import { site_settings_conf as SITE_SETTINGS_CONF } from "../smc-util/schema";
 import { have_active_registration_tokens } from "./utils";
 
 import * as LRUCache from "expiring-lru-cache";
-const CACHE = LRUCache({ size: 10, expiry: ms("10 minutes") });
+const CACHE = LRUCache({ size: 10, expiry: ms("3 minutes") });
 
 export function clear_cache(): void {
   CACHE.reset();

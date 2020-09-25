@@ -23,9 +23,19 @@ function not_on_cocalc_com() {
   return window.location.host != "cocalc.com";
 }
 
+function not_in_blocked_country() {
+  const customize = redux.getStore("customize");
+  if (customize == null) return true; // don't know
+  const country = customize.get("country");
+  if (country == null) return true;
+  const nonfree_countries = customize.get("nonfree_countries");
+  if (nonfree_countries == null) return true;
+  return !nonfree_countries.contains(country);
+}
+
 export function too_many_free_projects(): boolean {
   // there are never too many free projects if we're NOT on cocalc.com
-  if (not_on_cocalc_com()) return false;
+  if (not_on_cocalc_com() || not_in_blocked_country()) return false;
 
   const running_projects =
     redux.getStore("server_stats")?.getIn(["running_projects", "free"]) ?? 0;
@@ -39,6 +49,10 @@ export function too_many_free_projects(): boolean {
 export function allow_project_to_run(project_id: string): boolean {
   function log(..._args) {
     //console.log("allow_project_to_run", ..._args);
+  }
+  if (not_in_blocked_country()) {
+    log("not blocked country");
+    return true;
   }
   if (not_on_cocalc_com()) {
     // For now we are hardcoding this functionality only for cocalc.com.
