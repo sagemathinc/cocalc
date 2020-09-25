@@ -17,9 +17,7 @@ import {
   redux,
   React,
   useMemo,
-  useState,
   useTypedRedux,
-  useIsMountedRef,
 } from "../app-framework";
 import { A, Icon, ProjectState, Space, VisibleMDLG } from "../r_misc";
 import { DOC_TRIAL } from "./trial-banner";
@@ -32,14 +30,8 @@ interface Props {
 export const StartButton: React.FC<Props> = ({ project_id }) => {
   const project_map = useTypedRedux("projects", "project_map");
   const state = useMemo(() => {
-    const state = project_map?.getIn([project_id, "state"]);
-    if (starting && state?.get("state") == "running") {
-      set_starting(false);
-    }
-    return state;
+    return project_map?.getIn([project_id, "state"]);
   }, [project_map]);
-  const [starting, set_starting] = useState<boolean>(false);
-  const isMountedRef = useIsMountedRef();
 
   if (state?.get("state") == "running") {
     return <></>;
@@ -86,25 +78,13 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
         <Button
           type="primary"
           size="large"
-          disabled={!enabled || starting}
-          onClick={async () => {
-            set_starting(true);
-            try {
-              await redux.getActions("projects").start_project(project_id);
-            } catch (_) {
-            } finally {
-              if (isMountedRef.current) {
-                set_starting(false);
-              }
-            }
+          disabled={!enabled}
+          onClick={() => {
+            redux.getActions("projects").start_project(project_id);
           }}
         >
-          {starting ? (
-            <Icon name="cc-icon-cocalc-ring" spin />
-          ) : (
-            <Icon name="play" />
-          )}
-          <Space /> <Space /> Start{starting ? "ing" : ""} project
+          <Icon name="play" />
+          <Space /> <Space /> Start project
         </Button>
       </div>
     );
