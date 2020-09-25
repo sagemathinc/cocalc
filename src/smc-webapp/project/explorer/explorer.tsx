@@ -48,6 +48,7 @@ import { ProjectNewForm } from "../new";
 import { Library } from "../../library";
 import { webapp_client } from "../../webapp-client";
 import { UsersViewing } from "../../account/avatar/users-viewing";
+import { allow_project_to_run } from "../client-side-throttle";
 
 const pager_range = function (page_size, page_number) {
   const start_index = page_size * page_number;
@@ -597,7 +598,9 @@ export const Explorer = rclass(
 
     render_start_project_button(project_state?: ProjectStatus) {
       const needle = (project_state && project_state.get("state")) || "";
-      const enabled = ["opened", "closed", "archived"].includes(needle);
+      const enabled =
+        allow_project_to_run(this.props.project_id) &&
+        ["opened", "closed", "archived"].includes(needle);
       return (
         <span style={{ marginLeft: "30px" }}>
           <Button
@@ -606,7 +609,7 @@ export const Explorer = rclass(
             bsSize="large"
             onClick={this.on_click_start_project}
           >
-            <Icon name="flash" /> Start Project
+            <Icon name="flash" /> Start project
           </Button>
         </span>
       );

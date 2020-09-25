@@ -19,6 +19,7 @@ import { connection_to_project } from "../project/websocket/connect";
 import { API } from "../project/websocket/api";
 import { redux } from "../app-framework";
 import { WebappClient } from "./client";
+import { allow_project_to_run } from "../project/client-side-throttle";
 
 import { Configuration, ConfigurationAspect } from "../project_configuration";
 
@@ -133,6 +134,11 @@ export class ProjectClient {
 
   public async websocket(project_id: string): Promise<any> {
     const store = redux.getStore("projects");
+    // Wait until project is running
+    await store.async_wait({
+      until: () => store.get_state(project_id) == "running",
+    });
+
     // get_my_group returns undefined when the various info to
     // determine this isn't yet loaded.  For some connections
     // this websocket function gets called before that info is
@@ -346,8 +352,13 @@ export class ProjectClient {
   }
 
   public async touch(project_id: string): Promise<void> {
+    if (!allow_project_to_run(project_id)) return;
     if (!this.client.is_signed_in()) {
       // silently ignore if not signed in
+      return;
+    }
+    if (redux.getStore("projects")?.get_state(project_id) != "running") {
+      // not running so don't touch (user must explicitly start first)
       return;
     }
 

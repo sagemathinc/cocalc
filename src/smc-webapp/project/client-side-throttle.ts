@@ -5,6 +5,9 @@
 
 import { redux } from "../app-framework";
 
+export const RUN_THROTTLE_ERROR =
+  "Too many free projects are running on CoCalc right now.  Try later or go to Account -> Licenses and buy a license.";
+
 /*
 Client-side throttling of running projects.  This may or may not be the
 right approach to this problem... we'll see.
@@ -59,6 +62,11 @@ export function allow_project_to_run(project_id: string): boolean {
         return true;
       }
     }
+  }
+
+  if (project.getIn(["settings", "member_host"])) {
+    // admin upgrade of member hosting.
+    return true;
   }
 
   // maybe there is a license (valid or not -- we won't check at this point)

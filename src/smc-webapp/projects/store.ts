@@ -243,6 +243,13 @@ export class ProjectsStore extends Store<ProjectsState> {
     return me.get("group");
   }
 
+  public is_collaborator(project_id: string): boolean {
+    return (
+      webapp_client.account_id != null &&
+      this.getIn(["project_map", project_id, webapp_client.account_id]) != null
+    );
+  }
+
   public is_project_open(project_id: string): boolean {
     return this.get("open_projects").includes(project_id);
   }
