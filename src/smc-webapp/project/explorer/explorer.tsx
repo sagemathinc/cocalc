@@ -50,6 +50,7 @@ import { Library } from "../../library";
 import { webapp_client } from "../../webapp-client";
 import { UsersViewing } from "../../account/avatar/users-viewing";
 import { allow_project_to_run } from "../client-side-throttle";
+import { DOC_TRIAL } from "../trial-banner";
 
 function pager_range(page_size, page_number) {
   const start_index = page_size * page_number;
@@ -628,9 +629,10 @@ export const Explorer = rclass(
           type="error"
           description={
             <span style={{ fontSize: "12pt" }}>
-              Unfortunately, there are too many trial projects running on CoCalc
-              right now and paying customers have priority. Try running your
-              trial project later or{" "}
+              Unfortunately, there are too many{" "}
+              <A href={DOC_TRIAL}>trial projects</A> running on CoCalc right now
+              and paying customers have priority. Try running your trial project
+              later or{" "}
               <a
                 onClick={() => {
                   redux.getActions("page").set_active_tab("account");

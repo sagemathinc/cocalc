@@ -15,7 +15,7 @@ import {
 } from "../app-framework";
 const { Alert } = require("react-bootstrap");
 import { Icon, A } from "../r_misc";
-const trial_url = "https://doc.cocalc.com/trial.html";
+export const DOC_TRIAL = "https://doc.cocalc.com/trial.html";
 import { allow_project_to_run } from "./client-side-throttle";
 
 // explains implications for having no internet and/or no member hosting
@@ -60,7 +60,7 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
 
     const trial_project = (
       <strong>
-        <A href={trial_url} style={A_STYLE}>
+        <A href={DOC_TRIAL} style={A_STYLE}>
           Free Trial (Day {Math.floor(age_days)})
         </A>
       </strong>
@@ -97,8 +97,9 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
     if (!allow_run) {
       return (
         <span>
-          {trial_project} - There are too many free trial projects running right
-          now. Try again later or {buy_and_upgrade}.
+          {trial_project} - There are too many free{" "}
+          <A href={DOC_TRIAL}>trial projects</A> running right now. Try again
+          later or {buy_and_upgrade}.
         </span>
       );
     }
@@ -141,7 +142,7 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
       <>
         {" – "}
         <A
-          href={trial_url}
+          href={DOC_TRIAL}
           style={{ fontWeight: "bold", color: color, cursor: "pointer" }}
         >
           more info
