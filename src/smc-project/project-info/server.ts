@@ -41,28 +41,22 @@ export class ProjectInfoServer extends EventEmitter {
   private async stat(path: string): Promise<Stat> {
     // all time-values are in seconds
     const raw = await readFile(path, "utf8");
-    const i = raw.indexOf("(");
-    const j = raw.lastIndexOf(")");
-    const data = [
-      ...raw
-        .slice(0, i - 1)
-        .trim()
-        .split(" "),
-      "comm",
-      ...raw
-        .slice(j + 1)
-        .trim()
-        .split(" "),
-    ];
+    const [i, j] = [raw.indexOf("("), raw.lastIndexOf(")")];
+    const start = raw.slice(0, i - 1).trim();
+    const end = raw.slice(j + 1).trim();
+    const data = `${start} comm ${end}`.split(" ");
     const get = (idx) => parseInt(data[idx]);
+    // https://man7.org/linux/man-pages/man5/proc.5.html
     const ret = {
       ppid: get(3),
       state: data[2] as State,
-      utime: get(14) / this.ticks, // CPU time spent in user code, measured in clock ticks (#14)
-      stime: get(15) / this.ticks, // CPU time spent in kernel code, measured in clock ticks (#15)
-      cutime: get(16) / this.ticks, // Waited-for children's CPU time spent in user code (in clock ticks) (#16)
-      cstime: get(17) / this.ticks, // Waited-for children's CPU time spent in kernel code (in clock ticks) (#17)
+      utime: get(13) / this.ticks, // CPU time spent in user code, measured in clock ticks (#14)
+      stime: get(14) / this.ticks, // CPU time spent in kernel code, measured in clock ticks (#15)
+      cutime: get(15) / this.ticks, // Waited-for children's CPU time spent in user code (in clock ticks) (#16)
+      cstime: get(16) / this.ticks, // Waited-for children's CPU time spent in kernel code (in clock ticks) (#17)
       starttime: get(21) / this.ticks, // Time when the process started, measured in clock ticks (#22)
+      nice: get(18),
+      num_threads: get(19),
       mem: { rss: (get(23) * this.pagesize) / (1024 * 1024) }, // MiB
     };
     return ret;
@@ -73,7 +67,7 @@ export class ProjectInfoServer extends EventEmitter {
     const total_cpu = stat.utime + stat.stime;
     // the fallback is chosen in such a way, that it says 0% if we do not have historic data
     const prev_cpu = this.last?.processes[pid]?.cpu.secs ?? total_cpu;
-    const dt = timestamp - (this.last?.timestamp ?? 0);
+    const dt = (timestamp - (this.last?.timestamp ?? 0)) / 1000;
     // how much cpu time was used since last time we checked this process…
     const pct = (total_cpu - prev_cpu) / dt;
     return { pct: pct, secs: total_cpu };
@@ -95,7 +89,6 @@ export class ProjectInfoServer extends EventEmitter {
       readlink(fn("exe")),
       this.stat(fn("stat")),
     ]);
-    this.dbg("starttime", uptime, stat.starttime);
     const data = {
       pid,
       ppid: stat.ppid,
@@ -179,7 +172,7 @@ export class ProjectInfoServer extends EventEmitter {
       this.last = info;
       this.emit("info", info);
       if (this.running) {
-        await delay(5000);
+        await delay(1500);
       } else {
         this.dbg("start: no longer running → stopping loop");
         this.last = undefined;

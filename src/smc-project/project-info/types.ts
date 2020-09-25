@@ -17,6 +17,8 @@ export interface Stat {
   cutime: number; // Waited-for children's CPU time spent in user code (in clock ticks) (#16)
   cstime: number; // Waited-for children's CPU time spent in kernel code (in clock ticks) (#17)
   starttime: number; // Time when the process started, measured in clock ticks (#22)
+  nice: number;
+  num_threads: number;
   mem: Mem;
 }
 

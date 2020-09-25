@@ -5,16 +5,48 @@
 
 import { React, useIsMountedRef } from "../../app-framework";
 import { Col, Row } from "react-bootstrap";
+import { basename } from "path";
+import { Table } from "antd";
+import { Loading } from "../../r_misc";
 import { Button } from "../../antd-bootstrap";
 // import { ProjectActions } from "../../project_actions";
 import { project_websocket } from "../../frame-editors/generic/client";
 import { Channel } from "../../project/websocket/types";
-import { ProjectInfo, ProjectInfoCmds } from "smc-project/project-info/types";
+import {
+  ProjectInfo,
+  ProjectInfoCmds,
+  Processes,
+} from "smc-project/project-info/types";
+
+// for the Table, derived from "Process"
+interface ProcessRow {
+  key: number; // pid
+  pid: number;
+  ppid: number;
+  name: string;
+  mem: number;
+  cpu_tot: number;
+  cpu_pct: number;
+}
 
 interface Props {
   name: string;
   project_id: string;
   //  actions: ProjectActions;
+}
+
+function procs2rows(procs: Processes): ProcessRow[] {
+  return Object.values(procs).map((proc) => {
+    return {
+      key: proc.pid,
+      pid: proc.pid,
+      ppid: proc.ppid,
+      name: basename(proc.exe),
+      mem: proc.stat.mem.rss,
+      cpu_tot: proc.cpu.secs,
+      cpu_pct: proc.cpu.pct,
+    };
+  });
 }
 
 export function ProjectInfo({ project_id /*, actions*/ }: Props): JSX.Element {
@@ -65,6 +97,45 @@ export function ProjectInfo({ project_id /*, actions*/ }: Props): JSX.Element {
     );
   }
 
+  function render_top(procs) {
+    if (procs == null) return <Loading />;
+    const data: ProcessRow[] = procs2rows(procs);
+
+    return (
+      <Table<ProcessRow> dataSource={data} size="small" pagination={false}>
+        <Table.Column<ProcessRow> key="pid" title="PID" dataIndex="pid" />
+        <Table.Column<ProcessRow> key="name" title="Name" dataIndex="name" />
+        <Table.Column<ProcessRow>
+          key="mem"
+          title="Memory"
+          dataIndex="mem"
+          render={(val) => `${val.toFixed(0)}MiB`}
+        />
+        <Table.Column<ProcessRow>
+          key="cpu_pct"
+          title="CPU%"
+          dataIndex="cpu_pct"
+          render={(val) => `${(100 * val).toFixed(1)}%`}
+        />
+        <Table.Column<ProcessRow>
+          key="cpu_tot"
+          title="CPU Time"
+          dataIndex="cpu_tot"
+          render={(val) => `${val.toFixed(2)}s`}
+        />
+        <Table.Column<ProcessRow>
+          key="actions"
+          title="Actions"
+          render={(text, record) => (
+            <span>
+              {text.pid} – {record.pid}
+            </span>
+          )}
+        />
+      </Table>
+    );
+  }
+
   return (
     <Row style={{ marginTop: "15px" }}>
       <Col md={12} mdOffset={0} lg={10} lgOffset={1}>
@@ -80,10 +151,13 @@ export function ProjectInfo({ project_id /*, actions*/ }: Props): JSX.Element {
           <code>{status}</code>
         </div>
         <div>commands: {render_kill()}</div>
-        <pre style={{ fontSize: "10px" }}>
-          {JSON.stringify(info.processes, null, 2)}
-        </pre>
-        <pre style={{ fontSize: "10px" }}>{info.ps}</pre>
+        {render_top(info.processes)}
+        {false && (
+          <pre style={{ fontSize: "10px" }}>
+            {JSON.stringify(info.processes, null, 2)}
+          </pre>
+        )}
+        {false && <pre style={{ fontSize: "10px" }}>{info.ps}</pre>}
       </Col>
     </Row>
   );

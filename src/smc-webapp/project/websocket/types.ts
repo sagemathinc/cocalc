@@ -136,6 +136,10 @@ interface MesgRealpath {
   path: string;
 }
 
+interface MesgProjectInfo {
+  cmd: "project_info";
+}
+
 export type Mesg =
   | MesgExec
   | MesgDeleteFiles
@@ -158,7 +162,8 @@ export type Mesg =
   | MesgSymmetricChannel
   | MesgRealpath
   | MesgNBGrader
-  | MesgJupyterRunNotebook;
+  | MesgJupyterRunNotebook
+  | MesgProjectInfo;
 
 export interface Channel {
   write(x: any): boolean;
