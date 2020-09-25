@@ -114,7 +114,7 @@ Table({
     },
     managers: {
       type: "array",
-      pg_type: "TEXT[]",
+      pg_type: "TEXT[]",  /* TODO/NOTE: I made a mistake -- this should have been UUID[]! */
       desc:
         "A list of the account_id's of users that are allowed to manage how this site license is being used.",
     },
@@ -196,7 +196,7 @@ Table({
   },
 });
 
-const MATCHING_SITE_LICENSES_LIMIT = 50; // pretty arbitrary limit.
+const MATCHING_SITE_LICENSES_LIMIT = 20; // arbitrary limit.
 Table({
   name: "matching_site_licenses",
   fields: {

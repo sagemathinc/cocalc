@@ -31,15 +31,17 @@ exports.HELP_EMAIL = "help@cocalc.com";
 exports.TWITTER_HANDLE = "cocalc_com"; // without the @
 exports.BILLING_EMAIL = "billing@sagemath.com";
 exports.BILLING_ADDRESS = `\
-1212 East Barclay Court
-Seattle, WA 98122, USA\
+17725 SE 123RD PL
+Renton, WA 98059-6621
+USA\
 `;
 exports.BILLING_TAXID = "TAX EIN: 47-3015407";
 exports.COPYRIGHT_AGENT_HTML = `\
 William Stein (Copyright Agent)<br>
 c/o SageMath, Inc.<br>
-1212 East Barclay Court<br>
-Seattle, WA 98122<br>
+17725 SE 123RD PL<br>
+Renton, WA 98059-6621<br>
+USA<br>
 <a href='mailto:copyright@sagemath.com'>copyright@sagemath.com</a>\
 `;
 // for conversion tracking (commercial only)

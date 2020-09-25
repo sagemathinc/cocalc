@@ -66,7 +66,7 @@ import {
   char_idx_to_js_idx,
 } from "./util";
 
-import { Config as FormatterConfig } from "../../smc-project/formatters/prettier";
+import { Config as FormatterConfig } from "../../smc-project/formatters";
 
 import { SyncDB } from "../../smc-util/sync/editor/db/sync";
 
@@ -2428,7 +2428,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   }
 
-  private async api_call_prettier(
+  private async api_call_formatter(
     str: string,
     config: FormatterConfig,
     timeout_ms?: number
@@ -2436,7 +2436,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this._state === "closed") {
       throw Error("closed");
     }
-    return await (await this.init_project_conn()).api.prettier_string(
+    return await (await this.init_project_conn()).api.formatter_string(
       str,
       config,
       timeout_ms
@@ -2469,7 +2469,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     //  console.log("FMT", cell_type, options, code);
     let resp: string | undefined;
     try {
-      resp = await this.api_call_prettier(code, config);
+      resp = await this.api_call_formatter(code, config);
     } catch (err) {
       this.set_error(err);
       // Do not process response (probably empty anyways) if
@@ -2477,7 +2477,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
     if (resp == null) return; // make everyone happy …
-    // We additionally trim the output, because prettier introduces
+    // We additionally trim the output, because formatting code introduces
     // a trailing newline
     this.set_cell_input(id, JupyterActions.trim_code(resp), false);
   }

@@ -24,7 +24,7 @@ export const ExplainPlan: React.FC<Props> = (props: Props) => {
   function render_dedicated() {
     return (
       <div>
-        For highly intensive workloads you can also purchase{" "}
+        <b>Note:</b> For highly intensive workloads you can also purchase{" "}
         <a href="#dedicated">Dedicated resources</a>.
       </div>
     );
@@ -33,26 +33,20 @@ export const ExplainPlan: React.FC<Props> = (props: Props) => {
     return (
       <div style={{ marginBottom: "10px" }}>
         <a id="subscriptions" />
-        <h3>Personal subscriptions</h3>
+        <h3>Service subscriptions</h3>
         <p>
-          Personal subscriptions award you with{" "}
-          <A href="https://doc.cocalc.com/billing.html#quota-upgrades">
-            upgrades for project quotas
-          </A>
-          . They <b>automatically renew</b> after each period and you can{" "}
+          A subscription awards you with a{" "}
+          <A href="https://doc.cocalc.com/account/licenses.html">license key</A>{" "}
+          for{" "}
+          <A href="https://doc.cocalc.com/project-settings.html#licenses">
+            upgrading your projects
+          </A>{" "}
+          or other projects where you are a collaborator &mdash; everyone using
+          an upgraded project benefits. Such a subscription{" "}
+          <b>automatically renews</b> at the end of each period. You can{" "}
           <b>cancel at any time</b>.
         </p>
-        <p>
-          Once such upgrades are added to your account, you can distribute them
-          to your own projects or other projects where you are a collaborator
-          &mdash; everyone using an upgraded project benefits.
-        </p>
-        <p>
-          Quota upgrades can be added or removed at any time – move them between
-          your projects as often as you like.
-        </p>
         <Space />
-
         <br />
         {render_dedicated()}
         <br />

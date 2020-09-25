@@ -17,8 +17,8 @@ import { callback2 as cb2 } from "../smc-util/async-utils";
 import { PostgreSQL } from "./postgres/types";
 import { PassportManager, get_passport_manager } from "./auth";
 const server_settings = require("./server-settings");
-import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "smc-util/db-schema/site-settings-extras";
-import { site_settings_conf as SITE_SETTINGS_CONF } from "smc-util/schema";
+import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "../smc-util/db-schema/site-settings-extras";
+import { site_settings_conf as SITE_SETTINGS_CONF } from "../smc-util/schema";
 import { have_active_registration_tokens } from "./utils";
 
 import * as LRUCache from "expiring-lru-cache";

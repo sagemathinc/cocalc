@@ -4,8 +4,16 @@
  */
 
 import { PostgreSQL } from "../types";
-import { search_split } from "../../smc-util/misc";
+import {
+  is_valid_uuid_string,
+  search_match,
+  search_split,
+} from "../../smc-util/misc";
 
+// This works and does the entire search in the database.
+// Unfortunately, it is unusably slow and I just don't have
+// the time to do something better right now:
+/*
 export async function matching_site_licenses(
   db: PostgreSQL,
   search: string,
@@ -16,20 +24,87 @@ export async function matching_site_licenses(
   let i = 1;
   for (const s of search_split(search.toLowerCase())) {
     where.push(
-      `(lower(title) LIKE $${i}::TEXT OR lower(description) LIKE $${i}::TEXT OR id::TEXT LIKE $${i}::TEXT OR lower(info::TEXT) LIKE $${i}::TEXT )`
+      `(lower(site_licenses.title) LIKE $${i}::TEXT OR lower(site_licenses.description) LIKE $${i}::TEXT OR site_licenses.id::TEXT LIKE $${i}::TEXT OR lower(site_licenses.info::TEXT) LIKE $${i}::TEXT OR lower(accounts.first_name) LIKE $${i}::TEXT OR lower(accounts.last_name) LIKE $${i}::TEXT OR lower(accounts.email_address) LIKE $${i}::TEXT)`
     );
     params.push(`%${s}%`);
     i += 1;
   }
-  let query = "SELECT id FROM site_licenses";
-  query += ` WHERE (${where.join(" AND ")})`;
+  let query =
+    "SELECT DISTINCT(site_licenses.id) AS id, site_licenses.last_used FROM site_licenses, accounts WHERE accounts.account_id::TEXT = ANY(site_licenses.managers) AND";
+  query += ` (${where.join(" AND ")})`;
+
   // recently active licenses are much more relevant than old ones
-  query += " ORDER BY last_used DESC NULLS LAST";
+  query += " ORDER BY site_licenses.last_used DESC NULLS LAST";
   query += ` LIMIT $${i}::INTEGER`;
   params.push(limit);
   i += 1;
 
   return (await db.async_query({ query, params })).rows;
+}
+*/
+
+// This is dumb but will be sufficiently fast up to probably 5K licenses.
+// This is not user facing functionality.  We could maybe restrict to last_used
+// in the few months by default (optinally anything) and this would last
+// much longer...
+export async function matching_site_licenses(
+  db: PostgreSQL,
+  search: string,
+  limit: number = 5
+): Promise<{ id: string }[]> {
+  if (is_valid_uuid_string(search)) {
+    return (
+      await db.async_query({
+        cache: true,
+        query: "SELECT id FROM site_licenses WHERE id=$1",
+        params: [search],
+      })
+    ).rows;
+  }
+  // Get them all.
+  const licenses = (
+    await db.async_query({
+      query:
+        "SELECT id, id || ' ' || lower(title) || ' ' || lower(description) || ' ' || lower(info::TEXT) AS info, managers FROM site_licenses ORDER BY last_used DESC NULLS LAST",
+    })
+  ).rows;
+  // Replace manager account ids by name and email
+  const managers: Set<string> = new Set();
+  for (const x of licenses) {
+    if (x.managers != null) {
+      for (const account_id of x.managers) {
+        managers.add(account_id);
+      }
+    }
+  }
+  const accounts: { [account_id: string]: string } = {};
+  for (const row of (
+    await db.async_query({
+      cache: true,
+      query:
+        "SELECT account_id, lower(first_name) || ' ' || lower(last_name) || ' ' || lower(email_address) AS info FROM accounts WHERE account_id=ANY($1)",
+      params: [Array.from(managers)],
+    })
+  ).rows) {
+    accounts[row.account_id] = row.info;
+  }
+
+  const v = search_split(search.toLowerCase());
+  const matches: { id: string }[] = [];
+  for (const license of licenses) {
+    let s = license.info;
+    if (license.managers) {
+      for (const account_id of license.managers) {
+        s += " " + accounts[account_id];
+      }
+    }
+    if (search_match(s, v)) {
+      matches.push({ id: license.id as string });
+    }
+    if (matches.length >= limit) break;
+  }
+
+  return matches;
 }
 
 export async function manager_site_licenses(

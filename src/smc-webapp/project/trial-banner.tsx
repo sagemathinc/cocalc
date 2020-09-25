@@ -53,16 +53,21 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
       color,
       fontWeight: "bold",
     };
+    const proj_created =
+      project_map?.getIn([project_id, "created"]) ?? new Date(0);
+    const age_ms: number = server_time().getTime() - proj_created.getTime();
+    const age_days = age_ms / (24 * 60 * 60 * 1000);
+
     const trial_project = (
       <strong>
         <A href={trial_url} style={a_style}>
-          Trial Project
+          Free Trial (Day {Math.floor(age_days)})
         </A>
       </strong>
     );
     const no_internet =
       "you can't install packages, clone from GitHub, or download datasets";
-    const no_host = ["expect poor performance"];
+    const no_host = ["expect VERY bad performance (e.g., 10 times slower!)"];
     const inetquota =
       "https://doc.cocalc.com/billing.html#what-exactly-is-the-internet-access-quota";
     const memberquota =
@@ -76,7 +81,7 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
             redux.getActions("account").set_active_tab("licenses");
           }}
         >
-          buy a license (about $3/month!)
+          <u>buy a license</u> (starting at about $3/month!)
         </a>{" "}
         and{" "}
         <a
@@ -85,22 +90,23 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
             redux.getProjectActions(project_id).set_active_tab("settings");
           }}
         >
-          and apply it to this project
+          <u>apply it to this project</u>
         </a>
       </>
     );
     if (host && internet) {
       return (
         <span>
-          {trial_project} – {buy_and_upgrade}. Otherwise,{" "}
-          {humanizeList([...no_host, no_internet])}
+          {trial_project} – {buy_and_upgrade}.
+          <br />
+          Otherwise, {humanizeList([...no_host, no_internet])}
           {"."}
         </span>
       );
     } else if (host) {
       return (
         <span>
-          {trial_project} – upgrade{" "}
+          {trial_project} – upgrade to{" "}
           <A href={memberquota} style={a_style}>
             Member Hosting
           </A>{" "}
@@ -164,18 +170,10 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
     return null;
   }
 
-  // we want this to be between 10 to 14 and growing over time (weeks)
-  const proj_created =
-    project_map?.getIn([project_id, "created"]) ?? new Date(0);
-
-  const min_fontsize = 10;
-  const age_ms: number = server_time().getTime() - proj_created.getTime();
-  const age_days = age_ms / (24 * 60 * 60 * 1000);
-  const font_size = Math.min(14, min_fontsize + age_days / 15);
   const style = {
     padding: "5px 10px",
     marginBottom: 0,
-    fontSize: font_size + "pt",
+    fontSize: "12pt",
     borderRadius: 0,
     color: "white",
     background: "red",

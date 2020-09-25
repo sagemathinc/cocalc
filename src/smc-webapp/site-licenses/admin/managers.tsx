@@ -117,7 +117,7 @@ export class Managers extends Component<DisplayProps, State> {
       <div style={{ float: "right" }}>
         <input
           style={{ width: "40ex" }}
-          placeholder="Email address or account_id..."
+          placeholder="Email address, account_id or name..."
           value={this.state.add_value}
           onChange={(e) =>
             this.setState({ add_value: (e.target as any).value })
