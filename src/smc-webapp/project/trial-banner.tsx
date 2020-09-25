@@ -97,9 +97,8 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
     if (!allow_run) {
       return (
         <span>
-          {trial_project} - There are too many free{" "}
-          <A href={DOC_TRIAL}>trial projects</A> running right now. Try again
-          later or {buy_and_upgrade}.
+          {trial_project} - There are too many free trial projects running right
+          now. Try again later or {buy_and_upgrade}.
         </span>
       );
     }
@@ -138,13 +137,14 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
   }
 
   function render_learn_more(color): JSX.Element {
+    const style = {
+      ...A_STYLE,
+      ...{ fontWeight: "bold" as "bold", color: color },
+    };
     return (
       <>
         {" – "}
-        <A
-          href={DOC_TRIAL}
-          style={{ fontWeight: "bold", color: color, cursor: "pointer" }}
-        >
+        <A href={DOC_TRIAL} style={style}>
           more info
         </A>
         {"..."}
