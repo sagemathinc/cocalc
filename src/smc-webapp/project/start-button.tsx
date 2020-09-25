@@ -103,11 +103,18 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
 
   function render_normal_view() {
     return (
-      <>
-        {render_start_project_button()}
-        <ProjectState state={state} show_desc={allowed} />
-        {!allowed && render_not_allowed()}
-      </>
+      <Alert
+        message={
+          <>
+            <span style={{ fontSize: "20pt", color: "#666" }}>
+              <ProjectState state={state} show_desc={allowed} />
+            </span>
+            {render_start_project_button()}
+            {!allowed && render_not_allowed()}
+          </>
+        }
+        type="warning"
+      />
     );
   }
 

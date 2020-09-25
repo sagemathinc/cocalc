@@ -47,7 +47,6 @@ import { ProjectNewForm } from "../new";
 import { Library } from "../../library";
 import { webapp_client } from "../../webapp-client";
 import { UsersViewing } from "../../account/avatar/users-viewing";
-import { StartButton } from "../start-button";
 
 function pager_range(page_size, page_number) {
   const start_index = page_size * page_number;
@@ -864,7 +863,6 @@ export const Explorer = rclass(
             {public_view && !directory_error
               ? this.render_access_error(public_view)
               : undefined}
-            <StartButton project_id={this.props.project_id} />
             {this.render_file_listing(
               visible_listing,
               file_map,
