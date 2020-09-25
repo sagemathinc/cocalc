@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Alert as AntdAlert } from "antd";
 import * as React from "react";
 import * as immutable from "immutable";
 import * as underscore from "underscore";
@@ -50,10 +51,10 @@ import { webapp_client } from "../../webapp-client";
 import { UsersViewing } from "../../account/avatar/users-viewing";
 import { allow_project_to_run } from "../client-side-throttle";
 
-const pager_range = function (page_size, page_number) {
+function pager_range(page_size, page_number) {
   const start_index = page_size * page_number;
   return { start_index, end_index: start_index + page_size };
-};
+}
 
 export type Configuration = ShallowTypedMap<{ main: MainConfiguration }>;
 
@@ -615,9 +616,39 @@ export const Explorer = rclass(
       );
     }
 
+    render_not_allowed() {
+      return (
+        <AntdAlert
+          style={{ margin: "10px 20%" }}
+          message={
+            <span style={{ fontWeight: 500, fontSize: "14pt" }}>
+              Too many trial projects!
+            </span>
+          }
+          type="error"
+          description={
+            <span style={{ fontSize: "12pt" }}>
+              Unfortunately, there are too many trial projects running on CoCalc
+              right now and paying customers have priority. Try running your
+              trial project later or{" "}
+              <a
+                onClick={() => {
+                  redux.getActions("page").set_active_tab("account");
+                  redux.getActions("account").set_active_tab("licenses");
+                }}
+              >
+                <u>upgrade using a license</u>.
+              </a>
+            </span>
+          }
+        />
+      );
+    }
+
     render_project_state(project_state?: ProjectStatus) {
       const state = project_state?.get("state");
       if (state == "running") return;
+      const allowed = allow_project_to_run(this.props.project_id);
       return (
         <div
           style={{
@@ -627,7 +658,8 @@ export const Explorer = rclass(
             marginBottom: "15px",
           }}
         >
-          <ProjectState state={project_state} show_desc={true} />
+          <ProjectState state={project_state} show_desc={allowed} />
+          {!allowed && this.render_not_allowed()}
           {this.render_start_project_button(project_state)}
         </div>
       );

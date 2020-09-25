@@ -6,7 +6,7 @@
 import { redux } from "../app-framework";
 
 export const RUN_THROTTLE_ERROR =
-  "Too many free projects are running on CoCalc right now.  Try later or go to Account -> Licenses and buy a license.";
+  "Too many trial projects running on CoCalc right now.  Try later or go to Account -> Licenses and buy a license.";
 
 /*
 Client-side throttling of running projects.  This may or may not be the
@@ -15,42 +15,55 @@ right approach to this problem... we'll see.
 We allow a project to run if any of these conditions is satisfied:
 
    - the global limit on free projects has not been reached (or there is no global limit)
-   - the account asking to run the project has any assocaited stripe info
-     (e.g., because they bought something or entered a card at some point)
    - any license is applied to the project
    - any upgrades are applied to the project
+   - admin member upgrade
+   - is a project in a course (don't interfere with instructors/students)
+   - project already running or starting for some reason
 */
 
 // Maximum number of free projects to allow at once.
-const FREE_LIMIT = 1000;
+const FREE_LIMIT = 1;
+
+export function too_many_free_projects(): boolean {
+  return (
+    (redux.getStore("server_stats")?.getIn(["running_projects", "free"]) ??
+      0) >= FREE_LIMIT
+  );
+}
 
 export function allow_project_to_run(project_id: string): boolean {
+  function log(..._args) {
+    //console.log("allow_project_to_run", ..._args);
+  }
   if (window.location.host != "cocalc.com") {
     // For now we are hardcoding this functionality only for cocalc.com.
     // It will be made generic and configurable later once we have
     // **some experience** with it.
+    log("not cocalc.com");
     return true;
   }
 
   const store = redux.getStore("projects");
   const state = store.get_state(project_id);
   if (state == "running" || state == "starting") {
-    // if already running or starting, no point in not allowing it to start.
+    log("already running or starting");
     return true;
   }
 
-  const free: number =
-    redux.getStore("server_stats")?.getIn(["running_projects", "free"]) ?? 0;
-
-  if (free < FREE_LIMIT) {
-    // not too many projects -- let it run!
+  if (!too_many_free_projects()) {
+    log("not too many projects");
     return true;
   }
 
-  // Is this project "free"?
   const project = store.getIn(["project_map", project_id]);
   if (project == null) {
-    // don't know (maybe user is admin, maybe things aren't loaded)
+    log("don't know project, maybe user is admin, maybe things aren't loaded");
+    return true;
+  }
+
+  if (project.get("course") != null) {
+    log("don't mess with students in course");
     return true;
   }
 
@@ -58,24 +71,23 @@ export function allow_project_to_run(project_id: string): boolean {
   if (upgrades != null) {
     for (const name in upgrades) {
       if (upgrades[name]) {
-        // some upgrade exists, so run with it.
+        log("some upgrade exists, so run.");
         return true;
       }
     }
   }
 
   if (project.getIn(["settings", "member_host"])) {
-    // admin upgrade of member hosting.
+    log("has admin upgrade of member hosting.");
     return true;
   }
 
   // maybe there is a license (valid or not -- we won't check at this point)
   if (store.get_site_license_ids(project_id).length > 0) {
+    log("a license is applied");
     return true;
   }
 
   // got nothing:
   return false;
 }
-
-(window as any).allow_project_to_run = allow_project_to_run;

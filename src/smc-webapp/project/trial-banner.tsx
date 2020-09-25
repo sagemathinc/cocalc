@@ -81,7 +81,7 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
             redux.getActions("account").set_active_tab("licenses");
           }}
         >
-          <u>buy a license</u> (starting at about $3/month!)
+          <u>buy a license</u> (starting at about $3/month)
         </a>{" "}
         and{" "}
         <a

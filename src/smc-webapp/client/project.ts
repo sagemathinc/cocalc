@@ -19,7 +19,10 @@ import { connection_to_project } from "../project/websocket/connect";
 import { API } from "../project/websocket/api";
 import { redux } from "../app-framework";
 import { WebappClient } from "./client";
-import { allow_project_to_run } from "../project/client-side-throttle";
+import {
+  allow_project_to_run,
+  too_many_free_projects,
+} from "../project/client-side-throttle";
 
 import { Configuration, ConfigurationAspect } from "../project_configuration";
 
@@ -419,6 +422,10 @@ export class ProjectClient {
     start?: boolean;
     license?: string; // "license_id1,license_id2,..." -- if given, create project with these licenses applied
   }): Promise<string> {
+    if (opts.start && too_many_free_projects()) {
+      // don't auto-start it if too many projects already running.
+      opts.start = false;
+    }
     const { project_id } = await this.client.async_call({
       allow_post: false, // since gets called for anonymous and cookie not yet set.
       message: message.create_project(opts),

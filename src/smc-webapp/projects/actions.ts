@@ -728,6 +728,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
   }
 
   public async restart_project(project_id: string): Promise<void> {
+    if (!allow_project_to_run(project_id)) {
+      return;
+    }
     await this.projects_table_set({
       project_id,
       action_request: { action: "restart", time: webapp_client.server_time() },
