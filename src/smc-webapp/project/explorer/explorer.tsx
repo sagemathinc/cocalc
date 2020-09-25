@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert as AntdAlert } from "antd";
 import * as React from "react";
 import * as immutable from "immutable";
 import * as underscore from "underscore";
@@ -12,7 +11,6 @@ import {
   A,
   ActivityDisplay,
   Icon,
-  ProjectState,
   TimeAgo,
   ErrorDisplay,
   Loading,
@@ -49,8 +47,7 @@ import { ProjectNewForm } from "../new";
 import { Library } from "../../library";
 import { webapp_client } from "../../webapp-client";
 import { UsersViewing } from "../../account/avatar/users-viewing";
-import { allow_project_to_run } from "../client-side-throttle";
-import { DOC_TRIAL } from "../trial-banner";
+import { StartButton } from "../start-button";
 
 function pager_range(page_size, page_number) {
   const start_index = page_size * page_number;
@@ -594,79 +591,6 @@ export const Explorer = rclass(
       }
     }
 
-    on_click_start_project = () => {
-      redux.getActions("projects").start_project(this.props.project_id);
-    };
-
-    render_start_project_button(project_state?: ProjectStatus) {
-      const needle = (project_state && project_state.get("state")) || "";
-      const enabled =
-        allow_project_to_run(this.props.project_id) &&
-        ["opened", "closed", "archived"].includes(needle);
-      return (
-        <span style={{ marginLeft: "30px" }}>
-          <Button
-            disabled={!enabled}
-            bsStyle="primary"
-            bsSize="large"
-            onClick={this.on_click_start_project}
-          >
-            <Icon name="flash" /> Start project
-          </Button>
-        </span>
-      );
-    }
-
-    render_not_allowed() {
-      return (
-        <AntdAlert
-          style={{ margin: "10px 20%" }}
-          message={
-            <span style={{ fontWeight: 500, fontSize: "14pt" }}>
-              Too many trial projects!
-            </span>
-          }
-          type="error"
-          description={
-            <span style={{ fontSize: "12pt" }}>
-              Unfortunately, there are too many{" "}
-              <A href={DOC_TRIAL}>trial projects</A> running on CoCalc right now
-              and paying customers have priority. Try running your trial project
-              later or{" "}
-              <a
-                onClick={() => {
-                  redux.getActions("page").set_active_tab("account");
-                  redux.getActions("account").set_active_tab("licenses");
-                }}
-              >
-                <u>upgrade using a license</u>.
-              </a>
-            </span>
-          }
-        />
-      );
-    }
-
-    render_project_state(project_state?: ProjectStatus) {
-      const state = project_state?.get("state");
-      if (state == "running") return;
-      const allowed = allow_project_to_run(this.props.project_id);
-      return (
-        <div
-          style={{
-            fontSize: "40px",
-            textAlign: "center",
-            color: "#666666",
-            marginBottom: "15px",
-          }}
-        >
-          <ProjectState state={project_state} show_desc={allowed} />
-          {!allowed && this.render_not_allowed()}
-          {this.render_start_project_button(project_state)}
-        </div>
-      );
-    }
-
     file_listing_page_size() {
       return (
         this.props.other_settings &&
@@ -940,7 +864,7 @@ export const Explorer = rclass(
             {public_view && !directory_error
               ? this.render_access_error(public_view)
               : undefined}
-            {this.render_project_state(project_state)}
+            <StartButton project_id={this.props.project_id} />
             {this.render_file_listing(
               visible_listing,
               file_map,

@@ -49,7 +49,7 @@ export async function get_directory_listing(opts: ListingOpts): Promise<any> {
     if (prom_client.enabled) {
       prom_labels.state = state;
     }
-    if (state !== "running") {
+    if (state != null && state !== "running") {
       timeout = 0.5;
       time0 = server_time();
       redux.getActions("projects").start_project(opts.project_id);

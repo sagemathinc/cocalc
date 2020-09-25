@@ -137,9 +137,17 @@ export class ProjectClient {
 
   public async websocket(project_id: string): Promise<any> {
     const store = redux.getStore("projects");
-    // Wait until project is running
+    // Wait until project is running (or admin and not on project)
     await store.async_wait({
-      until: () => store.get_state(project_id) == "running",
+      until: () => {
+        const state = store.get_state(project_id);
+        if (state == null && redux.getStore("account")?.get("is_admin")) {
+          // is admin so doesn't know project state -- just immediately
+          // try, which  will cause project to run
+          return true;
+        }
+        return state == "running";
+      },
     });
 
     // get_my_group returns undefined when the various info to
@@ -355,14 +363,18 @@ export class ProjectClient {
   }
 
   public async touch(project_id: string): Promise<void> {
-    if (!allow_project_to_run(project_id)) return;
-    if (!this.client.is_signed_in()) {
-      // silently ignore if not signed in
-      return;
-    }
-    if (redux.getStore("projects")?.get_state(project_id) != "running") {
-      // not running so don't touch (user must explicitly start first)
-      return;
+    const state = redux.getStore("projects")?.get_state(project_id);
+    if (!(state == null && redux.getStore("account")?.get("is_admin"))) {
+      // not trying to view project as admin so do some checks
+      if (!allow_project_to_run(project_id)) return;
+      if (!this.client.is_signed_in()) {
+        // silently ignore if not signed in
+        return;
+      }
+      if (state != "running") {
+        // not running so don't touch (user must explicitly start first)
+        return;
+      }
     }
 
     // Throttle -- so if this function is called with the same project_id
