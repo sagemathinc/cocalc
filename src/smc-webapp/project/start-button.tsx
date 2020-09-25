@@ -14,7 +14,7 @@ happens, and also when the system is heavily loaded.
 
 import { Alert, Button } from "antd";
 import { redux, React, useMemo, useTypedRedux } from "../app-framework";
-import { A, Icon, ProjectState, Space } from "../r_misc";
+import { A, Icon, ProjectState, Space, VisibleMDLG } from "../r_misc";
 import { DOC_TRIAL } from "./trial-banner";
 import { allow_project_to_run } from "./client-side-throttle";
 
@@ -34,31 +34,33 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
 
   function render_not_allowed() {
     return (
-      <Alert
-        style={{ margin: "10px 20%" }}
-        message={
-          <span style={{ fontWeight: 500, fontSize: "14pt" }}>
-            Too many trial projects!
-          </span>
-        }
-        type="error"
-        description={
-          <span style={{ fontSize: "12pt" }}>
-            Unfortunately, there are too many{" "}
-            <A href={DOC_TRIAL}>trial projects</A> running on CoCalc right now
-            and paying customers have priority. Try running your trial project
-            later or{" "}
-            <a
-              onClick={() => {
-                redux.getActions("page").set_active_tab("account");
-                redux.getActions("account").set_active_tab("licenses");
-              }}
-            >
-              <u>upgrade using a license</u>.
-            </a>
-          </span>
-        }
-      />
+      <VisibleMDLG>
+        <Alert
+          style={{ margin: "10px 20%" }}
+          message={
+            <span style={{ fontWeight: 500, fontSize: "14pt" }}>
+              Too many trial projects!
+            </span>
+          }
+          type="error"
+          description={
+            <span style={{ fontSize: "12pt" }}>
+              Unfortunately, there are too many{" "}
+              <A href={DOC_TRIAL}>trial projects</A> running on CoCalc right now
+              and paying customers have priority. Try running your trial project
+              later or{" "}
+              <a
+                onClick={() => {
+                  redux.getActions("page").set_active_tab("account");
+                  redux.getActions("account").set_active_tab("licenses");
+                }}
+              >
+                <u>upgrade using a license</u>.
+              </a>
+            </span>
+          }
+        />
+      </VisibleMDLG>
     );
   }
 
