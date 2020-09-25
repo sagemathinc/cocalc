@@ -32,6 +32,7 @@ export type SiteSettingsKeys =
   | "terms_of_service"
   | "terms_of_service_url"
   | "commercial"
+  | "max_trial_projects"
   | "nonfree_countries"
   | "google_analytics"
   | "kucalc"
@@ -291,6 +292,15 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    show: only_cocalc_com,
+  },
+  max_trial_projects: {
+    name: "Max. Trial Projects",
+    desc:
+      "Limit, where we start blocking trial projects from running. (0 means disabled)",
+    default: "0",
+    to_val: to_int,
+    valid: only_nonneg_int,
     show: only_cocalc_com,
   },
   nonfree_countries: {

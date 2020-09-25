@@ -19,14 +19,14 @@ We allow a project to run if any of these conditions is satisfied:
    - project already running or starting for some reason
 */
 
-// Maximum number of free projects to allow at once.
-const FREE_LIMIT = 1;
-
 export function too_many_free_projects(): boolean {
-  return (
-    (redux.getStore("server_stats")?.getIn(["running_projects", "free"]) ??
-      0) >= FREE_LIMIT
-  );
+  const running_projects =
+    redux.getStore("server_stats")?.getIn(["running_projects", "free"]) ?? 0;
+  // limit of 0 means it is disabled.
+  const free_limit =
+    redux.getStore("customize")?.get("max_trial_projects") ?? 0;
+
+  return free_limit > 0 && running_projects >= free_limit;
 }
 
 export function allow_project_to_run(project_id: string): boolean {
