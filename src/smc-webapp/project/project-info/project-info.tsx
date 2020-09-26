@@ -27,6 +27,7 @@ interface ProcessRow {
   mem: number;
   cpu_tot: number;
   cpu_pct: number;
+  children?: ProcessRow[];
 }
 
 interface Props {
@@ -35,18 +36,26 @@ interface Props {
   //  actions: ProjectActions;
 }
 
-function procs2rows(procs: Processes): ProcessRow[] {
-  return Object.values(procs).map((proc) => {
-    return {
-      key: proc.pid,
-      pid: proc.pid,
-      ppid: proc.ppid,
-      name: basename(proc.exe),
-      mem: proc.stat.mem.rss,
-      cpu_tot: proc.cpu.secs,
-      cpu_pct: proc.cpu.pct,
-    };
+// convert the flat raw data into nested rows for the table
+// I bet there are better algos, but our usual case is less than 10 procs with little nesting
+// we intentionally ignore PID 1 (tini)
+function procs2data(procs: Processes, ppid = 1): ProcessRow[] {
+  const data: ProcessRow[] = [];
+  Object.values(procs).forEach((proc) => {
+    if (proc.ppid == ppid) {
+      data.push({
+        key: proc.pid,
+        pid: proc.pid,
+        ppid: proc.ppid,
+        name: basename(proc.exe),
+        mem: proc.stat.mem.rss,
+        cpu_tot: proc.cpu.secs,
+        cpu_pct: proc.cpu.pct,
+        children: procs2data(procs, proc.pid),
+      });
+    }
   });
+  return data;
 }
 
 export function ProjectInfo({ project_id /*, actions*/ }: Props): JSX.Element {
@@ -99,29 +108,37 @@ export function ProjectInfo({ project_id /*, actions*/ }: Props): JSX.Element {
 
   function render_top(procs) {
     if (procs == null) return <Loading />;
-    const data: ProcessRow[] = procs2rows(procs);
+    const data: ProcessRow[] = procs2data(procs);
 
     return (
-      <Table<ProcessRow> dataSource={data} size="small" pagination={false}>
+      <Table<ProcessRow>
+        dataSource={data}
+        size="small"
+        pagination={false}
+        defaultExpandAllRows={true}
+      >
         <Table.Column<ProcessRow> key="pid" title="PID" dataIndex="pid" />
         <Table.Column<ProcessRow> key="name" title="Name" dataIndex="name" />
-        <Table.Column<ProcessRow>
-          key="mem"
-          title="Memory"
-          dataIndex="mem"
-          render={(val) => `${val.toFixed(0)}MiB`}
-        />
         <Table.Column<ProcessRow>
           key="cpu_pct"
           title="CPU%"
           dataIndex="cpu_pct"
+          align={"right"}
           render={(val) => `${(100 * val).toFixed(1)}%`}
         />
         <Table.Column<ProcessRow>
           key="cpu_tot"
           title="CPU Time"
           dataIndex="cpu_tot"
+          align={"right"}
           render={(val) => `${val.toFixed(2)}s`}
+        />
+        <Table.Column<ProcessRow>
+          key="mem"
+          title="Memory"
+          dataIndex="mem"
+          align={"right"}
+          render={(val) => `${val.toFixed(0)}MiB`}
         />
         <Table.Column<ProcessRow>
           key="actions"
