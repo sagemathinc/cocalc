@@ -49,7 +49,8 @@ export interface ProjectInfo {
 
 interface KillCmd {
   cmd: "kill";
-  pid: number;
+  signal?: number;
+  pids: number[];
 }
 
 export type ProjectInfoCmds = KillCmd;

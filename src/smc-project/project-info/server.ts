@@ -9,9 +9,7 @@ Project information server, doing the heavy lifting
 
 import { delay } from "awaiting";
 import { join } from "path";
-import { exec as child_process_exec } from "child_process";
-import { promisify } from "util";
-const exec = promisify(child_process_exec);
+import { exec } from "./utils";
 import { promises as fsPromises } from "fs";
 const { readFile, readdir, readlink } = fsPromises;
 import { EventEmitter } from "events";

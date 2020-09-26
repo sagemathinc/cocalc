@@ -9,6 +9,7 @@ Project information
 
 import { ProjectInfoCmds } from "./types";
 import { ProjectInfoServer } from "./server";
+import { exec } from "./utils";
 
 // singleton, we instantiate it when we need it
 let _info: ProjectInfoServer | undefined = undefined;
@@ -58,7 +59,8 @@ export async function project_info(
       if (typeof data === "object") {
         switch (data.cmd) {
           case "kill":
-            L(`kill from ${spark.id} for pid ${data.pid}`);
+            L(`kill from ${spark.id} for pids: ${"" + data.pids}`);
+            exec(`kill -s ${data.signal ?? 15} ${data.pids.join(" ")}`);
             break;
         }
       }
