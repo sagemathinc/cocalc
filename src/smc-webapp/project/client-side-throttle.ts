@@ -19,10 +19,6 @@ We allow a project to run if any of these conditions is satisfied:
    - project already running or starting for some reason
 */
 
-function not_on_cocalc_com() {
-  return window.location.host != "cocalc.com";
-}
-
 function not_in_blocked_country() {
   const customize = redux.getStore("customize");
   if (customize == null) return true; // don't know
@@ -35,7 +31,7 @@ function not_in_blocked_country() {
 
 export function too_many_free_projects(): boolean {
   // there are never too many free projects if we're NOT on cocalc.com
-  if (not_on_cocalc_com() || not_in_blocked_country()) return false;
+  if (not_in_blocked_country()) return false;
 
   const running_projects =
     redux.getStore("server_stats")?.getIn(["running_projects", "free"]) ?? 0;
@@ -52,13 +48,6 @@ export function allow_project_to_run(project_id: string): boolean {
   }
   if (not_in_blocked_country()) {
     log("not blocked country");
-    return true;
-  }
-  if (not_on_cocalc_com()) {
-    // For now we are hardcoding this functionality only for cocalc.com.
-    // It will be made generic and configurable later once we have
-    // **some experience** with it.
-    log("not cocalc.com");
     return true;
   }
 

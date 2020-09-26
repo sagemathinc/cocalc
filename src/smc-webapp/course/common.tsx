@@ -312,7 +312,6 @@ export class StudentAssignmentInfo extends Component<
         >
           <FormGroup>
             <FormControl
-              autoFocus={true}
               value={this.props.edited_grade}
               ref="grade_input"
               type="text"
@@ -385,6 +384,8 @@ export class StudentAssignmentInfo extends Component<
     return (
       <div>
         <NbgraderScores
+          show_all={this.props.is_editing}
+          set_show_all={() => this.set_edited_feedback()}
           nbgrader_scores={this.props.nbgrader_scores}
           name={this.props.name}
           student_id={this.props.student.get("student_id")}
