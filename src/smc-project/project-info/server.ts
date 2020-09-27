@@ -12,6 +12,7 @@ import { join } from "path";
 import { exec } from "./utils";
 import { promises as fsPromises } from "fs";
 const { readFile, readdir, readlink } = fsPromises;
+import { check as df } from "diskusage";
 import { EventEmitter } from "events";
 import {
   Cpu,
@@ -20,8 +21,11 @@ import {
   ProjectInfo,
   Stat,
   State,
+  DF,
   CGroup,
 } from "./types";
+
+const bytes2MiB = (bytes) => bytes / (1024 * 1024);
 
 export class ProjectInfoServer extends EventEmitter {
   last?: ProjectInfo = undefined;
@@ -123,7 +127,47 @@ export class ProjectInfoServer extends EventEmitter {
   }
 
   private async cgroup(): Promise<CGroup> {
-    return {};
+    const [mem_stat_raw, cpu_raw, oom_raw] = await Promise.all([
+      readFile("/sys/fs/cgroup/memory/memory.stat", "utf8"),
+      readFile("/sys/fs/cgroup/cpu,cpuacct/cpuacct.usage", "utf8"),
+      readFile("/sys/fs/cgroup/memory/memory.oom_control", "utf8"),
+    ]);
+    const mem_stat_keys = [
+      "total_rss",
+      "total_cache",
+      "hierarchical_memory_limit",
+    ];
+    return {
+      mem_stat: mem_stat_raw
+        .split("\n")
+        .map((line) => line.split(" "))
+        .filter(([k, _]) => mem_stat_keys.includes(k))
+        .reduce((stat, [key, val]) => {
+          stat[key] = bytes2MiB(parseInt(val));
+          return stat;
+        }, {}),
+      cpu_usage: parseFloat(cpu_raw) / Math.pow(10, 9),
+      oom_kills: oom_raw
+        .split("\n")
+        .filter((val) => val.startsWith("oom_kill "))
+        .map((val) => parseInt(val.slice("oom_kill ".length)))[0],
+    };
+  }
+
+  private async df(): Promise<DF> {
+    const convert = function (val) {
+      return {
+        total: bytes2MiB(val.total),
+        free: bytes2MiB(val.free),
+        available: bytes2MiB(val.available),
+        usage: bytes2MiB(val.total - val.free),
+      };
+    };
+    const [tmp, project] = await Promise.all([
+      df("/tmp"),
+      df(process.env.HOME ?? "/home/user"),
+    ]);
+    return { tmp: convert(tmp), project: convert(project) };
   }
 
   private async init(): Promise<void> {
@@ -150,15 +194,17 @@ export class ProjectInfoServer extends EventEmitter {
   private async get_info(): Promise<ProjectInfo> {
     const uptime = await this.uptime();
     const timestamp = new Date().getTime();
-    const [processes, cgroup] = await Promise.all([
+    const [processes, cgroup, df] = await Promise.all([
       this.processes({ uptime, timestamp }),
       this.cgroup(),
+      this.df(),
     ]);
     const info: ProjectInfo = {
       timestamp,
       processes,
       uptime,
       cgroup,
+      df,
     };
     return info;
   }

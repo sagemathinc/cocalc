@@ -39,7 +39,23 @@ export interface Process {
 }
 
 export interface CGroup {
-  
+  mem_stat: {
+    [key: string]: number; // MiB
+  };
+  cpu_usage: number; // seconds
+  oom_kills: number;
+}
+
+interface DFinfo {
+  available: number; // MiB
+  free: number; // MiB
+  total: number; // MiB
+  usage: number; // MiB (total - free)
+}
+
+export interface DF {
+  tmp: DFinfo;
+  project: DFinfo;
 }
 
 export type Processes = { [pid: number]: Process };
@@ -48,6 +64,7 @@ export interface ProjectInfo {
   timestamp: number;
   processes: Processes;
   cgroup: CGroup;
+  df: DF;
   uptime: number; // secs, uptime of the machine
 }
 
