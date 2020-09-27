@@ -13,7 +13,15 @@ import { exec } from "./utils";
 import { promises as fsPromises } from "fs";
 const { readFile, readdir, readlink } = fsPromises;
 import { EventEmitter } from "events";
-import { Cpu, Process, Processes, ProjectInfo, Stat, State } from "./types";
+import {
+  Cpu,
+  Process,
+  Processes,
+  ProjectInfo,
+  Stat,
+  State,
+  CGroup,
+} from "./types";
 
 export class ProjectInfoServer extends EventEmitter {
   last?: ProjectInfo = undefined;
@@ -114,6 +122,10 @@ export class ProjectInfoServer extends EventEmitter {
     return procs;
   }
 
+  private async cgroup(): Promise<CGroup> {
+    return {};
+  }
+
   private async init(): Promise<void> {
     if (this.ticks == null) {
       const [p_ticks, p_pagesize] = await Promise.all([
@@ -124,15 +136,6 @@ export class ProjectInfoServer extends EventEmitter {
       this.ticks = parseInt(p_ticks.stdout.trim());
       // 4096?
       this.pagesize = parseInt(p_pagesize.stdout.trim());
-    }
-  }
-
-  private async ps(): Promise<string> {
-    try {
-      const out = await exec("ps auxwwf");
-      return out.stdout.trim();
-    } catch (err) {
-      return `Error -- ${err}`;
     }
   }
 
@@ -147,15 +150,15 @@ export class ProjectInfoServer extends EventEmitter {
   private async get_info(): Promise<ProjectInfo> {
     const uptime = await this.uptime();
     const timestamp = new Date().getTime();
-    const [ps, processes] = await Promise.all([
-      this.ps(),
+    const [processes, cgroup] = await Promise.all([
       this.processes({ uptime, timestamp }),
+      this.cgroup(),
     ]);
     const info: ProjectInfo = {
       timestamp,
-      ps,
       processes,
       uptime,
+      cgroup,
     };
     return info;
   }

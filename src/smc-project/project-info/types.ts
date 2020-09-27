@@ -38,13 +38,17 @@ export interface Process {
   //  mem: number;
 }
 
+export interface CGroup {
+  
+}
+
 export type Processes = { [pid: number]: Process };
 
 export interface ProjectInfo {
   timestamp: number;
-  ps: string;
   processes: Processes;
-  uptime: number; // secs
+  cgroup: CGroup;
+  uptime: number; // secs, uptime of the machine
 }
 
 interface KillCmd {

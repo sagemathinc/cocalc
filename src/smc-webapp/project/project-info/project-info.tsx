@@ -341,7 +341,6 @@ export function ProjectInfo({ project_id /*, actions*/ }: Props): JSX.Element {
               {JSON.stringify(info.processes, null, 2)}
             </pre>
           )}
-          {false && <pre style={{ fontSize: "10px" }}>{info.ps}</pre>}
         </Col>
       </Row>
     );
