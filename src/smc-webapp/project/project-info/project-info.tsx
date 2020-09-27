@@ -3,11 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Rendered, useIsMountedRef } from "../../app-framework";
+import { React, Rendered, useIsMountedRef, CSS } from "../../app-framework";
 import { Col, Row } from "react-bootstrap";
 import { basename } from "path";
-import { Table, Button } from "antd";
-import { PlusCircleTwoTone, MinusCircleTwoTone } from "@ant-design/icons";
+import { Table, Button, Form, Space as AntdSpace } from "antd";
 import { seconds2hms } from "smc-util/misc";
 import { Loading } from "../../r_misc";
 // import { ProjectActions } from "../../project_actions";
@@ -29,6 +28,12 @@ interface ProcessRow {
   mem: number;
   cpu_tot: number;
   cpu_pct: number;
+  // pre-computed sum of children
+  chldsum?: {
+    mem: number;
+    cpu_tot: number;
+    cpu_pct: number;
+  };
   children?: ProcessRow[];
 }
 
@@ -38,7 +43,7 @@ interface Props {
   //  actions: ProjectActions;
 }
 
-// convert the flat raw data into nested rows for the table
+// convert the flat raw data into nested (forest) process rows for the table
 // I bet there are better algos, but our usual case is less than 10 procs with little nesting
 // we intentionally ignore PID 1 (tini)
 function process_tree(
@@ -68,6 +73,54 @@ function process_tree(
   return data.length > 0 ? data : undefined;
 }
 
+function sum_children_val(proc, index): number {
+  if (proc.children == null) return 0;
+  return proc.children
+    .map((p) => p[index] + sum_children_val(p, index))
+    .reduce((a, b) => a + b, 0);
+}
+
+// we pre-compute the sums of all children (instead of doing this during each render)
+function sum_children(ptree: ProcessRow[]) {
+  ptree.forEach((proc) => {
+    if (proc.children == null) {
+      return { mem: 0, cpu_tot: 0, cpu_pct: 0 };
+    } else {
+      proc.chldsum = {
+        mem: sum_children_val(proc, "mem"),
+        cpu_tot: sum_children_val(proc, "cpu_tot"),
+        cpu_pct: sum_children_val(proc, "cpu_pct"),
+      };
+      sum_children(proc.children);
+    }
+  });
+}
+
+// returns a CSS colored style to emphasize high values warnings
+function warning(index: string, val: number): CSS {
+  const red: CSS = {
+    backgroundColor: "#f5222d",
+    color: "white",
+    fontWeight: "bold",
+  };
+  const orange: CSS = { backgroundColor: "#ffbb96" };
+  switch (index) {
+    case "cpu_pct":
+      if (val > 0.9) {
+        return red;
+      } else if (val > 0.5) {
+        return orange;
+      }
+    case "mem":
+      if (val > 1000) {
+        return red;
+      } else if (val > 500) {
+        return orange;
+      }
+  }
+  return {};
+}
+
 export function ProjectInfo({ project_id /*, actions*/ }: Props): JSX.Element {
   const isMountedRef = useIsMountedRef();
   const [info, set_info] = React.useState<Partial<ProjectInfo>>({});
@@ -82,7 +135,9 @@ export function ProjectInfo({ project_id /*, actions*/ }: Props): JSX.Element {
   function set_data(data: ProjectInfo) {
     set_info(data);
     const pchildren: string[] = [];
-    set_ptree(process_tree(data.processes, 1, pchildren) ?? []);
+    const new_ptree = process_tree(data.processes, 1, pchildren) ?? [];
+    sum_children(new_ptree);
+    set_ptree(new_ptree);
     set_have_children(pchildren);
   }
 
@@ -125,17 +180,13 @@ export function ProjectInfo({ project_id /*, actions*/ }: Props): JSX.Element {
     set_selected(pids);
   }
 
-  function sum_children(proc, index): number {
-    if (proc.children == null) return 0;
-    return proc.children
-      .map((p) => p[index] + sum_children(p, index))
-      .reduce((a, b) => a + b, 0);
-  }
-
-  // cell value: if collapsed, we sum up the values of the children
+  // if collapsed, we sum up the values of the children
   // to avoid misunderstandings due to data not being shown…
-  function cell(index: string, to_str: (val) => Rendered | React.ReactText) {
-    return (val, proc) => {
+  function render_val(
+    index: string,
+    to_str: (val) => Rendered | React.ReactText
+  ) {
+    const cell_val = (val, proc): number => {
       // we have to check for length==0, because initally rows are all expanded but
       // onExpandedRowsChange isn't triggered
       if (
@@ -143,29 +194,57 @@ export function ProjectInfo({ project_id /*, actions*/ }: Props): JSX.Element {
         expanded.includes(proc.key) ||
         !have_children.includes(proc.key)
       ) {
-        return to_str(val);
+        return val;
       } else {
-        return to_str(val + sum_children(proc, index));
+        const cs = proc.chldsum;
+        return val + (cs != null ? cs[index] : 0);
       }
+    };
+
+    return (val: number, proc: ProcessRow) => {
+      const display_val = cell_val(val, proc);
+      return {
+        props: { style: warning(index, display_val) },
+        children: to_str(display_val),
+      };
     };
   }
 
-  function render_kill() {
+  function render_signal(name: string, signal: number) {
     return (
       <Button
         type="primary"
         onClick={() => {
           if (chan == null) return;
-          const payload: ProjectInfoCmds = { cmd: "kill", pids: selected };
+          const payload: ProjectInfoCmds = {
+            cmd: "kill",
+            signal,
+            pids: selected,
+          };
           chan.write(payload);
           set_selected([]);
         }}
         disabled={chan == null || selected.length == 0}
         loading={loading}
       >
-        Kill
+        {name}
       </Button>
     );
+  }
+
+  function render_signals() {
+    return (
+      <Form.Item label="Send signal:">
+        <AntdSpace>
+          {render_signal("Terminate", 15)}
+          {render_signal("Kill", 9)}
+        </AntdSpace>
+      </Form.Item>
+    );
+  }
+
+  function has_children(proc: ProcessRow): boolean {
+    return proc.children != null && proc.children.length > 0;
   }
 
   // mimic a table of processes program like htop – with tailored descriptions for cocalc
@@ -175,19 +254,18 @@ export function ProjectInfo({ project_id /*, actions*/ }: Props): JSX.Element {
     const expandable = {
       defaultExpandAllRows: true,
       onExpandedRowsChange: (keys) => set_expanded(keys),
-      rowExpandable: (proc) =>
-        proc.children != null && proc.children.length > 0,
-      expandIcon: ({ expanded, onExpand, record }) =>
-        expanded ? (
-          <MinusCircleTwoTone onClick={(e) => onExpand(record, e)} />
-        ) : (
-          <PlusCircleTwoTone onClick={(e) => onExpand(record, e)} />
-        ),
+      rowExpandable: (proc) => has_children(proc),
     };
 
     return (
       <>
-        {render_kill()}
+        <Form
+          layout="inline"
+          className="components-table-demo-control-bar"
+          style={{ marginBottom: 16 }}
+        >
+          {render_signals()}
+        </Form>
 
         <Table<ProcessRow>
           dataSource={ptree}
@@ -216,7 +294,10 @@ export function ProjectInfo({ project_id /*, actions*/ }: Props): JSX.Element {
             width="10%"
             dataIndex="cpu_pct"
             align={"right"}
-            render={cell("cpu_pct", (val) => `${(100 * val).toFixed(1)}%`)}
+            render={render_val(
+              "cpu_pct",
+              (val) => `${(100 * val).toFixed(1)}%`
+            )}
           />
           <Table.Column<ProcessRow>
             key="cpu_tot"
@@ -224,7 +305,7 @@ export function ProjectInfo({ project_id /*, actions*/ }: Props): JSX.Element {
             dataIndex="cpu_tot"
             width="10%"
             align={"right"}
-            render={cell("cpu_tot", (val) => seconds2hms(val))}
+            render={render_val("cpu_tot", (val) => seconds2hms(val))}
           />
           <Table.Column<ProcessRow>
             key="mem"
@@ -232,36 +313,46 @@ export function ProjectInfo({ project_id /*, actions*/ }: Props): JSX.Element {
             dataIndex="mem"
             width="10%"
             align={"right"}
-            render={cell("mem", (val) => `${val.toFixed(0)}MiB`)}
+            render={render_val("mem", (val) => `${val.toFixed(0)}MiB`)}
           />
         </Table>
       </>
     );
   }
 
-  return (
-    <Row style={{ marginTop: "15px" }}>
-      <Col md={12} mdOffset={0} lg={10} lgOffset={1}>
-        <h1>Project Info</h1>
-        <div>
-          timestamp:{" "}
-          {info.timestamp != null ? (
-            <code>{new Date(info.timestamp).toLocaleString()}</code>
-          ) : (
-            "no timestamp"
-          )}{" "}
-          | connected: <code>{`${chan != null}`}</code> | status:{" "}
-          <code>{status}</code>
-        </div>
-        <div>commands: {render_kill()}</div>
-        {render_top()}
-        {false && (
-          <pre style={{ fontSize: "10px" }}>
-            {JSON.stringify(info.processes, null, 2)}
-          </pre>
-        )}
-        {false && <pre style={{ fontSize: "10px" }}>{info.ps}</pre>}
-      </Col>
-    </Row>
-  );
+  function render() {
+    return (
+      <Row style={{ marginTop: "15px" }}>
+        <Col md={12} mdOffset={0} lg={10} lgOffset={1}>
+          <h1>Project Info</h1>
+          <div>
+            timestamp:{" "}
+            {info.timestamp != null ? (
+              <code>{new Date(info.timestamp).toISOString()}</code>
+            ) : (
+              "no timestamp"
+            )}{" "}
+            | connected: <code>{`${chan != null}`}</code> | status:{" "}
+            <code>{status}</code>
+          </div>
+          {render_top()}
+          {false && (
+            <pre style={{ fontSize: "10px" }}>
+              {JSON.stringify(info.processes, null, 2)}
+            </pre>
+          )}
+          {false && <pre style={{ fontSize: "10px" }}>{info.ps}</pre>}
+        </Col>
+      </Row>
+    );
+  }
+
+  return React.useMemo(render, [
+    info,
+    ptree,
+    status,
+    loading,
+    selected,
+    expanded,
+  ]);
 }
