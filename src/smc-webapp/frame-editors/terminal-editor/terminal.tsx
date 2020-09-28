@@ -76,7 +76,7 @@ export class TerminalFrame extends Component<Props, {}> {
 
   delete_terminal(): void {
     if (this.terminal == null) return;
-    this.terminal.element.remove();
+    this.terminal.element?.remove();
     this.terminal.is_mounted = false;
     // Ignore size for this terminal.
     this.terminal.conn_write({ cmd: "size", rows: 0, cols: 0 });
