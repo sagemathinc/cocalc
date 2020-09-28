@@ -6,7 +6,7 @@
 import { React, Rendered, useIsMountedRef, CSS } from "../../app-framework";
 import { Col, Row } from "react-bootstrap";
 import { basename } from "path";
-import { Table, Button, Form, Space as AntdSpace } from "antd";
+import { Table, Button, Form, Space as AntdSpace, Modal } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { seconds2hms } from "smc-util/misc";
 import { Loading, Icon } from "../../r_misc";
@@ -16,6 +16,7 @@ import { Channel } from "../../project/websocket/types";
 import {
   ProjectInfo,
   ProjectInfoCmds,
+  Process,
   Processes,
   CoCalcInfo,
 } from "smc-project/project-info/types";
@@ -46,9 +47,24 @@ interface Props {
   actions: ProjectActions;
 }
 
+// filter for processes in process_tree
+function keep_proc(proc): boolean {
+  if (proc.pid === 1) return false;
+  const cmd2 = proc.cmdline[2];
+  if (
+    proc.ppid === 1 &&
+    cmd2 != null &&
+    cmd2.indexOf("/cocalc/init/init.sh") >= 0 &&
+    cmd2.indexOf("$COCALC_PROJECT_ID") >= 0
+  ) {
+    return false;
+  }
+  return true;
+}
+
 // convert the flat raw data into nested (forest) process rows for the table
 // I bet there are better algos, but our usual case is less than 10 procs with little nesting
-// we intentionally ignore PID 1 (tini)
+// we intentionally ignore PID 1 (tini) and the main shell script (pointless)
 function process_tree(
   procs: Processes,
   parentid: number,
@@ -60,7 +76,7 @@ function process_tree(
       const key = `${proc.pid}`;
       const children = process_tree(procs, proc.pid, pchildren);
       if (children != null) pchildren.push(key);
-      const p = {
+      const p: ProcessRow = {
         key,
         pid: proc.pid,
         ppid: proc.ppid,
@@ -72,7 +88,19 @@ function process_tree(
         cocalc: proc.cocalc,
         children,
       };
-      data.push(p);
+      if (proc.cocalc?.type != "project") {
+        // for a project, we list processes separately – one root for all is unnecessary to show
+        p.children = undefined;
+        data.push(p);
+        data.push(...children);
+      } else {
+        // we want to hide some processes as well
+        if (keep_proc(proc)) {
+          data.push(p);
+        } else {
+          data.push(...children);
+        }
+      }
     }
   });
   return data.length > 0 ? data : undefined;
@@ -139,6 +167,9 @@ export function ProjectInfo({
   const [selected, set_selected] = React.useState<number[]>([]);
   const [expanded, set_expanded] = React.useState<React.ReactText[]>([]);
   const [have_children, set_have_children] = React.useState<string[]>([]);
+  const [proc_about, set_proc_about] = React.useState<Process | undefined>(
+    undefined
+  );
 
   function set_data(data: ProjectInfo) {
     set_info(data);
@@ -261,11 +292,18 @@ export function ProjectInfo({
           disabled={selected.length != 1}
           onClick={() => {
             const key = selected[0];
-            window.alert(JSON.stringify(info?.processes?.[key], null, 2));
+            set_proc_about(info?.processes?.[key]);
           }}
         >
           About
         </Button>
+        <Modal
+          title="Process info"
+          visible={proc_about != null}
+          onOk={() => set_proc_about(undefined)}
+        >
+          {JSON.stringify(proc_about, null, 2)}
+        </Modal>
       </Form.Item>
     );
   }
@@ -290,6 +328,8 @@ export function ProjectInfo({
             Open
           </Button>
         );
+      case "project":
+        return "Project";
     }
   }
 

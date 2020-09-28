@@ -95,11 +95,14 @@ export class ProjectInfoServer extends EventEmitter {
       .filter((c) => c.length > 0);
   }
 
-  private cocalc(pid: number): CoCalcInfo | undefined {
+  private cocalc({ pid, exe, cmdline }): CoCalcInfo | undefined {
     const termpath = terminal_pid2path(pid);
     if (termpath != null) {
       this.dbg("cocalc terminal", termpath);
       return { type: "terminal", path: termpath };
+    }
+    if (pid === process.pid) {
+      return { type: "project" };
     }
   }
 

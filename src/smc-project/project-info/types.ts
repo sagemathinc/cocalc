@@ -30,7 +30,6 @@ export interface Cpu {
 // additional CoCalc specific information for a process
 interface ProcProject {
   type: "project";
-  name: string;
 }
 
 interface ProcTerminal {
