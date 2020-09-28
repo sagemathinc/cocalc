@@ -10,6 +10,7 @@ Project information server, doing the heavy lifting
 import { delay } from "awaiting";
 import { join } from "path";
 import { exec } from "./utils";
+import { running_in_kucalc } from "../init-program";
 import { promises as fsPromises } from "fs";
 const { readFile, readdir, readlink } = fsPromises;
 import { check as df } from "diskusage";
@@ -42,10 +43,12 @@ export class ProjectInfoServer extends EventEmitter {
     if (!this.testing) this.start();
   }
 
-  private async uptime(): Promise<number> {
+  private async uptime(): Promise<[number, Date]> {
     // return uptime in secs
     const out = await readFile("/proc/uptime", "utf8");
-    return parseFloat(out.split(" ")[0]);
+    const uptime = parseFloat(out.split(" ")[0]);
+    const boottime = new Date(new Date().getTime() - 1000 * uptime);
+    return [uptime, boottime];
   }
 
   private async stat(path: string): Promise<Stat> {
@@ -126,7 +129,8 @@ export class ProjectInfoServer extends EventEmitter {
     return procs;
   }
 
-  private async cgroup(): Promise<CGroup> {
+  private async cgroup(): Promise<CGroup | undefined> {
+    if (!running_in_kucalc() && !this.testing) return;
     const [mem_stat_raw, cpu_raw, oom_raw] = await Promise.all([
       readFile("/sys/fs/cgroup/memory/memory.stat", "utf8"),
       readFile("/sys/fs/cgroup/cpu,cpuacct/cpuacct.usage", "utf8"),
@@ -192,7 +196,7 @@ export class ProjectInfoServer extends EventEmitter {
   }
 
   private async get_info(): Promise<ProjectInfo> {
-    const uptime = await this.uptime();
+    const [uptime, boottime] = await this.uptime();
     const timestamp = new Date().getTime();
     const [processes, cgroup, df] = await Promise.all([
       this.processes({ uptime, timestamp }),
@@ -203,6 +207,7 @@ export class ProjectInfoServer extends EventEmitter {
       timestamp,
       processes,
       uptime,
+      boottime,
       cgroup,
       df,
     };

@@ -63,9 +63,10 @@ export type Processes = { [pid: number]: Process };
 export interface ProjectInfo {
   timestamp: number;
   processes: Processes;
-  cgroup: CGroup;
+  cgroup?: CGroup; // only in "kucalc" mode
   df: DF;
   uptime: number; // secs, uptime of the machine
+  boottime: Data; // when VM booted (might be derived from uptime)
 }
 
 interface KillCmd {
