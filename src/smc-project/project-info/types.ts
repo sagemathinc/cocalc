@@ -27,6 +27,24 @@ export interface Cpu {
   secs: number;
 }
 
+// additional CoCalc specific information for a process
+interface ProcProject {
+  type: "project";
+  name: string;
+}
+
+interface ProcTerminal {
+  type: "terminal";
+  path: string; // name is "terminal:${path}"
+}
+
+interface ProcJupyter {
+  type: "jupyter";
+  path: string;
+}
+
+export type CoCalcInfo = ProcTerminal | ProcJupyter | ProcProject;
+
 export interface Process {
   pid: number;
   ppid: number;
@@ -35,7 +53,8 @@ export interface Process {
   stat: Stat;
   cpu: Cpu;
   uptime: number;
-  //  mem: number;
+  // additional CoCalc specific information
+  cocalc?: CoCalcInfo;
 }
 
 export interface CGroup {

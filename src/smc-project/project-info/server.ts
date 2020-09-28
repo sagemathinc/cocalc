@@ -12,6 +12,7 @@ import { join } from "path";
 import { exec } from "./utils";
 import { running_in_kucalc } from "../init-program";
 import { promises as fsPromises } from "fs";
+import { pid2path as terminal_pid2path } from "../terminal/server";
 const { readFile, readdir, readlink } = fsPromises;
 import { check as df } from "diskusage";
 import { EventEmitter } from "events";
@@ -23,6 +24,7 @@ import {
   Stat,
   State,
   DF,
+  CoCalcInfo,
   CGroup,
 } from "./types";
 
@@ -93,6 +95,14 @@ export class ProjectInfoServer extends EventEmitter {
       .filter((c) => c.length > 0);
   }
 
+  private cocalc(pid: number): CoCalcInfo | undefined {
+    const termpath = terminal_pid2path(pid);
+    if (termpath != null) {
+      this.dbg("cocalc terminal", termpath);
+      return { type: "terminal", path: termpath };
+    }
+  }
+
   private async process({ pid: pid_str, uptime, timestamp }): Promise<Process> {
     const base = join("/proc", pid_str);
     const pid = parseInt(pid_str);
@@ -110,6 +120,7 @@ export class ProjectInfoServer extends EventEmitter {
       stat,
       cpu: this.cpu({ pid, stat, timestamp }),
       uptime: uptime - stat.starttime,
+      cocalc: this.cocalc(pid),
     };
     return data;
   }

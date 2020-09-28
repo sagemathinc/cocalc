@@ -8,14 +8,15 @@ import { Col, Row } from "react-bootstrap";
 import { basename } from "path";
 import { Table, Button, Form, Space as AntdSpace } from "antd";
 import { seconds2hms } from "smc-util/misc";
-import { Loading } from "../../r_misc";
-// import { ProjectActions } from "../../project_actions";
+import { Loading, Icon } from "../../r_misc";
+import { ProjectActions } from "../../project_actions";
 import { project_websocket } from "../../frame-editors/generic/client";
 import { Channel } from "../../project/websocket/types";
 import {
   ProjectInfo,
   ProjectInfoCmds,
   Processes,
+  CoCalcInfo,
 } from "smc-project/project-info/types";
 
 // for the Table, derived from "Process"
@@ -28,6 +29,7 @@ interface ProcessRow {
   mem: number;
   cpu_tot: number;
   cpu_pct: number;
+  cocalc?: CoCalcInfo;
   // pre-computed sum of children
   chldsum?: {
     mem: number;
@@ -40,7 +42,7 @@ interface ProcessRow {
 interface Props {
   name: string;
   project_id: string;
-  //  actions: ProjectActions;
+  actions: ProjectActions;
 }
 
 // convert the flat raw data into nested (forest) process rows for the table
@@ -66,6 +68,7 @@ function process_tree(
         mem: proc.stat.mem.rss,
         cpu_tot: proc.cpu.secs,
         cpu_pct: proc.cpu.pct,
+        cocalc: proc.cocalc,
         children,
       });
     }
@@ -121,7 +124,10 @@ function warning(index: string, val: number): CSS {
   return {};
 }
 
-export function ProjectInfo({ project_id /*, actions*/ }: Props): JSX.Element {
+export function ProjectInfo({
+  project_id,
+  actions: project_actions,
+}: Props): JSX.Element {
   const isMountedRef = useIsMountedRef();
   const [info, set_info] = React.useState<Partial<ProjectInfo>>({});
   const [ptree, set_ptree] = React.useState<ProcessRow[] | null>(null);
@@ -247,6 +253,25 @@ export function ProjectInfo({ project_id /*, actions*/ }: Props): JSX.Element {
     return proc.children != null && proc.children.length > 0;
   }
 
+  function render_cocalc({ cocalc }: ProcessRow) {
+    if (cocalc == null) return;
+    switch (cocalc.type) {
+      case "terminal":
+        return (
+          <Button
+            shape="round"
+            size="small"
+            icon={<Icon name={"terminal"} />}
+            onClick={() =>
+              project_actions.open_file({ path: cocalc.path, foreground: true })
+            }
+          >
+            Open
+          </Button>
+        );
+    }
+  }
+
   // mimic a table of processes program like htop – with tailored descriptions for cocalc
   function render_top() {
     if (ptree == null) return <Loading />;
@@ -279,7 +304,7 @@ export function ProjectInfo({ project_id /*, actions*/ }: Props): JSX.Element {
           <Table.Column<ProcessRow>
             key="process"
             title="Process"
-            width="70%"
+            width="60%"
             align={"left"}
             ellipsis={true}
             render={(proc) => (
@@ -287,6 +312,13 @@ export function ProjectInfo({ project_id /*, actions*/ }: Props): JSX.Element {
                 <b>{proc.name}</b> <span>{proc.args}</span>
               </span>
             )}
+          />
+          <Table.Column<ProcessRow>
+            key="cocalc"
+            title="CoCalc"
+            width="10%"
+            align={"left"}
+            render={(proc) => render_cocalc(proc)}
           />
           <Table.Column<ProcessRow>
             key="cpu_pct"
