@@ -244,7 +244,7 @@ interface TableSchema<F extends Fields> {
   primary_key?: keyof F | (keyof F)[]; // One of the fields or array of fields; NOTE: should be required if virtual is not set.
   fields?: F; // the fields -- required if virtual is not set.
   db_standby?: "unsafe" | "safer";
-  durability?: "soft" | "hard"; // Default is hard
+  durability?: "soft" | "hard" | "ephemeral"; // Default is hard; soft is ??; ephemeral doesn't even involve the database (just used to specify SyncTable structure).
   unique_writes?: boolean; // If true, assume no reason for a user to write the same record twice.
   anonymous?: boolean;
   virtual?: string | true; // Must be another table name or true
