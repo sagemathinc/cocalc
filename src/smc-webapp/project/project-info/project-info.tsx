@@ -7,6 +7,7 @@ import { React, Rendered, useIsMountedRef, CSS } from "../../app-framework";
 import { Col, Row } from "react-bootstrap";
 import { basename } from "path";
 import { Table, Button, Form, Space as AntdSpace } from "antd";
+import { InfoCircleOutlined } from "@ant-design/icons";
 import { seconds2hms } from "smc-util/misc";
 import { Loading, Icon } from "../../r_misc";
 import { ProjectActions } from "../../project_actions";
@@ -59,7 +60,7 @@ function process_tree(
       const key = `${proc.pid}`;
       const children = process_tree(procs, proc.pid, pchildren);
       if (children != null) pchildren.push(key);
-      data.push({
+      const p = {
         key,
         pid: proc.pid,
         ppid: proc.ppid,
@@ -70,7 +71,8 @@ function process_tree(
         cpu_pct: proc.cpu.pct,
         cocalc: proc.cocalc,
         children,
-      });
+      };
+      data.push(p);
     }
   });
   return data.length > 0 ? data : undefined;
@@ -219,7 +221,8 @@ export function ProjectInfo({
   function render_signal(name: string, signal: number) {
     return (
       <Button
-        type="primary"
+        type={signal == 15 ? "primary" : undefined}
+        danger={true}
         onClick={() => {
           if (chan == null) return;
           const payload: ProjectInfoCmds = {
@@ -245,6 +248,24 @@ export function ProjectInfo({
           {render_signal("Terminate", 15)}
           {render_signal("Kill", 9)}
         </AntdSpace>
+      </Form.Item>
+    );
+  }
+
+  function render_about() {
+    return (
+      <Form.Item>
+        <Button
+          type={"primary"}
+          icon={<InfoCircleOutlined />}
+          disabled={selected.length != 1}
+          onClick={() => {
+            const key = selected[0];
+            window.alert(JSON.stringify(info?.processes?.[key], null, 2));
+          }}
+        >
+          About
+        </Button>
       </Form.Item>
     );
   }
@@ -289,6 +310,7 @@ export function ProjectInfo({
           className="components-table-demo-control-bar"
           style={{ marginBottom: 16 }}
         >
+          {render_about()}
           {render_signals()}
         </Form>
 
