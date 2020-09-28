@@ -408,6 +408,7 @@ class SyncTableChannel {
   }
 
   private async save_and_close_if_possible(): Promise<void> {
+    if (this.closed) return; // already done.
     this.log("save_and_close_if_possible: no connections, so saving...");
     await this.synctable.save();
     const { n, changed } = this.num_connections;
