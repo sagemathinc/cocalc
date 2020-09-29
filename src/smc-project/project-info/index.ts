@@ -4,3 +4,4 @@
  */
 
 export { project_info, get_ProjectInfoServer } from "./project-info";
+export { ProjectInfoServer } from "./server";

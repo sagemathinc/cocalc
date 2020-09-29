@@ -125,9 +125,9 @@ export class ProjectInfoServer extends EventEmitter {
       cmdline,
       exe,
       stat,
-      cpu: this.cpu({ pid, stat, timestamp }),
+      cpu: this.cpu({ pid, timestamp, stat }),
       uptime: uptime - stat.starttime,
-      cocalc: this.cocalc({ pid, exe, cmdline }),
+      cocalc: this.cocalc({ pid }),
     };
     return data;
   }

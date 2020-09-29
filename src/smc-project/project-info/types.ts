@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+// ATTN: all this is also used by the webapp client. Hence, make sure it is kept free of project code.
+
 export type State = "R" | "S" | "D" | "Z" | "T" | "W";
 
 export interface Mem {
@@ -94,5 +96,3 @@ interface KillCmd {
 }
 
 export type ProjectInfoCmds = KillCmd;
-
-export { ProjectInfoServer } from "./server";

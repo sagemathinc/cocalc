@@ -8,7 +8,8 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { close } from "../smc-util/misc2";
 import { SyncTable } from "../smc-util/sync/table";
 import { get_ProjectInfoServer } from "../project-info";
-import { ProjectInfo, ProjectInfoServer } from "../project-info/types";
+import { ProjectInfo } from "../project-info/types";
+import { ProjectInfoServer } from "../project-info";
 
 class ProjectInfoTable {
   private table: SyncTable;
