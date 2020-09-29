@@ -177,6 +177,7 @@ export class Actions extends BaseActions<LeanEditorState> {
     }
     super.close();
     close(this);
+    this._state = "closed";  // close above clears all attributes, so have to set this afterwards.
   }
 
   update_status_bar = (): void => {
