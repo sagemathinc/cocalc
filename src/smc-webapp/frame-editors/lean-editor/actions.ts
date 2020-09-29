@@ -55,16 +55,22 @@ export class Actions extends BaseActions<LeanEditorState> {
     this.data_queue = [];
 
     this.debounced_process_data_queue = debounce(() => {
+      if (this._state === "closed") return;
       this.process_data_queue();
     }, DEBOUNCE_MS);
 
     this.debounced_update_info = debounce(() => {
+      if (this._state === "closed") return;
       this.update_info();
     }, DEBOUNCE_MS);
+
     this.debounced_update_gutters = debounce(() => {
+      if (this._state === "closed") return;
       this.update_gutters();
     }, DEBOUNCE_MS);
+
     this.debounced_update_status_bar = debounce(() => {
+      if (this._state === "closed") return;
       this.update_status_bar();
     }, DEBOUNCE_MS);
 
@@ -169,8 +175,9 @@ export class Actions extends BaseActions<LeanEditorState> {
         // pass
       }
     }
-    close(this);
     super.close();
+    close(this);
+    this._state = "closed";  // close above clears all attributes, so have to set this afterwards.
   }
 
   update_status_bar = (): void => {
