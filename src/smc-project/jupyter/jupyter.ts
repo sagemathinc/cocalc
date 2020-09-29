@@ -37,9 +37,7 @@ import * as pidusage from "pidusage";
 const { do_not_laod_transpilers } = require("../init-program");
 
 if (do_not_laod_transpilers) {
-  console.warn(
-    "[project/jupyter] coffeescript transpiler is not enabled!"
-  );
+  console.warn("[project/jupyter] coffeescript transpiler is not enabled!");
 } else {
   // because of misc and misc_node below.  Delete this when those are typescript'd
   require("coffee-register");
@@ -214,9 +212,10 @@ The kernel does *NOT* start up until either spawn is explicitly called, or
 code execution is explicitly requested.  This makes it possible to
 call process_output without spawning an actual kernel.
 */
-const _jupyter_kernels = {};
+const _jupyter_kernels: { [path: string]: JupyterKernel } = {};
 
-export class JupyterKernel extends EventEmitter
+export class JupyterKernel
+  extends EventEmitter
   implements JupyterKernelInterface {
   public name: string;
   public store: any; // used mainly for stdin support right now...
@@ -323,6 +322,10 @@ export class JupyterKernel extends EventEmitter
       this._set_state("off");
       throw err;
     }
+  }
+
+  get_spawned_kernel() {
+    return this._kernel;
   }
 
   async _finish_spawn(): Promise<void> {
@@ -500,7 +503,7 @@ export class JupyterKernel extends EventEmitter
       delete this.store;
     }
     const kernel = _jupyter_kernels[this._path];
-    if (kernel != null && kernel._identity === this.identity) {
+    if (kernel != null && kernel.identity === this.identity) {
       delete _jupyter_kernels[this._path];
     }
     this.removeAllListeners();
@@ -894,4 +897,21 @@ export class JupyterKernel extends EventEmitter
 
 export function get_existing_kernel(path: string): JupyterKernel | undefined {
   return _jupyter_kernels[path];
+}
+
+export function get_kernel_by_pid(
+  pid: number,
+  dbg: Function
+): JupyterKernel | undefined {
+  for (const [path, kernel] of Object.entries(_jupyter_kernels)) {
+    dbg(
+      "get_kernel_by_pid",
+      pid,
+      "check",
+      path,
+      "=>",
+      kernel.get_spawned_kernel()
+    );
+  }
+  return;
 }

@@ -6,13 +6,15 @@
 import { React, Rendered, useIsMountedRef, CSS } from "../../app-framework";
 import { Col, Row } from "react-bootstrap";
 import { basename } from "path";
+import { ProjectActions } from "../../project_actions";
 import { Table, Button, Form, Space as AntdSpace, Modal } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
+import { webapp_client } from "../../webapp-client";
 import { seconds2hms } from "smc-util/misc";
 import { Loading, Icon } from "../../r_misc";
-import { ProjectActions } from "../../project_actions";
 import { project_websocket } from "../../frame-editors/generic/client";
 import { Channel } from "../../project/websocket/types";
+import { ProjectInfo as WSProjectInfo } from "../websocket/project-info";
 import {
   ProjectInfo,
   ProjectInfoCmds,
@@ -88,11 +90,11 @@ function process_tree(
         cocalc: proc.cocalc,
         children,
       };
-      if (proc.cocalc?.type != "project") {
+      if (proc.cocalc?.type === "project") {
         // for a project, we list processes separately – one root for all is unnecessary to show
         p.children = undefined;
         data.push(p);
-        data.push(...children);
+        if (children != null) data.push(...children);
       } else {
         // we want to hide some processes as well
         if (keep_proc(proc)) {
@@ -161,7 +163,10 @@ export function ProjectInfo({
   const isMountedRef = useIsMountedRef();
   const [info, set_info] = React.useState<Partial<ProjectInfo>>({});
   const [ptree, set_ptree] = React.useState<ProcessRow[] | null>(null);
+  // chan: websocket channel to send commands to the project (for now)
   const [chan, set_chan] = React.useState<Channel | null>(null);
+  // sync-object sending us the real-time data about the project
+  const [sync, set_sync] = React.useState<WSProjectInfo | null>(null);
   const [status, set_status] = React.useState<string>("initializing…");
   const [loading, set_loading] = React.useState<boolean>(true);
   const [selected, set_selected] = React.useState<number[]>([]);
@@ -184,34 +189,50 @@ export function ProjectInfo({
     set_status("connecting…");
     const ws = await project_websocket(project_id);
     const chan = await ws.api.project_info();
+    const info_sync = webapp_client.project_client.project_info(project_id);
+    console.log("info_sync", info_sync);
     if (!isMountedRef.current) return;
 
-    chan.on("data", function (data) {
+    info_sync.once("change", function () {
       if (!isMountedRef.current) return;
       set_loading(false);
       set_status("receiving…");
-      set_data(data);
     });
 
-    chan.on("close", async function () {
+    info_sync.on("change", function () {
+      if (!isMountedRef.current) return;
+      const data = info_sync.get();
+      if (data != null) {
+        console.log("info_sync data", data.toJS());
+        set_data(data.toJS());
+      } else {
+        console.warn("got no data from info_sync.get()");
+      }
+    });
+
+    info_sync.on("close", async function () {
       if (!isMountedRef.current) return;
       set_status("closed. reconnecting in 1 second…");
-      set_chan(null);
-      await delay(1000);
-      if (!isMountedRef.current) return;
-      connect();
+      //set_sync(null);
+      //await delay(1000);
+      // if (!isMountedRef.current) return;
+      //connect();
     });
 
     set_chan(chan);
+    set_sync(info_sync);
   }
 
   React.useEffect(() => {
     connect();
     return () => {
       if (!isMountedRef.current) return;
-      set_status("connection ended");
+      set_status("closing connection");
+
       chan?.end();
       set_chan(null);
+      sync?.close();
+      set_sync(null);
     };
   }, []);
 
@@ -426,8 +447,8 @@ export function ProjectInfo({
             ) : (
               "no timestamp"
             )}{" "}
-            | connected: <code>{`${chan != null}`}</code> | status:{" "}
-            <code>{status}</code>
+            | connected: sync=<code>{`${sync != null}`}</code> chan=
+            <code>{`${chan != null}`}</code> | | status: <code>{status}</code>
           </div>
           {render_top()}
           {false && (
