@@ -294,7 +294,9 @@ export class AppRedux {
     if (this._actions[name] != null) {
       const A = this._actions[name];
       delete this._actions[name];
-      A?.destroy();
+      // NOTE: even if A is defined, destroy might not be... due to our
+      // aggressive close function:
+      A?.destroy?.();
     }
   }
 
