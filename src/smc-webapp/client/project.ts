@@ -23,6 +23,7 @@ import {
   allow_project_to_run,
   too_many_free_projects,
 } from "../project/client-side-throttle";
+import { ProjectInfo, project_info } from "../project/websocket/project-info";
 
 import { Configuration, ConfigurationAspect } from "../project_configuration";
 
@@ -481,5 +482,9 @@ export class ProjectClient {
     await this.call(
       message.remove_license_from_project({ project_id, license_id })
     );
+  }
+
+  public project_info(project_id: string): ProjectInfo {
+    return project_info(this.client, project_id);
   }
 }

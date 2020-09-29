@@ -26,6 +26,7 @@ import "./listings";
 import "./lti";
 import "./mentions";
 import "./password-reset";
+import "./project-info";
 import "./project-log";
 import "./projects";
 import "./public-paths";

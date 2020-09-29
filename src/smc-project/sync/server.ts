@@ -61,6 +61,7 @@ import { delay } from "awaiting";
 const { close, deep_copy, len } = require("../smc-util/misc2");
 
 import { register_listings_table } from "./listings";
+import { register_project_info_table } from "./project-info";
 
 type Query = { [key: string]: any };
 
@@ -195,6 +196,7 @@ class SyncTableChannel {
   }
 
   private log(...args): void {
+    if (this.logger == null) return;
     this.logger.debug(
       `SyncTableChannel('${this.name}', '${this.query_string}'${
         this.closed ? ",CLOSED" : ""
@@ -408,6 +410,7 @@ class SyncTableChannel {
   }
 
   private async save_and_close_if_possible(): Promise<void> {
+    if (this.closed) return; // already done.
     this.log("save_and_close_if_possible: no connections, so saving...");
     await this.synctable.save();
     const { n, changed } = this.num_connections;
@@ -515,6 +518,12 @@ async function synctable_channel0(
     await synctable_channels[name].init();
     if (query?.listings != null) {
       register_listings_table(
+        synctable_channels[name].get_synctable(),
+        logger,
+        client.client_id()
+      );
+    } else if (query?.project_info != null) {
+      register_project_info_table(
         synctable_channels[name].get_synctable(),
         logger,
         client.client_id()

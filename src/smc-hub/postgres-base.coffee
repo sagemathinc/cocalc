@@ -1165,7 +1165,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 @_get_tables (err, t) =>
                     psql_tables = t
                     dbg("psql_tables = #{misc.to_json(psql_tables)}")
-                    goal_tables = (t for t,s of SCHEMA when t not in psql_tables and not s.virtual)
+                    goal_tables = (t for t,s of SCHEMA when t not in psql_tables and not s.virtual and s.durability != 'ephemeral')
                     dbg("goal_tables = #{misc.to_json(goal_tables)}")
                     cb(err)
             (cb) =>
