@@ -106,8 +106,8 @@ export class ProjectInfoServer extends EventEmitter {
       this.dbg("cocalc terminal", termpath);
       return { type: "terminal", path: termpath };
     }
-    const jupyterpath = get_kernel_by_pid(pid, this.dbg);
-    this.dbg(jupyterpath);
+    const jupyterpath = get_kernel_by_pid(pid, this.dbg)?.get_path();
+    if (jupyterpath != null) this.dbg(jupyterpath);
   }
 
   private async process({ pid: pid_str, uptime, timestamp }): Promise<Process> {

@@ -269,6 +269,10 @@ export class JupyterKernel
     this.setMaxListeners(100);
   }
 
+  public get_path() {
+    return this._path;
+  }
+
   private _set_state(state: string): void {
     // state = 'off' --> 'spawning' --> 'starting' --> 'running' --> 'closed'
     this._state = state;
@@ -910,8 +914,11 @@ export function get_kernel_by_pid(
       "check",
       path,
       "=>",
-      kernel.get_spawned_kernel()
+      kernel.get_spawned_kernel().spawn.pid
     );
+    if (kernel.get_spawned_kernel()?.spawn.pid == pid) {
+      return kernel;
+    }
   }
   return;
 }
