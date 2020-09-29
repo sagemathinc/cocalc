@@ -96,8 +96,8 @@ export class ProjectInfoServer extends EventEmitter {
       .filter((c) => c.length > 0);
   }
 
-  private cocalc({ pid, exe, cmdline }): CoCalcInfo | undefined {
-    this.dbg("classify", { pid, exe, cmdline });
+  private cocalc({ pid }): CoCalcInfo | undefined {
+    //this.dbg("classify", { pid, exe, cmdline });
     if (pid === process.pid) {
       return { type: "project" };
     }

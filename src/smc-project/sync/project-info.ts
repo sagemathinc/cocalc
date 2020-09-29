@@ -3,36 +3,45 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { delay } from "awaiting";
-
+// import { delay } from "awaiting";
+import { reuseInFlight } from "async-await-utils/hof";
 import { close } from "../smc-util/misc2";
 import { SyncTable } from "../smc-util/sync/table";
+import { get_ProjectInfoServer } from "../project-info";
+import { ProjectInfo, ProjectInfoServer } from "../project-info/types";
 
 class ProjectInfoTable {
   private table: SyncTable;
   private logger: undefined | { debug: Function };
   private project_id: string;
   private state: "ready" | "closed" = "ready";
+  private readonly publish: (info: ProjectInfo) => Promise<void>;
+  private readonly info_server: ProjectInfoServer;
 
   constructor(table: SyncTable, logger: any, project_id: string) {
     this.project_id = project_id;
     this.logger = logger;
     this.log("register");
+    this.publish = reuseInFlight(this.publish_impl);
     this.table = table;
     this.table.on("closed", () => this.close());
-    this.update_loop();
+    // initializing project info server + reacting when it has something to say
+    this.info_server = get_ProjectInfoServer(this.log);
+    this.info_server.on("info", (info) => this.publish(info));
   }
 
-  private async update_loop(): Promise<void> {
-    while (this.state == "ready" && this.table.get_state() != "closed") {
-      const info = { hello: "world", date: new Date() };
+  private async publish_impl(info: ProjectInfo): Promise<void> {
+    if (this.state == "ready" && this.table.get_state() != "closed") {
       this.table.set({ project_id: this.project_id, info });
       try {
         await this.table.save();
       } catch (err) {
         this.log(`error saving ${err}`);
       }
-      await delay(3000);
+    } else {
+      this.log(
+        `ProjectInfoTable ${this.state} and table is ${this.table.get_state()}`
+      );
     }
   }
 
@@ -45,11 +54,12 @@ class ProjectInfoTable {
 
   private log(...args): void {
     if (this.logger == null) return;
-    this.logger.debug("listings_table", ...args);
+    this.logger.debug("project_info", ...args);
   }
 }
 
 let project_info_table: ProjectInfoTable | undefined = undefined;
+
 export function register_project_info_table(
   table: SyncTable,
   logger: any,

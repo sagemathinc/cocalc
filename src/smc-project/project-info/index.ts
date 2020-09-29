@@ -3,4 +3,4 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export { project_info } from "./project-info";
+export { project_info, get_ProjectInfoServer } from "./project-info";

@@ -20,6 +20,10 @@ function init(L: Function): ProjectInfoServer {
   return _info;
 }
 
+export function get_ProjectInfoServer(L: Function) {
+  return init(L)
+}
+
 export async function project_info(
   primus: any,
   logger: { debug: Function }

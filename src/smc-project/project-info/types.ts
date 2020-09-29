@@ -94,3 +94,5 @@ interface KillCmd {
 }
 
 export type ProjectInfoCmds = KillCmd;
+
+export { ProjectInfoServer } from "./server";

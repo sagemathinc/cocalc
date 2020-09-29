@@ -203,8 +203,7 @@ export function ProjectInfo({
       if (!isMountedRef.current) return;
       const data = info_sync.get();
       if (data != null) {
-        console.log("info_sync data", data.toJS());
-        set_data(data.toJS());
+        set_data(data.toJS() as ProjectInfo);
       } else {
         console.warn("got no data from info_sync.get()");
       }
