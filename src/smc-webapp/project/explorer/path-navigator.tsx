@@ -29,7 +29,7 @@ export function PathNavigator({
         display={<Icon name="home" />}
         full_name={""}
         key={0}
-        on_click={() => actions.open_directory("", true, false)}
+        on_click={() => actions?.open_directory("", true, false)}
       />
     );
 
@@ -48,7 +48,7 @@ export function PathNavigator({
           display={trunc_middle(segment, 15)}
           full_name={segment}
           key={i + 1}
-          on_click={(path) => actions.open_directory(path, true, false)}
+          on_click={(path) => actions?.open_directory(path, true, false)}
           active={is_current}
           history={is_history}
         />

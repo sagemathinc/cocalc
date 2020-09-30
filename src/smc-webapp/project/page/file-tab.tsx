@@ -83,7 +83,7 @@ type Props = PropsPath | PropsName;
 export const FileTab: React.FC<Props> = React.memo(
   ({ project_id, path, name, label }) => {
     const [x_hovered, set_x_hovered] = useState<boolean>(false);
-    const actions = useActions({project_id});
+    const actions = useActions({ project_id });
     const active_project_tab = useTypedRedux(
       { project_id },
       "active_project_tab"
@@ -112,13 +112,14 @@ export const FileTab: React.FC<Props> = React.memo(
     });
 
     function close_file(e) {
-      if (path == null) return;
       e.stopPropagation();
       e.preventDefault();
+      if (path == null || actions == null) return;
       actions.close_tab(path);
     }
 
     function click(e): void {
+      if (actions == null) return;
       if (path != null) {
         if (e.ctrlKey || e.shiftKey || e.metaKey) {
           // shift/ctrl/option clicking on *file* tab opens in a new popout window.
@@ -251,7 +252,7 @@ export const FileTab: React.FC<Props> = React.memo(
                 }}
                 onMouseOut={() => {
                   set_x_hovered(false);
-                  actions.clear_ghost_file_tabs();
+                  actions?.clear_ghost_file_tabs();
                 }}
                 name="times"
                 onClick={close_file}

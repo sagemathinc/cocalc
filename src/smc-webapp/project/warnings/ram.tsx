@@ -41,7 +41,7 @@ export const RamWarning: React.FC<{ project_id: string }> = ({
       <Icon name="exclamation-triangle" /> WARNING: This project is running low
       on RAM memory ({rss_mb} MB used of {limit_mb} MB available). Increase the
       "Shared RAM" quota in{" "}
-      <a onClick={() => actions.set_active_tab("settings")}>project settings</a>{" "}
+      <a onClick={() => actions?.set_active_tab("settings")}>project settings</a>{" "}
       or <A href={OOM_INFO_PAGE}>learn how to reduce your memory usage</A>. This
       banner is updated about once per minute.
     </Alert>

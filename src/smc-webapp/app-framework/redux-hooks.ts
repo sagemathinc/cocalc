@@ -333,11 +333,17 @@ export function useActions(name: "projects"): types.ProjectsActions;
 export function useActions(name: "support"): types.SupportActions;
 export function useActions(name: "users"): types.UsersActions;
 
-// If it is none of the explicitly named ones... it's a project or just some general actions
+// If it is none of the explicitly named ones... it's a project or just some general actions.
+// That said *always* use {project_id} as below to get the actions for a project, so you
+// get proper typing.
 export function useActions(x: string): any;
 
 export function useActions<T>({ name: string }): T;
-export function useActions({ project_id: string }): ProjectActions;
+
+// Return type includes undefined because the actions for a project *do* get
+// destroyed when closing a project, and rendering can still happen during this
+// time, so client code must account for this.
+export function useActions({ project_id: string }): ProjectActions | undefined;
 
 // Or an editor actions (any for now)
 export function useActions(x: string, path: string): any;
@@ -351,9 +357,11 @@ export function useActions(x, path?: string) {
       if (x?.name != null) {
         actions = redux.getActions(x.name);
       } else if (x?.project_id != null) {
-        actions = redux.getProjectActions(x.project_id);
+        // return here to avoid null check below; it can be null
+        return redux.getProjectActions(x.project_id);
       } else if (is_valid_uuid_string(x)) {
-        actions = redux.getProjectActions(x);
+        // return here to avoid null check below; it can be null
+        return redux.getProjectActions(x);
       } else {
         actions = redux.getActions(x);
       }

@@ -22,7 +22,7 @@ import { DiskSpaceWarning } from "../warnings/disk-space";
 import { RamWarning } from "../warnings/ram";
 import { OOMWarning } from "../warnings/oom";
 import { TrialBanner } from "../trial-banner";
-import { SoftwareEnvUpgrade } from "./software-env-upgrade"
+import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import { AnonymousName } from "../anonymous-name";
 import { StartButton } from "../start-button";
 
@@ -82,6 +82,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
   const fullscreen = useTypedRedux("page", "fullscreen");
 
   function on_sort_end({ oldIndex, newIndex }): void {
+    if (actions == null) return;
     actions.move_file_tab({
       old_index: oldIndex,
       new_index: newIndex,
