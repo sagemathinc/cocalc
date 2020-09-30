@@ -49,6 +49,8 @@ const EDITOR_SPEC = {
       "increase_font_size",
       "save",
       "time_travel",
+      "undo", // need these because button bars at top let you do something even in rendered only view.
+      "redo",
     ]),
   },
   terminal,
