@@ -23,7 +23,7 @@ const row_style: React.CSSProperties = {
   borderRadius: "4px",
 };
 
-const inner_icon_style = { marginright: "10px" };
+const inner_icon_style = { marginRight: "10px" };
 
 // TODO: Something should uniformly describe how sorted table headers work.
 // 5/8/2017 We have 3 right now, Course students, assignments panel and this one.

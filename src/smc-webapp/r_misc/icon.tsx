@@ -5,9 +5,11 @@
 
 import * as React from "react";
 import * as misc from "smc-util/misc";
+import { CSS } from "../app-framework";
 
 interface Props {
-  name: string;
+  name?: string;
+  unicode?: number; // (optional) set a hex 16 bit charcode to render a unicode char, e.g. 0x2620
   className?: string;
   size?: "lg" | "2x" | "3x" | "4x" | "5x";
   rotate?: "45" | "90" | "135" | "180" | "225" | "270" | "315";
@@ -18,53 +20,75 @@ interface Props {
   stack?: "1x" | "2x";
   inverse?: boolean;
   Component?: JSX.Element | JSX.Element[];
-  style?: any;
+  style?: CSS;
   onClick?: (event?: React.MouseEvent) => void; // https://fettblog.eu/typescript-react/events/
   onMouseOver?: () => void;
   onMouseOut?: () => void;
 }
 
-// Converted from https://github.com/andreypopp/react-fa
-export class Icon extends React.Component<Props> {
-  static defaultProps = {
-    name: "square-o",
-    onClick: undefined,
-  };
+function is_equal(prev, next): boolean {
+  // always update if there are children
+  if (prev.children != null || next.children != null) return false;
 
-  shouldComponentUpdate(next) {
-    // we exclude style changes for speed reasons (and style is rarely used); always update if there are children
-    return (
-      this.props.children != null ||
-      misc.is_different(this.props, next, [
-        "name",
-        "size",
-        "rotate",
-        "flip",
-        "spin",
-        "pulse",
-        "fixedWidth",
-        "stack",
-        "inverse",
-        "className",
-      ]) ||
-      !misc.is_equal(this.props.style, next.style)
-    );
+  if (
+    misc.is_different(prev, next, [
+      "name",
+      "unicode",
+      "size",
+      "rotate",
+      "flip",
+      "spin",
+      "pulse",
+      "fixedWidth",
+      "stack",
+      "inverse",
+      "className",
+    ]) ||
+    !misc.is_equal(prev.style, next.style)
+  )
+    return false;
+  return true;
+}
+
+// Converted from https://github.com/andreypopp/react-fa
+export const Icon: React.FC<Props> = React.memo((props: Props) => {
+  const {
+    name: name_prop,
+    onClick: onClick_prop,
+    size,
+    unicode,
+    rotate,
+    flip,
+    spin,
+    pulse,
+    fixedWidth,
+    stack,
+    inverse,
+    className,
+    onMouseOver,
+    onMouseOut,
+    style,
+  } = props;
+  let name = name_prop ?? "square-o";
+  const onClick = onClick_prop ?? undefined;
+
+  function render_unicode() {
+    const style: CSS = {
+      fontSize: "120%",
+      fontWeight: "bold",
+      lineHeight: "1",
+      verticalAlign: "middle",
+    };
+    // we know unicode is not undefined, see render_icon
+    return <span style={style}>{String.fromCharCode(unicode!)}</span>;
   }
 
-  render_icon() {
+  function render_icon() {
+    if (unicode != null) {
+      return render_unicode();
+    }
+
     let classNames;
-    let {
-      name,
-      size,
-      rotate,
-      flip,
-      spin,
-      pulse,
-      fixedWidth,
-      stack,
-      inverse,
-      className,
-    } = this.props;
 
     let i = name.indexOf("cc-icon");
 
@@ -136,25 +160,23 @@ export class Icon extends React.Component<Props> {
     return <i className={classNames} />;
   }
 
-  render() {
-    // Wrap in a span for **two** reasons.
-    // 1. A reasonable one -- have to wrap the i, since when rendered using js and svg by new fontawesome 5,
-    // the click handlers of the <i> object are just ignored, since it is removed from the DOM!
-    // This is important the close button on tabs.
-    // 2. An evil one -- FontAwesome's javascript mutates the DOM.  Thus we put a random key in so,
-    // that React just replaces the whole part of the DOM where the SVG version of the icon is,
-    // and doesn't get tripped up by this.   A good example where this is used is when *running* Jupyter
-    // notebooks.
-    return (
-      <span
-        onClick={this.props.onClick}
-        onMouseOver={this.props.onMouseOver}
-        onMouseOut={this.props.onMouseOut}
-        key={Math.random()}
-        style={this.props.style}
-      >
-        {this.render_icon()}
-      </span>
-    );
-  }
-}
+  // Wrap in a span for **two** reasons.
+  // 1. A reasonable one -- have to wrap the i, since when rendered using js and svg by new fontawesome 5,
+  // the click handlers of the <i> object are just ignored, since it is removed from the DOM!
+  // This is important the close button on tabs.
+  // 2. An evil one -- FontAwesome's javascript mutates the DOM.  Thus we put a random key in so,
+  // that React just replaces the whole part of the DOM where the SVG version of the icon is,
+  // and doesn't get tripped up by this.   A good example where this is used is when *running* Jupyter
+  // notebooks.
+  return (
+    <span
+      onClick={onClick}
+      onMouseOver={onMouseOver}
+      onMouseOut={onMouseOut}
+      key={Math.random()}
+      style={style}
+    >
+      {render_icon()}
+    </span>
+  );
+}, is_equal);
