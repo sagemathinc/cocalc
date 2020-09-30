@@ -1158,7 +1158,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
       confirm: "Yes",
     };
     const title = <div style={{ maxWidth: "250px" }}>{info.text}</div>;
-    const icon = <Icon name={"trash"} />;
+    const icon = <Icon unicode={0x2620} />;
     return (
       <Popconfirm
         key={"clear"}
