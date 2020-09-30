@@ -24,7 +24,7 @@ import {
   ProjectInfo,
   Stat,
   State,
-  DF,
+  DiskUsage,
   CoCalcInfo,
   CGroup,
 } from "./types";
@@ -176,7 +176,7 @@ export class ProjectInfoServer extends EventEmitter {
     };
   }
 
-  private async df(): Promise<DF> {
+  private async disk_usage(): Promise<DiskUsage> {
     const convert = function (val) {
       return {
         total: bytes2MiB(val.total),
@@ -216,10 +216,10 @@ export class ProjectInfoServer extends EventEmitter {
   private async get_info(): Promise<ProjectInfo> {
     const [uptime, boottime] = await this.uptime();
     const timestamp = new Date().getTime();
-    const [processes, cgroup, df] = await Promise.all([
+    const [processes, cgroup, disk_usage] = await Promise.all([
       this.processes({ uptime, timestamp }),
       this.cgroup(),
-      this.df(),
+      this.disk_usage(),
     ]);
     const info: ProjectInfo = {
       timestamp,
@@ -227,7 +227,7 @@ export class ProjectInfoServer extends EventEmitter {
       uptime,
       boottime,
       cgroup,
-      df,
+      disk_usage,
     };
     return info;
   }

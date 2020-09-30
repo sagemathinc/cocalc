@@ -14,14 +14,10 @@ import { exec } from "./utils";
 // singleton, we instantiate it when we need it
 let _info: ProjectInfoServer | undefined = undefined;
 
-function init(L: Function): ProjectInfoServer {
+export function get_ProjectInfoServer(L: Function): ProjectInfoServer {
   if (_info != null) return _info;
   _info = new ProjectInfoServer(L);
   return _info;
-}
-
-export function get_ProjectInfoServer(L: Function) {
-  return init(L)
 }
 
 export async function project_info(
@@ -31,25 +27,14 @@ export async function project_info(
   const L = (...msg) => logger.debug("project_info:", ...msg);
   const name = `project_info`;
   const channel = primus.channel(name);
-  const info = await init(L);
-
-  function send_data(data) {
-    channel.write(data);
-  }
-
-  info.on("info", send_data);
 
   function deregister(spark) {
     L(`deregistering ${spark.id}`);
-    info.off("info", send_data);
   }
 
   channel.on("connection", function (spark: any): void {
     // Now handle the connection
     L(`channel: new connection from ${spark.address.ip} -- ${spark.id}`);
-
-    // if we already have something, send it immediately
-    info.new_listener(send_data);
 
     function close(type) {
       L(`event ${type}: deregistering`);

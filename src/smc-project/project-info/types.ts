@@ -66,17 +66,14 @@ export interface CGroup {
   oom_kills: number;
 }
 
-interface DFinfo {
+interface DiskUsageInfo {
   available: number; // MiB
   free: number; // MiB
   total: number; // MiB
   usage: number; // MiB (total - free)
 }
 
-export interface DF {
-  tmp: DFinfo;
-  project: DFinfo;
-}
+export type DiskUsage = Record<"tmp" | "project", DiskUsageInfo>;
 
 export type Processes = { [pid: number]: Process };
 
@@ -84,7 +81,7 @@ export interface ProjectInfo {
   timestamp: number;
   processes: Processes;
   cgroup?: CGroup; // only in "kucalc" mode
-  df: DF;
+  disk_usage: DiskUsage;
   uptime: number; // secs, uptime of the machine
   boottime: Data; // when VM booted (might be derived from uptime)
 }
