@@ -44,7 +44,11 @@ interface ProcJupyter {
   path: string;
 }
 
-export type CoCalcInfo = ProcTerminal | ProcJupyter | ProcProject;
+interface ProcSSHD {
+  type: "sshd";
+}
+
+export type CoCalcInfo = ProcTerminal | ProcJupyter | ProcProject | ProcSSHD;
 
 export interface Process {
   pid: number;

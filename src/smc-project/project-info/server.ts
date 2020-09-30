@@ -32,9 +32,9 @@ import {
 const bytes2MiB = (bytes) => bytes / (1024 * 1024);
 
 export class ProjectInfoServer extends EventEmitter {
-  last?: ProjectInfo = undefined;
-  private dbg: Function;
-  private running = true;
+  private last?: ProjectInfo = undefined;
+  private readonly dbg: Function;
+  private running = false;
   private readonly testing: boolean;
   private ticks: number;
   private pagesize: number;
@@ -44,6 +44,10 @@ export class ProjectInfoServer extends EventEmitter {
     this.testing = testing;
     this.dbg = (...msg) => L("ProjectInfoServer", ...msg);
     if (!this.testing) this.start();
+  }
+
+  public latest(): ProjectInfo | undefined {
+    return this.last;
   }
 
   private async uptime(): Promise<[number, Date]> {
@@ -205,10 +209,6 @@ export class ProjectInfoServer extends EventEmitter {
     }
   }
 
-  public new_listener(send_data) {
-    if (this.last != null) send_data(this.last);
-  }
-
   public stop() {
     this.running = false;
   }
@@ -235,6 +235,7 @@ export class ProjectInfoServer extends EventEmitter {
   public async start() {
     await this.init();
     this.dbg("start");
+    this.running = true;
     while (true) {
       // TODO disable info collection if there is nobody listening for a few minutes…
       this.dbg(`listeners on 'info': ${this.listenerCount("info")}`);
@@ -242,7 +243,7 @@ export class ProjectInfoServer extends EventEmitter {
       this.last = info;
       this.emit("info", info);
       if (this.running) {
-        await delay(1500);
+        await delay(2000);
       } else {
         this.dbg("start: no longer running → stopping loop");
         this.last = undefined;

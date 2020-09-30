@@ -13,13 +13,17 @@ import { ProjectInfoServer } from "../project-info";
 
 class ProjectInfoTable {
   private table: SyncTable;
-  private logger: undefined | { debug: Function };
+  private logger: { debug: Function };
   private project_id: string;
   private state: "ready" | "closed" = "ready";
   private readonly publish: (info: ProjectInfo) => Promise<void>;
   private readonly info_server: ProjectInfoServer;
 
-  constructor(table: SyncTable, logger: any, project_id: string) {
+  constructor(
+    table: SyncTable,
+    logger: { debug: Function },
+    project_id: string
+  ) {
     this.project_id = project_id;
     this.logger = logger;
     this.log("register");
@@ -27,8 +31,10 @@ class ProjectInfoTable {
     this.table = table;
     this.table.on("closed", () => this.close());
     // initializing project info server + reacting when it has something to say
-    this.info_server = get_ProjectInfoServer(this.log);
-    this.info_server.on("info", (info) => this.publish(info));
+    this.info_server = get_ProjectInfoServer(this.log.bind(this));
+    this.info_server.on("info", (info) => {
+      this.publish(info);
+    });
   }
 
   private async publish_impl(info: ProjectInfo): Promise<void> {

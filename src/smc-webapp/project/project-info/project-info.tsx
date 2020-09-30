@@ -190,7 +190,7 @@ export function ProjectInfo({
     const ws = await project_websocket(project_id);
     const chan = await ws.api.project_info();
     const info_sync = webapp_client.project_client.project_info(project_id);
-    console.log("info_sync", info_sync);
+    //console.log("info_sync", info_sync);
     if (!isMountedRef.current) return;
 
     info_sync.once("change", function () {
@@ -447,7 +447,7 @@ export function ProjectInfo({
               "no timestamp"
             )}{" "}
             | connected: sync=<code>{`${sync != null}`}</code> chan=
-            <code>{`${chan != null}`}</code> | | status: <code>{status}</code>
+            <code>{`${chan != null}`}</code> | status: <code>{status}</code>
           </div>
           {render_top()}
           {false && (
