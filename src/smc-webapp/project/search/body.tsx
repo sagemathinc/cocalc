@@ -48,7 +48,7 @@ export const ProjectSearchBody: React.FC<{ project_id: string }> = ({
             <Col sm={3}>
               <Button
                 bsStyle="primary"
-                onClick={() => actions.search()}
+                onClick={() => actions?.search()}
                 disabled={!is_valid_search()}
               >
                 <Icon name="search" /> Search
@@ -61,25 +61,25 @@ export const ProjectSearchBody: React.FC<{ project_id: string }> = ({
         <Col sm={4} style={{ fontSize: "16px" }}>
           <Checkbox
             checked={subdirectories}
-            onChange={() => actions.toggle_search_checkbox_subdirectories()}
+            onChange={() => actions?.toggle_search_checkbox_subdirectories()}
           >
             Include subdirectories
           </Checkbox>
           <Checkbox
             checked={case_sensitive}
-            onChange={() => actions.toggle_search_checkbox_case_sensitive()}
+            onChange={() => actions?.toggle_search_checkbox_case_sensitive()}
           >
             Case sensitive search
           </Checkbox>
           <Checkbox
             checked={hidden_files}
-            onChange={() => actions.toggle_search_checkbox_hidden_files()}
+            onChange={() => actions?.toggle_search_checkbox_hidden_files()}
           >
             Include hidden files
           </Checkbox>
           <Checkbox
             checked={git_grep}
-            onChange={() => actions.toggle_search_checkbox_git_grep()}
+            onChange={() => actions?.toggle_search_checkbox_git_grep()}
           >
             Only search files in GIT repo (if in a repo)
           </Checkbox>
@@ -106,10 +106,10 @@ const ProjectSearchInput: React.FC<{ project_id: string }> = ({
       type="search"
       value={user_input}
       placeholder="Enter search (supports regular expressions!)"
-      on_change={(value) => actions.setState({ user_input: value })}
-      on_submit={() => actions.search()}
+      on_change={(value) => actions?.setState({ user_input: value })}
+      on_submit={() => actions?.search()}
       on_clear={() =>
-        actions.setState({
+        actions?.setState({
           most_recent_path: undefined,
           command: undefined,
           most_recent_search: undefined,
@@ -237,7 +237,7 @@ const ProjectSearchOutputHeader: React.FC<{ project_id: string }> = ({
     <div style={{ wordWrap: "break-word" }}>
       <span style={{ color: "#666" }}>
         <a
-          onClick={() => actions.set_active_tab("files")}
+          onClick={() => actions?.set_active_tab("files")}
           style={{ cursor: "pointer" }}
         >
           Navigate to a different folder
@@ -251,7 +251,7 @@ const ProjectSearchOutputHeader: React.FC<{ project_id: string }> = ({
         <Button
           bsStyle="info"
           onClick={() =>
-            actions.setState({
+            actions?.setState({
               info_visible: !info_visible,
             })
           }
@@ -277,17 +277,17 @@ const ProjectSearchResultLine: React.FC<{
   async function click_filename(e): Promise<void> {
     e.preventDefault();
     const path = path_to_file(most_recent_path, filename);
-    await actions.open_file({
+    await actions?.open_file({
       path,
       foreground: should_open_in_foreground(e),
     });
     await delay(200);
-    actions.goto_line(path, line_number, true, true);
+    actions?.goto_line(path, line_number, true, true);
     // We really have to try again, since there
     // is no telling how long until the editor
     // is sufficiently initialized for this to work.
     await delay(1000);
-    actions.goto_line(path, line_number, true, true);
+    actions?.goto_line(path, line_number, true, true);
   }
 
   return (

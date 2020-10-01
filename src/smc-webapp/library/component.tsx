@@ -115,7 +115,7 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
   // from the global read-only dir to the user's current directory
   function copy(doc) {
     doc = library_selected;
-    if (doc == null) return;
+    if (doc == null || actions == null) return;
     actions.set_library_is_copying(true);
     actions.copy_from_library({
       src: doc.get("src"),
@@ -148,7 +148,7 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
   }
 
   function move_cursor(dx) {
-    if (library_docs_sorted == null) return;
+    if (library_docs_sorted == null || actions == null) return;
     let new_doc;
     if (library_selected == null) {
       new_doc = library_docs_sorted.get(0);
@@ -164,7 +164,7 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
   }
 
   function set_search(search) {
-    actions.setState({ library_search: search });
+    actions?.setState({ library_search: search });
   }
 
   function select_list_click(doc) {
@@ -176,7 +176,7 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
     // we control the visibility of the thumbnail, because it would show to the
     // old one until the new one is loaded
     set_show_thumb(false);
-    actions.setState({ library_selected: doc });
+    actions?.setState({ library_selected: doc });
   }
 
   function select_list(): JSX.Element[] | undefined {

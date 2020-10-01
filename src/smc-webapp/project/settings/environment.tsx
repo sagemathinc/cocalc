@@ -67,7 +67,7 @@ export const Environment: React.FC<Props> = ({ project_id }) => {
     }
     set_editing(to_json(process_env(new_env)));
     set_saving(true);
-    await actions.set_environment(new_env);
+    await actions?.set_environment(new_env);
     if (!is_mounted_ref.current) return;
     set_saving(false);
   }

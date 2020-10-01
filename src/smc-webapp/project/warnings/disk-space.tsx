@@ -51,9 +51,9 @@ export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
       <Icon name="exclamation-triangle" /> WARNING: This project is running out
       of disk space ({disk_usage} MB used of {quotas.disk_quota} MB available).
       Increase the "Disk Space" quota in{" "}
-      <a onClick={() => actions.set_active_tab("settings")}>project settings</a>{" "}
+      <a onClick={() => actions?.set_active_tab("settings")}>project settings</a>{" "}
       or{" "}
-      <a onClick={() => actions.set_active_tab("files")}>delete some files</a>.
+      <a onClick={() => actions?.set_active_tab("files")}>delete some files</a>.
     </Alert>
   );
 };

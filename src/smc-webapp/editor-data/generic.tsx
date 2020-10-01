@@ -72,6 +72,7 @@ const DataGeneric: React.FC<Props> = React.memo((props) => {
   const { project_id, path } = props;
   const ext = filename_extension(path);
   const src = webapp_client.project_client.read_file({ project_id, path });
+  const project_actions = useActions({ project_id });
 
   function render_hint(): Rendered {
     const hint = INFO[ext];
@@ -88,13 +89,12 @@ const DataGeneric: React.FC<Props> = React.memo((props) => {
 
   function render_docx() {
     if (ext !== "docx") return;
-    const pa = useActions({ project_id });
     return (
       <>
         <br />
         <div>
           It is possible to{" "}
-          <Button onClick={() => pa.open_word_document(path)}>
+          <Button onClick={() => project_actions?.open_word_document(path)}>
             convert this file to text
           </Button>{" "}
           .
