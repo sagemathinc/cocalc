@@ -5,191 +5,97 @@
 
 import {
   React,
+  redux,
   Rendered,
+  useState,
+  useRedux,
+  useTypedRedux,
   useIsMountedRef,
   useActions,
   CSS,
 } from "../../app-framework";
-import { Col, Row } from "react-bootstrap";
-import { basename } from "path";
-import { Table, Button, Form, Space as AntdSpace, Modal } from "antd";
-import { InfoCircleOutlined } from "@ant-design/icons";
+import { Col, Row } from "../../antd-bootstrap";
+import {
+  Alert,
+  Table,
+  Button,
+  Form,
+  Popconfirm,
+  Space as AntdSpace,
+  Modal,
+  Progress,
+  Descriptions,
+} from "antd";
+import { InfoCircleOutlined, QuestionCircleOutlined } from "@ant-design/icons";
 import { webapp_client } from "../../webapp-client";
 import { seconds2hms } from "smc-util/misc";
-import { Loading, Icon } from "../../r_misc";
-import { project_websocket } from "../../frame-editors/generic/client";
+import { A, Loading, Icon, TimeElapsed } from "../../r_misc";
 import { Channel } from "../../project/websocket/types";
 import { ProjectInfo as WSProjectInfo } from "../websocket/project-info";
 import {
   ProjectInfo,
   ProjectInfoCmds,
   Process,
-  Processes,
-  CoCalcInfo,
+  // Processes,
+  // CoCalcInfo,
 } from "smc-project/project-info/types";
+import { ProcessRow, PTStats } from "./types";
+import {
+  connect_ws,
+  process_tree,
+  sum_children,
+  warning_color,
+  grid_warning,
+} from "./utils";
+import { plural } from "smc-util/misc2";
 
-// for the displayed Table, derived from "Process"
-interface ProcessRow {
-  key: string; // pid, used in the Table
-  pid: number;
-  ppid: number;
-  name: string;
-  args: string;
-  mem: number;
-  cpu_tot: number;
-  cpu_pct: number;
-  cocalc?: CoCalcInfo;
-  // pre-computed sum of children
-  chldsum?: {
-    mem: number;
-    cpu_tot: number;
-    cpu_pct: number;
-  };
-  children?: ProcessRow[];
-}
+const SSH_KEYS_DOC = "https://doc.cocalc.com/project-settings.html#ssh-keys";
 
 interface Props {
   name: string;
   project_id: string;
 }
 
-// filter for processes in process_tree
-function keep_proc(proc): boolean {
-  if (proc.pid === 1) return false;
-  const cmd2 = proc.cmdline[2];
-  if (
-    proc.ppid === 1 &&
-    cmd2 != null &&
-    cmd2.indexOf("/cocalc/init/init.sh") >= 0 &&
-    cmd2.indexOf("$COCALC_PROJECT_ID") >= 0
-  ) {
-    return false;
-  }
-  return true;
-}
-
-// convert the flat raw data into nested (forest) process rows for the table
-// I bet there are better algos, but our usual case is less than 10 procs with little nesting
-// we intentionally ignore PID 1 (tini) and the main shell script (pointless)
-function process_tree(
-  procs: Processes,
-  parentid: number,
-  pchildren: string[]
-): ProcessRow[] | undefined {
-  const data: ProcessRow[] = [];
-  Object.values(procs).forEach((proc) => {
-    if (proc.ppid == parentid) {
-      const key = `${proc.pid}`;
-      const children = process_tree(procs, proc.pid, pchildren);
-      if (children != null) pchildren.push(key);
-      const p: ProcessRow = {
-        key,
-        pid: proc.pid,
-        ppid: proc.ppid,
-        name: basename(proc.exe),
-        args: proc.cmdline.slice(1).join(" "),
-        mem: proc.stat.mem.rss,
-        cpu_tot: proc.cpu.secs,
-        cpu_pct: proc.cpu.pct,
-        cocalc: proc.cocalc,
-        children,
-      };
-      if (proc.cocalc?.type === "project") {
-        // for a project, we list processes separately – one root for all is unnecessary to show
-        p.children = undefined;
-        data.push(p);
-        if (children != null) data.push(...children);
-      } else {
-        // we want to hide some processes as well
-        if (keep_proc(proc)) {
-          data.push(p);
-        } else {
-          data.push(...children);
-        }
-      }
-    }
-  });
-  return data.length > 0 ? data : undefined;
-}
-
-function sum_children_val(proc, index): number {
-  if (proc.children == null) return 0;
-  return proc.children
-    .map((p) => p[index] + sum_children_val(p, index))
-    .reduce((a, b) => a + b, 0);
-}
-
-// we pre-compute the sums of all children (instead of doing this during each render)
-function sum_children(ptree: ProcessRow[]) {
-  ptree.forEach((proc) => {
-    if (proc.children == null) {
-      return { mem: 0, cpu_tot: 0, cpu_pct: 0 };
-    } else {
-      proc.chldsum = {
-        mem: sum_children_val(proc, "mem"),
-        cpu_tot: sum_children_val(proc, "cpu_tot"),
-        cpu_pct: sum_children_val(proc, "cpu_pct"),
-      };
-      sum_children(proc.children);
-    }
-  });
-}
-
-// returns a CSS colored style to emphasize high values warnings
-function warning(index: string, val: number): CSS {
-  const red: CSS = {
-    backgroundColor: "#f5222d",
-    color: "white",
-    fontWeight: "bold",
-  };
-  const orange: CSS = { backgroundColor: "#ffbb96" };
-  switch (index) {
-    case "cpu_pct":
-      if (val > 0.9) {
-        return red;
-      } else if (val > 0.5) {
-        return orange;
-      }
-    case "mem":
-      if (val > 1000) {
-        return red;
-      } else if (val > 500) {
-        return orange;
-      }
-  }
-  return {};
-}
-
 export function ProjectInfo({ project_id }: Props): JSX.Element {
   const isMountedRef = useIsMountedRef();
   const project_actions = useActions({ project_id });
-  const [info, set_info] = React.useState<Partial<ProjectInfo>>({});
-  const [ptree, set_ptree] = React.useState<ProcessRow[] | null>(null);
+  const [idle_timeout, set_idle_timeout] = useState<number>(30 * 60);
+  const show_explanation =
+    useTypedRedux({ project_id }, "show_project_info_explanation") ?? false;
+  const project = useRedux(["projects", "project_map", project_id]);
+  const [start_ts, set_start_ts] = useState<number | null>(null);
+  const [info, set_info] = useState<Partial<ProjectInfo>>({});
+  const [ptree, set_ptree] = useState<ProcessRow[] | null>(null);
+  const [pt_stats, set_pt_stats] = useState<PTStats>({ threads: 0, nprocs: 0 });
   // chan: websocket channel to send commands to the project (for now)
-  const [chan, set_chan] = React.useState<Channel | null>(null);
+  const [chan, set_chan] = useState<Channel | null>(null);
   // sync-object sending us the real-time data about the project
-  const [sync, set_sync] = React.useState<WSProjectInfo | null>(null);
-  const [status, set_status] = React.useState<string>("initializing…");
-  const [loading, set_loading] = React.useState<boolean>(true);
-  const [selected, set_selected] = React.useState<number[]>([]);
-  const [expanded, set_expanded] = React.useState<React.ReactText[]>([]);
-  const [have_children, set_have_children] = React.useState<string[]>([]);
+  const [sync, set_sync] = useState<WSProjectInfo | null>(null);
+  const [status, set_status] = useState<string>("initializing…");
+  const [loading, set_loading] = useState<boolean>(true);
+  const [selected, set_selected] = useState<number[]>([]);
+  const [expanded, set_expanded] = useState<React.ReactText[]>([]);
+  const [have_children, set_have_children] = useState<string[]>([]);
+  const [cg_mem_pct, set_cg_mem_pct] = useState<number>(0); // 0 to 100
+  const [cg_cpu_pct, set_cg_cpu_pct] = useState<number>(0); // 0 to 100
+  const [disk_usage_pct, set_disk_usage_pct] = useState<number>(0); // 0 to 100
 
   function set_data(data: ProjectInfo) {
     set_info(data);
     const pchildren: string[] = [];
-    const new_ptree = process_tree(data.processes, 1, pchildren) ?? [];
+    const pt_stats = { threads: 0, nprocs: 0 };
+    const new_ptree =
+      process_tree(data.processes, 1, pchildren, pt_stats) ?? [];
     sum_children(new_ptree);
     set_ptree(new_ptree);
+    set_pt_stats(pt_stats);
     set_have_children(pchildren);
   }
 
   async function connect() {
     set_status("connecting…");
-    const ws = await project_websocket(project_id);
-    const chan = await ws.api.project_info();
     const info_sync = webapp_client.project_client.project_info(project_id);
-    //console.log("info_sync", info_sync);
+    const chan = await connect_ws(project_id);
     if (!isMountedRef.current) return;
 
     info_sync.once("change", function () {
@@ -209,21 +115,30 @@ export function ProjectInfo({ project_id }: Props): JSX.Element {
       }
     });
 
-    info_sync.on("close", async function () {
+    chan.on("close", async function () {
       if (!isMountedRef.current) return;
-      set_status("closed. reconnecting in 1 second…");
-      //set_sync(null);
-      //await delay(1000);
-      // if (!isMountedRef.current) return;
-      //connect();
+      set_status("websocket closed. reconnecting in 3 seconds…");
+      set_chan(null);
+      await delay(3000);
+      if (!isMountedRef.current) return;
+      const new_chan = await connect_ws(project_id);
+      if (!isMountedRef.current) return;
+      set_chan(new_chan);
     });
 
     set_chan(chan);
     set_sync(info_sync);
   }
 
+  // once when mounted
+  function get_idle_timeout() {
+    const ito = redux.getStore("projects").get_idle_timeout(project_id);
+    set_idle_timeout(ito);
+  }
+
   React.useEffect(() => {
     connect();
+    get_idle_timeout();
     return () => {
       if (isMountedRef.current) {
         set_status("closing connection");
@@ -235,8 +150,52 @@ export function ProjectInfo({ project_id }: Props): JSX.Element {
     };
   }, []);
 
+  React.useEffect(() => {
+    const cg = info?.cgroup;
+    const du = info?.disk_usage;
+
+    if (cg != null && du?.tmp != null) {
+      // why? /tmp is a memory disk in kucalc
+      const mem_rss = cg.mem_stat.total_rss + du.tmp.usage;
+      const mem_tot = cg.mem_stat.hierarchical_memory_limit;
+      set_cg_mem_pct(100 * Math.min(1, mem_rss / mem_tot));
+      set_cg_cpu_pct(100 * Math.min(1, cg.cpu_usage_rate / cg.cpu_cores_limit));
+    }
+
+    if (du?.project != null) {
+      const p = du.project;
+      // usage could be higher than available, i.e. when quotas aren't quick enough
+      // or it changed at a later point in time
+      set_disk_usage_pct(100 * Math.min(1, p.usage / (p.usage + p.available)));
+    }
+  }, [info]);
+
+  React.useEffect(() => {
+    const next_start_ts = project.getIn(["status", "start_ts"]);
+    if (next_start_ts != start_ts) {
+      set_start_ts(next_start_ts);
+    }
+  }, [project]);
+
   function select_proc(pids: number[]) {
     set_selected(pids);
+  }
+
+  function val_max_value(index): number {
+    switch (index) {
+      case "cpu_pct":
+        return 1;
+      case "cpu_tot":
+        return idle_timeout;
+      case "mem":
+        if (info?.cgroup?.mem_stat.hierarchical_memory_limit != null) {
+          // 50% of max memory
+          return info.cgroup.mem_stat.hierarchical_memory_limit / 2;
+        } else {
+          1000; // 1 gb
+        }
+    }
+    return 1;
   }
 
   // if collapsed, we sum up the values of the children
@@ -260,21 +219,35 @@ export function ProjectInfo({ project_id }: Props): JSX.Element {
       }
     };
 
+    const max_val = val_max_value(index);
+
     return (val: number, proc: ProcessRow) => {
       const display_val = cell_val(val, proc);
       return {
-        props: { style: warning(index, display_val) },
+        props: { style: grid_warning(display_val, max_val) },
         children: to_str(display_val),
       };
     };
   }
 
   function render_signal(name: string, signal: number) {
-    return (
+    const n = selected.length;
+    const pn = plural(n, "process", "processes");
+    const poptitle = `Are you sure to send ${name} (${signal}) to ${n} ${pn}`;
+    const button = (
       <Button
         type={signal == 15 ? "primary" : undefined}
         danger={true}
-        onClick={() => {
+        disabled={chan == null || selected.length == 0}
+        loading={loading}
+      >
+        {name}
+      </Button>
+    );
+    return (
+      <Popconfirm
+        title={poptitle}
+        onConfirm={() => {
           if (chan == null) return;
           const payload: ProjectInfoCmds = {
             cmd: "kill",
@@ -284,11 +257,11 @@ export function ProjectInfo({ project_id }: Props): JSX.Element {
           chan.write(payload);
           set_selected([]);
         }}
-        disabled={chan == null || selected.length == 0}
-        loading={loading}
+        okText="Yes"
+        cancelText="No"
       >
-        {name}
-      </Button>
+        {button}
+      </Popconfirm>
     );
   }
 
@@ -316,6 +289,23 @@ export function ProjectInfo({ project_id }: Props): JSX.Element {
     });
   }
 
+  function render_help() {
+    return (
+      <Form.Item>
+        <Button
+          type={"default"}
+          icon={<QuestionCircleOutlined />}
+          disabled={show_explanation}
+          onClick={() =>
+            project_actions?.setState({ show_project_info_explanation: true })
+          }
+        >
+          Help
+        </Button>
+      </Form.Item>
+    );
+  }
+
   function render_about() {
     const proc =
       selected.length === 1 ? info?.processes?.[selected[0]] : undefined;
@@ -337,15 +327,81 @@ export function ProjectInfo({ project_id }: Props): JSX.Element {
     return proc.children != null && proc.children.length > 0;
   }
 
+  function restart_project() {
+    return (
+      <Popconfirm
+        title="Are you sure to restart this project?"
+        onConfirm={() => {
+          const actions = redux.getActions("projects");
+          actions?.restart_project(project_id);
+        }}
+        okText="Restart"
+        cancelText="No"
+      >
+        <a href="#">restart this project</a>
+      </Popconfirm>
+    );
+  }
+
+  function render_cocalc_btn({ title, onClick }) {
+    return (
+      <Button shape="round" size="small" onClick={onClick}>
+        {title}
+      </Button>
+    );
+  }
+
   function render_cocalc({ cocalc }: ProcessRow) {
     if (cocalc == null) return;
     switch (cocalc.type) {
+      case "project":
+        return render_cocalc_btn({
+          title: "Project",
+          onClick: () =>
+            Modal.info({
+              title: "Project's SSH Daemon",
+              maskClosable: true,
+              content: (
+                <div>
+                  This is the project's own management process. Do not terminate
+                  it! If it uses too much resources, you can {restart_project()}
+                  .
+                </div>
+              ),
+            }),
+        });
+      case "sshd":
+        return render_cocalc_btn({
+          title: "SSH",
+          onClick: () =>
+            Modal.info({
+              title: "Project's SSH Daemon",
+              maskClosable: true,
+              content: (
+                <div>
+                  This process allows to SSH into this project. Do not terminate
+                  it!
+                  <br />
+                  Learn more: <A href={SSH_KEYS_DOC}>SSH keys documentation</A>
+                </div>
+              ),
+            }),
+        });
       case "terminal":
+        return render_cocalc_btn({
+          title: "Open",
+          onClick: () =>
+            project_actions?.open_file({
+              path: cocalc.path,
+              foreground: true,
+            }),
+        });
+      case "jupyter":
         return (
           <Button
             shape="round"
             size="small"
-            icon={<Icon name={"terminal"} />}
+            icon={<Icon name={"cc-icon-ipynb"} />}
             onClick={() =>
               project_actions?.open_file({
                 path: cocalc.path,
@@ -356,8 +412,10 @@ export function ProjectInfo({ project_id }: Props): JSX.Element {
             Open
           </Button>
         );
-      case "project":
-        return "Project";
+      default:
+        console.warn(
+          `project-info/cocalc: no code to deal with ${cocalc.type}`
+        );
     }
   }
 
@@ -371,24 +429,27 @@ export function ProjectInfo({ project_id }: Props): JSX.Element {
       rowExpandable: (proc) => has_children(proc),
     };
 
+    const rowSelection = {
+      selectedRowKeys: selected,
+      onChange: select_proc,
+      hideSelectAll: true,
+    };
+
     return (
-      <>
-        <Form
-          layout="inline"
-          className="components-table-demo-control-bar"
-          style={{ marginBottom: 16 }}
-        >
+      <Row>
+        <Form layout="inline" style={{ marginBottom: 16 }}>
+          {render_help()}
           {render_about()}
           {render_signals()}
         </Form>
 
         <Table<ProcessRow>
           dataSource={ptree}
-          size="small"
+          size={"small"}
           pagination={false}
           scroll={{ y: "70vh" }}
           expandable={expandable}
-          rowSelection={{ selectedRowKeys: selected, onChange: select_proc }}
+          rowSelection={rowSelection}
           loading={loading}
         >
           <Table.Column<ProcessRow>
@@ -438,33 +499,96 @@ export function ProjectInfo({ project_id }: Props): JSX.Element {
             render={render_val("mem", (val) => `${val.toFixed(0)}MiB`)}
           />
         </Table>
-      </>
+      </Row>
+    );
+  }
+
+  function render_explanation() {
+    if (!show_explanation) return;
+    const msg =
+      "Real-time information about this project and running processes.";
+    return (
+      <Alert
+        message={msg}
+        style={{ margin: "10px 0" }}
+        type={"info"}
+        closable
+        onClose={() =>
+          project_actions?.setState({ show_project_info_explanation: false })
+        }
+      />
+    );
+  }
+
+  function render_general_status() {
+    return (
+      <div>
+        <strong>Project information</strong> status:{" "}
+        {info.timestamp != null ? (
+          <code>{new Date(info.timestamp).toISOString()}</code>
+        ) : (
+          "no timestamp"
+        )}{" "}
+        | connected: sync=<code>{`${sync != null}`}</code> chan=
+        <code>{`${chan != null}`}</code> | status: <code>{status}</code>
+      </div>
+    );
+  }
+
+  function render_cgroup() {
+    if (info?.cgroup == null) return;
+    const format = (val) => `${val.toFixed(0)}%`;
+    const row1: CSS = { fontWeight: "bold", fontSize: "110%" };
+    return (
+      <Descriptions bordered={true} column={3} size={"middle"}>
+        <Descriptions.Item label="Processes">
+          <span style={row1}>{pt_stats.nprocs}</span>
+        </Descriptions.Item>
+        <Descriptions.Item label="Threads">
+          <span style={row1}>{pt_stats.threads}</span>
+        </Descriptions.Item>
+        <Descriptions.Item label="Uptime">
+          <span style={row1}>
+            {start_ts != null ? <TimeElapsed start_ts={start_ts} /> : "?"}
+          </span>{" "}
+        </Descriptions.Item>
+
+        <Descriptions.Item label="Memory">
+          <Progress
+            steps={20}
+            percent={cg_mem_pct}
+            strokeColor={warning_color(cg_mem_pct)}
+            format={format}
+          />
+        </Descriptions.Item>
+        <Descriptions.Item label="CPU">
+          <Progress
+            steps={20}
+            percent={cg_cpu_pct}
+            strokeColor={warning_color(cg_cpu_pct)}
+            format={format}
+          />
+        </Descriptions.Item>
+        <Descriptions.Item label="Disk">
+          <Progress
+            steps={20}
+            percent={disk_usage_pct}
+            strokeColor={warning_color(disk_usage_pct)}
+            format={format}
+          />
+        </Descriptions.Item>
+      </Descriptions>
     );
   }
 
   function render() {
     return (
-      <Row style={{ marginTop: "15px" }}>
-        <Col md={12} mdOffset={0} lg={10} lgOffset={1}>
-          <h1>Project Info</h1>
-          <div>
-            timestamp:{" "}
-            {info.timestamp != null ? (
-              <code>{new Date(info.timestamp).toISOString()}</code>
-            ) : (
-              "no timestamp"
-            )}{" "}
-            | connected: sync=<code>{`${sync != null}`}</code> chan=
-            <code>{`${chan != null}`}</code> | status: <code>{status}</code>
-          </div>
-          {render_top()}
-          {false && (
-            <pre style={{ fontSize: "10px" }}>
-              {JSON.stringify(info.processes, null, 2)}
-            </pre>
-          )}
-        </Col>
-      </Row>
+      <Col md={12} style={{ padding: "15px", overflow: "hidden" }}>
+        {render_explanation()}
+        {render_general_status()}
+        {render_cgroup()}
+        {render_top()}
+      </Col>
     );
   }
 
@@ -475,5 +599,11 @@ export function ProjectInfo({ project_id }: Props): JSX.Element {
     loading,
     selected,
     expanded,
+    show_explanation,
+    start_ts,
+    pt_stats,
+    cg_mem_pct,
+    cg_cpu_pct,
+    disk_usage_pct,
   ]);
 }

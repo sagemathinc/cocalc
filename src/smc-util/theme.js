@@ -96,6 +96,10 @@ const COLORS = {
   FG_BLUE: "#428bca", // blue used for text
 
   ATND_BG_RED_L: "#fff2f0",
+
+  ANTD_RED: "#f5222d", // hefty warning (needs white text on top of it)
+  ANTD_ORANGE: "#ffbb96", // mild warning
+  ANTD_GREEN: "#87d068", // bright lime-ish green
 };
 
 // The definitions below add semantic meaning by using the colors

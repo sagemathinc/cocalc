@@ -130,6 +130,9 @@ export interface ProjectStoreState {
   get_public_path_id?: (path: string) => any;
   stripped_public_paths: any; //computed(immutable.List)
 
+  // Project Info
+  show_project_info_explanation?: boolean;
+
   other_settings: any;
 }
 

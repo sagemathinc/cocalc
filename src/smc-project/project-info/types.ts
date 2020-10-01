@@ -67,7 +67,10 @@ export interface CGroup {
     [key: string]: number; // MiB
   };
   cpu_usage: number; // seconds
+  cpu_usage_rate: number; // seconds / second
   oom_kills: number;
+  cpu_usage_rate: number; // max cores
+  cpu_cores_limit: number; // cpu cores quota limit, the overall time slices it can get
 }
 
 interface DiskUsageInfo {

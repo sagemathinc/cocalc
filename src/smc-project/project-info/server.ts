@@ -29,6 +29,10 @@ import {
   CGroup,
 } from "./types";
 
+function is_in_dev_project() {
+  return process.env.SMC_LOCAL_HUB_HOME != null;
+}
+
 const bytes2MiB = (bytes) => bytes / (1024 * 1024);
 
 export class ProjectInfoServer extends EventEmitter {
@@ -38,9 +42,11 @@ export class ProjectInfoServer extends EventEmitter {
   private readonly testing: boolean;
   private ticks: number;
   private pagesize: number;
+  private delay_s: number;
 
   constructor(L, testing = false) {
     super();
+    this.delay_s = 2;
     this.testing = testing;
     this.dbg = (...msg) => L("ProjectInfoServer", ...msg);
   }
@@ -66,6 +72,8 @@ export class ProjectInfoServer extends EventEmitter {
     const data = `${start} comm ${end}`.split(" ");
     const get = (idx) => parseInt(data[idx]);
     // https://man7.org/linux/man-pages/man5/proc.5.html
+    // "comm" is a placeholder to keep indices as they are,
+    // except you have to account for 0 vs. 1 based indexing.
     const ret = {
       ppid: get(3),
       state: data[2] as State,
@@ -81,12 +89,16 @@ export class ProjectInfoServer extends EventEmitter {
     return ret;
   }
 
+  private dt(timestamp) {
+    return (timestamp - (this.last?.timestamp ?? 0)) / 1000;
+  }
+
   private cpu({ pid, stat, timestamp }): Cpu {
     // we are interested in that processes total usage: user + system
     const total_cpu = stat.utime + stat.stime;
     // the fallback is chosen in such a way, that it says 0% if we do not have historic data
     const prev_cpu = this.last?.processes[pid]?.cpu.secs ?? total_cpu;
-    const dt = (timestamp - (this.last?.timestamp ?? 0)) / 1000;
+    const dt = this.dt(timestamp);
     // how much cpu time was used since last time we checked this process…
     const pct = (total_cpu - prev_cpu) / dt;
     return { pct: pct, secs: total_cpu };
@@ -99,7 +111,7 @@ export class ProjectInfoServer extends EventEmitter {
       .filter((c) => c.length > 0);
   }
 
-  private cocalc({ pid }): CoCalcInfo | undefined {
+  private cocalc({ pid, cmdline }): CoCalcInfo | undefined {
     //this.dbg("classify", { pid, exe, cmdline });
     if (pid === process.pid) {
       return { type: "project" };
@@ -109,8 +121,18 @@ export class ProjectInfoServer extends EventEmitter {
       this.dbg("cocalc terminal", termpath);
       return { type: "terminal", path: termpath };
     }
-    const jupyterpath = get_kernel_by_pid(pid, this.dbg)?.get_path();
-    if (jupyterpath != null) this.dbg(jupyterpath);
+    const jupyter_kernel = get_kernel_by_pid(pid);
+    if (jupyter_kernel != null) {
+      return { type: "jupyter", path: jupyter_kernel.get_path() };
+    }
+    // SSHD: strangely, just one long string in cmdline[0]
+    if (
+      cmdline.length === 1 &&
+      cmdline[0].startsWith("sshd:") &&
+      cmdline[0].indexOf("-p 2222") != -1
+    ) {
+      return { type: "sshd" };
+    }
   }
 
   private async process({ pid: pid_str, uptime, timestamp }): Promise<Process> {
@@ -130,7 +152,7 @@ export class ProjectInfoServer extends EventEmitter {
       stat,
       cpu: this.cpu({ pid, timestamp, stat }),
       uptime: uptime - stat.starttime,
-      cocalc: this.cocalc({ pid }),
+      cocalc: this.cocalc({ pid, cmdline }),
     };
     return data;
   }
@@ -150,17 +172,35 @@ export class ProjectInfoServer extends EventEmitter {
     return procs;
   }
 
-  private async cgroup(): Promise<CGroup | undefined> {
-    if (!running_in_kucalc() && !this.testing) return;
-    const [mem_stat_raw, cpu_raw, oom_raw] = await Promise.all([
+  private async cgroup({ timestamp }): Promise<CGroup | undefined> {
+    if (!is_in_dev_project() && !running_in_kucalc() && !this.testing) return;
+    const [
+      mem_stat_raw,
+      cpu_raw,
+      oom_raw,
+      cfs_quota_raw,
+      cfs_period_raw,
+    ] = await Promise.all([
       readFile("/sys/fs/cgroup/memory/memory.stat", "utf8"),
       readFile("/sys/fs/cgroup/cpu,cpuacct/cpuacct.usage", "utf8"),
       readFile("/sys/fs/cgroup/memory/memory.oom_control", "utf8"),
+      readFile("/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us", "utf8"),
+      readFile("/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us", "utf8"),
     ]);
     const mem_stat_keys = [
       "total_rss",
       "total_cache",
       "hierarchical_memory_limit",
+    ];
+    const cpu_usage = parseFloat(cpu_raw) / Math.pow(10, 9);
+    const dt = this.dt(timestamp);
+    const cpu_usage_rate =
+      this.last?.cgroup != null
+        ? (cpu_usage - this.last.cgroup.cpu_usage) / dt
+        : 0;
+    const [cfs_quota, cfs_period] = [
+      parseInt(cfs_quota_raw),
+      parseInt(cfs_period_raw),
     ];
     return {
       mem_stat: mem_stat_raw
@@ -171,7 +211,9 @@ export class ProjectInfoServer extends EventEmitter {
           stat[key] = bytes2MiB(parseInt(val));
           return stat;
         }, {}),
-      cpu_usage: parseFloat(cpu_raw) / Math.pow(10, 9),
+      cpu_usage,
+      cpu_usage_rate,
+      cpu_cores_limit: cfs_quota / cfs_period,
       oom_kills: oom_raw
         .split("\n")
         .filter((val) => val.startsWith("oom_kill "))
@@ -217,7 +259,7 @@ export class ProjectInfoServer extends EventEmitter {
     const timestamp = new Date().getTime();
     const [processes, cgroup, disk_usage] = await Promise.all([
       this.processes({ uptime, timestamp }),
-      this.cgroup(),
+      this.cgroup({ timestamp }),
       this.disk_usage(),
     ]);
     const info: ProjectInfo = {
@@ -240,12 +282,12 @@ export class ProjectInfoServer extends EventEmitter {
     await this.init();
     while (true) {
       // TODO disable info collection if there is nobody listening for a few minutes…
-      this.dbg(`listeners on 'info': ${this.listenerCount("info")}`);
+      //this.dbg(`listeners on 'info': ${this.listenerCount("info")}`);
       const info = await this.get_info();
       this.last = info;
       this.emit("info", info);
       if (this.running) {
-        await delay(2000);
+        await delay(1000 * this.delay_s);
       } else {
         this.dbg("start: no longer running → stopping loop");
         this.last = undefined;

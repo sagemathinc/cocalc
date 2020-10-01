@@ -903,20 +903,9 @@ export function get_existing_kernel(path: string): JupyterKernel | undefined {
   return _jupyter_kernels[path];
 }
 
-export function get_kernel_by_pid(
-  pid: number,
-  dbg: Function
-): JupyterKernel | undefined {
-  for (const [path, kernel] of Object.entries(_jupyter_kernels)) {
-    dbg(
-      "get_kernel_by_pid",
-      pid,
-      "check",
-      path,
-      "=>",
-      kernel.get_spawned_kernel().spawn.pid
-    );
-    if (kernel.get_spawned_kernel()?.spawn.pid == pid) {
+export function get_kernel_by_pid(pid: number): JupyterKernel | undefined {
+  for (const kernel of Object.values(_jupyter_kernels)) {
+    if (kernel.get_spawned_kernel()?.spawn.pid === pid) {
       return kernel;
     }
   }
