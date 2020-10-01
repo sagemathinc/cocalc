@@ -3,10 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Rendered, useIsMountedRef, CSS } from "../../app-framework";
+import {
+  React,
+  Rendered,
+  useIsMountedRef,
+  useActions,
+  CSS,
+} from "../../app-framework";
 import { Col, Row } from "react-bootstrap";
 import { basename } from "path";
-import { ProjectActions } from "../../project_actions";
 import { Table, Button, Form, Space as AntdSpace, Modal } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { webapp_client } from "../../webapp-client";
@@ -23,7 +28,7 @@ import {
   CoCalcInfo,
 } from "smc-project/project-info/types";
 
-// for the Table, derived from "Process"
+// for the displayed Table, derived from "Process"
 interface ProcessRow {
   key: string; // pid, used in the Table
   pid: number;
@@ -46,7 +51,6 @@ interface ProcessRow {
 interface Props {
   name: string;
   project_id: string;
-  actions: ProjectActions;
 }
 
 // filter for processes in process_tree
@@ -156,11 +160,9 @@ function warning(index: string, val: number): CSS {
   return {};
 }
 
-export function ProjectInfo({
-  project_id,
-  actions: project_actions,
-}: Props): JSX.Element {
+export function ProjectInfo({ project_id }: Props): JSX.Element {
   const isMountedRef = useIsMountedRef();
+  const project_actions = useActions({ project_id });
   const [info, set_info] = React.useState<Partial<ProjectInfo>>({});
   const [ptree, set_ptree] = React.useState<ProcessRow[] | null>(null);
   // chan: websocket channel to send commands to the project (for now)
@@ -203,7 +205,8 @@ export function ProjectInfo({
       if (!isMountedRef.current) return;
       const data = info_sync.get();
       if (data != null) {
-        set_data(data.toJS() as ProjectInfo);
+        const payload = JSON.parse(data.get('payload'))
+        set_data(payload as ProjectInfo);
       } else {
         console.warn("got no data from info_sync.get()");
       }
@@ -225,9 +228,9 @@ export function ProjectInfo({
   React.useEffect(() => {
     connect();
     return () => {
-      if (!isMountedRef.current) return;
-      set_status("closing connection");
-
+      if (isMountedRef.current) {
+        set_status("closing connection");
+      }
       chan?.end();
       set_chan(null);
       sync?.close();
@@ -342,7 +345,10 @@ export function ProjectInfo({
             size="small"
             icon={<Icon name={"terminal"} />}
             onClick={() =>
-              project_actions.open_file({ path: cocalc.path, foreground: true })
+              project_actions?.open_file({
+                path: cocalc.path,
+                foreground: true,
+              })
             }
           >
             Open

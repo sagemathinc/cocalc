@@ -272,13 +272,7 @@ export const Content: React.FC<Props> = React.memo(
             />
           );
         case "info":
-          return (
-            <ProjectInfo
-              name={name}
-              project_id={project_id}
-              actions={redux.getProjectActions(project_id)}
-            />
-          );
+          return <ProjectInfo name={name} project_id={project_id} />;
         default:
           // check for "editor-[filename]"
           if (!tab_name.startsWith("editor-")) {

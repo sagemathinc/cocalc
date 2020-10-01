@@ -43,7 +43,6 @@ export class ProjectInfoServer extends EventEmitter {
     super();
     this.testing = testing;
     this.dbg = (...msg) => L("ProjectInfoServer", ...msg);
-    if (!this.testing) this.start();
   }
 
   public latest(): ProjectInfo | undefined {
@@ -233,9 +232,12 @@ export class ProjectInfoServer extends EventEmitter {
   }
 
   public async start() {
-    await this.init();
     this.dbg("start");
+    if (this.running) {
+      throw Error("Cannot start ProjectInfoServer twice");
+    }
     this.running = true;
+    await this.init();
     while (true) {
       // TODO disable info collection if there is nobody listening for a few minutes…
       this.dbg(`listeners on 'info': ${this.listenerCount("info")}`);

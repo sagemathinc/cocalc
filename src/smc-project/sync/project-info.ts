@@ -33,13 +33,18 @@ class ProjectInfoTable {
     // initializing project info server + reacting when it has something to say
     this.info_server = get_ProjectInfoServer(this.log.bind(this));
     this.info_server.on("info", (info) => {
+      this.log("info_server event 'info'", info.timestamp);
       this.publish(info);
     });
   }
 
   private async publish_impl(info: ProjectInfo): Promise<void> {
     if (this.state == "ready" && this.table.get_state() != "closed") {
-      this.table.set({ project_id: this.project_id, info });
+      this.table.set({
+        project_id: this.project_id,
+        // it looks tempting to just set "info" directly, but then you end up with a pile of garbage in the client
+        info: { payload: JSON.stringify(info) },
+      });
       try {
         await this.table.save();
       } catch (err) {
