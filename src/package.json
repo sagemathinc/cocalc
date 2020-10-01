@@ -17,7 +17,7 @@
     "@types/jquery": "^3.3.38",
     "@types/katex": "^0.10.2",
     "@types/node": "^12.12.39",
-    "@types/react": "^16.9.35",
+    "@types/react": "^16.9.49",
     "@typescript-eslint/eslint-plugin": "^2.34.0",
     "@typescript-eslint/parser": "^2.34.0",
     "assets-webpack-plugin": "^3.5",
