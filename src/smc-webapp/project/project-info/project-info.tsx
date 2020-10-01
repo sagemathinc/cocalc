@@ -174,9 +174,6 @@ export function ProjectInfo({ project_id }: Props): JSX.Element {
   const [selected, set_selected] = React.useState<number[]>([]);
   const [expanded, set_expanded] = React.useState<React.ReactText[]>([]);
   const [have_children, set_have_children] = React.useState<string[]>([]);
-  const [proc_about, set_proc_about] = React.useState<Process | undefined>(
-    undefined
-  );
 
   function set_data(data: ProjectInfo) {
     set_info(data);
@@ -205,7 +202,7 @@ export function ProjectInfo({ project_id }: Props): JSX.Element {
       if (!isMountedRef.current) return;
       const data = info_sync.get();
       if (data != null) {
-        const payload = JSON.parse(data.get('payload'))
+        const payload = JSON.parse(data.get("payload"));
         set_data(payload as ProjectInfo);
       } else {
         console.warn("got no data from info_sync.get()");
@@ -306,27 +303,32 @@ export function ProjectInfo({ project_id }: Props): JSX.Element {
     );
   }
 
+  function show_about(proc_about?: Process) {
+    // from render_about we already know it will not be null
+    if (proc_about == null) return;
+    const style = { fontSize: "85%" };
+    Modal.info({
+      title: "Process info",
+      width: "75vw",
+      maskClosable: true,
+      content: <pre style={style}>{JSON.stringify(proc_about, null, 2)}</pre>,
+      onOk() {},
+    });
+  }
+
   function render_about() {
+    const proc =
+      selected.length === 1 ? info?.processes?.[selected[0]] : undefined;
     return (
       <Form.Item>
         <Button
           type={"primary"}
           icon={<InfoCircleOutlined />}
-          disabled={selected.length != 1}
-          onClick={() => {
-            const key = selected[0];
-            set_proc_about(info?.processes?.[key]);
-          }}
+          disabled={proc == null}
+          onClick={() => show_about(proc)}
         >
           About
         </Button>
-        <Modal
-          title="Process info"
-          visible={proc_about != null}
-          onOk={() => set_proc_about(undefined)}
-        >
-          {JSON.stringify(proc_about, null, 2)}
-        </Modal>
       </Form.Item>
     );
   }
