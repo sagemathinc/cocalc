@@ -12,7 +12,6 @@ import {
   useTypedRedux,
   useIsMountedRef,
   useActions,
-  CSS,
 } from "../../app-framework";
 import { Col, Row } from "../../antd-bootstrap";
 import {
@@ -23,13 +22,11 @@ import {
   Popconfirm,
   Space as AntdSpace,
   Modal,
-  Progress,
-  Descriptions,
 } from "antd";
 import { InfoCircleOutlined, QuestionCircleOutlined } from "@ant-design/icons";
 import { webapp_client } from "../../webapp-client";
 import { seconds2hms } from "smc-util/misc";
-import { A, Loading, Icon, TimeElapsed } from "../../r_misc";
+import { A, Loading, Icon } from "../../r_misc";
 import { Channel } from "../../project/websocket/types";
 import { ProjectInfo as WSProjectInfo } from "../websocket/project-info";
 import {
@@ -39,14 +36,9 @@ import {
   // Processes,
   // CoCalcInfo,
 } from "smc-project/project-info/types";
-import { ProcessRow, PTStats } from "./types";
-import {
-  connect_ws,
-  process_tree,
-  sum_children,
-  warning_color,
-  grid_warning,
-} from "./utils";
+import { CGroupFC } from "./fcs";
+import { ProcessRow, PTStats, CGroupInfo, DUState } from "./types";
+import { connect_ws, process_tree, sum_children, grid_warning } from "./utils";
 import { plural } from "smc-util/misc2";
 
 const SSH_KEYS_DOC = "https://doc.cocalc.com/project-settings.html#ssh-keys";
@@ -56,7 +48,22 @@ interface Props {
   project_id: string;
 }
 
-export function ProjectInfo({ project_id }: Props): JSX.Element {
+const gc_info_init: CGroupInfo = {
+  mem_rss: NaN,
+  mem_tot: NaN,
+  cpu_pct: NaN, // 0 to 100
+  mem_pct: NaN,
+  cpu_usage_rate: NaN,
+  cpu_usage_limit: NaN,
+};
+
+const du_init: DUState = {
+  pct: NaN, // 0 to 100
+  usage: NaN,
+  total: NaN,
+};
+
+export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
   const isMountedRef = useIsMountedRef();
   const project_actions = useActions({ project_id });
   const [idle_timeout, set_idle_timeout] = useState<number>(30 * 60);
@@ -76,9 +83,8 @@ export function ProjectInfo({ project_id }: Props): JSX.Element {
   const [selected, set_selected] = useState<number[]>([]);
   const [expanded, set_expanded] = useState<React.ReactText[]>([]);
   const [have_children, set_have_children] = useState<string[]>([]);
-  const [cg_mem_pct, set_cg_mem_pct] = useState<number>(0); // 0 to 100
-  const [cg_cpu_pct, set_cg_cpu_pct] = useState<number>(0); // 0 to 100
-  const [disk_usage_pct, set_disk_usage_pct] = useState<number>(0); // 0 to 100
+  const [cg_info, set_cg_info] = useState<CGroupInfo>(gc_info_init);
+  const [disk_usage, set_disk_usage] = useState<DUState>(du_init);
 
   function set_data(data: ProjectInfo) {
     set_info(data);
@@ -117,11 +123,13 @@ export function ProjectInfo({ project_id }: Props): JSX.Element {
 
     chan.on("close", async function () {
       if (!isMountedRef.current) return;
-      set_status("websocket closed. reconnecting in 3 seconds…");
+      set_status("websocket closed: reconnecting in 3 seconds…");
       set_chan(null);
       await delay(3000);
+      set_status("websocket closed: reconnecting now…");
       if (!isMountedRef.current) return;
       const new_chan = await connect_ws(project_id);
+      set_status("websocket closed: got new connection…");
       if (!isMountedRef.current) return;
       set_chan(new_chan);
     });
@@ -156,17 +164,28 @@ export function ProjectInfo({ project_id }: Props): JSX.Element {
 
     if (cg != null && du?.tmp != null) {
       // why? /tmp is a memory disk in kucalc
+
       const mem_rss = cg.mem_stat.total_rss + du.tmp.usage;
       const mem_tot = cg.mem_stat.hierarchical_memory_limit;
-      set_cg_mem_pct(100 * Math.min(1, mem_rss / mem_tot));
-      set_cg_cpu_pct(100 * Math.min(1, cg.cpu_usage_rate / cg.cpu_cores_limit));
+      const mem_pct = 100 * Math.min(1, mem_rss / mem_tot);
+      const cpu_pct = 100 * Math.min(1, cg.cpu_usage_rate / cg.cpu_cores_limit);
+      set_cg_info({
+        mem_rss,
+        mem_tot,
+        mem_pct,
+        cpu_pct,
+        cpu_usage_rate: cg.cpu_usage_rate,
+        cpu_usage_limit: cg.cpu_cores_limit,
+      });
     }
 
     if (du?.project != null) {
       const p = du.project;
       // usage could be higher than available, i.e. when quotas aren't quick enough
       // or it changed at a later point in time
-      set_disk_usage_pct(100 * Math.min(1, p.usage / (p.usage + p.available)));
+      const total = p.usage + p.available;
+      const pct = 100 * Math.min(1, p.usage / total);
+      set_disk_usage({ pct, usage: p.usage, total });
     }
   }, [info]);
 
@@ -535,58 +554,18 @@ export function ProjectInfo({ project_id }: Props): JSX.Element {
     );
   }
 
-  function render_cgroup() {
-    if (info?.cgroup == null) return;
-    const format = (val) => `${val.toFixed(0)}%`;
-    const row1: CSS = { fontWeight: "bold", fontSize: "110%" };
-    return (
-      <Descriptions bordered={true} column={3} size={"middle"}>
-        <Descriptions.Item label="Processes">
-          <span style={row1}>{pt_stats.nprocs}</span>
-        </Descriptions.Item>
-        <Descriptions.Item label="Threads">
-          <span style={row1}>{pt_stats.threads}</span>
-        </Descriptions.Item>
-        <Descriptions.Item label="Uptime">
-          <span style={row1}>
-            {start_ts != null ? <TimeElapsed start_ts={start_ts} /> : "?"}
-          </span>{" "}
-        </Descriptions.Item>
-
-        <Descriptions.Item label="Memory">
-          <Progress
-            steps={20}
-            percent={cg_mem_pct}
-            strokeColor={warning_color(cg_mem_pct)}
-            format={format}
-          />
-        </Descriptions.Item>
-        <Descriptions.Item label="CPU">
-          <Progress
-            steps={20}
-            percent={cg_cpu_pct}
-            strokeColor={warning_color(cg_cpu_pct)}
-            format={format}
-          />
-        </Descriptions.Item>
-        <Descriptions.Item label="Disk">
-          <Progress
-            steps={20}
-            percent={disk_usage_pct}
-            strokeColor={warning_color(disk_usage_pct)}
-            format={format}
-          />
-        </Descriptions.Item>
-      </Descriptions>
-    );
-  }
-
   function render() {
     return (
       <Col md={12} style={{ padding: "15px", overflow: "hidden" }}>
         {render_explanation()}
         {render_general_status()}
-        {render_cgroup()}
+        <CGroupFC
+          info={info}
+          cg_info={cg_info}
+          disk_usage={disk_usage}
+          pt_stats={pt_stats}
+          start_ts={start_ts}
+        />
         {render_top()}
       </Col>
     );
@@ -602,8 +581,7 @@ export function ProjectInfo({ project_id }: Props): JSX.Element {
     show_explanation,
     start_ts,
     pt_stats,
-    cg_mem_pct,
-    cg_cpu_pct,
-    disk_usage_pct,
+    cg_info,
+    disk_usage,
   ]);
-}
+};

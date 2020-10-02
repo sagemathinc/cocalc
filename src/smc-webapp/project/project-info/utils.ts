@@ -6,7 +6,7 @@
 import { CSS } from "../../app-framework";
 import { basename } from "path";
 import { project_websocket } from "../../frame-editors/generic/client";
-import { Processes } from "smc-project/project-info/types";
+import { Processes, Process } from "smc-project/project-info/types";
 import { ProcessRow, PTStats } from "./types";
 import { COLORS } from "smc-util/theme";
 const { ANTD_RED, ANTD_ORANGE, ANTD_GREEN } = COLORS;
@@ -67,13 +67,21 @@ function keep_proc(proc): boolean {
   return true;
 }
 
-function args(proc) {
+function args(proc: Process) {
+  const { cmdline, exe } = proc;
   // there are situations, where the first argument is actually very long and contains a lot of arguments
-  if (proc.cmdline.length == 1 && proc.cmdline[0].split(" ").length > 2) {
-    return proc.cmdline;
+  if (cmdline.length == 1 && cmdline[0].split(" ").length > 2) {
+    // this that case a common pattern seems to be "process-name: custom text"
+    const cmd: string = cmdline[0];
+    const prefix = `${basename(exe)}:`;
+    if (cmd.startsWith(prefix)) {
+      return cmd.slice(prefix.length + 1);
+    } else {
+      return cmd;
+    }
   } else {
     // otherwise, we don't need it, confuses with the running exe
-    return proc.cmdline.slice(1).join(" ");
+    return cmdline.slice(1).join(" ");
   }
 }
 
