@@ -13,6 +13,8 @@ export interface NBGraderAPIOptions {
   // so far is returned.
   timeout_ms: number;
   cell_timeout_ms: number;
+  max_output?: number;
+  max_output_per_cell?: number;
 
   // The *contents* of the student-submitted ipynb file, but with
   // all output deleted (to keep it small).  This is NOT a filename
@@ -46,10 +48,10 @@ export async function nbgrader(
     opts.student_ipynb
   );
   const limits = {
-    max_total_output: 3000000,
-    max_output_per_cell: 500000,
     max_time_per_cell_ms: opts.cell_timeout_ms,
     max_total_time_ms: opts.timeout_ms,
+    max_output: opts.max_output,
+    max_output_per_cell: opts.max_output_per_cell,
   };
   // console.log("nbgrader", { limits });
   const graded_ipynb = await jupyter_run_notebook(opts.project_id, {
@@ -72,7 +74,7 @@ export async function jupyter_strip_notebook(
 }
 
 export interface RunNotebookLimits {
-  max_total_output?: number; // any output that pushes the total length beyond this many characters is ignored.
+  max_output?: number; // any output that pushes the total length beyond this many characters is ignored.
   max_output_per_cell?: number; // any output that pushes a single cell's output beyond this many characters is ignored.
   max_time_per_cell_ms?: number; // if running a cell takes longer than this, we interrupt/kill it.
   max_total_time_ms?: number; // if total time to run all cells exceeds this time, we interrupt/kill.

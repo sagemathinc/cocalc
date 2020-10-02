@@ -161,16 +161,32 @@ export class ConfigurationActions {
     });
   }
 
-  public set_nbgrader_cell_timeout_ms(value: number): void {
+  public set_nbgrader_cell_timeout_ms(nbgrader_cell_timeout_ms: number): void {
     this.set({
-      nbgrader_cell_timeout_ms: value,
+      nbgrader_cell_timeout_ms,
       table: "settings",
     });
   }
 
-  public set_nbgrader_timeout_ms(value: number): void {
+  public set_nbgrader_timeout_ms(nbgrader_timeout_ms: number): void {
     this.set({
-      nbgrader_timeout_ms: value,
+      nbgrader_timeout_ms,
+      table: "settings",
+    });
+  }
+
+  public set_nbgrader_max_output(nbgrader_max_output: number): void {
+    this.set({
+      nbgrader_max_output,
+      table: "settings",
+    });
+  }
+
+  public set_nbgrader_max_output_per_cell(
+    nbgrader_max_output_per_cell: number
+  ): void {
+    this.set({
+      nbgrader_max_output_per_cell,
       table: "settings",
     });
   }

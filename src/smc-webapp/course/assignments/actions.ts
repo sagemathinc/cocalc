@@ -12,9 +12,13 @@ export const STUDENT_SUBDIR = "student";
 
 // default timeout of 1 minute per cell
 export const NBGRADER_CELL_TIMEOUT_MS: number = 60 * 1000;
-
-// default timeout of 10 minutes for whole notebooks
+// default timeout of 10 minutes for whole notebook
 export const NBGRADER_TIMEOUT_MS: number = 10 * 60 * 1000;
+
+// default max output of 1 million characters per cell
+export const NBGRADER_MAX_OUTPUT_PER_CELL: number = 500000;
+// default max output of 4 million characters for whole notebook
+export const NBGRADER_MAX_OUTPUT: number = 4000000;
 
 import { Map } from "immutable";
 
@@ -1675,11 +1679,19 @@ ${details}
           timeout_ms: store.getIn(
             ["settings", "nbgrader_timeout_ms"],
             NBGRADER_TIMEOUT_MS
-          ), // default timeout for total notebook
+          ),
           cell_timeout_ms: store.getIn(
             ["settings", "nbgrader_cell_timeout_ms"],
             NBGRADER_CELL_TIMEOUT_MS
-          ), // per cell timeout
+          ),
+          max_output: store.getIn(
+            ["settings", "nbgrader_max_output"],
+            NBGRADER_MAX_OUTPUT
+          ),
+          max_output_per_cell: store.getIn(
+            ["settings", "nbgrader_max_output_per_cell"],
+            NBGRADER_MAX_OUTPUT_PER_CELL
+          ),
           student_ipynb,
           instructor_ipynb,
           path: student_path,

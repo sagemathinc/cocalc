@@ -196,7 +196,7 @@ function get_score(output): number | undefined {
     // no impact on score
     return undefined;
   }
-  if (output["text"] != null) {
+  if (typeof output["text"] == "string") {
     if (output["text"].toLowerCase().indexOf("error") != -1) {
       // With Octave assertions output text that contains the word "error".
       // Official nbgrader would give this full credit, but with CoCalc we will

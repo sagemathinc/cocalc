@@ -200,9 +200,20 @@ export class CodeExecutionEmitter extends EventEmitter
     }
     this._push_mesg({ done: true });
     this.close();
-    if (this._go_cb !== undefined) {
-      this._go_cb();
-    }
+
+    // Finally call the callback that was setup in this._go.
+    // This is what makes it possible to await on the entire
+    // execution.  Also it is important to explicitly
+    // signal an error if we had to kill execution due
+    // to hitting a timeout, since the kernel may or may
+    // not have randomly done so itself in output.
+    this._go_cb?.(
+      this.killing
+        ? "Timeout Error: execution time limit = " +
+            Math.round((this.timeout_ms ?? 0) / 1000) +
+            " seconds"
+        : undefined
+    );
   }
 
   _push_mesg(mesg): void {
