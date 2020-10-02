@@ -722,10 +722,17 @@ export function secure_random_token(
 
 // Called when an object will not be used further, to avoid
 // it references anything that could lead to memory leaks.
-export function close(obj: object): void {
-  Object.keys(obj).forEach(function (key) {
-    delete obj[key];
-  });
+export function close(obj: object, omit?: Set<string>): void {
+  if (omit != null) {
+    Object.keys(obj).forEach(function (key) {
+      if (omit.has(key)) return;
+      delete obj[key];
+    });
+  } else {
+    Object.keys(obj).forEach(function (key) {
+      delete obj[key];
+    });
+  }
 }
 
 export function assertDefined<T>(val: T): asserts val is NonNullable<T> {

@@ -14,7 +14,13 @@ import { callback, delay } from "awaiting";
 import { EventEmitter } from "events";
 import { JupyterKernel, VERSION } from "./jupyter";
 
-import { uuid, trunc, deep_copy, copy_with } from "../smc-util/misc2";
+import {
+  bind_methods,
+  copy_with,
+  deep_copy,
+  uuid,
+  trunc,
+} from "../smc-util/misc2";
 
 import {
   CodeExecutionEmitterInterface,
@@ -36,9 +42,9 @@ export class CodeExecutionEmitter extends EventEmitter
   private state: State = "init";
   private all_output: object[] = [];
   private _message: any;
-  private _go_cb: Function;
+  private _go_cb: Function | undefined = undefined;
   private timeout_ms?: number;
-  private killing: boolean = false;
+  private killing: string = "";
 
   constructor(kernel: JupyterKernel, opts: ExecOpts) {
     super();
@@ -65,12 +71,7 @@ export class CodeExecutionEmitter extends EventEmitter
       },
     };
 
-    this._go = this._go.bind(this);
-    this._handle_stdin = this._handle_stdin.bind(this);
-    this._handle_shell = this._handle_shell.bind(this);
-    this._handle_iopub = this._handle_iopub.bind(this);
-    this._push_mesg = this._push_mesg.bind(this);
-    this._finish = this._finish.bind(this);
+    bind_methods(this);
   }
 
   // Emits a valid result
@@ -168,7 +169,7 @@ export class CodeExecutionEmitter extends EventEmitter
     const dbg = this.kernel.dbg("_handle_iopub");
     dbg(`got IOPUB message -- ${JSON.stringify(mesg)}`);
 
-    this.iopub_done = this.killing || mesg.content?.execution_state == "idle";
+    this.iopub_done = !!this.killing || mesg.content?.execution_state == "idle";
 
     if (mesg.content?.comm_id != null) {
       // A comm message that is a result of execution of this code.
@@ -185,6 +186,14 @@ export class CodeExecutionEmitter extends EventEmitter
     }
   }
 
+  // Called if the kernel is closed for some reason, e.g., crashing.
+  private handle_closed(): void {
+    const dbg = this.kernel.dbg("CodeExecutionEmitter.handle_closed");
+    dbg("kernel closed");
+    this.killing = "kernel crashed";
+    this._finish();
+  }
+
   _finish(): void {
     if (this.state == "closed") {
       return;
@@ -198,6 +207,7 @@ export class CodeExecutionEmitter extends EventEmitter
       this.kernel._execute_code_queue.shift(); // finished
       this.kernel._process_execute_code_queue(); // start next exec
     }
+    this.kernel.removeListener("close", this.handle_closed);
     this._push_mesg({ done: true });
     this.close();
 
@@ -207,13 +217,8 @@ export class CodeExecutionEmitter extends EventEmitter
     // signal an error if we had to kill execution due
     // to hitting a timeout, since the kernel may or may
     // not have randomly done so itself in output.
-    this._go_cb?.(
-      this.killing
-        ? "Timeout Error: execution time limit = " +
-            Math.round((this.timeout_ms ?? 0) / 1000) +
-            " seconds"
-        : undefined
-    );
+    this._go_cb?.(this.killing);
+    this._go_cb = undefined;
   }
 
   _push_mesg(mesg): void {
@@ -263,9 +268,11 @@ export class CodeExecutionEmitter extends EventEmitter
     dbg("send the message to get things rolling");
     this.kernel._channels.shell.next(this._message);
 
+    this.kernel.on("closed", this.handle_closed);
+
     if (this.timeout_ms) {
       // setup a timeout at which point things will get killed if they don't finish
-      setTimeout(this.timeout.bind(this), this.timeout_ms);
+      setTimeout(this.timeout, this.timeout_ms);
     }
   }
 
@@ -275,7 +282,10 @@ export class CodeExecutionEmitter extends EventEmitter
       dbg("already finished, so nothing to worry about");
       return;
     }
-    this.killing = true;
+    this.killing =
+      "Timeout Error: execution time limit = " +
+      Math.round((this.timeout_ms ?? 0) / 1000) +
+      " seconds";
     let tries = 3;
     let d = 1000;
     while (this.state != ("closed" as State) && tries > 0) {
