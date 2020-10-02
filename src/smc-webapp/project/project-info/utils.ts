@@ -5,11 +5,19 @@
 
 import { CSS } from "../../app-framework";
 import { basename } from "path";
+import { separate_file_extension, trunc } from "smc-util/misc2";
 import { project_websocket } from "../../frame-editors/generic/client";
 import { Processes, Process } from "smc-project/project-info/types";
 import { ProcessRow, PTStats } from "./types";
 import { COLORS } from "smc-util/theme";
 const { ANTD_RED, ANTD_ORANGE, ANTD_GREEN } = COLORS;
+
+// this converts a path a maybe shortened basename of the file
+export function filename(path) {
+  const fn = basename(path);
+  const name = separate_file_extension(fn).name;
+  return trunc(name, 12);
+}
 
 export function warning_color(val) {
   if (val > 90) return ANTD_RED;

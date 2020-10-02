@@ -2,8 +2,9 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-import { React, CSS } from "../../app-framework";
+import { React, CSS, useWindowDimensions } from "../../app-framework";
 import { Descriptions, Progress } from "antd";
+import { QuestionCircleOutlined } from "@ant-design/icons";
 import { Tip, TimeElapsed } from "../../r_misc";
 import { CGroupInfo, DUState } from "./types";
 import { warning_color } from "./utils";
@@ -28,8 +29,9 @@ const CGroupTip: React.FC<{
             of <CodeWhite>{cg_info.mem_tot.toFixed(0)}MiB</CodeWhite>. This
             might diverge from the processes individual usages and this value
             also includes the in-memory <CodeWhite>/tmp</CodeWhite> directory.
-            The remaining free memory is usually shared with other projects and
-            hence you might not be able to attain it.
+            The remaining free memory is usually shared with other projects on
+            the underlying machine and hence you might not be able to fully
+            attain it.
           </span>
         );
       case "disk":
@@ -38,7 +40,7 @@ const CGroupTip: React.FC<{
             Currently, the files stored in this project use{" "}
             <CodeWhite>{disk_usage.usage.toFixed(0)}MiB</CodeWhite> of a maximum
             of <CodeWhite>{disk_usage.total.toFixed(0)}MiB</CodeWhite>. Please
-            be aware that a project will not work properly if that limit is
+            be aware that a project might not work properly if that limit is
             reached.
           </span>
         );
@@ -48,19 +50,46 @@ const CGroupTip: React.FC<{
             This shows your current CPU usage. Right now, this project is using{" "}
             <CodeWhite>{cg_info.cpu_usage_rate.toFixed(2)}secs</CodeWhite> CPU
             time per second with a limit of{" "}
-            <CodeWhite>{cg_info.cpu_usage_limit.toFixed(2)}secs</CodeWhite>.
-            Since this project shares the CPU power of the underlying node with
-            other projects, you might not be able to fully attain the limit.
+            <CodeWhite>{cg_info.cpu_usage_limit.toFixed(2)}secs/s</CodeWhite>.
+            Since this project shares the CPU power of the underlying machine
+            with other projects, you might not be able to fully attain the
+            limit.
           </span>
         );
     }
   }
   return (
-    <Tip placement={"bottom"} title={render_text()}>
+    <Tip
+      placement={"bottom"}
+      title={render_text()}
+      trigger={["hover", "click"]}
+    >
       {children}
     </Tip>
   );
 };
+
+const format = (val) => `${val.toFixed(0)}%`;
+const prog_small = { format, size: "small" as "small" } as const;
+const prog_medium = { format } as const;
+const prog_large = { format, steps: 20 } as const;
+
+function useProgressProps() {
+  const [props, set_props] = React.useState<any>({});
+  const { width } = useWindowDimensions();
+  function set(prop) {
+    if (prop != props) set_props(prop);
+  }
+
+  if (width > 1400) {
+    set(prog_large);
+  } else if (width > 1000) {
+    set(prog_medium);
+  } else {
+    set(prog_small);
+  }
+  return props;
+}
 
 export const CGroupFC: React.FC<{
   info;
@@ -69,12 +98,27 @@ export const CGroupFC: React.FC<{
   pt_stats;
   start_ts;
 }> = ({ info, cg_info, disk_usage, pt_stats, start_ts }) => {
+  const progprops = useProgressProps();
   if (info?.cgroup == null) return null;
-  const format = (val) => `${val.toFixed(0)}%`;
   const row1: CSS = { fontWeight: "bold", fontSize: "110%" };
+  const cpu_label = (
+    <CGroupTip type={"cpu"} cg_info={cg_info} disk_usage={disk_usage}>
+      CPU <QuestionCircleOutlined />
+    </CGroupTip>
+  );
+  const memory_label = (
+    <CGroupTip type={"mem"} cg_info={cg_info} disk_usage={disk_usage}>
+      Memory <QuestionCircleOutlined />
+    </CGroupTip>
+  );
+  const disk_label = (
+    <CGroupTip type={"disk"} cg_info={cg_info} disk_usage={disk_usage}>
+      Disk <QuestionCircleOutlined />
+    </CGroupTip>
+  );
   return (
     <Descriptions bordered={true} column={3} size={"middle"}>
-      <Descriptions.Item label="Processes">
+      <Descriptions.Item label={"Processes"}>
         <span style={row1}>{pt_stats.nprocs}</span>
       </Descriptions.Item>
       <Descriptions.Item label="Threads">
@@ -86,33 +130,30 @@ export const CGroupFC: React.FC<{
         </span>{" "}
       </Descriptions.Item>
 
-      <Descriptions.Item label="Memory">
+      <Descriptions.Item label={memory_label}>
         <CGroupTip type={"mem"} cg_info={cg_info} disk_usage={disk_usage}>
           <Progress
-            steps={20}
             percent={cg_info.mem_pct}
             strokeColor={warning_color(cg_info.mem_pct)}
-            format={format}
+            {...progprops}
           />
         </CGroupTip>
       </Descriptions.Item>
-      <Descriptions.Item label="CPU">
+      <Descriptions.Item label={cpu_label}>
         <CGroupTip type={"cpu"} cg_info={cg_info} disk_usage={disk_usage}>
           <Progress
-            steps={20}
             percent={cg_info.cpu_pct}
             strokeColor={warning_color(cg_info.cpu_pct)}
-            format={format}
+            {...progprops}
           />
         </CGroupTip>
       </Descriptions.Item>
-      <Descriptions.Item label="Disk">
+      <Descriptions.Item label={disk_label}>
         <CGroupTip type={"disk"} cg_info={cg_info} disk_usage={disk_usage}>
           <Progress
-            steps={20}
             percent={disk_usage.pct}
             strokeColor={warning_color(disk_usage.pct)}
-            format={format}
+            {...progprops}
           />
         </CGroupTip>
       </Descriptions.Item>

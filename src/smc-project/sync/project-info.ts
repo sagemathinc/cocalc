@@ -33,8 +33,8 @@ class ProjectInfoTable {
     // initializing project info server + reacting when it has something to say
     this.info_server = get_ProjectInfoServer(this.log.bind(this));
     this.info_server.on("info", (info) => {
-      this.log("info_server event 'info'", info.timestamp);
-      this.publish(info);
+      this.log?.("info_server event 'info'", info.timestamp);
+      this.publish?.(info);
     });
   }
 

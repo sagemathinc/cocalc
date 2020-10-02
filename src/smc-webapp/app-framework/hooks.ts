@@ -5,6 +5,8 @@
 
 /* Gather together and export some common hooks for convenience. */
 
+declare const window: any;
+
 import { delay } from "awaiting";
 export { useState, useEffect, useMemo, useRef, useLayoutEffect } from "react";
 import { useAsyncEffect } from "use-async-effect";
@@ -60,4 +62,26 @@ export function useDelayedRender(delay_ms: number) {
     set_render(true);
   }, []);
   return render;
+}
+
+function getWindowDimensions() {
+  const { innerWidth: width, innerHeight: height } = window;
+  return { width, height };
+}
+
+export function useWindowDimensions() {
+  const [windowDimensions, setWindowDimensions] = useState(
+    getWindowDimensions()
+  );
+
+  useEffect(() => {
+    function handleResize() {
+      setWindowDimensions(getWindowDimensions());
+    }
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return windowDimensions;
 }

@@ -275,6 +275,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         options.args = this.args;
       }
       options.env = this.actions.get_term_env();
+      options.path = this.path;
       this.conn = await ws.api.terminal(this.term_path, options);
       if (this.state === "closed") {
         return;

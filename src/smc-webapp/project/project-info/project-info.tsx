@@ -22,11 +22,12 @@ import {
   Popconfirm,
   Space as AntdSpace,
   Modal,
+  Switch,
 } from "antd";
-import { InfoCircleOutlined, QuestionCircleOutlined } from "@ant-design/icons";
+import { InfoCircleOutlined } from "@ant-design/icons";
 import { webapp_client } from "../../webapp-client";
 import { seconds2hms } from "smc-util/misc";
-import { A, Loading, Icon } from "../../r_misc";
+import { A, Loading, Icon, Tip } from "../../r_misc";
 import { Channel } from "../../project/websocket/types";
 import { ProjectInfo as WSProjectInfo } from "../websocket/project-info";
 import {
@@ -38,7 +39,15 @@ import {
 } from "smc-project/project-info/types";
 import { CGroupFC } from "./fcs";
 import { ProcessRow, PTStats, CGroupInfo, DUState } from "./types";
-import { connect_ws, process_tree, sum_children, grid_warning } from "./utils";
+import {
+  connect_ws,
+  process_tree,
+  sum_children,
+  grid_warning,
+  filename,
+} from "./utils";
+import { COLORS } from "smc-util/theme";
+import { SiteName } from "../../customize";
 import { plural } from "smc-util/misc2";
 
 const SSH_KEYS_DOC = "https://doc.cocalc.com/project-settings.html#ssh-keys";
@@ -249,14 +258,26 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
     };
   }
 
+  function render_signal_icon(signal: number) {
+    switch (signal) {
+      case 15:
+        return <Icon name="times-circle" />;
+      case 9:
+        return <Icon unicode={0x2620} />;
+    }
+    return null;
+  }
+
   function render_signal(name: string, signal: number) {
     const n = selected.length;
     const pn = plural(n, "process", "processes");
-    const poptitle = `Are you sure to send ${name} (${signal}) to ${n} ${pn}`;
+    const poptitle = `Are you sure to send signal ${name} (${signal}) to ${n} ${pn}?`;
+    const icon = render_signal_icon(signal);
     const button = (
       <Button
         type={signal == 15 ? "primary" : undefined}
         danger={true}
+        icon={icon}
         disabled={chan == null || selected.length == 0}
         loading={loading}
       >
@@ -310,17 +331,13 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
 
   function render_help() {
     return (
-      <Form.Item>
-        <Button
-          type={"default"}
-          icon={<QuestionCircleOutlined />}
-          disabled={show_explanation}
-          onClick={() =>
-            project_actions?.setState({ show_project_info_explanation: true })
+      <Form.Item label="Help:">
+        <Switch
+          checked={show_explanation}
+          onChange={(val) =>
+            project_actions?.setState({ show_project_info_explanation: val })
           }
-        >
-          Help
-        </Button>
+        />
       </Form.Item>
     );
   }
@@ -329,7 +346,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
     const proc =
       selected.length === 1 ? info?.processes?.[selected[0]] : undefined;
     return (
-      <Form.Item>
+      <Form.Item label="Information:">
         <Button
           type={"primary"}
           icon={<InfoCircleOutlined />}
@@ -364,7 +381,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
 
   function render_cocalc_btn({ title, onClick }) {
     return (
-      <Button shape="round" size="small" onClick={onClick}>
+      <Button shape="round" onClick={onClick}>
         {title}
       </Button>
     );
@@ -407,19 +424,27 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
             }),
         });
       case "terminal":
-        return render_cocalc_btn({
-          title: "Open",
-          onClick: () =>
-            project_actions?.open_file({
-              path: cocalc.path,
-              foreground: true,
-            }),
-        });
+        return (
+          <Button
+            shape="round"
+            icon={<Icon name={"terminal"} />}
+            onClick={() =>
+              project_actions?.open_file({
+                path: cocalc.path,
+                foreground: true,
+              })
+            }
+          >
+            <Tip title={cocalc.path} style={{ paddingLeft: "1rem" }}>
+              Click to open <CodeWhite>{filename(cocalc.path)}</CodeWhite>
+            </Tip>
+          </Button>
+        );
+
       case "jupyter":
         return (
           <Button
             shape="round"
-            size="small"
             icon={<Icon name={"cc-icon-ipynb"} />}
             onClick={() =>
               project_actions?.open_file({
@@ -428,7 +453,9 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
               })
             }
           >
-            Open
+            <Tip title={cocalc.path} style={{ paddingLeft: "1rem" }}>
+              Click to open <CodeWhite>{filename(cocalc.path)}</CodeWhite>
+            </Tip>
           </Button>
         );
       default:
@@ -456,17 +483,23 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
 
     return (
       <Row>
-        <Form layout="inline" style={{ marginBottom: 16 }}>
+        <Form
+          layout="inline"
+          style={{ marginBottom: "10px", marginTop: "10px" }}
+        >
           {render_help()}
           {render_about()}
           {render_signals()}
         </Form>
 
+        {render_explanation()}
+
         <Table<ProcessRow>
           dataSource={ptree}
           size={"small"}
           pagination={false}
-          scroll={{ y: "70vh" }}
+          scroll={{ y: "65vh" }}
+          style={{ marginBottom: "2rem" }}
           expandable={expandable}
           rowSelection={rowSelection}
           loading={loading}
@@ -524,50 +557,62 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
 
   function render_explanation() {
     if (!show_explanation) return;
-    const msg =
-      "Real-time information about this project and running processes.";
+    const msg = (
+      <span>
+        This panel shows real-time information about this project and its
+        resource usage. You can see which processes are running, and if
+        available, also get a button to <SiteName /> specific information or
+        links to the associated file. By selecting a process via the checkbox on
+        the left, you can obtain more detailed information via the "About"
+        button or even issue commands like sending a signal to the selected
+        job(s).
+      </span>
+    );
     return (
-      <Alert
-        message={msg}
-        style={{ margin: "10px 0" }}
-        type={"info"}
-        closable
-        onClose={() =>
-          project_actions?.setState({ show_project_info_explanation: false })
-        }
-      />
+      <Col md={12}>
+        <Alert
+          message={msg}
+          style={{ margin: "10px 0" }}
+          type={"info"}
+          closable
+          onClose={() =>
+            project_actions?.setState({ show_project_info_explanation: false })
+          }
+        />
+      </Col>
     );
   }
 
   function render_general_status() {
     return (
-      <div>
-        <strong>Project information</strong> status:{" "}
+      <Col md={12} style={{ color: COLORS.GRAY }}>
+        Timestamp:{" "}
         {info.timestamp != null ? (
           <code>{new Date(info.timestamp).toISOString()}</code>
         ) : (
           "no timestamp"
         )}{" "}
-        | connected: sync=<code>{`${sync != null}`}</code> chan=
-        <code>{`${chan != null}`}</code> | status: <code>{status}</code>
-      </div>
+        | Connections sync=<code>{`${sync != null}`}</code> chan=
+        <code>{`${chan != null}`}</code> | Status: <code>{status}</code>
+      </Col>
     );
   }
 
   function render() {
     return (
-      <Col md={12} style={{ padding: "15px", overflow: "hidden" }}>
-        {render_explanation()}
+      <Row style={{ padding: "15px 15px 0 15px" }}>
+        <Col md={12}>
+          <CGroupFC
+            info={info}
+            cg_info={cg_info}
+            disk_usage={disk_usage}
+            pt_stats={pt_stats}
+            start_ts={start_ts}
+          />
+          {render_top()}
+        </Col>
         {render_general_status()}
-        <CGroupFC
-          info={info}
-          cg_info={cg_info}
-          disk_usage={disk_usage}
-          pt_stats={pt_stats}
-          start_ts={start_ts}
-        />
-        {render_top()}
-      </Col>
+      </Row>
     );
   }
 

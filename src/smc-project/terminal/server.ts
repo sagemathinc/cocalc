@@ -22,7 +22,12 @@ interface Terminal {
   last_truncate_time: number;
   truncating: number;
   last_exit: number;
-  options: any;
+  options: {
+    path?: string; // this is the "original" path to the terminal, not the derived "term_path"
+    command?: string;
+    args?: string[];
+    env?: { [key: string]: string };
+  };
   size?: any;
   term?: any; // node-pty
 }
@@ -36,10 +41,11 @@ const check_interval_ms: number = 3000;
 
 // this is used to know which process belongs to which terminal
 export function pid2path(pid: number): string | undefined {
-  for (const [name, term] of Object.entries(terminals)) {
-    if (term.term?.pid == pid) return name.slice(PREFIX.length);
+  for (const term of Object.values(terminals)) {
+    if (term.term?.pid == pid) {
+      return term.options.path;
+    }
   }
-  return;
 }
 
 export async function terminal(
@@ -65,7 +71,7 @@ export async function terminal(
     last_truncate_time: new Date().valueOf(),
     truncating: 0,
     last_exit: 0,
-    options: options != null ? options : {},
+    options: options ?? {},
   };
 
   async function init_term() {
