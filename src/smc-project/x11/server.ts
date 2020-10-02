@@ -19,6 +19,13 @@ import { clone } from "underscore";
 
 const x11_channels = {};
 
+// this is used to map a (not necessarily) running process to a path for the "project info"
+const pid2path: { [pid: number]: string } = {};
+
+export function get_path_for_pid(pid: number) {
+  return pid2path[pid];
+}
+
 class X11Channel {
   logger: any;
   display: number;
@@ -134,6 +141,10 @@ class X11Channel {
     try {
       const sub = spawn(command, args, options);
       sub.unref();
+      pid2path[sub.pid] = this.path;
+      sub.on("exit", () => {
+        delete pid2path[sub.pid];
+      });
     } catch (err) {
       this.channel.write({
         error: `error launching ${command} -- ${err}`,

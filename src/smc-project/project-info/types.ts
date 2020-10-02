@@ -44,11 +44,21 @@ interface ProcJupyter {
   path: string;
 }
 
+interface ProcX11 {
+  type: "x11";
+  path: string;
+}
+
 interface ProcSSHD {
   type: "sshd";
 }
 
-export type CoCalcInfo = ProcTerminal | ProcJupyter | ProcProject | ProcSSHD;
+export type CoCalcInfo =
+  | ProcTerminal
+  | ProcJupyter
+  | ProcProject
+  | ProcSSHD
+  | ProcX11;
 
 export interface Process {
   pid: number;

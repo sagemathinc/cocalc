@@ -7,12 +7,18 @@
 Project information server, doing the heavy lifting
 */
 
+// for testing, see bottom
+if (require.main === module) {
+  require("coffee-register");
+}
+
 import { delay } from "awaiting";
 import { join } from "path";
 import { exec } from "./utils";
 import { running_in_kucalc } from "../init-program";
 import { promises as fsPromises } from "fs";
 import { pid2path as terminal_pid2path } from "../terminal/server";
+import { get_path_for_pid as x11_pid2path } from "../x11/server";
 import { get_kernel_by_pid } from "../jupyter/jupyter";
 const { readFile, readdir, readlink } = fsPromises;
 import { check as df } from "diskusage";
@@ -28,6 +34,7 @@ import {
   CoCalcInfo,
   CGroup,
 } from "./types";
+//const { get_sage_path } = require("../sage_session");
 
 function is_in_dev_project() {
   return process.env.SMC_LOCAL_HUB_HOME != null;
@@ -116,6 +123,7 @@ export class ProjectInfoServer extends EventEmitter {
     if (pid === process.pid) {
       return { type: "project" };
     }
+    // TODO use get_sage_path to get a path to a sagews
     const termpath = terminal_pid2path(pid);
     if (termpath != null) {
       this.dbg("cocalc terminal", termpath);
@@ -124,6 +132,10 @@ export class ProjectInfoServer extends EventEmitter {
     const jupyter_kernel = get_kernel_by_pid(pid);
     if (jupyter_kernel != null) {
       return { type: "jupyter", path: jupyter_kernel.get_path() };
+    }
+    const x11_path = x11_pid2path(pid);
+    if (x11_path != null) {
+      return { type: "x11", path: x11_path };
     }
     // SSHD: strangely, just one long string in cmdline[0]
     if (

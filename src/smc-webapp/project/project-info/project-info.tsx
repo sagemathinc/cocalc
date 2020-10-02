@@ -5,6 +5,7 @@
 
 import {
   React,
+  CSS,
   redux,
   Rendered,
   useState,
@@ -27,7 +28,7 @@ import {
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { webapp_client } from "../../webapp-client";
 import { seconds2hms } from "smc-util/misc";
-import { A, Loading, Icon, Tip } from "../../r_misc";
+import { A, Loading, Icon } from "../../r_misc";
 import { Channel } from "../../project/websocket/types";
 import { ProjectInfo as WSProjectInfo } from "../websocket/project-info";
 import {
@@ -37,15 +38,9 @@ import {
   // Processes,
   // CoCalcInfo,
 } from "smc-project/project-info/types";
-import { CGroupFC } from "./fcs";
+import { CGroupFC, CoCalcFile } from "./fcs";
 import { ProcessRow, PTStats, CGroupInfo, DUState } from "./types";
-import {
-  connect_ws,
-  process_tree,
-  sum_children,
-  grid_warning,
-  filename,
-} from "./utils";
+import { connect_ws, process_tree, sum_children, grid_warning } from "./utils";
 import { COLORS } from "smc-util/theme";
 import { SiteName } from "../../customize";
 import { plural } from "smc-util/misc2";
@@ -319,7 +314,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
   function show_about(proc_about?: Process) {
     // from render_about we already know it will not be null
     if (proc_about == null) return;
-    const style = { fontSize: "85%" };
+    const style: CSS = { fontSize: "85%", maxHeight: "35vw" };
     Modal.info({
       title: "Process info",
       width: "75vw",
@@ -425,39 +420,31 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
         });
       case "terminal":
         return (
-          <Button
-            shape="round"
-            icon={<Icon name={"terminal"} />}
-            onClick={() =>
-              project_actions?.open_file({
-                path: cocalc.path,
-                foreground: true,
-              })
-            }
-          >
-            <Tip title={cocalc.path} style={{ paddingLeft: "1rem" }}>
-              Click to open <CodeWhite>{filename(cocalc.path)}</CodeWhite>
-            </Tip>
-          </Button>
+          <CoCalcFile
+            icon={"terminal"}
+            path={cocalc.path}
+            project_actions={project_actions}
+          />
         );
 
       case "jupyter":
         return (
-          <Button
-            shape="round"
-            icon={<Icon name={"cc-icon-ipynb"} />}
-            onClick={() =>
-              project_actions?.open_file({
-                path: cocalc.path,
-                foreground: true,
-              })
-            }
-          >
-            <Tip title={cocalc.path} style={{ paddingLeft: "1rem" }}>
-              Click to open <CodeWhite>{filename(cocalc.path)}</CodeWhite>
-            </Tip>
-          </Button>
+          <CoCalcFile
+            icon={"cc-icon-ipynb"}
+            path={cocalc.path}
+            project_actions={project_actions}
+          />
         );
+
+      case "x11":
+        return (
+          <CoCalcFile
+            icon={"window-restore"}
+            path={cocalc.path}
+            project_actions={project_actions}
+          />
+        );
+
       default:
         console.warn(
           `project-info/cocalc: no code to deal with ${cocalc.type}`
@@ -487,6 +474,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
           layout="inline"
           style={{ marginBottom: "10px", marginTop: "10px" }}
         >
+          <Form.Item label="Table of Processes" />
           {render_help()}
           {render_about()}
           {render_signals()}

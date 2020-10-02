@@ -3,11 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 import { React, CSS, useWindowDimensions } from "../../app-framework";
-import { Descriptions, Progress } from "antd";
+import { Descriptions, Progress, Button } from "antd";
 import { QuestionCircleOutlined } from "@ant-design/icons";
-import { Tip, TimeElapsed } from "../../r_misc";
+import { Tip, TimeElapsed, Icon } from "../../r_misc";
 import { CGroupInfo, DUState } from "./types";
-import { warning_color } from "./utils";
+import { warning_color, filename } from "./utils";
 
 export const CodeWhite: React.FC = ({ children }) => (
   <code style={{ color: "white" }}>{children}</code>
@@ -101,19 +101,27 @@ export const CGroupFC: React.FC<{
   const progprops = useProgressProps();
   if (info?.cgroup == null) return null;
   const row1: CSS = { fontWeight: "bold", fontSize: "110%" };
+  const style: CSS = { whiteSpace: "nowrap" };
   const cpu_label = (
     <CGroupTip type={"cpu"} cg_info={cg_info} disk_usage={disk_usage}>
-      CPU <QuestionCircleOutlined />
+      <span style={style}>
+        CPU <QuestionCircleOutlined />
+      </span>
     </CGroupTip>
   );
   const memory_label = (
     <CGroupTip type={"mem"} cg_info={cg_info} disk_usage={disk_usage}>
-      Memory <QuestionCircleOutlined />
+      <span style={style}>
+        Memory <QuestionCircleOutlined />
+      </span>
     </CGroupTip>
   );
   const disk_label = (
     <CGroupTip type={"disk"} cg_info={cg_info} disk_usage={disk_usage}>
-      Disk <QuestionCircleOutlined />
+      <span style={style}>
+        {" "}
+        Disk <QuestionCircleOutlined />
+      </span>
     </CGroupTip>
   );
   return (
@@ -158,5 +166,40 @@ export const CGroupFC: React.FC<{
         </CGroupTip>
       </Descriptions.Item>
     </Descriptions>
+  );
+};
+
+interface CoCalcFileProps {
+  icon: string;
+  path: string;
+  project_actions;
+}
+
+export const CoCalcFile: React.FC<CoCalcFileProps> = (
+  props: CoCalcFileProps
+) => {
+  const { icon, path, project_actions } = props;
+  return (
+    <Button
+      shape="round"
+      icon={<Icon name={icon} />}
+      onClick={() =>
+        project_actions?.open_file({
+          path: path,
+          foreground: true,
+        })
+      }
+    >
+      <Tip
+        title={
+          <span>
+            Click to open <CodeWhite>{path}</CodeWhite>
+          </span>
+        }
+        style={{ paddingLeft: "1rem" }}
+      >
+        {filename(path)}
+      </Tip>
+    </Button>
   );
 };
