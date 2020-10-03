@@ -30,7 +30,6 @@ import { DirectoryListingEntry } from "smc-util/types";
 
 import { reuseInFlight } from "async-await-utils/hof";
 
-
 export class API {
   private conn: any;
   private project_id: string;
@@ -290,7 +289,10 @@ export class API {
     const max_total_time_ms = opts.limits?.max_total_time_ms ?? 20 * 60 * 1000;
     return await this.call(
       { cmd: "jupyter_run_notebook", opts },
-      max_total_time_ms
+      60 + 2 * max_total_time_ms
+      // a bit of extra time -- it's better to let the internal project
+      // timer do the job, than have to wait for this generic timeout here,
+      // since we want to at least get output for problems that ran.
     );
   }
 

@@ -12,9 +12,13 @@ export const STUDENT_SUBDIR = "student";
 
 // default timeout of 1 minute per cell
 export const NBGRADER_CELL_TIMEOUT_MS: number = 60 * 1000;
-
-// default timeout of 10 minutes for whole notebooks
+// default timeout of 10 minutes for whole notebook
 export const NBGRADER_TIMEOUT_MS: number = 10 * 60 * 1000;
+
+// default max output of 1 million characters per cell
+export const NBGRADER_MAX_OUTPUT_PER_CELL: number = 500000;
+// default max output of 4 million characters for whole notebook
+export const NBGRADER_MAX_OUTPUT: number = 4000000;
 
 import { Map } from "immutable";
 
@@ -1600,12 +1604,17 @@ ${details}
     ]);
 
     const course_project_id = store.get("course_project_id");
+    const student_project_id = student.get("project_id");
 
     let grade_project_id: string;
+    let student_path: string;
     if (nbgrader_grade_project) {
       grade_project_id = nbgrader_grade_project;
+
+      // grade in the path where we collected their work.
+      student_path =
+        assignment.get("collect_path") + "/" + student.get("student_id");
     } else {
-      const student_project_id = student.get("project_id");
       if (student_project_id == null) {
         // This would happen if maybe instructor deletes student project at
         // the exact wrong time.
@@ -1613,6 +1622,8 @@ ${details}
         throw Error("student has no project, so can't run nbgrader");
       }
       grade_project_id = student_project_id;
+      // grade right where student did their work.
+      student_path = assignment.get("target_path");
     }
     const where_grade =
       redux.getStore("projects").get_title(grade_project_id) ?? "a project";
@@ -1633,7 +1644,6 @@ ${details}
       return; // nothing to do
     }
 
-    const student_path = assignment.get("target_path");
     const result: { [path: string]: any } = {};
     const scores: { [filename: string]: NotebookScores | string } = {};
 
@@ -1648,6 +1658,7 @@ ${details}
         return;
       }
       try {
+        // fullpath = where their collected work is.
         const fullpath =
           assignment.get("collect_path") +
           "/" +
@@ -1671,15 +1682,43 @@ ${details}
         } finally {
           this.course_actions.clear_activity(id);
         }
+
+        if (
+          grade_project_id != course_project_id &&
+          grade_project_id != student_project_id
+        ) {
+          // Make a fresh copy of the assignment files to the grade project.
+          // This is necessary because grading the assignment may depend on
+          // data files that are sent as part of the assignment.  Also,
+          // student's might have some code in text files next to the ipynb.
+          await webapp_client.project_client.copy_path_between_projects({
+            src_project_id: course_project_id,
+            src_path: student_path,
+            target_project_id: grade_project_id,
+            target_path: student_path,
+            overwrite_newer: true,
+            delete_missing: true,
+            backup: false,
+          });
+        }
+
         const r = await nbgrader({
           timeout_ms: store.getIn(
             ["settings", "nbgrader_timeout_ms"],
             NBGRADER_TIMEOUT_MS
-          ), // default timeout for total notebook
+          ),
           cell_timeout_ms: store.getIn(
             ["settings", "nbgrader_cell_timeout_ms"],
             NBGRADER_CELL_TIMEOUT_MS
-          ), // per cell timeout
+          ),
+          max_output: store.getIn(
+            ["settings", "nbgrader_max_output"],
+            NBGRADER_MAX_OUTPUT
+          ),
+          max_output_per_cell: store.getIn(
+            ["settings", "nbgrader_max_output_per_cell"],
+            NBGRADER_MAX_OUTPUT_PER_CELL
+          ),
           student_ipynb,
           instructor_ipynb,
           path: student_path,

@@ -186,7 +186,7 @@ interface KernelParams {
   usage?: boolean; // monitor memory/cpu usage and report via 'usage' event.∑
 }
 
-export function kernel(opts: KernelParams) {
+export function kernel(opts: KernelParams) : JupyterKernel  {
   if (opts.verbose === undefined) {
     opts.verbose = true;
   }

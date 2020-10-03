@@ -137,6 +137,8 @@ export type CourseSettingsRecord = TypedMap<{
   nbgrader_include_hidden_tests?: boolean;
   nbgrader_cell_timeout_ms?: number;
   nbgrader_timeout_ms?: number;
+  nbgrader_max_output?: number;
+  nbgrader_max_output_per_cell?: number;
 }>;
 
 export const CourseSetting = createTypedMap<CourseSettingsRecord>();
