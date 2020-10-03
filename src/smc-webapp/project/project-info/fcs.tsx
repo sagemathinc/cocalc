@@ -13,6 +13,18 @@ export const CodeWhite: React.FC = ({ children }) => (
   <code style={{ color: "white" }}>{children}</code>
 );
 
+export const LabelQuestionmark: React.FC<{ text: string; style?: CSS }> = ({
+  text,
+  style,
+}) => {
+  const s: CSS = { ...style, ...{ whiteSpace: "nowrap" } };
+  return (
+    <span style={s}>
+      {text} <QuestionCircleOutlined />
+    </span>
+  );
+};
+
 const CGroupTip: React.FC<{
   children;
   cg_info: CGroupInfo;
@@ -101,27 +113,19 @@ export const CGroupFC: React.FC<{
   const progprops = useProgressProps();
   if (info?.cgroup == null) return null;
   const row1: CSS = { fontWeight: "bold", fontSize: "110%" };
-  const style: CSS = { whiteSpace: "nowrap" };
   const cpu_label = (
     <CGroupTip type={"cpu"} cg_info={cg_info} disk_usage={disk_usage}>
-      <span style={style}>
-        CPU <QuestionCircleOutlined />
-      </span>
+      <LabelQuestionmark text={"CPU"} />
     </CGroupTip>
   );
   const memory_label = (
     <CGroupTip type={"mem"} cg_info={cg_info} disk_usage={disk_usage}>
-      <span style={style}>
-        Memory <QuestionCircleOutlined />
-      </span>
+      <LabelQuestionmark text={"Memory"} />
     </CGroupTip>
   );
   const disk_label = (
     <CGroupTip type={"disk"} cg_info={cg_info} disk_usage={disk_usage}>
-      <span style={style}>
-        {" "}
-        Disk <QuestionCircleOutlined />
-      </span>
+      <LabelQuestionmark text={"Disk"} />
     </CGroupTip>
   );
   return (

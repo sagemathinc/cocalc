@@ -28,7 +28,7 @@ import {
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { webapp_client } from "../../webapp-client";
 import { seconds2hms } from "smc-util/misc";
-import { A, Loading, Icon } from "../../r_misc";
+import { A, Loading, Icon, Tip } from "../../r_misc";
 import { Channel } from "../../project/websocket/types";
 import { ProjectInfo as WSProjectInfo } from "../websocket/project-info";
 import {
@@ -38,7 +38,7 @@ import {
   // Processes,
   // CoCalcInfo,
 } from "smc-project/project-info/types";
-import { CGroupFC, CoCalcFile } from "./fcs";
+import { CGroupFC, CoCalcFile, LabelQuestionmark } from "./fcs";
 import { ProcessRow, PTStats, CGroupInfo, DUState } from "./types";
 import { connect_ws, process_tree, sum_children, grid_warning } from "./utils";
 import { COLORS } from "smc-util/theme";
@@ -254,11 +254,18 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
   }
 
   function render_signal_icon(signal: number) {
+    const style: CSS = { marginRight: "5px" };
     switch (signal) {
+      case 2: // Interrupt (ctrl-c like)
+        return <Icon name="hand-paper" style={style} />;
       case 15:
-        return <Icon name="times-circle" />;
+        return <Icon name="times-circle" style={style} />;
       case 9:
-        return <Icon unicode={0x2620} />;
+        return <Icon unicode={0x2620} style={style} />;
+      case 19: // STOP
+        return <Icon name="pause-circle" style={style} />;
+      case 18: // CONT
+        return <Icon name="play-circle" style={style} />;
     }
     return null;
   }
@@ -304,8 +311,11 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
     return (
       <Form.Item label="Send signal:">
         <AntdSpace>
+          {render_signal("Interrupt", 2)}
           {render_signal("Terminate", 15)}
           {render_signal("Kill", 9)}
+          {render_signal("Pause", 19)}
+          {render_signal("Resume", 18)}
         </AntdSpace>
       </Form.Item>
     );
@@ -320,7 +330,6 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
       width: "75vw",
       maskClosable: true,
       content: <pre style={style}>{JSON.stringify(proc_about, null, 2)}</pre>,
-      onOk() {},
     });
   }
 
@@ -468,6 +477,15 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
       hideSelectAll: true,
     };
 
+    const cocalc_title = (
+      <Tip
+        title={"The role of these processes in this project."}
+        trigger={["hover", "click"]}
+      >
+        <LabelQuestionmark text={"Project"} />
+      </Tip>
+    );
+
     return (
       <Row>
         <Form
@@ -506,7 +524,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
           />
           <Table.Column<ProcessRow>
             key="cocalc"
-            title="CoCalc"
+            title={cocalc_title}
             width="10%"
             align={"left"}
             render={(proc) => render_cocalc(proc)}
