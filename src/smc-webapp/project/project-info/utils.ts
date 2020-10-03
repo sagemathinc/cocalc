@@ -7,7 +7,7 @@ import { CSS } from "../../app-framework";
 import { basename } from "path";
 import { separate_file_extension, trunc } from "smc-util/misc2";
 import { project_websocket } from "../../frame-editors/generic/client";
-import { Processes, Process } from "smc-project/project-info/types";
+import { Processes, Process, State } from "smc-project/project-info/types";
 import { ProcessRow, PTStats } from "./types";
 import { COLORS } from "smc-util/theme";
 const { ANTD_RED, ANTD_ORANGE, ANTD_GREEN } = COLORS;
@@ -114,6 +114,7 @@ export function process_tree(
         ppid: proc.ppid,
         name: basename(proc.exe),
         args: args(proc),
+        state: proc.stat.state as State,
         mem: proc.stat.mem.rss,
         cpu_tot: proc.cpu.secs,
         cpu_pct: proc.cpu.pct,

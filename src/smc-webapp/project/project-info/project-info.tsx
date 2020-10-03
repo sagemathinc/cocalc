@@ -25,7 +25,7 @@ import {
   Modal,
   Switch,
 } from "antd";
-import { InfoCircleOutlined } from "@ant-design/icons";
+import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
 import { webapp_client } from "../../webapp-client";
 import { seconds2hms } from "smc-util/misc";
 import { A, Loading, Icon, Tip } from "../../r_misc";
@@ -38,12 +38,13 @@ import {
   // Processes,
   // CoCalcInfo,
 } from "smc-project/project-info/types";
-import { CGroupFC, CoCalcFile, LabelQuestionmark } from "./fcs";
+import { CGroupFC, CoCalcFile, LabelQuestionmark, ProcState } from "./fcs";
 import { ProcessRow, PTStats, CGroupInfo, DUState } from "./types";
 import { connect_ws, process_tree, sum_children, grid_warning } from "./utils";
 import { COLORS } from "smc-util/theme";
 import { SiteName } from "../../customize";
 import { plural } from "smc-util/misc2";
+import * as humanizeList from "humanize-list";
 
 const SSH_KEYS_DOC = "https://doc.cocalc.com/project-settings.html#ssh-keys";
 
@@ -290,12 +291,14 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
   function render_signal(name: string, signal: number) {
     const n = selected.length;
     const pn = plural(n, "process", "processes");
-    const poptitle = `Are you sure to send signal ${name} (${signal}) to ${n} ${pn}?`;
+    const pids = humanizeList(selected);
+    const poptitle = `Are you sure to send signal ${name} (${signal}) to ${pn} ${pids}?`;
     const icon = render_signal_icon(signal);
+    const dangerous = [2, 9, 15].includes(signal);
     const button = (
       <Button
-        type={signal == 15 ? "primary" : undefined}
-        danger={true}
+        type={signal === 2 ? "primary" : signal === 9 ? "dashed" : undefined}
+        danger={dangerous}
         icon={icon}
         disabled={chan == null || selected.length == 0}
         loading={loading}
@@ -503,6 +506,17 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
       </Tip>
     );
 
+    const state_title = (
+      <Tip
+        title={
+          "Process state: running means it is actively using CPU, while sleeping means it waits for input."
+        }
+        trigger={["hover", "click"]}
+      >
+        <ScheduleOutlined />
+      </Tip>
+    );
+
     return (
       <Row>
         <Form
@@ -530,7 +544,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
           <Table.Column<ProcessRow>
             key="process"
             title="Process"
-            width="60%"
+            width="58%"
             align={"left"}
             ellipsis={true}
             render={(proc) => (
@@ -545,6 +559,13 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
             width="10%"
             align={"left"}
             render={(proc) => render_cocalc(proc)}
+          />
+          <Table.Column<ProcessRow>
+            key="cpu_state"
+            title={state_title}
+            width="2%"
+            align={"right"}
+            render={(proc) => <ProcState state={proc.state} />}
           />
           <Table.Column<ProcessRow>
             key="cpu_pct"

@@ -4,14 +4,59 @@
  */
 import { React, CSS, useWindowDimensions } from "../../app-framework";
 import { Descriptions, Progress, Button } from "antd";
-import { QuestionCircleOutlined } from "@ant-design/icons";
+import { QuestionCircleOutlined, PauseCircleOutlined } from "@ant-design/icons";
 import { Tip, TimeElapsed, Icon } from "../../r_misc";
 import { CGroupInfo, DUState } from "./types";
 import { warning_color, filename } from "./utils";
+import { State } from "smc-project/project-info/types";
+import { unreachable } from "smc-util/misc2";
+import { COLORS } from "smc-util/theme";
 
 export const CodeWhite: React.FC = ({ children }) => (
   <code style={{ color: "white" }}>{children}</code>
 );
+
+export const ProcState: React.FC<{ state: State }> = ({ state }) => {
+  function render_state() {
+    switch (state) {
+      case "S":
+        return [9416, "Sleeping", { color: COLORS.GRAY_L }];
+      case "R":
+        return [
+          9415,
+          "Running",
+          { color: COLORS.ANTD_GREEN_D, fontWeight: "bold" },
+        ];
+      case "D":
+        return [9401, "Waiting on data from disk", undefined];
+      case "Z":
+        return [9423, "Zombie", undefined];
+      case "T":
+        return [9417, "Paused (trace)", undefined];
+      case "W":
+        return [9420, "Paging", undefined];
+      default:
+        unreachable(state);
+    }
+  }
+
+  function render() {
+    const [char, title, style] = render_state();
+    if (typeof char === "number" && typeof title === "string") {
+      // at this point, we also know that style is CSS|undefined
+      const icon =
+        char === 9417 ? <PauseCircleOutlined /> : String.fromCharCode(char);
+      return (
+        <Tip title={title} trigger={["hover", "click"]}>
+          <span style={style as CSS}>{icon}</span>
+        </Tip>
+      );
+    } else {
+      return <span>{state}</span>;
+    }
+  }
+  return React.useMemo(render, [state]);
+};
 
 export const LabelQuestionmark: React.FC<{ text: string; style?: CSS }> = ({
   text,
@@ -183,27 +228,30 @@ export const CoCalcFile: React.FC<CoCalcFileProps> = (
   props: CoCalcFileProps
 ) => {
   const { icon, path, project_actions } = props;
-  return (
-    <Button
-      shape="round"
-      icon={<Icon name={icon} />}
-      onClick={() =>
-        project_actions?.open_file({
-          path: path,
-          foreground: true,
-        })
-      }
-    >
-      <Tip
-        title={
-          <span>
-            Click to open <CodeWhite>{path}</CodeWhite>
-          </span>
+  function render() {
+    return (
+      <Button
+        shape="round"
+        icon={<Icon name={icon} />}
+        onClick={() =>
+          project_actions?.open_file({
+            path: path,
+            foreground: true,
+          })
         }
-        style={{ paddingLeft: "1rem" }}
       >
-        {filename(path)}
-      </Tip>
-    </Button>
-  );
+        <Tip
+          title={
+            <span>
+              Click to open <CodeWhite>{path}</CodeWhite>
+            </span>
+          }
+          style={{ paddingLeft: "1rem" }}
+        >
+          {filename(path)}
+        </Tip>
+      </Button>
+    );
+  }
+  return React.useMemo(render, [icon, path]);
 };
