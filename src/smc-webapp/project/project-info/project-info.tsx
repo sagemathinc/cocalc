@@ -89,6 +89,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
   const [have_children, set_have_children] = useState<string[]>([]);
   const [cg_info, set_cg_info] = useState<CGroupInfo>(gc_info_init);
   const [disk_usage, set_disk_usage] = useState<DUState>(du_init);
+  const [error, set_error] = useState<JSX.Element | null>(null);
 
   function set_data(data: ProjectInfo) {
     set_info(data);
@@ -104,42 +105,52 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
 
   async function connect() {
     set_status("connecting…");
-    const info_sync = webapp_client.project_client.project_info(project_id);
-    const chan = await connect_ws(project_id);
-    if (!isMountedRef.current) return;
+    try {
+      const info_sync = webapp_client.project_client.project_info(project_id);
+      // this might fail if the project is not updated
+      const chan = await connect_ws(project_id);
+      if (!isMountedRef.current) return;
 
-    info_sync.once("change", function () {
-      if (!isMountedRef.current) return;
-      set_loading(false);
-      set_status("receiving…");
-    });
+      info_sync.once("change", function () {
+        if (!isMountedRef.current) return;
+        set_loading(false);
+        set_status("receiving…");
+      });
 
-    info_sync.on("change", function () {
-      if (!isMountedRef.current) return;
-      const data = info_sync.get();
-      if (data != null) {
-        const payload = JSON.parse(data.get("payload"));
-        set_data(payload as ProjectInfo);
-      } else {
-        console.warn("got no data from info_sync.get()");
-      }
-    });
+      info_sync.on("change", function () {
+        if (!isMountedRef.current) return;
+        const data = info_sync.get();
+        if (data != null) {
+          const payload = JSON.parse(data.get("payload"));
+          set_data(payload as ProjectInfo);
+        } else {
+          console.warn("got no data from info_sync.get()");
+        }
+      });
 
-    chan.on("close", async function () {
-      if (!isMountedRef.current) return;
-      set_status("websocket closed: reconnecting in 3 seconds…");
-      set_chan(null);
-      await delay(3000);
-      set_status("websocket closed: reconnecting now…");
-      if (!isMountedRef.current) return;
-      const new_chan = await connect_ws(project_id);
-      set_status("websocket closed: got new connection…");
-      if (!isMountedRef.current) return;
-      set_chan(new_chan);
-    });
+      chan.on("close", async function () {
+        if (!isMountedRef.current) return;
+        set_status("websocket closed: reconnecting in 3 seconds…");
+        set_chan(null);
+        await delay(3000);
+        set_status("websocket closed: reconnecting now…");
+        if (!isMountedRef.current) return;
+        const new_chan = await connect_ws(project_id);
+        set_status("websocket closed: got new connection…");
+        if (!isMountedRef.current) return;
+        set_chan(new_chan);
+      });
 
-    set_chan(chan);
-    set_sync(info_sync);
+      set_chan(chan);
+      set_sync(info_sync);
+    } catch (err) {
+      set_error(
+        <>
+          <strong>Project information setup problem:</strong> {`${err}`}
+        </>
+      );
+      return;
+    }
   }
 
   // once when mounted
@@ -149,17 +160,23 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
   }
 
   React.useEffect(() => {
-    connect();
-    get_idle_timeout();
-    return () => {
+    try {
+      connect();
+      get_idle_timeout();
+      return () => {
+        if (isMountedRef.current) {
+          set_status("closing connection");
+        }
+        chan?.end();
+        set_chan(null);
+        sync?.close();
+        set_sync(null);
+      };
+    } catch (err) {
       if (isMountedRef.current) {
-        set_status("closing connection");
+        set_status(`ERROR: ${err}`);
       }
-      chan?.end();
-      set_chan(null);
-      sync?.close();
-      set_sync(null);
-    };
+    }
   }, []);
 
   React.useEffect(() => {
@@ -604,20 +621,32 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
     );
   }
 
+  function render_body() {
+    return (
+      <>
+        {" "}
+        <CGroupFC
+          info={info}
+          cg_info={cg_info}
+          disk_usage={disk_usage}
+          pt_stats={pt_stats}
+          start_ts={start_ts}
+        />
+        {render_top()}
+        {render_general_status()}
+      </>
+    );
+  }
+
+  function render_error() {
+    return <Alert message={error} type="error" />;
+  }
+
   function render() {
+    const content = error != null ? render_error() : render_body();
     return (
       <Row style={{ padding: "15px 15px 0 15px" }}>
-        <Col md={12}>
-          <CGroupFC
-            info={info}
-            cg_info={cg_info}
-            disk_usage={disk_usage}
-            pt_stats={pt_stats}
-            start_ts={start_ts}
-          />
-          {render_top()}
-        </Col>
-        {render_general_status()}
+        <Col md={12}>{content}</Col>
       </Row>
     );
   }
@@ -634,5 +663,6 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
     pt_stats,
     cg_info,
     disk_usage,
+    error,
   ]);
 };
