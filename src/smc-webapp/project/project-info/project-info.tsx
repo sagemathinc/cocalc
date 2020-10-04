@@ -3,48 +3,44 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+declare let DEBUG;
+
 import {
   React,
   CSS,
   redux,
   Rendered,
   useState,
-  useRedux,
   useTypedRedux,
   useIsMountedRef,
   useActions,
 } from "../../app-framework";
 import { Col, Row } from "../../antd-bootstrap";
-import {
-  Alert,
-  Table,
-  Button,
-  Form,
-  Popconfirm,
-  Space as AntdSpace,
-  Modal,
-  Switch,
-} from "antd";
+import { Alert, Table, Button, Form, Popconfirm, Modal, Switch } from "antd";
 import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
 import { webapp_client } from "../../webapp-client";
 import { seconds2hms } from "smc-util/misc";
-import { A, Loading, Icon, Tip } from "../../r_misc";
+import { A, Loading, Tip } from "../../r_misc";
 import { Channel } from "../../project/websocket/types";
 import { ProjectInfo as WSProjectInfo } from "../websocket/project-info";
 import {
   ProjectInfo,
-  ProjectInfoCmds,
   Process,
   // Processes,
   // CoCalcInfo,
 } from "smc-project/project-info/types";
-import { CGroupFC, CoCalcFile, LabelQuestionmark, ProcState } from "./fcs";
+import {
+  CGroupFC,
+  CoCalcFile,
+  LabelQuestionmark,
+  ProcState,
+  SignalButtons,
+} from "./fcs";
 import { ProcessRow, PTStats, CGroupInfo, DUState } from "./types";
 import { connect_ws, process_tree, sum_children, grid_warning } from "./utils";
 import { COLORS } from "smc-util/theme";
 import { SiteName } from "../../customize";
-import { plural } from "smc-util/misc2";
-import * as humanizeList from "humanize-list";
+import { unreachable } from "smc-util/misc2";
 
 const SSH_KEYS_DOC = "https://doc.cocalc.com/project-settings.html#ssh-keys";
 
@@ -74,7 +70,9 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
   const [idle_timeout, set_idle_timeout] = useState<number>(30 * 60);
   const show_explanation =
     useTypedRedux({ project_id }, "show_project_info_explanation") ?? false;
-  const project = useRedux(["projects", "project_map", project_id]);
+  const project_map = useTypedRedux("projects", "project_map");
+  const [project, set_project] = useState(project_map?.get(project_id));
+  const [project_state, set_project_state] = useState<string | undefined>();
   const [start_ts, set_start_ts] = useState<number | null>(null);
   const [info, set_info] = useState<Partial<ProjectInfo>>({});
   const [ptree, set_ptree] = useState<ProcessRow[] | null>(null);
@@ -91,6 +89,23 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
   const [cg_info, set_cg_info] = useState<CGroupInfo>(gc_info_init);
   const [disk_usage, set_disk_usage] = useState<DUState>(du_init);
   const [error, set_error] = useState<JSX.Element | null>(null);
+
+  React.useMemo(() => {
+    if (project_map == null) return;
+    set_project(project_map.get(project_id));
+  }, [project_map]);
+
+  React.useEffect(() => {
+    if (project == null) return;
+    const next_start_ts = project.getIn(["status", "start_ts"]);
+    if (next_start_ts != start_ts) {
+      set_start_ts(next_start_ts);
+    }
+    const next_state = project.getIn(["state", "state"]);
+    if (next_state != project_state) {
+      set_project_state(next_state);
+    }
+  }, [project]);
 
   function set_data(data: ProjectInfo) {
     set_info(data);
@@ -161,6 +176,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
   }
 
   React.useEffect(() => {
+    if (project_state !== "running") return;
     try {
       connect();
       get_idle_timeout();
@@ -178,7 +194,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
         set_status(`ERROR: ${err}`);
       }
     }
-  }, []);
+  }, [project_state]);
 
   React.useEffect(() => {
     const cg = info?.cgroup;
@@ -210,13 +226,6 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
       set_disk_usage({ pct, usage: p.usage, total });
     }
   }, [info]);
-
-  React.useEffect(() => {
-    const next_start_ts = project.getIn(["status", "start_ts"]);
-    if (next_start_ts != start_ts) {
-      set_start_ts(next_start_ts);
-    }
-  }, [project]);
 
   function select_proc(pids: number[]) {
     set_selected(pids);
@@ -269,76 +278,6 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
         children: to_str(display_val),
       };
     };
-  }
-
-  function render_signal_icon(signal: number) {
-    const style: CSS = { marginRight: "5px" };
-    switch (signal) {
-      case 2: // Interrupt (ctrl-c like)
-        return <Icon name="hand-paper" style={style} />;
-      case 15:
-        return <Icon name="times-circle" style={style} />;
-      case 9:
-        return <Icon unicode={0x2620} style={style} />;
-      case 19: // STOP
-        return <Icon name="pause-circle" style={style} />;
-      case 18: // CONT
-        return <Icon name="play-circle" style={style} />;
-    }
-    return null;
-  }
-
-  function render_signal(name: string, signal: number) {
-    const n = selected.length;
-    const pn = plural(n, "process", "processes");
-    const pids = humanizeList(selected);
-    const poptitle = `Are you sure to send signal ${name} (${signal}) to ${pn} ${pids}?`;
-    const icon = render_signal_icon(signal);
-    const dangerous = [2, 9, 15].includes(signal);
-    const button = (
-      <Button
-        type={signal === 2 ? "primary" : signal === 9 ? "dashed" : undefined}
-        danger={dangerous}
-        icon={icon}
-        disabled={chan == null || selected.length == 0}
-        loading={loading}
-      >
-        {name}
-      </Button>
-    );
-    return (
-      <Popconfirm
-        title={poptitle}
-        onConfirm={() => {
-          if (chan == null) return;
-          const payload: ProjectInfoCmds = {
-            cmd: "kill",
-            signal,
-            pids: selected,
-          };
-          chan.write(payload);
-          set_selected([]);
-        }}
-        okText="Yes"
-        cancelText="No"
-      >
-        {button}
-      </Popconfirm>
-    );
-  }
-
-  function render_signals() {
-    return (
-      <Form.Item label="Send signal:">
-        <AntdSpace>
-          {render_signal("Interrupt", 2)}
-          {render_signal("Terminate", 15)}
-          {render_signal("Kill", 9)}
-          {render_signal("Pause", 19)}
-          {render_signal("Resume", 18)}
-        </AntdSpace>
-      </Form.Item>
-    );
   }
 
   function show_about(proc_about?: Process) {
@@ -430,6 +369,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
               ),
             }),
         });
+
       case "sshd":
         return render_cocalc_btn({
           title: "SSH",
@@ -475,9 +415,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
         );
 
       default:
-        console.warn(
-          `project-info/cocalc: no code to deal with ${cocalc.type}`
-        );
+        unreachable(cocalc);
     }
   }
 
@@ -518,84 +456,94 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
     );
 
     return (
-      <Row>
-        <Form
-          layout="inline"
-          style={{ marginBottom: "10px", marginTop: "10px" }}
-        >
-          <Form.Item label="Table of Processes" />
-          {render_help()}
-          {render_about()}
-          {render_signals()}
-        </Form>
-
-        {render_explanation()}
-
-        <Table<ProcessRow>
-          dataSource={ptree}
-          size={"small"}
-          pagination={false}
-          scroll={{ y: "65vh" }}
-          style={{ marginBottom: "2rem" }}
-          expandable={expandable}
-          rowSelection={rowSelection}
-          loading={loading}
-        >
-          <Table.Column<ProcessRow>
-            key="process"
-            title="Process"
-            width="58%"
-            align={"left"}
-            ellipsis={true}
-            render={(proc) => (
-              <span>
-                <b>{proc.name}</b> <span>{proc.args}</span>
-              </span>
-            )}
-          />
-          <Table.Column<ProcessRow>
-            key="cocalc"
-            title={cocalc_title}
-            width="10%"
-            align={"left"}
-            render={(proc) => render_cocalc(proc)}
-          />
-          <Table.Column<ProcessRow>
-            key="cpu_state"
-            title={state_title}
-            width="2%"
-            align={"right"}
-            render={(proc) => <ProcState state={proc.state} />}
-          />
-          <Table.Column<ProcessRow>
-            key="cpu_pct"
-            title="CPU%"
-            width="10%"
-            dataIndex="cpu_pct"
-            align={"right"}
-            render={render_val(
-              "cpu_pct",
-              (val) => `${(100 * val).toFixed(1)}%`
-            )}
-          />
-          <Table.Column<ProcessRow>
-            key="cpu_tot"
-            title="CPU Time"
-            dataIndex="cpu_tot"
-            width="10%"
-            align={"right"}
-            render={render_val("cpu_tot", (val) => seconds2hms(val))}
-          />
-          <Table.Column<ProcessRow>
-            key="mem"
-            title="Memory"
-            dataIndex="mem"
-            width="10%"
-            align={"right"}
-            render={render_val("mem", (val) => `${val.toFixed(0)}MiB`)}
-          />
-        </Table>
-      </Row>
+      <>
+        <Row style={{ marginBottom: "10px", marginTop: "20px" }}>
+          <Col md={10}>
+            <Form layout="inline">
+              <Form.Item label="Table of Processes" />
+              {render_about()}
+              <SignalButtons
+                chan={chan}
+                selected={selected}
+                set_selected={set_selected}
+                loading={loading}
+              />
+            </Form>
+          </Col>
+          <Col md={2}>
+            <Form layout="inline" style={{ float: "right" }}>
+              {render_help()}
+            </Form>
+          </Col>
+        </Row>
+        <Row>{render_explanation()}</Row>
+        <Row>
+          <Table<ProcessRow>
+            dataSource={ptree}
+            size={"small"}
+            pagination={false}
+            scroll={{ y: "65vh" }}
+            style={{ marginBottom: "2rem" }}
+            expandable={expandable}
+            rowSelection={rowSelection}
+            loading={loading}
+          >
+            <Table.Column<ProcessRow>
+              key="process"
+              title="Process"
+              width="58%"
+              align={"left"}
+              ellipsis={true}
+              render={(proc) => (
+                <span>
+                  <b>{proc.name}</b> <span>{proc.args}</span>
+                </span>
+              )}
+            />
+            <Table.Column<ProcessRow>
+              key="cocalc"
+              title={cocalc_title}
+              width="10%"
+              align={"left"}
+              render={(proc) => render_cocalc(proc)}
+            />
+            <Table.Column<ProcessRow>
+              key="cpu_state"
+              title={state_title}
+              width="2%"
+              align={"right"}
+              render={(proc) => <ProcState state={proc.state} />}
+            />
+            <Table.Column<ProcessRow>
+              key="cpu_pct"
+              title="CPU%"
+              width="10%"
+              dataIndex="cpu_pct"
+              align={"right"}
+              render={render_val(
+                "cpu_pct",
+                (val) => `${(100 * val).toFixed(1)}%`
+              )}
+            />
+            <Table.Column<ProcessRow>
+              key="cpu_tot"
+              title="CPU Time"
+              dataIndex="cpu_tot"
+              width="10%"
+              align={"right"}
+              render={render_val("cpu_tot", (val) => seconds2hms(val))}
+            />
+            <Table.Column<ProcessRow>
+              key="mem"
+              title="Memory"
+              dataIndex="mem"
+              width="10%"
+              align={"right"}
+              render={render_val("mem", (val) => `${val.toFixed(0)}MiB`)}
+            />
+          </Table>
+        </Row>
+      </>
     );
   }
 
@@ -654,7 +602,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
           start_ts={start_ts}
         />
         {render_top()}
-        {render_general_status()}
+        {DEBUG && render_general_status()}
       </>
     );
   }
@@ -664,6 +612,9 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
   }
 
   function render() {
+    if (project_state !== "running") {
+      return <Alert type="warning" message={"Project is not running."} />;
+    }
     const content = error != null ? render_error() : render_body();
     return (
       <Row style={{ padding: "15px 15px 0 15px" }}>
@@ -685,5 +636,6 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
     cg_info,
     disk_usage,
     error,
+    project_state,
   ]);
 };

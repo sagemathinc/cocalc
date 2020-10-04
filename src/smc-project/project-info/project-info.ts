@@ -48,10 +48,12 @@ export async function project_info_ws(
       // we assume only ProjectInfoCmds should come in, but better check what this is
       if (typeof data === "object") {
         switch (data.cmd) {
-          case "kill":
-            L(`kill from ${spark.id} for pids: ${"" + data.pids}`);
+          case "signal":
+            L(`Signal ${data.signal} from ${spark.id} for pids: ${data.pids}`);
             exec(`kill -s ${data.signal ?? 15} ${data.pids.join(" ")}`);
             break;
+          default:
+            throw Error("WARNING: unknown command -- " + data.cmd);
         }
       }
     });

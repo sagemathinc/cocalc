@@ -79,7 +79,6 @@ export interface CGroup {
   cpu_usage: number; // seconds
   cpu_usage_rate: number; // seconds / second
   oom_kills: number;
-  cpu_usage_rate: number; // max cores
   cpu_cores_limit: number; // cpu cores quota limit, the overall time slices it can get
 }
 
@@ -100,13 +99,21 @@ export interface ProjectInfo {
   cgroup?: CGroup; // only in "kucalc" mode
   disk_usage: DiskUsage;
   uptime: number; // secs, uptime of the machine
-  boottime: Data; // when VM booted (might be derived from uptime)
+  boottime: Date; // when VM booted (might be derived from uptime)
 }
 
-interface KillCmd {
-  cmd: "kill";
-  signal?: number;
+export enum Signal {
+  Kill = 9,
+  Interrupt = 2,
+  Terminate = 15,
+  Pause = 19,
+  Resume = 18,
+}
+
+interface SignalCmd {
+  cmd: "signal";
+  signal?: Signal;
   pids: number[];
 }
 
-export type ProjectInfoCmds = KillCmd;
+export type ProjectInfoCmds = SignalCmd;

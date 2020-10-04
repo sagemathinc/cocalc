@@ -19,6 +19,7 @@ export function filename(path) {
   return trunc(name, 12);
 }
 
+// this is always normalized for 0 to 100
 export function warning_color(val) {
   if (val > 90) return ANTD_RED;
   if (val > 75) return ANTD_ORANGE;

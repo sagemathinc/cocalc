@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { State } from "smc-project/project-info/types";
+import { State, CoCalcInfo } from "smc-project/project-info/types";
 
 export interface PTStats {
   nprocs: number; // total number of processes
