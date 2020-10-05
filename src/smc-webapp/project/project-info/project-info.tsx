@@ -57,13 +57,21 @@ const gc_info_init: CGroupInfo = {
   mem_pct: NaN,
   cpu_usage_rate: NaN,
   cpu_usage_limit: NaN,
-};
+} as const;
 
 const du_init: DUState = {
   pct: NaN, // 0 to 100
   usage: NaN,
   total: NaN,
-};
+} as const;
+
+const pt_stats_init = {
+  threads: 0,
+  nprocs: 0,
+  sum_cpu_time: 0,
+  sum_cpu_pct: 0,
+  sum_memory: 0,
+} as const;
 
 export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
   const isMountedRef = useIsMountedRef();
@@ -75,9 +83,9 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
   const [project, set_project] = useState(project_map?.get(project_id));
   const [project_state, set_project_state] = useState<string | undefined>();
   const [start_ts, set_start_ts] = useState<number | undefined>(undefined);
-  const [info, set_info] = useState<Partial<ProjectInfo>>({});
+  const [info, set_info] = useState<ProjectInfo | undefined>(undefined);
   const [ptree, set_ptree] = useState<ProcessRow[] | undefined>(undefined);
-  const [pt_stats, set_pt_stats] = useState<PTStats>({ threads: 0, nprocs: 0 });
+  const [pt_stats, set_pt_stats] = useState<PTStats>(pt_stats_init);
   // chan: websocket channel to send commands to the project (for now)
   const [chan, set_chan] = useState<Channel | null>(null);
   const chanRef = useRef<Channel | null>(null);
@@ -117,18 +125,6 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
     syncRef.current = sync;
   }, [sync]);
 
-  function set_data(data: ProjectInfo) {
-    set_info(data);
-    const pchildren: string[] = [];
-    const pt_stats = { threads: 0, nprocs: 0 };
-    const new_ptree =
-      process_tree(data.processes, 1, pchildren, pt_stats) ?? [];
-    sum_children(new_ptree);
-    set_ptree(new_ptree);
-    set_pt_stats(pt_stats);
-    set_have_children(pchildren);
-  }
-
   async function connect() {
     set_status("connecting…");
     try {
@@ -148,7 +144,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
         const data = info_sync.get();
         if (data != null) {
           const payload = JSON.parse(data.get("payload"));
-          set_data(payload as ProjectInfo);
+          set_info(payload as ProjectInfo);
         } else {
           console.warn("got no data from info_sync.get()");
         }
@@ -207,13 +203,26 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
     }
   }, [project_state]);
 
+  function update_top(info: ProjectInfo) {
+    const pchildren: string[] = [];
+    const pt_stats = { ...pt_stats_init };
+    const new_ptree =
+      process_tree(info.processes, 1, pchildren, pt_stats) ?? [];
+    sum_children(new_ptree);
+    set_ptree(new_ptree);
+    set_pt_stats(pt_stats);
+    set_have_children(pchildren);
+  }
+
+  // when "info" changes, we compute a few derived values and the data for the process table
   React.useEffect(() => {
-    const cg = info?.cgroup;
-    const du = info?.disk_usage;
+    if (info == null) return;
+    update_top(info);
+    const cg = info.cgroup;
+    const du = info.disk_usage;
 
     if (cg != null && du?.tmp != null) {
       // why? /tmp is a memory disk in kucalc
-
       const mem_rss = cg.mem_stat.total_rss + du.tmp.usage;
       const mem_tot = cg.mem_stat.hierarchical_memory_limit;
       const mem_pct = 100 * Math.min(1, mem_rss / mem_tot);
@@ -231,7 +240,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
     if (du?.project != null) {
       const p = du.project;
       // usage could be higher than available, i.e. when quotas aren't quick enough
-      // or it changed at a later point in time
+      // or it has been changed at a later point in time
       const total = p.usage + p.available;
       const pct = 100 * Math.min(1, p.usage / total);
       set_disk_usage({ pct, usage: p.usage, total });
@@ -432,7 +441,13 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
 
   // mimic a table of processes program like htop – with tailored descriptions for cocalc
   function render_top() {
-    if (ptree == null) return <Loading />;
+    if (ptree == null) {
+      if (project_state === "running") {
+        return <Loading />;
+      } else {
+        return null;
+      }
+    }
 
     const expandable = {
       defaultExpandAllRows: true,
@@ -590,7 +605,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
     return (
       <Col md={12} style={{ color: COLORS.GRAY }}>
         Timestamp:{" "}
-        {info.timestamp != null ? (
+        {info?.timestamp != null ? (
           <code>{new Date(info.timestamp).toISOString()}</code>
         ) : (
           "no timestamp"

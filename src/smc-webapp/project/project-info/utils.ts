@@ -133,6 +133,9 @@ export function process_tree(
           data.push(p);
           stats.nprocs += 1;
           stats.threads += proc.stat.num_threads;
+          stats.sum_cpu_time += proc.cpu.secs;
+          stats.sum_cpu_pct += proc.cpu.pct;
+          stats.sum_memory += proc.stat.mem.rss;
         } else {
           data.push(...children);
         }

@@ -8,6 +8,9 @@ import { State, CoCalcInfo } from "smc-project/project-info/types";
 export interface PTStats {
   nprocs: number; // total number of processes
   threads: number; // total number of threads
+  sum_cpu_time: number;
+  sum_cpu_pct: number;
+  sum_memory: number;
 }
 
 export interface DUState {
