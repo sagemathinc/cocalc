@@ -184,10 +184,10 @@ export const CGroupFC: React.FC<{
       <LabelQuestionmark text={"Disk"} />
     </CGroupTip>
   );
-  function render() {
-    if (info?.cgroup == null) return null;
+
+  function render_row1() {
     return (
-      <Descriptions bordered={true} column={3} size={"middle"}>
+      <>
         <Descriptions.Item label={"Processes"}>
           <span style={row1}>{pt_stats.nprocs}</span>
         </Descriptions.Item>
@@ -199,7 +199,13 @@ export const CGroupFC: React.FC<{
             {start_ts != null ? <TimeElapsed start_ts={start_ts} /> : "?"}
           </span>{" "}
         </Descriptions.Item>
+      </>
+    );
+  }
 
+  function render_row2() {
+    return (
+      <>
         <Descriptions.Item label={cpu_label}>
           <CGroupTip type={"cpu"} cg_info={cg_info} disk_usage={disk_usage}>
             <Progress
@@ -227,6 +233,16 @@ export const CGroupFC: React.FC<{
             />
           </CGroupTip>
         </Descriptions.Item>
+      </>
+    );
+  }
+  function render() {
+    if (info?.cgroup == null) return null;
+    // for now, we only show row 2
+    return (
+      <Descriptions bordered={true} column={3} size={"middle"}>
+        {false && render_row1()}
+        {render_row2()}
       </Descriptions>
     );
   }

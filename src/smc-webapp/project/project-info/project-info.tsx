@@ -11,6 +11,7 @@ import {
   redux,
   Rendered,
   useState,
+  useRef,
   useTypedRedux,
   useIsMountedRef,
   useActions,
@@ -20,7 +21,7 @@ import { Alert, Table, Button, Form, Popconfirm, Modal, Switch } from "antd";
 import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
 import { webapp_client } from "../../webapp-client";
 import { seconds2hms } from "smc-util/misc";
-import { A, Loading, Tip } from "../../r_misc";
+import { A, Tip, Loading } from "../../r_misc";
 import { Channel } from "../../project/websocket/types";
 import { ProjectInfo as WSProjectInfo } from "../websocket/project-info";
 import {
@@ -73,14 +74,16 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
   const project_map = useTypedRedux("projects", "project_map");
   const [project, set_project] = useState(project_map?.get(project_id));
   const [project_state, set_project_state] = useState<string | undefined>();
-  const [start_ts, set_start_ts] = useState<number | null>(null);
+  const [start_ts, set_start_ts] = useState<number | undefined>(undefined);
   const [info, set_info] = useState<Partial<ProjectInfo>>({});
-  const [ptree, set_ptree] = useState<ProcessRow[] | null>(null);
+  const [ptree, set_ptree] = useState<ProcessRow[] | undefined>(undefined);
   const [pt_stats, set_pt_stats] = useState<PTStats>({ threads: 0, nprocs: 0 });
   // chan: websocket channel to send commands to the project (for now)
   const [chan, set_chan] = useState<Channel | null>(null);
+  const chanRef = useRef<Channel | null>(null);
   // sync-object sending us the real-time data about the project
   const [sync, set_sync] = useState<WSProjectInfo | null>(null);
+  const syncRef = useRef<WSProjectInfo | null>(null);
   const [status, set_status] = useState<string>("initializing…");
   const [loading, set_loading] = useState<boolean>(true);
   const [selected, set_selected] = useState<number[]>([]);
@@ -106,6 +109,13 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
       set_project_state(next_state);
     }
   }, [project]);
+
+  React.useEffect(() => {
+    chanRef.current = chan;
+  }, [chan]);
+  React.useEffect(() => {
+    syncRef.current = sync;
+  }, [sync]);
 
   function set_data(data: ProjectInfo) {
     set_info(data);
@@ -175,19 +185,20 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
     set_idle_timeout(ito);
   }
 
+  // each time the project state changes (including when mounted) we connect/reconnect
   React.useEffect(() => {
     if (project_state !== "running") return;
     try {
       connect();
       get_idle_timeout();
       return () => {
+        console.log("return 1", syncRef.current, chanRef.current);
         if (isMountedRef.current) {
           set_status("closing connection");
         }
-        chan?.end();
-        set_chan(null);
-        sync?.close();
-        set_sync(null);
+        chanRef.current?.end();
+        console.log("return 2", syncRef.current, chanRef.current);
+        syncRef.current?.close();
       };
     } catch (err) {
       if (isMountedRef.current) {
@@ -593,7 +604,6 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
   function render_body() {
     return (
       <>
-        {" "}
         <CGroupFC
           info={info}
           cg_info={cg_info}
@@ -608,17 +618,31 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
   }
 
   function render_error() {
-    return <Alert message={error} type="error" />;
+    if (error == null) return;
+    return (
+      <Row>
+        <Alert message={error} type="error" />
+      </Row>
+    );
+  }
+
+  function render_not_running() {
+    if (project_state === "running") return;
+    return (
+      <Row>
+        <Alert type="warning" message={"Project is not running."} />
+      </Row>
+    );
   }
 
   function render() {
-    if (project_state !== "running") {
-      return <Alert type="warning" message={"Project is not running."} />;
-    }
-    const content = error != null ? render_error() : render_body();
     return (
       <Row style={{ padding: "15px 15px 0 15px" }}>
-        <Col md={12}>{content}</Col>
+        <Col md={12}>
+          {render_not_running()}
+          {render_error()}
+          {render_body()}
+        </Col>
       </Row>
     );
   }
