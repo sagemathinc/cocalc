@@ -57,6 +57,12 @@ export const COMPUTE_IMAGES: { [key: string]: ComputeImage } = {
     descr: "Regular updates, well tested",
     group: "Main",
   },
+  "ubuntu2004-previous": {
+    title: "Ubuntu 20.04 (Previous)",
+    short: "Previous",
+    descr: "Slightly behind 20.04 (Default)",
+    group: "Ubuntu 20.04",
+  },
   "ubuntu2004-dev": {
     title: "Ubuntu 20.04 (Experimental)",
     short: "Experimental",
