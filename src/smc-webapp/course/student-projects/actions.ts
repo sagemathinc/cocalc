@@ -542,7 +542,39 @@ export class StudentProjectsActions {
         return;
       }
       let i = 0;
-      const project_map = redux.getStore("projects").get("project_map");
+
+      // Ensure all projects are loaded, rather than just the most recent
+      // n projects -- important since courses often have more than n students!
+      await redux.getActions("projects").load_all_projects();
+      let project_map = redux.getStore("projects").get("project_map");
+      if (project_map == null || webapp_client.account_id == null) {
+        throw Error(
+          "BUG -- project_map must be initialized and you must be signed in; try again later."
+        );
+      }
+
+      // Make sure we're a collaborator on every student project.
+      let changed = false;
+      for (const student_id of ids) {
+        if (this.course_actions.is_closed()) return;
+        const project_id = store.getIn(["students", student_id, "project_id"]);
+        if (project_id && !project_map.get(project_id)) {
+          await webapp_client.project_collaborators.add_collaborator({
+            account_id: webapp_client.account_id,
+            project_id,
+          });
+          changed = true;
+        }
+      }
+      if (changed) {
+        // wait hopefully long enough for info about licenses to be
+        // available in the project_map.  This is not 100% bullet proof,
+        // but that is FINE because we only really depend on this to
+        // slightly reduce doing extra work that is unlikely to be a problem.
+        await delay(3000);
+        project_map = redux.getStore("projects").get("project_map");
+      }
+
       for (const student_id of ids) {
         if (this.course_actions.is_closed()) return;
         i += 1;
