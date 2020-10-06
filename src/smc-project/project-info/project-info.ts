@@ -17,7 +17,6 @@ let _info: ProjectInfoServer | undefined = undefined;
 export function get_ProjectInfoServer(L: Function): ProjectInfoServer {
   if (_info != null) return _info;
   _info = new ProjectInfoServer(L);
-  _info.start();
   return _info;
 }
 

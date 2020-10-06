@@ -8,7 +8,7 @@ Project information server, doing the heavy lifting of telling the client
 about what's going on in a project.
 */
 
-// for testing, see bottom
+// only for testing, see bottom
 if (require.main === module) {
   require("coffee-register");
 }
@@ -143,7 +143,6 @@ export class ProjectInfoServer extends EventEmitter {
     }
     const termpath = terminal_pid2path(pid);
     if (termpath != null) {
-      this.dbg("cocalc terminal", termpath);
       return { type: "terminal", path: termpath };
     }
     const x11_path = x11_pid2path(pid);
@@ -319,7 +318,15 @@ export class ProjectInfoServer extends EventEmitter {
     this.running = false;
   }
 
-  public async start() {
+  public async start(): Promise<void> {
+    if (this.running) {
+      this.dbg("alerady running, cannot be started twice");
+    } else {
+      await this._start();
+    }
+  }
+
+  private async _start(): Promise<void> {
     this.dbg("start");
     if (this.running) {
       throw Error("Cannot start ProjectInfoServer twice");

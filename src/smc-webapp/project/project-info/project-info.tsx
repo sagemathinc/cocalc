@@ -29,7 +29,7 @@ import {
   Process,
   // Processes,
   // CoCalcInfo,
-} from "smc-project/project-info/types";
+} from "../../../smc-project/project-info/types";
 import {
   CGroupFC,
   CoCalcFile,
@@ -128,10 +128,22 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
   async function connect() {
     set_status("connecting…");
     try {
+      // the synctable for the project info
       const info_sync = webapp_client.project_client.project_info(project_id);
+
       // this might fail if the project is not updated
       const chan = await connect_ws(project_id);
       if (!isMountedRef.current) return;
+
+      const update = () => {
+        if (!isMountedRef.current) return;
+        const data = info_sync.get();
+        if (data != null) {
+          set_info(data.toJS() as ProjectInfo);
+        } else {
+          console.warn("got no data from info_sync.get()");
+        }
+      };
 
       info_sync.once("change", function () {
         if (!isMountedRef.current) return;
@@ -139,27 +151,23 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
         set_status("receiving…");
       });
 
-      info_sync.on("change", function () {
-        if (!isMountedRef.current) return;
-        const data = info_sync.get();
-        if (data != null) {
-          const payload = JSON.parse(data.get("payload"));
-          set_info(payload as ProjectInfo);
-        } else {
-          console.warn("got no data from info_sync.get()");
-        }
-      });
+      info_sync.on("change", update);
+      info_sync.once("ready", update);
 
       chan.on("close", async function () {
         if (!isMountedRef.current) return;
         set_status("websocket closed: reconnecting in 3 seconds…");
         set_chan(null);
         await delay(3000);
+        if (!isMountedRef.current) return;
         set_status("websocket closed: reconnecting now…");
-        if (!isMountedRef.current) return;
         const new_chan = await connect_ws(project_id);
+        if (!isMountedRef.current) {
+          // well, we got one but now we don't need it
+          new_chan.end();
+          return;
+        }
         set_status("websocket closed: got new connection…");
-        if (!isMountedRef.current) return;
         set_chan(new_chan);
       });
 
@@ -188,12 +196,14 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
       connect();
       get_idle_timeout();
       return () => {
-        console.log("return 1", syncRef.current, chanRef.current);
         if (isMountedRef.current) {
           set_status("closing connection");
         }
-        chanRef.current?.end();
-        console.log("return 2", syncRef.current, chanRef.current);
+        if (chanRef.current != null) {
+          if (chanRef.current.readyState === chanRef.current.OPEN) {
+            chanRef.current.end();
+          }
+        }
         syncRef.current?.close();
       };
     } catch (err) {
@@ -258,9 +268,10 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
       case "cpu_tot":
         return idle_timeout;
       case "mem":
-        if (info?.cgroup?.mem_stat.hierarchical_memory_limit != null) {
+        const hml = info?.cgroup?.mem_stat.hierarchical_memory_limit;
+        if (hml != null) {
           // 50% of max memory
-          return info.cgroup.mem_stat.hierarchical_memory_limit / 2;
+          return hml / 2;
         } else {
           1000; // 1 gb
         }
@@ -620,7 +631,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
     return (
       <>
         <CGroupFC
-          info={info}
+          have_cgroup={info?.cgroup != null}
           cg_info={cg_info}
           disk_usage={disk_usage}
           pt_stats={pt_stats}

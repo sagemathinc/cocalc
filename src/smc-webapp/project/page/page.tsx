@@ -4,6 +4,7 @@
  */
 
 import { NavItem, Nav } from "react-bootstrap";
+import { webapp_client } from "../../webapp-client";
 import { DeletedProjectWarning, Loading } from "../../r_misc";
 import { Content } from "./content";
 import { tab_to_path } from "smc-util/misc";
@@ -25,6 +26,8 @@ import { TrialBanner } from "../trial-banner";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import { AnonymousName } from "../anonymous-name";
 import { StartButton } from "../start-button";
+import { ProjectStatus } from "../../../smc-project/project-status/types";
+import { ProjectStatus as WSProjectStatus } from "../websocket/project-status";
 
 import {
   DEFAULT_FILE_TAB_STYLES,
@@ -52,6 +55,54 @@ const INDICATOR_STYLE: React.CSSProperties = {
   height: "32px",
 } as const;
 
+function useProjectStatus(actions, project_id: string) {
+  const statusRef = React.useRef<WSProjectStatus | null>(null);
+  const project_state = useRedux([
+    "projects",
+    "project_map",
+    project_id,
+    "state",
+    "state",
+  ]);
+  const [status, set_status] = React.useState<ProjectStatus | null>(null);
+
+  function connect() {
+    const status_sync = webapp_client.project_client.project_status(project_id);
+    statusRef.current = status_sync;
+    const update = () => {
+      const data = status_sync.get();
+      if (data != null) {
+        set_status(data.toJS() as ProjectStatus);
+      } else {
+        console.warn(`status_sync ${project_id}: got no data`);
+      }
+    };
+    status_sync.once("ready", function () {
+      console.log("ready");
+      update();
+    });
+    status_sync.on("change", function () {
+      console.log("change");
+      update();
+    });
+  }
+
+  // each time the project state changes (including when mounted) we connect/reconnect
+  React.useEffect(() => {
+    if (project_state !== "running") return;
+    try {
+      connect();
+      return () => {
+        statusRef.current?.close();
+      };
+    } catch (err) {
+      console.warn(`status_sync ${project_id} error: ${err}`);
+    }
+  }, [project_state]);
+
+  actions.setState({ project_status: status });
+}
+
 interface Props {
   project_id: string;
   is_active: boolean;
@@ -65,7 +116,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
     project_id,
     "deleted",
   ]);
-
+useProjectStatus(actions);
   const open_files_order = useTypedRedux({ project_id }, "open_files_order");
   const open_files = useTypedRedux({ project_id }, "open_files");
   const active_project_tab = useTypedRedux(

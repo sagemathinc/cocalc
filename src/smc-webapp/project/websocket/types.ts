@@ -166,6 +166,9 @@ export type Mesg =
   | MesgProjectInfo;
 
 export interface Channel {
+  OPEN: number;
+  CLOSE: number;
+  readyState: number;
   write(x: any): boolean;
   on(event: string, f: Function): void;
   end(): void;

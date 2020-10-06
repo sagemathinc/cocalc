@@ -7,17 +7,19 @@
 import { reuseInFlight } from "async-await-utils/hof";
 import { close } from "../smc-util/misc2";
 import { SyncTable } from "../smc-util/sync/table";
-import { get_ProjectInfoServer } from "../project-info";
-import { ProjectInfo } from "../project-info/types";
-import { ProjectInfoServer } from "../project-info";
+import {
+  get_ProjectStatusServer,
+  ProjectStatusServer,
+} from "../project-status";
+import { ProjectStatus } from "../project-status/types";
 
-class ProjectInfoTable {
+class ProjectStatusTable {
   private table: SyncTable;
   private logger: { debug: Function };
   private project_id: string;
   private state: "ready" | "closed" = "ready";
-  private readonly publish: (info: ProjectInfo) => Promise<void>;
-  private readonly info_server: ProjectInfoServer;
+  private readonly publish: (status: ProjectStatus) => Promise<void>;
+  private readonly status_server: ProjectStatusServer;
 
   constructor(
     table: SyncTable,
@@ -30,18 +32,18 @@ class ProjectInfoTable {
     this.publish = reuseInFlight(this.publish_impl);
     this.table = table;
     this.table.on("closed", () => this.close());
-    // initializing project info server + reacting when it has something to say
-    this.info_server = get_ProjectInfoServer(this.logger.debug.bind(this));
-    this.info_server.start();
-    this.info_server.on("info", (info) => {
-      this.log?.("info_server event 'info'", info.timestamp);
-      this.publish?.(info);
+    // initializing project status server + reacting when it has something to say
+    this.status_server = get_ProjectStatusServer(this.logger.debug.bind(this));
+    this.status_server.start();
+    this.status_server.on("status", (status) => {
+      this.log?.("status_server event 'status'", status.timestamp);
+      this.publish?.(status);
     });
   }
 
-  private async publish_impl(info: ProjectInfo): Promise<void> {
+  private async publish_impl(status: ProjectStatus): Promise<void> {
     if (this.state == "ready" && this.table.get_state() != "closed") {
-      const next = { project_id: this.project_id, info };
+      const next = { project_id: this.project_id, status };
       this.table.set(next, "shallow");
       try {
         await this.table.save();
@@ -50,7 +52,9 @@ class ProjectInfoTable {
       }
     } else {
       this.log(
-        `ProjectInfoTable ${this.state} and table is ${this.table.get_state()}`
+        `ProjectStatusTable ${
+          this.state
+        } and table is ${this.table.get_state()}`
       );
     }
   }
@@ -64,27 +68,27 @@ class ProjectInfoTable {
 
   private log(...args): void {
     if (this.logger == null) return;
-    this.logger.debug("project_info", ...args);
+    this.logger.debug("project_status", ...args);
   }
 }
 
-let project_info_table: ProjectInfoTable | undefined = undefined;
+let project_status_table: ProjectStatusTable | undefined = undefined;
 
-export function register_project_info_table(
+export function register_project_status_table(
   table: SyncTable,
   logger: any,
   project_id: string
 ): void {
-  logger.debug("register_project_info_table");
-  if (project_info_table != null) {
+  logger.debug("register_project_status_table");
+  if (project_status_table != null) {
     // There was one sitting around wasting space so clean it up
     // before making a new one.
-    project_info_table.close();
+    project_status_table.close();
   }
-  project_info_table = new ProjectInfoTable(table, logger, project_id);
+  project_status_table = new ProjectStatusTable(table, logger, project_id);
   return;
 }
 
-export function get_project_info_table(): ProjectInfoTable | undefined {
-  return project_info_table;
+export function get_project_status_table(): ProjectStatusTable | undefined {
+  return project_status_table;
 }

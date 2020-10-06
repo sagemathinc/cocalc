@@ -39,6 +39,7 @@ import { ProjectLogMap } from "./project/history/types";
 import { alert_message } from "./alerts";
 import { Listings, listings } from "./project/websocket/listings";
 import { deleted_file_variations } from "smc-util/delete-files";
+import { ProjectStatus } from "../smc-project/project-status/types";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -132,6 +133,9 @@ export interface ProjectStoreState {
 
   // Project Info
   show_project_info_explanation?: boolean;
+
+  // Project Status
+  project_status?: ProjectStatus;
 
   other_settings: any;
 }
