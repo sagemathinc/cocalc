@@ -82,7 +82,7 @@ export interface CGroup {
   cpu_cores_limit: number; // cpu cores quota limit, the overall time slices it can get
 }
 
-interface DiskUsageInfo {
+export interface DiskUsageInfo {
   available: number; // MiB
   free: number; // MiB
   total: number; // MiB

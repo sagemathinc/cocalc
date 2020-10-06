@@ -95,8 +95,8 @@ const COLORS = {
   FG_RED: "#c9302c", // red used for text
   FG_BLUE: "#428bca", // blue used for text
 
-  ATND_BG_RED_L: "#ff7875",
-  ATND_BG_RED_LL: "#fff2f0",
+  ATND_BG_RED_M: "#ff7875",
+  ATND_BG_RED_L: "#fff2f0",
   ANTD_RED_WARN: "#f5222d", // used in official docs if there is red text to warn
 
   ANTD_RED: "#f5222d", // hefty warning (needs white text on top of it)

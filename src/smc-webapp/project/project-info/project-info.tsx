@@ -25,6 +25,7 @@ import { A, Tip, Loading } from "../../r_misc";
 import { Channel } from "../../project/websocket/types";
 import { ProjectInfo as WSProjectInfo } from "../websocket/project-info";
 import { ProjectInfo, Process } from "../../../smc-project/project-info/types";
+import { cgroup_stats } from "../../../smc-project/project-status/utils";
 import {
   CGroupFC,
   CoCalcFile,
@@ -229,11 +230,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
     const du = info.disk_usage;
 
     if (cg != null && du?.tmp != null) {
-      // why? /tmp is a memory disk in kucalc
-      const mem_rss = cg.mem_stat.total_rss + du.tmp.usage;
-      const mem_tot = cg.mem_stat.hierarchical_memory_limit;
-      const mem_pct = 100 * Math.min(1, mem_rss / mem_tot);
-      const cpu_pct = 100 * Math.min(1, cg.cpu_usage_rate / cg.cpu_cores_limit);
+      const { mem_rss, mem_tot, mem_pct, cpu_pct } = cgroup_stats(cg, du.tmp);
       set_cg_info({
         mem_rss,
         mem_tot,

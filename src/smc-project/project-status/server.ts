@@ -18,23 +18,41 @@ if (require.main === module) {
   require("coffee-register");
 }
 
+//import { reuseInFlight } from "async-await-utils/hof";
 import { EventEmitter } from "events";
 import { delay } from "awaiting";
+import { minutes_ago } from "../../smc-util/misc";
+import { ALERT_HIGH_PCT /* ALERT_MEDIUM_PCT */ } from "./const";
 import { ProjectStatus, Alert } from "./types";
 import { ProjectInfoServer, get_ProjectInfoServer } from "../project-info";
 import { ProjectInfo } from "../project-info/types";
+import { version } from "../../smc-util/smc-version";
+import { cgroup_stats } from "./utils";
+
+// tracks, when for the first time we saw an elevated value
+// we clear it if we're below a threshold (in the clear)
+interface Elevated {
+  cpu: number | null; // timestamps
+  memory: number | null; // timestamps
+  disk: number | null; // timestamps
+}
 
 export class ProjectStatusServer extends EventEmitter {
   private readonly dbg: Function;
   private running = false;
   private readonly testing: boolean;
-  private delay_s: number;
   private readonly project_info: ProjectInfoServer;
   private info?: ProjectInfo;
+  private status?: ProjectStatus;
+  private elevated: Elevated = {
+    cpu: null,
+    disk: null,
+    memory: null,
+  };
 
   constructor(L, testing = false) {
     super();
-    this.delay_s = testing ? 5 : 60;
+    //this.update = reuseInFlight(this.update.bind(this));
     this.testing = testing;
     this.dbg = (...msg) => L("ProjectStatusServer", ...msg);
     this.project_info = get_ProjectInfoServer(L);
@@ -45,15 +63,62 @@ export class ProjectStatusServer extends EventEmitter {
     this.project_info.on("info", (info) => {
       //this.dbg(`got info timestamp=${info.timestamp}`);
       this.info = info;
+      this.update();
     });
   }
 
-  private async get_status(): Promise<ProjectStatus> {
-    // TODO this is just fake data
-    this.dbg(`have info → ${this.info != null}`);
+  private update_alerts() {
+    if (this.info == null) return;
+    const du = this.info.disk_usage.project;
+    const ts = this.info.timestamp;
+
+    const do_alert = (type: "disk" | "memory" | "cpu", is_bad: boolean) => {
+      if (is_bad && this.elevated[type] == null) {
+        this.elevated[type] = ts;
+      } else {
+        this.elevated[type] = null;
+      }
+    };
+
+    const disk_pct = 100 * (du.usage / du.available);
+    do_alert("disk", disk_pct > ALERT_HIGH_PCT);
+
+    const cg = this.info.cgroup;
+    const du_tmp = this.info.disk_usage.tmp;
+    if (cg != null) {
+      const { mem_pct, cpu_pct } = cgroup_stats(cg, du_tmp);
+      do_alert("memory", mem_pct > ALERT_HIGH_PCT);
+      do_alert("cpu", cpu_pct > ALERT_HIGH_PCT);
+    }
+  }
+
+  private alerts(): Alert[] {
+    this.update_alerts();
     const alerts: Alert[] = [];
-    alerts.push({ type: "cpu" });
-    return { version: new Date().getTime(), alerts };
+    for (const k of ["cpu", "disk", "memory"]) {
+      const ts = this.elevated[k];
+      if (ts != null && minutes_ago(ts) > 1) {
+        alerts.push({ type: k } as Alert);
+      }
+    }
+    return alerts;
+  }
+
+  // this function takes the "info" we have (+ more maybe?)
+  // and derives various states from it. It is wrapped in reuseInFlight
+  // in case there are too many calls and it shouldn't really matter how often
+  // it is being called
+  private update(): void {
+    this.status = {
+      alerts: this.alerts(),
+      version: version,
+      timestamp: new Date().getTime(),
+    };
+  }
+
+  private async get_status(): Promise<ProjectStatus | undefined> {
+    this.update();
+    return this.status;
   }
 
   public stop(): void {
@@ -75,21 +140,14 @@ export class ProjectStatusServer extends EventEmitter {
     }
     this.running = true;
     await this.init();
-    while (true) {
+
+    const status = await this.get_status();
+    this.emit("status", status);
+
+    while (this.testing) {
+      await delay(5000);
       const status = await this.get_status();
       this.emit("status", status);
-      if (this.running) {
-        await delay(1000 * this.delay_s);
-      } else {
-        this.dbg("start: no longer running → stopping loop");
-        return;
-      }
-      // abort in test mode, just one more and show it
-      if (this.testing) {
-        const status = await this.get_status();
-        this.dbg(JSON.stringify(status, null, 2));
-        return;
-      }
     }
   }
 }
@@ -106,5 +164,11 @@ export function get_ProjectStatusServer(L: Function): ProjectStatusServer {
 // testing: $ ts-node server.ts
 if (require.main === module) {
   const pss = new ProjectStatusServer(console.log, true);
-  pss.start().then(() => process.exit());
+  pss.start();
+  let cnt = 0;
+  pss.on("status", (status) => {
+    console.log(JSON.stringify(status, null, 2));
+    cnt += 1;
+    if (cnt >= 2) process.exit();
+  });
 }

@@ -11,6 +11,7 @@ import { Processes, Process, State } from "smc-project/project-info/types";
 import { ProcessRow, PTStats } from "./types";
 import { COLORS } from "smc-util/theme";
 const { ANTD_RED, ANTD_ORANGE, ANTD_GREEN } = COLORS;
+import { ALERT_HIGH_PCT, ALERT_MEDIUM_PCT} from "smc-project/project-status/const"
 
 // this converts a path a maybe shortened basename of the file
 export function filename(path) {
@@ -21,8 +22,8 @@ export function filename(path) {
 
 // this is always normalized for 0 to 100
 export function warning_color(val) {
-  if (val > 90) return ANTD_RED;
-  if (val > 75) return ANTD_ORANGE;
+  if (val > ALERT_HIGH_PCT) return ANTD_RED;
+  if (val > ALERT_MEDIUM_PCT) return ANTD_ORANGE;
   return ANTD_GREEN;
 }
 

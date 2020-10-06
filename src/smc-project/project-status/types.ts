@@ -16,6 +16,7 @@ export interface CPUAlert {
 export type Alert = DiskAlert | MemoryAlert | CPUAlert;
 
 export interface ProjectStatus {
+  timestamp: number;
   version: number;
   alerts: Alert[];
 }
