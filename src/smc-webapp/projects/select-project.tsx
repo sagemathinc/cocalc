@@ -84,11 +84,11 @@ export const SelectProject: React.FC<Props> = ({
     }
 
     // sort by last edited (newest first)
-    const v = map.valueSeq();
+    const v = map.valueSeq().toJS();
     v.sort(function (a, b) {
-      if (a.get("last_edited") < b.get("last_edited")) {
+      if (a.last_edited < b.last_edited) {
         return 1;
-      } else if (a.get("last_edited") > b.get("last_edited")) {
+      } else if (a.last_edited > b.last_edited) {
         return -1;
       }
       return 0;
@@ -96,13 +96,13 @@ export const SelectProject: React.FC<Props> = ({
 
     const others: ProjectSelectionList = [];
     for (let i of v) {
-      const is_deleted = !!i.get("deleted");
-      const is_hidden = !!i.get("users").get(account_id).get("hide");
+      const is_deleted = !!i.deleted;
+      const is_hidden = !!i.users?.[account_id ?? ""]?.hide;
       if (
-        i.get("project_id") == value ||
+        i.project_id == value ||
         (is_deleted == include_deleted && is_hidden == include_hidden)
       ) {
-        others.push({ id: i.get("project_id"), title: i.get("title") });
+        others.push({ id: i.project_id, title: i.title });
       }
     }
     return data.concat(others);
