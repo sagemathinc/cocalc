@@ -6,6 +6,11 @@
 /*
 Project status server, doing the heavy lifting of telling the client
 if there is something funny going on in the project.
+
+Under the hood, it subscribes to the ProjectInfoServer, which updates
+various statistics at a high-frequency. Therefore, this here filters
+that information to a low-frequency low-volume stream of important
+status updates.
 */
 
 // only for testing, see bottom
@@ -15,7 +20,7 @@ if (require.main === module) {
 
 import { EventEmitter } from "events";
 import { delay } from "awaiting";
-import { ProjectStatus } from "./types";
+import { ProjectStatus, Alert } from "./types";
 import { ProjectInfoServer, get_ProjectInfoServer } from "../project-info";
 import { ProjectInfo } from "../project-info/types";
 
@@ -38,7 +43,7 @@ export class ProjectStatusServer extends EventEmitter {
   private async init(): Promise<void> {
     this.project_info.start();
     this.project_info.on("info", (info) => {
-      this.dbg(`got info timestamp=${info.timestamp}`);
+      //this.dbg(`got info timestamp=${info.timestamp}`);
       this.info = info;
     });
   }
@@ -46,7 +51,9 @@ export class ProjectStatusServer extends EventEmitter {
   private async get_status(): Promise<ProjectStatus> {
     // TODO this is just fake data
     this.dbg(`have info → ${this.info != null}`);
-    return { version: new Date().getTime(), alerts: [] };
+    const alerts: Alert[] = [];
+    alerts.push({ type: "cpu" });
+    return { version: new Date().getTime(), alerts };
   }
 
   public stop(): void {

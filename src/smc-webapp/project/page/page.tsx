@@ -55,7 +55,8 @@ const INDICATOR_STYLE: React.CSSProperties = {
   height: "32px",
 } as const;
 
-function useProjectStatus(actions, project_id: string) {
+function useProjectStatus(actions) {
+  const project_id: string = actions.project_id;
   const statusRef = React.useRef<WSProjectStatus | null>(null);
   const project_state = useRedux([
     "projects",
@@ -64,7 +65,10 @@ function useProjectStatus(actions, project_id: string) {
     "state",
     "state",
   ]);
-  const [status, set_status] = React.useState<ProjectStatus | null>(null);
+
+  function set_status(status) {
+    actions.setState({ status });
+  }
 
   function connect() {
     const status_sync = webapp_client.project_client.project_status(project_id);
@@ -77,14 +81,8 @@ function useProjectStatus(actions, project_id: string) {
         console.warn(`status_sync ${project_id}: got no data`);
       }
     };
-    status_sync.once("ready", function () {
-      console.log("ready");
-      update();
-    });
-    status_sync.on("change", function () {
-      console.log("change");
-      update();
-    });
+    status_sync.once("ready", update);
+    status_sync.on("change", update);
   }
 
   // each time the project state changes (including when mounted) we connect/reconnect
@@ -99,8 +97,6 @@ function useProjectStatus(actions, project_id: string) {
       console.warn(`status_sync ${project_id} error: ${err}`);
     }
   }, [project_state]);
-
-  actions.setState({ project_status: status });
 }
 
 interface Props {
@@ -116,7 +112,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
     project_id,
     "deleted",
   ]);
-useProjectStatus(actions);
+  useProjectStatus(actions);
   const open_files_order = useTypedRedux({ project_id }, "open_files_order");
   const open_files = useTypedRedux({ project_id }, "open_files");
   const active_project_tab = useTypedRedux(

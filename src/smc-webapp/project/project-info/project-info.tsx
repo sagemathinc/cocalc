@@ -24,12 +24,7 @@ import { seconds2hms } from "smc-util/misc";
 import { A, Tip, Loading } from "../../r_misc";
 import { Channel } from "../../project/websocket/types";
 import { ProjectInfo as WSProjectInfo } from "../websocket/project-info";
-import {
-  ProjectInfo,
-  Process,
-  // Processes,
-  // CoCalcInfo,
-} from "../../../smc-project/project-info/types";
+import { ProjectInfo, Process } from "../../../smc-project/project-info/types";
 import {
   CGroupFC,
   CoCalcFile,
@@ -79,6 +74,8 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
   const [idle_timeout, set_idle_timeout] = useState<number>(30 * 60);
   const show_explanation =
     useTypedRedux({ project_id }, "show_project_info_explanation") ?? false;
+  // this is smc-project/project-status/types::ProjectStatus
+  const project_status = useTypedRedux({ project_id }, "status");
   const project_map = useTypedRedux("projects", "project_map");
   const [project, set_project] = useState(project_map?.get(project_id));
   const [project_state, set_project_state] = useState<string | undefined>();
@@ -636,6 +633,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
           disk_usage={disk_usage}
           pt_stats={pt_stats}
           start_ts={start_ts}
+          project_status={project_status}
         />
         {render_top()}
         {DEBUG && render_general_status()}

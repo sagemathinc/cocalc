@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 import { React, CSS } from "../../app-framework";
+import * as immutable from "immutable";
 import {
   Descriptions,
   Progress,
@@ -11,13 +12,22 @@ import {
   Form,
   Popconfirm,
   Grid,
+  //Badge,
 } from "antd";
-import { QuestionCircleOutlined, PauseCircleOutlined } from "@ant-design/icons";
+import {
+  QuestionCircleOutlined,
+  PauseCircleOutlined,
+  //WarningOutlined,
+} from "@ant-design/icons";
 import { Tip, TimeElapsed, Icon } from "../../r_misc";
 import { CGroupInfo, DUState } from "./types";
 import { warning_color, filename } from "./utils";
-import { State, ProjectInfoCmds, Signal } from "smc-project/project-info/types";
-import { Channel } from "../../project/websocket/types";
+import {
+  State,
+  ProjectInfoCmds,
+  Signal,
+} from "../../../smc-project/project-info/types";
+import { Channel } from "../websocket/types";
 import { unreachable } from "smc-util/misc2";
 import { COLORS } from "smc-util/theme";
 import { plural } from "smc-util/misc2";
@@ -134,6 +144,7 @@ const CGroupTip: React.FC<CGroupTipProps> = React.memo(
           );
       }
     }
+
     return (
       <Tip
         placement={"bottom"}
@@ -175,23 +186,47 @@ interface CGroupFCProps {
   disk_usage: DUState;
   pt_stats;
   start_ts;
+  project_status?: immutable.Map<string, any>;
 }
 
 export const CGroupFC: React.FC<CGroupFCProps> = React.memo(
   (props: CGroupFCProps) => {
-    const { have_cgroup, cg_info, disk_usage, pt_stats, start_ts } = props;
+    const {
+      have_cgroup,
+      cg_info,
+      disk_usage,
+      pt_stats,
+      start_ts,
+      project_status,
+    } = props;
     const progprops = useProgressProps();
+    const status_alerts: Readonly<string[]> =
+      project_status?.get("alerts").map((a) => a.get("type")) ??
+      immutable.Map();
+
     const row1: CSS = { fontWeight: "bold", fontSize: "110%" };
+    const alert = {
+      cpu: status_alerts.includes("cpu"),
+      memory: status_alerts.includes("memory"),
+      disk: status_alerts.includes("disk"),
+    } as const;
+    const alert_style: CSS = {
+      backgroundColor: COLORS.ATND_BG_RED_L,
+      borderColor: COLORS.ANTD_RED_WARN,
+    };
+
     const cpu_label = (
       <CGroupTip type={"cpu"} cg_info={cg_info} disk_usage={disk_usage}>
         <LabelQuestionmark text={"CPU"} />
       </CGroupTip>
     );
+
     const memory_label = (
       <CGroupTip type={"mem"} cg_info={cg_info} disk_usage={disk_usage}>
         <LabelQuestionmark text={"Memory"} />
       </CGroupTip>
     );
+
     const disk_label = (
       <CGroupTip type={"disk"} cg_info={cg_info} disk_usage={disk_usage}>
         <LabelQuestionmark text={"Disk"} />
@@ -219,7 +254,10 @@ export const CGroupFC: React.FC<CGroupFCProps> = React.memo(
     function render_row2() {
       return (
         <>
-          <Descriptions.Item label={cpu_label}>
+          <Descriptions.Item
+            label={cpu_label}
+            style={alert.cpu ? alert_style : undefined}
+          >
             <CGroupTip type={"cpu"} cg_info={cg_info} disk_usage={disk_usage}>
               <Progress
                 percent={cg_info.cpu_pct}
@@ -228,7 +266,10 @@ export const CGroupFC: React.FC<CGroupFCProps> = React.memo(
               />
             </CGroupTip>
           </Descriptions.Item>
-          <Descriptions.Item label={memory_label}>
+          <Descriptions.Item
+            label={memory_label}
+            style={alert.memory ? alert_style : undefined}
+          >
             <CGroupTip type={"mem"} cg_info={cg_info} disk_usage={disk_usage}>
               <Progress
                 percent={cg_info.mem_pct}
@@ -237,7 +278,10 @@ export const CGroupFC: React.FC<CGroupFCProps> = React.memo(
               />
             </CGroupTip>
           </Descriptions.Item>
-          <Descriptions.Item label={disk_label}>
+          <Descriptions.Item
+            label={disk_label}
+            style={alert.disk ? alert_style : undefined}
+          >
             <CGroupTip type={"disk"} cg_info={cg_info} disk_usage={disk_usage}>
               <Progress
                 percent={disk_usage.pct}

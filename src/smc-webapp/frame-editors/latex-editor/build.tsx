@@ -141,7 +141,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
       overflowY: "auto",
       margin: "0",
     };
-    const err_style = error ? { background: COLORS.ATND_BG_RED_L } : undefined;
+    const err_style = error ? { background: COLORS.ATND_BG_RED_LL } : undefined;
     const tab_button = <div style={err_style}>{title}</div>;
     return (
       <TabPane tab={tab_button} key={title} style={style}>

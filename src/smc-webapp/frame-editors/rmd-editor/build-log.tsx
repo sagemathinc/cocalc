@@ -48,7 +48,7 @@ const STYLE_PRE: React.CSSProperties = {
 const STYLE_ERR: React.CSSProperties = {
   ...STYLE_LOG,
   fontWeight: "bold",
-  backgroundColor: COLORS.ATND_BG_RED_L,
+  backgroundColor: COLORS.ATND_BG_RED_LL,
 };
 
 export const BuildLog: React.FC<BuildLogProps> = React.memo((props) => {
