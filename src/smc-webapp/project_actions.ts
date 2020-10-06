@@ -56,6 +56,7 @@ import { ProjectStore, ProjectStoreState } from "./project_store";
 import { ProjectEvent } from "./project/history/types";
 import { DEFAULT_COMPUTE_IMAGE } from "../smc-util/compute-images";
 import { download_href, url_href } from "./project/utils";
+import { ensure_project_running } from "./project/project-start-warning";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%';
@@ -723,7 +724,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Open the given file in this project.
   public async open_file(opts): Promise<void> {
-    open_file(this, opts);
+    await open_file(this, opts);
   }
 
   /* Initialize the redux store and react component for editing
@@ -2113,8 +2114,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     opts = defaults(opts, {
       name: required,
       current_path: undefined,
-      switch_over: true,
-    }); // Whether or not to switch to the new folder
+      switch_over: true, // Whether or not to switch to the new folder
+    });
+    if (
+      !(await ensure_project_running(
+        this.project_id,
+        `create the folder '${opts.name}'`
+      ))
+    ) {
+      return;
+    }
     let { name, current_path, switch_over } = opts;
     this.setState({ file_creation_error: undefined });
     if (name[name.length - 1] === "/") {
@@ -2147,8 +2156,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       name: undefined,
       ext: undefined,
       current_path: undefined,
-      switch_over: true,
-    }); // Whether or not to switch to the new file
+      switch_over: true, // Whether or not to switch to the new file
+    });
+
     this.setState({ file_creation_error: undefined }); // clear any create file display state
     let { name } = opts;
     if ((name === ".." || name === ".") && opts.ext == null) {
@@ -2177,6 +2187,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } catch (e) {
       console.warn("Absolute path creation error");
       this.setState({ file_creation_error: e.message });
+      return;
+    }
+    if (
+      !(await ensure_project_running(this.project_id, `create the file '${p}'`))
+    ) {
       return;
     }
     const ext = misc.filename_extension(p);

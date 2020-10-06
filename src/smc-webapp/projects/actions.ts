@@ -709,12 +709,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
       project_id,
       action_request: { action: "start", time: webapp_client.server_time() },
     });
-    // Doing an exec further increases the chances project will be
-    // definitely running in all environments (cocalc-docker, kucalc, etc).
-    await webapp_client.project_client.exec({
-      project_id,
-      command: "pwd",
-    });
   }
 
   public async stop_project(project_id: string): Promise<void> {
