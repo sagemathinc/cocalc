@@ -620,7 +620,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     query    : 'SELECT string_id FROM syncstrings'
                     where    : [{'last_active <= $::TIMESTAMP' : misc.days_ago(opts.age_days)}, 'archived IS NULL']
                     limit    : opts.limit
-                    order_by : 'string_id'
                     cb       : all_results 'string_id', (err, v) =>
                         syncstrings = v
                         cb(err)
