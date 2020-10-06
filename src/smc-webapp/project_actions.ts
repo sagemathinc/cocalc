@@ -1978,6 +1978,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const id = misc.uuid();
     const status = `Renaming ${opts.src} to ${opts.dest}`;
     let error: any = undefined;
+    if (
+      !(await ensure_project_running(this.project_id, `rename ${opts.src}`))
+    ) {
+      return;
+    }
 
     this.set_activity({ id, status });
     try {
@@ -1994,6 +1999,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     src: string[];
     dest: string;
   }): Promise<void> {
+    if (
+      !(await ensure_project_running(
+        this.project_id,
+        `move ${opts.src.join(", ")}`
+      ))
+    ) {
+      return;
+    }
     const id = misc.uuid();
     const status = `Moving ${opts.src.length} ${misc.plural(
       opts.src.length,
@@ -2017,6 +2030,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (opts.paths.length === 0) {
       return;
     }
+
+    if (
+      !(await ensure_project_running(
+        this.project_id,
+        `delete ${opts.paths.join(", ")}`
+      ))
+    ) {
+      return;
+    }
+
     const id = misc.uuid();
     if (underscore.isEqual(opts.paths, [".trash"])) {
       mesg = "the trash";
@@ -2043,7 +2066,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  download_file(opts): void {
+  public async download_file(opts): Promise<void> {
     let url;
     const { download_file, open_new_tab } = require("./misc_page");
     opts = defaults(opts, {
@@ -2053,6 +2076,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       print: false,
       timeout: 45,
     } as { path: string; log: boolean | string[]; auto: boolean; print: boolean; timeout: number });
+
+    if (
+      !(await ensure_project_running(
+        this.project_id,
+        `download the file '${opts.name}'`
+      ))
+    ) {
+      return;
+    }
 
     // log could also be an array of strings to record all the files that were downloaded in a zip file
     if (opts.log) {

@@ -705,33 +705,79 @@ export class ProjectsActions extends Actions<ProjectsState> {
     if (!allow_project_to_run(project_id)) {
       return;
     }
-    await this.projects_table_set({
+    const state = store.getIn(["project_map", project_id, "state"]);
+    if (state?.get("state") == "starting" || state?.get("state") == "running") {
+      return;
+    }
+    const action_request = store.getIn([
+      "project_map",
       project_id,
-      action_request: { action: "start", time: webapp_client.server_time() },
-    });
+      "action_request",
+    ]);
+    if (
+      action_request == null ||
+      action_request.get("action") != "start" ||
+      action_request.get("finished") >= new Date(action_request.get("time"))
+    ) {
+      // need to do it!
+      await this.projects_table_set({
+        project_id,
+        action_request: { action: "start", time: webapp_client.server_time() },
+      });
+    }
   }
 
   public async stop_project(project_id: string): Promise<void> {
-    await this.projects_table_set({
+    const state = store.getIn(["project_map", project_id, "state"]);
+    if (state?.get("state") == "stopping" || state?.get("state") == "opened") {
+      return;
+    }
+    const action_request = store.getIn([
+      "project_map",
       project_id,
-      action_request: { action: "stop", time: webapp_client.server_time() },
-    });
-    await this.redux.getProjectActions(project_id).log({
-      event: "project_stop_requested",
-    });
+      "action_request",
+    ]);
+    if (
+      action_request == null ||
+      action_request.get("action") != "stop" ||
+      action_request.get("finished") >= new Date(action_request.get("time"))
+    ) {
+      // need to do it!
+      await this.projects_table_set({
+        project_id,
+        action_request: { action: "stop", time: webapp_client.server_time() },
+      });
+      await this.redux.getProjectActions(project_id).log({
+        event: "project_stop_requested",
+      });
+    }
   }
 
   public async restart_project(project_id: string): Promise<void> {
     if (!allow_project_to_run(project_id)) {
       return;
     }
-    await this.projects_table_set({
+    const action_request = store.getIn([
+      "project_map",
       project_id,
-      action_request: { action: "restart", time: webapp_client.server_time() },
-    });
-    await this.redux.getProjectActions(project_id).log({
-      event: "project_restart_requested",
-    });
+      "action_request",
+    ]);
+    if (
+      action_request == null ||
+      action_request.get("action") != "restart" ||
+      action_request.get("finished") >= new Date(action_request.get("time"))
+    ) {
+      await this.projects_table_set({
+        project_id,
+        action_request: {
+          action: "restart",
+          time: webapp_client.server_time(),
+        },
+      });
+      await this.redux.getProjectActions(project_id).log({
+        event: "project_restart_requested",
+      });
+    }
   }
 
   // Explcitly set whether or not project is hidden for the given account

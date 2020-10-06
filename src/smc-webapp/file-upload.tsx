@@ -15,6 +15,7 @@ import {
   React,
   ReactDOM,
   redux,
+  useTypedRedux,
   useState,
   useRef,
   useEffect,
@@ -95,32 +96,7 @@ interface FileUploadProps {
 
 export const FileUpload: React.FC<FileUploadProps> = (props) => {
   function dropzone_template() {
-    return (
-      <div className="dz-preview dz-file-preview">
-        <div className="dz-details">
-          <div className="dz-filename">
-            <span data-dz-name></span>
-          </div>
-          <img data-dz-thumbnail />
-        </div>
-        <div className="dz-progress">
-          <span className="dz-upload" data-dz-uploadprogress></span>
-        </div>
-        <div className="dz-success-mark">
-          <span>
-            <Icon name="check" />
-          </span>
-        </div>
-        <div className="dz-error-mark">
-          <span>
-            <Icon name="times" />
-          </span>
-        </div>
-        <div className="dz-error-message">
-          <span data-dz-errormessage></span>
-        </div>
-      </div>
-    );
+    return <DropzonePreview project_id={props.project_id} />;
   }
 
   function render_close_button() {
@@ -264,32 +240,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
       return props.preview_template();
     }
 
-    return (
-      <div className="dz-preview dz-file-preview">
-        <div className="dz-details">
-          <div className="dz-filename">
-            <span data-dz-name></span>
-          </div>
-          <img data-dz-thumbnail />
-        </div>
-        <div className="dz-progress">
-          <span className="dz-upload" data-dz-uploadprogress></span>
-        </div>
-        <div className="dz-success-mark">
-          <span>
-            <Icon name="check" />
-          </span>
-        </div>
-        <div className="dz-error-mark">
-          <span>
-            <Icon name="times" />
-          </span>
-        </div>
-        <div className="dz-error-message">
-          <span data-dz-errormessage></span>
-        </div>
-      </div>
-    );
+    return <DropzonePreview project_id={props.project_id} />;
   }
 
   // If remove_all is true, then all files are also removed
@@ -443,4 +394,47 @@ FileUploadWrapper.defaultProps = {
   config: {},
   disabled: false,
   show_upload: true,
+};
+
+interface DropzonePreviewProps {
+  project_id: string;
+}
+
+const DropzonePreview: React.FC<DropzonePreviewProps> = ({ project_id }) => {
+  const state = useTypedRedux("projects", "project_map")?.getIn([
+    project_id,
+    "state",
+    "state",
+  ]);
+  return (
+    <div className="dz-preview dz-file-preview">
+      {state != "running" && (
+        <div style={{ background: "red", color: "white", padding: "5px" }}>
+          You must start the project.
+        </div>
+      )}
+      <div className="dz-details">
+        <div className="dz-filename">
+          <span data-dz-name></span>
+        </div>
+        <img data-dz-thumbnail />
+      </div>
+      <div className="dz-progress">
+        <span className="dz-upload" data-dz-uploadprogress></span>
+      </div>
+      <div className="dz-success-mark">
+        <span>
+          <Icon name="check" />
+        </span>
+      </div>
+      <div className="dz-error-mark">
+        <span>
+          <Icon name="times" />
+        </span>
+      </div>
+      <div className="dz-error-message">
+        <span data-dz-errormessage></span>
+      </div>
+    </div>
+  );
 };

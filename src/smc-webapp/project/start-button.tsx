@@ -29,7 +29,7 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
   }, [project_map]);
 
   // start_requested is true precisely if a start of this project
-  // is currently requested, and obviously didn't get done.
+  // is currently requested,,and obviously didn't get done.
   // Making the UI depend on this instead of *just* the state
   // makes things feel more responsive.
   const starting = useMemo(() => {
