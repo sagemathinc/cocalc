@@ -132,7 +132,7 @@ export type CourseSettingsRecord = TypedMap<{
   upgrade_goal: Map<any, any>;
   site_license_id?: string;
   site_license_strategy?: SiteLicenseStrategy;
-  nbgrader_grade_in_instructor_project?: boolean;   // deprecated
+  nbgrader_grade_in_instructor_project?: boolean; // deprecated
   nbgrader_grade_project?: string;
   nbgrader_include_hidden_tests?: boolean;
   nbgrader_cell_timeout_ms?: number;
@@ -271,10 +271,11 @@ export class CourseStore extends Store<CourseState> {
       return "Unknown Student";
     }
     // Try instructor assigned name:
-    if (student.get("first_name") || student.get("last_name")) {
-      return [student.get("first_name", ""), student.get("last_name", "")].join(
-        " "
-      );
+    if (student.get("first_name")?.trim() || student.get("last_name")?.trim()) {
+      return [
+        student.get("first_name", "")?.trim(),
+        student.get("last_name", "")?.trim(),
+      ].join(" ");
     }
     const account_id = student.get("account_id");
     if (account_id == null) {
@@ -293,7 +294,7 @@ export class CourseStore extends Store<CourseState> {
     const users = this.redux.getStore("users");
     if (users == null) throw Error("users must be defined");
     const name = users.get_name(account_id);
-    if (name != null) return name;
+    if (name?.trim()) return name;
     // This situation usually shouldn't happen, but maybe could in case the user was known but
     // then removed themselves as a collaborator, or something else odd.
     if (student.has("email_address")) {
