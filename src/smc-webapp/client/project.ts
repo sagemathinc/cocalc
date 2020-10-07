@@ -28,7 +28,7 @@ import {
   ProjectStatus,
   project_status,
 } from "../project/websocket/project-status";
-
+import { ensure_project_running } from "../project/project-start-warning";
 import { Configuration, ConfigurationAspect } from "../project_configuration";
 
 export interface ExecOpts {
@@ -202,6 +202,20 @@ export class ProjectClient {
       env: undefined,
       cb: undefined, // if given use a callback interface instead of async
     });
+
+    if (
+      !(await ensure_project_running(
+        opts.project_id,
+        `execute the command ${opts.command}`
+      ))
+    ) {
+      return {
+        stdout: "",
+        stderr: "You must start the project first",
+        exit_code: 1,
+        time: 0,
+      };
+    }
 
     try {
       const ws = await this.websocket(opts.project_id);

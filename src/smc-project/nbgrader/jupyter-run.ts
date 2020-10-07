@@ -63,7 +63,7 @@ export async function jupyter_run_notebook(
         if (jupyter == null) {
           throw Error("jupyter can't be null since it was initialized above");
         }
-        await run_cell(jupyter, limits, !!opts.nbgrader, cell); // mutates cell by putting in outputs
+        await run_cell(jupyter, limits, cell); // mutates cell by putting in outputs
       } catch (err) {
         // fatal error occured, e.g,. timeout, broken kernel, etc.
         if (cell.outputs == null) {
@@ -89,7 +89,6 @@ export async function jupyter_run_notebook(
 async function run_cell(
   jupyter: JupyterKernel,
   limits: Limits,
-  nbgrader: boolean,
   cell
 ): Promise<void> {
   if (jupyter == null) {
@@ -121,15 +120,6 @@ async function run_cell(
     code,
     timeout_ms: limits.timeout_ms_per_cell,
   });
-
-  if (nbgrader) {
-    // Only process output for autograder cells.
-    const is_autograde =
-      cell.metadata?.nbgrader?.grade && !cell.metadata?.nbgrader?.solution;
-    if (!is_autograde) {
-      return;
-    }
-  }
 
   let cell_output_chars = 0;
   for (const x of result) {
