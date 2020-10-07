@@ -21,12 +21,13 @@ import {
 } from "@ant-design/icons";
 import { Tip, TimeElapsed, Icon } from "../../r_misc";
 import { CGroupInfo, DUState } from "./types";
-import { warning_color, filename } from "./utils";
+import { warning_color_pct, warning_color_disk, filename } from "./utils";
 import {
   State,
   ProjectInfoCmds,
   Signal,
 } from "../../../smc-project/project-info/types";
+import { AlertType } from "../../../smc-project/project-status/types";
 import { Channel } from "../websocket/types";
 import { unreachable } from "smc-util/misc2";
 import { COLORS } from "smc-util/theme";
@@ -205,11 +206,15 @@ export const CGroupFC: React.FC<CGroupFCProps> = React.memo(
       immutable.Map();
 
     const row1: CSS = { fontWeight: "bold", fontSize: "110%" };
+
+    // we're essentially checking the type of smc-project/project-status/types.ts
+    // (but it is immutable js)
     const alert = {
-      cpu: status_alerts.includes("cpu"),
-      memory: status_alerts.includes("memory"),
-      disk: status_alerts.includes("disk"),
+      cpu: status_alerts.includes("cpu-cgroup" as AlertType),
+      memory: status_alerts.includes("memoryy" as AlertType),
+      disk: status_alerts.includes("disk" as AlertType),
     } as const;
+
     const alert_style: CSS = {
       backgroundColor: COLORS.ATND_BG_RED_L,
       borderColor: COLORS.ANTD_RED_WARN,
@@ -261,7 +266,7 @@ export const CGroupFC: React.FC<CGroupFCProps> = React.memo(
             <CGroupTip type={"cpu"} cg_info={cg_info} disk_usage={disk_usage}>
               <Progress
                 percent={cg_info.cpu_pct}
-                strokeColor={warning_color(cg_info.cpu_pct)}
+                strokeColor={warning_color_pct(cg_info.cpu_pct)}
                 {...progprops}
               />
             </CGroupTip>
@@ -273,7 +278,7 @@ export const CGroupFC: React.FC<CGroupFCProps> = React.memo(
             <CGroupTip type={"mem"} cg_info={cg_info} disk_usage={disk_usage}>
               <Progress
                 percent={cg_info.mem_pct}
-                strokeColor={warning_color(cg_info.mem_pct)}
+                strokeColor={warning_color_pct(cg_info.mem_pct)}
                 {...progprops}
               />
             </CGroupTip>
@@ -285,7 +290,7 @@ export const CGroupFC: React.FC<CGroupFCProps> = React.memo(
             <CGroupTip type={"disk"} cg_info={cg_info} disk_usage={disk_usage}>
               <Progress
                 percent={disk_usage.pct}
-                strokeColor={warning_color(disk_usage.pct)}
+                strokeColor={warning_color_disk(disk_usage)}
                 {...progprops}
               />
             </CGroupTip>

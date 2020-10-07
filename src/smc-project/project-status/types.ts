@@ -6,17 +6,28 @@
 export interface DiskAlert {
   type: "disk";
 }
+
+// entire container
 export interface MemoryAlert {
   type: "memory";
 }
-export interface CPUAlert {
-  type: "cpu";
+
+// CPU alerts for individual processes
+export interface CPUProcAlert {
+  type: "cpu-process";
+  pids: string[]; // list of PIDs
 }
 
-export type Alert = DiskAlert | MemoryAlert | CPUAlert;
+// this is for the entire Container
+export interface CPUCGAlert {
+  type: "cpu-cgroup";
+}
+
+export type Alert = DiskAlert | MemoryAlert | CPUProcAlert | CPUCGAlert;
+
+export type AlertType = Alert["type"];
 
 export interface ProjectStatus {
-  timestamp: number;
   version: number;
   alerts: Alert[];
 }

@@ -25,7 +25,7 @@ export interface Stat {
 }
 
 export interface Cpu {
-  pct: number;
+  pct: number; // 0 to 100 (1 core) or more
   secs: number;
 }
 
@@ -91,7 +91,7 @@ export interface DiskUsageInfo {
 
 export type DiskUsage = Record<"tmp" | "project", DiskUsageInfo>;
 
-export type Processes = { [pid: number]: Process };
+export type Processes = { [pid: string]: Process };
 
 export interface ProjectInfo {
   timestamp: number;

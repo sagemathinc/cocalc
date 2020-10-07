@@ -21,9 +21,14 @@ if (require.main === module) {
 //import { reuseInFlight } from "async-await-utils/hof";
 import { EventEmitter } from "events";
 import { delay } from "awaiting";
-import { minutes_ago } from "../../smc-util/misc";
-import { ALERT_HIGH_PCT /* ALERT_MEDIUM_PCT */ } from "./const";
-import { ProjectStatus, Alert } from "./types";
+import { isEqual } from "lodash";
+import { how_long_ago_m } from "../../smc-util/misc2";
+import {
+  ALERT_HIGH_PCT /* ALERT_MEDIUM_PCT */,
+  ALERT_DISK_FREE,
+  RAISE_ALERT_AFTER_MIN,
+} from "./const";
+import { ProjectStatus, Alert, AlertType } from "./types";
 import { ProjectInfoServer, get_ProjectInfoServer } from "../project-info";
 import { ProjectInfo } from "../project-info/types";
 import { version } from "../../smc-util/smc-version";
@@ -44,11 +49,13 @@ export class ProjectStatusServer extends EventEmitter {
   private readonly project_info: ProjectInfoServer;
   private info?: ProjectInfo;
   private status?: ProjectStatus;
+  private last?: ProjectStatus;
   private elevated: Elevated = {
     cpu: null,
     disk: null,
     memory: null,
   };
+  private elevated_cpu_procs: { [pid: string]: number } = {};
 
   constructor(L, testing = false) {
     super();
@@ -67,40 +74,80 @@ export class ProjectStatusServer extends EventEmitter {
     });
   }
 
+  // this derives elevated levels from the project info object
   private update_alerts() {
     if (this.info == null) return;
     const du = this.info.disk_usage.project;
     const ts = this.info.timestamp;
 
-    const do_alert = (type: "disk" | "memory" | "cpu", is_bad: boolean) => {
-      if (is_bad && this.elevated[type] == null) {
-        this.elevated[type] = ts;
+    const do_alert = (type: AlertType, is_bad: boolean) => {
+      if (is_bad) {
+        // if it isn't good, set it once to the timestamp (and let it age)
+        if (this.elevated[type] == null) {
+          this.elevated[type] = ts;
+        }
       } else {
+        // unless it's fine again, then remove the timestamp
         this.elevated[type] = null;
       }
     };
 
-    const disk_pct = 100 * (du.usage / du.available);
-    do_alert("disk", disk_pct > ALERT_HIGH_PCT);
+    do_alert("disk", du.free < ALERT_DISK_FREE);
 
     const cg = this.info.cgroup;
     const du_tmp = this.info.disk_usage.tmp;
     if (cg != null) {
       const { mem_pct, cpu_pct } = cgroup_stats(cg, du_tmp);
       do_alert("memory", mem_pct > ALERT_HIGH_PCT);
-      do_alert("cpu", cpu_pct > ALERT_HIGH_PCT);
+      do_alert("cpu-cgroup", cpu_pct > ALERT_HIGH_PCT);
     }
   }
 
+  private alert_cpu_processes(): string[] {
+    const pids: string[] = [];
+    if (this.info == null) return [];
+    const ts = this.info.timestamp;
+    const ecp = this.elevated_cpu_procs;
+    // we have to check if there aren't any processes left which no longer exist
+    const leftovers = new Set(Object.keys(ecp));
+    // bookkeeping of elevated process PIDS
+    for (const [pid, proc] of Object.entries(this.info.processes)) {
+      leftovers.delete(pid);
+      if (proc.cpu.pct > ALERT_HIGH_PCT) {
+        if (ecp[pid] == null) {
+          ecp[pid] = ts;
+        }
+      } else {
+        delete ecp[pid];
+      }
+    }
+    for (const pid of leftovers) {
+      delete ecp[pid];
+    }
+    // to actually fire alert when necessary
+    for (const [pid, ts] of Object.entries(ecp)) {
+      if (ts != null && how_long_ago_m(ts) > RAISE_ALERT_AFTER_MIN) {
+        pids.push(pid);
+      }
+    }
+    pids.sort(); // to make this stable across iterations
+    //this.dbg("alert_cpu_processes", pids, ecp);
+    return pids;
+  }
+
+  // update alert levels and set alert states if they persist to be active
   private alerts(): Alert[] {
     this.update_alerts();
     const alerts: Alert[] = [];
-    for (const k of ["cpu", "disk", "memory"]) {
+    const alert_keys: AlertType[] = ["cpu-cgroup", "disk", "memory"];
+    for (const k of alert_keys) {
       const ts = this.elevated[k];
-      if (ts != null && minutes_ago(ts) > 1) {
+      if (ts != null && how_long_ago_m(ts) > RAISE_ALERT_AFTER_MIN) {
         alerts.push({ type: k } as Alert);
       }
     }
+    const pids: string[] = this.alert_cpu_processes();
+    if (pids.length > 0) alerts.push({ type: "cpu-process", pids });
     return alerts;
   }
 
@@ -112,8 +159,12 @@ export class ProjectStatusServer extends EventEmitter {
     this.status = {
       alerts: this.alerts(),
       version: version,
-      timestamp: new Date().getTime(),
     };
+    // deep comparison check via lodash
+    if (!isEqual(this.status, this.last)) {
+      this.emit("status", this.status);
+    }
+    this.last = this.status;
   }
 
   private async get_status(): Promise<ProjectStatus | undefined> {

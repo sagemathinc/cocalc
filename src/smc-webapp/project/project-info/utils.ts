@@ -8,10 +8,14 @@ import { basename } from "path";
 import { separate_file_extension, trunc } from "smc-util/misc2";
 import { project_websocket } from "../../frame-editors/generic/client";
 import { Processes, Process, State } from "smc-project/project-info/types";
-import { ProcessRow, PTStats } from "./types";
+import { ProcessRow, PTStats, DUState } from "./types";
 import { COLORS } from "smc-util/theme";
 const { ANTD_RED, ANTD_ORANGE, ANTD_GREEN } = COLORS;
-import { ALERT_HIGH_PCT, ALERT_MEDIUM_PCT} from "smc-project/project-status/const"
+import {
+  ALERT_HIGH_PCT,
+  ALERT_MEDIUM_PCT,
+  ALERT_DISK_FREE,
+} from "smc-project/project-status/const";
 
 // this converts a path a maybe shortened basename of the file
 export function filename(path) {
@@ -21,9 +25,19 @@ export function filename(path) {
 }
 
 // this is always normalized for 0 to 100
-export function warning_color(val) {
+export function warning_color_pct(val) {
   if (val > ALERT_HIGH_PCT) return ANTD_RED;
   if (val > ALERT_MEDIUM_PCT) return ANTD_ORANGE;
+  return ANTD_GREEN;
+}
+
+// pct: disk usage in 0 to 100
+// free: remaining MiBs left
+export function warning_color_disk(disk_usage: DUState) {
+  const pct = disk_usage.pct;
+  const free = disk_usage.total - disk_usage.usage;
+  if (free < ALERT_DISK_FREE) return ANTD_RED;
+  if (pct > ALERT_MEDIUM_PCT) return ANTD_ORANGE;
   return ANTD_GREEN;
 }
 
@@ -38,11 +52,12 @@ const GRID_ORANGE: CSS = {
 };
 
 function grid_color(val, max) {
-  const col = warning_color(100 * (val / max));
-  if (col == ANTD_RED) {
-    return GRID_RED;
-  } else if (col == ANTD_ORANGE) {
-    return GRID_ORANGE;
+  const col = warning_color_pct(100 * (val / max));
+  switch (col) {
+    case ANTD_RED:
+      return GRID_RED;
+    case ANTD_ORANGE:
+      return GRID_ORANGE;
   }
   return null;
 }

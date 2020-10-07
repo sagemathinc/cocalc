@@ -34,7 +34,7 @@ class ProjectInfoTable {
     this.info_server = get_ProjectInfoServer(this.logger.debug.bind(this));
     this.info_server.start();
     this.info_server.on("info", (info) => {
-      this.log?.("info_server event 'info'", info.timestamp);
+      //this.log?.("info_server event 'info'", info.timestamp);
       this.publish?.(info);
     });
   }

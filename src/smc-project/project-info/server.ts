@@ -119,7 +119,7 @@ export class ProjectInfoServer extends EventEmitter {
     const prev_cpu = this.last?.processes[pid]?.cpu.secs ?? total_cpu;
     const dt = this.dt(timestamp);
     // how much cpu time was used since last time we checked this process…
-    const pct = (total_cpu - prev_cpu) / dt;
+    const pct = 100 * ((total_cpu - prev_cpu) / dt);
     return { pct: pct, secs: total_cpu };
   }
 

@@ -202,7 +202,9 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
             chanRef.current.end();
           }
         }
-        syncRef.current?.close();
+        if (syncRef.current != null) {
+          syncRef.current.close();
+        }
       };
     } catch (err) {
       if (isMountedRef.current) {
@@ -258,7 +260,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
   function val_max_value(index): number {
     switch (index) {
       case "cpu_pct":
-        return 1;
+        return 100;
       case "cpu_tot":
         return idle_timeout;
       case "mem":
@@ -551,10 +553,7 @@ export const ProjectInfoFC: React.FC<Props> = ({ project_id }: Props) => {
               width="10%"
               dataIndex="cpu_pct"
               align={"right"}
-              render={render_val(
-                "cpu_pct",
-                (val) => `${(100 * val).toFixed(1)}%`
-              )}
+              render={render_val("cpu_pct", (val) => `${val.toFixed(1)}%`)}
             />
             <Table.Column<ProcessRow>
               key="cpu_tot"
