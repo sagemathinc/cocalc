@@ -314,6 +314,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   conn_write(data): void {
+    if (this.state == 'closed') return;  // no-op  -- see #4918
     if (this.conn === undefined) {
       this.conn_write_buffer.push(data);
       return;
