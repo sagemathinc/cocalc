@@ -98,7 +98,9 @@ export class BlobStore implements BlobStoreInterface {
     // that they do not loose any work.  So a few weeks should be way more than enough.
     // Note that TimeTravel may rely on these old blobs, so images in TimeTravel may
     // stop working after this long.  That's a tradeoff.
-    this.db.prepare("DELETE FROM blobs WHERE time <= ?").run(months_ago(1) - 0);
+    this.db
+      .prepare("DELETE FROM blobs WHERE time <= ?")
+      .run(months_ago(1).getTime());
   }
 
   // used in testing

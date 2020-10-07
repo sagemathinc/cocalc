@@ -37,3 +37,34 @@ describe("contains_url", () => {
     expect(cu("abc www.buy.me xyz")).toBe(true);
   });
 });
+
+describe("date object some time ago", () => {
+  test("roughly 10 mins ago", () => {
+    const res = misc2.minutes_ago(10);
+    const diff = new Date().getTime() - res.getTime();
+    expect(diff).toBeLessThan(10 * 60 * 1000 + 100);
+    expect(diff).toBeGreaterThan(10 * 60 * 1000 - 100);
+  });
+  test("2 months ago", () => {
+    const res = misc2.months_ago(2);
+    const diff = new Date().getTime() - res.getTime();
+    expect(diff).toBeLessThan(2 * 31 * 24 * 60 * 60 * 1000);
+    expect(diff).toBeGreaterThan(2 * 30 * 24 * 60 * 60 * 1000);
+  });
+});
+
+describe("how_long_ago_m", () => {
+  test("10 min ago  by Date", () => {
+    const past: Date = misc2.minutes_ago(10);
+    const diff = misc2.how_long_ago_m(past);
+    expect(diff).toBeLessThan(10.1);
+    expect(diff).toBeGreaterThan(9.9);
+  });
+
+  test("10 min ago  by timestamp", () => {
+    const past: number = misc2.minutes_ago(10).getTime();
+    const diff = misc2.how_long_ago_m(past);
+    expect(diff).toBeLessThan(10.1);
+    expect(diff).toBeGreaterThan(9.9);
+  });
+});
