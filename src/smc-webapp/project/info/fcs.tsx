@@ -13,18 +13,21 @@ import {
   Popconfirm,
   Grid,
   //Badge,
+  Switch,
 } from "antd";
 import {
   QuestionCircleOutlined,
   PauseCircleOutlined,
   //WarningOutlined,
 } from "@ant-design/icons";
+import { seconds2hms } from "smc-util/misc";
 import { Tip, TimeElapsed, Icon } from "../../r_misc";
 import { CGroupInfo, DUState } from "./types";
 import { warning_color_pct, warning_color_disk, filename } from "./utils";
 import {
   State,
   ProjectInfoCmds,
+  Process,
   Signal,
 } from "../../../smc-project/project-info/types";
 import { AlertType } from "../../../smc-project/project-status/types";
@@ -37,6 +40,82 @@ import * as humanizeList from "humanize-list";
 export const CodeWhite: React.FC = ({ children }) => (
   <code style={{ color: "white" }}>{children}</code>
 );
+
+interface AboutContentProps {
+  proc: Process;
+}
+
+export const AboutContent: React.FC<AboutContentProps> = ({
+  proc,
+}: AboutContentProps) => {
+  const [raw, set_raw] = React.useState<boolean>(false);
+
+  const style: CSS = { maxHeight: "35vw", height: "35vw", overflow: "auto" };
+
+  function render_raw() {
+    const style: CSS = {
+      fontSize: "85%",
+      whiteSpace: "pre-wrap",
+      fontFamily: "monospace",
+      maxHeight: "50vh",
+      overflow: "auto",
+    };
+    return <div style={style}>{JSON.stringify(proc, null, 2)}</div>;
+  }
+
+  function render_nice() {
+    const cpu_time = proc.stat.stime + proc.stat.utime;
+    const mem = proc.stat.mem.rss.toFixed(1);
+    const cpu_time_ch = proc.stat.cstime + proc.stat.cutime;
+    return (
+      <>
+        <Descriptions.Item label="Executable" span={2}>
+          <strong>
+            <code>{proc.exe}</code>
+          </strong>
+        </Descriptions.Item>
+        <Descriptions.Item label="Command line" span={2}>
+          <code>{proc.cmdline.join(" ")}</code>
+        </Descriptions.Item>
+        <Descriptions.Item label="Uptime">
+          <code>{seconds2hms(proc.uptime)}</code>
+        </Descriptions.Item>
+        <Descriptions.Item label="Memory">
+          <code>{mem} MiB</code>
+        </Descriptions.Item>
+        <Descriptions.Item label="CPU time">
+          <code>{seconds2hms(cpu_time)}</code>
+        </Descriptions.Item>
+        <Descriptions.Item label="CPU children">
+          <code>{seconds2hms(cpu_time_ch)}</code>
+        </Descriptions.Item>
+        <Descriptions.Item label="Nice">
+          <code>{proc.stat.nice}</code>
+        </Descriptions.Item>
+        <Descriptions.Item label="Threads">
+          <code>{proc.stat.num_threads}</code>
+        </Descriptions.Item>
+      </>
+    );
+  }
+
+  return (
+    <Descriptions
+      bordered
+      style={style}
+      title={`Process ${proc.pid}`}
+      size={"small"}
+      column={2}
+      extra={
+        <>
+          Raw view: <Switch checked={raw} onChange={(val) => set_raw(val)} />
+        </>
+      }
+    >
+      {raw ? render_raw() : render_nice()}
+    </Descriptions>
+  );
+};
 
 export const ProcState: React.FC<{ state: State }> = React.memo(({ state }) => {
   function render_state(): [number, string, CSS | undefined] | undefined {

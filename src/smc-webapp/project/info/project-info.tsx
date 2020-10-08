@@ -32,6 +32,7 @@ import {
   CoCalcFile,
   LabelQuestionmark,
   ProcState,
+  AboutContent,
   SignalButtons,
 } from "./fcs";
 import { ProcessRow, PTStats, CGroupInfo, DUState } from "./types";
@@ -319,12 +320,12 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
     function show_about(proc_about?: Process) {
       // from render_about we already know it will not be null
       if (proc_about == null) return;
-      const style: CSS = { fontSize: "85%", maxHeight: "35vw" };
+      const content = <AboutContent proc={proc_about} />;
       Modal.info({
         title: "Process info",
         width: "75vw",
         maskClosable: true,
-        content: <pre style={style}>{JSON.stringify(proc_about, null, 2)}</pre>,
+        content,
       });
     }
 
@@ -465,6 +466,7 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
                 ),
               }),
           });
+
         case "terminal":
           return (
             <CoCalcFile
@@ -539,6 +541,8 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
         </Tip>
       );
 
+      const table_style: CSS = { marginBottom: "2rem" };
+
       return (
         <>
           <Row style={{ marginBottom: "10px", marginTop: "20px" }}>
@@ -563,7 +567,7 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
               size={"small"}
               pagination={false}
               scroll={{ y: "65vh" }}
-              style={{ marginBottom: "2rem" }}
+              style={table_style}
               expandable={expandable}
               rowSelection={rowSelection}
               loading={disconnected || loading}
