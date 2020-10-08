@@ -631,21 +631,35 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
     function render_explanation() {
       if (!show_explanation) return;
       const msg = (
-        <span>
-          This panel shows real-time information about this project and its
-          resource usage. You can see which processes are running, and if
-          available, also get a button to <SiteName /> specific information or
-          links to the associated file. By selecting a process via the checkbox
-          on the left, you can obtain more detailed information via the "
-          {DETAILS_BTN_TEXT}" button or even issue commands like sending a
-          signal to the selected job(s). If there are any issues detected, there
-          will be highlights in red. They could be caused by individual
-          processes using CPU non-stop, the total of all processes hitting the
-          overall memory limit, or even the disk space running low. You can use
-          the signals to fix some of these issues by interrupting/terminating a
-          job, or restarting the project. If you're low on disk space, you
-          either have to delete some files or purchase disk space upgrades.
-        </span>
+        <div>
+          <p>
+            This panel shows{" "}
+            <strong>real-time information about this project</strong> and its
+            resource usage. In particular, you can see which processes are
+            running, and if available, also get a button to <SiteName />{" "}
+            specific information or links to the associated file.
+          </p>
+          <p>
+            By selecting a process via the checkbox on the left hand side, you
+            can obtain more detailed information via the "{DETAILS_BTN_TEXT}"
+            button or even issue commands like sending a signal to the selected
+            job(s).
+          </p>
+          <p>
+            Sub-processes are shown as a tree. When you collapse a branch, the
+            values you see are the sum of that particular process and all its
+            children.
+          </p>
+          <p>
+            If there are any issues detected, there will be highlights in red.
+            They could be caused by individual processes using CPU non-stop, the
+            total of all processes hitting the overall memory limit, or even the
+            disk space running low. You can use the signals to fix some of these
+            issues by interrupting/terminating a job, or restarting the project.
+            If you're low on disk space, you either have to delete some files or
+            purchase disk space upgrades.
+          </p>
+        </div>
       );
       return (
         <Col lg={8} lgOffset={2} md={12} mdOffset={0}>
