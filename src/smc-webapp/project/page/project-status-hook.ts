@@ -2,10 +2,11 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-import { React, useRedux } from "../../app-framework";
+import { React } from "../../app-framework";
 import { webapp_client } from "../../webapp-client";
 import { ProjectStatus as WSProjectStatus } from "../websocket/project-status";
 import { ProjectStatus } from "../../../smc-project/project-status/types";
+import { useProjectState } from "../page/project-state-hook";
 
 // this records data from the synctable "project_status" in redux.
 // used in page/page when a project is added to the UI
@@ -14,13 +15,7 @@ import { ProjectStatus } from "../../../smc-project/project-status/types";
 export function useProjectStatus(actions) {
   const project_id: string = actions.project_id;
   const statusRef = React.useRef<WSProjectStatus | null>(null);
-  const project_state = useRedux([
-    "projects",
-    "project_map",
-    project_id,
-    "state",
-    "state",
-  ]);
+  const project_state = useProjectState(project_id);
 
   function set_status(status) {
     actions.setState({ status });
@@ -41,9 +36,9 @@ export function useProjectStatus(actions) {
     status_sync.on("change", update);
   }
 
-  // each time the project state changes (including when mounted) we connect/reconnect
+  // each time the project state changes to running (including when mounted) we connect/reconnect
   React.useEffect(() => {
-    if (project_state !== "running") return;
+    if (project_state.get("state") !== "running") return;
     try {
       connect();
       return () => {

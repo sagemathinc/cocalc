@@ -358,11 +358,12 @@ interface SignalButtonsProps {
   selected: number[];
   set_selected: Function;
   loading: boolean;
+  disabled: boolean;
 }
 
 export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
   (props: SignalButtonsProps) => {
-    const { chan, selected, set_selected, loading } = props;
+    const { chan, selected, set_selected, loading, disabled } = props;
 
     function render_signal_icon(signal: number) {
       const style: CSS = { marginRight: "5px" };
@@ -426,7 +427,7 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
           type={signal === 2 ? "primary" : signal === 9 ? "dashed" : undefined}
           danger={dangerous}
           icon={icon}
-          disabled={chan == null || selected.length == 0}
+          disabled={disabled}
           loading={loading}
         >
           {name}
@@ -438,6 +439,7 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
           onConfirm={() => onConfirm(signal)}
           okText="Yes"
           cancelText="No"
+          disabled={disabled}
         >
           {button}
         </Popconfirm>
