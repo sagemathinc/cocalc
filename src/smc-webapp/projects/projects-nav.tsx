@@ -21,6 +21,7 @@ import {
   useRef,
   useState,
   useTypedRedux,
+  CSS,
 } from "../app-framework";
 import { Loading, Icon, Tip } from "../r_misc";
 import { NavTab } from "../app/nav-tab";
@@ -58,6 +59,16 @@ interface ProjectTabProps {
   project_id: string;
 }
 
+function useProjectStatusAlerts(project_id: string) {
+  const [any_alerts, set_any_alerts] = useState<boolean>(false);
+  const project_status = useTypedRedux({ project_id }, "status");
+  const any = project_status?.get("alerts").size > 0;
+  React.useMemo(() => {
+    set_any_alerts(any);
+  }, [any]);
+  return any_alerts;
+}
+
 const ProjectTab: React.FC<ProjectTabProps> = React.memo(
   ({ project_id, index }) => {
     /* This href hack below is to workaround issues with Firefox.  Without this hack,
@@ -87,6 +98,7 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
     );
     const project_websockets = useTypedRedux("projects", "project_websockets");
     const is_anonymous = useTypedRedux("account", "is_anonymous");
+    const any_alerts = useProjectStatusAlerts(project_id);
 
     function close_tab(e) {
       e.stopPropagation();
@@ -135,28 +147,37 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
       set_window_title(title);
     }
 
+    const nav_style: CSS = {
+      ...PROJECT_TAB_STYLE,
+      color:
+        project_id === active_top_tab ? COLORS.TOP_BAR.TEXT_ACTIVE : undefined,
+    };
+
+    const nav_style_inner: CSS = {
+      float: "right",
+      whiteSpace: "nowrap",
+      color: x_hovered ? COLORS.TOP_BAR.X_HOVER : COLORS.TOP_BAR.X,
+    };
+
+    const project_state = project?.getIn(["state", "state"]);
+
+    const icon =
+      any_alerts && project_state === "running" ? (
+        <Icon name={"exclamation-triangle"} style={{ color: COLORS.BS_RED }} />
+      ) : (
+        <Icon name={COMPUTE_STATES[project_state]?.icon ?? "bullhorn"} />
+      );
+
     return (
       <SortableNavTab
         ref={tab_ref}
         index={index}
         name={project_id}
         active_top_tab={active_top_tab}
-        style={{
-          ...PROJECT_TAB_STYLE,
-          color:
-            project_id === active_top_tab
-              ? COLORS.TOP_BAR.TEXT_ACTIVE
-              : undefined,
-        }}
+        style={nav_style}
         is_project={true}
       >
-        <div
-          style={{
-            float: "right",
-            whiteSpace: "nowrap",
-            color: x_hovered ? COLORS.TOP_BAR.X_HOVER : COLORS.TOP_BAR.X,
-          }}
-        >
+        <div style={nav_style_inner}>
           {render_websocket_indicator()}
           {render_close_x()}
         </div>
@@ -167,12 +188,7 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
             placement="bottom"
             size="small"
           >
-            <Icon
-              name={
-                COMPUTE_STATES[project?.getIn(["state", "state"])]?.icon ??
-                "bullhorn"
-              }
-            />
+            {icon}
             <span style={{ marginLeft: 5, position: "relative" }}>
               {trunc(title, 24)}
             </span>

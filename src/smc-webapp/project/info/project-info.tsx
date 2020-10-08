@@ -500,7 +500,7 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
     // mimic a table of processes program like htop – with tailored descriptions for cocalc
     function render_top() {
       if (ptree == null) {
-        if (project_state === "running") {
+        if (project_state === "running" && error == null) {
           return <Loading />;
         } else {
           return null;
