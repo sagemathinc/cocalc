@@ -28,6 +28,7 @@ import "./mentions";
 import "./password-reset";
 import "./project-info";
 import "./project-log";
+import "./project-status";
 import "./projects";
 import "./public-paths";
 import "./project-invite-tokens";

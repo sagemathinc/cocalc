@@ -269,6 +269,10 @@ export class JupyterKernel
     this.setMaxListeners(100);
   }
 
+  public get_path() {
+    return this._path;
+  }
+
   private _set_state(state: string): void {
     // state = 'off' --> 'spawning' --> 'starting' --> 'running' --> 'closed'
     this._state = state;
@@ -322,6 +326,10 @@ export class JupyterKernel
       this._set_state("off");
       throw err;
     }
+  }
+
+  get_spawned_kernel() {
+    return this._kernel;
   }
 
   async _finish_spawn(): Promise<void> {
@@ -893,4 +901,13 @@ export class JupyterKernel
 
 export function get_existing_kernel(path: string): JupyterKernel | undefined {
   return _jupyter_kernels[path];
+}
+
+export function get_kernel_by_pid(pid: number): JupyterKernel | undefined {
+  for (const kernel of Object.values(_jupyter_kernels)) {
+    if (kernel.get_spawned_kernel()?.spawn.pid === pid) {
+      return kernel;
+    }
+  }
+  return;
 }

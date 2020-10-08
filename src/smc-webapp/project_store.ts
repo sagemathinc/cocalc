@@ -130,6 +130,12 @@ export interface ProjectStoreState {
   get_public_path_id?: (path: string) => any;
   stripped_public_paths: any; //computed(immutable.List)
 
+  // Project Info
+  show_project_info_explanation?: boolean;
+
+  // Project Status
+  status?: immutable.Map<string, any>; // this is smc-project/project-status/types::ProjectStatus;
+
   other_settings: any;
 }
 

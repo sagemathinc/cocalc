@@ -201,6 +201,11 @@ export class API {
     return this.conn.channel(channel_name);
   }
 
+  async project_info(): Promise<Channel> {
+    const channel_name = await this.call({ cmd: "project_info" }, 60000);
+    return this.conn.channel(channel_name);
+  }
+
   // Get the lean *channel* for the given '.lean' path.
   async lean_channel(path: string): Promise<Channel> {
     const channel_name = await this.call(

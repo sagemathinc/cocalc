@@ -4,11 +4,11 @@
  */
 
 /*
-SyncTable of project information about a project.
+SyncTable of project status about a project.
 
 Use this via
 
-   webapp_client.project_client.project_info(project_id)
+   webapp_client.project_client.project_status(project_id)
 
 */
 
@@ -20,9 +20,9 @@ import { close } from "smc-util/misc2";
 import { WebappClient } from "../../webapp-client";
 
 type State = "init" | "ready" | "closed";
-type Info = Map<string, any>;
+type status = Map<string, any>;
 
-export class ProjectInfo extends EventEmitter {
+export class ProjectStatus extends EventEmitter {
   private table?: SyncTable;
   private project_id: string;
   private state: State = "init";
@@ -35,13 +35,13 @@ export class ProjectInfo extends EventEmitter {
     this.init();
   }
 
-  public get(): Info | undefined {
+  public get(): status | undefined {
     if (this.state != "ready") {
       return;
     }
-    const info = this.get_table()?.get(this.project_id)?.get("info");
-    if (info == null) return;
-    return (info as never) as Info;
+    const status = this.get_table()?.get(this.project_id)?.get("status");
+    if (status == null) return;
+    return (status as never) as status;
   }
 
   public close(): void {
@@ -74,10 +74,10 @@ export class ProjectInfo extends EventEmitter {
     this.table = await this.client.sync_client.synctable_project(
       this.project_id,
       {
-        project_info: [
+        project_status: [
           {
             project_id: this.project_id,
-            info: null,
+            status: null,
           },
         ],
       },
@@ -113,9 +113,9 @@ export class ProjectInfo extends EventEmitter {
     return this.table;
   }
 
-  public async set(info: Info | object): Promise<void> {
-    if (!Map.isMap(info)) {
-      info = fromJS(info);
+  public async set(status: status | object): Promise<void> {
+    if (!Map.isMap(status)) {
+      status = fromJS(status);
     }
     let table;
     try {
@@ -126,7 +126,7 @@ export class ProjectInfo extends EventEmitter {
       await this.re_init();
       table = this.get_table();
     }
-    table.set({ project_id: this.project_id, info }, "shallow");
+    table.set({ project_id: this.project_id, status }, "shallow");
     await table.save();
   }
 
@@ -150,6 +150,6 @@ export class ProjectInfo extends EventEmitter {
   }
 }
 
-export function project_info(client, project_id: string): ProjectInfo {
-  return new ProjectInfo(client, project_id);
+export function project_status(client, project_id: string): ProjectStatus {
+  return new ProjectStatus(client, project_id);
 }

@@ -149,6 +149,11 @@ exports.sage_session = (opts) ->
     # compute and cache if not cached; otherwise, get from cache:
     return cache[opts.path] ?= new SageSession(opts)
 
+## TODO for project-info/server we need a function that returns a path to a sage worksheet for a given PID
+#exports.get_sage_path = (pid) ->
+#    return path
+
+
 ###
 Sage Session object
 

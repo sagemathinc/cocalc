@@ -24,6 +24,7 @@ import {
   Icon,
   SettingBox,
 } from "../../r_misc";
+import { Space as AntdSpace } from "antd";
 import {
   CUSTOM_SOFTWARE_HELP_URL,
   compute_image2name,
@@ -34,8 +35,8 @@ import { ButtonToolbar, Button, Alert } from "react-bootstrap";
 import { alert_message } from "../../alerts";
 import { Project } from "./types";
 import { fromJS } from "immutable";
-import { Popconfirm } from "antd";
-import { StopOutlined, SyncOutlined } from "@ant-design/icons";
+import { RestartProject } from "./restart-project";
+import { StopProject } from "./stop-project";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 import { ComputeImageSelector } from "./compute-image-selector";
 import { COMPUTE_IMAGES as COMPUTE_IMAGES_ORIG } from "smc-util/compute-images";
@@ -130,66 +131,27 @@ export const ProjectControl = rclass<ReactProps>(
         .restart_project(this.props.project.get("project_id"));
     };
 
-    stop_project = () => {
-      redux
-        .getActions("projects")
-        .stop_project(this.props.project.get("project_id"));
-    };
-
     render_stop_button(commands): Rendered {
-      const text = (
-        <div style={{ maxWidth: "300px" }}>
-          Stopping the project server will kill all processes. After stopping a
-          project, it will not start until you or a collaborator restarts the
-          project.
-        </div>
-      );
-
       return (
-        <Popconfirm
-          placement={"bottom"}
-          arrowPointAtCenter={true}
-          title={text}
-          icon={<StopOutlined />}
-          onConfirm={() => this.stop_project()}
-          okText="Yes, stop project"
-          cancelText="Cancel"
-        >
-          <Button bsStyle="warning" disabled={!commands.includes("stop")}>
-            <Icon name="stop" /> Stop Project...
-          </Button>
-        </Popconfirm>
+        <AntdSpace>
+          {" "}
+          <StopProject
+            project_id={this.props.project.get("project_id")}
+            disabled={!commands.includes("stop")}
+          />
+        </AntdSpace>
       );
     }
 
     render_restart_button(commands): Rendered {
-      const text = (
-        <div style={{ maxWidth: "300px" }}>
-          Restarting the project server will terminate all processes, update the
-          project code, and start the project running again. It takes a few
-          seconds, and can fix some issues in case things are not working
-          properly. You'll not lose any files, but you have to start your
-          notebooks and worksheets again.
-        </div>
-      );
-
       return (
-        <Popconfirm
-          placement={"bottom"}
-          arrowPointAtCenter={true}
-          title={text}
-          icon={<SyncOutlined />}
-          onConfirm={() => this.restart_project()}
-          okText="Yes, restart project"
-          cancelText="Cancel"
-        >
-          <Button
+        <AntdSpace>
+          {" "}
+          <RestartProject
+            project_id={this.props.project.get("project_id")}
             disabled={!commands.includes("start") && !commands.includes("stop")}
-            bsStyle="warning"
-          >
-            <Icon name="refresh" /> Restart Project…
-          </Button>
-        </Popconfirm>
+          />{" "}
+        </AntdSpace>
       );
     }
 

@@ -25,6 +25,7 @@ import { TrialBanner } from "../trial-banner";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import { AnonymousName } from "../anonymous-name";
 import { StartButton } from "../start-button";
+import { useProjectStatus } from "./project-status-hook";
 
 import {
   DEFAULT_FILE_TAB_STYLES,
@@ -65,7 +66,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
     project_id,
     "deleted",
   ]);
-
+  useProjectStatus(actions);
   const open_files_order = useTypedRedux({ project_id }, "open_files_order");
   const open_files = useTypedRedux({ project_id }, "open_files");
   const active_project_tab = useTypedRedux(

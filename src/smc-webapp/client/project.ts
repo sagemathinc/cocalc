@@ -24,6 +24,10 @@ import {
   too_many_free_projects,
 } from "../project/client-side-throttle";
 import { ProjectInfo, project_info } from "../project/websocket/project-info";
+import {
+  ProjectStatus,
+  project_status,
+} from "../project/websocket/project-status";
 import { ensure_project_running } from "../project/project-start-warning";
 import { Configuration, ConfigurationAspect } from "../project_configuration";
 
@@ -500,5 +504,9 @@ export class ProjectClient {
 
   public project_info(project_id: string): ProjectInfo {
     return project_info(this.client, project_id);
+  }
+
+  public project_status(project_id: string): ProjectStatus {
+    return project_status(this.client, project_id);
   }
 }

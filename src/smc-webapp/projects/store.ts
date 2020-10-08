@@ -363,17 +363,8 @@ export class ProjectsStore extends Store<ProjectsState> {
     return upgrades;
   }
 
-  // The timestap (in server time) when this project will
-  // idle timeout if not edited by anybody.
-  public get_idle_timeout_horizon(project_id: string): Date | undefined {
-    // time when last edited in server time
-    const last_edited = this.getIn(["project_map", project_id, "last_edited"]);
-
-    // It can be undefined, e.g., for admin viewing a project they are not a collab on, since
-    // the project isn't in the project_map.  See https://github.com/sagemathinc/cocalc/issues/4686
-    // Using right now in that case is a good approximation.
-    if (last_edited == null) return;
-
+  // in seconds
+  public get_idle_timeout(project_id: string): number {
     // mintime = time in seconds project can stay unused
     // (0 is probably wrong but better than this being "undefined".)
     let mintime =
@@ -388,7 +379,22 @@ export class ProjectsStore extends Store<ProjectsState> {
       project_id
     );
     mintime += site_license.mintime;
-    return new Date(last_edited.valueOf() + 1000 * mintime);
+
+    return 1000 * mintime;
+  }
+
+  // The timestap (in server time) when this project will
+  // idle timeout if not edited by anybody.
+  public get_idle_timeout_horizon(project_id: string): Date | undefined {
+    // time when last edited in server time
+    const last_edited = this.getIn(["project_map", project_id, "last_edited"]);
+
+    // It can be undefined, e.g., for admin viewing a project they are not a collab on, since
+    // the project isn't in the project_map.  See https://github.com/sagemathinc/cocalc/issues/4686
+    // Using right now in that case is a good approximation.
+    if (last_edited == null) return;
+    const idle_timeout = this.get_idle_timeout(project_id);
+    return new Date(last_edited.valueOf() + idle_timeout);
   }
 
   // Returns the TOTAL of the quotas contributed by all
