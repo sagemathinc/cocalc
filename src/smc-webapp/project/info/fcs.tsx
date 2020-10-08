@@ -346,7 +346,7 @@ export const CoCalcFile: React.FC<CoCalcFileProps> = React.memo(
     }
 
     return (
-      <Button shape="round" icon={<Icon name={icon} />} onClick={() => click}>
+      <Button shape="round" icon={<Icon name={icon} />} onClick={click}>
         {render_tip()}
       </Button>
     );
