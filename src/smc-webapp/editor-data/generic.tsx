@@ -25,9 +25,14 @@ const microsoft_ppt =
   'Microsoft PowerPoint -- Create an ["X11" file](https://doc.cocalc.com/x11.html) and open the "Impress" application.';
 const windows_executable =
   "Windows Executable -- you must download this program and run it on a computer";
+const python_pickle =
+  "Python Pickle -- use Python's [pickle module](https://docs.python.org/3/library/pickle.html) to read this file.";
 
 // ext: markdown string.
 const INFO = {
+  p: python_pickle,
+  pkl: python_pickle,
+  pickle: python_pickle,
   exe: windows_executable,
   h4: hdf_file,
   h5: hdf_file,
