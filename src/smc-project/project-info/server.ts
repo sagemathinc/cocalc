@@ -116,7 +116,7 @@ export class ProjectInfoServer extends EventEmitter {
     // we are interested in that processes total usage: user + system
     const total_cpu = stat.utime + stat.stime;
     // the fallback is chosen in such a way, that it says 0% if we do not have historic data
-    const prev_cpu = this.last?.processes[pid]?.cpu.secs ?? total_cpu;
+    const prev_cpu = this.last?.processes?.[pid]?.cpu.secs ?? total_cpu;
     const dt = this.dt(timestamp);
     // how much cpu time was used since last time we checked this process…
     const pct = 100 * ((total_cpu - prev_cpu) / dt);

@@ -111,7 +111,7 @@ export class ProjectStatusServer extends EventEmitter {
     // we have to check if there aren't any processes left which no longer exist
     const leftovers = new Set(Object.keys(ecp));
     // bookkeeping of elevated process PIDS
-    for (const [pid, proc] of Object.entries(this.info.processes)) {
+    for (const [pid, proc] of Object.entries(this.info.processes ?? {})) {
       leftovers.delete(pid);
       if (proc.cpu.pct > ALERT_HIGH_PCT) {
         if (ecp[pid] == null) {
