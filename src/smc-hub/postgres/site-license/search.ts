@@ -65,7 +65,7 @@ export async function matching_site_licenses(
   const licenses = (
     await db.async_query({
       query:
-        "SELECT id, id || ' ' || lower(title) || ' ' || lower(description) || ' ' || lower(info::TEXT) AS info, managers FROM site_licenses ORDER BY last_used DESC NULLS LAST",
+        "SELECT id, id || ' ' || coalesce(lower(title),'') || ' ' || coalesce(lower(description),'') || ' ' || coalesce(lower(info::TEXT),'') AS info, managers FROM site_licenses ORDER BY last_used DESC NULLS LAST",
     })
   ).rows;
   // Replace manager account ids by name and email
@@ -82,7 +82,7 @@ export async function matching_site_licenses(
     await db.async_query({
       cache: true,
       query:
-        "SELECT account_id, lower(first_name) || ' ' || lower(last_name) || ' ' || lower(email_address) AS info FROM accounts WHERE account_id=ANY($1)",
+        "SELECT account_id, coalesce(lower(first_name),'') || ' ' || coalesce(lower(last_name),'') || ' ' || coalesce(lower(email_address),'') AS info FROM accounts WHERE account_id=ANY($1)",
       params: [Array.from(managers)],
     })
   ).rows) {
