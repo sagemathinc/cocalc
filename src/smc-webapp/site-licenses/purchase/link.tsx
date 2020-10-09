@@ -7,18 +7,26 @@
 
 import { React, useState } from "../../app-framework";
 import { PurchaseOneLicense } from "./purchase";
+import { Button } from "antd";
 
 export const PurchaseOneLicenseLink: React.FC = () => {
   const [expand, set_expand] = useState<boolean>(false);
-  if (expand) {
-    return (
-      <PurchaseOneLicense
-        onClose={() => {
-          set_expand(false);
-        }}
-      />
-    );
-  } else {
-    return <a onClick={() => set_expand(true)}>Buy a license...</a>;
-  }
+  return (
+    <div>
+      <Button disabled={expand} onClick={() => set_expand(true)}>
+        Buy a license...
+      </Button>
+      {expand && (
+        <>
+          <br />
+          <br />
+          <PurchaseOneLicense
+            onClose={() => {
+              set_expand(false);
+            }}
+          />
+        </>
+      )}
+    </div>
+  );
 };
