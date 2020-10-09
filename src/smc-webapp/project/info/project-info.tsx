@@ -224,6 +224,10 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
     }, [project_state]);
 
     function update_top(info: ProjectInfo) {
+      // this shouldn't be the case, but somehow I saw this happening once
+      // the ProjectInfo type is updated to refrect this edge case and here we bail out
+      // and wait for the next update of "info" to get all processes…
+      if (info.processes == null) return;
       const pchildren: string[] = [];
       const pt_stats = { ...pt_stats_init };
       const new_ptree =

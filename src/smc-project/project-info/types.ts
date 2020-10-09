@@ -95,7 +95,7 @@ export type Processes = { [pid: string]: Process };
 
 export interface ProjectInfo {
   timestamp: number;
-  processes: Processes;
+  processes?: Processes;
   cgroup?: CGroup; // only in "kucalc" mode
   disk_usage: DiskUsage;
   uptime: number; // secs, uptime of the machine
