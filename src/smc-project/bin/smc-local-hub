@@ -1,9 +1,32 @@
 #!/usr/bin/env python
 
 import os, sys
+import psutil
+
+def is_running(pid_file, process_name):
+    if not os.path.exists(pid_file):
+        return False
+
+    with open(pid_file, "r") as f:
+        try:
+            pid = int(f.read())
+        except (OSError, ValueError):
+            return False
+        if not psutil.pid_exists(pid):
+            return False
+        try:
+            cmd1 = psutil.Process(pid).cmdline()[0]
+            return cmd1 == process_name
+        except psutil.AccessDenied:
+            return False
 
 if not 'SMC' in os.environ:
     os.environ['SMC'] = os.path.join(os.environ['HOME'], '.smc')
+
+pidfile = os.path.join(os.environ['SMC'], 'local_hub', 'local_hub.pid' )
+if sys.argv[1] == 'start' and is_running(pidfile, 'node'):
+    # already running
+    sys.exit(0)
 
 data = os.path.join(os.environ['SMC'], 'local_hub')
 if not os.path.exists(data):
