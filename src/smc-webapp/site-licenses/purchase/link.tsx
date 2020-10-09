@@ -8,13 +8,15 @@
 import { React, useState } from "../../app-framework";
 import { PurchaseOneLicense } from "./purchase";
 import { Button } from "antd";
+import { Icon, Space } from "../../r_misc";
 
 export const PurchaseOneLicenseLink: React.FC = () => {
   const [expand, set_expand] = useState<boolean>(false);
   return (
     <div>
       <Button disabled={expand} onClick={() => set_expand(true)}>
-        Buy a license...
+        <Icon name={"shopping-cart"} />
+        <Space /> Buy a license...
       </Button>
       {expand && (
         <>
