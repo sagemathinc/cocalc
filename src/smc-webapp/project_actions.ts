@@ -2711,4 +2711,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       args: ["-p", path],
     });
   }
+
+  async modal(title, content): Promise<"ok" | "cancel"> {
+    let response: "ok" | "cancel" = "cancel";
+    this.setState({
+      modal: immutable.fromJS({
+        title,
+        content,
+        onOk: () => (response = "ok"),
+        onCancel: () => (response = "cancel"),
+      }),
+    });
+    await this.get_store()?.async_wait({
+      until: (s) => !s.get("modal"),
+    });
+    return response;
+  }
 }

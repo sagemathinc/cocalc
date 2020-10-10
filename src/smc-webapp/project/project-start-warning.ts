@@ -1,5 +1,4 @@
 import { redux } from "../app-framework";
-import { alert_message } from "../alerts";
 
 /* Various actions depend on the project running, so this function currently does the following:
     - Checks whether or not the project is running (assuming project state known -- admins don't know).
@@ -17,12 +16,17 @@ export async function ensure_project_running(
   const state = redux
     .getStore("projects")
     ?.getIn(["project_map", project_id, "state", "state"]);
-  if (state != null && state != "running") {
-    alert_message({
-      type: "error",
-      message: `You must start the project before you can ${what}.`,
-    });
-    return false;
+  if (state == null || state == "running" || state == "starting") {
+    return true;
   }
-  return true;
+  const project_actions = redux.getProjectActions(project_id);
+  const result = await project_actions.modal(
+    "Start Project?",
+    `You must start the project before you can ${what}.  Would you like to start the project?`
+  );
+  if (result == "ok") {
+    redux.getActions("projects").start_project(project_id);
+    return true;
+  }
+  return false;
 }

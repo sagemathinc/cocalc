@@ -137,6 +137,15 @@ export interface ProjectStoreState {
   status?: immutable.Map<string, any>; // this is smc-project/project-status/types::ProjectStatus;
 
   other_settings: any;
+
+  // Modal -- if modal is set to a string, display that string as a yes/no question.
+  // if Yes, then run the on_modal_yes function (if given).
+  modal?: TypedMap<{
+    title: string | JSX.Element;
+    content: string | JSX.Element;
+    onOk?: any;
+    onCancel?: any;
+  }>;
 }
 
 export class ProjectStore extends Store<ProjectStoreState> {
