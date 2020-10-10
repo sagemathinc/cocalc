@@ -297,10 +297,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     cb()
 
             (cb) =>
-                # CRITICAL!  At scale, this query
-                #    SELECT * FROM file_use WHERE project_id = any(select project_id from projects where users ? '25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb3') ORDER BY last_edited DESC limit 100;
-                # will take forever due to the query planner using a nestloop scan.  We thus
-                # disable doing so!
                 @_connect_time = new Date()
                 locals.i = 0
 
@@ -312,13 +308,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                         cb("hung")
                         cb = undefined
                     timeout = setTimeout(it_hung, 15000)
-                    dbg("now connected; disabling nestloop query planning for client #{locals.i}")
+                    #dbg("now connected; disabling nestloop query planning for client #{locals.i}")
                     locals.i += 1
-                    client.query "SET enable_nestloop TO off", (err) =>
-                        if err
-                            dbg("disabling nestloop failed for client #{locals.i}")
-                        else
-                            dbg("disabling nestloop done for client #{locals.i}")
+                    client.query "SELECT NOW()", (err) =>
                         clearTimeout(timeout)
                         cb(err)
                 async.map(locals.clients, f, cb)

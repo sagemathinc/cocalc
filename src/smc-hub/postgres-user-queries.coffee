@@ -1456,6 +1456,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         locals =
             result     : undefined
             changes_cb : undefined
+            nestloop   : SCHEMA[opts.table]?.rules?.pg_nestloop  # true, false or undefined
+
         async.series([
             (cb) =>
                 if client_query.get.check_hook?
@@ -1501,8 +1503,20 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                                                 opts.account_id, client_query, cb)
                 else
                     cb()
-            (cb) =>
 
+            (cb) =>
+                if typeof locals.nestloop == 'boolean'
+                    val = if locals.nestloop then 'on' else 'off'
+                    @_query
+                        query        : "SET enable_nestloop TO #{val}"
+                        cb           : (err) =>
+                            if err
+                                dbg("disabling nestloop failed for #{opts.table}")
+                            cb()
+                else
+                    cb()
+
+            (cb) =>
                 if client_query.get.instead_of_query?
                     if opts.changes?
                         cb("changefeeds are not supported for querying this table")
@@ -1529,19 +1543,33 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         locals.result = result
                         cb()
         ], (err) =>
-            if err
-                dbg("series failed -- err=#{err}")
-                opts.cb(err)
-                return
-            dbg("series succeeded")
-            opts.cb(undefined, locals.result)
-            if opts.changes?
-                dbg("sending change queue")
-                opts.changes.cb = locals.changes_cb
-                ##dbg("sending queued #{JSON.stringify(locals.changes_queue)}")
-                for {err, obj} in locals.changes_queue
-                    ##dbg("sending queued changes #{JSON.stringify([err, obj])}")
-                    opts.changes.cb(err, obj)
+            async.series([
+                (cb) =>
+                    # if nestloop was set to true or false, we reset it for the next query
+                    if locals.nestloop?
+                        @_query
+                            query        : "SET enable_nestloop TO DEFAULT"
+                            cb           : (err) =>
+                                if err
+                                    dbg("resetting nestloop failed for #{opts.table}")
+                                cb()
+                    else
+                        cb()
+            ], () =>
+                if err
+                    dbg("series failed -- err=#{err}")
+                    opts.cb(err)
+                    return
+                dbg("series succeeded")
+                opts.cb(undefined, locals.result)
+                if opts.changes?
+                    dbg("sending change queue")
+                    opts.changes.cb = locals.changes_cb
+                    ##dbg("sending queued #{JSON.stringify(locals.changes_queue)}")
+                    for {err, obj} in locals.changes_queue
+                        ##dbg("sending queued changes #{JSON.stringify([err, obj])}")
+                        opts.changes.cb(err, obj)
+            )
         )
 
     ###
