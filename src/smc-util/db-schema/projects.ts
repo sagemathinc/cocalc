@@ -20,10 +20,13 @@ Table({
 
     pg_indexes: [
       "last_edited",
+      "created", // TODO: this could have a fillfactor of 100
       "USING GIN (users)", // so get_collaborator_ids is fast
       "USING GIN (host jsonb_path_ops)", // so get_projects_on_compute_server is fast
       "lti_id",
       "USING GIN (state)", // so getting all running projects is fast (e.g. for site_license_usage_log... but also manage-state)
+      "((state #>> '{state}'))", // projecting the "state" (running, etc.) for its own index – the GIN index above still causes a scan, which we want to avoid.
+      "((state ->> 'state'))", // same reason as above. both syntaxes appear and we have to index both.
     ],
 
     user_query: {
