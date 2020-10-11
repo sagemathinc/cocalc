@@ -57,6 +57,13 @@ const MASKED_FILE_EXTENSIONS = {
   sage: ["sage.py"],
 };
 
+export type ModalInfo = TypedMap<{
+  title: string | JSX.Element;
+  content: string | JSX.Element;
+  onOk?: any;
+  onCancel?: any;
+}>;
+
 export interface ProjectStoreState {
   // Shared
   current_path: string;
@@ -140,12 +147,7 @@ export interface ProjectStoreState {
 
   // Modal -- if modal is set to a string, display that string as a yes/no question.
   // if Yes, then run the on_modal_yes function (if given).
-  modal?: TypedMap<{
-    title: string | JSX.Element;
-    content: string | JSX.Element;
-    onOk?: any;
-    onCancel?: any;
-  }>;
+  modal?: ModalInfo;
 }
 
 export class ProjectStore extends Store<ProjectStoreState> {

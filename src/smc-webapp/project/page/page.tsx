@@ -320,11 +320,11 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
         title={modal?.get("title")}
         visible={!!modal}
         onOk={() => {
-          actions?.setState({ modal: undefined });
+          actions?.clear_modal();
           modal?.get("onOk")?.();
         }}
         onCancel={() => {
-          actions?.setState({ modal: undefined });
+          actions?.clear_modal();
           modal?.get("onCancel")?.();
         }}
       >

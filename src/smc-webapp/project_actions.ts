@@ -52,7 +52,7 @@ import { get_directory_listing2 as get_directory_listing } from "./project/direc
 
 import { Actions, project_redux_name, redux } from "./app-framework";
 
-import { ProjectStore, ProjectStoreState } from "./project_store";
+import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
 import { ProjectEvent } from "./project/history/types";
 import { DEFAULT_COMPUTE_IMAGE } from "../smc-util/compute-images";
 import { download_href, url_href } from "./project/utils";
@@ -184,6 +184,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private _init_done = false;
   private new_filename_generator;
   public open_files?: OpenFiles;
+  private modal?: ModalInfo;
 
   constructor(a, b) {
     super(a, b);
@@ -2712,19 +2713,47 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  async modal(title, content): Promise<"ok" | "cancel"> {
+  /* NOTE!  Below we store the modal state *both* in a private
+  variabel *and* in the store.  The reason is because we need
+  to know it immediately after it is set in order for
+  wait_until_no_modals to work robustless, and setState can
+  wait before changing the state.
+  */
+  public clear_modal(): void {
+    delete this.modal;
+    this.setState({ modal: undefined });
+  }
+
+  public async show_modal({
+    title,
+    content,
+  }: {
+    title: string;
+    content: string;
+  }): Promise<"ok" | "cancel"> {
+    if (this.modal != null) {
+      await this.wait_until_no_modals();
+    }
     let response: "ok" | "cancel" = "cancel";
+    const modal = immutable.fromJS({
+      title,
+      content,
+      onOk: () => (response = "ok"),
+      onCancel: () => (response = "cancel"),
+    });
+    this.modal = modal;
     this.setState({
-      modal: immutable.fromJS({
-        title,
-        content,
-        onOk: () => (response = "ok"),
-        onCancel: () => (response = "cancel"),
-      }),
+      modal,
     });
-    await this.get_store()?.async_wait({
-      until: (s) => !s.get("modal"),
-    });
+    await this.wait_until_no_modals();
     return response;
+  }
+
+  public async wait_until_no_modals(): Promise<void> {
+    if (this.modal == null) return;
+    await this.get_store()?.async_wait({
+      until: (s) => !s.get("modal") && this.modal == null,
+      timeout: 99999,
+    });
   }
 }
