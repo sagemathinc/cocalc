@@ -185,9 +185,16 @@ export class CellInput extends Component<CellInputProps> {
   }
 
   private render_codemirror(type: "code" | "markdown" | "raw"): Rendered {
+    let value = this.props.cell.get("input");
+    if (typeof value != "string") {
+      // E.g., if it is null or a weird object.  This shouldn't happen, but typescript doesn't
+      // guarantee it. I have hit this in production: https://sagemathcloud.zendesk.com/agent/tickets/8963
+      // and anyways, a user could edit the underlying db file and mess things up.
+      value = "";
+    }
     return (
       <CodeMirror
-        value={this.props.cell.get("input", "")}
+        value={value}
         options={this.options(type)}
         actions={this.props.actions}
         frame_actions={this.props.frame_actions}
