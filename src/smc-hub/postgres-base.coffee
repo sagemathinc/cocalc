@@ -983,7 +983,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         f = (info, cb) =>
             query = info.query
             # Shorthand index is just the part in parens.
-            query = "CREATE INDEX #{info.name} ON #{table} #{query}"
+            query = "CREATE INDEX CONCURRENTLY #{info.name} ON #{table} #{query}"
             @_query
                 query : query
                 cb    : cb
@@ -1128,7 +1128,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     switch task.action
                         when 'create'
                             @_query
-                                query : "CREATE INDEX #{task.name} ON #{table} #{task.query}"
+                                query : "CREATE INDEX CONCURRENTLY #{task.name} ON #{table} #{task.query}"
                                 cb    : cb
                         when 'delete'
                             @_query
