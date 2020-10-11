@@ -89,7 +89,6 @@
     "mathematics"
   ],
   "bin": {
-    "smc-local-hub": "./bin/smc-local-hub",
-    "smc-console-server": "./bin/smc-console-server"
+    "smc-local-hub": "./bin/smc-local-hub"
   }
 }
