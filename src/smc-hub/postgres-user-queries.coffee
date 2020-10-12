@@ -1491,8 +1491,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 misc.merge(_query_opts, x)
 
                 nestloop = SCHEMA[opts.table]?.pg_nestloop  # true, false or undefined
-                if typeof locals.nestloop == 'boolean'
-                    val = if locals.nestloop then 'on' else 'off'
+                if typeof nestloop == 'boolean'
+                    val = if nestloop then 'on' else 'off'
                     _query_opts.pg_params = {enable_nestloop : val}
 
                 if opts.changes?

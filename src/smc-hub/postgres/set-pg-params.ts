@@ -3,9 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// This is used in postgres-base for setting postges parameters of a single query
+// This is used in postgres-base to set postgres parameters for a single query
+// https://www.postgresql.org/docs/10/sql-set.html
 
 import { Client } from "pg";
+import * as debug from "debug";
+const L = debug("hub:pg:query_params");
 
 interface Opts {
   client: Client;
@@ -22,18 +25,18 @@ export async function do_query_with_pg_params(opts: Opts): Promise<void> {
 
   try {
     await client.query("BEGIN");
-    // const res = await client.query(queryText, ["brianc"]);
     for (const [k, v] of Object.entries(pg_params)) {
-      // LOCAL: only for this transaction!
-      console.log("SET LOCAL $1 TO $2", k, v);
-      await client.query("SET $1 TO $2", [k, v]);
+      // SET LOCAL: only for this transaction!
+      // NOTE: interestingly, $1, $2 params do not work … but this isn't user-facing
+      const q = `SET LOCAL ${k} TO ${v}`;
+      await client.query(q);
     }
     const res = await client.query(query, params);
     cb(undefined, res);
     await client.query("COMMIT");
   } catch (err) {
+    L(`ROLLBACK -- err=${err}`);
     await client.query("ROLLBACK");
     cb(err);
   }
-  process.exit();
 }
