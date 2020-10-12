@@ -983,7 +983,12 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         f = (info, cb) =>
             query = info.query
             # Shorthand index is just the part in parens.
-            query = "CREATE INDEX CONCURRENTLY #{info.name} ON #{table} #{query}"
+            # 2020-10-12: it makes total sense to add CONCURRENTLY to this index command to avoid locking up the table,
+            # but the first time we tried this in production (postgres 10), it just made "invalid" indices.
+            # the problem might be that several create index commands were issued rapidly, which trew this off
+            # So, for now, it's probably best to either create them manually first (concurrently) or be
+            # aware that this does lock up briefly.
+            query = "CREATE INDEX #{info.name} ON #{table} #{query}"
             @_query
                 query : query
                 cb    : cb
@@ -1127,8 +1132,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 do_task = (task, cb) =>
                     switch task.action
                         when 'create'
+                            # ATTN if you consider adding CONCURRENTLY to create index, read the note earlier above about this
                             @_query
-                                query : "CREATE INDEX CONCURRENTLY #{task.name} ON #{table} #{task.query}"
+                                query : "CREATE INDEX #{task.name} ON #{table} #{task.query}"
                                 cb    : cb
                         when 'delete'
                             @_query
