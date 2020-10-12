@@ -97,7 +97,7 @@ function cleanup(connectionFile) {
   }
 }
 
-const DEFAULT_SPAN_OPTIONS = {
+const DEFAULT_SPAWN_OPTIONS = {
   stdio: "ignore",
   cleanupConnectionFile: true,
   env: {},
@@ -116,7 +116,7 @@ async function launch_kernel_spec(
     x.replace("{connection_file}", connection_file)
   );
 
-  const full_spawn_options = { ...DEFAULT_SPAN_OPTIONS, ...spawn_options };
+  const full_spawn_options = { ...DEFAULT_SPAWN_OPTIONS, ...spawn_options };
 
   full_spawn_options.env = {
     ...process.env,

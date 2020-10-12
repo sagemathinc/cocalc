@@ -62,7 +62,7 @@ export async function start_project(
     return;
   }
   // Start project running.
-  redux.getActions("projects").start_project(project_id);
+  await redux.getActions("projects").start_project(project_id);
   // Wait until running (or fails without timeout).
   await callback2(store.wait, { until: is_running, timeout });
 }

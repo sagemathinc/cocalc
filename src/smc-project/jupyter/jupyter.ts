@@ -186,7 +186,7 @@ interface KernelParams {
   usage?: boolean; // monitor memory/cpu usage and report via 'usage' event.∑
 }
 
-export function kernel(opts: KernelParams) : JupyterKernel  {
+export function kernel(opts: KernelParams): JupyterKernel {
   if (opts.verbose === undefined) {
     opts.verbose = true;
   }
@@ -323,6 +323,9 @@ export class JupyterKernel
       this._kernel = await launch_jupyter_kernel(this.name, opts);
       await this._finish_spawn();
     } catch (err) {
+      if (this._state === "closed") {
+        throw Error("closed");
+      }
       this._set_state("off");
       throw err;
     }
@@ -335,11 +338,11 @@ export class JupyterKernel
   async _finish_spawn(): Promise<void> {
     const dbg = this.dbg("spawn2");
 
-    dbg("now creating os...");
+    dbg("now finishing spawn of kernel...");
 
     this._kernel.spawn.on("error", (err) => {
       dbg("kernel spawn error", err);
-      return this.emit("spawn_error", err);
+      this.emit("spawn_error", err);
     });
 
     this._channels = require("enchannel-zmq-backend").createChannels(
@@ -408,7 +411,10 @@ export class JupyterKernel
     */
     const that = this;
     async function f(): Promise<void> {
+      if (that._state == "closed") return;
+      dbg("calling kernel_info_request...", that._state);
       await that.call("kernel_info_request");
+      dbg("called kernel_info_request", that._state);
       if (that._state === "starting") {
         throw Error("still starting");
       }
@@ -419,7 +425,7 @@ export class JupyterKernel
       start_delay: 500,
       max_delay: 5000,
       factor: 1.4,
-      max_time: 2 * 60000, // long in case of starting many at once --
+      max_time: 60000, // long in case of starting many at once --
       // we don't want them to all fail and start
       // again and fail ad infinitum!
       f: f,
@@ -427,6 +433,9 @@ export class JupyterKernel
         dbg("retry_until_success", ...args);
       },
     });
+    if (this._state == "closed") {
+      throw Error("closed");
+    }
 
     dbg("successfully got kernel info");
   }
@@ -572,7 +581,7 @@ export class JupyterKernel
 
   async _ensure_running(): Promise<void> {
     if (this._state === "closed") {
-      return;
+      throw Error("closed so not possible to ensure running");
     }
     if (this._state !== "running") {
       await this.spawn();
@@ -682,12 +691,12 @@ export class JupyterKernel
   // and does not use the internal execution queue.
   // This is used for unit testing and interactive work at the terminal.
   async execute_code_now(opts: ExecOpts): Promise<object[]> {
+    if (this._state === "closed") {
+      throw Error("closed");
+    }
     if (opts.halt_on_error === undefined) {
       // if not specified, default to true.
       opts.halt_on_error = true;
-    }
-    if (this._state === "closed") {
-      throw Error("closed");
     }
     await this._ensure_running();
     return await new CodeExecutionEmitter(this, opts).go();
@@ -760,9 +769,10 @@ export class JupyterKernel
     // Wait for the response that has the right msg_id.
     let the_mesg: any = undefined;
     const wait_for_response = (cb) => {
-      var f = (mesg) => {
+      const f = (mesg) => {
         if (mesg.parent_header.msg_id === message.header.msg_id) {
           this.removeListener("shell", f);
+          this.removeListener("closed", g);
           mesg = deep_copy(mesg.content);
           if (len(mesg.metadata) === 0) {
             delete mesg.metadata;
@@ -771,7 +781,13 @@ export class JupyterKernel
           cb();
         }
       };
+      const g = () => {
+        this.removeListener("shell", f);
+        this.removeListener("closed", g);
+        cb("closed");
+      };
       this.on("shell", f);
+      this.on("closed", g);
     };
     await callback(wait_for_response);
     return the_mesg;

@@ -49,6 +49,7 @@ import { DeleteSharedProjectPanel } from "../shared-project/delete-shared-projec
 import { TerminalCommandPanel } from "./terminal-command";
 
 import { Nbgrader } from "./nbgrader";
+import { Parallel } from "./parallel";
 
 import { upgrades } from "smc-util/upgrade-spec";
 import { StudentProjectsStartStopPanel } from "./start-stop-panel";
@@ -653,6 +654,8 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
               course_project_id={project_id}
               inherit_compute_image={settings.get("inherit_compute_image")}
             />
+            <br />
+            <Parallel name={name} />
           </Col>
         </Row>
       </div>

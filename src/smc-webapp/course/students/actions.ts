@@ -7,7 +7,7 @@
 Actions specific to manipulating the students in a course
 */
 
-import { CourseActions, PARALLEL_LIMIT } from "../actions";
+import { CourseActions } from "../actions";
 import { CourseStore, StudentRecord } from "../store";
 import { SyncDBRecordStudent } from "../types";
 import { callback2 } from "smc-util/async-utils";
@@ -69,7 +69,7 @@ export class StudentsActions {
     });
 
     try {
-      await map(student_ids, PARALLEL_LIMIT, f);
+      await map(student_ids, this.get_store().get_copy_parallel(), f);
     } catch (err) {
       if (this.course_actions.is_closed()) return;
       this.course_actions.set_error(
@@ -105,7 +105,7 @@ export class StudentsActions {
   public async delete_all_students(): Promise<void> {
     const store = this.get_store();
     const students = store.get_students().valueSeq().toArray();
-    await map(students, PARALLEL_LIMIT, this.do_delete_student);
+    await map(students, store.get_copy_parallel(), this.do_delete_student);
     await this.course_actions.student_projects.configure_all_projects();
   }
 

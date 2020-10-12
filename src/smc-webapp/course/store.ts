@@ -21,6 +21,8 @@ import { SITE_NAME } from "smc-util/theme";
 // Upgrades
 import * as project_upgrades from "./project-upgrades";
 
+const PARALLEL_DEFAULT = 5;
+
 import {
   AssignmentCopyStep,
   AssignmentStatus,
@@ -132,6 +134,7 @@ export type CourseSettingsRecord = TypedMap<{
   upgrade_goal: Map<any, any>;
   site_license_id?: string;
   site_license_strategy?: SiteLicenseStrategy;
+  copy_parallel?: number;
   nbgrader_grade_in_instructor_project?: boolean; // deprecated
   nbgrader_grade_project?: string;
   nbgrader_include_hidden_tests?: boolean;
@@ -139,6 +142,7 @@ export type CourseSettingsRecord = TypedMap<{
   nbgrader_timeout_ms?: number;
   nbgrader_max_output?: number;
   nbgrader_max_output_per_cell?: number;
+  nbgrader_parallel?: number;
 }>;
 
 export const CourseSetting = createTypedMap<CourseSettingsRecord>();
@@ -879,6 +883,20 @@ export class CourseStore extends Store<CourseState> {
       }
     }
     return v;
+  }
+
+  public get_copy_parallel(): number {
+    const n = this.getIn(["settings", "copy_parallel"]) ?? PARALLEL_DEFAULT;
+    if (n < 1) return 1;
+    if (n > 50) return 50;
+    return n;
+  }
+
+  public get_nbgrader_parallel(): number {
+    const n = this.getIn(["settings", "nbgrader_parallel"]) ?? PARALLEL_DEFAULT;
+    if (n < 1) return 1;
+    if (n > 50) return 50;
+    return n;
   }
 }
 

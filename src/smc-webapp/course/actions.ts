@@ -35,8 +35,6 @@ import { bind_methods } from "smc-util/misc2";
 // React libraries
 import { Actions, TypedMap } from "../app-framework";
 
-export const PARALLEL_LIMIT = 3; // number of async things to do in parallel
-
 const primary_key = {
   students: "student_id",
   assignments: "assignment_id",

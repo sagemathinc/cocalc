@@ -22,7 +22,7 @@ export const NBGRADER_MAX_OUTPUT: number = 4000000;
 
 import { Map } from "immutable";
 
-import { CourseActions, PARALLEL_LIMIT } from "../actions";
+import { CourseActions } from "../actions";
 import {
   AssignmentRecord,
   CourseStore,
@@ -612,7 +612,11 @@ ${details}
       }
     };
 
-    await map(store.get_student_ids({ deleted: false }), PARALLEL_LIMIT, f);
+    await map(
+      store.get_student_ids({ deleted: false }),
+      store.get_copy_parallel(),
+      f
+    );
     if (errors) {
       finish(errors);
     } else {
@@ -998,7 +1002,11 @@ ${details}
       }
     };
 
-    await map(store.get_student_ids({ deleted: false }), PARALLEL_LIMIT, f);
+    await map(
+      store.get_student_ids({ deleted: false }),
+      store.get_copy_parallel(),
+      f
+    );
 
     if (errors) {
       finish(errors);
@@ -1116,7 +1124,7 @@ ${details}
         target_path: target_base_path + "/GRADING-GUIDE.md",
       });
       // now copy actual stuff to grade
-      await map(peers, PARALLEL_LIMIT, f);
+      await map(peers, store.get_copy_parallel(), f);
       finish();
     } catch (err) {
       finish(err);
@@ -1204,7 +1212,7 @@ ${details}
     };
 
     try {
-      await map(peers, PARALLEL_LIMIT, f);
+      await map(peers, store.get_copy_parallel(), f);
       finish();
     } catch (err) {
       finish(err);
@@ -1407,7 +1415,7 @@ ${details}
       }
     };
 
-    await map(to_read, PARALLEL_LIMIT, f);
+    await map(to_read, 10, f);
     return result;
   }
 
@@ -1455,7 +1463,7 @@ ${details}
       this.nbgrader_set_is_running(assignment_id);
       await map(
         this.get_store().get_student_ids({ deleted: false }),
-        1, // TODO: not actually in parallel for now; I had trouble with it in parallel
+        this.get_store().get_nbgrader_parallel(),
         one_student
       );
       this.course_actions.syncdb.commit();
@@ -1702,7 +1710,7 @@ ${details}
           });
         }
 
-        const r = await nbgrader({
+        const opts = {
           timeout_ms: store.getIn(
             ["settings", "nbgrader_timeout_ms"],
             NBGRADER_TIMEOUT_MS
@@ -1723,9 +1731,15 @@ ${details}
           instructor_ipynb,
           path: student_path,
           project_id: grade_project_id,
-        });
-        /*console.log("nbgrader finished successfully", {
+        };
+        /*console.log(
           student_id,
+          file,
+          "about to launch autograding with input ",
+          opts
+        );*/
+        const r = await nbgrader(opts);
+        /* console.log(student_id, "autograding finished successfully", {
           file,
           r,
         });*/

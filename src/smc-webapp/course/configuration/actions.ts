@@ -153,6 +153,13 @@ export class ConfigurationActions {
     }
   }
 
+  public set_copy_parallel(copy_parallel: number): void {
+    this.set({
+      copy_parallel,
+      table: "settings",
+    });
+  }
+
   // project_id is a uuid *or* empty string.
   public set_nbgrader_grade_project(project_id: string): void {
     this.set({
@@ -217,5 +224,12 @@ export class ConfigurationActions {
   public set_software_environment(state: SoftwareEnvironmentState): void {
     const image = derive_project_img_name(state);
     this.set_compute_image(image);
+  }
+
+  public set_nbgrader_parallel(nbgrader_parallel: number): void {
+    this.set({
+      nbgrader_parallel,
+      table: "settings",
+    });
   }
 }

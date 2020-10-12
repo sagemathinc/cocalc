@@ -30,7 +30,8 @@ import {
 
 type State = "init" | "closed" | "running";
 
-export class CodeExecutionEmitter extends EventEmitter
+export class CodeExecutionEmitter
+  extends EventEmitter
   implements CodeExecutionEmitterInterface {
   readonly kernel: JupyterKernel;
   readonly code: string;
@@ -44,6 +45,7 @@ export class CodeExecutionEmitter extends EventEmitter
   private _message: any;
   private _go_cb: Function | undefined = undefined;
   private timeout_ms?: number;
+  private timer?: any;
   private killing: string = "";
 
   constructor(kernel: JupyterKernel, opts: ExecOpts) {
@@ -91,6 +93,10 @@ export class CodeExecutionEmitter extends EventEmitter
 
   close(): void {
     if (this.state == "closed") return;
+    if (this.timer != null) {
+      clearTimeout(this.timer);
+      delete this.timer;
+    }
     this.state = "closed";
     this.emit("closed");
     this.removeAllListeners();
@@ -272,7 +278,7 @@ export class CodeExecutionEmitter extends EventEmitter
 
     if (this.timeout_ms) {
       // setup a timeout at which point things will get killed if they don't finish
-      setTimeout(this.timeout, this.timeout_ms);
+      this.timer = setTimeout(this.timeout, this.timeout_ms);
     }
   }
 
