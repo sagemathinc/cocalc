@@ -1456,7 +1456,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         locals =
             result     : undefined
             changes_cb : undefined
-            nestloop   : SCHEMA[opts.table]?.rules?.pg_nestloop  # true, false or undefined
+            nestloop   : SCHEMA[opts.table]?.pg_nestloop  # true, false or undefined
 
         async.series([
             (cb) =>
