@@ -36,6 +36,7 @@ if not pg?
 #pg      = require('pg')
 
 winston      = require('./winston-metrics').get_logger('postgres')
+{do_query_with_pg_params} = require('./postgres/set-pg-params')
 
 misc_node = require('smc-util-node/misc_node')
 
@@ -297,10 +298,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     cb()
 
             (cb) =>
-                # CRITICAL!  At scale, this query
-                #    SELECT * FROM file_use WHERE project_id = any(select project_id from projects where users ? '25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb3') ORDER BY last_edited DESC limit 100;
-                # will take forever due to the query planner using a nestloop scan.  We thus
-                # disable doing so!
                 @_connect_time = new Date()
                 locals.i = 0
 
@@ -312,13 +309,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                         cb("hung")
                         cb = undefined
                     timeout = setTimeout(it_hung, 15000)
-                    dbg("now connected; disabling nestloop query planning for client #{locals.i}")
+                    dbg("now connected; checking if we can actually query the DB via client #{locals.i}")
                     locals.i += 1
-                    client.query "SET enable_nestloop TO off", (err) =>
-                        if err
-                            dbg("disabling nestloop failed for client #{locals.i}")
-                        else
-                            dbg("disabling nestloop done for client #{locals.i}")
+                    client.query "SELECT NOW()", (err) =>
                         clearTimeout(timeout)
                         cb(err)
                 async.map(locals.clients, f, cb)
@@ -425,6 +418,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             offset      : undefined
             safety_check: true
             retry_until_success : undefined  # if given, should be options to misc.retry_until_success
+            pg_params   : undefined  # key/value map of postgres parameters, which will be set for the query in a single transaction
             cb          : undefined
 
         # quick check for write query against read-only connection
@@ -475,7 +469,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
         # OK, now start it attempting.
         misc.retry_until_success(retry_opts)
-
 
     __do_query: (opts) =>
         dbg = @_dbg("_query('#{misc.trunc(opts.query?.replace(/\n/g, " "),250)}',id='#{misc.uuid().slice(0,6)}')")
@@ -760,7 +753,12 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 opts.cb?(err, result)
                 if query_time_ms >= QUERY_ALERT_THRESH_MS
                     dbg("QUERY_ALERT_THRESH: query_time_ms=#{query_time_ms}\nQUERY_ALERT_THRESH: query='#{opts.query}'\nQUERY_ALERT_THRESH: params='#{misc.to_json(opts.params)}'")
-            client.query(opts.query, opts.params, query_cb)
+
+            if opts.pg_params?
+                dbg("run query with specific postgres parameters in a transaction")
+                do_query_with_pg_params(client: client, query: opts.query, params: opts.params, pg_params:opts.pg_params, cb: query_cb)
+            else
+                client.query(opts.query, opts.params, query_cb)
 
         catch e
             # this should never ever happen

@@ -41,8 +41,12 @@ Table({
     durability: "soft", // loss of some log data not serious, since used only for showing notifications
     unique_writes: true, // there is no reason for a user to write the same record twice
     db_standby: "safer", // allow doing the initial read part of the query from a standby node.
-
     pg_indexes: ["project_id", "last_edited"],
+
+    // CRITICAL!  At scale, this query
+    //    SELECT * FROM file_use WHERE project_id = any(select project_id from projects where users ? '25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb3') ORDER BY last_edited DESC limit 100;
+    // will take forever due to the query planner using a nestloop scan.  We thus disable doing so!
+    pg_nestloop: false,
 
     // I put a time limit in pg_where below of to just give genuinely recent notifications,
     // and massively reduce server load.  The obvious todo list is to make another file_use
@@ -50,7 +54,10 @@ Table({
     user_query: {
       get: {
         pg_where: ["last_edited >= NOW() - interval '21 days'", "projects"],
-        pg_where_load: ["last_edited >= NOW() - interval '10 days'", "projects"],
+        pg_where_load: [
+          "last_edited >= NOW() - interval '10 days'",
+          "projects",
+        ],
         pg_changefeed: "projects",
         options: [{ order_by: "-last_edited" }, { limit: 200 }], // limit is arbitrary
         options_load: [{ order_by: "-last_edited" }, { limit: 70 }], // limit is arbitrary

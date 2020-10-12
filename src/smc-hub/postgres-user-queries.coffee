@@ -1456,6 +1456,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         locals =
             result     : undefined
             changes_cb : undefined
+
         async.series([
             (cb) =>
                 if client_query.get.check_hook?
@@ -1489,6 +1490,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     return
                 misc.merge(_query_opts, x)
 
+                nestloop = SCHEMA[opts.table]?.pg_nestloop  # true, false or undefined
+                if typeof nestloop == 'boolean'
+                    val = if nestloop then 'on' else 'off'
+                    _query_opts.pg_params = {enable_nestloop : val}
+
                 if opts.changes?
                     locals.changes_cb = opts.changes.cb
                     locals.changes_queue = []
@@ -1501,8 +1507,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                                                 opts.account_id, client_query, cb)
                 else
                     cb()
-            (cb) =>
 
+            (cb) =>
                 if client_query.get.instead_of_query?
                     if opts.changes?
                         cb("changefeeds are not supported for querying this table")
