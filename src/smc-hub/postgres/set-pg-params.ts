@@ -18,7 +18,7 @@ interface Opts {
   cb: (err?, result?) => void;
 }
 
-// run the actualy query after a setup quey in a transaction
+// Run the actual query after a setup query in a transaction; this is
 // used by __do_query in postgres-base
 export async function do_query_with_pg_params(opts: Opts): Promise<void> {
   const { client, query, params, pg_params, cb } = opts;
@@ -32,8 +32,8 @@ export async function do_query_with_pg_params(opts: Opts): Promise<void> {
       await client.query(q);
     }
     const res = await client.query(query, params);
-    cb(undefined, res);
     await client.query("COMMIT");
+    cb(undefined, res);
   } catch (err) {
     L(`ROLLBACK -- err=${err}`);
     await client.query("ROLLBACK");
