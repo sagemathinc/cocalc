@@ -6,6 +6,7 @@
 import { RunNotebookOptions } from "../smc-webapp/jupyter/nbgrader/api";
 import { JupyterNotebook } from "../smc-webapp/jupyter/nbgrader/autograde";
 import { is_object, len, uuid, trunc_middle } from "../smc-util/misc";
+import { retry_until_success } from "../smc-util/async-utils";
 
 import { kernel, JupyterKernel } from "../jupyter/jupyter";
 
@@ -31,7 +32,10 @@ export async function jupyter_run_notebook(
   logger,
   opts: RunNotebookOptions
 ): Promise<string> {
-  logger.debug("jupyter_run_notebook", trunc_middle(JSON.stringify(opts)));
+  const log = (...args) => {
+    logger.debug("jupyter_run_notebook", ...args);
+  };
+  log(trunc_middle(JSON.stringify(opts)));
   const notebook: JupyterNotebook = JSON.parse(opts.ipynb);
 
   let limits: Limits = {
@@ -46,24 +50,54 @@ export async function jupyter_run_notebook(
   const name = notebook.metadata.kernelspec.name;
   let jupyter: JupyterKernel | undefined = undefined;
 
-  async function init_jupyter(): Promise<void> {
+  /* We use retry_until_success to spawn the kernel, since
+     it makes people's lives much easier if this works even
+     if there is a temporary issue.  Also, in testing, I've
+     found that sometimes if you try to spawn two kernels at
+     the exact same time as the same user things can fail
+     This is possibly an upstream Jupyter bug, but let's
+     just work around it since we want extra reliability
+     anyways.
+  */
+  async function init_jupyter0(): Promise<void> {
+    log("init_jupyter", jupyter != null);
     jupyter?.close();
     jupyter = undefined;
     // path is random so it doesn't randomly conflict with
     // something else running at the same time.
     const path = opts.path + `/${uuid()}.ipynb`;
     jupyter = kernel({ name, client, path });
+    log("init_jupyter: spawning");
     await jupyter.spawn();
+    log("init_jupyter: spawned");
+  }
+
+  async function init_jupyter(): Promise<void> {
+    await retry_until_success({
+      f: init_jupyter0,
+      start_delay: 1000,
+      max_delay: 5000,
+      factor: 1.4,
+      max_time: 30000,
+      log: function (...args) {
+        log("init_jupyter - retry_until_success", ...args);
+      },
+    });
   }
 
   try {
+    log("init_jupyter...");
     await init_jupyter();
+    log("init_jupyter: done");
     for (const cell of notebook.cells) {
       try {
         if (jupyter == null) {
+          log("BUG: jupyter==null");
           throw Error("jupyter can't be null since it was initialized above");
         }
+        log("run_cell...");
         await run_cell(jupyter, limits, cell); // mutates cell by putting in outputs
+        log("run_cell: done");
       } catch (err) {
         // fatal error occured, e.g,. timeout, broken kernel, etc.
         if (cell.outputs == null) {
@@ -73,16 +107,21 @@ export async function jupyter_run_notebook(
         if (!global_timeout_exceeded(limits)) {
           // close existing jupyter and spawn new one, so we can robustly run more cells.
           // Obviously, only do this if we are not out of time.
+          log("timeout exceeded so restarting...");
           await init_jupyter();
+          log("timeout exceeded restart done");
         }
       }
     }
   } finally {
+    log("in finally");
     if (jupyter != null) {
+      log("jupyter != null so closing");
       jupyter.close();
       jupyter = undefined;
     }
   }
+  log("returning result");
   return JSON.stringify(notebook);
 }
 

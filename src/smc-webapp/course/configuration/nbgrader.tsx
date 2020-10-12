@@ -47,7 +47,12 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
           borderRadius: "5px",
         }}
       >
-        <h6>Where to autograde assignments</h6>
+        <h6>
+          Where to autograde assignments:{" "}
+          {location == "student"
+            ? "in each student's project"
+            : "specific project"}
+        </h6>
         <Radio.Group
           onChange={(e) => {
             if (e.target.value == "student") {
@@ -112,7 +117,12 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
           borderRadius: "5px",
         }}
       >
-        <h6>Nbgrader Hidden tests</h6>
+        <h6>
+          Nbgrader hidden tests:{" "}
+          {settings?.get("nbgrader_include_hidden_tests")
+            ? "Included"
+            : "NOT included"}
+        </h6>
         <Checkbox
           checked={settings?.get("nbgrader_include_hidden_tests")}
           onChange={(e) =>
@@ -144,7 +154,7 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
           borderRadius: "5px",
         }}
       >
-        <h6>Nbgrader Timeouts</h6>
+        <h6>Nbgrader timeouts: {timeout} seconds</h6>
         <i>Grading timeout in seconds:</i> if grading a student notebook takes
         longer than <i>{timeout} seconds</i>, then it is terminated with a
         timeout error.
@@ -189,7 +199,7 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
           borderRadius: "5px",
         }}
       >
-        <h6>Nbgrader Output limits</h6>
+        <h6>Nbgrader output limits: {Math.round(max_output / 1000)} KB</h6>
         <i>Max output:</i> if total output from all cells exceeds{" "}
         {Math.round(max_output / 1000)} KB, then further output is truncated.
         <NumberInput
@@ -216,6 +226,39 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
     );
   }
 
+  function render_parallel(): JSX.Element {
+    const parallel = Math.round(
+      settings.get("nbgrader_parallel") ??
+        actions.get_store().get_nbgrader_parallel()
+    );
+    return (
+      <div
+        style={{
+          border: "1px solid lightgrey",
+          padding: "10px",
+          borderRadius: "5px",
+        }}
+      >
+        <h6>
+          Nbgrader parallel limit:{" "}
+          {parallel > 1
+            ? `grade ${parallel} students at once`
+            : "one student a time"}
+        </h6>
+        <i>Max number of students</i> to grade in parallel. What is optimal
+        could depend on where grading is happening (see "Where to autograde
+        assignments" above), and compute resources you or your students have
+        bought.
+        <NumberInput
+          on_change={(n) => actions.configuration.set_nbgrader_parallel(n)}
+          min={1}
+          max={50}
+          number={parallel}
+        />
+      </div>
+    );
+  }
+
   return (
     <Card
       title={
@@ -231,6 +274,8 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
       {render_timeouts()}
       <br />
       {render_limits()}
+      <br />
+      {render_parallel()}
     </Card>
   );
 };

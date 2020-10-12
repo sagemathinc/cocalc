@@ -7,7 +7,7 @@
 Actions involving working with handouts.
 */
 
-import { CourseActions, PARALLEL_LIMIT } from "../actions";
+import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
 import { webapp_client } from "../../webapp-client";
 import { redux } from "../../app-framework";
@@ -267,7 +267,7 @@ export class HandoutsActions {
       }
     };
 
-    await map(store.get_student_ids({ deleted: false }), PARALLEL_LIMIT, f);
+    await map(store.get_student_ids({ deleted: false }), store.get_copy_parallel(), f);
 
     finish(errors);
   }

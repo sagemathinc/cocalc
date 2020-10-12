@@ -61,9 +61,10 @@ export async function ensure_project_running(
       project_actions.clear_modal();
     }
   }, 1000);
+  const project_title = redux.getStore("projects").get_title(project_id);
   result = await project_actions.show_modal({
     title: "Start Project?",
-    content: `You must start the project before you can ${what}.  Would you like to start the project?`,
+    content: `You must start the project '${project_title}' before you can ${what}.  Start this project?`,
   });
   if (result == "ok") {
     explicitly_started[project_id] = new Date().valueOf();
