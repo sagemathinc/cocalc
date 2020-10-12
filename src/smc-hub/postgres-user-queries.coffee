@@ -1456,7 +1456,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         locals =
             result     : undefined
             changes_cb : undefined
-            nestloop   : SCHEMA[opts.table]?.pg_nestloop  # true, false or undefined
 
         async.series([
             (cb) =>
@@ -1491,6 +1490,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     return
                 misc.merge(_query_opts, x)
 
+                nestloop = SCHEMA[opts.table]?.pg_nestloop  # true, false or undefined
+                if typeof locals.nestloop == 'boolean'
+                    val = if locals.nestloop then 'on' else 'off'
+                    _query_opts.pg_params = {enable_nestloop : val}
+
                 if opts.changes?
                     locals.changes_cb = opts.changes.cb
                     locals.changes_queue = []
@@ -1501,18 +1505,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     @_user_get_query_changefeed(opts.changes, table, primary_keys,
                                                 opts.query, _query_opts.where, json_fields,
                                                 opts.account_id, client_query, cb)
-                else
-                    cb()
-
-            (cb) =>
-                if typeof locals.nestloop == 'boolean'
-                    val = if locals.nestloop then 'on' else 'off'
-                    @_query
-                        query        : "SET enable_nestloop TO #{val}"
-                        cb           : (err) =>
-                            if err
-                                dbg("disabling nestloop failed for #{opts.table}")
-                            cb()
                 else
                     cb()
 
@@ -1543,33 +1535,19 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         locals.result = result
                         cb()
         ], (err) =>
-            async.series([
-                (cb) =>
-                    # if nestloop was set to true or false, we reset it for the next query
-                    if locals.nestloop?
-                        @_query
-                            query        : "SET enable_nestloop TO DEFAULT"
-                            cb           : (err) =>
-                                if err
-                                    dbg("resetting nestloop failed for #{opts.table}")
-                                cb()
-                    else
-                        cb()
-            ], () =>
-                if err
-                    dbg("series failed -- err=#{err}")
-                    opts.cb(err)
-                    return
-                dbg("series succeeded")
-                opts.cb(undefined, locals.result)
-                if opts.changes?
-                    dbg("sending change queue")
-                    opts.changes.cb = locals.changes_cb
-                    ##dbg("sending queued #{JSON.stringify(locals.changes_queue)}")
-                    for {err, obj} in locals.changes_queue
-                        ##dbg("sending queued changes #{JSON.stringify([err, obj])}")
-                        opts.changes.cb(err, obj)
-            )
+            if err
+                dbg("series failed -- err=#{err}")
+                opts.cb(err)
+                return
+            dbg("series succeeded")
+            opts.cb(undefined, locals.result)
+            if opts.changes?
+                dbg("sending change queue")
+                opts.changes.cb = locals.changes_cb
+                ##dbg("sending queued #{JSON.stringify(locals.changes_queue)}")
+                for {err, obj} in locals.changes_queue
+                    ##dbg("sending queued changes #{JSON.stringify([err, obj])}")
+                    opts.changes.cb(err, obj)
         )
 
     ###

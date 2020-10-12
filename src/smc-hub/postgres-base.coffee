@@ -36,6 +36,7 @@ if not pg?
 #pg      = require('pg')
 
 winston      = require('./winston-metrics').get_logger('postgres')
+do_query_with_pg_params = require('./postgres/set-pg-params')
 
 misc_node = require('smc-util-node/misc_node')
 
@@ -417,6 +418,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             offset      : undefined
             safety_check: true
             retry_until_success : undefined  # if given, should be options to misc.retry_until_success
+            pg_params   : undefined  # key/value map of postgres parameters, which will be set for the query in a single transaction -- https://www.postgresql.org/docs/10/sql-set.html
             cb          : undefined
 
         # quick check for write query against read-only connection
@@ -467,7 +469,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
         # OK, now start it attempting.
         misc.retry_until_success(retry_opts)
-
 
     __do_query: (opts) =>
         dbg = @_dbg("_query('#{misc.trunc(opts.query?.replace(/\n/g, " "),250)}',id='#{misc.uuid().slice(0,6)}')")
@@ -752,7 +753,12 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 opts.cb?(err, result)
                 if query_time_ms >= QUERY_ALERT_THRESH_MS
                     dbg("QUERY_ALERT_THRESH: query_time_ms=#{query_time_ms}\nQUERY_ALERT_THRESH: query='#{opts.query}'\nQUERY_ALERT_THRESH: params='#{misc.to_json(opts.params)}'")
-            client.query(opts.query, opts.params, query_cb)
+
+            if opts.pg_params?
+                dbg("setting postgres parameters in a transaction")
+                do_query_with_pg_params(client: client, query: opts.query, params: opts.params, pg_params:opts.pg_params, cb: query_cb)
+            else
+                client.query(opts.query, opts.params, query_cb)
 
         catch e
             # this should never ever happen
