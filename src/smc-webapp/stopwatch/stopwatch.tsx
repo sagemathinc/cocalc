@@ -38,15 +38,11 @@ interface StopwatchState {
 }
 
 export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
-  private intervals: number[];
+  private intervals: number[] = [];
 
   constructor(props) {
     super(props);
     this.state = { editing_label: false };
-  }
-
-  public componentWillMount(): void {
-    this.intervals = [];
   }
 
   private setInterval(fn: Function, ms: number): void {
