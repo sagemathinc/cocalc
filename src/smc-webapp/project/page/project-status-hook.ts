@@ -6,13 +6,14 @@ import { React } from "../../app-framework";
 import { webapp_client } from "../../webapp-client";
 import { ProjectStatus as WSProjectStatus } from "../websocket/project-status";
 import { ProjectStatus } from "../../../smc-project/project-status/types";
+import { ProjectActions } from "../../project_actions";
 import { useProjectState } from "../page/project-state-hook";
 
 // this records data from the synctable "project_status" in redux.
 // used in page/page when a project is added to the UI
 // if you want to know the project state, do
 // const project_status = useTypedRedux({ project_id }, "status");
-export function useProjectStatus(actions) {
+export function useProjectStatus(actions: ProjectActions) {
   const project_id: string = actions.project_id;
   const statusRef = React.useRef<WSProjectStatus | null>(null);
   const project_state = useProjectState(project_id);
