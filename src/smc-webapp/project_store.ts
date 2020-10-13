@@ -130,8 +130,8 @@ export interface ProjectStoreState {
   subdirectories?: boolean;
   case_sensitive?: boolean;
   hidden_files?: boolean;
-  info_visible?: boolean;
   git_grep: boolean;
+  info_visible?: boolean;
 
   // Project Settings
   get_public_path_id?: (path: string) => any;
@@ -227,6 +227,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
   }
 
   getInitialState = (): ProjectStoreState => {
+    const other_settings = redux.getStore("account")?.get("other_settings");
     return {
       // Shared
       current_path: "",
@@ -256,10 +257,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       file_listing_scroll_top: undefined,
       active_file_sort: TypedMap({
         is_descending: false,
-        column_name:
-          redux
-            .getStore("account")
-            ?.getIn(["other_settings", "default_file_sort"]) ?? "time",
+        column_name: other_settings?.get("default_file_sort") ?? "time",
       }),
 
       // Project New
@@ -269,7 +267,11 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
       // Project Find
       user_input: "",
-      git_grep: true,
+      git_grep: other_settings?.get("find_git_grep") ?? true,
+      subdirectories: other_settings?.get("find_subdirectories"),
+      case_sensitive: other_settings?.get("find_case_sensitive"),
+      hidden_files: other_settings?.get("find_hidden_files"),
+
       most_recent_path: "",
 
       // Project Settings

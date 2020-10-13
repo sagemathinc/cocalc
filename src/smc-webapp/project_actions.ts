@@ -2369,7 +2369,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
-    this.setState({ subdirectories: !store.get("subdirectories") });
+    const subdirectories = !store.get("subdirectories");
+    this.setState({ subdirectories });
+    redux
+      .getActions("account")
+      ?.set_other_settings("find_subdirectories", subdirectories);
   }
 
   toggle_search_checkbox_case_sensitive() {
@@ -2377,7 +2381,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
-    this.setState({ case_sensitive: !store.get("case_sensitive") });
+    const case_sensitive = !store.get("case_sensitive");
+    this.setState({ case_sensitive });
+    redux
+      .getActions("account")
+      ?.set_other_settings("find_case_sensitive", case_sensitive);
   }
 
   toggle_search_checkbox_hidden_files() {
@@ -2385,7 +2393,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
-    this.setState({ hidden_files: !store.get("hidden_files") });
+    const hidden_files = !store.get("hidden_files");
+    this.setState({ hidden_files });
+    redux
+      .getActions("account")
+      ?.set_other_settings("find_hidden_files", hidden_files);
   }
 
   toggle_search_checkbox_git_grep() {
@@ -2393,7 +2405,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
-    this.setState({ git_grep: !store.get("git_grep") });
+    const git_grep = !store.get("git_grep");
+    this.setState({ git_grep });
+    redux.getActions("account")?.set_other_settings("find_git_grep", git_grep);
   }
 
   process_search_results(err, output, max_results, max_output, cmd) {
