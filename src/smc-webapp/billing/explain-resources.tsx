@@ -17,6 +17,7 @@ import { ProjectQuotaBoundsTable } from "./project-quota-bounds-table";
 import { DEDICATED_VM_TEXT } from "./dedicated-vm";
 import { FAQ } from "./faq";
 import { TITLE as COURSE_TITLE } from "./explain-course-licenses";
+import { DOC_LICENSE_URL } from "./data";
 
 interface Props {
   type: "shared" | "dedicated";
@@ -153,7 +154,7 @@ export const ExplainResources: React.FC<Props> = (props: Props) => {
 
             <h4>License Keys</h4>
             <div>
-              <A href="https://doc.cocalc.com/account/licenses.html">
+              <A href={DOC_LICENSE_URL}>
                 License Keys
               </A>{" "}
               are applied to projects. One key upgrades up to certain number of{" "}
