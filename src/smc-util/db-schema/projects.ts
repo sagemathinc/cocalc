@@ -27,6 +27,7 @@ Table({
       "USING GIN (state)", // so getting all running projects is fast (e.g. for site_license_usage_log... but also manage-state)
       "((state #>> '{state}'))", // projecting the "state" (running, etc.) for its own index – the GIN index above still causes a scan, which we want to avoid.
       "((state ->> 'state'))", // same reason as above. both syntaxes appear and we have to index both.
+      "((settings ->> 'always_running'))", // to quickly know which projects have this setting
     ],
 
     user_query: {
