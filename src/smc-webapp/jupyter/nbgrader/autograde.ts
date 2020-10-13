@@ -207,6 +207,7 @@ function get_score(output): number | undefined {
       // valid to put some print logging in a solution.
       return 0;
     }
+    /* DISABLED -- there are too many ways this can go wrong, and it is VERY confusing!
     // if output can cast to finite float, use that as the score (partial credit)
     try {
       const x = parseFloat(output["text"]);
@@ -214,6 +215,7 @@ function get_score(output): number | undefined {
         return x;
       }
     } catch (_) {}
+    */
   }
 
   return undefined;
