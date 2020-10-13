@@ -16,9 +16,9 @@ export const Parallel: React.FC<Props> = ({ name }) => {
   const settings = useRedux([name, "settings"]);
   const actions: CourseActions = useActions({ name });
 
+  const parallel =
+    settings.get("copy_parallel") ?? actions.get_store().get_copy_parallel();
   function render_parallel() {
-    const parallel =
-      settings.get("copy_parallel") ?? actions.get_store().get_copy_parallel();
     return (
       <div>
         <i>Max number of students</i> to copy and collect files from in
@@ -34,13 +34,12 @@ export const Parallel: React.FC<Props> = ({ name }) => {
     );
   }
 
-  const parallel = settings.get("copy_parallel");
   return (
     <Card
       title={
         <>
           {" "}
-          <Icon name="users" /> Parallel limit: copy to or from {parallel}{" "}
+          <Icon name="users" /> Parallel limit: copy {parallel} assignments at a time{" "}
           {plural(parallel, "student")} at a time
         </>
       }
