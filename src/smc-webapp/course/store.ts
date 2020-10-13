@@ -21,7 +21,7 @@ import { SITE_NAME } from "smc-util/theme";
 // Upgrades
 import * as project_upgrades from "./project-upgrades";
 
-const PARALLEL_DEFAULT = 5;
+export const PARALLEL_DEFAULT = 5;
 
 import {
   AssignmentCopyStep,

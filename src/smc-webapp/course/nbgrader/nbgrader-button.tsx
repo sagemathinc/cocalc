@@ -16,8 +16,8 @@ import {
   useRedux,
   useState,
 } from "../../app-framework";
-import { Icon, Space } from "../../r_misc";
-import { CourseStore, NBgraderRunInfo } from "../store";
+import { Icon, Space, Tip } from "../../r_misc";
+import { CourseStore, NBgraderRunInfo, PARALLEL_DEFAULT } from "../store";
 import { CourseActions } from "../actions";
 import { nbgrader_status } from "./util";
 import { plural } from "smc-util/misc2";
@@ -36,6 +36,7 @@ export const NbgraderButton: React.FC<Props> = React.memo(
     ]);
     const assignment = useRedux([name, "assignments", assignment_id]);
     const [show_more_info, set_show_more_info] = useState<boolean>(false);
+    const settings = useRedux([name, "settings"]);
 
     const status = useMemo(() => {
       const store: undefined | CourseStore = redux.getStore(name) as any;
@@ -56,6 +57,20 @@ export const NbgraderButton: React.FC<Props> = React.memo(
       }
       return false;
     }, [nbgrader_run_info]);
+
+    function render_parallel() {
+      const n = settings.get("nbgrader_parallel") ?? PARALLEL_DEFAULT;
+      return (
+        <Tip
+          title={`Nbgrader parallel limit: grade ${n} students at once`}
+          tip="This is the max number of students to grade in parallel.  Change this in course configuration."
+        >
+          <div style={{ marginTop: "5px", fontWeight: 400 }}>
+            Grade up to {n} students at once.
+          </div>
+        </Tip>
+      );
+    }
 
     function render_more_info() {
       if (status == null) return <span />;
@@ -120,6 +135,7 @@ export const NbgraderButton: React.FC<Props> = React.memo(
                   </Popconfirm>
                 </span>
               )}
+              {render_parallel()}
             </div>
           }
         />
