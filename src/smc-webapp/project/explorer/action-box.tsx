@@ -12,8 +12,11 @@ import { Icon, Loading, LoginLink } from "../../r_misc";
 import { DirectorySelector } from "../directory-selector";
 import { file_actions, ProjectActions } from "../../project_store";
 import { SelectProject } from "../../projects/select-project";
-const misc = require("smc-util/misc");
-const {
+import { in_snapshot_path } from "../utils";
+
+import * as misc from "smc-util/misc";
+
+import {
   Button,
   ButtonToolbar,
   Col,
@@ -23,10 +26,10 @@ const {
   FormGroup,
   Alert,
   Checkbox,
-} = require("react-bootstrap");
-const account = require("../../account");
+} from "react-bootstrap";
+import * as account from "../../account";
 
-const ConfigureShare = require("../../share/config/config").Configure;
+import { Configure as ConfigureShare } from "../../share/config/config";
 
 type FileAction = undefined | keyof typeof file_actions;
 
@@ -109,7 +112,7 @@ export const ActionBox = rclass<ReactProps>(
       this.props.actions.set_file_action();
     };
 
-    action_key = (e: React.KeyboardEvent): void => {
+    action_key = (e): void => {
       switch (e.keyCode) {
         case 27:
           this.cancel_action();
@@ -506,7 +509,7 @@ export const ActionBox = rclass<ReactProps>(
             <Checkbox
               ref="delete_extra_files_checkbox"
               onChange={(e) =>
-                this.setState({ delete_extra_files: e.target.checked })
+                this.setState({ delete_extra_files: (e.target as any).checked })
               }
             >
               Delete extra files in target directory
@@ -514,7 +517,7 @@ export const ActionBox = rclass<ReactProps>(
             <Checkbox
               ref="overwrite_newer_checkbox"
               onChange={(e) =>
-                this.setState({ overwrite_newer: e.target.checked })
+                this.setState({ overwrite_newer: (e.target as any).checked })
               }
             >
               Overwrite newer versions of files
@@ -589,6 +592,30 @@ export const ActionBox = rclass<ReactProps>(
       return true;
     }
 
+    render_copy_description(): JSX.Element {
+      for (const path of this.props.checked_files) {
+        if (in_snapshot_path(path)) {
+          return (
+            <>
+              <h4>Restore files from backup</h4>
+              {this.render_selected_files_list()}
+            </>
+          );
+        }
+      }
+      return (
+        <>
+          <h4>
+            Copy to a folder or{" "}
+            {this.state.show_different_project
+              ? "project"
+              : this.different_project_button()}
+          </h4>
+          {this.render_selected_files_list()}
+        </>
+      );
+    }
+
     render_copy(): JSX.Element {
       const { size } = this.props.checked_files;
       const signed_in = this.props.get_user_type() === "signed_in";
@@ -617,13 +644,7 @@ export const ActionBox = rclass<ReactProps>(
                 sm={this.state.show_different_project ? 4 : 5}
                 style={{ color: "#666" }}
               >
-                <h4>
-                  Copy to a folder or{" "}
-                  {this.state.show_different_project
-                    ? "project"
-                    : this.different_project_button()}
-                </h4>
-                {this.render_selected_files_list()}
+                {this.render_copy_description()}
               </Col>
               {this.render_different_project_dialog()}
               <Col

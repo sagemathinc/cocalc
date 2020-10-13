@@ -27,7 +27,7 @@ import { callback, delay } from "awaiting";
 import { callback2, retry_until_success } from "smc-util/async-utils";
 import { exec } from "./frame-editors/generic/client";
 import { API } from "./project/websocket/api";
-import { NewFilenames, normalize } from "./project/utils";
+import { in_snapshot_path, NewFilenames, normalize } from "./project/utils";
 import { NEW_FILENAMES } from "smc-util/db-schema";
 
 import { transform_get_url } from "./project/transform-get-url";
@@ -1899,11 +1899,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     let args = ["-rltgoDxH"];
 
-    // We ensure the target copy is writable if *any* source path starts with .snapshots.
-    // See https://github.com/sagemathinc/cocalc/issues/2497
-    // This is a little lazy, but whatever.
+    // We ensure the target copy is writable if *any* source path starts is inside of .snapshots.
+    // See https://github.com/sagemathinc/cocalc/issues/2497 and https://github.com/sagemathinc/cocalc/issues/4935
     for (const x of opts.src) {
-      if (misc.startswith(x, ".snapshots")) {
+      if (in_snapshot_path(x)) {
         args = args.concat(["--perms", "--chmod", "u+w"]);
         break;
       }
