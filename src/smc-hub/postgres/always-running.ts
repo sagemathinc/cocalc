@@ -15,7 +15,7 @@ export async function projects_that_need_to_be_started(
 ): Promise<string[]> {
   const result = await database.async_query({
     query:
-      "SELECT project_id FROM projects WHERE settings#>>'{always_running}' = '1' AND state#>>'{state}' NOT IN ('running', 'starting')",
+      "SELECT project_id FROM projects WHERE settings ->> 'always_running' = '1' AND state ->> 'state' NOT IN ('running', 'starting')",
   });
   const projects: string[] = [];
   for (const row of result.rows) {
