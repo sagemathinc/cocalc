@@ -17,12 +17,11 @@ Use ?random= or ?time= if you're worried about cacheing.
 Browser client code only uses this through the websocket anyways.
 */
 
-import { join } from "path";
 import { lstat, stat, readdir, readlink, Dirent, Stats } from "fs";
 import { callback } from "awaiting";
-import { spawn as child_process_spawn } from "child_process";
+import { execFile as child_process_execFile } from "child_process";
 import { promisify } from "util";
-const spawn = promisify(child_process_spawn);
+const execFile = promisify(child_process_execFile);
 import { DirectoryListingEntry } from "./smc-util/types";
 
 // SMC_LOCAL_HUB_HOME is used for developing cocalc inside cocalc...
@@ -100,13 +99,15 @@ export async function get_listing(
 
 export async function get_git_dir(path: string): Promise<string | undefined> {
   try {
-    const cwd = join(HOME, path);
-    const ret = await spawn("git", ["rev-parse", "--absolute-git-dir"], {
-      cwd,
-    });
-    return ret.stdout.trim();
+    const cwd = HOME + "/" + path;
+    const { stdout } = await execFile(
+      "git",
+      ["rev-parse", "--absolute-git-dir"],
+      { cwd }
+    );
+    return stdout.trim();
   } catch {
-    // we ignore any errors
+    // we ignore errors
   }
 }
 

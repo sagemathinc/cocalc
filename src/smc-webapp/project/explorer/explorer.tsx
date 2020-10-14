@@ -106,9 +106,10 @@ interface ReduxProps {
   ext_selection?: string;
   new_filename?: string;
   displayed_listing: {
-    listing: ListingItem[];
+    files: ListingItem[];
     error: any;
     file_map: Map<string, any>;
+    git_dir?: string;
   };
   new_name?: string;
   library?: object;
@@ -775,16 +776,16 @@ export const Explorer = rclass(
       const public_view = my_group === "public";
 
       const displayed_listing = this.props.displayed_listing;
-      const { listing, file_map } = displayed_listing;
+      const { files, file_map } = displayed_listing;
       const directory_error = displayed_listing.error;
 
       const file_listing_page_size = this.file_listing_page_size();
-      if (listing != undefined) {
+      if (files != undefined) {
         const { start_index, end_index } = pager_range(
           file_listing_page_size,
           this.props.page_number
         );
-        visible_listing = listing.slice(start_index, end_index);
+        visible_listing = files.slice(start_index, end_index);
       }
 
       const FLEX_ROW_STYLE = {
@@ -830,9 +831,9 @@ export const Explorer = rclass(
                   minWidth: "20em",
                 }}
               >
-                {listing != undefined
+                {files != undefined
                   ? this.render_files_actions(
-                      listing,
+                      files,
                       public_view,
                       project_is_running
                     )
@@ -869,9 +870,9 @@ export const Explorer = rclass(
               directory_error,
               public_view
             )}
-            {listing != undefined
+            {files != undefined
               ? this.render_paging_buttons(
-                  Math.ceil(listing.length / file_listing_page_size)
+                  Math.ceil(files.length / file_listing_page_size)
                 )
               : undefined}
           </div>
