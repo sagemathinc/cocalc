@@ -17,8 +17,12 @@ Use ?random= or ?time= if you're worried about cacheing.
 Browser client code only uses this through the websocket anyways.
 */
 
+import { join } from "path";
 import { lstat, stat, readdir, readlink, Dirent, Stats } from "fs";
 import { callback } from "awaiting";
+import { spawn as child_process_spawn } from "child_process";
+import { promisify } from "util";
+const spawn = promisify(child_process_spawn);
 import { DirectoryListingEntry } from "./smc-util/types";
 
 // SMC_LOCAL_HUB_HOME is used for developing cocalc inside cocalc...
@@ -94,6 +98,18 @@ export async function get_listing(
   return files;
 }
 
+export async function get_git_dir(path: string): Promise<string | undefined> {
+  try {
+    const cwd = join(HOME, path);
+    const ret = await spawn("git", ["rev-parse", "--absolute-git-dir"], {
+      cwd,
+    });
+    return ret.stdout.trim();
+  } catch {
+    // we ignore any errors
+  }
+}
+
 export function directory_listing_router(express): any {
   const base = "/.smc/directory_listing/";
   const router = express.Router();
@@ -108,8 +124,11 @@ function directory_listing_http_server(base, router): void {
     const { hidden } = req.query;
     // Fast -- do directly in this process.
     try {
-      const files = await get_listing(path, hidden);
-      res.json({ files });
+      const [files, git_dir] = await Promise.all([
+        get_listing(path, hidden),
+        get_git_dir(path),
+      ]);
+      res.json({ files, git_dir });
     } catch (err) {
       res.json({ error: `${err}` });
     }

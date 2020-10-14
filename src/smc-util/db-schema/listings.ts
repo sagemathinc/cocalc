@@ -65,6 +65,11 @@ Table({
       desc:
         "Paths within this directory that have been explicitly deleted by a user",
     },
+    git_dir: {
+      type: "string",
+      desc:
+        "For the given directory, either the absolute path of an associated Git directory or null.",
+    },
   },
   rules: {
     desc: "Directory listings in projects",
@@ -82,6 +87,7 @@ Table({
           interest: null,
           error: null,
           deleted: null,
+          git_dir: null,
         },
       },
       set: {
@@ -110,6 +116,7 @@ Table({
           interest: null,
           error: null,
           deleted: null,
+          git_dir: null,
         },
       },
       set: {
@@ -125,6 +132,7 @@ Table({
           interest: true,
           error: true,
           deleted: true,
+          git_dir: null,
         },
       },
     },
