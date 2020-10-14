@@ -630,6 +630,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: "{pod_name}"
+  namespace: cocalc
   labels:
     run: "project"
     project_id: "{project_id}"
