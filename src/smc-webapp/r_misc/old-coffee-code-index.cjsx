@@ -8,14 +8,15 @@ async = require('async')
 {Component, React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('../app-framework')
 {Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, Overlay, OverlayTrigger, Modal, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('../customize')
-{UpgradeRestartWarning} = require('../upgrade-restart-warning')
+{is_frontend, Null} = require("./null")
+UpgradeRestartWarning = if is_frontend then require('../upgrade-restart-warning').UpgradeRestartWarning else Null
 copy_to_clipboard = require('copy-to-clipboard')
 {reportException} = require('../../webapp-lib/webapp-error-reporter')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
 {A} = require('./A')
 {Icon} = require('./icon')
-{Tip} = require('./tip')
+Tip = if is_frontend then  require('./index').Tip else Null
 {Loading} = require('./loading')
 {r_join} = require('./r_join')
 {Space} = require('./space')
@@ -24,14 +25,14 @@ copy_to_clipboard = require('copy-to-clipboard')
 {SimpleX} = require('./simple-x')
 {Saving} = require('./saving')
 {Spinner} = require('./spinner')
-{ErrorDisplay} = require('./error-display')
+ErrorDisplay = if is_frontend then require('./error-display').ErrorDisplay else Null
 {SkinnyError} = require('./skinny-error')
 {SelectorInput} = require('./selector-input')
 {TextInput} = require("./text-input")
-{NumberInput} = require("./number-input")
+NumberInput =  if is_frontend then  require("./number-input").NumberInput else Null
 {LabeledRow} = require('./labeled-row')
 {TimeElapsed} = require('./time-elapsed')
-{TimeAgo} = require('./time-ago')
+TimeAgo = if is_frontend then require('./time-ago').TimeAgo else Null
 
 share_server = require('./share-server');
 

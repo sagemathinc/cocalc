@@ -55,7 +55,7 @@ function is_equal(prev, next) {
   }
 }
 
-const TipFrontend: React.FC<Props> = React.memo((props: Props) => {
+export const Tip: React.FC<Props> = React.memo((props: Props) => {
   const {
     placement = "right",
     delayShow = 500, // [ms]
@@ -152,14 +152,3 @@ const TipFrontend: React.FC<Props> = React.memo((props: Props) => {
   }
 }, is_equal);
 
-const TipBackend: React.FC<Props> = (props: Props) => {
-  return <span style={props.style}>{props.children}</span>;
-};
-
-let Tip: React.FC<Props>;
-if (window != null) {
-  Tip = TipFrontend;
-} else {
-  Tip = TipBackend;
-}
-export { Tip };

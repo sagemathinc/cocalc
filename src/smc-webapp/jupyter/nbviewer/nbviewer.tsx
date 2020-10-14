@@ -16,7 +16,7 @@ import {
   Rendered,
 } from "../../app-framework";
 
-import { ErrorDisplay } from "../../r_misc/error-display";
+import { ErrorDisplay } from "../../r_misc";
 import { Loading } from "../../r_misc/loading";
 import { CellList } from "../cell-list";
 import { path_split } from "smc-util/misc";

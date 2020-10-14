@@ -7,7 +7,7 @@ import { React } from "../app-framework";
 import { COMPUTE_STATES } from "smc-util/schema";
 import { ProjectStatus } from "../todo-types";
 import { Space } from "./space";
-import { TimeAgo } from "./time-ago";
+import { TimeAgo } from "./index";
 import { Loading } from "./loading";
 import { Icon } from "./icon";
 
