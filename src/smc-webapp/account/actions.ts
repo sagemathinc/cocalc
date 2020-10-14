@@ -316,4 +316,8 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
   public set_account_table(obj: object): void {
     this.redux.getTable("account").set(obj);
   }
+
+  public set_other_settings(name: string, value: any): void {
+    this.set_account_table({ other_settings: { [name]: value } });
+  }
 }

@@ -4,6 +4,7 @@
  */
 
 import * as React from "react";
+import { CopyToClipBoard } from "../../r_misc";
 
 export function URLBox() {
   let url = document.URL;
@@ -12,5 +13,5 @@ export function URLBox() {
     url = url.slice(0, i);
   }
   // note -- use of Input below is completely broken on Firefox! Do not naively change this back!!!!
-  return <pre style={{ fontSize: "11px" }}>{url}</pre>;
+  return <CopyToClipBoard style={{ fontSize: "11px" }} value={url} />;
 }

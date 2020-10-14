@@ -30,7 +30,6 @@ def remove_port_files():
 def stop_daemons():
     print("stop daemons")
     cmd("smc-local-hub stop")
-    cmd("smc-console-server stop")
     cmd("smc-sage-server stop")
 
 

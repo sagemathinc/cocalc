@@ -44,6 +44,7 @@ import { COLORS } from "smc-util/theme";
 import { Input } from "antd";
 
 import {
+  CopyToClipBoard,
   Icon,
   Markdown,
   ErrorDisplay,
@@ -211,9 +212,14 @@ class SiteSettingsComponent extends Component<
     return (
       <div style={{ marginTop: "15px", color: "#666" }}>
         Your browser version:{" "}
-        <code style={{ background: "white", fontSize: "10pt" }}>
-          {smc_version.version}
-        </code>{" "}
+        <CopyToClipBoard
+          style={{
+            display: "inline-block",
+            width: "50ex",
+            margin: 0,
+          }}
+          value={`${smc_version.version}`}
+        />{" "}
         {error}
       </div>
     );

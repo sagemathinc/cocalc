@@ -13,12 +13,7 @@ happens, and also when the system is heavily loaded.
 */
 
 import { Alert, Button } from "antd";
-import {
-  redux,
-  React,
-  useMemo,
-  useTypedRedux,
-} from "../app-framework";
+import { redux, React, useMemo, useTypedRedux } from "../app-framework";
 import { A, Icon, ProjectState, Space, VisibleMDLG } from "../r_misc";
 import { DOC_TRIAL } from "./trial-banner";
 import { allow_project_to_run } from "./client-side-throttle";
@@ -31,6 +26,27 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
   const project_map = useTypedRedux("projects", "project_map");
   const state = useMemo(() => {
     return project_map?.getIn([project_id, "state"]);
+  }, [project_map]);
+
+  // start_requested is true precisely if a start of this project
+  // is currently requested,,and obviously didn't get done.
+  // Making the UI depend on this instead of *just* the state
+  // makes things feel more responsive.
+  const starting = useMemo(() => {
+    if (state?.get("state") == "starting" || state?.get("state") == "opening")
+      return true;
+    const x = project_map?.getIn([project_id, "action_request"]);
+    if (
+      state?.get("state") == "running" ||
+      x == null ||
+      x.get("action") != "start" ||
+      x.get("finished") >= new Date(x.get("time"))
+    ) {
+      // already happened
+      return false;
+    }
+    // action is start and it didn't get taken care of yet:
+    return true;
   }, [project_map]);
 
   if (state?.get("state") == "running") {
@@ -78,13 +94,17 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
         <Button
           type="primary"
           size="large"
-          disabled={!enabled}
+          disabled={!enabled || starting}
           onClick={() => {
             redux.getActions("projects").start_project(project_id);
           }}
         >
-          <Icon name="play" />
-          <Space /> <Space /> Start project
+          {starting ? (
+            <Icon name="cc-icon-cocalc-ring" spin />
+          ) : (
+            <Icon name="play" />
+          )}
+          <Space /> <Space /> Start{starting ? "ing" : ""} project
         </Button>
       </div>
     );

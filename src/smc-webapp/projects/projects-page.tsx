@@ -78,7 +78,7 @@ export const ProjectsPage: React.FC = () => {
         search,
         deleted,
         hidden,
-        "user_last_active"
+        "last_edited" /* "user_last_active" was confusing */
       ),
     [project_map, user_map, deleted, hidden, filter, selected_hashtags, search]
   );

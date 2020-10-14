@@ -126,7 +126,7 @@ export class ProjectInfo extends EventEmitter {
       await this.re_init();
       table = this.get_table();
     }
-    table.set({ project_id: this.project_id, info });
+    table.set({ project_id: this.project_id, info }, "shallow");
     await table.save();
   }
 
@@ -144,6 +144,9 @@ export class ProjectInfo extends EventEmitter {
     }
     this.state = state;
     this.emit("state", state);
+    if (state === "ready") {
+      this.emit("ready");
+    }
   }
 }
 

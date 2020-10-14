@@ -18,8 +18,22 @@ export async function add_collaborators_to_projects(
   projects: string[], // can be empty strings if tokens specified (since they determine project_id)
   tokens?: string[] // must be all specified or none
 ): Promise<void> {
-  // In case of project tokens, this mutates the projects array.
-  await verify_write_access_to_projects(db, account_id, projects, tokens);
+  try {
+    // In case of project tokens, this mutates the projects array.
+    await verify_write_access_to_projects(db, account_id, projects, tokens);
+  } catch (err) {
+    // There is one case where a user can add themselve to a project that they
+    // are not a collaborator on, which is a TA can add themself to a course prjoect.
+    // Technically this is the case when accounts[0] == account_id and
+    // projects[0] points to a course in project_id where account_id is a
+    // collaborator on project_id.    We only support one accounts/projects
+    // and no use of tokens for this.
+    if (accounts.length == 1 && account_id == accounts[0]) {
+      await verify_course_access_to_project(db, account_id, projects[0]);
+    } else {
+      throw err;
+    }
+  }
 
   /* Right now this function is called from outside typescript
     (e.g., api from user), so we have to do extra type checking.
@@ -163,4 +177,43 @@ async function increment_project_invite_token_counter(
       "UPDATE project_invite_tokens SET counter=coalesce(counter, 0)+1 WHERE token=$1",
     params: [token],
   });
+}
+
+async function verify_course_access_to_project(
+  db: PostgreSQL,
+  account_id: string,
+  project_id: string
+): Promise<void> {
+  /*
+  Raise an exception unless:
+
+     - project_id is associated to a course in another project course_id
+     - account_id is a collaborator on course_id.
+   */
+  // Get the course field of project_id
+  const v = await db.async_query({
+    query: "SELECT course FROM projects WHERE project_id=$1",
+    params: [project_id],
+  });
+  if (v.rows.length == 0) {
+    throw Error(`no project with id "${project_id}"`);
+  }
+  const course_id = v.rows[0].course?.project_id;
+  if (!is_valid_uuid_string(course_id)) {
+    throw Error(`cannot add self to "${project_id}" -- must be an admin`);
+  }
+  if (!is_valid_uuid_string(account_id)) {
+    // be extra careful since we directly put account_id in the query string.
+    throw Error(`account_id ${account_id} must be a valid uuid`);
+  }
+  const w = await db.async_query({
+    query: `SELECT users#>'{${account_id},group}' AS group FROM projects WHERE project_id=\$1`,
+    params: [course_id],
+  });
+  const group = w.rows[0]?.group;
+  if (group != "owner" && group != "collaborator") {
+    throw Error(
+      `cannot add self to "${project_id}" -- must be owner or collaborator on course project`
+    );
+  }
 }

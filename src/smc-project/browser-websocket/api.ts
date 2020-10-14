@@ -33,6 +33,7 @@ import { get_configuration } from "../configuration";
 import { delete_files } from "./delete-files";
 import { rename_file, move_files } from "./move-files";
 import { realpath } from "./realpath";
+import { project_info_ws } from "../project-info";
 import { Mesg } from "../../smc-webapp/project/websocket/types";
 
 export function init_websocket_api(
@@ -142,6 +143,8 @@ async function handle_api_call(
       return await browser_symmetric_channel(client, primus, logger, data.name);
     case "realpath":
       return realpath(data.path);
+    case "project_info":
+      return await project_info_ws(primus, logger);
     default:
       throw Error(
         `command "${

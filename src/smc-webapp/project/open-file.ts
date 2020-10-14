@@ -25,6 +25,7 @@ import { alert_message } from "../alerts";
 import { webapp_client } from "../webapp-client";
 import { init as init_chat } from "../chat/register";
 import { normalize } from "./utils";
+import { ensure_project_running } from "./project-start-warning";
 
 const { local_storage } = require("../editor");
 //import { local_storage } from "../editor";
@@ -51,6 +52,15 @@ export async function open_file(
     actions.open_directory(opts.path);
     return;
   }
+  if (
+    !(await ensure_project_running(
+      actions.project_id,
+      `open the file '${opts.path}'`
+    ))
+  ) {
+    return;
+  }
+
   opts = defaults(opts, {
     path: required,
     foreground: true,

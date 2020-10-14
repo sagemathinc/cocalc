@@ -76,10 +76,11 @@ export class OutputHandler extends EventEmitter {
   }
 
   close = (): void => {
+    if (this._state == "closed") return;
+    this._state = "closed";
     this.emit("done");
     this.removeAllListeners();
-    close(this);
-    this._state = "closed";
+    close(this, new Set(["_state", "close"]));
   };
 
   _clear_output = (save?: any): void => {

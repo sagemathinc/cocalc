@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Modal } from "antd";
 import { NavItem, Nav } from "react-bootstrap";
 import { DeletedProjectWarning, Loading } from "../../r_misc";
 import { Content } from "./content";
@@ -25,6 +26,7 @@ import { TrialBanner } from "../trial-banner";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import { AnonymousName } from "../anonymous-name";
 import { StartButton } from "../start-button";
+import { useProjectStatus } from "./project-status-hook";
 
 import {
   DEFAULT_FILE_TAB_STYLES,
@@ -65,7 +67,9 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
     project_id,
     "deleted",
   ]);
-
+  if (actions != null) {
+    useProjectStatus(actions);
+  }
   const open_files_order = useTypedRedux({ project_id }, "open_files_order");
   const open_files = useTypedRedux({ project_id }, "open_files");
   const active_project_tab = useTypedRedux(
@@ -80,6 +84,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
 
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   const fullscreen = useTypedRedux("page", "fullscreen");
+  const modal = useTypedRedux({ project_id }, "modal");
 
   function on_sort_end({ oldIndex, newIndex }): void {
     if (actions == null) return;
@@ -311,6 +316,25 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
     return v.concat(render_editor_tabs());
   }
 
+  function render_project_modal() {
+    return (
+      <Modal
+        title={modal?.get("title")}
+        visible={!!modal}
+        onOk={() => {
+          actions?.clear_modal();
+          modal?.get("onOk")?.();
+        }}
+        onCancel={() => {
+          actions?.clear_modal();
+          modal?.get("onCancel")?.();
+        }}
+      >
+        {modal?.get("content")}
+      </Modal>
+    );
+  }
+
   if (open_files_order == null) {
     return <Loading />;
   }
@@ -332,6 +356,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
       {is_deleted && <DeletedProjectWarning />}
       <StartButton project_id={project_id} />
       {render_project_content()}
+      {render_project_modal()}
     </div>
   );
 };

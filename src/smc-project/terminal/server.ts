@@ -9,22 +9,44 @@ Terminal server
 
 const { spawn } = require("node-pty");
 import { readFile, writeFile } from "fs";
-
 import { len, merge, path_split } from "../smc-util/misc2";
-
 const { console_init_filename } = require("smc-util/misc");
-
 import { exists } from "../jupyter/async-utils-node";
-
 import { throttle } from "underscore";
-
 import { callback, delay } from "awaiting";
 
-const terminals = {};
+interface Terminal {
+  channel: any;
+  history: string;
+  client_sizes?: any;
+  last_truncate_time: number;
+  truncating: number;
+  last_exit: number;
+  options: {
+    path?: string; // this is the "original" path to the terminal, not the derived "term_path"
+    command?: string;
+    args?: string[];
+    env?: { [key: string]: string };
+  };
+  size?: any;
+  term?: any; // node-pty
+}
+
+const PREFIX = "terminal:";
+const terminals: { [name: string]: Terminal } = {};
 
 const MAX_HISTORY_LENGTH: number = 500000;
 const truncate_thresh_ms: number = 500;
 const check_interval_ms: number = 3000;
+
+// this is used to know which process belongs to which terminal
+export function pid2path(pid: number): string | undefined {
+  for (const term of Object.values(terminals)) {
+    if (term.term?.pid == pid) {
+      return term.options.path;
+    }
+  }
+}
 
 export async function terminal(
   primus: any,
@@ -32,7 +54,7 @@ export async function terminal(
   path: string,
   options: any
 ): Promise<string> {
-  const name = `terminal:${path}`;
+  const name = `${PREFIX}${path}`;
   if (terminals[name] !== undefined) {
     if (options.command != terminals[name].options.command) {
       terminals[name].options.command = options.command;
@@ -49,7 +71,7 @@ export async function terminal(
     last_truncate_time: new Date().valueOf(),
     truncating: 0,
     last_exit: 0,
-    options: options != null ? options : {},
+    options: options ?? {},
   };
 
   async function init_term() {

@@ -37,6 +37,7 @@ import { plural } from "smc-util/misc2";
 import { DebounceInput } from "react-debounce-input";
 import { create_quote_support_ticket } from "./get-a-quote";
 import { QuotaEditor } from "./quota-editor";
+import { DOC_LICENSE_URL } from "../../billing/data";
 
 const LENGTH_PRESETS = [
   { label: "2 Days", desc: { n: 2, key: "days" } },
@@ -737,7 +738,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div style={{ marginBottom: "15px" }}>
         Buy licenses or request a quote below, as{" "}
-        <A href="https://doc.cocalc.com/account/licenses.html#buy-a-license">
+        <A href={DOC_LICENSE_URL}>
           explained here
         </A>
         . If you are planning on making a significant purchase, but need to test

@@ -19,6 +19,8 @@ const TIP_STYLE: React.CSSProperties = {
 
 type Size = "xsmall" | "small" | "medium" | "large";
 
+type Trigger = "hover" | "focus" | "click" | "contextMenu";
+
 interface Props {
   title: string | JSX.Element | JSX.Element[]; // not checked for update
   placement?: TooltipPlacement;
@@ -33,6 +35,7 @@ interface Props {
   popover_style?: React.CSSProperties; // changing not checked ever (default={zIndex:1000})
   stable?: boolean; // if true, children assumed to never change
   allow_touch?: boolean;
+  trigger?: Trigger | Trigger[];
 }
 
 interface State {}
@@ -115,7 +118,7 @@ export class Tip extends React.Component<Props, State> {
     const props: { [key: string]: any } = {
       arrowPointAtCenter: true,
       placement: this.props.placement,
-      trigger: "hover",
+      trigger: this.props.trigger ?? "hover",
       mouseEnterDelay: this.props.delayShow / 1000,
       mouseLeaveDelay: this.props.delayHide / 1000,
     };

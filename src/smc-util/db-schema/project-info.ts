@@ -4,12 +4,10 @@
  */
 
 /*
-Table of information about a running project.
+This table contains real-time information about a running project. In particular, this includes the running processes, CGroup status, etc. It is updated frequently, hence use it wisely...
 */
 
 import { Table } from "./types";
-
-export const WATCH_TIMEOUT_MS = 60000;
 
 Table({
   name: "project_info",
@@ -28,7 +26,7 @@ Table({
   rules: {
     durability: "ephemeral", // won't be stored in the database at all ever.
     desc:
-      "Information about running processes (disk space, etc.,?) of projects",
+      "Information about running processes, cgroups, disk space, etc. of projects",
     primary_key: ["project_id"], // can list multiple another field if you want to have multiple records for a project.
     user_query: {
       get: {
@@ -39,9 +37,7 @@ Table({
         },
       },
       set: {
-        // users can set that they are interested in this directory and also
-        // remove paths from the list of deleted paths (e.g., in case they want
-        // to edit afile that was deleted).
+        // users can set that they are interested in this
         fields: {
           project_id: "project_id",
           info: true,
@@ -59,7 +55,6 @@ Table({
       },
       set: {
         // delete=true, since project *IS* allowed to delete entries
-        // in this table (used for purging tracked listings).
         delete: true,
         fields: {
           project_id: "project_id",

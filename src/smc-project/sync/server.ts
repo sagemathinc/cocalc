@@ -62,6 +62,7 @@ const { close, deep_copy, len } = require("../smc-util/misc2");
 
 import { register_listings_table } from "./listings";
 import { register_project_info_table } from "./project-info";
+import { register_project_status_table } from "./project-status";
 
 type Query = { [key: string]: any };
 
@@ -524,6 +525,12 @@ async function synctable_channel0(
       );
     } else if (query?.project_info != null) {
       register_project_info_table(
+        synctable_channels[name].get_synctable(),
+        logger,
+        client.client_id()
+      );
+    } else if (query?.project_status != null) {
+      register_project_status_table(
         synctable_channels[name].get_synctable(),
         logger,
         client.client_id()

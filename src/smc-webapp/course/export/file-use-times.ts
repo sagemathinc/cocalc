@@ -9,7 +9,7 @@ import {
   query,
   write_text_file_to_project,
 } from "../../frame-editors/generic/client";
-import { split } from "smc-util/misc2";
+import { splitlines } from "smc-util/misc2";
 
 interface PathUseTimes {
   edit_times: number[];
@@ -86,7 +86,7 @@ async function paths_to_scan(
     project_id,
   });
   const v: string[] = [];
-  for (const path of split(stdout)) {
+  for (const path of splitlines(stdout)) {
     const path2 = path.slice(2);
     if (path2) {
       v.push(target_path + "/" + path2);

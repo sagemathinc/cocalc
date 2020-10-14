@@ -35,7 +35,7 @@ import * as antd from "antd";
 // only four in antd, and it we can't automatically collapse them down in a meaningful
 // way without fundamentally removing information and breaking our UI (e.g., buttons
 // change look after an assignment is sent successfully in a course).
-type ButtonStyle =
+export type ButtonStyle =
   | "primary"
   | "success"
   | "default"
@@ -55,6 +55,8 @@ const BS_STYLE_TO_TYPE: {
   danger: "danger",
   link: "link",
 };
+
+export type ButtonSize = "large" | "small" | "xsmall";
 
 function parse_bsStyle(props: {
   bsStyle?: ButtonStyle;
@@ -115,7 +117,7 @@ function parse_bsStyle(props: {
 
 export function Button(props: {
   bsStyle?: ButtonStyle;
-  bsSize?: "large" | "small" | "xsmall";
+  bsSize?: ButtonSize;
   style?: React.CSSProperties;
   disabled?: boolean;
   onClick?: (e?: any) => void;

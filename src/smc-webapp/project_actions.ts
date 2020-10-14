@@ -27,7 +27,7 @@ import { callback, delay } from "awaiting";
 import { callback2, retry_until_success } from "smc-util/async-utils";
 import { exec } from "./frame-editors/generic/client";
 import { API } from "./project/websocket/api";
-import { NewFilenames, normalize } from "./project/utils";
+import { in_snapshot_path, NewFilenames, normalize } from "./project/utils";
 import { NEW_FILENAMES } from "smc-util/db-schema";
 
 import { transform_get_url } from "./project/transform-get-url";
@@ -52,10 +52,11 @@ import { get_directory_listing2 as get_directory_listing } from "./project/direc
 
 import { Actions, project_redux_name, redux } from "./app-framework";
 
-import { ProjectStore, ProjectStoreState } from "./project_store";
+import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
 import { ProjectEvent } from "./project/history/types";
 import { DEFAULT_COMPUTE_IMAGE } from "../smc-util/compute-images";
 import { download_href, url_href } from "./project/utils";
+import { ensure_project_running } from "./project/project-start-warning";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%';
@@ -183,6 +184,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private _init_done = false;
   private new_filename_generator;
   public open_files?: OpenFiles;
+  private modal?: ModalInfo;
 
   constructor(a, b) {
     super(a, b);
@@ -457,6 +459,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           this.push_state("settings");
         }
         break;
+      case "info":
+        if (opts.change_history) {
+          this.push_state("info");
+        }
+        break;
       default:
         // editor...
         const path = misc.tab_to_path(key);
@@ -723,7 +730,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Open the given file in this project.
   public async open_file(opts): Promise<void> {
-    open_file(this, opts);
+    await open_file(this, opts);
   }
 
   /* Initialize the redux store and react component for editing
@@ -1892,11 +1899,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     let args = ["-rltgoDxH"];
 
-    // We ensure the target copy is writable if *any* source path starts with .snapshots.
-    // See https://github.com/sagemathinc/cocalc/issues/2497
-    // This is a little lazy, but whatever.
+    // We ensure the target copy is writable if *any* source path starts is inside of .snapshots.
+    // See https://github.com/sagemathinc/cocalc/issues/2497 and https://github.com/sagemathinc/cocalc/issues/4935
     for (const x of opts.src) {
-      if (misc.startswith(x, ".snapshots")) {
+      if (in_snapshot_path(x)) {
         args = args.concat(["--perms", "--chmod", "u+w"]);
         break;
       }
@@ -1977,6 +1983,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const id = misc.uuid();
     const status = `Renaming ${opts.src} to ${opts.dest}`;
     let error: any = undefined;
+    if (
+      !(await ensure_project_running(this.project_id, `rename ${opts.src}`))
+    ) {
+      return;
+    }
 
     this.set_activity({ id, status });
     try {
@@ -1993,6 +2004,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     src: string[];
     dest: string;
   }): Promise<void> {
+    if (
+      !(await ensure_project_running(
+        this.project_id,
+        `move ${opts.src.join(", ")}`
+      ))
+    ) {
+      return;
+    }
     const id = misc.uuid();
     const status = `Moving ${opts.src.length} ${misc.plural(
       opts.src.length,
@@ -2016,6 +2035,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (opts.paths.length === 0) {
       return;
     }
+
+    if (
+      !(await ensure_project_running(
+        this.project_id,
+        `delete ${opts.paths.join(", ")}`
+      ))
+    ) {
+      return;
+    }
+
     const id = misc.uuid();
     if (underscore.isEqual(opts.paths, [".trash"])) {
       mesg = "the trash";
@@ -2042,7 +2071,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  download_file(opts): void {
+  public async download_file(opts): Promise<void> {
     let url;
     const { download_file, open_new_tab } = require("./misc_page");
     opts = defaults(opts, {
@@ -2052,6 +2081,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       print: false,
       timeout: 45,
     } as { path: string; log: boolean | string[]; auto: boolean; print: boolean; timeout: number });
+
+    if (
+      !(await ensure_project_running(
+        this.project_id,
+        `download the file '${opts.name}'`
+      ))
+    ) {
+      return;
+    }
 
     // log could also be an array of strings to record all the files that were downloaded in a zip file
     if (opts.log) {
@@ -2113,8 +2151,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     opts = defaults(opts, {
       name: required,
       current_path: undefined,
-      switch_over: true,
-    }); // Whether or not to switch to the new folder
+      switch_over: true, // Whether or not to switch to the new folder
+    });
+    if (
+      !(await ensure_project_running(
+        this.project_id,
+        `create the folder '${opts.name}'`
+      ))
+    ) {
+      return;
+    }
     let { name, current_path, switch_over } = opts;
     this.setState({ file_creation_error: undefined });
     if (name[name.length - 1] === "/") {
@@ -2147,8 +2193,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       name: undefined,
       ext: undefined,
       current_path: undefined,
-      switch_over: true,
-    }); // Whether or not to switch to the new file
+      switch_over: true, // Whether or not to switch to the new file
+    });
+
     this.setState({ file_creation_error: undefined }); // clear any create file display state
     let { name } = opts;
     if ((name === ".." || name === ".") && opts.ext == null) {
@@ -2177,6 +2224,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } catch (e) {
       console.warn("Absolute path creation error");
       this.setState({ file_creation_error: e.message });
+      return;
+    }
+    if (
+      !(await ensure_project_running(this.project_id, `create the file '${p}'`))
+    ) {
       return;
     }
     const ext = misc.filename_extension(p);
@@ -2317,7 +2369,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
-    this.setState({ subdirectories: !store.get("subdirectories") });
+    const subdirectories = !store.get("subdirectories");
+    this.setState({ subdirectories });
+    redux
+      .getActions("account")
+      ?.set_other_settings("find_subdirectories", subdirectories);
   }
 
   toggle_search_checkbox_case_sensitive() {
@@ -2325,7 +2381,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
-    this.setState({ case_sensitive: !store.get("case_sensitive") });
+    const case_sensitive = !store.get("case_sensitive");
+    this.setState({ case_sensitive });
+    redux
+      .getActions("account")
+      ?.set_other_settings("find_case_sensitive", case_sensitive);
   }
 
   toggle_search_checkbox_hidden_files() {
@@ -2333,7 +2393,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
-    this.setState({ hidden_files: !store.get("hidden_files") });
+    const hidden_files = !store.get("hidden_files");
+    this.setState({ hidden_files });
+    redux
+      .getActions("account")
+      ?.set_other_settings("find_hidden_files", hidden_files);
   }
 
   toggle_search_checkbox_git_grep() {
@@ -2341,7 +2405,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
-    this.setState({ git_grep: !store.get("git_grep") });
+    const git_grep = !store.get("git_grep");
+    this.setState({ git_grep });
+    redux.getActions("account")?.set_other_settings("find_git_grep", git_grep);
   }
 
   process_search_results(err, output, max_results, max_output, cmd) {
@@ -2512,7 +2578,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const full_path = segments.slice(1).join("/");
     const parent_path = segments.slice(1, segments.length - 1).join("/");
     const last = segments.slice(-1).join();
-    switch (segments[0]) {
+    const main_segment = segments[0];
+    switch (main_segment) {
       case "files":
         if (target[target.length - 1] === "/" || full_path === "") {
           //if DEBUG then console.log("ProjectStore::load_target → open_directory", parent_path)
@@ -2580,6 +2647,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       case "search":
         this.set_current_path(full_path);
         this.set_active_tab("search", { change_history: change_history });
+        break;
+
+      case "info":
+        this.set_active_tab("info", { change_history: change_history });
+        break;
+
+      default:
+        console.warn(`project/load_target: don't know segment ${main_segment}`);
     }
   }
 
@@ -2648,6 +2723,50 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       project_id: this.project_id,
       command: "mkdir",
       args: ["-p", path],
+    });
+  }
+
+  /* NOTE!  Below we store the modal state *both* in a private
+  variabel *and* in the store.  The reason is because we need
+  to know it immediately after it is set in order for
+  wait_until_no_modals to work robustless, and setState can
+  wait before changing the state.
+  */
+  public clear_modal(): void {
+    delete this.modal;
+    this.setState({ modal: undefined });
+  }
+
+  public async show_modal({
+    title,
+    content,
+  }: {
+    title: string;
+    content: string;
+  }): Promise<"ok" | "cancel"> {
+    if (this.modal != null) {
+      await this.wait_until_no_modals();
+    }
+    let response: "ok" | "cancel" = "cancel";
+    const modal = immutable.fromJS({
+      title,
+      content,
+      onOk: () => (response = "ok"),
+      onCancel: () => (response = "cancel"),
+    });
+    this.modal = modal;
+    this.setState({
+      modal,
+    });
+    await this.wait_until_no_modals();
+    return response;
+  }
+
+  public async wait_until_no_modals(): Promise<void> {
+    if (this.modal == null) return;
+    await this.get_store()?.async_wait({
+      until: (s) => !s.get("modal") && this.modal == null,
+      timeout: 99999,
     });
   }
 }

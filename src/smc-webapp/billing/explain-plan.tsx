@@ -13,6 +13,7 @@ import {
   INSTRUCTOR_GUIDE,
 } from "./data";
 import { Space } from "../r_misc/space";
+import { DOC_LICENSE_URL } from "./data";
 
 interface Props {
   type: "personal" | "course";
@@ -36,8 +37,7 @@ export const ExplainPlan: React.FC<Props> = (props: Props) => {
         <h3>Service subscriptions</h3>
         <p>
           A subscription awards you with a{" "}
-          <A href="https://doc.cocalc.com/account/licenses.html">license key</A>{" "}
-          for{" "}
+          <A href={DOC_LICENSE_URL}>license key</A> for{" "}
           <A href="https://doc.cocalc.com/project-settings.html#licenses">
             upgrading your projects
           </A>{" "}

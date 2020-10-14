@@ -77,12 +77,12 @@ export function create_autograde_ipynb(
   const student = JSON.parse(student_ipynb);
   let instructor_by_grade_id = autograde_cells_by_grade_id(instructor);
   let student_by_grade_id = autograde_cells_by_grade_id(student);
-  for (const grade_id in instructor_by_grade_id) {
-    const instructor_cell = instructor_by_grade_id[grade_id];
+  for (const grade_id of instructor_by_grade_id.ids) {
+    const instructor_cell = instructor_by_grade_id.cells[grade_id];
     if (instructor_cell == null) {
       throw Error("bug in cells_by_grade_id data structure");
     }
-    const student_cell = student_by_grade_id[grade_id];
+    const student_cell = student_by_grade_id.cells[grade_id];
     if (student_cell == null) {
       // Something bad happened -- the student deleted this locked cell.  We just insert the instructor
       // version at the bottom for now (?).
@@ -109,19 +109,21 @@ export function create_autograde_ipynb(
 // to find a cell with given id.
 function autograde_cells_by_grade_id(
   notebook: JupyterNotebook
-): { [grade_id: string]: Cell } {
-  const r: { [grade_id: string]: Cell } = {};
+): {ids:string[], cells:{ [grade_id: string]: Cell }} {
+  const ids: string[] = [];
+  const cells: { [grade_id: string]: Cell } = {};
   for (const cell of notebook.cells) {
     if (cell.metadata == null || cell.metadata.nbgrader == null) continue;
     if (cell.metadata.nbgrader.grade && !cell.metadata.nbgrader.solution) {
       // An autograde cell.
       const grade_id = cell.metadata.nbgrader.grade_id;
       if (grade_id) {
-        r[grade_id] = cell;
+        cells[grade_id] = cell;
+        ids.push(grade_id);
       }
     }
   }
-  return r;
+  return { cells, ids };
 }
 
 export interface Score {
@@ -196,7 +198,7 @@ function get_score(output): number | undefined {
     // no impact on score
     return undefined;
   }
-  if (output["text"] != null) {
+  if (typeof output["text"] == "string") {
     if (output["text"].toLowerCase().indexOf("error") != -1) {
       // With Octave assertions output text that contains the word "error".
       // Official nbgrader would give this full credit, but with CoCalc we will
@@ -205,6 +207,7 @@ function get_score(output): number | undefined {
       // valid to put some print logging in a solution.
       return 0;
     }
+    /* DISABLED -- there are too many ways this can go wrong, and it is VERY confusing!
     // if output can cast to finite float, use that as the score (partial credit)
     try {
       const x = parseFloat(output["text"]);
@@ -212,6 +215,7 @@ function get_score(output): number | undefined {
         return x;
       }
     } catch (_) {}
+    */
   }
 
   return undefined;

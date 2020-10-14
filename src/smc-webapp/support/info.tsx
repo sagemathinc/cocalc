@@ -111,15 +111,6 @@ export const SupportInfo: React.FC = () => {
             <a
               target="_blank"
               rel="noopener"
-              href="https://doc.cocalc.com/subscriptions.html#what-if-your-subscription-does-not-seem-to-do-anything"
-            >
-              Subscription problems
-            </a>
-          </li>
-          <li>
-            <a
-              target="_blank"
-              rel="noopener"
               href="https://doc.cocalc.com/howto/missing-project.html"
             >
               File or project seems gone
@@ -153,23 +144,22 @@ export const SupportInfo: React.FC = () => {
             </a>
           </li>
           <li>
-            <b>Trying to sign out:</b> Click on Account on the top right, then
-            click "Sign out..." in Preferences.
-          </li>
-          <li>
             <b>
               Hit a bug, just need to talk with us, or request that we install
               software:
             </b>{" "}
-            Fill out the form below...
+            Create a support ticket below...
           </li>
           <li>
-            Just <b>want to chat</b> with somebody? Visit{" "}
-            <A href={DISCORD_INVITE}>our Discord server</A>.
+            Just <b>want to quickly chat</b>? Visit{" "}
+            <A href={DISCORD_INVITE}>the CoCalc Discord server</A>!
           </li>
         </ul>
 
         <h2>Create a support ticket</h2>
+        <p>
+          <b>NOTE:</b> Support is in English and German only.
+        </p>
 
         {what}
 

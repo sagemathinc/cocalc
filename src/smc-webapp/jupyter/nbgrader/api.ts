@@ -3,9 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { project_api, start_project } from "../../frame-editors/generic/client";
+import { project_api } from "../../frame-editors/generic/client";
+import { redux } from "../../app-framework";
 
 import { create_autograde_ipynb } from "./autograde";
+{
+}
 
 export interface NBGraderAPIOptions {
   // Project will try to evaluate/autograde for this many milliseconds;
@@ -13,6 +16,8 @@ export interface NBGraderAPIOptions {
   // so far is returned.
   timeout_ms: number;
   cell_timeout_ms: number;
+  max_output?: number;
+  max_output_per_cell?: number;
 
   // The *contents* of the student-submitted ipynb file, but with
   // all output deleted (to keep it small).  This is NOT a filename
@@ -46,18 +51,19 @@ export async function nbgrader(
     opts.student_ipynb
   );
   const limits = {
-    max_total_output: 3000000,
-    max_output_per_cell: 500000,
     max_time_per_cell_ms: opts.cell_timeout_ms,
     max_total_time_ms: opts.timeout_ms,
+    max_output: opts.max_output,
+    max_output_per_cell: opts.max_output_per_cell,
   };
-  // console.log("nbgrader", { limits });
+  // console.log("nbgrader -- about to run jupyter_run_notebook", { limits });
   const graded_ipynb = await jupyter_run_notebook(opts.project_id, {
     path: opts.path,
     ipynb: autograde_ipynb,
     nbgrader: true,
     limits,
   });
+  // console.log("jupyter_run_notebook returned with ", graded_ipynb);
 
   return { output: graded_ipynb };
 }
@@ -66,13 +72,13 @@ export async function jupyter_strip_notebook(
   project_id: string,
   path: string
 ): Promise<string> {
-  await start_project(project_id);
+  await redux.getActions("projects").start_project(project_id);
   const api = await project_api(project_id);
   return await api.jupyter_strip_notebook(path);
 }
 
 export interface RunNotebookLimits {
-  max_total_output?: number; // any output that pushes the total length beyond this many characters is ignored.
+  max_output?: number; // any output that pushes the total length beyond this many characters is ignored.
   max_output_per_cell?: number; // any output that pushes a single cell's output beyond this many characters is ignored.
   max_time_per_cell_ms?: number; // if running a cell takes longer than this, we interrupt/kill it.
   max_total_time_ms?: number; // if total time to run all cells exceeds this time, we interrupt/kill.
@@ -89,7 +95,13 @@ export async function jupyter_run_notebook(
   project_id: string,
   opts: RunNotebookOptions
 ): Promise<string> {
-  await start_project(project_id);
+  // const log = (m) => console.log("jupyter_run_notebook", project_id, m);
+  // log("start_project");
+  await redux.getActions("projects").start_project(project_id);
+  // log("project_api");
   const api = await project_api(project_id);
-  return await api.jupyter_run_notebook(opts);
+  // log("jupyter_run_notebook");
+  const result = await api.jupyter_run_notebook(opts);
+  // log("got " + result);
+  return result;
 }

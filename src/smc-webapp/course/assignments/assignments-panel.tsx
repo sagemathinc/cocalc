@@ -1038,6 +1038,20 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     );
   }
 
+  private render_parallel() {
+    const n = this.get_store().get_copy_parallel();
+    return (
+      <Tip
+        title={`Parallel limit: copy ${n} assignments at a time`}
+        tip="This is the max number of assignments to copy in parallel.  Change this in course configuration."
+      >
+        <div style={{ marginTop: "10px", fontWeight: 400 }}>
+          Copy up to {n} assignments at once.
+        </div>
+      </Tip>
+    );
+  }
+
   private render_copy_confirm_to_all(
     step: AssignmentCopyStep,
     status
@@ -1063,6 +1077,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           </Button>
           {this.render_copy_cancel(step)}
         </ButtonGroup>
+        {this.render_parallel()}
       </div>
     );
     return (
@@ -1188,6 +1203,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         {this.state[`copy_confirm_all_${step}`]
           ? this.render_copy_confirm_overwrite_all(step)
           : undefined}
+        {this.render_parallel()}
       </div>
     );
     return (

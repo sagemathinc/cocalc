@@ -330,26 +330,38 @@ export function len(obj: object | undefined | null): number {
 
 // Specific, easy to read: describe amount of time before right now
 // Use negative input for after now (i.e., in the future).
-export function milliseconds_ago(ms) {
+export function milliseconds_ago(ms: number): Date {
   return new Date(new Date().valueOf() - ms);
 }
-export function seconds_ago(s) {
-  return exports.milliseconds_ago(1000 * s);
+export function seconds_ago(s: number) {
+  return milliseconds_ago(1000 * s);
 }
-export function minutes_ago(m) {
-  return exports.seconds_ago(60 * m);
+export function minutes_ago(m: number) {
+  return seconds_ago(60 * m);
 }
-export function hours_ago(h) {
-  return exports.minutes_ago(60 * h);
+export function hours_ago(h: number) {
+  return minutes_ago(60 * h);
 }
-export function days_ago(d) {
-  return exports.hours_ago(24 * d);
+export function days_ago(d: number) {
+  return hours_ago(24 * d);
 }
-export function weeks_ago(w) {
-  return exports.days_ago(7 * w);
+export function weeks_ago(w: number) {
+  return days_ago(7 * w);
 }
-export function months_ago(m) {
-  return exports.days_ago(30.5 * m);
+export function months_ago(m: number) {
+  return days_ago(30.5 * m);
+}
+
+// Here, we want to know how long ago a certain timestamp was
+export function how_long_ago_ms(ts: Date | number): number {
+  const ts_ms = typeof ts === "number" ? ts : ts.getTime();
+  return new Date().getTime() - ts_ms;
+}
+export function how_long_ago_s(ts: Date | number): number {
+  return how_long_ago_ms(ts) / 1000;
+}
+export function how_long_ago_m(ts: Date | number): number {
+  return how_long_ago_s(ts) / 60;
 }
 
 // encode a UNIX path, which might have # and % in it.
@@ -722,10 +734,17 @@ export function secure_random_token(
 
 // Called when an object will not be used further, to avoid
 // it references anything that could lead to memory leaks.
-export function close(obj: object): void {
-  Object.keys(obj).forEach(function (key) {
-    delete obj[key];
-  });
+export function close(obj: object, omit?: Set<string>): void {
+  if (omit != null) {
+    Object.keys(obj).forEach(function (key) {
+      if (omit.has(key)) return;
+      delete obj[key];
+    });
+  } else {
+    Object.keys(obj).forEach(function (key) {
+      delete obj[key];
+    });
+  }
 }
 
 export function assertDefined<T>(val: T): asserts val is NonNullable<T> {

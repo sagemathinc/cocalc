@@ -192,7 +192,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     return { rendererType, scrollback, fontFamily };
   }
 
-  assert_not_closed(): void {
+  private assert_not_closed(): void {
     if (this.state === "closed") {
       throw Error("BUG -- Terminal is closed.");
     }
@@ -212,7 +212,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.state = "closed";
   }
 
-  disconnect(): void {
+  private disconnect(): void {
     if (this.conn === undefined) {
       return;
     }
@@ -222,7 +222,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.set_connection_status("disconnected");
   }
 
-  update_settings(): void {
+  private update_settings(): void {
     this.assert_not_closed();
     const settings = this.account_store.get("terminal");
     if (settings == null || this.terminal_settings.equals(settings)) {
@@ -275,6 +275,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         options.args = this.args;
       }
       options.env = this.actions.get_term_env();
+      options.path = this.path;
       this.conn = await ws.api.terminal(this.term_path, options);
       if (this.state === "closed") {
         return;
@@ -314,6 +315,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   conn_write(data): void {
+    if (this.state == 'closed') return;  // no-op  -- see #4918
     if (this.conn === undefined) {
       this.conn_write_buffer.push(data);
       return;

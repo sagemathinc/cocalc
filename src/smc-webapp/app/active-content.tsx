@@ -21,9 +21,8 @@ export const ActiveContent: React.FC = React.memo(() => {
 
   const v: JSX.Element[] = [];
   open_projects?.forEach((project_id: string) => {
-    let x;
     const is_active = project_id === active_top_tab;
-    x = <ProjectPage project_id={project_id} is_active={is_active} />;
+    const x = <ProjectPage project_id={project_id} is_active={is_active} />;
     let cls = "smc-vfill";
     if (project_id !== active_top_tab) {
       cls += " hide";

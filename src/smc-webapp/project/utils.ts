@@ -4,7 +4,12 @@
  */
 
 import * as os_path from "path";
-import { encode_path, path_split, to_iso_path } from "smc-util/misc";
+import {
+  encode_path,
+  path_split,
+  to_iso_path,
+  startswith,
+} from "smc-util/misc";
 import {
   unreachable,
   capitalize,
@@ -265,4 +270,8 @@ export function url_href(project_id: string, path: string): string {
 // returns the download URL for a file at a given path
 export function download_href(project_id: string, path: string): string {
   return `${url_href(project_id, path)}?download`;
+}
+
+export function in_snapshot_path(path: string): boolean {
+  return startswith(path, ".snapshots/") || path.indexOf("/.snapshots/") != -1;
 }

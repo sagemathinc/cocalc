@@ -43,3 +43,5 @@ const do_not_laod_transpilers = program.kucalc && !program.test;
 
 exports.program = program;
 exports.do_not_laod_transpilers = do_not_laod_transpilers;
+const IN_KUCALC = program.kucalc;
+exports.running_in_kucalc = () => !!IN_KUCALC;

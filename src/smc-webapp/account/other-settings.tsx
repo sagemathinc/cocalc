@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Component, React, Rendered } from "../app-framework";
+import { Component, React, Rendered, redux } from "../app-framework";
 import { Map } from "immutable";
 import { webapp_client } from "../webapp-client";
 import { Checkbox, Panel } from "../antd-bootstrap";
@@ -20,7 +20,6 @@ import {
 import { NEW_FILENAMES } from "smc-util/db-schema";
 import { NewFilenameFamilies, NewFilenames } from "../project/utils";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
-import { set_account_table } from "./util";
 
 interface Props {
   other_settings: Map<string, any>;
@@ -29,7 +28,7 @@ interface Props {
 
 export class OtherSettings extends Component<Props> {
   private on_change(name: string, value: any): void {
-    set_account_table({ other_settings: { [name]: value } });
+    redux.getActions("account").set_other_settings(name, value);
   }
 
   private toggle_global_banner(val: boolean): void {
