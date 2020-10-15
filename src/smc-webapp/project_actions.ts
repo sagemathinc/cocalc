@@ -1284,7 +1284,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       const current_path = store.get("current_path");
       const names = store
         .get("displayed_listing")
-        .listing.map((a) => misc.path_to_file(current_path, a.name));
+        .files.map((a) => misc.path_to_file(current_path, a.name));
       range = misc.get_array_range(names, most_recent, file);
     }
 

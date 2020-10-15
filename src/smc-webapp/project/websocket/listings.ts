@@ -35,7 +35,9 @@ interface Listing {
   missing?: number;
   error?: string;
   deleted?: string[];
+  git_dir?: string;
 }
+
 export type ImmutableListing = TypedMap<Listing>;
 
 export class Listings extends EventEmitter {
@@ -214,7 +216,9 @@ export class Listings extends EventEmitter {
   //  - undefined if directory listing not known (and error not known either).
   public async get_for_store(
     path: string
-  ): Promise<List<ImmutablePathEntry> | undefined | string> {
+  ): Promise<
+    { git_dir?: string; files?: List<ImmutablePathEntry> } | undefined | string
+  > {
     if (this.state != "ready") {
       const x = await this.get_using_database(path);
       if (x == null) return x;
@@ -225,7 +229,7 @@ export class Listings extends EventEmitter {
     if (x.get("error")) {
       return x.get("error");
     }
-    return x.get("listing");
+    return { files: x.get("listing"), git_dir: x.get("git_dir") };
   }
 
   public async get_using_database(

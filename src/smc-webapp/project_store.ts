@@ -592,22 +592,22 @@ export class ProjectStore extends Store<ProjectStoreState> {
         let directory_listings = this.get("directory_listings");
         for (const path of paths) {
           if (this.listings == null) return; // won't happen
-          let files;
+          let data;
           if (this.listings.get_missing(path)) {
             try {
-              files = immutable.fromJS(
+              data = immutable.fromJS(
                 await this.listings.get_listing_directly(path)
               );
             } catch (err) {
               console.warn(
                 `WARNING: problem getting directory listing ${err}; falling back`
               );
-              files = await this.listings.get_for_store(path);
+              data = await this.listings.get_for_store(path);
             }
           } else {
-            files = await this.listings.get_for_store(path);
+            data = await this.listings.get_for_store(path);
           }
-          directory_listings = directory_listings.set(path, files);
+          directory_listings = directory_listings.set(path, data);
         }
         const actions = redux.getProjectActions(this.project_id);
         actions.setState({ directory_listings });
