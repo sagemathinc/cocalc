@@ -46,8 +46,10 @@ LIMITER_DROPPED = MetricsRecorder.new_counter('bottleneck_droppped_total',
                                                      'Dropped Queries',
                                                      ['query', 'priority'])
 DB_CONCURRENT_WARN = parseInt(process.env.SMC_DB_CONCURRENT_WARN ? '100')
-LIMITER_HIGH_WATER = Math.round(DB_CONCURRENT_WARN * 0.95)
-LIMITER_MAX_CONCURRENT = LIMITER_HIGH_WATER // 4
+# 2x above the warning limit, we start to discard queries
+LIMITER_HIGH_WATER = Math.round(DB_CONCURRENT_WARN * 2)
+# we allow half as many queries to be sent as the concurrent warning is set to
+LIMITER_MAX_CONCURRENT = DB_CONCURRENT_WARN // 2
 winston.debug("LIMITER params: high water=", LIMITER_HIGH_WATER, " max concurrent=", LIMITER_MAX_CONCURRENT)
 Bottleneck = require("bottleneck")
 # minTime: a request takes least that many ms (the quickest DB queries take 0.5 ms)
@@ -413,7 +415,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         )
         @query_counter = MetricsRecorder.new_counter('db_queries_total',
                                                      'All Queries',
-                                                     ['query', 'priority'])
+                                                     ['priority'])
 
     async_query: (opts) =>
         return await callback2(@_query.bind(@), opts)
@@ -526,8 +528,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
     __do_query_actual: (opts, cb_limiter) =>
         # re-assembling to opts.cb
         opts.cb = cb_limiter
-        count_what = opts.query?.slice(0, 256) ? opts.table ? opts.where?.table_name ? '-'
-        @query_counter.labels(count_what, opts.priority).inc(1)
+        # recording the query itself is a nice idea, but they are unlimited – not a good idea
+        #count_what = opts.query?.slice(0, 256) ? opts.table ? opts.where?.table_name ? '-'
+        @query_counter.labels(opts.priority).inc(1)
 
         dbg = @_dbg("_query('#{misc.trunc(opts.query?.replace(/\n/g, " "),250)}',id='#{misc.uuid().slice(0,6)}')")
         if not @is_connected()

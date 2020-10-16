@@ -49,8 +49,8 @@ Table({
     // We disable the indes scan for this query, which gets rid of the extra workers and runs fine.
     pg_indexscan: false,
 
-    // lower that queries priority – if it fails, client should retry later
-    priority: 2,
+    // lower priority – if it fails, client should retry later
+    priority: 7,
 
     // I put a time limit in pg_where below of to just give genuinely recent notifications,
     // and massively reduce server load.  The obvious todo list is to make another file_use

@@ -69,7 +69,7 @@ async function _count_timespan(db: PostgreSQL, opts): Promise<any> {
   const result = await cb2(db._query, {
     query: `SELECT COUNT(*) FROM ${table}`,
     where,
-    priority: 0,
+    priority: 9, // lowest
   });
   // count_result
   return parseInt(result?.rows?.[0]?.count);
@@ -106,7 +106,7 @@ ORDER BY ext
   const res = await cb2(db._query, {
     query: q,
     params: [misc.minutes_ago(age_m)],
-    priority: 0,
+    priority: 9, // lowest
   });
 
   // misc.copy? see "all_results"
@@ -191,7 +191,7 @@ async function calc_running_projects(db): Promise<RunningProjects> {
   const data = { free: 0, member: 0 };
   const res = await cb2(db._query, {
     query: running_projects_query,
-    priority: 0,
+    priority: 9, // lowest
   });
   for (const row of res.rows) {
     if (row.member) {
@@ -243,7 +243,7 @@ async function _calc_stats({ db, dbg, start_t }): Promise<Stats> {
   await new Promise((done, reject) => {
     db._query({
       query: "SELECT expire, host, clients FROM hub_servers",
-      priority: 0,
+      priority: 9, // lowest
       cb: all_results((err, hub_servers) => {
         if (err) {
           reject(err);
