@@ -185,7 +185,7 @@ class exports.UserQueryQueue
             state.time_ms.push(duration_ms)
             query_queue_duration.inc(duration_ms / 1000)
             query_queue_done.inc(1)
-            if state.time_ms.length > TIME_HISTORY_LENGTH
+            while state.time_ms.length > TIME_HISTORY_LENGTH
                 state.time_ms.shift()
             @_info(state)
             @_update(state)

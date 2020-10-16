@@ -1452,7 +1452,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             opts.cb(err)
             return
 
-        _query_opts = {}  # this will be the input to the @_query command.
+        # this will be the input to the @_query command.
+        # by default, all user queries are one level below all other queries (priority 5)
+        _query_opts =
+            priority: SCHEMA[opts.table]?.priority ? 4
+
         locals =
             result     : undefined
             changes_cb : undefined
@@ -1480,7 +1484,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     cb(err)
             (cb) =>
                 if client_query.get.instead_of_query?
-                    cb();
+                    cb()
                     return
                 _query_opts.query = @_user_get_query_query(table, opts.query, client_query.get.remove_from_query)
                 x = @_user_get_query_options(opts.options, opts.multi, client_query.options)
@@ -1499,6 +1503,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 if typeof indexscan == 'boolean'
                     val = if indexscan then 'on' else 'off'
                     _query_opts.pg_params = {enable_indexscan : val}
+
 
                 if opts.changes?
                     locals.changes_cb = opts.changes.cb
