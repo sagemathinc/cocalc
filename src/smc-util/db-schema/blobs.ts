@@ -59,6 +59,9 @@ Table({
     desc:
       "Table that stores blobs mainly generated as output of Sage worksheets.",
     primary_key: "id",
+    // these indices speed up the search been done in 'copy_all_blobs_to_gcloud'
+    // less important to make this query fast, but we want to avoid thrashing cache
+    pg_indexes: ["((expire IS NULL))", "((gcloud IS NULL))", "last_active"],
     user_query: {
       get: {
         async instead_of_query(database, opts, cb): Promise<void> {
