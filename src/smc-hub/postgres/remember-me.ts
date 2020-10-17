@@ -26,7 +26,8 @@ async function _get_remember_me(
       cache,
       query: "SELECT value, expire FROM remember_me",
       where: {
-        "hash = $::TEXT": hash.slice(0, 127),
+        // db-schema/auth defines the hash field as a "bpchar", hence do not cast to TEXT – otherwise this is a 100x slowdown
+        "hash = $::CHAR(127)": hash.slice(0, 127),
       },
       retry_until_success: { max_time: 60000, start_delay: 10000 }, // since we want this to be (more) robust to database connection failures.
       cb: one_result("value", cb),

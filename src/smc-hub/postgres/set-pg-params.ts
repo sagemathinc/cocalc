@@ -29,6 +29,7 @@ export async function do_query_with_pg_params(opts: Opts): Promise<void> {
       // SET LOCAL: only for this transaction!
       // NOTE: interestingly, $1, $2 params do not work … but this isn't user-facing
       const q = `SET LOCAL ${k} TO ${v}`;
+      L(`Setting query param: ${k}=${v}`);
       await client.query(q);
     }
     const res = await client.query(query, params);

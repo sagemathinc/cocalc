@@ -45,8 +45,9 @@ Table({
 
     // CRITICAL!  At scale, this query
     //    SELECT * FROM file_use WHERE project_id = any(select project_id from projects where users ? '25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb3') ORDER BY last_edited DESC limit 100;
-    // will take forever due to the query planner using a nestloop scan.  We thus disable doing so!
-    pg_nestloop: false,
+    // will take forever due to the query planner being off with its estimation (its the case where there is no such user or no data) and also uses several workers to do an index scan
+    // We disable the indes scan for this query, which gets rid of the extra workers and runs fine.
+    pg_indexscan: false,
 
     // I put a time limit in pg_where below of to just give genuinely recent notifications,
     // and massively reduce server load.  The obvious todo list is to make another file_use
