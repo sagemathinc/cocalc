@@ -162,12 +162,12 @@ async function run_cell(
 
   let cell_output_chars = 0;
   for (const x of result) {
-    if (x == null || x["content"] == null || x["done"]) continue;
+    if (x == null) continue;
     if (x["msg_type"] == "clear_output") {
       cell.outputs = [];
-      continue;
     }
     const mesg: any = x["content"];
+    if (mesg == null) continue;
     if (mesg.comm_id != null) {
       // ignore any comm/widget related messages
       continue;
