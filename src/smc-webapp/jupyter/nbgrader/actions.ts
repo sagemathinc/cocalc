@@ -330,12 +330,23 @@ export class NBGraderActions {
     // "metadata":{"nbgrader":{"locked":true,...
     //console.log("assign_lock_readonly_cells");
     this.jupyter_actions.store.get("cells").forEach((cell) => {
-      if (cell == null || !cell.getIn(["metadata", "nbgrader", "locked"]))
-        return;
-      for (const key of ["editable", "deletable"]) {
+      const nbgrader = cell?.getIn(["metadata", "nbgrader"]);
+      if (!nbgrader) return;
+
+      // We don't allow student to delete *any* cells with any
+      // nbgrader metadata.
+      this.jupyter_actions.set_cell_metadata({
+        id: cell.get("id"),
+        metadata: { deletable: false },
+        merge: true,
+        save: false,
+      });
+
+      if (nbgrader.get("locked")) {
+        // In addition, explicitly *locked* cells also can't be edited:
         this.jupyter_actions.set_cell_metadata({
           id: cell.get("id"),
-          metadata: { [key]: false },
+          metadata: { editable: false },
           merge: true,
           save: false,
         });
