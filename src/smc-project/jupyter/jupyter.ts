@@ -376,7 +376,7 @@ export class JupyterKernel
         return;
       }
 
-      return this.emit("iopub", mesg);
+      this.emit("iopub", mesg);
     });
 
     this._kernel.spawn.on("close", this.close);
