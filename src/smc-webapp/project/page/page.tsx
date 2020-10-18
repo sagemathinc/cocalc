@@ -317,10 +317,11 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
   }
 
   function render_project_modal() {
+    if (!is_active || !modal) return;
     return (
       <Modal
         title={modal?.get("title")}
-        visible={!!modal}
+        visible={is_active && modal != null}
         onOk={() => {
           actions?.clear_modal();
           modal?.get("onOk")?.();
