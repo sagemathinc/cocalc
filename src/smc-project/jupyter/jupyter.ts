@@ -398,18 +398,6 @@ export class JupyterKernel
     // kernel is up and running, and it's one thing that works the same
     // across all kernels (e.g., we can't just "run some code" in any kernel).
     await this._get_kernel_info();
-
-    // We put in a short delay anyways. It seems that
-    // this is needed to avoid silently missing some initial output.
-    // I've noticed this in practice sometimes when autograding
-    // Jupyter notebooks using ../nbgrader/jupyter-run.ts, which
-    // runs a bunch of code immediately after this _finish_spawn
-    // function.  Probably 100ms is way more than enough time, based
-    // on my tests.  My guess is just that something involving streams
-    // and ZMQ that takes 1ms is happening, but I definitely don't know.
-    // This could be answered properly with sufficient work.
-    // See also https://github.com/jupyterlab/rtc/pull/73#issuecomment-705775279
-    await delay(100);
   }
 
   async _get_kernel_info(): Promise<void> {
