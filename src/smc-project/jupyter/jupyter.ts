@@ -376,7 +376,7 @@ export class JupyterKernel
         return;
       }
 
-      return this.emit("iopub", mesg);
+      this.emit("iopub", mesg);
     });
 
     this._kernel.spawn.on("close", this.close);
@@ -394,6 +394,9 @@ export class JupyterKernel
 
     this._set_state("running");
 
+    // Getting kernel info successfully somehow is a very good sign the
+    // kernel is up and running, and it's one thing that works the same
+    // across all kernels (e.g., we can't just "run some code" in any kernel).
     await this._get_kernel_info();
   }
 
@@ -408,6 +411,9 @@ export class JupyterKernel
     execution, etc.   Probably the jupyter devs never notice this race condition
     bug in ZMQ/Jupyter kernels... or maybe the Python server has a sort of
     accidental work around.
+
+    Update: a Jupyter dev has finally publicly noticed this bug:
+      https://github.com/jupyterlab/rtc/pull/73#issuecomment-705775279
     */
     const that = this;
     async function f(): Promise<void> {
