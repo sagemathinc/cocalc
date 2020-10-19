@@ -9,6 +9,7 @@ Top-level React component for the terminal
 
 import { createEditor } from "../frame-tree/editor";
 import { TerminalFrame } from "./terminal";
+import { CommandsGuide } from "./commands-guide";
 import { set } from "smc-util/misc2";
 
 export const terminal = {
@@ -29,6 +30,7 @@ export const terminal = {
     "clear",
     "help",
     "connection_status",
+    "guide",
     /*"reload" */
   ]),
   hide_public: true, // never show this editor option for public view
@@ -37,10 +39,23 @@ export const terminal = {
       "Clearing this Terminal terminates a running program, respawns the shell, and cleans up the display buffer.",
     confirm: "Yes, clean up!",
   },
+  guide_info: {
+    title: "Commands",
+    descr: "Show terminal commands handbook",
+  },
+};
+
+const commands_guide = {
+  short: "Commands",
+  name: "Commands Reference",
+  icon: "book",
+  component: CommandsGuide,
+  buttons: set(["decrease_font_size", "increase_font_size"]),
 };
 
 const EDITOR_SPEC = {
   terminal,
+  commands_guide,
 };
 
 export const Editor = createEditor({

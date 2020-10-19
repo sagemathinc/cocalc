@@ -1185,6 +1185,10 @@ export class Actions<
     open_new_tab(url);
   }
 
+  guide(id: string, type: string): void {
+    console.warn(`Guide for ${type} not implemented. (id=${id})`);
+  }
+
   set_zoom(zoom: number, id?: string) {
     this.change_font_size(undefined, id, zoom);
   }
