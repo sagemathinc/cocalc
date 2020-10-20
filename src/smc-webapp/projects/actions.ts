@@ -725,6 +725,13 @@ export class ProjectsActions extends Actions<ProjectsState> {
         action_request: { action: "start", time: webapp_client.server_time() },
       });
     }
+    // Wait until it is running
+    await store.async_wait({
+      timeout: 120,
+      until(store) {
+        return store.get_state(project_id) == "running";
+      },
+    });
   }
 
   public async stop_project(project_id: string): Promise<void> {
@@ -751,33 +758,28 @@ export class ProjectsActions extends Actions<ProjectsState> {
         event: "project_stop_requested",
       });
     }
+    // Wait until it is no longer running or stopping
+    await store.async_wait({
+      timeout: 60,
+      until(store) {
+        const state = store.get_state(project_id);
+        return state != "running" && state != "stopping";
+      },
+    });
   }
 
   public async restart_project(project_id: string): Promise<void> {
     if (!allow_project_to_run(project_id)) {
       return;
     }
-    const action_request = store.getIn([
-      "project_map",
-      project_id,
-      "action_request",
-    ]);
-    if (
-      action_request == null ||
-      action_request.get("action") != "restart" ||
-      action_request.get("finished") >= new Date(action_request.get("time"))
-    ) {
-      await this.projects_table_set({
-        project_id,
-        action_request: {
-          action: "restart",
-          time: webapp_client.server_time(),
-        },
-      });
-      await this.redux.getProjectActions(project_id).log({
-        event: "project_restart_requested",
-      });
+    this.redux.getProjectActions(project_id).log({
+      event: "project_restart_requested",
+    });
+    const state = store.get_state(project_id);
+    if (state == "running") {
+      await this.stop_project(project_id);
     }
+    await this.start_project(project_id);
   }
 
   // Explcitly set whether or not project is hidden for the given account
