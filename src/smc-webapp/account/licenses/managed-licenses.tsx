@@ -94,6 +94,7 @@ export const ManagedLicenses: React.FC = () => {
     if (
       licenses == null ||
       all_licenses == null ||
+      active_licenses == null ||
       all_licenses.size == active_licenses.size
     ) {
       // don't show if not loaded or not useful
