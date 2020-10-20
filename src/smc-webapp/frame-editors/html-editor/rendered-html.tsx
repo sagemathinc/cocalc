@@ -9,11 +9,11 @@ Component that shows rendered HTML.
 
 import { delay } from "awaiting";
 import { is_different, path_split } from "smc-util/misc2";
-import { Map } from "immutable";
 import { throttle } from "underscore";
 import { React, Component, Rendered, ReactDOM } from "../../app-framework";
 import { MAX_WIDTH } from "../options";
 import { HTML } from "smc-webapp/r_misc";
+import { EditorState } from "../frame-tree/types"
 
 interface PropTypes {
   id: string;
@@ -24,7 +24,7 @@ interface PropTypes {
   read_only: boolean;
   value?: string;
   content?: string; // used instead of file, if this is public.
-  editor_state: Map<string, any>;
+  editor_state: EditorState;
 }
 
 export class QuickHTMLPreview extends Component<PropTypes, {}> {

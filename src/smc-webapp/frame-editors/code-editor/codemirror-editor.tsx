@@ -34,6 +34,7 @@ import { CodeEditor } from "./code-editor-manager";
 import { Actions } from "./actions";
 import { Icon } from "../../r_misc";
 import { file_associations } from "../../file-associations";
+import { EditorState } from "../frame-tree/types"
 
 const STYLE = {
   width: "100%",
@@ -51,7 +52,7 @@ interface Props {
   project_id: string;
   font_size: number;
   cursors: Map<string, any>;
-  editor_state: Map<string, any>;
+  editor_state: EditorState;
   read_only: boolean;
   is_current: boolean;
   is_public: boolean;
