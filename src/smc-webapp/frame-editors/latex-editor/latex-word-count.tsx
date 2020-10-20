@@ -3,14 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Map } from "immutable";
 import { is_different } from "smc-util/misc2";
 import { Component, React, rclass, rtypes } from "../../app-framework";
+import { EditorState } from "../frame-tree/types"
 
 interface ILatexWordCount {
   id: string;
   actions: any;
-  editor_state: Map<string, any>;
+  editor_state: EditorState;
   is_fullscreen: boolean;
   project_id: string;
   path: string;

@@ -33,6 +33,7 @@ import { getDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import { Page, PAGE_GAP } from "./pdfjs-page";
 import { SyncHighlight } from "./pdfjs-annotation";
 import { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack";
+import { EditorState } from "../frame-tree/types"
 
 // Ensure this jQuery plugin is defined:
 import "./mouse-draggable";
@@ -40,7 +41,7 @@ import "./mouse-draggable";
 interface PDFJSProps {
   id: string;
   actions: any;
-  editor_state: Map<string, any>;
+  editor_state: EditorState;
   is_fullscreen: boolean;
   project_id: string;
   path: string;

@@ -21,6 +21,7 @@ import { use_font_size_scaling } from "../frame-tree/hooks";
 import { process_checkboxes } from "../../editors/task-editor/desc-rendering";
 import { apply_without_math } from "smc-util/mathjax-utils-2";
 import { MAX_WIDTH_NUM } from "../options";
+import { EditorState } from "../frame-tree/types";
 
 interface Props {
   actions: any;
@@ -30,7 +31,7 @@ interface Props {
   font_size: number;
   read_only: boolean;
   value: string;
-  editor_state: any;
+  editor_state: EditorState;
   reload_images: boolean;
 }
 

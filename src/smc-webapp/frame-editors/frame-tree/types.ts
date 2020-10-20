@@ -64,3 +64,5 @@ export interface EditorDescription {
 export interface EditorSpec {
   [editor_name: string]: EditorDescription;
 }
+
+export type EditorState = Map<string, any>;   // TODO: use TypeMap and do this right.

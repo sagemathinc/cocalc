@@ -87,31 +87,15 @@ const BUILD_SPECS: IBuildSpecs = {
 };
 
 interface Props {
-  id: string;
   name: string;
   actions: any;
-  editor_state: Map<string, any>;
-  is_fullscreen: boolean;
-  project_id: string;
   path: string;
-  reload: number;
   font_size: number;
   status: string;
 }
 
 export const Build: React.FC<Props> = React.memo((props) => {
-  const {
-    /*id,*/
-    name,
-    actions,
-    /*project_id,*/
-    /*editor_state,*/
-    /*is_fullscreen,*/
-    path,
-    /*reload,*/
-    font_size: font_size_orig,
-    status,
-  } = props;
+  const { name, actions, path, font_size: font_size_orig, status } = props;
 
   const font_size = 0.8 * font_size_orig;
   const build_logs: BuildLogs = use_build_logs(name);
