@@ -73,7 +73,7 @@ export class User extends Component<Props> {
     } else if (info.last_name) {
       full_name = info.last_name;
     } else {
-      full_name = "";
+      full_name = "No Name";
     }
 
     if (this.props.show_original && full_name !== this.props.name) {
@@ -90,12 +90,16 @@ export class User extends Component<Props> {
   }
 
   name(info) {
-    return trunc_middle(
+    const x = trunc_middle(
       this.props.name != null
         ? this.props.name
         : `${info.first_name} ${info.last_name}`,
       50
-    );
+    ).trim();
+    if (x) {
+      return x;
+    }
+    return "No Name";
   }
 
   render() {
