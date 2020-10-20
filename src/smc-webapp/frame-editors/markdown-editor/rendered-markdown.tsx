@@ -75,17 +75,30 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
       return;
     }
     const scroll_val = $(elt).scrollTop();
-    actions.save_editor_state(id, { scroll_val });
+    actions.save_editor_state(id, { scroll: scroll_val });
   }
 
   async function restore_scroll(): Promise<void> {
     const scroll_val = editor_state.get("scroll");
     const elt = $(ReactDOM.findDOMNode(scroll.current));
-    if (elt.length === 0) return;
-    elt.scrollTop(scroll_val);
-    elt.find("img").on("load", function () {
+    try {
+      if (elt.length === 0) {
+        return;
+      }
+      await delay(0); // wait until render happens
       elt.scrollTop(scroll_val);
-    });
+      await delay(0);
+      elt.css("opacity", 1);
+
+      // do any scrolling after image loads
+      elt.find("img").on("load", function () {
+        elt.scrollTop(scroll_val);
+      });
+    } finally {
+      // for sure change opacity to 1 so visible after
+      // doing whatever scrolling above
+      elt.css("opacity", 1);
+    }
   }
 
   function on_click(e): void {
@@ -120,6 +133,7 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
   const style: CSS = {
     overflowY: "auto",
     width: "100%",
+    opacity: 0, // changed to 1 after initial scroll to avoid flicker
   };
   const style_inner: CSS = {
     ...{
