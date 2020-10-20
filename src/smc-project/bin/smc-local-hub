@@ -24,6 +24,20 @@ if not 'SMC' in os.environ:
     os.environ['SMC'] = os.path.join(os.environ['HOME'], '.smc')
 
 pidfile = os.path.join(os.environ['SMC'], 'local_hub', 'local_hub.pid' )
+
+if sys.argv[1] == 'stop':
+    # stop the specific local hub rather than all of them.
+    # This only makes a difference for cc-in-cc dev mode.
+    try:
+        pid = open(pidfile).read().strip()
+    except:
+        # already done
+        sys.exit(0)
+    cmd = 'forever stop %s'%pid
+    print(cmd)
+    os.system(cmd)
+    sys.exit(0)
+
 if sys.argv[1] == 'start' and is_running(pidfile, 'node'):
     # already running
     sys.exit(0)

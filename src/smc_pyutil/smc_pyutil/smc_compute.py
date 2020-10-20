@@ -469,7 +469,7 @@ class Project(object):
             'PATH'] = "{salvus_root}/smc-project/bin:{salvus_root}/smc_pyutil/smc_pyutil:{path}".format(
                 salvus_root=os.environ['SALVUS_ROOT'], path=os.environ['PATH'])
         os.environ[
-            'PYTHONPATH'] = "{home}/.local/lib/python2.7/site-packages".format(
+            'PYTHONPATH'] = "{home}/.local/lib/python3.8/site-packages".format(
                 home=os.environ['HOME'])
         os.environ['SMC_LOCAL_HUB_HOME'] = self.project_path
         os.environ['SMC_HOST'] = 'localhost'
