@@ -1330,6 +1330,10 @@ export class Actions<
     return this.terminals.get_terminal(id, parent);
   }
 
+  public set_terminal_cwd(id: string, cwd: string): void {
+    this.save_editor_state(id, { cwd });
+  }
+
   // Open a code editor, optionally at the given line.
   // TODO: try to eliminate the async.
   async open_code_editor(opts: {

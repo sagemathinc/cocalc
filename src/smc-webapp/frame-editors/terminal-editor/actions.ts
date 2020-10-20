@@ -22,8 +22,12 @@ export class TerminalActions extends Actions {
     return { type: "terminal" };
   }
 
-  public guide_command(id: string, cmd: string): void {
-    console.log("cmd", cmd, "id", id);
+  public get_terminal(id: string) {
+    return this.terminals.get(id);
+  }
+
+  // this sends a given line "cmd" to the actual terminal
+  public run_command(cmd: string): void {
     const last_terminal_id = this._get_most_recent_active_frame_id_of_type(
       "terminal"
     );
@@ -35,7 +39,12 @@ export class TerminalActions extends Actions {
       const terminal = this.terminals.get(last_terminal_id);
       console.log("terminal " + last_terminal_id, "→", terminal);
       if (terminal == null) return;
-      terminal.conn_write("ls\n");
+      // we clean up the input line before we send the command
+      // Ctrl-e & Ctrl-u: move cursor to end of line and backwards delete the entire line
+      // "$ showkey -a" helped me to get the hex codes:
+      // ^E 	  5 0005 0x05
+      // ^U 	 21 0025 0x15
+      terminal.conn_write(`\x05\x15${cmd}\n`);
     }
   }
 
