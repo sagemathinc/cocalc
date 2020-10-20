@@ -701,25 +701,47 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
   }
 
-  public async start_project(project_id: string): Promise<void> {
-    if (!allow_project_to_run(project_id)) {
-      return;
-    }
-    const state = store.getIn(["project_map", project_id, "state"]);
-    if (state?.get("state") == "starting" || state?.get("state") == "running") {
-      return;
-    }
+  private current_action_request(project_id: string): string | undefined {
     const action_request = store.getIn([
       "project_map",
       project_id,
       "action_request",
     ]);
+    if (action_request == null || action_request.get("action") == null) {
+      // definitely nothing going on now.
+      return undefined;
+    }
+    const request_time = new Date(action_request.get("time"));
+    if (action_request.get("finished") >= request_time) {
+      // also definitely nothing going on, since finished time is greater than
+      // when we requested an action.
+      return undefined;
+    }
     if (
-      action_request == null ||
-      action_request.get("action") != "start" ||
-      action_request.get("finished") >= new Date(action_request.get("time"))
+      webapp_client.server_time().valueOf() - request_time.valueOf() >
+        1000 * 30 &&
+      (action_request.get("started") == null ||
+        action_request.get("started") < request_time)
     ) {
-      // need to do it!
+      // we have been ignored for 30 seconds -- server didn't start handling
+      // our request
+      return undefined;
+    }
+
+    return action_request.get("action");
+  }
+
+  public async start_project(project_id: string): Promise<void> {
+    if (!allow_project_to_run(project_id)) {
+      return;
+    }
+    const state = store.get_state(project_id);
+    if (state == "starting" || state == "running" || state == "stopping") {
+      return;
+    }
+    const action_request = this.current_action_request(project_id);
+    if (action_request == null || action_request != "start") {
+      // need to make an action request:
       await this.projects_table_set({
         project_id,
         action_request: { action: "start", time: webapp_client.server_time() },
@@ -735,20 +757,12 @@ export class ProjectsActions extends Actions<ProjectsState> {
   }
 
   public async stop_project(project_id: string): Promise<void> {
-    const state = store.getIn(["project_map", project_id, "state"]);
-    if (state?.get("state") == "stopping" || state?.get("state") == "opened") {
+    const state = store.get_state(project_id);
+    if (state == "stopping" || state == "opened" || state == "starting") {
       return;
     }
-    const action_request = store.getIn([
-      "project_map",
-      project_id,
-      "action_request",
-    ]);
-    if (
-      action_request == null ||
-      action_request.get("action") != "stop" ||
-      action_request.get("finished") >= new Date(action_request.get("time"))
-    ) {
+    const action_request = this.current_action_request(project_id);
+    if (action_request == null || action_request != "stop") {
       // need to do it!
       await this.projects_table_set({
         project_id,
@@ -758,7 +772,10 @@ export class ProjectsActions extends Actions<ProjectsState> {
         event: "project_stop_requested",
       });
     }
-    // Wait until it is no longer running or stopping
+    // Wait until it is no longer running or stopping.  We don't
+    // wait for "opened" because something or somebody else could
+    // have started the project and we missed that, and don't
+    // want to get stuck.
     await store.async_wait({
       timeout: 60,
       until(store) {
