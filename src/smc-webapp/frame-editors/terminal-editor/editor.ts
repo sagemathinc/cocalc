@@ -40,14 +40,14 @@ export const terminal = {
     confirm: "Yes, clean up!",
   },
   guide_info: {
-    title: "Commands",
-    descr: "Show terminal commands handbook",
+    title: "Guide",
+    descr: "Show a panel guiding you working with the terminal.",
   },
 };
 
 const commands_guide = {
-  short: "Commands",
-  name: "Commands Reference",
+  short: "Guide",
+  name: "Guide",
   icon: "book",
   component: CommandsGuide,
   buttons: set(["decrease_font_size", "increase_font_size"]),

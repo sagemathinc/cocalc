@@ -7,3 +7,10 @@ export interface ListingItem {
   name: string;
   isdir: boolean;
 }
+
+export interface DirectoryListingEntry {
+  name: string;
+  size: number;
+  mtime: number;
+  isdir?: boolean;
+}
