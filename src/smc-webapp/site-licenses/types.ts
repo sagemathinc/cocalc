@@ -12,6 +12,7 @@ export interface SiteLicensePublicInfo {
   run_limit?: number;
   upgrades?: { [field: string]: number };
   is_manager?: boolean;
+  managers?: string[];
   running?: number;
   quota?: {
     ram?: number;

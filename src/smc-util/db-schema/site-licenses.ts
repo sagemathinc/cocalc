@@ -515,6 +515,7 @@ Table({
     upgrades: SCHEMA.site_licenses.fields.upgrades,
     quota: SCHEMA.site_licenses.fields.quota,
     run_limit: SCHEMA.site_licenses.fields.run_limit,
+    managers: SCHEMA.site_licenses.fields.managers,
     running: {
       type: "integer",
       desc:
@@ -543,6 +544,7 @@ Table({
           upgrades: null,
           quota: null,
           run_limit: null,
+          managers: null,
           running: null,
           is_manager: null,
         },
@@ -667,6 +669,7 @@ Table({
           id: true,
           title: true,
           description: true,
+          managers: true,
         },
         async instead_of_change(
           database,
