@@ -349,7 +349,7 @@ export class StudentAssignmentInfo extends Component<
           this.props.edited_grade === this.props.grade &&
           this.props.edited_comments === this.props.comments
         }
-        rows={5}
+        rows={3}
         placeholder="Comments (optional)"
         default_value={this.props.edited_comments || this.props.comments}
         on_edit={() => this.set_edited_feedback()}
