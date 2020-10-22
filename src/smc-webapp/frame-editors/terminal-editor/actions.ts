@@ -12,6 +12,13 @@ const { open_new_tab } = require("smc-webapp/misc_page");
 
 const HELP_URL = "https://doc.cocalc.com/terminal.html";
 
+interface CmdOpts {
+  run?: boolean;
+  cleanup?: boolean;
+  userarg?: boolean;
+  special?: string;
+}
+
 export class TerminalActions extends Actions {
   // no need to open any syncstring for terminals -- they don't use database sync.
   protected doctype: string = "none";
@@ -27,7 +34,8 @@ export class TerminalActions extends Actions {
   }
 
   // this sends a given line "cmd" to the actual terminal
-  public run_command(cmd: string): void {
+  public run_command(cmd: string, opts: CmdOpts): void {
+    const { run = true, cleanup = true, userarg = false, special } = opts;
     const last_terminal_id = this._get_most_recent_active_frame_id_of_type(
       "terminal"
     );
@@ -39,12 +47,33 @@ export class TerminalActions extends Actions {
       const terminal = this.terminals.get(last_terminal_id);
       console.log("terminal " + last_terminal_id, "→", terminal);
       if (terminal == null) return;
-      // we clean up the input line before we send the command
-      // Ctrl-e & Ctrl-u: move cursor to end of line and backwards delete the entire line
-      // "$ showkey -a" helped me to get the hex codes:
-      // ^E 	  5 0005 0x05
-      // ^U 	 21 0025 0x15
-      terminal.conn_write(`\x05\x15${cmd}\n`);
+      // note: don't try to set these special char sequences in react – they're escaped
+      switch (special) {
+        case "up":
+          terminal.conn_write("\x1b\x5b\x41");
+          break;
+        case "down":
+          terminal.conn_write("\x1b\x5b\x42");
+          break;
+        case "tab":
+          terminal.conn_write("\x09");
+          break;
+        case "ctrl-c":
+          terminal.conn_write("\x03");
+          break;
+        default:
+          // we clean up the input line before we send the command
+          // Ctrl-e & Ctrl-u: move cursor to end of line and backwards delete the entire line
+          // "$ showkey -a" helped me to get the hex codes:
+          // ^E 	  5 0005 0x05
+          // ^U 	 21 0025 0x15
+          const send = run && !userarg ? "\n" : userarg ? "" : " ";
+          const clean = cleanup ? "\x05\x15" : "";
+          // userarg: we insert a space, quotes, and put the cursor inside the quotes
+          const user = userarg ? " ''\x1b\x5b\x44" : "";
+          terminal.conn_write(`${clean}${cmd}${user}${send}`);
+          break;
+      }
     }
   }
 

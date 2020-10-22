@@ -14,7 +14,7 @@ import { Component, React, Rendered } from "../app-framework";
 //import { PublicPathInfo } from "./public-path-info";
 const { PublicPathInfo } = require("./public-path-info");
 
-import { DirectoryListingEntry as DirectoryListingEntryType } from "../../project/explorer/types";
+import { DirectoryListingEntry as DirectoryListingEntryType } from "../project/explorer/types";
 
 interface DirectoryListingProps {
   info?: Map<string, any>;

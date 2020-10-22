@@ -4,19 +4,38 @@
  */
 
 import {
+  CSS,
   React,
   useEffect,
   useState,
+  useMemo,
   useActions,
   useTypedRedux,
   TypedMap,
 } from "../../app-framework";
-import { Collapse, Descriptions } from "antd";
+import {
+  Collapse,
+  Descriptions,
+  Divider,
+  Button,
+  Row,
+  Col,
+  Switch,
+  Select,
+  Typography,
+  Table,
+} from "antd";
+import {
+  FolderOpenOutlined,
+  InfoCircleOutlined,
+  FileOutlined,
+  ControlOutlined,
+  QuestionCircleOutlined,
+} from "@ant-design/icons";
 const { Panel } = Collapse;
 // import { delay } from "awaiting";
 import { Map, List } from "immutable";
-// import { Icon, Loading } from "../../r_misc";
-import { Button } from "../../antd-bootstrap";
+import { Icon } from "../../r_misc";
 import { plural, round1 } from "smc-util/misc";
 import { TerminalActions } from "./actions";
 import { DirectoryListingEntry } from "../../project/explorer/types";
@@ -28,6 +47,10 @@ interface Props {
   local_view_state: Map<string, any>;
 }
 
+const TerminalActionsContext = React.createContext<TerminalActions | undefined>(
+  undefined
+);
+
 const ListingStatsInit = {
   total: 0,
   num_files: 0,
@@ -37,13 +60,125 @@ const ListingStatsInit = {
 
 const info = "info";
 
-//function is_equal(prev, next) {
-//  return prev.font_size == next.font_size;
-//}
+interface CommandProps {
+  cmd?: string;
+  special?: string; // bypass processing the cmd
+  title?: string;
+  descr: string;
+  userarg?: boolean; // if yes, user will have to input an argument in the terminal
+  args?: (string | undefined)[];
+}
 
-export const CommandsGuide: React.FC<Props> = React.memo((props) => {
-  const { font_size, actions, local_view_state, project_id } = props;
-  console.log("font_size", font_size, " -- ", actions);
+const CMD_BTN_STYLE: CSS = {
+  whiteSpace: "nowrap",
+  fontFamily: "monospace",
+  fontSize: "90%",
+  textOverflow: "ellipsis",
+  overflow: "hidden",
+  maxWidth: "100%",
+};
+
+interface RowLayoutProps {
+  left: JSX.Element | string;
+  right: JSX.Element | string;
+}
+
+const RowLayout: React.FC<RowLayoutProps> = React.memo(
+  (props: RowLayoutProps) => {
+    return (
+      <Row gutter={[16, 8]}>
+        <Col flex={"0 1 50%"}>{props.left}</Col>
+        <Col flex={"auto"}>{props.right}</Col>
+      </Row>
+    );
+  }
+);
+
+// a simple templating approach is used to bolt together the actual command
+function calc_cmd_args(
+  cmd0?: string,
+  args: (string | undefined)[] = []
+): { cmdargs: string; run: boolean } {
+  let used_args = args.length == 0; // no args to use
+  let cmd = cmd0 ?? "";
+  args.forEach((val, idx) => {
+    if (val == null) return;
+    used_args = true;
+    if (cmd.includes(`${idx + 1}`)) {
+      // TODO quote "'" inside of file names as "'\''" or something similar?
+      cmd = cmd.replace(new RegExp(`\\$${idx + 1}`, "g"), `'${val}'`);
+    } else {
+      cmd += ` ${val}`;
+    }
+  });
+  return { cmdargs: cmd, run: used_args };
+}
+
+const Command: React.FC<CommandProps> = React.memo((props: CommandProps) => {
+  const { cmd, special, title, descr, args, userarg } = props;
+  const { cmdargs, run } = useMemo(
+    () =>
+      special != null ? { cmdargs: "", run: false } : calc_cmd_args(cmd, args),
+    [cmd, args]
+  );
+
+  const actions = React.useContext(TerminalActionsContext);
+
+  return (
+    <RowLayout
+      left={
+        <Button
+          onClick={() =>
+            actions?.run_command(cmdargs, { special, run, userarg })
+          }
+          shape={"round"}
+          size={"small"}
+          title={cmdargs}
+        >
+          <span style={CMD_BTN_STYLE}>{title ?? cmdargs}</span>
+        </Button>
+      }
+      right={<Typography.Text type="secondary">{descr}</Typography.Text>}
+    />
+  );
+});
+
+interface SelectFileProps {
+  list: string[];
+  selected?: string;
+  select: (string) => void;
+}
+
+const SelectFile: React.FC<SelectFileProps> = React.memo(
+  (props: SelectFileProps) => {
+    const { list, selected, select } = props;
+    return (
+      <Select
+        value={selected}
+        allowClear={true}
+        showSearch={true}
+        placeholder="Select an entry"
+        optionFilterProp="value"
+        onChange={select}
+        filterOption={(input, option) =>
+          option?.value?.toLowerCase().indexOf(input.toLowerCase()) >= 0
+        }
+        style={{ width: "100%" }}
+      >
+        {list.map((val) => (
+          <Select.Option key={val} value={val}>
+            {val}
+          </Select.Option>
+        ))}
+      </Select>
+    );
+  }
+);
+
+type ListingImm = List<TypedMap<DirectoryListingEntry>>;
+
+export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
+  const { /*font_size,*/ actions, local_view_state, project_id } = props;
 
   const project_actions = useActions({ project_id });
   const directory_listings = useTypedRedux(
@@ -52,12 +187,20 @@ export const CommandsGuide: React.FC<Props> = React.memo((props) => {
   );
   const [terminal_id, set_terminal_id] = useState<string | undefined>();
   const [cwd, set_cwd] = useState<string>(""); // default home directory
-  const [listing, set_listing] = useState<
-    List<TypedMap<DirectoryListingEntry>>
-  >(List([])); // empty immutable js list
+  const [hidden, set_hidden] = useState<boolean>(false); // hidden files
+  // empty immutable js list
+  const [listing, set_listing] = useState<ListingImm>(List([]));
+
   const [listing_stats, set_listing_stats] = useState<typeof ListingStatsInit>(
     ListingStatsInit
   );
+  const [directorynames, set_directorynames] = useState<string[]>([]);
+  const [filenames, set_filenames] = useState<string[]>([]);
+  // directory and filenames
+  const [dir1, set_dir1] = useState<string | undefined>(undefined);
+  const [fn1, set_fn1] = useState<string | undefined>(undefined);
+  const [fn2, set_fn2] = useState<string | undefined>(undefined);
+
   useEffect(() => {
     const tid = actions._get_most_recent_active_frame_id_of_type("terminal");
     if (tid == null) return;
@@ -81,45 +224,173 @@ export const CommandsGuide: React.FC<Props> = React.memo((props) => {
     }
   }, [terminal_id, local_view_state]);
 
+  function listing2names(listing?): string[] {
+    if (listing == null) {
+      return [];
+    } else {
+      return listing
+        .map((val) => val.get("name"))
+        .sort()
+        .toJS();
+    }
+  }
+
+  // if the working directory changes or the listing itself, recompute the listing we base the files on
   useEffect(() => {
     if (cwd == null) return;
-    const next_listing = directory_listings?.get(cwd2path(cwd));
-    if (next_listing != null && next_listing != listing) {
-      set_listing(next_listing);
-      const nf = next_listing.count((val) => val.get("isdir"));
-      const total = next_listing.size;
-      const size =
-        next_listing.reduce(
-          (cur, val) => cur + (val.get("isdir") ? 0 : val.get("size")),
-          0
-        ) /
-        (1024 * 1024);
-      set_listing_stats({
-        total,
-        num_files: nf,
-        num_dirs: total - nf,
-        size_mib: size,
-      });
+    set_listing(directory_listings?.get(cwd2path(cwd)));
+  }, [directory_listings, cwd]);
+
+  // finally, if the listing did really change – or we show/hide hidden files – recalculate everything
+  useEffect(() => {
+    if (listing == null) return;
+    const all_files = hidden
+      ? listing
+      : listing.filter((val) => !val.get("name").startsWith("."));
+    const grouped = all_files.groupBy((val) => !!val.get("isdir"));
+    const dirnames = [".", "..", ...listing2names(grouped.get(true))];
+    const filenames = listing2names(grouped.get(false));
+    set_directorynames(dirnames);
+    set_filenames(filenames);
+    const total = all_files.size;
+    const size_red = grouped
+      .get(false)
+      ?.reduce((cur, val) => cur + val.get("size"), 0);
+    const size = (size_red ?? 0) / (1024 * 1024);
+    set_listing_stats({
+      total,
+      num_files: filenames.length,
+      num_dirs: dirnames.length,
+      size_mib: size,
+    });
+  }, [listing, hidden]);
+
+  // we also clear selected files if they no longer exist
+  useEffect(() => {
+    if (fn1 != null && !filenames.includes(fn1)) {
+      set_fn1(undefined);
     }
-  }, [directory_listings, cwd, terminal_id]);
+    if (fn2 != null && !filenames.includes(fn2)) {
+      set_fn2(undefined);
+    }
+    if (dir1 != null && !directorynames.includes(dir1)) {
+      set_dir1(undefined);
+    }
+  }, [directorynames, filenames]);
 
   function render_files() {
+    const dirs = directorynames.map((v) => ({ key: v, name: v, type: "dir" }));
+    const fns = filenames.map((v) => ({ key: v, name: v, type: "file" }));
+    const data = [...dirs, ...fns];
+    const columns = [
+      {
+        title: "Name",
+        dataIndex: "name",
+        ellipsis: true,
+        render: (text, rec) => ({
+          props: {
+            style: { cursor: "pointer" },
+          },
+          children:
+            rec.type == "dir" ? (
+              <>
+                <FolderOpenOutlined /> {text}
+              </>
+            ) : (
+              <>
+                <FileOutlined /> {text}
+              </>
+            ),
+        }),
+      },
+    ];
     return (
-      <pre style={{ fontSize: "80%" }}>
-        {JSON.stringify(listing ?? {}, null, 2)}
-      </pre>
+      <>
+        <Typography.Text type="secondary">
+          Click to insert name into terminal.
+        </Typography.Text>
+        <Table
+          showHeader={false}
+          columns={columns}
+          dataSource={data}
+          size="small"
+          onRow={(record) => ({
+            onClick: () =>
+              actions.run_command(` '${record.name}'`, {
+                run: false,
+                cleanup: false,
+              }),
+          })}
+        />
+      </>
     );
   }
 
-  function render_btn() {
+  // these are commands which have at least one file or directory as their argument or operate related to the filesystem (e.g. cd)
+  function render_file_commands() {
     return (
-      <div>
-        <Button onClick={() => actions.run_command("ls")}>Listing</Button>
-        <Button onClick={() => actions.run_command("ls -la")}>
-          Long full listing
-        </Button>
-        <Button onClick={() => actions.run_command("date")}>Date</Button>
-      </div>
+      <>
+        <Command cmd="cp -av" descr="copy files" args={[fn1, fn2]} />
+        <Command cmd="mv -v" descr="move files" args={[fn1, fn2]} />
+        <Command cmd="rm -v" descr="remove a file" args={[fn1]} />
+        <Command cmd="stat" descr="file information" args={[fn1]} />
+        <Command cmd="type" descr="file type" args={[fn1]} />
+        <Command cmd="head" descr="start of text file" args={[fn1]} />
+        <Command cmd="tail" descr="end of text file" args={[fn1]} />
+        <Command cmd="less" descr="show text file conent" args={[fn1]} />
+        <Command cmd="diff" descr="changes between files" args={[fn1, fn2]} />
+      </>
+    );
+  }
+
+  function render_directory_commands() {
+    return (
+      <>
+        <Command cmd="ls" descr="list files" args={[dir1]} />
+        <Command cmd="ls -l" descr="full file listing" />
+        <Command cmd="pwd" descr="current directory" />
+        <Command cmd="cd" descr="change directory" args={[dir1]} />
+        <Command cmd="mkdir" descr="create directory" args={[dir1]} />
+        <Command cmd="rmdir" descr="remove empty directory" args={[dir1]} />
+        <Command
+          cmd="rm -rf"
+          descr="remove directory and delete files"
+          args={[dir1]}
+        />
+        <Command cmd="du -sch" descr="disk usage" args={[dir1]} />
+      </>
+    );
+  }
+
+  function render_system_commands() {
+    return (
+      <>
+        <Command cmd="date" descr="current time" />
+        <Command cmd="id" descr="user identity" />
+        <Command cmd="whoami" descr="who am i?" />
+        <Command cmd="df -h" descr="free disk space" />
+        <Command cmd="man" descr="manpage [command]" />
+        <Command cmd="uname -a" descr="kernel info" />
+        <Command cmd="lsb_release -a" descr="LSB info" />
+
+        <Divider orientation="left" plain>
+          Processes &amp; Memory
+        </Divider>
+        <Command cmd="ps auxwf" descr="processes" />
+        <Command cmd="free -m" descr="free memory" />
+        <Command cmd="top" descr="table of processes" />
+        <Command cmd="htop" descr="top for humans" />
+      </>
+    );
+  }
+
+  function render_archiving_commands() {
+    return (
+      <>
+        <Command cmd="tar xf" descr="extract tar archive" args={[fn1]} />
+        <Command cmd="gzip -d" descr="gzip decompress" args={[fn1]} />
+        <Command cmd="gzip" descr="gzip compress" args={[fn1]} />
+      </>
     );
   }
 
@@ -137,28 +408,238 @@ export const CommandsGuide: React.FC<Props> = React.memo((props) => {
           {plural(listing_stats.num_dirs, "directory", "directories")},{" "}
           <code>{round1(listing_stats.size_mib)}</code> MiB
         </Descriptions.Item>
+
+        <Descriptions.Item label="File 1">
+          <SelectFile list={filenames} selected={fn1} select={set_fn1} />
+        </Descriptions.Item>
+        <Descriptions.Item label="File 2">
+          <SelectFile list={filenames} selected={fn2} select={set_fn2} />
+        </Descriptions.Item>
+        <Descriptions.Item label="Directory">
+          <SelectFile list={directorynames} selected={dir1} select={set_dir1} />
+        </Descriptions.Item>
+
+        <Descriptions.Item label="Hidden files">
+          <Switch defaultChecked={hidden} onChange={(val) => set_hidden(val)} />
+        </Descriptions.Item>
       </Descriptions>
     );
   }
 
+  // commands related to version control with git
   function render_git() {
-    return <p>Git</p>;
+    return (
+      <>
+        <Command cmd="git status" descr="current status" />
+        <Command cmd="git diff" descr="content changes" />
+        <Command cmd="git grep" descr="search file content" />
+        <Command cmd="git pull" descr="pull changes" />
+
+        <Divider orientation="left" plain>
+          Commit &amp; Push
+        </Divider>
+
+        <Command cmd="git add" descr="add specific file(s)" args={[fn1, fn2]} />
+        <Command cmd="git add -u" descr="add changed files" />
+        <Command cmd="git add -A" descr="add all files" />
+        <Command cmd="git add -a -- ." descr="add current directory" />
+        <Command cmd="git diff --cached" descr="diff staged changed" />
+        <Command cmd="git commit -m" descr="commit changes" userarg={true} />
+        <Command cmd="git push" descr="push changes" />
+
+        <Divider orientation="left" plain>
+          Setup
+        </Divider>
+        <Command
+          cmd="git config --global user.name"
+          descr="config user.name"
+          userarg={true}
+        />
+        <Command
+          cmd="git config --global user.email"
+          descr="config user.email"
+          userarg={true}
+        />
+        <Command cmd="git init" descr="init new repository" />
+        <Command cmd="git clone" userarg={true} descr="clone repository" />
+      </>
+    );
+  }
+
+  function render_bash() {
+    return (
+      <>
+        <Command special="up" title={"↑"} descr="Key up: previous command" />
+        <Command special="down" title={"↓"} descr="Key down: forward history" />
+        <Command special="tab" title={"[Tab]"} descr="Tab key autocompletion" />
+        <Command
+          special="ctrl-c"
+          title={"[Ctrl-c]"}
+          descr="Terminate process"
+        />
+        <Command cmd="FOO=123" descr="set variable" />
+        <Command cmd="echo $FOO" descr="echo a variable" />
+        <Command cmd="alias" descr="alias" />
+        <Command cmd="history" descr="Command history" />
+        <Command cmd="reset" descr="Reset terminal" />
+        <Command cmd="clear" descr="Clear terminal" />
+        <Command cmd="exit 0" descr="Exit current session" />
+      </>
+    );
+  }
+
+  function render_network() {
+    return (
+      <>
+        <Command cmd="ssh" descr="connect via ssh" userarg={true} />
+        <Command cmd="wget" descr="download via wget" userarg={true} />
+      </>
+    );
+  }
+
+  function render_help() {
+    return (
+      <div>
+        <p>
+          This panel guides you using the terminal. In general, it runs{" "}
+          <code>bash</code> interpreter. You usually type in commands and submit
+          them for evaluation by pressing the <code>Return</code> key. Try it by
+          running in <code>date</code> to see the current time!
+        </p>
+        <p>
+          The "General" panel at the top shows you the current directory and
+          statistics about the files. You can also select the first and second
+          argument for commands that consume files or a directory name. If there
+          is an argument selected, clicking on the command will also evaluate
+          it.
+        </p>
+        <p>
+          Open other panels to see some commands you can run. You can also run{" "}
+          <code>man [command]</code> to get more information.
+        </p>
+        <p>
+          Open the "Files" panel to see all files in the current directory.
+          Click to insert the given filename!
+        </p>
+      </div>
+    );
+  }
+
+  function render() {
+    return (
+      <Collapse
+        defaultActiveKey={[info]}
+        style={{
+          overflowY: "auto",
+        }}
+      >
+        <Panel
+          header={
+            <>
+              <InfoCircleOutlined /> General
+            </>
+          }
+          key={info}
+        >
+          {render_info()}
+        </Panel>
+        <Panel
+          header={
+            <>
+              <Icon name="list" /> Files
+            </>
+          }
+          key="files"
+        >
+          {render_files()}
+        </Panel>
+        <Panel
+          header={
+            <>
+              <FileOutlined /> File commands
+            </>
+          }
+          key="file-commands"
+        >
+          {render_file_commands()}
+        </Panel>
+        <Panel
+          header={
+            <>
+              <FolderOpenOutlined /> Directory commands
+            </>
+          }
+          key="directory-commands"
+        >
+          {render_directory_commands()}
+        </Panel>
+        <Panel
+          header={
+            <>
+              <Icon name="git" /> Git
+            </>
+          }
+          key="git"
+        >
+          {render_git()}
+        </Panel>
+        <Panel
+          header={
+            <>
+              <Icon name="file-archive" /> Archiving
+            </>
+          }
+          key="archiving-commands"
+        >
+          {render_archiving_commands()}
+        </Panel>
+        <Panel
+          header={
+            <>
+              <ControlOutlined /> System commands
+            </>
+          }
+          key="system-commands"
+        >
+          {render_system_commands()}
+        </Panel>
+        <Panel
+          header={
+            <>
+              <Icon name="terminal" /> Bash
+            </>
+          }
+          key="bash"
+        >
+          {render_bash()}
+        </Panel>
+        <Panel
+          header={
+            <>
+              <Icon name="network-wired" /> Network
+            </>
+          }
+          key="network"
+        >
+          {render_network()}
+        </Panel>
+        <Panel
+          header={
+            <>
+              <QuestionCircleOutlined /> Help
+            </>
+          }
+          key="help"
+        >
+          {render_help()}
+        </Panel>
+      </Collapse>
+    );
   }
 
   return (
-    <Collapse defaultActiveKey={[info]}>
-      <Panel header="General information" key={info}>
-        {render_info()}
-      </Panel>
-      <Panel header="File commands" key="file-commands">
-        {render_btn()}
-      </Panel>
-      <Panel header="Git" key="git">
-        {render_git()}
-      </Panel>
-      <Panel header="Files" key="files">
-        {render_files()}
-      </Panel>
-    </Collapse>
+    <TerminalActionsContext.Provider value={actions}>
+      {render()}
+    </TerminalActionsContext.Provider>
   );
-}); //, is_equal);
+});
