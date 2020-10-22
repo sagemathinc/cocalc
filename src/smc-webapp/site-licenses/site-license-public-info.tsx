@@ -9,6 +9,7 @@ import {
   useEffect,
   useIsMountedRef,
   useState,
+  useTypedRedux,
   redux,
 } from "../app-framework";
 import { SiteLicensePublicInfo as Info } from "./types";
@@ -22,6 +23,8 @@ import { DebounceInput } from "react-debounce-input";
 import { webapp_client } from "../webapp-client";
 import { describe_quota } from "smc-util/db-schema/site-licenses";
 import { LicensePurchaseInfo } from "./purchase-info-about-license";
+import { query, user_search } from "../frame-editors/generic/client";
+import { User } from "../users";
 
 interface Props {
   license_id: string;
@@ -48,6 +51,19 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
   const [is_editing_title, set_is_editing_title] = useState<boolean>(false);
   const [title, set_title] = useState<string>("");
   const [description, set_description] = useState<string>("");
+  const [is_adding_manager, set_is_adding_manager] = useState<boolean>(false);
+  const [manager_search, set_manager_search] = useState<string>("");
+  const [manager_search_result, set_manager_search_result] = useState<
+    | false
+    | undefined
+    | {
+        first_name?: string;
+        last_name?: string;
+        account_id: string;
+        last_active?: Date;
+      }
+  >(false);
+  const user_map = useTypedRedux("users", "user_map");
 
   useEffect(() => {
     // Optimization: check in redux store for first approximation of
@@ -64,6 +80,73 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
     // projects that are running right now.
     fetch_info(true);
   }, []);
+
+  async function set_managers(managers: string[]): Promise<void> {
+    await query({
+      query: { manager_site_licenses: { id: license_id, managers } },
+    });
+  }
+
+  async function do_add_manager(account_id: string): Promise<void> {
+    if (info?.managers == null) return;
+    try {
+      if (info.managers.indexOf(account_id) == -1) {
+        info.managers.push(account_id);
+        await set_managers(info.managers);
+        if (!isMountedRef.current) return;
+      }
+      alert_message({
+        type: "info",
+        message: "Successfully added manager to license.",
+      });
+      fetch_info(true);
+    } catch (err) {
+      const message = `Error adding manager to license -- ${err}`;
+      alert_message({ type: "error", message });
+    }
+  }
+
+  async function do_remove_manager(account_id: string): Promise<void> {
+    if (info?.managers == null) return;
+    try {
+      if (info.managers.indexOf(account_id) != -1) {
+        info.managers = info.managers.filter((x) => x != account_id);
+        await set_managers(info.managers);
+        if (!isMountedRef.current) return;
+      }
+      alert_message({
+        type: "info",
+        message: "Successfully removed manager from license.",
+      });
+      fetch_info(true);
+    } catch (err) {
+      const message = `Error removing manager from license -- ${err}`;
+      alert_message({ type: "error", message });
+    }
+  }
+
+  async function add_manager(): Promise<void> {
+    set_is_adding_manager(false);
+    const query = manager_search;
+    set_manager_search("");
+    if (!info?.managers) return;
+    // We find the first match that is NOT already a manager.
+    // This is just to make the UI really simple for now (not having
+    // to choose from multiple matches).
+    const x = await user_search({
+      query,
+      limit: info.managers.length + 1 ?? 1,
+    });
+    if (!isMountedRef.current || !info?.managers) return;
+    for (const y of x) {
+      if (info.managers.indexOf(y.account_id) == -1) {
+        // not already a manager
+        set_manager_search_result(y);
+        return;
+      }
+    }
+    set_manager_search_result(undefined);
+  }
 
   async function fetch_info(force: boolean = false): Promise<void> {
     set_err("");
@@ -237,6 +320,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
           {render_running()}
           {render_activated()}
           {render_purchased()}
+          {render_managers()}
           {render_description()}
         </div>
       );
@@ -323,6 +407,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
         {show_run ? render_running() : undefined}
         {render_activated()}
         {render_purchased()}
+        {render_managers()}
         {render_description()}
       </ul>
     );
@@ -381,7 +466,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
           </div>
         }
         onConfirm={remove_license}
-        okText={"Yes"}
+        okText={"Remove"}
         cancelText={"Cancel"}
       >
         <Button>
@@ -399,13 +484,13 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
     if (activates > new Date()) {
       return (
         <li style={{ fontWeight: "bold" }}>
-          Will activate <TimeAgo date={activates} />.
+          Will activate <TimeAgo date={activates} />
         </li>
       );
     } else {
       return (
         <li>
-          Activated <TimeAgo date={activates} />.
+          Activated <TimeAgo date={activates} />
         </li>
       );
     }
@@ -414,11 +499,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
   // render information about when and how the license was purchased
   function render_purchased(): JSX.Element | undefined {
     if (!info?.is_manager) return; // definitely didn't purchase this license
-    return (
-      <li>
-        <LicensePurchaseInfo license_id={license_id} />
-      </li>
-    );
+    return <LicensePurchaseInfo license_id={license_id} />;
   }
 
   function render_title(): JSX.Element | undefined {
@@ -570,6 +651,131 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
         <hr />
         {s}
       </div>
+    );
+  }
+
+  function render_add_search_result(): JSX.Element | undefined {
+    if (manager_search_result === false) {
+      return;
+    }
+    if (manager_search_result === undefined) {
+      return (
+        <div>
+          No user found{" "}
+          <Button onClick={() => set_manager_search_result(false)}>OK</Button>
+        </div>
+      );
+    }
+    const active = manager_search_result.last_active ? (
+      <>
+        {" "}
+        (last active <TimeAgo date={manager_search_result.last_active} />)
+      </>
+    ) : (
+      " (created account, but never used it)"
+    );
+    return (
+      <div
+        style={{
+          background: "white",
+          border: "1px solid grey",
+          padding: "5px",
+          margin: "15px",
+        }}
+      >
+        Add <b>{manager_search_result.first_name ?? ""}{" "}
+        {manager_search_result.last_name ?? ""}</b>
+        {active}?
+        <br />
+        <Button
+          onClick={() => {
+            set_manager_search_result(false);
+            do_add_manager(manager_search_result.account_id);
+          }}
+        >
+          Add
+        </Button>{" "}
+        <Button onClick={() => set_manager_search_result(false)}>Cancel</Button>
+      </div>
+    );
+  }
+
+  function render_add_manager(): JSX.Element {
+    if (is_adding_manager) {
+      return (
+        <span>
+          ,{" "}
+          <Input
+            autoFocus
+            placeholder="Email address or name..."
+            style={{ width: "auto" }}
+            value={manager_search}
+            onChange={(e) => {
+              set_manager_search(e.target.value);
+            }}
+          />{" "}
+          <Button disabled={!manager_search} onClick={add_manager}>
+            Search
+          </Button>{" "}
+          <Button
+            onClick={() => {
+              set_manager_search("");
+              set_is_adding_manager(false);
+            }}
+          >
+            Cancel
+          </Button>
+        </span>
+      );
+    } else {
+      return (
+        <a onClick={() => set_is_adding_manager(true)}>
+          , <Icon name="plus-circle" /> New...
+        </a>
+      );
+    }
+  }
+
+  function render_manager(account_id: string): JSX.Element | void {
+    if (account_id == redux.getStore("account").get("account_id")) return;
+    return (
+      <span key={account_id}>
+        ,{" "}
+        <Popconfirm
+          title={
+            <>
+              Remove manager{" "}
+              <b>
+                <User account_id={account_id} user_map={user_map} />?
+              </b>
+              <br />
+              They will no longer see this license listed under licenses they
+              manage.
+              <br /> This license will <i>not</i> be automatically removed from
+              any projects they applied it to.
+            </>
+          }
+          onConfirm={() => do_remove_manager(account_id)}
+          okText={"Remove"}
+          cancelText={"Cancel"}
+        >
+          <a>
+            <User account_id={account_id} user_map={user_map} />
+          </a>
+        </Popconfirm>
+      </span>
+    );
+  }
+
+  function render_managers(): JSX.Element | undefined {
+    if (!info?.is_manager || !info.managers) return; // only show info about managers to managers
+    return (
+      <li key="managers">
+        {plural(info.managers.length, "Manager")}: You
+        {info.managers.map(render_manager)}
+        {render_add_manager()}
+        {render_add_search_result()}
+      </li>
     );
   }
 
