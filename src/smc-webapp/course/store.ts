@@ -117,6 +117,13 @@ export type HandoutRecord = TypedMap<{
 
 export type HandoutsMap = Map<string, HandoutRecord>;
 
+export type GroupingRecord = TypedMap<{
+  grouping_id: string;
+  name: string;
+}>;
+
+export type GroupingsMap = Map<string, GroupingRecord>;
+
 export type SortDescription = TypedMap<{
   column_name: string;
   is_descending: boolean;
@@ -184,6 +191,7 @@ export interface CourseState {
   expanded_skip_gradings: Set<string>;
   active_feedback_edits: IsGradingMap;
   handouts: HandoutsMap;
+  groupings: GroupingsMap;
   loading: boolean; // initially loading the syncdoc from disk.
   saving: boolean;
   settings: CourseSettingsRecord;
@@ -897,6 +905,10 @@ export class CourseStore extends Store<CourseState> {
     if (n < 1) return 1;
     if (n > 50) return 50;
     return n;
+  }
+
+  public num_groupings(): number {
+    return this.get("groupings")?.size ?? 0;
   }
 }
 

@@ -19,3 +19,6 @@ export const Configuration = wrap(ConfigurationPanel);
 
 import { SharedProjectPanel } from "../../course/shared-project/shared-project-panel";
 export const SharedProject = wrap(SharedProjectPanel);
+
+import { GroupingsPanel } from "../../course/groupings/groupings-panel";
+export const Groupings = wrap(GroupingsPanel);

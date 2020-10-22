@@ -18,6 +18,7 @@ import {
   SharedProject,
   Students,
   Handouts,
+  Groupings,
 } from "./course-panels";
 //import { Overview } from "./overview";
 
@@ -63,6 +64,13 @@ export const EDITOR_SPEC = {
     name: "Handouts",
     icon: "copy",
     component: Handouts,
+    buttons,
+  },
+  course_groupings: {
+    short: "Groupings",
+    name: "Groupings",
+    icon: "user-friends",
+    component: Groupings,
     buttons,
   },
   course_configuration: {
