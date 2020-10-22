@@ -25,16 +25,18 @@ export const LicensePurchaseInfo: React.FC<Props> = ({ license_id }) => {
   for (const sub of subs) {
     if (sub.getIn(["metadata", "license_id"]) == license_id) {
       return (
-        <Subscription
-          subscription={sub.toJS()}
-          style={{
-            background: "white",
-            padding: "5px",
-            border: "1px solid lightgrey",
-            marginBottom: "5px",
-            borderRadius: "3px",
-          }}
-        />
+        <li>
+          <Subscription
+            subscription={sub.toJS()}
+            style={{
+              background: "white",
+              padding: "5px",
+              border: "1px solid lightgrey",
+              marginBottom: "5px",
+              borderRadius: "3px",
+            }}
+          />
+        </li>
       );
     }
   }
