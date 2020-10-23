@@ -417,6 +417,14 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
           }
           key={info}
         >
+          <p>
+            This panel shows you the current directory and statistics about the
+            files in it. You can select the first and second argument for
+            commands below that consume files or a directory name. If there is
+            an argument selected, clicking on the command in a panel below will
+            evaluate it.
+          </p>
+
           {render_info()}
         </Panel>
         <Panel
