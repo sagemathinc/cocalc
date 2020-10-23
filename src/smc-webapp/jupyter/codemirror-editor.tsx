@@ -81,16 +81,22 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   private key?: string;
 
   componentDidMount() {
-    if (this.props.frame_actions != null) {
+    if (this.has_frame_actions()) {
       this.key = `${this.props.frame_actions.frame_id}${this.props.id}`;
     }
     this.init_codemirror(this.props.options, this.props.value);
   }
 
+  has_frame_actions = (): boolean => {
+    return (
+      this.props.frame_actions != null && !this.props.frame_actions.is_closed()
+    );
+  };
+
   _cm_destroy = (): void => {
     if (this.cm != null) {
       // console.log("destroy_codemirror", this.props.id);
-      if (this.props.frame_actions != null) {
+      if (this.has_frame_actions()) {
         this.props.frame_actions.unregister_input_editor(this.props.id);
       }
       delete this._cm_last_remote;
@@ -114,9 +120,11 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     if (this.cm == null || this.props.actions == null) {
       return;
     }
-    this.props.frame_actions.unselect_all_cells();
-    this.props.frame_actions.set_cur_id(this.props.id);
-    this.props.frame_actions.set_mode("edit");
+    if (this.has_frame_actions()) {
+      this.props.frame_actions.unselect_all_cells();
+      this.props.frame_actions.set_cur_id(this.props.id);
+      this.props.frame_actions.set_mode("edit");
+    }
     if (this._vim_mode) {
       $(this.cm.getWrapperElement()).css({ paddingBottom: "1.5em" });
     }
@@ -136,7 +144,9 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       delete this._cm_blur_skip;
       return;
     }
-    this.props.frame_actions.set_mode("escape");
+    if (this.has_frame_actions()) {
+      this.props.frame_actions.set_mode("escape");
+    }
   };
 
   _cm_cursor = (): void => {
@@ -156,19 +166,21 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     this.props.actions.set_cursor_locs(locs, this.cm._setValueNoJump);
 
     // See https://github.com/jupyter/notebook/issues/2464 for discussion of this cell_list_top business.
-    const cell_list_div = this.props.frame_actions.cell_list_div;
-    if (cell_list_div != null) {
-      const cell_list_top = cell_list_div.offset()?.top;
-      if (
-        cell_list_top != null &&
-        this.cm.cursorCoords(true, "window").top < cell_list_top
-      ) {
-        const scroll = cell_list_div.scrollTop();
-        cell_list_div.scrollTop(
-          scroll -
-            (cell_list_top - this.cm.cursorCoords(true, "window").top) -
-            20
-        );
+    if (this.has_frame_actions()) {
+      const cell_list_div = this.props.frame_actions.cell_list_div;
+      if (cell_list_div != null) {
+        const cell_list_top = cell_list_div.offset()?.top;
+        if (
+          cell_list_top != null &&
+          this.cm.cursorCoords(true, "window").top < cell_list_top
+        ) {
+          const scroll = cell_list_div.scrollTop();
+          cell_list_div.scrollTop(
+            scroll -
+              (cell_list_top - this.cm.cursorCoords(true, "window").top) -
+              20
+          );
+        }
       }
     }
   };
@@ -358,7 +370,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   };
 
   adjacent_cell = (y: number, delta: any): void => {
-    if (this.props.frame_actions == null) return;
+    if (!this.has_frame_actions()) return;
     this.props.frame_actions.move_cursor(delta);
     this.props.frame_actions.set_input_editor_cursor(
       this.props.frame_actions.store.get("cur_id"),
@@ -407,7 +419,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
           gutter,
         }
       );
-      if (!show_dialog) {
+      if (!show_dialog && this.has_frame_actions()) {
         this.props.frame_actions.set_mode("edit");
       }
     } catch (err) {
@@ -471,6 +483,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     if (this.props.actions != null && options0.keyMap === "vim") {
       this._vim_mode = true;
       this.cm.on("vim-mode-change", async (obj) => {
+        if (!this.has_frame_actions()) return;
         if (obj.mode === "normal") {
           // The delay is because this must not be set when the general
           // keyboard handler for the whole editor gets called with escape.
@@ -512,7 +525,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     this.cm.undo = this._cm_undo;
     this.cm.redo = this._cm_redo;
 
-    if (this.props.frame_actions != null) {
+    if (this.has_frame_actions()) {
       const editor: EditorFunctions = {
         save: this._cm_save,
         set_cursor: this._cm_set_cursor,
