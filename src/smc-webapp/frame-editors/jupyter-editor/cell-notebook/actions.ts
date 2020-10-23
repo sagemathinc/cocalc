@@ -227,7 +227,7 @@ export class NotebookFrameActions {
    ***/
 
   public setState(obj: object): void {
-    this.store.setState(obj);
+    this.store?.setState(obj);
   }
 
   /***
