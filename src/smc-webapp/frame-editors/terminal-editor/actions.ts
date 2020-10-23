@@ -46,7 +46,6 @@ export class TerminalActions extends Actions {
       this.focus(last_terminal_id);
       this.set_active_id(last_terminal_id);
       const terminal = this.terminals.get(last_terminal_id);
-      console.log("terminal " + last_terminal_id, "→", terminal);
       if (terminal == null) return;
       // note: don't try to set these special char sequences in react – they're escaped
       switch (special) {
