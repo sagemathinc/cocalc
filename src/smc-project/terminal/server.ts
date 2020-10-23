@@ -9,6 +9,8 @@ Terminal server
 
 const { spawn } = require("node-pty");
 import { readFile, writeFile } from "fs";
+import { promises as fsPromises } from "fs";
+const { readlink } = fsPromises;
 import { len, merge, path_split } from "../smc-util/misc2";
 const { console_init_filename } = require("smc-util/misc");
 import { exists } from "../jupyter/async-utils-node";
@@ -316,7 +318,7 @@ export async function terminal(
       delete terminals[name].client_sizes[spark.id];
       resize();
     });
-    spark.on("data", function (data) {
+    spark.on("data", async function (data) {
       //logger.debug("terminal: browser --> term", name, JSON.stringify(data));
       if (typeof data === "string") {
         try {
@@ -349,6 +351,23 @@ export async function terminal(
           case "kill":
             // send kill signal
             process.kill(terminals[name].term.pid, "SIGKILL");
+            break;
+
+          case "cwd":
+            // we reply with the current working directory of the underlying terminal process
+            const pid = terminals[name].term.pid;
+            const home = process.env.HOME ?? "/home/user";
+            try {
+              const cwd = await readlink(`/proc/${pid}/cwd`);
+              logger.debug(`terminal cwd sent back: ${cwd}`);
+              // we send back a relative path, because the webapp does not understand absolute paths
+              const path = cwd.startsWith(home)
+                ? cwd.slice(home.length + 1)
+                : cwd;
+              spark.write({ cmd: "cwd", payload: path });
+            } catch {
+              // ignoring errors
+            }
             break;
 
           case "boot":

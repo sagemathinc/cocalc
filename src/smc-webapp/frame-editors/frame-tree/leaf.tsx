@@ -41,6 +41,7 @@ interface Props {
   is_fullscreen: boolean;
   reload?: number;
   is_subframe: boolean;
+  local_view_state: Map<string, any>;
 }
 
 interface ReduxProps {
@@ -123,6 +124,7 @@ class FrameTreeLeaf extends Component<Props & ReduxProps> {
           this.props.complete && this.props.complete.get(desc.get("id"))
         }
         derived_file_types={this.props.derived_file_types}
+        local_view_state={this.props.local_view_state}
         desc={desc}
         available_features={this.props.available_features}
         is_subframe={this.props.is_subframe}

@@ -14,16 +14,11 @@ import { Component, React, Rendered } from "../app-framework";
 //import { PublicPathInfo } from "./public-path-info";
 const { PublicPathInfo } = require("./public-path-info");
 
-interface DirectoryListingEntry {
-  name: string;
-  size: number;
-  mtime: number;
-  isdir?: boolean;
-}
+import { DirectoryListingEntry as DirectoryListingEntryType } from "../project/explorer/types";
 
 interface DirectoryListingProps {
   info?: Map<string, any>;
-  files: DirectoryListingEntry[];
+  files: DirectoryListingEntryType[];
   viewer: string;
   path: string;
   hidden?: boolean; // // if true, show hidden dot files (will be controlled by a query param)
