@@ -5,7 +5,7 @@
 
 // they are used in commands-guide.tsx, that's all
 
-import { CSS, React, useMemo } from "../../app-framework";
+import { CSS, React, useMemo, useState } from "../../app-framework";
 import { Button, Row, Col, Select, Typography } from "antd";
 import { TerminalActions } from "./actions";
 import { TerminalActionsContext } from "./commands-guide";
@@ -21,14 +21,27 @@ interface SelectFileProps {
 export const SelectFile: React.FC<SelectFileProps> = React.memo(
   (props: SelectFileProps) => {
     const { list, selected, select } = props;
+
+    const [search, set_search] = useState<string>("");
+
+    // we do this explicitly, because otherwise it only allows to select known elements
+    const input_key_down = (e) => {
+      // return key
+      if (e.keyCode == 13) {
+        select(search);
+      }
+    };
+
     return (
       <Select
         value={selected}
         allowClear={true}
         showSearch={true}
-        placeholder="Select an entry"
-        optionFilterProp="value"
+        placeholder={"Select or enter name"}
+        optionFilterProp={"value"}
         onChange={select}
+        onSearch={(val) => set_search(val)}
+        onInputKeyDown={input_key_down}
         filterOption={(input, option) =>
           option?.value?.toLowerCase().indexOf(input.toLowerCase()) >= 0
         }
@@ -81,6 +94,7 @@ const CMD_BTN_STYLE: CSS = {
 };
 
 // a simple templating approach is used to bolt together the actual command
+// either append non-nullish args or insert them everywhere where $1, $2, etc. is
 function calc_cmd_args(
   cmd0?: string,
   args: (string | undefined)[] = []
