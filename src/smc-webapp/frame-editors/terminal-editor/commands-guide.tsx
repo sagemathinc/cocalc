@@ -312,7 +312,7 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
       <>
         <Command cmd="git status" descr="current status" />
         <Command cmd="git diff" descr="content changes" />
-        <Command cmd="git grep" descr="search file content" />
+        <Command cmd="git grep" descr="search file content" userarg={true} />
         <Command cmd="git pull" descr="pull changes" />
 
         <Divider orientation="left" plain>
