@@ -111,6 +111,7 @@ interface FrameTreeProps {
   complete: Map<string, any>;
   derived_file_types: Set<string>;
   available_features: AvailableFeatures;
+  local_view_state: Map<string, any>;
 }
 
 interface FrameTreeState {
@@ -156,6 +157,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         "complete",
         "derived_file_types",
         "available_features",
+        "local_view_state",
       ])
     );
   }
@@ -191,6 +193,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         complete={this.props.complete}
         derived_file_types={this.props.derived_file_types}
         available_features={this.props.available_features}
+        local_view_state={this.props.local_view_state}
       />
     );
   }
@@ -303,6 +306,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         status={this.props.status}
         derived_file_types={this.props.derived_file_types}
         available_features={this.props.available_features}
+        local_view_state={this.props.local_view_state}
         actions={actions}
         component={component}
         desc={desc}

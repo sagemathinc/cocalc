@@ -920,6 +920,31 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     );
   }
 
+  function render_guide(labels: boolean): Rendered {
+    if (!is_visible("guide", true) || is_public) {
+      return;
+    }
+    const {title, descr} = props.editor_spec[props.type].guide_info ?? {
+      title: "Guide",
+      descr: "Show guidebook"
+    }
+    return (
+      <Button
+        key={"guide"}
+        title={descr}
+        bsSize={button_size()}
+        onClick={() =>
+          typeof props.actions.help === "function"
+            ? props.actions.guide(props.id, props.type)
+            : undefined
+        }
+      >
+        <Icon name="book" />{" "}
+        <VisibleMDLG>{labels ? title : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
   function render_restart(): Rendered {
     if (!is_visible("restart", true)) {
       return;
@@ -1294,6 +1319,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     v.push(render_format());
     v.push(render_shell());
     v.push(render_print());
+    v.push(render_guide(labels));
     v.push(render_help(labels));
 
     const w: Rendered[] = [];
