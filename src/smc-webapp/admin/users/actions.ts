@@ -37,7 +37,7 @@ export class AdminUsersActions extends Actions<StoreState> {
     this.set_status("Searching...");
 
     const result = await user_search({
-      query: store.get("query").trim(),
+      query: store.get("query").trim().toLowerCase(), // backend assumes lower case
       admin: true,
       limit: 100,
     });
