@@ -456,7 +456,7 @@ export class NotebookFrameActions {
     let sel_ids = this.store.get("sel_ids");
     if (cur_id === id) {
       // little to do...
-      if (sel_ids.size > 0) {
+      if (sel_ids?.size > 0) {
         this.setState({ sel_ids: Set() }); // empty (cur_id always included)
       }
       return;
@@ -487,12 +487,14 @@ export class NotebookFrameActions {
 
   public unselect_cell(id: string): void {
     const sel_ids = this.store.get("sel_ids");
+    if (sel_ids == null) return;
     if (!sel_ids.contains(id)) return;
     this.setState({ sel_ids: sel_ids.remove(id) });
   }
 
   public select_cell(id: string): void {
     const sel_ids = this.store.get("sel_ids");
+    if (sel_ids == null) return;
     if (sel_ids.contains(id)) return;
     this.setState({ sel_ids: sel_ids.add(id) });
   }
@@ -669,7 +671,7 @@ export class NotebookFrameActions {
   public set_selected_cell_type(cell_type: CellType): void {
     const sel_ids = this.store.get("sel_ids");
     const cur_id = this.store.get("cur_id");
-    if (sel_ids.size === 0) {
+    if (sel_ids == null || sel_ids.size === 0) {
       if (cur_id != null) {
         this.jupyter_actions.set_cell_type(cur_id, cell_type);
       }
@@ -853,7 +855,7 @@ export class NotebookFrameActions {
       return;
     }
     const sel_ids = this.store.get("sel_ids");
-    if (sel_ids.contains(target_id)) {
+    if (sel_ids?.contains(target_id)) {
       // moved cursor onto a selected cell
       if (sel_ids.size <= 2) {
         // selection clears if shrinks to 1
