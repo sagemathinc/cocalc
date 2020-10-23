@@ -227,7 +227,7 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
     return (
       <>
         <Command cmd="ls" descr="list files" />
-        <Command cmd="ls -l" descr="full file listing" />
+        <Command cmd="ls -lh" descr="full file listing" />
         <Command cmd="pwd" descr="current directory" />
         <Command cmd="cd" descr="change directory" args={[dir1]} />
         <Command cmd="mkdir" descr="create directory" args={[dir1]} />
