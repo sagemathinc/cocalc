@@ -107,7 +107,7 @@ interface Props {
   enableMentions?: boolean;
   submitMentionsRef?: any;
   style?: React.CSSProperties;
-  onShiftEnter?: () => void;  // also ctrl/alt/cmd-enter call this; see https://github.com/sagemathinc/cocalc/issues/1914
+  onShiftEnter?: () => void; // also ctrl/alt/cmd-enter call this; see https://github.com/sagemathinc/cocalc/issues/1914
   onEscape?: () => void;
   onBlur?: () => void;
   onFocus?: () => void;
@@ -573,14 +573,25 @@ export const MarkdownInput: React.FC<Props> = ({
       from: { line: cursor.line, ch: cursor.ch - 1 },
       cursor: (cm) => {
         const pos = cm.getCursor();
-        if (pos.line != last_cursor.line) {
+        // The hitSide and sticky attributes of pos below
+        // are set when you manually move the cursor, rather than
+        // it moving due to typing.  We check them to avoid
+        // confusion such as
+        //     https://github.com/sagemathinc/cocalc/issues/4833
+        // and in that case move the cursor back.
+        if (
+          pos.line != last_cursor.line ||
+          (pos as { hitSide?: boolean }).hitSide ||
+          (pos as { sticky?: string }).sticky != null
+        ) {
           cm.setCursor(last_cursor);
         } else {
           last_cursor = pos;
         }
       },
       change: (cm) => {
-        const search = cm.getRange(cursor, { line: cursor.line + 1, ch: 0 });
+        const pos = cm.getCursor();
+        const search = cm.getRange(cursor, pos);
         set_mentions_search(search.trim().toLowerCase());
       },
     };
@@ -610,6 +621,11 @@ export const MarkdownInput: React.FC<Props> = ({
       }
     }
     if (items.length == 0) {
+      if (mentions.length == 0) {
+        // See https://github.com/sagemathinc/cocalc/issues/4909
+        close_mentions();
+        return;
+      }
       items.push(mentions[0]); // ensure at least one
     }
 
@@ -623,12 +639,12 @@ export const MarkdownInput: React.FC<Props> = ({
             "@" +
             trunc_middle(redux.getStore("users").get_name(account_id), 64);
           if (cm.current == null) return;
-          const to = cm.current.getCursor();
           const from = mentions_cursor_ref.current.from;
+          const to = cm.current.getCursor();
           cm.current.replaceRange(text + " ", from, to);
           cm.current.markText(
             from,
-            { line: to.line, ch: to.ch + text.length - 1 },
+            { line: from.line, ch: from.ch + text.length },
             {
               atomic: true,
               css: MENTION_CSS,
