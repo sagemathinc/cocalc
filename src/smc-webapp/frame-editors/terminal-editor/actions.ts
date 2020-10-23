@@ -13,10 +13,10 @@ const { open_new_tab } = require("smc-webapp/misc_page");
 const HELP_URL = "https://doc.cocalc.com/terminal.html";
 
 interface CmdOpts {
-  run?: boolean;
-  cleanup?: boolean;
-  userarg?: boolean;
-  special?: string;
+  run?: boolean; // if true (default) also send a return key
+  cleanup?: boolean; // if true (default), the current line is cleared before the cmd is entered
+  userarg?: boolean; // append " '|'" to the command, where | is where the user's cursor ends up (think of git commit -m '[bla]')
+  special?: string; // instead of the cmd arg, this sends a special character sequence (like, [tab])
 }
 
 export class TerminalActions extends Actions {
@@ -34,6 +34,7 @@ export class TerminalActions extends Actions {
   }
 
   // this sends a given line "cmd" to the actual terminal
+  // the extra options slightly modify what it does – check the interface for the explanation
   public run_command(cmd: string, opts: CmdOpts): void {
     const { run = true, cleanup = true, userarg = false, special } = opts;
     const last_terminal_id = this._get_most_recent_active_frame_id_of_type(

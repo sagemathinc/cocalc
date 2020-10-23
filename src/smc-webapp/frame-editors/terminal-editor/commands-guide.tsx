@@ -8,7 +8,6 @@ import {
   React,
   useEffect,
   useState,
-  useMemo,
   useActions,
   useTypedRedux,
   TypedMap,
@@ -17,11 +16,7 @@ import {
   Collapse,
   Descriptions,
   Divider,
-  Button,
-  Row,
-  Col,
   Switch,
-  Select,
   Typography,
   Table,
 } from "antd";
@@ -39,6 +34,7 @@ import { Icon } from "../../r_misc";
 import { plural, round1 } from "smc-util/misc";
 import { TerminalActions } from "./actions";
 import { DirectoryListingEntry } from "../../project/explorer/types";
+import { Command, SelectFile } from "./commands-guide-components";
 
 interface Props {
   font_size: number;
@@ -47,9 +43,9 @@ interface Props {
   local_view_state: Map<string, any>;
 }
 
-const TerminalActionsContext = React.createContext<TerminalActions | undefined>(
-  undefined
-);
+export const TerminalActionsContext = React.createContext<
+  TerminalActions | undefined
+>(undefined);
 
 const ListingStatsInit = {
   total: 0,
@@ -60,122 +56,22 @@ const ListingStatsInit = {
 
 const info = "info";
 
-interface CommandProps {
-  cmd?: string;
-  special?: string; // bypass processing the cmd
-  title?: string;
-  descr: string;
-  userarg?: boolean; // if yes, user will have to input an argument in the terminal
-  args?: (string | undefined)[];
-}
-
-const CMD_BTN_STYLE: CSS = {
-  whiteSpace: "nowrap",
-  fontFamily: "monospace",
-  fontSize: "90%",
-  textOverflow: "ellipsis",
-  overflow: "hidden",
-  maxWidth: "100%",
-};
-
-interface RowLayoutProps {
-  left: JSX.Element | string;
-  right: JSX.Element | string;
-}
-
-const RowLayout: React.FC<RowLayoutProps> = React.memo(
-  (props: RowLayoutProps) => {
-    return (
-      <Row gutter={[16, 8]}>
-        <Col flex={"0 1 50%"}>{props.left}</Col>
-        <Col flex={"auto"}>{props.right}</Col>
-      </Row>
-    );
-  }
-);
-
-// a simple templating approach is used to bolt together the actual command
-function calc_cmd_args(
-  cmd0?: string,
-  args: (string | undefined)[] = []
-): { cmdargs: string; run: boolean } {
-  let used_args = args.length == 0; // no args to use
-  let cmd = cmd0 ?? "";
-  args.forEach((val, idx) => {
-    if (val == null) return;
-    used_args = true;
-    if (cmd.includes(`${idx + 1}`)) {
-      // TODO quote "'" inside of file names as "'\''" or something similar?
-      cmd = cmd.replace(new RegExp(`\\$${idx + 1}`, "g"), `'${val}'`);
-    } else {
-      cmd += ` ${val}`;
-    }
-  });
-  return { cmdargs: cmd, run: used_args };
-}
-
-const Command: React.FC<CommandProps> = React.memo((props: CommandProps) => {
-  const { cmd, special, title, descr, args, userarg } = props;
-  const { cmdargs, run } = useMemo(
-    () =>
-      special != null ? { cmdargs: "", run: false } : calc_cmd_args(cmd, args),
-    [cmd, args]
-  );
-
-  const actions = React.useContext(TerminalActionsContext);
-
-  return (
-    <RowLayout
-      left={
-        <Button
-          onClick={() =>
-            actions?.run_command(cmdargs, { special, run, userarg })
-          }
-          shape={"round"}
-          size={"small"}
-          title={cmdargs}
-        >
-          <span style={CMD_BTN_STYLE}>{title ?? cmdargs}</span>
-        </Button>
-      }
-      right={<Typography.Text type="secondary">{descr}</Typography.Text>}
-    />
-  );
-});
-
-interface SelectFileProps {
-  list: string[];
-  selected?: string;
-  select: (string) => void;
-}
-
-const SelectFile: React.FC<SelectFileProps> = React.memo(
-  (props: SelectFileProps) => {
-    const { list, selected, select } = props;
-    return (
-      <Select
-        value={selected}
-        allowClear={true}
-        showSearch={true}
-        placeholder="Select an entry"
-        optionFilterProp="value"
-        onChange={select}
-        filterOption={(input, option) =>
-          option?.value?.toLowerCase().indexOf(input.toLowerCase()) >= 0
-        }
-        style={{ width: "100%" }}
-      >
-        {list.map((val) => (
-          <Select.Option key={val} value={val}>
-            {val}
-          </Select.Option>
-        ))}
-      </Select>
-    );
-  }
-);
-
 type ListingImm = List<TypedMap<DirectoryListingEntry>>;
+
+function listing2names(listing?): string[] {
+  if (listing == null) {
+    return [];
+  } else {
+    return listing
+      .map((val) => val.get("name"))
+      .sort()
+      .toJS();
+  }
+}
+
+function cwd2path(cwd: string): string {
+  return cwd.charAt(0) === "/" ? ".smc/root" + cwd : cwd;
+}
 
 export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
   const { /*font_size,*/ actions, local_view_state, project_id } = props;
@@ -207,10 +103,6 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
     if (terminal_id != tid) set_terminal_id(tid);
   }, [local_view_state]);
 
-  function cwd2path(cwd: string): string {
-    return cwd.charAt(0) === "/" ? ".smc/root" + cwd : cwd;
-  }
-
   useEffect(() => {
     //const terminal = actions.get_terminal(tid);
     const next_cwd = local_view_state.getIn([
@@ -224,24 +116,13 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
     }
   }, [terminal_id, local_view_state]);
 
-  function listing2names(listing?): string[] {
-    if (listing == null) {
-      return [];
-    } else {
-      return listing
-        .map((val) => val.get("name"))
-        .sort()
-        .toJS();
-    }
-  }
-
   // if the working directory changes or the listing itself, recompute the listing we base the files on
   useEffect(() => {
     if (cwd == null) return;
     set_listing(directory_listings?.get(cwd2path(cwd)));
   }, [directory_listings, cwd]);
 
-  // finally, if the listing did really change – or we show/hide hidden files – recalculate everything
+  // finally, if the listing really did change – or show/hide hidden files toggled – recalculate everything
   useEffect(() => {
     if (listing == null) return;
     const all_files = hidden
@@ -282,15 +163,14 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
     const dirs = directorynames.map((v) => ({ key: v, name: v, type: "dir" }));
     const fns = filenames.map((v) => ({ key: v, name: v, type: "file" }));
     const data = [...dirs, ...fns];
+    const style: CSS = { cursor: "pointer" };
     const columns = [
       {
         title: "Name",
         dataIndex: "name",
         ellipsis: true,
         render: (text, rec) => ({
-          props: {
-            style: { cursor: "pointer" },
-          },
+          props: { style },
           children:
             rec.type == "dir" ? (
               <>
@@ -346,7 +226,7 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
   function render_directory_commands() {
     return (
       <>
-        <Command cmd="ls" descr="list files" args={[dir1]} />
+        <Command cmd="ls" descr="list files" />
         <Command cmd="ls -l" descr="full file listing" />
         <Command cmd="pwd" descr="current directory" />
         <Command cmd="cd" descr="change directory" args={[dir1]} />
@@ -526,13 +406,9 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render() {
+    const style: CSS = { overflowY: "auto" };
     return (
-      <Collapse
-        defaultActiveKey={[info]}
-        style={{
-          overflowY: "auto",
-        }}
-      >
+      <Collapse defaultActiveKey={[info]} style={style}>
         <Panel
           header={
             <>
