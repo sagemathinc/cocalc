@@ -103,7 +103,9 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
     const [cg_info, set_cg_info] = useState<CGroupInfo>(gc_info_init);
     const [disk_usage, set_disk_usage] = useState<DUState>(du_init);
     const [error, set_error] = useState<JSX.Element | null>(null);
-    const [modal, set_modal] = useState<string | null>(null);
+    const [modal, set_modal] = useState<string | Process | undefined>(
+      undefined
+    );
 
     React.useMemo(() => {
       if (project_map == null) return;
@@ -322,18 +324,6 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
       };
     }
 
-    function show_about(proc_about?: Process) {
-      // from render_about we already know it will not be null
-      if (proc_about == null) return;
-      const content = <AboutContent proc={proc_about} />;
-      Modal.info({
-        title: "Process info",
-        width: "75vw",
-        maskClosable: true,
-        content,
-      });
-    }
-
     function render_help() {
       return (
         <Form.Item label="Help:">
@@ -374,7 +364,7 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
             type={"primary"}
             icon={<InfoCircleOutlined />}
             disabled={proc == null}
-            onClick={() => show_about(proc)}
+            onClick={() => set_modal(proc)}
           >
             {DETAILS_BTN_TEXT}
           </Button>
@@ -433,6 +423,14 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
       );
     }
 
+    function render_modal_footer() {
+      return (
+        <Button type={"primary"} onClick={() => set_modal(undefined)}>
+          Ok
+        </Button>
+      );
+    }
+
     function render_modals() {
       switch (modal) {
         case "ssh":
@@ -440,8 +438,8 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
             <Modal
               title="Project's SSH Daemon"
               visible={modal === "ssh"}
-              footer={<Button onClick={() => set_modal(null)}>Ok</Button>}
-              onCancel={() => set_modal(null)}
+              footer={render_modal_footer()}
+              onCancel={() => set_modal(undefined)}
             >
               <div>
                 This process allows to SSH into this project. Do not terminate
@@ -456,8 +454,8 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
             <Modal
               title="Project's process"
               visible={modal === "project"}
-              footer={<Button onClick={() => set_modal(null)}>Ok</Button>}
-              onCancel={() => set_modal(null)}
+              footer={render_modal_footer()}
+              onCancel={() => set_modal(undefined)}
             >
               <div>
                 This is the project's own management process. Do not terminate
@@ -465,6 +463,20 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
               </div>
             </Modal>
           );
+        default:
+          if (modal != null && typeof modal !== "string") {
+            return (
+              <Modal
+                title="Process info"
+                visible={true}
+                width={"75vw"}
+                footer={render_modal_footer()}
+                onCancel={() => set_modal(undefined)}
+              >
+                <AboutContent proc={modal} />;
+              </Modal>
+            );
+          }
       }
     }
 
