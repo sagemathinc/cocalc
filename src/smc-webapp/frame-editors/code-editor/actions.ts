@@ -521,7 +521,7 @@ export class Actions<
     s.close();
   }
 
-  __save_local_view_state(): void {
+  private __save_local_view_state(): void {
     if (!this.store?.get("local_view_state")) return;
     localStorage[this.name] = JSON.stringify(
       this.store.get("local_view_state")
