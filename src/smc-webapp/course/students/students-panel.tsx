@@ -872,9 +872,13 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     }
 
     private render_student_info(students, num_deleted): Rendered {
+      /* The "|| num_deleted > 0" below is because we show
+      header even if no non-deleted students if there are deleted
+      students, since it's important to show the link to show
+      deleted students if there are any. */
       return (
         <div className="smc-vfill">
-          {students.length > 0
+          {students.length > 0 || num_deleted > 0
             ? this.render_student_table_header(num_deleted)
             : undefined}
           {this.render_students(students)}
