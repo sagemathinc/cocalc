@@ -417,13 +417,16 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
           }
           key={info}
         >
-          <p>
+          <Typography.Paragraph
+            ellipsis={{ rows: 1, expandable: true, symbol: "more…" }}
+          >
             This panel shows you the current directory and statistics about the
             files in it. You can select the first and second argument for
             commands below that consume files or a directory name. If there is
             an argument selected, clicking on the command in a panel below will
-            evaluate it.
-          </p>
+            evaluate it. To enter an arbitrary (non-existing) filename, type it
+            in an hit the return key.
+          </Typography.Paragraph>
 
           {render_info()}
         </Panel>

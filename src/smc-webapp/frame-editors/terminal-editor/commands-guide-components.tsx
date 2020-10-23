@@ -104,11 +104,11 @@ function calc_cmd_args(
   args.forEach((val, idx) => {
     if (val == null) return;
     used_args = true;
-    if (cmd.includes(`${idx + 1}`)) {
+    if (cmd.includes(`$${idx + 1}`)) {
       // TODO quote "'" inside of file names as "'\''" or something similar?
       cmd = cmd.replace(new RegExp(`\\$${idx + 1}`, "g"), `'${val}'`);
     } else {
-      cmd += ` ${val}`;
+      cmd += ` '${val}'`;
     }
   });
   return { cmdargs: cmd, run: used_args };
