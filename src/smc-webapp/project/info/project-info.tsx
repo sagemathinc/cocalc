@@ -103,6 +103,7 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
     const [cg_info, set_cg_info] = useState<CGroupInfo>(gc_info_init);
     const [disk_usage, set_disk_usage] = useState<DUState>(du_init);
     const [error, set_error] = useState<JSX.Element | null>(null);
+    const [modal, set_modal] = useState<string | null>(null);
 
     React.useMemo(() => {
       if (project_map == null) return;
@@ -432,43 +433,54 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
       );
     }
 
+    function render_modals() {
+      switch (modal) {
+        case "ssh":
+          return (
+            <Modal
+              title="Project's SSH Daemon"
+              visible={modal === "ssh"}
+              footer={<Button onClick={() => set_modal(null)}>Ok</Button>}
+              onCancel={() => set_modal(null)}
+            >
+              <div>
+                This process allows to SSH into this project. Do not terminate
+                it!
+                <br />
+                Learn more: <A href={SSH_KEYS_DOC}>SSH keys documentation</A>
+              </div>
+            </Modal>
+          );
+        case "project":
+          return (
+            <Modal
+              title="Project's process"
+              visible={modal === "project"}
+              footer={<Button onClick={() => set_modal(null)}>Ok</Button>}
+              onCancel={() => set_modal(null)}
+            >
+              <div>
+                This is the project's own management process. Do not terminate
+                it! If it uses too much resources, you can {restart_project()}.
+              </div>
+            </Modal>
+          );
+      }
+    }
+
     function render_cocalc({ cocalc }: ProcessRow) {
       if (cocalc == null) return;
       switch (cocalc.type) {
         case "project":
           return render_cocalc_btn({
             title: "Project",
-            onClick: () =>
-              Modal.info({
-                title: "Project's SSH Daemon",
-                maskClosable: true,
-                content: (
-                  <div>
-                    This is the project's own management process. Do not
-                    terminate it! If it uses too much resources, you can{" "}
-                    {restart_project()}.
-                  </div>
-                ),
-              }),
+            onClick: () => set_modal("project"),
           });
 
         case "sshd":
           return render_cocalc_btn({
             title: "SSH",
-            onClick: () =>
-              Modal.info({
-                title: "Project's SSH Daemon",
-                maskClosable: true,
-                content: (
-                  <div>
-                    This process allows to SSH into this project. Do not
-                    terminate it!
-                    <br />
-                    Learn more:{" "}
-                    <A href={SSH_KEYS_DOC}>SSH keys documentation</A>
-                  </div>
-                ),
-              }),
+            onClick: () => set_modal("ssh"),
           });
 
         case "terminal":
@@ -709,6 +721,7 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
             project_status={project_status}
           />
           {render_top()}
+          {render_modals()}
           {DEBUG && render_general_status()}
         </>
       );
