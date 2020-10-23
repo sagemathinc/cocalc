@@ -591,6 +591,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     });
   }
 
+  // Remove any upgrades and site licenses applied to this project.
   public async clear_project_upgrades(project_id: string): Promise<void> {
     assert_uuid(project_id);
     await this.apply_upgrades_to_project(project_id, {}, false);
@@ -824,6 +825,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
   }
 
   public async delete_project(project_id: string): Promise<void> {
+    await this.clear_project_upgrades(project_id);
     await this.projects_table_set({
       project_id,
       deleted: true,
