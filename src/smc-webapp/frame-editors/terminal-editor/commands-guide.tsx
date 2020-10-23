@@ -214,7 +214,7 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
         <Command cmd="mv -v" descr="move files" args={[fn1, fn2]} />
         <Command cmd="rm -v" descr="remove a file" args={[fn1]} />
         <Command cmd="stat" descr="file information" args={[fn1]} />
-        <Command cmd="type" descr="file type" args={[fn1]} />
+        <Command cmd="file" descr="file type" args={[fn1]} />
         <Command cmd="head" descr="start of text file" args={[fn1]} />
         <Command cmd="tail" descr="end of text file" args={[fn1]} />
         <Command cmd="less" descr="show text file conent" args={[fn1]} />
