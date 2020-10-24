@@ -49,6 +49,7 @@ const file_action_icons = {
   copied: "copy",
   share: "shared",
   uploaded: "upload",
+  created: "plus-circle",
 };
 
 interface Props {
@@ -252,6 +253,8 @@ export class LogEntry extends React.Component<Props> {
         );
       case "uploaded":
         return <span>uploaded {this.file_link(e.file, true, 0)}</span>;
+      case "created":
+        return <span>created {this.file_link(e.file, true, 0)}</span>;
     }
   }
 

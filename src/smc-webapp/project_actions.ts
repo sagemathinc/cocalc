@@ -2185,6 +2185,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } else {
       this.fetch_directory_listing();
     }
+    this.log({ event: "file_action", action: "created", file: opts.name });
   }
 
   async create_file(opts) {

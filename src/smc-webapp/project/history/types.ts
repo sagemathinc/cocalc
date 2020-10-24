@@ -111,6 +111,7 @@ export type FileActionEvent = (
   | { action: "copied" }
   | { action: "shared" }
   | { action: "uploaded"; file: string }
+  | { action: "created"; file: string; files?: string[] }
 ) & {
   event: "file_action";
   files: string[];
