@@ -44,7 +44,7 @@ import { ConnectionStatus } from "../frame-tree/types";
 import { file_associations } from "../../file-associations";
 
 declare const $: any;
-import { starts_with_cloud_url } from "smc-webapp/process-links";
+import { starts_with_cloud_url } from "../../process-links";
 
 // NOTE: Keep this consistent with server.ts on the backend...  Someday make configurable.
 const SCROLLBACK = 5000;
