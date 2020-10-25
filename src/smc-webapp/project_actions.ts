@@ -33,7 +33,7 @@ import { NEW_FILENAMES } from "smc-util/db-schema";
 import { transform_get_url } from "./project/transform-get-url";
 
 import { OpenFiles } from "./project/open-files";
-import { log_opened_time, open_file } from "./project/open-file";
+import { log_opened_time, open_file, log_file_open } from "./project/open-file";
 
 import * as project_file from "./project-file";
 import { get_editor } from "./editors/react-wrapper";
@@ -492,7 +492,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
 
         // Finally, ensure that the react/redux stuff is initialized, so
-        // the component will be rendered.
+        // the component will be rendered.  This happens if you open a file
+        // in the background but don't actually switch to that tab, then switch
+        // there later.  It's an optimization and it's very common due to
+        // session restore (where all tabs are restored).
         if (info.redux_name == null || info.Editor == null) {
           if (this.open_files == null) return;
           const { name, Editor } = this.init_file_react_redux(path, is_public);
@@ -755,6 +758,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.project_id,
       is_public
     );
+
+    // Log that we opened the file.
+    log_file_open(this.project_id, path);
 
     return { name, Editor };
   }
