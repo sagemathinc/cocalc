@@ -109,9 +109,13 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
 
   function render_name() {
     let name = props.display_name ?? props.name;
-    const name_and_ext = misc.separate_file_extension(name);
-    ({ name } = name_and_ext);
-    const { ext } = name_and_ext;
+    let ext: string;
+    if (props.isdir) {
+      ext = "";
+    } else {
+      const name_and_ext = misc.separate_file_extension(name);
+      ({ name, ext } = name_and_ext);
+    }
 
     const show_tip =
       (props.display_name != undefined && props.name !== props.display_name) ||
