@@ -905,7 +905,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private async convert_docx_file(filename): Promise<string> {
     await webapp_client.project_client.exec({
       project_id: this.project_id,
-      command: "smc-docx2txt",
+      command: "cc-docx2txt",
       args: [filename],
     });
     return filename.slice(0, filename.length - 4) + "txt";
@@ -2185,7 +2185,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } else {
       this.fetch_directory_listing();
     }
-    this.log({ event: "file_action", action: "created", file: opts.name });
+    // Log directory creation to the event log.  / at end of path says it is a directory.
+    this.log({ event: "file_action", action: "created", files: [p + "/"] });
   }
 
   async create_file(opts) {
@@ -2252,11 +2253,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     await webapp_client.exec({
       project_id: this.project_id,
-      command: "smc-new-file",
+      command: "cc-new-file",
       timeout: 10,
       args: [p],
       err_on_exit: true,
       cb: (err, output) => {
+        if (!err) {
+          this.log({ event: "file_action", action: "created", files: [p] });
+        }
         if (err) {
           let stdout = "";
           let stderr = "";
