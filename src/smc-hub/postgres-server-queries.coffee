@@ -59,6 +59,8 @@ SERVER_SETTINGS_CACHE = require("expiring-lru-cache")({ size: 10, expiry: 60 * 1
 {pii_expire} = require("./utils")
 webapp_config_clear_cache = require("./webapp-configuration").clear_cache
 
+{stripe_name} = require('./stripe/client')
+
 # log events, which contain personal information (email, account_id, ...)
 PII_EVENTS = ['create_account',
               'change_password',
@@ -963,8 +965,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             return
                         else
                             locals.email_address = x.email_address
-                            locals.first_name = x.first_name ? ''
-                            locals.last_name  = x.last_name  ? ''
+                            locals.first_name = x.first_name
+                            locals.last_name  = x.last_name
                             cb()
             (cb) =>
                 if not opts.customer_id?
@@ -974,7 +976,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     console.log("got invalid email address '#{locals.email_address}' to update stripe from '#{opts.account_id}'")
                     cb(); return
 
-                name = "#{locals.first_name} #{locals.last_name}"
+                name = stripe_name(locals.first_name, locals.last_name)
                 email_changed = locals.email_address != locals.customer.email
                 name_undef = not locals.customer.name?
                 name_changed = locals.customer.name != name or locals.customer.description != name
