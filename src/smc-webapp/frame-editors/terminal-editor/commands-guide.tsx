@@ -210,15 +210,19 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
   function render_file_commands() {
     return (
       <>
-        <Command cmd="cp -av" descr="copy files" args={[fn1, fn2]} />
-        <Command cmd="mv -v" descr="move files" args={[fn1, fn2]} />
-        <Command cmd="rm -v" descr="remove a file" args={[fn1]} />
-        <Command cmd="stat" descr="file information" args={[fn1]} />
-        <Command cmd="file" descr="file type" args={[fn1]} />
-        <Command cmd="head" descr="start of text file" args={[fn1]} />
-        <Command cmd="tail" descr="end of text file" args={[fn1]} />
-        <Command cmd="less" descr="show text file conent" args={[fn1]} />
-        <Command cmd="diff" descr="changes between files" args={[fn1, fn2]} />
+        <Command cmd="cp -av" descr="copy files" fileargs={[fn1, fn2]} />
+        <Command cmd="mv -v" descr="move files" fileargs={[fn1, fn2]} />
+        <Command cmd="rm -v" descr="remove a file" fileargs={[fn1]} />
+        <Command cmd="stat" descr="file information" fileargs={[fn1]} />
+        <Command cmd="file" descr="file type" fileargs={[fn1]} />
+        <Command cmd="head" descr="start of text file" fileargs={[fn1]} />
+        <Command cmd="tail" descr="end of text file" fileargs={[fn1]} />
+        <Command cmd="less" descr="show text file conent" fileargs={[fn1]} />
+        <Command
+          cmd="diff"
+          descr="changes between files"
+          fileargs={[fn1, fn2]}
+        />
       </>
     );
   }
@@ -229,15 +233,15 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
         <Command cmd="ls" descr="list files" />
         <Command cmd="ls -lh" descr="full file listing" />
         <Command cmd="pwd" descr="current directory" />
-        <Command cmd="cd" descr="change directory" args={[dir1]} />
-        <Command cmd="mkdir" descr="create directory" args={[dir1]} />
-        <Command cmd="rmdir" descr="remove empty directory" args={[dir1]} />
+        <Command cmd="cd" descr="change directory" dirargs={[dir1]} />
+        <Command cmd="mkdir" descr="create directory" dirargs={[dir1]} />
+        <Command cmd="rmdir" descr="remove empty directory" dirargs={[dir1]} />
         <Command
           cmd="rm -rf"
           descr="remove directory and delete files"
-          args={[dir1]}
+          dirargs={[dir1]}
         />
-        <Command cmd="du -sch" descr="disk usage" args={[dir1]} />
+        <Command cmd="du -sch" descr="disk usage" dirargs={[dir1]} />
       </>
     );
   }
@@ -267,9 +271,9 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
   function render_archiving_commands() {
     return (
       <>
-        <Command cmd="tar xf" descr="extract tar archive" args={[fn1]} />
-        <Command cmd="gzip -d" descr="gzip decompress" args={[fn1]} />
-        <Command cmd="gzip" descr="gzip compress" args={[fn1]} />
+        <Command cmd="tar xf" descr="extract tar archive" fileargs={[fn1]} />
+        <Command cmd="gzip -d" descr="gzip decompress" fileargs={[fn1]} />
+        <Command cmd="gzip" descr="gzip compress" fileargs={[fn1]} />
       </>
     );
   }
@@ -319,7 +323,11 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
           Commit &amp; Push
         </Divider>
 
-        <Command cmd="git add" descr="add specific file(s)" args={[fn1, fn2]} />
+        <Command
+          cmd="git add"
+          descr="add specific file(s)"
+          fileargs={[fn1, fn2]}
+        />
         <Command cmd="git add -u" descr="add changed files" />
         <Command cmd="git add -A" descr="add all files" />
         <Command cmd="git add -a -- ." descr="add current directory" />
@@ -418,6 +426,7 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
           key={info}
         >
           <Typography.Paragraph
+            type="secondary"
             ellipsis={{ rows: 1, expandable: true, symbol: "more…" }}
           >
             This panel shows you the current directory and statistics about the
