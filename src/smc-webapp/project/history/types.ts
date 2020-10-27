@@ -5,6 +5,7 @@
 
 import { Map } from "immutable";
 import { TypedMap } from "../../app-framework";
+import { Quota } from "smc-util/db-schema/site-licenses";
 
 export type EventRecord = {
   id: string;
@@ -28,6 +29,7 @@ export type ProjectEvent =
   | FileActionEvent
   | LibraryEvent
   | UpgradeEvent
+  | LicenseEvent
   | OpenFile
   | MiniTermEvent
   | CollaboratorEvent
@@ -64,6 +66,14 @@ export type CollaboratorEvent = {
 export type UpgradeEvent = {
   event: "upgrade";
   upgrades: any;
+};
+
+export type LicenseEvent = {
+  event: "license";
+  action: "add" | "remove";
+  license_id: string;
+  title: string;
+  quota: Quota;
 };
 
 export type LibraryEvent = {

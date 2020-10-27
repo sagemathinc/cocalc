@@ -22,6 +22,7 @@ import { ProjectTitle } from "../../projects/project-title";
 import { file_associations } from "../../file-associations";
 import { SystemProcess } from "./system-process";
 import { UserMap } from "smc-webapp/todo-types";
+import { describe_quota } from "smc-util/db-schema/site-licenses";
 
 import {
   ProjectEvent,
@@ -33,6 +34,7 @@ import {
   LibraryEvent,
   AssistantEvent,
   UpgradeEvent,
+  LicenseEvent,
   CollaboratorEvent,
   SystemEvent,
 } from "./types";
@@ -399,6 +401,16 @@ export class LogEntry extends React.Component<Props> {
     );
   }
 
+  render_license(event: LicenseEvent): Rendered {
+    return (
+      <span>
+        {event.action == "add" ? "added" : "removed"} license{" "}
+        {event.title ? `"${event.title}"` : ""} with key ending in "
+        {event.license_id.slice(36 - 13, 36)}" for {describe_quota(event.quota)}
+      </span>
+    );
+  }
+
   render_invite_user(event: CollaboratorEvent): JSX.Element {
     return (
       <span>
@@ -449,6 +461,8 @@ export class LogEntry extends React.Component<Props> {
         return this.render_file_action(this.props.event);
       case "upgrade":
         return this.render_upgrade(this.props.event);
+      case "license":
+        return this.render_license(this.props.event);
       case "invite_user":
         return this.render_invite_user(this.props.event);
       case "invite_nonuser":

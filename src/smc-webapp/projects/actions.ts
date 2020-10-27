@@ -25,6 +25,8 @@ import { once } from "smc-util/async-utils";
 import { COCALC_MINIMAL } from "../fullscreen";
 import { DEFAULT_COMPUTE_IMAGE } from "smc-util/compute-images";
 import { allow_project_to_run } from "../project/client-side-throttle";
+import { site_license_public_info } from "../site-licenses/util";
+import { Quota } from "smc-util/db-schema/site-licenses";
 
 // Define projects actions
 export class ProjectsActions extends Actions<ProjectsState> {
@@ -627,6 +629,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
     site_license[license_id] = {};
     await this.projects_table_set({ project_id, site_license }, "shallow");
+    this.log_site_license_change(project_id, license_id, "add");
   }
 
   // Removes a given (or all) site licenses from a project. If license_id is empty
@@ -666,6 +669,31 @@ export class ProjectsActions extends Actions<ProjectsState> {
       }
     }
     await this.projects_table_set({ project_id, site_license }, "shallow");
+    this.log_site_license_change(project_id, license_id, "remove");
+  }
+
+  private async log_site_license_change(
+    project_id: string,
+    license_id: string,
+    action: "add" | "remove"
+  ): Promise<void> {
+    if (
+      !is_valid_uuid_string(project_id) ||
+      !is_valid_uuid_string(license_id)
+    ) {
+      throw Error("invalid project_id or license_id");
+    }
+    const info = await site_license_public_info(license_id);
+    if (!info) return;
+    const quota: Quota = info.quota;
+    const title: string = info.title ?? "";
+    await this.redux.getProjectActions(project_id).log({
+      event: "license",
+      action,
+      license_id,
+      quota,
+      title,
+    });
   }
 
   // Sets site licenses for project to exactly license_id.
@@ -689,12 +717,14 @@ export class ProjectsActions extends Actions<ProjectsState> {
       if (license_id.indexOf(id) == -1) {
         changed = true;
         site_license[id] = null;
+        this.log_site_license_change(project_id, license_id, "remove");
       }
     }
     for (const id of license_id.split(",")) {
       if (site_license[id] == null) {
         changed = true;
         site_license[id] = {};
+        this.log_site_license_change(project_id, license_id, "add");
       }
     }
     if (changed) {
