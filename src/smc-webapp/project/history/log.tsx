@@ -23,7 +23,7 @@ import { WindowedList } from "../../r_misc/windowed-list";
 
 import { LogSearch } from "./search";
 import { LogEntry } from "./log-entry";
-import { ProjectLogMap, EventRecord } from "./types";
+import { ProjectLogMap, EventRecord, to_search_string } from "./types";
 import { ProjectActions } from "../../project_store";
 import { UserMap } from "../../todo-types";
 
@@ -143,22 +143,15 @@ export const ProjectLog = rclass<ReactProps>(
           if (s == undefined) {
             const account_id = z.get("account_id");
             if (names[account_id] == null) {
-              names[account_id] = redux.getStore("users").get_name(account_id);
+              names[account_id] = (
+                redux.getStore("users").get_name(account_id) ?? ""
+              ).toLowerCase();
             }
             s = names[account_id];
             const event = z.get("event");
             if (event != undefined) {
-              event.forEach((val, k) => {
-                if (k !== "event" && k !== "filename") {
-                  s += " " + k;
-                }
-                if (k === "type") {
-                  return;
-                }
-                s += " " + val;
-              });
+              s += " " + to_search_string(event.toJS());
             }
-            s = s.toLowerCase();
             this._search_cache[z.get("id")] = s;
           }
           return misc.search_match(s, terms);

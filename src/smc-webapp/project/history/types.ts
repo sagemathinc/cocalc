@@ -137,3 +137,19 @@ export type FileActionEvent = (
 };
 
 export type SystemEvent = { event: ""; by: string };
+
+export function to_search_string(event: ProjectEvent): string {
+  let s: string = "";
+  for (let k in event) {
+    let val = event[k];
+    if (k === "type" || k == "time" || k == "license_id" || k == "quota")
+      continue;
+    if (val == "file_action") continue;
+    if (typeof val == "number") continue;
+    if (typeof val != "string") {
+      val = JSON.stringify(val); // e.g., array of paths
+    }
+    s += " " + val;
+  }
+  return s.toLowerCase();
+}
