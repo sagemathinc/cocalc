@@ -12,4 +12,7 @@ if not 'SMC' in os.environ:
     os.environ['SMC'] = os.path.join(os.environ['HOME'], '.smc')
 
 if not os.path.exists(os.environ['SMC']):
-    os.makedirs(os.environ['SMC'])
+    try:
+        os.makedirs(os.environ['SMC'])
+    except:
+        pass
