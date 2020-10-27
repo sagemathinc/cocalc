@@ -32,7 +32,6 @@ import { SyncString } from "smc-util/sync/editor/string";
 import { aux_file } from "../frame-tree/util";
 import { callback_opts, once } from "smc-util/async-utils";
 import {
-  endswith,
   filename_extension,
   history_path,
   len,
