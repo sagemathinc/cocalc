@@ -1539,6 +1539,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         )}`,
       });
     }
+    this.log({ event: "file_action", action: "created", files: [opts.dest] });
     webapp_client.exec({
       project_id: this.project_id,
       command: "zip",
