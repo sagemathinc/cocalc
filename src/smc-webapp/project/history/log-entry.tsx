@@ -379,6 +379,7 @@ export class LogEntry extends React.Component<Props> {
             : undefined
           : "Upgrade";
       const n = misc.round1(val != null ? factor * val : 0);
+      if (n == 0) continue;
       v.push(
         <span key={param}>
           {display}: {n} {misc.plural(n, unit)}
@@ -478,6 +479,17 @@ export class LogEntry extends React.Component<Props> {
         return this.render_assistant(this.props.event);
       case "x11":
         return this.render_x11(this.props.event);
+      case "delete_project":
+        return <span>deleted the project</span>;
+      case "undelete_project":
+        return <span>undeleted the project</span>;
+      case "hide_project":
+        return <span>hid the project from themself</span>;
+      case "unhide_project":
+        return <span>unhid the project from themself</span>;
+      default:
+        return <span>Unknown event: {JSON.stringify(this.props.event)}</span>;
+
     }
   }
   // ignore unknown -- would just look mangled to user...

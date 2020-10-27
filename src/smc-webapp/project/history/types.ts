@@ -37,6 +37,10 @@ export type ProjectEvent =
   | SetTitleEvent
   | SetDescriptionEvent
   | { event: "open_project" }
+  | { event: "delete_project" }
+  | { event: "undelete_project" }
+  | { event: "hide_project" }
+  | { event: "unhide_project" }
   | SystemEvent;
 
 export type SetTitleEvent = {

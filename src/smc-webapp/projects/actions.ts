@@ -571,6 +571,10 @@ export class ProjectsActions extends Actions<ProjectsState> {
     merge: boolean = true
   ): Promise<void> {
     assert_uuid(project_id);
+    const account_id = this.redux.getStore("account").get_account_id();
+    if (!account_id) {
+      throw Error("user must be signed in");
+    }
     if (!merge) {
       // explicitly set every field not specified to 0
       upgrades = copy(upgrades);
@@ -580,14 +584,32 @@ export class ProjectsActions extends Actions<ProjectsState> {
         }
       }
     }
+    // Will anything change?
+    const cur =
+      store
+        .getIn(["project_map", project_id, "users", account_id, "upgrades"])
+        ?.toJS() ?? {};
+    let nothing_will_change: boolean = true;
+    for (let quota in DEFAULT_QUOTAS) {
+      console.log(quota, upgrades[quota] ?? 0, cur[quota] ?? 0);
+      if ((upgrades[quota] ?? 0) != (cur[quota] ?? 0)) {
+        nothing_will_change = false;
+        break;
+      }
+    }
+    if (nothing_will_change) {
+      console.log("nothing_will_change", upgrades, cur);
+      return;
+    }
+
     await this.projects_table_set({
       project_id,
       users: {
-        [this.redux.getStore("account").get_account_id()]: { upgrades },
+        [account_id]: { upgrades },
       },
     });
     // log the change in the project log
-    await this.redux.getProjectActions(project_id).log({
+    await this.project_log(project_id, {
       event: "upgrade",
       upgrades,
     });
@@ -687,13 +709,17 @@ export class ProjectsActions extends Actions<ProjectsState> {
     if (!info) return;
     const quota: Quota | undefined = info.quota;
     const title: string = info.title ?? "";
-    await this.redux.getProjectActions(project_id).log({
+    await this.project_log(project_id, {
       event: "license",
       action,
       license_id,
       quota,
       title,
     });
+  }
+
+  public async project_log(project_id: string, entry): Promise<void> {
+    await this.redux.getProjectActions(project_id).log(entry);
   }
 
   // Sets site licenses for project to exactly license_id.
@@ -773,7 +799,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     const action_request = this.current_action_request(project_id);
     if (action_request == null || action_request != "start") {
       // need to make an action request:
-      this.redux.getProjectActions(project_id).log({
+      this.project_log(project_id, {
         event: "project_start_requested",
       });
       await this.projects_table_set({
@@ -788,7 +814,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
         return store.get_state(project_id) == "running";
       },
     });
-    this.redux.getProjectActions(project_id).log({
+    this.project_log(project_id, {
       event: "project_started",
     });
   }
@@ -801,7 +827,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     const action_request = this.current_action_request(project_id);
     if (action_request == null || action_request != "stop") {
       // need to do it!
-      this.redux.getProjectActions(project_id).log({
+      this.project_log(project_id, {
         event: "project_stop_requested",
       });
       await this.projects_table_set({
@@ -821,7 +847,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
         return state != "running" && state != "stopping";
       },
     });
-    this.redux.getProjectActions(project_id).log({
+    this.project_log(project_id, {
       event: "project_stopped",
     });
   }
@@ -830,7 +856,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     if (!allow_project_to_run(project_id)) {
       return;
     }
-    this.redux.getProjectActions(project_id).log({
+    this.project_log(project_id, {
       event: "project_restart_requested",
     });
     const state = store.get_state(project_id);
@@ -855,6 +881,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
         },
       },
     });
+    await this.project_log(project_id, {
+      event: hide ? "hide_project" : "unhide_project",
+    });
   }
 
   // Toggle whether or not project is hidden project
@@ -870,6 +899,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       project_id,
       deleted: true,
     });
+    await this.project_log(project_id, { event: "delete_project" });
   }
 
   // Toggle whether or not project is deleted.
@@ -882,6 +912,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
     await this.projects_table_set({
       project_id,
       deleted: !is_deleted,
+    });
+    await this.project_log(project_id, {
+      event: is_deleted ? "undelete_project" : "delete_project",
     });
   }
 
