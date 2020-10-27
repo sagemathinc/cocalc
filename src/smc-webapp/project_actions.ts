@@ -1999,10 +1999,32 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     try {
       const api = await this.api();
       await api.rename_file(opts.src, opts.dest);
+      this.log({
+        event: "file_action",
+        action: "renamed",
+        src: opts.src,
+        dest: opts.dest + ((await this.isdir(opts.dest)) ? "/" : ""),
+      });
     } catch (err) {
       error = err;
     } finally {
       this.set_activity({ id, stop: "", error });
+    }
+  }
+
+  // return true if exists and is a directory
+  private async isdir(path: string): Promise<boolean> {
+    if (path == "") return true; // easy special case
+    try {
+      await webapp_client.project_client.exec({
+        project_id: this.project_id,
+        command: "test",
+        args: ["-d", path],
+        err_on_exit: true,
+      });
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -2028,6 +2050,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     try {
       const api = await this.api();
       await api.move_files(opts.src, opts.dest);
+      this.log({
+        event: "file_action",
+        action: "moved",
+        files: opts.src,
+        dest: opts.dest + "/" /* target is assumed to be a directory */,
+      });
     } catch (err) {
       error = err;
     } finally {

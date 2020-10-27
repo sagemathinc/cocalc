@@ -48,6 +48,7 @@ const file_action_icons = {
   deleted: "delete",
   downloaded: "download",
   moved: "move",
+  renamed: "pencil-alt",
   copied: "copy",
   share: "shared",
   uploaded: "upload",
@@ -251,6 +252,13 @@ export class LogEntry extends React.Component<Props> {
           <span>
             moved {this.multi_file_links(e, false)}{" "}
             {e.count != null ? `(${e.count} total)` : ""} to {this.to_link(e)}
+          </span>
+        );
+      case "renamed":
+        return (
+          <span>
+            renamed {this.file_link(e.src, false, 0)} to{" "}
+            {this.file_link(e.dest, true, 1)}
           </span>
         );
       case "copied":
@@ -489,7 +497,6 @@ export class LogEntry extends React.Component<Props> {
         return <span>unhid the project from themself</span>;
       default:
         return <span>Unknown event: {JSON.stringify(this.props.event)}</span>;
-
     }
   }
   // ignore unknown -- would just look mangled to user...
