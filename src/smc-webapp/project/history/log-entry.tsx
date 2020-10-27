@@ -49,6 +49,7 @@ const file_action_icons = {
   copied: "copy",
   share: "shared",
   uploaded: "upload",
+  created: "plus-circle",
 };
 
 interface Props {
@@ -180,13 +181,19 @@ export class LogEntry extends React.Component<Props> {
   multi_file_links(
     event: { files: string | string[] },
     link?: boolean
-  ): Rendered[] {
+  ): Rendered[] | Rendered {
     if (link == null) {
       link = true;
     }
     // due to a bug, "files" could just be a string
     if (typeof event.files === "string") {
       event.files = [event.files];
+    }
+    if (
+      event.files.length == 1 &&
+      event.files[0][event.files[0].length - 1] == "/"
+    ) {
+      return <>the directory {this.file_link(event.files[0], link, 0)}</>;
     }
     const links: Rendered[] = [];
     for (let i = 0; i < event.files.length; i++) {
@@ -252,6 +259,8 @@ export class LogEntry extends React.Component<Props> {
         );
       case "uploaded":
         return <span>uploaded {this.file_link(e.file, true, 0)}</span>;
+      case "created":
+        return <span>created {this.multi_file_links(e)}</span>;
     }
   }
 

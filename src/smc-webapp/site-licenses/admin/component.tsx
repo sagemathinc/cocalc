@@ -23,7 +23,6 @@ import { actions } from "./actions";
 import { List, Map, Set } from "immutable";
 import { Button, Popconfirm } from "antd";
 import { License } from "./license";
-import { UserMap } from "../../todo-types";
 
 interface Props {
   view?: boolean; // if true, open for viewing/editing
@@ -38,7 +37,6 @@ interface Props {
   search?: string;
   usage_stats?: Map<string, number>;
 
-  user_map?: UserMap;
   manager_info?: ManagerInfo;
 }
 
@@ -58,9 +56,6 @@ class SiteLicenses extends Component<Props> {
         search: rtypes.string,
         usage_stats: rtypes.immutable.Map,
         manager_info: rtypes.immutable.Map,
-      },
-      users: {
-        user_map: rtypes.immutable,
       },
     };
   }
@@ -94,7 +89,6 @@ class SiteLicenses extends Component<Props> {
         edits={this.props.edits != null ? this.props.edits.get(id) : undefined}
         show_projects={this.props.show_projects?.get(id)}
         usage_stats={this.props.usage_stats?.get(id)}
-        user_map={this.props.user_map}
         manager_info={
           this.props.manager_info?.get("license_id") == id
             ? this.props.manager_info

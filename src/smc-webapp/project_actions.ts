@@ -33,7 +33,7 @@ import { NEW_FILENAMES } from "smc-util/db-schema";
 import { transform_get_url } from "./project/transform-get-url";
 
 import { OpenFiles } from "./project/open-files";
-import { log_opened_time, open_file } from "./project/open-file";
+import { log_opened_time, open_file, log_file_open } from "./project/open-file";
 
 import * as project_file from "./project-file";
 import { get_editor } from "./editors/react-wrapper";
@@ -492,7 +492,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
 
         // Finally, ensure that the react/redux stuff is initialized, so
-        // the component will be rendered.
+        // the component will be rendered.  This happens if you open a file
+        // in the background but don't actually switch to that tab, then switch
+        // there later.  It's an optimization and it's very common due to
+        // session restore (where all tabs are restored).
         if (info.redux_name == null || info.Editor == null) {
           if (this.open_files == null) return;
           const { name, Editor } = this.init_file_react_redux(path, is_public);
@@ -756,6 +759,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       is_public
     );
 
+    // Log that we opened the file.
+    log_file_open(this.project_id, path);
+
     return { name, Editor };
   }
 
@@ -905,7 +911,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private async convert_docx_file(filename): Promise<string> {
     await webapp_client.project_client.exec({
       project_id: this.project_id,
-      command: "smc-docx2txt",
+      command: "cc-docx2txt",
       args: [filename],
     });
     return filename.slice(0, filename.length - 4) + "txt";
@@ -2185,6 +2191,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } else {
       this.fetch_directory_listing();
     }
+    // Log directory creation to the event log.  / at end of path says it is a directory.
+    this.log({ event: "file_action", action: "created", files: [p + "/"] });
   }
 
   async create_file(opts) {
@@ -2251,11 +2259,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     await webapp_client.exec({
       project_id: this.project_id,
-      command: "smc-new-file",
+      command: "cc-new-file",
       timeout: 10,
       args: [p],
       err_on_exit: true,
       cb: (err, output) => {
+        if (!err) {
+          this.log({ event: "file_action", action: "created", files: [p] });
+        }
         if (err) {
           let stdout = "";
           let stderr = "";

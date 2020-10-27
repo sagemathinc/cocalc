@@ -44,6 +44,7 @@ import { ProjectLog } from "../history";
 import { ProjectSearch } from "../search/search";
 import { ProjectSettings } from "../settings";
 import { SideChat } from "../../chat/side-chat";
+import { log_file_open } from "../open-file";
 
 // Default width of chat window as a fraction of the
 // entire window.
@@ -169,7 +170,10 @@ export const Content: React.FC<Props> = React.memo(
           <DeletedFile
             project_id={project_id}
             path={path}
-            onOpen={force_update}
+            onOpen={() => {
+              log_file_open(project_id, path);
+              force_update();
+            }}
           />
         );
       }

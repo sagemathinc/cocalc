@@ -1856,7 +1856,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     } catch (err) {
       this.set_error(err);
     }
-
+    if (this.is_closed()) return;
     // Update the codemirror editor options.
     this.set_cm_options();
   };

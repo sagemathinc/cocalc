@@ -32,11 +32,17 @@ function load_target(target: string, switch_to: boolean, anchor: string): void {
   actions.load_target(target, switch_to, false, true, anchor);
 }
 
+// True if starts with host's URL, but is not of the form (say) cocalc.com/[project_id], since
+// that would refer to a port or server, which we can't open internally.
+// See https://github.com/sagemathinc/cocalc/issues/4889
 export function starts_with_cloud_url(href: string): boolean {
-  const is_samedomain: boolean = startswith(href, document.location.origin);
+  const origin = document.location.origin + (window as any).app_base_url;
+  const is_samedomain: boolean =
+    startswith(href, origin) &&
+    !is_valid_uuid_string(href.slice(origin.length + 1, origin.length + 37));
   const is_former_smc: boolean =
     document.location.origin === "https://cocalc.com" &&
-    startswith(href, "https://cloud.sagemath.com"); // don't break old links.
+    startswith(href, "https://cloud.sagemath.com"); // don't break ANCIENT deprecated old links.
   return is_samedomain || is_former_smc;
 }
 

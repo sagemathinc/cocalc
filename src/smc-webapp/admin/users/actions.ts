@@ -12,10 +12,10 @@ import { StoreState, User as ImmutableUser, store } from "./store";
 
 function user_sort_key(user: User): string {
   if (user.last_active) {
-    return user.last_active;
+    return user.last_active.toString();
   }
   if (user.created) {
-    return user.created;
+    return user.created.toString();
   }
   return "";
 }
@@ -37,7 +37,7 @@ export class AdminUsersActions extends Actions<StoreState> {
     this.set_status("Searching...");
 
     const result = await user_search({
-      query: store.get("query").trim(),
+      query: store.get("query").trim().toLowerCase(), // backend assumes lower case
       admin: true,
       limit: 100,
     });

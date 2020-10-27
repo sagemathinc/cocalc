@@ -352,9 +352,10 @@ export class XpraClient extends EventEmitter {
       surface.destroy();
       return;
     }
-    //console.log("window_destroy", window);
-    surface.destroy();
+    // NOTE: surface.destroy() below deletes surface.wid -- https://github.com/sagemathinc/cocalc/issues/4904
+    // Hence we emit window:destroy first, so that the tab is removed.
     this.emit("window:destroy", surface.wid);
+    surface.destroy();
   }
 
   window_icon({ wid, src, w, h }): void {

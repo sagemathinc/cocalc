@@ -3,13 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button } from "antd";
+import { Button, Checkbox } from "antd";
 import { ErrorDisplay, Icon, Loading, Space } from "../../r_misc";
 import {
   CSS,
   React,
   useActions,
   useEffect,
+  useMemo,
   useState,
   useTypedRedux,
   useIsMountedRef,
@@ -29,9 +30,17 @@ export const LICENSES_STYLE: CSS = {
 export const ManagedLicenses: React.FC = () => {
   const [error, setError] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(false);
-  const licenses = useTypedRedux("billing", "managed_license_ids");
+  const [show_all, set_show_all] = useState<boolean>(false);
   const actions = useActions("billing");
   const is_mounted_ref = useIsMountedRef();
+
+  const active_licenses = useTypedRedux("billing", "managed_license_ids"); // currently or recently valid
+  const all_licenses = useTypedRedux("billing", "all_managed_license_ids");
+  const licenses = useMemo(() => (show_all ? all_licenses : active_licenses), [
+    active_licenses,
+    all_licenses,
+    show_all,
+  ]);
 
   async function reload() {
     setLoading(true);
@@ -81,14 +90,39 @@ export const ManagedLicenses: React.FC = () => {
     }
   }
 
+  function render_show_all() {
+    if (
+      licenses == null ||
+      all_licenses == null ||
+      active_licenses == null ||
+      all_licenses.size == active_licenses.size
+    ) {
+      // don't show if not loaded or not useful
+      return;
+    }
+    const n = all_licenses.size - licenses.size;
+    return (
+      <Checkbox
+        style={{ marginRight: "15px", fontWeight: 450 }}
+        checked={show_all}
+        onChange={() => set_show_all(!show_all)}
+      >
+        {n == 0 ? "Showing all" : `Show all (${n} expired licenses omitted)`}
+      </Checkbox>
+    );
+  }
+
   return (
     <div>
       <h3>
         Licenses that you manage {render_count()}
-        <Button onClick={reload} disabled={loading} style={{ float: "right" }}>
-          <Icon name="redo" />
-          <Space /> {loading ? "Loading..." : "Refresh all"}
-        </Button>
+        <div style={{ float: "right" }}>
+          {render_show_all()}
+          <Button onClick={reload} disabled={loading}>
+            <Icon name="redo" />
+            <Space /> <Space /> {loading ? "Loading" : "Refresh all"}
+          </Button>
+        </div>
       </h3>
       {render_error()}
       {render_managed()}

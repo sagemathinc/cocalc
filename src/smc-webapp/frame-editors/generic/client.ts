@@ -226,11 +226,11 @@ export function get_editor_settings(): Map<string, any> {
 
 export interface User {
   account_id: string;
-  created: string;
+  created?: Date;
   email_address?: string;
-  first_name: string;
-  last_active: string | null;
-  last_name: string;
+  first_name?: string;
+  last_active?: Date;
+  last_name?: string;
   banned?: boolean;
 }
 

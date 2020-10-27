@@ -14,6 +14,7 @@ extra support for being connected to:
 import { Map } from "immutable";
 import { callback, delay } from "awaiting";
 import { redux, ProjectActions } from "../../app-framework";
+import { debounce } from "lodash";
 
 import { aux_file } from "../frame-tree/util";
 
@@ -43,7 +44,7 @@ import { ConnectionStatus } from "../frame-tree/types";
 import { file_associations } from "../../file-associations";
 
 declare const $: any;
-import { starts_with_cloud_url } from "smc-webapp/process-links";
+import { starts_with_cloud_url } from "../../process-links";
 
 // NOTE: Keep this consistent with server.ts on the backend...  Someday make configurable.
 const SCROLLBACK = 5000;
@@ -108,6 +109,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     args?: string[]
   ) {
     bind_methods(this);
+    this.ask_for_cwd = debounce(this.ask_for_cwd);
 
     this.actions = actions;
     this.account_store = redux.getStore("account");
@@ -308,6 +310,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
     this.conn_write_buffer = [];
     this.set_connection_status("connected");
+    this.ask_for_cwd();
   }
 
   async reload(): Promise<void> {
@@ -315,7 +318,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   conn_write(data): void {
-    if (this.state == 'closed') return;  // no-op  -- see #4918
+    if (this.state == "closed") return; // no-op  -- see #4918
     if (this.conn === undefined) {
       this.conn_write_buffer.push(data);
       return;
@@ -378,6 +381,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.terminal.onTitleChange((title) => {
       if (title != null) {
         this.actions.set_title(this.id, title);
+        this.ask_for_cwd();
       }
     });
   }
@@ -467,6 +471,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         if (typeof mesg.rows == "number" && typeof mesg.cols == "number") {
           this.terminal_resize({ rows: mesg.rows, cols: mesg.cols });
         }
+        break;
+      case "cwd":
+        this.actions.set_terminal_cwd(this.id, mesg.payload);
         break;
       case "burst":
         this.burst_on();
@@ -676,6 +683,10 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.is_paused = false;
     this.render(this.render_buffer);
     this.render_buffer = "";
+  }
+
+  ask_for_cwd(): void {
+    this.conn_write({ cmd: "cwd" });
   }
 
   kick_other_users_out(): void {

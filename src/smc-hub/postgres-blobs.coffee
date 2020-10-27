@@ -70,7 +70,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     query : 'SELECT expire FROM blobs'
                     where : "id = $::UUID" : opts.uuid
                     cb    : (err, x) =>
-                        rows = x.rows; cb(err)
+                        rows = x?.rows; cb(err)
             (cb) =>
                 if rows.length == 0 and opts.compress
                     dbg("compression requested and blob not already saved, so we compress blob")

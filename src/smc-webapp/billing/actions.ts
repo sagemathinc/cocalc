@@ -13,7 +13,11 @@ all async (no callbacks!).
 import { fromJS, Map } from "immutable";
 import { redux, Actions, Store } from "../app-framework";
 import { reuse_in_flight_methods } from "smc-util/async-utils";
-import { server_minutes_ago, server_time } from "smc-util/misc";
+import {
+  server_minutes_ago,
+  server_time,
+  server_days_ago,
+} from "smc-util/misc";
 import { webapp_client } from "../webapp-client";
 import { StripeClient } from "../client/stripe";
 import { getManagedLicenses } from "../account/licenses/util";
@@ -258,13 +262,25 @@ export class BillingActions extends Actions<BillingStoreState> {
     await webapp_client.stripe.sync_site_license_subscriptions();
     // Update the license state in the frontend
     const v = await getManagedLicenses();
-    const managed_license_ids = fromJS(v.map((x) => x.id));
+    const all_managed_license_ids = fromJS(v.map((x) => x.id));
+
+    const day_ago = server_days_ago(1);
+    const managed_license_ids = fromJS(
+      v
+        .filter((x) => x.expires == null || x.expires >= day_ago)
+        .map((x) => x.id)
+    );
+
     const x: { [license_id: string]: object } = {};
     for (const license of v) {
       x[license.id] = license;
     }
     const managed_licenses = fromJS(x);
-    this.setState({ managed_licenses, managed_license_ids });
+    this.setState({
+      managed_licenses,
+      managed_license_ids,
+      all_managed_license_ids,
+    });
   }
 }
 

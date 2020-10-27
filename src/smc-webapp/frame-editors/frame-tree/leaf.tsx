@@ -16,7 +16,7 @@ import { ErrorDisplay, Loading } from "../../r_misc";
 import { AvailableFeatures } from "../../project_configuration";
 
 import { Actions } from "../code-editor/actions";
-import { EditorDescription, NodeDesc } from "./types";
+import { EditorDescription, EditorState, NodeDesc } from "./types";
 
 interface Props {
   name: string;
@@ -24,7 +24,7 @@ interface Props {
   project_id: string;
   is_public: boolean;
   font_size: number;
-  editor_state: Map<string, any>;
+  editor_state: EditorState;
   active_id: string;
   editor_settings: Map<string, any>;
   terminal: Map<string, any>;
@@ -41,6 +41,7 @@ interface Props {
   is_fullscreen: boolean;
   reload?: number;
   is_subframe: boolean;
+  local_view_state: Map<string, any>;
 }
 
 interface ReduxProps {
@@ -123,6 +124,7 @@ class FrameTreeLeaf extends Component<Props & ReduxProps> {
           this.props.complete && this.props.complete.get(desc.get("id"))
         }
         derived_file_types={this.props.derived_file_types}
+        local_view_state={this.props.local_view_state}
         desc={desc}
         available_features={this.props.available_features}
         is_subframe={this.props.is_subframe}

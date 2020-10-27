@@ -521,7 +521,7 @@ export class Actions<
     s.close();
   }
 
-  __save_local_view_state(): void {
+  private __save_local_view_state(): void {
     if (!this.store?.get("local_view_state")) return;
     localStorage[this.name] = JSON.stringify(
       this.store.get("local_view_state")
@@ -1185,6 +1185,10 @@ export class Actions<
     open_new_tab(url);
   }
 
+  guide(id: string, type: string): void {
+    console.warn(`Guide for ${type} not implemented. (id=${id})`);
+  }
+
   set_zoom(zoom: number, id?: string) {
     this.change_font_size(undefined, id, zoom);
   }
@@ -1324,6 +1328,10 @@ export class Actions<
     parent: HTMLElement
   ): Terminal<CodeEditorState> {
     return this.terminals.get_terminal(id, parent);
+  }
+
+  public set_terminal_cwd(id: string, cwd: string): void {
+    this.save_editor_state(id, { cwd });
   }
 
   // Open a code editor, optionally at the given line.

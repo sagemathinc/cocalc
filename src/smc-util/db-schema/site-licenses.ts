@@ -53,22 +53,37 @@ export interface SiteLicense {
   apply_limit?: number;
 }
 
-export function describe_quota(quota: Quota): string {
-  let desc = quota.user == "business" ? "Business License" : "Academic license";
-  desc += ` providing ${quota.ram}GB RAM, ${quota.cpu} CPU, ${quota.disk}GB disk`;
+export function describe_quota(quota: Quota, short?: boolean): string {
+  let desc: string = "";
+  if (!short) {
+    desc =
+      (quota.user == "business" ? "Business" : "Academic") +
+      " license providing ";
+  }
+  const v: string[] = [];
+  if (quota.ram) {
+    v.push(`${quota.ram}GB RAM`);
+  }
+  if (quota.cpu) {
+    v.push(`${quota.cpu}CPU`);
+  }
+  if (quota.disk) {
+    v.push(`${quota.disk}GB disk`);
+  }
   if (quota.dedicated_ram) {
-    desc += `, ${quota.dedicated_ram}GB dedicated RAM`;
+    v.push(`${quota.dedicated_ram}GB dedicated RAM`);
   }
   if (quota.dedicated_cpu) {
-    desc += `, ${quota.dedicated_cpu}GB dedicated CPU`;
+    v.push(`${quota.dedicated_cpu}GB dedicated CPU`);
   }
   if (quota.member) {
-    desc += ", member hosting";
+    v.push("member" + (short ? "" : " hosting"));
   }
   if (quota.always_running) {
-    desc += ", always running";
+    v.push("always running");
   }
-  desc += ", network"; // always provided, because we trust customers.
+  v.push("network"); // always provided, because we trust customers.
+  desc += v.join(", ");
   return desc;
 }
 
@@ -114,7 +129,8 @@ Table({
     },
     managers: {
       type: "array",
-      pg_type: "TEXT[]",  /* TODO/NOTE: I made a mistake -- this should have been UUID[]! */
+      pg_type:
+        "TEXT[]" /* TODO/NOTE: I made a mistake -- this should have been UUID[]! */,
       desc:
         "A list of the account_id's of users that are allowed to manage how this site license is being used.",
     },
@@ -499,6 +515,7 @@ Table({
     upgrades: SCHEMA.site_licenses.fields.upgrades,
     quota: SCHEMA.site_licenses.fields.quota,
     run_limit: SCHEMA.site_licenses.fields.run_limit,
+    managers: SCHEMA.site_licenses.fields.managers,
     running: {
       type: "integer",
       desc:
@@ -527,6 +544,7 @@ Table({
           upgrades: null,
           quota: null,
           run_limit: null,
+          managers: null,
           running: null,
           is_manager: null,
         },
@@ -651,6 +669,7 @@ Table({
           id: true,
           title: true,
           description: true,
+          managers: true,
         },
         async instead_of_change(
           database,

@@ -210,6 +210,7 @@ export class StudentAssignmentInfo extends Component<
   StudentAssignmentInfoProps,
   StudentAssignmentInfoState
 > {
+  private clicked_nbgrader?: Date;
   constructor(props: StudentAssignmentInfoProps) {
     super(props);
     this.state = {
@@ -349,7 +350,7 @@ export class StudentAssignmentInfo extends Component<
           this.props.edited_grade === this.props.grade &&
           this.props.edited_comments === this.props.comments
         }
-        rows={5}
+        rows={3}
         placeholder="Comments (optional)"
         default_value={this.props.edited_comments || this.props.comments}
         on_edit={() => this.set_edited_feedback()}
@@ -428,6 +429,16 @@ export class StudentAssignmentInfo extends Component<
           key="nbgrader"
           disabled={running}
           onClick={() => {
+            if (
+              this.clicked_nbgrader != null &&
+              new Date().valueOf() - this.clicked_nbgrader.valueOf() <= 3000
+            ) {
+              // User *just* clicked, and we want to avoid double click
+              // running nbgrader twice.
+              return;
+            }
+
+            this.clicked_nbgrader = new Date();
             this.get_actions().assignments.run_nbgrader_for_one_student(
               this.props.assignment.get("assignment_id"),
               this.props.student.get("student_id")

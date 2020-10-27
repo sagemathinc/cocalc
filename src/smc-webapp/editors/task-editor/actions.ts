@@ -113,6 +113,9 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   private __save_local_view_state(): void {
+    // This will sometimes get called after close, since this is
+    // called via debounce. See #4957.
+    if (this.is_closed) return;
     const local_view_state = this.store.get("local_view_state");
     if (local_view_state != null && localStorage !== null) {
       localStorage[this.name] = JSON.stringify(local_view_state);
@@ -160,6 +163,7 @@ export class TaskActions extends Actions<TaskState> {
   private _init_has_unsaved_changes(): void {
     // basically copies from jupyter/actions.coffee -- opportunity to refactor
     const do_set = () => {
+      if (this.is_closed) return;
       this.setState({
         has_unsaved_changes: this.syncdb?.has_unsaved_changes(),
         has_uncommitted_changes: this.syncdb?.has_uncommitted_changes(),

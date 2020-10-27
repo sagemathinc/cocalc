@@ -196,7 +196,6 @@ export async function open_file(
   }
 
   if (!is_public) {
-    log_file_open(actions.project_id, opts.path);
     get_side_chat_state(actions.project_id, opts);
   }
 
@@ -360,7 +359,15 @@ async function convert_sagenb_worksheet(
 
 const log_open_time: { [path: string]: { id: string; start: Date } } = {};
 
-function log_file_open(project_id: string, path: string): void {
+export function log_file_open(project_id: string, path: string): void {
+  // Only do this if the file isn't
+  // deleted, since if it *is* deleted, then user sees a dialog
+  // and we only log the open if they select to recreate the file.
+  // See https://github.com/sagemathinc/cocalc/issues/4720
+  if (webapp_client.file_client.is_deleted(path, project_id)) {
+    return;
+  }
+
   redux.getActions("file_use")?.mark_file(project_id, path, "open");
   const actions = redux.getProjectActions(project_id);
   const id = actions.log({

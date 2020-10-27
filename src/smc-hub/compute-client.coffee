@@ -1693,6 +1693,17 @@ class ProjectClient extends EventEmitter
         @_synctable?.connect()
         @dbg("stop")("will kill all processes")
         async.series([
+            ###
+            # Uncomment all this to simulate slow stopping more
+            # like in Kubernetes.
+            (cb) =>
+                @_set_state
+                    state      : 'stopping'
+                    time       : new Date()
+                    cb         : cb
+            (cb) =>
+                setTimeout(cb, 10000)
+            ###
             (cb) =>
                 @_action
                     action : "stop"

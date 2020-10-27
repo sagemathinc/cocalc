@@ -211,6 +211,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           complete={this.props.complete}
           derived_file_types={this.props.derived_file_types}
           available_features={this.props.available_features}
+          local_view_state={this.props.local_view_state}
         />
       </div>
     );

@@ -286,35 +286,3 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
     </NavItem>
   );
 });
-
-/*
-  propTypes: {
-    name: rtypes.string,
-    label: rtypes.string, // rendered tab title
-    icon: rtypes.string, // Affiliated icon
-    project_id: rtypes.string,
-    tooltip: rtypes.string,
-    is_selected: rtypes.bool,
-    file_tab: rtypes.bool, // Whether or not this tab holds a file *editor*
-    shrink: rtypes.bool, // Whether or not to shrink to just the icon
-    has_activity: rtypes.bool,
-  }, // Whether or not some activity is happening with the file
-
-  getInitialState() {
-    return { x_hovered: false };
-  },
-
-  componentDidMount() {
-    return this.strip_href();
-  },
-
-  componentDidUpdate() {
-    return this.strip_href();
-  },
-
-  strip_href() {
-    return __guard__(ReactDOM.findDOMNode(this.refs.tab), (x) =>
-      x.children[0].removeAttribute("href")
-    );
-  },
-*/

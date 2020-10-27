@@ -55,7 +55,7 @@ import { AvailableFeatures } from "../../project_configuration";
 import { get_file_editor } from "./register";
 
 import { TimeTravelActions } from "../time-travel-editor/actions";
-import { EditorSpec, EditorDescription, NodeDesc } from "./types";
+import { EditorSpec, EditorDescription, EditorState, NodeDesc } from "./types";
 import { Actions } from "../code-editor/actions";
 
 import { cm as cm_spec } from "../code-editor/editor";
@@ -90,7 +90,7 @@ interface FrameTreeProps {
   active_id: string;
   full_id: string;
   frame_tree: Map<string, any>;
-  editor_state: Map<string, any>; // IMPORTANT: change does NOT cause re-render (uncontrolled); only used for full initial render, on purpose, i.e., setting scroll positions.
+  editor_state: EditorState; // IMPORTANT: change does NOT cause re-render (uncontrolled); only used for full initial render, on purpose, i.e., setting scroll positions.
   font_size: number;
   is_only: boolean;
   cursors: Map<string, any>;
@@ -111,6 +111,7 @@ interface FrameTreeProps {
   complete: Map<string, any>;
   derived_file_types: Set<string>;
   available_features: AvailableFeatures;
+  local_view_state: Map<string, any>;
 }
 
 interface FrameTreeState {
@@ -156,6 +157,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         "complete",
         "derived_file_types",
         "available_features",
+        "local_view_state",
       ])
     );
   }
@@ -191,6 +193,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         complete={this.props.complete}
         derived_file_types={this.props.derived_file_types}
         available_features={this.props.available_features}
+        local_view_state={this.props.local_view_state}
       />
     );
   }
@@ -303,6 +306,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         status={this.props.status}
         derived_file_types={this.props.derived_file_types}
         available_features={this.props.available_features}
+        local_view_state={this.props.local_view_state}
         actions={actions}
         component={component}
         desc={desc}

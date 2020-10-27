@@ -36,7 +36,6 @@ import {
 import { DisplayQuota, EditQuota } from "./quota";
 import { Projects } from "../../admin/users/projects";
 import { Managers } from "./managers";
-import { UserMap } from "../../todo-types";
 import { ManagerInfo } from "./types";
 
 const BACKGROUNDS = ["white", "#f8f8f8"];
@@ -48,7 +47,6 @@ interface Props {
   license: TypedMap<SiteLicense>;
   edits?: TypedMap<SiteLicense>;
   usage_stats?: number; // for now this is just the number of projects running right now with the license; later it might have hourly/daily/weekly, active, etc.
-  user_map?: UserMap;
   manager_info?: ManagerInfo;
 }
 
@@ -176,7 +174,6 @@ export class License extends Component<Props> {
           x = (
             <Managers
               managers={val}
-              user_map={this.props.user_map}
               license_id={this.props.license.get("id")}
               manager_info={this.props.manager_info}
             />
@@ -349,7 +346,6 @@ export class License extends Component<Props> {
           x = (
             <Managers
               managers={val}
-              user_map={this.props.user_map}
               license_id={this.props.license.get("id")}
               manager_info={this.props.manager_info}
             />
