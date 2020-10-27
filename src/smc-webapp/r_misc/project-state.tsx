@@ -7,7 +7,6 @@ import { React } from "../app-framework";
 import { COMPUTE_STATES } from "smc-util/schema";
 import { ProjectStatus } from "../todo-types";
 import { Space } from "./space";
-import { TimeAgo } from "./time-ago";
 import { Loading } from "./loading";
 import { Icon } from "./icon";
 
@@ -31,23 +30,9 @@ export const ProjectState: React.FC<Props> = ({ state, show_desc }) => {
     }
     return (
       <span>
-        <span style={{ fontSize: "11pt" }}>
-          {desc}
-          {render_time()}
-        </span>
+        <span style={{ fontSize: "11pt" }}>{desc}</span>
       </span>
     );
-  }
-
-  function render_time() {
-    const time = state?.get("time");
-    if (time) {
-      return (
-        <span>
-          <Space /> (<TimeAgo date={time} />)
-        </span>
-      );
-    }
   }
 
   const s = COMPUTE_STATES[state?.get("state")];
