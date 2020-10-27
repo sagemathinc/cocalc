@@ -72,8 +72,8 @@ export type LicenseEvent = {
   event: "license";
   action: "add" | "remove";
   license_id: string;
-  title: string;
-  quota: Quota;
+  title?: string;
+  quota?: Quota;
 };
 
 export type LibraryEvent = {

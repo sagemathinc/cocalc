@@ -685,7 +685,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
     const info = await site_license_public_info(license_id);
     if (!info) return;
-    const quota: Quota = info.quota;
+    const quota: Quota | undefined = info.quota;
     const title: string = info.title ?? "";
     await this.redux.getProjectActions(project_id).log({
       event: "license",

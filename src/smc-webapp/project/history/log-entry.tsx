@@ -406,7 +406,8 @@ export class LogEntry extends React.Component<Props> {
       <span>
         {event.action == "add" ? "added" : "removed"} license{" "}
         {event.title ? `"${event.title}"` : ""} with key ending in "
-        {event.license_id.slice(36 - 13, 36)}" for {describe_quota(event.quota)}
+        {event.license_id?.slice(36 - 13, 36)}" for{" "}
+        {event.quota ? describe_quota(event.quota) : "upgrades"}
       </span>
     );
   }
