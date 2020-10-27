@@ -485,9 +485,9 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
         case Signal.Terminate:
           return "Terminating a process tells it to properly close everything and exit – it might ignore the orders, though!";
         case Signal.Kill:
-          return "Killing a process can't be ignored by it and will cause it to exit right away. Try terminating it first!";
+          return "Killing a process can't be ignored and will cause the process to exit right away. Try terminating it first!";
         case Signal.Pause:
-          return "'Pause' means to hold all operations. The process won't use any CPU and only keep  its memory. Use 'Resume' to let it run again.";
+          return "'Pause' means to hold all operations. The process won't use any CPU but will continue to use memory. Use 'Resume' to let it run again.";
         case Signal.Resume:
           return "This will continue running a possibly paused process.";
       }
@@ -511,7 +511,7 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
       const pn = plural(n, "process", "processes");
       const pids = humanizeList(selected);
       const extra = signal_extra(signal);
-      const poptitle = `Are you sure to send signal ${name} (${signal}) to ${pn} ${pids}? ${extra}`.trim();
+      const poptitle = `Are you sure you want to send signal ${name} (${signal}) to ${pn} ${pids}? ${extra}`.trim();
       const icon = render_signal_icon(signal);
       const dangerous = [
         Signal.Kill,
