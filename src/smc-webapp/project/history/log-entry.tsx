@@ -125,6 +125,14 @@ export class LogEntry extends React.Component<Props> {
     return <span>requested to stop this project</span>;
   }
 
+  render_project_start_requested(): JSX.Element {
+    return <span>requested to start this project</span>;
+  }
+
+  render_project_started(): JSX.Element {
+    return <span>started this project</span>;
+  }
+
   render_project_stopped(): JSX.Element {
     return <span>stopped this project</span>;
   }
@@ -421,10 +429,14 @@ export class LogEntry extends React.Component<Props> {
         return this.render_start_project(this.props.event);
       case "project_stop_requested":
         return this.render_project_stop_requested();
-      case "project_restart_requested":
-        return this.render_project_restart_requested();
       case "project_stopped":
         return this.render_project_stopped();
+      case "project_start_requested":
+        return this.render_project_start_requested();
+      case "project_started":
+        return this.render_project_started();
+      case "project_restart_requested":
+        return this.render_project_restart_requested();
       case "open": // open a file
         return this.render_open_file(this.props.event);
       case "set":

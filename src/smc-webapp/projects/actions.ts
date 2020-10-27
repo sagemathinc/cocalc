@@ -743,6 +743,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
     const action_request = this.current_action_request(project_id);
     if (action_request == null || action_request != "start") {
       // need to make an action request:
+      this.redux.getProjectActions(project_id).log({
+        event: "project_start_requested",
+      });
       await this.projects_table_set({
         project_id,
         action_request: { action: "start", time: webapp_client.server_time() },
@@ -755,6 +758,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
         return store.get_state(project_id) == "running";
       },
     });
+    this.redux.getProjectActions(project_id).log({
+      event: "project_started",
+    });
   }
 
   public async stop_project(project_id: string): Promise<void> {
@@ -765,14 +771,15 @@ export class ProjectsActions extends Actions<ProjectsState> {
     const action_request = this.current_action_request(project_id);
     if (action_request == null || action_request != "stop") {
       // need to do it!
+      this.redux.getProjectActions(project_id).log({
+        event: "project_stop_requested",
+      });
       await this.projects_table_set({
         project_id,
         action_request: { action: "stop", time: webapp_client.server_time() },
       });
-      await this.redux.getProjectActions(project_id).log({
-        event: "project_stop_requested",
-      });
     }
+
     // Wait until it is no longer running or stopping.  We don't
     // wait for "opened" because something or somebody else could
     // have started the project and we missed that, and don't
@@ -783,6 +790,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
         const state = store.get_state(project_id);
         return state != "running" && state != "stopping";
       },
+    });
+    this.redux.getProjectActions(project_id).log({
+      event: "project_stopped",
     });
   }
 

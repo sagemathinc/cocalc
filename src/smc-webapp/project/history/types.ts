@@ -99,8 +99,10 @@ export type ProjectControlEvent = {
   event:
     | "start_project"
     | "project_stop_requested"
+    | "project_start_requested"
     | "project_restart_requested"
-    | "project_stopped";
+    | "project_stopped"
+    | "project_started";
   time?: number;
 };
 
