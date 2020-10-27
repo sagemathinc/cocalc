@@ -591,14 +591,12 @@ export class ProjectsActions extends Actions<ProjectsState> {
         ?.toJS() ?? {};
     let nothing_will_change: boolean = true;
     for (let quota in DEFAULT_QUOTAS) {
-      console.log(quota, upgrades[quota] ?? 0, cur[quota] ?? 0);
       if ((upgrades[quota] ?? 0) != (cur[quota] ?? 0)) {
         nothing_will_change = false;
         break;
       }
     }
     if (nothing_will_change) {
-      console.log("nothing_will_change", upgrades, cur);
       return;
     }
 
