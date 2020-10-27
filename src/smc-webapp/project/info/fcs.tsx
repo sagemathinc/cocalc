@@ -28,6 +28,7 @@ import {
   State,
   ProjectInfoCmds,
   Process,
+  Processes,
   Signal,
 } from "../../../smc-project/project-info/types";
 import { AlertType } from "../../../smc-project/project-status/types";
@@ -438,20 +439,36 @@ interface SignalButtonsProps {
   set_selected: Function;
   loading: boolean;
   disabled: boolean;
+  processes: Processes;
 }
 
 export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
   (props: SignalButtonsProps) => {
-    const { chan, selected, set_selected, loading, disabled } = props;
+    const {
+      chan,
+      selected: selected_user,
+      set_selected,
+      loading,
+      disabled,
+      processes,
+    } = props;
+
+    // we don't let users send signals to processes classified as "project" or "ssh daemon"
+    const dont_kill = ["project", "sshd"];
+    const selected = selected_user.filter((pid) => {
+      const type = processes[pid].cocalc?.type;
+      if (type == null) return true;
+      return !dont_kill.includes(type);
+    });
 
     function render_signal_icon(signal: number) {
       const style: CSS = { marginRight: "5px" };
       switch (signal) {
         case 2: // Interrupt (ctrl-c like)
           return <Icon name="hand-paper" style={style} />;
-        case 15:
+        case 15: // terminate
           return <Icon name="times-circle" style={style} />;
-        case 9:
+        case 9: // kill ☠
           return <Icon unicode={0x2620} style={style} />;
         case 19: // STOP
           return <Icon name="pause-circle" style={style} />;
@@ -525,16 +542,20 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
       );
     }
 
-    return (
-      <Form.Item label="Send signal:">
-        <AntdSpace>
-          {render_signal(Signal.Interrupt)}
-          {render_signal(Signal.Terminate)}
-          {render_signal(Signal.Kill)}
-          {render_signal(Signal.Pause)}
-          {render_signal(Signal.Resume)}
-        </AntdSpace>
-      </Form.Item>
-    );
+    if (selected.length == 0) {
+      return null;
+    } else {
+      return (
+        <Form.Item label="Send signal:">
+          <AntdSpace>
+            {render_signal(Signal.Interrupt)}
+            {render_signal(Signal.Terminate)}
+            {render_signal(Signal.Kill)}
+            {render_signal(Signal.Pause)}
+            {render_signal(Signal.Resume)}
+          </AntdSpace>
+        </Form.Item>
+      );
+    }
   }
 );

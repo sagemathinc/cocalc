@@ -379,7 +379,7 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
 
     function render_action_buttons() {
       const disabled = disconnected || selected.length == 0;
-      if (disabled) return;
+      if (disabled || info?.processes == null) return;
 
       return (
         <>
@@ -390,6 +390,7 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
             set_selected={set_selected}
             loading={loading}
             disabled={disabled}
+            processes={info.processes}
           />
         </>
       );
