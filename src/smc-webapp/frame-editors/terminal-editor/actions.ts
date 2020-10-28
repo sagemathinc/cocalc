@@ -26,17 +26,20 @@ export class TerminalActions extends Actions {
   _init2(): void {}
 
   _raw_default_frame_tree(): FrameTree {
-    if (this.is_public) {
-      return { type: "terminal" };
-    } else {
-      return {
-        direction: "col",
-        type: "node",
-        first: { type: "terminal" },
-        second: { type: "commands_guide" },
-        pos: 3 / 4,
-      };
-    }
+    return { type: "terminal" };
+
+    // disabled -- "guide" causes side effects with jupyter notebook
+    //  if (this.is_public) {
+    //    return { type: "terminal" };
+    //  } else {
+    //    return {
+    //      direction: "col",
+    //      type: "node",
+    //      first: { type: "terminal" },
+    //      second: { type: "commands_guide" },
+    //      pos: 3 / 4,
+    //    };
+    //  }
   }
 
   public get_terminal(id: string) {
