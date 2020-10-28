@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Component, React, redux } from "../app-framework";
+import { React, redux } from "../app-framework";
 import {
   path_split,
   should_open_in_foreground,
@@ -22,63 +22,55 @@ interface Props {
 }
 
 // Component to attempt opening a cocalc path in a project
-export class PathLink extends Component<Props> {
-  static defaultProps = {
-    style: {},
-    full: false,
-    link: true,
-  };
-
-  private handle_click(e): void {
+export const PathLink: React.FC<Props> = (props) => {
+  function handle_click(e): void {
     e.preventDefault();
     const switch_to = should_open_in_foreground(e);
-    redux.getProjectActions(this.props.project_id).open_file({
-      path: this.props.path,
+    redux.getProjectActions(props.project_id).open_file({
+      path: props.path,
       foreground: switch_to,
       foreground_project: switch_to,
     });
   }
 
-  private render_link(text): JSX.Element {
-    if (this.props.link) {
+  function render_link(text): JSX.Element {
+    if (props.link) {
       return (
-        <a
-          onClick={this.handle_click.bind(this)}
-          style={this.props.style}
-          href=""
-        >
+        <a onClick={handle_click} style={props.style}>
           {text}
         </a>
       );
     } else {
-      return <span style={this.props.style}>{text}</span>;
+      return <span style={props.style}>{text}</span>;
     }
   }
 
-  public render(): JSX.Element {
-    const name = this.props.full
-      ? this.props.path
-      : path_split(this.props.path).tail;
-    if (
-      (this.props.trunc != null && name.length > this.props.trunc) ||
-      (this.props.display_name != null && this.props.display_name !== name)
-    ) {
-      let text;
-      if (this.props.trunc != null) {
-        text = trunc_middle(
-          this.props.display_name != null ? this.props.display_name : name,
-          this.props.trunc
-        );
-      } else {
-        text = this.props.display_name != null ? this.props.display_name : name;
-      }
-      return (
-        <Tip title="" tip={name}>
-          {this.render_link(text)}
-        </Tip>
+  const name = props.full ? props.path : path_split(props.path).tail;
+  if (
+    (props.trunc != null && name.length > props.trunc) ||
+    (props.display_name != null && props.display_name !== name)
+  ) {
+    let text;
+    if (props.trunc != null) {
+      text = trunc_middle(
+        props.display_name != null ? props.display_name : name,
+        props.trunc
       );
     } else {
-      return this.render_link(name);
+      text = props.display_name != null ? props.display_name : name;
     }
+    return (
+      <Tip title="" tip={name}>
+        {render_link(text)}
+      </Tip>
+    );
+  } else {
+    return render_link(name);
   }
-}
+};
+
+PathLink.defaultProps = {
+  style: {},
+  full: false,
+  link: true,
+};
