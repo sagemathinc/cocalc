@@ -121,22 +121,23 @@ export type ProjectControlEvent = {
   time?: number;
 };
 
-export type FileActionEvent = (
-  | { action: "deleted" }
-  | { action: "downloaded"; files?: string[] }
-  | { action: "moved" }
-  | { action: "copied" }
-  | { action: "shared" }
-  | { action: "uploaded"; file: string }
-  | { action: "renamed"; src: string; dest: string; files?: string[] }
-  | { action: "created" }
-) & {
-  event: "file_action";
-  files: string[];
-  count?: number;
-  project?: string;
-  dest?: string;
-};
+export type FileActionEvent =
+  | { event: "file_action"; action: "renamed"; src: string; dest: string }
+  | ((
+      | { action: "deleted" }
+      | { action: "downloaded" }
+      | { action: "moved" }
+      | { action: "copied" }
+      | { action: "shared" }
+      | { action: "uploaded"; file: string }
+      | { action: "created" }
+    ) & {
+      event: "file_action";
+      files: string[];
+      count?: number;
+      project?: string;
+      dest?: string;
+    });
 
 export type PublicPathEvent = {
   event: "public_path";
