@@ -2349,7 +2349,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   /*
    * Actions for PUBLIC PATHS
    */
-  set_public_path(
+  public async set_public_path(
     path,
     opts: {
       description?: string;
@@ -2374,8 +2374,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const table = this.redux.getProjectTable(project_id, "public_paths");
     let obj: undefined | immutable.Map<string, any> = table._table.get(id);
 
+    let log: boolean = false;
     const now = misc.server_time();
     if (obj == null) {
+      log = true;
       obj = immutable.fromJS({
         project_id,
         path,
@@ -2394,10 +2396,28 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     for (const k in opts) {
       if (opts[k] != null) {
+        if (!log) {
+          if (k == "disabled" && opts[k] != obj.get(k)) {
+            // changing disabled state
+            log = true;
+          } else if (k == "unlisted" && opts[k] != obj.get(k)) {
+            // changing unlisted state
+            log = true;
+          }
+        }
         obj = obj.set(k, opts[k]);
       }
     }
     table.set(obj);
+
+    if (log) {
+      this.log({
+        event: "public_path",
+        path: path + ((await this.isdir(path)) ? "/" : ""),
+        disabled: !!obj.get("disabled"),
+        unlisted: !!obj.get("unlisted"),
+      });
+    }
   }
 
   /*

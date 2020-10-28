@@ -36,6 +36,7 @@ export type ProjectEvent =
   | X11Event
   | SetTitleEvent
   | SetDescriptionEvent
+  | PublicPathEvent
   | { event: "open_project" }
   | { event: "delete_project" }
   | { event: "undelete_project" }
@@ -135,6 +136,13 @@ export type FileActionEvent = (
   count?: number;
   project?: string;
   dest?: string;
+};
+
+export type PublicPathEvent = {
+  event: "public_path";
+  path: string;
+  unlisted?: boolean;
+  disabled?: boolean;
 };
 
 export type SystemEvent = { event: ""; by: string };

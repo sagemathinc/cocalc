@@ -112,6 +112,25 @@ export class LogEntry extends React.Component<Props> {
     );
   }
 
+  render_public_path(event: PublicPathEvent): JSX.Element {
+    return (
+      <span>
+        set the public path
+        <Space />
+        <PathLink
+          path={event.path}
+          full={true}
+          style={this.props.cursor ? selected_item : undefined}
+          trunc={TRUNC}
+          project_id={this.props.project_id}
+        />{" "}
+        to be {event.disabled ? "disabled" : "enabled"}
+        {" and "}
+        {event.unlisted ? "unlisted" : "listed"}
+      </span>
+    );
+  }
+
   render_start_project(event: ProjectControlEvent): JSX.Element {
     return (
       <span>
@@ -495,6 +514,8 @@ export class LogEntry extends React.Component<Props> {
         return <span>hid the project from themself</span>;
       case "unhide_project":
         return <span>unhid the project from themself</span>;
+      case "public_path":
+        return this.render_public_path(this.props.event);
       default:
         return <span>Unknown event: {JSON.stringify(this.props.event)}</span>;
     }
