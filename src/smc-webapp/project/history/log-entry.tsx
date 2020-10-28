@@ -37,6 +37,7 @@ import {
   LicenseEvent,
   CollaboratorEvent,
   SystemEvent,
+  PublicPathEvent
 } from "./types";
 
 const selected_item: React.CSSProperties = {
