@@ -5,7 +5,9 @@
 
 import { React, redux } from "../app-framework";
 import {
+  endswith,
   path_split,
+  separate_file_extension,
   should_open_in_foreground,
   trunc_middle,
 } from "smc-util/misc";
@@ -34,14 +36,30 @@ export const PathLink: React.FC<Props> = (props) => {
   }
 
   function render_link(text): JSX.Element {
+    let s;
+    if (!endswith(text, "/")) {
+      const { name, ext } = separate_file_extension(text);
+      if (ext) {
+        s = (
+          <>
+            {name}
+            <span style={{ color: "#999" }}>.{ext}</span>
+          </>
+        );
+      } else {
+        s = name;
+      }
+    } else {
+      s = text;
+    }
     if (props.link) {
       return (
         <a onClick={handle_click} style={props.style}>
-          {text}
+          {s}
         </a>
       );
     } else {
-      return <span style={props.style}>{text}</span>;
+      return <span style={props.style}>{s}</span>;
     }
   }
 
