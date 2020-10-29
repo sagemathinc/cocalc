@@ -5,7 +5,8 @@
 
 import * as React from "react";
 import { Project } from "./types";
-import { Icon, SettingBox, DeletedProjectWarning } from "smc-webapp/r_misc";
+import { Icon, SettingBox } from "smc-webapp/r_misc";
+import { DeletedProjectWarning } from "../warnings/deleted";
 import { Button, Well, Alert, ButtonToolbar, Row, Col } from "react-bootstrap";
 import { ProjectsActions } from "smc-webapp/todo-types";
 import { webapp_client } from "../../webapp-client";

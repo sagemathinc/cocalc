@@ -5,11 +5,9 @@
 
 import * as React from "react";
 const misc = require("smc-util/misc");
-import {
-  Icon,
-  NonMemberProjectWarning,
-  NoNetworkProjectWarning,
-} from "../../r_misc";
+import { Icon } from "../../r_misc";
+import { NonMemberProjectWarning } from "../warnings/non-member";
+import { NoNetworkProjectWarning } from "../warnings/no-network";
 import { redux, rtypes, rclass } from "../../app-framework";
 import { JupyterServerPanel } from "../plain-jupyter-server";
 import { JupyterLabServerPanel } from "../jupyterlab-server";
