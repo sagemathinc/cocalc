@@ -19,13 +19,11 @@ import {
 } from "../app-framework";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 import { delay } from "awaiting";
-
 import {
   SoftwareEnvironment,
   SoftwareEnvironmentState,
   derive_project_img_name,
 } from "../custom-software/selector";
-
 import {
   Well,
   Button,
@@ -34,10 +32,9 @@ import {
   FormGroup,
   Alert,
 } from "../antd-bootstrap";
-
 import { Row, Col } from "antd";
-
-import { A, ErrorDisplay, Icon, Space, COLORS } from "../r_misc";
+import { A, ErrorDisplay, Icon, Space } from "../r_misc";
+import { COLORS } from "smc-util/theme";
 
 interface Props {
   start_in_edit_mode?: boolean;
@@ -59,9 +56,9 @@ export const NewProjectCreator: React.FC<Props> = ({
   const [show_advanced, set_show_advanced] = useState<boolean>(false);
   const [title_prefill, set_title_prefill] = useState<boolean>(true);
 
-  const [custom_software, set_custom_software] = useState<SoftwareEnvironmentState>(
-    {}
-  );
+  const [custom_software, set_custom_software] = useState<
+    SoftwareEnvironmentState
+  >({});
 
   const new_project_title_ref = useRef(null);
 

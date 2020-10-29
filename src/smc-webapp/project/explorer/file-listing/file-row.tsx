@@ -3,17 +3,17 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useState } from "../../../app-framework";
 import memoizeOne from "memoize-one";
-
+import { React, useState } from "../../../app-framework";
 import { ProjectActions } from "../../../project_actions";
 import { CopyButton } from "./copy-button";
 import { PublicButton } from "./public-button";
 import { FileCheckbox } from "./file-checkbox";
 import { generate_click_for } from "./utils";
-import { COLORS, TimeAgo, Tip, Icon } from "../../../r_misc";
-const { Button, Row, Col } = require("react-bootstrap");
-const misc = require("smc-util/misc");
+import { TimeAgo, Tip, Icon } from "../../../r_misc";
+import { COLORS } from "smc-util/theme";
+import { Button, Row, Col } from "react-bootstrap";
+import * as misc from "smc-util/misc";
 import { url_href } from "../../utils";
 
 interface Props {

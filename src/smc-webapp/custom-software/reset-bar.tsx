@@ -6,18 +6,8 @@
 import * as React from "react";
 import { props2img, RESET_ICON } from "./util";
 import { ComputeImages } from "./init";
-//const misc = require("smc-util/misc");
-//import * as misc2 from "smc-util/misc2";
-// const { open_new_tab } = require("smc-webapp/misc_page");
-import {
-  A,
-  Icon,
-  COLORS,
-  //   Tip,
-  //   HiddenXSSM,
-  //   VisibleMDLG,
-  //   VisibleXSSM
-} from "../r_misc";
+import { A, Icon } from "../r_misc";
+import { COLORS } from "smc-util/theme";
 const { Button, Well, Row, Col, ButtonToolbar } = require("react-bootstrap");
 import { Available as AvailableFeatures } from "../project_configuration";
 import { ProjectMap } from "smc-webapp/todo-types";
@@ -25,13 +15,6 @@ const { SITE_NAME } = require("smc-util/theme");
 
 const doc_snap = "https://doc.cocalc.com/project-files.html#snapshots";
 const doc_tt = "https://doc.cocalc.com/time-travel.html";
-
-//const bar_style: React.CSSProperties = Object.freeze({
-//  flex: "1 0 auto",
-//  marginTop: "10px",
-//  marginBottom: "20px",
-//  padding: "5px"
-//});
 
 const title_style: React.CSSProperties = Object.freeze({
   fontWeight: "bold" as "bold",

@@ -4,7 +4,7 @@
  */
 
 import { join as path_join } from "path";
-import { COLORS } from "../r_misc";
+import { COLORS } from "smc-util/theme";
 
 export const RESET_ICON = "redo-alt";
 

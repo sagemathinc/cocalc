@@ -24,7 +24,8 @@ import {
 } from "../../app-framework";
 import { path_to_tab } from "smc-util/misc";
 import { path_split } from "smc-util/misc2";
-import { COLORS, HiddenXS, Icon, Tip } from "../../r_misc";
+import { HiddenXS, Icon, Tip } from "../../r_misc";
+import { COLORS } from "smc-util/theme";
 
 export const FIXED_PROJECT_TABS = {
   files: {

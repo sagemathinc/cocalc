@@ -8,11 +8,9 @@ The Landing Page
 */
 
 import * as immutable from "immutable";
-
 import { Component, rclass, React, rtypes, Rendered } from "../app-framework";
-
 import { Row, Col, Alert } from "../antd-bootstrap";
-import { UNIT, COLORS } from "../r_misc";
+import { UNIT } from "../r_misc";
 import { SiteDescription, Footer } from "../customize";
 import { SignUp } from "./sign-up";
 import { SignIn } from "./sign-in";
@@ -28,17 +26,15 @@ import {
 } from "../launch/actions";
 import { NAME as ComputeImageStoreName } from "../custom-software/util";
 import { ComputeImages, launchcode2display } from "../custom-software/init";
-
-const DESC_FONT = "sans-serif";
-
-// import { ShowSupportLink } from "../support";
-const { ShowSupportLink } = require("../support");
+import { ShowSupportLink } from "../support";
 import { PassportStrategy } from "../account/passport-types";
 import { capitalize } from "smc-util/misc2";
-import { DOC_URL } from "smc-util/theme";
+import { COLORS, DOC_URL } from "smc-util/theme";
 import { APP_ICON_WHITE, APP_LOGO_NAME_WHITE } from "../art";
 import { init } from "./registration";
 init(); // this is a fallback
+
+const DESC_FONT = "sans-serif";
 
 interface Props {
   strategies?: immutable.List<PassportStrategy>;

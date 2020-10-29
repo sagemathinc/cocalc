@@ -41,11 +41,10 @@ export {
 export { LoginLink } from "./login-link";
 export { ProjectState } from "./project-state";
 
+export { UNIT, build_date, smc_git_rev, smc_version } from "./constants";
+
 export const {
   MarkdownInput,
-  UNIT,
-  BS_BLUE_BGRND,
-  COLORS,
   ImmutablePureRenderMixin,
   Octicon,
   Footer,
@@ -67,7 +66,4 @@ export const {
   UpgradeAdjustor,
   CopyToClipBoard,
   ErrorBoundary,
-  smc_version,
-  build_date,
-  smc_git_rev,
 } = require("./old-coffee-code-index");
