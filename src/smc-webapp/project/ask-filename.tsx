@@ -30,13 +30,6 @@ interface Props {
 interface State {}
 
 export class AskNewFilename extends Component<Props, State> {
-  private searchRef: React.RefObject<HTMLInputElement>;
-
-  constructor(props) {
-    super(props);
-    this.searchRef = React.createRef<HTMLInputElement>();
-  }
-
   componentWillReceiveProps(next): void {
     const curr_rfn = this.props.other_settings.get(NEW_FILENAMES);
     const next_rfn = next.other_settings.get(NEW_FILENAMES);
@@ -51,11 +44,6 @@ export class AskNewFilename extends Component<Props, State> {
 
   shuffle = (): void => {
     this.props.actions.ask_filename(this.props.ext_selection);
-    // TODO somehow focus & select the new text in the box
-    //const el = this.searchRef.current;
-    //if (el != null) {
-    //  ReactDOM.findDOMNode(el.refs.input).select();
-    //}
   };
 
   create = (name, focus): void => {
@@ -112,8 +100,6 @@ export class AskNewFilename extends Component<Props, State> {
             <SearchInput
               autoFocus={!IS_TOUCH}
               autoSelect={!IS_TOUCH}
-              ref={this.searchRef}
-              type={"text"}
               value={this.props.new_filename}
               placeholder={"Enter filename..."}
               on_submit={this.submit}

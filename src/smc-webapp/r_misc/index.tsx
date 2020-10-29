@@ -43,13 +43,13 @@ export { ProjectState } from "./project-state";
 
 export { UNIT, build_date, smc_git_rev, smc_version } from "./constants";
 export { MarkdownInput } from "../widget-markdown-input/main";
+export { SearchInput } from "./search-input";
 
 export const {
   ImmutablePureRenderMixin,
   Octicon,
   Footer,
   render_static_footer,
-  SearchInput,
   HTML,
   Markdown,
   ActivityDisplay,
