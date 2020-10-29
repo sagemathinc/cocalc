@@ -11,7 +11,11 @@ import { SystemEvent } from "./types";
  * This means, a back-end system process is responsible.
  * In the case of stopping a project, the name is recorded in the event.by field.
  **/
-export function SystemProcess({ event }: { event: SystemEvent }): JSX.Element {
+interface Props {
+  event: SystemEvent;
+}
+
+export const SystemProcess: React.FC<Props> = ({ event }) => {
   if (event.by != null) {
     return (
       <span>
@@ -21,4 +25,4 @@ export function SystemProcess({ event }: { event: SystemEvent }): JSX.Element {
   } else {
     return <span>A system service</span>;
   }
-}
+};
