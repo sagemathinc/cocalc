@@ -18,14 +18,14 @@ interface Props {
   reset_cursor: () => void;
 }
 
-export function LogSearch({
+export const LogSearch: React.FC<Props> = ({
   search,
   selected,
   actions,
   reset_cursor,
   increment_cursor,
   decrement_cursor,
-}: Props): JSX.Element {
+}) => {
   const open_selected = React.useCallback(
     (_value, info: any): void => {
       const e = selected?.get("event");
@@ -58,7 +58,7 @@ export function LogSearch({
       },
       [reset_cursor, actions]
     ),
-    50
+    150
   );
 
   return (
@@ -76,4 +76,4 @@ export function LogSearch({
       }}
     />
   );
-}
+};
