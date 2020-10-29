@@ -7,17 +7,17 @@ import { fromJS, List } from "immutable";
 
 import { Actions, redux } from "../../app-framework";
 import { user_search, User } from "../../frame-editors/generic/client";
-import { cmp } from "smc-util/misc2";
+import { sortBy } from "lodash";
 import { StoreState, User as ImmutableUser, store } from "./store";
 
-function user_sort_key(user: User): string {
+function user_sort_key(user: User): number {
   if (user.last_active) {
-    return user.last_active.toString();
+    return -user.last_active.getTime();
   }
   if (user.created) {
-    return user.created.toString();
+    return -user.created.getTime();
   }
-  return "";
+  return 0;
 }
 
 export class AdminUsersActions extends Actions<StoreState> {
@@ -47,13 +47,11 @@ export class AdminUsersActions extends Actions<StoreState> {
       return;
     }
 
-    result.sort(function (a, b) {
-      return -cmp(user_sort_key(a), user_sort_key(b));
-    });
+    const result_sorted = sortBy(result, user_sort_key);
     this.set_status("");
 
     this.setState({
-      result: fromJS(result) as List<ImmutableUser>,
+      result: fromJS(result_sorted) as List<ImmutableUser>,
     });
   }
 
