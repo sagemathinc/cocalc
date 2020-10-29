@@ -50,11 +50,6 @@ feature     = require('../feature')
 
 {defaults, required} = misc
 
-# required for hub-landing -- in all other contexts import directly from customize
-exports.render_static_footer = ->
-    {Footer} = require('smc-webapp/customize')
-    <Footer />
-
 exports.HTML = HTML = rclass
     displayName : 'Misc-HTML' # this name is assumed and USED in the smc-hub/share/mathjax-support to identify this component; do NOT change!
 
