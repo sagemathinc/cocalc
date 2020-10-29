@@ -258,13 +258,7 @@ export const Content: React.FC<Props> = React.memo(
             />
           );
         case "log":
-          return (
-            <ProjectLog
-              name={name}
-              project_id={project_id}
-              actions={redux.getProjectActions(project_id)}
-            />
-          );
+          return <ProjectLog project_id={project_id} />;
         case "search":
           return <ProjectSearch project_id={project_id} />;
         case "settings":

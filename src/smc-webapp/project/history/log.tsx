@@ -3,330 +3,249 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as misc from "smc-util/misc";
-
-import * as immutable from "immutable";
-
+import { List } from "immutable";
+import { search_split, search_match } from "smc-util/misc";
 import {
   React,
-  rtypes,
-  rclass,
   redux,
   TypedMap,
   Rendered,
+  useActions,
+  useEffect,
+  useForceUpdate,
+  useState,
+  useRef,
+  useTypedRedux,
 } from "../../app-framework";
-
-import { Button } from "react-bootstrap";
-
+import { Button } from "../../antd-bootstrap";
 import { Icon, Loading } from "../../r_misc";
 import { WindowedList } from "../../r_misc/windowed-list";
-
 import { LogSearch } from "./search";
 import { LogEntry } from "./log-entry";
-import { ProjectLogMap, EventRecord, to_search_string } from "./types";
-import { ProjectActions } from "../../project_store";
-import { UserMap } from "../../todo-types";
+import { EventRecord, to_search_string } from "./types";
 
-interface ReactProps {
+interface Props {
   project_id: string;
-  name: string;
-  search?: string;
-  actions: ProjectActions;
 }
 
-interface ReduxProps {
-  project_log?: ProjectLogMap;
-  project_log_all?: ProjectLogMap;
-  search?: string;
+export const ProjectLog: React.FC<Props> = ({ project_id }) => {
+  const project_log = useTypedRedux({ project_id }, "project_log");
+  const project_log_all = useTypedRedux({ project_id }, "project_log_all");
+  const search = useTypedRedux({ project_id }, "search") ?? "";
+  const user_map = useTypedRedux("users", "user_map");
+  const actions = useActions({ project_id });
+  const windowed_list = useRef<WindowedList>(null);
+  const state = useRef<{
+    log?: List<TypedMap<EventRecord>>;
+    search_cache: { [key: string]: string };
+    loading_table?: boolean;
+    next_cursor_pos?: number;
+  }>({ search_cache: {} });
+  const [cursor_index, set_cursor_index] = useState<number>(0);
+  const force_update = useForceUpdate();
+  useEffect(() => {
+    delete state.current.log;
+    force_update();
+  }, [project_log, project_log_all, search]);
 
-  user_map?: UserMap;
-}
+  function get_log(): List<TypedMap<EventRecord>> {
+    if (state.current.log != null) {
+      return state.current.log;
+    }
+    const log = project_log_all ?? project_log;
+    if (log == null) {
+      state.current.log = List();
+      return state.current.log;
+    }
 
-interface State {
-  cursor_index: number;
-}
-
-export const ProjectLog = rclass<ReactProps>(
-  class ProjectLog extends React.Component<ReactProps & ReduxProps, State> {
-    static reduxProps = ({ name }): Record<string, any> => {
-      return {
-        [name]: {
-          project_log: rtypes.immutable,
-          project_log_all: rtypes.immutable,
-          search: rtypes.string,
-        },
-        users: {
-          user_map: rtypes.immutable,
-        },
+    let log_seq = log.valueSeq().toList();
+    if (search) {
+      if (state.current.search_cache == undefined) {
+        state.current.search_cache = {};
+      }
+      const terms = search_split(search.toLowerCase());
+      const names = {};
+      const match = (z: TypedMap<EventRecord>): boolean => {
+        let s: string = state.current.search_cache[z.get("id")];
+        if (s == undefined) {
+          const account_id = z.get("account_id");
+          if (names[account_id] == null) {
+            names[account_id] = (
+              redux.getStore("users").get_name(account_id) ?? ""
+            ).toLowerCase();
+          }
+          s = names[account_id];
+          const event = z.get("event");
+          if (event != undefined) {
+            s += " " + to_search_string(event.toJS());
+          }
+          state.current.search_cache[z.get("id")] = s;
+        }
+        return search_match(s, terms);
       };
-    };
-
-    static defaultProps = { search: "" }; // search that user has requested
-
-    private windowed_list_ref: React.RefObject<any>;
-    private _log?: immutable.List<TypedMap<EventRecord>>;
-    private _search_cache: { [key: string]: string };
-    private _loading_table: boolean;
-    private _next_cursor_pos?: number;
-
-    constructor(props) {
-      super(props);
-      this.windowed_list_ref = React.createRef();
-      this.state = { cursor_index: 0 };
+      log_seq = log_seq.filter(match);
     }
-
-    shouldComponentUpdate(nextProps, nextState): boolean {
-      if (this.state.cursor_index !== nextState.cursor_index) {
-        return true;
+    log_seq = log_seq.sort((a, b) => {
+      // time might not be defined at all -- see https://github.com/sagemathinc/cocalc/issues/4271
+      // In this case we don't really care what happens with this log
+      // entry, only that we don't completely crash cocalc!
+      const t0 = b.get("time");
+      if (!t0) {
+        return -1; // push to the past -- otherwise it would be annoyingly in your face all the time.
       }
-      if (this.props.search !== nextProps.search) {
-        return true;
+      const t1 = a.get("time");
+      if (!t1) {
+        return 1; // push to the past
       }
-      if (
-        (this.props.project_log == undefined ||
-          nextProps.project_log == undefined) &&
-        (this.props.project_log_all == undefined ||
-          nextProps.project_log_all == undefined)
-      ) {
-        return true;
-      }
-      if (this.props.user_map == undefined || nextProps.user_map == undefined) {
-        return true;
-      }
-      if (!nextProps.user_map.equals(this.props.user_map)) {
-        return true;
-      }
-      if (nextProps.project_log != undefined) {
-        return !nextProps.project_log.equals(this.props.project_log);
-      }
-      if (nextProps.project_log_all != undefined) {
-        return !nextProps.project_log_all.equals(this.props.project_log_all);
-      }
-      return false;
-    }
-
-    UNSAFE_componentWillReceiveProps(next): void {
-      if (
-        next.user_map == undefined ||
-        (next.project_log == undefined && next.project_log_all == undefined)
-      ) {
-        return;
-      }
-      if (
-        !immutable.is(this.props.project_log, next.project_log) ||
-        !immutable.is(this.props.project_log_all, next.project_log_all) ||
-        this.props.search !== next.search
-      ) {
-        delete this._log;
-      }
-    }
-
-    get_log(): immutable.List<TypedMap<EventRecord>> {
-      if (this._log != undefined) {
-        return this._log;
-      }
-      const logs = this.props.project_log_all ?? this.props.project_log;
-      if (logs == undefined) {
-        this._log = immutable.List();
-        return this._log;
-      }
-
-      let logs_seq = logs.valueSeq().toList();
-      if (this.props.search) {
-        if (this._search_cache == undefined) {
-          this._search_cache = {};
-        }
-        const terms = misc.search_split(this.props.search.toLowerCase());
-        const names = {};
-        const match = (z: TypedMap<EventRecord>): boolean => {
-          let s: string = this._search_cache[z.get("id")];
-          if (s == undefined) {
-            const account_id = z.get("account_id");
-            if (names[account_id] == null) {
-              names[account_id] = (
-                redux.getStore("users").get_name(account_id) ?? ""
-              ).toLowerCase();
-            }
-            s = names[account_id];
-            const event = z.get("event");
-            if (event != undefined) {
-              s += " " + to_search_string(event.toJS());
-            }
-            this._search_cache[z.get("id")] = s;
-          }
-          return misc.search_match(s, terms);
-        };
-        logs_seq = logs_seq.filter(match);
-      }
-      logs_seq = logs_seq.sort((a, b) => {
-        // time might not be defined at all -- see https://github.com/sagemathinc/cocalc/issues/4271
-        // In this case we don't really care what happens with this log entry, only that we don't
-        // completely crash cocalc!
-        const t0 = b.get("time");
-        if (!t0) {
-          return -1; // push to the past -- otherwise it would be annoyingly in your face all the time.
-        }
-        const t1 = a.get("time");
-        if (!t1) {
-          return 1; // push to the past
-        }
-        return t0.valueOf() - t1.valueOf();
-      });
-      this._log = logs_seq;
-      return this._log;
-    }
-
-    move_cursor_to(cursor_index): void {
-      if (cursor_index < 0 || cursor_index >= this.get_log().size) {
-        return;
-      }
-      this.setState({ cursor_index });
-      this.windowed_list_ref.current?.scrollToRow(cursor_index);
-    }
-
-    increment_cursor(): void {
-      this.move_cursor_to(this.state.cursor_index + 1);
-    }
-
-    decrement_cursor(): void {
-      this.move_cursor_to(this.state.cursor_index - 1);
-    }
-
-    reset_cursor(): void {
-      this.move_cursor_to(0);
-    }
-
-    load_all(): void {
-      this._next_cursor_pos = this.get_log().size - 1;
-      this._loading_table = false;
-      this.props.actions.project_log_load_all();
-    }
-
-    render_load_all_button(): Rendered {
-      if (this.props.project_log_all != undefined) {
-        return;
-      }
-      return (
-        <Button
-          bsStyle={"info"}
-          onClick={(): void => {
-            this.load_all();
-          }}
-          disabled={this.props.project_log_all != undefined}
-        >
-          Load older log entries
-        </Button>
-      );
-    }
-
-    row_renderer(index): Rendered {
-      const log = this.get_log();
-      if (index === log.size) {
-        return this.render_load_all_button();
-      }
-      const x = log.get(index);
-      if (x == undefined) {
-        return;
-      }
-      return (
-        <LogEntry
-          id={x.get("id")}
-          cursor={this.state.cursor_index === index}
-          time={x.get("time")}
-          event={x.get("event").toJS()}
-          account_id={x.get("account_id")}
-          user_map={this.props.user_map}
-          backgroundStyle={
-            index % 2 === 0 ? { backgroundColor: "#eee" } : undefined
-          }
-          project_id={this.props.project_id}
-        />
-      );
-    }
-
-    row_key(index: number): string {
-      return `${index}`;
-    }
-
-    render_log_entries(): JSX.Element {
-      const next_cursor_pos = this._next_cursor_pos;
-      if (this._next_cursor_pos) {
-        delete this._next_cursor_pos;
-      }
-      return (
-        <WindowedList
-          ref={this.windowed_list_ref}
-          overscan_row_count={20}
-          estimated_row_size={22}
-          row_count={this.get_log().size + 1}
-          row_renderer={(x): Rendered => {
-            return this.row_renderer(x.index);
-          }}
-          row_key={this.row_key}
-          scroll_to_index={next_cursor_pos}
-          cache_id={"project_log" + this.props.project_id}
-        />
-      );
-    }
-
-    render_log_panel(): JSX.Element {
-      return (
-        <div
-          className="smc-vfill"
-          style={{ border: "1px solid #ccc", borderRadius: "3px" }}
-        >
-          {this.render_log_entries()}
-        </div>
-      );
-    }
-
-    render_body(): JSX.Element {
-      if (!this.props.project_log && !this.props.project_log_all) {
-        if (!this._loading_table) {
-          this._loading_table = true;
-          // The project log not yet loaded, so kick off the load.
-          // This is safe to call multiple times and is done so that the
-          // changefeed for the project log is only setup if the user actually
-          // looks at the project log at least once.
-          redux
-            .getProjectStore(this.props.project_id)
-            .init_table("project_log");
-        }
-        return <Loading theme={"medium"} />;
-      }
-      this._loading_table = false;
-      return this.render_log_panel();
-    }
-
-    render_search(): JSX.Element {
-      return (
-        <LogSearch
-          actions={this.props.actions}
-          search={this.props.search}
-          selected={this.get_log().get(this.state.cursor_index)}
-          increment_cursor={(): void => {
-            this.increment_cursor();
-          }}
-          decrement_cursor={(): void => {
-            this.decrement_cursor();
-          }}
-          reset_cursor={(): void => {
-            this.reset_cursor();
-          }}
-        />
-      );
-    }
-
-    render(): JSX.Element {
-      return (
-        <div style={{ padding: "15px" }} className={"smc-vfill"}>
-          <h1 style={{ marginTop: "0px" }}>
-            <Icon name="history" /> Project activity log
-          </h1>
-          {this.render_search()}
-          {this.render_body()}
-        </div>
-      );
-    }
+      return t0.valueOf() - t1.valueOf();
+    });
+    state.current.log = log_seq;
+    return state.current.log;
   }
-);
+
+  function move_cursor_to(cursor_index): void {
+    if (cursor_index < 0 || cursor_index >= get_log().size) {
+      return;
+    }
+    set_cursor_index(cursor_index);
+    windowed_list.current?.scrollToRow(cursor_index);
+  }
+
+  function increment_cursor(): void {
+    move_cursor_to(cursor_index + 1);
+  }
+
+  function decrement_cursor(): void {
+    move_cursor_to(cursor_index - 1);
+  }
+
+  function reset_cursor(): void {
+    move_cursor_to(0);
+  }
+
+  function load_all(): void {
+    state.current.next_cursor_pos = get_log().size - 1;
+    state.current.loading_table = false;
+    actions?.project_log_load_all();
+  }
+
+  function render_load_all_button(): Rendered {
+    if (project_log_all != undefined) {
+      return;
+    }
+    return (
+      <Button
+        bsStyle={"info"}
+        onClick={load_all}
+        disabled={project_log_all != undefined}
+      >
+        Load older log entries
+      </Button>
+    );
+  }
+
+  function row_renderer(index): Rendered {
+    const log = get_log();
+    if (index === log.size) {
+      return render_load_all_button();
+    }
+    const x = log.get(index);
+    if (x == undefined) {
+      return;
+    }
+    return (
+      <LogEntry
+        id={x.get("id")}
+        cursor={cursor_index === index}
+        time={x.get("time")}
+        event={x.get("event").toJS()}
+        account_id={x.get("account_id")}
+        user_map={user_map}
+        backgroundStyle={
+          index % 2 === 0 ? { backgroundColor: "#eee" } : undefined
+        }
+        project_id={project_id}
+      />
+    );
+  }
+
+  function row_key(index: number): string {
+    return `${index}`;
+  }
+
+  function render_log_entries(): JSX.Element {
+    const next_cursor_pos = state.current.next_cursor_pos;
+    if (state.current.next_cursor_pos) {
+      delete state.current.next_cursor_pos;
+    }
+    return (
+      <WindowedList
+        ref={windowed_list}
+        overscan_row_count={20}
+        estimated_row_size={22}
+        row_count={get_log().size + 1}
+        row_renderer={(x) => row_renderer(x.index)}
+        row_key={row_key}
+        scroll_to_index={next_cursor_pos}
+        cache_id={"project_log" + project_id}
+      />
+    );
+  }
+
+  function render_log_panel(): JSX.Element {
+    return (
+      <div
+        className="smc-vfill"
+        style={{ border: "1px solid #ccc", borderRadius: "3px" }}
+      >
+        {render_log_entries()}
+      </div>
+    );
+  }
+
+  function render_body(): JSX.Element {
+    if (!project_log && !project_log_all) {
+      if (!state.current.loading_table) {
+        state.current.loading_table = true;
+        // The project log not yet loaded, so kick off the load.
+        // This is safe to call multiple times and is done so that the
+        // changefeed for the project log is only setup if the user actually
+        // looks at the project log at least once.
+        redux.getProjectStore(project_id).init_table("project_log");
+      }
+      return <Loading theme={"medium"} />;
+    }
+    state.current.loading_table = false;
+    return render_log_panel();
+  }
+
+  function render_search(): JSX.Element | void {
+    if (actions == null) return;
+    return (
+      <LogSearch
+        actions={actions}
+        search={search}
+        selected={get_log().get(cursor_index)}
+        increment_cursor={(): void => {
+          increment_cursor();
+        }}
+        decrement_cursor={(): void => {
+          decrement_cursor();
+        }}
+        reset_cursor={(): void => {
+          reset_cursor();
+        }}
+      />
+    );
+  }
+
+  return (
+    <div style={{ padding: "15px" }} className={"smc-vfill"}>
+      <h1 style={{ marginTop: "0px" }}>
+        <Icon name="history" /> Project activity log
+      </h1>
+      {render_search()}
+      {render_body()}
+    </div>
+  );
+};
