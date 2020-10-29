@@ -21,7 +21,7 @@ underscore   = require('underscore')
 
 {one_result, all_results, count_result, pg_type, quote_field} = require('./postgres-base')
 
-{UserQueryQueue} = require('./postgres-user-query-queue')
+{UserQueryQueue, DEFAULT_USER_QUERY_PRIORITY} = require('./postgres-user-query-queue')
 
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
@@ -1455,7 +1455,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         # this will be the input to the @_query command.
         # by default, all user queries are one level below all other queries (priority 5)
         _query_opts =
-            priority: SCHEMA[opts.table]?.priority ? 4
+            priority: SCHEMA[opts.table]?.priority ? DEFAULT_USER_QUERY_PRIORITY
 
         locals =
             result     : undefined
