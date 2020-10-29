@@ -6,7 +6,7 @@
 // they are used in commands-guide.tsx, that's all
 
 import { CSS, React, useMemo, useState } from "../../app-framework";
-import { Button, Row, Col, Select, Typography } from "antd";
+import { Button, Row, Col, Select, Typography, Popconfirm } from "antd";
 import { TerminalActions } from "./actions";
 import { TerminalActionsContext } from "./commands-guide";
 
@@ -81,7 +81,8 @@ interface CommandProps {
   title?: string;
   descr: string;
   userarg?: boolean; // if yes, user will have to input an argument in the terminal
-  args?: (string | undefined)[];
+  fileargs?: (string | undefined)[];
+  dirargs?: (string | undefined)[];
 }
 
 const CMD_BTN_STYLE: CSS = {
@@ -98,12 +99,12 @@ const CMD_BTN_STYLE: CSS = {
 function calc_cmd_args(
   cmd0?: string,
   args: (string | undefined)[] = []
-): { cmdargs: string; run: boolean } {
-  let used_args = args.length == 0; // no args to use
+): { cmdargs: string; all_args: boolean } {
+  let expected_args = args.length;
   let cmd = cmd0 ?? "";
   args.forEach((val, idx) => {
     if (val == null) return;
-    used_args = true;
+    expected_args -= 1;
     if (cmd.includes(`$${idx + 1}`)) {
       // TODO quote "'" inside of file names as "'\''" or something similar?
       cmd = cmd.replace(new RegExp(`\\$${idx + 1}`, "g"), `'${val}'`);
@@ -111,38 +112,71 @@ function calc_cmd_args(
       cmd += ` '${val}'`;
     }
   });
-  return { cmdargs: cmd, run: used_args };
+  return { cmdargs: cmd, all_args: expected_args <= 0 };
 }
 
 export const Command: React.FC<CommandProps> = React.memo(
   (props: CommandProps) => {
-    const { cmd, special, title, descr, args, userarg } = props;
-    const { cmdargs, run } = useMemo(
+    const {
+      cmd,
+      special,
+      title,
+      descr,
+      userarg = false,
+      fileargs = [],
+      dirargs = [],
+    } = props;
+    const args = [...fileargs, ...dirargs];
+    const { cmdargs, all_args } = useMemo(
       () =>
         special != null
-          ? { cmdargs: "", run: false }
+          ? { cmdargs: "", all_args: false }
           : calc_cmd_args(cmd, args),
-      [cmd, args]
+      [cmd, fileargs, dirargs]
     );
 
     const actions: TerminalActions | undefined = React.useContext(
       TerminalActionsContext
     );
 
+    function run_command() {
+      actions?.run_command(cmdargs, { special, run: all_args, userarg });
+    }
+
+    function render_cmd_btn() {
+      return (
+        <Button
+          shape={"round"}
+          size={"small"}
+          title={cmdargs}
+          onClick={() => all_args && run_command()}
+        >
+          <span style={CMD_BTN_STYLE}>{title ?? cmdargs}</span>
+        </Button>
+      );
+    }
+
+    function render_cmd() {
+      if (!all_args) {
+        const msg = `This command expects ${fileargs.length} filename and ${dirargs.length} directoryname arguments, but not all of them are specified. Either select the file and/or directory arguments in the "General" panel above, or insert the command and edit it on the command line.`;
+        return (
+          <Popconfirm
+            title={<div style={{ maxWidth: "300px" }}>{msg}</div>}
+            onConfirm={run_command}
+            okText="Insert"
+            cancelText="Cancel"
+          >
+            {render_cmd_btn()}
+          </Popconfirm>
+        );
+      } else {
+        return render_cmd_btn();
+      }
+    }
+
     return (
       <RowLayout
-        left={
-          <Button
-            onClick={() =>
-              actions?.run_command(cmdargs, { special, run, userarg })
-            }
-            shape={"round"}
-            size={"small"}
-            title={cmdargs}
-          >
-            <span style={CMD_BTN_STYLE}>{title ?? cmdargs}</span>
-          </Button>
-        }
+        left={render_cmd()}
         right={<Typography.Text type="secondary">{descr}</Typography.Text>}
       />
     );

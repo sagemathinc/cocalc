@@ -22,6 +22,7 @@ import { ProjectTitle } from "../../projects/project-title";
 import { file_associations } from "../../file-associations";
 import { SystemProcess } from "./system-process";
 import { UserMap } from "smc-webapp/todo-types";
+import { describe_quota } from "smc-util/db-schema/site-licenses";
 
 import {
   ProjectEvent,
@@ -33,8 +34,10 @@ import {
   LibraryEvent,
   AssistantEvent,
   UpgradeEvent,
+  LicenseEvent,
   CollaboratorEvent,
   SystemEvent,
+  PublicPathEvent,
 } from "./types";
 
 const selected_item: React.CSSProperties = {
@@ -46,6 +49,7 @@ const file_action_icons = {
   deleted: "delete",
   downloaded: "download",
   moved: "move",
+  renamed: "pencil-alt",
   copied: "copy",
   share: "shared",
   uploaded: "upload",
@@ -82,17 +86,17 @@ function TookTime({
   return <span style={{ color: "#666" }}>(took {description})</span>;
 }
 
-export class LogEntry extends React.Component<Props> {
-  // Trade-off! Most log entries are never updated
-  shouldComponentUpdate(next: Props): boolean {
-    return (
-      next.id !== this.props.id ||
-      next.user_map !== this.props.user_map ||
-      next.cursor !== this.props.cursor
-    );
-  }
+function areEqual(prev: Props, next: Props): boolean {
+  // Optimization/Trade-off: Most log entries are never updated
+  return (
+    prev.id == next.id &&
+    prev.user_map == next.user_map &&
+    prev.cursor == next.cursor
+  );
+}
 
-  render_open_file(event: OpenFile): JSX.Element {
+export const LogEntry: React.FC<Props> = React.memo((props) => {
+  function render_open_file(event: OpenFile): JSX.Element {
     return (
       <span>
         opened
@@ -100,16 +104,35 @@ export class LogEntry extends React.Component<Props> {
         <PathLink
           path={event.filename}
           full={true}
-          style={this.props.cursor ? selected_item : undefined}
+          style={props.cursor ? selected_item : undefined}
           trunc={TRUNC}
-          project_id={this.props.project_id}
+          project_id={props.project_id}
         />{" "}
         <TookTime ms={event.time} />
       </span>
     );
   }
 
-  render_start_project(event: ProjectControlEvent): JSX.Element {
+  function render_public_path(event: PublicPathEvent): JSX.Element {
+    return (
+      <span>
+        set the public path
+        <Space />
+        <PathLink
+          path={event.path}
+          full={true}
+          style={props.cursor ? selected_item : undefined}
+          trunc={TRUNC}
+          project_id={props.project_id}
+        />{" "}
+        to be {event.disabled ? "disabled" : "enabled"}
+        {" and "}
+        {event.unlisted ? "unlisted" : "listed"}
+      </span>
+    );
+  }
+
+  function render_start_project(event: ProjectControlEvent): JSX.Element {
     return (
       <span>
         started this project <TookTime ms={event.time} />
@@ -117,19 +140,27 @@ export class LogEntry extends React.Component<Props> {
     );
   }
 
-  render_project_restart_requested(): JSX.Element {
+  function render_project_restart_requested(): JSX.Element {
     return <span>requested to restart this project</span>;
   }
 
-  render_project_stop_requested(): JSX.Element {
+  function render_project_stop_requested(): JSX.Element {
     return <span>requested to stop this project</span>;
   }
 
-  render_project_stopped(): JSX.Element {
+  function render_project_start_requested(): JSX.Element {
+    return <span>requested to start this project</span>;
+  }
+
+  function render_project_started(): JSX.Element {
+    return <span>started this project</span>;
+  }
+
+  function render_project_stopped(): JSX.Element {
     return <span>stopped this project</span>;
   }
 
-  render_miniterm_command(cmd: string): JSX.Element {
+  function render_miniterm_command(cmd: string): JSX.Element {
     if (cmd.length > 50) {
       return (
         <Tip title="Full command" tip={cmd} delayHide={10000} rootClose={true}>
@@ -141,25 +172,24 @@ export class LogEntry extends React.Component<Props> {
     }
   }
 
-  render_miniterm(event: MiniTermEvent): JSX.Element {
+  function render_miniterm(event: MiniTermEvent): JSX.Element {
     return (
       <span>
-        executed mini terminal command{" "}
-        {this.render_miniterm_command(event.input)}
+        executed mini terminal command {render_miniterm_command(event.input)}
       </span>
     );
   }
 
-  project_title(event: { project: string }): JSX.Element {
+  function project_title(event: { project: string }): JSX.Element {
     return (
       <ProjectTitle
-        style={this.props.cursor ? selected_item : undefined}
+        style={props.cursor ? selected_item : undefined}
         project_id={event.project}
       />
     );
   }
 
-  private file_link(
+  function file_link(
     path: string,
     link: boolean,
     i: number,
@@ -169,16 +199,16 @@ export class LogEntry extends React.Component<Props> {
       <PathLink
         path={path}
         full={true}
-        style={this.props.cursor ? selected_item : undefined}
+        style={props.cursor ? selected_item : undefined}
         key={i}
         trunc={TRUNC}
         link={link}
-        project_id={project_id != null ? project_id : this.props.project_id}
+        project_id={project_id != null ? project_id : props.project_id}
       />
     );
   }
 
-  multi_file_links(
+  function multi_file_links(
     event: { files: string | string[] },
     link?: boolean
   ): Rendered[] | Rendered {
@@ -193,85 +223,91 @@ export class LogEntry extends React.Component<Props> {
       event.files.length == 1 &&
       event.files[0][event.files[0].length - 1] == "/"
     ) {
-      return <>the directory {this.file_link(event.files[0], link, 0)}</>;
+      return <>the directory {file_link(event.files[0], link, 0)}</>;
     }
     const links: Rendered[] = [];
     for (let i = 0; i < event.files.length; i++) {
       const path = event.files[i];
-      links.push(this.file_link(path, link, i));
+      links.push(file_link(path, link, i));
     }
     return r_join(links);
   }
 
-  private to_link(event: { project?: string; dest?: string }) {
+  function to_link(event: { project?: string; dest?: string }) {
     if (event.project != undefined && event.dest != null) {
       return (
         <>
-          {this.file_link(event.dest, true, 0, event.project)} in the project{" "}
-          {this.project_title({ project: event.project })}
+          {file_link(event.dest, true, 0, event.project)} in the project{" "}
+          {project_title({ project: event.project })}
         </>
       );
     } else if (event.project != undefined) {
-      return this.project_title({ project: event.project });
+      return project_title({ project: event.project });
     } else if (event.dest != null) {
-      return this.file_link(event.dest, true, 0);
+      return file_link(event.dest, true, 0);
     } else {
       return "???";
     }
   }
 
-  render_file_action(e: FileActionEvent): JSX.Element {
+  function render_file_action(e: FileActionEvent): JSX.Element {
     switch (e.action) {
       case "deleted":
         return (
           <span>
-            deleted {this.multi_file_links(e, true)}{" "}
+            deleted {multi_file_links(e, true)}{" "}
             {e.count != null ? `(${e.count} total)` : ""}
           </span>
         );
       case "downloaded":
         return (
           <span>
-            downloaded {this.multi_file_links(e, true)}{" "}
+            downloaded {multi_file_links(e, true)}{" "}
             {e.count != null ? `(${e.count} total)` : ""}
           </span>
         );
       case "moved":
         return (
           <span>
-            moved {this.multi_file_links(e, false)}{" "}
-            {e.count != null ? `(${e.count} total)` : ""} to {this.to_link(e)}
+            moved {multi_file_links(e, false)}{" "}
+            {e.count != null ? `(${e.count} total)` : ""} to {to_link(e)}
+          </span>
+        );
+      case "renamed":
+        return (
+          <span>
+            renamed {file_link(e.src, false, 0)} to {file_link(e.dest, true, 1)}
           </span>
         );
       case "copied":
         return (
           <span>
-            copied {this.multi_file_links(e)}{" "}
-            {e.count != null ? `(${e.count} total)` : ""} to {this.to_link(e)}
+            copied {multi_file_links(e)}{" "}
+            {e.count != null ? `(${e.count} total)` : ""} to {to_link(e)}
           </span>
         );
       case "shared":
         return (
           <span>
-            shared {this.multi_file_links(e)}{" "}
+            shared {multi_file_links(e)}{" "}
             {e.count != null ? `(${e.count} total)` : ""}
           </span>
         );
       case "uploaded":
-        return <span>uploaded {this.file_link(e.file, true, 0)}</span>;
+        return <span>uploaded {file_link(e.file, true, 0)}</span>;
       case "created":
-        return <span>created {this.multi_file_links(e)}</span>;
+        return <span>created {multi_file_links(e)}</span>;
     }
   }
 
-  click_set(e: React.SyntheticEvent): void {
+  function click_set(e: React.SyntheticEvent): void {
     e.preventDefault();
     redux
-      .getActions({ project_id: this.props.project_id })
+      .getActions({ project_id: props.project_id })
       .set_active_tab("settings");
   }
 
-  render_set(obj: any): Rendered[] {
+  function render_set(obj: any): Rendered[] {
     let i = 0;
     const result: JSX.Element[] = [];
     for (const key in obj) {
@@ -285,8 +321,8 @@ export class LogEntry extends React.Component<Props> {
         <span key={i}>
           set{" "}
           <a
-            onClick={this.click_set.bind(this)}
-            style={this.props.cursor ? selected_item : undefined}
+            onClick={click_set}
+            style={props.cursor ? selected_item : undefined}
             href=""
           >
             {content}
@@ -297,31 +333,31 @@ export class LogEntry extends React.Component<Props> {
     return result;
   }
 
-  render_x11(event: X11Event): Rendered {
+  function render_x11(event: X11Event): Rendered {
     if (event.action !== "launch") {
       return;
     }
     return (
       <span>
         launched X11 app <code>{event.command}</code> in{" "}
-        {this.file_link(event.path, true, 0)}
+        {file_link(event.path, true, 0)}
       </span>
     );
   }
 
-  render_library(event: LibraryEvent): Rendered {
+  function render_library(event: LibraryEvent): Rendered {
     if (event.target == null) {
       return;
     }
     return (
       <span>
         copied &quot;{event.title}&quot; from the library to{" "}
-        {this.file_link(event.target, true, 0)}
+        {file_link(event.target, true, 0)}
       </span>
     );
   }
 
-  render_assistant(event: AssistantEvent): Rendered {
+  function render_assistant(event: AssistantEvent): Rendered {
     switch (event.action) {
       case "insert":
         const lang = misc.jupyter_language_to_name(event.lang);
@@ -335,16 +371,16 @@ export class LogEntry extends React.Component<Props> {
             <PathLink
               path={event.path}
               full={true}
-              style={this.props.cursor ? selected_item : undefined}
+              style={props.cursor ? selected_item : undefined}
               trunc={TRUNC}
-              project_id={this.props.project_id}
+              project_id={props.project_id}
             />
           </span>
         );
     }
   }
 
-  render_upgrade(event: UpgradeEvent): Rendered {
+  function render_upgrade(event: UpgradeEvent): Rendered {
     const { params } = require("smc-util/schema").PROJECT_UPGRADES;
     const v: JSX.Element[] = [];
     for (const param in event.upgrades) {
@@ -369,6 +405,7 @@ export class LogEntry extends React.Component<Props> {
             : undefined
           : "Upgrade";
       const n = misc.round1(val != null ? factor * val : 0);
+      if (n == 0) continue;
       v.push(
         <span key={param}>
           {display}: {n} {misc.plural(n, unit)}
@@ -380,8 +417,8 @@ export class LogEntry extends React.Component<Props> {
       <span>
         set{" "}
         <a
-          onClick={this.click_set.bind(this)}
-          style={this.props.cursor ? selected_item : undefined}
+          onClick={click_set}
+          style={props.cursor ? selected_item : undefined}
           href=""
         >
           upgrade contributions
@@ -391,66 +428,92 @@ export class LogEntry extends React.Component<Props> {
     );
   }
 
-  render_invite_user(event: CollaboratorEvent): JSX.Element {
+  function render_license(event: LicenseEvent): Rendered {
     return (
       <span>
-        invited user{" "}
-        <User
-          user_map={this.props.user_map}
-          account_id={event.invitee_account_id}
-        />
+        {event.action == "add" ? "added" : "removed"} license{" "}
+        {event.title ? `"${event.title}"` : ""} with key ending in "
+        {event.license_id?.slice(36 - 13, 36)}" for{" "}
+        {event.quota ? describe_quota(event.quota) : "upgrades"}
       </span>
     );
   }
 
-  render_invite_nonuser(event: CollaboratorEvent): JSX.Element {
+  function render_invite_user(event: CollaboratorEvent): JSX.Element {
+    return (
+      <span>
+        invited user{" "}
+        <User user_map={props.user_map} account_id={event.invitee_account_id} />
+      </span>
+    );
+  }
+
+  function render_invite_nonuser(event: CollaboratorEvent): JSX.Element {
     return <span>invited nonuser {event.invitee_email}</span>;
   }
 
-  render_remove_collaborator(event: CollaboratorEvent): JSX.Element {
+  function render_remove_collaborator(event: CollaboratorEvent): JSX.Element {
     return <span>removed collaborator {event.removed_name}</span>;
   }
 
-  render_desc(): Rendered | Rendered[] {
-    if (typeof this.props.event === "string") {
-      return <span>{this.props.event}</span>;
+  function render_desc(): Rendered | Rendered[] {
+    if (typeof props.event === "string") {
+      return <span>{props.event}</span>;
     }
 
-    switch (this.props.event.event) {
+    switch (props.event.event) {
       case "start_project":
-        return this.render_start_project(this.props.event);
+        return render_start_project(props.event);
       case "project_stop_requested":
-        return this.render_project_stop_requested();
-      case "project_restart_requested":
-        return this.render_project_restart_requested();
+        return render_project_stop_requested();
       case "project_stopped":
-        return this.render_project_stopped();
+        return render_project_stopped();
+      case "project_start_requested":
+        return render_project_start_requested();
+      case "project_started":
+        return render_project_started();
+      case "project_restart_requested":
+        return render_project_restart_requested();
       case "open": // open a file
-        return this.render_open_file(this.props.event);
+        return render_open_file(props.event);
       case "set":
-        return this.render_set(misc.copy_without(this.props.event, "event"));
+        return render_set(misc.copy_without(props.event, "event"));
       case "miniterm":
-        return this.render_miniterm(this.props.event);
+        return render_miniterm(props.event);
       case "termInSearch":
-        return this.render_miniterm(this.props.event);
+        return render_miniterm(props.event);
       case "file_action":
-        return this.render_file_action(this.props.event);
+        return render_file_action(props.event);
       case "upgrade":
-        return this.render_upgrade(this.props.event);
+        return render_upgrade(props.event);
+      case "license":
+        return render_license(props.event);
       case "invite_user":
-        return this.render_invite_user(this.props.event);
+        return render_invite_user(props.event);
       case "invite_nonuser":
-        return this.render_invite_nonuser(this.props.event);
+        return render_invite_nonuser(props.event);
       case "remove_collaborator":
-        return this.render_remove_collaborator(this.props.event);
+        return render_remove_collaborator(props.event);
       case "open_project": // not used anymore???
         return <span>opened this project</span>;
       case "library":
-        return this.render_library(this.props.event);
+        return render_library(props.event);
       case "assistant":
-        return this.render_assistant(this.props.event);
+        return render_assistant(props.event);
       case "x11":
-        return this.render_x11(this.props.event);
+        return render_x11(props.event);
+      case "delete_project":
+        return <span>deleted the project</span>;
+      case "undelete_project":
+        return <span>undeleted the project</span>;
+      case "hide_project":
+        return <span>hid the project from themself</span>;
+      case "unhide_project":
+        return <span>unhid the project from themself</span>;
+      case "public_path":
+        return render_public_path(props.event);
+      default:
+        return <span>Unknown event: {JSON.stringify(props.event)}</span>;
     }
   }
   // ignore unknown -- would just look mangled to user...
@@ -458,29 +521,24 @@ export class LogEntry extends React.Component<Props> {
   // FUTURE:
   //    return <span>{misc.to_json(@props.event)}</span>
 
-  render_user(): JSX.Element {
-    if (this.props.account_id != null) {
-      return (
-        <User
-          user_map={this.props.user_map}
-          account_id={this.props.account_id}
-        />
-      );
+  function render_user(): JSX.Element {
+    if (props.account_id != null) {
+      return <User user_map={props.user_map} account_id={props.account_id} />;
     } else {
-      return <SystemProcess event={this.props.event as SystemEvent} />;
+      return <SystemProcess event={props.event as SystemEvent} />;
     }
   }
 
-  icon(): string {
-    if (typeof this.props.event === "string" || this.props.event == undefined) {
+  function icon(): string {
+    if (typeof props.event === "string" || props.event == undefined) {
       return "dot-circle-o";
     }
 
-    switch (this.props.event.event) {
+    switch (props.event.event) {
       case "open_project":
         return "folder-open-o";
       case "open": // open a file
-        const ext = misc.filename_extension(this.props.event.filename);
+        const ext = misc.filename_extension(props.event.filename);
         const info = file_associations[ext];
         if (info == null) return "file-code-o";
         let x = info.icon;
@@ -496,7 +554,7 @@ export class LogEntry extends React.Component<Props> {
       case "set":
         return "wrench";
       case "file_action":
-        const icon = file_action_icons[this.props.event.action];
+        const icon = file_action_icons[props.event.action];
         return file_actions[icon] != null ? file_actions[icon].icon : undefined;
       case "upgrade":
         return "arrow-circle-up";
@@ -506,34 +564,30 @@ export class LogEntry extends React.Component<Props> {
         return "user";
     }
 
-    if (this.props.event.event.indexOf("project") !== -1) {
+    if (props.event.event.indexOf("project") !== -1) {
       return "edit";
     } else {
       return "dot-circle-o";
     }
   }
 
-  render(): JSX.Element {
-    const style = this.props.cursor
-      ? selected_item
-      : this.props.backgroundStyle;
-    return (
-      <Grid fluid={true} style={{ width: "100%" }}>
-        <Row
-          style={lodash.extend({ borderBottom: "1px solid lightgrey" }, style)}
-        >
-          <Col sm={1} style={{ textAlign: "center" }}>
-            <Icon name={this.icon()} style={style} />
-          </Col>
-          <Col sm={11}>
-            {this.render_user()}
-            <Space />
-            {this.render_desc()}
-            <Space />
-            <TimeAgo style={style} date={this.props.time} popover={true} />
-          </Col>
-        </Row>
-      </Grid>
-    );
-  }
-}
+  const style = props.cursor ? selected_item : props.backgroundStyle;
+  return (
+    <Grid fluid={true} style={{ width: "100%" }}>
+      <Row
+        style={lodash.extend({ borderBottom: "1px solid lightgrey" }, style)}
+      >
+        <Col sm={1} style={{ textAlign: "center" }}>
+          <Icon name={icon()} style={style} />
+        </Col>
+        <Col sm={11}>
+          {render_user()}
+          <Space />
+          {render_desc()}
+          <Space />
+          <TimeAgo style={style} date={props.time} popover={true} />
+        </Col>
+      </Row>
+    </Grid>
+  );
+}, areEqual);

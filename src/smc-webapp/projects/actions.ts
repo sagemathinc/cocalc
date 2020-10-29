@@ -25,6 +25,8 @@ import { once } from "smc-util/async-utils";
 import { COCALC_MINIMAL } from "../fullscreen";
 import { DEFAULT_COMPUTE_IMAGE } from "smc-util/compute-images";
 import { allow_project_to_run } from "../project/client-side-throttle";
+import { site_license_public_info } from "../site-licenses/util";
+import { Quota } from "smc-util/db-schema/site-licenses";
 
 // Define projects actions
 export class ProjectsActions extends Actions<ProjectsState> {
@@ -569,6 +571,10 @@ export class ProjectsActions extends Actions<ProjectsState> {
     merge: boolean = true
   ): Promise<void> {
     assert_uuid(project_id);
+    const account_id = this.redux.getStore("account").get_account_id();
+    if (!account_id) {
+      throw Error("user must be signed in");
+    }
     if (!merge) {
       // explicitly set every field not specified to 0
       upgrades = copy(upgrades);
@@ -578,14 +584,30 @@ export class ProjectsActions extends Actions<ProjectsState> {
         }
       }
     }
+    // Will anything change?
+    const cur =
+      store
+        .getIn(["project_map", project_id, "users", account_id, "upgrades"])
+        ?.toJS() ?? {};
+    let nothing_will_change: boolean = true;
+    for (let quota in DEFAULT_QUOTAS) {
+      if ((upgrades[quota] ?? 0) != (cur[quota] ?? 0)) {
+        nothing_will_change = false;
+        break;
+      }
+    }
+    if (nothing_will_change) {
+      return;
+    }
+
     await this.projects_table_set({
       project_id,
       users: {
-        [this.redux.getStore("account").get_account_id()]: { upgrades },
+        [account_id]: { upgrades },
       },
     });
     // log the change in the project log
-    await this.redux.getProjectActions(project_id).log({
+    await this.project_log(project_id, {
       event: "upgrade",
       upgrades,
     });
@@ -627,6 +649,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
     site_license[license_id] = {};
     await this.projects_table_set({ project_id, site_license }, "shallow");
+    this.log_site_license_change(project_id, license_id, "add");
   }
 
   // Removes a given (or all) site licenses from a project. If license_id is empty
@@ -666,6 +689,35 @@ export class ProjectsActions extends Actions<ProjectsState> {
       }
     }
     await this.projects_table_set({ project_id, site_license }, "shallow");
+    this.log_site_license_change(project_id, license_id, "remove");
+  }
+
+  private async log_site_license_change(
+    project_id: string,
+    license_id: string,
+    action: "add" | "remove"
+  ): Promise<void> {
+    if (
+      !is_valid_uuid_string(project_id) ||
+      !is_valid_uuid_string(license_id)
+    ) {
+      throw Error("invalid project_id or license_id");
+    }
+    const info = await site_license_public_info(license_id);
+    if (!info) return;
+    const quota: Quota | undefined = info.quota;
+    const title: string = info.title ?? "";
+    await this.project_log(project_id, {
+      event: "license",
+      action,
+      license_id,
+      quota,
+      title,
+    });
+  }
+
+  public async project_log(project_id: string, entry): Promise<void> {
+    await this.redux.getProjectActions(project_id).log(entry);
   }
 
   // Sets site licenses for project to exactly license_id.
@@ -689,12 +741,14 @@ export class ProjectsActions extends Actions<ProjectsState> {
       if (license_id.indexOf(id) == -1) {
         changed = true;
         site_license[id] = null;
+        this.log_site_license_change(project_id, license_id, "remove");
       }
     }
     for (const id of license_id.split(",")) {
       if (site_license[id] == null) {
         changed = true;
         site_license[id] = {};
+        this.log_site_license_change(project_id, license_id, "add");
       }
     }
     if (changed) {
@@ -743,6 +797,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
     const action_request = this.current_action_request(project_id);
     if (action_request == null || action_request != "start") {
       // need to make an action request:
+      this.project_log(project_id, {
+        event: "project_start_requested",
+      });
       await this.projects_table_set({
         project_id,
         action_request: { action: "start", time: webapp_client.server_time() },
@@ -755,6 +812,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
         return store.get_state(project_id) == "running";
       },
     });
+    this.project_log(project_id, {
+      event: "project_started",
+    });
   }
 
   public async stop_project(project_id: string): Promise<void> {
@@ -765,14 +825,15 @@ export class ProjectsActions extends Actions<ProjectsState> {
     const action_request = this.current_action_request(project_id);
     if (action_request == null || action_request != "stop") {
       // need to do it!
+      this.project_log(project_id, {
+        event: "project_stop_requested",
+      });
       await this.projects_table_set({
         project_id,
         action_request: { action: "stop", time: webapp_client.server_time() },
       });
-      await this.redux.getProjectActions(project_id).log({
-        event: "project_stop_requested",
-      });
     }
+
     // Wait until it is no longer running or stopping.  We don't
     // wait for "opened" because something or somebody else could
     // have started the project and we missed that, and don't
@@ -784,13 +845,16 @@ export class ProjectsActions extends Actions<ProjectsState> {
         return state != "running" && state != "stopping";
       },
     });
+    this.project_log(project_id, {
+      event: "project_stopped",
+    });
   }
 
   public async restart_project(project_id: string): Promise<void> {
     if (!allow_project_to_run(project_id)) {
       return;
     }
-    this.redux.getProjectActions(project_id).log({
+    this.project_log(project_id, {
       event: "project_restart_requested",
     });
     const state = store.get_state(project_id);
@@ -815,6 +879,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
         },
       },
     });
+    await this.project_log(project_id, {
+      event: hide ? "hide_project" : "unhide_project",
+    });
   }
 
   // Toggle whether or not project is hidden project
@@ -830,6 +897,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       project_id,
       deleted: true,
     });
+    await this.project_log(project_id, { event: "delete_project" });
   }
 
   // Toggle whether or not project is deleted.
@@ -842,6 +910,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
     await this.projects_table_set({
       project_id,
       deleted: !is_deleted,
+    });
+    await this.project_log(project_id, {
+      event: is_deleted ? "undelete_project" : "delete_project",
     });
   }
 

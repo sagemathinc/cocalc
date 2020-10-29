@@ -105,7 +105,6 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
               persist_id={name + "course-description"}
               attach_to={name}
               rows={6}
-              type="textarea"
               default_value={settings.get("description")}
               on_save={(desc) => actions.configuration.set_description(desc)}
             />
@@ -228,7 +227,6 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
               persist_id={name + "email-invite-body"}
               attach_to={name}
               rows={6}
-              type="textarea"
               default_value={store.get_email_invite()}
               on_save={(body) => actions.configuration.set_email_invite(body)}
               save_disabled={email_body_error != null}

@@ -52,15 +52,6 @@ feature     = require('../feature')
 
 exports.MarkdownInput = require('../widget-markdown-input/main').MarkdownInput
 
-# base unit in pixel for margin/size/padding
-exports.UNIT = UNIT = 15
-
-# bootstrap blue background
-exports.BS_BLUE_BGRND = theme.COLORS.BS_BLUE_BGRND
-
-# This is the applications color scheme
-exports.COLORS = theme.COLORS
-
 # required for hub-landing -- in all other contexts import directly from customize
 exports.render_static_footer = ->
     {Footer} = require('smc-webapp/customize')

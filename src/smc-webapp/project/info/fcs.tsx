@@ -28,6 +28,7 @@ import {
   State,
   ProjectInfoCmds,
   Process,
+  Processes,
   Signal,
 } from "../../../smc-project/project-info/types";
 import { AlertType } from "../../../smc-project/project-status/types";
@@ -438,20 +439,36 @@ interface SignalButtonsProps {
   set_selected: Function;
   loading: boolean;
   disabled: boolean;
+  processes: Processes;
 }
 
 export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
   (props: SignalButtonsProps) => {
-    const { chan, selected, set_selected, loading, disabled } = props;
+    const {
+      chan,
+      selected: selected_user,
+      set_selected,
+      loading,
+      disabled,
+      processes,
+    } = props;
+
+    // we don't let users send signals to processes classified as "project" or "ssh daemon"
+    const dont_kill = ["project", "sshd"];
+    const selected = selected_user.filter((pid) => {
+      const type = processes[pid].cocalc?.type;
+      if (type == null) return true;
+      return !dont_kill.includes(type);
+    });
 
     function render_signal_icon(signal: number) {
       const style: CSS = { marginRight: "5px" };
       switch (signal) {
         case 2: // Interrupt (ctrl-c like)
           return <Icon name="hand-paper" style={style} />;
-        case 15:
+        case 15: // terminate
           return <Icon name="times-circle" style={style} />;
-        case 9:
+        case 9: // kill ☠
           return <Icon unicode={0x2620} style={style} />;
         case 19: // STOP
           return <Icon name="pause-circle" style={style} />;
@@ -468,9 +485,9 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
         case Signal.Terminate:
           return "Terminating a process tells it to properly close everything and exit – it might ignore the orders, though!";
         case Signal.Kill:
-          return "Killing a process can't be ignored by it and will cause it to exit right away. Try terminating it first!";
+          return "Killing a process can't be ignored and will cause the process to exit right away. Try terminating it first!";
         case Signal.Pause:
-          return "'Pause' means to hold all operations. The process won't use any CPU and only keep  its memory. Use 'Resume' to let it run again.";
+          return "'Pause' means to hold all operations. The process won't use any CPU but will continue to use memory. Use 'Resume' to let it run again.";
         case Signal.Resume:
           return "This will continue running a possibly paused process.";
       }
@@ -494,7 +511,7 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
       const pn = plural(n, "process", "processes");
       const pids = humanizeList(selected);
       const extra = signal_extra(signal);
-      const poptitle = `Are you sure to send signal ${name} (${signal}) to ${pn} ${pids}? ${extra}`.trim();
+      const poptitle = `Are you sure you want to send signal ${name} (${signal}) to ${pn} ${pids}? ${extra}`.trim();
       const icon = render_signal_icon(signal);
       const dangerous = [
         Signal.Kill,
@@ -525,16 +542,20 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
       );
     }
 
-    return (
-      <Form.Item label="Send signal:">
-        <AntdSpace>
-          {render_signal(Signal.Interrupt)}
-          {render_signal(Signal.Terminate)}
-          {render_signal(Signal.Kill)}
-          {render_signal(Signal.Pause)}
-          {render_signal(Signal.Resume)}
-        </AntdSpace>
-      </Form.Item>
-    );
+    if (selected.length == 0) {
+      return null;
+    } else {
+      return (
+        <Form.Item label="Send signal:">
+          <AntdSpace>
+            {render_signal(Signal.Interrupt)}
+            {render_signal(Signal.Terminate)}
+            {render_signal(Signal.Kill)}
+            {render_signal(Signal.Pause)}
+            {render_signal(Signal.Resume)}
+          </AntdSpace>
+        </Form.Item>
+      );
+    }
   }
 );

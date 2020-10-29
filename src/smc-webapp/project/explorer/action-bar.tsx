@@ -5,7 +5,8 @@
 
 import * as React from "react";
 import * as immutable from "immutable";
-import { COLORS, HiddenSM, Icon, Space } from "../../r_misc";
+import { HiddenSM, Icon, Space } from "../../r_misc";
+import { COLORS } from "smc-util/theme";
 import { ComputeImages } from "smc-webapp/custom-software/init";
 import { ProjectActions } from "smc-webapp/project_store";
 

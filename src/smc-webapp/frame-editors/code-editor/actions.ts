@@ -32,7 +32,6 @@ import { SyncString } from "smc-util/sync/editor/string";
 import { aux_file } from "../frame-tree/util";
 import { callback_opts, once } from "smc-util/async-utils";
 import {
-  endswith,
   filename_extension,
   history_path,
   len,
@@ -862,10 +861,6 @@ export class Actions<
   // frame still exists that was most recently active before this frame.
   close_frame(id: string): void {
     if (this._tree_is_single_leaf()) {
-      if (endswith(this.path, ".term")) {
-        // TODO: sort of ugly special case of terminal -- no-op
-        return;
-      }
       // closing the only node, so reset to default
       this.reset_local_view_state();
       return;

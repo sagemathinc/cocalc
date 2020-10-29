@@ -11,14 +11,8 @@ import {
   useState,
   useStore,
 } from "../../app-framework";
-import {
-  A,
-  Icon,
-  COLORS,
-  Loading,
-  VisibleMDLG,
-  VisibleXSSM,
-} from "../../r_misc";
+import { A, Icon, Loading, VisibleMDLG, VisibleXSSM } from "../../r_misc";
+import { COLORS } from "smc-util/theme";
 import { ALERT_STYLE } from "../warnings/common";
 import { alert_message } from "../../alerts";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";

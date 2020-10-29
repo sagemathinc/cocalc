@@ -13,16 +13,16 @@ import {
 } from "immutable";
 import * as misc from "smc-util/misc";
 import { Icon, Loading } from "../r_misc";
-const {
+import {
   Button,
   Col,
   Row,
   ButtonGroup,
   Checkbox,
   Alert,
-} = require("react-bootstrap"); // TODO: import types
+} from "../antd-bootstrap";
 import { Kernel } from "./util";
-const { COLORS } = require("smc-util/theme");
+import { COLORS } from "smc-util/theme";
 import { JupyterActions } from "./browser-actions";
 
 const row_style: React.CSSProperties = {
@@ -109,7 +109,7 @@ export class KernelSelector extends Component<
 
   render_kernel_button(
     name: string,
-    size?: string,
+    size?: "small" | "large" | "xsmall",
     show_icon: boolean = true
   ): Rendered {
     const lang = this.kernel_attr(name, "language");

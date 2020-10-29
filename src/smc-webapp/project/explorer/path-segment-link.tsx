@@ -4,7 +4,8 @@
  */
 
 import * as React from "react";
-import { COLORS, Tip } from "../../r_misc";
+import { Tip } from "../../r_misc";
+import { COLORS } from "smc-util/theme";
 
 const { Breadcrumb } = require("react-bootstrap");
 

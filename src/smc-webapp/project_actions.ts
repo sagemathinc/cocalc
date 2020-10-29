@@ -1539,6 +1539,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         )}`,
       });
     }
+    this.log({ event: "file_action", action: "created", files: [opts.dest] });
     webapp_client.exec({
       project_id: this.project_id,
       command: "zip",
@@ -1999,10 +2000,32 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     try {
       const api = await this.api();
       await api.rename_file(opts.src, opts.dest);
+      this.log({
+        event: "file_action",
+        action: "renamed",
+        src: opts.src,
+        dest: opts.dest + ((await this.isdir(opts.dest)) ? "/" : ""),
+      });
     } catch (err) {
       error = err;
     } finally {
       this.set_activity({ id, stop: "", error });
+    }
+  }
+
+  // return true if exists and is a directory
+  private async isdir(path: string): Promise<boolean> {
+    if (path == "") return true; // easy special case
+    try {
+      await webapp_client.project_client.exec({
+        project_id: this.project_id,
+        command: "test",
+        args: ["-d", path],
+        err_on_exit: true,
+      });
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -2028,6 +2051,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     try {
       const api = await this.api();
       await api.move_files(opts.src, opts.dest);
+      this.log({
+        event: "file_action",
+        action: "moved",
+        files: opts.src,
+        dest: opts.dest + "/" /* target is assumed to be a directory */,
+      });
     } catch (err) {
       error = err;
     } finally {
@@ -2320,7 +2349,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   /*
    * Actions for PUBLIC PATHS
    */
-  set_public_path(
+  public async set_public_path(
     path,
     opts: {
       description?: string;
@@ -2345,8 +2374,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const table = this.redux.getProjectTable(project_id, "public_paths");
     let obj: undefined | immutable.Map<string, any> = table._table.get(id);
 
+    let log: boolean = false;
     const now = misc.server_time();
     if (obj == null) {
+      log = true;
       obj = immutable.fromJS({
         project_id,
         path,
@@ -2365,10 +2396,28 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     for (const k in opts) {
       if (opts[k] != null) {
+        if (!log) {
+          if (k == "disabled" && opts[k] != obj.get(k)) {
+            // changing disabled state
+            log = true;
+          } else if (k == "unlisted" && opts[k] != obj.get(k)) {
+            // changing unlisted state
+            log = true;
+          }
+        }
         obj = obj.set(k, opts[k]);
       }
     }
     table.set(obj);
+
+    if (log) {
+      this.log({
+        event: "public_path",
+        path: path + ((await this.isdir(path)) ? "/" : ""),
+        disabled: !!obj.get("disabled"),
+        unlisted: !!obj.get("unlisted"),
+      });
+    }
   }
 
   /*

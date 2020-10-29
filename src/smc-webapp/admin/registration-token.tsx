@@ -27,7 +27,8 @@ import {
 } from "antd";
 import { Alert } from "../antd-bootstrap";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
-import { ErrorDisplay, Saving, COLORS, Icon } from "../r_misc";
+import { ErrorDisplay, Saving, Icon } from "../r_misc";
+import { COLORS } from "smc-util/theme";
 import { PassportStrategy } from "../account/passport-types";
 import { query } from "../frame-editors/generic/client";
 //import { deep_copy } from "smc-util/misc2";

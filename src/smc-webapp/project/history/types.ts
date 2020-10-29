@@ -5,6 +5,7 @@
 
 import { Map } from "immutable";
 import { TypedMap } from "../../app-framework";
+import { Quota } from "smc-util/db-schema/site-licenses";
 
 export type EventRecord = {
   id: string;
@@ -28,13 +29,19 @@ export type ProjectEvent =
   | FileActionEvent
   | LibraryEvent
   | UpgradeEvent
+  | LicenseEvent
   | OpenFile
   | MiniTermEvent
   | CollaboratorEvent
   | X11Event
   | SetTitleEvent
   | SetDescriptionEvent
+  | PublicPathEvent
   | { event: "open_project" }
+  | { event: "delete_project" }
+  | { event: "undelete_project" }
+  | { event: "hide_project" }
+  | { event: "unhide_project" }
   | SystemEvent;
 
 export type SetTitleEvent = {
@@ -64,6 +71,14 @@ export type CollaboratorEvent = {
 export type UpgradeEvent = {
   event: "upgrade";
   upgrades: any;
+};
+
+export type LicenseEvent = {
+  event: "license";
+  action: "add" | "remove";
+  license_id: string;
+  title?: string;
+  quota?: Quota;
 };
 
 export type LibraryEvent = {
@@ -99,25 +114,52 @@ export type ProjectControlEvent = {
   event:
     | "start_project"
     | "project_stop_requested"
+    | "project_start_requested"
     | "project_restart_requested"
-    | "project_stopped";
+    | "project_stopped"
+    | "project_started";
   time?: number;
 };
 
-export type FileActionEvent = (
-  | { action: "deleted" }
-  | { action: "downloaded"; files?: string[] }
-  | { action: "moved" }
-  | { action: "copied" }
-  | { action: "shared" }
-  | { action: "uploaded"; file: string }
-  | { action: "created" }
-) & {
-  event: "file_action";
-  files: string[];
-  count?: number;
-  project?: string;
-  dest?: string;
+export type FileActionEvent =
+  | { event: "file_action"; action: "renamed"; src: string; dest: string }
+  | ((
+      | { action: "deleted" }
+      | { action: "downloaded" }
+      | { action: "moved" }
+      | { action: "copied" }
+      | { action: "shared" }
+      | { action: "uploaded"; file: string }
+      | { action: "created" }
+    ) & {
+      event: "file_action";
+      files: string[];
+      count?: number;
+      project?: string;
+      dest?: string;
+    });
+
+export type PublicPathEvent = {
+  event: "public_path";
+  path: string;
+  unlisted?: boolean;
+  disabled?: boolean;
 };
 
 export type SystemEvent = { event: ""; by: string };
+
+export function to_search_string(event: ProjectEvent): string {
+  let s: string = "";
+  for (let k in event) {
+    let val = event[k];
+    if (k === "type" || k == "time" || k == "license_id" || k == "quota")
+      continue;
+    if (val == "file_action") continue;
+    if (typeof val == "number") continue;
+    if (typeof val != "string") {
+      val = JSON.stringify(val); // e.g., array of paths
+    }
+    s += " " + val;
+  }
+  return s.toLowerCase();
+}
