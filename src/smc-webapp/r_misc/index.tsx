@@ -42,9 +42,9 @@ export { LoginLink } from "./login-link";
 export { ProjectState } from "./project-state";
 
 export { UNIT, build_date, smc_git_rev, smc_version } from "./constants";
+export { MarkdownInput } from "../widget-markdown-input/main";
 
 export const {
-  MarkdownInput,
   ImmutablePureRenderMixin,
   Octicon,
   Footer,
