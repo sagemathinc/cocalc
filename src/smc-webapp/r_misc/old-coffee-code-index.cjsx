@@ -269,55 +269,6 @@ exports.Markdown = rclass
             />
 
 
-activity_style =
-    float           : 'right'
-    backgroundColor : 'white'
-    position        : 'absolute'
-    right           : '25px'
-    top             : '65px'
-    border          : '1px solid #ccc'
-    padding         : '10px'
-    zIndex          : '10'
-    borderRadius    : '5px'
-    boxShadow       : '3px 3px 3px #ccc'
-
-activity_item_style =
-    whiteSpace   : 'nowrap'
-    overflow     : 'hidden'
-    textOverflow : 'ellipsis'
-
-exports.ActivityDisplay = rclass
-    displayName : 'ActivityDisplay'
-
-    propTypes :
-        activity : rtypes.array.isRequired   # array of strings  -- only changing this causes re-render
-        trunc    : rtypes.number             # truncate activity messages at this many characters (default: 80)
-        on_clear : rtypes.func               # if given, called when a clear button is clicked
-        style    : rtypes.object             # additional styles to be merged onto activity_style
-
-    shouldComponentUpdate: (next) ->
-        return misc.is_different_array(@props.activity, next.activity)
-
-    render_items: ->
-        n = @props.trunc ? 80
-        trunc = (s) -> misc.trunc(s, n)
-        for desc, i in @props.activity
-            <div key={i} style={activity_item_style} >
-                <Icon style={padding:'2px 1px 1px 2px'} name='cc-icon-cocalc-ring' spin /> {trunc(desc)}
-            </div>
-
-    render: ->
-        if misc.len(@props.activity) > 0
-            if @props.style
-                adjusted_style = Object.assign({}, activity_style, @props.style)
-
-            <div key='activity' style={adjusted_style ? activity_style}>
-                {<CloseX on_close={@props.on_clear} /> if @props.on_clear?}
-                {@render_items() if @props.activity.length > 0}
-            </div>
-        else
-            <span />
-
 # A warning to put on pages when the project is deleted
 # TODO: use this in more places
 exports.DeletedProjectWarning = ->

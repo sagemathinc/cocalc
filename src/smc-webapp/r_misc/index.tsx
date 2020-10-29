@@ -44,6 +44,7 @@ export { ProjectState } from "./project-state";
 export { UNIT, build_date, smc_git_rev, smc_version } from "./constants";
 export { MarkdownInput } from "../widget-markdown-input/main";
 export { SearchInput } from "./search-input";
+export { ActivityDisplay } from "./activity-display";
 
 export const {
   ImmutablePureRenderMixin,
@@ -52,7 +53,6 @@ export const {
   render_static_footer,
   HTML,
   Markdown,
-  ActivityDisplay,
   DeletedProjectWarning,
   course_warning,
   CourseProjectExtraHelp,
