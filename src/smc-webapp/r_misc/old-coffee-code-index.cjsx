@@ -9,7 +9,6 @@ async = require('async')
 {Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, Overlay, OverlayTrigger, Modal, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('../customize')
 {UpgradeRestartWarning} = require('../upgrade-restart-warning')
-copy_to_clipboard = require('copy-to-clipboard')
 {reportException} = require('../../webapp-lib/webapp-error-reporter')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
@@ -652,64 +651,6 @@ exports.UpgradeAdjustor = rclass
                     </Button>
                 </ButtonToolbar>
             </Alert>
-
-
-# Takes a value and makes it highlight on click
-# Has a copy to clipboard button by default on the end
-# See prop descriptions for more details
-exports.CopyToClipBoard = rclass
-    displayName: 'CopyToClipBoard'
-    propTypes:
-        value         : rtypes.string
-        button_before : rtypes.element # Optional button to place before the copy text
-        hide_after    : rtypes.bool    # Hide the default after button
-        style         : rtypes.object
-
-    getInitialState: ->
-        show_tooltip : false
-
-    on_button_click: (e) ->
-        @setState(show_tooltip : true)
-        setTimeout(@close_tool_tip, 2000)
-        copy_to_clipboard(@props.value)
-
-    close_tool_tip: ->
-        return if not @state.show_tooltip
-        @setState(show_tooltip : false)
-
-    render_button_after: ->
-        <InputGroup.Button>
-            <Overlay
-                show      = {@state.show_tooltip}
-                target    = {() => ReactDOM.findDOMNode(@refs.clipboard_button)}
-                placement = 'bottom'
-            >
-                <Tooltip id='copied'>Copied!</Tooltip>
-            </Overlay>
-            <Button
-                ref     = "clipboard_button"
-                onClick = {@on_button_click}
-            >
-                <Icon name='clipboard'/>
-            </Button>
-        </InputGroup.Button>
-
-    render: ->
-        <FormGroup style={@props.style}>
-            <InputGroup>
-                {<InputGroup.Button>
-                    {@props.button_before}
-                </InputGroup.Button> if @props.button_before?}
-                <FormControl
-                    type     = "text"
-                    readOnly = {true}
-                    style    = {cursor:"default"}
-                    onClick  = {(e)=>e.target.select()}
-                    value    = {@props.value}
-                />
-                {@render_button_after() unless @props.hide_after}
-            </InputGroup>
-        </FormGroup>
 
 
 # Error boundry. Pass components in as children to create one.

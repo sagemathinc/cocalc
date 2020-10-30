@@ -45,6 +45,7 @@ export { UNIT, build_date, smc_git_rev, smc_version } from "./constants";
 export { MarkdownInput } from "../widget-markdown-input/main";
 export { SearchInput } from "./search-input";
 export { ActivityDisplay } from "./activity-display";
+export { CopyToClipBoard } from "./copy-to-clipboard";
 
 export const {
   ImmutablePureRenderMixin,
@@ -56,6 +57,5 @@ export const {
   UPGRADE_ERROR_STYLE,
   NoUpgrades,
   UpgradeAdjustor,
-  CopyToClipBoard,
   ErrorBoundary,
 } = require("./old-coffee-code-index");
