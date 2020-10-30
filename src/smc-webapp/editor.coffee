@@ -584,9 +584,8 @@ class CodeMirrorEditor extends FileEditor
     init_file_actions: () =>
         if not @element?
             return
-        actions = redux.getProjectActions(@project_id)
         dom_node = @element.find('.smc-editor-file-info-dropdown')[0]
-        require('./r_misc').render_file_info_dropdown(@filename, actions, dom_node, @opts.public_access)
+        require('./editors/file-info-dropdown').render_file_info_dropdown(@filename, @project_id, dom_node, @opts.public_access)
 
     init_draggable_splits: () =>
         @_layout1_split_pos = @local_storage("layout1_split_pos")

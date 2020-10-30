@@ -52,7 +52,6 @@ export const {
   render_static_footer,
   HTML,
   Markdown,
-  EditorFileInfoDropdown,
   render_file_info_dropdown,
   UPGRADE_ERROR_STYLE,
   NoUpgrades,
