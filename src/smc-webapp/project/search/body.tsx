@@ -103,7 +103,6 @@ const ProjectSearchInput: React.FC<{ project_id: string }> = ({
   return (
     <SearchInput
       autoFocus={true}
-      type="search"
       value={user_input}
       placeholder="Enter search (supports regular expressions!)"
       on_change={(value) => actions?.setState({ user_input: value })}

@@ -14,9 +14,9 @@ import {
   TimeAgo,
   ErrorDisplay,
   Loading,
-  CourseProjectExtraHelp,
   SettingBox,
 } from "../../r_misc";
+import { CourseProjectExtraHelp } from "../warnings/course-project";
 import { default_ext } from "./file-listing/utils";
 import { BillingPage } from "../../billing/billing-page";
 import { PayCourseFee } from "../../billing/pay-course-fee";

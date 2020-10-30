@@ -5,7 +5,8 @@
 
 import { Modal } from "antd";
 import { NavItem, Nav } from "react-bootstrap";
-import { DeletedProjectWarning, Loading } from "../../r_misc";
+import { Loading } from "../../r_misc";
+import { DeletedProjectWarning } from "../warnings/deleted";
 import { Content } from "./content";
 import { tab_to_path } from "smc-util/misc";
 import {

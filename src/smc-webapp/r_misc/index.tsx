@@ -43,23 +43,15 @@ export { ProjectState } from "./project-state";
 
 export { UNIT, build_date, smc_git_rev, smc_version } from "./constants";
 export { MarkdownInput } from "../widget-markdown-input/main";
+export { SearchInput } from "./search-input";
+export { ActivityDisplay } from "./activity-display";
 
 export const {
   ImmutablePureRenderMixin,
   Octicon,
-  Footer,
   render_static_footer,
-  SearchInput,
   HTML,
   Markdown,
-  ActivityDisplay,
-  DeletedProjectWarning,
-  course_warning,
-  CourseProjectExtraHelp,
-  CourseProjectWarning,
-  NonMemberProjectWarning,
-  NoNetworkProjectWarning,
-  EditorFileInfoDropdown,
   render_file_info_dropdown,
   UPGRADE_ERROR_STYLE,
   NoUpgrades,

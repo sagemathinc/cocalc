@@ -15,6 +15,7 @@ interface Props {
   style?: React.CSSProperties;
   disabled?: boolean;
   button?: boolean;
+  hide_down?: boolean;
   maxHeight?: string;
 }
 
@@ -33,7 +34,7 @@ export class DropdownMenu extends Component<Props> {
           disabled={this.props.disabled}
           id={this.props.id}
         >
-          {this.props.title} <DownOutlined />
+          {this.props.title} {!this.props.hide_down && <DownOutlined />}
         </Button>
       );
     } else {
