@@ -25,6 +25,10 @@ let apply_function_to_map_values,
   underscore;
 let _ = (underscore = require("underscore"));
 
+
+exports.round2 = round2 = require("./misc2").round2;
+exports.parse_number_input = require("./misc2").parse_number_input;
+
 exports.RUNNING_IN_NODE =
   (typeof process !== "undefined" && process !== null
     ? process.title
@@ -2129,11 +2133,6 @@ exports.YEAR = new Date().getFullYear();
 // Round the given number to 1 decimal place
 exports.round1 = round1 = (num) => Math.round(num * 10) / 10;
 
-// Round given number to 2 decimal places
-exports.round2 = round2 = (num) =>
-  // padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
-  Math.round((num + 0.00001) * 100) / 100;
-
 const seconds2hms_days = function (d, h, m, longform) {
   let x;
   h = h % 24;
@@ -2219,40 +2218,6 @@ exports.seconds2hms = seconds2hms = function (secs, longform, show_seconds) {
       }
     }
   }
-};
-
-// returns the number parsed from the input text, or undefined if invalid
-// rounds to the nearest 0.01 if round_number is true (default : true)
-// allows negative numbers if allow_negative is true (default : false)
-exports.parse_number_input = function (input, round_number, allow_negative) {
-  let val;
-  if (round_number == null) {
-    round_number = true;
-  }
-  if (allow_negative == null) {
-    allow_negative = false;
-  }
-  input = (input + "").split("/");
-  if (input.length !== 1 && input.length !== 2) {
-    return undefined;
-  }
-  if (input.length === 2) {
-    val = parseFloat(input[0]) / parseFloat(input[1]);
-  }
-  if (input.length === 1) {
-    if (isNaN(input) || `${input}`.trim() === "") {
-      // Shockingly, whitespace returns false for isNaN!
-      return undefined;
-    }
-    val = parseFloat(input);
-  }
-  if (round_number) {
-    val = round2(val);
-  }
-  if (isNaN(val) || val === Infinity || (val < 0 && !allow_negative)) {
-    return undefined;
-  }
-  return val;
 };
 
 exports.range = function (n, m) {

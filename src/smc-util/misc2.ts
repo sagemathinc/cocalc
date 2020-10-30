@@ -752,3 +752,42 @@ export function assertDefined<T>(val: T): asserts val is NonNullable<T> {
     throw new Error(`Expected 'val' to be defined, but received ${val}`);
   }
 }
+
+// Round given number to 2 decimal places
+export function round2(num): number {
+  // padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
+  return Math.round((num + 0.00001) * 100) / 100;
+}
+
+// returns the number parsed from the input text, or undefined if invalid
+// rounds to the nearest 0.01 if round_number is true (default : true)
+// allows negative numbers if allow_negative is true (default : false)
+export function parse_number_input(
+  input: any,
+  round_number: boolean = true,
+  allow_negative: boolean = false
+): number | undefined {
+  let val;
+  const v = `${input}`.split("/"); // fraction?
+  if (v.length !== 1 && v.length !== 2) {
+    return undefined;
+  }
+  if (v.length === 2) {
+    // a fraction
+    val = parseFloat(v[0]) / parseFloat(v[1]);
+  }
+  if (v.length === 1) {
+    val = parseFloat(v[0]);
+    if (isNaN(val) || v[0].trim() === "") {
+      // Shockingly, whitespace returns false for isNaN!
+      return undefined;
+    }
+  }
+  if (round_number) {
+    val = round2(val);
+  }
+  if (isNaN(val) || val === Infinity || (val < 0 && !allow_negative)) {
+    return undefined;
+  }
+  return val;
+}
