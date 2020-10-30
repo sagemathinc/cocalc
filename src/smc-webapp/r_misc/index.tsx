@@ -46,6 +46,7 @@ export { MarkdownInput } from "../widget-markdown-input/main";
 export { SearchInput } from "./search-input";
 export { ActivityDisplay } from "./activity-display";
 export { CopyToClipBoard } from "./copy-to-clipboard";
+export { NoUpgrades, UPGRADE_ERROR_STYLE } from "./no-upgrades";
 
 export const {
   ImmutablePureRenderMixin,
@@ -54,8 +55,6 @@ export const {
   HTML,
   Markdown,
   render_file_info_dropdown,
-  UPGRADE_ERROR_STYLE,
-  NoUpgrades,
   UpgradeAdjustor,
   ErrorBoundary,
 } = require("./old-coffee-code-index");
