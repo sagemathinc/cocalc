@@ -9,7 +9,6 @@ async = require('async')
 {Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, Overlay, OverlayTrigger, Modal, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('../customize')
 {UpgradeRestartWarning} = require('../upgrade-restart-warning')
-copy_to_clipboard = require('copy-to-clipboard')
 {reportException} = require('../../webapp-lib/webapp-error-reporter')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
@@ -269,39 +268,12 @@ exports.Markdown = rclass
             />
 
 
-
-exports.UPGRADE_ERROR_STYLE = UPGRADE_ERROR_STYLE =
-    color        : 'white'
-    background   : 'red'
-    padding      : '1ex'
-    borderRadius : '3px'
-    fontWeight   : 'bold'
-    marginBottom : '1em'
-
-{visit_billing_page} = require("../billing/billing-page-link")
-exports.NoUpgrades = NoUpgrades = rclass
-    displayName : 'NoUpgrades'
-
-    propTypes :
-        cancel : rtypes.func.isRequired
-
-    billing: (e) ->
-        e.preventDefault()
-        visit_billing_page()
-
-    render: ->
-        <Alert bsStyle='info'>
-            <h3><Icon name='exclamation-triangle' /> Your account has no upgrades available</h3>
-            <p>You can purchase upgrades starting at $14 / month.</p>
-            <p><a href='' onClick={@billing}>Visit the billing page...</a></p>
-            <Button onClick={@props.cancel}>Cancel</Button>
-        </Alert>
-
 ###
  Takes current upgrades data and quota parameters and provides an interface for the user to update these parameters.
  submit_upgrade_quotas will receive a javascript object in the same format as quota_params
  cancel_upgrading takes no arguments and is called when the cancel button is hit.
 ###
+{NoUpgrades} = require('./no-upgrades')
 exports.UpgradeAdjustor = rclass
     displayName : 'UpgradeAdjustor'
 
@@ -652,64 +624,6 @@ exports.UpgradeAdjustor = rclass
                     </Button>
                 </ButtonToolbar>
             </Alert>
-
-
-# Takes a value and makes it highlight on click
-# Has a copy to clipboard button by default on the end
-# See prop descriptions for more details
-exports.CopyToClipBoard = rclass
-    displayName: 'CopyToClipBoard'
-    propTypes:
-        value         : rtypes.string
-        button_before : rtypes.element # Optional button to place before the copy text
-        hide_after    : rtypes.bool    # Hide the default after button
-        style         : rtypes.object
-
-    getInitialState: ->
-        show_tooltip : false
-
-    on_button_click: (e) ->
-        @setState(show_tooltip : true)
-        setTimeout(@close_tool_tip, 2000)
-        copy_to_clipboard(@props.value)
-
-    close_tool_tip: ->
-        return if not @state.show_tooltip
-        @setState(show_tooltip : false)
-
-    render_button_after: ->
-        <InputGroup.Button>
-            <Overlay
-                show      = {@state.show_tooltip}
-                target    = {() => ReactDOM.findDOMNode(@refs.clipboard_button)}
-                placement = 'bottom'
-            >
-                <Tooltip id='copied'>Copied!</Tooltip>
-            </Overlay>
-            <Button
-                ref     = "clipboard_button"
-                onClick = {@on_button_click}
-            >
-                <Icon name='clipboard'/>
-            </Button>
-        </InputGroup.Button>
-
-    render: ->
-        <FormGroup style={@props.style}>
-            <InputGroup>
-                {<InputGroup.Button>
-                    {@props.button_before}
-                </InputGroup.Button> if @props.button_before?}
-                <FormControl
-                    type     = "text"
-                    readOnly = {true}
-                    style    = {cursor:"default"}
-                    onClick  = {(e)=>e.target.select()}
-                    value    = {@props.value}
-                />
-                {@render_button_after() unless @props.hide_after}
-            </InputGroup>
-        </FormGroup>
 
 
 # Error boundry. Pass components in as children to create one.

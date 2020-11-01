@@ -7,7 +7,7 @@
 import { CSS, React, ReactDOM, useActions } from "../app-framework";
 import { capitalize, filename_extension } from "smc-util/misc";
 import { file_actions } from "../project_store";
-import { DropdownMenu, MenuItem, Icon, Space } from "../r_misc";
+import { DropdownMenu, HiddenXS, MenuItem, Icon, Space } from "../r_misc";
 
 interface Props {
   filename: string; // expects the full path name
@@ -22,6 +22,10 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
     const actions = useActions({ project_id });
 
     function handle_click(name) {
+      if (actions == null) {
+        console.warn("file click -- actions not available");
+        return;
+      }
       if (name === "new") {
         let new_ext = filename_extension(filename);
         if (new_ext == "") {
@@ -29,13 +33,13 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
           new_ext = undefined;
         }
         // Special calse -- not an action on this one file
-        actions?.set_active_tab("new", { new_ext });
+        actions.set_active_tab("new", { new_ext });
         return;
       }
       for (const action in file_actions) {
         const v = file_actions[action];
         if (v?.name == name) {
-          actions?.show_file_action_panel({
+          actions.show_file_action_panel({
             path: filename,
             action,
           });
@@ -46,7 +50,7 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
 
     function render_menu_item(name: string, icon: string): JSX.Element {
       return (
-        <MenuItem onSelect={() => handle_click(name)} key={name}>
+        <MenuItem key={name} eventKey={name}>
           <Icon name={icon} fixedWidth /> {`${capitalize(name)}...`}
         </MenuItem>
       );
@@ -81,10 +85,14 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
     function render_title() {
       return (
         <span>
-          <span className={"hidden-xs"}>
-            <Icon name={"file"} /> {label ?? ""}
-            <Space />
-          </span>
+          {" "}
+          <Icon name={"file"} />
+          {label && (
+            <HiddenXS>
+              <Space />
+              {label}
+            </HiddenXS>
+          )}
         </span>
       );
     }
@@ -92,10 +100,10 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
     return (
       <DropdownMenu
         button={true}
-        hide_down={!label}
-        style={style}
+        style={{ ...{ height: "100%", marginRight: "3px" }, ...style }}
         id="file_info_button"
         title={render_title()}
+        onClick={handle_click}
       >
         {render_menu_items()}
       </DropdownMenu>
@@ -105,6 +113,7 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
     prev.filename == next.filename && prev.is_public == next.is_public
 );
 
+// This is for sage worksheets...
 export function render_file_info_dropdown(
   filename: string,
   project_id: string,

@@ -89,7 +89,7 @@ export class License extends Component<Props> {
       const backgroundColor = BACKGROUNDS[i % 2];
       i += 1;
       let x = this.render_value(field, val);
-      if (field == "id") {
+      if (field == "id" && typeof x == "string") {
         x = (
           <CopyToClipBoard
             value={x}
