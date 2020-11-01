@@ -51,9 +51,6 @@ export { UpgradeAdjustor } from "./upgrade-adjustor";
 export const {
   ImmutablePureRenderMixin,
   Octicon,
-  render_static_footer,
   HTML,
   Markdown,
-  render_file_info_dropdown,
-  ErrorBoundary,
 } = require("./old-coffee-code-index");
