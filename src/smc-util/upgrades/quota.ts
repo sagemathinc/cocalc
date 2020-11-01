@@ -433,7 +433,7 @@ export function max_quota(quota: Quota, license_quota: SiteLicenseQuota): void {
       // boolean
       quota[field] = !!license_quota[field] || !!quota[field];
     } else {
-      quota[field] = Math.max(license_quota[field], quota[field] ?? 0);
+      quota[field] = Math.max(license_quota[field] ?? 0, quota[field] ?? 0);
     }
   }
 }

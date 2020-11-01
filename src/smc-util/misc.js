@@ -25,9 +25,11 @@ let apply_function_to_map_values,
   underscore;
 let _ = (underscore = require("underscore"));
 
-
 exports.round2 = round2 = require("./misc2").round2;
 exports.parse_number_input = require("./misc2").parse_number_input;
+exports.map_sum = require("./misc2").map_sum;
+exports.map_diff = require("./misc2").map_diff;
+exports.coerce_codomain_to_numbers = require('./misc2').coerce_codomain_to_numbers;
 
 exports.RUNNING_IN_NODE =
   (typeof process !== "undefined" && process !== null
@@ -2228,56 +2230,6 @@ exports.range = function (n, m) {
   }
 };
 
-// arithmetic of maps with codomain numbers; missing values default to 0
-exports.map_sum = function (a, b) {
-  let v;
-  if (a == null) {
-    return b;
-  }
-  if (b == null) {
-    return a;
-  }
-  const c = {};
-  for (var k in a) {
-    v = a[k];
-    c[k] = v + (b[k] != null ? b[k] : 0);
-  }
-  for (k in b) {
-    v = b[k];
-    if (c[k] == null) {
-      c[k] = v;
-    }
-  }
-  return c;
-};
-
-exports.map_diff = function (a, b) {
-  let c, k, v;
-  if (b == null) {
-    return a;
-  }
-  if (a == null) {
-    c = {};
-    for (k in b) {
-      v = b[k];
-      c[k] = -v;
-    }
-    return c;
-  }
-  c = {};
-  for (k in a) {
-    v = a[k];
-    c[k] = v - (b[k] != null ? b[k] : 0);
-  }
-  for (k in b) {
-    v = b[k];
-    if (c[k] == null) {
-      c[k] = -v;
-    }
-  }
-  return c;
-};
-
 // compare the values in a map a by the values of b
 // or just by b if b is a number, using func(a, b)
 function map_comp_fn(func, fallback) {
@@ -2321,20 +2273,6 @@ exports.apply_function_to_map_values = apply_function_to_map_values = function (
   }
   return map;
 };
-
-// modify map by coercing each element of codomain to a number, with false->0 and true->1
-exports.coerce_codomain_to_numbers = (map) =>
-  apply_function_to_map_values(map, function (x) {
-    if (typeof x === "boolean") {
-      if (x) {
-        return 1;
-      } else {
-        return 0;
-      }
-    } else {
-      return parseFloat(x);
-    }
-  });
 
 // returns true if the given map is undefined or empty, or all the values are falsy
 exports.is_zero_map = function (map) {

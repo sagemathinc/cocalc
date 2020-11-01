@@ -767,6 +767,23 @@ export function parse_number_input(
   round_number: boolean = true,
   allow_negative: boolean = false
 ): number | undefined {
+  if (typeof input == "boolean") {
+    return input ? 1 : 0;
+  }
+
+  if (typeof input == "number") {
+    // easy to parse
+    if (!isFinite(input)) {
+      return;
+    }
+    if (!allow_negative && input < 0) {
+      return;
+    }
+    return input;
+  }
+
+  if (input == null || !input) return 0;
+
   let val;
   const v = `${input}`.split("/"); // fraction?
   if (v.length !== 1 && v.length !== 2) {
@@ -790,4 +807,82 @@ export function parse_number_input(
     return undefined;
   }
   return val;
+}
+
+// Modify map by coercing each element of codomain to a number, with false->0 and true->1
+// Non finite valuescoerce to 0.
+export function coerce_codomain_to_numbers(map: { [k: string]: any }): void {
+  for (const k in map) {
+    const x = map[k];
+    if (typeof x === "boolean") {
+      map[k] = x ? 1 : 0;
+    } else {
+      try {
+        const t = parseFloat(x);
+        if (!isFinite(t)) {
+          map[k] = 0;
+          continue;
+        }
+      } catch (_) {
+        map[k] = 0;
+        continue;
+      }
+    }
+  }
+}
+
+// arithmetic of maps with codomain numbers; missing values
+// default to 0.  Despite the typing being that codomains are
+// all numbers, we coerce null values to 0 as well.
+export function map_sum(
+  a: { [k: string]: number },
+  b: { [k: string]: number }
+): { [k: string]: number } {
+  if (a == null) {
+    return b;
+  }
+  if (b == null) {
+    return a;
+  }
+  const c: { [k: string]: number } = {};
+  for (const k in a) {
+    c[k] = (a[k] ?? 0) + (b[k] ?? 0);
+  }
+  for (const k in b) {
+    if (c[k] == null) {
+      // anything in iteration above will be a number; also,
+      // we know a[k] is null, since it was definintely not
+      // iterated through above.
+      c[k] = b[k] ?? 0;
+    }
+  }
+  return c;
+}
+
+export function map_diff(
+  a: { [k: string]: number },
+  b: { [k: string]: number }
+): { [k: string]: number } {
+  if (b == null) {
+    return a;
+  }
+  const c: { [k: string]: number } = {};
+  if (a == null) {
+    for (const k in b) {
+      c[k] = -(b[k] ?? 0);
+    }
+    return c;
+  }
+  for (const k in a) {
+    c[k] = (a[k] ?? 0) - (b[k] ?? 0);
+  }
+  for (const k in b) {
+    if (c[k] == null) {
+      // anything in iteration above will be a number; also,
+      // we know a[k] is null, since it was definintely not
+      // iterated through above.
+      c[k] = -(b[k] ?? 0);
+    }
+  }
+  return c;
 }

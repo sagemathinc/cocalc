@@ -70,15 +70,10 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
   });
 
   function set_state(name, val): void {
-    console.log("set_state", { name, val, prev: upgrade_state[name] });
-    console.log("before", JSON.stringify(upgrade_state));
     upgrade_state[name] = val; // make the change
     set_upgrade_state(upgrade_state); // no-op?
-    console.log("after", JSON.stringify(upgrade_state));
     force_update(); // triggers a UI update
   }
-
-  console.log("render: upgrade_state = ", JSON.stringify(upgrade_state));
 
   function get_quota_info() {
     // This function is quite confusing and tricky.
@@ -106,11 +101,11 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
 
     // NOTE : all units are 'internal' instead of display, e.g. seconds instead of hours
     // how much upgrade you have used between all projects
-    const user_upgrades = props.upgrades_you_applied_to_all_projects;
+    const user_upgrades = props.upgrades_you_applied_to_all_projects ?? {};
     // how much upgrade you currently use on this one project
-    const user_current = props.upgrades_you_applied_to_this_project;
+    const user_current = props.upgrades_you_applied_to_this_project ?? {};
     // all currently applied upgrades to this project
-    const total_upgrades = props.total_project_quotas;
+    const total_upgrades = props.total_project_quotas ?? {};
     // how much unused upgrade you have remaining
     const user_remaining = map_diff(props.upgrades_you_can_use, user_upgrades);
     // the overall limits are capped by the maximum per project
@@ -125,8 +120,8 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
     return {
       limits: user_limits,
       remaining: user_remaining,
-      current: user_current ?? {},
-      totals: total_upgrades ?? {},
+      current: user_current,
+      totals: total_upgrades,
       proj_remainder,
     };
   }
@@ -193,11 +188,11 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
   function render_upgrade_row(
     name,
     data,
-    remaining = 0,
-    current = 0,
-    limit = 0,
-    total = 0,
-    proj_remainder = 0
+    remaining,
+    current,
+    limit,
+    total,
+    proj_remainder
   ) {
     let label, reason, reasons, show_remaining, val;
     if (data == null) {
@@ -431,7 +426,6 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
       totals,
       proj_remainder,
     } = get_quota_info();
-
     const buttons = (
       <ButtonToolbar style={{ marginTop: "10px" }}>
         <Button
@@ -447,6 +441,7 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
         <Button onClick={props.cancel_upgrading}>Cancel</Button>
       </ButtonToolbar>
     );
+
     return (
       <Alert bsStyle="warning" style={props.style}>
         {!props.omit_header && (
@@ -489,8 +484,8 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
         </Row>
         <hr />
 
-        {PROJECT_UPGRADES.field_order.map((n) =>
-          render_upgrade_row(
+        {PROJECT_UPGRADES.field_order.map((n) => {
+          return render_upgrade_row(
             n,
             props.quota_params[n],
             remaining[n],
@@ -498,8 +493,8 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
             limits[n],
             totals[n],
             proj_remainder[n]
-          )
-        )}
+          );
+        })}
         <UpgradeRestartWarning style={{ marginTop: "15px" }} />
         {props.children}
         {buttons}
