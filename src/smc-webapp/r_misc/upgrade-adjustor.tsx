@@ -188,11 +188,11 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
   function render_upgrade_row(
     name,
     data,
-    remaining,
-    current,
-    limit,
-    total,
-    proj_remainder
+    remaining: number,
+    current: number,
+    limit: number,
+    total: number,
+    proj_remainder: number
   ) {
     let label, reason, reasons, show_remaining, val;
     if (data == null) {
@@ -484,15 +484,15 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
         </Row>
         <hr />
 
-        {PROJECT_UPGRADES.field_order.map((n) => {
+        {PROJECT_UPGRADES.field_order.map((name) => {
           return render_upgrade_row(
-            n,
-            props.quota_params[n],
-            remaining[n],
-            current[n],
-            limits[n],
-            totals[n],
-            proj_remainder[n]
+            name,
+            props.quota_params[name] ?? 0,
+            remaining[name] ?? 0,
+            current[name] ?? 0,
+            limits[name] ?? 0,
+            totals[name] ?? 0,
+            proj_remainder[name] ?? 0
           );
         })}
         <UpgradeRestartWarning style={{ marginTop: "15px" }} />
