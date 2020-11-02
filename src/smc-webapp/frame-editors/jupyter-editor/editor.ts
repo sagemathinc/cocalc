@@ -32,6 +32,7 @@ import { ClassicalNotebook } from "./classical-notebook";
 import { Slideshow } from "./slideshow-revealjs/slideshow";
 import { TableOfContents } from "./table-of-contents/contents";
 import { Introspect } from "./introspect/introspect";
+import { JupyterSnippets } from "./snippets";
 
 export const EDITOR_SPEC = {
   jupyter_cell_notebook: {
@@ -52,9 +53,14 @@ export const EDITOR_SPEC = {
       "redo",
       "format",
       "show_table_of_contents",
+      "guide",
       /* ,
       "shell" -- disable for now since not fully implemented*/
     ]),
+    guide_info: {
+      title: "Snippets",
+      descr: "Open a panel containing code snippets.",
+    },
     customize_buttons: {
       shell: {
         text: "Console",
@@ -62,6 +68,13 @@ export const EDITOR_SPEC = {
           "Open command line Jupyter console session attached to the same kernel as notebook",
       },
     },
+  },
+  commands_guide: {
+    short: "Snippets",
+    name: "Snippets",
+    icon: "book",
+    component: JupyterSnippets,
+    buttons: set(["decrease_font_size", "increase_font_size"]),
   },
   jupyter_slideshow_revealjs: {
     short: "Slideshow",
