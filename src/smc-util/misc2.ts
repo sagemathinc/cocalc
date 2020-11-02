@@ -809,9 +809,13 @@ export function parse_number_input(
   return val;
 }
 
-// Modify map by coercing each element of codomain to a number, with false->0 and true->1
+// MUTATE map by coercing each element of codomain to a number,
+// with false->0 and true->1
 // Non finite valuescoerce to 0.
-export function coerce_codomain_to_numbers(map: { [k: string]: any }): void {
+// Also, returns map.
+export function coerce_codomain_to_numbers(map: {
+  [k: string]: any;
+}): { [k: string]: number } {
   for (const k in map) {
     const x = map[k];
     if (typeof x === "boolean") {
@@ -829,20 +833,21 @@ export function coerce_codomain_to_numbers(map: { [k: string]: any }): void {
       }
     }
   }
+  return map;
 }
 
 // arithmetic of maps with codomain numbers; missing values
 // default to 0.  Despite the typing being that codomains are
 // all numbers, we coerce null values to 0 as well.
 export function map_sum(
-  a: { [k: string]: number },
-  b: { [k: string]: number }
+  a?: { [k: string]: number },
+  b?: { [k: string]: number }
 ): { [k: string]: number } {
   if (a == null) {
-    return b;
+    return b ?? {};
   }
   if (b == null) {
-    return a;
+    return a ?? {};
   }
   const c: { [k: string]: number } = {};
   for (const k in a) {
@@ -860,11 +865,11 @@ export function map_sum(
 }
 
 export function map_diff(
-  a: { [k: string]: number },
-  b: { [k: string]: number }
+  a?: { [k: string]: number },
+  b?: { [k: string]: number }
 ): { [k: string]: number } {
   if (b == null) {
-    return a;
+    return a ?? {};
   }
   const c: { [k: string]: number } = {};
   if (a == null) {
