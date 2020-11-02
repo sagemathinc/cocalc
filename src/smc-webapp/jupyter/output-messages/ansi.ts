@@ -3,7 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as Ansi from "ansi-to-react";
+let Ansi = require("ansi-to-react");
+if (Ansi.default) {
+  // Total hack to workaround some weird issue with Typescript, modules
+  // and the share server.  Just doing `import Ansi from "ansi-to-react";`
+  // works on the frontend but BREAK badly on the share server.
+  // I don't care about the typing so much since the ansi module isn't
+  // in typescript anyways.
+  Ansi = Ansi.default;
+}
 export { Ansi };
 
 export function is_ansi(s: any): boolean {
