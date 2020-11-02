@@ -3,18 +3,31 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+// lazy loading the json file via webpack – using @types/webpack-env doesn't work
+declare var require: {
+  <T>(path: string): T;
+  (paths: string[], callback: (...modules: any[]) => void): void;
+  ensure: (
+    paths: string[],
+    callback: (require: <T>(path: string) => T) => void
+  ) => void;
+};
+
 import {
   React,
   // CSS,
   useEffect,
   useState,
+  useStore,
   // useActions,
   // useTypedRedux,
+  useRedux,
   // TypedMap,
 } from "../../../app-framework";
 import { JupyterEditorActions } from "../actions";
+import { JupyterStore } from "../../../jupyter/store";
 import { NotebookFrameStore } from "../cell-notebook/store";
-
+import { Loading } from "../../../r_misc";
 import {
   Button,
   //   Collapse,
@@ -39,6 +52,30 @@ interface Props {
   local_view_state: Map<string, any>;
 }
 
+type Snippets = {
+  [key: string]: {
+    [key: string]: {
+      entries: [
+        title: string,
+        snippet: [code: string | string[], descr?: string]
+      ];
+      sortweight?: number;
+    };
+  };
+};
+
+function useData() {
+  const [data, set_data] = useState<{ [lang: string]: Snippets | undefined }>();
+  if (data == null) {
+    // this file is supposed to be in webapp-lib/examples/examples.json
+    //     follow "./install.py examples" to see how the makefile is called during build
+    require.ensure([], function () {
+      set_data(require("webapp-lib/examples/examples.json"));
+    });
+  }
+  return data;
+}
+
 export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   const {
     font_size,
@@ -58,6 +95,23 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
 
   // the most recent notebook frame id, i.e. that's where we'll insert cells
   const [jupyter_id, set_jupyter_id] = useState<string | undefined>();
+  const jupyter_store = useStore<JupyterStore>({ name: jupyter_actions.name });
+  const kernel = useRedux(jupyter_actions.name, "kernel");
+  const kernel_info = useRedux(jupyter_actions.name, "kernel_info");
+  const [lang, set_lang] = useState<string | undefined>();
+  const [snippets, set_snippets] = useState<Snippets | undefined>();
+
+  const data = useData();
+
+  useEffect(() => {
+    const next_lang = jupyter_store.get_kernel_language();
+    if (next_lang != lang) set_lang(next_lang);
+  }, [kernel, kernel_info]);
+
+  useEffect(() => {
+    if (data == null || lang == null) return;
+    set_snippets(data[lang]);
+  }, [data, lang]);
 
   useEffect(() => {
     const jid = frame_actions._get_most_recent_active_frame_id_of_type(
@@ -90,10 +144,18 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     return <Button onClick={() => insert_snippet()}>insert snippet</Button>;
   }
 
+  function render_snippets(): JSX.Element {
+    if (lang == null) return <div>Kernel not loaded.</div>;
+    if (snippets == null) return <Loading />;
+
+    return <pre>{Object.keys(snippets).map((k) => `${k}\n`)}</pre>;
+  }
+
   return (
     <>
       <div>Jupyter Snippets</div>
       {render_selector()}
+      {render_snippets()}
     </>
   );
 });
