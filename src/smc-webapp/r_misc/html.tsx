@@ -14,7 +14,7 @@ import {
 } from "../app-framework";
 import { is_share_server } from "./share-server";
 
-interface Props {
+export interface Props {
   value?: string;
   style?: CSS;
   auto_render_math?: boolean; // optional -- used to detect and render math
@@ -67,8 +67,8 @@ interface Props {
   // selector and never use katex.
   mathjax_selector?: string;
 
-  onClick?: () => void;
-  onDoubleClick?: () => void;
+  onClick?: (event?:any) => void;
+  onDoubleClick?: (event?:any) => void;
 }
 
 /*

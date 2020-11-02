@@ -1,7 +1,11 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React } from "../app-framework";
 import { List, Map } from "immutable";
 import { smiley, trunc_middle } from "smc-util/misc";
-//import { sanitize_html_safe } from "../misc_page";
 const { sanitize_html_safe } = require("../misc_page");
 import { Markdown, TimeAgo } from "../r_misc";
 import { ListGroupItem, Well } from "react-bootstrap";
@@ -56,7 +60,7 @@ export const History: React.FC<{
     v.push(
       <Well key={index} bsSize="small" style={{ marginBottom: "0px" }}>
         <div style={{ marginBottom: "-10px", wordWrap: "break-word" }}>
-          <Markdown value={value} checkboxes={true} />
+          <Markdown value={value} />
         </div>
         <div className="small">
           {value.trim() == "" ? "Message deleted " : "Last edit "}

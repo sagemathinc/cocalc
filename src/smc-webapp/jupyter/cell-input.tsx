@@ -28,7 +28,7 @@ import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-noteb
 function href_transform(
   project_id: string | undefined,
   cell: Map<string, any>
-): Function {
+): (string) => string {
   return (href: string) => {
     if (!startswith(href, "attachment:")) {
       return href;

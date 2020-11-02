@@ -48,7 +48,4 @@ export { CopyToClipBoard } from "./copy-to-clipboard";
 export { NoUpgrades, UPGRADE_ERROR_STYLE } from "./no-upgrades";
 export { UpgradeAdjustor } from "./upgrade-adjustor";
 export { HTML } from "./html";
-
-export const {
-  Markdown,
-} = require("./old-coffee-code-index");
+export { Markdown } from "./markdown";
