@@ -5,6 +5,12 @@
 
 /*
 Conversion from Markdown *to* HTML, trying not to horribly mangle math.
+
+TODO: right now [ ] in pre/code gets turned into a unicode checkbox, which is
+perhaps annoying... e.g., this is wrong:
+```
+X[ ]
+```
 */
 
 import * as MarkdownIt from "markdown-it";

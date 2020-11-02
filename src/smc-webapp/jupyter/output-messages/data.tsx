@@ -71,7 +71,6 @@ export class Data extends Component<DataProps> {
           project_id={this.props.project_id}
           file_path={this.props.directory}
           safeHTML={!this.props.trust}
-          checkboxes={true}
         />
       </div>
     );

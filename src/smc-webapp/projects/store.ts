@@ -6,15 +6,9 @@
 import { List, Map, Set } from "immutable";
 import { redux, Store } from "../app-framework";
 import { webapp_client } from "../webapp-client";
-import {
-  copy,
-  coerce_codomain_to_numbers,
-  cmp,
-  keys,
-  len,
-  map_sum,
-  months_before,
-} from "smc-util/misc";
+import { copy, cmp, keys, len, months_before } from "smc-util/misc";
+import { coerce_codomain_to_numbers, map_sum } from "smc-util/misc2";
+import { parse_number_input } from "smc-util/misc2";
 import { CUSTOM_IMG_PREFIX } from "../custom-software/util";
 import { max_quota, site_license_quota } from "smc-util/upgrades/quota";
 
@@ -286,7 +280,7 @@ export class ProjectsStore extends Store<ProjectsState> {
         .getIn(["users", webapp_client.account_id, "upgrades"])
         ?.toJS();
       if (upgrades == null) return;
-      total = map_sum(total, upgrades);
+      total = map_sum(total as any, upgrades);
     });
     return total;
   }
@@ -409,10 +403,11 @@ export class ProjectsStore extends Store<ProjectsState> {
       // contributions from old-format site license contribution
       for (let license_id in site_license) {
         const info = site_license[license_id];
-        const object = info != null ? info : {};
+        const object = info ?? {};
         for (let prop in object) {
           const val = object[prop];
-          upgrades[prop] = (upgrades[prop] ?? 0) + parseInt(val);
+          upgrades[prop] =
+            (upgrades[prop] ?? 0) + (parse_number_input(val) ?? 0);
         }
       }
     }
@@ -444,10 +439,11 @@ export class ProjectsStore extends Store<ProjectsState> {
       project_id
     );
     const quota = map_sum(
-      map_sum(base_values, upgrades),
-      site_license_upgrades
+      map_sum(base_values, upgrades as any),
+      site_license_upgrades as any
     );
     this.new_format_license_quota(project_id, quota);
+
 
     return quota;
   }
@@ -492,7 +488,7 @@ export class ProjectsStore extends Store<ProjectsState> {
       delete license_quota["cpu_limit"];
       license_quota.memory = license_quota.memory_limit;
       delete license_quota["memory_limit"];
-      license_quota.cpu_shares = 1024 * license_quota.cpu_request;
+      license_quota.cpu_shares = 1024 * (license_quota.cpu_request ?? 0);
       delete license_quota["cpu_request"];
       max_quota(quota, license_quota);
     }
