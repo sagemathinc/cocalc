@@ -12,3 +12,7 @@ export let SHARE_SERVER: boolean = false;
 export function set_share_server(value: boolean): void {
   SHARE_SERVER = value;
 }
+
+export function is_share_server(): boolean {
+  return SHARE_SERVER;
+}
