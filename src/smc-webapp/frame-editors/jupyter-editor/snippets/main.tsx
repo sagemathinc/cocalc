@@ -15,10 +15,11 @@ declare var require: {
 
 import {
   React,
-  // CSS,
+  CSS,
   useEffect,
   useState,
   useStore,
+  useMemo,
   // useActions,
   // useTypedRedux,
   useRedux,
@@ -27,16 +28,19 @@ import {
 import { JupyterEditorActions } from "../actions";
 import { JupyterStore } from "../../../jupyter/store";
 import { NotebookFrameStore } from "../cell-notebook/store";
-import { Loading } from "../../../r_misc";
+import { Loading, Markdown } from "../../../r_misc";
+// import { COLORS } from "smc-util/theme";
+import { sortBy } from "lodash";
 import {
   Button,
-  //   Collapse,
+  Collapse,
   //   Descriptions,
   //   Divider,
   //   Switch,
   //   Typography,
   //   Table,
 } from "antd";
+import { CaretRightOutlined } from "@ant-design/icons";
 // import {
 //   FolderOpenOutlined,
 //   InfoCircleOutlined,
@@ -52,16 +56,17 @@ interface Props {
   local_view_state: Map<string, any>;
 }
 
+type SnippetEntry = {
+  entries: [title: string, snippet: [code: string | string[], descr?: string]];
+  sortweight?: number;
+};
+
+type SnippetEntries = {
+  [key: string]: SnippetEntry;
+};
+
 type Snippets = {
-  [key: string]: {
-    [key: string]: {
-      entries: [
-        title: string,
-        snippet: [code: string | string[], descr?: string]
-      ];
-      sortweight?: number;
-    };
-  };
+  [key: string]: SnippetEntries;
 };
 
 function useData() {
@@ -78,20 +83,12 @@ function useData() {
 
 export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   const {
-    font_size,
+    // font_size,
     actions: frame_actions,
-    project_id,
+    // project_id,
     local_view_state,
   } = props;
   const jupyter_actions = frame_actions.jupyter_actions;
-
-  console.log(
-    "props:",
-    font_size,
-    jupyter_actions,
-    project_id,
-    local_view_state
-  );
 
   // the most recent notebook frame id, i.e. that's where we'll insert cells
   const [jupyter_id, set_jupyter_id] = useState<string | undefined>();
@@ -103,6 +100,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
 
   const data = useData();
 
+  // get_kernel_language() depends on kernel and kernel_info
   useEffect(() => {
     const next_lang = jupyter_store.get_kernel_language();
     if (next_lang != lang) set_lang(next_lang);
@@ -121,7 +119,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     if (jupyter_id != jid) set_jupyter_id(jid);
   }, [local_view_state]);
 
-  function insert_snippet(): void {
+  function insert_snippet({ code, descr }): void {
     if (jupyter_id == null) return;
     const frame_store = new NotebookFrameStore(frame_actions, jupyter_id);
     const notebook_frame_actions = frame_actions.get_frame_actions(jupyter_id);
@@ -131,31 +129,96 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     let id = sel_cells[sel_cells.length - 1];
     // markdown cell
     id = jupyter_actions.insert_cell_adjacent(id, +1);
-    jupyter_actions.set_cell_input(id, "test input " + new Date().getTime());
+    jupyter_actions.set_cell_input(id, descr);
     jupyter_actions.set_cell_type(id, "markdown");
-    // code cell
-    id = jupyter_actions.insert_cell_adjacent(id, +1);
-    jupyter_actions.set_cell_input(id, "from time import time\ntime()");
-    notebook_frame_actions.set_cur_id(id);
-    jupyter_actions.run_code_cell(id);
+    // code cells
+    for (const c of code) {
+      id = jupyter_actions.insert_cell_adjacent(id, +1);
+      jupyter_actions.set_cell_input(id, c);
+      notebook_frame_actions.set_cur_id(id);
+      jupyter_actions.run_code_cell(id);
+    }
   }
 
-  function render_selector(): JSX.Element {
-    return <Button onClick={() => insert_snippet()}>insert snippet</Button>;
+  function render_insert({ code, descr }) {
+    return (
+      <Button
+        size={"small"}
+        type={"primary"}
+        onClick={(e) => {
+          insert_snippet({ code, descr });
+          e.stopPropagation();
+        }}
+      >
+        insert
+      </Button>
+    );
+  }
+
+  function render_snippet([title, snippet]) {
+    const code = typeof snippet[0] === "string" ? [snippet[0]] : snippet[0];
+    const descr = snippet[1];
+    const extra = render_insert({ code, descr });
+    return (
+      <Collapse.Panel
+        header={title}
+        key={title}
+        className="cc-jupyter-snippet"
+        extra={extra}
+      >
+        <div className="cc-jupyter-snippet-content">
+          <Markdown value={descr} />
+          {code.map((v, idx) => (
+            <pre key={idx}>{v}</pre>
+          ))}
+        </div>
+      </Collapse.Panel>
+    );
+  }
+
+  function render_level2([title, data]): JSX.Element {
+    return (
+      <Collapse.Panel key={title} header={title}>
+        <Collapse
+          bordered={false}
+          defaultActiveKey={["1"]}
+          expandIcon={({ isActive }) => (
+            <CaretRightOutlined rotate={isActive ? 90 : 0} />
+          )}
+          className="cc-jupyter-snippet-collapse"
+        >
+          {data.entries.map(render_snippet)}
+        </Collapse>
+      </Collapse.Panel>
+    );
+  }
+
+  function render_level1([title, entries]: [
+    string,
+    SnippetEntries
+  ]): JSX.Element {
+    const lvl2 = sortBy(Object.entries(entries), ([_, v]) => v.sortweight);
+    return (
+      <Collapse.Panel
+        key={title}
+        header={title}
+        className="cc-jupyter-snippets"
+      >
+        <Collapse ghost destroyInactivePanel>
+          {lvl2.map(render_level2)}
+        </Collapse>
+      </Collapse.Panel>
+    );
   }
 
   function render_snippets(): JSX.Element {
     if (lang == null) return <div>Kernel not loaded.</div>;
     if (snippets == null) return <Loading />;
-
-    return <pre>{Object.keys(snippets).map((k) => `${k}\n`)}</pre>;
+    const style: CSS = { overflowY: "auto" };
+    const sfun = (k) => [-["Introduction", "Tutorial"].indexOf(k), k];
+    const lvl1 = sortBy(Object.entries(snippets), ([k, _]) => sfun(k));
+    return <Collapse style={style}>{lvl1.map(render_level1)}</Collapse>;
   }
 
-  return (
-    <>
-      <div>Jupyter Snippets</div>
-      {render_selector()}
-      {render_snippets()}
-    </>
-  );
+  return useMemo(() => render_snippets(), [snippets]);
 });
