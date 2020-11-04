@@ -30,15 +30,14 @@ import { JupyterStore } from "../../../jupyter/store";
 import { NotebookFrameStore } from "../cell-notebook/store";
 import { Loading, Markdown } from "../../../r_misc";
 // import { COLORS } from "smc-util/theme";
-import { sortBy } from "lodash";
+import { sortBy, pick } from "lodash";
 import {
   Button,
   Collapse,
-  //   Descriptions,
-  //   Divider,
-  //   Switch,
-  //   Typography,
-  //   Table,
+  Checkbox,
+  Typography,
+  Input,
+  Space as AntdSpace,
 } from "antd";
 import { CaretRightOutlined } from "@ant-design/icons";
 // import {
@@ -56,9 +55,16 @@ interface Props {
   local_view_state: Map<string, any>;
 }
 
+type SnippetDoc = [
+  title: string,
+  snippet: [code: string | string[], descr: string]
+];
+
 type SnippetEntry = {
-  entries: [title: string, snippet: [code: string | string[], descr?: string]];
+  entries: SnippetDoc[];
   sortweight?: number;
+  setup?: "string";
+  variables?: { [name: string]: string };
 };
 
 type SnippetEntries = {
@@ -68,6 +74,29 @@ type SnippetEntries = {
 type Snippets = {
   [key: string]: SnippetEntries;
 };
+
+function filter_snippets(raw: Snippets, str: string) {
+  const res: Snippets = {};
+  for (const [k1, lvl1] of Object.entries(raw)) {
+    for (const [k2, lvl2] of Object.entries(lvl1)) {
+      const entries = lvl2.entries.filter((doc: SnippetDoc) => {
+        const title = doc[0];
+        const descr = doc[1][1];
+        const inTitle = title.toLowerCase().indexOf(str);
+        const inDescr = descr.toLowerCase().indexOf(str);
+        return inTitle != -1 || inDescr != -1;
+      });
+      if (entries.length > 0) {
+        if (res[k1] == null) res[k1] = {};
+        res[k1][k2] = {
+          entries,
+          ...pick(lvl2, ["setup", "variables"]),
+        };
+      }
+    }
+  }
+  return res;
+}
 
 function useData() {
   const [data, set_data] = useState<{ [lang: string]: Snippets | undefined }>();
@@ -80,6 +109,52 @@ function useData() {
   }
   return data;
 }
+
+//function generate_setup_code(lang, lvl1, lvl2, doc) {
+//  const setup = lang.getIn([lvl1, lvl2, "setup"]);
+//  const vars = lang.getIn([lvl1, lvl2, "variables"]);
+//  let code = doc.getIn([1, 0]);
+//
+//  if (typeof code !== "string") {
+//    code = code.toArray().join("\n");
+//  }
+//
+//  // extra setup on top
+//  let extra = undefined;
+//  // given we have a "variables" dictionary, we check
+//  if (vars != null) {
+//    // ... each line for variables inside of function calls
+//    // assuming function calls are after the first open ( bracket
+//    const re = /\b([a-zA-Z_0-9]+)/g;
+//    // all detected variable names are collected in that array
+//    const varincode = [];
+//    for (let line of code.split("\n")) {
+//      if (line.includes("(")) {
+//        line = line.slice(line.indexOf("("));
+//      }
+//      line.replace(re, (_, g) => varincode.push(g));
+//    }
+//    // then we add name = values lines to set only these
+//    // TODO syntax needs to be language specific!
+//    extra = vars
+//      .filter((v, k) => varincode.includes(k))
+//      .entrySeq()
+//      .map(([k, v]) => `${k} = ${v}`)
+//      .toJS();
+//    if (extra.length > 0) {
+//      extra = extra.join("\n");
+//    }
+//  }
+//
+//  let ret = "";
+//  if (setup != null) {
+//    ret += `${setup}`;
+//  }
+//  if (extra != null) {
+//    ret += `\n${extra}`;
+//  }
+//  return ret;
+//}
 
 export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   const {
@@ -96,7 +171,8 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   const kernel = useRedux(jupyter_actions.name, "kernel");
   const kernel_info = useRedux(jupyter_actions.name, "kernel_info");
   const [lang, set_lang] = useState<string | undefined>();
-  const [snippets, set_snippets] = useState<Snippets | undefined>();
+  const [insert_setup, set_insert_setup] = useState<boolean>(true);
+  const [search, set_search] = useState<string>("");
 
   const data = useData();
 
@@ -106,10 +182,16 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     if (next_lang != lang) set_lang(next_lang);
   }, [kernel, kernel_info]);
 
-  useEffect(() => {
+  const snippets = useMemo(() => {
     if (data == null || lang == null) return;
-    set_snippets(data[lang]);
-  }, [data, lang]);
+    const raw = data[lang];
+    if (raw == null) return;
+    if (search != null && search != "") {
+      return filter_snippets(raw, search);
+    } else {
+      return raw;
+    }
+  }, [data, lang, search]);
 
   useEffect(() => {
     const jid = frame_actions._get_most_recent_active_frame_id_of_type(
@@ -155,18 +237,24 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_snippet([title, snippet]) {
+  function render_snippet(lvl1_title, lvl2_title, lvl3_title, snippet) {
     const code = typeof snippet[0] === "string" ? [snippet[0]] : snippet[0];
     const descr = snippet[1];
     const extra = render_insert({ code, descr });
+    const header = (
+      <Typography.Text type="secondary">{lvl3_title}</Typography.Text>
+    );
     return (
       <Collapse.Panel
-        header={title}
-        key={title}
+        header={header}
+        key={lvl3_title}
         className="cc-jupyter-snippet"
         extra={extra}
       >
         <div className="cc-jupyter-snippet-content">
+          <pre>
+            {lvl1_title} / {lvl2_title}
+          </pre>
           <Markdown value={descr} />
           {code.map((v, idx) => (
             <pre key={idx}>{v}</pre>
@@ -176,49 +264,105 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_level2([title, data]): JSX.Element {
+  function render_level2(lvl1_title, lvl2_title, data): JSX.Element {
     return (
-      <Collapse.Panel key={title} header={title}>
+      <Collapse.Panel key={lvl2_title} header={lvl2_title}>
         <Collapse
           bordered={false}
-          defaultActiveKey={["1"]}
+          ghost={true}
           expandIcon={({ isActive }) => (
             <CaretRightOutlined rotate={isActive ? 90 : 0} />
           )}
           className="cc-jupyter-snippet-collapse"
         >
-          {data.entries.map(render_snippet)}
+          {data.entries.map(([lvl3_title, snippet]) =>
+            render_snippet(lvl1_title, lvl2_title, lvl3_title, snippet)
+          )}
         </Collapse>
       </Collapse.Panel>
     );
   }
 
-  function render_level1([title, entries]: [
+  function render_level1([lvl1_title, entries]: [
     string,
     SnippetEntries
   ]): JSX.Element {
     const lvl2 = sortBy(Object.entries(entries), ([_, v]) => v.sortweight);
+    const title_el = <Typography.Text strong>{lvl1_title}</Typography.Text>;
     return (
       <Collapse.Panel
-        key={title}
-        header={title}
+        key={lvl1_title}
+        header={title_el}
         className="cc-jupyter-snippets"
       >
         <Collapse ghost destroyInactivePanel>
-          {lvl2.map(render_level2)}
+          {lvl2.map(([lvl2_title, data]) =>
+            render_level2(lvl1_title, lvl2_title, data)
+          )}
         </Collapse>
       </Collapse.Panel>
     );
   }
 
-  function render_snippets(): JSX.Element {
-    if (lang == null) return <div>Kernel not loaded.</div>;
+  function render_snippets0(): JSX.Element {
     if (snippets == null) return <Loading />;
-    const style: CSS = { overflowY: "auto" };
     const sfun = (k) => [-["Introduction", "Tutorial"].indexOf(k), k];
     const lvl1 = sortBy(Object.entries(snippets), ([k, _]) => sfun(k));
+    const style: CSS = { overflowY: "auto" };
     return <Collapse style={style}>{lvl1.map(render_level1)}</Collapse>;
   }
 
-  return useMemo(() => render_snippets(), [snippets]);
+  const render_snippets = React.useCallback(render_snippets0, [snippets]);
+
+  function render_help(): JSX.Element {
+    return (
+      <Typography.Paragraph
+        type="secondary"
+        ellipsis={{ rows: 1, expandable: true, symbol: "more…" }}
+      >
+        <Typography.Text strong>Code Snippets</Typography.Text> is a collection
+        of examples for the programming language{" "}
+        <Typography.Text code>{lang}</Typography.Text>. Go ahead an expand the
+        categories to see them and use the "insert" button to copy the snippet
+        into your notebook.
+      </Typography.Paragraph>
+    );
+  }
+
+  function render_controlls(): JSX.Element {
+    return (
+      <>
+        <Input.Search
+          addonBefore={<AntdSpace>Search</AntdSpace>}
+          placeholder="filter..."
+          allowClear
+          enterButton
+          onSearch={set_search}
+        />
+        <div>
+          <Checkbox
+            checked={insert_setup}
+            onChange={(e) => set_insert_setup(e.target.checked)}
+          >
+            insert setup code
+          </Checkbox>
+        </div>
+      </>
+    );
+  }
+
+  function render(): JSX.Element {
+    if (lang == null) return <div>Kernel not loaded.</div>;
+    return (
+      <>
+        <div style={{ margin: "10px" }}>
+          {render_help()}
+          {render_controlls()}
+        </div>
+        {render_snippets()}
+      </>
+    );
+  }
+
+  return render();
 });
