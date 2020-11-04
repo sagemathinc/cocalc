@@ -60,12 +60,14 @@ type SnippetDoc = [
   snippet: [code: string | string[], descr: string]
 ];
 
-type SnippetEntry = {
+type Vars = { [name: string]: string };
+
+interface SnippetEntry {
   entries: SnippetDoc[];
   sortweight?: number;
   setup?: "string";
-  variables?: { [name: string]: string };
-};
+  variables?: Vars;
+}
 
 type SnippetEntries = {
   [key: string]: SnippetEntry;
@@ -110,51 +112,50 @@ function useData() {
   return data;
 }
 
-//function generate_setup_code(lang, lvl1, lvl2, doc) {
-//  const setup = lang.getIn([lvl1, lvl2, "setup"]);
-//  const vars = lang.getIn([lvl1, lvl2, "variables"]);
-//  let code = doc.getIn([1, 0]);
-//
-//  if (typeof code !== "string") {
-//    code = code.toArray().join("\n");
-//  }
-//
-//  // extra setup on top
-//  let extra = undefined;
-//  // given we have a "variables" dictionary, we check
-//  if (vars != null) {
-//    // ... each line for variables inside of function calls
-//    // assuming function calls are after the first open ( bracket
-//    const re = /\b([a-zA-Z_0-9]+)/g;
-//    // all detected variable names are collected in that array
-//    const varincode = [];
-//    for (let line of code.split("\n")) {
-//      if (line.includes("(")) {
-//        line = line.slice(line.indexOf("("));
-//      }
-//      line.replace(re, (_, g) => varincode.push(g));
-//    }
-//    // then we add name = values lines to set only these
-//    // TODO syntax needs to be language specific!
-//    extra = vars
-//      .filter((v, k) => varincode.includes(k))
-//      .entrySeq()
-//      .map(([k, v]) => `${k} = ${v}`)
-//      .toJS();
-//    if (extra.length > 0) {
-//      extra = extra.join("\n");
-//    }
-//  }
-//
-//  let ret = "";
-//  if (setup != null) {
-//    ret += `${setup}`;
-//  }
-//  if (extra != null) {
-//    ret += `\n${extra}`;
-//  }
-//  return ret;
-//}
+function generate_setup_code(args: {
+  code: string[];
+  data: SnippetEntry;
+}): string {
+  const { code, data } = args;
+  const { setup, variables: vars } = data;
+
+  let extra = "";
+  // given we have a "variables" dictionary, we check
+  if (vars != null) {
+    // ... each line for variables inside of function calls
+    // assuming function calls are after the first open ( bracket
+    const re = /\b([a-zA-Z_0-9]+)/g;
+    // all detected variable names are collected in that array
+    const varincode: string[] = [];
+    code.forEach((block) => {
+      block.split("\n").forEach((line) => {
+        if (line.includes("(")) {
+          line = line.slice(line.indexOf("("));
+        }
+        line.replace(re, (_, g) => {
+          varincode.push(g);
+          return ""; // ← to make TS happy
+        });
+      });
+    });
+
+    // then we add name = values lines to set only these
+    // TODO syntax needs to be language specific!
+    extra = Object.entries(vars)
+      .filter(([k, _]) => varincode.includes(k))
+      .map(([k, v]) => `${k} = ${v}`)
+      .join("\n");
+  }
+
+  let ret = "";
+  if (setup != null) {
+    ret += `${setup}`;
+  }
+  if (extra != "") {
+    ret += `\n${extra}`;
+  }
+  return ret;
+}
 
 export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   const {
@@ -237,9 +238,17 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_snippet(lvl1_title, lvl2_title, lvl3_title, snippet) {
-    const code = typeof snippet[0] === "string" ? [snippet[0]] : snippet[0];
-    const descr = snippet[1];
+  function render_snippet(
+    lvl3_title: string,
+    doc: SnippetDoc[1],
+    data: SnippetEntry
+  ) {
+    const code = typeof doc[0] === "string" ? [doc[0]] : doc[0];
+    if (insert_setup) {
+      const setup = generate_setup_code({ code, data });
+      if (setup != "") code.unshift(setup);
+    }
+    const descr = doc[1];
     const extra = render_insert({ code, descr });
     const header = (
       <Typography.Text type="secondary">{lvl3_title}</Typography.Text>
@@ -252,9 +261,6 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         extra={extra}
       >
         <div className="cc-jupyter-snippet-content">
-          <pre>
-            {lvl1_title} / {lvl2_title}
-          </pre>
           <Markdown value={descr} />
           {code.map((v, idx) => (
             <pre key={idx}>{v}</pre>
@@ -264,7 +270,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_level2(lvl1_title, lvl2_title, data): JSX.Element {
+  function render_level2([lvl2_title, data]): JSX.Element {
     return (
       <Collapse.Panel key={lvl2_title} header={lvl2_title}>
         <Collapse
@@ -275,8 +281,8 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
           )}
           className="cc-jupyter-snippet-collapse"
         >
-          {data.entries.map(([lvl3_title, snippet]) =>
-            render_snippet(lvl1_title, lvl2_title, lvl3_title, snippet)
+          {data.entries.map(([lvl3_title, doc]) =>
+            render_snippet(lvl3_title, doc, data)
           )}
         </Collapse>
       </Collapse.Panel>
@@ -296,23 +302,19 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         className="cc-jupyter-snippets"
       >
         <Collapse ghost destroyInactivePanel>
-          {lvl2.map(([lvl2_title, data]) =>
-            render_level2(lvl1_title, lvl2_title, data)
-          )}
+          {lvl2.map(render_level2)}
         </Collapse>
       </Collapse.Panel>
     );
   }
 
-  function render_snippets0(): JSX.Element {
+  const render_snippets = React.useCallback((): JSX.Element => {
     if (snippets == null) return <Loading />;
     const sfun = (k) => [-["Introduction", "Tutorial"].indexOf(k), k];
     const lvl1 = sortBy(Object.entries(snippets), ([k, _]) => sfun(k));
     const style: CSS = { overflowY: "auto" };
     return <Collapse style={style}>{lvl1.map(render_level1)}</Collapse>;
-  }
-
-  const render_snippets = React.useCallback(render_snippets0, [snippets]);
+  }, [snippets, insert_setup]);
 
   function render_help(): JSX.Element {
     return (
@@ -344,7 +346,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
             checked={insert_setup}
             onChange={(e) => set_insert_setup(e.target.checked)}
           >
-            insert setup code
+            include setup code
           </Checkbox>
         </div>
       </>
