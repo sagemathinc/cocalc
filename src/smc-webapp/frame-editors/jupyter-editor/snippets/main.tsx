@@ -31,6 +31,8 @@ import { sortBy, pick, debounce } from "lodash";
 import { Button, Collapse, Checkbox, Typography, Input, Row, Col } from "antd";
 import { CaretRightOutlined } from "@ant-design/icons";
 
+const BUTTON_TEXT = "pick";
+
 interface Props {
   font_size: number;
   project_id: string;
@@ -219,7 +221,8 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     if (jupyter_id != jid) set_jupyter_id(jid);
   }, [local_view_state]);
 
-  function insert_snippet({ code, descr }): void {
+  function insert_snippet(args: { code: string; descr?: string }): void {
+    const { code, descr } = args;
     if (jupyter_id == null) return;
     const frame_store = new NotebookFrameStore(frame_actions, jupyter_id);
     const notebook_frame_actions = frame_actions.get_frame_actions(jupyter_id);
@@ -227,10 +230,14 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     if (notebook_frame_actions == null) return;
     const sel_cells = frame_store.get_selected_cell_ids_list();
     let id = sel_cells[sel_cells.length - 1];
-    // markdown cell
-    id = jupyter_actions.insert_cell_adjacent(id, +1);
-    jupyter_actions.set_cell_input(id, descr);
-    jupyter_actions.set_cell_type(id, "markdown");
+
+    // optional markdown cell with a description
+    if (descr != null) {
+      id = jupyter_actions.insert_cell_adjacent(id, +1);
+      jupyter_actions.set_cell_input(id, descr);
+      jupyter_actions.set_cell_type(id, "markdown");
+    }
+
     // code cells
     for (const c of code) {
       id = jupyter_actions.insert_cell_adjacent(id, +1);
@@ -238,19 +245,21 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
       notebook_frame_actions.set_cur_id(id);
       jupyter_actions.run_code_cell(id);
     }
+    notebook_frame_actions.scroll("cell visible");
   }
 
-  function render_insert({ code, descr }) {
+  function render_insert({ code, descr }, link = false) {
+    const text = link ? "← insert code" : BUTTON_TEXT;
     return (
       <Button
         size={"small"}
-        type={"primary"}
+        type={link ? "link" : "primary"}
         onClick={(e) => {
           insert_snippet({ code, descr });
           e.stopPropagation();
         }}
       >
-        insert
+        {text}
       </Button>
     );
   }
@@ -285,6 +294,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
           {code.map((v, idx) => (
             <pre key={idx}>{v}</pre>
           ))}
+          {render_insert({ code, descr: undefined }, true)}
         </div>
       </Collapse.Panel>
     );
@@ -371,13 +381,13 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     return (
       <Typography.Paragraph
         type="secondary"
-        ellipsis={{ rows: 1, expandable: true, symbol: "more…" }}
+        ellipsis={{ rows: 1, expandable: true }}
       >
         <Typography.Text strong>Code Snippets</Typography.Text> is a collection
         of examples for the programming language{" "}
         <Typography.Text code>{lang}</Typography.Text>. Go ahead an expand the
-        categories to see them and use the "insert" button to copy the snippet
-        into your notebook.
+        categories to see them and use the "{BUTTON_TEXT}" button to copy the
+        snippet into your notebook.
       </Typography.Paragraph>
     );
   }

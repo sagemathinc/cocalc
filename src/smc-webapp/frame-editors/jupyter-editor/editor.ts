@@ -60,6 +60,7 @@ export const EDITOR_SPEC = {
     ]),
     guide_info: {
       title: "Snippets",
+      icon: SNIPPET_ICON_NAME,
       descr: "Open a panel containing code snippets.",
     },
     customize_buttons: {
