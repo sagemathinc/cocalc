@@ -33,6 +33,8 @@ import { CaretRightOutlined } from "@ant-design/icons";
 
 const BUTTON_TEXT = "pick";
 
+const HEADER_SORTER = ([k, _]) => -["Introduction", "Tutorial"].indexOf(k);
+
 interface Props {
   font_size: number;
   project_id: string;
@@ -249,6 +251,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_insert({ code, descr }, link = false) {
+    if (!code) return;
     const text = link ? "← insert code" : BUTTON_TEXT;
     return (
       <Button
@@ -269,8 +272,13 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     doc: SnippetDoc[1],
     data: SnippetEntry
   ) {
-    const code = typeof doc[0] === "string" ? [doc[0]] : doc[0];
-    if (insert_setup) {
+    const code =
+      doc[0] === ""
+        ? undefined
+        : typeof doc[0] === "string"
+        ? [doc[0]]
+        : doc[0];
+    if (code != null && insert_setup) {
       const setup = generate_setup_code({ code, data });
       if (setup != "") code.unshift(setup);
     }
@@ -291,9 +299,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
             search={search}
             style={{ color: COLORS.GRAY }}
           />
-          {code.map((v, idx) => (
-            <pre key={idx}>{v}</pre>
-          ))}
+          {code != null && code.map((v, idx) => <pre key={idx}>{v}</pre>)}
           {render_insert({ code, descr: undefined }, true)}
         </div>
       </Collapse.Panel>
@@ -332,7 +338,10 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     string,
     SnippetEntries
   ]): JSX.Element {
-    const lvl2 = sortBy(Object.entries(entries), ([_, v]) => v.sortweight);
+    const lvl2 = sortBy(Object.entries(entries), [
+      ([_, v]) => v.sortweight,
+      HEADER_SORTER,
+    ]);
     const title_el = (
       <Highlight
         search={search}
@@ -362,8 +371,10 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
 
   const render_snippets = React.useCallback((): JSX.Element => {
     if (snippets == null) return <Loading />;
-    const sfun = (k) => [-["Introduction", "Tutorial"].indexOf(k), k];
-    const lvl1 = sortBy(Object.entries(snippets), ([k, _]) => sfun(k));
+    const lvl1 = sortBy(Object.entries(snippets), [
+      HEADER_SORTER,
+      ([k, _]) => k,
+    ]);
     const style: CSS = { overflowY: "auto" };
     // when searching, expand the first three to aid the user
     const active_search =
@@ -381,7 +392,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     return (
       <Typography.Paragraph
         type="secondary"
-        ellipsis={{ rows: 1, expandable: true }}
+        ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
       >
         <Typography.Text strong>Code Snippets</Typography.Text> is a collection
         of examples for the programming language{" "}
