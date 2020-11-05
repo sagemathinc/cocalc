@@ -23,7 +23,6 @@ import {
   Icon,
   LabeledRow,
   Loading,
-  MarkdownInput,
   SearchInput,
   ErrorDisplay,
   Space,
@@ -271,9 +270,24 @@ export const AddCollaborators: React.FC<Props> = ({
     return <ErrorDisplay error={email_body_error} />;
   }
 
-  function on_cancel(): void {
-    set_email_body_editing(false);
-    set_email_body_error("");
+  function render_email_textarea(): JSX.Element {
+    return (
+      <Input.TextArea
+        defaultValue={email_body}
+        autoSize={true}
+        maxLength={1000}
+        showCount={true}
+        onBlur={() => {
+          set_email_body_editing(false);
+        }}
+        onFocus={() => set_email_body_editing(true)}
+        onChange={(e) => {
+          const value: string = (e.target as any).value;
+          set_email_body(value);
+          check_email_body(value);
+        }}
+      />
+    );
   }
 
   function render_send_email(): JSX.Element | undefined {
@@ -302,18 +316,7 @@ export const AddCollaborators: React.FC<Props> = ({
             }}
           >
             {render_email_body_error()}
-            <MarkdownInput
-              default_value={email_body}
-              rows={8}
-              on_save={(value) => {
-                set_email_body(value);
-                set_email_body_editing(false);
-              }}
-              on_cancel={on_cancel}
-              on_edit={() => set_email_body_editing(true)}
-              save_disabled={!!email_body_error}
-              on_change={check_email_body}
-            />
+            {render_email_textarea()}
           </div>
           <ButtonToolbar>
             <Button
@@ -453,18 +456,7 @@ export const AddCollaborators: React.FC<Props> = ({
               }}
             >
               {render_email_body_error()}
-              <MarkdownInput
-                default_value={email_body}
-                rows={8}
-                on_save={(value) => {
-                  set_email_body(value);
-                  set_email_body_editing(false);
-                }}
-                on_cancel={on_cancel}
-                on_edit={() => set_email_body_editing(true)}
-                save_disabled={email_body_error !== null}
-                on_change={check_email_body}
-              />
+              {render_email_textarea()}
             </div>
           )}
           {render_select_list_button()}
@@ -494,6 +486,9 @@ export const AddCollaborators: React.FC<Props> = ({
         btn_text = `Add ${number_selected} Selected Users`;
         disabled = false;
       }
+    }
+    if (email_body_error) {
+      disabled = true;
     }
     return (
       <div>
