@@ -16,7 +16,7 @@ import {
   useTypedRedux,
 } from "../app-framework";
 import { ProjectUsers } from "./project-users";
-const { AddCollaborators } = require("../collaborators/add-to-project");
+import { AddCollaborators } from "../collaborators/add-collaborators";
 import { Row, Col, Well } from "../antd-bootstrap";
 import { Icon, Markdown, ProjectState, Space, TimeAgo } from "../r_misc";
 import { id2name } from "../custom-software/init";
@@ -59,9 +59,9 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
     const allow_urls = store.allow_urls_in_emails(project_id);
     return (
       <div>
-        <h5>Add people</h5>
+        <h5>Add collaborators to project</h5>
         <div style={{ color: "#666", marginBottom: "10px" }}>
-          Who would you like to work with on this project?
+          Search by name or email address:
         </div>
         <AddCollaborators
           project={project}
