@@ -32,6 +32,7 @@ import { ClassicalNotebook } from "./classical-notebook";
 import { Slideshow } from "./slideshow-revealjs/slideshow";
 import { TableOfContents } from "./table-of-contents/contents";
 import { Introspect } from "./introspect/introspect";
+const SNIPPET_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
 import { JupyterSnippets } from "./snippets";
 
 export const EDITOR_SPEC = {
@@ -72,7 +73,7 @@ export const EDITOR_SPEC = {
   commands_guide: {
     short: "Snippets",
     name: "Snippets",
-    icon: "book",
+    icon: SNIPPET_ICON_NAME,
     component: JupyterSnippets,
     buttons: set(["decrease_font_size", "increase_font_size"]),
   },

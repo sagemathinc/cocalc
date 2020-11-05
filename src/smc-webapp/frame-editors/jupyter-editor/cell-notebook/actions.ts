@@ -873,10 +873,6 @@ export class NotebookFrameActions {
     }
   }
 
-  public async show_code_snippets(): Promise<void> {
-    await this.jupyter_actions.show_code_snippets(this.store.get("cur_id"));
-  }
-
   public toggle_selected_outputs(property: "collapsed" | "scrolled"): void {
     this.jupyter_actions.toggle_outputs(
       this.store.get_selected_cell_ids_list(),
