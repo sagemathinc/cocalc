@@ -434,7 +434,7 @@ export const AddCollaborators: React.FC<Props> = ({
                 search_split(s.toLowerCase())
               );
             }}
-            style={{ width: "100%" }}
+            style={{ width: "100%", marginBottom: "10px" }}
             placeholder="Select users..."
             onChange={(value) => {
               set_selected_entries(value as string[]);
@@ -449,7 +449,7 @@ export const AddCollaborators: React.FC<Props> = ({
                 padding: "10px",
                 borderRadius: "5px",
                 backgroundColor: "white",
-                margin: "15px 0",
+                margin: "10px 0",
               }}
             >
               {render_email_body_error()}

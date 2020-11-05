@@ -138,7 +138,8 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
     set_selection_at_last_mouse_down((window.getSelection() ?? "").toString());
   }
 
-  function handle_click(e): void {
+  function handle_click(e?, force?: boolean): void {
+    if (!force && add_collab) return;
     const cur_sel = (window.getSelection() ?? "").toString();
     // Check if user has highlighted some text.  Do NOT open if the user seems
     // to be trying to highlight text on the row, e.g., for copy pasting.
@@ -147,16 +148,17 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
     }
   }
 
-  function open_project_from_list(e): void {
+  function open_project_from_list(e?): void {
     actions.open_project({
       project_id,
-      switch_to: !(e.which === 2 || e.ctrlKey || e.metaKey),
+      switch_to: !(e?.which === 2 || e?.ctrlKey || e?.metaKey),
     });
-    e.preventDefault();
+    e?.preventDefault();
     user_tracking("open_project", { how: "projects_page", project_id });
   }
 
   function open_project_settings(e): void {
+    if (add_collab) return;
     if (is_anonymous) return;
     actions.open_project({
       project_id,
@@ -189,7 +191,10 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
           }}
         >
           <div style={{ fontWeight: "bold" }}>
-            <a cocalc-test="project-line">
+            <a
+              cocalc-test="project-line"
+              onClick={() => handle_click(undefined, true)}
+            >
               <Markdown value={project.get("title")} />
             </a>
           </div>
