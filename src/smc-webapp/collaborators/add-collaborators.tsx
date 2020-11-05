@@ -26,6 +26,7 @@ import {
   MarkdownInput,
   SearchInput,
   ErrorDisplay,
+  Space,
 } from "../r_misc";
 
 import { webapp_client } from "../webapp-client";
@@ -210,9 +211,8 @@ export const AddCollaborators: React.FC<Props> = ({
   }
 
   function add_selected(): void {
-    // handle case, where just one name is listed → clicking on
-    // "add" would clear everything w/o inviting
-    if (selected_entries.length > 0 && results.length == 1) {
+    // handle case, where just one name is listed
+    if (results.length == 1) {
       invite_collaborator(results[0].account_id);
     } else {
       for (const account_id of selected_entries) {
@@ -311,7 +311,7 @@ export const AddCollaborators: React.FC<Props> = ({
               }}
               on_cancel={on_cancel}
               on_edit={() => set_email_body_editing(true)}
-              save_disabled={email_body_error !== null}
+              save_disabled={!!email_body_error}
               on_change={check_email_body}
             />
           </div>
@@ -407,7 +407,7 @@ export const AddCollaborators: React.FC<Props> = ({
         );
       } else {
         // no hit, but at least one existing collaborator
-        const v: any = [];
+        const v: string[] = [];
         for (const { first_name, last_name } of existing) {
           v.push(`${first_name} ${last_name}`);
         }
@@ -425,6 +425,9 @@ export const AddCollaborators: React.FC<Props> = ({
             showArrow
             autoFocus
             defaultOpen
+            defaultValue={
+              results.length == 1 ? [results[0].account_id] : undefined
+            }
             filterOption={(s, opt) => {
               return search_match(
                 (opt as any).label,
@@ -472,36 +475,39 @@ export const AddCollaborators: React.FC<Props> = ({
 
   function render_select_list_button(): JSX.Element | undefined {
     const number_selected = selected_entries.length;
-    const btn_text = (() => {
-      switch (results.length) {
-        case 0:
-          return "No User Found";
-        case 1:
-          return "Add User";
-        default:
-          switch (number_selected) {
-            case 0:
-              return undefined;
-            case 1:
-              return "Add Selected User";
-            default:
-              return `Add ${number_selected} Users`;
-          }
+    let btn_text: string;
+    let disabled: boolean;
+    if (results.length == 0) {
+      btn_text = "No User Found";
+      disabled = true;
+    } else {
+      if (results.length == 1) {
+        btn_text = "Add Selected User";
+        disabled = false;
+      } else if (number_selected == 0) {
+        btn_text = "Add Selected User";
+        disabled = true;
+      } else if (number_selected == 1) {
+        btn_text = "Add Selected User";
+        disabled = false;
+      } else {
+        btn_text = `Add ${number_selected} Selected Users`;
+        disabled = false;
       }
-    })();
-    const disabled =
-      results.length === 0 || (results.length >= 2 && number_selected === 0);
-    if (btn_text === undefined) {
-      return;
     }
     return (
-      <Button onClick={add_selected} disabled={disabled} bsStyle="primary">
-        <Icon name="user-plus" /> {btn_text}
-      </Button>
+      <div>
+        <Button onClick={reset}>Cancel</Button>
+        <Space />
+        <Button disabled={disabled} onClick={add_selected} bsStyle="primary">
+          <Icon name="user-plus" /> {btn_text}
+        </Button>
+      </div>
     );
   }
 
   function render_input_row(): JSX.Element | undefined {
+    if (state == "searched") return;
     const input = (
       <SearchInput
         on_submit={do_search}

@@ -60,9 +60,6 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
     return (
       <div>
         <h5>Add collaborators to project</h5>
-        <div style={{ color: "#666", marginBottom: "10px" }}>
-          Search by name or email address:
-        </div>
         <AddCollaborators
           project={project}
           inline={true}
