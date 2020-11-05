@@ -20,33 +20,16 @@ import {
   useState,
   useStore,
   useMemo,
-  // useActions,
-  // useTypedRedux,
   useRedux,
-  // TypedMap,
 } from "../../../app-framework";
 import { JupyterEditorActions } from "../actions";
 import { JupyterStore } from "../../../jupyter/store";
 import { NotebookFrameStore } from "../cell-notebook/store";
 import { Loading, Markdown } from "../../../r_misc";
-// import { COLORS } from "smc-util/theme";
-import { sortBy, pick } from "lodash";
-import {
-  Button,
-  Collapse,
-  Checkbox,
-  Typography,
-  Input,
-  Space as AntdSpace,
-} from "antd";
+import { COLORS } from "smc-util/theme";
+import { sortBy, pick, debounce } from "lodash";
+import { Button, Collapse, Checkbox, Typography, Input, Row, Col } from "antd";
 import { CaretRightOutlined } from "@ant-design/icons";
-// import {
-//   FolderOpenOutlined,
-//   InfoCircleOutlined,
-//   FileOutlined,
-//   ControlOutlined,
-//   QuestionCircleOutlined,
-// } from "@ant-design/icons";
 
 interface Props {
   font_size: number;
@@ -77,17 +60,22 @@ type Snippets = {
   [key: string]: SnippetEntries;
 };
 
-function filter_snippets(raw: Snippets, str: string) {
+function filter_snippets(raw: Snippets, str?: string) {
   const res: Snippets = {};
   for (const [k1, lvl1] of Object.entries(raw)) {
     for (const [k2, lvl2] of Object.entries(lvl1)) {
-      const entries = lvl2.entries.filter((doc: SnippetDoc) => {
-        const title = doc[0];
-        const descr = doc[1][1];
-        const inTitle = title.toLowerCase().indexOf(str);
-        const inDescr = descr.toLowerCase().indexOf(str);
-        return inTitle != -1 || inDescr != -1;
-      });
+      const entries =
+        str != null && str != ""
+          ? lvl2.entries.filter((doc: SnippetDoc) => {
+              const inLvl1 = k1.toLowerCase().indexOf(str) != -1;
+              const inLvl2 = k2.toLowerCase().indexOf(str) != -1;
+              const title = doc[0];
+              const descr = doc[1][1];
+              const inTitle = title.toLowerCase().indexOf(str) != -1;
+              const inDescr = descr.toLowerCase().indexOf(str) != -1;
+              return inLvl1 || inLvl2 || inTitle || inDescr;
+            })
+          : lvl2.entries;
       if (entries.length > 0) {
         if (res[k1] == null) res[k1] = {};
         res[k1][k2] = {
@@ -112,6 +100,35 @@ function useData() {
   return data;
 }
 
+function generate_setup_code_extra(args): string | undefined {
+  const { vars, code } = args;
+  if (vars == null) return;
+
+  // ... each line for variables inside of function calls
+  // assuming function calls are after the first open ( bracket
+  const re = /\b([a-zA-Z_0-9]+)/g;
+  // all detected variable names are collected in that array
+  const varincode: string[] = [];
+  code.forEach((block) => {
+    block.split("\n").forEach((line) => {
+      if (line.includes("(")) {
+        line = line.slice(line.indexOf("("));
+      }
+      line.replace(re, (_, g) => {
+        varincode.push(g);
+        return ""; // ← to make TS happy
+      });
+    });
+  });
+
+  // then we add name = values lines to set only these
+  // TODO syntax needs to be language specific!
+  return Object.entries(vars)
+    .filter(([k, _]) => varincode.includes(k))
+    .map(([k, v]) => `${k} = ${v}`)
+    .join("\n");
+}
+
 function generate_setup_code(args: {
   code: string[];
   data: SnippetEntry;
@@ -119,43 +136,44 @@ function generate_setup_code(args: {
   const { code, data } = args;
   const { setup, variables: vars } = data;
 
-  let extra = "";
   // given we have a "variables" dictionary, we check
-  if (vars != null) {
-    // ... each line for variables inside of function calls
-    // assuming function calls are after the first open ( bracket
-    const re = /\b([a-zA-Z_0-9]+)/g;
-    // all detected variable names are collected in that array
-    const varincode: string[] = [];
-    code.forEach((block) => {
-      block.split("\n").forEach((line) => {
-        if (line.includes("(")) {
-          line = line.slice(line.indexOf("("));
-        }
-        line.replace(re, (_, g) => {
-          varincode.push(g);
-          return ""; // ← to make TS happy
-        });
-      });
-    });
-
-    // then we add name = values lines to set only these
-    // TODO syntax needs to be language specific!
-    extra = Object.entries(vars)
-      .filter(([k, _]) => varincode.includes(k))
-      .map(([k, v]) => `${k} = ${v}`)
-      .join("\n");
-  }
+  const extra = generate_setup_code_extra({ vars, code });
 
   let ret = "";
-  if (setup != null) {
+  if (setup) {
     ret += `${setup}`;
   }
-  if (extra != "") {
+  if (extra) {
     ret += `\n${extra}`;
   }
   return ret;
 }
+
+const Highlight: React.FC<{
+  text: string;
+  search: string;
+  style?: CSS;
+}> = React.memo(({ text, search, style }) => {
+  function highlight_md(descr, search) {
+    if (search == null || search === "") return descr;
+    const pos = descr.toLowerCase().indexOf(search.toLowerCase());
+    if (pos == -1) return descr;
+    const hit = descr.slice(pos, pos + search.length);
+    const hl =
+      descr.slice(0, pos) +
+      `<span class='hl'>${hit}</span>` +
+      descr.slice(pos + search.length);
+    return hl;
+  }
+
+  return (
+    <Markdown
+      className={"cc-jupyter-snippet-header"}
+      style={style}
+      value={highlight_md(text, search)}
+    />
+  );
+});
 
 export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   const {
@@ -174,6 +192,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   const [lang, set_lang] = useState<string | undefined>();
   const [insert_setup, set_insert_setup] = useState<boolean>(true);
   const [search, set_search] = useState<string>("");
+  const set_search_debounced = debounce(set_search, 333);
 
   const data = useData();
 
@@ -187,11 +206,9 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     if (data == null || lang == null) return;
     const raw = data[lang];
     if (raw == null) return;
-    if (search != null && search != "") {
-      return filter_snippets(raw, search);
-    } else {
-      return raw;
-    }
+    // we also pass the raw data through the filter if the string is empty,
+    // such that no headers without any data do not show up
+    return filter_snippets(raw, search);
   }, [data, lang, search]);
 
   useEffect(() => {
@@ -250,18 +267,21 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     }
     const descr = doc[1];
     const extra = render_insert({ code, descr });
-    const header = (
-      <Typography.Text type="secondary">{lvl3_title}</Typography.Text>
-    );
+    const header = <Highlight text={lvl3_title} search={search} />;
     return (
       <Collapse.Panel
         header={header}
         key={lvl3_title}
         className="cc-jupyter-snippet"
         extra={extra}
+        showArrow={search === ""}
       >
         <div className="cc-jupyter-snippet-content">
-          <Markdown value={descr} />
+          <Highlight
+            text={descr}
+            search={search}
+            style={{ color: COLORS.GRAY }}
+          />
           {code.map((v, idx) => (
             <pre key={idx}>{v}</pre>
           ))}
@@ -271,8 +291,16 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_level2([lvl2_title, data]): JSX.Element {
+    // when searching, limit to the first 10 hits, otherwise all this might get too large
+    const entries = search === "" ? data.entries : data.entries.slice(0, 10);
+    const active_search =
+      search === "" ? undefined : { activeKey: entries.map((val) => val[0]) };
     return (
-      <Collapse.Panel key={lvl2_title} header={lvl2_title}>
+      <Collapse.Panel
+        key={lvl2_title}
+        header={<Highlight search={search} text={lvl2_title} />}
+        showArrow={active_search == null}
+      >
         <Collapse
           bordered={false}
           ghost={true}
@@ -280,8 +308,9 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
             <CaretRightOutlined rotate={isActive ? 90 : 0} />
           )}
           className="cc-jupyter-snippet-collapse"
+          {...active_search}
         >
-          {data.entries.map(([lvl3_title, doc]) =>
+          {entries.map(([lvl3_title, doc]) =>
             render_snippet(lvl3_title, doc, data)
           )}
         </Collapse>
@@ -294,14 +323,27 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     SnippetEntries
   ]): JSX.Element {
     const lvl2 = sortBy(Object.entries(entries), ([_, v]) => v.sortweight);
-    const title_el = <Typography.Text strong>{lvl1_title}</Typography.Text>;
+    const title_el = (
+      <Highlight
+        search={search}
+        text={lvl1_title}
+        style={{ fontWeight: "bold" }}
+      />
+    );
+    // when searching, expand the first 3 to aid the user
+    const active_search =
+      search === ""
+        ? undefined
+        : { activeKey: lvl2.slice(0, 3).map((val) => val[0]) };
+
     return (
       <Collapse.Panel
         key={lvl1_title}
         header={title_el}
         className="cc-jupyter-snippets"
+        showArrow={active_search == null}
       >
-        <Collapse ghost destroyInactivePanel>
+        <Collapse ghost destroyInactivePanel {...active_search}>
           {lvl2.map(render_level2)}
         </Collapse>
       </Collapse.Panel>
@@ -313,8 +355,17 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     const sfun = (k) => [-["Introduction", "Tutorial"].indexOf(k), k];
     const lvl1 = sortBy(Object.entries(snippets), ([k, _]) => sfun(k));
     const style: CSS = { overflowY: "auto" };
-    return <Collapse style={style}>{lvl1.map(render_level1)}</Collapse>;
-  }, [snippets, insert_setup]);
+    // when searching, expand the first three to aid the user
+    const active_search =
+      search === ""
+        ? undefined
+        : { activeKey: lvl1.slice(0, 3).map((val) => val[0]) };
+    return (
+      <Collapse style={style} {...active_search}>
+        {lvl1.map(render_level1)}
+      </Collapse>
+    );
+  }, [snippets, insert_setup, search]);
 
   function render_help(): JSX.Element {
     return (
@@ -333,23 +384,27 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
 
   function render_controlls(): JSX.Element {
     return (
-      <>
-        <Input.Search
-          addonBefore={<AntdSpace>Search</AntdSpace>}
-          placeholder="filter..."
-          allowClear
-          enterButton
-          onSearch={set_search}
-        />
-        <div>
+      <Row>
+        <Col flex={3}>
+          <Input.Search
+            addonBefore={<span style={{ paddingRight: "10px" }}>Search</span>}
+            placeholder="filter..."
+            allowClear
+            enterButton
+            onSearch={set_search}
+            onChange={(e) => set_search_debounced(e.target.value)}
+          />
+        </Col>
+        <Col flex={2}>
           <Checkbox
+            style={{ padding: "5px" }}
             checked={insert_setup}
             onChange={(e) => set_insert_setup(e.target.checked)}
           >
             include setup code
           </Checkbox>
-        </div>
-      </>
+        </Col>
+      </Row>
     );
   }
 
