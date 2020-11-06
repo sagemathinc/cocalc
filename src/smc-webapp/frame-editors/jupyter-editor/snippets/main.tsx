@@ -51,7 +51,8 @@ import { Copy, Highlight } from "./components";
 
 const URL = "https://github.com/sagemathinc/cocalc-snippets";
 const BUTTON_TEXT = "pick";
-const HEADER_SORTER = ([k, _]) => -["Introduction", "Tutorial"].indexOf(k);
+const HEADER_SORTER = ([k, _]) =>
+  -["Introduction", "Tutorial", "Help"].indexOf(k);
 
 function useData() {
   const [data, set_data] = useState<{ [lang: string]: Snippets | undefined }>();
@@ -103,6 +104,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     if (next_lang != lang) set_lang(next_lang);
   }, [kernel, kernel_info]);
 
+  // recompute snippets when data, the kernel language or the search string changes
   const snippets = useMemo(() => {
     if (data == null || lang == null) return;
     const raw = data[lang];
@@ -112,6 +114,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     return filter_snippets(raw, search);
   }, [data, lang, search]);
 
+  // we need to know the target frame of the jupyter notebook
   useEffect(() => {
     const jid = frame_actions._get_most_recent_active_frame_id_of_type(
       "jupyter_cell_notebook"
@@ -120,6 +123,8 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     if (jupyter_id != jid) set_jupyter_id(jid);
   }, [local_view_state]);
 
+  // this is the core part of this: upon user request, the select part of the snippets
+  // data-structure is inserted into the notebook + evaluated
   function insert_snippet(args: { code: string; descr?: string }): void {
     const { code, descr } = args;
     if (jupyter_id == null) return;
@@ -147,6 +152,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     notebook_frame_actions.scroll("cell visible");
   }
 
+  // either a button to pick a snippet or just an insert link
   function render_insert({ code, descr }, link = false) {
     if (!code) return;
     const text = link ? "insert code" : BUTTON_TEXT;
@@ -165,6 +171,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
+  // the actual snippet
   function render_snippet(
     lvl3_title: string,
     doc: SnippetDoc[1],
@@ -213,6 +220,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
+  // this iterates over all subheaders to render each snippet
   function render_level2([lvl2_title, data]): JSX.Element {
     // when searching, limit to the first 10 hits, otherwise all this might get too large
     const entries = search === "" ? data.entries : data.entries.slice(0, 10);
@@ -241,6 +249,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
+  // for each section, iterate over all headers
   function render_level1([lvl1_title, entries]: [
     string,
     SnippetEntries
@@ -326,6 +335,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
+  // memoizes the actually rendered snippet (depends only on a few details)
   const render_snippets = React.useCallback((): JSX.Element => {
     if (data == null) return render_loading();
     if (lang == null) return render_no_kernel();
@@ -359,6 +369,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }, [snippets, insert_setup, search]);
 
+  // introduction at the top
   function render_help(): JSX.Element {
     return (
       <Typography.Paragraph
@@ -375,6 +386,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
+  // search box and if user also wants to insert the setup cells
   function render_controlls(): JSX.Element {
     const onChange = (e) => {
       const txt = e.target.value;
