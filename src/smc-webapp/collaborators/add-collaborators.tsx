@@ -33,6 +33,7 @@ import { has_internet_access } from "../upgrades/upgrade-utils";
 import { SITE_NAME } from "smc-util/theme";
 import { contains_url, plural } from "smc-util/misc2";
 import {
+  field_cmp,
   is_valid_email_address,
   is_valid_uuid_string,
   search_match,
@@ -41,6 +42,7 @@ import {
 import { Project } from "../projects/store";
 
 interface RegisteredUser {
+  sort?: string;
   account_id: string;
   first_name?: string;
   last_name?: string;
@@ -51,6 +53,7 @@ interface RegisteredUser {
 }
 
 interface NonregisteredUser {
+  sort?: string;
   email_address: string;
   account_id?: undefined;
   first_name?: undefined;
@@ -115,14 +118,12 @@ export const AddCollaborators: React.FC<Props> = ({
   }
 
   async function do_search(search: string): Promise<void> {
-    search = search.trim().toLowerCase();
-    // this gets used in write_email_invite, and whether to render the selection list.
-    set_search(search);
-    set_selected_entries([]);
     if (state == "searching") {
       // already searching
       return;
     }
+    set_search(search);
+    set_selected_entries([]);
     if (search.length === 0) {
       set_err("");
       set_results([]);
@@ -131,26 +132,59 @@ export const AddCollaborators: React.FC<Props> = ({
     set_state("searching");
     let err = "";
     let search_results: User[] = [];
+    let num_already_matching = 0;
+    const already = new Set<string>([]);
     try {
-      search_results = await webapp_client.users_client.user_search({
-        query: search,
-        limit: 50,
-      });
-      if (search_results.length == 0 && is_valid_email_address(search)) {
-        search_results.push({ email_address: search });
-      } else {
-        // There are some results, so not adding non-cloud user via email.
-        // Filter out any users that already a collab on this project
-        const n = search_results.length;
-        search_results = search_results.filter(
-          (r) => project.getIn(["users", r.account_id]) == null
-        );
-        set_num_matching_already(n - search_results.length);
+      for (let query of search.split(",")) {
+        query = query.trim().toLowerCase();
+        const query_results = await webapp_client.users_client.user_search({
+          query,
+          limit: 50,
+        });
+        if (query_results.length == 0 && is_valid_email_address(query)) {
+          const email_address = query;
+          if (!already.has(email_address)) {
+            search_results.push({ email_address, sort: "0" + email_address });
+            already.add(email_address);
+          }
+        } else {
+          // There are some results, so not adding non-cloud user via email.
+          // Filter out any users that already a collab on this project.
+          for (const r of query_results) {
+            if (r.account_id == null) continue; // won't happen
+            if (project.getIn(["users", r.account_id]) == null) {
+              if (!already.has(r.account_id)) {
+                search_results.push(r);
+                already.add(r.account_id);
+                (r as User).sort = `${
+                  user_map.has(r.account_id) ? 1 : 2
+                } ${r.last_name?.toLowerCase()} ${r.first_name?.toLowerCase()} ${r.last_active?.toISOString()}`;
+              } else {
+                // if we got additional information about email
+                // address and already have this user, remember that
+                // extra info.
+                if (r.email_address != null) {
+                  for (const x of search_results) {
+                    if (x.account_id == r.account_id) {
+                      x.email_address = r.email_address;
+                    }
+                  }
+                }
+              }
+            } else {
+              num_already_matching += 1;
+            }
+          }
+        }
       }
     } catch (e) {
       err = e.toString();
     }
+    set_num_matching_already(num_already_matching);
     write_email_invite();
+    // sort search_results with collaborators first, then non-collabs,
+    // in alphabetical order by last name, first name, email_address
+    search_results.sort(field_cmp("sort"));
 
     set_state("searched");
     set_err(err);
@@ -159,23 +193,8 @@ export const AddCollaborators: React.FC<Props> = ({
   }
 
   function render_options(users: User[]): JSX.Element[] {
-    // We put the collaborators at the top of the list of search results.
-    let v: User[] = [];
-    if (user_map != null) {
-      const x: User[] = [];
-      const y: User[] = [];
-      for (const r of users) {
-        if (r.account_id != null && user_map.get(r.account_id)) {
-          x.push(r);
-        } else {
-          y.push(r);
-        }
-      }
-      v = x.concat(y);
-    }
-
     const options: JSX.Element[] = [];
-    for (const r of v) {
+    for (const r of users) {
       let name = r.account_id
         ? (r.first_name ?? "") + " " + (r.last_name ?? "")
         : r.email_address;
@@ -191,14 +210,14 @@ export const AddCollaborators: React.FC<Props> = ({
       }
       if (r.last_active) {
         extra.push(
-          `Last active ${new Date(r.last_active).toLocaleDateString()}`
+          `Active ${new Date(r.last_active).toLocaleDateString()}`
         );
       }
       if (r.created) {
         extra.push(`Created ${new Date(r.created).toLocaleDateString()}`);
       }
       if (r.account_id == null) {
-        extra.push(`No account yet`);
+        extra.push(`No account`);
       } else {
         if (r.email_address) {
           if (r.email_address_verified?.[r.email_address]) {
@@ -507,7 +526,7 @@ export const AddCollaborators: React.FC<Props> = ({
               );
             }}
             style={{ width: "100%", marginBottom: "10px" }}
-            placeholder="Select users..."
+            placeholder={`Users matching ${search}`}
             onChange={(value) => {
               set_selected_entries(value as string[]);
             }}
@@ -576,17 +595,24 @@ export const AddCollaborators: React.FC<Props> = ({
   function render_input_row(): JSX.Element | undefined {
     if (state == "searched") return;
     const input = (
-      <SearchInput
-        style={{ marginBottom: 0 }}
-        on_submit={do_search}
-        value={search}
-        placeholder="Search by name or email address..."
-        on_change={(value) => {
-          set_results([]);
-          set_search(value);
-        }}
-        on_clear={reset}
-      />
+      <div>
+        <SearchInput
+          style={{ marginBottom: 0 }}
+          on_submit={do_search}
+          value={search}
+          placeholder="Search by name or email address..."
+          on_change={(value) => {
+            set_results([]);
+            set_search(value);
+          }}
+          on_clear={reset}
+        />
+        {state == "input" && search != "" && (
+          <div>
+            Enter one or more names or email addresses, separated by commas.
+          </div>
+        )}
+      </div>
     );
     if (inline) {
       return input;
