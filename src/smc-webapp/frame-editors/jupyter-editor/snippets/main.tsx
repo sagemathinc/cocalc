@@ -22,75 +22,36 @@ import {
   useMemo,
   useRedux,
 } from "../../../app-framework";
+import { sortBy, debounce, isEmpty } from "lodash";
 import { JupyterEditorActions } from "../actions";
 import { JupyterStore } from "../../../jupyter/store";
 import { NotebookFrameStore } from "../cell-notebook/store";
-import { Loading, Markdown } from "../../../r_misc";
+import { A, Loading } from "../../../r_misc";
 import { COLORS } from "smc-util/theme";
-import { sortBy, pick, debounce } from "lodash";
-import { Button, Collapse, Checkbox, Typography, Input, Row, Col } from "antd";
-import { CaretRightOutlined } from "@ant-design/icons";
+import {
+  Button,
+  Collapse,
+  Checkbox,
+  Typography,
+  Input,
+  Row,
+  Col,
+  Alert,
+} from "antd";
+import {
+  CaretRightOutlined,
+  PlusSquareOutlined,
+  MinusSquareOutlined,
+  LeftSquareOutlined,
+} from "@ant-design/icons";
 
+import { SnippetDoc, SnippetEntry, SnippetEntries, Snippets } from "./types";
+import { filter_snippets, generate_setup_code } from "./utils";
+import { Copy, Highlight } from "./components";
+
+const URL = "https://github.com/sagemathinc/cocalc-snippets";
 const BUTTON_TEXT = "pick";
-
 const HEADER_SORTER = ([k, _]) => -["Introduction", "Tutorial"].indexOf(k);
-
-interface Props {
-  font_size: number;
-  project_id: string;
-  actions: JupyterEditorActions;
-  local_view_state: Map<string, any>;
-}
-
-type SnippetDoc = [
-  title: string,
-  snippet: [code: string | string[], descr: string]
-];
-
-type Vars = { [name: string]: string };
-
-interface SnippetEntry {
-  entries: SnippetDoc[];
-  sortweight?: number;
-  setup?: "string";
-  variables?: Vars;
-}
-
-type SnippetEntries = {
-  [key: string]: SnippetEntry;
-};
-
-type Snippets = {
-  [key: string]: SnippetEntries;
-};
-
-function filter_snippets(raw: Snippets, str?: string) {
-  const res: Snippets = {};
-  for (const [k1, lvl1] of Object.entries(raw)) {
-    for (const [k2, lvl2] of Object.entries(lvl1)) {
-      const entries =
-        str != null && str != ""
-          ? lvl2.entries.filter((doc: SnippetDoc) => {
-              const inLvl1 = k1.toLowerCase().indexOf(str) != -1;
-              const inLvl2 = k2.toLowerCase().indexOf(str) != -1;
-              const title = doc[0];
-              const descr = doc[1][1];
-              const inTitle = title.toLowerCase().indexOf(str) != -1;
-              const inDescr = descr.toLowerCase().indexOf(str) != -1;
-              return inLvl1 || inLvl2 || inTitle || inDescr;
-            })
-          : lvl2.entries;
-      if (entries.length > 0) {
-        if (res[k1] == null) res[k1] = {};
-        res[k1][k2] = {
-          entries,
-          ...pick(lvl2, ["setup", "variables"]),
-        };
-      }
-    }
-  }
-  return res;
-}
 
 function useData() {
   const [data, set_data] = useState<{ [lang: string]: Snippets | undefined }>();
@@ -104,80 +65,12 @@ function useData() {
   return data;
 }
 
-function generate_setup_code_extra(args): string | undefined {
-  const { vars, code } = args;
-  if (vars == null) return;
-
-  // ... each line for variables inside of function calls
-  // assuming function calls are after the first open ( bracket
-  const re = /\b([a-zA-Z_0-9]+)/g;
-  // all detected variable names are collected in that array
-  const varincode: string[] = [];
-  code.forEach((block) => {
-    block.split("\n").forEach((line) => {
-      if (line.includes("(")) {
-        line = line.slice(line.indexOf("("));
-      }
-      line.replace(re, (_, g) => {
-        varincode.push(g);
-        return ""; // ← to make TS happy
-      });
-    });
-  });
-
-  // then we add name = values lines to set only these
-  // TODO syntax needs to be language specific!
-  return Object.entries(vars)
-    .filter(([k, _]) => varincode.includes(k))
-    .map(([k, v]) => `${k} = ${v}`)
-    .join("\n");
+interface Props {
+  font_size: number;
+  project_id: string;
+  actions: JupyterEditorActions;
+  local_view_state: Map<string, any>;
 }
-
-function generate_setup_code(args: {
-  code: string[];
-  data: SnippetEntry;
-}): string {
-  const { code, data } = args;
-  const { setup, variables: vars } = data;
-
-  // given we have a "variables" dictionary, we check
-  const extra = generate_setup_code_extra({ vars, code });
-
-  let ret = "";
-  if (setup) {
-    ret += `${setup}`;
-  }
-  if (extra) {
-    ret += `\n${extra}`;
-  }
-  return ret;
-}
-
-const Highlight: React.FC<{
-  text: string;
-  search: string;
-  style?: CSS;
-}> = React.memo(({ text, search, style }) => {
-  function highlight_md(descr, search) {
-    if (search == null || search === "") return descr;
-    const pos = descr.toLowerCase().indexOf(search.toLowerCase());
-    if (pos == -1) return descr;
-    const hit = descr.slice(pos, pos + search.length);
-    const hl =
-      descr.slice(0, pos) +
-      `<span class='hl'>${hit}</span>` +
-      descr.slice(pos + search.length);
-    return hl;
-  }
-
-  return (
-    <Markdown
-      className={"cc-jupyter-snippet-header"}
-      style={style}
-      value={highlight_md(text, search)}
-    />
-  );
-});
 
 export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   const {
@@ -195,10 +88,14 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   const kernel_info = useRedux(jupyter_actions.name, "kernel_info");
   const [lang, set_lang] = useState<string | undefined>();
   const [insert_setup, set_insert_setup] = useState<boolean>(true);
-  const [search, set_search] = useState<string>("");
+  const [search_txt, set_search_txt] = useState("");
+  const [search, set_search] = useState("");
   const set_search_debounced = debounce(set_search, 333);
-
   const data = useData();
+
+  useEffect(() => {
+    set_search_debounced(search_txt);
+  }, [search_txt]);
 
   // get_kernel_language() depends on kernel and kernel_info
   useEffect(() => {
@@ -252,11 +149,12 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
 
   function render_insert({ code, descr }, link = false) {
     if (!code) return;
-    const text = link ? "← insert code" : BUTTON_TEXT;
+    const text = link ? "insert code" : BUTTON_TEXT;
     return (
       <Button
         size={"small"}
-        type={link ? "link" : "primary"}
+        icon={<LeftSquareOutlined />}
+        type={link ? "link" : "default"}
         onClick={(e) => {
           insert_snippet({ code, descr });
           e.stopPropagation();
@@ -272,6 +170,8 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     doc: SnippetDoc[1],
     data: SnippetEntry
   ) {
+    // if there is no code (empty string) → undefined
+    // otherwise make sure this is string[]
     const code =
       doc[0] === ""
         ? undefined
@@ -300,7 +200,14 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
             style={{ color: COLORS.GRAY }}
           />
           {code != null && code.map((v, idx) => <pre key={idx}>{v}</pre>)}
-          {render_insert({ code, descr: undefined }, true)}
+          <Row>
+            <Col flex={3}>
+              {render_insert({ code, descr: undefined }, true)}
+            </Col>
+            <Col flex={1} style={{ textAlign: "right" }}>
+              <Copy code={code} />
+            </Col>
+          </Row>
         </div>
       </Collapse.Panel>
     );
@@ -369,8 +276,61 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
+  function render_no_kernel(): JSX.Element {
+    return (
+      <Alert
+        message="No kernel"
+        type="info"
+        description="There is no active kernel and therefore the programming language is not known."
+      />
+    );
+  }
+
+  function render_no_snippets(): JSX.Element {
+    return (
+      <Alert
+        message="No Snippets"
+        type="error"
+        description={
+          <div>
+            There are no snippets known for the programming language {lang}. You
+            can help by <A href={URL}>contributing snippets</A>.
+          </div>
+        }
+      />
+    );
+  }
+
+  function render_loading(): JSX.Element {
+    return (
+      <div style={{ textAlign: "center", marginTop: "5rem" }}>
+        <Loading />
+      </div>
+    );
+  }
+
+  function no_search_result(): JSX.Element {
+    return (
+      <Alert
+        message="No search results"
+        type="info"
+        description={
+          <>
+            There are no matches for your search.{" "}
+            <Button type="link" onClick={() => set_search_txt("")}>
+              clear search
+            </Button>
+          </>
+        }
+      />
+    );
+  }
+
   const render_snippets = React.useCallback((): JSX.Element => {
-    if (snippets == null) return <Loading />;
+    if (data == null) return render_loading();
+    if (lang == null) return render_no_kernel();
+    if (snippets == null) return render_no_snippets();
+    if (search !== "" && isEmpty(snippets)) return no_search_result();
     const lvl1 = sortBy(Object.entries(snippets), [
       HEADER_SORTER,
       ([k, _]) => k,
@@ -382,7 +342,18 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         ? undefined
         : { activeKey: lvl1.slice(0, 3).map((val) => val[0]) };
     return (
-      <Collapse style={style} {...active_search}>
+      <Collapse
+        style={style}
+        expandIcon={({ isActive }) => {
+          const style: CSS = { fontSize: "1em" };
+          if (isActive) {
+            return <MinusSquareOutlined style={style} />;
+          } else {
+            return <PlusSquareOutlined style={style} />;
+          }
+        }}
+        {...active_search}
+      >
         {lvl1.map(render_level1)}
       </Collapse>
     );
@@ -395,30 +366,37 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
       >
         <Typography.Text strong>Code Snippets</Typography.Text> is a collection
-        of examples for the programming language{" "}
-        <Typography.Text code>{lang}</Typography.Text>. Go ahead an expand the
-        categories to see them and use the "{BUTTON_TEXT}" button to copy the
-        snippet into your notebook.
+        of examples for the current programming language. Go ahead and expand
+        the categories to see them and use the "{BUTTON_TEXT}" button to copy
+        the snippet into your notebook. If there is some text in the search box,
+        it shows you some of the matching snippets. Something missing? Please{" "}
+        <A href={URL}>contribute snippets</A>.
       </Typography.Paragraph>
     );
   }
 
   function render_controlls(): JSX.Element {
+    const onChange = (e) => {
+      const txt = e.target.value;
+      set_search_txt(txt);
+    };
+
     return (
       <Row>
         <Col flex={3}>
           <Input.Search
+            value={search_txt}
             addonBefore={<span style={{ paddingRight: "10px" }}>Search</span>}
             placeholder="filter..."
             allowClear
             enterButton
             onSearch={set_search}
-            onChange={(e) => set_search_debounced(e.target.value)}
+            onChange={onChange}
           />
         </Col>
         <Col flex={2}>
           <Checkbox
-            style={{ padding: "5px" }}
+            style={{ padding: "5px", fontWeight: "normal" }}
             checked={insert_setup}
             onChange={(e) => set_insert_setup(e.target.checked)}
           >
@@ -430,7 +408,6 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render(): JSX.Element {
-    if (lang == null) return <div>Kernel not loaded.</div>;
     return (
       <>
         <div style={{ margin: "10px" }}>
