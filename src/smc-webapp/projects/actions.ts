@@ -11,6 +11,7 @@ import {
   is_valid_uuid_string,
   len,
   defaults,
+  server_minutes_ago,
 } from "smc-util/misc";
 import { Set } from "immutable";
 import { ProjectsState, store } from "./store";
@@ -772,14 +773,8 @@ export class ProjectsActions extends Actions<ProjectsState> {
       // when we requested an action.
       return undefined;
     }
-    if (
-      webapp_client.server_time().valueOf() - request_time.valueOf() >
-        1000 * 30 &&
-      (action_request.get("started") == null ||
-        action_request.get("started") < request_time)
-    ) {
-      // we have been ignored for 30 seconds -- server didn't start handling
-      // our request
+    if (request_time <= server_minutes_ago(10)) {
+      // action_requst is old; just ignore it.
       return undefined;
     }
 
