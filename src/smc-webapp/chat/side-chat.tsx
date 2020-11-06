@@ -17,7 +17,6 @@ import { Button } from "../antd-bootstrap";
 import { ProjectUsers } from "../projects/project-users";
 import { AddCollaborators } from "../collaborators/add-collaborators";
 
-
 import {
   mark_chat_as_read_if_unseen,
   scroll_to_bottom,
@@ -80,14 +79,10 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
     return (
       <div>
         Stream your screen or chat <A href={DISCORD_INVITE}>using Discord</A>.
-        <div>Add people to this project below:</div>
-        <AddCollaborators
-          project={project}
-          inline={true}
-          allow_urls={allow_urls}
-        />
-        <div style={{ color: "#666", marginTop: "-15px" }}>
-          (Anybody you add will see all files in this project.)
+        <div style={{ marginBottom: "5px" }}>Add Project Collaborators:</div>
+        <AddCollaborators project={project} inline={true} trust={allow_urls} />
+        <div style={{ color: "#666" }}>
+          (Collaborators have access to all files in this project.)
         </div>
       </div>
     );

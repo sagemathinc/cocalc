@@ -7,7 +7,7 @@
 Add collaborators to a project
 */
 
-import { Input, Select } from "antd";
+import { Alert, Input, Select } from "antd";
 
 import {
   React,
@@ -17,7 +17,7 @@ import {
   useState,
 } from "../app-framework";
 
-import { Alert, Button, ButtonToolbar, Well } from "../antd-bootstrap";
+import { Button, ButtonToolbar, Well } from "../antd-bootstrap";
 
 import {
   Icon,
@@ -31,32 +31,49 @@ import {
 import { webapp_client } from "../webapp-client";
 import { has_internet_access } from "../upgrades/upgrade-utils";
 import { SITE_NAME } from "smc-util/theme";
-import { contains_url } from "smc-util/misc2";
-import { search_match, search_split } from "smc-util/misc";
+import { contains_url, plural } from "smc-util/misc2";
+import {
+  is_valid_email_address,
+  is_valid_uuid_string,
+  search_match,
+  search_split,
+} from "smc-util/misc";
 import { Project } from "../projects/store";
 
-interface User {
+interface RegisteredUser {
   account_id: string;
-  first_name: string;
-  last_name: string;
+  first_name?: string;
+  last_name?: string;
   last_active?: Date;
   created?: Date;
   email_address?: string;
   email_address_verified?: boolean;
 }
 
+interface NonregisteredUser {
+  email_address: string;
+  account_id?: undefined;
+  first_name?: undefined;
+  last_name?: undefined;
+  last_active?: undefined;
+  created?: undefined;
+  email_address_verified?: undefined;
+}
+
+type User = RegisteredUser | NonregisteredUser;
+
 interface Props {
   project: Project;
   inline?: boolean;
-  allow_urls?: boolean;
+  trust?: boolean;
 }
 
-type State = "input" | "searching" | "searched";
+type State = "input" | "searching" | "searched" | "invited" | "invited_errors";
 
 export const AddCollaborators: React.FC<Props> = ({
   project,
   inline,
-  allow_urls,
+  trust,
 }) => {
   const user_map = useTypedRedux("users", "user_map");
 
@@ -65,6 +82,7 @@ export const AddCollaborators: React.FC<Props> = ({
 
   // list of results for doing the search -- turned into a selector
   const [results, set_results] = useState<User[]>([]);
+  const [num_matching_already, set_num_matching_already] = useState<number>(0);
 
   // list of actually selected entries in the selector list
   const [selected_entries, set_selected_entries] = useState<string[]>([]);
@@ -79,12 +97,14 @@ export const AddCollaborators: React.FC<Props> = ({
   const [email_body, set_email_body] = useState<string>("");
   const [email_body_error, set_email_body_error] = useState<string>("");
   const [email_body_editing, set_email_body_editing] = useState<boolean>(false);
+  const [invite_result, set_invite_result] = useState<string>("");
 
   const project_actions = useActions("projects");
 
   function reset(): void {
     set_search("");
     set_results([]);
+    set_num_matching_already(0);
     set_selected_entries([]);
     set_state("input");
     set_err("");
@@ -95,7 +115,7 @@ export const AddCollaborators: React.FC<Props> = ({
   }
 
   async function do_search(search: string): Promise<void> {
-    search = search.trim();
+    search = search.trim().toLowerCase();
     // this gets used in write_email_invite, and whether to render the selection list.
     set_search(search);
     set_selected_entries([]);
@@ -110,12 +130,23 @@ export const AddCollaborators: React.FC<Props> = ({
     }
     set_state("searching");
     let err = "";
-    let results;
+    let search_results: User[] = [];
     try {
-      results = await webapp_client.users_client.user_search({
+      search_results = await webapp_client.users_client.user_search({
         query: search,
         limit: 50,
       });
+      if (search_results.length == 0 && is_valid_email_address(search)) {
+        search_results.push({ email_address: search });
+      } else {
+        // There are some results, so not adding non-cloud user via email.
+        // Filter out any users that already a collab on this project
+        const n = search_results.length;
+        search_results = search_results.filter(
+          (r) => project.getIn(["users", r.account_id]) == null
+        );
+        set_num_matching_already(n - search_results.length);
+      }
     } catch (e) {
       err = e.toString();
     }
@@ -123,7 +154,7 @@ export const AddCollaborators: React.FC<Props> = ({
 
     set_state("searched");
     set_err(err);
-    set_results(results);
+    set_results(search_results);
     set_email_to("");
   }
 
@@ -134,7 +165,7 @@ export const AddCollaborators: React.FC<Props> = ({
       const x: User[] = [];
       const y: User[] = [];
       for (const r of users) {
-        if (user_map.get(r.account_id)) {
+        if (r.account_id != null && user_map.get(r.account_id)) {
           x.push(r);
         } else {
           y.push(r);
@@ -145,38 +176,44 @@ export const AddCollaborators: React.FC<Props> = ({
 
     const options: JSX.Element[] = [];
     for (const r of v) {
-      let name = r.first_name + " " + r.last_name;
+      let name = r.account_id
+        ? (r.first_name ?? "") + " " + (r.last_name ?? "")
+        : r.email_address;
+      if (!name?.trim()) {
+        name = "Anonymous User";
+      }
 
       // Extra display is a bit ugly, but we need to do it for now.  Need to make
       // react rendered version of this that is much nicer (with pictures!) someday.
       const extra: string[] = [];
-      if (user_map?.get(r.account_id)) {
+      if (r.account_id != null && user_map.get(r.account_id)) {
         extra.push("Collaborator");
       }
       if (r.last_active) {
         extra.push(
-          `Last active: ${new Date(r.last_active).toLocaleDateString()}`
+          `Last active ${new Date(r.last_active).toLocaleDateString()}`
         );
       }
       if (r.created) {
-        extra.push(`Created: ${new Date(r.created).toLocaleDateString()}`);
+        extra.push(`Created ${new Date(r.created).toLocaleDateString()}`);
       }
-      if (r.email_address) {
-        if (r.email_address_verified?.[r.email_address]) {
-          extra.push("Email verified: YES");
-        } else {
-          extra.push("Email verified: NO");
+      if (r.account_id == null) {
+        extra.push(`No account yet`);
+      } else {
+        if (r.email_address) {
+          if (r.email_address_verified?.[r.email_address]) {
+            extra.push(`${r.email_address} -- verified`);
+          } else {
+            extra.push(`${r.email_address} -- not verified`);
+          }
         }
       }
       if (extra.length > 0) {
         name += `  (${extra.join(", ")})`;
       }
+      const x = r.account_id ?? r.email_address;
       options.push(
-        <Select.Option
-          key={r.account_id}
-          value={r.account_id}
-          label={name.toLowerCase()}
-        >
+        <Select.Option key={x} value={x} label={name.toLowerCase()}>
           {name}
         </Select.Option>
       );
@@ -184,21 +221,10 @@ export const AddCollaborators: React.FC<Props> = ({
     return options;
   }
 
-  function invite_collaborator(account_id: string): void {
-    const replyto = redux.getStore("account").get_email_address();
-    const replyto_name = redux.getStore("account").get_fullname();
-    const SiteName = redux.getStore("customize").get("site_name") ?? SITE_NAME;
-    let subject;
-    if (replyto_name != null) {
-      subject = `${replyto_name} added you to ${SiteName} project ${project.get(
-        "title"
-      )}`;
-    } else {
-      subject = `You've been added to ${SiteName} project ${project.get(
-        "title"
-      )}`;
-    }
-    project_actions.invite_collaborator(
+  async function invite_collaborator(account_id: string): Promise<void> {
+    const { subject, replyto, replyto_name } = sender_info();
+
+    await project_actions.invite_collaborator(
       project.get("project_id"),
       account_id,
       email_body,
@@ -210,15 +236,31 @@ export const AddCollaborators: React.FC<Props> = ({
   }
 
   function add_selected(): void {
-    // handle case, where just one name is listed
-    if (results.length == 1) {
-      invite_collaborator(results[0].account_id);
-    } else {
-      for (const account_id of selected_entries) {
-        invite_collaborator(account_id);
+    let errors = "";
+    for (const x of selected_entries) {
+      try {
+        if (is_valid_email_address(x)) {
+          invite_noncloud_collaborator(x);
+        } else if (is_valid_uuid_string(x)) {
+          invite_collaborator(x);
+        } else {
+          // skip
+          throw Error(
+            `BUG - invalid selection ${x} must be an email address or account_id.`
+          );
+        }
+      } catch (err) {
+        errors += `\nError - ${err}`;
       }
     }
     reset();
+    if (errors) {
+      set_invite_result(errors);
+      set_state("invited_errors");
+    } else {
+      set_invite_result(`Successfully added ${selected_entries.length} users!`);
+      set_state("invited");
+    }
   }
 
   function write_email_invite(): void {
@@ -231,7 +273,11 @@ export const AddCollaborators: React.FC<Props> = ({
     set_email_body(body);
   }
 
-  function send_email_invite(): void {
+  function sender_info(): {
+    subject: string;
+    replyto?: string;
+    replyto_name: string;
+  } {
     const replyto = redux.getStore("account").get_email_address();
     const replyto_name = redux.getStore("account").get_fullname();
     const SiteName = redux.getStore("customize").get("site_name") ?? SITE_NAME;
@@ -241,6 +287,29 @@ export const AddCollaborators: React.FC<Props> = ({
     } else {
       subject = `${SiteName} Invitation to project ${project.get("title")}`;
     }
+    return { subject, replyto, replyto_name };
+  }
+
+  async function invite_noncloud_collaborator(email_address): Promise<void> {
+    const { subject, replyto, replyto_name } = sender_info();
+    await project_actions.invite_collaborators_by_email(
+      project.get("project_id"),
+      email_address,
+      email_body,
+      subject,
+      false,
+      replyto,
+      replyto_name
+    );
+    if (!trust) {
+      // TODO: show a message that they might have to email that person
+      // and tell them to make a cocalc account, and when they do
+      // then they will get added as collaborator to this project....
+    }
+  }
+
+  function send_email_invite(): void {
+    const { subject, replyto, replyto_name } = sender_info();
     project_actions.invite_collaborators_by_email(
       project.get("project_id"),
       email_to,
@@ -256,7 +325,7 @@ export const AddCollaborators: React.FC<Props> = ({
   }
 
   function check_email_body(value: string): void {
-    if (!allow_urls && contains_url(value)) {
+    if (!trust && contains_url(value)) {
       set_email_body_error("Sending URLs is not allowed. (anti-spam measure)");
     } else {
       set_email_body_error("");
@@ -416,7 +485,10 @@ export const AddCollaborators: React.FC<Props> = ({
         }
         const collabs = v.join(", ");
         return (
-          <Alert bsStyle="info">Existing collaborator(s): {collabs}</Alert>
+          <Alert
+            type="info"
+            message={<>Existing collaborator(s): {collabs}</>}
+          />
         );
       }
     } else {
@@ -428,9 +500,6 @@ export const AddCollaborators: React.FC<Props> = ({
             showArrow
             autoFocus
             defaultOpen
-            defaultValue={
-              results.length == 1 ? [results[0].account_id] : undefined
-            }
             filterOption={(s, opt) => {
               return search_match(
                 (opt as any).label,
@@ -467,23 +536,26 @@ export const AddCollaborators: React.FC<Props> = ({
 
   function render_select_list_button(): JSX.Element | undefined {
     const number_selected = selected_entries.length;
-    let btn_text: string;
+    let label: string;
     let disabled: boolean;
     if (results.length == 0) {
-      btn_text = "No User Found";
+      label = "No matching users";
+      if (num_matching_already > 0) {
+        label += ` (${num_matching_already} matching ${plural(
+          num_matching_already,
+          "user"
+        )} already added)`;
+      }
       disabled = true;
     } else {
-      if (results.length == 1) {
-        btn_text = "Add Selected User";
-        disabled = false;
-      } else if (number_selected == 0) {
-        btn_text = "Add Selected User";
+      if (number_selected == 0) {
+        label = "Add selected user";
         disabled = true;
       } else if (number_selected == 1) {
-        btn_text = "Add Selected User";
+        label = "Add selected user";
         disabled = false;
       } else {
-        btn_text = `Add ${number_selected} Selected Users`;
+        label = `Add ${number_selected} selected users`;
         disabled = false;
       }
     }
@@ -495,7 +567,7 @@ export const AddCollaborators: React.FC<Props> = ({
         <Button onClick={reset}>Cancel</Button>
         <Space />
         <Button disabled={disabled} onClick={add_selected} bsStyle="primary">
-          <Icon name="user-plus" /> {btn_text}
+          <Icon name="user-plus" /> {label}
         </Button>
       </div>
     );
@@ -505,6 +577,7 @@ export const AddCollaborators: React.FC<Props> = ({
     if (state == "searched") return;
     const input = (
       <SearchInput
+        style={{ marginBottom: 0 }}
         on_submit={do_search}
         value={search}
         placeholder="Search by name or email address..."
@@ -534,12 +607,29 @@ export const AddCollaborators: React.FC<Props> = ({
     }
   }
 
+  function render_invite_result(): JSX.Element | undefined {
+    if (state != "invited") {
+      return;
+    }
+    return (
+      <Alert
+        style={{ margin: "5px 0" }}
+        showIcon
+        closable
+        onClose={reset}
+        type="success"
+        message={invite_result}
+      />
+    );
+  }
+
   return (
     <div>
       {render_input_row()}
       {render_search()}
       {render_select_list()}
       {render_send_email()}
+      {render_invite_result()}
     </div>
   );
 };

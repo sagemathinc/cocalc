@@ -113,6 +113,8 @@ export class AccountStore extends Store<AccountState> {
   }
 
   // uses the total upgrades information to determine, if this is a paying member
+  // TODO: this is not used anywhere; but, if it was, it should also take into account
+  // being a license manager...
   is_paying_member(): boolean {
     const ups = this.get_total_upgrades();
     return (

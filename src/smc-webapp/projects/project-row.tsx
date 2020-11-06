@@ -63,7 +63,7 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
         <AddCollaborators
           project={project}
           inline={true}
-          allow_urls={allow_urls}
+          trust={allow_urls}
         />
       </div>
     );
