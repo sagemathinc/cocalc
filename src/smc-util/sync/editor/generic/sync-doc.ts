@@ -1564,9 +1564,14 @@ export class SyncDoc extends EventEmitter {
       dbg("bug -- not ready");
       throw Error("bug -- cannot save if doc and last are not initialized");
     }
-    if (this.state != "ready") {
-      // There's nothing to do regarding save if the table isn't
-      // opened yet or is already closed or closing.
+    if (this.state == "closed") {
+      // There's nothing to do regarding save if the table is
+      // already closed.  Note that we *do* have to save when
+      // the table is init stage, since the project has to
+      // record the newly opened version of the file to the
+      // database! See
+      //    https://github.com/sagemathinc/cocalc/issues/4986
+      dbg(`state=${this.state} not ready so not saving`);
       return;
     }
     await this.patches_table.save();

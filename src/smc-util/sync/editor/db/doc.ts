@@ -468,7 +468,7 @@ export class DBDocument implements Document {
     } else {
       // The sparse array matches had nothing in it, so
       // append a new record.
-      for (const field in this.string_cols) {
+      for (const field of this.string_cols) {
         if (obj[field] != null && is_array(obj[field])) {
           // It's a patch -- but there is nothing to patch,
           // so discard this field

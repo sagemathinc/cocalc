@@ -52,14 +52,6 @@ export async function open_file(
     actions.open_directory(opts.path);
     return;
   }
-  if (
-    !(await ensure_project_running(
-      actions.project_id,
-      `open the file '${opts.path}'`
-    ))
-  ) {
-    return;
-  }
 
   opts = defaults(opts, {
     path: required,
@@ -73,28 +65,6 @@ export async function open_file(
     anchor: undefined,
   });
   opts.path = normalize(opts.path);
-  try {
-    // Unfortunately (it adds a roundtrip to the server), we **have** to do this
-    // due to https://github.com/sagemathinc/cocalc/issues/4732 until we actually
-    // genuinely implement symlink support.  Otherwise bad things happen.  Much of
-    // cocalc was implemented basically assuming links don't exist; it's not easy
-    // to change that!
-    const realpath = await webapp_client.project_client.realpath({
-      project_id: actions.project_id,
-      path: opts.path,
-    });
-    if (opts.path != realpath) {
-      alert_message({
-        type: "info",
-        message: `Opening realpath "${realpath}" instead, since filesystem links are not fully supported.`,
-        timeout: 15,
-      });
-      opts.path = realpath;
-    }
-  } catch (_) {
-    // TODO: old projects will not have the new realpath api call -- can delete this try/catch at some point.
-  }
-  const ext = filename_extension_notilde(opts.path).toLowerCase();
 
   // intercept any requests if in kiosk mode
   if (
@@ -124,10 +94,51 @@ export async function open_file(
   let open_files = store.get("open_files");
   if (!open_files.has(opts.path)) {
     // Make the visible tab appear ASAP, even though
-    // some stuff that may await below needs to happen...
+    // some stuff that may await below needs to happen.
+    // E.g., if the user elects not to start the project, or
+    // we have to resolve a symlink instead, then we *fix*
+    // that below!  This makes things fast and predictable
+    // usually.
     if (!actions.open_files) return; // closed
     actions.open_files.set(opts.path, "component", {});
   }
+
+  if (
+    !(await ensure_project_running(
+      actions.project_id,
+      `open the file '${opts.path}'`
+    ))
+  ) {
+    if (!actions.open_files) return; // closed
+    actions.open_files.delete(opts.path);
+    return;
+  }
+
+  try {
+    // Unfortunately (it adds a roundtrip to the server), we **have** to do this
+    // due to https://github.com/sagemathinc/cocalc/issues/4732 until we actually
+    // genuinely implement symlink support.  Otherwise bad things happen.  Much of
+    // cocalc was implemented basically assuming links don't exist; it's not easy
+    // to change that!
+    const realpath = await webapp_client.project_client.realpath({
+      project_id: actions.project_id,
+      path: opts.path,
+    });
+    if (opts.path != realpath) {
+      if (!actions.open_files) return; // closed
+      alert_message({
+        type: "info",
+        message: `Opening realpath "${realpath}" instead, since filesystem links are not fully supported.`,
+        timeout: 15,
+      });
+      actions.open_files.delete(opts.path);
+      opts.path = realpath;
+      actions.open_files.set(opts.path, "component", {});
+    }
+  } catch (_) {
+    // TODO: old projects will not have the new realpath api call -- can delete this try/catch at some point.
+  }
+  const ext = filename_extension_notilde(opts.path).toLowerCase();
 
   // Returns true if the project is closed or the file tab is now closed.
   function is_closed(): boolean {
