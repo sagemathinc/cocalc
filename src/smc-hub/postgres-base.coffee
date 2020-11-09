@@ -27,8 +27,8 @@ escapeString = require('sql-string-escape')
 validator = require('validator')
 {callback2} = require('smc-util/async-utils')
 
-debug = require('debug')
-LOG = debug("hub:pg:base")
+#debug = require('debug')
+#LOG = debug("hub:pg:base")
 
 pg      = require('pg').native    # You might have to do: "apt-get install libpq5 libpq-dev"
 if not pg?
@@ -114,6 +114,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             ensure_exists   : true  # ensure database exists on startup (runs psql in a shell)
             timeout_ms      : DEFAULT_TIMEOUS_MS # **IMPORTANT: if *any* query takes this long, entire connection is terminated and recreated!**
             timeout_delay_ms : DEFAULT_TIMEOUT_DELAY_MS # Only reconnect on timeout this many ms after connect.  Motivation: on initial startup queries may take much longer due to competition with other clients.
+            pg_pool_max        : process.env['PG_POOL_MAX'] ? '3' # max client connections per db host
+            pg_pool_idle_ms    : process.env['PG_POOL_IDLE_MS'] ? '30000' # after that, release the client connection
+            pg_pool_timeout_ms : process.env['PG_POOL_TIMEOUT_MS'] ? '5000' # after that, drop the client connection
         @setMaxListeners(10000)  # because of a potentially large number of changefeeds
         @_state = 'init'
         @_debug = opts.debug
@@ -135,6 +138,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_user = opts.user
         @_database = opts.database
         @_password = opts.password ? read_db_password_from_disk()
+        @_pg_pool_max = opts.pg_pool_max
+        @_pg_pool_idle_ms = opts.pg_pool_idle_ms
+        @_pg_pool_timeout_ms = opts.pg_pool_timeout_ms
         @_init_metrics()
 
         if opts.cache_expiry and opts.cache_size
@@ -293,14 +299,14 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 # issues with scope of "client" below.
                 init_pool = (host) =>
                     pool = new pg.Pool
-                        user     : @_user
-                        host     : host
-                        port     : @_port
-                        password : @_password
-                        database : @_database
-                        idleTimeoutMillis       : 60000
-                        max                     : 3
-                        connectionTimeoutMillis : 5000
+                        user                    : @_user
+                        host                    : host
+                        port                    : @_port
+                        password                : @_password
+                        database                : @_database
+                        idleTimeoutMillis       : @_pg_pool_idle_ms
+                        max                     : @_pg_pool_max
+                        connectionTimeoutMillis : @_pg_pool_timeout_ms
                     pool.on 'error', (err) =>
                         if @_state == 'init'
                             # already started connecting
@@ -309,8 +315,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                         dbg("error -- #{err}")
                         @disconnect()
                         @connect()  # start trying to reconnect
-                    # prior to using a Pool, this line was set here – it moved to where we connect to a client
-                    #client.setMaxListeners(1000)  # there is one emitter for each concurrent query... (see query_cb)
                     locals.pools.push(pool)
 
                 for host in locals.hosts
@@ -402,9 +406,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             if @_client_index >= @_pools.length
                 @_client_index = 0
             pool = @_pools[@_client_index]
-        #LOG("clients", @_pools)
         client = await pool.connect()
-        #LOG("client", client)
         client.setMaxListeners(1000)  # there is one emitter for each concurrent query... (see query_cb)
         if @_notification? and client.listeners('notification')[0] != @_notification
             client.on('notification', @_notification)
@@ -770,7 +772,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         # params can easily be huge, e.g., a blob.  But this may be
         # needed at some point for debugging.
         #dbg("query='#{opts.query}', params=#{misc.to_json(opts.params)}")
-        client = @_client()
+        client = await @_client()
         if not client?
             opts.cb?("not connected")
             return
