@@ -1411,12 +1411,6 @@ class Student extends Component<StudentProps, StudentState> {
         this.props.student.get("student_id")
       );
       const edited_feedback = this.props.active_feedback_edits.get(key);
-      let edited_comments: string | undefined;
-      let edited_grade: string | undefined;
-      if (edited_feedback != undefined) {
-        edited_comments = edited_feedback.get("edited_comments");
-        edited_grade = edited_feedback.get("edited_grade");
-      }
       result.push(
         <StudentAssignmentInfo
           key={assignment.get("assignment_id")}
@@ -1432,8 +1426,6 @@ class Student extends Component<StudentProps, StudentState> {
           )}
           info={info}
           is_editing={!!edited_feedback}
-          edited_comments={edited_comments}
-          edited_grade={edited_grade}
           nbgrader_run_info={this.props.nbgrader_run_info}
         />
       );
