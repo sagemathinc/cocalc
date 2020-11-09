@@ -400,6 +400,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             return
         if @_pools.length <= 1
             pool = @_pools[0]
+            @_client_index  = 0
         else
             @_client_index ?= -1
             @_client_index = @_client_index + 1
@@ -410,6 +411,12 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         client.setMaxListeners(1000)  # there is one emitter for each concurrent query... (see query_cb)
         if @_notification? and client.listeners('notification')[0] != @_notification
             client.on('notification', @_notification)
+
+        # updated pg.Pool stats
+        @_pg_pool_metrics.labels("#{@_client_index}", "totalCount").set(pool.totalCount)
+        @_pg_pool_metrics.labels("#{@_client_index}", "idleCount").set(pool.idleCount)
+        @_pg_pool_metrics.labels("#{@_client_index}", "waitingCount").set(pool.waitingCount)
+
         return client
 
     _dbg: (f) =>
@@ -431,6 +438,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @query_counter = MetricsRecorder.new_counter('db_queries_total',
                                                      'All Queries',
                                                      ['priority'])
+
+        @_pg_pool_metrics = MetricsRecorder.new_gauge('pg_pool', 'PG Pool Stats', ['id', 'stat'])
 
     async_query: (opts) =>
         return await callback2(@_query.bind(@), opts)
@@ -779,8 +788,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_concurrent_queries ?= 0
         @_concurrent_queries += 1
         dbg("query='#{opts.query} (concurrent=#{@_concurrent_queries})'")
-
         @concurrent_counter.labels('started').inc(1)
+
         try
             start = new Date()
             if @_timeout_ms and @_timeout_delay_ms
@@ -812,7 +821,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     return
                 finished = true
                 client.removeListener('error', error_listener)
-                client.release()
+                client.release() # this places the client back into the pg.Pool
 
                 if @_timeout_ms
                     clearTimeout(timer)
