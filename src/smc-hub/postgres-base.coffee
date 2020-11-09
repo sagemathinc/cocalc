@@ -519,18 +519,17 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         limiteropts =
             expiration: 2 * 60 * 1000 # ms, basically a safeguard against never calling a cb()
             priority: opts.priority # must be 0 to 9, lower more important, 5 default, user queries <=4
-        # a little bit of callback acrobatics to make this compatible with bottleneck
-        cb = opts.cb
-        delete opts.cb
-        #winston.debug("limiteropts.priority", limiteropts.priority)
-        LIMITER.submit(limiteropts, @__do_query_actual, opts, cb)
+        done = =>
+        LIMITER.submit(limiteropts, @__do_query_actual, opts, done)
 
     __do_query_actual: (opts, cb_limiter) =>
-        # re-assembling to opts.cb
-        opts.cb = cb_limiter
-        # recording the query itself is a nice idea, but they are unlimited – not a good idea
-        #count_what = opts.query?.slice(0, 256) ? opts.table ? opts.where?.table_name ? '-'
         @query_counter.labels(opts.priority).inc(1)
+
+        # after everything is done, we have to call the limiter callback
+        cb_orig = opts.cb
+        opts.cb = (err, res) =>
+            cb_orig?(err, res)
+            cb_limiter()
 
         dbg = @_dbg("_query('#{misc.trunc(opts.query?.replace(/\n/g, " "),250)}',id='#{misc.uuid().slice(0,6)}')")
         if not @is_connected()
