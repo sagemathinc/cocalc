@@ -923,9 +923,13 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     if (!is_visible("guide", true) || is_public) {
       return;
     }
-    const { title, descr } = props.editor_spec[props.type].guide_info ?? {
-      title: "Guide",
-      descr: "Show guidebook",
+    const { title, descr, icon } = {
+      ...{
+        title: "Guide",
+        descr: "Show guidebook",
+        icon: "book",
+      },
+      ...props.editor_spec[props.type].guide_info,
     };
     return (
       <Button
@@ -938,7 +942,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
             : undefined
         }
       >
-        <Icon name="book" />{" "}
+        <Icon name={icon} />{" "}
         <VisibleMDLG>{labels ? title : undefined}</VisibleMDLG>
       </Button>
     );

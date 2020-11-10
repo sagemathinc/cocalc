@@ -118,6 +118,7 @@ interface Props {
   fontSize?: number;
   styleActiveLine?: boolean;
   lineWrapping?: boolean;
+  autoFocus?: boolean;
 }
 
 export const MarkdownInput: React.FC<Props> = ({
@@ -142,6 +143,7 @@ export const MarkdownInput: React.FC<Props> = ({
   fontSize,
   styleActiveLine,
   lineWrapping,
+  autoFocus,
 }) => {
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
@@ -152,7 +154,7 @@ export const MarkdownInput: React.FC<Props> = ({
   const dropzone_ref = useRef<Dropzone>(null);
   const upload_close_preview_ref = useRef<Function | null>(null);
   const current_uploads_ref = useRef<{ [name: string]: boolean } | null>(null);
-  const [is_focused, set_is_focused] = useState<boolean>(true);
+  const [is_focused, set_is_focused] = useState<boolean>(!!autoFocus);
 
   const [mentions, set_mentions] = useState<undefined | Item[]>(undefined);
   const [mentions_offset, set_mentions_offset] = useState<
@@ -287,8 +289,9 @@ export const MarkdownInput: React.FC<Props> = ({
       };
     }
 
-    cm.current.focus();
-
+    if (autoFocus) {
+      cm.current.focus();
+    }
     // clean up
     return () => {
       if (cm.current == null) return;

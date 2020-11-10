@@ -40,6 +40,6 @@
     "puppeteer": "^2.0.0",
     "sprintf-js": "^1.1.2",
     "type-of-is": "^3.5.1",
-    "typescript": "^4.0.2"
+    "typescript": "^4.0.5"
   }
 }

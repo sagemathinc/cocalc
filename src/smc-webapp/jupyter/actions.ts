@@ -335,7 +335,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   // Set the input of the given cell in the syncdb, which will also change the store.
   // Might throw a CellWriteProtectedException
   public set_cell_input(id: string, input: string, save = true): void {
-    if (this.check_edit_protection(id)) {
+    if (this.check_edit_protection(id, "changing input")) {
       return;
     }
     this._set(
@@ -350,7 +350,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   }
 
-  set_cell_output = (id: any, output: any, save = true) => {
+  set_cell_output = (id: string, output: any, save = true) => {
     this._set(
       {
         type: "cell",
@@ -387,15 +387,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.clear_outputs(this.store.get_cell_list().toJS(), save);
   }
 
-  private show_not_xable_error(x: string, n: number): void {
+  private show_not_xable_error(x: string, n: number, reason?: string): void {
     if (n <= 0) return;
     const verb: string = n === 1 ? "is" : "are";
     const noun: string = misc.plural(n, "cell");
-    this.set_error(`${n} ${noun} ${verb} protected from ${x}.`);
+    this.set_error(
+      `${n} ${noun} ${verb} protected from ${x}${
+        reason ? " when " + reason : ""
+      }.`
+    );
   }
 
-  private show_not_editable_error(n: number = 1): void {
-    this.show_not_xable_error("editing", n);
+  private show_not_editable_error(reason?: string): void {
+    this.show_not_xable_error("editing", 1, reason);
   }
 
   private show_not_deletable_error(n: number = 1): void {
@@ -439,7 +443,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     cell_type: string = "code",
     save: boolean = true
   ): void {
-    if (this.check_edit_protection(id)) return;
+    if (this.check_edit_protection(id, "changing cell type")) return;
     if (
       cell_type !== "markdown" &&
       cell_type !== "raw" &&
@@ -465,7 +469,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.deprecated("set_selected_cell_type", cell_type);
   }
 
-  set_md_cell_editing = (id: any): void => {
+  set_md_cell_editing = (id: string): void => {
     this.deprecated("set_md_cell_editing", id);
   };
 
@@ -474,7 +478,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   // Set which cell is currently the cursor.
-  set_cur_id = (id: any): void => {
+  set_cur_id = (id: string): void => {
     this.deprecated("set_cur_id", id);
   };
 
@@ -1034,10 +1038,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.set_trust_notebook(true, save);
   }
 
-  clear_cell = (id: any, save = true) => {
-    if (this.check_edit_protection(id)) {
-      return;
-    }
+  clear_cell = (id: string, save = true) => {
     return this._set(
       {
         type: "cell",
@@ -1053,10 +1054,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
-  clear_cell_run_state = (id: any, save = true) => {
-    if (this.check_edit_protection(id)) {
-      return;
-    }
+  clear_cell_run_state = (id: string, save = true) => {
     return this._set(
       {
         type: "cell",
@@ -1120,7 +1118,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   public split_cell(id: string, cursor: { line: number; ch: number }): void {
-    if (this.check_edit_protection(id)) {
+    if (this.check_edit_protection(id, "splitting cell")) {
       return;
     }
     // insert a new cell before the currently selected one
@@ -1173,7 +1171,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
     for (const id of [cell_id, next_id]) {
-      if (this.check_edit_protection(id)) return;
+      if (this.check_edit_protection(id, "merging cell")) return;
     }
     if (this.check_delete_protection(next_id)) return;
 
@@ -1906,7 +1904,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  fetch_more_output = async (id: any): Promise<void> => {
+  fetch_more_output = async (id: string): Promise<void> => {
     const time = this._client.server_time() - 0;
     try {
       const more_output = await this.api_call("more_output", { id: id }, 60000);
@@ -1921,7 +1919,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   // NOTE: set_more_output on project-actions is different
-  set_more_output = (id: any, more_output: any, _?: any): void => {
+  set_more_output = (id: string, more_output: any, _?: any): void => {
     if (this.store.getIn(["cells", id]) == null) {
       return;
     }
@@ -1976,7 +1974,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   public insert_image(id: string): void {
-    if (this.check_edit_protection(id)) {
+    if (this.check_edit_protection(id, "inserting an image")) {
       return;
     }
     if (this.store.get_cell_type(id) != "markdown") {
@@ -2024,7 +2022,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.save_asap();
   }
 
-  submit_password = async (id: any, value: any): Promise<void> => {
+  submit_password = async (id: string, value: any): Promise<void> => {
     await this.set_in_backend_key_value_store(id, value);
   };
 
@@ -2157,7 +2155,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (!value) {
       value = null; // delete
     }
-    if (this.check_edit_protection(id)) {
+    if (this.check_edit_protection(id, "making a cell aslide")) {
       return;
     }
     this._set({
@@ -2198,7 +2196,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  edit_attachments = (id: any): void => {
+  edit_attachments = (id: string): void => {
     this.setState({ edit_attachments: id });
   };
 
@@ -2210,7 +2208,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return `<img src="attachment:${name}" style="max-width:100%">`;
   };
 
-  insert_input_at_cursor = (id: any, s: string, save: boolean = true) => {
+  insert_input_at_cursor = (id: string, s: string, save: boolean = true) => {
     // TODO: this maybe doesn't make sense anymore...
     // TODO: redo this -- note that the input below is wrong, since it is
     // from the store, not necessarily from what is live in the cell.
@@ -2218,7 +2216,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this.store.getIn(["cells", id]) == null) {
       return;
     }
-    if (this.check_edit_protection(id)) {
+    if (this.check_edit_protection(id, "inserting input")) {
       return;
     }
     let input = this.store.getIn(["cells", id, "input"], "");
@@ -2245,7 +2243,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (cell == null) {
       throw Error(`no cell ${id}`);
     }
-    if (this.check_edit_protection(id)) return;
+    if (this.check_edit_protection(id, "setting an attachment")) return;
     const attachments = cell.get("attachments", immutable.Map()).toJS();
     attachments[name] = val;
     this._set(
@@ -2259,7 +2257,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   public async add_attachment_to_cell(id: string, path: string): Promise<void> {
-    if (this.check_edit_protection(id)) {
+    if (this.check_edit_protection(id, "adding an attachment")) {
       return;
     }
     let name: string = encodeURIComponent(
@@ -2278,8 +2276,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.insert_input_at_cursor(id, this._attachment_markdown(name), true);
   }
 
-  delete_attachment_from_cell = (id: any, name: any) => {
-    if (this.check_edit_protection(id)) {
+  delete_attachment_from_cell = (id: string, name: any) => {
+    if (this.check_edit_protection(id, "deleting an attachment")) {
       return;
     }
     this.set_cell_attachment(id, name, null, false);
@@ -2294,7 +2292,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   add_tag(id: string, tag: string, save: boolean = true): void {
-    if (this.check_edit_protection(id)) {
+    if (this.check_edit_protection(id, "adding a tag")) {
       return;
     }
     return this._set(
@@ -2308,7 +2306,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   remove_tag(id: string, tag: string, save: boolean = true): void {
-    if (this.check_edit_protection(id)) {
+    if (this.check_edit_protection(id, "removing a tag")) {
       return;
     }
     return this._set(
@@ -2355,6 +2353,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       merge: false,
     }));
 
+    if (this.check_edit_protection(id, "editing cell metadata")) {
+      return;
+    }
     // Special case: delete metdata (unconditionally)
     if (metadata == null || misc.len(metadata) === 0) {
       this._set(
@@ -2615,9 +2616,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  public check_edit_protection(id: string): boolean {
+  public check_edit_protection(id: string, reason?: string): boolean {
     if (!this.store.is_cell_editable(id)) {
-      this.show_not_editable_error();
+      this.show_not_editable_error(reason);
       return true;
     } else {
       return false;

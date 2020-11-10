@@ -298,6 +298,7 @@ export class StudentAssignmentInfo extends Component<
           height="3em"
           hideHelp
           style={{ margin: "5px 0" }}
+          autoFocus
         />
       );
     } else {

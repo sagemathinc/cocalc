@@ -64,3 +64,37 @@
 
 .smc-jupyter-notebook-notebook
   width : 100%
+
+.cc-jupyter-snippets
+  .ant-collapse-content-box
+    padding: 0  !important
+
+  span.hl
+    background-color : yellow
+    font-weight: bold
+
+.cc-jupyter-snippet
+  > div.ant-collapse-header
+    color: $COL_GRAY !important
+
+.cc-jupyter-snippet-collapse
+  .cc-jupyter-snippet
+    border-radius: 2px
+    border: 0px
+    overflow: hidden
+
+.cc-jupyter-snippet-content
+  background: white
+  margin: 0 10px 10px 10px
+  padding: 10px
+  border: 1px solid $COL_GRAY_L
+  border-radius: 3px
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.22)
+  > pre
+    font-size: 80%
+
+.cc-jupyter-snippet-header
+  vertical-align: -0.125em  // to match ANTD's collapse icon
+  p
+    display: inline
+

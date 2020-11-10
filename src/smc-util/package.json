@@ -14,7 +14,7 @@
   "dependencies": {
     "@types/jest": "^25.2.3",
     "@types/json-stable-stringify": "^1.0.32",
-    "@types/node": "^12.12.39",
+    "@types/node": "^12.12.70",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
@@ -31,8 +31,8 @@
     "prop-types": "^15.7.2",
     "sha1": "^1.1.1",
     "ts-jest": "^26.3.0",
-    "typescript": "^4.0.2",
-    "underscore": "^1.10.2",
+    "typescript": "^4.0.5",
+    "underscore": "^1.11.0",
     "utility-types": "^3.10.0",
     "uuid": "^8.0.0"
   },

@@ -308,6 +308,19 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     this.set_active_id(id, true);
   }
 
+  public async guide(): Promise<void> {
+    const id = this.show_focused_frame_of_type(
+      "commands_guide",
+      "col",
+      false,
+      3 / 4
+    );
+    // the click to select focuses the active id back on the notebook
+    await delay(0);
+    if (this._state === "closed") return;
+    this.set_active_id(id, true);
+  }
+
   // Either show the most recently focused introspect frame, or ceate one.
   public async show_introspect(): Promise<void> {
     this.show_recently_focused_frame_of_type("introspect", "row", false, 2 / 3);
