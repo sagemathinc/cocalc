@@ -87,12 +87,7 @@ $(function () {
       ["browser", "mobile", "touch", "git_version"]
     );
     browser_info_gauge
-      .labels(
-        get_browser(),
-        IS_MOBILE,
-        IS_TOUCH,
-        SMC_GIT_REV ?? "N/A"
-      )
+      .labels(get_browser(), IS_MOBILE, IS_TOUCH, SMC_GIT_REV ?? "N/A")
       .set(1);
     const initialization_time_gauge = prom_client.new_gauge(
       "initialization_seconds",

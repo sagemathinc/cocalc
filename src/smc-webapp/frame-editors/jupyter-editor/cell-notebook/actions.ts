@@ -3,10 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/*
- * license
- */
-
 import { Set } from "immutable";
 import { delay } from "awaiting";
 
@@ -875,10 +871,6 @@ export class NotebookFrameActions {
     } else {
       throw Error(`insert_image -- cell must be a markdown cell`);
     }
-  }
-
-  public async show_code_snippets(): Promise<void> {
-    await this.jupyter_actions.show_code_snippets(this.store.get("cur_id"));
   }
 
   public toggle_selected_outputs(property: "collapsed" | "scrolled"): void {
