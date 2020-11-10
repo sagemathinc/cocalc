@@ -164,7 +164,9 @@ export class Store<State> extends EventEmitter {
    * happens call the given callback.
    */
   wait<T>(opts: {
-    until: (store: any) => T; // waits until "until(store)" evaluates to something truthy
+    // Note: until could return undefined under special circumstances
+    // see lodash change https://github.com/DefinitelyTyped/DefinitelyTyped/commit/93d8f9d7102925e1a39852627465a44a0ff670cf#diff-7f2d50325180d833fb03f5b6ab1c302d169f8a86bb8c481e9e6d6b40dd32e712R371
+    until: (store: any) => T | undefined; // waits until "until(store)" evaluates to something truthy
     cb: (err?: string, result?: T) => any; // cb(undefined, until(store)) on success and cb('timeout') on failure due to timeout
     throttle_ms?: number; // in ms -- throttles the call to until(store)
     timeout?: number; // in seconds -- set to 0 to disable (DANGEROUS since until will get run for a long time)
