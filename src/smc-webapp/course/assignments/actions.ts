@@ -26,7 +26,6 @@ import { CourseActions } from "../actions";
 import {
   AssignmentRecord,
   CourseStore,
-  Feedback,
   NBgraderRunInfo,
   get_nbgrader_score,
 } from "../store";
@@ -152,80 +151,14 @@ export class AssignmentsActions {
     this.course_actions.setState({ active_feedback_edits });
   }
 
-  public update_edited_feedback(
-    assignment_id: string,
-    student_id: string,
-    new_edited_grade?: string,
-    new_edited_comments?: string
-  ) {
+  public update_edited_feedback(assignment_id: string, student_id: string) {
     const store = this.get_store();
     const key = assignment_identifier(assignment_id, student_id);
-    const current_edited_feedback = store.get("active_feedback_edits").get(key);
-
-    let current_edited_grade: string | undefined;
-    let current_edited_comments: string | undefined;
-
-    if (current_edited_feedback) {
-      current_edited_grade = current_edited_feedback.get("edited_grade");
-      current_edited_comments = current_edited_feedback.get("edited_comments");
-    }
-
-    let grade: string;
-    if (new_edited_grade != undefined) {
-      grade = new_edited_grade;
-    } else if (current_edited_grade != undefined) {
-      grade = current_edited_grade;
-    } else {
-      grade = store.get_grade(assignment_id, student_id) || "";
-    }
-
-    let comments: string;
-    if (new_edited_comments != undefined) {
-      comments = new_edited_comments;
-    } else if (current_edited_comments != undefined) {
-      comments = current_edited_comments;
-    } else {
-      comments = store.get_comments(assignment_id, student_id) || "";
-    }
     const old_edited_feedback = store.get("active_feedback_edits");
-    const new_edited_feedback = old_edited_feedback.set(
-      key,
-      new Feedback({ edited_grade: grade, edited_comments: comments })
-    );
+    const new_edited_feedback = old_edited_feedback.set(key, true);
     this.course_actions.setState({
       active_feedback_edits: new_edited_feedback,
     });
-  }
-
-  public save_feedback(assignment_id: string, student_id: string): void {
-    const store = this.get_store();
-    const active_feedback_edits = store.get("active_feedback_edits");
-    if (active_feedback_edits == undefined) {
-      return;
-    }
-    const key = assignment_identifier(assignment_id, student_id);
-    const edited_feedback = active_feedback_edits.get(key);
-    if (edited_feedback == undefined) {
-      return;
-    }
-    const query = {
-      table: "assignments",
-      assignment_id,
-    };
-    const assignment_data = this.course_actions.get_one(query);
-    if (assignment_data == null) {
-      // assignment suddenly doesn't exist...
-      return;
-    }
-
-    const grades = assignment_data.grades || {};
-    grades[student_id] = edited_feedback.get("edited_grade");
-
-    const comments = assignment_data.comments || {};
-    comments[student_id] = edited_feedback.get("edited_comments");
-    const feedback_changes = Object.assign({ grades, comments }, query);
-    this.course_actions.set(feedback_changes);
-    this.clear_edited_feedback(assignment_id, student_id);
   }
 
   // Set a specific grade for a student in an assignment.
@@ -255,6 +188,35 @@ export class AssignmentsActions {
         table: "assignments",
         assignment_id,
         grades,
+      },
+      commit
+    );
+  }
+
+  // Set a specific comment for a student in an assignment.
+  public set_comment(
+    assignment_id: string,
+    student_id: string,
+    comment: string,
+    commit: boolean = true
+  ): void {
+    const { assignment } = this.course_actions.resolve({
+      assignment_id,
+    });
+    if (assignment == null) {
+      throw Error("no such assignment");
+    }
+    // Annoying that we have to convert to JS here and cast,
+    // but the set below seems to require it.
+    let comments = assignment.get("comments", Map()).toJS() as {
+      [student_id: string]: string;
+    };
+    comments[student_id] = comment;
+    this.course_actions.set(
+      {
+        table: "assignments",
+        assignment_id,
+        comments,
       },
       commit
     );
