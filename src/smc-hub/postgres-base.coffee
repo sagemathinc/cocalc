@@ -32,6 +32,8 @@ if not pg?
     throw Error("YOU MUST INSTALL the pg-native npm module")
 # You can uncommment this to use the pure javascript driver.
 #  However: (1) it can be 5x slower or more!
+#               2019: benchmarks for pg-native do not show any benefit
+#               https://mitar.tnode.com/post/in-nodejs-always-query-in-json-from-postgresql/
 #           (2) I think it corrupts something somehow in a subtle way, since our whole
 #               syncstring system was breaking... until I switched to native.  Not sure.
 #pg      = require('pg')
