@@ -42,6 +42,7 @@ export const ChatInput: React.FC<Props> = (props) => {
       }
       fontSize={font_size}
       lineWrapping={true}
+      autoFocus
     />
   );
 };
