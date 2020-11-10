@@ -205,7 +205,7 @@ export const LicenseExamples: React.FC<Props> = ({
     <>
       <h4>Examples</h4>
       <p>
-        Here are three exemplary configurations. All parameters can be adjusted
+        Here are three typical configurations. All parameters can be adjusted
         to fit your needs. Listed upgrades are for each project. Exact prices
         may vary. Below ${MIN_QUOTE} only online purchases are available.
         {show_discount_pct && (
