@@ -30,15 +30,18 @@ validator = require('validator')
 #debug = require('debug')
 #LOG = debug("hub:pg:base")
 
-pg      = require('pg').native    # You might have to do: "apt-get install libpq5 libpq-dev"
-if not pg?
-    throw Error("YOU MUST INSTALL the pg-native npm module")
+## benchmarks for pg-native do not show any benefit
+## https://mitar.tnode.com/post/in-nodejs-always-query-in-json-from-postgresql/
+#pg      = require('pg').native    # You might have to do: "apt-get install libpq5 libpq-dev"
+#if not pg?
+#    throw Error("YOU MUST INSTALL the pg-native npm module")
 # You can uncommment this to use the pure javascript driver.
 #  However: (1) it can be 5x slower or more!
 #           (2) I think it corrupts something somehow in a subtle way, since our whole
 #               syncstring system was breaking... until I switched to native.  Not sure.
-#pg      = require('pg')
+pg      = require('pg')
 
+PgStaticPool = require('./postgres/static-pool')
 MetricsRecorder  = require('./metrics-recorder')
 winston      = require('./winston-metrics').get_logger('postgres')
 {do_query_with_pg_params} = require('./postgres/set-pg-params')
@@ -114,9 +117,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             ensure_exists   : true  # ensure database exists on startup (runs psql in a shell)
             timeout_ms      : DEFAULT_TIMEOUS_MS # **IMPORTANT: if *any* query takes this long, entire connection is terminated and recreated!**
             timeout_delay_ms : DEFAULT_TIMEOUT_DELAY_MS # Only reconnect on timeout this many ms after connect.  Motivation: on initial startup queries may take much longer due to competition with other clients.
-            pg_pool_max        : process.env['PG_POOL_MAX'] ? '3' # max client connections per db host
-            pg_pool_idle_ms    : process.env['PG_POOL_IDLE_MS'] ? '30000' # after that, release the client connection
-            pg_pool_timeout_ms : process.env['PG_POOL_TIMEOUT_MS'] ? '5000' # after that, drop the client connection
+            pg_pool_size       : process.env['PG_POOL_SIZE'] ? '3' # max client connections per db host
         @setMaxListeners(10000)  # because of a potentially large number of changefeeds
         @_state = 'init'
         @_debug = opts.debug
@@ -138,9 +139,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_user = opts.user
         @_database = opts.database
         @_password = opts.password ? read_db_password_from_disk()
-        @_pg_pool_max = opts.pg_pool_max
-        @_pg_pool_idle_ms = opts.pg_pool_idle_ms
-        @_pg_pool_timeout_ms = opts.pg_pool_timeout_ms
+        @_pg_pool_size = opts.pg_pool_size
         @_init_metrics()
 
         if opts.cache_expiry and opts.cache_size
@@ -298,15 +297,13 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 # Use a function to initialize the client, to avoid any
                 # issues with scope of "client" below.
                 init_pool = (host) =>
-                    pool = new pg.Pool
+                    pool = new PgStaticPool
                         user                    : @_user
                         host                    : host
                         port                    : @_port
                         password                : @_password
                         database                : @_database
-                        idleTimeoutMillis       : @_pg_pool_idle_ms
-                        max                     : @_pg_pool_max
-                        connectionTimeoutMillis : @_pg_pool_timeout_ms
+                        size                    : @_pg_pool_size
                     pool.on 'error', (err) =>
                         if @_state == 'init'
                             # already started connecting
@@ -412,11 +409,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         if @_notification? and client.listeners('notification')[0] != @_notification
             client.on('notification', @_notification)
 
-        # updated pg.Pool stats
-        @_pg_pool_metrics.labels("#{@_client_index}", "totalCount").set(pool.totalCount)
-        @_pg_pool_metrics.labels("#{@_client_index}", "idleCount").set(pool.idleCount)
-        @_pg_pool_metrics.labels("#{@_client_index}", "waitingCount").set(pool.waitingCount)
-
         return client
 
     _dbg: (f) =>
@@ -438,8 +430,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @query_counter = MetricsRecorder.new_counter('db_queries_total',
                                                      'All Queries',
                                                      ['priority'])
-
-        @_pg_pool_metrics = MetricsRecorder.new_gauge('pg_pool', 'PG Pool Stats', ['id', 'stat'])
 
     async_query: (opts) =>
         return await callback2(@_query.bind(@), opts)
