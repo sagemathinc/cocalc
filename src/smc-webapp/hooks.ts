@@ -4,12 +4,12 @@
  */
 
 import * as React from "react";
-import { debounce, Cancelable, DebounceSettings } from "lodash";
+import { debounce, DebouncedFunc, DebounceSettings } from "lodash";
 
 type CancelableHOF = <T extends (...args: any[]) => any>(
   func: T,
   ...rest
-) => T & Cancelable;
+) => DebouncedFunc<T>;
 
 type Tail<T extends any[]> = ((...args: T) => any) extends (
   _: any,
@@ -52,6 +52,6 @@ export const useDebounce = <T extends (...args) => any>(
   cb: T,
   wait?: number,
   options?: DebounceSettings
-): T & Cancelable => {
+): DebouncedFunc<T> => {
   return useCallbackWith(debounce, cb, wait, options);
 };
