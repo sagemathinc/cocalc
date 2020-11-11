@@ -80,7 +80,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
       <div>
         Stream your screen or chat <A href={DISCORD_INVITE}>using Discord</A>.
         <div style={{ marginBottom: "5px" }}>Add Project Collaborators:</div>
-        <AddCollaborators project={project} inline={true} trust={allow_urls} />
+        <AddCollaborators project={project} trust={allow_urls} />
         <div style={{ color: "#666" }}>
           (Collaborators have access to all files in this project.)
         </div>

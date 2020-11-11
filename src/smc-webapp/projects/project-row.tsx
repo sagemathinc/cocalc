@@ -59,12 +59,8 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
     const allow_urls = store.allow_urls_in_emails(project_id);
     return (
       <div>
-        <h5>Add collaborators to project</h5>
-        <AddCollaborators
-          project={project}
-          inline={true}
-          trust={allow_urls}
-        />
+        <h5 style={{ color: "#666" }}>Add collaborators to project</h5>
+        <AddCollaborators project={project} trust={allow_urls} />
       </div>
     );
   }
@@ -212,8 +208,8 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
         >
           {render_project_description()}
         </Col>
-        <Col sm={4}>{!is_anonymous && render_collab()}</Col>
-        <Col sm={2} onClick={open_project_settings}>
+        <Col sm={5}>{!is_anonymous && render_collab()}</Col>
+        <Col sm={1} onClick={open_project_settings}>
           {!is_anonymous && (
             <a>
               <ProjectState state={project.get("state")} />

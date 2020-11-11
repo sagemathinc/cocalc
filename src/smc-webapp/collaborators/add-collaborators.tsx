@@ -13,20 +13,15 @@ import {
   React,
   redux,
   useActions,
+  useIsMountedRef,
+  useRef,
   useTypedRedux,
   useState,
 } from "../app-framework";
 
 import { Button, ButtonToolbar, Well } from "../antd-bootstrap";
 
-import {
-  Icon,
-  LabeledRow,
-  Loading,
-  SearchInput,
-  ErrorDisplay,
-  Space,
-} from "../r_misc";
+import { Icon, Loading, ErrorDisplay, Space } from "../r_misc";
 
 import { webapp_client } from "../webapp-client";
 import { has_internet_access } from "../upgrades/upgrade-utils";
@@ -52,6 +47,9 @@ interface RegisteredUser {
   created?: Date;
   email_address?: string;
   email_address_verified?: boolean;
+  label?: string;
+  tag?: string;
+  name?: string;
 }
 
 interface NonregisteredUser {
@@ -63,27 +61,26 @@ interface NonregisteredUser {
   last_active?: undefined;
   created?: undefined;
   email_address_verified?: undefined;
+  label?: string;
+  tag?: string;
+  name?: string;
 }
 
 type User = RegisteredUser | NonregisteredUser;
 
 interface Props {
   project: Project;
-  inline?: boolean;
   trust?: boolean;
 }
 
 type State = "input" | "searching" | "searched" | "invited" | "invited_errors";
 
-export const AddCollaborators: React.FC<Props> = ({
-  project,
-  inline,
-  trust,
-}) => {
+export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
   const user_map = useTypedRedux("users", "user_map");
 
   // search that user has typed in so far
   const [search, set_search] = useState<string>("");
+  const search_ref = useRef<string>("");
 
   // list of results for doing the search -- turned into a selector
   const [results, set_results] = useState<User[]>([]);
@@ -91,6 +88,7 @@ export const AddCollaborators: React.FC<Props> = ({
 
   // list of actually selected entries in the selector list
   const [selected_entries, set_selected_entries] = useState<string[]>([]);
+  const select_ref = useRef<any>(null);
 
   // currently carrying out a search
   const [state, set_state] = useState<State>("input");
@@ -103,6 +101,8 @@ export const AddCollaborators: React.FC<Props> = ({
   const [email_body_error, set_email_body_error] = useState<string>("");
   const [email_body_editing, set_email_body_editing] = useState<boolean>(false);
   const [invite_result, set_invite_result] = useState<string>("");
+
+  const isMountedRef = useIsMountedRef();
 
   const project_actions = useActions("projects");
 
@@ -125,7 +125,6 @@ export const AddCollaborators: React.FC<Props> = ({
       return;
     }
     set_search(search);
-    set_selected_entries([]);
     if (search.length === 0) {
       set_err("");
       set_results([]);
@@ -141,8 +140,9 @@ export const AddCollaborators: React.FC<Props> = ({
         query = query.trim().toLowerCase();
         const query_results = await webapp_client.users_client.user_search({
           query,
-          limit: 50,
+          limit: 30,
         });
+        if (!isMountedRef.current) return; // no longer mounted
         if (query_results.length == 0 && is_valid_email_address(query)) {
           const email_address = query;
           if (!already.has(email_address)) {
@@ -160,7 +160,7 @@ export const AddCollaborators: React.FC<Props> = ({
                 already.add(r.account_id);
                 (r as User).sort = `${
                   user_map.has(r.account_id) ? 1 : 2
-                } ${r.last_name?.toLowerCase()} ${r.first_name?.toLowerCase()} ${r.last_active?.toISOString()}`;
+                } ${r.last_active?.toISOString()} ${r.last_name?.toLowerCase()} ${r.first_name?.toLowerCase()}`;
               } else {
                 // if we got additional information about email
                 // address and already have this user, remember that
@@ -192,56 +192,62 @@ export const AddCollaborators: React.FC<Props> = ({
     set_err(err);
     set_results(search_results);
     set_email_to("");
+    select_ref.current?.focus();
   }
 
   function render_options(users: User[]): JSX.Element[] {
     const options: JSX.Element[] = [];
     for (const r of users) {
-      let name = r.account_id
-        ? (r.first_name ?? "") + " " + (r.last_name ?? "")
-        : r.email_address;
-      if (!name?.trim()) {
-        name = "Anonymous User";
-      }
-      const tag = trunc_middle(name, 20);
+      if (r.label == null || r.tag == null || r.name == null) {
+        let name = r.account_id
+          ? (r.first_name ?? "") + " " + (r.last_name ?? "")
+          : r.email_address;
+        if (!name?.trim()) {
+          name = "Anonymous User";
+        }
+        const tag = trunc_middle(name, 20);
 
-      // Extra display is a bit ugly, but we need to do it for now.  Need to make
-      // react rendered version of this that is much nicer (with pictures!) someday.
-      const extra: string[] = [];
-      if (r.account_id != null && user_map.get(r.account_id)) {
-        extra.push("Collaborator");
-      }
-      if (r.last_active) {
-        extra.push(`Active ${new Date(r.last_active).toLocaleDateString()}`);
-      }
-      if (r.created) {
-        extra.push(`Created ${new Date(r.created).toLocaleDateString()}`);
-      }
-      if (r.account_id == null) {
-        extra.push(`No account`);
-      } else {
-        if (r.email_address) {
-          if (r.email_address_verified?.[r.email_address]) {
-            extra.push(`${r.email_address} -- verified`);
-          } else {
-            extra.push(`${r.email_address} -- not verified`);
+        // Extra display is a bit ugly, but we need to do it for now.  Need to make
+        // react rendered version of this that is much nicer (with pictures!) someday.
+        const extra: string[] = [];
+        if (r.account_id != null && user_map.get(r.account_id)) {
+          extra.push("Collaborator");
+        }
+        if (r.last_active) {
+          extra.push(`Active ${new Date(r.last_active).toLocaleDateString()}`);
+        }
+        if (r.created) {
+          extra.push(`Created ${new Date(r.created).toLocaleDateString()}`);
+        }
+        if (r.account_id == null) {
+          extra.push(`No account`);
+        } else {
+          if (r.email_address) {
+            if (r.email_address_verified?.[r.email_address]) {
+              extra.push(`${r.email_address} -- verified`);
+            } else {
+              extra.push(`${r.email_address} -- not verified`);
+            }
           }
         }
-      }
-      if (extra.length > 0) {
-        name += `  (${extra.join(", ")})`;
+        if (extra.length > 0) {
+          name += `  (${extra.join(", ")})`;
+        }
+        r.label = name.toLowerCase();
+        r.tag = tag;
+        r.name = name;
       }
       const x = r.account_id ?? r.email_address;
       options.push(
-        <Select.Option key={x} value={x} label={name.toLowerCase()} tag={tag}>
+        <Select.Option key={x} value={x} label={r.label} tag={r.tag}>
           <Avatar
             size={30}
             no_tooltip={true}
             account_id={r.account_id}
-            first_name={r.first_name}
+            first_name={r.account_id ? r.first_name : "@"}
             last_name={r.last_name}
           />{" "}
-          {name}
+          {r.name}
         </Select.Option>
       );
     }
@@ -477,15 +483,6 @@ export const AddCollaborators: React.FC<Props> = ({
   }
 
   function render_select_list(): JSX.Element | undefined {
-    if (state == "searching") {
-      return <Loading />;
-    }
-    if (err) {
-      return <ErrorDisplay error={err} onClose={() => set_err("")} />;
-    }
-    if (results.length == 0 || !search.trim()) {
-      return;
-    }
     const users: User[] = [];
     const existing: User[] = [];
     for (const r of results) {
@@ -495,78 +492,92 @@ export const AddCollaborators: React.FC<Props> = ({
         users.push(r);
       }
     }
-    if (results.length === 0) {
-      if (existing.length === 0) {
-        return (
-          <>
-            Sorry, no accounts found.
-            <br />
-            {render_send_email_invite()}
-          </>
-        );
-      } else {
-        // no hit, but at least one existing collaborator
-        const v: string[] = [];
-        for (const { first_name, last_name } of existing) {
-          v.push(`${first_name} ${last_name}`);
-        }
-        const collabs = v.join(", ");
-        return (
-          <Alert
-            type="info"
-            message={<>Existing collaborator(s): {collabs}</>}
-          />
-        );
-      }
-    } else {
-      return (
-        <div style={{ marginBottom: "10px" }}>
-          <Select
-            mode="multiple"
-            allowClear
-            showArrow
-            autoFocus
-            defaultOpen
-            filterOption={(s, opt) => {
-              return search_match(
-                (opt as any).label,
-                search_split(s.toLowerCase())
-              );
-            }}
-            style={{ width: "100%", marginBottom: "10px" }}
-            placeholder={`Users matching ${search}`}
-            onChange={(value) => {
-              set_selected_entries(value as string[]);
-            }}
-            optionLabelProp="tag"
-          >
-            {render_options(users)}
-          </Select>
-          {selected_entries.length > 0 && (
-            <div
-              style={{
-                border: "1px solid lightgrey",
-                padding: "10px",
-                borderRadius: "5px",
-                backgroundColor: "white",
-                margin: "10px 0",
-              }}
-            >
-              {render_email_body_error()}
-              {render_email_textarea()}
+
+    return (
+      <div style={{ marginBottom: "10px" }}>
+        <Select
+          ref={select_ref}
+          mode="multiple"
+          allowClear
+          showArrow
+          autoFocus
+          open={true}
+          filterOption={(s, opt) => {
+            if (s.indexOf(",") != -1) return true;
+            return search_match(
+              (opt as any).label,
+              search_split(s.toLowerCase())
+            );
+          }}
+          style={{ width: "100%", marginBottom: "10px" }}
+          placeholder={
+            search.trim()
+              ? `Select below from ${results.length} ${plural(
+                  results.length,
+                  "user"
+                )} matching ${search}`
+              : "Comma separated names or email addresses..."
+          }
+          onChange={(value) => {
+            set_selected_entries(value as string[]);
+          }}
+          value={selected_entries}
+          optionLabelProp="tag"
+          onInputKeyDown={(e) => {
+            if (
+              e.keyCode == 13 &&
+              state != ("searching" as State) &&
+              !hasMatches()
+            ) {
+              do_search(search_ref.current);
+              e.preventDefault();
+            }
+          }}
+          onSearch={(value) => (search_ref.current = value)}
+          notFoundContent={
+            <div style={{ color: "#999" }}>
+              <Icon name="search" /> Press enter to search...
             </div>
-          )}
-          {render_select_list_button()}
-        </div>
-      );
+          }
+        >
+          {render_options(users)}
+        </Select>
+        {selected_entries.length > 0 && (
+          <div
+            style={{
+              border: "1px solid lightgrey",
+              padding: "10px",
+              borderRadius: "5px",
+              backgroundColor: "white",
+              margin: "10px 0",
+            }}
+          >
+            {render_email_body_error()}
+            {render_email_textarea()}
+          </div>
+        )}
+        {render_select_list_button()}
+      </div>
+    );
+  }
+
+  function hasMatches(): boolean {
+    const s = search_split(search_ref.current.toLowerCase());
+    if (s.length == 0) return true;
+    for (const r of results) {
+      if (r.label == null) continue;
+      if (search_match(r.label, s)) {
+        return true;
+      }
     }
+    return false;
   }
 
   function render_select_list_button(): JSX.Element | undefined {
     const number_selected = selected_entries.length;
     let label: string;
     let disabled: boolean;
-    if (results.length == 0) {
+    if (number_selected == 0 && results.length == 0) {
       label = "No matching users";
       if (num_matching_already > 0) {
         label += ` (${num_matching_already} matching ${plural(
@@ -601,47 +612,6 @@ export const AddCollaborators: React.FC<Props> = ({
     );
   }
 
-  function render_input_row(): JSX.Element | undefined {
-    if (state == "searched") return;
-    const input = (
-      <div>
-        <SearchInput
-          style={{ marginBottom: 0 }}
-          on_submit={do_search}
-          value={search}
-          placeholder="Search by name or email address..."
-          on_change={(value) => {
-            set_results([]);
-            set_search(value);
-          }}
-          on_clear={reset}
-        />
-        {state == "input" && search != "" && (
-          <div>
-            Enter one or more names or email addresses, separated by commas.
-          </div>
-        )}
-      </div>
-    );
-    if (inline) {
-      return input;
-    } else {
-      const label = (
-        <div
-          style={{
-            fontSize: "12pt",
-            marginTop: "6px",
-            color: "#666",
-            marginLeft: "15px",
-          }}
-        >
-          Search
-        </div>
-      );
-      return <LabeledRow label={label}>{input}</LabeledRow>;
-    }
-  }
-
   function render_invite_result(): JSX.Element | undefined {
     if (state != "invited") {
       return;
@@ -660,7 +630,8 @@ export const AddCollaborators: React.FC<Props> = ({
 
   return (
     <div>
-      {render_input_row()}
+      {err && <ErrorDisplay error={err} onClose={() => set_err("")} />}
+      {state == "searching" && <Loading />}
       {render_search()}
       {render_select_list()}
       {render_send_email()}
