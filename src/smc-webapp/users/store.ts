@@ -3,33 +3,75 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import * as LRU from "lru-cache";
+import { fromJS } from "immutable";
+import { webapp_client } from "../webapp-client";
 import { Store, redux } from "../app-framework";
 import { UsersState } from "./types";
 import { actions } from "./actions";
 import { cmp } from "smc-util/misc";
-import { fromJS } from "immutable";
+
+export const DEFAULT_COLOR = "rgb(170,170,170)";
+
+interface Profile {
+  color?: string;
+  image?: string;
+}
+// To avoid overfetching profiles we cache them for a few minutes:
+const profiles = new LRU({ maxAge: 1000 * 120 });
 
 // Define user store: all the users you collaborate with
 class UsersStore extends Store<UsersState> {
-  public get_first_name(account_id): string {
+  public get_first_name(account_id: string): string {
     return this.getIn(["user_map", account_id, "first_name"], "Unknown");
   }
 
-  public get_last_name(account_id): string {
+  public get_last_name(account_id: string): string {
     return this.getIn(["user_map", account_id, "last_name"], "User");
   }
 
-  // URL of color (defaults to rgb(170,170,170))
-  public get_color(account_id): string {
-    return this.getIn(
-      ["user_map", account_id, "profile", "color"],
-      "rgb(170,170,170)"
-    );
+  // get_color and get_image below: for collaborators the image may
+  // immediately be known; for non-collabs
+  // it gets looked up via a database query (if not cached):
+
+  public get_color_sync(account_id: string): string {
+    return this.getIn(["user_map", account_id, "color"]) ?? DEFAULT_COLOR;
   }
 
-  // URL of image or undefined if none
-  public get_image(account_id): string | undefined {
-    return this.getIn(["user_map", account_id, "profile", "image"]);
+  // URL of color (defaults to DEFAULT_COLOR)
+  public async get_color(account_id: string): Promise<string> {
+    const user = this.getIn(["user_map", account_id]);
+    if (user != null) {
+      // known collaborator so easy - already loaded as part of the users table.
+      return user.getIn(["profile", "color"]) ?? DEFAULT_COLOR;
+    }
+    await this.get_image(account_id); // ensures profile is known and cached
+    return ((profiles.get(account_id) as Profile | undefined)?.color ??
+      DEFAULT_COLOR) as string;
+  }
+
+  // URL of image or undefined if there is no image set
+  public async get_image(account_id: string): Promise<string | undefined> {
+    const user = this.getIn(["user_map", account_id]);
+    if (user != null) {
+      // known collaborator so easy - already loaded as part of the users table.
+      return user.getIn(["profile", "image"]);
+    }
+    // Not known collaborator, so do a database query... unless we already did
+    // one for this account recently.
+    if (profiles.has(account_id)) {
+      return (profiles.get(account_id) as Profile | undefined)?.image as
+        | string
+        | undefined;
+    }
+    // Do database query
+    const x = (
+      await webapp_client.async_query({
+        query: { account_profiles: { account_id, profile: null } },
+      })
+    ).query.account_profiles;
+    profiles.set(account_id, x?.profile);
+    return x?.profile?.image;
   }
 
   public get_name(account_id): string | undefined {

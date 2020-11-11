@@ -574,7 +574,7 @@ class JupyterWrapper extends EventEmitter
             index = loc.i # cell index
             data  = x[i]
             name  = misc.trunc(@_users.get_first_name(account_id), 10)
-            color = @_users.get_color(account_id)
+            color = @_users.get_color_sync(account_id)
             if not data?
                 cursor = templates.find(".smc-jupyter-cursor").clone().show()
                 cursor.css({'z-index':5})

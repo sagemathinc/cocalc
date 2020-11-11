@@ -32,6 +32,7 @@ import { webapp_client } from "../webapp-client";
 import { has_internet_access } from "../upgrades/upgrade-utils";
 import { SITE_NAME } from "smc-util/theme";
 import { contains_url, plural } from "smc-util/misc2";
+import { trunc_middle } from "smc-util/misc";
 import {
   field_cmp,
   is_valid_email_address,
@@ -40,6 +41,7 @@ import {
   search_split,
 } from "smc-util/misc";
 import { Project } from "../projects/store";
+import { Avatar } from "../account/avatar/avatar";
 
 interface RegisteredUser {
   sort?: string;
@@ -201,6 +203,7 @@ export const AddCollaborators: React.FC<Props> = ({
       if (!name?.trim()) {
         name = "Anonymous User";
       }
+      const tag = trunc_middle(name, 20);
 
       // Extra display is a bit ugly, but we need to do it for now.  Need to make
       // react rendered version of this that is much nicer (with pictures!) someday.
@@ -209,9 +212,7 @@ export const AddCollaborators: React.FC<Props> = ({
         extra.push("Collaborator");
       }
       if (r.last_active) {
-        extra.push(
-          `Active ${new Date(r.last_active).toLocaleDateString()}`
-        );
+        extra.push(`Active ${new Date(r.last_active).toLocaleDateString()}`);
       }
       if (r.created) {
         extra.push(`Created ${new Date(r.created).toLocaleDateString()}`);
@@ -232,7 +233,14 @@ export const AddCollaborators: React.FC<Props> = ({
       }
       const x = r.account_id ?? r.email_address;
       options.push(
-        <Select.Option key={x} value={x} label={name.toLowerCase()}>
+        <Select.Option key={x} value={x} label={name.toLowerCase()} tag={tag}>
+          <Avatar
+            size={30}
+            no_tooltip={true}
+            account_id={r.account_id}
+            first_name={r.first_name}
+            last_name={r.last_name}
+          />{" "}
           {name}
         </Select.Option>
       );
@@ -530,6 +538,7 @@ export const AddCollaborators: React.FC<Props> = ({
             onChange={(value) => {
               set_selected_entries(value as string[]);
             }}
+            optionLabelProp="tag"
           >
             {render_options(users)}
           </Select>
