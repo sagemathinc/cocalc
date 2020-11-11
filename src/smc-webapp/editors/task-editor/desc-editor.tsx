@@ -49,6 +49,7 @@ export const DescriptionEditor: React.FC<Props> = React.memo(
         placeholder={"Enter a description..."}
         lineWrapping={true}
         extraHelp={"Use #hashtags to easily label and filter your tasks."}
+        autoFocus
       />
     );
   }

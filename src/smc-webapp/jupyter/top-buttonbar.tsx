@@ -202,13 +202,6 @@ export const TopButtonbar: React.FC<Props> = React.memo(
       return render_button("0", "show keyboard shortcuts");
     }
 
-    function render_snippets() {
-      return render_button("snippets", {
-        name: "show code snippets",
-        label: <VisibleMDLG>Snippets</VisibleMDLG>,
-      });
-    }
-
     function render_close_and_halt() {
       const obj = {
         name: "close and halt",
@@ -221,7 +214,6 @@ export const TopButtonbar: React.FC<Props> = React.memo(
     function render_group_assistant_halt(): JSX.Element {
       return (
         <ButtonGroup className="hidden-xs">
-          {render_snippets()}
           {render_close_and_halt()}
         </ButtonGroup>
       );
