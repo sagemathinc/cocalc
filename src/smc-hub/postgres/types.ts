@@ -58,6 +58,8 @@ export interface PostgreSQL extends EventEmitter {
 
   _client(): Client | undefined;
 
+  _state: "init" | "error" | "ready" | "closed";
+
   async_query(opts: AsyncQueryOptions): Promise<any>;
 
   _listen(
@@ -66,6 +68,11 @@ export interface PostgreSQL extends EventEmitter {
     watch: string[],
     cb: Function
   ): void;
+
+  _notification(mesg): void;
+
+  connect(): void;
+  disconnect(): void;
 
   changefeed(opts: ChangefeedOptions): Changes;
 
