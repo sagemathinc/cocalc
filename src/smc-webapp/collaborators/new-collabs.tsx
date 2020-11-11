@@ -533,11 +533,9 @@ ${name}
               {this.render_buttons()}
             </>
           ) : undefined}
-          {
-            <ProjectInviteTokens
-              project_id={this.props.project?.get("project_id")}
-            />
-          }
+          <ProjectInviteTokens
+            project_id={this.props.project?.get("project_id")}
+          />
         </SettingBox>
       );
     }

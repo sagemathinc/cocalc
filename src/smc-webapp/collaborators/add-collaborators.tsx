@@ -37,6 +37,7 @@ import {
 } from "smc-util/misc";
 import { Project } from "../projects/store";
 import { Avatar } from "../account/avatar/avatar";
+import { ProjectInviteTokens } from "./project-invite-tokens";
 
 interface RegisteredUser {
   sort?: string;
@@ -465,6 +466,7 @@ export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
     }
   }
 
+  /*
   function render_send_email_invite(): JSX.Element {
     if (has_internet_access(project.get("project_id"))) {
       return (
@@ -481,6 +483,7 @@ export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
       );
     }
   }
+  */
 
   function render_select_list(): JSX.Element | undefined {
     const users: User[] = [];
@@ -501,7 +504,7 @@ export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
           allowClear
           showArrow
           autoFocus
-          open={true}
+          open={true || results.length > 0 || search_ref.current.trim() != ""}
           filterOption={(s, opt) => {
             if (s.indexOf(",") != -1) return true;
             return search_match(
@@ -511,12 +514,17 @@ export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
           }}
           style={{ width: "100%", marginBottom: "10px" }}
           placeholder={
-            search.trim()
-              ? `Select below from ${results.length} ${plural(
-                  results.length,
-                  "user"
-                )} matching ${search}`
-              : "Comma separated names or email addresses..."
+            search.trim() ? (
+              `Select below from ${results.length} ${plural(
+                results.length,
+                "user"
+              )} matching ${search}`
+            ) : (
+              <span>
+                <Icon name="search" /> Comma separated names or email
+                addresses...
+              </span>
+            )
           }
           onChange={(value) => {
             set_selected_entries(value as string[]);
@@ -534,11 +542,7 @@ export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
             }
           }}
           onSearch={(value) => (search_ref.current = value)}
-          notFoundContent={
-            <div style={{ color: "#999" }}>
-              <Icon name="search" /> Press enter to search...
-            </div>
-          }
+          notFoundContent={<span />}
         >
           {render_options(users)}
         </Select>
@@ -636,6 +640,7 @@ export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
       {render_select_list()}
       {render_send_email()}
       {render_invite_result()}
+      <ProjectInviteTokens project_id={project?.get("project_id")} />
     </div>
   );
 };

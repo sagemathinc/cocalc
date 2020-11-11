@@ -270,16 +270,24 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
     }
 
     return (
-      <div>
-        {heading}
-        <br />
-        <br />
-        {render_create_token()}
-        <Space />
-        {render_refresh()}
-        <br />
-        <br />
-        {render_tokens()}
+      <div style={{ width: "100%", overflowX: "auto" }}>
+        <div
+          style={{
+            minWidth: "800px",
+            border: "1px solid grey",
+            padding: "15px",
+          }}
+        >
+          {heading}
+          <br />
+          <br />
+          {render_create_token()}
+          <Space />
+          {render_refresh()}
+          <br />
+          <br />
+          {render_tokens()}
+        </div>
       </div>
     );
   }
