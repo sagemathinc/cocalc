@@ -27,9 +27,8 @@ import { Icon, Loading, ErrorDisplay, Space } from "../r_misc";
 import { webapp_client } from "../webapp-client";
 import { SITE_NAME } from "smc-util/theme";
 import { contains_url, plural } from "smc-util/misc2";
-import { trunc_middle } from "smc-util/misc";
+import { cmp, trunc_middle } from "smc-util/misc";
 import {
-  field_cmp,
   is_valid_email_address,
   is_valid_uuid_string,
   search_match,
@@ -173,9 +172,6 @@ export const AddCollaborators: React.FC<Props> = ({
               if (!already.has(r.account_id)) {
                 search_results.push(r);
                 already.add(r.account_id);
-                (r as User).sort = `${
-                  user_map.has(r.account_id) ? 1 : 2
-                } ${r.last_active?.toISOString()} ${r.last_name?.toLowerCase()} ${r.first_name?.toLowerCase()}`;
               } else {
                 // if we got additional information about email
                 // address and already have this user, remember that
@@ -199,9 +195,18 @@ export const AddCollaborators: React.FC<Props> = ({
     }
     set_num_matching_already(num_already_matching);
     write_email_invite();
-    // sort search_results with collaborators first, then non-collabs,
-    // in alphabetical order by last name, first name, email_address
-    search_results.sort(field_cmp("sort"));
+    // sort search_results with collaborators first by last_active,
+    // then non-collabs by last_active.
+    search_results.sort((x, y) => {
+      let c = cmp(
+        x.account_id && user_map.has(x.account_id) ? 0 : 1,
+        y.account_id && user_map.has(y.account_id) ? 0 : 1
+      );
+      if (c) return c;
+      c = -cmp(x.last_active?.valueOf() ?? 0, y.last_active?.valueOf() ?? 0);
+      if (c) return c;
+      return cmp(x.last_name?.toLowerCase(), y.last_name?.toLowerCase());
+    });
 
     set_state("searched");
     set_err(err);
