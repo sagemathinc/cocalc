@@ -1280,6 +1280,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         },
         merge: true,
         save,
+        bypass_edit_protection: true,
       });
     }
     if (save) {
@@ -2345,15 +2346,26 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     metadata?: object; // not given = delete it
     save?: boolean; // defaults to true if not given
     merge?: boolean; // defaults to false if not given, in which case sets metadata, rather than merge.  If true, does a SHALLOW merge.
+    bypass_edit_protection?: boolean;
   }): void {
-    let { id, metadata, save, merge } = (opts = defaults(opts, {
+    let {
+      id,
+      metadata,
+      save,
+      merge,
+      bypass_edit_protection,
+    } = (opts = defaults(opts, {
       id: required,
       metadata: required,
       save: true,
       merge: false,
+      bypass_edit_protection: false,
     }));
 
-    if (this.check_edit_protection(id, "editing cell metadata")) {
+    if (
+      !bypass_edit_protection &&
+      this.check_edit_protection(id, "editing cell metadata")
+    ) {
       return;
     }
     // Special case: delete metdata (unconditionally)

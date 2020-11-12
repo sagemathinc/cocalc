@@ -23,7 +23,8 @@ import { has_internet_access } from "../upgrades/upgrade-utils";
 
 import { WebsocketState } from "../project/websocket/websocket-state";
 
-export type ProjectMap = Map<string, Map<string, any>>;
+export type Project = Map<string, any>;
+export type ProjectMap = Map<string, Project>;
 
 export interface ProjectsState {
   project_map?: ProjectMap;
@@ -443,7 +444,6 @@ export class ProjectsStore extends Store<ProjectsState> {
       site_license_upgrades as any
     );
     this.new_format_license_quota(project_id, quota);
-
 
     return quota;
   }

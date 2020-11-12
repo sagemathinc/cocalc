@@ -15,8 +15,7 @@ import { user_activity } from "../tracker";
 import { A, Icon, Loading, SearchInput } from "../r_misc";
 import { Button } from "../antd-bootstrap";
 import { ProjectUsers } from "../projects/project-users";
-//import { AddCollaborators } from "../collaborators/add-to-project";
-const { AddCollaborators } = require("../collaborators/add-to-project");
+import { AddCollaborators } from "../collaborators";
 
 import {
   mark_chat_as_read_if_unseen,
@@ -74,20 +73,12 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
     if (project == null) {
       return;
     }
-    const allow_urls = redux
-      .getStore("projects")
-      .allow_urls_in_emails(project_id);
     return (
       <div>
         Stream your screen or chat <A href={DISCORD_INVITE}>using Discord</A>.
-        <div>Add people to this project below:</div>
-        <AddCollaborators
-          project={project}
-          inline={true}
-          allow_urls={allow_urls}
-        />
-        <div style={{ color: "#666", marginTop: "-15px" }}>
-          (Anybody you add will see all files in this project.)
+        <AddCollaborators project_id={project_id} autoFocus />
+        <div style={{ color: "#666" }}>
+          (Collaborators have access to all files in this project.)
         </div>
       </div>
     );

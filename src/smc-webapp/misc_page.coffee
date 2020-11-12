@@ -975,20 +975,19 @@ exports.define_codemirror_extensions = () ->
                         mode = if editor.isFolded(pos) then "fold" else "unfold"
 
     # $.get '/static/codemirror-extra/data/latex-completions.txt', (data) ->
-    require.ensure [], =>
-        data = require('raw-loader!codemirror-extra/data/latex-completions.txt')
-        s = data.split('\n')
-        tex_hint = (editor) ->
-            cur   = editor.getCursor()
-            token = editor.getTokenAt(cur)
-            #console.log(token)
-            t = token.string
-            completions = (a for a in s when a.slice(0,t.length) == t)
-            ans =
-                list : completions,
-                from : CodeMirror.Pos(cur.line, token.start)
-                to   : CodeMirror.Pos(cur.line, token.end)
-        CodeMirror.registerHelper("hint", "stex", tex_hint)
+    data = require('raw-loader!codemirror-extra/data/latex-completions.txt')
+    s = data.split('\n')
+    tex_hint = (editor) ->
+        cur   = editor.getCursor()
+        token = editor.getTokenAt(cur)
+        #console.log(token)
+        t = token.string
+        completions = (a for a in s when a.slice(0,t.length) == t)
+        ans =
+            list : completions,
+            from : CodeMirror.Pos(cur.line, token.start)
+            to   : CodeMirror.Pos(cur.line, token.end)
+    CodeMirror.registerHelper("hint", "stex", tex_hint)
 
 
     CodeMirror.defineExtension 'get_edit_mode', (opts) ->

@@ -11,10 +11,7 @@ import { NoNetworkProjectWarning } from "../warnings/no-network";
 import { redux, rtypes, rclass } from "../../app-framework";
 import { JupyterServerPanel } from "../plain-jupyter-server";
 import { JupyterLabServerPanel } from "../jupyterlab-server";
-import {
-  AddCollaboratorsPanel,
-  CurrentCollaboratorsPanel,
-} from "../../collaborators";
+import { CurrentCollaboratorsPanel } from "../../collaborators";
 
 import { AboutBox } from "./about-box";
 import { UpgradeUsage } from "./upgrade-usage";
@@ -27,6 +24,8 @@ import { Project } from "./types";
 import { SSHPanel } from "./ssh";
 import { Environment } from "./environment";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
+import { SettingBox } from "../../r_misc";
+import { AddCollaborators } from "../../collaborators";
 
 import { webapp_client } from "../../webapp-client";
 import { Col, Row } from "react-bootstrap";
@@ -131,7 +130,6 @@ export const Body = rclass<ReactProps>(
       const site_license_ids: string[] = store.get_site_license_ids(
         this.props.project_id
       );
-      const allow_urls = store.allow_urls_in_emails(this.props.project_id);
 
       const { commercial } = require("../../customize");
 
@@ -230,11 +228,11 @@ export const Body = rclass<ReactProps>(
                 project={this.props.project}
                 user_map={this.props.user_map}
               />
-              <AddCollaboratorsPanel
-                key="new-collabs"
-                project={this.props.project}
-                allow_urls={allow_urls}
-              />
+              <SettingBox title="Add new collaborators" icon="plus">
+                <AddCollaborators
+                  project_id={this.props.project.get("project_id")}
+                />
+              </SettingBox>
               <ProjectControl key="control" project={this.props.project} />
               <SagewsControl key="worksheet" project={this.props.project} />
               {have_jupyter_notebook ? (

@@ -535,7 +535,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             pos   = {line:loc.y, ch:loc.x}
             data  = x[i]
             name  = misc.trunc(@_users.get_first_name(account_id), 10)
-            color = @_users.get_color(account_id)
+            color = @_users.get_color_sync(account_id)
             if not data?
                 data = x[i] = {cursor: templates.find(".smc-editor-codemirror-cursor").clone().show()}
             if name != data.name

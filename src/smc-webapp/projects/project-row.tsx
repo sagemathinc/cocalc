@@ -11,12 +11,11 @@ import {
   React,
   useState,
   useActions,
-  useStore,
   useRedux,
   useTypedRedux,
 } from "../app-framework";
 import { ProjectUsers } from "./project-users";
-const { AddCollaborators } = require("../collaborators/add-to-project");
+import { AddCollaborators } from "../collaborators";
 import { Row, Col, Well } from "../antd-bootstrap";
 import { Icon, Markdown, ProjectState, Space, TimeAgo } from "../r_misc";
 import { id2name } from "../custom-software/init";
@@ -49,27 +48,13 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
   const images = useTypedRedux("compute_images", "images");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
 
-  const store = useStore("projects");
   const actions = useActions("projects");
 
   function render_add_collab(): JSX.Element | undefined {
     if (!add_collab) {
       return;
     }
-    const allow_urls = store.allow_urls_in_emails(project_id);
-    return (
-      <div>
-        <h5>Add people</h5>
-        <div style={{ color: "#666", marginBottom: "10px" }}>
-          Who would you like to work with on this project?
-        </div>
-        <AddCollaborators
-          project={project}
-          inline={true}
-          allow_urls={allow_urls}
-        />
-      </div>
-    );
+    return <AddCollaborators project_id={project_id} autoFocus />;
   }
 
   function render_collab(): JSX.Element {
@@ -141,7 +126,8 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
     set_selection_at_last_mouse_down((window.getSelection() ?? "").toString());
   }
 
-  function handle_click(e): void {
+  function handle_click(e?, force?: boolean): void {
+    if (!force && add_collab) return;
     const cur_sel = (window.getSelection() ?? "").toString();
     // Check if user has highlighted some text.  Do NOT open if the user seems
     // to be trying to highlight text on the row, e.g., for copy pasting.
@@ -150,16 +136,17 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
     }
   }
 
-  function open_project_from_list(e): void {
+  function open_project_from_list(e?): void {
     actions.open_project({
       project_id,
-      switch_to: !(e.which === 2 || e.ctrlKey || e.metaKey),
+      switch_to: !(e?.which === 2 || e?.ctrlKey || e?.metaKey),
     });
-    e.preventDefault();
+    e?.preventDefault();
     user_tracking("open_project", { how: "projects_page", project_id });
   }
 
   function open_project_settings(e): void {
+    if (add_collab) return;
     if (is_anonymous) return;
     actions.open_project({
       project_id,
@@ -192,7 +179,10 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
           }}
         >
           <div style={{ fontWeight: "bold" }}>
-            <a cocalc-test="project-line">
+            <a
+              cocalc-test="project-line"
+              onClick={() => handle_click(undefined, true)}
+            >
               <Markdown value={project.get("title")} />
             </a>
           </div>
@@ -210,8 +200,8 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
         >
           {render_project_description()}
         </Col>
-        <Col sm={4}>{!is_anonymous && render_collab()}</Col>
-        <Col sm={2} onClick={open_project_settings}>
+        <Col sm={5}>{!is_anonymous && render_collab()}</Col>
+        <Col sm={1} onClick={open_project_settings}>
           {!is_anonymous && (
             <a>
               <ProjectState state={project.get("state")} />

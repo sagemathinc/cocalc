@@ -37,7 +37,7 @@ PROJECT_GROUPS = misc.PROJECT_GROUPS
 
 {syncdoc_history} = require('./postgres/syncdoc-history')
 collab = require('./postgres/collab')
-{set_account_info_if_possible} = require('./postgres/account-queries')
+{is_paying_customer, set_account_info_if_possible} = require('./postgres/account-queries')
 
 {site_license_usage_stats, projects_using_site_license, number_of_projects_using_site_license} = require('./postgres/site-license/analytics')
 {update_site_license_usage_log} = require('./postgres/site-license/usage-log')
@@ -3137,3 +3137,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             query       : "UPDATE projects"
             jsonb_merge : {run_quota:run_quota}
             where       : {project_id:project_id}
+
+    # async -- true if they are a manager on a license or have
+    # any subscriptions.
+    is_paying_customer: (account_id) =>
+        return await is_paying_customer(@, account_id)
