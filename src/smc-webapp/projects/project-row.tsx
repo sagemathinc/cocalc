@@ -11,7 +11,6 @@ import {
   React,
   useState,
   useActions,
-  useStore,
   useRedux,
   useTypedRedux,
 } from "../app-framework";
@@ -49,20 +48,13 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
   const images = useTypedRedux("compute_images", "images");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
 
-  const store = useStore("projects");
   const actions = useActions("projects");
 
   function render_add_collab(): JSX.Element | undefined {
     if (!add_collab) {
       return;
     }
-    const allow_urls = store.allow_urls_in_emails(project_id);
-    return (
-      <div>
-        <h5 style={{ color: "#666" }}>Add collaborators to project</h5>
-        <AddCollaborators project={project} trust={allow_urls} />
-      </div>
-    );
+    return <AddCollaborators project_id={project_id} autoFocus />;
   }
 
   function render_collab(): JSX.Element {

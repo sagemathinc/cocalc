@@ -14,6 +14,7 @@ import {
   redux,
   useActions,
   useIsMountedRef,
+  useMemo,
   useRef,
   useTypedRedux,
   useState,
@@ -24,7 +25,6 @@ import { Button, ButtonToolbar, Well } from "../antd-bootstrap";
 import { Icon, Loading, ErrorDisplay, Space } from "../r_misc";
 
 import { webapp_client } from "../webapp-client";
-import { has_internet_access } from "../upgrades/upgrade-utils";
 import { SITE_NAME } from "smc-util/theme";
 import { contains_url, plural } from "smc-util/misc2";
 import { trunc_middle } from "smc-util/misc";
@@ -38,6 +38,7 @@ import {
 import { Project } from "../projects/store";
 import { Avatar } from "../account/avatar/avatar";
 import { ProjectInviteTokens } from "./project-invite-tokens";
+import { alert_message } from "../alerts";
 
 interface RegisteredUser {
   sort?: string;
@@ -70,14 +71,22 @@ interface NonregisteredUser {
 type User = RegisteredUser | NonregisteredUser;
 
 interface Props {
-  project: Project;
-  trust?: boolean;
+  project_id: string;
+  autoFocus?: boolean;
 }
 
 type State = "input" | "searching" | "searched" | "invited" | "invited_errors";
 
-export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
+export const AddCollaborators: React.FC<Props> = ({
+  autoFocus,
+  project_id,
+}) => {
   const user_map = useTypedRedux("users", "user_map");
+  const project_map = useTypedRedux("projects", "project_map");
+  const project: Project | undefined = useMemo(
+    () => project_map?.get(project_id),
+    [project_id, project_map]
+  );
 
   // search that user has typed in so far
   const [search, set_search] = useState<string>("");
@@ -107,6 +116,11 @@ export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
 
   const project_actions = useActions("projects");
 
+  const allow_urls = useMemo(
+    () => redux.getStore("projects").allow_urls_in_emails(project_id),
+    [project_id]
+  );
+
   function reset(): void {
     set_search("");
     set_results([]);
@@ -121,7 +135,7 @@ export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
   }
 
   async function do_search(search: string): Promise<void> {
-    if (state == "searching") {
+    if (state == "searching" || project == null) {
       // already searching
       return;
     }
@@ -242,13 +256,13 @@ export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
       options.push(
         <Select.Option key={x} value={x} label={r.label} tag={r.tag}>
           <Avatar
-            size={30}
+            size={36}
             no_tooltip={true}
             account_id={r.account_id}
             first_name={r.account_id ? r.first_name : "@"}
             last_name={r.last_name}
           />{" "}
-          {r.name}
+          <span title={r.name}>{r.name}</span>
         </Select.Option>
       );
     }
@@ -256,10 +270,11 @@ export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
   }
 
   async function invite_collaborator(account_id: string): Promise<void> {
+    if (project == null) return;
     const { subject, replyto, replyto_name } = sender_info();
 
     await project_actions.invite_collaborator(
-      project.get("project_id"),
+      project_id,
       account_id,
       email_body,
       subject,
@@ -298,6 +313,8 @@ export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
   }
 
   function write_email_invite(): void {
+    if (project == null) return;
+
     const name = redux.getStore("account").get_fullname();
     const title = project.get("title");
     const target = `project '${title}'`;
@@ -317,17 +334,18 @@ export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
     const SiteName = redux.getStore("customize").get("site_name") ?? SITE_NAME;
     let subject;
     if (replyto_name != null) {
-      subject = `${replyto_name} added you to project ${project.get("title")}`;
+      subject = `${replyto_name} added you to project ${project?.get("title")}`;
     } else {
-      subject = `${SiteName} Invitation to project ${project.get("title")}`;
+      subject = `${SiteName} Invitation to project ${project?.get("title")}`;
     }
     return { subject, replyto, replyto_name };
   }
 
   async function invite_noncloud_collaborator(email_address): Promise<void> {
+    if (project == null) return;
     const { subject, replyto, replyto_name } = sender_info();
     await project_actions.invite_collaborators_by_email(
-      project.get("project_id"),
+      project_id,
       email_address,
       email_body,
       subject,
@@ -335,17 +353,22 @@ export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
       replyto,
       replyto_name
     );
-    if (!trust) {
-      // TODO: show a message that they might have to email that person
+    if (!allow_urls) {
+      // Show a message that they might have to email that person
       // and tell them to make a cocalc account, and when they do
       // then they will get added as collaborator to this project....
+      alert_message({
+        type: "warning",
+        message: `For security reasons you should contact ${email_address} directly and ask them to join Cocalc to get access to this project.`,
+      });
     }
   }
 
   function send_email_invite(): void {
+    if (project == null) return;
     const { subject, replyto, replyto_name } = sender_info();
     project_actions.invite_collaborators_by_email(
-      project.get("project_id"),
+      project_id,
       email_to,
       email_body,
       subject,
@@ -359,7 +382,7 @@ export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
   }
 
   function check_email_body(value: string): void {
-    if (!trust && contains_url(value)) {
+    if (!allow_urls && contains_url(value)) {
       set_email_body_error("Sending URLs is not allowed. (anti-spam measure)");
     } else {
       set_email_body_error("");
@@ -445,47 +468,18 @@ export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
   }
 
   function render_search(): JSX.Element | undefined {
-    /* TODO: we should not say 'search for "h"' when someone
-       has already searched for "h".
-       Instead it should be:
-       - Search [...]
-       - if results.length > 0:
-         - Select names from below to add
-         - list of users
-         - add button
-       - else
-         - no results found
-         - send invitation
-    */
-    if (search && state == "searched") {
-      return (
-        <div style={{ marginBottom: "10px" }}>
-          {render_select_list_button()}
-        </div>
-      );
-    }
+    return (
+      <div style={{ height: "40px" }}>
+        {search && state == "searched"
+          ? render_select_list_button()
+          : "Who would you like to collaborate with?"}
+      </div>
+    );
   }
-
-  /*
-  function render_send_email_invite(): JSX.Element {
-    if (has_internet_access(project.get("project_id"))) {
-      return (
-        <Button style={{ marginBottom: "10px" }} onClick={write_email_invite}>
-          <Icon name="envelope" /> Send Email Invitation...
-        </Button>
-      );
-    } else {
-      return (
-        <div>
-          Enable the Internet Access upgrade to this project in project settings
-          in order to send an email invitation.
-        </div>
-      );
-    }
-  }
-  */
 
   function render_select_list(): JSX.Element | undefined {
+    if (project == null) return;
+
     const users: User[] = [];
     const existing: User[] = [];
     for (const r of results) {
@@ -503,8 +497,8 @@ export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
           mode="multiple"
           allowClear
           showArrow
-          autoFocus
-          open={true || results.length > 0 || search_ref.current.trim() != ""}
+          autoFocus={autoFocus}
+          open={autoFocus ? true : undefined}
           filterOption={(s, opt) => {
             if (s.indexOf(",") != -1) return true;
             return search_match(
@@ -521,8 +515,7 @@ export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
               )} matching ${search}`
             ) : (
               <span>
-                <Icon name="search" /> Comma separated names or email
-                addresses...
+                <Icon name="search" /> Name or email address...
               </span>
             )
           }
@@ -532,6 +525,11 @@ export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
           value={selected_entries}
           optionLabelProp="tag"
           onInputKeyDown={(e) => {
+            if (e.keyCode == 27) {
+              reset();
+              e.preventDefault();
+              return;
+            }
             if (
               e.keyCode == 13 &&
               state != ("searching" as State) &&
@@ -539,10 +537,13 @@ export const AddCollaborators: React.FC<Props> = ({ project, trust }) => {
             ) {
               do_search(search_ref.current);
               e.preventDefault();
+              return;
             }
           }}
           onSearch={(value) => (search_ref.current = value)}
-          notFoundContent={<span />}
+          notFoundContent={
+            <div style={{ color: "#aaa" }}>Press enter to search...</div>
+          }
         >
           {render_options(users)}
         </Select>

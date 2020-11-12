@@ -21,7 +21,7 @@ import { avatar_fontcolor } from "../account/avatar/font-color";
 
 import { has_internet_access } from "../upgrades/upgrade-utils";
 import { Project } from "smc-webapp/project/settings/types";
-import { ProjectInviteTokens } from "./project-invite-tokens";
+import { AddCollaborators } from "./add-collaborators";
 
 type UserAndProfile = User & {
   profile: { color?: string; image?: string };
@@ -525,15 +525,7 @@ ${name}
           listed here can simultaneously work with you on any notebooks and
           terminals in this project, and add other people to this project.
           <hr />
-          {this.render_cocalc_user_search()}
-          {this.render_manual_email_entry()}
-          {this.state.selection.length > 0 || this.state.email_to ? (
-            <>
-              {this.render_invitation_editor()}
-              {this.render_buttons()}
-            </>
-          ) : undefined}
-          <ProjectInviteTokens
+          <AddCollaborators
             project_id={this.props.project?.get("project_id")}
           />
         </SettingBox>

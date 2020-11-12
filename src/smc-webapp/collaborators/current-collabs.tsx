@@ -123,6 +123,7 @@ export const CurrentCollaboratorsPanel = rclass<ReactProps>(
                 account_id={user.account_id}
                 user_map={this.props.user_map}
                 last_active={user.last_active}
+                show_avatar={true}
               />
               <span>
                 <Space />({user.group})
@@ -168,6 +169,9 @@ export const CurrentCollaboratorsPanel = rclass<ReactProps>(
     render() {
       return (
         <SettingBox title="Current collaborators" icon="user">
+          Anybody listed below can simultaneously work with you on any notebooks
+          and terminals in this project, and add other people to this project.
+          <hr />
           {this.render_collaborators_list()}
         </SettingBox>
       );
