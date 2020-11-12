@@ -25,7 +25,7 @@ import { SSHPanel } from "./ssh";
 import { Environment } from "./environment";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 import { SettingBox } from "../../r_misc";
-import { AddCollaborators } from "../../collaborators/add-collaborators";
+import { AddCollaborators } from "../../collaborators";
 
 import { webapp_client } from "../../webapp-client";
 import { Col, Row } from "react-bootstrap";

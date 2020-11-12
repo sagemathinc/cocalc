@@ -15,7 +15,7 @@ import { user_activity } from "../tracker";
 import { A, Icon, Loading, SearchInput } from "../r_misc";
 import { Button } from "../antd-bootstrap";
 import { ProjectUsers } from "../projects/project-users";
-import { AddCollaborators } from "../collaborators/add-collaborators";
+import { AddCollaborators } from "../collaborators";
 
 import {
   mark_chat_as_read_if_unseen,

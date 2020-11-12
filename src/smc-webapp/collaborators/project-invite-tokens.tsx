@@ -32,9 +32,9 @@ const MAX_TOKENS = 200;
 const COLUMNS = [
   { title: "Token", dataIndex: "token", key: "token" },
   { title: "Created", dataIndex: "created", key: "created" },
+  { title: "Expires", dataIndex: "expires", key: "expires" },
   { title: "Uses", dataIndex: "counter", key: "counter" },
   /* { title: "Limit", dataIndex: "usage_limit", key: "usage_limit" },*/
-  { title: "Expires", dataIndex: "expires", key: "expires" },
 ];
 
 interface Props {
@@ -97,7 +97,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
           style={{ width: "20px" }}
           name={expanded ? "caret-down" : "caret-right"}
         />{" "}
-        Or invite people via a project invite token...
+        Invite collaborators by sending them a project invite token...
       </a>
     );
     if (!expanded) {

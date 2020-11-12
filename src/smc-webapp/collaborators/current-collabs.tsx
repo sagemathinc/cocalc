@@ -169,8 +169,9 @@ export const CurrentCollaboratorsPanel = rclass<ReactProps>(
     render() {
       return (
         <SettingBox title="Current collaborators" icon="user">
-          Anybody listed below can simultaneously work with you on any notebooks
-          and terminals in this project, and add other people to this project.
+          Everybody listed below can collaboratively work with you on any
+          notebooks, terminals or files in this project, and add or remove other
+          collaborators.
           <hr />
           {this.render_collaborators_list()}
         </SettingBox>

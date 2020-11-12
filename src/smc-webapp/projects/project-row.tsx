@@ -15,7 +15,7 @@ import {
   useTypedRedux,
 } from "../app-framework";
 import { ProjectUsers } from "./project-users";
-import { AddCollaborators } from "../collaborators/add-collaborators";
+import { AddCollaborators } from "../collaborators";
 import { Row, Col, Well } from "../antd-bootstrap";
 import { Icon, Markdown, ProjectState, Space, TimeAgo } from "../r_misc";
 import { id2name } from "../custom-software/init";

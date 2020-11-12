@@ -470,7 +470,7 @@ export const AddCollaborators: React.FC<Props> = ({
   function render_search(): JSX.Element | undefined {
     return (
       <div style={{ height: "40px" }}>
-        {search && state == "searched"
+        {state == "searched"
           ? render_select_list_button()
           : "Who would you like to collaborate with?"}
       </div>
@@ -508,7 +508,7 @@ export const AddCollaborators: React.FC<Props> = ({
           }}
           style={{ width: "100%", marginBottom: "10px" }}
           placeholder={
-            search.trim() ? (
+            results.length > 0 && search.trim() ? (
               `Select below from ${results.length} ${plural(
                 results.length,
                 "user"
@@ -561,7 +561,7 @@ export const AddCollaborators: React.FC<Props> = ({
             {render_email_textarea()}
           </div>
         )}
-        {render_select_list_button()}
+        {state == "searched" && render_select_list_button()}
       </div>
     );
   }

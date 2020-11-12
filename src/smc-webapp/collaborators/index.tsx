@@ -3,5 +3,5 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export { AddCollaboratorsPanel } from "./new-collabs";
+export { AddCollaborators } from "./add-collaborators";
 export { CurrentCollaboratorsPanel } from "./current-collabs";
