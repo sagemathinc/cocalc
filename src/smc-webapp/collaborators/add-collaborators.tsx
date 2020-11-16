@@ -101,6 +101,7 @@ export const AddCollaborators: React.FC<Props> = ({
 
   // currently carrying out a search
   const [state, set_state] = useState<State>("input");
+  const [focused, set_focused] = useState<boolean>(false);
   // display an error in case something went wrong doing a search
   const [err, set_err] = useState<string>("");
   // if set, adding user via email to this address
@@ -495,6 +496,12 @@ export const AddCollaborators: React.FC<Props> = ({
       }
     }
 
+    function render_search_help(): JSX.Element | undefined {
+      if (focused && !results) {
+        return <div style={{ color: "#aaa" }}>Press enter to search...</div>;
+      }
+    }
+
     return (
       <div style={{ marginBottom: "10px" }}>
         <Select
@@ -546,12 +553,13 @@ export const AddCollaborators: React.FC<Props> = ({
             }
           }}
           onSearch={(value) => (search_ref.current = value)}
-          notFoundContent={
-            <div style={{ color: "#aaa" }}>Press enter to search...</div>
-          }
+          notFoundContent={null}
+          onFocus={() => set_focused(true)}
+          onBlur={() => set_focused(false)}
         >
           {render_options(users)}
         </Select>
+        {render_search_help()}
         {selected_entries.length > 0 && (
           <div
             style={{
