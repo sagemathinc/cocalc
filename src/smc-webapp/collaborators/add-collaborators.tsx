@@ -497,8 +497,8 @@ export const AddCollaborators: React.FC<Props> = ({
     }
 
     function render_search_help(): JSX.Element | undefined {
-      if (focused && !results) {
-        return <div style={{ color: "#aaa" }}>Press enter to search...</div>;
+      if (focused && results.length === 0) {
+        return <Alert type="info" message={"Press enter to search..."} />;
       }
     }
 
@@ -521,10 +521,10 @@ export const AddCollaborators: React.FC<Props> = ({
           style={{ width: "100%", marginBottom: "10px" }}
           placeholder={
             results.length > 0 && search.trim() ? (
-              `Select below from ${results.length} ${plural(
+              `Select user from ${results.length} ${plural(
                 results.length,
                 "user"
-              )} matching ${search}`
+              )} matching '${search}'.`
             ) : (
               <span>
                 <Icon name="search" /> Name or email address...
