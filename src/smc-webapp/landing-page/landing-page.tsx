@@ -38,6 +38,7 @@ const DESC_FONT = "sans-serif";
 
 interface Props {
   strategies?: immutable.List<PassportStrategy>;
+  exclusive_sso_domains?: Set<string>;
   sign_up_error?: immutable.Map<string, any>;
   sign_in_error?: string;
   signing_in?: boolean;
@@ -391,6 +392,7 @@ class LandingPage extends Component<Props & reduxProps, State> {
               terms_of_service={this.props.terms_of_service}
               terms_of_service_url={this.props.terms_of_service_url}
               email_signup={this.props.email_signup}
+              exclusive_sso_domains={this.props.exclusive_sso_domains}
             />
           </Col>
           <Col md={6}>
