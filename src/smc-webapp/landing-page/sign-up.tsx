@@ -199,6 +199,7 @@ export class SignUp extends React.Component<Props, State> {
           placeholder="Email address"
           cocalc-test={"sign-up-email"}
           maxLength={254}
+          onChange={(e) => console.log("email change", e.target.value, e)}
         />
       </FormGroup>
     );

@@ -466,6 +466,7 @@ export class PassportManager {
         "type",
         "icon",
         "public",
+        "exclusive_domains",
       ]);
       data.push(info);
     }
