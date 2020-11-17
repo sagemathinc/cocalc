@@ -192,7 +192,7 @@ export class SignUp extends React.Component<Props, State> {
 
   check_email(email: string) {
     // this is just a quick heuristic – a full check is done in the hub
-    const domain = email.split("@")[1]?.trim();
+    const domain = email.split("@")[1]?.trim().toLowerCase();
     if (domain != null && this.props.exclusive_sso_domains?.has(domain)) {
       this.setState({ domain_blocked: domain });
     } else if (this.state.domain_blocked != null) {
@@ -204,9 +204,9 @@ export class SignUp extends React.Component<Props, State> {
     if (this.state.domain_blocked == null) return;
     return (
       <div style={ERROR_STYLE}>
-        To sign up{" "}
+        To sign up with {" "}
         <code style={{ color: "white" }}>@{this.state.domain_blocked}</code>,
-        you have to use the corresponding SSO mechanism listed above!
+        you have to use the corresponding SSO connect mechanism listed above!
       </div>
     );
   }
