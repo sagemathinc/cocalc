@@ -359,6 +359,21 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             query : 'SELECT strategy, conf FROM passport_settings'
             cb    : all_results(opts.cb)
 
+    get_all_passport_settings_cached: (opts) =>
+        opts = defaults opts,
+            cb       : required
+        passports = SERVER_SETTINGS_CACHE.get('passports')
+        if passports != null
+            opts.cb(undefined, passports)
+            return
+        @get_all_passport_settings
+            cb: (err, res) =>
+                if err
+                    opts.cb(err)
+                else
+                    SERVER_SETTINGS_CACHE.set('passports', res)
+                    opts.cb(undefined, res)
+
     ###
     API Key Management
     ###

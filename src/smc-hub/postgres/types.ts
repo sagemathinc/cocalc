@@ -189,6 +189,7 @@ export interface PostgreSQL extends EventEmitter {
   });
   get_passport_settings(opts: { strategy: string; cb: Function });
   get_all_passport_settings(opts: { cb: Function });
+  get_all_passport_settings_cached(opts: { cb: Function });
 
   change_password(opts: {
     account_id: string;

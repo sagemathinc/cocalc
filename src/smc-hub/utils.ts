@@ -9,6 +9,7 @@ import { PostgreSQL } from "./postgres/types";
 import { AllSiteSettings } from "../smc-util/db-schema/types";
 import { expire_time } from "../smc-util/misc";
 import { callback2 as cb2 } from "../smc-util/async-utils";
+import { PassportStrategyDB } from "./auth";
 
 export function get_smc_root(): string {
   return process.env.SMC_ROOT ?? ".";
@@ -33,6 +34,22 @@ export async function have_active_registration_tokens(
     cache: true,
   });
   return resp.rows[0]?.have_tokens === true;
+}
+
+interface PassportConfig {
+  strategy: string;
+  conf: PassportStrategyDB;
+}
+export type PassportConfigs = PassportConfig[];
+
+export async function get_passports(db: PostgreSQL): Promise<PassportConfigs> {
+  return new Promise((done, fail) => {
+    db.get_all_passport_settings_cached({
+      cb: (err, passports) => {
+        err ? fail(err) : done(passports);
+      },
+    });
+  });
 }
 
 // just to make this async friendly, that's all
