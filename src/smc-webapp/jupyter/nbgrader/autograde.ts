@@ -21,7 +21,7 @@ because that may be important for defining variables and functions
 that get used in testing.
 */
 
-import { copy } from "smc-util/misc";
+import { copy, is_array, startswith } from "smc-util/misc";
 import { state_to_value } from "./cell-types";
 
 // Enough description of what a Jupyter notebook is for our purposes here.
@@ -109,7 +109,7 @@ export function create_autograde_ipynb(
 // to find a cell with given id.
 function autograde_cells_by_grade_id(
   notebook: JupyterNotebook
-): {ids:string[], cells:{ [grade_id: string]: Cell }} {
+): { ids: string[]; cells: { [grade_id: string]: Cell } } {
   const ids: string[] = [];
   const cells: { [grade_id: string]: Cell } = {};
   for (const cell of notebook.cells) {
@@ -137,6 +137,7 @@ export type NotebookScores = { [grade_id: string]: Score };
 
 export function extract_auto_scores(notebook: JupyterNotebook): NotebookScores {
   const scores: NotebookScores = {};
+  const lang = notebook.metadata?.kernelspec?.language ?? "python";
   for (const cell of notebook.cells) {
     if (cell == null) continue;
     const metadata = cell.metadata;
@@ -166,7 +167,7 @@ export function extract_auto_scores(notebook: JupyterNotebook): NotebookScores {
       // distinct cells...
       let score: number = points;
       for (const output of outputs) {
-        const s = get_score(output);
+        const s = get_score(output, lang);
         if (s === undefined) {
           // no information about score yet
           continue;
@@ -189,25 +190,70 @@ export function extract_auto_scores(notebook: JupyterNotebook): NotebookScores {
 }
 
 // See comment/rant below...
-function get_score(output): number | undefined {
-  if (output["traceback"] != null) {
-    // If there is any traceback at all, it's 0 points.
+function get_score(output: object, lang: string): number | undefined {
+  if (
+    output["traceback"] != null || // has a traceback
+    output["ename"] != null || // name of the error
+    output["evalue"] != null || // metadata about error
+    output["output_type"] == "error" || // it's an error output
+    output["name"] == "stderr" // writing to stderr stream
+  ) {
+    // If there is any traceback or error indication at all, it's obviously 0 points.
     return 0;
   }
   if (output["text"] == null) {
-    // no impact on score
+    // no text output -- no impact on score
     return undefined;
   }
+
+  let text: string;
   if (typeof output["text"] == "string") {
-    if (output["text"].toLowerCase().indexOf("error") != -1) {
-      // With Octave assertions output text that contains the word "error".
-      // Official nbgrader would give this full credit, but with CoCalc we will
-      // give it 0 credit.
-      // We can't just make *any* output give 0 credit though, e.g., it might be
-      // valid to put some print logging in a solution.
+    text = output["text"];
+  } else if (is_array(output["text"])) {
+    text = output["text"].join("\n");
+  } else {
+    // I think this should never happen.
+    return undefined;
+  }
+
+  // Unfortunately, there are some kernels whose standard testing
+  // framework indicates failures in all kinds of "silly" ways, which
+  // don't get picked up by any of the tests above.  We handle those
+  // via heuristics below.  In each case, these can definitely lead
+  // to false positives.  However, as of now official upstream nbgrader
+  // seems to have worse support in all cases, and this is what our
+  // customers need.
+  if (lang == "octave") {
+    // This is pretty straightforward.  fortunately normal
+    if (startswith(text, "error: ")) {
       return 0;
     }
-    /* DISABLED -- there are too many ways this can go wrong, and it is VERY confusing!
+  } else if (lang == "r") {
+    /* R is pretty weird.   For example,
+         testthat::expect_equal(2, 1)
+      works just fine producing a traceback and being caught above, but
+         testthat::test_that("foo", {testthat::expect_equal(1+1, 3)})
+      fails and produces a stdout stream containing the word "Failure".
+      To make things even nastier,
+         testthat::test_that("foo", {testthat::expect_equals(1+1, 3)})
+      fails and produces a stdout stream containing the word "Error".
+      I have no idea what tag words might get output.  However, there
+      appears to be a big dash and some ANSI codes only before failures,
+      and not before the Test passed output, so we'll match on that.
+
+      Yes, this is super brittle and it doesn't make me happy at all.
+    */
+    if (text.indexOf("── \u001b[1m\u001b[38;5;214m") != -1) {
+      return 0;
+    }
+  }
+  // We don't do anything special for any other kernels yet.
+
+  /* In official nbgrader at this point they check for partial credit.  No
+     way in hell I'm implementing that.
+     DISABLED -- there are too many ways this can go wrong, and it is VERY confusing!
+     Also, official nbgrader does this in Python, whereas here we are using
+     Javascript, so it's hard to get the semantics right.
     // if output can cast to finite float, use that as the score (partial credit)
     try {
       const x = parseFloat(output["text"]);
@@ -215,13 +261,15 @@ function get_score(output): number | undefined {
         return x;
       }
     } catch (_) {}
-    */
-  }
+  */
 
+  // Full credit.
   return undefined;
 }
 
 /* Comment/rant:
+
+UPDATE: See "rants" at https://github.com/sagemathinc/cocalc/issues/5014.
 
 As of Sept 20, 2020: here's what the official nbgrader docs say about autograder test cells:
 
