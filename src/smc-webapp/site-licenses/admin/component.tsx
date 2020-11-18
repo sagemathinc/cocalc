@@ -23,6 +23,7 @@ import { actions } from "./actions";
 import { List, Map, Set } from "immutable";
 import { Button, Popconfirm } from "antd";
 import { License } from "./license";
+import { COLORS } from "smc-util/theme";
 
 interface Props {
   view?: boolean; // if true, open for viewing/editing
@@ -177,7 +178,7 @@ class SiteLicenses extends Component<Props> {
             }
           }}
         />
-        <div style={{ color: "#666" }}>
+        <div style={{ color: COLORS.GRAY }}>
           Search licenses by id, title, description, info, manager name and
           email address.
         </div>

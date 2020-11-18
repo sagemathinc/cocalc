@@ -46,6 +46,7 @@ interface Props {
   onChange: (change: Quota) => void;
   hideExtra?: boolean; // hide extra boxes, etc. -- this is used for admin editing, where they know what is up.
   disabled?: boolean;
+  show_advanced_default?: boolean; // if the "advanced" part should pop up by default
 }
 
 export const QuotaEditor: React.FC<Props> = ({
@@ -53,8 +54,11 @@ export const QuotaEditor: React.FC<Props> = ({
   onChange,
   hideExtra,
   disabled,
+  show_advanced_default,
 }) => {
-  const [show_advanced, set_show_advanced] = useState<boolean>(false);
+  const [show_advanced, set_show_advanced] = useState<boolean>(
+    show_advanced_default ?? false
+  );
   const hosting_multiplier = useMemo(() => {
     return (
       (quota.member ? COSTS.custom_cost.member : 1) *
