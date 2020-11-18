@@ -101,7 +101,14 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
       const now = server_time();
       await query({
         query: {
-          site_licenses: { id, created: now, last_used: now, activates: now },
+          site_licenses: {
+            id,
+            created: now,
+            last_used: now,
+            activates: now,
+            run_limit: 1,
+            quota: { member: true, cpu: 1, disk: 1, ram: 1 },
+          },
         },
       });
       this.start_editing(id);

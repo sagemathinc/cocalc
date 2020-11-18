@@ -29,7 +29,7 @@ export const EditQuota: React.FC<EditProps> = ({
   license_field,
   quota,
 }) => {
-  const q = quota?.toJS() ?? { member: true };
+  const q = quota?.toJS() ?? {};
   return (
     <QuotaEditor
       hideExtra={true}
