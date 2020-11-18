@@ -21,6 +21,7 @@ import {
   Checkbox,
   Alert,
 } from "../antd-bootstrap";
+import * as Antd from "antd";
 import { Kernel } from "./util";
 import { COLORS } from "smc-util/theme";
 import { JupyterActions } from "./browser-actions";
@@ -176,8 +177,10 @@ export class KernelSelector extends Component<
 
     return (
       <Row style={row_style}>
-        <h4>Suggested kernels</h4>
-        <Col>{entries}</Col>
+        <Col>
+          <h4>Suggested kernels</h4>
+          {entries}
+        </Col>
       </Row>
     );
   }
@@ -185,10 +188,12 @@ export class KernelSelector extends Component<
   private render_custom(): Rendered {
     return (
       <Row style={row_style}>
-        <h4>Custom kernels</h4>
-        <a onClick={() => this.props.actions.custom_jupyter_kernel_docs()}>
-          How to create a custom kernel...
-        </a>
+        <Col>
+          <h4>Custom kernels</h4>
+          <a onClick={() => this.props.actions.custom_jupyter_kernel_docs()}>
+            How to create a custom kernel...
+          </a>
+        </Col>
       </Row>
     );
   }
@@ -236,8 +241,10 @@ export class KernelSelector extends Component<
 
     return (
       <Row style={row_style}>
-        <h4>All kernels by language</h4>
-        <Col>{this.render_all_langs()}</Col>
+        <Col>
+          <h4>All kernels by language</h4>
+          {this.render_all_langs()}
+        </Col>
       </Row>
     );
   }
@@ -251,11 +258,13 @@ export class KernelSelector extends Component<
 
     return (
       <Row style={row_style}>
-        <h4>Quick selection</h4>
-        <div>
-          Your most recently selected kernel is{" "}
-          {this.render_kernel_button(name)}.
-        </div>
+        <Col>
+          <h4>Quick selection</h4>
+          <div>
+            Your most recently selected kernel is{" "}
+            {this.render_kernel_button(name)}.
+          </div>
+        </Col>
       </Row>
     );
   }
@@ -386,12 +395,12 @@ export class KernelSelector extends Component<
 
   render_head(): Rendered {
     return (
-      <Row style={row_style}>
-        <h3>
-          {"Select a Kernel"}
-          {this.render_close_button()}
-        </h3>
-      </Row>
+      <Antd.Row justify="space-between">
+        <Antd.Col flex={1}>
+          <h3>Select a Kernel</h3>
+        </Antd.Col>
+        <Antd.Col flex={"auto"}>{this.render_close_button()}</Antd.Col>
+      </Antd.Row>
     );
   }
 
