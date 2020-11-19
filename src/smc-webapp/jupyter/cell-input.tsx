@@ -176,7 +176,7 @@ export class CellInput extends Component<CellInputProps> {
         break;
     }
     if (this.props.is_readonly) {
-      opt = opt.set("readOnly", "nocursor");
+      opt = opt.set("readOnly", true);
     }
     if (this.props.cell.get("line_numbers") != null) {
       opt = opt.set("lineNumbers", this.props.cell.get("line_numbers"));
