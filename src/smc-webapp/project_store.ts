@@ -39,6 +39,7 @@ import { ProjectLogMap } from "./project/history/types";
 import { alert_message } from "./alerts";
 import { Listings, listings } from "./project/websocket/listings";
 import { deleted_file_variations } from "smc-util/delete-files";
+import { search_match, search_split } from "smc-util/misc2";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -609,38 +610,22 @@ export class ProjectStore extends Store<ProjectStoreState> {
   }
 }
 
-function _match(words, s, is_dir) {
-  s = s.toLowerCase();
-  for (const t of words) {
-    if (t[t.length - 1] === "/") {
-      if (!is_dir) {
-        return false;
-      } else if (s.indexOf(t.slice(0, -1)) === -1) {
-        return false;
-      }
-    } else if (s.indexOf(t) === -1) {
-      return false;
-    }
-  }
-  return true;
-}
-
 function _matched_files(search, listing) {
   if (listing == null) {
     return [];
   }
-  const words = search.split(" ");
-  return (() => {
-    const result: string[] = [];
-    for (const x of listing) {
-      if (
-        _match(words, x.display_name != null ? x.display_name : x.name, x.isdir)
-      ) {
-        result.push(x);
-      }
+  const words = search_split(search);
+  const v: string[] = [];
+  for (const x of listing) {
+    const name = (x.display_name ?? x.name ?? "").toLowerCase();
+    if (
+      search_match(name, words) ||
+      (x.isdir && search_match(name + "/", words))
+    ) {
+      v.push(x);
     }
-    return result;
-  })();
+  }
+  return v;
 }
 
 function _compute_file_masks(listing): void {

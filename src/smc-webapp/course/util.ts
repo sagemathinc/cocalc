@@ -14,6 +14,7 @@ import { separate_file_extension } from "smc-util/misc2";
 // CoCalc libraries
 import * as misc from "smc-util/misc";
 const { defaults, required } = misc;
+import { search_match, search_split } from "smc-util/misc2";
 
 export function STEPS(peer: boolean): AssignmentCopyStep[] {
   if (peer) {
@@ -177,41 +178,28 @@ export function immutable_to_list(x: any, primary_key?): any {
 
 // Returns a list of matched objects and the number of objects
 // which were in the original list but omitted in the returned list
-export function compute_match_list(opts) {
+export function compute_match_list(opts: {
+  list: any[];
+  search_key: string;
+  search: string;
+}) {
   opts = defaults(opts, {
     list: required, // list of objects<M>
     search_key: required, // M.search_key property to match over
     search: required, // matches to M.search_key
-    ignore_case: true,
   });
-  let { list, search, search_key, ignore_case } = opts;
+  let { list, search, search_key } = opts;
   if (!search) {
     // why are you even calling this..
     return { list, num_omitted: 0 };
   }
 
-  let num_omitted = 0;
-  const words = misc.split(search);
-  const matches = (x) => {
-    let k;
-    if (ignore_case) {
-      k =
-        typeof x[search_key].toLowerCase === "function"
-          ? x[search_key].toLowerCase()
-          : undefined;
-    } else {
-      k = x[search_key];
-    }
-    for (const w of words) {
-      if (k.indexOf(w) === -1) {
-        // no match
-        num_omitted += 1;
-        return false;
-      }
-    }
-    return true;
-  };
+  const words = search_split(search);
+  const matches = (x) =>
+    search_match(x[search_key]?.toLowerCase?.() ?? "", words);
+  const n = list.length;
   list = list.filter(matches);
+  const num_omitted = n - list.length;
   return { list, num_omitted };
 }
 

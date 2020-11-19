@@ -892,7 +892,8 @@ export function map_diff(
   return c;
 }
 
-// Like the exports.split method, but quoted terms are grouped together for an exact search.
+// Like the exports.split method, but quoted terms are grouped
+// together for an exact search.
 export function search_split(search: string): string[] {
   const terms: string[] = [];
   const v = search.toLowerCase().split('"');
@@ -917,11 +918,11 @@ export function search_split(search: string): string[] {
 // s = lower case string
 // v = array of terms as output by search_split above
 export function search_match(s: string, v: string[]): boolean {
-  if (typeof s != "string") {
+  if (typeof s != "string" || !is_array(v)) {
     // be safe against non Typescript clients
     return false;
   }
-  for (let x of Array.from(v)) {
+  for (let x of v) {
     if (x[0] == "-") {
       // negate since first character is a -.  In this case,
       // it is NOT a match if it is there.

@@ -6,8 +6,8 @@
 // CoCalc libraries
 import * as misc from "smc-util/misc";
 import { webapp_client } from "../../webapp-client";
-import { is_different } from "smc-util/misc2";
 import { keys } from "underscore";
+import { is_different, search_match, search_split } from "smc-util/misc2";
 
 // React libraries and components
 import {
@@ -668,29 +668,18 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
 
       let num_omitted = 0;
       if (this.state.search) {
-        const words = misc.split(this.state.search.toLowerCase());
-        const search = (a) =>
-          (
-            (a.last_name != null ? a.last_name : "") +
-            (a.first_name != null ? a.first_name : "") +
-            (a.email_address != null ? a.email_address : "")
-          ).toLowerCase();
-        const match = function (s) {
-          for (const word of words) {
-            if (s.indexOf(word) === -1) {
-              num_omitted += 1;
-              return false;
-            }
-          }
-          return true;
-        };
-        const w3: any[] = [];
+        const words = search_split(this.state.search.toLowerCase());
+        const search = (x) =>
+          `${x.first_name ?? ""} ${x.last_name ?? ""} ${
+            x.email_address ?? ""
+          }`.toLowerCase();
+        const w: any[] = [];
         for (const x of students) {
-          if (match(search(x))) {
-            w3.push(x);
+          if (search_match(search(x), words)) {
+            w.push(x);
           }
         }
-        students = w3;
+        students = w;
       }
 
       this.student_list = { students, num_omitted, num_deleted };
