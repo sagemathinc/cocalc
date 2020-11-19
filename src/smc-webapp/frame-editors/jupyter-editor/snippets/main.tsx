@@ -345,7 +345,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
       HEADER_SORTER,
       ([k, _]) => k,
     ]);
-    const style: CSS = { overflowY: "auto" };
+    const style: CSS = { overflowY: "auto", border: "0" };
     // when searching, expand the first three to aid the user
     const active_search =
       search === ""
