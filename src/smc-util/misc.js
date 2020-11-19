@@ -29,7 +29,9 @@ exports.round2 = round2 = require("./misc2").round2;
 exports.parse_number_input = require("./misc2").parse_number_input;
 exports.map_sum = require("./misc2").map_sum;
 exports.map_diff = require("./misc2").map_diff;
-exports.coerce_codomain_to_numbers = require('./misc2').coerce_codomain_to_numbers;
+exports.coerce_codomain_to_numbers = require("./misc2").coerce_codomain_to_numbers;
+exports.search_split = require("./misc2").search_split;
+exports.search_match = require("./misc2").search_match;
 
 exports.RUNNING_IN_NODE =
   (typeof process !== "undefined" && process !== null
@@ -110,42 +112,6 @@ exports.split = function (s) {
   } else {
     return [];
   }
-};
-
-// Like the exports.split method, but quoted terms are grouped together for an exact search.
-exports.search_split = function (search) {
-  const terms = [];
-  search = search.toLowerCase().split('"');
-  const { length } = search;
-  for (let i = 0; i < search.length; i++) {
-    let element = search[i];
-    element = element.trim();
-    if (element.length !== 0) {
-      // the even elements lack quotation
-      // if there are an even number of elements that means there is an unclosed quote,
-      // so the last element shouldn't be grouped.
-      if (i % 2 === 0 || (i === length - 1 && length % 2 === 0)) {
-        terms.push(...Array.from(element.split(" ") || []));
-      } else {
-        terms.push(element);
-      }
-    }
-  }
-  return terms;
-};
-
-// s = lower case string
-// v = array of terms as output by search_split above
-exports.search_match = function (s, v) {
-  if (s == null) {
-    return false;
-  }
-  for (let x of Array.from(v)) {
-    if (s.indexOf(x) === -1) {
-      return false;
-    }
-  }
-  return true;
 };
 
 // return true if the word contains the substring

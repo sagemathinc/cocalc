@@ -11,10 +11,7 @@ import { SearchInput, WindowedList, Icon } from "../r_misc";
 import { FileUseActions } from "./actions";
 import { open_file_use_entry } from "./util";
 
-const {
-  search_match,
-  search_split,
-} = require("smc-util/misc");
+import { search_match, search_split } from "smc-util/misc2";
 
 interface Props {
   redux: any;

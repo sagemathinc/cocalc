@@ -891,3 +891,51 @@ export function map_diff(
   }
   return c;
 }
+
+// Like the exports.split method, but quoted terms are grouped together for an exact search.
+export function search_split(search: string): string[] {
+  const terms: string[] = [];
+  const v = search.toLowerCase().split('"');
+  const { length } = v;
+  for (let i = 0; i < v.length; i++) {
+    let element = v[i];
+    element = element.trim();
+    if (element.length !== 0) {
+      // the even elements lack quotation
+      // if there are an even number of elements that means there is an unclosed quote,
+      // so the last element shouldn't be grouped.
+      if (i % 2 === 0 || (i === length - 1 && length % 2 === 0)) {
+        terms.push(...Array.from(element.split(" ") || []));
+      } else {
+        terms.push(element);
+      }
+    }
+  }
+  return terms;
+}
+
+// s = lower case string
+// v = array of terms as output by search_split above
+export function search_match(s: string, v: string[]): boolean {
+  if (typeof s != "string") {
+    // be safe against non Typescript clients
+    return false;
+  }
+  for (let x of Array.from(v)) {
+    if (x[0] == "-") {
+      // negate since first character is a -.  In this case,
+      // it is NOT a match if it is there.
+      const y = x.slice(1);
+      if (y.length > 0 && s.indexOf(y) !== -1) {
+        return false;
+      }
+    } else {
+      // normal search - not a match if not there.
+      if (s.indexOf(x) === -1) {
+        return false;
+      }
+    }
+  }
+  // no term doesn't match, so we have a match.
+  return true;
+}
