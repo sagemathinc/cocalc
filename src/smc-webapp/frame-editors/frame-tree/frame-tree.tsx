@@ -65,7 +65,6 @@ const drag_offset = feature.IS_TOUCH ? 5 : 2;
 const cols_drag_bar = {
   padding: `${drag_offset}px`,
   background: "#efefef",
-  zIndex: 20,
   cursor: "ew-resize",
 };
 
@@ -399,6 +398,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         axis={"x"}
         onStop={handle_stop}
         onStart={misc_page.drag_start_iframe_disable}
+        defaultClassNameDragging={"cc-vertical-drag-bar-dragging"}
       >
         <div
           style={

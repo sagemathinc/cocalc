@@ -153,9 +153,10 @@ export const Content: React.FC<Props> = React.memo(
           axis="x"
           onStop={handle_drag_bar_stop}
           onStart={drag_start_iframe_disable}
+          defaultClassNameDragging={"cc-vertical-drag-bar-dragging"}
         >
           <div
-            className="smc-vertical-drag-bar"
+            className="cc-vertical-drag-bar"
             style={IS_TOUCH ? { width: "12px" } : undefined}
           >
             {" "}

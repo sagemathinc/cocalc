@@ -529,7 +529,7 @@ code
   &:hover
     background : #888
 
-.smc-vertical-drag-bar, .webapp-editor-resize-bar-layout-2, .webapp-editor-latex-resize-bar, .webapp-editor-html-md-resize-bar
+.webapp-editor-resize-bar-layout-2, .webapp-editor-latex-resize-bar, .webapp-editor-html-md-resize-bar
   cursor        : ew-resize
   background    : #eee
   width         : 6px
@@ -537,6 +537,17 @@ code
   z-index       : 100 /* must be less than 1050, which is used for modals */
   &:hover
     background : #888
+
+.cc-vertical-drag-bar
+  cursor        : ew-resize
+  background    : #eee
+  width         : 6px
+  border        : 0.5px solid lightgrey
+  &:hover
+    background : #888
+
+.cc-vertical-drag-bar-dragging
+  z-index       : 100
 
 .webapp-editor-html-md-preview
   padding       : 12px
