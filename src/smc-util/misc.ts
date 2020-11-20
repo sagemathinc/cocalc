@@ -12,9 +12,6 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 **The exact behavior of functions may change from what is in misc.js!**
 */
 export {
-  times_per_second,
-  to_json_socket,
-  from_json_socket,
   to_safe_str,
   date_parser,
   ISO_to_Date,
@@ -1143,3 +1140,45 @@ export function search_match(s: string, v: string[]): boolean {
 }
 
 export const RUNNING_IN_NODE: boolean = process?.title == "node";
+
+/*
+The functions to_json_socket and from_json_socket are for sending JSON data back
+and forth in serialized form over a socket connection.   They replace Date objects by the
+object {DateEpochMS:ms_since_epoch} *only* during transit.   This is much better than
+converting to ISO, then using a regexp, since then all kinds of strings will get
+converted that were never meant to be date objects at all, e.g., a filename that is
+a ISO time string.  Also, ms since epoch is less ambiguous regarding old/different
+browsers, and more compact.
+
+If you change SOCKET_DATE_KEY, then all clients and servers and projects must be
+simultaneously restarted.  And yes, I perhaps wish I had made this key more obfuscated.
+That said, we also check the object length when translating back so only objects
+exactly of the form {DateEpochMS:value} get transformed to a date.
+*/
+const SOCKET_DATE_KEY = "DateEpochMS";
+
+function socket_date_replacer(key: string, value: any): any {
+  // @ts-ignore
+  const x = this[key];
+  return x instanceof Date ? { [SOCKET_DATE_KEY]: x.valueOf() } : value;
+}
+
+export function to_json_socket(x: any): string {
+  return JSON.stringify(x, socket_date_replacer);
+}
+
+function socket_date_parser(_key: string, value: any): any {
+  const x = value?.[SOCKET_DATE_KEY];
+  return x != null && len(value) == 1 ? new Date(x) : value;
+}
+
+export function from_json_socket(x) {
+  try {
+    return JSON.parse(x, socket_date_parser);
+  } catch (err) {
+    console.debug(
+      `from_json: error parsing ${x} (=${exports.to_json(x)}) from JSON`
+    );
+    throw err;
+  }
+}

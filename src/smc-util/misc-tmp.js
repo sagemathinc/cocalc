@@ -146,49 +146,6 @@ exports.times_per_second = function (f, max_time, max_loops) {
 
 exports.to_json = JSON.stringify;
 
-/*
-The functions to_json_socket and from_json_socket are for sending JSON data back
-and forth in serialized form over a socket connection.   They replace Date objects by the
-object {DateEpochMS:ms_since_epoch} *only* during transit.   This is much better than
-converting to ISO, then using a regexp, since then all kinds of strings will get
-converted that were never meant to be date objects at all, e.g., a filename that is
-a ISO time string.  Also, ms since epoch is less ambiguous regarding old/different
-browsers, and more compact.
-
-If you change SOCKET_DATE_KEY, then all clients and servers and projects must be
-simultaneously restarted.
-*/
-const SOCKET_DATE_KEY = "DateEpochMS";
-
-const socket_date_replacer = function (key, value) {
-  if (this[key] instanceof Date) {
-    const date = this[key];
-    return { [SOCKET_DATE_KEY]: date - 0 };
-  } else {
-    return value;
-  }
-};
-
-exports.to_json_socket = (x) => JSON.stringify(x, socket_date_replacer);
-
-const socket_date_parser = function (key, value) {
-  if ((value != null ? value[SOCKET_DATE_KEY] : undefined) != null) {
-    return new Date(value[SOCKET_DATE_KEY]);
-  } else {
-    return value;
-  }
-};
-
-exports.from_json_socket = function (x) {
-  try {
-    return JSON.parse(x, socket_date_parser);
-  } catch (err) {
-    console.debug(
-      `from_json: error parsing ${x} (=${exports.to_json(x)}) from JSON`
-    );
-    throw err;
-  }
-};
 
 // convert object x to a JSON string, removing any keys that have "pass" in them and
 // any values that are potentially big -- this is meant to only be used for logging.
@@ -836,8 +793,8 @@ exports.assert = function (condition, mesg) {
 
 exports.retry_until_success = function (opts) {
   let start_time;
-  opts = exports.defaults(opts, {
-    f: exports.required, // f((err) => )
+  opts = defaults(opts, {
+    f: required, // f((err) => )
     start_delay: 100, // milliseconds
     max_delay: 20000, // milliseconds -- stop increasing time at this point
     factor: 1.4, // multiply delay by this each time
@@ -950,8 +907,8 @@ exports.retry_until_success_wrapper = function (opts) {
 class RetryUntilSuccess {
   constructor(opts) {
     this.call = this.call.bind(this);
-    this.opts = exports.defaults(opts, {
-      f: exports.defaults.required, // f(cb);  cb(err)
+    this.opts = defaults(opts, {
+      f: defaults.required, // f(cb);  cb(err)
       start_delay: 100, // initial delay beforing calling f again.  times are all in milliseconds
       max_delay: 20000,
       exp_factor: 1.4,
@@ -1067,12 +1024,12 @@ class RetryUntilSuccess {
 
 // WARNING: params below have different semantics than above; these are what *really* make sense....
 exports.eval_until_defined = function (opts) {
-  opts = exports.defaults(opts, {
-    code: exports.required,
+  opts = defaults(opts, {
+    code: required,
     start_delay: 100, // initial delay beforing calling f again.  times are all in milliseconds
     max_time: 10000, // error if total time spent trying will exceed this time
     exp_factor: 1.4,
-    cb: exports.required,
+    cb: required,
   }); // cb(err, eval(code))
   let delay = undefined;
   let total = 0;
@@ -1179,7 +1136,7 @@ exports.StringCharMapping = class StringCharMapping {
     if (opts == null) {
       opts = {};
     }
-    opts = exports.defaults(opts, {
+    opts = defaults(opts, {
       to_char: undefined,
       to_string: undefined,
     });
@@ -1554,8 +1511,8 @@ exports.encode_path = function (path) {
 // of the first one get an error.
 
 exports.call_lock = function (opts) {
-  opts = exports.defaults(opts, {
-    obj: exports.required,
+  opts = defaults(opts, {
+    obj: required,
     timeout_s: 30,
   }); // lock expire timeout after this many seconds
 
@@ -1712,9 +1669,9 @@ class ActivityLog {
     this.path = this.path.bind(this);
     this.process = this.process.bind(this);
     this._process_event = this._process_event.bind(this);
-    opts = exports.defaults(opts, {
+    opts = defaults(opts, {
       events: undefined,
-      account_id: exports.required, // user
+      account_id: required, // user
       notifications: {},
     });
     this.notifications = opts.notifications;
@@ -2257,8 +2214,8 @@ for (let smiley of Array.from(smileys_definition)) {
 }
 
 exports.smiley = function (opts) {
-  opts = exports.defaults(opts, {
-    s: exports.required,
+  opts = defaults(opts, {
+    s: required,
     wrap: undefined,
   });
   // de-sanitize possible sanitized characters

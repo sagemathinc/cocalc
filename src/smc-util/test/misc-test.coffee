@@ -263,10 +263,6 @@ describe "uuid", ->
             ivuuid("c56a4180-65aa-42ec-a945-5fd21dec0538").should.be.true()
             ivuuid("77897c43-dbbc-4672-9a16-6508f01e0039").should.be.true()
 
-describe "test_times_per_second", ->
-    it "checks that x*x runs really fast", ->
-        misc.times_per_second((x) -> x*x).should.be.greaterThan 10000
-
 describe "to_json", ->
     to_json = misc.to_json
     it "converts a list of objects to json", ->
