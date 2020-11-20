@@ -346,7 +346,7 @@ export function merge(dest, ...objs) {
 
 // copy of map but only with some keys
 // I.e., restrict a function to a subset of the domain.
-export function copy_with(obj: object, w: string | string[]): object {
+export function copy_with<T>(obj: T, w: string | string[]): Partial<T> {
   if (typeof w === "string") {
     w = [w];
   }
@@ -439,7 +439,10 @@ export function copy<T>(obj: T): T {
 
 // startswith(s, x) is true if s starts with the string x or any of the strings in x.
 // It is false if s is not a string.
-export function startswith(s: string, x: string | string[]): boolean {
+export function startswith(s: any, x: string | string[]): boolean {
+  if (typeof s != "string") {
+    return false;
+  }
   if (typeof x === "string") {
     return s.indexOf(x) === 0;
   }
@@ -451,7 +454,10 @@ export function startswith(s: string, x: string | string[]): boolean {
   return false;
 }
 
-export function endswith(s: string, t: string): boolean {
+export function endswith(s: any, t: string): boolean {
+  if (typeof s != "string") {
+    return false;
+  }
   return s.slice(s.length - t.length) === t;
 }
 

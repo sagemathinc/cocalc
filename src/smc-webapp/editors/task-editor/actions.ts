@@ -221,7 +221,7 @@ export class TaskActions extends Actions<TaskState> {
     const current_task_id = this.store.get("current_task_id");
     const counts = this.store.get("counts");
 
-    let obj = update_visible(
+    let obj : any = update_visible(
       tasks,
       local_task_state,
       view,

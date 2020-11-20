@@ -16,7 +16,6 @@ let apply_function_to_map_values,
   ISO_to_Date,
   map_without_undefined,
   round1,
-  round2,
   s,
   seconds2hm,
   seconds2hms,
@@ -2087,6 +2086,10 @@ exports.YEAR = new Date().getFullYear();
 
 // Round the given number to 1 decimal place
 exports.round1 = round1 = (num) => Math.round(num * 10) / 10;
+
+function round2(num) {
+  return Math.round((num + 0.00001) * 100) / 100;
+}
 
 const seconds2hms_days = function (d, h, m, longform) {
   let x;

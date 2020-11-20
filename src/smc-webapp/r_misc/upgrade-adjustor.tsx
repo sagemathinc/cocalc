@@ -107,16 +107,16 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
     // all currently applied upgrades to this project
     const total_upgrades = props.total_project_quotas ?? {};
     // how much unused upgrade you have remaining
-    const user_remaining = map_diff(props.upgrades_you_can_use, user_upgrades);
+    const user_remaining = map_diff(props.upgrades_you_can_use as any, user_upgrades as any);
     // the overall limits are capped by the maximum per project
     const proj_maximum = PROJECT_UPGRADES.max_per_project;
     // and they're also limited by what everyone has already applied
-    const proj_remainder = map_diff(proj_maximum, total_upgrades);
+    const proj_remainder = map_diff(proj_maximum, total_upgrades as any);
     // note: if quota already exeeds, proj_remainder might have negative values -- don't cap at 0
     // the overall limit for the user is capped by what's left for the project
     const limits = map_limit(user_remaining, proj_remainder);
     // and finally, we add up what a user can add (with the maybe negative remainder) and cap at 0
-    const user_limits = map_max(map_sum(limits, user_current), 0);
+    const user_limits = map_max(map_sum(limits, user_current as any), 0);
     return {
       limits: user_limits,
       remaining: user_remaining,

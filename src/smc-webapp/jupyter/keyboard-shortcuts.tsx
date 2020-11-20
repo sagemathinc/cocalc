@@ -11,7 +11,7 @@
 import { React, Component, Rendered } from "../app-framework";
 import { Map } from "immutable";
 import * as json from "json-stable-stringify";
-import * as misc from "smc-util/misc";
+import { capitalize, copy_without, field_cmp, merge_copy, split } from "smc-util/misc";
 import { Button, Modal, Grid, Row, Col } from "react-bootstrap";
 import { A, Icon, SearchInput, r_join } from "../r_misc";
 import { commands, CommandDescription, KeyboardCommand } from "./commands";
@@ -293,9 +293,8 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
 }
 
 function capitalize_each_word(s: string): string {
-  return misc
-    .split(s)
-    .map((x: string) => misc.capitalize(x))
+  return split(s)
+    .map((x: string) => capitalize(x))
     .join(" ");
 }
 
@@ -360,7 +359,7 @@ class Command extends Component<CommandProps, CommandState> {
   public render(): Rendered {
     let style: React.CSSProperties;
     if (this.state.highlight) {
-      style = misc.merge_copy(COMMAND_STYLE, { backgroundColor: "#ddd" });
+      style = merge_copy(COMMAND_STYLE, { backgroundColor: "#ddd" });
     } else {
       style = COMMAND_STYLE;
     }
@@ -422,7 +421,7 @@ class CommandList extends Component<CommandListProps> {
         v.push({ name, val });
       }
     }
-    v.sort(misc.field_cmp("name"));
+    v.sort(field_cmp("name"));
     const cmds: Rendered[] = [];
     const search =
       this.props.search != null
@@ -496,7 +495,7 @@ export class KeyboardShortcuts extends Component<
         for (let s of val.k) {
           if (s.key != null) {
             // TODO: remove this when we switch from using event.which to event.key!
-            s = misc.copy_without(s, ["key"]);
+            s = copy_without(s, ["key"]) as any;
           }
           obj.taken[json(s)] = val.m || name;
         }
