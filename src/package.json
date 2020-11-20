@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@babel/core": "^7.11.1",
-    "@babel/plugin-transform-react-jsx": "^7.0.0-beta.42",
+    "@babel/plugin-transform-react-jsx": "^7.12.5",
     "@babel/polyfill": "^7.10.4",
     "@babel/preset-env": "^7.11.0",
     "@babel/runtime": "^7.11.0",
