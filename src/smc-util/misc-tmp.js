@@ -30,10 +30,6 @@ exports.RUNNING_IN_NODE =
     : undefined) === "node";
 
 const { required, defaults, types } = require("./opts");
-// We explicitly export these again for backwards compatibility
-exports.required = required;
-exports.defaults = defaults;
-exports.types = types;
 
 // startswith(s, x) is true if s starts with the string x or any of the strings in x.
 // It is false if s is not a string.
@@ -80,21 +76,6 @@ exports.merge_copy = (...objs) => exports.merge({}, ...Array.from(objs));
 exports.random_choice = (array) =>
   array[Math.floor(Math.random() * array.length)];
 
-// Given an object map {foo:bar, ...} returns an array [foo, bar] randomly
-// chosen from the object map.
-exports.random_choice_from_obj = function (obj) {
-  const k = exports.random_choice(exports.keys(obj));
-  return [k, obj[k]];
-};
-
-// Returns a random integer in the range, inclusive (like in Python)
-exports.randint = function (lower, upper) {
-  if (lower > upper) {
-    throw new Error("randint: lower is larger than upper");
-  }
-  return Math.floor(Math.random() * (upper - lower + 1)) + lower;
-};
-
 // Like Python's string split -- splits on whitespace
 exports.split = function (s) {
   const r = s.match(/\S+/g);
@@ -105,38 +86,6 @@ exports.split = function (s) {
   }
 };
 
-// return true if the word contains the substring
-exports.contains = (word, sub) => word.indexOf(sub) !== -1;
-
-// Count number of occurrences of m in s-- see http://stackoverflow.com/questions/881085/count-the-number-of-occurences-of-a-character-in-a-string-in-javascript
-
-exports.count = function (str, strsearch) {
-  let index = -1;
-  let count = -1;
-  while (true) {
-    index = str.indexOf(strsearch, index + 1);
-    count++;
-    if (index === -1) {
-      break;
-    }
-  }
-  return count;
-};
-
-// modifies target in place, so that the properties of target are the
-// same as those of upper_bound, and each is <=.
-exports.min_object = function (target, upper_bounds) {
-  if (target == null) {
-    target = {};
-  }
-  for (let prop in upper_bounds) {
-    const val = upper_bounds[prop];
-    target[prop] = target.hasOwnProperty(prop)
-      ? (target[prop] = Math.min(target[prop], upper_bounds[prop]))
-      : upper_bounds[prop];
-  }
-  return target;
-};
 
 // Current time in milliseconds since epoch
 exports.mswalltime = function (t) {
@@ -171,35 +120,6 @@ exports.is_valid_uuid_string = (uuid) =>
   typeof uuid === "string" && uuid.length === 36 && uuid_regexp.test(uuid);
 // /[0-9a-f]{22}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(uuid)
 
-exports.assert_uuid = (uuid) => {
-  if (!exports.is_valid_uuid_string(uuid)) {
-    throw Error(`invalid uuid='${uuid}'`);
-  }
-};
-
-exports.is_valid_sha1_string = (s) =>
-  typeof s === "string" && s.length === 40 && /[a-fA-F0-9]{40}/i.test(s);
-
-// Compute a uuid v4 from the Sha-1 hash of data.
-// If on backend, use the version in misc_node, which is faster.
-const sha1 = require("sha1");
-exports.uuidsha1 = function (data) {
-  const s = sha1(data);
-  let i = -1;
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    i += 1;
-    switch (c) {
-      case "x":
-        return s[i];
-      case "y":
-        // take 8 + low order 3 bits of hex number.
-        return ((parseInt(`0x${s[i]}`, 16) & 0x3) | 0x8).toString(16);
-    }
-  });
-};
-
-const zipcode = new RegExp("^\\d{5}(-\\d{4})?$");
-exports.is_valid_zipcode = (zip) => zipcode.test(zip);
 
 // Return a very rough benchmark of the number of times f will run per second.
 exports.times_per_second = function (f, max_time, max_loops) {

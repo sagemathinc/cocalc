@@ -328,16 +328,14 @@ export const ActionBox = rclass<ReactProps>(
     }
 
     valid_rename_input = (single_item: string): boolean => {
+      if (this.state.new_name == null) return false;
       if (
-        (this.state.new_name as any).length > 250 ||
+        this.state.new_name.length > 250 ||
         misc.contains(this.state.new_name, "/")
       ) {
         return false;
       }
-      return (
-        (this.state.new_name as any).trim() !==
-        misc.path_split(single_item).tail
-      );
+      return this.state.new_name.trim() !== misc.path_split(single_item).tail;
     };
 
     render_rename_or_duplicate(): JSX.Element {
@@ -700,7 +698,7 @@ export const ActionBox = rclass<ReactProps>(
 
     render_share(): JSX.Element {
       // currently only works for a single selected file
-      const path : string = this.props.checked_files.first() ?? "";
+      const path: string = this.props.checked_files.first() ?? "";
       if (!path) {
         return <></>;
       }

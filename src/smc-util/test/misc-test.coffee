@@ -169,46 +169,6 @@ describe "endswith", ->
         endswith('...', undefined).should.be.false()
         endswith(undefined, undefined).should.be.false()
 
-describe 'random_choice and random_choice_from_obj', ->
-    rc = misc.random_choice
-    rcfo = misc.random_choice_from_obj
-    it 'checks that a randomly chosen element is in the given list', ->
-        for i in [1..10]
-            l = ["a", 5, 9, {"ohm": 123}, ["batz", "bar"]]
-            l.should.containEql rc(l)
-    it "random_choice properly selects *all* available elements", ->
-        l = [3, 1, "x", "uvw", 1, [1,2,3]]
-        while l.length > 0
-            l.pop(rc(l))
-        l.should.have.length 0
-    it 'checks that random choice works with only one element', ->
-        rc([123]).should.be.eql 123
-    it 'checks that random choice with no elements is also fine', ->
-        should(rc([])).be.undefined() # i.e. undefined or something like that
-    it 'checks that a randomly chosen key/value pair from an object exists', ->
-        o = {abc : [1, 2, 3], cdf : {a: 1, b:2}}
-        [["abc", [1, 2, 3]], ["cdf" , {a: 1, b:2}]].should.containEql rcfo(o)
-
-describe 'the Python flavoured randint function', ->
-    randint = misc.randint
-    it 'includes both interval bounds', ->
-        lb = -4; ub = 7
-        xmin = xmax = 0
-        for i in [1..1000]
-            x = randint(lb, ub)
-            x.should.be.within(lb, ub)
-            xmin = Math.min(xmin, x)
-            xmax = Math.max(xmax, x)
-            break if xmin == lb and xmax == ub
-        xmin.should.be.exactly lb
-        xmax.should.be.exactly ub
-    it 'behaves well for tight intervals', ->
-        randint(91, 91).should.be.exactly 91
-    it 'behaves badly with flipped intervals bounds', ->
-        # note about using should:
-        # this -> function invocation is vital to capture the error
-        (-> randint(5, 2)).should.throw /lower is larger than upper/
-
 describe 'the Python flavoured split function', ->
     split = misc.split
     it 'splits correctly on whitespace', ->
@@ -235,30 +195,6 @@ describe 'search_split is like split, but quoted terms are grouped together', ->
     it "also doesn't stumble over uneven quotations", ->
         s3 = """1 "a b c" d e f "g h i" "j k"""
         ss(s3).should.eql ["1", "a b c", "d", "e", "f", "g h i", "j", "k"]
-
-describe "count", ->
-    cnt = misc.count
-    it "correctly counts the number of occurrences of X in Y", ->
-        X = "bar"
-        Y = "bar batz barbar abar rabarbar"
-        cnt(Y, X).should.be.exactly 6
-    it "counts special characters", ->
-        cnt("we ¢ount ¢oins", "¢").should.eql 2
-    it "returns zero if nothing has been found", ->
-        cnt("'", '"').should.eql 0
-
-describe "min_object of target and upper_bound", ->
-    mo = misc.min_object
-    upper_bound = {a:5, b:20, xyz:-2}
-    it "modifies target in place", ->
-        target = {a:7, b:15, xyz:5.5}
-        exp = { a: 5, b: 15, xyz: -2 }
-        mo(target, upper_bound).should.eql exp
-        target.should.eql {a:5, b:15, xyz:-2}
-    it "works without a target", ->
-        mo(upper_bounds : {a : 42}).should.be.ok
-    it "returns empty object if nothing is given", ->
-        mo().should.be.eql {}
 
 describe 'merge', ->
     merge = misc.merge

@@ -12,21 +12,6 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 **The exact behavior of functions may change from what is in misc.js!**
 */
 export {
-  RUNNING_IN_NODE,
-  types,
-  merge_copy,
-  random_choice,
-  random_choice_from_obj,
-  randint,
-  contains,
-  count,
-  min_object,
-  mswalltime,
-  walltime,
-  assert_uuid,
-  is_valid_sha1_string,
-  uuidsha1,
-  is_valid_zipcode,
   times_per_second,
   to_json_socket,
   from_json_socket,
@@ -161,8 +146,6 @@ export {
   analytics_cookie_name,
   jupyter_language_to_name,
   closest_kernel_match,
-  defaults,
-  required,
 } from "./misc-tmp";
 
 import * as sha1 from "sha1";
@@ -173,6 +156,8 @@ import { Moment } from "moment";
 import * as getRandomValues from "get-random-values";
 
 export const keys = lodash.keys;
+
+export { required, defaults, types } from "./opts";
 
 interface SplittedPath {
   head: string;
@@ -333,7 +318,8 @@ function is_different_verbose(
 }
 
 // Modifies in place the object dest so that it
-// includes all values in objs and returns dest
+// includes all values in objs and returns dest.
+// This is a *shallow* copy.
 // Rightmost object overwrites left.
 export function merge(dest, ...objs) {
   for (const obj of objs) {
@@ -342,6 +328,11 @@ export function merge(dest, ...objs) {
     }
   }
   return dest;
+}
+
+// Makes new object that is *shallow* copy merge of all objects.
+export function merge_copy(...objs): object {
+  return merge({}, ...Array.from(objs));
 }
 
 // copy of map but only with some keys
@@ -479,6 +470,30 @@ export function is_valid_uuid_string(uuid: string): boolean {
   );
 }
 
+export function assert_uuid(uuid: string): void {
+  if (!is_valid_uuid_string(uuid)) {
+    throw Error(`invalid uuid='${uuid}'`);
+  }
+}
+
+// Compute a uuid v4 from the Sha-1 hash of data.
+// NOTE: If on backend, you should instead import
+// the version in misc_node, which is faster.
+export function uuidsha1(data: string): string {
+  const s = sha1(data);
+  let i = -1;
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    i += 1;
+    switch (c) {
+      case "x":
+        return s[i];
+      case "y":
+        // take 8 + low order 3 bits of hex number.
+        return ((parseInt(`0x${s[i]}`, 16) & 0x3) | 0x8).toString(16);
+    }
+  });
+}
+
 // returns the number of keys of an object, e.g., {a:5, b:7, d:'hello'} --> 3
 export function len(obj: object | undefined | null): number {
   if (obj == null) {
@@ -521,6 +536,18 @@ export function how_long_ago_s(ts: Date | number): number {
 }
 export function how_long_ago_m(ts: Date | number): number {
   return how_long_ago_s(ts) / 60;
+}
+
+// Current time in milliseconds since epoch or t.
+export function mswalltime(t?: number): number {
+  return new Date().getTime() - (t ?? 0);
+}
+
+// Current time in seconds since epoch, as a floating point
+// number (so much more precise than just seconds), or time
+// since t.
+export function walltime(t) {
+  return mswalltime() / 1000.0 - (t ?? 0);
 }
 
 // encode a UNIX path, which might have # and % in it.
@@ -895,6 +922,12 @@ export function secure_random_token(
   return s;
 }
 
+// Return a random element of an array.
+// If array has length 0 will return undefined.
+export function random_choice(v: any[]): any {
+  return v[Math.floor(Math.random() * v.length)];
+}
+
 // Called when an object will not be used further, to avoid
 // it references anything that could lead to memory leaks.
 export function close(obj: object, omit?: Set<string>): void {
@@ -908,6 +941,11 @@ export function close(obj: object, omit?: Set<string>): void {
       delete obj[key];
     });
   }
+}
+
+// return true if the word contains the substring
+export function contains(word: string, sub: string): boolean {
+  return word.indexOf(sub) !== -1;
 }
 
 export function assertDefined<T>(val: T): asserts val is NonNullable<T> {
@@ -1103,3 +1141,5 @@ export function search_match(s: string, v: string[]): boolean {
   // no term doesn't match, so we have a match.
   return true;
 }
+
+export const RUNNING_IN_NODE: boolean = process?.title == "node";
