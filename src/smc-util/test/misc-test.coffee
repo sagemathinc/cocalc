@@ -329,27 +329,6 @@ describe "remove, like in python", ->
     it "works with an empty argument", ->
         (-> rm([], undefined)).should.throw /item not in array/
 
-describe "to_iso", ->
-    iso = misc.to_iso
-    it "correctly creates a truncated date string according to the ISO standard", ->
-        d1 = new Date()
-        iso(d1).should.containEql(":").and.containEql(":").and.containEql("T")
-        d2 = new Date(2015, 2, 3, 4, 5, 6)
-        iso(d2).should.eql "2015-03-03T04:05:06"
-
-describe "is_empty_object", ->
-    ie = misc.is_empty_object
-    it "detects empty objects", ->
-        ie({}).should.be.ok()
-        ie([]).should.be.ok()
-    it "doesn't detect anything else", ->
-        #ie("x").should.not.be.ok()
-        ie({a:5}).should.not.be.ok()
-        ie(b:undefined).should.not.be.ok()
-        #ie(undefined).should.not.be.ok()
-        #ie(null).should.not.be.ok()
-        #ie(false).should.not.be.ok()
-
 describe "len", ->
     l = misc.len
     it "counts the number of keys of an object", ->
@@ -376,45 +355,6 @@ describe "has_key", ->
     it "also works for null/undefined keys", ->
         k(obj, 'c').should.be.ok()
         k(obj, 'd').should.be.ok()
-
-describe "pairs_to_obj", ->
-    pto = misc.pairs_to_obj
-    it "convert an array of 2-element arrays to an object", ->
-        pto([['a',5], ['xyz','10']]).should.be.eql({a:5, xyz:'10'}).and.be.an.object
-    it "doesn't fail for empty lists", ->
-        pto([]).should.be.eql({}).and.be.an.object
-    #it "and properly throws errors for wrong arguments", ->
-    #    (-> pto [["x", 1], ["y", 2, 3]]).should.throw()
-
-describe "obj_to_pairs", ->
-    otp = misc.obj_to_pairs
-    it "converts an object to a list of pairs", ->
-        input =
-            a: 12
-            b: [4, 5, 6]
-            c:
-                foo: "bar"
-                bar: "foo"
-        exp = [["a", 12], ["b", [4,5,6]], ["c", {"bar": "foo", "foo": "bar"}]]
-        otp(input).should.be.eql exp
-
-describe "substring_count", =>
-    @ssc = misc.substring_count
-    @string = "Foofoofoo Barbarbar   BatztztztzTatzDatz  Katz"
-    @substr1 = "oofoo"
-    @substr2 = "tztz"
-    @substr3 = "  "
-    it "number of occurrances of a string in a substring", =>
-        @ssc(@string, @substr1).should.be.exactly 1
-        @ssc(@string, @substr2).should.be.exactly 2
-        @ssc(@string, @substr3).should.be.exactly 2
-    it "number of occurrances of a string in a substring /w overlapping", =>
-        @ssc(@string, @substr1, true).should.be.exactly 2
-        @ssc(@string, @substr2, true).should.be.exactly 3
-        @ssc(@string, @substr3, true).should.be.exactly 3
-    it "counts empty strings", =>
-        @ssc(@string, "").should.be.exactly 47
-
 
 describe "min/max of array", =>
     @a1 = []
@@ -613,19 +553,6 @@ describe "trunc_middle", ->
         tl(input, 1).should.be.eql "…"
         (-> tl(input, 0)).should.throw /must be >= 1/
 
-describe "git_author", ->
-    it "correctly formats the author tag", ->
-        fn = "John"
-        ln = "Doe"
-        em = "jd@noreply.com"
-        misc.git_author(fn, ln, em).should.eql "John Doe <jd@noreply.com>"
-
-describe "canonicalize_email_address", ->
-    cea = misc.canonicalize_email_address
-    it "removes +bar@", ->
-        cea("foo+bar@example.com").should.be.eql "foo@example.com"
-    it "does work fine with objects", ->
-        cea({foo: "bar"}).should.be.eql '{"foo":"bar"}'
 
 describe "lower_email_address", ->
     lea = misc.lower_email_address
@@ -671,14 +598,6 @@ describe "delete_trailing_whitespace", ->
         dtw("   bar     ").should.be.eql "   bar"
         dtw("batz  ").should.be.eql "batz"
         dtw("").should.be.eql ""
-
-describe "misc.assert", ->
-    it "is throws an Error when condition is not met", ->
-        (-> misc.assert(false, new Error("x > 0"))).should.throw "x > 0"
-    it "does nothing when condition is met", ->
-        (-> misc.assert(true, new Error("x < 0"))).should.not.throw()
-    it "is throws a msg wrapped in Error when condition is not met", ->
-        (-> misc.assert(false, "x > 0")).should.throw "x > 0"
 
 describe "filename_extension", ->
     fe = misc.filename_extension
@@ -744,28 +663,6 @@ describe "retry_until_success", ->
             log: @log
             max_tries: 5
 
-describe "retry_until_success_wrapper", ->
-
-    it "is a thin wrapper around RetryUntilSuccess", (done) =>
-        ret = misc.retry_until_success_wrapper
-            f: () =>
-                done()
-        ret()
-
-describe "Retry Until Success", ->
-    # TODO: there is obvisouly much more to test, or to mock-out and check in detail
-
-    it "will retry to execute a function", (done) =>
-        fstub = sinon.stub()
-        fstub.callsArg(0)
-
-        ret = misc.retry_until_success_wrapper
-            f: fstub
-            start_delay  : 1
-
-        ret(() =>
-            fstub.should.have.callCount 1
-            done())
 
 describe "eval_until_defined", ->
     # TODO

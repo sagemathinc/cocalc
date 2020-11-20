@@ -11,34 +11,8 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 
 **The exact behavior of functions may change from what is in misc.js!**
 */
+
 export {
-  fix_json_dates,
-  to_iso,
-  to_iso_path,
-  is_empty_object,
-  has_key,
-  values,
-  dict,
-  remove,
-  pairs_to_obj,
-  obj_to_pairs,
-  substring_count,
-  max,
-  min,
-  filename_extension_notilde,
-  normalized_path_join,
-  path_to_file,
-  original_path,
-  pad_left,
-  pad_right,
-  git_author,
-  canonicalize_email_address,
-  lower_email_address,
-  parse_user_search,
-  delete_trailing_whitespace,
-  assert,
-  retry_until_success,
-  retry_until_success_wrapper,
   eval_until_defined,
   async_debounce,
   StringCharMapping,
@@ -150,7 +124,8 @@ import * as getRandomValues from "get-random-values";
 
 export const keys = lodash.keys;
 
-export { required, defaults, types } from "./opts";
+import { required, defaults, types } from "./opts";
+export { required, defaults, types };
 
 interface SplittedPath {
   head: string;
@@ -184,6 +159,15 @@ export function filename_extension(filename: string): string {
   return (ext ? ext : "").toLowerCase();
 }
 
+export function filename_extension_notilde(filename: string): string {
+  let ext = filename_extension(filename);
+  while (ext && ext[ext.length - 1] === "~") {
+    // strip tildes from the end of the extension -- put there by rsync --backup, and other backup systems in UNIX.
+    ext = ext.slice(0, ext.length - 1);
+  }
+  return ext;
+}
+
 // If input name foo.bar, returns object {name:'foo', ext:'bar'}.
 // If there is no . in input name, returns {name:name, ext:''}
 export function separate_file_extension(
@@ -204,6 +188,24 @@ export function change_filename_extension(
 ): string {
   const { name } = separate_file_extension(path);
   return `${name}.${new_ext}`;
+}
+
+// Takes parts to a path and intelligently merges them on '/'.
+// Continuous non-'/' portions of each part will have at most
+// one '/' on either side.
+// Each part will have exactly one '/' between it and adjacent parts
+// Does NOT resolve up-level references
+// See misc-tests for examples.
+export function normalized_path_join(...parts): string {
+  const sep = "/";
+  const replace = new RegExp(sep + "{1,}", "g");
+  const result: string[] = [];
+  for (let x of Array.from(parts)) {
+    if (x != null && `${x}`.length > 0) {
+      result.push(`${x}`);
+    }
+  }
+  return result.join(sep).replace(replace, sep);
 }
 
 // Like Python splitlines.
@@ -1086,7 +1088,7 @@ export function map_diff(
   return c;
 }
 
-// Like the exports.split method, but quoted terms are grouped
+// Like the split method, but quoted terms are grouped
 // together for an exact search.
 export function search_split(search: string): string[] {
   const terms: string[] = [];
@@ -1172,9 +1174,7 @@ export function from_json_socket(x: string): any {
   try {
     return JSON.parse(x, socket_date_parser);
   } catch (err) {
-    console.debug(
-      `from_json: error parsing ${x} (=${exports.to_json(x)}) from JSON`
-    );
+    console.debug(`from_json: error parsing ${x} (=${to_json(x)}) from JSON`);
     throw err;
   }
 }
@@ -1240,9 +1240,305 @@ export function from_json(x: string): any {
   try {
     return JSON.parse(x, date_parser);
   } catch (err) {
-    console.debug(
-      `from_json: error parsing ${x} (=${exports.to_json(x)}) from JSON`
-    );
+    console.debug(`from_json: error parsing ${x} (=${to_json(x)}) from JSON`);
     throw err;
   }
+}
+
+// Returns modified version of obj with any string
+// that look like ISO dates to actual Date objects.  This mutates
+// obj in place as part of the process.
+// date_keys = 'all' or list of keys in nested object whose values
+// should be considered.  Nothing else is considered!
+export function fix_json_dates(obj: any, date_keys?: "all" | string[]) {
+  if (date_keys == null) {
+    // nothing to do
+    return obj;
+  }
+  if (is_object(obj)) {
+    for (let k in obj) {
+      const v = obj[k];
+      if (typeof v === "object") {
+        fix_json_dates(v, date_keys);
+      } else if (
+        typeof v === "string" &&
+        v.length >= 20 &&
+        reISO.exec(v) &&
+        (date_keys === "all" || Array.from(date_keys).includes(k))
+      ) {
+        obj[k] = new Date(v);
+      }
+    }
+  } else if (is_array(obj)) {
+    for (let i in obj) {
+      const x = obj[i];
+      obj[i] = fix_json_dates(x, date_keys);
+    }
+  } else if (
+    typeof obj === "string" &&
+    obj.length >= 20 &&
+    reISO.exec(obj) &&
+    date_keys === "all"
+  ) {
+    return new Date(obj);
+  }
+  return obj;
+}
+
+// converts a Date object to an ISO string in UTC.
+// NOTE -- we remove the +0000 (or whatever) timezone offset, since *all* machines within
+// the CoCalc servers are assumed to be on UTC.
+function to_iso(d: Date): string {
+  return new Date(d.valueOf() - d.getTimezoneOffset() * 60 * 1000)
+    .toISOString()
+    .slice(0, -5);
+}
+
+// turns a Date object into a more human readable more friendly directory name in the local timezone
+export function to_iso_path(d: Date): string {
+  return to_iso(d).replace("T", "-").replace(/:/g, "");
+}
+
+// does the given object (first arg) have the given key (second arg)?
+export const has_key: (obj: object, path: string[] | string) => boolean =
+  lodash.has;
+
+// returns the values of a map
+export const values = lodash.values;
+
+// as in python, makes a map from an array of pairs [(x,y),(z,w)] --> {x:y, z:w}
+export function dict(v: [string, any][]): { [key: string]: any } {
+  const obj: { [key: string]: any } = {};
+  for (let a of Array.from(v)) {
+    if (a.length !== 2) {
+      throw new Error("ValueError: unexpected length of tuple");
+    }
+    obj[a[0]] = a[1];
+  }
+  return obj;
+}
+
+// remove first occurrence of value (just like in python);
+// throws an exception if val not in list.
+// mutates arr.
+export function remove(arr: any[], val: any): void {
+  for (
+    let i = 0, end = arr.length, asc = 0 <= end;
+    asc ? i < end : i > end;
+    asc ? i++ : i--
+  ) {
+    if (arr[i] === val) {
+      arr.splice(i, 1);
+      return;
+    }
+  }
+  throw new Error("ValueError -- item not in array");
+}
+
+export const max: (x: any[]) => any = lodash.max;
+export const min: (x: any[]) => any = lodash.min;
+
+// Takes a path string and file name and gives the full path to the file
+export function path_to_file(path: string, file: string): string {
+  if (path === "") {
+    return file;
+  }
+  return path + "/" + file;
+}
+
+// Given a path of the form foo/bar/.baz.ext.something returns foo/bar/baz.ext.
+// For example:
+//    .example.ipynb.sage-jupyter --> example.ipynb
+//    tmp/.example.ipynb.sage-jupyter --> tmp/example.ipynb
+//    .foo.txt.sage-chat --> foo.txt
+//    tmp/.foo.txt.sage-chat --> tmp/foo.txt
+
+export function original_path(path: string): string {
+  const s = path_split(path);
+  if (s.tail[0] != "." || s.tail.indexOf(".sage-") == -1) {
+    return path;
+  }
+  const ext = filename_extension(s.tail);
+  let x = s.tail.slice(
+    s.tail[0] === "." ? 1 : 0,
+    s.tail.length - (ext.length + 1)
+  );
+  if (s.head !== "") {
+    x = s.head + "/" + x;
+  }
+  return x;
+}
+
+export function lower_email_address(email_address: any): string {
+  if (email_address == null) {
+    return "";
+  }
+  if (typeof email_address !== "string") {
+    // silly, but we assume it is a string, and I'm concerned
+    // about an attack involving badly formed messages
+    email_address = JSON.stringify(email_address);
+  }
+  // make email address lower case
+  return email_address.toLowerCase();
+}
+
+// Parses a string representing a search of users by email or non-email
+// Expects the string to be delimited by commas or semicolons
+// between multiple users
+//
+// Non-email strings are ones without an '@' and will be split on whitespace
+//
+// Emails may be wrapped by angle brackets.
+//   ie. <name@email.com> is valid and understood as name@email.com
+//   (Note that <<name@email.com> will be <name@email.com which is not valid)
+// Emails must be legal as specified by RFC822
+//
+// returns an object with the queries in lowercase
+// eg.
+// {
+//    string_queries: [["firstname", "lastname"], ["somestring"]]
+//    email_queries: ["email@something.com", "justanemail@mail.com"]
+// }
+export function parse_user_search(query: string) {
+  const r = { string_queries: [] as string[][], email_queries: [] as string[] };
+  if (typeof query !== "string") {
+    // robustness against bad input from non-TS client.
+    return r;
+  }
+  const queries = query
+    .split("\n")
+    .map((q1) => q1.split(/,|;/))
+    .reduce((acc, val) => acc.concat(val), []) // flatten
+    .map((q) => q.trim().toLowerCase());
+  const email_re = /<(.*)>/;
+  for (const x of queries) {
+    if (x) {
+      if (x.indexOf("@") === -1) {
+        // Is obviously not an email:
+        r.string_queries.push(x.split(/\s+/g));
+      } else {
+        // Might be an email address:
+        // extract just the email address out
+        for (let a of split(x)) {
+          // Ensures that we don't throw away emails like
+          // "<validEmail>"withquotes@mail.com
+          if (a[0] === "<") {
+            const match = email_re.exec(a);
+            a = match != null ? match[1] : a;
+          }
+          if (is_valid_email_address(a)) {
+            r.email_queries.push(a);
+          }
+        }
+      }
+    }
+  }
+  return r;
+}
+
+// Delete trailing whitespace in the string s.
+export function delete_trailing_whitespace(s: string): string {
+  return s.replace(/[^\S\n]+$/gm, "");
+}
+
+export function retry_until_success(opts: {
+  f: Function;
+  start_delay?: number;
+  max_delay?: number;
+  factor?: number;
+  max_tries?: number;
+  max_time?: number;
+  log?: Function;
+  warn?: Function;
+  name?: string;
+  cb?: Function;
+}): void {
+  let start_time;
+  opts = defaults(opts, {
+    f: required, // f((err) => )
+    start_delay: 100, // milliseconds
+    max_delay: 20000, // milliseconds -- stop increasing time at this point
+    factor: 1.4, // multiply delay by this each time
+    max_tries: undefined, // maximum number of times to call f
+    max_time: undefined, // milliseconds -- don't call f again if the call would start after this much time from first call
+    log: undefined,
+    warn: undefined,
+    name: "",
+    cb: undefined, // called with cb() on *success*; cb(error, last_error) if max_tries is exceeded
+  });
+  let delta = opts.start_delay as number;
+  let tries = 0;
+  if (opts.max_time != null) {
+    start_time = new Date();
+  }
+  const g = function () {
+    tries += 1;
+    if (opts.log != null) {
+      if (opts.max_tries != null) {
+        opts.log(
+          `retry_until_success(${opts.name}) -- try ${tries}/${opts.max_tries}`
+        );
+      }
+      if (opts.max_time != null) {
+        opts.log(
+          `retry_until_success(${opts.name}) -- try ${tries} (started ${
+            new Date().valueOf() - start_time
+          }ms ago; will stop before ${opts.max_time}ms max time)`
+        );
+      }
+      if (opts.max_tries == null && opts.max_time == null) {
+        opts.log(`retry_until_success(${opts.name}) -- try ${tries}`);
+      }
+    }
+    opts.f(function (err) {
+      if (err) {
+        if (err === "not_public") {
+          opts.cb?.("not_public");
+          return;
+        }
+        if (err && opts.warn != null) {
+          opts.warn(
+            `retry_until_success(${opts.name}) -- err=${JSON.stringify(err)}`
+          );
+        }
+        if (opts.log != null) {
+          opts.log(
+            `retry_until_success(${opts.name}) -- err=${JSON.stringify(err)}`
+          );
+        }
+        if (opts.max_tries != null && opts.max_tries <= tries) {
+          opts.cb?.(
+            `maximum tries (=${
+              opts.max_tries
+            }) exceeded - last error ${JSON.stringify(err)}`,
+            err
+          );
+          return;
+        }
+        delta = Math.min(
+          opts.max_delay as number,
+          (opts.factor as number) * delta
+        );
+        if (
+          opts.max_time != null &&
+          new Date().valueOf() - start_time + delta > opts.max_time
+        ) {
+          opts.cb?.(
+            `maximum time (=${
+              opts.max_time
+            }ms) exceeded - last error ${JSON.stringify(err)}`,
+            err
+          );
+          return;
+        }
+        return setTimeout(g, delta);
+      } else {
+        if (opts.log != null) {
+          opts.log(`retry_until_success(${opts.name}) -- success`);
+        }
+        opts.cb?.();
+      }
+    });
+  };
+  g();
 }

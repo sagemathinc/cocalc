@@ -14,6 +14,7 @@
   "dependencies": {
     "@types/jest": "^25.2.3",
     "@types/json-stable-stringify": "^1.0.32",
+    "@types/lodash": "^4.14.165",
     "@types/node": "^12.12.70",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",

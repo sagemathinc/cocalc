@@ -8,7 +8,6 @@
 let apply_function_to_map_values,
   date_parser,
   escapeRegExp,
-  fix_json_dates,
   has_null_leaf,
   is_array,
   is_date,
@@ -86,7 +85,6 @@ exports.split = function (s) {
   }
 };
 
-
 // Current time in milliseconds since epoch
 exports.mswalltime = function (t) {
   if (t != null) {
@@ -119,7 +117,6 @@ const uuid_regexp = new RegExp(
 exports.is_valid_uuid_string = (uuid) =>
   typeof uuid === "string" && uuid.length === 36 && uuid_regexp.test(uuid);
 // /[0-9a-f]{22}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(uuid)
-
 
 // Return a very rough benchmark of the number of times f will run per second.
 exports.times_per_second = function (f, max_time, max_loops) {
@@ -180,58 +177,6 @@ exports.from_json = function (x) {
   }
 };
 
-// Returns modified version of obj with any string
-// that look like ISO dates to actual Date objects.  This mutates
-// obj in place as part of the process.
-// date_keys = 'all' or list of keys in nested object whose values should be considered.  Nothing else is considered!
-exports.fix_json_dates = fix_json_dates = function (obj, date_keys) {
-  if (date_keys == null) {
-    // nothing to do
-    return obj;
-  }
-  if (exports.is_object(obj)) {
-    for (let k in obj) {
-      const v = obj[k];
-      if (typeof v === "object") {
-        fix_json_dates(v, date_keys);
-      } else if (
-        typeof v === "string" &&
-        v.length >= 20 &&
-        reISO.exec(v) &&
-        (date_keys === "all" || Array.from(date_keys).includes(k))
-      ) {
-        obj[k] = new Date(v);
-      }
-    }
-  } else if (exports.is_array(obj)) {
-    for (let i in obj) {
-      const x = obj[i];
-      obj[i] = fix_json_dates(x, date_keys);
-    }
-  } else if (
-    typeof obj === "string" &&
-    obj.length >= 20 &&
-    reISO.exec(obj) &&
-    date_keys === "all"
-  ) {
-    return new Date(obj);
-  }
-  return obj;
-};
-
-// converts a Date object to an ISO string in UTC.
-// NOTE -- we remove the +0000 (or whatever) timezone offset, since *all* machines within
-// the CoCalc servers are assumed to be on UTC.
-exports.to_iso = (d) =>
-  new Date(d - d.getTimezoneOffset() * 60 * 1000).toISOString().slice(0, -5);
-
-// turns a Date object into a more human readable more friendly directory name in the local timezone
-exports.to_iso_path = (d) =>
-  exports.to_iso(d).replace("T", "-").replace(/:/g, "");
-
-// returns true if the given object has no keys
-exports.is_empty_object = (obj) => Object.keys(obj).length === 0;
-
 // returns the number of keys of an object, e.g., {a:5, b:7, d:'hello'} --> 3
 exports.len = function (obj) {
   if (obj == null) {
@@ -252,75 +197,6 @@ exports.has_key = underscore.has;
 
 // returns the values of a map
 exports.values = underscore.values;
-
-// as in python, makes a map from an array of pairs [(x,y),(z,w)] --> {x:y, z:w}
-exports.dict = function (obj) {
-  const x = {};
-  for (let a of Array.from(obj)) {
-    if (a.length !== 2) {
-      throw new Error("ValueError: unexpected length of tuple");
-    }
-    x[a[0]] = a[1];
-  }
-  return x;
-};
-
-// remove first occurrence of value (just like in python);
-// throws an exception if val not in list.
-exports.remove = function (obj, val) {
-  for (
-    let i = 0, end = obj.length, asc = 0 <= end;
-    asc ? i < end : i > end;
-    asc ? i++ : i--
-  ) {
-    if (obj[i] === val) {
-      obj.splice(i, 1);
-      return;
-    }
-  }
-  throw new Error("ValueError -- item not in array");
-};
-
-// convert an array of 2-element arrays to an object, e.g., [['a',5], ['xyz','10']] --> {a:5, xyz:'10'}
-exports.pairs_to_obj = function (v) {
-  const o = {};
-  for (let x of Array.from(v)) {
-    o[x[0]] = x[1];
-  }
-  return o;
-};
-
-exports.obj_to_pairs = (obj) =>
-  (() => {
-    const result = [];
-    for (let x in obj) {
-      const y = obj[x];
-      result.push([x, y]);
-    }
-    return result;
-  })();
-
-// from http://stackoverflow.com/questions/4009756/how-to-count-string-occurrence-in-string via http://js2coffee.org/
-exports.substring_count = function (string, subString, allowOverlapping) {
-  string += "";
-  subString += "";
-  if (subString.length <= 0) {
-    return string.length + 1;
-  }
-  let n = 0;
-  let pos = 0;
-  const step = allowOverlapping ? 1 : subString.length;
-  while (true) {
-    pos = string.indexOf(subString, pos);
-    if (pos >= 0) {
-      n++;
-      pos += step;
-    } else {
-      break;
-    }
-  }
-  return n;
-};
 
 exports.max = (array) => array.reduce((a, b) => Math.max(a, b));
 
@@ -481,36 +357,6 @@ exports.normalized_path_join = function (...parts) {
   return s;
 };
 
-// Takes a path string and file name and gives the full path to the file
-exports.path_to_file = function (path, file) {
-  if (path === "") {
-    return file;
-  }
-  return path + "/" + file;
-};
-
-// Given a path of the form foo/bar/.baz.ext.something returns foo/bar/baz.ext.
-// For example:
-//    .example.ipynb.sage-jupyter --> example.ipynb
-//    tmp/.example.ipynb.sage-jupyter --> tmp/example.ipynb
-//    .foo.txt.sage-chat --> foo.txt
-//    tmp/.foo.txt.sage-chat --> tmp/foo.txt
-
-exports.original_path = function (path) {
-  const s = exports.path_split(path);
-  if (s.tail[0] !== "." || s.tail.indexOf(".sage-") === -1) {
-    return path;
-  }
-  const ext = exports.filename_extension(s.tail);
-  let x = s.tail.slice(
-    s.tail[0] === "." ? 1 : 0,
-    s.tail.length - (ext.length + 1)
-  );
-  if (s.head !== "") {
-    x = s.head + "/" + x;
-  }
-  return x;
-};
 
 const ELLIPSES = "…";
 // "foobar" --> "foo…"
@@ -580,34 +426,6 @@ exports.trunc_left = function (s, max_length) {
   }
 };
 
-exports.pad_left = function (s, n) {
-  if (!typeof s === "string") {
-    s = `${s}`;
-  }
-  for (
-    let i = s.length, end = n, asc = s.length <= end;
-    asc ? i < end : i > end;
-    asc ? i++ : i--
-  ) {
-    s = ` ${s}`;
-  }
-  return s;
-};
-
-exports.pad_right = function (s, n) {
-  if (!typeof s === "string") {
-    s = `${s}`;
-  }
-  for (
-    let i = s.length, end = n, asc = s.length <= end;
-    asc ? i < end : i > end;
-    asc ? i++ : i--
-  ) {
-    s += " ";
-  }
-  return s;
-};
-
 // gives the plural form of the word if the number should be plural
 exports.plural = function (number, singular, plural) {
   if (plural == null) {
@@ -622,9 +440,6 @@ exports.plural = function (number, singular, plural) {
     return plural;
   }
 };
-
-exports.git_author = (first_name, last_name, email_address) =>
-  `${first_name} ${last_name} <${email_address}>`;
 
 const reValidEmail = (function () {
   const sQtext = "[^\\x0d\\x22\\x5c\\x80-\\xff]";
@@ -653,340 +468,6 @@ exports.is_valid_email_address = function (email) {
     return false;
   }
 };
-
-// More canonical email address -- lower case and remove stuff between + and @.
-// This is mainly used for banning users.
-
-exports.canonicalize_email_address = function (email_address) {
-  if (typeof email_address !== "string") {
-    // silly, but we assume it is a string, and I'm concerned about a hacker attack involving that
-    email_address = JSON.stringify(email_address);
-  }
-  // remove + part from email address:   foo+bar@example.com
-  const i = email_address.indexOf("+");
-  if (i !== -1) {
-    const j = email_address.indexOf("@");
-    if (j !== -1) {
-      email_address = email_address.slice(0, i) + email_address.slice(j);
-    }
-  }
-  // make email address lower case
-  return email_address.toLowerCase();
-};
-
-exports.lower_email_address = function (email_address) {
-  if (email_address == null) {
-    return;
-  }
-  if (typeof email_address !== "string") {
-    // silly, but we assume it is a string, and I'm concerned about a hacker attack involving that
-    email_address = JSON.stringify(email_address);
-  }
-  // make email address lower case
-  return email_address.toLowerCase();
-};
-
-// Parses a string reresenting a search of users by email or non-email
-// Expects the string to be delimited by commas or semicolons
-//   between multiple users
-//
-// Non-email strings are ones without an '@' and will be split on whitespace
-//
-// Emails may be wrapped by angle brackets.
-//   ie. <name@email.com> is valid and understood as name@email.com
-//   (Note that <<name@email.com> will be <name@email.com which is not valid)
-// Emails must be legal as specified by RFC822
-//
-// returns an object with the queries in lowercase
-// eg.
-// {
-//    string_queries: ["firstname", "lastname", "somestring"]
-//    email_queries: ["email@something.com", "justanemail@mail.com"]
-// }
-exports.parse_user_search = function (query) {
-  const r = { string_queries: [], email_queries: [] };
-  if (typeof query !== "string") {
-    return r;
-  }
-  const queries = Array.from(
-    query
-      .split("\n")
-      .map((q1) => q1.split(/,|;/))
-      .reduce((acc, val) => acc.concat(val), []) // flatten
-      .map((q) => q.trim().toLowerCase())
-  );
-  const email_re = /<(.*)>/;
-  for (let x of Array.from(queries)) {
-    if (x) {
-      // Is not an email
-      if (x.indexOf("@") === -1) {
-        r.string_queries.push(x.split(/\s+/g));
-      } else {
-        // extract just the email address out
-        for (let a of Array.from(exports.split(x))) {
-          // Ensures that we don't throw away emails like
-          // "<validEmail>"withquotes@mail.com
-          if (a[0] === "<") {
-            const match = email_re.exec(a);
-            a =
-              (match != null ? match[1] : undefined) != null
-                ? match != null
-                  ? match[1]
-                  : undefined
-                : a;
-          }
-          if (exports.is_valid_email_address(a)) {
-            r.email_queries.push(a);
-          }
-        }
-      }
-    }
-  }
-  return r;
-};
-
-// Delete trailing whitespace in the string s.
-exports.delete_trailing_whitespace = (s) => s.replace(/[^\S\n]+$/gm, "");
-
-exports.assert = function (condition, mesg) {
-  if (!condition) {
-    if (typeof mesg === "string") {
-      throw new Error(mesg);
-    }
-    throw mesg;
-  }
-};
-
-exports.retry_until_success = function (opts) {
-  let start_time;
-  opts = defaults(opts, {
-    f: required, // f((err) => )
-    start_delay: 100, // milliseconds
-    max_delay: 20000, // milliseconds -- stop increasing time at this point
-    factor: 1.4, // multiply delay by this each time
-    max_tries: undefined, // maximum number of times to call f
-    max_time: undefined, // milliseconds -- don't call f again if the call would start after this much time from first call
-    log: undefined,
-    warn: undefined,
-    name: "",
-    cb: undefined,
-  }); // called with cb() on *success*; cb(error, last_error) if max_tries is exceeded
-
-  let delta = opts.start_delay;
-  let tries = 0;
-  if (opts.max_time != null) {
-    start_time = new Date();
-  }
-  var g = function () {
-    tries += 1;
-    if (opts.log != null) {
-      if (opts.max_tries != null) {
-        opts.log(
-          `retry_until_success(${opts.name}) -- try ${tries}/${opts.max_tries}`
-        );
-      }
-      if (opts.max_time != null) {
-        opts.log(
-          `retry_until_success(${opts.name}) -- try ${tries} (started ${
-            new Date() - start_time
-          }ms ago; will stop before ${opts.max_time}ms max time)`
-        );
-      }
-      if (opts.max_tries == null && opts.max_time == null) {
-        opts.log(`retry_until_success(${opts.name}) -- try ${tries}`);
-      }
-    }
-    return opts.f(function (err) {
-      if (err) {
-        if (err === "not_public") {
-          if (typeof opts.cb === "function") {
-            opts.cb("not_public");
-          }
-          return;
-        }
-        if (err && opts.warn != null) {
-          opts.warn(
-            `retry_until_success(${opts.name}) -- err=${JSON.stringify(err)}`
-          );
-        }
-        if (opts.log != null) {
-          opts.log(
-            `retry_until_success(${opts.name}) -- err=${JSON.stringify(err)}`
-          );
-        }
-        if (opts.max_tries != null && opts.max_tries <= tries) {
-          if (typeof opts.cb === "function") {
-            opts.cb(
-              `maximum tries (=${
-                opts.max_tries
-              }) exceeded - last error ${JSON.stringify(err)}`,
-              err
-            );
-          }
-          return;
-        }
-        delta = Math.min(opts.max_delay, opts.factor * delta);
-        if (
-          opts.max_time != null &&
-          new Date() - start_time + delta > opts.max_time
-        ) {
-          if (typeof opts.cb === "function") {
-            opts.cb(
-              `maximum time (=${
-                opts.max_time
-              }ms) exceeded - last error ${JSON.stringify(err)}`,
-              err
-            );
-          }
-          return;
-        }
-        return setTimeout(g, delta);
-      } else {
-        if (opts.log != null) {
-          opts.log(`retry_until_success(${opts.name}) -- success`);
-        }
-        return typeof opts.cb === "function" ? opts.cb() : undefined;
-      }
-    });
-  };
-  return g();
-};
-
-// Attempt (using exponential backoff) to execute the given function.
-// Will keep retrying until it succeeds, then call "cb()".   You may
-// call this multiple times and all callbacks will get called once the
-// connection succeeds, since it keeps a stack of all cb's.
-// The function f that gets called should make one attempt to do what it
-// does, then on success do cb() and on failure cb(err).
-// It must *NOT* call the RetryUntilSuccess callable object.
-//
-// Usage
-//
-//      @foo = retry_until_success_wrapper(f:@_foo)
-//      @bar = retry_until_success_wrapper(f:@_foo, start_delay:100, max_delay:10000, exp_factor:1.5)
-//
-exports.retry_until_success_wrapper = function (opts) {
-  const _X = new RetryUntilSuccess(opts);
-  return (cb) => _X.call(cb);
-};
-
-class RetryUntilSuccess {
-  constructor(opts) {
-    this.call = this.call.bind(this);
-    this.opts = defaults(opts, {
-      f: defaults.required, // f(cb);  cb(err)
-      start_delay: 100, // initial delay beforing calling f again.  times are all in milliseconds
-      max_delay: 20000,
-      exp_factor: 1.4,
-      max_tries: undefined,
-      max_time: undefined, // milliseconds -- don't call f again if the call would start after this much time from first call
-      min_interval: 100, // if defined, all calls to f will be separated by *at least* this amount of time (to avoid overloading services, etc.)
-      logname: undefined,
-      verbose: false,
-    });
-    if (this.opts.min_interval != null) {
-      if (this.opts.start_delay < this.opts.min_interval) {
-        this.opts.start_delay = this.opts.min_interval;
-      }
-    }
-    this.f = this.opts.f;
-  }
-
-  call(cb, retry_delay) {
-    let start_time;
-    if (this.opts.logname != null) {
-      console.debug(`${this.opts.logname}(... ${retry_delay})`);
-    }
-
-    if (this._cb_stack == null) {
-      this._cb_stack = [];
-    }
-    if (cb != null) {
-      this._cb_stack.push(cb);
-    }
-    if (this._calling) {
-      return;
-    }
-    this._calling = true;
-    if (retry_delay == null) {
-      this.attempts = 0;
-    }
-
-    if (this.opts.logname != null) {
-      console.debug(
-        `actually calling -- ${this.opts.logname}(... ${retry_delay})`
-      );
-    }
-
-    if (this.opts.max_time != null) {
-      start_time = new Date();
-    }
-
-    const g = () => {
-      if (this.opts.min_interval != null) {
-        this._last_call_time = exports.mswalltime();
-      }
-      return this.f((err) => {
-        this.attempts += 1;
-        this._calling = false;
-        if (err) {
-          if (this.opts.verbose) {
-            console.debug(`${this.opts.logname}: error=${err}`);
-          }
-          if (
-            this.opts.max_tries != null &&
-            this.attempts >= this.opts.max_tries
-          ) {
-            while (this._cb_stack.length > 0) {
-              this._cb_stack.pop()(err);
-            }
-            return;
-          }
-          if (retry_delay == null) {
-            retry_delay = this.opts.start_delay;
-          } else {
-            retry_delay = Math.min(
-              this.opts.max_delay,
-              this.opts.exp_factor * retry_delay
-            );
-          }
-          if (
-            this.opts.max_time != null &&
-            new Date() - start_time + retry_delay > this.opts.max_time
-          ) {
-            err = `maximum time (=${this.opts.max_time}ms) exceeded - last error ${err}`;
-            while (this._cb_stack.length > 0) {
-              this._cb_stack.pop()(err);
-            }
-            return;
-          }
-          const f = () => {
-            return this.call(undefined, retry_delay);
-          };
-          return setTimeout(f, retry_delay);
-        } else {
-          return (() => {
-            const result = [];
-            while (this._cb_stack.length > 0) {
-              result.push(this._cb_stack.pop()());
-            }
-            return result;
-          })();
-        }
-      });
-    };
-    if (this._last_call_time == null || this.opts.min_interval == null) {
-      return g();
-    } else {
-      const w = exports.mswalltime(this._last_call_time);
-      if (w < this.opts.min_interval) {
-        return setTimeout(g, this.opts.min_interval - w);
-      } else {
-        return g();
-      }
-    }
-  }
-}
 
 // WARNING: params below have different semantics than above; these are what *really* make sense....
 exports.eval_until_defined = function (opts) {
