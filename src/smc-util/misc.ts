@@ -434,7 +434,7 @@ export function cmp_moment(a?: Moment, b?: Moment, null_last = false) {
 
 // see https://stackoverflow.com/questions/728360/how-do-i-correctly-clone-a-javascript-object/30042948#30042948
 export function copy<T>(obj: T): T {
-  return Object.assign({}, obj);
+  return lodash.clone(obj);
 }
 
 // startswith(s, x) is true if s starts with the string x or any of the strings in x.
