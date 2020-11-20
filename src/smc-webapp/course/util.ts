@@ -209,7 +209,7 @@ export function compute_match_list(opts: {
 // deleted is not included by default
 export function order_list<T extends { deleted: boolean }>(opts: {
   list: T[];
-  compare_function: (a: T, b: T) => 1 | -1 | 0;
+  compare_function: (a: T, b: T) => number;
   reverse: boolean;
   include_deleted: boolean;
 }) {

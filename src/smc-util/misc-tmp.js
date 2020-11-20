@@ -25,14 +25,6 @@ let apply_function_to_map_values,
   underscore;
 let _ = (underscore = require("underscore"));
 
-exports.round2 = round2 = require("./misc2").round2;
-exports.parse_number_input = require("./misc2").parse_number_input;
-exports.map_sum = require("./misc2").map_sum;
-exports.map_diff = require("./misc2").map_diff;
-exports.coerce_codomain_to_numbers = require("./misc2").coerce_codomain_to_numbers;
-exports.search_split = require("./misc2").search_split;
-exports.search_match = require("./misc2").search_match;
-
 exports.RUNNING_IN_NODE =
   (typeof process !== "undefined" && process !== null
     ? process.title
@@ -653,11 +645,6 @@ exports.path_to_file = function (path, file) {
     return file;
   }
   return path + "/" + file;
-};
-
-const { hidden_meta_file } = require("./misc2");
-exports.meta_file = function (path, ext) {
-  return hidden_meta_file(path, "sage-" + ext);
 };
 
 // Given a path of the form foo/bar/.baz.ext.something returns foo/bar/baz.ext.
