@@ -101,12 +101,12 @@ export const ProjectCapabilities = rclass<ReactProps>(
       return [component, any_nonavail];
     }
 
-    private render_formatter(formatter): [Rendered, boolean] | Rendered {
+    private render_formatter(formatter): [Rendered, boolean] {
       if (formatter === false) {
-        return <div>No code formatters are available</div>;
+        return [<div>No code formatters are available</div>, true];
       }
       if (formatter === true) {
-        return <div>All code formatters are available</div>;
+        return [<div>All code formatters are available</div>, false];
       }
 
       const { tool2display } = require("smc-util/code-formatter");

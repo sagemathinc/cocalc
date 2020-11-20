@@ -235,7 +235,7 @@ async function _calc_stats({ db, dbg, start_t }): Promise<Stats> {
     age_m: R.active,
   });
 
-  await new Promise((done, reject) => {
+  await new Promise<void>((done, reject) => {
     db._query({
       query: "SELECT expire, host, clients FROM hub_servers",
       cb: all_results((err, hub_servers) => {
