@@ -146,40 +146,6 @@ exports.times_per_second = function (f, max_time, max_loops) {
 
 exports.to_json = JSON.stringify;
 
-
-// convert object x to a JSON string, removing any keys that have "pass" in them and
-// any values that are potentially big -- this is meant to only be used for logging.
-exports.to_safe_str = function (x) {
-  if (typeof x === "string") {
-    // nothing we can do at this point -- already a string.
-    return x;
-  }
-  const obj = {};
-  for (let key in x) {
-    let value = x[key];
-    let sanitize = false;
-
-    if (key.indexOf("pass") !== -1) {
-      sanitize = true;
-    } else if (typeof value === "string" && value.slice(0, 7) === "sha512$") {
-      sanitize = true;
-    }
-
-    if (sanitize) {
-      obj[key] = "(unsafe)";
-    } else {
-      if (typeof value === "object") {
-        value = "[object]"; // many objects, e.g., buffers can block for seconds to JSON...
-      } else if (typeof value === "string") {
-        value = exports.trunc(value, 250); // long strings are not SAFE -- since JSON'ing them for logging blocks for seconds!
-      }
-      obj[key] = value;
-    }
-  }
-
-  return (x = exports.to_json(obj));
-};
-
 // convert from a JSON string to Javascript (properly dealing with ISO dates)
 //   e.g.,   2016-12-12T02:12:03.239Z    and    2016-12-12T02:02:53.358752
 const reISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/;

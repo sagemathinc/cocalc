@@ -12,10 +12,6 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 **The exact behavior of functions may change from what is in misc.js!**
 */
 export {
-  to_safe_str,
-  date_parser,
-  ISO_to_Date,
-  from_json,
   fix_json_dates,
   to_iso,
   to_iso_path,
@@ -1172,9 +1168,77 @@ function socket_date_parser(_key: string, value: any): any {
   return x != null && len(value) == 1 ? new Date(x) : value;
 }
 
-export function from_json_socket(x) {
+export function from_json_socket(x: string): any {
   try {
     return JSON.parse(x, socket_date_parser);
+  } catch (err) {
+    console.debug(
+      `from_json: error parsing ${x} (=${exports.to_json(x)}) from JSON`
+    );
+    throw err;
+  }
+}
+
+// convert object x to a JSON string, removing any keys that have "pass" in them and
+// any values that are potentially big -- this is meant to only be used for logging.
+export function to_safe_str(x: any): string {
+  if (typeof x === "string") {
+    // nothing we can do at this point -- already a string.
+    return x;
+  }
+  const obj = {};
+  for (const key in x) {
+    let value = x[key];
+    let sanitize = false;
+
+    if (key.indexOf("pass") !== -1) {
+      sanitize = true;
+    } else if (typeof value === "string" && value.slice(0, 7) === "sha512$") {
+      sanitize = true;
+    }
+
+    if (sanitize) {
+      obj[key] = "(unsafe)";
+    } else {
+      if (typeof value === "object") {
+        value = "[object]"; // many objects, e.g., buffers can block for seconds to JSON...
+      } else if (typeof value === "string") {
+        value = trunc(value, 250); // long strings are not SAFE -- since JSON'ing them for logging blocks for seconds!
+      }
+      obj[key] = value;
+    }
+  }
+
+  return JSON.stringify(obj);
+}
+
+// convert from a JSON string to Javascript (properly dealing with ISO dates)
+//   e.g.,   2016-12-12T02:12:03.239Z    and    2016-12-12T02:02:53.358752
+const reISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/;
+export function date_parser(_key: string, value) {
+  if (typeof value === "string" && value.length >= 20 && reISO.exec(value)) {
+    return ISO_to_Date(value);
+  } else {
+    return value;
+  }
+}
+
+export function ISO_to_Date(s: string): Date {
+  if (s.indexOf("Z") === -1) {
+    // Firefox assumes local time rather than UTC if there is no Z.   However,
+    // our backend might possibly send a timestamp with no Z and it should be
+    // interpretted as UTC anyways.
+    // That said, with the to_json_socket/from_json_socket code, the browser
+    // shouldn't be running this parser anyways.
+    // In particular: TODO -- completely get rid of using this in from_json... if possible!
+    s += "Z";
+  }
+  return new Date(s);
+}
+
+export function from_json(x: string): any {
+  try {
+    return JSON.parse(x, date_parser);
   } catch (err) {
     console.debug(
       `from_json: error parsing ${x} (=${exports.to_json(x)}) from JSON`
