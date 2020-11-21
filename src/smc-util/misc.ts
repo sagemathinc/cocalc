@@ -13,7 +13,6 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 */
 
 export {
-  eval_until_defined,
   async_debounce,
   StringCharMapping,
   uniquify_string,
@@ -1542,3 +1541,4 @@ export function retry_until_success(opts: {
   };
   g();
 }
+

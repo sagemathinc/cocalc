@@ -664,9 +664,6 @@ describe "retry_until_success", ->
             max_tries: 5
 
 
-describe "eval_until_defined", ->
-    # TODO
-
 # TODO: this is just a stub
 describe "StringCharMapping", ->
 

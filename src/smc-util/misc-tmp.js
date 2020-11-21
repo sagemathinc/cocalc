@@ -469,37 +469,6 @@ exports.is_valid_email_address = function (email) {
   }
 };
 
-// WARNING: params below have different semantics than above; these are what *really* make sense....
-exports.eval_until_defined = function (opts) {
-  opts = defaults(opts, {
-    code: required,
-    start_delay: 100, // initial delay beforing calling f again.  times are all in milliseconds
-    max_time: 10000, // error if total time spent trying will exceed this time
-    exp_factor: 1.4,
-    cb: required,
-  }); // cb(err, eval(code))
-  let delay = undefined;
-  let total = 0;
-  var f = function () {
-    const result = eval(opts.code);
-    if (result != null) {
-      return opts.cb(false, result);
-    } else {
-      if (delay == null) {
-        delay = opts.start_delay;
-      } else {
-        delay *= opts.exp_factor;
-      }
-      total += delay;
-      if (total > opts.max_time) {
-        return opts.cb(`failed to eval code within ${opts.max_time}`);
-      } else {
-        return setTimeout(f, delay);
-      }
-    }
-  };
-  return f();
-};
 
 // An async debounce, kind of like the debounce in http://underscorejs.org/#debounce.
 // Crucially, this async_debounce does NOT return a new function and store its state in a closure
