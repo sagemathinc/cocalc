@@ -4,113 +4,150 @@
  */
 
 #smc-startup-banner {
-    width: 350px;
-    /* bootstrap 3.3 has this line height. fix it, if it changes! */
-    line-height: 1.42857143;
-    text-align: center;
-    left: 0;
-    right: 0;
-    top: 100px;
-    margin: 100px auto 0 auto;
-    max-width: 100%;
-    max-height: 100%;
-    font-family: sans-serif;
-    font-size: 26px;
-    color: white;
-    opacity: 1;
+  width: 350px;
+  /* bootstrap 3.3 has this line height. fix it, if it changes! */
+  line-height: 1.42857143;
+  text-align: center;
+  left: 0;
+  right: 0;
+  top: 100px;
+  margin: 100px auto 0 auto;
+  max-width: 100%;
+  max-height: 100%;
+  font-family: sans-serif;
+  font-size: 26px;
+  color: white;
+  opacity: 1;
 }
 
 #cocalc-error-report-startup {
-    clear: both;
-    display: none;
-    font-size: 15px;
-    margin: 0 auto 0 auto;
-    width: 90vw;
-    padding: 10px;
-    border: 3px solid red;
-    border-radius: 5px;
+  clear: both;
+  display: none;
+  font-size: 15px;
+  margin: 0 auto 0 auto;
+  width: 90vw;
+  padding: 10px;
+  border: 3px solid red;
+  border-radius: 5px;
 }
 #cocalc-error-report-startup pre {
-    font-size: 10px;
+  font-size: 10px;
 }
 
 #cocalc-assets-loading {
-    margin: 10px auto;
-    color: #666;
-    background: white;
-    border: none;
-    text-align: center;
-    white-space: pre;
+  margin: 10px auto;
+  color: #666;
+  background: white;
+  border: none;
+  text-align: center;
+  white-space: pre;
+}
+
+#cocalc-assets-loading pre {
+  color: #666;
+  background: white;
+  border: none;
+  text-align: center;
+  white-space: pre;
+}
+
+#cocalc-assets-loading .progress {
+  display: block;
+  position: relative;
+  width: 300px;
+  margin: auto;
+  margin-bottom: 5px;
+  height: 15px;
+  background-color: white;
+  text-align: left;
+}
+
+#cocalc-assets-loading .progress:before {
+  content: attr(data-label);
+  font-size: 10px;
+  position: absolute;
+  text-align: center;
+  font-family: monospace;
+  color: #c9c9c9;
+  top: 2px;
+  left: 0;
+  right: 0;
+}
+
+#cocalc-assets-loading .progress .value {
+  background-color: #4474c0;
+  display: inline-block;
+  height: 100%;
 }
 
 @media (max-width: 767px) {
-    #cocalc-assets-loading {
-        margin: 10px auto;
-        font-size: 80%;
-    }
+  #cocalc-assets-loading {
+    margin: 10px auto;
+    font-size: 80%;
+  }
 }
 
 #smc-startup-banner-status {
-    font-family: sans-serif;
-    font-size: 12pt;
-    color: #666;
-    text-align: center;
-    position: fixed;
-    bottom: 0px;
-    left: 0;
-    right: 0;
-    background-color: white;
-    padding: 20px;
-    opacity: 0.85;
+  font-family: sans-serif;
+  font-size: 12pt;
+  color: #666;
+  text-align: center;
+  position: fixed;
+  bottom: 0px;
+  left: 0;
+  right: 0;
+  background-color: white;
+  padding: 20px;
+  opacity: 0.85;
 }
 #smc-startup-banner img {
-    vertical-align: middle;
-    width: 282px; /* original 94px */
-    height: 231px; /* original 77px */
+  vertical-align: middle;
+  width: 282px; /* original 94px */
+  height: 231px; /* original 77px */
 }
 #smc-startup-banner div {
-    width: 350px;
-    background-color: #4474c0;
-    border-radius: 5px;
-    padding: 5px;
-    margin-bottom: 5px;
+  width: 350px;
+  background-color: #4474c0;
+  border-radius: 5px;
+  padding: 5px;
+  margin-bottom: 5px;
 }
 #smc-startup-banner .banner-error {
-    opacity: 0;
-    animation: banner-error ease-in 2s forwards;
-    float: left;
+  opacity: 0;
+  animation: banner-error ease-in 2s forwards;
+  float: left;
 }
 #smc-startup-banner .banner-error .message {
-    width: auto;
-    background-color: #bf1919;
+  width: auto;
+  background-color: #bf1919;
 }
 #cc-banner2 {
-    background-color: 'white';
+  background-color: "white";
 }
 #cc-banner2 img.logo-square {
-    height: 200px;
-    width: auto;
+  height: 200px;
+  width: auto;
 }
 #cc-banner2 img.logo-rectangular {
-    width: 200px;
-    height: auto;
+  width: 200px;
+  height: auto;
 }
 
 @keyframes banner-error {
-    0% {
-        background-color: #4474c0;
-    }
-    100% {
-        background-color: #bf1919;
-    }
+  0% {
+    background-color: #4474c0;
+  }
+  100% {
+    background-color: #bf1919;
+  }
 }
 #smc-startup-banner .message {
-    font-size: 14px;
+  font-size: 14px;
 }
 #smc-startup-banner .ready {
-    background-color: #43a047;
+  background-color: #43a047;
 }
 #smc-startup-banner a {
-    color: white;
-    text-decoration: underline;
+  color: white;
+  text-decoration: underline;
 }
