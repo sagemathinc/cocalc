@@ -128,7 +128,10 @@ interface UserOrProjectQuery<F extends Fields> {
   get?: {
     fields: { [key in keyof Partial<F>]: any };
     throttle_changes?: number;
-    pg_where?: string[] | { [key: string]: string }[];
+    pg_where?:
+      | string[]
+      | { [key: string]: string }[]
+      | { [key: string]: string[] }[];
     pg_where_load?: string[] | { [key: string]: string }[]; // used instead of pg_where if server is under "heavy load"
     pg_changefeed?: string;
     remove_from_query?: string[];

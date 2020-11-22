@@ -678,13 +678,6 @@ describe "StringCharMapping", ->
         # HSY: this just records what it does
         @scm.to_string(["A", "K"]).should.be.eql "BC"
 
-describe "uniquify_string", ->
-    it "removes duplicated characters", ->
-        s = "aabb ŋ→wbſß?- \nccccccccc\txxxöä"
-        res = misc.uniquify_string(s)
-        exp = "ab ŋ→wſß?-\nc\txöä"
-        res.should.eql exp
-
 describe "PROJECT_GROUPS", ->
     it "checks that there has not been an accedental edit of this array", ->
         act = misc.PROJECT_GROUPS

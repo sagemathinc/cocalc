@@ -351,7 +351,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         }
 
         if (this.get("current_path") === ".snapshots") {
-          _compute_snapshot_display_names(listing);
+          compute_snapshot_display_names(listing);
         }
 
         const search = this.get("file_search");
@@ -685,16 +685,12 @@ function _compute_file_masks(listing): void {
   }
 }
 
-function _compute_snapshot_display_names(listing) {
-  return (() => {
-    const result: number[] = [];
-    for (const item of listing) {
-      const tm = misc.parse_bup_timestamp(item.name);
-      item.display_name = `${tm}`;
-      result.push((item.mtime = (tm - 0) / 1000));
-    }
-    return result;
-  })();
+function compute_snapshot_display_names(listing): void {
+  for (const item of listing) {
+    const tm = misc.parse_bup_timestamp(item.name);
+    item.display_name = `${tm}`;
+    item.mtime = tm.valueOf() / 1000;
+  }
 }
 
 // Mutates data to include info on public paths.

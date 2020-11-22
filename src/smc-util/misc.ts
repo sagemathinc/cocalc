@@ -13,12 +13,6 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 */
 
 export {
-  async_debounce,
-  StringCharMapping,
-  uniquify_string,
-  PROJECT_GROUPS,
-  parse_bup_timestamp,
-  matches,
   hash_string,
   parse_hashtags,
   parse_mathjax,
@@ -121,7 +115,7 @@ import * as lodash from "lodash";
 import { Moment } from "moment";
 import * as getRandomValues from "get-random-values";
 
-export const keys = lodash.keys;
+export const keys: (any) => string[] = lodash.keys;
 
 import { required, defaults, types } from "./opts";
 export { required, defaults, types };
@@ -1542,3 +1536,91 @@ export function retry_until_success(opts: {
   g();
 }
 
+// Class to use for mapping a collection of strings to characters (e.g., for use with diff/patch/match).
+export class StringCharMapping {
+  private _to_char: { [s: string]: string } = {};
+  private _next_char: string = "A";
+  public _to_string: { [s: string]: string } = {}; // yes, this is publicly accessed (TODO: fix)
+
+  constructor(opts?) {
+    let ch, st;
+    this.find_next_char = this.find_next_char.bind(this);
+    this.to_string = this.to_string.bind(this);
+    this.to_array = this.to_array.bind(this);
+    if (opts == null) {
+      opts = {};
+    }
+    opts = defaults(opts, {
+      to_char: undefined,
+      to_string: undefined,
+    });
+    if (opts.to_string != null) {
+      for (ch in opts.to_string) {
+        st = opts.to_string[ch];
+        this._to_string[ch] = st;
+        this._to_char[st] = ch;
+      }
+    }
+    if (opts.to_char != null) {
+      for (st in opts.to_char) {
+        ch = opts.to_char[st];
+        this._to_string[ch] = st;
+        this._to_char[st] = ch;
+      }
+    }
+    this.find_next_char();
+  }
+
+  private find_next_char(): void {
+    while (true) {
+      this._next_char = String.fromCharCode(this._next_char.charCodeAt(0) + 1);
+      if (this._to_string[this._next_char] == null) {
+        // found it!
+        break;
+      }
+    }
+  }
+
+  public to_string(strings: string[]): string {
+    let t = "";
+    for (const s of strings) {
+      const a = this._to_char[s];
+      if (a != null) {
+        t += a;
+      } else {
+        t += this._next_char;
+        this._to_char[s] = this._next_char;
+        this._to_string[this._next_char] = s;
+        this.find_next_char();
+      }
+    }
+    return t;
+  }
+
+  public to_array(x: string): string[] {
+    return Array.from(x).map((s) => this.to_string[s]);
+  }
+}
+
+// Used in the database, etc., for different types of users of a project
+export const PROJECT_GROUPS: string[] = [
+  "owner",
+  "collaborator",
+  "viewer",
+  "invited_collaborator",
+  "invited_viewer",
+];
+
+// format is 2014-04-04-061502
+export function parse_bup_timestamp(s: string): Date {
+  const v = [
+    s.slice(0, 4),
+    s.slice(5, 7),
+    s.slice(8, 10),
+    s.slice(11, 13),
+    s.slice(13, 15),
+    s.slice(15, 17),
+    "0",
+  ];
+  return new Date(`${v[1]}/${v[2]}/${v[0]} ${v[3]}:${v[4]}:${v[5]} UTC`);
+}

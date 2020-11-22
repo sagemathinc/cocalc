@@ -189,7 +189,7 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
     if (this.props.activity == null) return;
     return (
       <ActivityDisplay
-        activity={values(this.props.activity.toJS())}
+        activity={values(this.props.activity.toJS()) as any}
         trunc={80}
         on_clear={() => {
           const actions = redux.getActions(name) as CourseActions;
