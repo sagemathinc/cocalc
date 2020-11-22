@@ -68,7 +68,10 @@ export async function jupyter_run_notebook(
     const path = opts.path + `/${uuid()}.ipynb`;
     jupyter = kernel({ name, client, path });
     log("init_jupyter: spawning");
-    await jupyter.spawn();
+    // for Python, we suppress all warnings
+    // they end up as stderr-output and hence would imply 0 points
+    const env = { PYTHONWARNINGS: "ignore" };
+    await jupyter.spawn({ env });
     log("init_jupyter: spawned");
   }
 
