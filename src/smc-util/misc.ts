@@ -13,10 +13,6 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 */
 
 export {
-  hash_string,
-  parse_hashtags,
-  parse_mathjax,
-  mathjax_escape,
   path_is_in_public_paths,
   containing_public_path,
   call_lock,
@@ -1623,4 +1619,69 @@ export function parse_bup_timestamp(s: string): Date {
     "0",
   ];
   return new Date(`${v[1]}/${v[2]}/${v[0]} ${v[3]}:${v[4]}:${v[5]} UTC`);
+}
+
+export function hash_string(s: string): number {
+  if (typeof s != "string") {
+    return 0; // just in case non-typescript code tries to use this
+  }
+  // see http://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript-jquery
+  let hash = 0;
+  if (s.length === 0) {
+    return hash;
+  }
+  const n = s.length;
+  for (let i = 0; i < n; i++) {
+    const chr = s.charCodeAt(i);
+    hash = (hash << 5) - hash + chr;
+    hash |= 0; // convert to 32-bit integer
+  }
+  return hash;
+}
+
+export function parse_hashtags(t: string): [number, number][] {
+  // return list of pairs (i,j) such that t.slice(i,j) is a hashtag (starting with #).
+  const v: [number, number][] = [];
+  if (typeof t != "string") {
+    // in case of non-Typescript user
+    return v;
+  }
+  let base = 0;
+  while (true) {
+    let i: number = t.indexOf("#");
+    if (i === -1 || i === t.length - 1) {
+      return v;
+    }
+    base += i + 1;
+    if (t[i + 1] === "#" || !(i === 0 || t[i - 1].match(/\s/))) {
+      t = t.slice(i + 1);
+      continue;
+    }
+    t = t.slice(i + 1);
+    // find next whitespace or non-alphanumeric or dash
+    // TODO: this lines means hashtags must be US ASCII --
+    //    see http://stackoverflow.com/questions/1661197/valid-characters-for-javascript-variable-names
+    const m = t.match(/\s|[^A-Za-z0-9_\-]/);
+    if (m && m.index != null) {
+      i = m.index;
+    } else {
+      i = -1;
+    }
+    if (i === 0) {
+      // hash followed immediately by whitespace -- markdown desc
+      base += i + 1;
+      t = t.slice(i + 1);
+    } else {
+      // a hash tag
+      if (i === -1) {
+        // to the end
+        v.push([base - 1, base + t.length]);
+        return v;
+      } else {
+        v.push([base - 1, base + i]);
+        base += i + 1;
+        t = t.slice(i + 1);
+      }
+    }
+  }
 }

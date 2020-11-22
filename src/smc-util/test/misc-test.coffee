@@ -725,13 +725,6 @@ describe "parse_hashtags", ->
     it "makes sure hash followed by noncharacter is not a hashtag", ->
         ph("#hashtag # not hashtag ##").should.eql [[0,8]]
 
-describe "mathjax_escape", ->
-    me = misc.mathjax_escape
-    it "correctly escapes the right characters", ->
-        me("& < > \" \'").should.eql "&amp; &lt; &gt; &quot; &#39;"
-    it "doesn't escape already escaped sequences", ->
-        me("&dont;escape").should.eql "&dont;escape"
-
 describe "path_is_in_public_paths", ->
     p = misc.path_is_in_public_paths
     it "returns false for a path with no public paths", ->
@@ -943,44 +936,6 @@ describe "capitalize", ->
         c("foo").should.eql "Foo"
     it "works with non ascii characters", ->
         c("å∫ç").should.eql "Å∫ç"
-
-describe "parse_mathjax returns list of index position pairs (i,j)", ->
-    pm = misc.parse_mathjax
-    it "but no indices when called on nothing", ->
-        pm().should.eql []
-    it "correctly for $", ->
-        pm("foo $bar$ batz").should.eql [[4, 9]]
-    it "works regarding issue #1795", ->
-        pm("$x_{x} x_{x}$").should.eql [[0, 13]]
-    it "ignores single $", ->
-        pm("$").should.eql []
-        pm("the amount is $100").should.eql []
-        pm("a $b$ and $").should.eql [[2, 5]]
-        pm("a $b$ and $ ignored").should.eql [[2, 5]]
-    it "correctly works for multiline strings", ->
-        s = """
-            This is a $formula$ or a huge $$formula$$
-            \\begin{align}
-            formula
-            \\end{align}
-            \\section{that's it}
-        """
-        pm(s).should.be.eql([[ 10, 19 ], [ 30, 41 ], [ 42, 75 ]])
-             .and.matchEach (x) -> s.slice(x[0], x[1]).should.containEql "formula"
-    it "detects brackets", ->
-        s = "\\(foo\\) and \\[foo\\]"
-        pm(s).should.eql([[0, 7], [12, 19]])
-             .and.matchEach (x) -> s.slice(x[0]+2, x[1]-2).should.eql "foo"
-    it "works for other environments", ->
-        pm("\\begin{equation}foobar\\end{equation}").should.eql [[0, 36]]
-        pm("\\begin{equation*}foobar\\end{equation*}").should.eql [[0, 38]]
-        pm('\\begin{align}foobar\\end{align}').should.eql [[0, 30]]
-        pm('\\begin{align*}foobar\\end{align*}').should.eql [[0, 32]]
-        pm('\\begin{eqnarray}foobar\\end{eqnarray}').should.eql [[0, 36]]
-        pm('\\begin{eqnarray*}foobar\\end{eqnarray*}').should.eql [[0, 38]]
-        pm('\\begin{bmatrix}foobar\\end{bmatrix}').should.eql [[0, 34]]
-    it "is not triggered by unknown environments", ->
-        pm('\\begin{cmatrix}foobar\\end{cmatrix}').should.eql []
 
 describe "replace_all", ->
     ra = misc.replace_all
