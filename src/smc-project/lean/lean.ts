@@ -70,7 +70,7 @@ export class Lean extends EventEmitter {
       new lean_client.ProcessTransport(
         "lean",
         process.env.HOME ? process.env.HOME : ".", // satisfy typescript.
-        []
+        ["-M 4096"]
       )
     );
     this._server.error.on((err) => this.dbg("error:", err));

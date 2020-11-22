@@ -284,7 +284,7 @@ export class JupyterKernel
     return this._state;
   }
 
-  async spawn(): Promise<void> {
+  async spawn(spawn_opts?): Promise<void> {
     if (this._state === "closed") {
       // game over!
       throw Error("closed");
@@ -300,7 +300,7 @@ export class JupyterKernel
     const opts: LaunchJupyterOpts = {
       detached: true,
       stdio: "ignore",
-      env: {},
+      env: spawn_opts?.env ?? {},
     };
 
     if (this.name.indexOf("sage") == 0) {

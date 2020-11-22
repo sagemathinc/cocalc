@@ -20,6 +20,27 @@ function script_error() {
   window.stop();
 }
 
+// compact trottling with a trailing call, used for updating the progress bars
+// credits: https://codeburst.io/throttling-and-debouncing-in-javascript-b01cad5c8edf
+function throttle(fn, limit) {
+  let lastFn;
+  let lastRan;
+  return function (...args) {
+    if (!lastRan) {
+      fn(...args);
+      lastRan = Date.now();
+    } else {
+      clearTimeout(lastFn);
+      lastFn = setTimeout(() => {
+        if (Date.now() - lastRan >= limit) {
+          fn(...args);
+          lastRan = Date.now();
+        }
+      }, limit - (Date.now() - lastRan));
+    }
+  };
+}
+
 function style() {
   const NAME = CUSTOMIZE.site_name || "CoCalc";
   HELP_EMAIL = CUSTOMIZE.help_email || "help@cocalc.com";
@@ -159,6 +180,9 @@ const loading: Loading = {
 
 // will be a div element ...
 let loading_output: HTMLElement | null = null;
+const progress_bars: { [key: string]: HTMLElement } = {};
+const progress_bars_span: { [key: string]: HTMLElement } = {};
+let loading_msg: HTMLElement | null = null;
 
 async function show_error(err) {
   if (typeof err === "string") {
@@ -205,49 +229,67 @@ const DEFLATE_FACTOR = 2; // picked by observing in production, no deep insight
 // and chrome, firfox and others might have subtle differences ...
 async function show_loading() {
   if (loading.err != null) return;
-  let bars = "";
-  const W = 30;
   for (const name of asset_names) {
     const size = loading.size[name];
     const info = DEFLATE_FACTOR * loading.loaded[name];
-    bars += `${pad(name, asset_width + 1)}`;
+    let msg = `${pad(name, asset_width + 1)} `;
+    let pct = 0;
     if (size != null && size != 0 && info != null && !isNaN(info)) {
-      const width = Math.min(W, Math.round((W * info) / size));
-      const bar = `[${"=".repeat(width)}>${" ".repeat(W - width)}]`;
       if (loading.done[name] != null) {
         // set to 100%  ... it's not accurate what webpack tells us
         if (loading.done[name]) loading.loaded[name] = loading.size[name];
-        const msg = loading.done[name] ? "DONE" : "FAIL";
-        bars += `${bar} ( ${msg} )`;
+        msg += loading.done[name] ? "DONE" : "FAIL";
+        pct = 100;
       } else {
-        // in development, webpack tells us much smaller file sizes.
-        // in any case, we just cap this at 100%, just like the width above.
-        const pct = `${Math.min(100, Math.round((100 * info) / size))}`;
-        bars += `${bar} ( ${pad(pct, 3, "right")}% )`;
+        pct = Math.min(100, Math.round((100 * info) / size));
+        const pct_str = `${pct}%`;
+        msg += `${pad(pct_str, 4, "right")}`;
       }
-    } else {
-      bars += `[${" ".repeat(W + 1)}]         `;
     }
-    bars += "\n";
+    progress_bars[name].setAttribute("data-label", msg);
+    progress_bars_span[name].style.width = `${pct}%`;
+
+    if (loading_msg != null) {
+      const dones = Object.values(loading.done);
+      const all_done = asset_names.length == dones.length;
+      if (all_done && dones.every((v) => !!v)) {
+        const NAME = CUSTOMIZE.site_name || "CoCalc";
+        loading_msg.innerHTML = `Starting ${NAME} ...`;
+      }
+    }
+
+    await delay(1);
   }
-  const dones = Object.values(loading.done);
-  const all_done = asset_names.length == dones.length;
-  if (all_done && dones.every((v) => !!v)) {
-    const NAME = CUSTOMIZE.site_name || "CoCalc";
-    bars += `\nCompiling ${NAME} ...`;
-  }
-  if (loading_output == null) return;
-  loading_output.innerHTML = bars;
-  await delay(1);
 }
 
-function update_loading(name, info) {
+// create the progress bars
+function init_loading_output(keys: string[]) {
+  if (loading_output == null) return;
+  for (const key of keys) {
+    const span = document.createElement("span");
+    span.className = "value";
+    span.style.width = "0%";
+    const bar = document.createElement("div");
+    bar.className = "progress";
+    bar.setAttribute("data-label", "0%");
+    bar.appendChild(span);
+    progress_bars[key] = bar;
+    progress_bars_span[key] = span;
+    loading_output.appendChild(bar);
+  }
+  loading_msg = document.createElement("pre");
+  loading_output.appendChild(loading_msg);
+}
+
+function _update_loading(name, info) {
   // sometimes, the progress indicator says 0
   if (info == 0) return;
   // console.log("update_loading", name, info, "size", loading.size[name]);
   loading.loaded[name] = info;
   show_loading();
 }
+
+const update_loading = throttle(_update_loading, 10);
 
 function load_asset(name, url, hash): Promise<string> {
   return new Promise(function (done, err) {
@@ -299,6 +341,7 @@ async function load_assets() {
   // loading them in parallel ...
   const code: { [key: string]: Promise<string | void> } = {};
   try {
+    init_loading_output(Object.keys(chunks));
     for (const [name, chunk] of Object.entries(chunks)) {
       loading.size[name] = chunk.size;
       loading.loaded[name] = 0;
