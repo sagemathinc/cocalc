@@ -153,7 +153,7 @@ export function process_tree(
           stats.sum_cpu_pct += proc.cpu.pct;
           stats.sum_memory += proc.stat.mem.rss;
         } else {
-          data.push(...children);
+          if (children != null) data.push(...children);
         }
       }
     }
