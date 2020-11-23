@@ -48,7 +48,7 @@ function signed_in(mesg) {
   // the has_remember_me cookie is for usability: After a sign in we "mark" this client as being "known"
   // next time the main landing page is visited, haproxy or hub will redirect to the client
   // note: similar code is in account/AccountActions.ts → AccountActions::sign_out
-  const exp = misc.server_days_ago(-30).toGMTString();
+  const exp = misc.server_days_ago(-30).toUTCString();
   document.cookie = `${APP_BASE_URL}has_remember_me=true; expires=${exp} ;path=/`;
   // Record which hub we're connected to.
   redux.getActions("account").setState({ hub: mesg.hub });

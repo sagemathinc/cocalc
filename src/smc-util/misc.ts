@@ -13,8 +13,6 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 */
 
 export {
-  path_is_in_public_paths,
-  containing_public_path,
   call_lock,
   is_equal,
   cmp_array,
@@ -28,25 +26,7 @@ export {
   stripe_date,
   to_money,
   stripe_amount,
-  is_set,
   get_array_range,
-  server_time,
-  server_milliseconds_ago,
-  server_seconds_ago,
-  server_minutes_ago,
-  server_hours_ago,
-  server_days_ago,
-  server_weeks_ago,
-  server_months_ago,
-  milliseconds_before,
-  seconds_before,
-  minutes_before,
-  hours_before,
-  days_before,
-  weeks_before,
-  months_before,
-  expire_time,
-  YEAR,
   round1,
   seconds2hm,
   seconds2hms,
@@ -103,6 +83,26 @@ export {
   jupyter_language_to_name,
   closest_kernel_match,
 } from "./misc-tmp";
+
+export {
+  server_time,
+  server_milliseconds_ago,
+  server_seconds_ago,
+  server_minutes_ago,
+  server_hours_ago,
+  server_days_ago,
+  server_weeks_ago,
+  server_months_ago,
+  milliseconds_before,
+  seconds_before,
+  minutes_before,
+  hours_before,
+  days_before,
+  weeks_before,
+  months_before,
+  expire_time,
+  YEAR,
+} from "./reltime";
 
 import * as sha1 from "sha1";
 export { sha1 };
@@ -733,6 +733,10 @@ export function is_object(obj: any): boolean {
 
 export function is_date(obj: any): boolean {
   return obj instanceof Date;
+}
+
+export function is_set(obj: any): boolean {
+  return Object.prototype.toString.call(obj) === "[object Set]";
 }
 
 // delete any null fields, to avoid wasting space.
@@ -1684,4 +1688,74 @@ export function parse_hashtags(t: string): [number, number][] {
       }
     }
   }
+}
+
+// Return true if (1) path is contained in one
+// of the given paths (a list of strings) -- or path without
+// zip extension is in paths.
+// Always returns false if path is undefined/null (since
+// that might be dangerous, right)?
+export function path_is_in_public_paths(
+  path: string,
+  paths: string[] | Set<string> | object | undefined
+): boolean {
+  return containing_public_path(path, paths) != null;
+}
+
+// returns a string in paths if path is public because of that string
+// Otherwise, returns undefined.
+// IMPORTANT: a possible returned string is "", which is falsey but defined!
+// paths can be an array or object (with keys the paths) or a Set
+export function containing_public_path(
+  path: string,
+  paths: string[] | Set<string> | object | undefined
+): undefined | string {
+  if (paths == null || path == null) {
+    // just in case of non-typescript clients
+    return;
+  }
+  if (path.indexOf("../") !== -1) {
+    // just deny any potentially trickiery involving relative
+    // path segments (TODO: maybe too restrictive?)
+    return;
+  }
+  if (is_array(paths) || is_set(paths)) {
+    // array so "of"
+    // @ts-ignore
+    for (const p of paths) {
+      if (p === "") {
+        // the whole project is public, which matches everything
+        return "";
+      }
+      if (path === p) {
+        // exact match
+        return p;
+      }
+      if (path.slice(0, p.length + 1) === p + "/") {
+        return p;
+      }
+    }
+  } else if (is_object(paths)) {
+    for (const p in paths) {
+      // object and want keys, so *of*
+      if (p === "") {
+        // the whole project is public, which matches everything
+        return "";
+      }
+      if (path === p) {
+        // exact match
+        return p;
+      }
+      if (path.slice(0, p.length + 1) === p + "/") {
+        return p;
+      }
+    }
+  } else {
+    throw Error("paths must be undefined, an array, or a map");
+  }
+  if (filename_extension(path) === "zip") {
+    // is path something_public.zip ?
+    return containing_public_path(path.slice(0, path.length - 4), paths);
+  }
+  return undefined;
 }

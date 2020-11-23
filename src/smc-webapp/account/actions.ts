@@ -237,7 +237,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     // (existence of cookie signals this is a known client)
     // note: similar code is in account.coffee → signed_in
     let { APP_BASE_URL } = require("../misc_page");
-    const exp = server_days_ago(-30).toGMTString();
+    const exp = server_days_ago(-30).toUTCString();
     document.cookie = `${APP_BASE_URL}has_remember_me=false; expires=${exp} ;path=/`;
     // Send a message to the server that the user explicitly
     // requested to sign out.  The server must clean up resources

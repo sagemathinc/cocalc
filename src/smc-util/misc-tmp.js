@@ -551,69 +551,6 @@ exports.make_valid_name = (s) =>
   s.replace(/\W/g, "_").toLowerCase();
 
 
-// Return true if (1) path is contained in one
-// of the given paths (a list of strings) -- or path without
-// zip extension is in paths.
-// Always returns false if path is undefined/null (since that might be dangerous, right)?
-exports.path_is_in_public_paths = (path, paths) =>
-  exports.containing_public_path(path, paths) != null;
-
-// returns a string in paths if path is public because of that string
-// Otherwise, returns undefined.
-// IMPORTANT: a possible returned string is "", which is falsey but defined!
-// paths can be an array or object (with keys the paths) or a Set
-exports.containing_public_path = function (path, paths) {
-  let p;
-  if (paths == null || path == null) {
-    return;
-  }
-  if (path.indexOf("../") !== -1) {
-    // just deny any potentially trickiery involving relative path segments (TODO: maybe too restrictive?)
-    return;
-  }
-  if (is_array(paths) || is_set(paths)) {
-    // array so "of"
-    for (p of Array.from(paths)) {
-      if (p === "") {
-        // the whole project is public, which matches everything
-        return "";
-      }
-      if (path === p) {
-        // exact match
-        return p;
-      }
-      if (path.slice(0, p.length + 1) === p + "/") {
-        return p;
-      }
-    }
-  } else if (is_object(paths)) {
-    for (p in paths) {
-      // object and want keys, so *of*
-      if (p === "") {
-        // the whole project is public, which matches everything
-        return "";
-      }
-      if (path === p) {
-        // exact match
-        return p;
-      }
-      if (path.slice(0, p.length + 1) === p + "/") {
-        return p;
-      }
-    }
-  } else {
-    throw Error("paths must be undefined, an array, or a map");
-  }
-  if (exports.filename_extension(path) === "zip") {
-    // is path something_public.zip ?
-    return exports.containing_public_path(
-      path.slice(0, path.length - 4),
-      paths
-    );
-  }
-  return undefined;
-};
-
 // See https://github.com/sagemathinc/cocalc/issues/4861
 exports.encode_path = function (path) {
   return path.split("/").map(encodeURIComponent).join("/");
@@ -985,9 +922,6 @@ exports.is_string = (obj) => typeof obj === "string";
 exports.is_object = is_object = (obj) =>
   Object.prototype.toString.call(obj) === "[object Object]";
 
-exports.is_set = is_set = (obj) =>
-  Object.prototype.toString.call(obj) === "[object Set]";
-
 exports.is_date = is_date = (obj) => obj instanceof Date;
 
 // get a subarray of all values between the two given values inclusive, provided in either order
@@ -999,80 +933,6 @@ exports.get_array_range = function (arr, value1, value2) {
   }
   return arr.slice(index1, +index2 + 1 || undefined);
 };
-
-// Specific, easy to read: describe amount of time before right now
-// Use negative input for after now (i.e., in the future).
-exports.milliseconds_ago = (ms) => new Date(new Date() - ms);
-exports.seconds_ago = (s) => exports.milliseconds_ago(1000 * s);
-exports.minutes_ago = (m) => exports.seconds_ago(60 * m);
-exports.hours_ago = (h) => exports.minutes_ago(60 * h);
-exports.days_ago = (d) => exports.hours_ago(24 * d);
-exports.weeks_ago = (w) => exports.days_ago(7 * w);
-exports.months_ago = (m) => exports.days_ago(30.5 * m);
-
-if (typeof window !== "undefined" && window !== null) {
-  // BROWSER Versions of the above, but give the relevant point in time but
-  // on the *server*.  These are only available in the web browser.
-  exports.server_time = function () {
-    let left;
-    return new Date(
-      new Date() -
-        parseFloat(
-          (left = exports.get_local_storage("clock_skew")) != null ? left : 0
-        )
-    );
-  };
-  exports.server_milliseconds_ago = function (ms) {
-    let left;
-    return new Date(
-      new Date() -
-        ms -
-        parseFloat(
-          (left = exports.get_local_storage("clock_skew")) != null ? left : 0
-        )
-    );
-  };
-  exports.server_seconds_ago = (s) => exports.server_milliseconds_ago(1000 * s);
-  exports.server_minutes_ago = (m) => exports.server_seconds_ago(60 * m);
-  exports.server_hours_ago = (h) => exports.server_minutes_ago(60 * h);
-  exports.server_days_ago = (d) => exports.server_hours_ago(24 * d);
-  exports.server_weeks_ago = (w) => exports.server_days_ago(7 * w);
-  exports.server_months_ago = (m) => exports.server_days_ago(30.5 * m);
-} else {
-  // On the server, these functions are aliased to the functions above, since
-  // we assume that the server clocks are sufficiently accurate.  Providing
-  // these functions makes it simpler to write code that runs on both the
-  // frontend and the backend.
-  exports.server_time = () => new Date();
-  exports.server_milliseconds_ago = exports.milliseconds_ago;
-  exports.server_seconds_ago = exports.seconds_ago;
-  exports.server_minutes_ago = exports.minutes_ago;
-  exports.server_hours_ago = exports.hours_ago;
-  exports.server_days_ago = exports.days_ago;
-  exports.server_weeks_ago = exports.weeks_ago;
-  exports.server_months_ago = exports.months_ago;
-}
-
-// Specific easy to read and describe point in time before another point in time tm.
-// (The following work exactly as above if the second argument is excluded.)
-// Use negative input for first argument for that amount of time after tm.
-exports.milliseconds_before = (ms, tm) =>
-  new Date((tm != null ? tm : new Date()) - ms);
-exports.seconds_before = (s, tm) => exports.milliseconds_before(1000 * s, tm);
-exports.minutes_before = (m, tm) => exports.seconds_before(60 * m, tm);
-exports.hours_before = (h, tm) => exports.minutes_before(60 * h, tm);
-exports.days_before = (d, tm) => exports.hours_before(24 * d, tm);
-exports.weeks_before = (d, tm) => exports.days_before(7 * d, tm);
-exports.months_before = (d, tm) => exports.days_before(30.5 * d, tm);
-
-// time this many seconds in the future (or undefined)
-exports.expire_time = function (s) {
-  if (s) {
-    return new Date(new Date() - 0 + s * 1000);
-  }
-};
-
-exports.YEAR = new Date().getFullYear();
 
 // Round the given number to 1 decimal place
 exports.round1 = round1 = (num) => Math.round(num * 10) / 10;
