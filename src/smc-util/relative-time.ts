@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+declare var window;
+
 import { get_local_storage } from "./local-storage";
 
 // Specific, easy to read: describe amount of time before right now

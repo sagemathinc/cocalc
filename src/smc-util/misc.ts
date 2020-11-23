@@ -13,9 +13,6 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 */
 
 export {
-  call_lock,
-  is_equal,
-  cmp_array,
   timestamp_cmp,
   field_cmp,
   is_different_array,
@@ -45,9 +42,6 @@ export {
   smiley,
   smiley_strings,
   emoticons,
-  done,
-  done1,
-  done2,
   get_start_time_ts,
   get_uptime,
   log,
@@ -79,6 +73,10 @@ export {
   jupyter_language_to_name,
   closest_kernel_match,
 } from "./misc-tmp";
+
+export { done, done1, done2 } from "./done";
+
+export { cmp, cmp_Date, cmp_moment, cmp_array } from "./cmp";
 
 export {
   server_time,
@@ -112,7 +110,6 @@ import * as sha1 from "sha1";
 export { sha1 };
 
 import * as lodash from "lodash";
-import { Moment } from "moment";
 import * as getRandomValues from "get-random-values";
 
 export const keys: (any) => string[] = lodash.keys;
@@ -368,48 +365,6 @@ export function set(v: string[]): { [key: string]: true } {
   return s;
 }
 
-export function cmp(a: any, b: any): number {
-  if (a < b) {
-    return -1;
-  } else if (a > b) {
-    return 1;
-  }
-  return 0;
-}
-
-/*
-compare two Date | undefined | null objects.
-
-null and undefined are considered equal to each other.
-
-null_last:
-  - true: nulls are infinitely in the future
-  - false: nulls are the dawn of mankind
-*/
-
-export function cmp_Date(
-  a: Date | undefined | null,
-  b: Date | undefined | null,
-  null_last = false
-): -1 | 0 | 1 {
-  if (a == null) {
-    if (b == null) {
-      return 0;
-    }
-    return null_last ? 1 : -1;
-  }
-  // a != null
-  if (b == null) {
-    return null_last ? -1 : 1;
-  }
-  if (a < b) return -1;
-  if (a > b) return 1;
-  return 0; // note: a == b for Date objects doesn't work as expected, but that's OK here.
-}
-
-export function cmp_moment(a?: Moment, b?: Moment, null_last = false) {
-  return cmp_Date(a?.toDate(), b?.toDate(), null_last);
-}
 
 // see https://stackoverflow.com/questions/728360/how-do-i-correctly-clone-a-javascript-object/30042948#30042948
 export function copy<T>(obj: T): T {
@@ -1748,3 +1703,5 @@ export function containing_public_path(
   }
   return undefined;
 }
+
+export const is_equal = lodash.isEqual;

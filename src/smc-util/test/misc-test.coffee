@@ -749,66 +749,6 @@ describe "path_is_in_public_paths", ->
         p("../foo", ["foo"]).should.be.false()
 
 
-describe "call_lock", =>
-    before =>
-        @clock = sinon.useFakeTimers()
-
-    after =>
-        @clock.restore()
-
-    beforeEach =>
-        @objspy = sinon.spy()
-        @o = obj: @objspy, timeout_s: 5
-
-    it "adds a call lock to a given object", =>
-        misc.call_lock(@o)
-        @objspy.should.have.properties ["_call_lock", "_call_unlock", "_call_with_lock"]
-
-        fspy = sinon.spy()
-        @objspy._call_with_lock(fspy)
-        @objspy.should.have.properties __call_lock: true
-        fspy.should.have.callCount 1
-
-        fspy2 = sinon.spy()
-        cbspy2 = sinon.spy()
-        @objspy._call_with_lock(fspy2, cbspy2)
-
-        # check that the cb has been called with the error message
-        cbspy2.getCall(0).args[0].should.eql "error -- hit call_lock"
-        # and the function hasn't been called
-        fspy2.should.have.callCount 0
-
-    it "unlocks after the given timeout_s time", =>
-        misc.call_lock(@o)
-
-        fspy = sinon.spy()
-        @objspy._call_with_lock(fspy)
-
-        # turn clock 6 secs ahead
-        @clock.tick 6*1000
-        fspy3 = sinon.spy()
-        cbspy3 = sinon.spy()
-        @objspy._call_with_lock(fspy3, cbspy3)
-
-        cbspy3.should.have.callCount 0
-        fspy3.should.have.callCount 1
-
-    it "unlocks when function is called", =>
-        fcl = misc.call_lock(@o)
-
-        fspy = sinon.spy()
-        cbspy2 = sinon.spy()
-        f = () -> fspy()
-        @objspy._call_with_lock(f, cbspy2)
-
-        cbspy2.should.have.callCount 0
-        fspy.should.have.callCount 1
-
-        # TODO I have no idea how to actually call it in such a way,
-        # that this is false
-        @objspy.should.have.properties __call_lock: true
-
-
 describe "timestamp_cmp", ->
     tcmp = misc.timestamp_cmp
     a = timestamp: new Date("2015-01-01")

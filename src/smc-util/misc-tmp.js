@@ -556,55 +556,6 @@ exports.encode_path = function (path) {
   return path.split("/").map(encodeURIComponent).join("/");
 };
 
-// This adds a method _call_with_lock to obj, which makes it so it's easy to make it so only
-// one method can be called at a time of an object -- all calls until completion
-// of the first one get an error.
-
-exports.call_lock = function (opts) {
-  opts = defaults(opts, {
-    obj: required,
-    timeout_s: 30,
-  }); // lock expire timeout after this many seconds
-
-  const { obj } = opts;
-
-  obj._call_lock = function () {
-    obj.__call_lock = true;
-    obj.__call_lock_timeout = function () {
-      obj.__call_lock = false;
-      return delete obj.__call_lock_timeout;
-    };
-    return setTimeout(obj.__call_lock_timeout, opts.timeout_s * 1000);
-  };
-
-  obj._call_unlock = function () {
-    if (obj.__call_lock_timeout != null) {
-      clearTimeout(obj.__call_lock_timeout);
-      delete obj.__call_lock_timeout;
-    }
-    return (obj.__call_lock = false);
-  };
-
-  return (obj._call_with_lock = function (f, cb) {
-    if (obj.__call_lock) {
-      if (typeof cb === "function") {
-        cb("error -- hit call_lock");
-      }
-      return;
-    }
-    obj._call_lock();
-    return f(function (...args) {
-      obj._call_unlock();
-      return typeof cb === "function"
-        ? cb(...Array.from(args || []))
-        : undefined;
-    });
-  });
-};
-
-// "Performs an optimized deep comparison between the two objects, to determine if they should be considered equal."
-exports.is_equal = underscore.isEqual;
-
 exports.cmp = function (a, b) {
   if (a < b) {
     return -1;
@@ -614,19 +565,6 @@ exports.cmp = function (a, b) {
   return 0;
 };
 
-exports.cmp_array = function (a, b) {
-  for (
-    let i = 0, end = Math.max(a.length, b.length), asc = 0 <= end;
-    asc ? i < end : i > end;
-    asc ? i++ : i--
-  ) {
-    const c = exports.cmp(a[i], b[i]);
-    if (c) {
-      return c;
-    }
-  }
-  return 0;
-};
 
 exports.cmp_Date = function (a, b) {
   if (a == null) {
@@ -1241,32 +1179,6 @@ exports.history_path = function (path, old = false) {
     }
   }
 };
-
-// This is a convenience function to provide as a callback when working interactively.
-const _done = function (n, ...args) {
-  const start_time = new Date();
-  const f = function (...args) {
-    if (n !== 1) {
-      try {
-        args = [JSON.stringify(args, null, n)];
-      } catch (error) {}
-    }
-    // do nothing
-    return console.log(
-      `*** TOTALLY DONE! (${(new Date() - start_time) / 1000}s since start) `,
-      ...Array.from(args)
-    );
-  };
-  if (args.length > 0) {
-    return f(...Array.from(args || []));
-  } else {
-    return f;
-  }
-};
-
-exports.done = (...args) => _done(0, ...Array.from(args));
-exports.done1 = (...args) => _done(1, ...Array.from(args));
-exports.done2 = (...args) => _done(2, ...Array.from(args));
 
 let smc_logger_timestamp = (smc_logger_timestamp_last = smc_start_time =
   new Date().getTime() / 1000.0);
