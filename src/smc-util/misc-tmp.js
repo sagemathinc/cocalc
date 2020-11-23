@@ -1454,52 +1454,6 @@ exports.suggest_duplicate_filename = function (name) {
   return new_name;
 };
 
-// Wrapper around localStorage, so we can safely touch it without raising an
-// exception if it is banned (like in some browser modes) or doesn't exist.
-// See https://github.com/sagemathinc/cocalc/issues/237
-
-exports.set_local_storage = function (key, val) {
-  try {
-    return (localStorage[key] = val);
-  } catch (e) {
-    return console.warn(`localStorage set error -- ${e}`);
-  }
-};
-
-exports.get_local_storage = function (key) {
-  try {
-    return localStorage[key];
-  } catch (e) {
-    return console.warn(`localStorage get error -- ${e}`);
-  }
-};
-
-exports.delete_local_storage = function (key) {
-  try {
-    return delete localStorage[key];
-  } catch (e) {
-    return console.warn(`localStorage delete error -- ${e}`);
-  }
-};
-
-exports.has_local_storage = function () {
-  try {
-    const TEST = "__smc_test__";
-    localStorage[TEST] = "x";
-    delete localStorage[TEST];
-    return true;
-  } catch (e) {
-    return false;
-  }
-};
-
-exports.local_storage_length = function () {
-  try {
-    return localStorage.length;
-  } catch (e) {
-    return 0;
-  }
-};
 
 // Takes an object representing a directed graph shaped as follows:
 // DAG =

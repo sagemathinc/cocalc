@@ -96,8 +96,6 @@ export function cm_options(
       tab_key(cm, opts.spaces_instead_of_tabs);
     },
     "Shift-Tab"(cm) {
-      console.log("Shift-Tab");
-      (window as any).cm = cm;
       cm.unindent_selection();
     },
     "Shift-Cmd-L"(cm) {

@@ -1,4 +1,9 @@
-import { get_local_storage } from "./misc-tmp";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { get_local_storage } from "./local-storage";
 
 // Specific, easy to read: describe amount of time before right now
 // Use negative input for after now (i.e., in the future).
@@ -27,7 +32,7 @@ export function months_ago(m): Date {
 export function server_time(): Date {
   if (window != null) {
     return new Date(
-      new Date().valueOf() - parseFloat(get_local_storage("clock_skew") ?? 0)
+      new Date().valueOf() - parseFloat(get_local_storage("clock_skew") ?? "0")
     );
   } else {
     // On the server, we assume that the server clocks are sufficiently
@@ -42,7 +47,7 @@ export function server_milliseconds_ago(ms: number): Date {
     return new Date(
       new Date().valueOf() -
         ms -
-        parseFloat(get_local_storage("clock_skew") ?? 0)
+        parseFloat(get_local_storage("clock_skew") ?? "0")
     );
   } else {
     return milliseconds_ago(ms);
@@ -94,10 +99,10 @@ export function months_before(d, tm) {
 }
 
 // time this many seconds in the future (or undefined)
-export function expire_time(s) {
-  if (s) {
-    return new Date(new Date().valueOf() + s * 1000);
-  }
+export function expire_time(s: number): Date {
+  // @ts-ignore: due to possible non-TS clients
+  if (s == null) return;
+  return new Date(new Date().valueOf() + s * 1000);
 }
 
 export const YEAR = new Date().getFullYear();

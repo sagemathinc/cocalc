@@ -63,10 +63,6 @@ export {
   path_to_tab,
   tab_to_path,
   suggest_duplicate_filename,
-  set_local_storage,
-  get_local_storage,
-  has_local_storage,
-  local_storage_length,
   top_sort,
   create_dependency_graph,
   bind_objects,
@@ -102,7 +98,15 @@ export {
   months_before,
   expire_time,
   YEAR,
-} from "./reltime";
+} from "./relative-time";
+
+export {
+  set_local_storage,
+  get_local_storage,
+  has_local_storage,
+  delete_local_storage,
+  local_storage_length,
+} from "./local-storage";
 
 import * as sha1 from "sha1";
 export { sha1 };
@@ -530,7 +534,7 @@ export function mswalltime(t?: number): number {
 // Current time in seconds since epoch, as a floating point
 // number (so much more precise than just seconds), or time
 // since t.
-export function walltime(t) {
+export function walltime(t?: number): number {
   return mswalltime() / 1000.0 - (t ?? 0);
 }
 
@@ -821,21 +825,6 @@ export const re_url = /(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-
 
 export function contains_url(str: string): boolean {
   return !!str.toLowerCase().match(re_url);
-}
-
-// TODO: Move this var and the `delete_local_storage` to a new front-end-misc or something
-// TS rightfully complains about this missing when built on back end systems
-declare var localStorage;
-/**
- * Deletes key from local storage
- * FRONT END ONLY
- */
-export function delete_local_storage(key) {
-  try {
-    delete localStorage[key];
-  } catch (e) {
-    console.warn(`localStorage delete error -- ${e}`);
-  }
 }
 
 // converts an array to a "human readable" array

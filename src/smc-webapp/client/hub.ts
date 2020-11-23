@@ -186,7 +186,7 @@ export class HubClient {
         this.client.account_id = mesg.account_id;
         this.set_signed_in();
         this.signed_in_time = new Date().valueOf();
-        set_local_storage(this.client.remember_me_key(), true);
+        set_local_storage(this.client.remember_me_key(), "true");
         this.signed_in_mesg = mesg;
         this.client.emit("signed_in", mesg);
         break;
