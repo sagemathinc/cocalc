@@ -32,7 +32,6 @@ export const VERSION = "5.3";
 
 import { EventEmitter } from "events";
 import { exists, unlink } from "./async-utils-node";
-import * as pidusage from "pidusage";
 
 const { do_not_laod_transpilers } = require("../init-program");
 
@@ -70,7 +69,6 @@ import { remove_redundant_reps } from "../smc-webapp/jupyter/import-from-ipynb";
 import { retry_until_success } from "../smc-util/async-utils";
 import { callback } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
-import { delay } from "awaiting";
 
 import { nbconvert } from "./nbconvert";
 
@@ -183,15 +181,11 @@ interface KernelParams {
   verbose?: boolean;
   path: string; // filename of the ipynb corresponding to this kernel (doesn't have to actually exist)
   actions?: any; // optional redux actions object
-  usage?: boolean; // monitor memory/cpu usage and report via 'usage' event.∑
 }
 
 export function kernel(opts: KernelParams): JupyterKernel {
   if (opts.verbose === undefined) {
     opts.verbose = true;
-  }
-  if (opts.usage === undefined) {
-    opts.usage = true;
   }
   if (opts.client === undefined) {
     opts.client = new Client();
@@ -200,8 +194,7 @@ export function kernel(opts: KernelParams): JupyterKernel {
     opts.name,
     opts.verbose ? opts.client.dbg : undefined,
     opts.path,
-    opts.actions,
-    opts.usage
+    opts.actions
   );
 }
 
@@ -232,7 +225,7 @@ export class JupyterKernel
   _execute_code_queue: CodeExecutionEmitter[] = [];
   _channels: any;
 
-  constructor(name, _dbg, _path, _actions, usage) {
+  constructor(name, _dbg, _path, _actions) {
     super();
 
     this.spawn = reuseInFlight(this.spawn); // TODO -- test carefully!
@@ -263,9 +256,6 @@ export class JupyterKernel
     const dbg = this.dbg("constructor");
     dbg();
     process.on("exit", this.close);
-    if (usage) {
-      this._init_usage_monitor();
-    }
     this.setMaxListeners(100);
   }
 
@@ -459,54 +449,6 @@ export class JupyterKernel
         process.kill(-pid, signal); // negative to kill the process group
       } catch (err) {
         dbg(`error: ${err}`);
-      }
-    }
-  }
-
-  // Get memory/cpu usage e.g. { cpu: 1.154401154402318, memory: 482050048 }
-  // If no kernel/pid returns {cpu:0,memory:0}
-  async usage(): Promise<{ cpu: number; memory: number }> {
-    if (!this._kernel) {
-      return { cpu: 0, memory: 0 };
-    }
-    // Do *NOT* put any logging in here, since it gets called a lot by the usage monitor.
-    const spawn = this._kernel.spawn;
-    if (spawn === undefined) {
-      return { cpu: 0, memory: 0 };
-    }
-    const pid = spawn.pid;
-    if (pid === undefined) {
-      return { cpu: 0, memory: 0 };
-    }
-    return await callback(pidusage.stat, pid);
-  }
-
-  // Start a monitor that calls usage periodically.
-  // When the usage changes by a certain threshhold from the
-  // previous usage, emits a 'usage' event with new values.
-  async _init_usage_monitor(): Promise<void> {
-    let last_usage = { cpu: 0, memory: 0 };
-    const thresh = 0.2; // report any change of at least thresh percent (we always report cpu dropping to 0)
-    const interval = 5000; // frequently should be OK, since it just reads /proc filesystem
-    this.emit("usage", last_usage);
-    const dbg = this.dbg("usage_monitor");
-    while (this._state != "closed") {
-      await delay(interval);
-      try {
-        const usage = await this.usage();
-        for (const x of ["cpu", "memory"]) {
-          if (
-            usage[x] > last_usage[x] * (1 + thresh) ||
-            usage[x] < last_usage[x] * (1 - thresh) ||
-            (usage[x] === 0 && last_usage[x] > 0)
-          ) {
-            last_usage = usage;
-            this.emit("usage", usage);
-            break;
-          }
-        }
-      } catch (err) {
-        dbg("err", err, " -- skip");
       }
     }
   }

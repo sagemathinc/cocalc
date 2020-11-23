@@ -572,7 +572,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
       // this.syncdb.get() returns an immutable.List of all the records
       // in the syncdb database.   These look like, e.g.,
-      //    {type: "settings", backend_state: "running", trust: true, kernel: "python3", kernel_usage: {…}, …}
+      //    {type: "settings", backend_state: "running", trust: true, kernel: "python3", …}
       //    {type: "cell", id: "22cc3e", pos: 0, input: "# small copy", state: "done"}
       let cells: immutable.Map<string, Cell> = immutable.Map();
       this.syncdb.get().forEach((record) => {
@@ -590,7 +590,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               trust: !!record.get("trust"), // case to boolean
               backend_state: record.get("backend_state"),
               kernel_state: record.get("kernel_state"),
-              kernel_usage: record.get("kernel_usage"),
               metadata: record.get("metadata"), // extra custom user-specified metadata
               max_output_length: bounded_integer(
                 record.get("max_output_length"),
@@ -657,7 +656,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               trust: !!record.get("trust"), // case to boolean
               backend_state: record.get("backend_state"),
               kernel_state: record.get("kernel_state"),
-              kernel_usage: record.get("kernel_usage"),
               metadata: record.get("metadata"), // extra custom user-specified metadata
               max_output_length: bounded_integer(
                 record.get("max_output_length"),
