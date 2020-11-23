@@ -12,9 +12,11 @@ import { PostgreSQL } from "./types";
 import { delay } from "awaiting";
 
 // max number of patches to delete at once – 10000 should take a few seconds
-const MAX_AT_ONCE = 10000;
+const MAX_AT_ONCE = parseInt(
+  process.env.SYNCSTRING_DELETE_MAX_AT_ONCE ?? "10000"
+);
 // delay between deleting a chunk of patches
-const DELAY_S = 1;
+const DELAY_S = parseInt(process.env.SYNCSTRING_DELETE_DELAY_CHUNK_S ?? "1");
 
 interface DeletePatchesOpts {
   db: PostgreSQL;
