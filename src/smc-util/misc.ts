@@ -13,12 +13,6 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 */
 
 export {
-  should_open_in_foreground,
-  enumerate,
-  escapeRegExp,
-  smiley,
-  smiley_strings,
-  emoticons,
   get_start_time_ts,
   get_uptime,
   log,
@@ -46,6 +40,8 @@ export {
   jupyter_language_to_name,
   closest_kernel_match,
 } from "./misc-tmp";
+
+export { smiley, smiley_strings, emoticons } from "./emoji";
 
 import {
   is_array,
@@ -685,18 +681,6 @@ export const re_url = /(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-
 
 export function contains_url(str: string): boolean {
   return !!str.toLowerCase().match(re_url);
-}
-
-// converts an array to a "human readable" array
-export function to_human_list(arr) {
-  arr = lodash.map(arr, (x) => x.toString());
-  if (arr.length > 1) {
-    return arr.slice(0, -1).join(", ") + " and " + arr.slice(-1);
-  } else if (arr.length === 1) {
-    return arr[0].toString();
-  } else {
-    return "";
-  }
 }
 
 export function hidden_meta_file(path: string, ext: string): string {
@@ -1769,4 +1753,37 @@ export function range(n: number): number[] {
     v.push(i);
   }
   return v;
+}
+
+// foreground; otherwise, return false.
+export function should_open_in_foreground(e): boolean {
+  // for react.js synthetic mouse events, where e.which is undefined!
+  if (e.constructor.name === "SyntheticMouseEvent") {
+    e = e.nativeEvent;
+  }
+  //console.log("e: #{e}, e.which: #{e.which}", e)
+  return !(e.which === 2 || e.metaKey || e.altKey || e.ctrlKey);
+}
+
+// Like Python's enumerate
+export function enumerate(v: any[]) {
+  const w: [number, any][] = [];
+  let i = 0;
+  for (let x of Array.from(v)) {
+    w.push([i, x]);
+    i += 1;
+  }
+  return w;
+}
+
+// converts an array to a "human readable" array
+export function to_human_list(arr: any[]): string {
+  arr = lodash.map(arr, (x) => `${x}`);
+  if (arr.length > 1) {
+    return arr.slice(0, -1).join(", ") + " and " + arr.slice(-1);
+  } else if (arr.length === 1) {
+    return arr[0].toString();
+  } else {
+    return "";
+  }
 }
