@@ -717,41 +717,6 @@ exports.history_path = function (path, old = false) {
   }
 };
 
-let smc_logger_timestamp = (smc_logger_timestamp_last = smc_start_time =
-  new Date().getTime() / 1000.0);
-
-exports.get_start_time_ts = () => new Date(smc_start_time * 1000);
-
-exports.get_uptime = () =>
-  seconds2hms(new Date().getTime() / 1000.0 - smc_start_time);
-
-exports.log = function () {
-  smc_logger_timestamp = new Date().getTime() / 1000.0;
-  const t = seconds2hms(smc_logger_timestamp - smc_start_time);
-  const dt = seconds2hms(smc_logger_timestamp - smc_logger_timestamp_last);
-  // support for string interpolation for the actual console.log
-  const [msg, ...args] = Array.from(Array.prototype.slice.call(arguments));
-  let prompt = `[${t} Δ ${dt}]`;
-  if (_.isString(msg)) {
-    prompt = `${prompt} ${msg}`;
-    console.log_original(prompt, ...Array.from(args));
-  } else {
-    console.log_original(prompt, msg, ...Array.from(args));
-  }
-  return (smc_logger_timestamp_last = smc_logger_timestamp);
-};
-
-exports.wrap_log = function () {
-  if (
-    !exports.RUNNING_IN_NODE &&
-    typeof window !== "undefined" &&
-    window !== null
-  ) {
-    window.console.log_original = window.console.log;
-    return (window.console.log = exports.log);
-  }
-};
-
 // to test exception handling
 exports.this_fails = () => exports.op_to_function("noop");
 

@@ -3,8 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { to_human_list } from "./misc";
-
 import { filter, first, map, contains } from "underscore";
 
 // escape everything in a regex
@@ -67,5 +65,3 @@ export function smiley_strings(): string[] {
     (x) => !contains(["^^ ", " ^^"], x)
   );
 }
-
-export const emoticons = to_human_list(smiley_strings());

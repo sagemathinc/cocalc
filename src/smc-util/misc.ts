@@ -13,10 +13,6 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 */
 
 export {
-  get_start_time_ts,
-  get_uptime,
-  log,
-  wrap_log,
   this_fails,
   console_init_filename,
   has_null_leaf,
@@ -41,7 +37,9 @@ export {
   closest_kernel_match,
 } from "./misc-tmp";
 
-export { smiley, smiley_strings, emoticons } from "./emoji";
+export { get_start_time_ts, get_uptime, log, wrap_log } from "./log";
+
+export { smiley, smiley_strings } from "./emoji";
 
 import {
   is_array,
