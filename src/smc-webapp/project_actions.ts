@@ -366,21 +366,24 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const closed_index = open_files_order.indexOf(path);
     const { size } = open_files_order;
     if (misc.path_to_tab(path) === active_project_tab) {
-      let next_active_tab;
+      let next_active_tab: string | undefined = undefined;
       if (size === 1) {
         next_active_tab = "files";
       } else {
+        let path: string | undefined;
+
         if (closed_index === size - 1) {
-          next_active_tab = misc.path_to_tab(
-            open_files_order.get(closed_index - 1)
-          );
+          path = open_files_order.get(closed_index - 1);
         } else {
-          next_active_tab = misc.path_to_tab(
-            open_files_order.get(closed_index + 1)
-          );
+          path = open_files_order.get(closed_index + 1);
+        }
+        if (path != null) {
+          next_active_tab = misc.path_to_tab(path);
         }
       }
-      this.set_active_tab(next_active_tab);
+      if (next_active_tab != null) {
+        this.set_active_tab(next_active_tab);
+      }
     }
     if (closed_index === size - 1) {
       this.clear_ghost_file_tabs();

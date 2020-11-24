@@ -13,16 +13,6 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 */
 
 export {
-  this_fails,
-  console_init_filename,
-  has_null_leaf,
-  peer_grading,
-  peer_grading_demo,
-  ticket_id_to_ticket_url,
-  is_only_downloadable,
-  ensure_bound,
-  path_to_tab,
-  tab_to_path,
   suggest_duplicate_filename,
   top_sort,
   create_dependency_graph,
@@ -1784,4 +1774,97 @@ export function to_human_list(arr: any[]): string {
   } else {
     return "";
   }
+}
+
+// derive the console initialization filename from the console's filename
+// used in webapp and console_server_child
+export function console_init_filename(path: string): string {
+  const x = path_split(path);
+  x.tail = `.${x.tail}.init`;
+  if (x.head === "") {
+    return x.tail;
+  }
+  return [x.head, x.tail].join("/");
+}
+
+export function has_null_leaf(obj: object): boolean {
+  for (const k in obj) {
+    const v = obj[k];
+    if (v === null || (typeof v === "object" && has_null_leaf(v))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Peer Grading
+// This function takes a list of student_ids,
+// and a number N of the desired number of peers per student.
+// It returns an object, mapping each student to a list of N peers.
+export function peer_grading(
+  students: string[],
+  N: number = 2
+): { [student_id: string]: string[] } {
+  if (N <= 0) {
+    throw Error("Number of peer assigments must be at least 1");
+  }
+  if (students.length <= N) {
+    throw Error(`You need at least ${N + 1} students`);
+  }
+
+  const assignment: { [student_id: string]: string[] } = {};
+
+  // make output dict keys sorted like students input array
+  for (const s of students) {
+    assignment[s] = [];
+  }
+
+  // randomize peer assignments
+  const s_random = lodash.shuffle(students);
+
+  // the peer grading groups are set here. Think of nodes in
+  // a circular graph, and node i is associated with grading
+  // nodes i+1 up to i+N.
+  const L = students.length;
+  for (let i = 0; i < L; i++) {
+    for (let j = i + 1; j <= i + N; j++) {
+      assignment[students[i]].push(s_random[j % L]);
+    }
+  }
+
+  // sort each peer group by the order of the `student` input list
+  for (let k in assignment) {
+    const v = assignment[k];
+    assignment[k] = lodash.sortBy(v, (s) => students.indexOf(s));
+  }
+  return assignment;
+}
+
+// Converts ticket number to support ticket url (currently zendesk)
+export function ticket_id_to_ticket_url(tid: string): string {
+  return `https://sagemathcloud.zendesk.com/requests/${tid}`;
+}
+
+// Checks if the string only makes sense (heuristically) as downloadable url
+export function is_only_downloadable(s: string): boolean {
+  return s.indexOf("://") !== -1 || startswith(s, "git@github.com");
+}
+
+export function ensure_bound(x: number, min: number, max: number): number {
+  return x < min ? min : x > max ? max : x;
+}
+
+// convert a file path to the "name" of the underlying editor tab.
+// needed because otherwise filenames like 'log' would cause problems
+export function path_to_tab(name: string): string {
+  return `editor-${name}`;
+}
+
+// assumes a valid editor tab name...
+// If invalid or undefined, returns undefined
+export function tab_to_path(name: string): string {
+  if (name?.substring(0, 7) === "editor-") {
+    return name.substring(7);
+  }
+  return name;
 }
