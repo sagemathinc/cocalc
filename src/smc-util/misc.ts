@@ -13,8 +13,6 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 */
 
 export {
-  activity_log,
-  replace_all_function,
   remove_c_comments,
   date_to_snapshot_format,
   stripe_date,
@@ -553,6 +551,24 @@ export function replace_all(
   replace: string
 ): string {
   return s.split(search).join(replace);
+}
+
+// Similar to replace_all, except it takes as input a function replace_f, which
+// returns what to replace the i-th copy of search in string with.
+export function replace_all_function(
+  s: string,
+  search: string,
+  replace_f: (i: number) => string
+): string {
+  const v = s.split(search);
+  const w: string[] = [];
+  for (let i = 0; i < v.length; i++) {
+    w.push(v[i]);
+    if (i < v.length - 1) {
+      w.push(replace_f(i));
+    }
+  }
+  return w.join("");
 }
 
 export function path_to_title(path: string): string {
