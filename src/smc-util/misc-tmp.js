@@ -595,15 +595,6 @@ exports.is_object = is_object = (obj) =>
 
 exports.is_date = is_date = (obj) => obj instanceof Date;
 
-// get a subarray of all values between the two given values inclusive, provided in either order
-exports.get_array_range = function (arr, value1, value2) {
-  let index1 = arr.indexOf(value1);
-  let index2 = arr.indexOf(value2);
-  if (index1 > index2) {
-    [index1, index2] = Array.from([index2, index1]);
-  }
-  return arr.slice(index1, +index2 + 1 || undefined);
-};
 
 // Round the given number to 1 decimal place
 exports.round1 = round1 = (num) => Math.round(num * 10) / 10;

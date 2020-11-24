@@ -13,11 +13,6 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 */
 
 export {
-  get_array_range,
-  round1,
-  seconds2hm,
-  seconds2hms,
-  range,
   should_open_in_foreground,
   enumerate,
   escapeRegExp,
@@ -794,6 +789,10 @@ export function assertDefined<T>(val: T): asserts val is NonNullable<T> {
   if (val === undefined || val === null) {
     throw new Error(`Expected 'val' to be defined, but received ${val}`);
   }
+}
+
+export function round1(num: number): number {
+  return Math.round(num * 10) / 10;
 }
 
 // Round given number to 2 decimal places
@@ -1665,4 +1664,109 @@ export function stripe_amount(units: number, currency: string): string {
     s = s.slice(0, s.length - 3);
   }
   return s;
+}
+
+// get a subarray of all values between the two given values inclusive,
+// provided in either order
+export function get_array_range(arr: any[], value1: any, value2: any): any[] {
+  let index1 = arr.indexOf(value1);
+  let index2 = arr.indexOf(value2);
+  if (index1 > index2) {
+    [index1, index2] = [index2, index1];
+  }
+  return arr.slice(index1, +index2 + 1 || undefined);
+}
+
+function seconds2hms_days(
+  d: number,
+  h: number,
+  m: number,
+  longform: boolean
+): string {
+  h = h % 24;
+  const s = h * 60 * 60 + m * 60;
+  const x = s > 0 ? seconds2hms(s, longform, false) : "";
+  if (longform) {
+    return `${d} ${plural(d, "day")} ${x}`.trim();
+  } else {
+    return `${d}d${x}`;
+  }
+}
+
+// like seconds2hms, but only up to minute-resultion
+export function seconds2hm(secs: number, longform: boolean = false): string {
+  return seconds2hms(secs, longform, false);
+}
+
+// dear future developer: look into test/misc-test.coffee to see how the expected output is defined.
+export function seconds2hms(
+  secs: number,
+  longform: boolean = false,
+  show_seconds: boolean = true
+): string {
+  let s;
+  if (!longform && secs < 10) {
+    s = round2(secs % 60);
+  } else if (!longform && secs < 60) {
+    s = round1(secs % 60);
+  } else {
+    s = Math.round(secs % 60);
+  }
+  const m = Math.floor(secs / 60) % 60;
+  const h = Math.floor(secs / 60 / 60);
+  const d = Math.floor(secs / 60 / 60 / 24);
+  // for more than one day, special routine (ignoring seconds altogehter)
+  if (d > 0) {
+    return seconds2hms_days(d, h, m, longform);
+  }
+  if (h === 0 && m === 0 && show_seconds) {
+    if (longform) {
+      return `${s} ${plural(s, "second")}`;
+    } else {
+      return `${s}s`;
+    }
+  }
+  if (h > 0) {
+    if (longform) {
+      let ret = `${h} ${plural(h, "hour")}`;
+      if (m > 0) {
+        ret += ` ${m} ${plural(m, "minute")}`;
+      }
+      return ret;
+    } else {
+      if (show_seconds) {
+        return `${h}h${m}m${s}s`;
+      } else {
+        return `${h}h${m}m`;
+      }
+    }
+  }
+  if (m > 0 || !show_seconds) {
+    if (show_seconds) {
+      if (longform) {
+        let ret = `${m} ${plural(m, "minute")}`;
+        if (s > 0) {
+          ret += ` ${s} ${plural(s, "second")}`;
+        }
+        return ret;
+      } else {
+        return `${m}m${s}s`;
+      }
+    } else {
+      if (longform) {
+        return `${m} ${plural(m, "minute")}`;
+      } else {
+        return `${m}m`;
+      }
+    }
+  }
+  throw Error("BUG in seconds2hms"); // unreachable
+}
+
+export function range(n: number): number[] {
+  const v: number[] = [];
+  for (let i = 0; i < n; i++) {
+    v.push(i);
+  }
+  return v;
 }
