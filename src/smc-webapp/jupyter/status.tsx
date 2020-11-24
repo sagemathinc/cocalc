@@ -141,15 +141,16 @@ class Kernel0 extends Component<KernelProps> {
   }
 
   render_name() {
-    let display_name =
-      this.props.kernel_info != null
-        ? this.props.kernel_info.get("display_name")
-        : undefined;
-    if (display_name == null && this.props.kernels != null) {
+    let display_name = this.props.kernel_info?.get("display_name");
+    if (
+      display_name == null &&
+      this.props.kernel != null &&
+      this.props.kernels != null
+    ) {
       // Definitely an unknown kernel
       const closestKernel = closest_kernel_match(
         this.props.kernel,
-        this.props.kernels
+        this.props.kernels as any // TODO
       );
       if (closestKernel == null) {
         return <span style={KERNEL_ERROR_STYLE}>Unknown kernel</span>;

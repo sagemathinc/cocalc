@@ -2571,7 +2571,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // unknown kernel, we try to find a close match
     if (kernel_info == null && kernel != null) {
       // kernel & kernels must be defined
-      closestKernel = misc.closest_kernel_match(kernel, kernels);
+      closestKernel = misc.closest_kernel_match(kernel, kernels as any) as any;
+      // TODO about that any above: closest_kernel_match should be moved here so it knows the typings
     }
     this.setState({
       kernel_selection,
