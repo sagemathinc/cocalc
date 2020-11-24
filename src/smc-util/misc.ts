@@ -13,12 +13,6 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 */
 
 export {
-  suggest_duplicate_filename,
-  top_sort,
-  create_dependency_graph,
-  bind_objects,
-  operators,
-  op_to_function,
   obj_key_subs,
   sanitize_html_attributes,
   utm_keys,
@@ -1867,4 +1861,200 @@ export function tab_to_path(name: string): string {
     return name.substring(7);
   }
   return name;
+}
+
+// suggest a new filename when duplicating it as follows:
+// strip extension, split at '_' or '-' if it exists
+// try to parse a number, if it works, increment it, etc.
+export function suggest_duplicate_filename(name: string): string {
+  let ext;
+  ({ name, ext } = separate_file_extension(name));
+  const idx_dash = name.lastIndexOf("-");
+  const idx_under = name.lastIndexOf("_");
+  const idx = Math.max(idx_dash, idx_under);
+  let new_name: string | undefined = undefined;
+  if (idx > 0) {
+    const [prefix, ending] = Array.from([
+      name.slice(0, idx + 1),
+      name.slice(idx + 1),
+    ]);
+    const num = parseInt(ending);
+    if (!Number.isNaN(num)) {
+      new_name = `${prefix}${num + 1}`;
+    }
+  }
+  if (new_name == null) {
+    new_name = `${name}-1`;
+  }
+  if (ext.length > 0) {
+    new_name += "." + ext;
+  }
+  return new_name;
+}
+
+// Takes an object representing a directed graph shaped as follows:
+// DAG =
+//     node1 : []
+//     node2 : ["node1"]
+//     node3 : ["node1", "node2"]
+//
+// Which represents the following graph:
+//   node1 ----> node2
+//     |           |
+//    \|/          |
+//   node3 <-------|
+//
+// Returns a topological ordering of the DAG
+//     object = ["node1", "node2", "node3"]
+//
+// Throws an error if cyclic
+// Runs in O(N + E) where N is the number of nodes and E the number of edges
+// Kahn, Arthur B. (1962), "Topological sorting of large networks", Communications of the ACM
+export function top_sort(
+  DAG: { [node: string]: string[] },
+  opts: { omit_sources?: boolean } = { omit_sources: false }
+): string[] {
+  const { omit_sources } = opts;
+  const source_names: string[] = [];
+  let num_edges = 0;
+  const graph_nodes = {};
+
+  // Ready the nodes for top sort
+  for (const name in DAG) {
+    const parents = DAG[name];
+    if (graph_nodes[name] == null) {
+      graph_nodes[name] = {};
+    }
+    const node = graph_nodes[name];
+    node.name = name;
+    if (node.children == null) {
+      node.children = [];
+    }
+    node.parent_set = {};
+    for (const parent_name of parents) {
+      // include element in "parent_set" (see https://github.com/sagemathinc/cocalc/issues/1710)
+      node.parent_set[parent_name] = true;
+      if (graph_nodes[parent_name] == null) {
+        graph_nodes[parent_name] = {};
+        // Cover implicit nodes which are assumed to be source nodes
+        if (DAG[parent_name] == null) {
+          source_names.push(parent_name);
+        }
+      }
+      if (graph_nodes[parent_name].children == null) {
+        graph_nodes[parent_name].children = [];
+      }
+
+      graph_nodes[parent_name].children.push(node);
+    }
+
+    if (parents.length === 0) {
+      source_names.push(name);
+    } else {
+      num_edges += parents.length;
+    }
+  }
+
+  // Top sort! Non-recursive method since recursion is way slow in javascript
+  // https://en.wikipedia.org/wiki/Topological_sorting#Kahn's_algorithm
+  const path: string[] = [];
+  const num_sources = source_names.length;
+  let walked_edges = 0;
+
+  while (source_names.length !== 0) {
+    const curr_name = source_names.shift();
+    if (curr_name == null) throw Error("BUG -- can't happen"); // TS :-)
+    path.push(curr_name);
+
+    for (const child of graph_nodes[curr_name].children) {
+      delete child.parent_set[curr_name];
+      walked_edges++;
+      if (Object.keys(child.parent_set).length === 0) {
+        source_names.push(child.name);
+      }
+    }
+  }
+
+  // Detect lack of sources
+  if (num_sources === 0) {
+    throw new Error("No sources were detected");
+  }
+
+  // Detect cycles
+  if (num_edges !== walked_edges) {
+    /*// uncomment this when debugging problems.
+    if (window != null) {
+      (window as any)._DAG = DAG;
+    } // so it's possible to debug in browser
+    */
+    throw new Error("Store has a cycle in its computed values");
+  }
+
+  if (omit_sources) {
+    return path.slice(num_sources);
+  } else {
+    return path;
+  }
+}
+
+// Takes an object obj with keys and values where
+// the values are functions and keys are the names
+// of the functions.
+// Dependency graph is created from the property
+// `dependency_names` found on the values
+// Returns an object shaped
+// DAG =
+//     func_name1 : []
+//     func_name2 : ["func_name1"]
+//     func_name3 : ["func_name1", "func_name2"]
+//
+// Which represents the following graph:
+//   func_name1 ----> func_name2
+//     |                |
+//    \|/               |
+//   func_name3 <-------|
+export function create_dependency_graph(obj: {
+  [name: string]: Function & { dependency_names?: string };
+}): { [name: string]: string[] } {
+  const DAG = {};
+  for (const name in obj) {
+    const written_func = obj[name];
+    DAG[name] = written_func.dependency_names ?? [];
+  }
+  return DAG;
+}
+
+// ORDER MATTERS! -- this gets looped over and searches happen -- so the 1-character ops must be last.
+export type OPERATORS = "!=" | "<>" | "<=" | ">=" | "==" | "<" | ">" | "=";
+export const operators: OPERATORS[] = [
+  "!=",
+  "<>",
+  "<=",
+  ">=",
+  "==",
+  "<",
+  ">",
+  "=",
+];
+
+export function op_to_function(op: OPERATORS): (a, b) => boolean {
+  switch (op) {
+    case "=":
+    case "==":
+      return (a, b) => a === b;
+    case "!=":
+    case "<>":
+      return (a, b) => a !== b;
+    case "<=":
+      return (a, b) => a <= b;
+    case ">=":
+      return (a, b) => a >= b;
+    case "<":
+      return (a, b) => a < b;
+    case ">":
+      return (a, b) => a > b;
+    default:
+      // in case of non-typescript client
+      throw Error(`operator must be one of '${JSON.stringify(operators)}'`);
+  }
 }

@@ -1023,49 +1023,6 @@ describe 'create_dependency_graph', ->
         expect JSON.stringify(misc.create_dependency_graph(store_def))
         .toEqual DAG_string
 
-describe 'bind_objects', ->
-    scope =
-        get   : () -> "cake"
-        value : "cake"
-
-    obj1 =
-        func11: () -> @get()
-        func12: () -> @value
-
-    obj2 =
-        func21: () -> @get()
-        func22: () -> @value
-
-    obj1.func11.prop = "cake"
-
-    result = misc.bind_objects(scope, [obj1, obj2])
-
-    it 'Binds all functions in a list of objects of functions to a scope', ->
-        for obj in result
-            for key, val of obj
-                expect(val()).toEqual("cake")
-
-    it 'Leaves the original object unchanged', ->
-        expect(=> obj1.func11()).toThrow(/get is not a function/)
-
-    it 'Preserves the toString of the original function', ->
-        expect(result[0].func11.toString()).toEqual(obj1.func11.toString())
-
-    it 'Preserves properties of the original function', ->
-        expect(result[0].func11.prop).toEqual(obj1.func11.prop)
-
-    it 'Ignores non-function values', ->
-        scope =
-            value : "cake"
-
-        obj1 =
-            val : "lies"
-            func: () -> @value
-        [b_obj1] = misc.bind_objects(scope, [obj1])
-
-        expect(b_obj1.func()).toEqual("cake")
-        expect(b_obj1.val).toEqual("lies")
-
 describe 'test the date parser --- ', ->
     it 'a date with a zone', ->
         expect(misc.date_parser(undefined, "2016-12-12T02:12:03.239Z") - 0).toEqual(1481508723239)
