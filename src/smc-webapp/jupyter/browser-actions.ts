@@ -22,6 +22,7 @@ import { CellToolbarName } from "./types";
 import { exec } from "../frame-editors/generic/client";
 import { open_popup_window } from "../misc-page";
 import { IPYNB2PDF } from "../misc/commands";
+import { UsageInfoWS, get_usage_info } from "../project/websocket/usage-info";
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -31,6 +32,7 @@ export class JupyterActions extends JupyterActions0 {
   private cursor_manager: CursorManager;
   private account_change_editor_settings: any;
   private update_keyboard_shortcuts: any;
+  private usage_info?: UsageInfoWS;
 
   // Only run this code on the browser frontend (not in project).
   protected init_client_only(): void {
@@ -95,6 +97,9 @@ export class JupyterActions extends JupyterActions0 {
         // cell notebook that has nothing to do with nbgrader).
         this.nbgrader_actions.update_metadata();
       }
+
+      this.usage_info = get_usage_info(this.project_id);
+      this.usage_info.watch(this.path);
     });
 
     // Put an entry in the project log once the jupyter notebook gets opened.
