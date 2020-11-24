@@ -773,20 +773,6 @@ describe "encode_path", ->
         e("a/b,&$:@=+").should.eql "a/b,&$:@=+"
 
 
-describe "remove_c_comments", ->
-    r = misc.remove_c_comments
-    it "removes a /* c style */ comment", ->
-        r("start/* remove me */ end").should.eql "start end"
-    it "doesn't touch a normal string", ->
-        r("foo").should.eql "foo"
-    it "removes multiple comments in one string", ->
-        r("/* */foo/*remove*/bar").should.eql "foobar"
-    it "discards one-sided comments", ->
-        r("foo /* bar").should.be.eql "foo /* bar"
-        r("foo */ bar").should.be.eql "foo */ bar"
-        r("foo */ bar /* baz").should.be.eql "foo */ bar /* baz"
-
-
 describe "capitalize", ->
     c = misc.capitalize
     it "capitalizes the first letter of a word", ->

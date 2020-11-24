@@ -13,11 +13,6 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 */
 
 export {
-  remove_c_comments,
-  date_to_snapshot_format,
-  stripe_date,
-  to_money,
-  stripe_amount,
   get_array_range,
   round1,
   seconds2hm,
@@ -1627,4 +1622,47 @@ export function is_whitespace(s?: string): boolean {
 
 export function lstrip(s: string): string {
   return s.replace(/^\s*/g, "");
+}
+
+export function date_to_snapshot_format(
+  d: Date | undefined | null | number
+): string {
+  if (d == null) {
+    d = 0;
+  }
+  if (typeof d === "number") {
+    d = new Date(d);
+  }
+  let s = d.toJSON();
+  s = s.replace("T", "-").replace(/:/g, "");
+  const i = s.lastIndexOf(".");
+  return s.slice(0, i);
+}
+
+export function stripe_date(d: number): string {
+  // https://github.com/sagemathinc/cocalc/issues/3254
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl#Locale_negotiation
+  return new Date(d * 1000).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+export function to_money(n: number): string {
+  // see http://stackoverflow.com/questions/149055/how-can-i-format-numbers-as-money-in-javascript
+  // TODO: replace by using react-intl...
+  return n.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, "$1,");
+}
+
+export function stripe_amount(units: number, currency: string): string {
+  // input is in pennies
+  if (currency !== "usd") {
+    throw Error(`not-implemented currency ${currency}`);
+  }
+  let s = `$${to_money(units / 100)}`;
+  if (s.slice(s.length - 3) === ".00") {
+    s = s.slice(0, s.length - 3);
+  }
+  return s;
 }

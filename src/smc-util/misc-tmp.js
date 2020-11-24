@@ -561,41 +561,6 @@ exports.replace_all = (string, search, replace) =>
   string.split(search).join(replace);
 
 
-exports.remove_c_comments = function (s) {
-  while (true) {
-    const i = s.indexOf("/*");
-    if (i === -1) {
-      return s;
-    }
-    const j = s.indexOf("*/");
-    if (i >= j) {
-      return s;
-    }
-    s = s.slice(0, i) + s.slice(j + 2);
-  }
-};
-
-exports.date_to_snapshot_format = function (d) {
-  if (d == null) {
-    d = 0;
-  }
-  if (typeof d === "number") {
-    d = new Date(d);
-  }
-  let s = d.toJSON();
-  s = s.replace("T", "-").replace(/:/g, "");
-  const i = s.lastIndexOf(".");
-  return s.slice(0, i);
-};
-
-exports.stripe_date = (d) =>
-  // https://github.com/sagemathinc/cocalc/issues/3254
-  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl#Locale_negotiation
-  new Date(d * 1000).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
 // fixing the locale to en-US (to pass tests) and (not necessary, but just in case) also the time zone
 //return new Date(d*1000).toLocaleDateString(
 //    'en-US',
@@ -606,22 +571,6 @@ exports.stripe_date = (d) =>
 //        timeZone: 'UTC'
 //)
 
-exports.to_money = (n) =>
-  // see http://stackoverflow.com/questions/149055/how-can-i-format-numbers-as-money-in-javascript
-  // TODO: replace by using react-intl...
-  n.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, "$1,");
-
-exports.stripe_amount = function (units, currency) {
-  // input is in pennies
-  if (currency !== "usd") {
-    throw Error(`not-implemented currency ${currency}`);
-  }
-  let s = `$${exports.to_money(units / 100)}`;
-  if (s.slice(s.length - 3) === ".00") {
-    s = s.slice(0, s.length - 3);
-  }
-  return s;
-};
 
 exports.capitalize = function (s) {
   if (s != null) {
