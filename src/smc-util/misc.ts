@@ -13,9 +13,6 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 */
 
 export {
-  timestamp_cmp,
-  field_cmp,
-  is_different_array,
   activity_log,
   replace_all_function,
   remove_c_comments,
@@ -28,14 +25,6 @@ export {
   seconds2hm,
   seconds2hms,
   range,
-  map_min,
-  map_limit,
-  map_max,
-  sum,
-  apply_function_to_map_values,
-  is_zero_map,
-  map_without_undefined,
-  map_mutate_out_undefined,
   should_open_in_foreground,
   enumerate,
   escapeRegExp,
@@ -60,10 +49,6 @@ export {
   top_sort,
   create_dependency_graph,
   bind_objects,
-  remove_whitespace,
-  is_whitespace,
-  lstrip,
-  rstrip,
   operators,
   op_to_function,
   obj_key_subs,
@@ -74,9 +59,38 @@ export {
   closest_kernel_match,
 } from "./misc-tmp";
 
+import {
+  is_array,
+  is_integer,
+  is_object,
+  is_string,
+  is_date,
+  is_set,
+} from "./type-checking";
+
+export { is_array, is_integer, is_object, is_string, is_date, is_set };
+
+export {
+  map_limit,
+  map_max,
+  sum,
+  is_zero_map,
+  map_without_undefined,
+  map_mutate_out_undefined,
+} from "./maps";
+
 export { done, done1, done2 } from "./done";
 
-export { cmp, cmp_Date, cmp_moment, cmp_array } from "./cmp";
+export {
+  cmp,
+  cmp_Date,
+  cmp_moment,
+  cmp_array,
+  timestamp_cmp,
+  field_cmp,
+  is_different,
+  is_different_array,
+} from "./cmp";
 
 export {
   server_time,
@@ -215,93 +229,6 @@ export function split(s: string): string[] {
   }
 }
 
-export function is_different(
-  a: any,
-  b: any,
-  fields: string[],
-  verbose?: string
-): boolean {
-  if (verbose != null) {
-    return is_different_verbose(a, b, fields, verbose);
-  }
-  let field: string;
-  if (a == null) {
-    if (b == null) {
-      return false; // they are the same
-    }
-    // a not defined but b is
-    for (field of fields) {
-      if (b[field] != null) {
-        return true;
-      }
-    }
-    return false;
-  }
-  if (b == null) {
-    // a is defined or would be handled above
-    for (field of fields) {
-      if (a[field] != null) {
-        return true; // different
-      }
-    }
-    return false; // same
-  }
-
-  for (field of fields) {
-    if (a[field] !== b[field]) {
-      return true;
-    }
-  }
-  return false;
-}
-
-// Use for debugging purposes only -- copy code from above to avoid making that
-// code more complicated and possibly slower.
-function is_different_verbose(
-  a: any,
-  b: any,
-  fields: string[],
-  verbose: string
-): boolean {
-  function log(...x) {
-    console.log("is_different_verbose", verbose, ...x);
-  }
-  let field: string;
-  if (a == null) {
-    if (b == null) {
-      log("both null");
-      return false; // they are the same
-    }
-    // a not defined but b is
-    for (field of fields) {
-      if (b[field] != null) {
-        log("a not defined but b is");
-        return true;
-      }
-    }
-    return false;
-  }
-  if (b == null) {
-    // a is defined or would be handled above
-    for (field of fields) {
-      if (a[field] != null) {
-        log(`b null and "${field}" of a is not null`);
-        return true; // different
-      }
-    }
-    return false; // same
-  }
-
-  for (field of fields) {
-    if (a[field] !== b[field]) {
-      log(`field "${field}" differs`, a[field], b[field]);
-      return true;
-    }
-  }
-  log("same");
-  return false;
-}
-
 // Modifies in place the object dest so that it
 // includes all values in objs and returns dest.
 // This is a *shallow* copy.
@@ -364,7 +291,6 @@ export function set(v: string[]): { [key: string]: true } {
   }
   return s;
 }
-
 
 // see https://stackoverflow.com/questions/728360/how-do-i-correctly-clone-a-javascript-object/30042948#30042948
 export function copy<T>(obj: T): T {
@@ -669,33 +595,6 @@ export function to_user_string(x: any): string {
     default:
       return JSON.stringify(x);
   }
-}
-
-export function is_array(obj: any): boolean {
-  return Object.prototype.toString.call(obj) === "[object Array]";
-}
-
-export let is_integer: Function = Number.isInteger;
-if (is_integer == null) {
-  is_integer = (n) => typeof n === "number" && n % 1 === 0;
-}
-
-export function is_string(obj: any): boolean {
-  return typeof obj === "string";
-}
-
-// An object -- this is more constraining that typeof(obj) == 'object', e.g., it does
-// NOT include Date.
-export function is_object(obj: any): boolean {
-  return Object.prototype.toString.call(obj) === "[object Object]";
-}
-
-export function is_date(obj: any): boolean {
-  return obj instanceof Date;
-}
-
-export function is_set(obj: any): boolean {
-  return Object.prototype.toString.call(obj) === "[object Set]";
 }
 
 // delete any null fields, to avoid wasting space.
@@ -1705,3 +1604,11 @@ export function containing_public_path(
 }
 
 export const is_equal = lodash.isEqual;
+
+export function is_whitespace(s?: string): boolean {
+  return (s?.trim().length ?? 0) == 0;
+}
+
+export function lstrip(s: string): string {
+  return s.replace(/^\s*/g, "");
+}
