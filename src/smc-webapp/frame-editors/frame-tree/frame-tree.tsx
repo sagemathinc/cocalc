@@ -32,7 +32,7 @@ or
 
 import { delay } from "awaiting";
 import { is_safari } from "../generic/browser";
-import { hidden_meta_file, is_different } from "smc-util/misc2";
+import { merge, copy, hidden_meta_file, is_different } from "smc-util/misc";
 import {
   React,
   ReactDOM,
@@ -43,10 +43,9 @@ import {
 import { Map, Set } from "immutable";
 
 const Draggable = require("react-draggable");
-import { merge, copy } from "smc-util/misc";
 const misc_page = require("smc-webapp/misc_page");
 
-const feature = require("smc-webapp/feature");
+import * as feature from "smc-webapp/feature";
 import { FrameTitleBar } from "./title-bar";
 import { FrameTreeLeaf } from "./leaf";
 import * as tree_ops from "./tree-ops";
@@ -95,7 +94,7 @@ interface FrameTreeProps {
   cursors: Map<string, any>;
   read_only: boolean; // if true, then whole document considered read only (individual frames can still be via desc)
   is_public: boolean;
-  value: string;
+  value?: string;
   editor_spec: EditorSpec;
   reload: Map<string, number>;
   resize: number; // if changes, means that frames have been resized, so may need refreshing; passed to leaf.

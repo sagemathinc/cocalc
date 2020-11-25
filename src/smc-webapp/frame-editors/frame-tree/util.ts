@@ -8,7 +8,7 @@ Utility functions useful for frame-tree editors.
 */
 
 import { path_split, separate_file_extension } from "smc-util/misc2";
-export { aux_file } from "smc-util/misc2";
+export { aux_file } from "smc-util/misc";
 
 export function parse_path(
   path: string

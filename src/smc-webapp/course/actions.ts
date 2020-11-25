@@ -11,7 +11,6 @@ export const EMAIL_REINVITE_DAYS = 6;
 // CoCalc libraries
 import { SyncDB } from "smc-util/sync/editor/db/sync";
 import { SyncDBRecord } from "./types";
-
 // Course Library
 import {
   CourseState,
@@ -20,7 +19,6 @@ import {
   StudentRecord,
   HandoutRecord,
 } from "./store";
-
 import { SharedProjectActions } from "./shared-project/actions";
 import { ActivityActions } from "./activity/actions";
 import { StudentsActions } from "./students/actions";
@@ -30,8 +28,7 @@ import { HandoutsActions } from "./handouts/actions";
 import { ConfigurationActions } from "./configuration/actions";
 import { ExportActions } from "./export/actions";
 import { ProjectsStore } from "../projects/store";
-import { bind_methods } from "smc-util/misc2";
-
+import { bind_methods } from "smc-util/misc";
 // React libraries
 import { Actions, TypedMap } from "../app-framework";
 

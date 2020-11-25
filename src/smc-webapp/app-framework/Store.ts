@@ -14,8 +14,7 @@ import { AppRedux } from "../app-framework";
 import { TypedMap } from "./TypedMap";
 import { TypedCollectionMethods } from "./immutable-types";
 import { callback2 } from "../../smc-util/async-utils";
-import { defaults, required, top_sort } from "../../smc-util/misc";
-import { bind_methods } from "../../smc-util/misc2";
+import { bind_methods, defaults, required, top_sort } from "../../smc-util/misc";
 
 export type StoreConstructorType<T, C = Store<T>> = new (
   name: string,

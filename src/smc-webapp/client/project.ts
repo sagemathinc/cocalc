@@ -7,12 +7,13 @@
 Functionality that mainly involves working with a specific project.
 */
 
-import { required, defaults } from "smc-util/misc";
 import {
   copy_without,
   encode_path,
   is_valid_uuid_string,
-} from "smc-util/misc2";
+  required,
+  defaults,
+} from "smc-util/misc";
 import * as message from "smc-util/message";
 import { DirectoryListingEntry } from "smc-util/types";
 import { connection_to_project } from "../project/websocket/connect";

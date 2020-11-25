@@ -5,7 +5,7 @@
 
 import { Map } from "immutable";
 import { Rendered, Component, React } from "../../app-framework";
-import { capitalize, is_different, keys } from "smc-util/misc2";
+import { capitalize, is_different, keys } from "smc-util/misc";
 import { JUPYTER_CLASSIC_MODERN } from "smc-util/theme";
 import { Checkbox } from "../../antd-bootstrap";
 

@@ -12,7 +12,7 @@ import {
   Upgrade,
   Subscription,
 } from "../site-licenses/purchase/util";
-import { plural } from "smc-util/misc2";
+import { plural } from "smc-util/misc";
 
 const p1data = {
   user: "academic" as User,

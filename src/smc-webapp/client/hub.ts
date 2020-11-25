@@ -10,14 +10,15 @@ declare var Primus: any;
 const { delete_cookie } = require("../misc_page");
 import { QueryParams } from "../misc/query-params";
 import {
+  copy_without,
   delete_local_storage,
   from_json_socket,
   to_json_socket,
   set_local_storage,
   defaults,
   required,
+  uuid,
 } from "smc-util/misc";
-import { copy_without, uuid } from "smc-util/misc2";
 import * as message from "smc-util/message";
 import {
   do_anonymous_setup,

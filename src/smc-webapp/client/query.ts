@@ -4,7 +4,7 @@
  */
 
 import * as message from "smc-util/message";
-import { is_array } from "smc-util/misc2";
+import { is_array } from "smc-util/misc";
 import { validate_client_query } from "smc-util/schema-validate";
 
 declare const $: any; // jQuery

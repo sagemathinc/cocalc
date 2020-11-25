@@ -11,7 +11,7 @@ using the given editor settings.
 import * as CodeMirror from "codemirror";
 import { file_associations } from "../../file-associations";
 import * as feature from "../../feature";
-import { path_split } from "smc-util/misc2";
+import { path_split } from "smc-util/misc";
 import { get_editor_settings } from "../generic/client";
 import { EDITOR_COLOR_SCHEMES } from "../../account/editor-settings/color-schemes";
 

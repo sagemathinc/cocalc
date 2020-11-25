@@ -8,7 +8,7 @@ Component that shows rendered HTML.
 */
 
 import { delay } from "awaiting";
-import { is_different, path_split } from "smc-util/misc2";
+import { is_different, path_split } from "smc-util/misc";
 import { throttle } from "underscore";
 import { React, Component, Rendered, ReactDOM } from "../../app-framework";
 import { MAX_WIDTH } from "../options";

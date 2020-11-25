@@ -10,8 +10,7 @@ Input box for setting the account creation token.
 import { List } from "immutable";
 import * as moment from "moment";
 import { sortBy, pick } from "lodash";
-import { cmp_moment, secure_random_token } from "smc-util/misc2";
-import { round1 } from "smc-util/misc";
+import { cmp_moment, secure_random_token, round1 } from "smc-util/misc";
 import { RegistrationTokenSetFields } from "smc-util/db-schema/types";
 import { React, Rendered, redux, TypedMap } from "../app-framework";
 import {
@@ -31,7 +30,6 @@ import { ErrorDisplay, Saving, Icon } from "../r_misc";
 import { COLORS } from "smc-util/theme";
 import { PassportStrategy } from "../account/passport-types";
 import { query } from "../frame-editors/generic/client";
-//import { deep_copy } from "smc-util/misc2";
 
 interface Token {
   key?: string; // used in the table, not for the database

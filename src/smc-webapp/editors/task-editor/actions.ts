@@ -14,13 +14,13 @@ import { fromJS, Map, Set } from "immutable";
 import { debounce, throttle } from "lodash";
 import { delay } from "awaiting";
 import {
+  close,
   copy_with,
   cmp,
   uuid,
   history_path,
   search_split,
 } from "smc-util/misc";
-import { close } from "smc-util/misc2";
 import { HEADINGS, HEADINGS_DIR } from "./headings-info";
 import { update_visible } from "./update-visible";
 import { create_key_handler } from "./keyboard";

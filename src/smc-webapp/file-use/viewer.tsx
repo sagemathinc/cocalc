@@ -10,8 +10,7 @@ import { Component, React, Rendered } from "../app-framework";
 import { SearchInput, WindowedList, Icon } from "../r_misc";
 import { FileUseActions } from "./actions";
 import { open_file_use_entry } from "./util";
-
-import { search_match, search_split } from "smc-util/misc2";
+import { search_match, search_split } from "smc-util/misc";
 
 interface Props {
   redux: any;

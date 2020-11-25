@@ -5,10 +5,13 @@
 
 import { Set } from "immutable";
 import { delay } from "awaiting";
-
-import { enumerate, is_whitespace, lstrip } from "smc-util/misc";
-import { bind_methods, close } from "smc-util/misc2";
-
+import {
+  bind_methods,
+  close,
+  enumerate,
+  is_whitespace,
+  lstrip,
+} from "smc-util/misc";
 import { JupyterEditorActions } from "../actions";
 import { NotebookFrameStore } from "./store";
 import { create_key_handler } from "../../../jupyter/keyboard";

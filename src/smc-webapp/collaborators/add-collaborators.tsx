@@ -8,7 +8,6 @@ Add collaborators to a project
 */
 
 import { Alert, Input, Select } from "antd";
-
 import {
   React,
   redux,
@@ -19,16 +18,15 @@ import {
   useTypedRedux,
   useState,
 } from "../app-framework";
-
 import { Button, ButtonToolbar, Well } from "../antd-bootstrap";
-
 import { Icon, Loading, ErrorDisplay, Space } from "../r_misc";
-
 import { webapp_client } from "../webapp-client";
 import { SITE_NAME } from "smc-util/theme";
-import { contains_url, plural } from "smc-util/misc2";
-import { cmp, trunc_middle } from "smc-util/misc";
 import {
+  contains_url,
+  plural,
+  cmp,
+  trunc_middle,
   is_valid_email_address,
   is_valid_uuid_string,
   search_match,

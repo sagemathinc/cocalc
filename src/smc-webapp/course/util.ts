@@ -7,14 +7,17 @@ import { Map } from "immutable";
 import { TypedMap } from "../app-framework";
 import { StudentsMap } from "./store";
 import { AssignmentCopyStep } from "./types";
-import { separate_file_extension } from "smc-util/misc2";
+import {
+  defaults,
+  required,
+  search_match,
+  search_split,
+  separate_file_extension,
+  merge,
+  cmp,
+} from "smc-util/misc";
 
 // Pure functions used in the course manager
-
-// CoCalc libraries
-import * as misc from "smc-util/misc";
-const { defaults, required } = misc;
-import { search_match, search_split } from "smc-util/misc2";
 
 export function STEPS(peer: boolean): AssignmentCopyStep[] {
   if (peer) {
@@ -172,7 +175,7 @@ export function immutable_to_list(x: any, primary_key?): any {
     return;
   }
   const v: any[] = [];
-  x.map((val, key) => v.push(misc.merge(val.toJS(), { [primary_key]: key })));
+  x.map((val, key) => v.push(merge(val.toJS(), { [primary_key]: key })));
   return v;
 }
 
@@ -239,10 +242,10 @@ export function order_list<T extends { deleted: boolean }>(opts: {
 }
 
 const sort_on_string_field = (field) => (a, b) =>
-  misc.cmp(a[field].toLowerCase(), b[field].toLowerCase());
+  cmp(a[field].toLowerCase(), b[field].toLowerCase());
 
 const sort_on_numerical_field = (field) => (a, b) =>
-  misc.cmp(a[field] * -1, b[field] * -1);
+  cmp(a[field] * -1, b[field] * -1);
 
 export enum StudentField {
   email = "email",
