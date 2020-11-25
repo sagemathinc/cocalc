@@ -50,7 +50,7 @@ exports.version_check = (req, res, base_url) ->
     #             the same in order to *properly* deal with / characters.
     # post Nov'19: switching to universal-cookie in the client, because it supports
     #              SameSite=none. Now, the client explicitly encodes the base_url.
-    #              The cookie name is set in smc-util/misc2
+    #              The cookie name is set in smc-util/misc
     raw_val = c.get(encodeURIComponent(base_url) + VERSION_COOKIE_NAME)
     if not raw_val?
         # try legacy cookie fallback

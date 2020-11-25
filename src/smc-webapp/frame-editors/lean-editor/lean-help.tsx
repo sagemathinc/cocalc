@@ -4,9 +4,7 @@
  */
 
 import { Map } from "immutable";
-
-import { is_different } from "smc-util/misc2";
-
+import { is_different } from "smc-util/misc";
 import { Markdown } from "smc-webapp/r_misc";
 
 import {

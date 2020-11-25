@@ -18,8 +18,9 @@ import {
   map_max,
   map_sum,
   plural,
+  parse_number_input,
+  round2,
 } from "smc-util/misc";
-import { parse_number_input, round2 } from "smc-util/misc2";
 import { PROJECT_UPGRADES } from "smc-util/schema";
 import { NoUpgrades } from "./no-upgrades";
 import {
@@ -107,7 +108,10 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
     // all currently applied upgrades to this project
     const total_upgrades = props.total_project_quotas ?? {};
     // how much unused upgrade you have remaining
-    const user_remaining = map_diff(props.upgrades_you_can_use as any, user_upgrades as any);
+    const user_remaining = map_diff(
+      props.upgrades_you_can_use as any,
+      user_upgrades as any
+    );
     // the overall limits are capped by the maximum per project
     const proj_maximum = PROJECT_UPGRADES.max_per_project;
     // and they're also limited by what everyone has already applied

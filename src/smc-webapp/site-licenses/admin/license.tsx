@@ -17,8 +17,11 @@ import {
   merge,
   replace_all,
   plural,
-} from "smc-util/misc2";
-import { hours_ago, days_ago, weeks_ago, months_ago } from "smc-util/misc";
+  hours_ago,
+  days_ago,
+  weeks_ago,
+  months_ago,
+} from "smc-util/misc";
 import {
   A,
   CopyToClipBoard,

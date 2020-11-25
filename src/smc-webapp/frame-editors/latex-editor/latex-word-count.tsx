@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { is_different } from "smc-util/misc2";
+import { is_different } from "smc-util/misc";
 import { Component, React, rclass, rtypes } from "../../app-framework";
 import { EditorState } from "../frame-tree/types"
 

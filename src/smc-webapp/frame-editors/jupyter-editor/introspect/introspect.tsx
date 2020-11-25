@@ -10,9 +10,7 @@ on the bottom half the of the screen for Jupyter classic.
 */
 
 import { Map } from "immutable";
-
-import { merge } from "smc-util/misc2";
-
+import { merge } from "smc-util/misc";
 import {
   Component,
   React,
@@ -20,11 +18,8 @@ import {
   rtypes,
   rclass,
 } from "../../../app-framework";
-
 import { redux_name } from "../jupyter-actions";
-
 import { JupyterEditorActions } from "../actions";
-
 import { CellOutputMessage } from "../../../jupyter/output-messages/message";
 
 interface Props {

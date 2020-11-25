@@ -9,7 +9,7 @@ import { Map } from "immutable";
 import { Terminal } from "./connected-terminal";
 import { throttle } from "underscore";
 import { background_color } from "./themes";
-import { is_different } from "smc-util/misc2";
+import { is_different } from "smc-util/misc";
 import { React, Component, Rendered, ReactDOM } from "../../app-framework";
 
 interface Props {

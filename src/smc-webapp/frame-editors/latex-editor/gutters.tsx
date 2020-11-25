@@ -9,7 +9,7 @@
 // one gets a gutter mark, with pref to errors.  The main error log shows everything, so this should be OK.
 
 import * as React from "react";
-import { capitalize } from "smc-util/misc2";
+import { capitalize } from "smc-util/misc";
 import { Icon, Tip } from "smc-webapp/r_misc";
 import { SPEC, SpecItem } from "./errors-and-warnings";
 import { IProcessedLatexLog, Error } from "./latex-log-parser";

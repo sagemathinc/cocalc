@@ -9,7 +9,7 @@ Top-level react component for editing MediaWiki documents
 
 import { createEditor } from "../frame-tree/editor";
 import { aux_file } from "../frame-tree/util";
-import { set } from "smc-util/misc2";
+import { set } from "smc-util/misc";
 import { IFrameHTML } from "../html-editor/iframe-html";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { SETTINGS_SPEC } from "../settings/editor";

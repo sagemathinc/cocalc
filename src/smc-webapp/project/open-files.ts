@@ -31,7 +31,7 @@ The point of this code here is ensure that these objects stay in sync properly.
 import { List, Map } from "immutable";
 import { ProjectActions } from "../project_actions";
 import { ProjectStore } from "../project_store";
-import { close } from "smc-util/misc2";
+import { close } from "smc-util/misc";
 
 type OpenFilesType = Map<string, Map<string, any>>;
 type OpenFilesOrderType = List<string>;

@@ -7,8 +7,7 @@
 Render a link to a file.
 */
 
-import { path_split } from "smc-util/misc2";
-
+import { path_split } from "smc-util/misc";
 import { Component, Rendered, React } from "../app-framework";
 
 interface Props {

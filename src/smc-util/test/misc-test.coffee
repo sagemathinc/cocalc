@@ -14,7 +14,6 @@
 require('ts-node').register()
 
 misc = require('../misc')
-misc2 = require('../misc2')
 underscore = require('underscore')
 immutable = require('immutable')
 

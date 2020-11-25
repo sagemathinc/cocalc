@@ -8,7 +8,7 @@ Show errors and warnings.
 */
 
 import { sortBy } from "lodash";
-import { capitalize, is_different, path_split } from "smc-util/misc2";
+import { capitalize, is_different, path_split } from "smc-util/misc";
 import { React, Rendered, useRedux } from "../../app-framework";
 import { TypedMap } from "../../app-framework";
 import { BuildLogs } from "./actions";

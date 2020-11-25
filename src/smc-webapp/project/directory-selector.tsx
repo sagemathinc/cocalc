@@ -19,9 +19,8 @@ import {
   rtypes,
   project_redux_name,
 } from "../app-framework";
-
 import { Icon, Loading } from "../r_misc";
-import { path_split, startswith } from "smc-util/misc2";
+import { path_split, startswith } from "smc-util/misc";
 import { exec } from "../frame-editors/generic/client";
 import { alert_message } from "../alerts";
 import { callback2 } from "smc-util/async-utils";

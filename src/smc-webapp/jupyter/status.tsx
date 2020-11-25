@@ -10,9 +10,8 @@ import * as immutable from "immutable";
 import { Icon } from "../r_misc/icon";
 import { Loading } from "../r_misc/loading";
 import { Tip } from "../r_misc/tip";
-import { closest_kernel_match } from "smc-util/misc";
+import { closest_kernel_match, trunc } from "smc-util/misc";
 import { Logo } from "./logo";
-import { trunc } from "smc-util/misc2";
 import { JupyterActions } from "./browser-actions";
 
 interface ModeProps {

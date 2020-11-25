@@ -9,7 +9,7 @@ import { SettingBox, A, Icon, Loading } from "smc-webapp/r_misc";
 import { rclass, rtypes, redux, Rendered } from "../../app-framework";
 import { Project } from "./types";
 import { Map } from "immutable";
-import * as misc from "smc-util/misc2";
+import * as misc from "smc-util/misc";
 import { Button } from "antd";
 import { ReloadOutlined } from "@ant-design/icons";
 

@@ -22,8 +22,7 @@ import {
   useState,
   useTypedRedux,
 } from "../../app-framework";
-import { path_to_tab } from "smc-util/misc";
-import { path_split } from "smc-util/misc2";
+import { path_split, path_to_tab } from "smc-util/misc";
 import { HiddenXS, Icon, Tip } from "../../r_misc";
 import { COLORS } from "smc-util/theme";
 

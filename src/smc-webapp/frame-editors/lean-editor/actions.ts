@@ -12,25 +12,17 @@ Lean Editor Actions
 const DEBOUNCE_MS = 750;
 
 import { debounce } from "underscore";
-
 import { List } from "immutable";
-
 import { Store } from "../../app-framework";
-
 import {
   Actions as BaseActions,
   CodeEditorState,
 } from "../code-editor/actions";
-
 import { FrameTree } from "../frame-tree/types";
-
 import { project_api } from "../generic/client";
-import { capitalize, close } from "smc-util/misc2";
-
+import { capitalize, close } from "smc-util/misc";
 import { Channel } from "smc-webapp/project/websocket/types";
-
 import { Task, Message, Completion } from "./types";
-
 import { update_gutters } from "./gutters";
 
 interface LeanEditorState extends CodeEditorState {

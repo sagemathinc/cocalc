@@ -12,7 +12,7 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { synctable_no_database, SyncTable } from "smc-util/sync/table";
 import { once, retry_until_success } from "smc-util/async-utils";
 import { WebappClient } from "../../webapp-client";
-import { assertDefined } from "smc-util/misc2";
+import { assertDefined } from "smc-util/misc";
 
 // Always wait at least this long between connect attempts.  This
 // avoids flooding the project with connection requests if, e.g., the

@@ -9,7 +9,7 @@ import { React } from "../../app-framework";
 import { fromJS } from "immutable";
 import { Icon, Space } from "../../r_misc";
 import { COLORS } from "smc-util/theme";
-import { unreachable } from "smc-util/misc2";
+import { unreachable } from "smc-util/misc";
 import { Button, Menu, Dropdown } from "antd";
 import { Row, Col } from "../../antd-bootstrap";
 import { DownOutlined } from "@ant-design/icons";

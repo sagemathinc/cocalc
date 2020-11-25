@@ -10,9 +10,7 @@ import * as async from "async";
 import * as underscore from "underscore";
 import * as immutable from "immutable";
 import * as os_path from "path";
-
 import { client_db } from "smc-util/schema";
-
 import {
   ConfigurationAspect,
   Configuration,
@@ -21,7 +19,6 @@ import {
   LIBRARY_INDEX_FILE,
   is_available as feature_is_available,
 } from "./project_configuration";
-import { startswith, to_user_string } from "smc-util/misc2";
 import { query as client_query } from "./frame-editors/generic/client";
 import { callback, delay } from "awaiting";
 import { callback2, retry_until_success } from "smc-util/async-utils";
@@ -29,29 +26,20 @@ import { exec } from "./frame-editors/generic/client";
 import { API } from "./project/websocket/api";
 import { in_snapshot_path, NewFilenames, normalize } from "./project/utils";
 import { NEW_FILENAMES } from "smc-util/db-schema";
-
 import { transform_get_url } from "./project/transform-get-url";
-
 import { OpenFiles } from "./project/open-files";
 import { log_opened_time, open_file, log_file_open } from "./project/open-file";
-
 import * as project_file from "./project-file";
 import { get_editor } from "./editors/react-wrapper";
-
 import * as misc from "smc-util/misc";
 const { MARKERS } = require("smc-util/sagews");
 import { alert_message } from "./alerts";
 import { webapp_client } from "./webapp-client";
 const { defaults, required } = misc;
-
 import { set_url } from "./history";
-
 import { delete_files } from "./project/delete-files";
-
 import { get_directory_listing2 as get_directory_listing } from "./project/directory-listing";
-
 import { Actions, project_redux_name, redux } from "./app-framework";
-
 import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
 import { ProjectEvent } from "./project/history/types";
 import { DEFAULT_COMPUTE_IMAGE } from "../smc-util/compute-images";
@@ -419,7 +407,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     if (
       prev_active_project_tab !== key &&
-      startswith(prev_active_project_tab, "editor-")
+      misc.startswith(prev_active_project_tab, "editor-")
     ) {
       this.hide_file(misc.tab_to_path(prev_active_project_tab));
     }
@@ -2479,7 +2467,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     if (err) {
-      err = to_user_string(err);
+      err = misc.to_user_string(err);
     }
     if ((err && output == null) || (output != null && output.stdout == null)) {
       this.setState({ search_error: err });
@@ -2767,7 +2755,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const store = this.get_store();
     if (store == undefined) return; // project closed
     const a = store.get("active_project_tab");
-    if (!startswith(a, "editor-")) return;
+    if (!misc.startswith(a, "editor-")) return;
     await delay(0);
     this.show_file(misc.tab_to_path(a));
   }
@@ -2777,7 +2765,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const store = this.get_store();
     if (store == undefined) return; // project closed
     const a = store.get("active_project_tab");
-    if (!startswith(a, "editor-")) return;
+    if (!misc.startswith(a, "editor-")) return;
     this.hide_file(misc.tab_to_path(a));
   }
 

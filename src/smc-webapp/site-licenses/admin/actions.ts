@@ -17,7 +17,7 @@ import {
   server_time,
   user_search,
 } from "../../frame-editors/generic/client";
-import { is_valid_uuid_string, uuid } from "smc-util/misc2";
+import { is_valid_uuid_string, uuid } from "smc-util/misc";
 import { normalize_upgrades_for_save } from "./upgrades";
 import * as jsonic from "jsonic";
 

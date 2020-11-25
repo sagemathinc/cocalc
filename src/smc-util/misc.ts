@@ -2020,7 +2020,7 @@ export const operators: OPERATORS[] = [
   "=",
 ];
 
-export function op_to_function(op: OPERATORS): (a, b) => boolean {
+export function op_to_function(op: string): (a, b) => boolean {
   switch (op) {
     case "=":
     case "==":
@@ -2037,7 +2037,6 @@ export function op_to_function(op: OPERATORS): (a, b) => boolean {
     case ">":
       return (a, b) => a > b;
     default:
-      // in case of non-typescript client
       throw Error(`operator must be one of '${JSON.stringify(operators)}'`);
   }
 }

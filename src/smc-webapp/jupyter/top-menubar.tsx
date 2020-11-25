@@ -14,12 +14,9 @@ import { ButtonGroup, SelectCallback } from "react-bootstrap";
 import { Icon, r_join, DropdownMenu, MenuItem, MenuDivider } from "../r_misc";
 import { KeyboardShortcut } from "./keyboard-shortcuts";
 const misc_page = require("../misc_page");
-
-import { capitalize, copy, endswith } from "smc-util/misc2";
-
+import { capitalize, copy, endswith } from "smc-util/misc";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
-
 import { get_help_links } from "./help-links";
 
 type MenuItemName =

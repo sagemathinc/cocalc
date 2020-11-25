@@ -9,7 +9,7 @@
 const access = require("./access");
 import { callback2 } from "../smc-util/async-utils";
 import * as message from "../smc-util/message";
-import { one_result } from "./postgres";
+const { one_result } = require("./postgres");
 import { is_valid_uuid_string, to_json } from "../smc-util/misc";
 
 type WhereQueries = ({ [query: string]: string } | string)[];

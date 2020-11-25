@@ -22,7 +22,6 @@ declare const localStorage: any;
 
 import * as immutable from "immutable";
 import { reuseInFlight } from "async-await-utils/hof";
-
 import { debounce } from "lodash";
 
 // NOTE! The smc-util relative path is so we can import this same
@@ -31,12 +30,9 @@ import { debounce } from "lodash";
 // **It's just a hack.**
 import { callback2, retry_until_success } from "../../smc-util/async-utils";
 import * as misc from "../../smc-util/misc";
-const { required, defaults } = misc;
-import { close } from "../../smc-util/misc2";
-
+const { close, required, defaults } = misc;
 import * as awaiting from "awaiting";
 import { three_way_merge } from "../../smc-util/sync/editor/generic/util";
-
 import { Cell, KernelInfo } from "./types";
 import { Syntax } from "../../smc-util/code-formatter";
 
