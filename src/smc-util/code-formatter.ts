@@ -6,7 +6,7 @@
 // common configuration for mapping programming languages (lower case) to formatters
 // this is used by webapp and the project
 
-import { tuple } from "./misc2";
+import { tuple } from "./misc";
 
 // ideally, this is the "syntax", but for historic reasons it's what is being called "parsed" and
 // hence there there are additional entries for backwards compatibility with older projects.

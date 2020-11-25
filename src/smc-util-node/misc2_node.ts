@@ -3,9 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { to_human_list } from "../smc-util/misc";
-import { re_url } from "../smc-util/misc2";
-export { contains_url } from "../smc-util/misc2";
+import { contains_url, re_url, to_human_list } from "../smc-util/misc";
 
 // returns undefined if ok, otherwise an error message
 export function is_valid_username(str: string): string | undefined {

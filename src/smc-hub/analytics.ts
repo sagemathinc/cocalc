@@ -5,13 +5,16 @@
 
 import * as ms from "ms";
 import { isEqual } from "lodash";
-import { analytics_cookie_name } from "smc-util/misc";
+import {
+  analytics_cookie_name,
+  is_valid_uuid_string,
+  uuid,
+} from "smc-util/misc";
 import { PostgreSQL } from "./postgres/types";
 import { get_server_settings, pii_retention_to_future } from "./utils";
 import * as fs from "fs";
 import * as TS from "typescript";
 const UglifyJS = require("uglify-js");
-import { is_valid_uuid_string, uuid } from "../smc-util/misc2";
 // express-js cors plugin
 import * as cors from "cors";
 import {

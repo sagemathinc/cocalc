@@ -5,7 +5,7 @@
 
 import { PostgreSQL } from "../types";
 import { callback2 } from "../../smc-util/async-utils";
-import { copy_with, len } from "../../smc-util/misc2";
+import { copy_with, len } from "../../smc-util/misc";
 
 export async function number_of_running_projects_using_license(
   db: PostgreSQL,

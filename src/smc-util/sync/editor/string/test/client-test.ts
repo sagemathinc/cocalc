@@ -8,13 +8,12 @@ Minimal client class that we use for testing.
 */
 
 import { EventEmitter } from "events";
-import { bind_methods, keys } from "../../../../misc2";
+import { bind_methods, keys } from "../../../../misc";
 import { once } from "../../../../async-utils";
 import {
   Client as Client0,
   FileWatcher as FileWatcher0,
 } from "../../generic/types";
-
 import { SyncTable } from "../../../table/synctable";
 
 export class FileWatcher extends EventEmitter implements FileWatcher0 {

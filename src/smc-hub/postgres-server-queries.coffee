@@ -23,7 +23,6 @@ random_key = require("random-key")
 misc_node = require('smc-util-node/misc_node')
 misc2_node = require('smc-util-node/misc2_node')
 
-misc2 = require('smc-util/misc2')
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 

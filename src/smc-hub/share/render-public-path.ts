@@ -21,8 +21,7 @@ import * as os_path from "path";
 import { stat, readFile } from "fs";
 import { callback } from "awaiting";
 
-import { field_cmp } from "smc-util/misc";
-import { filename_extension, path_to_title } from "smc-util/misc2";
+import { field_cmp, filename_extension, path_to_title } from "smc-util/misc";
 
 import { React } from "smc-webapp/app-framework";
 import { PublicPath } from "smc-webapp/share/public-path";

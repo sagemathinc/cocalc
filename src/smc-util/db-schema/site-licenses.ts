@@ -17,7 +17,7 @@ licenses for different purposes (e.g., one license for faculty and one license
 for students).
 */
 
-import { is_valid_uuid_string } from "../misc2";
+import { is_valid_uuid_string } from "../misc";
 import { Table } from "./types";
 import { SCHEMA } from "./index";
 import { TypedMap } from "../../smc-webapp/app-framework/TypedMap";

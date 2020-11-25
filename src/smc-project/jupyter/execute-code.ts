@@ -20,7 +20,7 @@ import {
   deep_copy,
   uuid,
   trunc,
-} from "../smc-util/misc2";
+} from "../smc-util/misc";
 
 import {
   CodeExecutionEmitterInterface,

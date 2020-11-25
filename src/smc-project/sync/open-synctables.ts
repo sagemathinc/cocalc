@@ -9,10 +9,8 @@ All SyncTables that are currently open and being managed in this project.
 */
 
 import { callback } from "awaiting";
-
 import { SyncTable } from "../smc-util/sync/table";
-
-import { is_array } from "../smc-util/misc2";
+import { is_array } from "../smc-util/misc";
 
 const open_synctables: { [key: string]: SyncTable } = {};
 const wait_for: { [key: string]: Function[] } = {};

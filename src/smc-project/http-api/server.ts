@@ -17,8 +17,7 @@ const MAX_REQUESTS_PER_MINUTE = 50;
 import * as express from "express";
 import { writeFile } from "fs";
 import { callback } from "awaiting";
-import { meta_file } from "../smc-util/misc";
-import { endswith, split } from "../smc-util/misc2";
+import { endswith, split, meta_file } from "../smc-util/misc";
 import { json, urlencoded } from "body-parser";
 
 const { free_port } = require("../../smc-util-node/misc_node");

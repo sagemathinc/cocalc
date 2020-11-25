@@ -5,7 +5,7 @@
 
 // ../ prefix to make manage-pods work
 import { callback2 } from "../smc-util/async-utils";
-import { trunc } from "../smc-util/misc2";
+import { trunc } from "../smc-util/misc";
 
 import { PostgreSQL } from "./types";
 
