@@ -22,7 +22,7 @@ if (require.main === module) {
 import { EventEmitter } from "events";
 import { delay } from "awaiting";
 import { isEqual } from "lodash";
-import { how_long_ago_m } from "../../smc-util/misc2";
+import { how_long_ago_m } from "../../smc-util/misc";
 import {
   ALERT_HIGH_PCT /* ALERT_MEDIUM_PCT */,
   ALERT_DISK_FREE,

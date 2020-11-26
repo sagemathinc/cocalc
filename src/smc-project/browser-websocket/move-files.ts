@@ -5,7 +5,7 @@
 
 import { move, pathExists } from "fs-extra";
 import { stat } from "fs";
-import { path_split } from "../smc-util/misc2";
+import { path_split } from "../smc-util/misc";
 import { get_listings_table } from "../sync/listings";
 import { callback } from "awaiting";
 import { move_file_variations } from "../smc-util/delete-files";

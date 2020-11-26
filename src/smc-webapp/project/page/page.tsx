@@ -154,6 +154,10 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
       return;
     }
     const path = tab_to_path(active_project_tab);
+    if (path == null) {
+      // bug -- tab is not a file tab.
+      return;
+    }
     const is_chat_open = open_files.getIn([path, "is_chat_open"]);
     return (
       <div style={INDICATOR_STYLE}>

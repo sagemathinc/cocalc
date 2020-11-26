@@ -8,19 +8,14 @@ Manages rendering a single page using either SVG or Canvas
 */
 
 import { React, Rendered, Component } from "../../app-framework";
-
-import { is_different } from "smc-util/misc2";
-
+import { is_different } from "smc-util/misc";
 import { NonloadedPage } from "./pdfjs-nonloaded-page";
-
 import { CanvasPage } from "./pdfjs-canvas-page";
-
 import {
   PDFAnnotationData,
   PDFPageProxy,
   PDFDocumentProxy,
 } from "pdfjs-dist/webpack";
-
 import { SyncHighlight } from "./pdfjs-annotation";
 
 export const PAGE_GAP: number = 20;

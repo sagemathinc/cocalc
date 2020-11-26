@@ -5,7 +5,7 @@
 
 // import { delay } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
-import { close } from "../smc-util/misc2";
+import { close } from "../smc-util/misc";
 import { SyncTable } from "../smc-util/sync/table";
 import { get_ProjectInfoServer } from "../project-info";
 import { ProjectInfo } from "../project-info/types";

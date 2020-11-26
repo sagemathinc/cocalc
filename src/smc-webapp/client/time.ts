@@ -59,7 +59,7 @@ export class TimeClient {
         this.last_ping.valueOf() +
         (this.last_pong.local.valueOf() - this.last_ping.valueOf()) / 2 -
         this.last_pong.server.valueOf();
-      set_local_storage("clock_skew", this.clock_skew_ms);
+      set_local_storage("clock_skew", `${this.clock_skew_ms}`);
     }
 
     this.emit_latency(now.valueOf() - start.valueOf());

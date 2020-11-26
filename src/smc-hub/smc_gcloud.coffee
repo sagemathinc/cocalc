@@ -1315,7 +1315,7 @@ class VM_Manager
                     console.log("ERROR: ", err)
                 else
                     log.sort (x,y) => misc.cmp(x.action?.started ? new Date(), y.action?.started ? new Date())
-                    pad = (s) -> misc.pad_left(s ? '', 10)
+                    pad = (s) -> s ? ''  # basically no-op since this code is long dead anyways.
                     for x in log
                         console.log "#{pad(x.name)}  #{pad(x.action?.type)}  #{pad(x.action?.action)}  #{x.action?.started?.toLocaleString()}  #{x.action?.finished?.toLocaleString()}  #{pad(misc.round1((x.action?.finished - x.action?.started)/1000/60))} minutes  '#{misc.to_json(x.action?.error ?  '')}'"
                 opts.cb?(err)

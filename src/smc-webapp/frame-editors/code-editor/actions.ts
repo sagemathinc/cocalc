@@ -36,7 +36,7 @@ import {
   history_path,
   len,
   uuid,
-} from "smc-util/misc2";
+} from "smc-util/misc";
 import { print_code } from "../frame-tree/print-code";
 import {
   ConnectionStatus,

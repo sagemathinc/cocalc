@@ -9,8 +9,7 @@ Functionality related to Sync.
 
 import { callback2 } from "smc-util/async-utils";
 import { once } from "smc-util/async-utils";
-import { is_valid_uuid_string, merge } from "smc-util/misc2";
-import { defaults, required } from "smc-util/misc";
+import { defaults, is_valid_uuid_string, merge, required } from "smc-util/misc";
 import { SyncDoc, SyncOpts0 } from "smc-util/sync/editor/generic/sync-doc";
 
 interface SyncOpts extends Omit<SyncOpts0, "client"> {}

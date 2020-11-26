@@ -8,7 +8,7 @@
 import { PostgreSQL } from "./types";
 
 import { callback2 } from "../smc-util/async-utils";
-import { len } from "../smc-util/misc2";
+import { len } from "../smc-util/misc";
 import { is_a_site_license_manager } from "./site-license/search";
 
 /* For now we define "paying customer" to mean they have a subscription.

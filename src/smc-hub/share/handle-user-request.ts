@@ -4,7 +4,7 @@
  */
 
 import { List, Map } from "immutable";
-import { is_valid_uuid_string } from "smc-util/misc2";
+import { is_valid_uuid_string } from "smc-util/misc";
 import { render_user } from "./render-user";
 import { PublicPaths } from "./public-paths";
 import { AuthorInfo } from "./authors";

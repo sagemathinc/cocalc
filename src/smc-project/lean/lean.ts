@@ -8,7 +8,7 @@ import { isEqual } from "underscore";
 import * as lean_client from "lean-client-js-node";
 import { callback, delay } from "awaiting";
 import { once } from "../smc-util/async-utils";
-import { close } from "../smc-util/misc2";
+import { close } from "../smc-util/misc";
 import { reuseInFlight } from "async-await-utils/hof";
 import { EventEmitter } from "events";
 

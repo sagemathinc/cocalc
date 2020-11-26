@@ -7,7 +7,6 @@ import { Map } from "immutable";
 import * as humanizeList from "humanize-list";
 import { PROJECT_UPGRADES } from "smc-util/schema";
 import { Upgrades } from "smc-util/upgrades/types";
-
 import {
   rclass,
   rtypes,
@@ -16,9 +15,7 @@ import {
   React,
   redux,
 } from "../app-framework";
-
-import { len } from "smc-util/misc2";
-
+import { len } from "smc-util/misc";
 import { visit_billing_page } from "../billing/billing-page-link";
 
 interface Props {

@@ -71,22 +71,6 @@ export interface Props {
   onDoubleClick?: (event?:any) => void;
 }
 
-/*
-  shouldComponentUpdate(next) {
-    return (
-      misc.is_different(props, next, [
-        "value",
-        "auto_render_math",
-        "highlight",
-        "safeHTML",
-        "reload_images",
-        "smc_image_scaling",
-        "highlight_code",
-      ]) || !underscore.isEqual(props.style, next.style)
-    );
-  },
-  */
-
 export const HTML: React.FC<Props> = (props) => {
   const isMountedRef = useIsMountedRef();
   const ref = useRef(null);

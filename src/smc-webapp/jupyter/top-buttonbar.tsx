@@ -15,7 +15,7 @@ import {
   DropdownMenu,
   MenuItem,
 } from "../r_misc";
-import { endswith, capitalize } from "smc-util/misc2";
+import { endswith, capitalize } from "smc-util/misc";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { Cells, CellType } from "./types";
 

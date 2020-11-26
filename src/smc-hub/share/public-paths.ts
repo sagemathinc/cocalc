@@ -19,8 +19,7 @@ import { EventEmitter } from "events";
 import * as immutable from "immutable";
 import { Database } from "./types";
 import { callback2, once, retry_until_success } from "smc-util/async-utils";
-import { bind_methods, cmp } from "smc-util/misc2";
-import { containing_public_path } from "smc-util/misc";
+import {  bind_methods, cmp, containing_public_path } from "smc-util/misc";
 
 export type HostInfo = immutable.Map<string, any>;
 

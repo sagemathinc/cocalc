@@ -8,7 +8,7 @@ Show the last latex build log, i.e., output from last time we ran the LaTeX buil
 */
 
 import Ansi from "ansi-to-react";
-import { path_split } from "smc-util/misc2";
+import { path_split } from "smc-util/misc";
 import { React, Rendered, useRedux } from "../../app-framework";
 import { BuildCommand } from "./build-command";
 import { Loading } from "smc-webapp/r_misc";

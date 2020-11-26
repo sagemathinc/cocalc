@@ -4,7 +4,7 @@
  */
 
 import { debounce } from "lodash";
-import { filename_extension } from "smc-util/misc2";
+import { filename_extension } from "smc-util/misc";
 import { React, redux, useTypedRedux, useMemo } from "../app-framework";
 import { COLORS } from "smc-util/theme";
 import { Icon, Tip, Space } from "../r_misc";

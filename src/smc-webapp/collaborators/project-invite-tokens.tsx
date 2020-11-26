@@ -24,8 +24,7 @@ import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../r_misc";
 import { ProjectInviteToken } from "smc-util/db-schema/project-invite-tokens";
 import { webapp_client } from "../webapp-client";
 import { alert_message } from "../alerts";
-import { secure_random_token } from "smc-util/misc2";
-import { server_weeks_ago } from "smc-util/misc";
+import { secure_random_token, server_weeks_ago } from "smc-util/misc";
 
 const TOKEN_LENGTH = 16;
 const MAX_TOKENS = 200;

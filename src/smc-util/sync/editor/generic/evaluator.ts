@@ -25,14 +25,13 @@ import { SyncTable } from "../../table/synctable";
 import { to_key } from "../../table/util";
 import { Client } from "./types";
 import { sagews, MARKERS, FLAGS } from "../../../sagews";
-import { close } from "../../../misc2";
-
-const {
+import {
+  close,
   from_json,
   to_json,
   copy_without,
   copy_with,
-} = require("../../../misc");
+} from "../../../misc";
 
 type State = "init" | "ready" | "closed";
 

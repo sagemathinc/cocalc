@@ -22,7 +22,6 @@ declare const localStorage: any;
 
 import * as immutable from "immutable";
 import { reuseInFlight } from "async-await-utils/hof";
-
 import { debounce } from "lodash";
 
 // NOTE! The smc-util relative path is so we can import this same
@@ -31,12 +30,9 @@ import { debounce } from "lodash";
 // **It's just a hack.**
 import { callback2, retry_until_success } from "../../smc-util/async-utils";
 import * as misc from "../../smc-util/misc";
-const { required, defaults } = misc;
-import { close } from "../../smc-util/misc2";
-
+const { close, required, defaults } = misc;
 import * as awaiting from "awaiting";
 import { three_way_merge } from "../../smc-util/sync/editor/generic/util";
-
 import { Cell, KernelInfo } from "./types";
 import { Syntax } from "../../smc-util/code-formatter";
 
@@ -771,7 +767,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       !this.store.is_cell_editable(obj.id)
     ) {
       for (const protected_key of ["input", "cell_type", "attachments"]) {
-        if (misc.has_key(protected_key)) {
+        if (misc.has_key(obj, protected_key)) {
           throw CellWriteProtectedException;
         }
       }
@@ -2569,7 +2565,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // unknown kernel, we try to find a close match
     if (kernel_info == null && kernel != null) {
       // kernel & kernels must be defined
-      closestKernel = misc.closest_kernel_match(kernel, kernels);
+      closestKernel = misc.closest_kernel_match(kernel, kernels as any) as any;
+      // TODO about that any above: closest_kernel_match should be moved here so it knows the typings
     }
     this.setState({
       kernel_selection,

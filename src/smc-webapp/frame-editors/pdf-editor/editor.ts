@@ -7,10 +7,8 @@
 Spec for editing PDF documents.
 */
 
-import { set } from "smc-util/misc2";
-
+import { set } from "smc-util/misc";
 import { createEditor } from "../frame-tree/editor";
-
 import { PDFJS } from "../latex-editor/pdfjs";
 import { PDFEmbed } from "../latex-editor/pdf-embed";
 

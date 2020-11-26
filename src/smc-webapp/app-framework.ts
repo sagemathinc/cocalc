@@ -29,7 +29,7 @@ import { Table, TableConstructor } from "./app-framework/Table";
 import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 
 // Relative import is temporary, until I figure this out -- needed for *project*
-import { bind_methods, keys, is_valid_uuid_string } from "../smc-util/misc2";
+import { bind_methods, keys, is_valid_uuid_string } from "../smc-util/misc";
 
 export { TypedMap, createTypedMap } from "./app-framework/TypedMap";
 

@@ -18,9 +18,11 @@ import {
   lower_email_address,
   required,
   defaults,
+  is_valid_email_address,
+  len,
+  to_json,
 } from "smc-util/misc";
 import { delay } from "awaiting";
-import { is_valid_email_address, len, to_json } from "smc-util/misc2";
 import { callback2 } from "smc-util/async-utils";
 import { PostgreSQL } from "../postgres/types";
 const { api_key_action } = require("../api/manage");

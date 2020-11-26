@@ -11,7 +11,7 @@ import { React, Rendered, useActions } from "../app-framework";
 import { register_file_editor } from "../project-file";
 import { Markdown } from "../r_misc";
 import { webapp_client } from "../webapp-client";
-import { keys, filename_extension } from "smc-util/misc2";
+import { keys, filename_extension } from "smc-util/misc";
 import { COLORS } from "../../smc-util/theme";
 import { Button, Well } from "../antd-bootstrap";
 

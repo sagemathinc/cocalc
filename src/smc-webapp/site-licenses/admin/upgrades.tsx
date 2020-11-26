@@ -14,7 +14,7 @@ import {
   upgrade_fields_type,
   upgrade_fields,
 } from "./types";
-import { plural } from "smc-util/misc2";
+import { plural } from "smc-util/misc";
 import { Icon } from "../../r_misc";
 import { INPUT_STYLE } from "./license";
 import { presets } from "./upgrade-presets";

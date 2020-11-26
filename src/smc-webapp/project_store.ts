@@ -15,10 +15,7 @@ if (typeof window !== "undefined" && window !== null) {
   wrapped_editors = require("./editors/react-wrapper");
 }
 import * as immutable from "immutable";
-
 import * as misc from "smc-util/misc";
-import { startswith } from "smc-util/misc2";
-
 import { QUERIES, FILE_ACTIONS, ProjectActions } from "./project_actions";
 import {
   Available as AvailableFeatures,
@@ -39,7 +36,6 @@ import { ProjectLogMap } from "./project/history/types";
 import { alert_message } from "./alerts";
 import { Listings, listings } from "./project/websocket/listings";
 import { deleted_file_variations } from "smc-util/delete-files";
-import { search_match, search_split } from "smc-util/misc2";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -351,7 +347,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         }
 
         if (this.get("current_path") === ".snapshots") {
-          _compute_snapshot_display_names(listing);
+          compute_snapshot_display_names(listing);
         }
 
         const search = this.get("file_search");
@@ -521,7 +517,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
   private close_deleted_file(path: string): void {
     const cur = this.get("current_path");
-    if (path == cur || startswith(cur, path + "/")) {
+    if (path == cur || misc.startswith(cur, path + "/")) {
       // we are deleting the current directory, so let's cd to HOME.
       const actions = redux.getProjectActions(this.project_id);
       if (actions != null) {
@@ -530,7 +526,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
     }
     const all_paths = deleted_file_variations(path);
     for (const file of this.get("open_files").keys()) {
-      if (all_paths.indexOf(file) != -1 || startswith(file, path + "/")) {
+      if (all_paths.indexOf(file) != -1 || misc.startswith(file, path + "/")) {
         if (!this.has_file_been_viewed(file)) {
           // Hasn't even been viewed yet; when user clicks on the tab
           // they get a dialog to undelete the file.
@@ -614,13 +610,13 @@ function _matched_files(search, listing) {
   if (listing == null) {
     return [];
   }
-  const words = search_split(search);
+  const words = misc.search_split(search);
   const v: string[] = [];
   for (const x of listing) {
     const name = (x.display_name ?? x.name ?? "").toLowerCase();
     if (
-      search_match(name, words) ||
-      (x.isdir && search_match(name + "/", words))
+      misc.search_match(name, words) ||
+      (x.isdir && misc.search_match(name + "/", words))
     ) {
       v.push(x);
     }
@@ -685,16 +681,12 @@ function _compute_file_masks(listing): void {
   }
 }
 
-function _compute_snapshot_display_names(listing) {
-  return (() => {
-    const result: number[] = [];
-    for (const item of listing) {
-      const tm = misc.parse_bup_timestamp(item.name);
-      item.display_name = `${tm}`;
-      result.push((item.mtime = (tm - 0) / 1000));
-    }
-    return result;
-  })();
+function compute_snapshot_display_names(listing): void {
+  for (const item of listing) {
+    const tm = misc.parse_bup_timestamp(item.name);
+    item.display_name = `${tm}`;
+    item.mtime = tm.valueOf() / 1000;
+  }
 }
 
 // Mutates data to include info on public paths.

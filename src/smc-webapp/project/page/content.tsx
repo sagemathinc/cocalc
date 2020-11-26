@@ -16,7 +16,7 @@ or Loading... if the file is still being loaded.
 
 import { Map } from "immutable";
 import Draggable from "react-draggable";
-import { hidden_meta_file } from "smc-util/misc2";
+import { hidden_meta_file } from "smc-util/misc";
 import { IS_MOBILE, IS_TOUCH } from "../../feature";
 import {
   React,

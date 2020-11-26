@@ -13,7 +13,7 @@ Then simultate typing the given content into the line.
 When done verify that the result is as it should be.
 */
 
-import { merge } from "smc-util/misc2";
+import { merge } from "smc-util/misc";
 import * as CodeMirror from "codemirror";
 import { delay } from "awaiting";
 

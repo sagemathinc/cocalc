@@ -14,7 +14,7 @@
 //    - [x] checkbox in markdown are interactive (can click them, which edits file)
 
 import { Markdown } from "smc-webapp/r_misc";
-import { is_different, path_split } from "smc-util/misc2";
+import { is_different, path_split } from "smc-util/misc";
 import { throttle } from "underscore";
 import { React, ReactDOM, CSS } from "../../app-framework";
 import { use_font_size_scaling } from "../frame-tree/hooks";

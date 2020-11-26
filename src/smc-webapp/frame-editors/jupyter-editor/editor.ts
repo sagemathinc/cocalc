@@ -7,11 +7,10 @@
 Spec for editing Jupyter notebooks via a frame tree.
 */
 
-import { set } from "smc-util/misc2";
+import { set } from "smc-util/misc";
 import { createEditor } from "../frame-tree/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
-
 import { CellNotebook } from "./cell-notebook/cell-notebook";
 import { RawIPynb } from "./raw-ipynb";
 

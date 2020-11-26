@@ -18,7 +18,7 @@ import { debounce, keys, sortBy } from "underscore";
 const { Button } = require("react-bootstrap");
 import { Icon } from "../../r_misc";
 import { APPS } from "./apps";
-import { is_different } from "smc-util/misc2";
+import { is_different } from "smc-util/misc";
 import { Actions } from "./actions";
 import { Capabilities } from "../../project_configuration";
 

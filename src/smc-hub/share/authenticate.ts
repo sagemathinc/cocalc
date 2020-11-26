@@ -12,7 +12,7 @@ import * as basic_auth from "basic-auth";
 
 import * as password_hash_library from "password-hash";
 
-import { startswith } from "smc-util/misc2";
+import { startswith } from "smc-util/misc";
 
 import { Logger } from "./types";
 

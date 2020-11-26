@@ -15,7 +15,7 @@ import {
 import { Icon } from "../r_misc/icon";
 import { PROJECT_UPGRADES } from "smc-util/schema";
 import { COLORS } from "smc-util/theme";
-import { capitalize, endswith } from "smc-util/misc2";
+import { capitalize, endswith } from "smc-util/misc";
 import { Component, React, Rendered, redux } from "../app-framework";
 import { AppliedCoupons, Customer, PeriodName } from "./types";
 import { ConfirmPaymentMethod } from "./confirm-payment-method";

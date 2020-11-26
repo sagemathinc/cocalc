@@ -20,7 +20,7 @@ import { Icon, Space, Tip } from "../../r_misc";
 import { CourseStore, NBgraderRunInfo, PARALLEL_DEFAULT } from "../store";
 import { CourseActions } from "../actions";
 import { nbgrader_status } from "./util";
-import { plural } from "smc-util/misc2";
+import { plural } from "smc-util/misc";
 
 interface Props {
   name: string;

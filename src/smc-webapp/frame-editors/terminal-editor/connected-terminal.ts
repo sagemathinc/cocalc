@@ -15,9 +15,7 @@ import { Map } from "immutable";
 import { callback, delay } from "awaiting";
 import { redux, ProjectActions } from "../../app-framework";
 import { debounce } from "lodash";
-
 import { aux_file } from "../frame-tree/util";
-
 import { Terminal as XTerminal } from "xterm";
 require("xterm/css/xterm.css");
 
@@ -29,18 +27,15 @@ import { setTheme } from "./themes";
 import { project_websocket, touch, touch_project } from "../generic/client";
 import { Actions, CodeEditorState } from "../code-editor/actions";
 import { set_buffer, get_buffer } from "../../copy-paste-buffer";
-
 import {
   close,
   endswith,
   filename_extension,
   replace_all,
   bind_methods,
-} from "smc-util/misc2";
+} from "smc-util/misc";
 import { open_init_file } from "./init-file";
-
 import { ConnectionStatus } from "../frame-tree/types";
-
 import { file_associations } from "../../file-associations";
 
 declare const $: any;

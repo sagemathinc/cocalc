@@ -4,7 +4,7 @@
  */
 
 import { AppRedux } from "../app-framework";
-import { bind_methods } from "../../smc-util/misc2";
+import { bind_methods } from "../../smc-util/misc";
 
 // NOTE: it is intentional that there is no get method.  Instead, get data
 // from stores.  The table will set stores (via creating actions) as

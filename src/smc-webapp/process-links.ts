@@ -13,9 +13,7 @@ Define a jQuery plugin that processes links.
 
 declare const $: any;
 
-import { normalized_path_join } from "smc-util/misc";
-import { is_valid_uuid_string, startswith } from "smc-util/misc2";
-
+import {  is_valid_uuid_string, startswith, normalized_path_join } from "smc-util/misc";
 import { redux } from "./app-framework";
 
 function load_target(target: string, switch_to: boolean, anchor: string): void {

@@ -18,7 +18,7 @@ import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../r_misc";
 import { alert_message } from "../alerts";
 import { Alert, Button, Input, Popconfirm } from "antd";
 import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
-import { plural, trunc_left } from "smc-util/misc2";
+import { plural, trunc_left } from "smc-util/misc";
 import { DebounceInput } from "react-debounce-input";
 import { webapp_client } from "../webapp-client";
 import { describe_quota } from "smc-util/db-schema/site-licenses";

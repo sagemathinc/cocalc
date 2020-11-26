@@ -13,8 +13,9 @@ import {
   merge,
   path_split,
   startswith,
-} from "../smc-util/misc2";
-import { field_cmp, seconds_ago } from "../smc-util/misc";
+  field_cmp,
+  seconds_ago,
+} from "../smc-util/misc";
 import { DirectoryListingEntry } from "../smc-util/types";
 import { get_listing } from "../directory-listing";
 import {

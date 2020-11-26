@@ -11,7 +11,7 @@ https://www.gnu.org/software/emacs/manual/html_node/emacs/Fill-Commands.html
 
 import * as CodeMirror from "codemirror";
 import { Pos } from "./types";
-import { split } from "smc-util/misc2";
+import { split } from "smc-util/misc";
 
 function is_white_space(s: string): boolean {
   return s?.trim() == "";

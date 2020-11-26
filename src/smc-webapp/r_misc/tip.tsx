@@ -7,7 +7,6 @@ import * as React from "react";
 import { Rendered } from "smc-webapp/app-framework";
 import { Icon } from "./icon";
 import * as misc from "smc-util/misc";
-//import { unreachable } from "smc-util/misc2";
 import * as feature from "../feature";
 import { Tooltip, Popover } from "antd";
 import { TooltipPlacement } from "antd/es/tooltip";

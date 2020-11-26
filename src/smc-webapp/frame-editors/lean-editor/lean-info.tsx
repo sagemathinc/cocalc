@@ -4,8 +4,7 @@
  */
 
 import { Map } from "immutable";
-import { is_different } from "smc-util/misc2";
-
+import { is_different } from "smc-util/misc";
 import {
   React,
   Component,

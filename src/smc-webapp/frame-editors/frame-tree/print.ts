@@ -9,7 +9,7 @@ Convert an *HTML* file (raw url or string content) to printable form.
 TODO: refactor with markdown print (?).
 */
 
-import { path_split } from "smc-util/misc2";
+import { path_split } from "smc-util/misc";
 import { HTML } from "smc-webapp/r_misc";
 //import ReactDOMServer from "react-dom/server";
 const ReactDOMServer = require("react-dom/server");

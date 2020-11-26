@@ -40,12 +40,9 @@ const MAX_FILE_SIZE_MB = 5;
 type XPatch = any;
 
 import { EventEmitter } from "events";
-
 import { debounce, throttle } from "lodash";
 import { Map, fromJS } from "immutable";
-
 import { delay } from "awaiting";
-
 import {
   callback2,
   cancel_scheduled,
@@ -53,9 +50,7 @@ import {
   retry_until_success,
   reuse_in_flight_methods,
 } from "../../../async-utils";
-
 import { wait } from "../../../async-wait";
-
 import {
   assertDefined,
   close,
@@ -64,22 +59,15 @@ import {
   filename_extension,
   keys,
   uuid,
-} from "../../../misc2";
-
-import { Evaluator } from "./evaluator";
-import { IpywidgetsState } from "./ipywidgets-state";
-
-const {
   hash_string,
   is_date,
   ISO_to_Date,
   minutes_ago,
-} = require("../../../misc");
-
-const schema = require("../../../schema");
-
+} from "../../../misc";
+import { Evaluator } from "./evaluator";
+import { IpywidgetsState } from "./ipywidgets-state";
+import * as schema from "../../../schema";
 import { SyncTable } from "../../table/synctable";
-
 import {
   Client,
   CompressedPatch,
@@ -88,11 +76,8 @@ import {
   Patch,
   FileWatcher,
 } from "./types";
-
 import { SortedPatchList } from "./sorted-patch-list";
-
 import { patch_cmp } from "./util";
-
 import { export_history, HistoryEntry, HistoryExportOptions } from "./export";
 
 export type State = "init" | "ready" | "closed";

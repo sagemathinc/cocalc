@@ -12,7 +12,7 @@ import { clear_hidden_tests } from "./clear-hidden-tests";
 import { clear_mark_regions } from "./clear-mark-regions";
 import { set_checksum } from "./compute-checksums";
 import { delay } from "awaiting";
-import { close, path_split } from "smc-util/misc2";
+import { close, path_split } from "smc-util/misc";
 import { STUDENT_SUBDIR } from "../../course/assignments/actions";
 
 export class NBGraderActions {

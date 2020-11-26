@@ -8,9 +8,7 @@ X11 Window frame.
 */
 
 import { Map, Set } from "immutable";
-
 import { delay } from "awaiting";
-
 import {
   React,
   Component,
@@ -19,9 +17,8 @@ import {
   rclass,
   rtypes,
 } from "../../app-framework";
-
 import { debounce } from "underscore";
-import { cmp, is_different } from "smc-util/misc2";
+import { cmp, is_different } from "smc-util/misc";
 import { Actions } from "./actions";
 import { WindowTab } from "./window-tab";
 import { TAB_BAR_GREY } from "./theme";

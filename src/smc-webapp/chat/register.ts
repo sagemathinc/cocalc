@@ -7,8 +7,7 @@ import { redux_name } from "../app-framework";
 import { webapp_client } from "../webapp-client";
 import { alert_message } from "../alerts";
 import { register_file_editor } from "../file-editors";
-import { startswith, path_split } from "smc-util/misc2";
-
+import { startswith, path_split } from "smc-util/misc";
 import { ChatStore } from "./store";
 import { ChatActions } from "./actions";
 import { ChatRoom } from "./chatroom";

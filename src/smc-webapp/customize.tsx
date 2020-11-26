@@ -51,7 +51,7 @@ for (const k in site_settings_conf) {
     typeof v.to_val === "function" ? v.to_val(v.default) : v.default;
   result.push([k, value]);
 }
-const defaults = dict(result);
+const defaults: any = dict(result);
 defaults.is_commercial = defaults.commercial;
 defaults._is_configured = false; // will be true after set via call to server
 

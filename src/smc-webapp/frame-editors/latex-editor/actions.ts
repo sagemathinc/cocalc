@@ -60,7 +60,7 @@ import {
   startswith,
   change_filename_extension,
   sha1,
-} from "smc-util/misc2";
+} from "smc-util/misc";
 import { IBuildSpecs } from "./build";
 const { open_new_tab } = require("smc-webapp/misc_page");
 
