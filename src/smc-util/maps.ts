@@ -27,6 +27,7 @@ function map_comp_fn(func, fallback) {
 }
 
 export const map_limit = map_comp_fn(Math.min, Number.MAX_VALUE);
+export const map_min = map_limit;
 export const map_max = map_comp_fn(Math.max, Number.MIN_VALUE);
 
 // arithmetic sum of an array

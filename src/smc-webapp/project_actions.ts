@@ -458,6 +458,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       default:
         // editor...
         const path = misc.tab_to_path(key);
+        if (path == null) {
+          throw Error(`must be an editor path but is ${key}`);
+        }
         this.redux
           .getActions("file_use")
           ?.mark_file(this.project_id, path, "open");

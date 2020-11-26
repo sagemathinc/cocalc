@@ -21,6 +21,7 @@ export { is_array, is_integer, is_object, is_string, is_date, is_set };
 export {
   map_limit,
   map_max,
+  map_min,
   sum,
   is_zero_map,
   map_without_undefined,
@@ -104,12 +105,13 @@ export function make_valid_name(s: string): string {
 
 const filename_extension_re = /(?:\.([^.]+))?$/;
 export function filename_extension(filename: string): string {
+  filename = path_split(filename).tail;
   const match = filename_extension_re.exec(filename);
   if (!match) {
     return "";
   }
   const ext = match[1];
-  return (ext ? ext : "").toLowerCase();
+  return ext ? ext : "";
 }
 
 export function filename_extension_notilde(filename: string): string {
@@ -263,8 +265,8 @@ export function startswith(s: any, x: string | string[]): boolean {
   return false;
 }
 
-export function endswith(s: any, t: string): boolean {
-  if (typeof s != "string") {
+export function endswith(s: any, t: any): boolean {
+  if (typeof s != "string" || typeof t != "string") {
     return false;
   }
   return s.slice(s.length - t.length) === t;
@@ -887,7 +889,7 @@ export function map_diff(
 // together for an exact search.
 export function search_split(search: string): string[] {
   const terms: string[] = [];
-  const v = search.toLowerCase().split('"');
+  const v = search.split('"');
   const { length } = v;
   for (let i = 0; i < v.length; i++) {
     let element = v[i];
@@ -1805,7 +1807,7 @@ export function peer_grading(
   const L = students.length;
   for (let i = 0; i < L; i++) {
     for (let j = i + 1; j <= i + N; j++) {
-      assignment[students[i]].push(s_random[j % L]);
+      assignment[s_random[i]].push(s_random[j % L]);
     }
   }
 
@@ -1839,11 +1841,11 @@ export function path_to_tab(name: string): string {
 
 // assumes a valid editor tab name...
 // If invalid or undefined, returns undefined
-export function tab_to_path(name: string): string {
+export function tab_to_path(name: string): string | undefined {
   if (name?.substring(0, 7) === "editor-") {
     return name.substring(7);
   }
-  return name;
+  return;
 }
 
 // suggest a new filename when duplicating it as follows:
@@ -2191,4 +2193,19 @@ function compareVersionStrings(a: string, b: string): -1 | 0 | 1 {
     }
   }
   return 0;
+}
+
+// Count number of occurrences of m in s-- see http://stackoverflow.com/questions/881085/count-the-number-of-occurences-of-a-character-in-a-string-in-javascript
+
+export function count(str: string, strsearch: string): number {
+  let index = -1;
+  let count = -1;
+  while (true) {
+    index = str.indexOf(strsearch, index + 1);
+    count++;
+    if (index === -1) {
+      break;
+    }
+  }
+  return count;
 }
