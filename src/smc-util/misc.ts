@@ -1968,7 +1968,7 @@ export function top_sort(
   // Detect cycles
   if (num_edges !== walked_edges) {
     /*// uncomment this when debugging problems.
-    if (window != null) {
+    if (typeof window != "undefined") {
       (window as any)._DAG = DAG;
     } // so it's possible to debug in browser
     */

@@ -32,7 +32,7 @@ export function months_ago(m): Date {
 }
 
 export function server_time(): Date {
-  if (window != null) {
+  if (typeof window != "undefined") {
     return new Date(
       new Date().valueOf() - parseFloat(get_local_storage("clock_skew") ?? "0")
     );
@@ -45,7 +45,7 @@ export function server_time(): Date {
 }
 
 export function server_milliseconds_ago(ms: number): Date {
-  if (window != null) {
+  if (typeof window != "undefined") {
     return new Date(
       new Date().valueOf() -
         ms -

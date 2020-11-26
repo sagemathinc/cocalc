@@ -33,7 +33,7 @@ export function log(..._args): void {
 }
 
 export function wrap_log(): void {
-  if (!RUNNING_IN_NODE && window != null) {
+  if (!RUNNING_IN_NODE && typeof window != "undefined") {
     (window.console as any).log_original = window.console.log;
     window.console.log = log;
   }
