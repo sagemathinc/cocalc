@@ -8,7 +8,7 @@ import { delay } from "awaiting";
 import { SyncTable } from "smc-util/sync/table";
 import { webapp_client } from "../../webapp-client";
 import { TypedMap } from "../../app-framework";
-import { merge } from "smc-util/misc2";
+import { merge } from "smc-util/misc";
 import { UsageInfo } from "../../../smc-project/usage-info/types";
 
 type ImmutableUsageInfo = TypedMap<UsageInfo>;
