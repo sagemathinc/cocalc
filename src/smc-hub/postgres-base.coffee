@@ -316,6 +316,13 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                         cb(err)
                 async.map(locals.clients, f, cb)
             (cb) =>
+                # we set a statement_timeout, to avoid queries locking up PG
+                f = (client, cb) =>
+                    sto = 30 * 60 * 1000 # 30 secs in millisecs
+                    client.query "SET statement_timeout TO #{sto}", (err) =>
+                        cb(err)
+                async.map(locals.clients, f, cb)
+            (cb) =>
                 dbg("checking if ANY db server is in recovery, i.e., we are doing standby queries only")
                 @is_standby = false
                 f = (client, cb) =>
