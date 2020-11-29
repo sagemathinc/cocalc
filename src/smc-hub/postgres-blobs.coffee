@@ -30,6 +30,7 @@ misc_node = require('smc-util-node/misc_node')
 required = defaults.required
 
 {expire_time, one_result, all_results} = require('./postgres-base')
+{delete_patches} = require('./postgres/delete-patches')
 
 {filesystem_bucket} = require('./filesystem-bucket')
 
@@ -720,11 +721,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             (cb) =>
                 if last_active? and last_active >= opts.cutoff
                     cb(); return
-                dbg("actually delete patches")
-                @_query
-                    query : "DELETE FROM patches"
-                    where : where
-                    cb    : cb
+                dbg("actually deleting patches")
+                delete_patches(db:@, string_id: opts.string_id, cb:cb)
         ], (err) => opts.cb?(err))
 
     unarchive_patches: (opts) =>
