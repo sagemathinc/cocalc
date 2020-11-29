@@ -13,6 +13,7 @@ import {
   is_valid_uuid_string,
   required,
   defaults,
+  coerce_codomain_to_numbers,
 } from "smc-util/misc";
 import * as message from "smc-util/message";
 import { DirectoryListingEntry } from "smc-util/types";
@@ -138,7 +139,12 @@ export class ProjectClient {
     member_host?: number;
     always_running?: number;
   }): Promise<void> {
-    await this.call(message.project_set_quotas(opts));
+    // we do some extra work to ensure all the quotas are numbers (typescript isn't
+    // enough; sometimes client code provides strings, which can cause lots of trouble).
+    const x = coerce_codomain_to_numbers(copy_without(opts, ["project_id"]));
+    await this.call(
+      message.project_set_quotas({ ...x, ...{ project_id: opts.project_id } })
+    );
   }
 
   public async websocket(project_id: string): Promise<any> {
