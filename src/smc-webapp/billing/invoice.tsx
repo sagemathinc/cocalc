@@ -20,19 +20,26 @@ export const Invoice: React.FC<Props> = ({ invoice }) => {
 
   function download(e): void {
     e.preventDefault();
-    for (const [x, val] of invoice) {
-      if (x.endsWith("_url")) {
-        open_popup_window(val as string);
-        return;
-      }
+    const url = invoice.get("hosted_invoice_url");
+    if (url) {
+      open_popup_window(url as string);
     }
+    return;
   }
 
   function render_paid_status(): JSX.Element {
     if (invoice.get("paid")) {
       return <span>PAID {hide_line_items ? "" : " Thanks!"}</span>;
     } else {
-      return <a style={{ color: "red" }} onClick={download}>UNPAID (click to pay)</a>;
+      if (invoice.get("hosted_invoice_url")) {
+        return (
+          <a style={{ color: "red" }} onClick={download}>
+            UNPAID (click to pay)
+          </a>
+        );
+      } else {
+        return <span>(draft)</span>;
+      }
     }
   }
 
