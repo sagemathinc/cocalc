@@ -1717,7 +1717,7 @@ export function seconds2hms(
       }
     }
   }
-  throw Error("BUG in seconds2hms"); // unreachable
+  return "";
 }
 
 export function range(n: number): number[] {
