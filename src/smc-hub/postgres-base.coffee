@@ -18,6 +18,10 @@ DEFAULT_TIMEOUT_DELAY_MS = DEFAULT_TIMEOUS_MS * 4
 
 QUERY_ALERT_THRESH_MS=5000
 
+# this is a limit for each query, unless timeout_s is specified.
+# https://postgresqlco.nf/en/doc/param/statement_timeout/
+DEFAULT_STATEMENT_TIMEOUT_s = 30
+
 EventEmitter = require('events')
 
 fs      = require('fs')
@@ -318,7 +322,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             (cb) =>
                 # we set a statement_timeout, to avoid queries locking up PG
                 f = (client, cb) =>
-                    sto = 30 * 60 * 1000 # 30 secs in millisecs
+                    sto = DEFAULT_STATEMENT_TIMEOUT_s * 1000 # in millisecs
                     client.query "SET statement_timeout TO #{sto}", (err) =>
                         cb(err)
                 async.map(locals.clients, f, cb)
