@@ -230,8 +230,7 @@ What's whats the answer to life the universe and *everything*?
 * (C) $\\infty$
 `;
 
-const MC_ANSWER =
-  'answer_7 = ""   # enter your answer inside the string quotes';
+const MC_ANSWER = `answer_7 = ""   # enter your answer inside the string quotes`;
 
 const PY_MC_TEST = `
 assert answer_7 in ['A', 'B', 'C']
@@ -429,13 +428,12 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
       "This cell contains the answer of the multiple-choice answer. Make sure the variable name corresponds to the test in the next cell!",
     value: "mc_answer",
     icon: "list",
-    grade: true,
+    grade: false,
     locked: false,
-    solution: false,
+    solution: true,
     task: false,
     remove: false,
     multiple_choice: true,
-    points: DEFAULT_POINTS,
     cell_type: "code",
     template: MC_ANSWER,
   },
@@ -443,7 +441,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     title: "Multiple-choice test",
     student_title: "Testing your answer.",
     student_tip:
-      "You have to assign your answer to the question in the cell above. This cell will test if your answer is correct..",
+      "You have to assign your answer to the question in the cell above. This cell will test if your answer is correct.",
     hover:
       "This cell contains a validation and a hidden test for the multiple-choice answer. Make sure the variable name corresponds to the answer in the previous cell!",
     value: "mc_test",
@@ -454,8 +452,8 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     task: false,
     remove: false,
     multiple_choice: true,
-    points: DEFAULT_POINTS,
     cell_type: "code",
+    points: DEFAULT_POINTS,
     template: {
       python: PY_MC_TEST,
       r: R_MC_TEST,
