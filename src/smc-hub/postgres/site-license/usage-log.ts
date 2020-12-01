@@ -22,10 +22,9 @@ import { TIMEOUT_s } from "./const";
 export async function update_site_license_usage_log(
   db: PostgreSQL
 ): Promise<void> {
-  await Promise.all([
-    update_site_license_usage_log_running_projects(db),
-    update_site_license_usage_log_not_running_projects(db),
-  ]);
+  // don't run this in parallel – timeout_s triggers a transaction and as of now, we have only one client<->db connection
+  await update_site_license_usage_log_running_projects(db);
+  await update_site_license_usage_log_not_running_projects(db);
 }
 
 /*
