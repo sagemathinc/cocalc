@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { alert_message } from "../../alerts";
 import { Metadata } from "./types";
 
 type Language = "python" | "julia" | "r" | "sage" | "octave";
@@ -464,7 +463,7 @@ for (const x of CELLTYPE_INFO_LIST) {
 // in Javascript, but instead use a function with a cache
 // since it's more flexible.
 const value_cache: { [key: string]: string } = {};
-export function state_to_value(state: Metadata): string|undefined {
+export function state_to_value(state: Metadata): string | undefined {
   const grade: boolean = !!state.grade;
   const locked: boolean = !!state.locked;
   const solution: boolean = !!state.solution;
@@ -506,8 +505,7 @@ export function state_to_value(state: Metadata): string|undefined {
   }
   // throwing and error here causes the webapp to crash completely,
   // but we want to continue showing the probematic notebook.
-  const message = `Invalid NBGrader state: "${key}"`;
-  alert_message({ type: "error", message });
+  console.warn(`Invalid NBGrader state: "${key}"`);
 }
 
 export function value_to_state(value: string): Metadata {
