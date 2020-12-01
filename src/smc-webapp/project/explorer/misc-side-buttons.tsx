@@ -13,7 +13,6 @@ interface Props {
   show_hidden?: boolean;
   show_masked?: boolean;
   public_view?: boolean;
-  show_new?: boolean;
   show_library?: boolean;
   available_features?: { library: boolean };
   actions: ProjectActions;

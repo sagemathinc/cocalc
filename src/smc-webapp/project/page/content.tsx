@@ -68,7 +68,6 @@ export const Content: React.FC<Props> = React.memo(
     const force_update = useForceUpdate();
     const open_files =
       useTypedRedux({ project_id }, "open_files") ?? Map<string, any>();
-    const show_new = useTypedRedux({ project_id }, "show_new");
     const draggable_ref = useRef<any>(null);
     const editor_container_ref = useRef(null);
     const fullscreen = useTypedRedux("page", "fullscreen");
@@ -282,8 +281,7 @@ export const Content: React.FC<Props> = React.memo(
       }
     }
 
-    // The className below is so we always make this div the remaining height,
-    // except for on the files page when New is being displayed.
+    // The className below is so we always make this div the remaining height.
     // The overflowY is hidden for editors (which don't scroll), but auto
     // otherwise, since some tabs (e.g., settings) *do* need to scroll. See
     // https://github.com/sagemathinc/cocalc/pull/4708.
@@ -294,7 +292,7 @@ export const Content: React.FC<Props> = React.memo(
           ...(!is_visible ? { display: "none" } : undefined),
           ...{ overflowY: tab_name.startsWith("editor-") ? "hidden" : "auto" },
         }}
-        className={tab_name === "files" && show_new ? undefined : "smc-vfill"}
+        className={"smc-vfill"}
       >
         {render_tab_content()}
       </div>

@@ -1461,8 +1461,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const project_actions = this.redux.getProjectActions(
       this.store.get("project_id")
     );
-    project_actions.set_active_tab("files");
-    project_actions.toggle_new(true);
+    project_actions.set_active_tab("new");
   };
 
   private _get_cell_input = (id?: string | undefined): string => {

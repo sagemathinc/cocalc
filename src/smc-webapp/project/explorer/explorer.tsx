@@ -43,7 +43,6 @@ import { Col, Row, ButtonGroup, Button, Alert } from "react-bootstrap";
 const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
 import { FileUploadWrapper } from "../../file-upload";
-import { ProjectNewForm } from "../new";
 import { Library } from "../../library";
 import { webapp_client } from "../../webapp-client";
 import { UsersViewing } from "../../account/avatar/users-viewing";
@@ -113,7 +112,6 @@ interface ReduxProps {
   new_name?: string;
   library?: object;
   show_library?: boolean;
-  show_new?: boolean;
   public_paths?: immutable.List<string>; // used only to trigger table init
   configuration?: Configuration;
   available_features?: Available;
@@ -176,7 +174,6 @@ export const Explorer = rclass(
           new_name: rtypes.string,
           library: rtypes.object,
           show_library: rtypes.bool,
-          show_new: rtypes.bool,
           public_paths: rtypes.immutable, // used only to trigger table init
           configuration: rtypes.immutable,
           available_features: rtypes.object,
@@ -355,30 +352,6 @@ export const Explorer = rclass(
                 onClose={() => this.props.actions.toggle_library(false)}
               />
             </SettingBox>
-          </Col>
-        </Row>
-      );
-    }
-
-    render_new() {
-      if (!this.props.show_new) {
-        return;
-      }
-      const close = () => {
-        this.props.actions.toggle_new(false);
-      };
-      return (
-        <Row>
-          <Col md={12} mdOffset={0} lg={10} lgOffset={1}>
-            <ProjectNewForm
-              project_id={this.props.project_id}
-              name={this.props.name}
-              actions={this.props.actions}
-              on_close={close}
-              on_create_file={close}
-              on_create_folder={close}
-              show_header={true}
-            />
           </Col>
         </Row>
       );
@@ -575,7 +548,6 @@ export const Explorer = rclass(
               other_settings={this.props.other_settings}
               library={this.props.library}
               redux={redux}
-              show_new={this.props.show_new}
               last_scroll_top={this.props.file_listing_scroll_top}
               configuration_main={this.props.configuration?.get("main")}
             />
@@ -634,7 +606,6 @@ export const Explorer = rclass(
               create_file={this.create_file}
               create_folder={this.create_folder}
               public_view={public_view}
-              disabled={this.props.show_new}
             />
           </div>
           {!public_view && (
@@ -703,7 +674,6 @@ export const Explorer = rclass(
               }
               public_view={public_view}
               actions={this.props.actions}
-              show_new={this.props.show_new}
               show_library={this.props.show_library}
               kucalc={this.props.kucalc}
               available_features={this.props.available_features}
@@ -811,7 +781,7 @@ export const Explorer = rclass(
             {this.render_error()}
             {this.render_activity()}
             {this.render_control_row(public_view, visible_listing)}
-            {this.props.ext_selection != null ? (
+            {this.props.ext_selection != null && (
               <AskNewFilename
                 actions={this.props.actions}
                 current_path={this.props.current_path}
@@ -819,9 +789,7 @@ export const Explorer = rclass(
                 new_filename={this.props.new_filename}
                 other_settings={this.props.other_settings}
               />
-            ) : undefined}
-            {this.render_new()}
-
+            )}
             <div style={FLEX_ROW_STYLE}>
               <div
                 style={{

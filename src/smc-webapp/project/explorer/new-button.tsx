@@ -85,7 +85,7 @@ export class NewButton extends React.Component<Props> {
   // Go to new file tab if no file is specified
   on_create_button_clicked = (): void => {
     if (this.props.file_search.length === 0) {
-      this.props.actions.toggle_new();
+      this.props.actions.set_active_tab('new');
     } else if (
       this.props.file_search[this.props.file_search.length - 1] === "/"
     ) {

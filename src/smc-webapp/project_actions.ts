@@ -308,10 +308,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.toggle_panel("show_library", show);
   }
 
-  toggle_new(show?: boolean): void {
-    this.toggle_panel("show_new", show);
-  }
-
   set_url_to_path(current_path): void {
     if (current_path.length > 0 && !misc.endswith(current_path, "/")) {
       current_path += "/";
