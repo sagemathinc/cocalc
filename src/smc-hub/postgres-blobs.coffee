@@ -34,6 +34,9 @@ required = defaults.required
 
 {filesystem_bucket} = require('./filesystem-bucket')
 
+# some queries do searches, which could take a bit. we give them 5 minutes …
+TIMEOUT_LONG_S = 300
+
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     save_blob: (opts) =>
         opts = defaults opts,
@@ -380,6 +383,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     query : "SELECT id FROM blobs"
                     where : "expire IS NULL and backup IS NOT true"
                     limit : opts.limit
+                    timeout_s : TIMEOUT_LONG_S
                     cb    : all_results 'id', (err, x) =>
                         v = x; cb(err)
             (cb) =>
@@ -466,6 +470,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             query    : 'SELECT id, size FROM blobs'
             where    : "expire IS NULL AND gcloud IS NULL and (last_active <= NOW() - INTERVAL '#{opts.cutoff}' OR last_active IS NULL)"
             limit    : opts.limit
+            timeout_s : TIMEOUT_LONG_S
             ##  order_by : 'id'  # this is not important and was causing VERY excessive load in production (due to bad query plannnig?!)
             cb       : all_results (err, v) =>
                 if err
@@ -621,6 +626,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     query    : 'SELECT string_id FROM syncstrings'
                     where    : [{'last_active <= $::TIMESTAMP' : misc.days_ago(opts.age_days)}, 'archived IS NULL']
                     limit    : opts.limit
+                    timeout_s : TIMEOUT_LONG_S
                     cb       : all_results 'string_id', (err, v) =>
                         syncstrings = v
                         cb(err)

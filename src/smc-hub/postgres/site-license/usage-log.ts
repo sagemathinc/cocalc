@@ -17,14 +17,14 @@ It's also enabled in dev mode by the hub so that cc-in-cc hub developemnt is eas
 */
 import { PostgreSQL } from "../types";
 import { query } from "../query";
+import { TIMEOUT_s } from "./const";
 
 export async function update_site_license_usage_log(
   db: PostgreSQL
 ): Promise<void> {
-  await Promise.all([
-    update_site_license_usage_log_running_projects(db),
-    update_site_license_usage_log_not_running_projects(db),
-  ]);
+  // don't run this in parallel – timeout_s triggers a transaction and as of now, we have only one client<->db connection
+  await update_site_license_usage_log_running_projects(db);
+  await update_site_license_usage_log_not_running_projects(db);
 }
 
 /*
@@ -174,7 +174,7 @@ INSERT INTO
       missing;
 
 `;
-  await query({ db, query: q });
+  await query({ db, query: q, timeout_s: TIMEOUT_s });
 }
 
 /*
@@ -234,7 +234,7 @@ WHERE
    AND site_license_usage_log.project_id = stopped.project_id
    AND site_license_usage_log.start = stopped.start;
 `;
-  await query({ db, query: q });
+  await query({ db, query: q, timeout_s: TIMEOUT_s });
 }
 
 /* Answer questions about active usage of a site license by projects */
@@ -263,7 +263,6 @@ export async function number_of_projects_that_used_license(
 // the given interval of time.
 export async function number_of_hours_projects_used_license(
   db: PostgreSQL,
-
   license_id: string,
   interval: Interval
 ): Promise<number> {

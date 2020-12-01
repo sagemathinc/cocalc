@@ -74,7 +74,12 @@ export async function syncdoc_history(
     query =
       "SELECT time, user_id, format, length(patch) as patch_length FROM patches";
   }
-  const results = await callback2(db._query, { query, where, order_by });
+  const results = await callback2(db._query, {
+    query,
+    where,
+    order_by,
+    timeout_s: 300,
+  });
   const patches: Patch[] = [];
   function format_patch(row): Patch {
     const patch: Patch = { time_utc: row.time, format: row.format };
