@@ -2577,6 +2577,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 @_query
                     query : "SELECT account_id FROM accounts"
                     where : "stripe_customer_id IS NOT NULL"
+                    timeout_s: 300
                     cb    : all_results 'account_id', (err, account_ids) =>
                         locals.account_ids = account_ids
                         cb(err)
@@ -3080,6 +3081,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     @_query
                         query : "DELETE FROM patches"
                         where : locals.where
+                        timeout_s: 300
                         cb    : cb
         ], opts.cb)
 
