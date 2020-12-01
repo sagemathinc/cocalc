@@ -220,7 +220,7 @@ Describe how you will grade the task here.
 === END MARK SCHEME ===
 `;
 
-const MC_Q = `
+const MC_QUESTION = `
 ## Question 7
 
 What's whats the answer to life the universe and *everything*?
@@ -230,33 +230,28 @@ What's whats the answer to life the universe and *everything*?
 * (C) $\\infty$
 `;
 
-const PY_MC_TEST = `
-answer_7 = ""   # insert your answer here
+const MC_ANSWER =
+  'answer_7 = ""   # enter your answer inside the string quotes';
 
+const PY_MC_TEST = `
 assert answer_7 in ['A', 'B', 'C']
 ### BEGIN HIDDEN TESTS
 assert answer_7 == 'B'
 ### END HIDDEN TESTS`;
 
 const R_MC_TEST = `
-answer_7 = ""   # insert your answer here
-
 testthat::expect_true(answer_7, c('A', 'B', 'C'))
 ### BEGIN HIDDEN TESTS
 testthat::expect_equal(answer_7, 'B')
 ### END HIDDEN TESTS`;
 
 const JULIA_MC_TEST = `
-answer_7 = ""   # insert your answer here
-
 @test answer_7 in ['A', 'B', 'C']
 ### BEGIN HIDDEN TESTS
 @test answer_7 == 'B'
 ### END HIDDEN TESTS`;
 
 const OCTAVE_MC_TEST = `
-answer_7 = "";   # insert your answer here
-
 assert(strfind("ABC", answer_7) && length(answer_7) == 1)
 ### BEGIN HIDDEN TESTS
 assert(answer_7 == "B")
@@ -422,20 +417,39 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     remove: false,
     multiple_choice: true,
     code_only: false,
-    template: MC_Q,
+    template: MC_QUESTION,
     cell_type: "markdown",
   },
   {
     title: "Multiple-choice answer",
     student_title: "Enter your answer here",
     student_tip:
-      "Assign your chosen answer to the answer variable. The test here will check that it is indeed one of the expected answers. Your teacher will run an additional test to see if your answer is correct.",
+      "Assign your chosen answer to the answer variable. Below, a test will check that this is indeed one of the expected answers. Your teacher will run an additional test to see if your answer is correct.",
     hover:
-      "This cell contains a validation and a hidden test for the multiple-choice answer. Make sure the variable name corresponds to the question to avoid confusion!",
-    value: "mc_test",
+      "This cell contains the answer of the multiple-choice answer. Make sure the variable name corresponds to the test in the next cell!",
+    value: "mc_answer",
     icon: "list",
     grade: true,
     locked: false,
+    solution: false,
+    task: false,
+    remove: false,
+    multiple_choice: true,
+    points: DEFAULT_POINTS,
+    cell_type: "code",
+    template: MC_ANSWER,
+  },
+  {
+    title: "Multiple-choice test",
+    student_title: "Testing your answer.",
+    student_tip:
+      "You have to assign your answer to the question in the cell above. This cell will test if your answer is correct..",
+    hover:
+      "This cell contains a validation and a hidden test for the multiple-choice answer. Make sure the variable name corresponds to the answer in the previous cell!",
+    value: "mc_test",
+    icon: "list",
+    grade: true,
+    locked: true,
     solution: false,
     task: false,
     remove: false,
