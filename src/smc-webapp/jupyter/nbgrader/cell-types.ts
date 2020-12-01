@@ -27,8 +27,10 @@ interface CelltypeInfo {
   points?: number; // default number of points
   icon?: string; // icon that would make sense for this type of cell
   code_only?: boolean; // only code cells can be set to this type
+  multiple_choice?: boolean; // either a markdown question or an answer cell for testing
   markdown_only?: boolean; // only markdown cells can be set to this type
   template?: { [language in Language]?: string } | string;
+  cell_type?: "code" | "markdown"; // if set, it switches the cell type
 }
 
 const PY_TEST = `
@@ -218,6 +220,48 @@ Describe how you will grade the task here.
 === END MARK SCHEME ===
 `;
 
+const MC_Q = `
+## Question 7
+
+What's whats the answer to life the universe and *everything*?
+
+* (A) $\\pi$
+* (B) 42
+* (C) $\\infty$
+`;
+
+const PY_MC_TEST = `
+answer_7 = ""   # insert your answer here
+
+assert answer_7 in ['A', 'B', 'C']
+### BEGIN HIDDEN TESTS
+answer_7 == 'B'
+### END HIDDEN TESTS`;
+
+const R_MC_TEST = `
+answer_7 = ""   # insert your answer here
+
+testthat::expect_true(answer_7, c('A', 'B', 'C'))
+### BEGIN HIDDEN TESTS
+testthat::expect_equal(answer_7, 'B')
+### END HIDDEN TESTS`;
+
+const JULIA_MC_TEST = `
+answer_7 = ""   # insert your answer here
+
+@test answer_7 in ['A', 'B', 'C']
+### BEGIN HIDDEN TESTS
+@test answer_7 == 'B'
+### END HIDDEN TESTS`;
+
+const OCTAVE_MC_TEST = `
+answer_7 = "";   # insert your answer here
+
+assert(strfind("ABC", answer_7) && length(answer_7) == 1)
+### BEGIN HIDDEN TESTS
+assert(answer_7 == "B")
+### END HIDDEN TESTS`;
+
 export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
   {
     title: "-",
@@ -362,6 +406,49 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     task: false,
     remove: true,
   },
+  {
+    title: "Multiple-choice question",
+    student_title: "Choose an answer and set it in the next cell.",
+    student_tip:
+      "The cell below should contain a variable, where you assign your answer to.",
+    hover:
+      "This cell contains a multiple-choice question. Add the corresponding test cell to validate and check the student's choice.",
+    value: "mc_question",
+    icon: "list",
+    grade: false,
+    locked: true,
+    solution: false,
+    task: false,
+    remove: false,
+    multiple_choice: true,
+    code_only: false,
+    template: MC_Q,
+    cell_type: "markdown",
+  },
+  {
+    title: "Multiple-choice test",
+    student_title: "Enter your answer here",
+    student_tip:
+      "Assign your chosen answer to the answer variable. The test here will check that it is indeed one of the expected answers. Your teacher will run an additional test to see if your answer is correct.",
+    hover:
+      "This cell contains a validation and a hidden test for the multiple-choice answer. Make sure the variable name corresponds to the question to avoid confusion!",
+    value: "mc_test",
+    icon: "list",
+    grade: true,
+    locked: true,
+    solution: true,
+    task: false,
+    remove: false,
+    multiple_choice: true,
+    points: DEFAULT_POINTS,
+    cell_type: "code",
+    template: {
+      python: PY_MC_TEST,
+      r: R_MC_TEST,
+      julia: JULIA_MC_TEST,
+      octave: OCTAVE_MC_TEST,
+    },
+  },
 ];
 
 export const CELLTYPE_INFO_MAP: { [value: string]: CelltypeInfo } = {};
@@ -382,26 +469,35 @@ export function state_to_value(state: Metadata): string {
   const solution: boolean = !!state.solution;
   const task: boolean = !!state.task;
   const remove: boolean = !!state.remove;
+  const multiple_choice: boolean = !!state.multiple_choice;
 
   if (
     remove === false &&
     grade === false &&
     solution === false &&
-    task === false
+    task === false &&
+    multiple_choice === false
   ) {
     // special case: either nothing or readonly
     return locked ? "readonly" : "";
   }
 
-  // other possibilities for grade/solution/task/remove state:
-  const key = JSON.stringify({ grade, solution, task, remove });
+  // other possibilities for grade/solution/task/remove/multiple_choice state:
+  const key = JSON.stringify({
+    grade,
+    solution,
+    task,
+    remove,
+    multiple_choice,
+  });
   if (value_cache[key] != undefined) return value_cache[key];
   for (const x of CELLTYPE_INFO_LIST) {
     if (
       x.grade == grade &&
       x.solution == solution &&
       x.task == task &&
-      x.remove == remove
+      x.remove == remove &&
+      (x.multiple_choice ?? false) == multiple_choice
     ) {
       value_cache[key] = x.value;
       return x.value;
@@ -422,6 +518,7 @@ export function value_to_state(value: string): Metadata {
     task: x.task,
     points: x.points,
     remove: x.remove,
+    multiple_choice: x.multiple_choice,
   };
 }
 
@@ -456,4 +553,8 @@ export function value_to_template_content(
   }
   const content = template[language];
   return content == null ? "" : content.trim();
+}
+
+export function set_cell_type(value: string) {
+  return CELLTYPE_INFO_MAP[value].cell_type;
 }

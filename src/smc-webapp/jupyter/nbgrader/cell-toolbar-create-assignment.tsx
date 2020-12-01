@@ -21,6 +21,7 @@ import {
   value_to_state,
   state_to_value,
   value_to_template_content,
+  set_cell_type
 } from "./cell-types";
 
 const OPTIONS_CODE: Rendered[] = [];
@@ -55,12 +56,13 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
       return;
     }
     const metadata: Metadata = value_to_state(value);
+    const id = cell.get("id")
     metadata.grade_id = cell.getIn(["metadata", "nbgrader", "grade_id"], "");
     if (!metadata.grade_id) {
       // TODO -- check if default is globally unique...?
-      metadata.grade_id = cell.get("id");
+      metadata.grade_id = id
     }
-    actions.nbgrader_actions.set_metadata(cell.get("id"), metadata);
+    actions.nbgrader_actions.set_metadata(id, metadata);
 
     if (cell.get("input", "").trim() == "") {
       const language: string = actions.store.get_kernel_language();
@@ -70,7 +72,11 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
         cell.get("cell_type", "code")
       );
       if (input != "") {
-        actions.set_cell_input(cell.get("id"), input);
+        actions.set_cell_input(id, input);
+      }
+      const set_type = set_cell_type(value)
+      if (set_type != null) {
+        actions.set_cell_type(id, set_type)
       }
     }
   }
