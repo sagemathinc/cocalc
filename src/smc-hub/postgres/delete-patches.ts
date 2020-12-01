@@ -56,6 +56,7 @@ export async function delete_patches(opts: DeletePatchesOpts): Promise<void> {
     await db.async_query({
       query: "DELETE FROM patches",
       where,
+      timeout_s: 300, // delete ops could take a bit
     });
     if (limit != null) {
       await delay(DELAY_S * 1000);
