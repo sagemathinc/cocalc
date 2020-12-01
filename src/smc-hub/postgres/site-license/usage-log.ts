@@ -17,7 +17,7 @@ It's also enabled in dev mode by the hub so that cc-in-cc hub developemnt is eas
 */
 import { PostgreSQL } from "../types";
 import { query } from "../query";
-import { TIMEOUT_s } from "./const";
+import { TIMEOUT_S } from "./const";
 
 export async function update_site_license_usage_log(
   db: PostgreSQL
@@ -174,7 +174,7 @@ INSERT INTO
       missing;
 
 `;
-  await query({ db, query: q, timeout_s: TIMEOUT_s });
+  await query({ db, query: q, timeout_s: TIMEOUT_S });
 }
 
 /*
@@ -234,7 +234,7 @@ WHERE
    AND site_license_usage_log.project_id = stopped.project_id
    AND site_license_usage_log.start = stopped.start;
 `;
-  await query({ db, query: q, timeout_s: TIMEOUT_s });
+  await query({ db, query: q, timeout_s: TIMEOUT_S });
 }
 
 /* Answer questions about active usage of a site license by projects */

@@ -4,4 +4,4 @@
  */
 
 // some queries might take longer – give them a couple of minutes
-export const TIMEOUT_s = 300;
+export const TIMEOUT_S = 300;
