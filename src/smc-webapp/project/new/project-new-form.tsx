@@ -143,11 +143,8 @@ export const ProjectNewForm = rclass<ReactProps>(
       this.submit();
     };
 
-    private render_close_button(): JSX.Element | undefined {
-      const { on_close } = this.props;
-      if (!on_close) {
-        return;
-      }
+    private render_close_button(): JSX.Element {
+      const on_close = this.props.on_close ?? this.show_files.bind(this);
       return (
         <Button onClick={on_close} className={"pull-right"}>
           Close
@@ -227,9 +224,6 @@ export const ProjectNewForm = rclass<ReactProps>(
     }
 
     private render_close_row(): JSX.Element | undefined {
-      if (!this.props.on_close) {
-        return;
-      }
       return (
         <Row>
           <Col sm={9}>
@@ -391,6 +385,10 @@ export const ProjectNewForm = rclass<ReactProps>(
       }
     }
 
+    private show_files(): void {
+      this.props.actions.set_active_tab("files");
+    }
+
     render(): JSX.Element {
       //key is so autofocus works below
       return (
@@ -398,7 +396,7 @@ export const ProjectNewForm = rclass<ReactProps>(
           show_header={this.props.show_header}
           icon={"plus-circle"}
           title={this.render_title()}
-          close={this.props.on_close}
+          close={this.props.on_close ?? this.show_files.bind(this)}
         >
           <Row key={this.props.default_filename}>
             <Col sm={12}>

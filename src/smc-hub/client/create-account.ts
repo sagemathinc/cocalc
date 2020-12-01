@@ -13,6 +13,7 @@ const MAX_ACCOUNTS_PER_30MIN_GOLD = 1500;
 const auth = require("../auth");
 import { parseDomain, ParseResultType } from "parse-domain";
 import * as message from "smc-util/message";
+import { CreateAccount } from "smc-util/message-types";
 import {
   walltime,
   lower_email_address,
@@ -73,8 +74,9 @@ async function get_db_client(db: PostgreSQL) {
 // if the email address's domain should go through SSO, return the domain name
 async function is_domain_exclusive_sso(
   db: PostgreSQL,
-  email: string
+  email?: string
 ): Promise<string | undefined> {
+  if (email == null) return undefined;
   const raw_domain = email.split("@")[1]?.trim().toLowerCase();
   if (raw_domain == null) return;
   const parsed = parseDomain(raw_domain);
@@ -168,7 +170,7 @@ async function check_registration_token(
 
 interface AccountCreationOptions {
   client: any;
-  mesg: any;
+  mesg: CreateAccount;
   database: PostgreSQL;
   logger?: Function;
   host?: string;
@@ -180,7 +182,7 @@ interface CreateAccountData {
   account_id: string;
   first_name: string;
   last_name: string;
-  email_address: string;
+  email_address?: string;
   created_by: string;
   analytics_token?: string;
 }
