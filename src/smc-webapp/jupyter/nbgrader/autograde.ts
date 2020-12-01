@@ -148,7 +148,9 @@ export function extract_auto_scores(notebook: JupyterNotebook): NotebookScores {
     if (!points) continue; // no points (or 0 points), so no grading to be done or point in recording one.
     let value: string;
     try {
-      value = state_to_value(nbgrader);
+      const v0 = state_to_value(nbgrader);
+      if (v0 == null) throw Error();
+      value = v0;
     } catch (err) {
       // invalid so ignore
       console.warn("malformed nbgrader metadata", nbgrader);

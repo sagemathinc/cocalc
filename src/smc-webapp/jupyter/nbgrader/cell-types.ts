@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { alert_message } from "../../alerts";
 import { Metadata } from "./types";
 
 type Language = "python" | "julia" | "r" | "sage" | "octave";
@@ -235,7 +236,7 @@ answer_7 = ""   # insert your answer here
 
 assert answer_7 in ['A', 'B', 'C']
 ### BEGIN HIDDEN TESTS
-answer_7 == 'B'
+assert answer_7 == 'B'
 ### END HIDDEN TESTS`;
 
 const R_MC_TEST = `
@@ -426,7 +427,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     cell_type: "markdown",
   },
   {
-    title: "Multiple-choice test",
+    title: "Multiple-choice answer",
     student_title: "Enter your answer here",
     student_tip:
       "Assign your chosen answer to the answer variable. The test here will check that it is indeed one of the expected answers. Your teacher will run an additional test to see if your answer is correct.",
@@ -435,8 +436,8 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     value: "mc_test",
     icon: "list",
     grade: true,
-    locked: true,
-    solution: true,
+    locked: false,
+    solution: false,
     task: false,
     remove: false,
     multiple_choice: true,
@@ -463,7 +464,7 @@ for (const x of CELLTYPE_INFO_LIST) {
 // in Javascript, but instead use a function with a cache
 // since it's more flexible.
 const value_cache: { [key: string]: string } = {};
-export function state_to_value(state: Metadata): string {
+export function state_to_value(state: Metadata): string|undefined {
   const grade: boolean = !!state.grade;
   const locked: boolean = !!state.locked;
   const solution: boolean = !!state.solution;
@@ -503,7 +504,10 @@ export function state_to_value(state: Metadata): string {
       return x.value;
     }
   }
-  throw Error(`invalid state - "${key}"`);
+  // throwing and error here causes the webapp to crash completely,
+  // but we want to continue showing the probematic notebook.
+  const message = `Invalid NBGrader state: "${key}"`;
+  alert_message({ type: "error", message });
 }
 
 export function value_to_state(value: string): Metadata {
