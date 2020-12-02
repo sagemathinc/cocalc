@@ -15,3 +15,16 @@ export interface SignedIn {
   last_name?: "string";
   api_key?: "string";
 }
+
+export interface CreateAccount {
+  event: "create_account";
+  id: string;
+  email_address?: string; // anonymous accounts won't have this one set
+  token?: string;
+  first_name: string; // always be set
+  last_name: string; // always be set
+  password?: string;
+  agreed_to_terms?: string;
+  get_api_key?: string;
+  usage_intent?: string;
+}

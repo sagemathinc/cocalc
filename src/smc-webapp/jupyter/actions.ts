@@ -1459,8 +1459,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const project_actions = this.redux.getProjectActions(
       this.store.get("project_id")
     );
-    project_actions.set_active_tab("files");
-    project_actions.toggle_new(true);
+    project_actions.set_active_tab("new");
   };
 
   private _get_cell_input = (id?: string | undefined): string => {
@@ -2196,10 +2195,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   _attachment_markdown = (name: any) => {
-    // This is officially what it should probably be, but
-    // it looks so bad with (typical) big images, due to
-    // know maxwidth.
-    // return `![${name}](attachment:${name})`;
+    return `![${name}](attachment:${name})`;
+    // Don't use this because official Jupyter tooling can't deal with it. See
+    //    https://github.com/sagemathinc/cocalc/issues/5055
     return `<img src="attachment:${name}" style="max-width:100%">`;
   };
 

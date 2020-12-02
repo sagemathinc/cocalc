@@ -29,6 +29,9 @@ export interface QueryOptions {
   jsonb_merge?: object;
   cache?: boolean;
   retry_until_success?: any; // todo
+  offset?: number;
+  limit?: number;
+  timeout_s?: number;
   cb?: Function;
 }
 

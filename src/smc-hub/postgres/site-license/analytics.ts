@@ -6,6 +6,7 @@
 import { PostgreSQL } from "../types";
 import { callback2 } from "../../smc-util/async-utils";
 import { copy_with, len } from "../../smc-util/misc";
+import { TIMEOUT_S } from "./const";
 
 export async function number_of_running_projects_using_license(
   db: PostgreSQL,
@@ -21,7 +22,7 @@ export async function number_of_running_projects_using_license(
   */
 
   const query = `SELECT COUNT(*) FROM projects WHERE state#>>'{state}' = 'running' AND site_license#>>'{${license_id}}'!='{}'`;
-  const x = await db.async_query({ query });
+  const x = await db.async_query({ query, timeout_s: TIMEOUT_S });
   return parseInt(x.rows[0].count);
 }
 
@@ -142,6 +143,7 @@ export async function number_of_projects_using_site_license(
   const x = await db.async_query({
     query: "SELECT COUNT(DISTINCT(projects.project_id)) " + query,
     params,
+    timeout_s: TIMEOUT_S,
   });
   return parseInt(x.rows[0].count);
 }

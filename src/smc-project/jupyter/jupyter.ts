@@ -9,19 +9,18 @@ Jupyter Backend
 For interactive testing:
 
 $ source smc-env
-$ coffee
-j = require('./smc-project/jupyter/jupyter')
-k = j.kernel(name:'python3', path:'x.ipynb')
-k.execute_code(all:true, cb:((x) -> console.log(JSON.stringify(x))), code:'2+3')
+$ ts-node
+> const j = require('./smc-project/jupyter/jupyter'); const k = j.kernel({name:'python3', path:'x.ipynb'});
+> k.execute_code({all:true, cb:((x) => console.log(JSON.stringify(x))), code:'2+3'})
 
 Interactive testing at the command prompt involving stdin:
 
-echo=(content, cb) -> cb(undefined, '389'+content.prompt)
-k.execute_code(all:true, stdin:echo, cb:((x) -> console.log(JSON.stringify(x))), code:'input("a")')
+let echo=(content, cb) => cb(undefined, '389'+content.prompt)
+k.execute_code({all:true, stdin:echo, cb:((x) -> console.log(JSON.stringify(x))), code:'input("a")'})
 
-k.execute_code(all:true, stdin:echo, cb:((x) -> console.log(JSON.stringify(x))), code:'[input("-"+str(i)) for i in range(100)]')
+k.execute_code({all:true, stdin:echo, cb:((x) -> console.log(JSON.stringify(x))), code:'[input("-"+str(i)) for i in range(100)]'})
 
-echo=(content, cb) -> setTimeout((->cb(undefined, '389'+content.prompt)), 1000)
+echo=(content, cb) => setTimeout((->cb(undefined, '389'+content.prompt)), 1000)
 
 */
 
@@ -289,7 +288,6 @@ export class JupyterKernel
 
     const opts: LaunchJupyterOpts = {
       detached: true,
-      stdio: "ignore",
       env: spawn_opts?.env ?? {},
     };
 
@@ -311,7 +309,7 @@ export class JupyterKernel
     try {
       dbg("launching kernel interface...");
       this._kernel = await launch_jupyter_kernel(this.name, opts);
-      await this._finish_spawn();
+      await this.finish_spawn();
     } catch (err) {
       if (this._state === "closed") {
         throw Error("closed");
@@ -325,8 +323,8 @@ export class JupyterKernel
     return this._kernel;
   }
 
-  async _finish_spawn(): Promise<void> {
-    const dbg = this.dbg("spawn2");
+  private async finish_spawn(): Promise<void> {
+    const dbg = this.dbg("finish_spawn");
 
     dbg("now finishing spawn of kernel...");
 
@@ -335,20 +333,33 @@ export class JupyterKernel
       this.emit("spawn_error", err);
     });
 
+    // Broadcast stdout and stderr from the subprocess itself (the kernel).
+    // This is useful for debugging broken kernels, etc., and is especially
+    // useful since it exists even if the kernel sends nothing over any
+    // zmq channels (e.g., due to being very broken).
+    this._kernel.spawn.stdout.on("data", (data) => {
+      this.emit("stdout", data.toString());
+    });
+    this._kernel.spawn.stderr.on("data", (data) => {
+      this.emit("stderr", data.toString());
+    });
+
     this._channels = require("enchannel-zmq-backend").createChannels(
       this.identity,
       this._kernel.config
     );
 
-    this._channels.shell.subscribe((mesg) => this.emit("shell", mesg));
+    if (DEBUG) {
+      this.low_level_dbg();
+    }
+
+    this._channels.shell.subscribe((mesg) => {
+      this.emit("shell", mesg);
+    });
 
     this._channels.stdin.subscribe((mesg) => this.emit("stdin", mesg));
 
     this._channels.iopub.subscribe((mesg) => {
-      if (DEBUG) {
-        this.dbg("IOPUB", 100000)(JSON.stringify(mesg));
-      }
-
       if (mesg.content != null && mesg.content.execution_state != null) {
         this.emit("execution_state", mesg.content.execution_state);
       }
@@ -369,7 +380,10 @@ export class JupyterKernel
       this.emit("iopub", mesg);
     });
 
-    this._kernel.spawn.on("close", this.close);
+    this._kernel.spawn.on("close", (x) => {
+      this.dbg("CLOSE")(JSON.stringify(x));
+      this.close();
+    });
 
     // so we can start sending code execution to the kernel, etc.
     this._set_state("starting");
@@ -515,11 +529,13 @@ export class JupyterKernel
     }
   }
 
-  _low_level_dbg() {
+  low_level_dbg(): void {
+    const dbg = this.dbg("low_level_debug", 10000);
+    this._kernel.spawn.all?.on("data", (data) => dbg("STDIO", data.toString()));
     // for low level debugging only...
     const f = (channel) => {
-      return this._channels[channel].subscribe((mesg) =>
-        console.log(channel, mesg)
+      this._channels[channel].subscribe((mesg) =>
+        dbg(channel, JSON.stringify(mesg))
       );
     };
     for (const channel of ["shell", "iopub", "control", "stdin"]) {

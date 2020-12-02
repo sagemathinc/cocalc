@@ -96,7 +96,6 @@ export interface ProjectStoreState {
   new_name?: string;
   most_recent_file_click?: string;
   show_library: boolean;
-  show_new: boolean;
   file_listing_scroll_top?: number;
   new_filename?: string;
   ext_selection?: string;
@@ -250,7 +249,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
       page_number: 0,
       checked_files: immutable.Set(),
       show_library: false,
-      show_new: false,
       file_listing_scroll_top: undefined,
       active_file_sort: TypedMap({
         is_descending: false,

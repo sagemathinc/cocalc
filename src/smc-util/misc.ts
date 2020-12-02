@@ -747,7 +747,7 @@ export function round1(num: number): number {
 }
 
 // Round given number to 2 decimal places
-export function round2(num): number {
+export function round2(num: number): number {
   // padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
   return Math.round((num + 0.00001) * 100) / 100;
 }
@@ -804,7 +804,7 @@ export function parse_number_input(
 
 // MUTATE map by coercing each element of codomain to a number,
 // with false->0 and true->1
-// Non finite valuescoerce to 0.
+// Non finite values coerce to 0.
 // Also, returns map.
 export function coerce_codomain_to_numbers(map: {
   [k: string]: any;
@@ -816,13 +816,13 @@ export function coerce_codomain_to_numbers(map: {
     } else {
       try {
         const t = parseFloat(x);
-        if (!isFinite(t)) {
+        if (isFinite(t)) {
+          map[k] = t;
+        } else {
           map[k] = 0;
-          continue;
         }
       } catch (_) {
         map[k] = 0;
-        continue;
       }
     }
   }
@@ -831,17 +831,21 @@ export function coerce_codomain_to_numbers(map: {
 
 // arithmetic of maps with codomain numbers; missing values
 // default to 0.  Despite the typing being that codomains are
-// all numbers, we coerce null values to 0 as well.
+// all numbers, we coerce null values to 0 as well, and all codomain
+// values to be numbers, since definitely some client code doesn't
+// pass in properly typed inputs.
 export function map_sum(
   a?: { [k: string]: number },
   b?: { [k: string]: number }
 ): { [k: string]: number } {
   if (a == null) {
-    return b ?? {};
+    return coerce_codomain_to_numbers(b ?? {});
   }
   if (b == null) {
-    return a ?? {};
+    return coerce_codomain_to_numbers(a ?? {});
   }
+  a = coerce_codomain_to_numbers(a);
+  b = coerce_codomain_to_numbers(b);
   const c: { [k: string]: number } = {};
   for (const k in a) {
     c[k] = (a[k] ?? 0) + (b[k] ?? 0);
@@ -862,8 +866,9 @@ export function map_diff(
   b?: { [k: string]: number }
 ): { [k: string]: number } {
   if (b == null) {
-    return a ?? {};
+    return coerce_codomain_to_numbers(a ?? {});
   }
+  b = coerce_codomain_to_numbers(b);
   const c: { [k: string]: number } = {};
   if (a == null) {
     for (const k in b) {
@@ -871,6 +876,7 @@ export function map_diff(
     }
     return c;
   }
+  a = coerce_codomain_to_numbers(a);
   for (const k in a) {
     c[k] = (a[k] ?? 0) - (b[k] ?? 0);
   }
@@ -1711,7 +1717,7 @@ export function seconds2hms(
       }
     }
   }
-  throw Error("BUG in seconds2hms"); // unreachable
+  return "";
 }
 
 export function range(n: number): number[] {

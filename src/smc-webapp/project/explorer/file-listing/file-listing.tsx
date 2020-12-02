@@ -51,7 +51,6 @@ interface Props {
   sort_by: (heading: string) => void; // TODO: should be data
   library?: object;
   other_settings?: immutable.Map<any, any>;
-  show_new?: boolean;
   last_scroll_top?: number;
   configuration_main?: MainConfiguration;
 }
@@ -187,9 +186,6 @@ export class FileListing extends React.Component<Props> {
   }
 
   render_no_files() {
-    if (this.props.show_new) {
-      return;
-    }
     if (this.props.listing.length !== 0) {
       return;
     }
