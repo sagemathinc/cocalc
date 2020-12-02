@@ -4,7 +4,7 @@
  */
 
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
-import { trunc_middle, ensure_bound } from "smc-util/misc";
+import { ensure_bound, startswith, trunc_middle } from "smc-util/misc";
 import { webapp_client } from "../../webapp-client";
 import {
   CSS,
@@ -60,7 +60,12 @@ export const Avatar: React.FC<Props> = (props) => {
       if (!props.account_id) return;
       const image = await redux.getStore("users").get_image(props.account_id);
       if (isMounted()) {
-        set_image(image);
+        if (startswith(image, "https://api.adorable.io")) {
+          // Adorable is gone -- see https://github.com/sagemathinc/cocalc/issues/5054
+          set_image(undefined);
+        } else {
+          set_image(image);
+        }
       }
       const background_color = await redux
         .getStore("users")
@@ -68,8 +73,9 @@ export const Avatar: React.FC<Props> = (props) => {
       if (isMounted()) {
         set_background_color(background_color);
       }
-    },
-    [props.account_id]
+    }, // Update image and/or color if the account_id changes *or* the profile itself changes:
+    //    https://github.com/sagemathinc/cocalc/issues/5013
+    [props.account_id, user_map.getIn([props.account_id, "profile"])]
   );
 
   function click_avatar() {

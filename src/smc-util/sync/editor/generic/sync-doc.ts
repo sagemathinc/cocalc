@@ -976,7 +976,7 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg(_f: string = ""): Function {
-    if (!this.client?.is_project()) {
+    if (!this.client?.is_project() || this.state == "closed") {
       return (..._) => {};
     }
     return this.client.dbg(`sync-doc("${this.path}").${_f}`);
@@ -2632,7 +2632,7 @@ export class SyncDoc extends EventEmitter {
     const dbg = this.dbg("handle_patch_update_queue");
     try {
       this.handle_patch_update_queue_running = true;
-      while (this.patch_update_queue.length > 0) {
+      while (this.state != "closed" && this.patch_update_queue.length > 0) {
         dbg("queue size = ", this.patch_update_queue.length);
         const v: Patch[] = [];
         for (const key of this.patch_update_queue) {
@@ -2659,6 +2659,7 @@ export class SyncDoc extends EventEmitter {
         // *cause* new entries to be added to this.patch_update_queue.
         dbg("waiting for remote and doc to sync...");
         await this.sync_remote_and_doc();
+        if (this.state === ("closed" as State)) return; // closed during await; nothing further to do
         dbg("remote and doc now synced");
 
         if (this.patch_update_queue.length > 0) {
@@ -2675,6 +2676,8 @@ export class SyncDoc extends EventEmitter {
         }
       }
     } finally {
+      if (this.state == "closed") return; // got closed, so nothing further to do
+
       // OK, done and nothing in the queue
       // Notify save() to try again -- it may have
       // paused waiting for this to clear.
