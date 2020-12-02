@@ -156,7 +156,8 @@ export function extract_auto_scores(notebook: JupyterNotebook): NotebookScores {
       console.warn("malformed nbgrader metadata", nbgrader);
       continue;
     }
-    const manual = value != "test"; // anything except 'test' must be manually graded.
+    // anything except 'test' or a multiple-choice question must be manually graded.
+    const manual = !["test", "mc_test"].includes(value);
     if (manual) {
       // manual grading
       scores[nbgrader.grade_id] = { points, manual }; // human has to assign score (maybe we could assign 0 if same as generated?)
