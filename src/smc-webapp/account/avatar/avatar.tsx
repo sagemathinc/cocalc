@@ -68,8 +68,9 @@ export const Avatar: React.FC<Props> = (props) => {
       if (isMounted()) {
         set_background_color(background_color);
       }
-    },
-    [props.account_id]
+    }, // Update image and/or color if the account_id changes *or* the profile itself changes:
+    //    https://github.com/sagemathinc/cocalc/issues/5013
+    [props.account_id, user_map.getIn([props.account_id, "profile"])]
   );
 
   function click_avatar() {
