@@ -823,11 +823,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     try {
       // Make sure syncdb content is all sent to the project.
       await this.syncdb.save();
+      if (this._state === "closed") return;
       // Export the ipynb file to disk.
       await this.api_call("save_ipynb_file", {});
+      if (this._state === "closed") return;
       // Save our custom-format syncdb to disk.
       await this.syncdb.save_to_disk();
     } catch (err) {
+      if (this._state === "closed") return;
       if (err.toString().indexOf("no kernel with path") != -1) {
         // This means that the kernel simply hasn't been initialized yet.
         // User can try to save later, once it has.
@@ -841,6 +844,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
       this.set_error(err.toString());
     } finally {
+      if (this._state === "closed") return;
       // And update the save status finally.
       if (typeof this.set_save_status === "function") {
         this.set_save_status();
