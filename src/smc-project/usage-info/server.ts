@@ -50,9 +50,8 @@ export class UsageInfoServer extends EventEmitter {
   }
 
   // this function takes the "info" we have (+ more maybe?)
-  // and derives various states from it. It is wrapped in reuseInFlight
-  // in case there are too many calls and it shouldn't really matter how often
-  // it is being called
+  // and derives specific information for the notebook (future: also other file types)
+  // at the given path.
   private update(): void {
     // TODO this is just random data for testing
     this.dbg(`getting usage for ${this.path} from ${this.info}`);

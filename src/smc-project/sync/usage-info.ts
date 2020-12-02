@@ -136,7 +136,6 @@ class UsageInfoTable {
   private start_watching(path: string): void {
     if (this.servers[path] != null) return;
     const server = new UsageInfoServer(path, this.log.bind(this));
-    server.start();
 
     server.on("usage", (usage: UsageInfo) => {
       try {
@@ -146,6 +145,8 @@ class UsageInfoTable {
         this.log(`compute_listing("${path}") error: "${err}"`);
       }
     });
+
+    server.start();
 
     this.servers[path] = server;
   }
