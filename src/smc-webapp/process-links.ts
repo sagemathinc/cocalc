@@ -13,7 +13,11 @@ Define a jQuery plugin that processes links.
 
 declare const $: any;
 
-import {  is_valid_uuid_string, startswith, normalized_path_join } from "smc-util/misc";
+import {
+  is_valid_uuid_string,
+  startswith,
+  normalized_path_join,
+} from "smc-util/misc";
 import { redux } from "./app-framework";
 
 function load_target(target: string, switch_to: boolean, anchor: string): void {
@@ -52,8 +56,8 @@ interface Options {
 
 interface Options2 {
   href_transform?: (string) => string;
-  project_id: string;
-  file_path: string;
+  project_id?: string;
+  file_path?: string;
 }
 
 function process_anchor_tag(y: any, opts: Options): void {
@@ -155,7 +159,7 @@ function process_anchor_tags(e: any, opts: Options): void {
 }
 
 function process_media_tag(y: any, attr: string, opts: Options2): void {
-  let new_src: string;
+  let new_src: string | undefined = undefined;
   let src: string | undefined = y.attr(attr);
   if (src == null) {
     return;
@@ -166,7 +170,7 @@ function process_media_tag(y: any, attr: string, opts: Options2): void {
   if (src[0] === "/" || src.slice(0, 5) === "data:") {
     // absolute path or data: url
     new_src = src;
-  } else {
+  } else if (opts.project_id != null && opts.file_path != null) {
     let project_id: string;
     const i = src.indexOf("/projects/");
     const j = src.indexOf("/files/");
@@ -200,7 +204,9 @@ function process_media_tag(y: any, attr: string, opts: Options2): void {
       src
     );
   }
-  y.attr(attr, new_src);
+  if (new_src != null) {
+    y.attr(attr, new_src);
+  }
 }
 
 function process_media_tags(e, opts: Options2) {
@@ -225,9 +231,7 @@ $.fn.process_smc_links = function (opts: Options = {}) {
 
     // part #2: process <img>, <object> and <video>/<source> tags
     // make relative links to images use the raw server
-    if (opts.project_id != null && opts.file_path != null) {
-      process_media_tags(e, opts as Options2);
-    }
+    process_media_tags(e, opts as Options2);
 
     return e;
   });
