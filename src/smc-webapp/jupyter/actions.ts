@@ -674,6 +674,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             }
 
             break;
+
+          case "streams":
+            if (record == null) {
+              return;
+            }
+            this.setState({
+              kernel_streams: {
+                stdout: record.get("stdout"),
+                stderr: record.get("stderr"),
+                last_stderr: record.get("last_stderr"),
+              },
+            } as any);
+            break;
         }
       });
     }

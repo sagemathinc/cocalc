@@ -464,8 +464,7 @@ export class JupyterKernel
   // See https://nodejs.org/api/process.html#process_process_kill_pid_signal
   signal(signal: string): void {
     const dbg = this.dbg("signal");
-    const spawn = this._kernel != null ? this._kernel.spawn : undefined;
-    const pid = spawn != null ? spawn.pid : undefined;
+    const pid = this.get_pid();
     dbg(`pid=${pid}, signal=${signal}`);
     if (pid !== undefined) {
       try {
@@ -475,6 +474,10 @@ export class JupyterKernel
         dbg(`error: ${err}`);
       }
     }
+  }
+
+  public get_pid(): undefined | number {
+    return this._kernel?.spawn?.pid;
   }
 
   // Get memory/cpu usage e.g. { cpu: 1.154401154402318, memory: 482050048 }

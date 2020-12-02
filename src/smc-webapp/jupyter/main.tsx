@@ -49,6 +49,15 @@ import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 
+const ERROR_STYLE = {
+  margin: "1ex",
+  whiteSpace: "pre" as "pre",
+  fontSize: "12px",
+  fontFamily: "monospace" as "monospace",
+  maxHeight: "30vh",
+  overflow: "auto",
+} as CSS;
+
 interface JupyterEditorProps {
   // PROPS
   error?: string;
@@ -116,6 +125,7 @@ interface JupyterEditorProps {
   kernels_by_language?: immutable.OrderedMap<string, immutable.List<string>>;
   default_kernel?: string;
   closestKernel?: KernelType;
+  kernel_streams?: immutable.Map<string, string>;
 }
 
 class JupyterEditor0 extends Component<JupyterEditorProps> {
@@ -158,24 +168,33 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         kernels_by_language: rtypes.immutable.Map,
         default_kernel: rtypes.string,
         closestKernel: rtypes.immutable.Map,
+        kernel_streams: rtypes.immutable.Map,
       },
       customize: { site_name: rtypes.string },
       account: { editor_settings: rtypes.immutable.Map },
     };
   }
 
+  render_kernel_error() {
+    const err = this.props.kernel_streams?.get("stderr")
+      ? this.props.kernel_streams?.get("stderr")
+      : this.props.kernel_streams?.get("last_stderr");
+    if (!err) return;
+    return (
+      <ErrorDisplay
+        error={`Error running kernel: ${err}`}
+        style={ERROR_STYLE}
+        onClose={() => this.props.actions.set_error(undefined)}
+      />
+    );
+  }
+
   render_error() {
     if (this.props.error) {
-      const style = {
-        margin: "1ex",
-        whiteSpace: "pre" as "pre",
-        fontSize: "12px",
-        fontFamily: "monospace" as "monospace",
-      };
       return (
         <ErrorDisplay
           error={this.props.error}
-          style={style}
+          style={ERROR_STYLE}
           onClose={() => this.props.actions.set_error(undefined)}
         />
       );
@@ -575,6 +594,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
           overflowY: "hidden",
         }}
       >
+        {this.render_kernel_error()}
         {this.render_error()}
         {this.render_modals()}
         {this.render_heading()}

@@ -10,7 +10,7 @@ The Store
 declare const localStorage: any;
 
 import { from_json, cmp, startswith } from "../../smc-util/misc";
-import { Store } from "../app-framework";
+import { Store, TypedMap } from "../app-framework";
 import { Set, Map, List, OrderedMap, fromJS } from "immutable";
 import { export_to_ipynb } from "./export-to-ipynb";
 import { DEFAULT_COMPUTE_IMAGE } from "../../smc-util/compute-images";
@@ -76,6 +76,11 @@ export interface JupyterStoreState {
   closestKernel?: Kernel;
   widget_model_ids: Set<string>;
   contents?: List<Map<string, any>>; // optional global contents info (about sections, problems, etc.)
+  kernel_streams: TypedMap<{
+    stdout?: string;
+    stderr?: string;
+    last_stderr?: string;
+  }>;
 }
 
 export const initial_jupyter_store_state: {

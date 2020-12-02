@@ -282,6 +282,8 @@ export class JupyterActions extends JupyterActions0 {
       throw Error("Jupter kernel must be defined");
     }
 
+    this.init_streams();
+
     // Since we just made a new kernel, clearly no cells are running on the backend.
     this._running_cells = {};
     this.clear_all_cell_run_state();
@@ -322,6 +324,37 @@ export class JupyterActions extends JupyterActions0 {
       // again just to get this info.
       this.set_backend_kernel_info();
     }
+  };
+
+  init_streams = () => {
+    if (this.jupyter_kernel == null) {
+      throw Error("Jupter kernel must be defined");
+    }
+
+    // Clear stdout and stderr and listen for output. This is stdout/stderr
+    // for the kernel process itself, not for user code.  See
+    // https://github.com/sagemathinc/cocalc/issues/4847
+    const x = this.syncdb.get_one({ type: "streams" });
+    const last_stderr = x?.get("stderr") ?? "";
+    this._set({ type: "streams", stdout: "", stderr: "", last_stderr }, false);
+
+    this.jupyter_kernel.on("stdout", (data) => {
+      const x = this.syncdb.get_one({ type: "streams" });
+      const cur = x?.get("stdout") ?? "";
+      if (cur.length > 10000) {
+        // ignore output after 10K characters - not useful and this should be very
+        // short, though a bug could make it massive.
+        return;
+      }
+      this._set({ type: "streams", stdout: (cur + data).slice(0, 10000) });
+    });
+
+    this.jupyter_kernel.on("stderr", (data) => {
+      const x = this.syncdb.get_one({ type: "streams" });
+      const cur = x?.get("stderr") ?? "";
+      if (cur.length > 10000) return; // see above
+      this._set({ type: "streams", stderr: (cur + data).slice(0, 10000) });
+    });
   };
 
   init_kernel_info = async () => {
