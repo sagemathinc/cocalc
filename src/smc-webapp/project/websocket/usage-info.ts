@@ -7,6 +7,7 @@ import { EventEmitter } from "events";
 import { delay } from "awaiting";
 import { SyncTable } from "smc-util/sync/table";
 import { webapp_client } from "../../webapp-client";
+import { once } from "smc-util/async-utils";
 import { TypedMap } from "../../app-framework";
 import { merge } from "smc-util/misc";
 import { UsageInfo } from "../../../smc-project/usage-info/types";
@@ -143,8 +144,29 @@ export class UsageInfoWS extends EventEmitter {
   public async watch(path: string): Promise<void> {
     console.log(`UsageInfo watching for ${this.project_id} / ${path}`);
 
+    if (await this.wait_until_ready(false)) return;
     if (this.state == "closed") return;
     this.set({ path });
+  }
+
+  // Returns true if never will be ready
+  private async wait_until_ready(exception: boolean = true): Promise<boolean> {
+    try {
+      if (this.state == "closed") {
+        throw Error("UsageInfoWS object must not be closed");
+      }
+      if (this.state == "init") {
+        await once(this, "state");
+        if ((this.state as State) != "ready") {
+          throw Error("never will be ready");
+        }
+        return false;
+      }
+      return false;
+    } catch (err) {
+      if (exception) throw err;
+      return true;
+    }
   }
 }
 
