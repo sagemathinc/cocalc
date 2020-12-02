@@ -28,6 +28,7 @@ export class Actions<T> {
   };
 
   destroy = (): void => {
-    this.redux.removeActions(this.name);
+    // On the share server this.redux can be undefined at this point.
+    this.redux?.removeActions(this.name);
   };
 }
