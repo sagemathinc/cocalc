@@ -67,8 +67,8 @@ export interface Props {
   // selector and never use katex.
   mathjax_selector?: string;
 
-  onClick?: (event?:any) => void;
-  onDoubleClick?: (event?:any) => void;
+  onClick?: (event?: any) => void;
+  onDoubleClick?: (event?: any) => void;
 }
 
 export const HTML: React.FC<Props> = (props) => {
@@ -181,6 +181,12 @@ export const HTML: React.FC<Props> = (props) => {
       if (props.highlight_code) {
         elt.highlight_code();
       }
+      require("smc-webapp/process-links");
+      elt.process_smc_links({
+        project_id: props.project_id,
+        file_path: props.file_path,
+        href_transform: props.href_transform,
+      });
       html = elt.html();
     } else {
       if (props.safeHTML) {

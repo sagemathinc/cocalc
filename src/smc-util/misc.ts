@@ -718,14 +718,17 @@ export function random_choice(v: any[]): any {
 
 // Called when an object will not be used further, to avoid
 // it references anything that could lead to memory leaks.
+
 export function close(obj: object, omit?: Set<string>): void {
   if (omit != null) {
     Object.keys(obj).forEach(function (key) {
       if (omit.has(key)) return;
+      if (typeof obj[key] == "function") return;
       delete obj[key];
     });
   } else {
     Object.keys(obj).forEach(function (key) {
+      if (typeof obj[key] == "function") return;
       delete obj[key];
     });
   }
