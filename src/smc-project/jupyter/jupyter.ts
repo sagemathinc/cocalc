@@ -365,6 +365,14 @@ export class JupyterKernel
       }
     });
 
+    this._kernel.spawn.stdout.on("data", (_data) => {
+      // NOTE: it is very important to read stdout (and stderr above)
+      // even if we **totally ignore** the data. Otherwise, execa saves
+      // some amount then just locks up and doesn't allow flushing the
+      // output stream.  This is a "nice" feature of execa, since it means
+      // no data gets dropped.  See https://github.com/sagemathinc/cocalc/issues/5065
+    });
+
     this._channels = require("enchannel-zmq-backend").createChannels(
       this.identity,
       this._kernel.config
