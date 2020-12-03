@@ -42,7 +42,7 @@ export class UsageInfoServer extends EventEmitter {
     this.path = path;
     this.dbg = L;
     this.project_info = get_ProjectInfoServer();
-    this.dbg("starting")
+    this.dbg("starting");
   }
 
   private async init(): Promise<void> {
@@ -67,17 +67,20 @@ export class UsageInfoServer extends EventEmitter {
       `getting usage for ${this.path} from info at `,
       this.info.timestamp
     );
-    this.usage = {
+    const usage = {
       time: Date.now(),
-      mem: Math.round(1024 * 1024 * Math.random()),
+      mem: Math.round(100 + 1300 * Math.random()),
       cpu: Math.round(100 * Math.random()),
+      mem_limit: this.info.cgroup?.mem_stat.hierarchical_memory_limit,
+      cpu_limit: this.info.cgroup?.cpu_cores_limit,
     };
+    this.usage = usage;
     // TODO make this only emit if change is in any way large (more than x%),
     // or if it changes close to zero (in particular, if cpu usage is low again)
     if (!isEqual(this.usage, this.last)) {
       this.emit("usage", this.usage);
+      this.last = this.usage;
     }
-    this.last = this.usage;
   }
 
   private async get_usage(): Promise<UsageInfo | undefined> {

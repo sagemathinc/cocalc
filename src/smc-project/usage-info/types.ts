@@ -9,6 +9,8 @@ export interface UsageInfo {
   time: number; // server timestamp
   cpu: number;
   mem: number;
+  mem_limit?: number; // the entire container
+  cpu_limit?: number; // --*--
 }
 
 export type ImmutableUsageInfo = TypedMap<UsageInfo>;

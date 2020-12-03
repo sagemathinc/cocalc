@@ -14,6 +14,10 @@ import { closest_kernel_match, trunc } from "smc-util/misc";
 import { Logo } from "./logo";
 import { JupyterActions } from "./browser-actions";
 import { ImmutableUsageInfo } from "../../smc-project/usage-info/types";
+import {
+  ALERT_HIGH_PCT,
+  ALERT_MEDIUM_PCT,
+} from "../../smc-project/project-status/const";
 
 interface ModeProps {
   mode?: string;
@@ -310,8 +314,9 @@ class Kernel0 extends Component<KernelProps> {
   }
 
   render_usage() {
-    let cpu, cpu_style, memory, memory_style;
-    if (this.props.kernel_usage == null) {
+    let cpu, cpu_style, memory, memory_style, memory_limit, cpu_limit;
+    const kernel_usage = this.props.kernel_usage;
+    if (kernel_usage == null) {
       // unknown, e.g, not reporting/working or old backend.
       return;
     }
@@ -322,27 +327,27 @@ class Kernel0 extends Component<KernelProps> {
       // not using resources
       memory = cpu = 0;
     } else {
-      memory = this.props.kernel_usage.get("mem");
-      if (memory == null) {
-        return;
-      }
-      cpu = this.props.kernel_usage.get("cpu");
-      if (cpu == null) {
-        return;
-      }
+      memory = kernel_usage.get("mem");
+      memory_limit = kernel_usage.get("mem_limit") ?? 1000;
+      cpu_limit = kernel_usage.get("cpu_limit") ?? 1;
+      if (memory == null) return;
+      cpu = kernel_usage.get("cpu");
+      if (cpu == null) return;
       cpu = Math.round(cpu);
       cpu_style = memory_style = undefined;
-      if (cpu > 10 && cpu < 50) {
+      if (
+        cpu > ALERT_MEDIUM_PCT * cpu_limit &&
+        cpu <= ALERT_HIGH_PCT * cpu_limit
+      ) {
         cpu_style = { backgroundColor: "yellow" };
       }
-      if (cpu > 50) {
+      if (cpu > ALERT_HIGH_PCT * cpu_limit) {
         cpu_style = { backgroundColor: "rgb(92,184,92)", color: "white" };
       }
-      if (memory > 500) {
+      if (memory > (ALERT_MEDIUM_PCT / 100) * memory_limit) {
         memory_style = { backgroundColor: "yellow" };
       }
-      if (memory > 800) {
-        // TODO: depend on upgrades...?
+      if (memory > (ALERT_HIGH_PCT / 100) * memory_limit) {
         memory_style = { backgroundColor: "red", color: "white" };
       }
     }
