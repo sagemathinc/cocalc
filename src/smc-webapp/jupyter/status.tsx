@@ -279,12 +279,13 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         cpu = kernel_usage.get("cpu");
         if (cpu == null) return;
         cpu_style = memory_style = KERNEL_USAGE_STYLE_NUM;
-        if (
-          cpu > ALERT_MEDIUM_PCT * cpu_limit &&
-          cpu <= ALERT_HIGH_PCT * cpu_limit
-        ) {
+        const cpu_mid = ALERT_MEDIUM_PCT * cpu_limit;
+        const cpu_high = ALERT_HIGH_PCT * cpu_limit;
+        if (10 < cpu && cpu <= cpu_mid) {
           cpu_style = { ...cpu_style, backgroundColor: "yellow" };
-        } else if (cpu > ALERT_HIGH_PCT * cpu_limit) {
+        } else if (cpu_mid < cpu && cpu <= cpu_high) {
+          cpu_style = { ...cpu_style, backgroundColor: "orange" };
+        } else if (cpu_high < cpu) {
           cpu_style = {
             ...cpu_style,
             backgroundColor: "rgb(92,184,92)",
@@ -328,6 +329,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
             <span style={KERNEL_USAGE_STYLE}>
               CPU:{" "}
               <span
+                className={"cocalc-jupyter-usage-info"}
                 style={cpu_style}
                 dangerouslySetInnerHTML={{ __html: cpu_disp }}
               />
@@ -335,6 +337,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
             <span style={KERNEL_USAGE_STYLE}>
               Memory:{" "}
               <span
+                className={"cocalc-jupyter-usage-info"}
                 style={memory_style}
                 dangerouslySetInnerHTML={{ __html: mem_disp }}
               />

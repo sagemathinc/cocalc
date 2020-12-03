@@ -22,7 +22,7 @@ import { EventEmitter } from "events";
 import { delay } from "awaiting";
 import { isEqual } from "lodash";
 import { ProjectInfoServer, get_ProjectInfoServer } from "../project-info";
-import { ProjectInfo } from "../project-info/types";
+import { ProjectInfo, Process } from "../project-info/types";
 import { UsageInfo } from "./types";
 
 export class UsageInfoServer extends EventEmitter {
@@ -54,6 +54,25 @@ export class UsageInfoServer extends EventEmitter {
     });
   }
 
+  private path_process(): Process | undefined {
+    if (this.info?.processes == null) return;
+    for (const p of Object.values(this.info.processes)) {
+      const cocalc = p.cocalc;
+      if (cocalc == null || cocalc.type != "jupyter") continue;
+      if (cocalc.path == this.path) return p;
+    }
+  }
+
+  // we silently treat non-existing information as zero usage
+  private path_usage_info(): { cpu: number; mem: number } {
+    const proc = this.path_process();
+    if (proc == null) {
+      return { cpu: 0, mem: 0 };
+    } else {
+      return { cpu: proc.cpu.pct, mem: proc.stat.mem.rss };
+    }
+  }
+
   // this function takes the "info" we have (+ more maybe?)
   // and derives specific information for the notebook (future: also other file types)
   // at the given path.
@@ -67,10 +86,10 @@ export class UsageInfoServer extends EventEmitter {
       `getting usage for ${this.path} from info at `,
       this.info.timestamp
     );
+    const usage_proc = this.path_usage_info();
     const usage = {
       time: Date.now(),
-      mem: Math.round(100 + 1300 * Math.random()),
-      cpu: Math.round(100 * Math.random()),
+      ...usage_proc,
       mem_limit: this.info.cgroup?.mem_stat.hierarchical_memory_limit,
       cpu_limit: this.info.cgroup?.cpu_cores_limit,
     };
