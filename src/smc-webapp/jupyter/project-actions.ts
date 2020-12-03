@@ -35,7 +35,7 @@ export class JupyterActions extends JupyterActions0 {
   private _last_save_ipynb_file: any;
   private _manager_run_cell_queue: any;
   private _run_nbconvert_lock: any;
-  private _running_cells: any;
+  private _running_cells: { [id: string]: string };
   private _throttled_ensure_positions_are_unique: any;
   private run_all_loop?: RunAllLoop;
   private clear_kernel_error?: any;
@@ -89,7 +89,7 @@ export class JupyterActions extends JupyterActions0 {
           type: "settings",
           kernel_error: "",
         });
-      }, 5000);
+      }, 3000);
     } else {
       // change to a different state; cancel attempt to clear kernel error
       if (this.clear_kernel_error) {
@@ -340,13 +340,6 @@ export class JupyterActions extends JupyterActions0 {
 
     this.handle_all_cell_attachments();
     this.set_backend_state("ready");
-    if (current == null || current !== kernel) {
-      // Only set backend info if first time or kernel changed,
-      // and only for non-read-only kernels.
-      // Otherwise, just stopping the kernel will start it running
-      // again just to get this info.
-      this.set_backend_kernel_info();
-    }
   };
 
   set_connection_file = () => {
@@ -448,11 +441,7 @@ export class JupyterActions extends JupyterActions0 {
     if (cells != null) {
       cells.forEach((cell, id) => {
         const state = cell.get("state");
-        if (
-          state != null &&
-          state !== "done" &&
-          !(this._running_cells != null ? this._running_cells[id] : undefined)
-        ) {
+        if (state != null && state !== "done" && !this._running_cells?.[id]) {
           dbg(`set cell ${id} to done`);
           this._set({ type: "cell", id, state: "done" }, false);
           change = true;
@@ -495,7 +484,7 @@ export class JupyterActions extends JupyterActions0 {
 
   // Note that there is a request to run a given cell.
   // You must call manager_run_cell_process_queue for them to actually start running.
-  manager_run_cell_enqueue = (id: any) => {
+  manager_run_cell_enqueue = (id: string) => {
     if (this._running_cells?.[id]) {
       return;
     }
@@ -587,6 +576,11 @@ export class JupyterActions extends JupyterActions0 {
       dbg("cell already queued to run in kernel");
       return;
     }
+
+    // It's important to set this._running_cells[id] to be true so that
+    // sync_exec_state doesn't declare this cell done.  The kernel identity
+    // will get set properly below in case it changes.
+    this._running_cells[id] = this.jupyter_kernel?.identity ?? "none";
 
     // END INITIAL STATE BEFORE ASYNC.
 

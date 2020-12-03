@@ -602,7 +602,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             }
             this.setState(obj);
             if (!this.is_project && orig_kernel !== kernel) {
-              this.set_backend_kernel_info();
               this.set_cm_options();
             }
 
@@ -671,7 +670,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             }
             this.setState(obj);
             if (!this.is_project && orig_kernel !== kernel) {
-              this.set_backend_kernel_info();
               this.set_cm_options();
             }
 
@@ -1777,7 +1775,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       };
       await this.syncdb.wait(not_running, 30);
       if (this._state === "closed") return;
-      await this.set_backend_kernel_info();
     }
   );
 

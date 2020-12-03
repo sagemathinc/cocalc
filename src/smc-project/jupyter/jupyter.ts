@@ -231,6 +231,7 @@ export class JupyterKernel
   private _kernel_info: KernelInfo;
   _execute_code_queue: CodeExecutionEmitter[] = [];
   _channels: any;
+  private has_ensured_running: boolean = false;
 
   constructor(name, _dbg, _path, _actions, usage) {
     super();
@@ -239,6 +240,7 @@ export class JupyterKernel
 
     this.kernel_info = reuseInFlight(this.kernel_info);
     this.nbconvert = reuseInFlight(this.nbconvert);
+    this.ensure_running = reuseInFlight(this.ensure_running);
 
     this.close = this.close.bind(this);
     this.process_output = this.process_output.bind(this);
@@ -294,7 +296,7 @@ export class JupyterKernel
       return;
     }
     this._set_state("spawning");
-    const dbg = this.dbg("spawn1");
+    const dbg = this.dbg("spawn");
     dbg("spawning kernel...");
 
     const opts: LaunchJupyterOpts = {
@@ -407,12 +409,12 @@ export class JupyterKernel
       if (signal != null) {
         this.emit(
           "kernel_error",
-          `Kernel terminated by signal ${signal}.${stderr}`
+          `Kernel last terminated by signal ${signal}.${stderr}`
         );
       } else if (exit_code != null) {
         this.emit(
           "kernel_error",
-          `Kernel exited with code ${exit_code}.${stderr}`
+          `Kernel last exited with code ${exit_code}.${stderr}`
         );
       }
       this.close();
@@ -430,11 +432,6 @@ export class JupyterKernel
     dbg("start_running");
 
     this._set_state("running");
-
-    // Getting kernel info successfully somehow is a very good sign the
-    // kernel is up and running, and it's one thing that works the same
-    // across all kernels (e.g., we can't just "run some code" in any kernel).
-    await this._get_kernel_info();
   }
 
   async _get_kernel_info(): Promise<void> {
@@ -621,7 +618,7 @@ export class JupyterKernel
     }
   }
 
-  async _ensure_running(): Promise<void> {
+  private async ensure_running(): Promise<void> {
     if (this._state === "closed") {
       throw Error("closed so not possible to ensure running");
     }
@@ -629,6 +626,10 @@ export class JupyterKernel
       await this.spawn();
     } else {
       return;
+    }
+    if (!this.has_ensured_running) {
+      this.has_ensured_running = true;
+      await this._get_kernel_info();
     }
   }
 
@@ -700,7 +701,7 @@ export class JupyterKernel
     }
     dbg(`queue has ${n} items; ensure kernel running`);
     try {
-      await this._ensure_running();
+      await this.ensure_running();
       dbg("now launching oldest item in queue");
       this._execute_code_queue[0].go();
     } catch (err) {
@@ -733,6 +734,7 @@ export class JupyterKernel
   // and does not use the internal execution queue.
   // This is used for unit testing and interactive work at the terminal.
   async execute_code_now(opts: ExecOpts): Promise<object[]> {
+    this.dbg("execute_code_now")();
     if (this._state === "closed") {
       throw Error("closed");
     }
@@ -740,7 +742,7 @@ export class JupyterKernel
       // if not specified, default to true.
       opts.halt_on_error = true;
     }
-    await this._ensure_running();
+    await this.ensure_running();
     return await new CodeExecutionEmitter(this, opts).go();
   }
 
@@ -787,8 +789,10 @@ export class JupyterKernel
   }
 
   async call(msg_type: string, content?: any): Promise<any> {
-    await this._ensure_running();
-
+    this.dbg("call")(msg_type);
+    if (!this.has_ensured_running) {
+      await this.ensure_running();
+    }
     // Do a paranoid double check anyways...
     if (this._channels == null || this._state == "closed") {
       throw Error("not running, so can't call");
