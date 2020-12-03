@@ -8,11 +8,8 @@ import { delay } from "awaiting";
 import { SyncTable } from "smc-util/sync/table";
 import { webapp_client } from "../../webapp-client";
 import { once } from "smc-util/async-utils";
-import { TypedMap } from "../../app-framework";
 import { merge } from "smc-util/misc";
-import { UsageInfo } from "../../../smc-project/usage-info/types";
-
-type ImmutableUsageInfo = TypedMap<UsageInfo>;
+import { ImmutableUsageInfo } from "../../../smc-project/usage-info/types";
 
 type State = "init" | "ready" | "closed";
 
@@ -20,6 +17,7 @@ export class UsageInfoWS extends EventEmitter {
   private table?: SyncTable;
   private readonly project_id: string;
   private state: State = "init";
+  private readonly last_version: { [path: string]: ImmutableUsageInfo } = {};
 
   constructor(project_id: string) {
     super();
@@ -66,25 +64,21 @@ export class UsageInfoWS extends EventEmitter {
         // since code below will break in weird ways.
         return;
       }
-      // handle changes to directory listings and deleted files lists
-      const paths: string[] = [];
+      // emit "real" changes of usage_info to interested parties
       for (const key of keys) {
         const path = JSON.parse(key)[1];
         // Be careful to only emit a change event if the actual
-        // usage itself changes.  Table emits more frequently,
-        // e.g., due to updating watch, time of listing changing, etc.
+        // usage itself changes.  Table emits more frequently!
 
-        const usage = this.get_record(path);
-        console.log(`UsageInfo table.on.change path='${path}' → usage=`, usage);
-
-        //const this_version = await this.get_for_store(path);
-        //if (this_version != this.last_version[path]) {
-        //  this.last_version[path] = this_version;
-        //  paths.push(path);
-        //}
-      }
-      if (paths.length > 0) {
-        this.emit("usage", paths);
+        const usage_record = this.get_record(path);
+        if (usage_record == null) continue;
+        const usage: ImmutableUsageInfo | undefined = usage_record.get("usage");
+        //console.log(`UsageInfo table.on.change path='${path}' → usage=`, usage);
+        if (usage == null) continue;
+        if (usage != this.last_version[path]) {
+          this.last_version[path] = usage;
+          this.emit(`path::${path}`, usage);
+        }
       }
     });
     this.set_state("ready");
@@ -94,6 +88,10 @@ export class UsageInfoWS extends EventEmitter {
   private async re_init(): Promise<void> {
     this.state = "init";
     await this.init();
+  }
+
+  private key(path: string): string {
+    return JSON.stringify([this.project_id, path]);
   }
 
   private get_table(): SyncTable {
@@ -110,21 +108,24 @@ export class UsageInfoWS extends EventEmitter {
   }
 
   private get_record(path: string): ImmutableUsageInfo | undefined {
-    const x = this.get_table().get(JSON.stringify([this.project_id, path]));
+    const x = this.get_table().get(this.key(path));
     if (x == null) return x;
     return (x as unknown) as ImmutableUsageInfo; // coercing to fight typescript.
   }
 
-  private async set(obj: { path: string; usage?: any }): Promise<void> {
-    let table;
+  private async get_table_safe(): Promise<SyncTable> {
     try {
-      table = this.get_table();
+      return this.get_table();
     } catch (err) {
       // See https://github.com/sagemathinc/cocalc/issues/4790
       console.warn("Error getting table -- ", err);
       await this.re_init();
-      table = this.get_table();
+      return this.get_table();
     }
+  }
+
+  private async set(obj: { path: string; usage?: any }): Promise<void> {
+    const table = await this.get_table_safe();
     table.set(merge({ project_id: this.project_id }, obj), "shallow");
     await table.save();
   }
@@ -141,12 +142,25 @@ export class UsageInfoWS extends EventEmitter {
     this.emit("state", state);
   }
 
+  // we add the path we are interested in
   public async watch(path: string): Promise<void> {
-    console.log(`UsageInfo watching for ${this.project_id} / ${path}`);
+    console.log(`UsageInfo watching ${this.project_id} / ${path}`);
 
     if (await this.wait_until_ready(false)) return;
     if (this.state == "closed") return;
     this.set({ path });
+  }
+
+  // we remove the project/path key
+  public async disregard(path: string): Promise<void> {
+    console.log(`UsageInfo disregarding ${this.project_id} / ${path}`);
+
+    if (this.state == "closed") return;
+    const table = await this.get_table_safe();
+    const data = table.get();
+    if (data == null) return;
+    table.set(data.delete(this.key(path)), "none");
+    await table.save();
   }
 
   // Returns true if never will be ready

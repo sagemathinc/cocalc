@@ -13,6 +13,7 @@ import { Tip } from "../r_misc/tip";
 import { closest_kernel_match, trunc } from "smc-util/misc";
 import { Logo } from "./logo";
 import { JupyterActions } from "./browser-actions";
+import { ImmutableUsageInfo } from "../../smc-project/usage-info/types";
 
 interface ModeProps {
   mode?: string;
@@ -88,7 +89,7 @@ interface KernelProps {
   kernel_info?: immutable.Map<string, any>;
   backend_state?: string;
   kernel_state?: string;
-  kernel_usage?: immutable.Map<string, any>;
+  kernel_usage?: ImmutableUsageInfo;
   trust?: boolean;
   read_only?: boolean;
 }
@@ -318,10 +319,10 @@ class Kernel0 extends Component<KernelProps> {
       this.props.backend_state !== "running" &&
       this.props.backend_state !== "starting"
     ) {
-      // not using resourcesw
+      // not using resources
       memory = cpu = 0;
     } else {
-      memory = this.props.kernel_usage.get("memory");
+      memory = this.props.kernel_usage.get("mem");
       if (memory == null) {
         return;
       }
@@ -329,7 +330,6 @@ class Kernel0 extends Component<KernelProps> {
       if (cpu == null) {
         return;
       }
-      memory = Math.round(memory / 1000000);
       cpu = Math.round(cpu);
       cpu_style = memory_style = undefined;
       if (cpu > 10 && cpu < 50) {
