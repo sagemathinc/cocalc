@@ -7,7 +7,14 @@
 Top-level react component, which ties everything together
 */
 
-import { React, Component, Rendered, rclass, rtypes } from "../app-framework";
+import {
+  CSS,
+  React,
+  Component,
+  Rendered,
+  rclass,
+  rtypes,
+} from "../app-framework";
 import * as immutable from "immutable";
 
 import { ErrorDisplay } from "../r_misc/error-display";
@@ -48,6 +55,15 @@ const KERNEL_STYLE: React.CSSProperties = {
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
+
+const ERROR_STYLE = {
+  margin: "1ex",
+  whiteSpace: "pre" as "pre",
+  fontSize: "12px",
+  fontFamily: "monospace" as "monospace",
+  maxHeight: "30vh",
+  overflow: "auto",
+} as CSS;
 
 interface JupyterEditorProps {
   // PROPS
@@ -116,6 +132,8 @@ interface JupyterEditorProps {
   kernels_by_language?: immutable.OrderedMap<string, immutable.List<string>>;
   default_kernel?: string;
   closestKernel?: KernelType;
+  kernel_streams?: immutable.Map<string, string>;
+  kernel_error?: string;
 }
 
 class JupyterEditor0 extends Component<JupyterEditorProps> {
@@ -157,6 +175,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         kernels_by_name: rtypes.immutable.Map,
         kernels_by_language: rtypes.immutable.Map,
         default_kernel: rtypes.string,
+        kernel_error: rtypes.string,
         closestKernel: rtypes.immutable.Map,
       },
       customize: { site_name: rtypes.string },
@@ -164,18 +183,23 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     };
   }
 
+  render_kernel_error() {
+    if (!this.props.kernel_error) return;
+    return (
+      <ErrorDisplay
+        error={this.props.kernel_error}
+        style={ERROR_STYLE}
+        onClose={() => this.props.actions.setState({ kernel_error: "" })}
+      />
+    );
+  }
+
   render_error() {
     if (this.props.error) {
-      const style = {
-        margin: "1ex",
-        whiteSpace: "pre" as "pre",
-        fontSize: "12px",
-        fontFamily: "monospace" as "monospace",
-      };
       return (
         <ErrorDisplay
           error={this.props.error}
-          style={style}
+          style={ERROR_STYLE}
           onClose={() => this.props.actions.set_error(undefined)}
         />
       );
@@ -575,6 +599,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
           overflowY: "hidden",
         }}
       >
+        {this.render_kernel_error()}
         {this.render_error()}
         {this.render_modals()}
         {this.render_heading()}

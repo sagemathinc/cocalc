@@ -110,4 +110,5 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   load_attachment(path: string): Promise<string>;
   process_attachment(base64, mime): string;
   send_comm_message_to_kernel(msg_id: string, comm_id: string, data: any): void;
+  get_connection_file(): string | undefined;
 }
