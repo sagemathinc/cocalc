@@ -535,7 +535,6 @@ async function synctable_channel0(
     } else if (query?.usage_info != null) {
       register_usage_info_table(
         synctable_channels[name].get_synctable(),
-        logger,
         client.client_id()
       );
     }

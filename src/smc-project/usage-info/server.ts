@@ -6,7 +6,9 @@
 /*
 Usage Info Server
 
-
+This derives usage information (cpu, mem, etc.)
+for a specific "path" (e.g. the corresponding jupyter process for a notebook)
+from the ProjectInfoServer (which collects data about everything)
 */
 
 // only for testing, see bottom
@@ -14,6 +16,8 @@ if (require.main === module) {
   require("coffee-register");
 }
 
+import * as debug from "debug";
+const L = debug("project:usage-info:server");
 import { EventEmitter } from "events";
 import { delay } from "awaiting";
 import { isEqual } from "lodash";
@@ -31,13 +35,14 @@ export class UsageInfoServer extends EventEmitter {
   private usage?: UsageInfo;
   private last?: UsageInfo;
 
-  constructor(L, path, testing = false) {
+  constructor(path, testing = false) {
     super();
     //this.update = reuseInFlight(this.update.bind(this));
     this.testing = testing;
     this.path = path;
-    this.dbg = (...msg) => L("UsageInfoServer", ...msg);
-    this.project_info = get_ProjectInfoServer(L);
+    this.dbg = L;
+    this.project_info = get_ProjectInfoServer();
+    this.dbg("starting")
   }
 
   private async init(): Promise<void> {
@@ -53,8 +58,15 @@ export class UsageInfoServer extends EventEmitter {
   // and derives specific information for the notebook (future: also other file types)
   // at the given path.
   private update(): void {
+    if (this.info == null) {
+      L("told to update, but there is no ProjectInfo");
+      return;
+    }
     // TODO this is just random data for testing
-    this.dbg(`getting usage for ${this.path} from ${this.info}`);
+    this.dbg(
+      `getting usage for ${this.path} from info at `,
+      this.info.timestamp
+    );
     this.usage = {
       time: Date.now(),
       mem: Math.round(1024 * 1024 * Math.random()),
@@ -107,7 +119,7 @@ export class UsageInfoServer extends EventEmitter {
 
 // testing: $ ts-node server.ts
 if (require.main === module) {
-  const uis = new UsageInfoServer(console.log, "testing.ipynb", true);
+  const uis = new UsageInfoServer("testing.ipynb", true);
   uis.start();
   let cnt = 0;
   uis.on("usage", (usage) => {

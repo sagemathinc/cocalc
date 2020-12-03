@@ -31,7 +31,7 @@ class ProjectInfoTable {
     this.table = table;
     this.table.on("closed", () => this.close());
     // initializing project info server + reacting when it has something to say
-    this.info_server = get_ProjectInfoServer(this.logger.debug.bind(this));
+    this.info_server = get_ProjectInfoServer();
     this.info_server.start();
     this.info_server.on("info", (info) => {
       //this.log?.("info_server event 'info'", info.timestamp);

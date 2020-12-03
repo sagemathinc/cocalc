@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import * as debug from "debug";
+const L = debug("project:sync:usage-info");
 import { TypedMap } from "../smc-webapp/app-framework";
 import { once } from "../smc-util/async-utils";
 import { SyncTable, SyncTableState } from "../smc-util/sync/table";
@@ -14,14 +16,13 @@ export type ImmutableUsageInfo = TypedMap<UsageInfo>;
 
 class UsageInfoTable {
   private readonly table: SyncTable;
-  private readonly logger: undefined | { debug: Function };
   private readonly project_id: string;
   private readonly servers: { [path: string]: UsageInfoServer } = {};
+  private readonly log: Function;
 
-  constructor(table: SyncTable, logger: any, project_id: string) {
+  constructor(table: SyncTable, project_id: string) {
     this.project_id = project_id;
-    this.logger = logger;
-    this.log("register");
+    this.log = L.extend("table");
     this.table = table;
     this.setup_watchers();
   }
@@ -49,6 +50,7 @@ class UsageInfoTable {
       if (path == null) return;
       if (this.servers[path] == null) return; // already watching
     });
+    this.log("setting up 'on.change'")
     this.table.on("change", this.handle_change_event.bind(this));
   }
 
@@ -66,11 +68,6 @@ class UsageInfoTable {
         this.stop_server(path);
       }
     }
-  }
-
-  private log(...args): void {
-    if (this.logger == null) return;
-    this.logger.debug("usage_info_table", ...args);
   }
 
   private is_ready(): boolean {
@@ -134,10 +131,12 @@ class UsageInfoTable {
   }
 
   private start_watching(path: string): void {
+    this.log(`start_watching ${path}`);
     if (this.servers[path] != null) return;
-    const server = new UsageInfoServer(path, this.log.bind(this));
+    const server = new UsageInfoServer(path);
 
     server.on("usage", (usage: UsageInfo) => {
+      this.log(`start_watching.usage:`, usage);
       try {
         if (!this.is_ready()) return;
         this.set({ path, usage });
@@ -169,16 +168,15 @@ class UsageInfoTable {
 let usage_info_table: UsageInfoTable | undefined = undefined;
 export function register_usage_info_table(
   table: SyncTable,
-  logger: any,
   project_id: string
 ): void {
-  logger.debug("register_usage_info_table");
+  L("register_usage_info_table");
   if (usage_info_table != null) {
     // There was one sitting around wasting space so clean it up
     // before making a new one.
     usage_info_table.close();
   }
-  usage_info_table = new UsageInfoTable(table, logger, project_id);
+  usage_info_table = new UsageInfoTable(table, project_id);
 }
 
 export function get_usage_info_table(): UsageInfoTable | undefined {
