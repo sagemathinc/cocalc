@@ -16,6 +16,7 @@ import * as immutable from "immutable";
 import { JupyterActions as JupyterActions0 } from "./actions";
 
 import { callback2, once } from "../../smc-util/async-utils";
+//import { reuseInFlight } from "async-await-utils/hof";
 
 import * as async from "async";
 import * as underscore from "underscore";
@@ -37,8 +38,9 @@ export class JupyterActions extends JupyterActions0 {
   private _running_cells: any;
   private _throttled_ensure_positions_are_unique: any;
   private run_all_loop?: RunAllLoop;
+  private clear_kernel_error?: any;
 
-  private set_backend_state(state: BackendState): void {
+  private set_backend_state(backend_state: BackendState): void {
     /*
         The backend states, which are put in the syncdb so clients
         can display this:
@@ -58,22 +60,43 @@ export class JupyterActions extends JupyterActions0 {
 
     // Check just in case Typescript doesn't catch something:
     if (
-      ["init", "ready", "spawning", "starting", "running"].indexOf(state) === -1
+      ["init", "ready", "spawning", "starting", "running"].indexOf(
+        backend_state
+      ) === -1
     ) {
-      throw Error(`invalid backend state '${state}'`);
+      throw Error(`invalid backend state '${backend_state}'`);
     }
-    if (state == "init" && this._backend_state != "init") {
+    if (backend_state == "init" && this._backend_state != "init") {
       // Do NOT allow changing the state to init from any other state.
       throw Error(
-        `illegal state change '${this._backend_state}' --> '${state}'`
+        `illegal state change '${this._backend_state}' --> '${backend_state}'`
       );
     }
-    this._backend_state = state;
+    this._backend_state = backend_state;
+
     this._set({
       type: "settings",
-      backend_state: state,
+      backend_state,
     });
     this.save_asap();
+
+    // The following is to clear kernel_error if things are working only.
+    if (backend_state == "running") {
+      // clear kernel error if kernel successfully starts and stays
+      // in running state for a while.
+      this.clear_kernel_error = setTimeout(() => {
+        this._set({
+          type: "settings",
+          kernel_error: "",
+        });
+      }, 5000);
+    } else {
+      // change to a different state; cancel attempt to clear kernel error
+      if (this.clear_kernel_error) {
+        clearTimeout(this.clear_kernel_error);
+        delete this.clear_kernel_error;
+      }
+    }
   }
 
   set_kernel_state = (state: any, save = false) => {
@@ -295,16 +318,18 @@ export class JupyterActions extends JupyterActions0 {
       switch (state) {
         case "spawning":
         case "starting":
+          this.set_connection_file(); // yes, fall through
         case "running":
-          return this.set_backend_state(state);
+          this.set_backend_state(state);
       }
     });
 
     this.jupyter_kernel.on("execution_state", this.set_kernel_state);
 
-    this.jupyter_kernel.on("spawn_error", (err) => {
-      // TODO: need to save so gets reported to frontend...
-      dbg(`error: ${err}`);
+    this.jupyter_kernel.on("kernel_error", (err) => {
+      // save so gets reported to frontend, and surfaced to user:
+      // https://github.com/sagemathinc/cocalc/issues/4847
+      this.set_kernel_error(err);
     });
 
     this.handle_all_cell_attachments();
@@ -316,6 +341,21 @@ export class JupyterActions extends JupyterActions0 {
       // again just to get this info.
       this.set_backend_kernel_info();
     }
+  };
+
+  set_connection_file = () => {
+    const connection_file = this.jupyter_kernel?.get_connection_file() ?? "";
+    this._set({
+      type: "settings",
+      connection_file,
+    });
+  };
+
+  set_kernel_error = (err) => {
+    this._set({
+      type: "settings",
+      kernel_error: `${err}`,
+    });
   };
 
   init_kernel_info = async () => {
@@ -450,7 +490,7 @@ export class JupyterActions extends JupyterActions0 {
   // Note that there is a request to run a given cell.
   // You must call manager_run_cell_process_queue for them to actually start running.
   manager_run_cell_enqueue = (id: any) => {
-    if (this._running_cells != null ? this._running_cells[id] : undefined) {
+    if (this._running_cells?.[id]) {
       return;
     }
     if (this._manager_run_cell_queue == null) {
@@ -461,14 +501,14 @@ export class JupyterActions extends JupyterActions0 {
 
   // properly start running -- in order -- the cells that have been requested to run
   manager_run_cell_process_queue = () => {
-    if (this._manager_run_cell_queue == null) {
+    const queue = this._manager_run_cell_queue;
+    if (queue == null) {
       return;
     }
+    delete this._manager_run_cell_queue;
     const v: any[] = [];
-    for (const id in this._manager_run_cell_queue) {
-      if (
-        !(this._running_cells != null ? this._running_cells[id] : undefined)
-      ) {
+    for (const id in queue) {
+      if (!this._running_cells?.[id]) {
         v.push(this.store.getIn(["cells", id]));
       }
     }
@@ -478,14 +518,17 @@ export class JupyterActions extends JupyterActions0 {
         b != null ? b.get("start") : undefined
       )
     );
-    // dbg = @dbg("manager_run_cell_process_queue")
-    // dbg("running: #{misc.to_json( ([a?.get('start'), a?.get('id')] for a in v) )}")
+    /*
+    const dbg = this.dbg("manager_run_cell_process_queue");
+    dbg(
+      "running: #{misc.to_json( ([a?.get('start'), a?.get('id')] for a in v) )}"
+    );
+    */
     for (const cell of v) {
       if (cell != null) {
         this.manager_run_cell(cell.get("id"));
       }
     }
-    delete this._manager_run_cell_queue;
   };
 
   // returns new output handler for this cell.
@@ -507,7 +550,7 @@ export class JupyterActions extends JupyterActions0 {
     });
 
     this.jupyter_kernel.once("closed", () => {
-      dbg("closing due to jupyter kernel closed");
+      dbg("output handler -- closing due to jupyter kernel closed");
       handler.close();
     });
 

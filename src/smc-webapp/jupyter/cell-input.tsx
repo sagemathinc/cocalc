@@ -36,7 +36,7 @@ function href_transform(
     const name = href.slice("attachment:".length);
     const data = cell.getIn(["attachments", name]);
     let ext = filename_extension(name);
-    switch (data != null ? data.get("type") : undefined) {
+    switch (data?.get("type")) {
       case "sha1":
         const sha1 = data.get("value");
         if (project_id == null) {
