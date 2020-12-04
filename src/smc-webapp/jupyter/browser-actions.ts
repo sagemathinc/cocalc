@@ -37,6 +37,8 @@ export class JupyterActions extends JupyterActions0 {
 
   // Only run this code on the browser frontend (not in project).
   protected init_client_only(): void {
+    this.usage_info_handler = this.usage_info_handler.bind(this);
+
     const do_set = () => {
       if (this.syncdb == null || this._state === "closed") return;
       const has_unsaved_changes = this.syncdb.has_unsaved_changes();
@@ -99,12 +101,10 @@ export class JupyterActions extends JupyterActions0 {
         this.nbgrader_actions.update_metadata();
       }
 
-      this.usage_info = get_usage_info(this.project_id);
-      this.usage_info.watch(this.path);
-      this.usage_info.on(`path::${this.path}`, (usage: ImmutableUsageInfo) => {
-        console.log("jupyter usage", this.path, "→", usage?.toJS());
-        this.setState({ kernel_usage: usage });
-      });
+      const usage_info = (this.usage_info = get_usage_info(this.project_id));
+      usage_info.watch(this.path);
+      const key = usage_info.event_key(this.path);
+      usage_info.on(key, this.usage_info_handler);
     });
 
     // Put an entry in the project log once the jupyter notebook gets opened.
@@ -129,6 +129,22 @@ export class JupyterActions extends JupyterActions0 {
         "editor_settings"
       );
     }
+  }
+
+  private usage_info_handler(usage: ImmutableUsageInfo): void {
+    console.log("jupyter usage", this.path, "→", usage?.toJS());
+    this.setState({ kernel_usage: usage });
+  }
+
+  // don't forget the close() in the parent
+  public async close(): Promise<void> {
+    console.log("jupyter close_browser_actions", this.path);
+    if (this.is_closed()) return;
+    if (this.usage_info != null) {
+      const key = this.usage_info.event_key(this.path);
+      this.usage_info.off(key, this.usage_info_handler);
+    }
+    await super.close();
   }
 
   private activity(): void {

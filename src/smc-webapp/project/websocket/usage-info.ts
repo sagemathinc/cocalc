@@ -25,6 +25,10 @@ export class UsageInfoWS extends EventEmitter {
     this.init();
   }
 
+  public event_key(path: string) {
+    return `path::${path}`;
+  }
+
   private async init(): Promise<void> {
     if (this.state != "init") {
       throw Error("must be in init state");
@@ -77,7 +81,7 @@ export class UsageInfoWS extends EventEmitter {
         if (usage == null) continue;
         if (usage != this.last_version[path]) {
           this.last_version[path] = usage;
-          this.emit(`path::${path}`, usage);
+          this.emit(this.event_key(path), usage);
         }
       }
     });
