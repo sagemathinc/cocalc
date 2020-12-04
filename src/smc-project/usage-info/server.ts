@@ -20,10 +20,17 @@ import * as debug from "debug";
 const L = debug("project:usage-info:server");
 import { EventEmitter } from "events";
 import { delay } from "awaiting";
-import { isEqual } from "lodash";
 import { ProjectInfoServer, get_ProjectInfoServer } from "../project-info";
 import { ProjectInfo, Process } from "../project-info/types";
 import { UsageInfo } from "./types";
+
+function is_diff(prev: UsageInfo, next: UsageInfo, key: keyof UsageInfo) {
+  // we assume a,b >= 0, hence we leave out Math.abs operations
+  const a = prev[key] ?? 0;
+  const b = next[key] ?? 0;
+  if (a === 0 && b === 0) return false;
+  return Math.abs(b - a) / Math.max(a, b) > 0.05;
+}
 
 export class UsageInfoServer extends EventEmitter {
   private readonly dbg: Function;
@@ -93,13 +100,23 @@ export class UsageInfoServer extends EventEmitter {
       mem_limit: this.info.cgroup?.mem_stat.hierarchical_memory_limit,
       cpu_limit: this.info.cgroup?.cpu_cores_limit,
     };
-    this.usage = usage;
-    // TODO make this only emit if change is in any way large (more than x%),
-    // or if it changes close to zero (in particular, if cpu usage is low again)
-    if (!isEqual(this.usage, this.last)) {
+    if (this.should_update(usage)) {
+      this.usage = usage;
       this.emit("usage", this.usage);
       this.last = this.usage;
     }
+  }
+
+  // only cause to emit a change if it changed significantly (more than x%),
+  // or if it changes close to zero (in particular, if cpu usage is low again)
+  private should_update(usage: UsageInfo): boolean {
+    if (this.last == null) return true;
+    if (usage == null) return false;
+    // values are in % and mb. we want everyone to know if essentially dropped to zero
+    if (this.last.cpu >= 1 && usage.cpu < 1) return true;
+    if (this.last.mem >= 1 && usage.mem < 1) return true;
+    // … or of one of the values is different
+    return is_diff(usage, this.last, "cpu") || is_diff(usage, this.last, "mem");
   }
 
   private async get_usage(): Promise<UsageInfo | undefined> {
@@ -113,7 +130,7 @@ export class UsageInfoServer extends EventEmitter {
 
   public async start(): Promise<void> {
     if (this.running) {
-      this.dbg("alerady running, cannot be started twice");
+      this.dbg("UsageInfoServer already running, cannot be started twice");
     } else {
       await this._start();
     }
@@ -122,7 +139,7 @@ export class UsageInfoServer extends EventEmitter {
   private async _start(): Promise<void> {
     this.dbg("start");
     if (this.running) {
-      throw Error("Cannot start ProjectStatusServer twice");
+      throw Error("Cannot start UsageInfoServer twice");
     }
     this.running = true;
     await this.init();
