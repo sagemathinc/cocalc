@@ -601,7 +601,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             }
             this.setState(obj);
             if (!this.is_project && orig_kernel !== kernel) {
-              this.set_backend_kernel_info();
               this.set_cm_options();
             }
 
@@ -669,7 +668,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             }
             this.setState(obj);
             if (!this.is_project && orig_kernel !== kernel) {
-              this.set_backend_kernel_info();
               this.set_cm_options();
             }
 
@@ -1763,7 +1761,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  restart = reuseInFlight(
+  halt = reuseInFlight(
     async (): Promise<void> => {
       await this.signal("SIGKILL");
       // Wait a little, since SIGKILL has to really happen on backend,
@@ -1774,8 +1772,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         return t != null && t.get("backend_state") != "running";
       };
       await this.syncdb.wait(not_running, 30);
+    }
+  );
+
+  restart = reuseInFlight(
+    async (): Promise<void> => {
+      await this.halt();
       if (this._state === "closed") return;
-      await this.set_backend_kernel_info();
+      // Actually start it running again (rather than waiting for
+      // user to do something), since this is called "restart".
+      await this.set_backend_kernel_info(); // causes kernel to start
     }
   );
 

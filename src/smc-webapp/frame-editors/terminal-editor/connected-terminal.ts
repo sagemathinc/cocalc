@@ -693,6 +693,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   set_command(command: string | undefined, args: string[] | undefined): void {
+    this.command = command;
+    this.args = args;
     this.conn_write({ cmd: "set_command", command, args });
   }
 

@@ -226,6 +226,9 @@ export class NBGraderActions {
     const kernel_language: string = this.jupyter_actions.store.get_kernel_language();
     this.jupyter_actions.store.get("cells").forEach((cell) => {
       if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
+      // we keep the "answer" cell of a multiple_choice question as it is
+      if (cell.getIn(["metadata", "nbgrader", "multiple_choice"]) == true)
+        return;
       const cell2 = clear_solution(cell, kernel_language);
       if (cell !== cell2) {
         // set the input

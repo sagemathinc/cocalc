@@ -44,7 +44,8 @@ export class NBGraderMetadata extends Component<Props> {
 
   public render(): Rendered {
     const nbgrader = this.props.nbgrader.toJS();
-    const value: string = state_to_value(nbgrader);
+    const value: string | undefined = state_to_value(nbgrader);
+    if (value == null) return;
     const info = CELLTYPE_INFO_MAP[value];
     return (
       <Tip

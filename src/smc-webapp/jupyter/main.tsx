@@ -186,8 +186,11 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
 
   render_kernel_error() {
     if (!this.props.kernel_error) return;
+    // We use "warning" since this isn't necessarily an error.  It really is just
+    // explaining why the kernel stopped.
     return (
       <ErrorDisplay
+        bsStyle="warning"
         error={this.props.kernel_error}
         style={ERROR_STYLE}
         onClose={() => this.props.actions.setState({ kernel_error: "" })}

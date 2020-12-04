@@ -364,6 +364,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     const names: any[] = [
       `${this.props.kernel_state !== "busy" ? "<" : ""}interrupt kernel`,
       "confirm restart kernel",
+      "confirm halt kernel",
       "<Restart and...",
       ">confirm restart kernel and clear output",
       ">confirm restart kernel and run all cells",

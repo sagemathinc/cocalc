@@ -77,6 +77,11 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
       this.setState({ has_unsaved_changes });
     });
 
+    this.watch_for_introspect();
+    this.watch_for_connection_file_change();
+  }
+
+  private watch_for_introspect(): void {
     const store = this.jupyter_actions.store;
     let introspect = store.get("introspect");
     store.on("change", () => {
@@ -89,6 +94,23 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
         }
         introspect = i;
       }
+    });
+  }
+
+  private watch_for_connection_file_change(): void {
+    const store = this.jupyter_actions.store;
+    let connection_file = store.get("connection_file");
+    this.jupyter_actions.store.on("change", () => {
+      const c = store.get("connection_file");
+      if (c == connection_file) return;
+      connection_file = c;
+      const id = this._get_most_recent_shell_id("jupyter");
+      if (id == null) {
+        // There is no Jupyter console open right now...
+        return;
+      }
+      // This will update the connection file
+      this.shell(id, true);
     });
   }
 
@@ -220,11 +242,11 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     id: string
   ): Promise<undefined | { command: string; args: string[] }> {
     id = id; // not used
-    // TODO: need to find out the file that corresponds to
-    // socket and put in args.  Can find with ps on the pid.
-    // Also, need to deal with it changing, and shells are
-    // becoming invalid...
-    return { command: "jupyter", args: ["console", "--existing"] };
+    const connection_file = this.jupyter_actions.store.get("connection_file");
+    return {
+      command: "jupyter",
+      args: ["console", "--existing", connection_file],
+    };
   }
 
   // Not an action, but works to make code clean

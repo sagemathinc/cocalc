@@ -54,8 +54,7 @@ export const EDITOR_SPEC = {
       "format",
       "show_table_of_contents",
       "guide",
-      /* ,
-      "shell" -- disable for now since not fully implemented*/
+      "shell",
     ]),
     guide_info: {
       title: "Snippets",

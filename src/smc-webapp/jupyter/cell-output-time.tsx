@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Component } from "../app-framework";
+import { React } from "../app-framework";
 
 import { TimeAgo, A, Icon } from "../r_misc";
 
@@ -13,16 +13,18 @@ interface CellTimingProps {
   state?: string;
 }
 
-export class CellTiming extends Component<CellTimingProps> {
-  render() {
-    let tip;
-    if (this.props.start === undefined) {
-      return <span />; // TODO: should this return undefined?
-    }
-    if (this.props.end !== undefined) {
-      return `${(this.props.end - this.props.start) / 1000} seconds`;
-    } else if (this.props.state === undefined || this.props.state === "done") {
-      tip = (
+export const CellTiming: React.FC<CellTimingProps> = (props) => {
+  if (props.start === undefined) {
+    return <span />; // TODO: should this return undefined?
+  }
+  if (props.end != null) {
+    return <span>{(props.end - props.start) / 1000} seconds</span>;
+  }
+  return (
+    <div style={{ float: "right" }}>
+      <TimeAgo date={new Date(props.start)} />
+      <br />
+      {(props.state == null || props.state == "done") && (
         <A
           href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html"
           style={{
@@ -34,14 +36,7 @@ export class CellTiming extends Component<CellTimingProps> {
         >
           <Icon name="skull" /> Kernel killed...
         </A>
-      );
-    }
-    return (
-      <div style={{ float: "right" }}>
-        <TimeAgo date={new Date(this.props.start)} />
-        <br />
-        {tip}
-      </div>
-    );
-  }
-}
+      )}
+    </div>
+  );
+};
