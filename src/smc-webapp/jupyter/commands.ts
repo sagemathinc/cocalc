@@ -166,6 +166,12 @@ export function commands(
       f: () => jupyter_actions.confirm_restart(),
     },
 
+    "confirm halt kernel": {
+      m: "Halt kernel...",
+      i: "stop",
+      f: () => jupyter_actions.confirm_halt_kernel(),
+    },
+
     "confirm restart kernel and clear output": {
       m: "Restart and clear output...",
       menu: "Clear output...",

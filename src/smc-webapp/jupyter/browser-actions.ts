@@ -597,6 +597,21 @@ export class JupyterActions extends JupyterActions0 {
     }
   }
 
+  public async confirm_halt_kernel(): Promise<void> {
+    const choice = await this.confirm_dialog({
+      title: "Halt kernel?",
+      body:
+        "Do you want to kill the running kernel?  All variables will be lost.  The kernel will only start if you try to evaluate some code.",
+      choices: [
+        { title: "Continue running" },
+        { title: "Halt", style: "danger", default: true },
+      ],
+    });
+    if (choice === "Halt") {
+      this.halt();
+    }
+  }
+
   public cell_toolbar(name?: CellToolbarName): void {
     // Set which cell toolbar is visible.
     // At most one may be visible.
