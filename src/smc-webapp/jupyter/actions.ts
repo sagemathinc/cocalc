@@ -602,7 +602,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             }
             this.setState(obj);
             if (!this.is_project && orig_kernel !== kernel) {
-              this.set_backend_kernel_info();
               this.set_cm_options();
             }
 
@@ -654,7 +653,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               backend_state: record.get("backend_state"),
               kernel_state: record.get("kernel_state"),
               kernel_usage: record.get("kernel_usage"),
+              kernel_error: record.get("kernel_error"),
               metadata: record.get("metadata"), // extra custom user-specified metadata
+              connection_file: record.get("connection_file") ?? "",
               max_output_length: bounded_integer(
                 record.get("max_output_length"),
                 100,
@@ -669,7 +670,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             }
             this.setState(obj);
             if (!this.is_project && orig_kernel !== kernel) {
-              this.set_backend_kernel_info();
               this.set_cm_options();
             }
 
@@ -823,11 +823,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     try {
       // Make sure syncdb content is all sent to the project.
       await this.syncdb.save();
+      if (this._state === "closed") return;
       // Export the ipynb file to disk.
       await this.api_call("save_ipynb_file", {});
+      if (this._state === "closed") return;
       // Save our custom-format syncdb to disk.
       await this.syncdb.save_to_disk();
     } catch (err) {
+      if (this._state === "closed") return;
       if (err.toString().indexOf("no kernel with path") != -1) {
         // This means that the kernel simply hasn't been initialized yet.
         // User can try to save later, once it has.
@@ -841,6 +844,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
       this.set_error(err.toString());
     } finally {
+      if (this._state === "closed") return;
       // And update the save status finally.
       if (typeof this.set_save_status === "function") {
         this.set_save_status();
@@ -1759,7 +1763,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  restart = reuseInFlight(
+  halt = reuseInFlight(
     async (): Promise<void> => {
       await this.signal("SIGKILL");
       // Wait a little, since SIGKILL has to really happen on backend,
@@ -1770,8 +1774,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         return t != null && t.get("backend_state") != "running";
       };
       await this.syncdb.wait(not_running, 30);
+    }
+  );
+
+  restart = reuseInFlight(
+    async (): Promise<void> => {
+      await this.halt();
       if (this._state === "closed") return;
-      await this.set_backend_kernel_info();
+      // Actually start it running again (rather than waiting for
+      // user to do something), since this is called "restart".
+      await this.set_backend_kernel_info(); // causes kernel to start
     }
   );
 

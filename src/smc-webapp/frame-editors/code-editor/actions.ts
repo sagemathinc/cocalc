@@ -31,12 +31,7 @@ import { SyncString } from "smc-util/sync/editor/string";
 
 import { aux_file } from "../frame-tree/util";
 import { callback_opts, once } from "smc-util/async-utils";
-import {
-  filename_extension,
-  history_path,
-  len,
-  uuid,
-} from "smc-util/misc";
+import { filename_extension, history_path, len, uuid } from "smc-util/misc";
 import { print_code } from "../frame-tree/print-code";
 import {
   ConnectionStatus,
@@ -2292,7 +2287,7 @@ export class Actions<
     return SHELLS[filename_extension(this.path)];
   }
 
-  public async shell(id: string): Promise<void> {
+  public async shell(id: string, no_switch: boolean = false): Promise<void> {
     const x = await this.get_shell_spec(id);
     let command: string | undefined = undefined;
     let args: string[] | undefined = undefined;
@@ -2318,7 +2313,15 @@ export class Actions<
     } else {
       // Change command/args.
       this.terminals.set_command(shell_id, command, args);
+      // Also change the frame description so that the top of the terminal display
+      // updates with the correct command.
+      this.set_frame_tree({
+        id: shell_id,
+        command,
+        args,
+      });
     }
+    if (no_switch) return;
 
     // De-maximize if in full screen mode.
     this.unset_frame_full();

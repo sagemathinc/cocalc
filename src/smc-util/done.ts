@@ -4,7 +4,7 @@
  */
 
 // This is a convenience function to provide as a callback when working interactively.
-function _done(n, ...args): void {
+function _done(n, ...args): Function | void {
   const start_time = new Date().valueOf();
   const f = function (...args) {
     if (n !== 1) {
@@ -23,16 +23,16 @@ function _done(n, ...args): void {
   if (args.length > 0) {
     f(...Array.from(args || []));
   } else {
-    f;
+    return f;
   }
 }
 
-export function done(...args): void {
-  _done(0, ...Array.from(args));
+export function done(...args): Function | void {
+  return _done(0, ...Array.from(args));
 }
-export function done1(...args): void {
-  _done(1, ...Array.from(args));
+export function done1(...args): Function | void {
+  return _done(1, ...Array.from(args));
 }
-export function done2(...args): void {
-  _done(2, ...Array.from(args));
+export function done2(...args): Function | void {
+  return _done(2, ...Array.from(args));
 }

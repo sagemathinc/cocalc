@@ -12,8 +12,7 @@ This is in a separate module from the main non-public version, so it can
 be used on the backend.
 */
 
-const { register_file_editor } = require("../../file-editors");
-//TODO -- import { register_file_editor } from "../../file-editors";
+import { register_file_editor } from "../../file-editors";
 import { redux_name } from "../../app-framework";
 import { NBViewer } from "./nbviewer";
 import { NBViewerActions } from "./actions";
