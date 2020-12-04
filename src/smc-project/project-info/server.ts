@@ -320,7 +320,7 @@ export class ProjectInfoServer extends EventEmitter {
 
   public async start(): Promise<void> {
     if (this.running) {
-      this.dbg("alerady running, cannot be started twice");
+      this.dbg("project-info/server: already running, cannot be started twice");
     } else {
       await this._start();
     }
