@@ -104,7 +104,13 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
       const c = store.get("connection_file");
       if (c == connection_file) return;
       connection_file = c;
-      this.shell("");
+      const id = this._get_most_recent_shell_id("jupyter");
+      if (id == null) {
+        // There is no Jupyter console open right now...
+        return;
+      }
+      // This will update the connection file
+      this.shell(id, true);
     });
   }
 
