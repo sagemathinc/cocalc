@@ -94,13 +94,13 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         return;
       }
       return (
-        <span className="pull-right">
+        <div style={{display: "flex"}} className="pull-right">
           <Logo
             project_id={project_id}
             kernel={kernel}
             kernel_info_known={kernel_info != null}
           />
-        </span>
+        </div>
       );
     }
 
