@@ -10,7 +10,7 @@ import * as immutable from "immutable";
 import { Icon } from "../r_misc/icon";
 import { Loading } from "../r_misc/loading";
 import { Tip } from "../r_misc/tip";
-import { closest_kernel_match, trunc, rpad_html } from "smc-util/misc";
+import { closest_kernel_match, rpad_html } from "smc-util/misc";
 import { Logo } from "./logo";
 import { JupyterActions } from "./browser-actions";
 import { ImmutableUsageInfo } from "../../smc-project/usage-info/types";
@@ -21,14 +21,18 @@ import {
 import { COLORS } from "smc-util/theme";
 
 const KERNEL_NAME_STYLE: CSS = {
-  margin: "5px",
-  color: "rgb(33, 150, 243)",
+  margin: "0px 5px",
+  display: "block",
+  color: COLORS.BS_BLUE_TEXT,
   borderLeft: `1px solid ${COLORS.GRAY}`,
   paddingLeft: "5px",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
 
 const KERNEL_USAGE_STYLE: CSS = {
-  margin: "5px",
+  margin: "0px 5px",
   color: COLORS.GRAY,
   borderRight: `1px solid ${COLORS.GRAY}`,
   paddingRight: "5px",
@@ -44,6 +48,7 @@ const KERNEL_ERROR_STYLE: CSS = {
 };
 
 const BACKEND_STATE_STYLE: CSS = {
+  display: "flex",
   marginRight: "5px",
   color: KERNEL_NAME_STYLE.color,
 };
@@ -126,17 +131,17 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       } else {
         // List of known kernels just not loaded yet.
         if (display_name == null) {
-          display_name = kernel;
+          display_name = kernel ?? "No Kernel";
         }
+        const chars = is_fullscreen ? 16 : 8;
+        const style = { ...KERNEL_NAME_STYLE, maxWidth: `${chars}em` };
         return (
-          <span
-            style={KERNEL_NAME_STYLE}
+          <div
+            style={style}
             onClick={() => actions.show_select_kernel("user request")}
           >
-            {display_name != null
-              ? trunc(display_name, is_fullscreen ? 16 : 8)
-              : "No Kernel"}
-          </span>
+            {display_name}
+          </div>
         );
       }
     }
@@ -189,21 +194,22 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       }
 
       return (
-        <span style={BACKEND_STATE_STYLE}>
+        <div style={BACKEND_STATE_STYLE}>
           <Icon name={name} spin={spin} style={{ color }} />
-        </span>
+        </div>
       );
     }
 
     function render_trust() {
       if (trust) {
         if (!is_fullscreen) return;
-        return <span style={{ color: "#888" }}>Trusted</span>;
+        return <div style={{ display: "flex", color: "#888" }}>Trusted</div>;
       } else {
         return (
-          <span
+          <div
             title={"Notebook is not trusted"}
             style={{
+              display: "flex",
               background: "#5bc0de",
               color: "white",
               cursor: "pointer",
@@ -213,7 +219,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
             onClick={() => actions.trust_notebook()}
           >
             Not Trusted
-          </span>
+          </div>
         );
       }
     }
@@ -247,16 +253,28 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         kernel_tip = "";
       }
 
+      const usage_tip = (
+        <div>
+          Usage of the kernel process updated every few seconds.
+          <br />
+          Does NOT include subprocesses.
+          <br />
+          You can clear all memory by selecting Close and Halt from the File
+          menu or restarting your kernel.
+        </div>
+      );
+
       const tip = (
         <span>
           {kernel_name}
           {backend_tip}
           {kernel_tip ? <br /> : undefined}
           {kernel_tip}
+          {usage_tip}
         </span>
       );
       return (
-        <Tip title={title} tip={tip} placement={"leftTop"}>
+        <Tip title={title} tip={tip} placement={"bottom"}>
           {body}
         </Tip>
       );
@@ -303,29 +321,16 @@ export const Kernel: React.FC<KernelProps> = React.memo(
           };
         }
       }
-      const tip = (
-        <div>
-          Usage of the kernel process updated every few seconds.
-          <br />
-          Does NOT include subprocesses.
-          <br />
-          You can clear all memory by selecting Close and Halt from the File
-          menu or restarting your kernel.
-        </div>
-      );
-      return (
-        <Tip title="Kernel CPU and Memory Usage" tip={tip} placement={"bottom"}>
-          {render_usage_text(cpu, memory, cpu_style, memory_style)}
-        </Tip>
-      );
+      return render_usage_text(cpu, memory, cpu_style, memory_style);
     }
 
     function render_usage_text(cpu, memory, cpu_style, memory_style) {
       const cpu_disp = `${rpad_html(cpu, 3)}%`;
       const mem_disp = `${rpad_html(memory, 4)}MB`;
+      const style: CSS = { display: "flex" };
       if (is_fullscreen) {
         return (
-          <span>
+          <div style={style}>
             <span style={KERNEL_USAGE_STYLE}>
               CPU:{" "}
               <span
@@ -342,17 +347,21 @@ export const Kernel: React.FC<KernelProps> = React.memo(
                 dangerouslySetInnerHTML={{ __html: mem_disp }}
               />
             </span>
-          </span>
+          </div>
         );
       } else {
+        // we don't set the cocalc-jupyter-usage-info class, to make it more compact
         return (
-          <span>
-            <span style={cpu_style}>{cpu}%</span>{" "}
-            <span style={memory_style}>
-              {memory}
-              MB
-            </span>
-          </span>
+          <div style={style}>
+            <span
+              style={cpu_style}
+              dangerouslySetInnerHTML={{ __html: cpu_disp }}
+            />{" "}
+            <span
+              style={memory_style}
+              dangerouslySetInnerHTML={{ __html: mem_disp }}
+            />
+          </div>
         );
       }
     }
@@ -362,11 +371,19 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         return <span />;
       }
       const title = (
-        <span>
+        <div
+          style={{
+            display: "flex",
+            flex: "1 0",
+            flexDirection: "row",
+            flexWrap: "nowrap",
+          }}
+        >
           {render_usage()}
           {render_trust()}
           {render_name()}
-        </span>
+          {render_backend_state_icon()}
+        </div>
       );
       const body = (
         <div
@@ -374,7 +391,6 @@ export const Kernel: React.FC<KernelProps> = React.memo(
           style={{ color: COLORS.GRAY, cursor: "pointer", marginTop: "7px" }}
         >
           {title}
-          {render_backend_state_icon()}
         </div>
       );
       return (
