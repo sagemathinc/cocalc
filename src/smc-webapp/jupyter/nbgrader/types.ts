@@ -17,6 +17,7 @@ export interface Metadata {
   task?: boolean;
   points?: number;
   remove?: boolean;
+  multiple_choice?: boolean;
 }
 
 export type ImmutableMetadata = Map<string, any>;
