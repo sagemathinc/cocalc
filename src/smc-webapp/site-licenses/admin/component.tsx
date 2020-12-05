@@ -7,6 +7,20 @@
 Viewing and configuring site licenses
 */
 
+function download_data(filename, data, type = "text/json") {
+  const blob = new Blob([data], { type });
+  if (typeof window.navigator.msSaveBlob == "function") {
+    window.navigator.msSaveBlob(blob, filename);
+  } else {
+    const elem = window.document.createElement("a");
+    elem.href = window.URL.createObjectURL(blob);
+    elem.download = filename;
+    document.body.appendChild(elem);
+    elem.click();
+    document.body.removeChild(elem);
+  }
+}
+
 import { DebounceInput } from "react-debounce-input";
 import {
   React,
@@ -209,6 +223,7 @@ export const SiteLicenses: React.FC<{}> = () => {
     });
     if (!isMountedRef.current) return;
     const result = q.query.site_licenses;
+    download_data("license-export.json", JSON.stringify(result, undefined, 2));
     set_exporting(false);
   }
 
