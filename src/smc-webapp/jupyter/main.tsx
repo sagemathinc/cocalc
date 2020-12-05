@@ -229,6 +229,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
           is_fullscreen={this.props.is_fullscreen}
           name={this.props.name}
           actions={this.props.actions}
+          cells={this.props.cells}
         />
         <Mode name={this.props.name} />
       </span>

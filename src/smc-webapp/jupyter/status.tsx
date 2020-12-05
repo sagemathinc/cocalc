@@ -67,16 +67,43 @@ interface Usage {
   cpu_pct: number; // 100% full container quota
 }
 
+function useEvalStats(cells?: immutable.Map<string, any>) {
+  const [q90, set_q90] = React.useState(10);
+
+  if (cells != null) {
+    const timings = cells
+      .toList()
+      .map((v) => {
+        const start = v.get("start");
+        const end = v.get("end");
+        if (start != null && end != null) {
+          return (end - start) / 1000;
+        } else {
+          return null;
+        }
+      })
+      .filter((v) => v != null)
+      .sort();
+    console.log(timings?.toJS());
+    const last = timings?.toJS();
+    if (last != null && last.length > 0) set_q90(last[last.length - 1]);
+  }
+  return q90;
+}
+
 interface KernelProps {
   // OWN PROPS
   actions: JupyterActions;
   is_fullscreen?: boolean;
   name: string;
+  cells?: immutable.Map<string, any>;
 }
 
 export const Kernel: React.FC<KernelProps> = React.memo(
   (props: KernelProps) => {
-    const { actions, is_fullscreen, name } = props;
+    const { actions, is_fullscreen, name, cells } = props;
+    const q90 = useEvalStats(cells);
+    console.log("q90", q90);
 
     // redux section
     const kernel: undefined | string = useRedux([name, "kernel"]);
@@ -156,6 +183,39 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         cpu_pct: (100 * cpu) / cpu_limit,
       };
     }, [kernel_usage, backend_state]);
+
+    const [cpu_start, set_cpu_start] = React.useState<number | undefined>();
+    const [cpu_runtime, set_cpu_runtime] = React.useState<number>(0);
+    const timer1 = React.useRef<ReturnType<typeof setInterval> | undefined>();
+
+    React.useEffect(() => {
+      if (cpu_start == null && usage.cpu_pct >= 10) {
+        set_cpu_start(Date.now());
+      }
+      if (cpu_start != null && usage.cpu_pct < 10) {
+        set_cpu_runtime(0);
+        set_cpu_start(undefined);
+      }
+    }, [usage.cpu_pct]);
+
+    React.useEffect(() => {
+      if (cpu_start != null) {
+        timer1.current = setInterval(() => {
+          // this resets the bar earlier, avoids laggy behavior
+          if (kernel_state == "busy") {
+            set_cpu_runtime((Date.now() - cpu_start) / 1000);
+          } else {
+            set_cpu_runtime(0);
+          }
+        }, 100);
+      } else if (timer1.current != null) {
+        set_cpu_runtime(0);
+        clearInterval(timer1.current);
+      }
+      return () => {
+        if (timer1.current != null) clearInterval(timer1.current);
+      };
+    }, [cpu_start, kernel_state]);
 
     function render_logo() {
       if (project_id == null || kernel == null) {
@@ -379,6 +439,10 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         high: COLORS.ANTD_RED_WARN,
       };
 
+      // const status = usage.cpu > 50 ? "active" : undefined
+      const status = cpu_runtime != null ? "active" : undefined;
+      const cpu_val = Math.min(100, 10 * cpu_runtime); // Math.min(100, cpu_runtime * 10)
+
       if (is_fullscreen) {
         return (
           <div style={style}>
@@ -387,10 +451,10 @@ export const Kernel: React.FC<KernelProps> = React.memo(
               <Progress
                 style={pstyle}
                 showInfo={false}
-                percent={usage.cpu_pct}
+                percent={cpu_val}
                 size="small"
                 trailColor="white"
-                status={usage.cpu > 50 ? "active" : undefined}
+                status={status}
                 strokeColor={lvl2col[usage.cpu_level]}
               />
             </span>
