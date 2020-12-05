@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// import { delay } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
 import { close } from "../smc-util/misc";
 import { SyncTable } from "../smc-util/sync/table";
@@ -27,16 +26,13 @@ class ProjectInfoTable {
     this.project_id = project_id;
     this.logger = logger;
     this.log("register");
-    this.publish = reuseInFlight(this.publish_impl);
+    this.publish = reuseInFlight(this.publish_impl).bind(this);
     this.table = table;
     this.table.on("closed", () => this.close());
     // initializing project info server + reacting when it has something to say
     this.info_server = get_ProjectInfoServer();
     this.info_server.start();
-    this.info_server.on("info", (info) => {
-      //this.log?.("info_server event 'info'", info.timestamp);
-      this.publish?.(info);
-    });
+    this.info_server.on("info", this.publish);
   }
 
   private async publish_impl(info: ProjectInfo): Promise<void> {
@@ -48,15 +44,18 @@ class ProjectInfoTable {
       } catch (err) {
         this.log(`error saving ${err}`);
       }
-    } else {
+    } else if (this.log != null) {
       this.log(
-        `ProjectInfoTable ${this.state} and table is ${this.table.get_state()}`
+        `ProjectInfoTable state = '${
+          this.state
+        }' and table is '${this.table?.get_state()}'`
       );
     }
   }
 
   public close(): void {
     this.log("close");
+    this.info_server.off("info", this.publish);
     this.table?.close_no_async();
     close(this);
     this.state = "closed";
@@ -77,12 +76,12 @@ export function register_project_info_table(
 ): void {
   logger.debug("register_project_info_table");
   if (project_info_table != null) {
-    // There was one sitting around wasting space so clean it up
-    // before making a new one.
+    logger.debug(
+      "register_project_info_table: cleaning up an already existing one"
+    );
     project_info_table.close();
   }
   project_info_table = new ProjectInfoTable(table, logger, project_id);
-  return;
 }
 
 export function get_project_info_table(): ProjectInfoTable | undefined {

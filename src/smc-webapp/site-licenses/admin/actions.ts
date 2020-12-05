@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Map, Set } from "immutable";
+import { fromJS, Map, Set } from "immutable";
 import { Actions, redux, TypedMap } from "../../app-framework";
 import {
   SiteLicensesState,
@@ -38,7 +38,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
     const search = store.get("search");
     if (!search) {
       // Empty search = clear
-      this.setState({ site_licenses: [] });
+      this.setState({ site_licenses: [] as any });
       return;
     }
     try {
@@ -85,7 +85,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
           }
         }
       }
-      this.setState({ site_licenses });
+      this.setState({ site_licenses: fromJS(site_licenses) });
       await this.update_usage_stats();
     } catch (err) {
       this.set_error(err);

@@ -178,7 +178,9 @@ export class ProjectStatusServer extends EventEmitter {
 
   public async start(): Promise<void> {
     if (this.running) {
-      this.dbg("alerady running, cannot be started twice");
+      this.dbg(
+        "project-status/server: already running, cannot be started twice"
+      );
     } else {
       await this._start();
     }
