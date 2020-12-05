@@ -4,14 +4,14 @@
  */
 
 import * as React from "react";
-import { Rendered } from "smc-webapp/app-framework";
+import { Rendered, CSS } from "smc-webapp/app-framework";
 import { Icon } from "./icon";
 import * as misc from "smc-util/misc";
 import * as feature from "../feature";
 import { Tooltip, Popover } from "antd";
 import { TooltipPlacement } from "antd/es/tooltip";
 
-const TIP_STYLE: React.CSSProperties = {
+const TIP_STYLE: CSS = {
   wordWrap: "break-word",
   maxWidth: "250px",
 };
@@ -30,12 +30,13 @@ interface Props {
   rootClose?: boolean;
   icon?: string;
   id?: string; // can be used for screen readers
-  style?: React.CSSProperties; // changing not checked when updating if stable is true
-  popover_style?: React.CSSProperties; // changing not checked ever (default={zIndex:1000})
+  style?: CSS; // changing not checked when updating if stable is true
+  popover_style?: CSS; // changing not checked ever (default={zIndex:1000})
   stable?: boolean; // if true, children assumed to never change
   allow_touch?: boolean;
   trigger?: Trigger | Trigger[];
   children?: React.ReactNode;
+  tip_style?: CSS;
 }
 
 function is_equal(prev, next) {
@@ -70,6 +71,7 @@ export const Tip: React.FC<Props> = React.memo((props: Props) => {
     style,
     trigger,
     children,
+    tip_style,
   } = props;
 
   function render_title() {
@@ -83,7 +85,8 @@ export const Tip: React.FC<Props> = React.memo((props: Props) => {
 
   // a tip is rendered in a description box below the title
   function render_tip(): Rendered {
-    return <div style={TIP_STYLE}>{tip}</div>;
+    const style = { ...TIP_STYLE, ...tip_style };
+    return <div style={style}>{tip}</div>;
   }
 
   // this is the visible element, which gets some information

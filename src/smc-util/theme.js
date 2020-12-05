@@ -83,6 +83,7 @@ const COLORS = {
   GRAY_LL: "#eeeeee",
   GRAY_LLL: "#f5f5f5",
   // bootstrap 3 colors
+  BS_RED_BGRND: "rgb(92,184,92)",
   BS_BLUE_BGRND: "rgb(66, 139, 202)",
   BS_BLUE_TEXT: "rgb(33, 150, 243)",
   BS_GREEN_LL: "#E8F5E9",
@@ -99,6 +100,7 @@ const COLORS = {
   ATND_BG_RED_M: "#ff7875",
   ATND_BG_RED_L: "#fff2f0",
   ANTD_RED_WARN: "#f5222d", // used in official docs if there is red text to warn
+  ANTD_YELL_M: "#fadb14",
 
   ANTD_RED: "#f5222d", // hefty warning (needs white text on top of it)
   ANTD_ORANGE: "#ffbb96", // mild warning

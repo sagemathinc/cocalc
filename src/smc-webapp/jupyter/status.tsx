@@ -7,6 +7,8 @@
 
 import { React, useRedux, CSS } from "../app-framework";
 import * as immutable from "immutable";
+import { Progress } from "antd";
+import { COLORS } from "smc-util/theme";
 import { Icon } from "../r_misc/icon";
 import { Loading } from "../r_misc/loading";
 import { Tip } from "../r_misc/tip";
@@ -18,7 +20,6 @@ import {
   ALERT_HIGH_PCT,
   ALERT_MEDIUM_PCT,
 } from "../../smc-project/project-status/const";
-import { COLORS } from "smc-util/theme";
 
 const KERNEL_NAME_STYLE: CSS = {
   margin: "0px 5px",
@@ -55,6 +56,17 @@ const BACKEND_STATE_STYLE: CSS = {
 
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
 
+interface Usage {
+  mem: number; // MiB
+  mem_limit: number;
+  mem_level: "low" | "mid" | "high" | "none";
+  mem_pct: number; // %
+  cpu: number; // 1 core = 100%
+  cpu_limit: number;
+  cpu_level: "low" | "mid" | "high" | "none";
+  cpu_pct: number; // 100% full container quota
+}
+
 interface KernelProps {
   // OWN PROPS
   actions: JupyterActions;
@@ -89,12 +101,68 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     const trust: undefined | boolean = useRedux([name, "trust"]);
     const read_only: undefined | boolean = useRedux([name, "read_only"]);
 
+    const usage: Usage | undefined = React.useMemo(() => {
+      // not using resources, set to zero and sane defaults
+      if (
+        kernel_usage == null ||
+        backend_state == null ||
+        !["running", "starting"].includes(backend_state)
+      ) {
+        return {
+          mem: 0,
+          mem_limit: 1000,
+          cpu: 0,
+          cpu_limit: 1,
+          mem_level: "none",
+          cpu_level: "none",
+          mem_pct: 0,
+          cpu_pct: 0,
+        };
+      }
+
+      const mem_limit = kernel_usage.get("mem_limit") ?? 1000;
+      const cpu_limit = kernel_usage.get("cpu_limit") ?? 1;
+      const cpu_mid = ALERT_MEDIUM_PCT * cpu_limit;
+      const cpu_high = ALERT_HIGH_PCT * cpu_limit;
+      const mem_mid = (ALERT_MEDIUM_PCT / 100) * mem_limit;
+      const mem_high = (ALERT_HIGH_PCT / 100) * mem_limit;
+      const mem_low = Math.min(500, 0.5 * mem_mid);
+      const mem = kernel_usage.get("mem") ?? 0;
+      const cpu = kernel_usage.get("cpu") ?? 0;
+      const cpu_level =
+        cpu > cpu_high
+          ? "high"
+          : cpu > cpu_mid
+          ? "mid"
+          : cpu > 10
+          ? "low"
+          : "none";
+      const mem_level =
+        mem > mem_high
+          ? "high"
+          : mem > mem_mid
+          ? "mid"
+          : mem > mem_low
+          ? "low"
+          : "none";
+      return {
+        mem,
+        mem_limit,
+        cpu,
+        cpu_limit,
+        cpu_level,
+        mem_level,
+        mem_pct: (100 * mem) / mem_limit,
+        cpu_pct: (100 * cpu) / cpu_limit,
+      };
+    }, [kernel_usage, backend_state]);
+
     function render_logo() {
       if (project_id == null || kernel == null) {
         return;
       }
       return (
-        <div style={{display: "flex"}} className="pull-right">
+        <div style={{ display: "flex" }} className="pull-right">
           <Logo
             project_id={project_id}
             kernel={kernel}
@@ -255,12 +323,11 @@ export const Kernel: React.FC<KernelProps> = React.memo(
 
       const usage_tip = (
         <div>
-          Usage of the kernel process updated every few seconds.
+          Usage of the kernel process updated while your kernel runs.
           <br />
           Does NOT include subprocesses.
           <br />
-          You can clear all memory by selecting Close and Halt from the File
-          menu or restarting your kernel.
+          You can clear all cpu and memory usage by restarting your kernel.
         </div>
       );
 
@@ -270,107 +337,174 @@ export const Kernel: React.FC<KernelProps> = React.memo(
           {backend_tip}
           {kernel_tip ? <br /> : undefined}
           {kernel_tip}
+          <hr />
+          {render_usage_text()}
           {usage_tip}
         </span>
       );
       return (
-        <Tip title={title} tip={tip} placement={"bottom"}>
+        <Tip
+          title={title}
+          tip={tip}
+          placement={"bottom"}
+          tip_style={{ maxWidth: "400px" }}
+        >
           {body}
         </Tip>
       );
     }
 
-    function render_usage() {
-      let cpu, cpu_style, memory, memory_style, memory_limit, cpu_limit;
-      if (kernel_usage == null) {
-        // unknown, e.g, not reporting/working or old backend.
-        return;
-      }
-      if (backend_state !== "running" && backend_state !== "starting") {
-        // not using resources
-        memory = cpu = 0;
-      } else {
-        memory = kernel_usage.get("mem");
-        memory_limit = kernel_usage.get("mem_limit") ?? 1000;
-        cpu_limit = kernel_usage.get("cpu_limit") ?? 1;
-        if (memory == null) return;
-        cpu = kernel_usage.get("cpu");
-        if (cpu == null) return;
-        cpu_style = memory_style = KERNEL_USAGE_STYLE_NUM;
-        const cpu_mid = ALERT_MEDIUM_PCT * cpu_limit;
-        const cpu_high = ALERT_HIGH_PCT * cpu_limit;
-        if (10 < cpu && cpu <= cpu_mid) {
-          cpu_style = { ...cpu_style, backgroundColor: "yellow" };
-        } else if (cpu_mid < cpu && cpu <= cpu_high) {
-          cpu_style = { ...cpu_style, backgroundColor: "orange" };
-        } else if (cpu_high < cpu) {
-          cpu_style = {
-            ...cpu_style,
-            backgroundColor: "rgb(92,184,92)",
-            color: "white",
-          };
-        }
-        if (memory > (ALERT_MEDIUM_PCT / 100) * memory_limit) {
-          memory_style = { ...memory_style, backgroundColor: "yellow" };
-        }
-        if (memory > (ALERT_HIGH_PCT / 100) * memory_limit) {
-          memory_style = {
-            ...memory_style,
-            backgroundColor: "red",
-            color: "white",
-          };
-        }
-      }
-      return render_usage_text(cpu, memory, cpu_style, memory_style);
-    }
+    function render_usage_graphical() {
+      // unknown, e.g, not reporting/working or old backend.
+      if (usage == null) return;
 
-    function render_usage_text(cpu, memory, cpu_style, memory_style) {
-      const cpu_disp = `${rpad_html(cpu, 3)}%`;
-      const mem_disp = `${rpad_html(memory, 4)}MB`;
       const style: CSS = { display: "flex" };
+      const style2: CSS = {
+        display: "flex",
+        flexFlow: "column",
+        marginTop: "-6px",
+      };
+      const pstyle: CSS = {
+        margin: "2px",
+        width: "5em",
+        position: "relative",
+        top: "-1px",
+      };
+      const usage2: CSS = { height: "5px", marginBottom: "4px", width: "5em" };
+
+      const lvl2col = {
+        none: COLORS.ANTD_GREEN,
+        low: COLORS.ANTD_YELL_M,
+        mid: COLORS.ANTD_ORANGE,
+        high: COLORS.ANTD_RED_WARN,
+      };
+
       if (is_fullscreen) {
         return (
           <div style={style}>
             <span style={KERNEL_USAGE_STYLE}>
               CPU:{" "}
-              <span
-                className={"cocalc-jupyter-usage-info"}
-                style={cpu_style}
-                dangerouslySetInnerHTML={{ __html: cpu_disp }}
+              <Progress
+                style={pstyle}
+                showInfo={false}
+                percent={usage.cpu_pct}
+                size="small"
+                trailColor="white"
+                status={usage.cpu > 50 ? "active" : undefined}
+                strokeColor={lvl2col[usage.cpu_level]}
               />
             </span>
             <span style={KERNEL_USAGE_STYLE}>
               Memory:{" "}
-              <span
-                className={"cocalc-jupyter-usage-info"}
-                style={memory_style}
-                dangerouslySetInnerHTML={{ __html: mem_disp }}
+              <Progress
+                style={pstyle}
+                showInfo={false}
+                percent={usage.mem_pct}
+                size="small"
+                trailColor="white"
+                strokeColor={lvl2col[usage.mem_level]}
               />
             </span>
           </div>
         );
       } else {
-        // we don't set the cocalc-jupyter-usage-info class, to make it more compact
         return (
-          <div style={style}>
-            <span
-              style={cpu_style}
-              dangerouslySetInnerHTML={{ __html: cpu_disp }}
-            />{" "}
-            <span
-              style={memory_style}
-              dangerouslySetInnerHTML={{ __html: mem_disp }}
-            />
+          <div style={style2}>
+            <span style={usage2}>
+              <Progress
+                style={pstyle}
+                showInfo={false}
+                percent={usage.cpu_pct}
+                size="small"
+                trailColor="white"
+                status={usage.cpu > 50 ? "active" : undefined}
+                strokeColor={lvl2col[usage.cpu_level]}
+              />
+            </span>
+            <span style={usage2}>
+              <Progress
+                style={pstyle}
+                showInfo={false}
+                percent={usage.mem_pct}
+                size="small"
+                trailColor="white"
+                strokeColor={lvl2col[usage.mem_level]}
+              />
+            </span>
           </div>
         );
       }
+    }
+
+    function usage_text_style(usage) {
+      let cpu_style, memory_style;
+      cpu_style = memory_style = KERNEL_USAGE_STYLE_NUM;
+      switch (usage.cpu_level) {
+        case "low":
+          cpu_style = { ...cpu_style, backgroundColor: "yellow" };
+          break;
+        case "mid":
+          cpu_style = { ...cpu_style, backgroundColor: "orange" };
+          break;
+        case "high":
+          cpu_style = {
+            ...cpu_style,
+            backgroundColor: COLORS.BS_RED_BGRND,
+            color: "white",
+          };
+          break;
+      }
+      switch (usage.mem_level) {
+        case "low":
+          memory_style = { ...memory_style, backgroundColor: "yellow" };
+          break;
+        case "high":
+          memory_style = {
+            ...memory_style,
+            backgroundColor: COLORS.BS_RED_BGRND,
+            color: "white",
+          };
+          break;
+      }
+
+      return { cpu_style, memory_style };
+    }
+
+    function render_usage_text() {
+      if (usage == null) return;
+      const { cpu_style, memory_style } = usage_text_style(usage);
+      const { cpu, mem } = usage;
+      const cpu_disp = `${rpad_html(cpu, 3)}%`;
+      const mem_disp = `${rpad_html(mem, 4)}MB`;
+      const style: CSS = { display: "flex" };
+      return (
+        <div style={style}>
+          <span>
+            CPU:{" "}
+            <span
+              className={"cocalc-jupyter-usage-info"}
+              style={cpu_style}
+              dangerouslySetInnerHTML={{ __html: cpu_disp }}
+            />
+          </span>
+          <span>
+            {" "}
+            Memory:{" "}
+            <span
+              className={"cocalc-jupyter-usage-info"}
+              style={memory_style}
+              dangerouslySetInnerHTML={{ __html: mem_disp }}
+            />
+          </span>
+        </div>
+      );
     }
 
     function render() {
       if (kernel == null) {
         return <span />;
       }
-      const title = (
+      const info = (
         <div
           style={{
             display: "flex",
@@ -379,7 +513,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
             flexWrap: "nowrap",
           }}
         >
-          {render_usage()}
+          {render_usage_graphical()}
           {render_trust()}
           {render_name()}
           {render_backend_state_icon()}
@@ -390,13 +524,14 @@ export const Kernel: React.FC<KernelProps> = React.memo(
           className="pull-right"
           style={{ color: COLORS.GRAY, cursor: "pointer", marginTop: "7px" }}
         >
-          {title}
+          {info}
         </div>
       );
+      const tip_title = "Details";
       return (
         <span>
           {render_logo()}
-          {render_tip(title, body)}
+          {render_tip(tip_title, body)}
         </span>
       );
     }

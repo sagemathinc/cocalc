@@ -76,7 +76,11 @@ export class UsageInfoServer extends EventEmitter {
     if (proc == null) {
       return { cpu: 0, mem: 0 };
     } else {
-      return { cpu: proc.cpu.pct, mem: proc.stat.mem.rss };
+      // we send whole numbers. saves bandwidth and won't be displayed anyways
+      return {
+        cpu: Math.round(proc.cpu.pct),
+        mem: Math.round(proc.stat.mem.rss),
+      };
     }
   }
 
