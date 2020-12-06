@@ -67,32 +67,38 @@ interface Usage {
   cpu_pct: number; // 100% full container quota
 }
 
-function useEvalStats(cells?: immutable.Map<string, any>) {
-  const [q90, set_q90] = React.useState(10);
+// derive sorted list of timings from all cells
+function calc_cell_timings(cells?: immutable.Map<string, any>): number[] {
+  if (cells == null) return [];
+  return cells
+    .toList()
+    .map((v) => {
+      const start = v.get("start");
+      const end = v.get("end");
+      if (start != null && end != null) {
+        return (end - start) / 1000;
+      } else {
+        return null;
+      }
+    })
+    .filter((v) => v != null)
+    .sort()
+    .toJS();
+}
 
-  if (cells != null) {
-    const timings = cells
-      .toList()
-      .map((v) => {
-        const start = v.get("start");
-        const end = v.get("end");
-        if (start != null && end != null) {
-          return (end - start) / 1000;
-        } else {
-          return null;
-        }
-      })
-      .filter((v) => v != null)
-      .sort();
-    console.log(timings?.toJS());
-    const last = timings?.toJS();
-    if (last != null && last.length > 0) set_q90(last[last.length - 1]);
-  }
-  return q90;
+// for the sorted list of cell timing, get the 90% quantile.
+// a quick approximation is good enough for us!
+// q50 is also easier to get than dealing with inter quantile differences
+// and outlier detection – like for boxplots, etc.
+function calc_q50(data: number[], default_val = 5): number {
+  if (data.length == 0) return default_val;
+  const idx_last = data.length - 1;
+  const idx_q50 = Math.ceil(0.5 * data.length);
+  const idx = Math.min(idx_last, idx_q50);
+  return data[idx];
 }
 
 interface KernelProps {
-  // OWN PROPS
   actions: JupyterActions;
   is_fullscreen?: boolean;
   name: string;
@@ -102,8 +108,9 @@ interface KernelProps {
 export const Kernel: React.FC<KernelProps> = React.memo(
   (props: KernelProps) => {
     const { actions, is_fullscreen, name, cells } = props;
-    const q90 = useEvalStats(cells);
-    console.log("q90", q90);
+    const cell_timings = React.useMemo(() => calc_cell_timings(cells), [cells]);
+    const q50 = React.useMemo(() => calc_q50(cell_timings), [cell_timings]);
+    console.log("q50", q50);
 
     // redux section
     const kernel: undefined | string = useRedux([name, "kernel"]);
@@ -441,7 +448,16 @@ export const Kernel: React.FC<KernelProps> = React.memo(
 
       // const status = usage.cpu > 50 ? "active" : undefined
       const status = cpu_runtime != null ? "active" : undefined;
-      const cpu_val = Math.min(100, 10 * cpu_runtime); // Math.min(100, cpu_runtime * 10)
+      // we calibrate "100%" at 3 times the median
+      const cpu_val = Math.min(100, 100 * (cpu_runtime / (3 * q50)));
+      const cpu_time_lvl =
+        cpu_runtime > 10 * q50
+          ? "high"
+          : cpu_runtime > 6 * q50
+          ? "mid"
+          : cpu_runtime > 3 * q50
+          ? "low"
+          : "none";
 
       if (is_fullscreen) {
         return (
@@ -455,7 +471,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
                 size="small"
                 trailColor="white"
                 status={status}
-                strokeColor={lvl2col[usage.cpu_level]}
+                strokeColor={lvl2col[cpu_time_lvl]}
               />
             </span>
             <span style={KERNEL_USAGE_STYLE}>
