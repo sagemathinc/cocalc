@@ -80,17 +80,29 @@ export const SubscriptionList: React.FC<Props> = ({
   function render_buy_upgrades(): JSX.Element {
     return (
       <div>
-        <div style={{ fontSize: "11pt" }}>
-          Upgrades let you increase the quotas for specific projects. The{" "}
-          <a
-            onClick={() => {
-              set_state("buy_license");
-            }}
-          >
-            new licenses
-          </a>{" "}
-          are much more flexible and you should probably buy a license instead.
-          Upgrades are still available, but will be going away soon.
+        <div style={{ fontSize: "14pt" }}>
+          <i>
+            The{" "}
+            <a
+              onClick={() => {
+                set_state("buy_license");
+              }}
+            >
+              new licenses
+            </a>{" "}
+            are vastly more flexible and affordable than upgrade packages, and
+            you should{" "}
+            <a
+              onClick={() => {
+                set_state("buy_license");
+              }}
+            >
+              purchase a license
+            </a>{" "}
+            instead.
+          </i>{" "}
+          Upgrades are still available just in case you need one for a specific
+          reason.
         </div>
         <br />
         <br />
