@@ -162,7 +162,7 @@ export class CodeExecutionEmitter
       // might use it and we should thus properly support it:
       // https://jupyter-client.readthedocs.io/en/stable/messaging.html#request-reply
       if (this.halt_on_error) {
-        this.kernel._clear_execute_code_queue();
+        this.kernel.clear_execute_code_queue();
       }
       this.set_shell_done(true);
     } else if (mesg.content?.status == "ok") {
