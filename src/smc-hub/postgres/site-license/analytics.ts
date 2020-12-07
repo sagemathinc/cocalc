@@ -6,7 +6,7 @@
 import { PostgreSQL } from "../types";
 import { callback2 } from "../../smc-util/async-utils";
 import { copy_with, len } from "../../smc-util/misc";
-import { TIMEOUT_S } from "./const";
+const TIMEOUT_S = 30;
 
 export async function number_of_running_projects_using_license(
   db: PostgreSQL,
@@ -22,6 +22,22 @@ export async function number_of_running_projects_using_license(
   */
 
   const query = `SELECT COUNT(*) FROM projects WHERE state#>>'{state}' = 'running' AND site_license#>>'{${license_id}}'!='{}'`;
+  const x = await db.async_query({ query, timeout_s: TIMEOUT_S });
+  return parseInt(x.rows[0].count);
+}
+
+export async function number_of_projects_with_license_applied(
+  db: PostgreSQL,
+  license_id: string
+): Promise<number> {
+  /* Do a query to count the number of projects that  have the given license_id has a key in their
+     site_license field possibly with a trivial value.   Basically, this is the number of projects
+     somebody has set to use this license, whether or not they have successfully actually used it.
+
+  select project_id, site_license, state from projects where state#>>'{state}' in ('running', 'starting') and site_license#>>'{f3942ea1-ff3f-4d9f-937a-c5007babc693}' IS NOT NULL;
+  */
+
+  const query = `SELECT COUNT(*) FROM projects WHERE site_license#>>'{${license_id}}' IS NOT NULL`;
   const x = await db.async_query({ query, timeout_s: TIMEOUT_S });
   return parseInt(x.rows[0].count);
 }

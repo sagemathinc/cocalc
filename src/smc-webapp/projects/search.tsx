@@ -31,7 +31,7 @@ export const ProjectsSearch: React.FC<Props> = ({
   }, [clear_and_focus_search]);
 
   const debounce_set_search = debounce((search) => {
-    actions.setState({ search });
+    actions.setState({ search: search.toLowerCase() });
   }, 300);
 
   return (

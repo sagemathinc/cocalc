@@ -88,6 +88,18 @@ export class OtherSettings extends Component<Props> {
     }
   }
 
+  private render_katex(): Rendered {
+    return (
+      <Checkbox
+        checked={!!this.props.other_settings.get("katex")}
+        onChange={(e) => this.on_change("katex", e.target.checked)}
+      >
+        KaTeX: attempt to render formulas with KaTeX if possible (much faster, but
+        missing context menu options)
+      </Checkbox>
+    );
+  }
+
   private render_standby_timeout(): Rendered {
     if (IS_TOUCH) {
       return;
@@ -257,6 +269,7 @@ export class OtherSettings extends Component<Props> {
         }
       >
         {this.render_confirm()}
+        {this.render_katex()}
         {this.render_time_ago_absolute()}
         {this.render_global_banner()}
         {this.render_mask_files()}
