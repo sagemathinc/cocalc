@@ -236,11 +236,11 @@ export class JupyterKernel
   constructor(name, _dbg, _path, _actions, usage) {
     super();
 
-    this.spawn = reuseInFlight(this.spawn); // TODO -- test carefully!
+    this.spawn = reuseInFlight(this.spawn.bind(this)); // TODO -- test carefully!
 
-    this.kernel_info = reuseInFlight(this.kernel_info);
-    this.nbconvert = reuseInFlight(this.nbconvert);
-    this.ensure_running = reuseInFlight(this.ensure_running);
+    this.kernel_info = reuseInFlight(this.kernel_info.bind(this));
+    this.nbconvert = reuseInFlight(this.nbconvert.bind(this));
+    this.ensure_running = reuseInFlight(this.ensure_running.bind(this));
 
     this.close = this.close.bind(this);
     this.process_output = this.process_output.bind(this);
@@ -497,7 +497,7 @@ export class JupyterKernel
     dbg(`pid=${pid}, signal=${signal}`);
     if (pid !== undefined) {
       try {
-        this._clear_execute_code_queue();
+        this.clear_execute_code_queue();
         process.kill(-pid, signal); // negative to kill the process group
       } catch (err) {
         dbg(`error: ${err}`);
@@ -627,17 +627,21 @@ export class JupyterKernel
   }
 
   private async ensure_running(): Promise<void> {
-    if (this._state === "closed") {
+    const dbg = this.dbg("ensure_running");
+    dbg(this._state);
+    if (this._state == "closed") {
       throw Error("closed so not possible to ensure running");
     }
-    if (this._state !== "running") {
-      await this.spawn();
-    } else {
+    if (this._state == "running") {
       return;
     }
+    dbg("spawning");
+    await this.spawn();
     if (!this.has_ensured_running) {
+      dbg("waiting for kernel info");
       this.has_ensured_running = true;
       await this._get_kernel_info();
+      dbg("got kernel info");
     }
   }
 
@@ -710,7 +714,6 @@ export class JupyterKernel
     dbg(`queue has ${n} items; ensure kernel running`);
     try {
       await this.ensure_running();
-      dbg("now launching oldest item in queue");
       this._execute_code_queue[0].go();
     } catch (err) {
       dbg(`error running kernel -- ${err}`);
@@ -721,15 +724,19 @@ export class JupyterKernel
     }
   }
 
-  _clear_execute_code_queue(): void {
+  public clear_execute_code_queue(): void {
+    const dbg = this.dbg("_clear_execute_code_queue");
     // ensure no future queued up evaluation occurs (currently running
     // one will complete and new executions could happen)
     if (this._state === "closed") {
+      dbg("no op since state is closed");
       return;
     }
     if (this._execute_code_queue == null) {
+      dbg("nothing to do since queue is null");
       return;
     }
+    dbg(`clearing queue of size ${this._execute_code_queue.length}`);
     const mesg = { done: true };
     for (const code_execution_emitter of this._execute_code_queue.slice(1)) {
       code_execution_emitter.emit_output(mesg);

@@ -39,6 +39,7 @@ export class JupyterActions extends JupyterActions0 {
   private _throttled_ensure_positions_are_unique: any;
   private run_all_loop?: RunAllLoop;
   private clear_kernel_error?: any;
+  private running_manager_run_cell_process_queue: boolean = false;
 
   private set_backend_state(backend_state: BackendState): void {
     /*
@@ -495,34 +496,65 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   // properly start running -- in order -- the cells that have been requested to run
-  manager_run_cell_process_queue = () => {
-    const queue = this._manager_run_cell_queue;
-    if (queue == null) {
+  manager_run_cell_process_queue = async () => {
+    if (this.running_manager_run_cell_process_queue) {
       return;
     }
-    delete this._manager_run_cell_queue;
-    const v: any[] = [];
-    for (const id in queue) {
-      if (!this._running_cells?.[id]) {
-        v.push(this.store.getIn(["cells", id]));
+    this.running_manager_run_cell_process_queue = true;
+    try {
+      const dbg = this.dbg("manager_run_cell_process_queue");
+      const queue = this._manager_run_cell_queue;
+      if (queue == null) {
+        dbg("queue is null");
+        return;
       }
-    }
-    v.sort((a, b) =>
-      misc.cmp(
-        a != null ? a.get("start") : undefined,
-        b != null ? b.get("start") : undefined
-      )
-    );
-    /*
-    const dbg = this.dbg("manager_run_cell_process_queue");
-    dbg(
-      "running: #{misc.to_json( ([a?.get('start'), a?.get('id')] for a in v) )}"
-    );
-    */
-    for (const cell of v) {
-      if (cell != null) {
-        this.manager_run_cell(cell.get("id"));
+      delete this._manager_run_cell_queue;
+      const v: any[] = [];
+      for (const id in queue) {
+        if (!this._running_cells?.[id]) {
+          v.push(this.store.getIn(["cells", id]));
+        }
       }
+
+      if (v.length == 0) {
+        dbg("no non-running cells");
+        return; // nothing to do
+      }
+
+      v.sort((a, b) =>
+        misc.cmp(
+          a != null ? a.get("start") : undefined,
+          b != null ? b.get("start") : undefined
+        )
+      );
+
+      dbg(
+        `found ${v.length} non-running cells, so ensuring kernel is running...`
+      );
+      this.ensure_backend_kernel_setup();
+      try {
+        await this.ensure_backend_kernel_is_running();
+        if (this._state == "closed") return;
+      } catch (err) {
+        // if this fails, give up on evaluation.
+        return;
+      }
+
+      dbg(
+        `kernel is now running; requesting that each ${v.length} cell gets executed`
+      );
+      for (const cell of v) {
+        if (cell != null) {
+          this.manager_run_cell(cell.get("id"));
+        }
+      }
+
+      if (this._manager_run_cell_queue != null) {
+        // run it again to process additional entries.
+        setTimeout(this.manager_run_cell_process_queue, 1);
+      }
+    } finally {
+      this.running_manager_run_cell_process_queue = false;
     }
   };
 
@@ -562,11 +594,9 @@ export class JupyterActions extends JupyterActions0 {
     return handler;
   };
 
-  manager_run_cell = async (id: string) => {
+  manager_run_cell = (id: string) => {
     const dbg = this.dbg(`manager_run_cell(id='${id}')`);
     dbg(JSON.stringify(misc.keys(this._running_cells)));
-
-    // INITIAL STATE THAT MUST BE DONE BEFORE ANYTHING ASYNC!
 
     if (this._running_cells == null) {
       this._running_cells = {};
@@ -581,18 +611,6 @@ export class JupyterActions extends JupyterActions0 {
     // sync_exec_state doesn't declare this cell done.  The kernel identity
     // will get set properly below in case it changes.
     this._running_cells[id] = this.jupyter_kernel?.identity ?? "none";
-
-    // END INITIAL STATE BEFORE ASYNC.
-
-    this.ensure_backend_kernel_setup();
-
-    try {
-      await this.ensure_backend_kernel_is_running();
-      if (this._state == "closed") return;
-    } catch (err) {
-      // if this fails, give up on this evaluation.
-      return;
-    }
 
     const orig_cell = this.store.get("cells").get(id);
     if (orig_cell == null) {
