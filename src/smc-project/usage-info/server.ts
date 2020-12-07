@@ -61,6 +61,7 @@ export class UsageInfoServer extends EventEmitter {
     });
   }
 
+  // get the process at the given path – for now, that only works for jupyter notebooks
   private path_process(): Process | undefined {
     if (this.info?.processes == null) return;
     for (const p of Object.values(this.info.processes)) {
@@ -70,16 +71,32 @@ export class UsageInfoServer extends EventEmitter {
     }
   }
 
+  // cpu usage sum of all children
+  private usage_children(pid): { cpu: number; mem: number } {
+    this.dbg("usage_children(pid)", pid);
+    const cpu = Math.round(0);
+    const mem = Math.round(0);
+    return { cpu, mem };
+  }
+
   // we silently treat non-existing information as zero usage
-  private path_usage_info(): { cpu: number; mem: number } {
+  private path_usage_info(): {
+    cpu: number;
+    cpu_cld: number;
+    mem: number;
+    mem_cld: number;
+  } {
     const proc = this.path_process();
     if (proc == null) {
-      return { cpu: 0, mem: 0 };
+      return { cpu: 0, mem: 0, cpu_cld: 0, mem_cld: 0 };
     } else {
       // we send whole numbers. saves bandwidth and won't be displayed anyways
+      const children = this.usage_children(proc.pid);
       return {
         cpu: Math.round(proc.cpu.pct),
+        cpu_cld: children.cpu,
         mem: Math.round(proc.stat.mem.rss),
+        mem_cld: children.mem,
       };
     }
   }
@@ -92,10 +109,9 @@ export class UsageInfoServer extends EventEmitter {
       L("told to update, but there is no ProjectInfo");
       return;
     }
-    const usage_proc = this.path_usage_info();
     const usage = {
       time: Date.now(),
-      ...usage_proc,
+      ...this.path_usage_info(),
       mem_limit: this.info.cgroup?.mem_stat.hierarchical_memory_limit,
       cpu_limit: this.info.cgroup?.cpu_cores_limit,
     };

@@ -7,9 +7,11 @@ import { TypedMap } from "../../smc-webapp/app-framework";
 
 export interface UsageInfo {
   time: number; // server timestamp
-  cpu: number;
-  mem: number;
-  mem_limit?: number; // the entire container
+  cpu: number; // %
+  cpu_cld: number; // % (only children)
+  mem: number; // MB
+  mem_cld: number; // MB (only children)
+  mem_limit?: number; // for the entire container
   cpu_limit?: number; // --*--
 }
 

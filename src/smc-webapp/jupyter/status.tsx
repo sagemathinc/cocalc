@@ -154,6 +154,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     // cell timing statistic
     const cell_timings = React.useMemo(() => calc_cell_timings(cells), [cells]);
     const q50 = React.useMemo(() => calc_q50(cell_timings), [cell_timings]);
+    console.log("q50", q50);
 
     // state of UI, derived from usage, timing stats, etc.
     const [cpu_start, set_cpu_start] = React.useState<number | undefined>();
