@@ -92,11 +92,6 @@ export class UsageInfoServer extends EventEmitter {
       L("told to update, but there is no ProjectInfo");
       return;
     }
-    // TODO this is just random data for testing
-    this.dbg(
-      `getting usage for ${this.path} from info at `,
-      this.info.timestamp
-    );
     const usage_proc = this.path_usage_info();
     const usage = {
       time: Date.now(),

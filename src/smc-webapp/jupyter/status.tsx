@@ -19,6 +19,7 @@ import { ImmutableUsageInfo } from "../../smc-project/usage-info/types";
 import {
   ALERT_HIGH_PCT,
   ALERT_MEDIUM_PCT,
+  ALERT_LOW_PCT,
 } from "../../smc-project/project-status/const";
 
 const KERNEL_NAME_STYLE: CSS = {
@@ -30,41 +31,57 @@ const KERNEL_NAME_STYLE: CSS = {
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
-};
+} as const;
 
 const KERNEL_USAGE_STYLE: CSS = {
   margin: "0px 5px",
   color: COLORS.GRAY,
   borderRight: `1px solid ${COLORS.GRAY}`,
   paddingRight: "5px",
-};
+} as const;
 
-const KERNEL_USAGE_STYLE_NUM: CSS = { fontFamily: "monospace" };
+const KERNEL_USAGE_STYLE_SMALL: CSS = {
+  height: "5px",
+  marginBottom: "4px",
+  width: "5em",
+} as const;
+
+const KERNEL_USAGE_STYLE_NUM: CSS = { fontFamily: "monospace" } as const;
 
 const KERNEL_ERROR_STYLE: CSS = {
   margin: "5px",
-  color: "#fff",
+  color: "white",
   padding: "5px",
-  backgroundColor: "red",
-};
+  backgroundColor: COLORS.ATND_BG_RED_M,
+} as const;
 
 const BACKEND_STATE_STYLE: CSS = {
   display: "flex",
   marginRight: "5px",
   color: KERNEL_NAME_STYLE.color,
-};
+} as const;
 
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
+
+type AlertLevel = "low" | "mid" | "high" | "none";
+
+const ALERT_COLS: { [key in AlertLevel]: string } = {
+  none: COLORS.ANTD_GREEN,
+  low: COLORS.ANTD_YELL_M,
+  mid: COLORS.ANTD_ORANGE,
+  high: COLORS.ANTD_RED_WARN,
+} as const;
 
 interface Usage {
   mem: number; // MiB
   mem_limit: number;
-  mem_level: "low" | "mid" | "high" | "none";
+  mem_alert: AlertLevel;
   mem_pct: number; // %
   cpu: number; // 1 core = 100%
   cpu_limit: number;
-  cpu_level: "low" | "mid" | "high" | "none";
+  cpu_alert: AlertLevel;
   cpu_pct: number; // 100% full container quota
+  time_alert: AlertLevel;
 }
 
 // derive sorted list of timings from all cells
@@ -86,16 +103,18 @@ function calc_cell_timings(cells?: immutable.Map<string, any>): number[] {
     .toJS();
 }
 
-// for the sorted list of cell timing, get the 90% quantile.
+// for the sorted list of cell timing, get the median/quantile.
 // a quick approximation is good enough for us!
-// q50 is also easier to get than dealing with inter quantile differences
-// and outlier detection – like for boxplots, etc.
-function calc_q50(data: number[], default_val = 5): number {
-  if (data.length == 0) return default_val;
+// we basically want to ignore long running cells, treat them as outliers.
+// Using q50 is quick and easy, avoids working with inter quantile differences
+// and proper outlier detection – like for boxplots, etc.
+// we also cap the lower end with a reasonable minimum.
+function calc_q50(data: number[], min_val = 3): number {
+  if (data.length == 0) return min_val;
   const idx_last = data.length - 1;
   const idx_q50 = Math.ceil(0.5 * data.length);
   const idx = Math.min(idx_last, idx_q50);
-  return data[idx];
+  return Math.max(min_val, data[idx]);
 }
 
 interface KernelProps {
@@ -108,11 +127,10 @@ interface KernelProps {
 export const Kernel: React.FC<KernelProps> = React.memo(
   (props: KernelProps) => {
     const { actions, is_fullscreen, name, cells } = props;
-    const cell_timings = React.useMemo(() => calc_cell_timings(cells), [cells]);
-    const q50 = React.useMemo(() => calc_q50(cell_timings), [cell_timings]);
-    console.log("q50", q50);
 
     // redux section
+    const trust: undefined | boolean = useRedux([name, "trust"]);
+    const read_only: undefined | boolean = useRedux([name, "read_only"]);
     const kernel: undefined | string = useRedux([name, "kernel"]);
     const kernels: undefined | immutable.List<any> = useRedux([
       name,
@@ -132,83 +150,29 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       name,
       "kernel_usage",
     ]);
-    const trust: undefined | boolean = useRedux([name, "trust"]);
-    const read_only: undefined | boolean = useRedux([name, "read_only"]);
 
-    const usage: Usage | undefined = React.useMemo(() => {
-      // not using resources, set to zero and sane defaults
-      if (
-        kernel_usage == null ||
-        backend_state == null ||
-        !["running", "starting"].includes(backend_state)
-      ) {
-        return {
-          mem: 0,
-          mem_limit: 1000,
-          cpu: 0,
-          cpu_limit: 1,
-          mem_level: "none",
-          cpu_level: "none",
-          mem_pct: 0,
-          cpu_pct: 0,
-        };
-      }
+    // cell timing statistic
+    const cell_timings = React.useMemo(() => calc_cell_timings(cells), [cells]);
+    const q50 = React.useMemo(() => calc_q50(cell_timings), [cell_timings]);
 
-      const mem_limit = kernel_usage.get("mem_limit") ?? 1000;
-      const cpu_limit = kernel_usage.get("cpu_limit") ?? 1;
-      const cpu_mid = ALERT_MEDIUM_PCT * cpu_limit;
-      const cpu_high = ALERT_HIGH_PCT * cpu_limit;
-      const mem_mid = (ALERT_MEDIUM_PCT / 100) * mem_limit;
-      const mem_high = (ALERT_HIGH_PCT / 100) * mem_limit;
-      const mem_low = Math.min(500, 0.5 * mem_mid);
-      const mem = kernel_usage.get("mem") ?? 0;
-      const cpu = kernel_usage.get("cpu") ?? 0;
-      const cpu_level =
-        cpu > cpu_high
-          ? "high"
-          : cpu > cpu_mid
-          ? "mid"
-          : cpu > 10
-          ? "low"
-          : "none";
-      const mem_level =
-        mem > mem_high
-          ? "high"
-          : mem > mem_mid
-          ? "mid"
-          : mem > mem_low
-          ? "low"
-          : "none";
-      return {
-        mem,
-        mem_limit,
-        cpu,
-        cpu_limit,
-        cpu_level,
-        mem_level,
-        mem_pct: (100 * mem) / mem_limit,
-        cpu_pct: (100 * cpu) / cpu_limit,
-      };
-    }, [kernel_usage, backend_state]);
-
+    // state of UI, derived from usage, timing stats, etc.
     const [cpu_start, set_cpu_start] = React.useState<number | undefined>();
     const [cpu_runtime, set_cpu_runtime] = React.useState<number>(0);
     const timer1 = React.useRef<ReturnType<typeof setInterval> | undefined>();
 
+    // reset cpu_start time when state changes
     React.useEffect(() => {
-      if (cpu_start == null && usage.cpu_pct >= 10) {
+      if (kernel_state == "busy") {
         set_cpu_start(Date.now());
-      }
-      if (cpu_start != null && usage.cpu_pct < 10) {
-        set_cpu_runtime(0);
+      } else if (cpu_start != null) {
         set_cpu_start(undefined);
       }
-    }, [usage.cpu_pct]);
+    }, [kernel_state]);
 
+    // count seconds when kernel is busy & reset counter
     React.useEffect(() => {
       if (cpu_start != null) {
         timer1.current = setInterval(() => {
-          // this resets the bar earlier, avoids laggy behavior
           if (kernel_state == "busy") {
             set_cpu_runtime((Date.now() - cpu_start) / 1000);
           } else {
@@ -223,6 +187,71 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         if (timer1.current != null) clearInterval(timer1.current);
       };
     }, [cpu_start, kernel_state]);
+
+    // based on the info we know, we derive the "usage" object – the remainder of this is visualizing it
+    const usage: Usage | undefined = React.useMemo(() => {
+      const mem_limit: number = kernel_usage?.get("mem_limit") ?? 1000;
+      const cpu_limit: number = kernel_usage?.get("cpu_limit") ?? 1;
+
+      // not using resources, set to zero and sane defaults
+      if (
+        kernel_usage == null ||
+        backend_state == null ||
+        !["running", "starting"].includes(backend_state)
+      ) {
+        return {
+          mem: 0,
+          mem_limit,
+          cpu: 0,
+          cpu_limit,
+          mem_alert: "none",
+          cpu_alert: "none",
+          mem_pct: 0,
+          cpu_pct: 0,
+          time_alert: "none",
+        };
+      }
+
+      const mem = kernel_usage.get("mem") ?? 0;
+      const cpu = kernel_usage.get("cpu") ?? 0;
+      const cpu_alert =
+        cpu > ALERT_HIGH_PCT * cpu_limit
+          ? "high"
+          : cpu > ALERT_MEDIUM_PCT * cpu_limit
+          ? "mid"
+          : cpu > 1 // indicate any usage at all, basically
+          ? "low"
+          : "none";
+      const mem_alert =
+        mem > (ALERT_HIGH_PCT / 100) * mem_limit
+          ? "high"
+          : mem > (ALERT_MEDIUM_PCT / 100) * mem_limit
+          ? "mid"
+          : mem > (ALERT_LOW_PCT / 100) * mem_limit
+          ? "low"
+          : "none";
+      const time_alert =
+        cpu_runtime > 10 * q50
+          ? "high"
+          : cpu_runtime > 5 * q50
+          ? "mid"
+          : cpu_runtime > 2 * q50
+          ? "low"
+          : "none";
+      return {
+        mem,
+        mem_limit,
+        cpu,
+        cpu_limit,
+        cpu_alert,
+        mem_alert,
+        time_alert,
+        mem_pct: (100 * mem) / mem_limit,
+        cpu_pct: (100 * cpu) / cpu_limit,
+      };
+    }, [kernel_usage, backend_state, cpu_runtime]);
+
+    // render functions start there
 
     function render_logo() {
       if (project_id == null || kernel == null) {
@@ -425,137 +454,87 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       // unknown, e.g, not reporting/working or old backend.
       if (usage == null) return;
 
-      const style: CSS = { display: "flex" };
-      const style2: CSS = {
-        display: "flex",
-        flexFlow: "column",
-        marginTop: "-6px",
-      };
+      const style: CSS = is_fullscreen
+        ? { display: "flex" }
+        : {
+            display: "flex",
+            flexFlow: "column",
+            marginTop: "-6px",
+          };
       const pstyle: CSS = {
         margin: "2px",
         width: "5em",
         position: "relative",
         top: "-1px",
       };
-      const usage2: CSS = { height: "5px", marginBottom: "4px", width: "5em" };
-
-      const lvl2col = {
-        none: COLORS.ANTD_GREEN,
-        low: COLORS.ANTD_YELL_M,
-        mid: COLORS.ANTD_ORANGE,
-        high: COLORS.ANTD_RED_WARN,
-      };
+      const usage_style: CSS = is_fullscreen
+        ? KERNEL_USAGE_STYLE
+        : KERNEL_USAGE_STYLE_SMALL;
 
       // const status = usage.cpu > 50 ? "active" : undefined
       const status = cpu_runtime != null ? "active" : undefined;
-      // we calibrate "100%" at 3 times the median
-      const cpu_val = Math.min(100, 100 * (cpu_runtime / (3 * q50)));
-      const cpu_time_lvl =
-        cpu_runtime > 10 * q50
-          ? "high"
-          : cpu_runtime > 6 * q50
-          ? "mid"
-          : cpu_runtime > 3 * q50
-          ? "low"
-          : "none";
+      // we calibrate "100%" at the median – color changes at 2 x q50
+      const cpu_val = Math.min(100, 100 * (cpu_runtime / q50));
 
-      if (is_fullscreen) {
-        return (
-          <div style={style}>
-            <span style={KERNEL_USAGE_STYLE}>
-              CPU:{" "}
-              <Progress
-                style={pstyle}
-                showInfo={false}
-                percent={cpu_val}
-                size="small"
-                trailColor="white"
-                status={status}
-                strokeColor={lvl2col[cpu_time_lvl]}
-              />
-            </span>
-            <span style={KERNEL_USAGE_STYLE}>
-              Memory:{" "}
-              <Progress
-                style={pstyle}
-                showInfo={false}
-                percent={usage.mem_pct}
-                size="small"
-                trailColor="white"
-                strokeColor={lvl2col[usage.mem_level]}
-              />
-            </span>
-          </div>
-        );
-      } else {
-        return (
-          <div style={style2}>
-            <span style={usage2}>
-              <Progress
-                style={pstyle}
-                showInfo={false}
-                percent={usage.cpu_pct}
-                size="small"
-                trailColor="white"
-                status={usage.cpu > 50 ? "active" : undefined}
-                strokeColor={lvl2col[usage.cpu_level]}
-              />
-            </span>
-            <span style={usage2}>
-              <Progress
-                style={pstyle}
-                showInfo={false}
-                percent={usage.mem_pct}
-                size="small"
-                trailColor="white"
-                strokeColor={lvl2col[usage.mem_level]}
-              />
-            </span>
-          </div>
-        );
-      }
+      return (
+        <div style={style}>
+          <span style={usage_style}>
+            {is_fullscreen && "CPU: "}
+            <Progress
+              style={pstyle}
+              showInfo={false}
+              percent={cpu_val}
+              size="small"
+              trailColor="white"
+              status={status}
+              strokeColor={ALERT_COLS[usage.time_alert]}
+            />
+          </span>
+          <span style={usage_style}>
+            {is_fullscreen && "Memory: "}
+            <Progress
+              style={pstyle}
+              showInfo={false}
+              percent={usage.mem_pct}
+              size="small"
+              trailColor="white"
+              strokeColor={ALERT_COLS[usage.mem_alert]}
+            />
+          </span>
+        </div>
+      );
     }
 
-    function usage_text_style(usage) {
-      let cpu_style, memory_style;
-      cpu_style = memory_style = KERNEL_USAGE_STYLE_NUM;
-      switch (usage.cpu_level) {
+    function usage_text_style_level(level: AlertLevel) {
+      // ATTN for text, the high background color is different, with white text
+      const style = KERNEL_USAGE_STYLE_NUM;
+      switch (level) {
         case "low":
-          cpu_style = { ...cpu_style, backgroundColor: "yellow" };
-          break;
+          return { ...style, backgroundColor: ALERT_COLS.low };
         case "mid":
-          cpu_style = { ...cpu_style, backgroundColor: "orange" };
-          break;
+          return { ...style, backgroundColor: ALERT_COLS.mid };
         case "high":
-          cpu_style = {
-            ...cpu_style,
-            backgroundColor: COLORS.BS_RED_BGRND,
+          return {
+            ...style,
+            backgroundColor: ALERT_COLS.high,
             color: "white",
           };
-          break;
+        case "none":
+        default:
+          return style;
       }
-      switch (usage.mem_level) {
-        case "low":
-          memory_style = { ...memory_style, backgroundColor: "yellow" };
-          break;
-        case "high":
-          memory_style = {
-            ...memory_style,
-            backgroundColor: COLORS.BS_RED_BGRND,
-            color: "white",
-          };
-          break;
-      }
-
-      return { cpu_style, memory_style };
     }
 
     function render_usage_text() {
       if (usage == null) return;
-      const { cpu_style, memory_style } = usage_text_style(usage);
+      const cpu_style = usage_text_style_level(usage.cpu_alert);
+      const memory_style = usage_text_style_level(usage.mem_alert);
+      const time_style = usage_text_style_level(usage.time_alert);
       const { cpu, mem } = usage;
       const cpu_disp = `${rpad_html(cpu, 3)}%`;
       const mem_disp = `${rpad_html(mem, 4)}MB`;
+      const round = (val) => val.toFixed(1);
+      const time_disp = `${rpad_html(cpu_runtime, 5, round)}s`;
       const style: CSS = { display: "flex" };
       return (
         <div style={style}>
@@ -568,7 +547,14 @@ export const Kernel: React.FC<KernelProps> = React.memo(
             />
           </span>
           <span>
-            {" "}
+            Time:{" "}
+            <span
+              className={"cocalc-jupyter-usage-info"}
+              style={time_style}
+              dangerouslySetInnerHTML={{ __html: time_disp }}
+            />
+          </span>
+          <span>
             Memory:{" "}
             <span
               className={"cocalc-jupyter-usage-info"}

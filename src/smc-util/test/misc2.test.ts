@@ -7,12 +7,14 @@ import * as misc from "../misc";
 
 describe("rpad_html", () => {
   const rp = misc.rpad_html;
+  const round1 = misc.round1;
   test("0", () => expect(rp(0, 3)).toEqual("&nbsp;&nbsp;0"));
   test("99", () => expect(rp(99, 3)).toEqual("&nbsp;99"));
   test("4444-5", () => expect(rp(4444, 5)).toEqual("&nbsp;4444"));
   test("6666-4", () => expect(rp(6666, 4)).toEqual("6666"));
   test("1000-4", () => expect(rp(1000, 4)).toEqual("1000"));
   test("1000-3", () => expect(rp(1000, 3)).toEqual("1000"));
+  test("pi-1", () => expect(rp(3.1415, 4, round1)).toEqual("&nbsp;3.1"));
 });
 
 describe("path_split", () => {
