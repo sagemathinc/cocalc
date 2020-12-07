@@ -3,6 +3,8 @@
 # License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
 #########################################################################
 
+require("./compute-environment");  # replacing this
+
 { Panel, Table, Tab, Tabs, Modal, Button} = require('react-bootstrap')
 { Col, Row } = require("./antd-bootstrap")
 {redux, Redux, rclass, rtypes, React, Actions, Store} = require('./app-framework')

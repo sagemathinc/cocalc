@@ -102,7 +102,6 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function on_click(e): void {
-    // same idea as in tasks/desc-rendered.cjsx
     if (read_only) {
       return;
     }
