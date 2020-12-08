@@ -7,7 +7,7 @@
 
 import { React, useRedux, CSS } from "../app-framework";
 import * as immutable from "immutable";
-import { Progress } from "antd";
+import { Progress, Typography } from "antd";
 import { COLORS } from "smc-util/theme";
 import { A, Icon, Loading, Tip } from "../r_misc";
 import { closest_kernel_match, rpad_html } from "smc-util/misc";
@@ -439,16 +439,22 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       const usage_tip = (
         <div>
           Resource usage updates while the kernel runs. The memory limit is
-          determined by the remining "free" memory of this project. Keep in mind
-          that "shared memory" could compete with other projects on the same
-          machine and hence you might not be able to fully attain all of it.
+          determined by the remining "free" memory of this project.
           <br />
-          You can clear all cpu and memory usage by{" "}
-          <em>restarting your kernel</em>. Learn more about{" "}
-          <A href={"https://doc.cocalc.com/howto/low-memory.html"}>
-            Low Memory
-          </A>{" "}
-          mitigations.
+          <Typography.Text type="secondary">
+            Keep in mind that "shared memory" could compete with other projects
+            on the same machine and hence you might not be able to fully attain
+            it.
+          </Typography.Text>
+          <br />
+          <Typography.Text type="warning">
+            You can clear all cpu and memory usage by{" "}
+            <em>restarting your kernel</em>. Learn more about{" "}
+            <A href={"https://doc.cocalc.com/howto/low-memory.html"}>
+              Low Memory
+            </A>{" "}
+            mitigations.
+          </Typography.Text>
         </div>
       );
 
