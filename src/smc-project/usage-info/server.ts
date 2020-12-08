@@ -71,32 +71,44 @@ export class UsageInfoServer extends EventEmitter {
     }
   }
 
+  // we compute the total cpu and memory usage sum for the given PID
+  // this is a quick recursive traverse, with "stats" as the accumulator
+  private proces_tree_stats(ppid: number, stats) {
+    const procs = this.info?.processes;
+    if (procs == null) return;
+    for (const proc of Object.values(procs)) {
+      if (proc.ppid != ppid) continue;
+      this.proces_tree_stats(proc.pid, stats);
+      stats.mem += proc.stat.mem.rss;
+      stats.cpu += proc.cpu.pct;
+    }
+  }
+
   // cpu usage sum of all children
   private usage_children(pid): { cpu: number; mem: number } {
-    this.dbg("usage_children(pid)", pid);
-    const cpu = Math.round(0);
-    const mem = Math.round(0);
-    return { cpu, mem };
+    const stats = { mem: 0, cpu: 0 };
+    this.proces_tree_stats(pid, stats);
+    return stats;
   }
 
   // we silently treat non-existing information as zero usage
   private path_usage_info(): {
     cpu: number;
-    cpu_cld: number;
+    cpu_chld: number;
     mem: number;
-    mem_cld: number;
+    mem_chld: number;
   } {
     const proc = this.path_process();
     if (proc == null) {
-      return { cpu: 0, mem: 0, cpu_cld: 0, mem_cld: 0 };
+      return { cpu: 0, mem: 0, cpu_chld: 0, mem_chld: 0 };
     } else {
       // we send whole numbers. saves bandwidth and won't be displayed anyways
       const children = this.usage_children(proc.pid);
       return {
         cpu: Math.round(proc.cpu.pct),
-        cpu_cld: children.cpu,
+        cpu_chld: Math.round(children.cpu),
         mem: Math.round(proc.stat.mem.rss),
-        mem_cld: children.mem,
+        mem_chld: Math.round(children.mem),
       };
     }
   }
@@ -126,6 +138,7 @@ export class UsageInfoServer extends EventEmitter {
       cpu_limit: cg.cpu_cores_limit,
       mem_free: Math.max(0, mem_tot - mem_rss),
     };
+    // this.dbg("usage", usage);
     if (this.should_update(usage)) {
       this.usage = usage;
       this.emit("usage", this.usage);
@@ -138,11 +151,16 @@ export class UsageInfoServer extends EventEmitter {
   private should_update(usage: UsageInfo): boolean {
     if (this.last == null) return true;
     if (usage == null) return false;
+    const keys: (keyof UsageInfo)[] = ["cpu", "mem", "cpu_chld", "mem_chld"];
     // values are in % and mb. we want everyone to know if essentially dropped to zero
-    if (this.last.cpu >= 1 && usage.cpu < 1) return true;
-    if (this.last.mem >= 1 && usage.mem < 1) return true;
+    for (const key of keys) {
+      if (this.last[key] >= 1 && usage[key] < 1) return true;
+    }
     // … or of one of the values is different
-    return is_diff(usage, this.last, "cpu") || is_diff(usage, this.last, "mem");
+    for (const key of keys) {
+      if (is_diff(usage, this.last, key)) return true;
+    }
+    return false;
   }
 
   private async get_usage(): Promise<UsageInfo | undefined> {

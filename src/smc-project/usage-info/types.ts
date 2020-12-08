@@ -8,9 +8,9 @@ import { TypedMap } from "../../smc-webapp/app-framework";
 export interface UsageInfo {
   time: number; // server timestamp
   cpu: number; // %
-  cpu_cld: number; // % (only children)
+  cpu_chld: number; // % (only children)
   mem: number; // MB
-  mem_cld: number; // MB (only children)
+  mem_chld: number; // MB (only children)
   mem_limit?: number; // for the entire container
   cpu_limit?: number; // --*--
   mem_free?: number; // free mem in container

@@ -11,7 +11,6 @@ import { close, merge } from "../smc-util/misc";
 import { UsageInfoServer } from "../usage-info";
 import { UsageInfo, ImmutableUsageInfo } from "../usage-info/types";
 
-
 class UsageInfoTable {
   private readonly table: SyncTable;
   private readonly project_id: string;
@@ -48,7 +47,7 @@ class UsageInfoTable {
       if (path == null) return;
       if (this.servers[path] == null) return; // already watching
     });
-    this.log("setting up 'on.change'")
+    this.log("setting up 'on.change'");
     this.table.on("change", this.handle_change_event.bind(this));
   }
 
@@ -134,7 +133,7 @@ class UsageInfoTable {
     const server = new UsageInfoServer(path);
 
     server.on("usage", (usage: UsageInfo) => {
-      this.log(`start_watching.usage:`, usage);
+      this.log(`watching/usage:`, usage);
       try {
         if (!this.is_ready()) return;
         this.set({ path, usage });

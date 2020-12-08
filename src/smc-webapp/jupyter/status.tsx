@@ -9,9 +9,7 @@ import { React, useRedux, CSS } from "../app-framework";
 import * as immutable from "immutable";
 import { Progress } from "antd";
 import { COLORS } from "smc-util/theme";
-import { Icon } from "../r_misc/icon";
-import { Loading } from "../r_misc/loading";
-import { Tip } from "../r_misc/tip";
+import { A, Icon, Loading, Tip } from "../r_misc";
 import { closest_kernel_match, rpad_html } from "smc-util/misc";
 import { Logo } from "./logo";
 import { JupyterActions } from "./browser-actions";
@@ -113,7 +111,7 @@ function calc_cell_timings(cells?: immutable.Map<string, any>): number[] {
 function calc_quantile(data: number[], min_val = 3, q = 0.75): number {
   if (data.length == 0) return min_val;
   const idx_last = data.length - 1;
-  const idx_q = Math.ceil(q * data.length);
+  const idx_q = Math.floor(q * idx_last);
   const idx = Math.min(idx_last, idx_q);
   return Math.max(min_val, data[idx]);
 }
@@ -213,14 +211,21 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         };
       }
 
+      // NOTE: cpu/mem usage of this and all subprocesses are just added up
+      // in the future, we could do something more sophisticated, the information is available
+
       // cpu numbers
-      const cpu = kernel_usage.get("cpu") ?? 0;
+      const cpu_self = kernel_usage.get("cpu") ?? 0;
+      const cpu_chld = kernel_usage.get("cpu_chld") ?? 0;
+      const cpu = cpu_self + cpu_chld;
       const cpu_limit: number = kernel_usage?.get("cpu_limit") ?? 1;
 
       // memory numbers
       // the main idea here is to show how much more memory the kernel could use
       // the basis is the remaining free memory + it's memory usage
-      const mem = kernel_usage.get("mem") ?? 0;
+      const mem_self = kernel_usage.get("mem") ?? 0;
+      const mem_chld = kernel_usage.get("mem_chld") ?? 0;
+      const mem = mem_self + mem_chld;
       const mem_free = kernel_usage?.get("mem_free");
       const mem_limit: number = mem_free != null ? mem_free + mem : 1000;
 
@@ -433,11 +438,17 @@ export const Kernel: React.FC<KernelProps> = React.memo(
 
       const usage_tip = (
         <div>
-          Usage of the kernel process updated while your kernel runs.
+          Resource usage updates while the kernel runs. The memory limit is
+          determined by the remining "free" memory of this project. Keep in mind
+          that "shared memory" could compete with other projects on the same
+          machine and hence you might not be able to fully attain all of it.
           <br />
-          Does NOT include subprocesses.
-          <br />
-          You can clear all cpu and memory usage by restarting your kernel.
+          You can clear all cpu and memory usage by{" "}
+          <em>restarting your kernel</em>. Learn more about{" "}
+          <A href={"https://doc.cocalc.com/howto/low-memory.html"}>
+            Low Memory
+          </A>{" "}
+          mitigations.
         </div>
       );
 
