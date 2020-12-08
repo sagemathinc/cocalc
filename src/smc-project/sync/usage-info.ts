@@ -3,6 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+// usage info for a specific file path, derived from the more general project info,
+// which includes all processes and other stats
+
 import * as debug from "debug";
 const L = debug("project:sync:usage-info");
 import { once } from "../smc-util/async-utils";
@@ -96,7 +99,7 @@ class UsageInfoTable {
   }
 
   private handle_change_event(keys: string[]): void {
-    this.log("handle_change_event", JSON.stringify(keys));
+    // this.log("handle_change_event", JSON.stringify(keys));
     for (const key of keys) {
       this.handle_change(JSON.parse(key)[1]);
     }
@@ -133,7 +136,7 @@ class UsageInfoTable {
     const server = new UsageInfoServer(path);
 
     server.on("usage", (usage: UsageInfo) => {
-      this.log(`watching/usage:`, usage);
+      // this.log(`watching/usage:`, usage);
       try {
         if (!this.is_ready()) return;
         this.set({ path, usage });

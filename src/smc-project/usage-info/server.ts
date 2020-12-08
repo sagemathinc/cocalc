@@ -29,7 +29,7 @@ function is_diff(prev: UsageInfo, next: UsageInfo, key: keyof UsageInfo) {
   const a = prev[key] ?? 0;
   const b = next[key] ?? 0;
   if (a === 0 && b === 0) return false;
-  return Math.abs(b - a) / Math.max(a, b) > 0.05;
+  return Math.abs(b - a) / Math.min(a, b) > 0.05;
 }
 
 export class UsageInfoServer extends EventEmitter {
@@ -44,7 +44,6 @@ export class UsageInfoServer extends EventEmitter {
 
   constructor(path, testing = false) {
     super();
-    //this.update = reuseInFlight(this.update.bind(this));
     this.testing = testing;
     this.path = path;
     this.dbg = L;
@@ -118,7 +117,7 @@ export class UsageInfoServer extends EventEmitter {
   // at the given path.
   private update(): void {
     if (this.info == null) {
-      L("told to update, but there is no ProjectInfo");
+      L("was told to update, but there is no ProjectInfo");
       return;
     }
 
@@ -152,12 +151,10 @@ export class UsageInfoServer extends EventEmitter {
     if (this.last == null) return true;
     if (usage == null) return false;
     const keys: (keyof UsageInfo)[] = ["cpu", "mem", "cpu_chld", "mem_chld"];
-    // values are in % and mb. we want everyone to know if essentially dropped to zero
     for (const key of keys) {
-      if (this.last[key] >= 1 && usage[key] < 1) return true;
-    }
-    // … or of one of the values is different
-    for (const key of keys) {
+      //  we want everyone to know if essentially dropped to zero
+      if ((this.last[key] ?? 0) >= 1 && (usage[key] ?? 0) < 1) return true;
+      // … or of one of the values is significantly different
       if (is_diff(usage, this.last, key)) return true;
     }
     return false;
