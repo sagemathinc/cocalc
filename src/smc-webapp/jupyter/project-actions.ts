@@ -42,6 +42,8 @@ export class JupyterActions extends JupyterActions0 {
   private running_manager_run_cell_process_queue: boolean = false;
 
   private set_backend_state(backend_state: BackendState): void {
+    this.dbg("set_backend_state")(backend_state);
+
     /*
         The backend states, which are put in the syncdb so clients
         can display this:
@@ -121,6 +123,7 @@ export class JupyterActions extends JupyterActions0 {
 
     const dbg = this.dbg("initialize_manager");
     dbg();
+
     let cells = this.store.get("cells");
     if (cells != null) {
       5;

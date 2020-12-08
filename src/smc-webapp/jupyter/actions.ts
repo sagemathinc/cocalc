@@ -683,6 +683,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     if (this.is_project) {
       if (do_init) {
+        // Since just opening the actions in the project, definitely the kernel
+        // isn't running so set this fact in the shared database.  It will make
+        // things always be in the right initial state.
+        this.syncdb.set({
+          type: "settings",
+          backend_state: "init",
+          kernel_state: "idle",
+          kernel_usage: { memory: 0, cpu: 0 },
+        });
+        this.syncdb.commit();
+
+        // Also initialize the execution manager, which runs cells that have been
+        // requested to run.
         this.initialize_manager();
       }
       if (this.store.get("kernel")) {
