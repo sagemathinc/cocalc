@@ -13,12 +13,8 @@ import { A, Icon, Loading, Tip } from "../r_misc";
 import { closest_kernel_match, rpad_html } from "smc-util/misc";
 import { Logo } from "./logo";
 import { JupyterActions } from "./browser-actions";
-import { ImmutableUsageInfo } from "../../smc-project/usage-info/types";
-import {
-  ALERT_HIGH_PCT,
-  ALERT_MEDIUM_PCT,
-  ALERT_LOW_PCT,
-} from "../../smc-project/project-status/const";
+import { Usage, AlertLevel, BackendState } from "./types";
+import { ALERT_COLS } from "./usage";
 
 const KERNEL_NAME_STYLE: CSS = {
   margin: "0px 5px",
@@ -59,73 +55,25 @@ const BACKEND_STATE_STYLE: CSS = {
   color: KERNEL_NAME_STYLE.color,
 } as const;
 
-type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
-
-type AlertLevel = "low" | "mid" | "high" | "none";
-
-const ALERT_COLS: { [key in AlertLevel]: string } = {
-  none: COLORS.ANTD_GREEN,
-  low: COLORS.ANTD_YELL_M,
-  mid: COLORS.ANTD_ORANGE,
-  high: COLORS.ANTD_RED_WARN,
-} as const;
-
-interface Usage {
-  mem: number; // MiB
-  mem_limit: number;
-  mem_alert: AlertLevel;
-  mem_pct: number; // %
-  cpu: number; // 1 core = 100%
-  cpu_limit: number;
-  cpu_alert: AlertLevel;
-  cpu_pct: number; // 100% full container quota
-  time_alert: AlertLevel;
-}
-
-// derive sorted list of timings from all cells
-function calc_cell_timings(cells?: immutable.Map<string, any>): number[] {
-  if (cells == null) return [];
-  return cells
-    .toList()
-    .map((v) => {
-      const start = v.get("start");
-      const end = v.get("end");
-      if (start != null && end != null) {
-        return (end - start) / 1000;
-      } else {
-        return null;
-      }
-    })
-    .filter((v) => v != null)
-    .sort()
-    .toJS();
-}
-
-// for the sorted list of cell timing, get the median or quantile.
-// a quick approximation is good enough for us!
-// we basically want to ignore long running cells, treat them as outliers.
-// Using the 75% quantile is quick and easy, avoids working with inter quantile differences
-// and proper outlier detection – like for boxplots, etc.
-// we also cap the lower end with a reasonable minimum.
-// Maybe another choice of quantile works better, something for later …
-function calc_quantile(data: number[], min_val = 3, q = 0.75): number {
-  if (data.length == 0) return min_val;
-  const idx_last = data.length - 1;
-  const idx_q = Math.floor(q * idx_last);
-  const idx = Math.min(idx_last, idx_q);
-  return Math.max(min_val, data[idx]);
-}
-
 interface KernelProps {
   actions: JupyterActions;
   is_fullscreen?: boolean;
   name: string;
-  cells?: immutable.Map<string, any>;
+  usage?: Usage;
+  cpu_runtime: number;
+  expected_cell_runtime: number;
 }
 
 export const Kernel: React.FC<KernelProps> = React.memo(
   (props: KernelProps) => {
-    const { actions, is_fullscreen, name, cells } = props;
+    const {
+      actions,
+      is_fullscreen,
+      name,
+      usage,
+      cpu_runtime,
+      expected_cell_runtime,
+    } = props;
 
     // redux section
     const trust: undefined | boolean = useRedux([name, "trust"]);
@@ -145,126 +93,6 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       "backend_state",
     ]);
     const kernel_state: undefined | string = useRedux([name, "kernel_state"]);
-    const kernel_usage: undefined | ImmutableUsageInfo = useRedux([
-      name,
-      "kernel_usage",
-    ]);
-
-    // cell timing statistic
-    const cell_timings = React.useMemo(() => calc_cell_timings(cells), [cells]);
-    const timings_q = React.useMemo(() => calc_quantile(cell_timings), [
-      cell_timings,
-    ]);
-    console.log("timings_q", timings_q);
-
-    // state of UI, derived from usage, timing stats, etc.
-    const [cpu_start, set_cpu_start] = React.useState<number | undefined>();
-    const [cpu_runtime, set_cpu_runtime] = React.useState<number>(0);
-    const timer1 = React.useRef<ReturnType<typeof setInterval> | undefined>();
-
-    // reset cpu_start time when state changes
-    React.useEffect(() => {
-      if (kernel_state == "busy") {
-        set_cpu_start(Date.now());
-      } else if (cpu_start != null) {
-        set_cpu_start(undefined);
-      }
-    }, [kernel_state]);
-
-    // count seconds when kernel is busy & reset counter
-    React.useEffect(() => {
-      if (cpu_start != null) {
-        timer1.current = setInterval(() => {
-          if (kernel_state == "busy") {
-            set_cpu_runtime((Date.now() - cpu_start) / 1000);
-          } else {
-            set_cpu_runtime(0);
-          }
-        }, 100);
-      } else if (timer1.current != null) {
-        set_cpu_runtime(0);
-        clearInterval(timer1.current);
-      }
-      return () => {
-        if (timer1.current != null) clearInterval(timer1.current);
-      };
-    }, [cpu_start, kernel_state]);
-
-    // based on the info we know, we derive the "usage" object – the remainder of this component is to visualize it
-    const usage: Usage | undefined = React.useMemo(() => {
-      // not using resources, return sane "zero" defaults
-      if (
-        kernel_usage == null ||
-        backend_state == null ||
-        !["running", "starting"].includes(backend_state)
-      ) {
-        return {
-          mem: 0,
-          mem_limit: 1000, // 1 GB
-          cpu: 0, // 1 core
-          cpu_limit: 1,
-          mem_alert: "none",
-          cpu_alert: "none",
-          mem_pct: 0,
-          cpu_pct: 0,
-          time_alert: "none",
-        };
-      }
-
-      // NOTE: cpu/mem usage of this and all subprocesses are just added up
-      // in the future, we could do something more sophisticated, the information is available
-
-      // cpu numbers
-      const cpu_self = kernel_usage.get("cpu") ?? 0;
-      const cpu_chld = kernel_usage.get("cpu_chld") ?? 0;
-      const cpu = cpu_self + cpu_chld;
-      const cpu_limit: number = kernel_usage?.get("cpu_limit") ?? 1;
-
-      // memory numbers
-      // the main idea here is to show how much more memory the kernel could use
-      // the basis is the remaining free memory + it's memory usage
-      const mem_self = kernel_usage.get("mem") ?? 0;
-      const mem_chld = kernel_usage.get("mem_chld") ?? 0;
-      const mem = mem_self + mem_chld;
-      const mem_free = kernel_usage?.get("mem_free");
-      const mem_limit: number = mem_free != null ? mem_free + mem : 1000;
-
-      const cpu_alert =
-        cpu > ALERT_HIGH_PCT * cpu_limit
-          ? "high"
-          : cpu > ALERT_MEDIUM_PCT * cpu_limit
-          ? "mid"
-          : cpu > 1 // indicate any usage at all, basically
-          ? "low"
-          : "none";
-      const mem_alert =
-        mem > (ALERT_HIGH_PCT / 100) * mem_limit
-          ? "high"
-          : mem > (ALERT_MEDIUM_PCT / 100) * mem_limit
-          ? "mid"
-          : mem > (ALERT_LOW_PCT / 100) * mem_limit
-          ? "low"
-          : "none";
-      const time_alert =
-        cpu_runtime > 8 * timings_q
-          ? "high"
-          : cpu_runtime > 4 * timings_q
-          ? "mid"
-          : cpu_runtime > 2 * timings_q
-          ? "low"
-          : "none";
-      return {
-        mem,
-        mem_limit,
-        cpu,
-        cpu_limit,
-        cpu_alert,
-        mem_alert,
-        time_alert,
-        mem_pct: (100 * mem) / mem_limit,
-        cpu_pct: (100 * cpu) / cpu_limit,
-      };
-    }, [kernel_usage, backend_state, cpu_runtime]);
 
     // render functions start there
 
@@ -447,7 +275,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
             it.
           </Typography.Text>
           <br />
-          <Typography.Text type="warning">
+          <Typography.Text type="secondary">
             You can clear all cpu and memory usage by{" "}
             <em>restarting your kernel</em>. Learn more about{" "}
             <A href={"https://doc.cocalc.com/howto/low-memory.html"}>
@@ -510,7 +338,10 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       // const status = usage.cpu > 50 ? "active" : undefined
       const status = cpu_runtime != null ? "active" : undefined;
       // we calibrate "100%" at the median – color changes at 2 x timings_q
-      const cpu_val = Math.min(100, 100 * (cpu_runtime / timings_q));
+      const cpu_val = Math.min(
+        100,
+        100 * (cpu_runtime / expected_cell_runtime)
+      );
 
       return (
         <div style={style}>

@@ -17,7 +17,7 @@ import {
 } from "../r_misc";
 import { endswith, capitalize } from "smc-util/misc";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
-import { Cells, CellType } from "./types";
+import { Cells, CellType, Usage, ALERT_COLS } from "./types";
 
 type ButtonDescription =
   | string
@@ -36,10 +36,11 @@ interface Props {
   cells: Cells; // map from id to cells
   cell_toolbar?: string;
   name: string;
+  usage?: Usage;
 }
 
 export const TopButtonbar: React.FC<Props> = React.memo(
-  ({ frame_actions, cur_id, sel_ids, cells, cell_toolbar, name }) => {
+  ({ frame_actions, cur_id, sel_ids, cells, cell_toolbar, name, usage }) => {
     const kernel_usage = useRedux([name, "kernel_usage"]);
     const read_only = useRedux([name, "read_only"]);
 
@@ -134,11 +135,16 @@ export const TopButtonbar: React.FC<Props> = React.memo(
     }
 
     function render_group_run() {
-      let stop_style: React.CSSProperties | undefined;
-      const cpu_usage = kernel_usage?.get("cpu") ?? 0;
-      if (cpu_usage > 50) {
-        stop_style = { backgroundColor: "rgb(92,184,92)", color: "white" };
-      }
+      // let stop_style: React.CSSProperties | undefined;
+      // const cpu_usage = kernel_usage?.get("cpu") ?? 0;
+      // if (cpu_usage > 50) {
+      //   stop_style = { backgroundColor: "rgb(92,184,92)", color: "white" };
+      // }
+
+      const stop_style =
+        usage.cpu_pct > 10
+          ? { backgroundColor: ALERT_COLS[usage.time_alert] }
+          : undefined;
 
       return render_button_group([
         { name: "run cell and select next" },
