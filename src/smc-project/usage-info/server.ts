@@ -109,11 +109,22 @@ export class UsageInfoServer extends EventEmitter {
       L("told to update, but there is no ProjectInfo");
       return;
     }
+
+    const cg = this.info.cgroup;
+    const du = this.info.disk_usage;
+    if (cg == null || du == null) {
+      this.dbg("info incomplete, can't send usage data");
+      return;
+    }
+    const mem_rss = cg.mem_stat.total_rss + (du.tmp?.usage ?? 0);
+    const mem_tot = cg.mem_stat.hierarchical_memory_limit;
+
     const usage = {
       time: Date.now(),
       ...this.path_usage_info(),
-      mem_limit: this.info.cgroup?.mem_stat.hierarchical_memory_limit,
-      cpu_limit: this.info.cgroup?.cpu_cores_limit,
+      mem_limit: mem_tot,
+      cpu_limit: cg.cpu_cores_limit,
+      mem_free: Math.max(0, mem_tot - mem_rss),
     };
     if (this.should_update(usage)) {
       this.usage = usage;

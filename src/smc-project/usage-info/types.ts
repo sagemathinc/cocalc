@@ -13,6 +13,7 @@ export interface UsageInfo {
   mem_cld: number; // MB (only children)
   mem_limit?: number; // for the entire container
   cpu_limit?: number; // --*--
+  mem_free?: number; // free mem in container
 }
 
 export type ImmutableUsageInfo = TypedMap<UsageInfo>;

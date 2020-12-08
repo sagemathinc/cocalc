@@ -296,7 +296,7 @@ export const CGroupFC: React.FC<CGroupFCProps> = React.memo(
     const alert_style: CSS = {
       backgroundColor: COLORS.ATND_BG_RED_L,
       borderColor: COLORS.ANTD_RED_WARN,
-    };
+    } as const;
 
     const cpu_label = (
       <CGroupTip type={"cpu"} cg_info={cg_info} disk_usage={disk_usage}>

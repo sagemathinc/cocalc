@@ -103,17 +103,18 @@ function calc_cell_timings(cells?: immutable.Map<string, any>): number[] {
     .toJS();
 }
 
-// for the sorted list of cell timing, get the median/quantile.
+// for the sorted list of cell timing, get the median or quantile.
 // a quick approximation is good enough for us!
 // we basically want to ignore long running cells, treat them as outliers.
-// Using q50 is quick and easy, avoids working with inter quantile differences
+// Using the 75% quantile is quick and easy, avoids working with inter quantile differences
 // and proper outlier detection – like for boxplots, etc.
 // we also cap the lower end with a reasonable minimum.
-function calc_q50(data: number[], min_val = 3): number {
+// Maybe another choice of quantile works better, something for later …
+function calc_quantile(data: number[], min_val = 3, q = 0.75): number {
   if (data.length == 0) return min_val;
   const idx_last = data.length - 1;
-  const idx_q50 = Math.ceil(0.5 * data.length);
-  const idx = Math.min(idx_last, idx_q50);
+  const idx_q = Math.ceil(q * data.length);
+  const idx = Math.min(idx_last, idx_q);
   return Math.max(min_val, data[idx]);
 }
 
@@ -153,8 +154,10 @@ export const Kernel: React.FC<KernelProps> = React.memo(
 
     // cell timing statistic
     const cell_timings = React.useMemo(() => calc_cell_timings(cells), [cells]);
-    const q50 = React.useMemo(() => calc_q50(cell_timings), [cell_timings]);
-    console.log("q50", q50);
+    const timings_q = React.useMemo(() => calc_quantile(cell_timings), [
+      cell_timings,
+    ]);
+    console.log("timings_q", timings_q);
 
     // state of UI, derived from usage, timing stats, etc.
     const [cpu_start, set_cpu_start] = React.useState<number | undefined>();
@@ -189,12 +192,9 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       };
     }, [cpu_start, kernel_state]);
 
-    // based on the info we know, we derive the "usage" object – the remainder of this is visualizing it
+    // based on the info we know, we derive the "usage" object – the remainder of this component is to visualize it
     const usage: Usage | undefined = React.useMemo(() => {
-      const mem_limit: number = kernel_usage?.get("mem_limit") ?? 1000;
-      const cpu_limit: number = kernel_usage?.get("cpu_limit") ?? 1;
-
-      // not using resources, set to zero and sane defaults
+      // not using resources, return sane "zero" defaults
       if (
         kernel_usage == null ||
         backend_state == null ||
@@ -202,9 +202,9 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       ) {
         return {
           mem: 0,
-          mem_limit,
-          cpu: 0,
-          cpu_limit,
+          mem_limit: 1000, // 1 GB
+          cpu: 0, // 1 core
+          cpu_limit: 1,
           mem_alert: "none",
           cpu_alert: "none",
           mem_pct: 0,
@@ -213,8 +213,17 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         };
       }
 
-      const mem = kernel_usage.get("mem") ?? 0;
+      // cpu numbers
       const cpu = kernel_usage.get("cpu") ?? 0;
+      const cpu_limit: number = kernel_usage?.get("cpu_limit") ?? 1;
+
+      // memory numbers
+      // the main idea here is to show how much more memory the kernel could use
+      // the basis is the remaining free memory + it's memory usage
+      const mem = kernel_usage.get("mem") ?? 0;
+      const mem_free = kernel_usage?.get("mem_free");
+      const mem_limit: number = mem_free != null ? mem_free + mem : 1000;
+
       const cpu_alert =
         cpu > ALERT_HIGH_PCT * cpu_limit
           ? "high"
@@ -232,11 +241,11 @@ export const Kernel: React.FC<KernelProps> = React.memo(
           ? "low"
           : "none";
       const time_alert =
-        cpu_runtime > 10 * q50
+        cpu_runtime > 8 * timings_q
           ? "high"
-          : cpu_runtime > 5 * q50
+          : cpu_runtime > 4 * timings_q
           ? "mid"
-          : cpu_runtime > 2 * q50
+          : cpu_runtime > 2 * timings_q
           ? "low"
           : "none";
       return {
@@ -254,6 +263,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
 
     // render functions start there
 
+    // wrap "Logo" component
     function render_logo() {
       if (project_id == null || kernel == null) {
         return;
@@ -269,6 +279,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       );
     }
 
+    // this renders the name of the kernel, if known, or a button to change to a similar but known one
     function render_name() {
       let display_name = kernel_info?.get("display_name");
       if (display_name == null && kernel != null && kernels != null) {
@@ -311,6 +322,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       }
     }
 
+    // at the very right, an icon to indicate at a quick glance if the kernel is active or not
     function render_backend_state_icon() {
       if (read_only) {
         return;
@@ -389,6 +401,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       }
     }
 
+    // a popover information, containin more in depth details about the kernel
     function render_tip(title: any, body: any) {
       let kernel_name;
       if (kernel_info != null) {
@@ -451,6 +464,11 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       );
     }
 
+    // show progress bar indicators for memory usage and the progress of the current cell (expected time)
+    // if not fullscreen, i.e. smaller, pack this into two small bars.
+    // the main use case is to communicate to the user if there is a cell that takes extraordinarily long to run,
+    // or if the memory usage is eating up almost all of the reminining (shared) memory.
+
     function render_usage_graphical() {
       // unknown, e.g, not reporting/working or old backend.
       if (usage == null) return;
@@ -474,8 +492,8 @@ export const Kernel: React.FC<KernelProps> = React.memo(
 
       // const status = usage.cpu > 50 ? "active" : undefined
       const status = cpu_runtime != null ? "active" : undefined;
-      // we calibrate "100%" at the median – color changes at 2 x q50
-      const cpu_val = Math.min(100, 100 * (cpu_runtime / q50));
+      // we calibrate "100%" at the median – color changes at 2 x timings_q
+      const cpu_val = Math.min(100, 100 * (cpu_runtime / timings_q));
 
       return (
         <div style={style}>
@@ -506,6 +524,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       );
     }
 
+    // helper for render_usage_text
     function usage_text_style_level(level: AlertLevel) {
       // ATTN for text, the high background color is different, with white text
       const style = KERNEL_USAGE_STYLE_NUM;
@@ -526,6 +545,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       }
     }
 
+    // this ends up in the popover tip. it contains the actual values and the same color coded usage levels
     function render_usage_text() {
       if (usage == null) return;
       const cpu_style = usage_text_style_level(usage.cpu_alert);
@@ -567,42 +587,39 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       );
     }
 
-    function render() {
-      if (kernel == null) {
-        return <span />;
-      }
-      const info = (
-        <div
-          style={{
-            display: "flex",
-            flex: "1 0",
-            flexDirection: "row",
-            flexWrap: "nowrap",
-          }}
-        >
-          {render_usage_graphical()}
-          {render_trust()}
-          {render_name()}
-          {render_backend_state_icon()}
-        </div>
-      );
-      const body = (
-        <div
-          className="pull-right"
-          style={{ color: COLORS.GRAY, cursor: "pointer", marginTop: "7px" }}
-        >
-          {info}
-        </div>
-      );
-      const tip_title = "Details";
-      return (
-        <span>
-          {render_logo()}
-          {render_tip(tip_title, body)}
-        </span>
-      );
+    if (kernel == null) {
+      return <span />;
     }
 
-    return render();
+    const info = (
+      <div
+        style={{
+          display: "flex",
+          flex: "1 0",
+          flexDirection: "row",
+          flexWrap: "nowrap",
+        }}
+      >
+        {render_usage_graphical()}
+        {render_trust()}
+        {render_name()}
+        {render_backend_state_icon()}
+      </div>
+    );
+    const body = (
+      <div
+        className="pull-right"
+        style={{ color: COLORS.GRAY, cursor: "pointer", marginTop: "7px" }}
+      >
+        {info}
+      </div>
+    );
+    const tip_title = "Details";
+    return (
+      <span>
+        {render_logo()}
+        {render_tip(tip_title, body)}
+      </span>
+    );
   }
 );
