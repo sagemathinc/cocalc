@@ -4,8 +4,7 @@
  */
 
 import { React } from "../app-framework";
-
-import { TimeAgo, A, Icon } from "../r_misc";
+import { TimeAgo } from "../r_misc";
 
 interface CellTimingProps {
   start?: number;
@@ -23,20 +22,6 @@ export const CellTiming: React.FC<CellTimingProps> = (props) => {
   return (
     <div style={{ float: "right" }}>
       <TimeAgo date={new Date(props.start)} />
-      <br />
-      {(props.state == null || props.state == "done") && (
-        <A
-          href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html"
-          style={{
-            display: "inline-block",
-            background: "red",
-            color: "white",
-            padding: "0 5px",
-          }}
-        >
-          <Icon name="skull" /> Kernel killed...
-        </A>
-      )}
     </div>
   );
 };

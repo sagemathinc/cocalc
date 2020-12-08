@@ -493,15 +493,14 @@ export class JupyterKernel
   signal(signal: string): void {
     const dbg = this.dbg("signal");
     const spawn = this._kernel != null ? this._kernel.spawn : undefined;
-    const pid = spawn != null ? spawn.pid : undefined;
+    const pid = spawn?.pid;
     dbg(`pid=${pid}, signal=${signal}`);
-    if (pid !== undefined) {
-      try {
-        this.clear_execute_code_queue();
-        process.kill(-pid, signal); // negative to kill the process group
-      } catch (err) {
-        dbg(`error: ${err}`);
-      }
+    if (pid == null) return;
+    try {
+      this.clear_execute_code_queue();
+      process.kill(-pid, signal); // negative to kill the process group
+    } catch (err) {
+      dbg(`error: ${err}`);
     }
   }
 
