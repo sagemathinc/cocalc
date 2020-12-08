@@ -17,7 +17,7 @@ import {
 } from "../app-framework";
 import * as immutable from "immutable";
 
-import { ErrorDisplay } from "../r_misc/error-display";
+import { A, ErrorDisplay } from "../r_misc";
 import { Loading } from "../r_misc/loading";
 
 // React components that implement parts of the Jupyter notebook.
@@ -190,7 +190,11 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     return (
       <ErrorDisplay
         bsStyle="warning"
-        error={this.props.kernel_error}
+        error_component={
+          <A href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">
+            {this.props.kernel_error}
+          </A>
+        }
         style={ERROR_STYLE}
         onClose={() => this.props.actions.setState({ kernel_error: "" })}
       />
