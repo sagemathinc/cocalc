@@ -119,10 +119,12 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
 
   function goto_source_line(event) {
     let elt = event.target;
+    (window as any).elt = elt;
+    while (elt != null && elt.dataset?.sourceLine == null) {
+      elt = elt.parentElement;
+    }
+    if (elt == null) return;
     const line = elt.dataset?.sourceLine;
-    // TODO: if line is null could move around in DOM
-    // trying to find "closest" DOM node where not null;
-    // alternatively, improve the line number markdown plugin.
     if (line != null) {
       actions.programmatical_goto_line(line);
       return;
