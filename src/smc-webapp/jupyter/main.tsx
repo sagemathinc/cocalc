@@ -56,7 +56,7 @@ import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 
-const ERROR_STYLE = {
+export const ERROR_STYLE = {
   margin: "1ex",
   whiteSpace: "pre" as "pre",
   fontSize: "12px",
