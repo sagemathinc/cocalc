@@ -34,6 +34,7 @@ MetricsRecorder  = require('./metrics-recorder')
 {http_message_api_v1} = require('./api/handler')
 {setup_analytics_js} = require('./analytics')
 {have_active_registration_tokens} = require("./utils");
+{setup_healthchecks} = require('./healthchecks')
 
 open_cocalc = require('./open-cocalc-server')
 
@@ -122,6 +123,9 @@ exports.init_express_http_server = (opts) ->
     # setup the /analytics.js endpoint
     setup_analytics_js(router, opts.database, winston, opts.base_url)
 
+    # setup all healthcheck endpoints
+    setup_healthchecks({router:router, db:opts.database})
+
     open_cocalc.setup_open_cocalc(app:app, router:router, db:opts.database, cacheLongTerm:cacheLongTerm, base_url:opts.base_url)
 
     # The /static content
@@ -140,16 +144,6 @@ exports.init_express_http_server = (opts) ->
     router.get '/base_url.js', (req, res) ->
         res.send("window.app_base_url='#{opts.base_url}';")
 
-    # used by HAPROXY for testing that this hub is OK to receive traffic
-    router.get '/alive', (req, res) ->
-        if not hub_register.database_is_working()
-            # this will stop haproxy from routing traffic to us
-            # until db connection starts working again.
-            winston.debug("alive: answering *NO*")
-            res.status(404).end()
-        else
-            res.send('alive')
-
     router.get '/metrics', (req, res) ->
         res.header("Content-Type", "text/plain")
         res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
@@ -159,26 +153,6 @@ exports.init_express_http_server = (opts) ->
             res.send(metricsRecorder.metrics())
         else
             res.send(JSON.stringify(error:'Metrics recorder not initialized.'))
-
-    # /concurrent -- used by kubernetes to decide whether or not to kill the container; if
-    # below the warn thresh, returns number of concurrent connection; if hits warn, then
-    # returns 404 error, meaning hub may be unhealthy.  Kubernetes will try a few times before
-    # killing the container.  Will also return 404 if there is no working database connection.
-    router.get '/concurrent-warn', (req, res) ->
-        if not hub_register.database_is_working()
-            winston.debug("/concurrent-warn: not healthy, since database connection not working")
-            res.status(404).end()
-            return
-        c = opts.database.concurrent()
-        if c >= opts.database._concurrent_warn
-            winston.debug("/concurrent-warn: not healthy, since concurrent >= #{opts.database._concurrent_warn}")
-            res.status(404).end()
-            return
-        res.send("#{c}")
-
-    # Return number of concurrent connections (could be useful)
-    router.get '/concurrent', (req, res) ->
-        res.send("#{opts.database.concurrent()}")
 
     # HTTP API
     router.post '/api/v1/*', (req, res) ->

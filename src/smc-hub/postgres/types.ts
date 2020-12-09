@@ -235,4 +235,8 @@ export interface PostgreSQL extends EventEmitter {
     projects: string[];
     cb: Function;
   }): void;
+
+  _concurrent_warn: number;
+
+  concurrent(): number;
 }
