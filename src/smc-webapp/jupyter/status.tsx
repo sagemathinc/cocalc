@@ -15,6 +15,7 @@ import { Logo } from "./logo";
 import { JupyterActions } from "./browser-actions";
 import { Usage, AlertLevel, BackendState } from "./types";
 import { ALERT_COLS } from "./usage";
+import { PROJECT_INFO_TITLE } from "../project/info";
 
 const KERNEL_NAME_STYLE: CSS = {
   margin: "0px 5px",
@@ -263,25 +264,30 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       }
 
       const usage_tip = (
-        <div>
-          Resource usage updates while the kernel runs. The memory limit is
-          determined by the remining "free" memory of this project.
-          <br />
-          <Typography.Text type="secondary">
-            Keep in mind that "shared memory" could compete with other projects
-            on the same machine and hence you might not be able to fully attain
-            it.
-          </Typography.Text>
-          <br />
-          <Typography.Text type="secondary">
-            You can clear all cpu and memory usage by{" "}
-            <em>restarting your kernel</em>. Learn more about{" "}
-            <A href={"https://doc.cocalc.com/howto/low-memory.html"}>
-              Low Memory
-            </A>{" "}
-            mitigations.
-          </Typography.Text>
-        </div>
+        <>
+          <p>
+            This shows this kernel's resource usage. The memory limit is
+            determined by the remining "free" memory of this project. Open the "
+            {PROJECT_INFO_TITLE}" tab see all activities of this project.
+          </p>
+          <p>
+            <Typography.Text type="secondary">
+              Keep in mind that "shared memory" could compete with other
+              projects on the same machine and hence you might not be able to
+              fully attain it.
+            </Typography.Text>
+          </p>
+          <p>
+            <Typography.Text type="secondary">
+              You can clear all cpu and memory usage by{" "}
+              <em>restarting your kernel</em>. Learn more about{" "}
+              <A href={"https://doc.cocalc.com/howto/low-memory.html"}>
+                Low Memory
+              </A>{" "}
+              mitigations.
+            </Typography.Text>
+          </p>
+        </>
       );
 
       const tip = (
@@ -291,7 +297,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
           {kernel_tip ? <br /> : undefined}
           {kernel_tip}
           <hr />
-          {render_usage_text()}
+          <p>{render_usage_text()}</p>
           {usage_tip}
         </span>
       );
@@ -300,7 +306,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
           title={title}
           tip={tip}
           placement={"bottom"}
-          tip_style={{ maxWidth: "400px" }}
+          tip_style={{ maxWidth: "450px" }}
         >
           {body}
         </Tip>
@@ -397,11 +403,12 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       const cpu_style = usage_text_style_level(usage.cpu_alert);
       const memory_style = usage_text_style_level(usage.mem_alert);
       const time_style = usage_text_style_level(usage.time_alert);
-      const { cpu, mem } = usage;
+      const { cpu, mem, mem_pct } = usage;
       const cpu_disp = `${rpad_html(cpu, 3)}%`;
       const mem_disp = `${rpad_html(mem, 4)}MB`;
       const round = (val) => val.toFixed(1);
       const time_disp = `${rpad_html(usage.cpu_runtime, 5, round)}s`;
+      const mem_pct_disp = `${rpad_html(mem_pct, 3)}%`;
       const style: CSS = { display: "flex" };
       return (
         <div style={style}>
@@ -427,6 +434,11 @@ export const Kernel: React.FC<KernelProps> = React.memo(
               className={"cocalc-jupyter-usage-info"}
               style={memory_style}
               dangerouslySetInnerHTML={{ __html: mem_disp }}
+            />
+            <span
+              className={"cocalc-jupyter-usage-info"}
+              style={memory_style}
+              dangerouslySetInnerHTML={{ __html: mem_pct_disp }}
             />
           </span>
         </div>

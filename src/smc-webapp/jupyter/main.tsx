@@ -289,7 +289,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     () => calc_quantile(cell_timings),
     [cell_timings]
   );
-  console.log("expected_cell_runtime", expected_cell_runtime);
 
   // state of UI, derived from usage, timing stats, etc.
   const [cpu_start, set_cpu_start] = React.useState<number | undefined>();
