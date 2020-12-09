@@ -14,18 +14,19 @@ import {
 import { Usage, AlertLevel } from "./types";
 
 export const ALERT_COLS: { [key in AlertLevel]: string } = {
-  none: COLORS.ANTD_GREEN,
+  none: COLORS.BS_GREEN,
   low: COLORS.ANTD_YELL_M,
   mid: COLORS.ANTD_ORANGE,
   high: COLORS.ANTD_RED_WARN,
 } as const;
 
-export function compute_usage({
-  kernel_usage,
-  backend_state,
-  cpu_runtime,
-  expected_cell_runtime,
-}): Usage {
+export function compute_usage(opts): Usage {
+  const {
+    kernel_usage,
+    backend_state,
+    cpu_runtime,
+    expected_cell_runtime,
+  } = opts;
   // not using resources, return sane "zero" defaults
   if (
     kernel_usage == null ||
@@ -36,6 +37,7 @@ export function compute_usage({
       mem: 0,
       mem_limit: 1000, // 1 GB
       cpu: 0, // 1 core
+      cpu_runtime: 0,
       cpu_limit: 1,
       mem_alert: "none",
       cpu_alert: "none",
@@ -90,6 +92,7 @@ export function compute_usage({
   return {
     mem,
     mem_limit,
+    cpu_runtime,
     cpu,
     cpu_limit,
     cpu_alert,

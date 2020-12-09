@@ -60,7 +60,6 @@ interface KernelProps {
   is_fullscreen?: boolean;
   name: string;
   usage?: Usage;
-  cpu_runtime: number;
   expected_cell_runtime: number;
 }
 
@@ -71,7 +70,6 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       is_fullscreen,
       name,
       usage,
-      cpu_runtime,
       expected_cell_runtime,
     } = props;
 
@@ -336,11 +334,11 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         : KERNEL_USAGE_STYLE_SMALL;
 
       // const status = usage.cpu > 50 ? "active" : undefined
-      const status = cpu_runtime != null ? "active" : undefined;
+      const status = usage.cpu_runtime != null ? "active" : undefined;
       // we calibrate "100%" at the median – color changes at 2 x timings_q
       const cpu_val = Math.min(
         100,
-        100 * (cpu_runtime / expected_cell_runtime)
+        100 * (usage.cpu_runtime / expected_cell_runtime)
       );
 
       return (
@@ -403,7 +401,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       const cpu_disp = `${rpad_html(cpu, 3)}%`;
       const mem_disp = `${rpad_html(mem, 4)}MB`;
       const round = (val) => val.toFixed(1);
-      const time_disp = `${rpad_html(cpu_runtime, 5, round)}s`;
+      const time_disp = `${rpad_html(usage.cpu_runtime, 5, round)}s`;
       const style: CSS = { display: "flex" };
       return (
         <div style={style}>

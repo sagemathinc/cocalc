@@ -38,6 +38,7 @@ export interface Usage {
   mem_alert: AlertLevel;
   mem_pct: number; // %
   cpu: number; // 1 core = 100%
+  cpu_runtime: number; // seconds, wall-time (not cpu time)
   cpu_limit: number;
   cpu_alert: AlertLevel;
   cpu_pct: number; // 100% full container quota

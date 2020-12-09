@@ -385,7 +385,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           name={name}
           actions={actions}
           usage={usage}
-          cpu_runtime={cpu_runtime}
           expected_cell_runtime={expected_cell_runtime}
         />
         <Mode name={name} />
