@@ -7,3 +7,4 @@ export * from "./utils";
 import "./store";
 import "./actions";
 export { Executables } from "./executables";
+export { LanguageTable } from "./language-table";

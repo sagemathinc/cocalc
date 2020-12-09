@@ -4,15 +4,14 @@
  */
 
 import { redux, Actions } from "../app-framework";
-import { by_lowercase, NAME } from "./utils";
-import { ComputeEnvironment } from "./types";
+import { by_lowercase } from "./utils";
+import { ComputeEnvironmentState } from "./types";
 
-class ComputeEnvironmentActions extends Actions<ComputeEnvironment> {
+class ComputeEnvironmentActions extends Actions<ComputeEnvironmentState> {
   private init_data(inventory, components): void {
     // both are empty objects by default
     const langs: string[] = [];
     for (let k in inventory) {
-      const v = inventory[k];
       if (k !== "language_exes") {
         langs.push(k);
       }
@@ -26,18 +25,16 @@ class ComputeEnvironmentActions extends Actions<ComputeEnvironment> {
   }
 
   public load(): void {
-    if (redux.getStore(NAME)?.get("loading")) {
+    if (redux.getStore("compute-environment")?.get("loading")) {
       return;
     }
     this.setState({ loading: true });
-    //if DEBUG then console.log("ComputeEnvironmentActions: loading ...")
-    require.ensure([], () => {
-      // these files only contain "{}" per default!
-      const inventory = require("webapp-lib/compute-inventory.json");
-      const components = require("webapp-lib/compute-components.json");
-      this.init_data(inventory, components);
-    });
+    // these files only contain "{}" by default, but get set to something interesting
+    // in some cases -- see webapp-lib/README.md.
+    const inventory = require("webapp-lib/compute-inventory.json");
+    const components = require("webapp-lib/compute-components.json");
+    this.init_data(inventory, components);
   }
 }
 
-redux.createActions(NAME, ComputeEnvironmentActions);
+redux.createActions("compute-environment", ComputeEnvironmentActions);

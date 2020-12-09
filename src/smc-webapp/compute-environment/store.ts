@@ -4,22 +4,19 @@
  */
 
 import { redux, Store } from "../app-framework";
-import { NAME } from "./utils";
-import { ComputeEnvironment } from "./types";
+import { ComputeEnvironmentState } from "./types";
 
-class ComputeEnvironmentStore extends Store<ComputeEnvironment> {
-  getInitialState() {
-    return {
-      inventory: undefined,
-      components: undefined,
-      langs: undefined,
-      // Default selected_lang to 'executables' this since it is MUCH shorter than the others,
-      // is the first tab (so faster to render!), and makes no assumptions about if the user
-      // is a "Python person" or "R person" or whatever:
-      selected_lang: "executables",
-      loading: false,
-    };
-  }
-}
+class ComputeEnvironmentStore extends Store<ComputeEnvironmentState> {}
 
-redux.createStore(NAME, ComputeEnvironmentStore);
+const INIT = {
+  inventory: undefined,
+  components: undefined,
+  langs: undefined,
+  // Default selected_lang to 'executables' this since it is MUCH shorter than the others,
+  // is the first tab (so faster to render!), and makes no assumptions about if the user
+  // is a "Python person" or "R person" or whatever:
+  selected_lang: "executables",
+  loading: false,
+} as ComputeEnvironmentState;
+
+redux.createStore("compute-environment", ComputeEnvironmentStore, INIT);

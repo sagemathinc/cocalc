@@ -19,105 +19,14 @@ theme  = require('smc-util/theme')
 
 # This depends on two files: compute-inventory.json and compute-components.json described in webapp-lib/README.md
 
-{NAME, full_lang_name, by_lowercase, Executables} = require('./compute-environment')
+{ full_lang_name, by_lowercase, Executables, LanguageTable} = require('./compute-environment')
 
+NAME = "compute-environment"
 
 
 # the components
 
 
-
-LanguageTable = rclass
-    displayName : 'ComputeEnvironment-LanguageTable'
-
-    propTypes:
-        lang          : rtypes.string.isRequired
-        inventory     : rtypes.object.isRequired    # already language-specific
-        components    : rtypes.object.isRequired    # already language-specific
-        lang_exes     : rtypes.object.isRequired
-        version_click : rtypes.func.isRequired
-
-    lang_table_header: ->
-        <thead>
-            <tr>
-                <th key={'__package'}>Package</th>
-                {
-                    for inventory_idx of @props.inventory
-                        <th
-                            key    = {inventory_idx}
-                            style  = {whiteSpace: 'nowrap'}
-                        >
-                            {@props.lang_exes[inventory_idx].name}
-                        </th>
-                }
-            </tr>
-        </thead>
-
-
-    lang_table_body_row_versions: (component_idx) ->
-        for inventory_idx, inventory_info of @props.inventory
-            do (inventory_idx) =>
-                info = inventory_info[component_idx]
-                <td
-                    key        = {inventory_idx}
-                    style      = {cursor: 'pointer' if info?}
-                    onClick    = {(=> @props.version_click(inventory_idx, component_idx)) if info?}
-                >
-                    {info ? ''}
-                </td>
-
-    lang_table_body_row_name: (component_idx) ->
-
-        style =
-            fontWeight  : 'bold'
-        summary =
-            fontSize    : '80%'
-
-        component_info = @props.components[component_idx]
-        if component_info
-            <td key={'__name'}>
-                <div style={style}>
-                {
-                    if component_info.url
-                        <a target='_blank' rel="noopener" href={component_info.url}>{component_info.name}</a>
-                    else
-                        component_info.name
-                }
-                </div>
-                {<div style={summary}>{component_info.summary}</div> if component_info.summary}
-            </td>
-        else
-            <td key={'name'}>
-                <div style={style}>{component_idx}</div>
-            </td>
-
-    lang_table_body_row: (component_idx) ->
-        <tr key={component_idx}>
-            {@lang_table_body_row_name(component_idx)}
-            {@lang_table_body_row_versions(component_idx)}
-        </tr>
-
-    lang_table_body: ->
-        <tbody>
-        {
-            component_idxs = (k for k, v of @props.components)
-            component_idxs.sort((a, b) =>
-                return a.localeCompare(b)
-                # TOOD make this below here work
-                #name_a = (@props.components[a] ? a).toLowerCase()
-                #name_b = (@props.components[b] ? b).toLowerCase()
-                #return name_a.localeCompare(name_b)
-            )
-            for component_idx in component_idxs
-                @lang_table_body_row(component_idx)
-        }
-        </tbody>
-
-    render: ->
-        <Table striped bordered condensed hover>
-            {@lang_table_header()}
-            {@lang_table_body()}
-        </Table>
 
 SoftwareTable = rclass
     displayName : 'ComputeEnvironment-SoftwareTable'
@@ -138,10 +47,7 @@ SoftwareTable = rclass
         else
             <LanguageTable
                 lang          = {@props.lang}
-                version_click = {@props.version_click}
-                inventory     = {@props.inventory}
-                components    = {@props.components}
-                lang_exes     = {@props.lang_exes}/>
+                version_click = {@props.version_click}/>
 
 
 

@@ -4,7 +4,7 @@
  */
 
 import { CSS, React, useTypedRedux } from "../app-framework";
-import { by_lowercase, NAME } from "./utils";
+import { by_lowercase } from "./utils";
 import { Row, Col } from "../antd-bootstrap";
 
 const STYLE = { maxHeight: "12rem", overflowY: "auto", fontSize: "80%" } as CSS;
@@ -14,20 +14,24 @@ interface Props {
 }
 
 export const Executables: React.FC<Props> = ({ lang }) => {
-  const inventory = useTypedRedux(NAME, "inventory")?.get(lang);
-  const components = useTypedRedux(NAME, "components")?.get(lang);
+  const inventory = useTypedRedux("compute-environment", "inventory")?.get(
+    lang
+  );
+  const components = useTypedRedux("compute-environment", "components")?.get(
+    lang
+  );
   if (inventory == null || components == null) return <></>;
 
   const [...execs] = inventory.keys();
   function name(x: string): string {
-    return components?.get(name) ?? "";
+    const y = components?.get(x) ?? "";
+    return typeof y == "string" ? y : y.get("name") ?? "";
   }
   execs.sort((a, b) => by_lowercase(name(a), name(b)));
 
   const v: JSX.Element[] = [];
   for (const exec of execs) {
     const stdout = inventory.get(exec);
-    console.log({ exec, stdout });
     if (stdout == null) continue; // should not happen
     v.push(
       <Row key={exec} style={{ margin: "2rem 0 2rem 0" }}>
@@ -42,5 +46,5 @@ export const Executables: React.FC<Props> = ({ lang }) => {
       </Row>
     );
   }
-  return v;
+  return <>{v}</>;
 };

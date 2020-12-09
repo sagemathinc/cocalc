@@ -194,6 +194,7 @@ export interface StoreStates {
   projects: types.ProjectsState;
   support: types.SupportState;
   users: types.UsersState;
+  "compute-environment": types.ComputeEnvironmentState;
 }
 
 export function useTypedRedux<

@@ -5,9 +5,6 @@
 
 // utilities
 
-
-export const NAME = "compute-environment";
-
 export function full_lang_name(lang: string): string {
   switch (lang) {
     case "R":
