@@ -19,35 +19,12 @@ theme  = require('smc-util/theme')
 
 # This depends on two files: compute-inventory.json and compute-components.json described in webapp-lib/README.md
 
-{ full_lang_name, by_lowercase, Executables, LanguageTable} = require('./compute-environment')
+{ full_lang_name, by_lowercase, SoftwareTable } = require('./compute-environment')
 
 NAME = "compute-environment"
 
 
 # the components
-
-
-
-SoftwareTable = rclass
-    displayName : 'ComputeEnvironment-SoftwareTable'
-
-    shouldComponentUpdate: (props) ->
-        return @props.lang != props.lang
-
-    propTypes:
-        lang          : rtypes.string.isRequired
-        inventory     : rtypes.object.isRequired
-        components    : rtypes.object.isRequired
-        lang_exes     : rtypes.object.isRequired
-        version_click : rtypes.func.isRequired
-
-    render: ->
-        if @props.lang is 'executables'
-            <Executables lang={@props.lang}/>
-        else
-            <LanguageTable
-                lang          = {@props.lang}
-                version_click = {@props.version_click}/>
 
 
 
@@ -178,9 +155,6 @@ ComputeEnvironment = rclass
             <SoftwareTable
                 lang          = {lang}
                 version_click = {@version_click}
-                inventory     = {@props.inventory[lang]}
-                components    = {@props.components[lang]}
-                lang_exes     = {@props.inventory['language_exes']}
             />
         </div>
 
