@@ -40,6 +40,7 @@ import "./stats";
 import "./storage-servers";
 import "./system-notifications";
 import "./tracking";
+import "./usage-info";
 import "./webapp-errors";
 import "./site-whitelabeling";
 

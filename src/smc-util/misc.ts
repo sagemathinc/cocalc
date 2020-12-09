@@ -2218,3 +2218,15 @@ export function count(str: string, strsearch: string): number {
   }
   return count;
 }
+
+// right pad a number using html's &nbsp;
+// by default, rounds number to a whole integer
+export function rpad_html(num: number, width: number, round_fn?: Function) {
+  num = (round_fn ?? Math.round)(num);
+  const s = "&nbsp;";
+  if (num == 0) return lodash.repeat(s, width - 1) + "0";
+  if (num < 0) return num; // TODO not implemented
+  const str = `${num}`;
+  const pad = Math.max(0, width - str.length);
+  return lodash.repeat(s, pad) + str;
+}

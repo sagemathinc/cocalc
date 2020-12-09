@@ -107,10 +107,6 @@ export class JupyterActions extends JupyterActions0 {
     return this._set({ type: "settings", kernel_state: state }, save);
   };
 
-  set_kernel_usage = (usage: any) => {
-    return this._set({ type: "settings", kernel_usage: usage });
-  };
-
   // Called exactly once when the manager first starts up after the store is initialized.
   // Here we ensure everything is in a consistent state so that we can react
   // to changes later.
@@ -339,8 +335,6 @@ export class JupyterActions extends JupyterActions0 {
       // https://github.com/sagemathinc/cocalc/issues/4847
       this.set_kernel_error(err);
     });
-
-    this.jupyter_kernel.on("usage", this.set_kernel_usage);
 
     this.handle_all_cell_attachments();
     this.set_backend_state("ready");

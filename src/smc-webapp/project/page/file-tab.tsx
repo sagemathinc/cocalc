@@ -25,6 +25,7 @@ import {
 import { path_split, path_to_tab } from "smc-util/misc";
 import { HiddenXS, Icon, Tip } from "../../r_misc";
 import { COLORS } from "smc-util/theme";
+import { PROJECT_INFO_TITLE } from "../info";
 
 export const FIXED_PROJECT_TABS = {
   files: {
@@ -51,16 +52,16 @@ export const FIXED_PROJECT_TABS = {
     tooltip: "Search files in the project",
     no_anonymous: false,
   },
-  info: {
-    label: "Info",
-    icon: "gear",
-    tooltip: "",
-    no_anonymous: true,
-  },
   settings: {
     label: "Settings",
     icon: "wrench",
     tooltip: "Project settings and controls",
+    no_anonymous: true,
+  },
+  info: {
+    label: PROJECT_INFO_TITLE,
+    icon: "microchip",
+    tooltip: "Running processes, resource usage, …",
     no_anonymous: true,
   },
 } as const;

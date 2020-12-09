@@ -17,6 +17,7 @@ import { DEFAULT_COMPUTE_IMAGE } from "../../smc-util/compute-images";
 import { Kernels, Kernel } from "./util";
 import { KernelInfo, Cell, CellToolbarName } from "./types";
 import { Syntax } from "../../smc-util/code-formatter";
+import { ImmutableUsageInfo } from "../../smc-project/usage-info/types";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -78,6 +79,7 @@ export interface JupyterStoreState {
   contents?: List<Map<string, any>>; // optional global contents info (about sections, problems, etc.)
   connection_file?: string;
   kernel_error?: string;
+  kernel_usage?: ImmutableUsageInfo;
 }
 
 export const initial_jupyter_store_state: {
