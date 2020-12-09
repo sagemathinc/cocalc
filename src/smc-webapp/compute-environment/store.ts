@@ -5,8 +5,9 @@
 
 import { redux, Store } from "../app-framework";
 import { NAME } from "./utils";
+import { ComputeEnvironment } from "./types";
 
-class ComputeEnvironmentStore extends Store {
+class ComputeEnvironmentStore extends Store<ComputeEnvironment> {
   getInitialState() {
     return {
       inventory: undefined,

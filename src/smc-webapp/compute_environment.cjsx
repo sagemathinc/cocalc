@@ -19,42 +19,13 @@ theme  = require('smc-util/theme')
 
 # This depends on two files: compute-inventory.json and compute-components.json described in webapp-lib/README.md
 
-{NAME, full_lang_name, by_lowercase} = require('./compute-environment')
+{NAME, full_lang_name, by_lowercase, Executables} = require('./compute-environment')
 
 
 
 # the components
 
-Executables = rclass
-    displayName : 'ComputeEnvironment-Executables'
 
-    propTypes:
-        inventory     : rtypes.object.isRequired    # already language-specific
-        components    : rtypes.object.isRequired    # already language-specific
-
-    render: ->
-        style =
-            maxHeight    : '12rem'
-            overflowY    : 'auto'
-            fontSize     : '80%'
-
-        execs = misc.keys(@props.inventory)
-        name  = ((x) => @props.components[x].name)
-        execs.sort(((a, b) -> by_lowercase(name(a), name(b))))
-        for exec in execs
-            stdout = @props.inventory[exec]
-            <Row key={exec} style={margin: '2rem 0 2rem 0'}>
-                <Col md={3}>
-                    <b>{name(exec)}</b>
-                    <br/>
-                    <code style={fontSize: '80%'}>{exec}</code>
-                </Col>
-                <Col md={9}>
-                    <pre style={style}>
-                        {stdout}
-                    </pre>
-                </Col>
-            </Row>
 
 LanguageTable = rclass
     displayName : 'ComputeEnvironment-LanguageTable'
@@ -163,9 +134,7 @@ SoftwareTable = rclass
 
     render: ->
         if @props.lang is 'executables'
-            <Executables
-                inventory    = {@props.inventory}
-                components   = {@props.components}/>
+            <Executables lang={@props.lang}/>
         else
             <LanguageTable
                 lang          = {@props.lang}
@@ -284,7 +253,7 @@ ComputeEnvironment = rclass
                         <a target='_blank' rel="noopener" href={jupyter_bridge_url}>Jupyter Bridge</a>.
                         E.g. for Anaconda:
                         <pre>
-                            kernel = jupyter('{jupyter_kernel}')
+                            kernel = jupyter('{jupyter_kernel}')1
                             %default_mode kernel
                         </pre>
                     </li>

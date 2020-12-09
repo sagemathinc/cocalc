@@ -5,8 +5,9 @@
 
 import { redux, Actions } from "../app-framework";
 import { by_lowercase, NAME } from "./utils";
+import { ComputeEnvironment } from "./types";
 
-class ComputeEnvironmentActions extends Actions {
+class ComputeEnvironmentActions extends Actions<ComputeEnvironment> {
   private init_data(inventory, components): void {
     // both are empty objects by default
     const langs: string[] = [];
