@@ -16,7 +16,7 @@ import {
 } from "../app-framework";
 import * as immutable from "immutable";
 
-import { ErrorDisplay } from "../r_misc/error-display";
+import { A, ErrorDisplay } from "../r_misc";
 import { Loading } from "../r_misc/loading";
 
 // React components that implement parts of the Jupyter notebook.
@@ -58,7 +58,7 @@ const KERNEL_STYLE: CSS = {
   whiteSpace: "nowrap",
 } as const;
 
-const ERROR_STYLE: CSS = {
+export const ERROR_STYLE: CSS = {
   margin: "1ex",
   whiteSpace: "pre" as "pre",
   fontSize: "12px",
@@ -344,7 +344,11 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     return (
       <ErrorDisplay
         bsStyle="warning"
-        error={kernel_error}
+        error_component={
+          <A href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">
+            {kernel_error}
+          </A>
+        }
         style={ERROR_STYLE}
         onClose={() => actions.setState({ kernel_error: "" })}
       />

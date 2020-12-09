@@ -97,7 +97,7 @@ export const SUPPORT_LINKS: Links = {
     href: "https://github.com/sagemathinc/cocalc-docker",
     link: (
       <span>
-        Run open source CoCalc on your computer ($799 commercial license)
+        Run open source CoCalc on your computer ($999 commercial license)
       </span>
     ),
   },
