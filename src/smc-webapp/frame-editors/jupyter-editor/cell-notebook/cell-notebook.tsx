@@ -16,7 +16,7 @@ import { JupyterEditor } from "../../../jupyter/main";
 import { Map } from "immutable";
 import { JupyterEditorActions } from "../actions";
 import { JupyterActions } from "../../../jupyter/browser-actions";
-import { EditorState } from "../../frame-tree/types"
+import { EditorState } from "../../frame-tree/types";
 
 interface Props {
   id: string;
