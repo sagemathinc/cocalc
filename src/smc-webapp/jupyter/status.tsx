@@ -233,35 +233,38 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       }
     }
 
-    // a popover information, containin more in depth details about the kernel
-    function render_tip(title: any, body: any) {
-      let kernel_name;
+    function get_kernel_tip(): string {
+      if (backend_state === "running") {
+        switch (kernel_state) {
+          case "busy":
+            return "Kernel is busy.";
+          case "idle":
+            return "Kernel is idle.";
+          default:
+            return "Kernel will start when you run code.";
+        }
+      } else {
+        return "";
+      }
+    }
+
+    function get_kernel_name(): JSX.Element {
       if (kernel_info != null) {
-        kernel_name = (
+        return (
           <div>
             <b>Kernel: </b>
             {kernel_info.get("display_name", "No Kernel")}
           </div>
         );
       } else {
-        kernel_name = <span />;
+        return <span />;
       }
-      let kernel_tip;
+    }
+
+    // a popover information, containin more in depth details about the kernel
+    function render_tip(title: any, body: any) {
       const backend_tip = `Backend is ${backend_state}.`;
-      if (backend_state === "running") {
-        switch (kernel_state) {
-          case "busy":
-            kernel_tip = " Kernel is busy.";
-            break;
-          case "idle":
-            kernel_tip = " Kernel is idle.";
-            break;
-          default:
-            kernel_tip = " Kernel will start when you run code.";
-        }
-      } else {
-        kernel_tip = "";
-      }
+      const kernel_tip = get_kernel_tip();
 
       const usage_tip = (
         <>
@@ -292,12 +295,11 @@ export const Kernel: React.FC<KernelProps> = React.memo(
 
       const tip = (
         <span>
-          {kernel_name}
           {backend_tip}
           {kernel_tip ? <br /> : undefined}
           {kernel_tip}
           <hr />
-          <p>{render_usage_text()}</p>
+          {render_usage_text()}
           {usage_tip}
         </span>
       );
@@ -409,9 +411,9 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       const round = (val) => val.toFixed(1);
       const time_disp = `${rpad_html(usage.cpu_runtime, 5, round)}s`;
       const mem_pct_disp = `${rpad_html(mem_pct, 3)}%`;
-      const style: CSS = { display: "flex" };
+      const style: CSS = { whiteSpace: "nowrap" };
       return (
-        <div style={style}>
+        <p style={style}>
           <span>
             CPU:{" "}
             <span
@@ -441,7 +443,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
               dangerouslySetInnerHTML={{ __html: mem_pct_disp }}
             />
           </span>
-        </div>
+        </p>
       );
     }
 
@@ -472,11 +474,10 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         {info}
       </div>
     );
-    const tip_title = "Details";
     return (
       <span>
         {render_logo()}
-        {render_tip(tip_title, body)}
+        {render_tip(get_kernel_name(), body)}
       </span>
     );
   }

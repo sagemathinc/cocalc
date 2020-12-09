@@ -132,13 +132,13 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   private usage_info_handler(usage: ImmutableUsageInfo): void {
-    console.log("jupyter usage", this.path, "→", usage?.toJS());
+    // console.log("jupyter usage", this.path, "→", usage?.toJS());
     this.setState({ kernel_usage: usage });
   }
 
   // don't forget the close() in the parent
   public async close(): Promise<void> {
-    console.log("jupyter close_browser_actions", this.path);
+    // console.log("jupyter close_browser_actions", this.path);
     if (this.is_closed()) return;
     if (this.usage_info != null) {
       const key = this.usage_info.event_key(this.path);

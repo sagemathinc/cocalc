@@ -148,8 +148,7 @@ export class UsageInfoWS extends EventEmitter {
 
   // we add the path we are interested in
   public async watch(path: string): Promise<void> {
-    console.log(`UsageInfo watching ${this.project_id} / ${path}`);
-
+    // console.log(`UsageInfo watching ${this.project_id} / ${path}`);
     if (await this.wait_until_ready(false)) return;
     if (this.state == "closed") return;
     this.set({ path });
@@ -157,8 +156,7 @@ export class UsageInfoWS extends EventEmitter {
 
   // we remove the project/path key
   public async disregard(path: string): Promise<void> {
-    console.log(`UsageInfo disregarding ${this.project_id} / ${path}`);
-
+    // console.log(`UsageInfo disregarding ${this.project_id} / ${path}`);
     if (this.state == "closed") return;
     const table = await this.get_table_safe();
     const data = table.get();
