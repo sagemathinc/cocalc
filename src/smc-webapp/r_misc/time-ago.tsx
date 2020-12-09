@@ -28,17 +28,22 @@ function timeago_formatter(value, unit, suffix, _date) {
 }
 
 // This is just used for updates, so is_different if there
-// is a chance they are different
+// is a *chance* they are different
 export function is_different_date(
-  date0: string | Date | number | undefined,
-  date1: string | Date | number | undefined
+  date0: string | Date | number | undefined | null,
+  date1: string | Date | number | undefined | null
 ): boolean {
   const t0 = typeof date0;
   const t1 = typeof date1;
   if (t0 !== t1) {
     return true;
   }
-  if (typeof date0 != "object" || typeof date1 != "object") {
+  if (
+    date0 == null ||
+    date1 == null ||
+    typeof date0 != "object" ||
+    typeof date1 != "object"
+  ) {
     return date0 !== date1;
   }
   return date0.valueOf() - date1.valueOf() != 0;

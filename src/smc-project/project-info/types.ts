@@ -25,7 +25,7 @@ export interface Stat {
 }
 
 export interface Cpu {
-  pct: number; // 0 to 100 (1 core) or more
+  pct: number; // 0 to 100% (1 core) or more
   secs: number;
 }
 

@@ -12,9 +12,7 @@ Specs: https://jupyter-client.readthedocs.io/en/stable/kernels.html#kernel-specs
 */
 
 import { findAll } from "kernelspecs";
-
-// const { findAll } = require("kernelspecs");
-const { field_cmp } = require("smc-util/misc");
+import { field_cmp } from "../smc-util/misc";
 import * as LRU from "lru-cache";
 
 const cache = new LRU({ maxAge: 5000 });
@@ -36,6 +34,9 @@ export async function get_kernel_data(): Promise<any> {
       interrupt_mode: value.spec.interrupt_mode,
       env: value.spec.env,
       metadata: value.spec.metadata,
+      // kernelspecs incorrectly calls it resources_dir instead of resource_dir.
+      // See https://github.com/nteract/kernelspecs/issues/25
+      resource_dir: value.resource_dir ?? value.resources_dir,
     });
   }
   v.sort(field_cmp("display_name"));
