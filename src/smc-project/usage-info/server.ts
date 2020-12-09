@@ -157,6 +157,9 @@ export class UsageInfoServer extends EventEmitter {
       // … or of one of the values is significantly different
       if (is_diff(usage, this.last, key)) return true;
     }
+    // … or if the remaining memory changed
+    // i.e. if another process uses up a portion, there's less for the current notebook
+    if (is_diff(usage, this.last, "mem_free")) return true;
     return false;
   }
 
