@@ -20,7 +20,7 @@ declare var $: any;
 import { tex2jax } from "./tex2jax";
 import * as LRU from "lru-cache";
 
-const { macros } = require("../math_katex");
+import { macros } from "./math-katex";
 import { redux } from "../app-framework";
 
 declare global {
@@ -53,9 +53,8 @@ function katex_plugin(): void {
   //    <script type="math/tex; mode=display">x^2</script>
   tex2jax.PreProcess(elt[0]);
 
-  const always_use_mathjax: boolean = redux
-    .getStore("account")
-    ?.getIn(["other_settings", "katex"]) === false;
+  const always_use_mathjax: boolean =
+    redux.getStore("account")?.getIn(["other_settings", "katex"]) === false;
 
   // Select all the math and try to use katex on each part.
   elt.find("script").each(function () {
