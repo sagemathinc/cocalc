@@ -6,7 +6,7 @@
 import { redux, Store } from "../app-framework";
 import { ComputeEnvironmentState } from "./types";
 
-class ComputeEnvironmentStore extends Store<ComputeEnvironmentState> {}
+export class ComputeEnvironmentStore extends Store<ComputeEnvironmentState> {}
 
 const INIT = {
   inventory: undefined,

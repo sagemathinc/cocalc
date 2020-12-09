@@ -7,4 +7,4 @@ export * from "./utils";
 import "./store";
 import "./actions";
 
-export { SoftwareTable } from "./software-table";
+export { ComputeEnvironment } from "./compute-environment";
