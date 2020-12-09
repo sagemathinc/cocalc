@@ -40,34 +40,12 @@ export {
 } from "./hidden-visible";
 export { LoginLink } from "./login-link";
 export { ProjectState } from "./project-state";
-
-export const {
-  MarkdownInput,
-  UNIT,
-  BS_BLUE_BGRND,
-  COLORS,
-  ImmutablePureRenderMixin,
-  Octicon,
-  Footer,
-  render_static_footer,
-  SearchInput,
-  HTML,
-  Markdown,
-  ActivityDisplay,
-  DeletedProjectWarning,
-  course_warning,
-  CourseProjectExtraHelp,
-  CourseProjectWarning,
-  NonMemberProjectWarning,
-  NoNetworkProjectWarning,
-  EditorFileInfoDropdown,
-  render_file_info_dropdown,
-  UPGRADE_ERROR_STYLE,
-  NoUpgrades,
-  UpgradeAdjustor,
-  CopyToClipBoard,
-  ErrorBoundary,
-  smc_version,
-  build_date,
-  smc_git_rev,
-} = require("./old-coffee-code-index");
+export { UNIT, build_date, smc_git_rev, smc_version } from "./constants";
+export { MarkdownInput } from "../widget-markdown-input/main";
+export { SearchInput } from "./search-input";
+export { ActivityDisplay } from "./activity-display";
+export { CopyToClipBoard } from "./copy-to-clipboard";
+export { NoUpgrades, UPGRADE_ERROR_STYLE } from "./no-upgrades";
+export { UpgradeAdjustor } from "./upgrade-adjustor";
+export { HTML } from "./html";
+export { Markdown } from "./markdown";

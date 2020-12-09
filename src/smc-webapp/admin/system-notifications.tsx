@@ -12,7 +12,6 @@ import {
   redux,
   Rendered,
 } from "../app-framework";
-
 import {
   Button,
   ButtonToolbar,
@@ -20,11 +19,8 @@ import {
   FormControl,
   Well,
 } from "react-bootstrap";
-
 import { Map } from "immutable";
-
-import { plural } from "smc-util/misc2";
-
+import { plural } from "smc-util/misc";
 import { Icon, Loading } from "../r_misc";
 
 interface Props {

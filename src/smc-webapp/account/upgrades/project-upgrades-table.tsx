@@ -116,7 +116,6 @@ class ProjectUpgradesTable extends Component<reduxProps, State> {
     return (
       <UpgradeAdjustor
         key={`adjustor-${project_id}`}
-        project_id={project_id}
         total_project_quotas={this.props.get_total_project_quotas(project_id)}
         upgrades_you_can_use={this.props.get_total_upgrades()}
         upgrades_you_applied_to_all_projects={this.props.get_total_upgrades_you_have_applied()}

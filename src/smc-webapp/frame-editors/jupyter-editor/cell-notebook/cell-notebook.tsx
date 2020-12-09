@@ -16,12 +16,13 @@ import { JupyterEditor } from "../../../jupyter/main";
 import { Map } from "immutable";
 import { JupyterEditorActions } from "../actions";
 import { JupyterActions } from "../../../jupyter/browser-actions";
+import { EditorState } from "../../frame-tree/types"
 
 interface Props {
   id: string;
   name: string;
   actions: JupyterEditorActions;
-  editor_state: Map<string, any>;
+  editor_state: EditorState;
   is_fullscreen: boolean;
   project_id: string;
   path: string;

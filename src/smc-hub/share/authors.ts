@@ -8,9 +8,8 @@ Information (from the database) about authors of shares,
 and what shares were authored by a given account.
 */
 
-import { cmp, endswith, is_valid_uuid_string } from "smc-util/misc2";
 import { callback2 } from "smc-util/async-utils";
-import { meta_file } from "smc-util/misc";
+import { cmp, endswith, is_valid_uuid_string, meta_file } from "smc-util/misc";
 import { Author } from "smc-webapp/share/types";
 import { Database } from "./types";
 

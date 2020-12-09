@@ -31,13 +31,7 @@ import { SyncString } from "smc-util/sync/editor/string";
 
 import { aux_file } from "../frame-tree/util";
 import { callback_opts, once } from "smc-util/async-utils";
-import {
-  endswith,
-  filename_extension,
-  history_path,
-  len,
-  uuid,
-} from "smc-util/misc2";
+import { filename_extension, history_path, len, uuid } from "smc-util/misc";
 import { print_code } from "../frame-tree/print-code";
 import {
   ConnectionStatus,
@@ -521,7 +515,7 @@ export class Actions<
     s.close();
   }
 
-  __save_local_view_state(): void {
+  private __save_local_view_state(): void {
     if (!this.store?.get("local_view_state")) return;
     localStorage[this.name] = JSON.stringify(
       this.store.get("local_view_state")
@@ -862,10 +856,6 @@ export class Actions<
   // frame still exists that was most recently active before this frame.
   close_frame(id: string): void {
     if (this._tree_is_single_leaf()) {
-      if (endswith(this.path, ".term")) {
-        // TODO: sort of ugly special case of terminal -- no-op
-        return;
-      }
       // closing the only node, so reset to default
       this.reset_local_view_state();
       return;
@@ -1185,6 +1175,10 @@ export class Actions<
     open_new_tab(url);
   }
 
+  guide(id: string, type: string): void {
+    console.warn(`Guide for ${type} not implemented. (id=${id})`);
+  }
+
   set_zoom(zoom: number, id?: string) {
     this.change_font_size(undefined, id, zoom);
   }
@@ -1324,6 +1318,10 @@ export class Actions<
     parent: HTMLElement
   ): Terminal<CodeEditorState> {
     return this.terminals.get_terminal(id, parent);
+  }
+
+  public set_terminal_cwd(id: string, cwd: string): void {
+    this.save_editor_state(id, { cwd });
   }
 
   // Open a code editor, optionally at the given line.
@@ -2289,7 +2287,7 @@ export class Actions<
     return SHELLS[filename_extension(this.path)];
   }
 
-  public async shell(id: string): Promise<void> {
+  public async shell(id: string, no_switch: boolean = false): Promise<void> {
     const x = await this.get_shell_spec(id);
     let command: string | undefined = undefined;
     let args: string[] | undefined = undefined;
@@ -2315,7 +2313,15 @@ export class Actions<
     } else {
       // Change command/args.
       this.terminals.set_command(shell_id, command, args);
+      // Also change the frame description so that the top of the terminal display
+      // updates with the correct command.
+      this.set_frame_tree({
+        id: shell_id,
+        command,
+        args,
+      });
     }
+    if (no_switch) return;
 
     // De-maximize if in full screen mode.
     this.unset_frame_full();

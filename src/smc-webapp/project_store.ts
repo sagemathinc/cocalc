@@ -15,10 +15,7 @@ if (typeof window !== "undefined" && window !== null) {
   wrapped_editors = require("./editors/react-wrapper");
 }
 import * as immutable from "immutable";
-
 import * as misc from "smc-util/misc";
-import { startswith } from "smc-util/misc2";
-
 import { QUERIES, FILE_ACTIONS, ProjectActions } from "./project_actions";
 import {
   Available as AvailableFeatures,
@@ -100,7 +97,6 @@ export interface ProjectStoreState {
   new_name?: string;
   most_recent_file_click?: string;
   show_library: boolean;
-  show_new: boolean;
   file_listing_scroll_top?: number;
   new_filename?: string;
   ext_selection?: string;
@@ -254,7 +250,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
       page_number: 0,
       checked_files: immutable.Set(),
       show_library: false,
-      show_new: false,
       file_listing_scroll_top: undefined,
       active_file_sort: TypedMap({
         is_descending: false,
@@ -357,7 +352,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         }
 
         if (this.get("current_path") === ".snapshots") {
-          _compute_snapshot_display_names(listing.files);
+          compute_snapshot_display_names(listing.files);
         }
 
         const search = this.get("file_search");
@@ -531,7 +526,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
   private close_deleted_file(path: string): void {
     const cur = this.get("current_path");
-    if (path == cur || startswith(cur, path + "/")) {
+    if (path == cur || misc.startswith(cur, path + "/")) {
       // we are deleting the current directory, so let's cd to HOME.
       const actions = redux.getProjectActions(this.project_id);
       if (actions != null) {
@@ -540,7 +535,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
     }
     const all_paths = deleted_file_variations(path);
     for (const file of this.get("open_files").keys()) {
-      if (all_paths.indexOf(file) != -1 || startswith(file, path + "/")) {
+      if (all_paths.indexOf(file) != -1 || misc.startswith(file, path + "/")) {
         if (!this.has_file_been_viewed(file)) {
           // Hasn't even been viewed yet; when user clicks on the tab
           // they get a dialog to undelete the file.
@@ -620,22 +615,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
   }
 }
 
-function _match(words: string[], s: string, is_dir): boolean {
-  s = s.toLowerCase();
-  for (const t of words) {
-    if (t[t.length - 1] === "/") {
-      if (!is_dir) {
-        return false;
-      } else if (s.indexOf(t.slice(0, -1)) === -1) {
-        return false;
-      }
-    } else if (s.indexOf(t) === -1) {
-      return false;
-    }
-  }
-  return true;
-}
-
 function _matched_files(
   search: string,
   files?: DirectoryListingEntry[]
@@ -643,11 +622,13 @@ function _matched_files(
   if (files == null) {
     return [];
   }
-  const words = search.split(" ");
+  const words = misc.search_split(search);
   const result: DirectoryListingEntry[] = [];
   for (const x of files) {
+    const name = (x.display_name ?? x.name ?? "").toLowerCase();
     if (
-      _match(words, x.display_name != null ? x.display_name : x.name, x.isdir)
+      misc.search_match(name, words) ||
+      (x.isdir && misc.search_match(name + "/", words))
     ) {
       result.push(x);
     }
@@ -712,16 +693,12 @@ function _compute_file_masks(files: DirectoryListingEntry[]): void {
   }
 }
 
-function _compute_snapshot_display_names(listing) {
-  return (() => {
-    const result: number[] = [];
-    for (const item of listing) {
-      const tm = misc.parse_bup_timestamp(item.name);
-      item.display_name = `${tm}`;
-      result.push((item.mtime = (tm - 0) / 1000));
-    }
-    return result;
-  })();
+function compute_snapshot_display_names(listing): void {
+  for (const item of listing) {
+    const tm = misc.parse_bup_timestamp(item.name);
+    item.display_name = `${tm}`;
+    item.mtime = tm.valueOf() / 1000;
+  }
 }
 
 // Mutates data to include info on public paths.

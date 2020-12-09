@@ -9,7 +9,8 @@ import { Passports } from "../passports";
 import { PassportStrategy } from "../account/passport-types";
 import { List } from "immutable";
 
-import { COLORS, UNIT, Icon, Loading } from "../r_misc";
+import { UNIT, Icon, Loading } from "../r_misc";
+import { COLORS } from "smc-util/theme";
 
 const {
   HelpEmailLink,
@@ -53,12 +54,14 @@ interface Props {
   help_email?: string;
   terms_of_service?: string;
   terms_of_service_url?: string;
+  exclusive_sso_domains?: Set<string>;
 }
 
 interface State {
   terms_checkbox: boolean;
   user_token: string;
   show_terms: boolean;
+  domain_blocked: string | undefined;
 }
 
 export class SignUp extends React.Component<Props, State> {
@@ -71,6 +74,7 @@ export class SignUp extends React.Component<Props, State> {
       show_terms,
       terms_checkbox: !show_terms,
       user_token: "",
+      domain_blocked: undefined,
     };
   }
 
@@ -186,10 +190,32 @@ export class SignUp extends React.Component<Props, State> {
     );
   }
 
+  check_email(email: string) {
+    // this is just a quick heuristic – a full check is done in the hub
+    const domain = email.split("@")[1]?.trim().toLowerCase();
+    if (domain != null && this.props.exclusive_sso_domains?.has(domain)) {
+      this.setState({ domain_blocked: domain });
+    } else if (this.state.domain_blocked != null) {
+      this.setState({ domain_blocked: undefined });
+    }
+  }
+
+  render_domain_blocked(): Rendered {
+    if (this.state.domain_blocked == null) return;
+    return (
+      <div style={ERROR_STYLE}>
+        To sign up with {" "}
+        <code style={{ color: "white" }}>@{this.state.domain_blocked}</code>,
+        you have to use the corresponding SSO connect mechanism listed above!
+      </div>
+    );
+  }
+
   render_email(): Rendered {
     return (
       <FormGroup>
         {this.render_error("email_address")}
+        {this.render_domain_blocked()}
         <FormControl
           disabled={!this.state.terms_checkbox}
           name="email"
@@ -198,6 +224,7 @@ export class SignUp extends React.Component<Props, State> {
           placeholder="Email address"
           cocalc-test={"sign-up-email"}
           maxLength={254}
+          onChange={(e) => this.check_email(e.target.value)}
         />
       </FormGroup>
     );
@@ -259,7 +286,11 @@ export class SignUp extends React.Component<Props, State> {
     return (
       <Button
         style={{ marginBottom: UNIT, marginTop: UNIT }}
-        disabled={!this.state.terms_checkbox || this.props.signing_up}
+        disabled={
+          !this.state.terms_checkbox ||
+          this.props.signing_up ||
+          this.state.domain_blocked != null
+        }
         bsStyle={"success"}
         bsSize={"large"}
         type={"submit"}

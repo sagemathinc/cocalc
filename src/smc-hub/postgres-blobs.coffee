@@ -30,8 +30,12 @@ misc_node = require('smc-util-node/misc_node')
 required = defaults.required
 
 {expire_time, one_result, all_results} = require('./postgres-base')
+{delete_patches} = require('./postgres/delete-patches')
 
 {filesystem_bucket} = require('./filesystem-bucket')
+
+# some queries do searches, which could take a bit. we give them 5 minutes …
+TIMEOUT_LONG_S = 300
 
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     save_blob: (opts) =>
@@ -70,7 +74,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     query : 'SELECT expire FROM blobs'
                     where : "id = $::UUID" : opts.uuid
                     cb    : (err, x) =>
-                        rows = x.rows; cb(err)
+                        rows = x?.rows; cb(err)
             (cb) =>
                 if rows.length == 0 and opts.compress
                     dbg("compression requested and blob not already saved, so we compress blob")
@@ -379,6 +383,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     query : "SELECT id FROM blobs"
                     where : "expire IS NULL and backup IS NOT true"
                     limit : opts.limit
+                    timeout_s : TIMEOUT_LONG_S
                     cb    : all_results 'id', (err, x) =>
                         v = x; cb(err)
             (cb) =>
@@ -465,6 +470,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             query    : 'SELECT id, size FROM blobs'
             where    : "expire IS NULL AND gcloud IS NULL and (last_active <= NOW() - INTERVAL '#{opts.cutoff}' OR last_active IS NULL)"
             limit    : opts.limit
+            timeout_s : TIMEOUT_LONG_S
             ##  order_by : 'id'  # this is not important and was causing VERY excessive load in production (due to bad query plannnig?!)
             cb       : all_results (err, v) =>
                 if err
@@ -620,6 +626,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     query    : 'SELECT string_id FROM syncstrings'
                     where    : [{'last_active <= $::TIMESTAMP' : misc.days_ago(opts.age_days)}, 'archived IS NULL']
                     limit    : opts.limit
+                    timeout_s : TIMEOUT_LONG_S
                     cb       : all_results 'string_id', (err, v) =>
                         syncstrings = v
                         cb(err)
@@ -720,11 +727,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             (cb) =>
                 if last_active? and last_active >= opts.cutoff
                     cb(); return
-                dbg("actually delete patches")
-                @_query
-                    query : "DELETE FROM patches"
-                    where : where
-                    cb    : cb
+                dbg("actually deleting patches")
+                delete_patches(db:@, string_id: opts.string_id, cb:cb)
         ], (err) => opts.cb?(err))
 
     unarchive_patches: (opts) =>

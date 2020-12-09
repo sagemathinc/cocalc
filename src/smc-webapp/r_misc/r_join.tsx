@@ -4,7 +4,7 @@
  */
 
 import { React, Rendered } from "../app-framework";
-import { len } from "smc-util/misc2";
+import { len } from "smc-util/misc";
 
 export function r_join(
   components: Rendered[],

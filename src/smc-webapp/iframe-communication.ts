@@ -9,17 +9,10 @@
 // For security reasons, this is very restrictive, involves extra checks, and only a selected set of origins is allowed.
 
 import { delay } from "awaiting";
-import * as memoizeOneModule from "memoize-one";
+import memoizeOne from "memoize-one";
 import { redux } from "./app-framework";
-import { is_valid_uuid_string } from "../smc-util/misc2";
+import { is_valid_uuid_string } from "../smc-util/misc";
 import { Map, List } from "immutable";
-
-// This nonsense is due to mismatch in jest/webpack exports by memoize-one
-// https://github.com/alexreardon/memoize-one/issues/37
-const memoizeOne =
-  typeof memoizeOneModule.default === "function"
-    ? memoizeOneModule.default
-    : memoizeOneModule;
 
 let initialized = false;
 

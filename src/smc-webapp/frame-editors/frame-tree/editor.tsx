@@ -11,17 +11,14 @@ import {
   Rendered,
   project_redux_name,
 } from "../../app-framework";
-
 import { ErrorDisplay, Loading, LoadingEstimate } from "smc-webapp/r_misc";
 import { FormatBar } from "./format-bar";
 import { StatusBar } from "./status-bar";
+//TODO: import { FrameTree } from "./frame-tree";
 const { FrameTree } = require("./frame-tree");
 import { EditorSpec, ErrorStyles } from "./types";
-
-import { is_different, filename_extension } from "smc-util/misc2";
-
+import { is_different, filename_extension } from "smc-util/misc";
 import { SetMap } from "./types";
-
 import { AvailableFeatures } from "../../project_configuration";
 
 interface FrameTreeEditorReactProps {
@@ -211,6 +208,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           complete={this.props.complete}
           derived_file_types={this.props.derived_file_types}
           available_features={this.props.available_features}
+          local_view_state={this.props.local_view_state}
         />
       </div>
     );

@@ -25,7 +25,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # WARNING: This is NOT guaranteed to give a point
     # in time backup of the entire database across tables!
     # The backup of each table is only consistent within that
-    # table.  For SMC, this tends to be fine, due to our design.
+    # table.  For CoCalc, this tends to be fine, due to our design.
     # The advantage of this is that we can backup huge tables
     # only once a week, and other smaller tables much more frequently.
 

@@ -18,7 +18,7 @@ Maybe
 */
 
 import { createEditor } from "../frame-tree/editor";
-import { set } from "smc-util/misc2";
+import { set } from "smc-util/misc";
 import { CellWorksheet } from "./cell-worksheet";
 import { DocumentWorksheet } from "./document-worksheet";
 //import { Print } from "./print";

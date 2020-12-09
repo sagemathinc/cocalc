@@ -8,25 +8,15 @@ Display of basic information about a user, with link to get more information abo
 */
 
 import { Icon, Space, TimeAgo } from "smc-webapp/r_misc";
-
 import { React, Component, Rendered } from "smc-webapp/app-framework";
-
-import { capitalize } from "smc-util/misc2";
-
+import { capitalize } from "smc-util/misc";
 import { Row, Col } from "react-bootstrap";
-
 import { User } from "smc-webapp/frame-editors/generic/client";
-
 import { Subscriptions } from "./subscriptions";
-
 import { Projects } from "./projects";
-
 import { Activity } from "./activity";
-
 import { Impersonate } from "./impersonate";
-
 import { PasswordReset } from "./password-reset";
-
 import { Ban } from "./ban";
 
 interface State {
@@ -38,9 +28,22 @@ interface State {
   ban: boolean;
 }
 
-interface Props extends User {
-  header?: boolean;
+interface HeaderProps {
+  header: true;
+  first_name: string;
+  last_name: string;
+  email_address: string;
+  created: string;
+  last_active: string;
+  account_id: string;
+  banned?: undefined;
 }
+
+interface UserProps extends User {
+  header?: false;
+}
+
+type Props = HeaderProps | UserProps;
 
 type More =
   | "projects"
@@ -116,8 +119,8 @@ export class UserResult extends Component<Props, State> {
     return (
       <Impersonate
         account_id={this.props.account_id}
-        first_name={this.props.first_name}
-        last_name={this.props.last_name}
+        first_name={this.props.first_name ?? ""}
+        last_name={this.props.last_name ?? ""}
       />
     );
   }

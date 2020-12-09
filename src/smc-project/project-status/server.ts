@@ -22,7 +22,7 @@ if (require.main === module) {
 import { EventEmitter } from "events";
 import { delay } from "awaiting";
 import { isEqual } from "lodash";
-import { how_long_ago_m } from "../../smc-util/misc2";
+import { how_long_ago_m } from "../../smc-util/misc";
 import {
   ALERT_HIGH_PCT /* ALERT_MEDIUM_PCT */,
   ALERT_DISK_FREE,
@@ -178,7 +178,9 @@ export class ProjectStatusServer extends EventEmitter {
 
   public async start(): Promise<void> {
     if (this.running) {
-      this.dbg("alerady running, cannot be started twice");
+      this.dbg(
+        "project-status/server: already running, cannot be started twice"
+      );
     } else {
       await this._start();
     }

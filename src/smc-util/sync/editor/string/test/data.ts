@@ -27,7 +27,6 @@ export function a_txt() {
           init: { time: "2019-01-04T18:24:09.878Z", size: 0, error: "" },
           doctype: '{"type":"string"}',
           read_only: false,
-          deleted: false,
           save: { state: "done", error: "", hash: 0, time: 1546626249624 },
         },
       ],

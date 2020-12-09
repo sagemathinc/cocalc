@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-//import { MentionsInput, Mention } from "react-mentions";
 import { React, useActions, useRedux } from "../app-framework";
 import { MarkdownInput } from "../editors/markdown-input";
 import { IS_MOBILE } from "../feature";
@@ -43,6 +42,7 @@ export const ChatInput: React.FC<Props> = (props) => {
       }
       fontSize={font_size}
       lineWrapping={true}
+      autoFocus
     />
   );
 };

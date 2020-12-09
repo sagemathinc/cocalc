@@ -7,7 +7,7 @@
 Utility function for determining the labels to put on file tabs.
 */
 
-import { path_split } from "smc-util/misc2";
+import { path_split } from "smc-util/misc";
 
 export function file_tab_labels(paths: string[]): string[] {
   const labels: string[] = [];

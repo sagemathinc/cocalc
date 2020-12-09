@@ -26,7 +26,6 @@ import { CourseActions } from "../actions";
 import {
   AssignmentRecord,
   CourseStore,
-  Feedback,
   NBgraderRunInfo,
   get_nbgrader_score,
 } from "../store";
@@ -35,6 +34,7 @@ import { webapp_client } from "../../webapp-client";
 import { redux } from "../../app-framework";
 import {
   len,
+  endswith,
   path_split,
   uuid,
   peer_grading,
@@ -151,80 +151,14 @@ export class AssignmentsActions {
     this.course_actions.setState({ active_feedback_edits });
   }
 
-  public update_edited_feedback(
-    assignment_id: string,
-    student_id: string,
-    new_edited_grade?: string,
-    new_edited_comments?: string
-  ) {
+  public update_edited_feedback(assignment_id: string, student_id: string) {
     const store = this.get_store();
     const key = assignment_identifier(assignment_id, student_id);
-    const current_edited_feedback = store.get("active_feedback_edits").get(key);
-
-    let current_edited_grade: string | undefined;
-    let current_edited_comments: string | undefined;
-
-    if (current_edited_feedback) {
-      current_edited_grade = current_edited_feedback.get("edited_grade");
-      current_edited_comments = current_edited_feedback.get("edited_comments");
-    }
-
-    let grade: string;
-    if (new_edited_grade != undefined) {
-      grade = new_edited_grade;
-    } else if (current_edited_grade != undefined) {
-      grade = current_edited_grade;
-    } else {
-      grade = store.get_grade(assignment_id, student_id) || "";
-    }
-
-    let comments: string;
-    if (new_edited_comments != undefined) {
-      comments = new_edited_comments;
-    } else if (current_edited_comments != undefined) {
-      comments = current_edited_comments;
-    } else {
-      comments = store.get_comments(assignment_id, student_id) || "";
-    }
     const old_edited_feedback = store.get("active_feedback_edits");
-    const new_edited_feedback = old_edited_feedback.set(
-      key,
-      new Feedback({ edited_grade: grade, edited_comments: comments })
-    );
+    const new_edited_feedback = old_edited_feedback.set(key, true);
     this.course_actions.setState({
       active_feedback_edits: new_edited_feedback,
     });
-  }
-
-  public save_feedback(assignment_id: string, student_id: string): void {
-    const store = this.get_store();
-    const active_feedback_edits = store.get("active_feedback_edits");
-    if (active_feedback_edits == undefined) {
-      return;
-    }
-    const key = assignment_identifier(assignment_id, student_id);
-    const edited_feedback = active_feedback_edits.get(key);
-    if (edited_feedback == undefined) {
-      return;
-    }
-    const query = {
-      table: "assignments",
-      assignment_id,
-    };
-    const assignment_data = this.course_actions.get_one(query);
-    if (assignment_data == null) {
-      // assignment suddenly doesn't exist...
-      return;
-    }
-
-    const grades = assignment_data.grades || {};
-    grades[student_id] = edited_feedback.get("edited_grade");
-
-    const comments = assignment_data.comments || {};
-    comments[student_id] = edited_feedback.get("edited_comments");
-    const feedback_changes = Object.assign({ grades, comments }, query);
-    this.course_actions.set(feedback_changes);
-    this.clear_edited_feedback(assignment_id, student_id);
   }
 
   // Set a specific grade for a student in an assignment.
@@ -254,6 +188,35 @@ export class AssignmentsActions {
         table: "assignments",
         assignment_id,
         grades,
+      },
+      commit
+    );
+  }
+
+  // Set a specific comment for a student in an assignment.
+  public set_comment(
+    assignment_id: string,
+    student_id: string,
+    comment: string,
+    commit: boolean = true
+  ): void {
+    const { assignment } = this.course_actions.resolve({
+      assignment_id,
+    });
+    if (assignment == null) {
+      throw Error("no such assignment");
+    }
+    // Annoying that we have to convert to JS here and cast,
+    // but the set below seems to require it.
+    let comments = assignment.get("comments", Map()).toJS() as {
+      [student_id: string]: string;
+    };
+    comments[student_id] = comment;
+    this.course_actions.set(
+      {
+        table: "assignments",
+        assignment_id,
+        comments,
       },
       commit
     );
@@ -715,6 +678,17 @@ ${details}
       overwrite: false,
       create_due_date_file: false,
     });
+    const { student, assignment, store } = this.course_actions.resolve({
+      student_id,
+      assignment_id,
+    });
+    if (!student || !assignment) return;
+    if (assignment.get("nbgrader") && !assignment.get("has_student_subdir")) {
+      this.course_actions.set_error(
+        "Assignment contains Jupyter notebooks with nbgrader metadata but there is no student/ subdirectory. The student/ subdirectory gets created when you generate the student version of the assignment.  Please generate the student versions of your notebooks (open the notebook, then View --> nbgrader), or remove any nbgrader metadata from them."
+      );
+      return;
+    }
 
     if (this.start_copy(assignment_id, student_id, "last_assignment")) {
       return;
@@ -729,13 +703,6 @@ ${details}
         this.course_actions.set_error(`copy to student: ${err}`);
       }
     };
-
-    const { student, assignment, store } = this.course_actions.resolve({
-      student_id,
-      assignment_id,
-      finish,
-    });
-    if (!student || !assignment) return;
 
     const student_name = store.get_student_name(student_id);
     this.course_actions.set_activity({
@@ -1334,9 +1301,7 @@ ${details}
         break;
       }
     }
-    const nbgrader = has_student_subdir
-      ? await this.probably_uses_nbgrader(assignment, project_id)
-      : false;
+    const nbgrader = await this.has_nbgrader_metadata(assignment_id);
     if (this.course_actions.is_closed()) return;
     this.course_actions.set({
       has_student_subdir,
@@ -1346,72 +1311,56 @@ ${details}
     });
   }
 
-  private async probably_uses_nbgrader(
-    assignment: AssignmentRecord,
-    project_id: string
-  ): Promise<boolean> {
-    // Heuristic: we check if there is an ipynb file in the STUDENT_SUBDIR
-    // that contains "nbgrader".
-    const path = this.assignment_src_path(assignment);
-    const command = "grep nbgrader *.ipynb | wc -l";
-    const cnt = parseInt(
-      (
-        await exec({
-          project_id,
-          command,
-          path,
-          err_on_exit: true,
-        })
-      ).stdout
-    );
-    return cnt > 0;
+  /* Scan all Jupyter notebooks in the top level of either the assignment directory or
+     the student/
+     subdirectory of it for cells with nbgrader metadata.  If any are found, return
+     true; otherwise, return false.
+  */
+  private async has_nbgrader_metadata(assignment_id: string): Promise<boolean> {
+    return len(await this.nbgrader_instructor_ipynb_files(assignment_id)) > 0;
   }
 
   // Read in the (stripped) contents of all nbgrader instructor ipynb
   // files for this assignment.  These are:
-  //  - Nothing if has_student_subdir isn't set.
-  //  - Every ipynb in the assignment directory that contains
-  //    the string 'nbgrader'.
-  //  - Exception if any ipynb file that is mangled, i.e., JSON.parse fails...
-  public async nbgrader_instructor_ipynb_files(
+  //  - Every ipynb file in the assignment directory that has a cell that
+  //    contains nbgrader metadata (and isn't mangled).
+  private async nbgrader_instructor_ipynb_files(
     assignment_id: string
   ): Promise<{ [path: string]: string }> {
     const { store, assignment } = this.course_actions.resolve({
       assignment_id,
     });
-    if (assignment == null || !assignment.get("has_student_subdir")) {
+    if (assignment == null) {
       return {}; // nothing case.
     }
     const path = assignment.get("path");
     const project_id = store.get("course_project_id");
-    const command = "ls";
-    // The F options make it so we won't get tricked by a directory
-    // whose name ends in .ipynb
-    const args = ["--color=never", "-1F"];
-    const files: string[] = (
-      await exec({
-        project_id,
-        path,
-        command,
-        args,
-      })
-    ).stdout.split("\n");
-
-    const to_read: string[] = [];
-    for (const file of files) {
-      if (file.endsWith(".ipynb")) {
-        to_read.push(file);
-      }
-    }
-
+    const files = await redux
+      .getProjectStore(project_id)
+      .get_listings()
+      .get_listing_directly(path);
     const result: { [path: string]: string } = {};
+
+    if (this.course_actions.is_closed()) return result;
+
+    const to_read = files
+      .filter((entry) => !entry.isdir && endswith(entry.name, ".ipynb"))
+      .map((entry) => entry.name);
 
     const f: (file: string) => Promise<void> = async (file) => {
       if (this.course_actions.is_closed()) return;
       const fullpath = path != "" ? path + "/" + file : file;
-      const content = await jupyter_strip_notebook(project_id, fullpath);
-      if (content.indexOf("nbgrader") != -1) {
-        result[file] = content;
+      try {
+        const content = await jupyter_strip_notebook(project_id, fullpath);
+        const { cells } = JSON.parse(content);
+        for (const cell of cells) {
+          if (cell.metadata.nbgrader) {
+            result[file] = content;
+            return;
+          }
+        }
+      } catch (err) {
+        return;
       }
     };
 

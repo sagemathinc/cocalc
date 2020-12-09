@@ -304,13 +304,15 @@ export function Tabs(props: {
   animation?: boolean;
   style?: React.CSSProperties;
   tabBarExtraContent?: React.ReactNode;
+  tabPosition?: "left" | "top" | "right" | "bottom";
+  size?: "small";
   children: any;
 }) {
   // We do this because for antd, "There must be `tab` property on children of Tabs."
   let tabs: Rendered[] | Rendered = [];
   if (Symbol.iterator in Object(props.children)) {
     for (const x of props.children) {
-      if (!x.props) continue;
+      if (x == null || !x.props) continue;
       tabs.push(Tab(x.props));
     }
   } else {
@@ -323,6 +325,8 @@ export function Tabs(props: {
       animated={props.animation ?? false}
       style={props.style}
       tabBarExtraContent={props.tabBarExtraContent}
+      tabPosition={props.tabPosition}
+      size={props.size}
     >
       {tabs}
     </antd.Tabs>

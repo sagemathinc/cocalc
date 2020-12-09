@@ -11,7 +11,6 @@ import { List } from "immutable";
 import {
   React,
   Rendered,
-  redux,
   useEffect,
   useForceUpdate,
   useRedux,
@@ -32,18 +31,17 @@ import {
   r_join,
   Icon,
   VisibleMDLG,
-  EditorFileInfoDropdown,
   Space,
   DropdownMenu,
   MenuItem,
 } from "smc-webapp/r_misc";
 
-const { IS_TOUCH } = require("smc-webapp/feature");
-import { capitalize, copy } from "smc-util/misc";
+import { IS_TOUCH } from "../../feature";
+import { capitalize, copy, path_split, trunc_middle } from "smc-util/misc";
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
-import { path_split, trunc_middle } from "smc-util/misc2";
 import { ConnectionStatus, EditorSpec, EditorDescription } from "./types";
 import { Actions } from "../code-editor/actions";
+import { EditorFileInfoDropdown } from "../../editors/file-info-dropdown";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -251,7 +249,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     props.actions.close_frame(props.id);
   }
 
-  function button_size(): string | undefined {
+  function button_size(): "small" | undefined {
     if (props.is_only || props.is_full) {
       return;
     } else {
@@ -920,6 +918,35 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     );
   }
 
+  function render_guide(labels: boolean): Rendered {
+    if (!is_visible("guide", true) || is_public) {
+      return;
+    }
+    const { title, descr, icon } = {
+      ...{
+        title: "Guide",
+        descr: "Show guidebook",
+        icon: "book",
+      },
+      ...props.editor_spec[props.type].guide_info,
+    };
+    return (
+      <Button
+        key={"guide"}
+        title={descr}
+        bsSize={button_size()}
+        onClick={() =>
+          typeof props.actions.help === "function"
+            ? props.actions.guide(props.id, props.type)
+            : undefined
+        }
+      >
+        <Icon name={icon} />{" "}
+        <VisibleMDLG>{labels ? title : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
   function render_restart(): Rendered {
     if (!is_visible("restart", true)) {
       return;
@@ -1229,20 +1256,17 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
   }
 
   function render_file_menu(): Rendered {
-    if (!(props.is_only || props.is_full)) {
-      return;
-    }
+    const small = !(props.is_only || props.is_full);
     const spec = props.editor_spec[props.type];
     if (spec != null && spec.hide_file_menu) return;
     return (
       <EditorFileInfoDropdown
         key={"info"}
-        title={"File related actions"}
         filename={props.path}
-        actions={redux.getProjectActions(props.project_id)}
+        project_id={props.project_id}
         is_public={false}
-        label={"File"}
-        bsSize={button_size()}
+        label={small ? "" : "File"}
+        style={small ? { height: button_height() } : undefined}
       />
     );
   }
@@ -1294,6 +1318,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     v.push(render_format());
     v.push(render_shell());
     v.push(render_print());
+    v.push(render_guide(labels));
     v.push(render_help(labels));
 
     const w: Rendered[] = [];

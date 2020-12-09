@@ -1495,6 +1495,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     val = if nestloop then 'on' else 'off'
                     _query_opts.pg_params = {enable_nestloop : val}
 
+                indexscan = SCHEMA[opts.table]?.pg_indexscan  # true, false or undefined
+                if typeof indexscan == 'boolean'
+                    val = if indexscan then 'on' else 'off'
+                    _query_opts.pg_params = {enable_indexscan : val}
+
                 if opts.changes?
                     locals.changes_cb = opts.changes.cb
                     locals.changes_queue = []

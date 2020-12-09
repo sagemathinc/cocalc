@@ -88,15 +88,27 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
   }
 
   function move_cell(delta): void {
-    props.frame_actions?.unselect_all_cells();
-    props.frame_actions?.select_cell(props.id);
-    props.frame_actions?.move_selected_cells(delta);
+    if (props.frame_actions == null || props.frame_actions.is_closed()) return;
+    props.frame_actions.unselect_all_cells();
+    props.frame_actions.select_cell(props.id);
+    props.frame_actions.move_selected_cells(delta);
   }
 
   function cut_cell(): void {
-    props.frame_actions?.unselect_all_cells();
-    props.frame_actions?.select_cell(props.id);
-    props.frame_actions?.cut_selected_cells();
+    if (props.frame_actions == null || props.frame_actions.is_closed()) return;
+    props.frame_actions.unselect_all_cells();
+    props.frame_actions.select_cell(props.id);
+    props.frame_actions.cut_selected_cells();
+  }
+
+  function run_cell(): void {
+    if (props.actions == null || props.actions.is_closed()) return;
+    props.actions?.run_cell(props.id);
+  }
+
+  function stop_cell(): void {
+    if (props.actions == null || props.actions.is_closed()) return;
+    props.actions?.signal("SIGINT");
   }
 
   const title = (
@@ -109,13 +121,10 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
           <Button size="small" onClick={() => move_cell(1)}>
             <Icon name="arrow-down" />
           </Button>{" "}
-          <Button
-            size="small"
-            onClick={() => props.actions?.run_cell(props.id)}
-          >
+          <Button size="small" onClick={run_cell}>
             <Icon name="step-forward" />
           </Button>
-          <Button size="small" onClick={() => props.actions?.signal("SIGINT")}>
+          <Button size="small" onClick={stop_cell}>
             <Icon name="stop" />
           </Button>
           <Button size="small" onClick={cut_cell}>

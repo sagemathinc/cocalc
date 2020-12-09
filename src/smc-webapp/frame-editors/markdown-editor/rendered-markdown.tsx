@@ -14,13 +14,14 @@
 //    - [x] checkbox in markdown are interactive (can click them, which edits file)
 
 import { Markdown } from "smc-webapp/r_misc";
-import { is_different, path_split } from "smc-util/misc2";
+import { is_different, path_split } from "smc-util/misc";
 import { throttle } from "underscore";
 import { React, ReactDOM, CSS } from "../../app-framework";
 import { use_font_size_scaling } from "../frame-tree/hooks";
 import { process_checkboxes } from "../../editors/task-editor/desc-rendering";
 import { apply_without_math } from "smc-util/mathjax-utils-2";
 import { MAX_WIDTH_NUM } from "../options";
+import { EditorState } from "../frame-tree/types";
 
 interface Props {
   actions: any;
@@ -30,7 +31,7 @@ interface Props {
   font_size: number;
   read_only: boolean;
   value: string;
-  editor_state: any;
+  editor_state: EditorState;
   reload_images: boolean;
 }
 
@@ -74,17 +75,30 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
       return;
     }
     const scroll_val = $(elt).scrollTop();
-    actions.save_editor_state(id, { scroll_val });
+    actions.save_editor_state(id, { scroll: scroll_val });
   }
 
   async function restore_scroll(): Promise<void> {
     const scroll_val = editor_state.get("scroll");
     const elt = $(ReactDOM.findDOMNode(scroll.current));
-    if (elt.length === 0) return;
-    elt.scrollTop(scroll_val);
-    elt.find("img").on("load", function () {
+    try {
+      if (elt.length === 0) {
+        return;
+      }
+      await delay(0); // wait until render happens
       elt.scrollTop(scroll_val);
-    });
+      await delay(0);
+      elt.css("opacity", 1);
+
+      // do any scrolling after image loads
+      elt.find("img").on("load", function () {
+        elt.scrollTop(scroll_val);
+      });
+    } finally {
+      // for sure change opacity to 1 so visible after
+      // doing whatever scrolling above
+      elt.css("opacity", 1);
+    }
   }
 
   function on_click(e): void {
@@ -105,10 +119,12 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
 
   function goto_source_line(event) {
     let elt = event.target;
+    (window as any).elt = elt;
+    while (elt != null && elt.dataset?.sourceLine == null) {
+      elt = elt.parentElement;
+    }
+    if (elt == null) return;
     const line = elt.dataset?.sourceLine;
-    // TODO: if line is null could move around in DOM
-    // trying to find "closest" DOM node where not null;
-    // alternatively, improve the line number markdown plugin.
     if (line != null) {
       actions.programmatical_goto_line(line);
       return;
@@ -119,6 +135,7 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
   const style: CSS = {
     overflowY: "auto",
     width: "100%",
+    opacity: 0, // changed to 1 after initial scroll to avoid flicker
   };
   const style_inner: CSS = {
     ...{

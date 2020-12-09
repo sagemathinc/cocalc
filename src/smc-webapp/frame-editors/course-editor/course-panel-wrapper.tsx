@@ -21,7 +21,6 @@ import {
   AppRedux,
 } from "../../app-framework";
 import { Loading, ActivityDisplay, ErrorDisplay } from "../../r_misc";
-
 import {
   AssignmentsMap,
   CourseSettingsRecord,
@@ -31,8 +30,7 @@ import {
 import { Map } from "immutable";
 import { ProjectMap, UserMap } from "../../todo-types";
 import { CourseActions, course_redux_name } from "./course-actions";
-import { merge } from "smc-util/misc2";
-import { values } from "smc-util/misc";
+import { merge, values } from "smc-util/misc";
 import { CourseTabBar } from "./course-tab-bar";
 import { CourseEditorActions } from "./actions";
 import { CourseStore } from "../../course/store";
@@ -189,7 +187,7 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
     if (this.props.activity == null) return;
     return (
       <ActivityDisplay
-        activity={values(this.props.activity.toJS())}
+        activity={values(this.props.activity.toJS()) as any}
         trunc={80}
         on_clear={() => {
           const actions = redux.getActions(name) as CourseActions;

@@ -1735,6 +1735,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
     _receive_broadcast: (mesg) =>
         switch mesg.mesg.event
             when 'execute_javascript'
+                console.log mesg
                 if @allow_javascript_eval()
                     mesg = mesg.mesg
                     do () =>

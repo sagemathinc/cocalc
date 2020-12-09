@@ -20,20 +20,15 @@ and things just grow badly (user has tons of docs open).
 const MAX_PAGES = 1000;
 
 import * as LRU from "lru-cache";
-
 import { reuseInFlight } from "async-await-utils/hof";
-
 import {
   getDocument as pdfjs_getDocument,
   PDFPromise,
   PDFDocumentProxy,
 } from "pdfjs-dist/webpack";
-
 import { raw_url } from "../frame-tree/util";
-
 import { pdf_path } from "./util";
-
-import { encode_path } from "smc-util/misc2";
+import { encode_path } from "smc-util/misc";
 
 const options = {
   max: MAX_PAGES,

@@ -34,6 +34,7 @@ export const EditQuota: React.FC<EditProps> = ({
     <QuotaEditor
       hideExtra={true}
       quota={q}
+      show_advanced_default={true}
       onChange={(change) => {
         const new_quota = fromJS({ ...q, ...change });
         actions.set_edit(license_id, license_field, new_quota);

@@ -10,9 +10,7 @@ import * as async from "async";
 import * as underscore from "underscore";
 import * as immutable from "immutable";
 import * as os_path from "path";
-
 import { client_db } from "smc-util/schema";
-
 import {
   ConfigurationAspect,
   Configuration,
@@ -21,7 +19,6 @@ import {
   LIBRARY_INDEX_FILE,
   is_available as feature_is_available,
 } from "./project_configuration";
-import { startswith, to_user_string } from "smc-util/misc2";
 import { query as client_query } from "./frame-editors/generic/client";
 import { callback, delay } from "awaiting";
 import { callback2, retry_until_success } from "smc-util/async-utils";
@@ -29,29 +26,20 @@ import { exec } from "./frame-editors/generic/client";
 import { API } from "./project/websocket/api";
 import { in_snapshot_path, NewFilenames, normalize } from "./project/utils";
 import { NEW_FILENAMES } from "smc-util/db-schema";
-
 import { transform_get_url } from "./project/transform-get-url";
-
 import { OpenFiles } from "./project/open-files";
-import { log_opened_time, open_file } from "./project/open-file";
-
+import { log_opened_time, open_file, log_file_open } from "./project/open-file";
 import * as project_file from "./project-file";
 import { get_editor } from "./editors/react-wrapper";
-
 import * as misc from "smc-util/misc";
 const { MARKERS } = require("smc-util/sagews");
 import { alert_message } from "./alerts";
 import { webapp_client } from "./webapp-client";
 const { defaults, required } = misc;
-
 import { set_url } from "./history";
-
 import { delete_files } from "./project/delete-files";
-
 import { get_directory_listing2 as get_directory_listing } from "./project/directory-listing";
-
 import { Actions, project_redux_name, redux } from "./app-framework";
-
 import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
 import { ProjectEvent } from "./project/history/types";
 import { DEFAULT_COMPUTE_IMAGE } from "../smc-util/compute-images";
@@ -320,10 +308,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.toggle_panel("show_library", show);
   }
 
-  toggle_new(show?: boolean): void {
-    this.toggle_panel("show_new", show);
-  }
-
   set_url_to_path(current_path): void {
     if (current_path.length > 0 && !misc.endswith(current_path, "/")) {
       current_path += "/";
@@ -366,21 +350,24 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const closed_index = open_files_order.indexOf(path);
     const { size } = open_files_order;
     if (misc.path_to_tab(path) === active_project_tab) {
-      let next_active_tab;
+      let next_active_tab: string | undefined = undefined;
       if (size === 1) {
         next_active_tab = "files";
       } else {
+        let path: string | undefined;
+
         if (closed_index === size - 1) {
-          next_active_tab = misc.path_to_tab(
-            open_files_order.get(closed_index - 1)
-          );
+          path = open_files_order.get(closed_index - 1);
         } else {
-          next_active_tab = misc.path_to_tab(
-            open_files_order.get(closed_index + 1)
-          );
+          path = open_files_order.get(closed_index + 1);
+        }
+        if (path != null) {
+          next_active_tab = misc.path_to_tab(path);
         }
       }
-      this.set_active_tab(next_active_tab);
+      if (next_active_tab != null) {
+        this.set_active_tab(next_active_tab);
+      }
     }
     if (closed_index === size - 1) {
       this.clear_ghost_file_tabs();
@@ -416,7 +403,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     if (
       prev_active_project_tab !== key &&
-      startswith(prev_active_project_tab, "editor-")
+      misc.startswith(prev_active_project_tab, "editor-")
     ) {
       this.hide_file(misc.tab_to_path(prev_active_project_tab));
     }
@@ -467,6 +454,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       default:
         // editor...
         const path = misc.tab_to_path(key);
+        if (path == null) {
+          throw Error(`must be an editor path but is ${key}`);
+        }
         this.redux
           .getActions("file_use")
           ?.mark_file(this.project_id, path, "open");
@@ -492,7 +482,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
 
         // Finally, ensure that the react/redux stuff is initialized, so
-        // the component will be rendered.
+        // the component will be rendered.  This happens if you open a file
+        // in the background but don't actually switch to that tab, then switch
+        // there later.  It's an optimization and it's very common due to
+        // session restore (where all tabs are restored).
         if (info.redux_name == null || info.Editor == null) {
           if (this.open_files == null) return;
           const { name, Editor } = this.init_file_react_redux(path, is_public);
@@ -756,6 +749,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       is_public
     );
 
+    // Log that we opened the file.
+    log_file_open(this.project_id, path);
+
     return { name, Editor };
   }
 
@@ -905,7 +901,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private async convert_docx_file(filename): Promise<string> {
     await webapp_client.project_client.exec({
       project_id: this.project_id,
-      command: "smc-docx2txt",
+      command: "cc-docx2txt",
       args: [filename],
     });
     return filename.slice(0, filename.length - 4) + "txt";
@@ -1537,6 +1533,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         )}`,
       });
     }
+    this.log({ event: "file_action", action: "created", files: [opts.dest] });
     webapp_client.exec({
       project_id: this.project_id,
       command: "zip",
@@ -1997,10 +1994,32 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     try {
       const api = await this.api();
       await api.rename_file(opts.src, opts.dest);
+      this.log({
+        event: "file_action",
+        action: "renamed",
+        src: opts.src,
+        dest: opts.dest + ((await this.isdir(opts.dest)) ? "/" : ""),
+      });
     } catch (err) {
       error = err;
     } finally {
       this.set_activity({ id, stop: "", error });
+    }
+  }
+
+  // return true if exists and is a directory
+  private async isdir(path: string): Promise<boolean> {
+    if (path == "") return true; // easy special case
+    try {
+      await webapp_client.project_client.exec({
+        project_id: this.project_id,
+        command: "test",
+        args: ["-d", path],
+        err_on_exit: true,
+      });
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -2026,6 +2045,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     try {
       const api = await this.api();
       await api.move_files(opts.src, opts.dest);
+      this.log({
+        event: "file_action",
+        action: "moved",
+        files: opts.src,
+        dest: opts.dest + "/" /* target is assumed to be a directory */,
+      });
     } catch (err) {
       error = err;
     } finally {
@@ -2189,6 +2214,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } else {
       this.fetch_directory_listing();
     }
+    // Log directory creation to the event log.  / at end of path says it is a directory.
+    this.log({ event: "file_action", action: "created", files: [p + "/"] });
   }
 
   async create_file(opts) {
@@ -2255,11 +2282,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     await webapp_client.exec({
       project_id: this.project_id,
-      command: "smc-new-file",
+      command: "cc-new-file",
       timeout: 10,
       args: [p],
       err_on_exit: true,
       cb: (err, output) => {
+        if (!err) {
+          this.log({ event: "file_action", action: "created", files: [p] });
+        }
         if (err) {
           let stdout = "";
           let stderr = "";
@@ -2313,7 +2343,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   /*
    * Actions for PUBLIC PATHS
    */
-  set_public_path(
+  public async set_public_path(
     path,
     opts: {
       description?: string;
@@ -2338,8 +2368,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const table = this.redux.getProjectTable(project_id, "public_paths");
     let obj: undefined | immutable.Map<string, any> = table._table.get(id);
 
+    let log: boolean = false;
     const now = misc.server_time();
     if (obj == null) {
+      log = true;
       obj = immutable.fromJS({
         project_id,
         path,
@@ -2358,10 +2390,28 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     for (const k in opts) {
       if (opts[k] != null) {
+        if (!log) {
+          if (k == "disabled" && opts[k] != obj.get(k)) {
+            // changing disabled state
+            log = true;
+          } else if (k == "unlisted" && opts[k] != obj.get(k)) {
+            // changing unlisted state
+            log = true;
+          }
+        }
         obj = obj.set(k, opts[k]);
       }
     }
     table.set(obj);
+
+    if (log) {
+      this.log({
+        event: "public_path",
+        path: path + ((await this.isdir(path)) ? "/" : ""),
+        disabled: !!obj.get("disabled"),
+        unlisted: !!obj.get("unlisted"),
+      });
+    }
   }
 
   /*
@@ -2420,7 +2470,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     if (err) {
-      err = to_user_string(err);
+      err = misc.to_user_string(err);
     }
     if ((err && output == null) || (output != null && output.stdout == null)) {
       this.setState({ search_error: err });
@@ -2708,7 +2758,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const store = this.get_store();
     if (store == undefined) return; // project closed
     const a = store.get("active_project_tab");
-    if (!startswith(a, "editor-")) return;
+    if (!misc.startswith(a, "editor-")) return;
     await delay(0);
     this.show_file(misc.tab_to_path(a));
   }
@@ -2718,7 +2768,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const store = this.get_store();
     if (store == undefined) return; // project closed
     const a = store.get("active_project_tab");
-    if (!startswith(a, "editor-")) return;
+    if (!misc.startswith(a, "editor-")) return;
     this.hide_file(misc.tab_to_path(a));
   }
 

@@ -111,7 +111,7 @@ class MultipleAddSearch extends Component<
     } else {
       // Waiting for user to start a search
       return (
-        <Button onClick={(e) => (this.refs.search_input as any).submit(e)}>
+        <Button onClick={() => this.props.do_search(this.search ?? "")}>
           <Icon name="search" />
         </Button>
       );
@@ -250,12 +250,13 @@ class MultipleAddSearch extends Component<
       <div>
         <SearchInput
           autoFocus={true}
-          ref="search_input"
           default_value=""
           placeholder={`Add or create ${this.props.item_name} by directory name...`}
+          on_change={(search) => {
+            this.search = search;
+          }}
           on_submit={(search) => {
             this.props.do_search(search);
-            this.search = search;
           }}
           on_clear={this.clear_and_focus_search_input}
           buttonAfter={this.search_button()}

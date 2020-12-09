@@ -44,20 +44,20 @@ text, - at the beginning of a line for lists, back ticks \` for code,
 and URL's will automatically become links.`;
 
 interface ReactProps {
-  autoFocus: boolean;
-  persist_id: string; // A unique id to identify the input. Required if you want automatic persistence
-  attach_to: string; // Removes record when given store name is destroyed. Only use with persist_id
-  default_value: string;
-  editing: boolean; // Used to control the edit/display state. CANNOT be used with persist_id
-  save_disabled: boolean; // Used to control the save button
-  on_change: (value: string) => any; // called with the new value when the value while editing changes
-  on_save: (value: string) => any; // called when saving from editing and switching back
-  on_edit: (value: string) => any; // called when editing starts
-  on_cancel: (value: string) => any; // called when cancel button clicked
-  rows: number;
-  placeholder: string;
-  rendered_style: object;
-  hide_edit_button: boolean;
+  autoFocus?: boolean;
+  persist_id?: string; // A unique id to identify the input. Required if you want automatic persistence
+  attach_to?: string; // Removes record when given store name is destroyed. Only use with persist_id
+  default_value?: string;
+  editing?: boolean; // Used to control the edit/display state. CANNOT be used with persist_id
+  save_disabled?: boolean; // Used to control the save button
+  on_change?: (value: string) => any; // called with the new value when the value while editing changes
+  on_save?: (value: string) => any; // called when saving from editing and switching back
+  on_edit?: (value: string) => any; // called when editing starts
+  on_cancel?: (value: string) => any; // called when cancel button clicked
+  rows?: number;
+  placeholder?: string;
+  rendered_style?: React.CSSProperties;
+  hide_edit_button?: boolean;
 }
 
 interface ReduxProps {
@@ -65,7 +65,7 @@ interface ReduxProps {
 }
 
 interface MarkdownInputState {
-  editing: boolean;
+  editing?: boolean;
   value: string;
 }
 
@@ -89,7 +89,7 @@ class MarkdownInput0 extends Component<
   }
 
   getInitialState = () => {
-    let value = this.props.default_value || "";
+    let value = this.props.default_value ?? "";
     let editing = false;
     if (
       this.props.persist_id &&
@@ -135,7 +135,7 @@ class MarkdownInput0 extends Component<
     if (this.props.persist_id != null) {
       this.getActions().set_value(
         this.props.persist_id,
-        value != null ? value : this.state.value
+        value ?? this.state.value
       );
     }
   };
@@ -161,7 +161,7 @@ class MarkdownInput0 extends Component<
     if (this.props.editing == null) {
       this.setState({ editing: true });
     }
-    this.setState({ value: this.props.default_value });
+    this.setState({ value: this.props.default_value ?? "" });
   };
 
   cancel = () => {
@@ -212,12 +212,10 @@ class MarkdownInput0 extends Component<
           <form onSubmit={this.save} style={{ marginBottom: "-20px" }}>
             <FormGroup>
               <FormControl
-                autoFocus={
-                  this.props.autoFocus != null ? this.props.autoFocus : true
-                }
+                autoFocus={this.props.autoFocus ?? true}
                 ref="input"
                 componentClass="textarea"
-                rows={this.props.rows != null ? this.props.rows : 4}
+                rows={this.props.rows ?? 4}
                 placeholder={this.props.placeholder}
                 value={this.state.value}
                 onChange={() => {
@@ -243,9 +241,8 @@ class MarkdownInput0 extends Component<
               bsStyle="success"
               onClick={this.save}
               disabled={
-                this.props.save_disabled != null
-                  ? this.props.save_disabled
-                  : this.state.value === this.props.default_value
+                this.props.save_disabled ??
+                this.state.value === this.props.default_value
               }
             >
               <Icon name="edit" /> Save
@@ -259,7 +256,7 @@ class MarkdownInput0 extends Component<
     } else {
       let style;
       const html = this.to_html();
-      if (html != null ? html.__html : undefined) {
+      if (html?.__html) {
         style = this.props.rendered_style;
       } else {
         style = undefined;

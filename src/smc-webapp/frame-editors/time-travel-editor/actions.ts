@@ -19,8 +19,7 @@ the old viewer, which is a convenient fallback if somebody needs it for some rea
 import { debounce } from "lodash";
 import { List } from "immutable";
 import { once } from "smc-util/async-utils";
-import { filename_extension, keys, path_split } from "smc-util/misc2";
-import { meta_file } from "smc-util/misc";
+import { filename_extension, keys, path_split, meta_file } from "smc-util/misc";
 import { SyncDoc } from "smc-util/sync/editor/generic/sync-doc";
 import { webapp_client } from "../../webapp-client";
 import {

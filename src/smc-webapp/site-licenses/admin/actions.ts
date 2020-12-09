@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Map, Set } from "immutable";
+import { fromJS, Map, Set } from "immutable";
 import { Actions, redux, TypedMap } from "../../app-framework";
 import {
   SiteLicensesState,
@@ -17,7 +17,7 @@ import {
   server_time,
   user_search,
 } from "../../frame-editors/generic/client";
-import { is_valid_uuid_string, uuid } from "smc-util/misc2";
+import { is_valid_uuid_string, uuid } from "smc-util/misc";
 import { normalize_upgrades_for_save } from "./upgrades";
 import * as jsonic from "jsonic";
 
@@ -38,7 +38,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
     const search = store.get("search");
     if (!search) {
       // Empty search = clear
-      this.setState({ site_licenses: [] });
+      this.setState({ site_licenses: [] as any });
       return;
     }
     try {
@@ -85,7 +85,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
           }
         }
       }
-      this.setState({ site_licenses });
+      this.setState({ site_licenses: fromJS(site_licenses) });
       await this.update_usage_stats();
     } catch (err) {
       this.set_error(err);
@@ -101,7 +101,14 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
       const now = server_time();
       await query({
         query: {
-          site_licenses: { id, created: now, last_used: now, activates: now },
+          site_licenses: {
+            id,
+            created: now,
+            last_used: now,
+            activates: now,
+            run_limit: 1,
+            quota: { member: true, cpu: 1, disk: 1, ram: 1 },
+          },
         },
       });
       this.start_editing(id);

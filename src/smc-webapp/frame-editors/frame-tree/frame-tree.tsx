@@ -32,7 +32,7 @@ or
 
 import { delay } from "awaiting";
 import { is_safari } from "../generic/browser";
-import { hidden_meta_file, is_different } from "smc-util/misc2";
+import { merge, copy, hidden_meta_file, is_different } from "smc-util/misc";
 import {
   React,
   ReactDOM,
@@ -43,10 +43,9 @@ import {
 import { Map, Set } from "immutable";
 
 const Draggable = require("react-draggable");
-import { merge, copy } from "smc-util/misc";
 const misc_page = require("smc-webapp/misc_page");
 
-const feature = require("smc-webapp/feature");
+import * as feature from "smc-webapp/feature";
 import { FrameTitleBar } from "./title-bar";
 import { FrameTreeLeaf } from "./leaf";
 import * as tree_ops from "./tree-ops";
@@ -55,7 +54,7 @@ import { AvailableFeatures } from "../../project_configuration";
 import { get_file_editor } from "./register";
 
 import { TimeTravelActions } from "../time-travel-editor/actions";
-import { EditorSpec, EditorDescription, NodeDesc } from "./types";
+import { EditorSpec, EditorDescription, EditorState, NodeDesc } from "./types";
 import { Actions } from "../code-editor/actions";
 
 import { cm as cm_spec } from "../code-editor/editor";
@@ -65,7 +64,6 @@ const drag_offset = feature.IS_TOUCH ? 5 : 2;
 const cols_drag_bar = {
   padding: `${drag_offset}px`,
   background: "#efefef",
-  zIndex: 20,
   cursor: "ew-resize",
 };
 
@@ -90,13 +88,13 @@ interface FrameTreeProps {
   active_id: string;
   full_id: string;
   frame_tree: Map<string, any>;
-  editor_state: Map<string, any>; // IMPORTANT: change does NOT cause re-render (uncontrolled); only used for full initial render, on purpose, i.e., setting scroll positions.
+  editor_state: EditorState; // IMPORTANT: change does NOT cause re-render (uncontrolled); only used for full initial render, on purpose, i.e., setting scroll positions.
   font_size: number;
   is_only: boolean;
   cursors: Map<string, any>;
   read_only: boolean; // if true, then whole document considered read only (individual frames can still be via desc)
   is_public: boolean;
-  value: string;
+  value?: string;
   editor_spec: EditorSpec;
   reload: Map<string, number>;
   resize: number; // if changes, means that frames have been resized, so may need refreshing; passed to leaf.
@@ -111,6 +109,7 @@ interface FrameTreeProps {
   complete: Map<string, any>;
   derived_file_types: Set<string>;
   available_features: AvailableFeatures;
+  local_view_state: Map<string, any>;
 }
 
 interface FrameTreeState {
@@ -156,6 +155,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         "complete",
         "derived_file_types",
         "available_features",
+        "local_view_state",
       ])
     );
   }
@@ -191,6 +191,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         complete={this.props.complete}
         derived_file_types={this.props.derived_file_types}
         available_features={this.props.available_features}
+        local_view_state={this.props.local_view_state}
       />
     );
   }
@@ -303,6 +304,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         status={this.props.status}
         derived_file_types={this.props.derived_file_types}
         available_features={this.props.available_features}
+        local_view_state={this.props.local_view_state}
         actions={actions}
         component={component}
         desc={desc}
@@ -395,6 +397,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         axis={"x"}
         onStop={handle_stop}
         onStart={misc_page.drag_start_iframe_disable}
+        defaultClassNameDragging={"cc-vertical-drag-bar-dragging"}
       >
         <div
           style={

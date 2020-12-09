@@ -9,19 +9,18 @@ Jupyter Backend
 For interactive testing:
 
 $ source smc-env
-$ coffee
-j = require('./smc-project/jupyter/jupyter')
-k = j.kernel(name:'python3', path:'x.ipynb')
-k.execute_code(all:true, cb:((x) -> console.log(JSON.stringify(x))), code:'2+3')
+$ ts-node
+> const j = require('./smc-project/jupyter/jupyter'); const k = j.kernel({name:'python3', path:'x.ipynb'});
+> k.execute_code({all:true, cb:((x) => console.log(JSON.stringify(x))), code:'2+3'})
 
 Interactive testing at the command prompt involving stdin:
 
-echo=(content, cb) -> cb(undefined, '389'+content.prompt)
-k.execute_code(all:true, stdin:echo, cb:((x) -> console.log(JSON.stringify(x))), code:'input("a")')
+let echo=(content, cb) => cb(undefined, '389'+content.prompt)
+k.execute_code({all:true, stdin:echo, cb:((x) -> console.log(JSON.stringify(x))), code:'input("a")'})
 
-k.execute_code(all:true, stdin:echo, cb:((x) -> console.log(JSON.stringify(x))), code:'[input("-"+str(i)) for i in range(100)]')
+k.execute_code({all:true, stdin:echo, cb:((x) -> console.log(JSON.stringify(x))), code:'[input("-"+str(i)) for i in range(100)]'})
 
-echo=(content, cb) -> setTimeout((->cb(undefined, '389'+content.prompt)), 1000)
+echo=(content, cb) => setTimeout((->cb(undefined, '389'+content.prompt)), 1000)
 
 */
 
@@ -221,6 +220,7 @@ export class JupyterKernel
   public store: any; // used mainly for stdin support right now...
   public readonly identity: string = uuid();
 
+  private stderr: string = "";
   private _dbg: Function;
   private _path: string;
   private _actions: any;
@@ -231,14 +231,16 @@ export class JupyterKernel
   private _kernel_info: KernelInfo;
   _execute_code_queue: CodeExecutionEmitter[] = [];
   _channels: any;
+  private has_ensured_running: boolean = false;
 
   constructor(name, _dbg, _path, _actions, usage) {
     super();
 
-    this.spawn = reuseInFlight(this.spawn); // TODO -- test carefully!
+    this.spawn = reuseInFlight(this.spawn.bind(this)); // TODO -- test carefully!
 
-    this.kernel_info = reuseInFlight(this.kernel_info);
-    this.nbconvert = reuseInFlight(this.nbconvert);
+    this.kernel_info = reuseInFlight(this.kernel_info.bind(this));
+    this.nbconvert = reuseInFlight(this.nbconvert.bind(this));
+    this.ensure_running = reuseInFlight(this.ensure_running.bind(this));
 
     this.close = this.close.bind(this);
     this.process_output = this.process_output.bind(this);
@@ -284,7 +286,7 @@ export class JupyterKernel
     return this._state;
   }
 
-  async spawn(): Promise<void> {
+  async spawn(spawn_opts?): Promise<void> {
     if (this._state === "closed") {
       // game over!
       throw Error("closed");
@@ -294,13 +296,12 @@ export class JupyterKernel
       return;
     }
     this._set_state("spawning");
-    const dbg = this.dbg("spawn1");
+    const dbg = this.dbg("spawn");
     dbg("spawning kernel...");
 
     const opts: LaunchJupyterOpts = {
       detached: true,
-      stdio: "ignore",
-      env: {},
+      env: spawn_opts?.env ?? {},
     };
 
     if (this.name.indexOf("sage") == 0) {
@@ -321,7 +322,7 @@ export class JupyterKernel
     try {
       dbg("launching kernel interface...");
       this._kernel = await launch_jupyter_kernel(this.name, opts);
-      await this._finish_spawn();
+      await this.finish_spawn();
     } catch (err) {
       if (this._state === "closed") {
         throw Error("closed");
@@ -335,14 +336,41 @@ export class JupyterKernel
     return this._kernel;
   }
 
-  async _finish_spawn(): Promise<void> {
-    const dbg = this.dbg("spawn2");
+  public get_connection_file(): string | undefined {
+    return this._kernel?.connection_file;
+  }
 
+  private async finish_spawn(): Promise<void> {
+    const dbg = this.dbg("finish_spawn");
     dbg("now finishing spawn of kernel...");
 
     this._kernel.spawn.on("error", (err) => {
-      dbg("kernel spawn error", err);
-      this.emit("spawn_error", err);
+      const error = `${err}\n${this.stderr}`;
+      dbg("kernel error", error);
+      this.emit("kernel_error", error);
+    });
+
+    // Track stderr from the subprocess itself (the kernel).
+    // This is useful for debugging broken kernels, etc., and is especially
+    // useful since it exists even if the kernel sends nothing over any
+    // zmq channels (e.g., due to being very broken).
+    this.stderr = "";
+    this._kernel.spawn.stderr.on("data", (data) => {
+      const s = data.toString();
+      this.stderr += s;
+      if (this.stderr.length > 5000) {
+        // truncate if gets long for some reason -- only the end will
+        // be useful...
+        this.stderr = this.stderr.slice(this.stderr.length - 4000);
+      }
+    });
+
+    this._kernel.spawn.stdout.on("data", (_data) => {
+      // NOTE: it is very important to read stdout (and stderr above)
+      // even if we **totally ignore** the data. Otherwise, execa saves
+      // some amount then just locks up and doesn't allow flushing the
+      // output stream.  This is a "nice" feature of execa, since it means
+      // no data gets dropped.  See https://github.com/sagemathinc/cocalc/issues/5065
     });
 
     this._channels = require("enchannel-zmq-backend").createChannels(
@@ -350,15 +378,17 @@ export class JupyterKernel
       this._kernel.config
     );
 
-    this._channels.shell.subscribe((mesg) => this.emit("shell", mesg));
+    if (DEBUG) {
+      this.low_level_dbg();
+    }
+
+    this._channels.shell.subscribe((mesg) => {
+      this.emit("shell", mesg);
+    });
 
     this._channels.stdin.subscribe((mesg) => this.emit("stdin", mesg));
 
     this._channels.iopub.subscribe((mesg) => {
-      if (DEBUG) {
-        this.dbg("IOPUB", 100000)(JSON.stringify(mesg));
-      }
-
       if (mesg.content != null && mesg.content.execution_state != null) {
         this.emit("execution_state", mesg.content.execution_state);
       }
@@ -376,10 +406,27 @@ export class JupyterKernel
         return;
       }
 
-      return this.emit("iopub", mesg);
+      this.emit("iopub", mesg);
     });
 
-    this._kernel.spawn.on("close", this.close);
+    this._kernel.spawn.on("exit", (exit_code, signal) => {
+      this.dbg("kernel_exit")(
+        `spawned kernel terminated with exit code ${exit_code} (signal=${signal}); stderr=${this.stderr}`
+      );
+      const stderr = this.stderr ? `\n...\n${this.stderr}` : "";
+      if (signal != null) {
+        this.emit(
+          "kernel_error",
+          `Kernel last terminated by signal ${signal}.${stderr}`
+        );
+      } else if (exit_code != null) {
+        this.emit(
+          "kernel_error",
+          `Kernel last exited with code ${exit_code}.${stderr}`
+        );
+      }
+      this.close();
+    });
 
     // so we can start sending code execution to the kernel, etc.
     this._set_state("starting");
@@ -393,8 +440,6 @@ export class JupyterKernel
     dbg("start_running");
 
     this._set_state("running");
-
-    await this._get_kernel_info();
   }
 
   async _get_kernel_info(): Promise<void> {
@@ -408,6 +453,9 @@ export class JupyterKernel
     execution, etc.   Probably the jupyter devs never notice this race condition
     bug in ZMQ/Jupyter kernels... or maybe the Python server has a sort of
     accidental work around.
+
+    Update: a Jupyter dev has finally publicly noticed this bug:
+      https://github.com/jupyterlab/rtc/pull/73#issuecomment-705775279
     */
     const that = this;
     async function f(): Promise<void> {
@@ -445,15 +493,14 @@ export class JupyterKernel
   signal(signal: string): void {
     const dbg = this.dbg("signal");
     const spawn = this._kernel != null ? this._kernel.spawn : undefined;
-    const pid = spawn != null ? spawn.pid : undefined;
+    const pid = spawn?.pid;
     dbg(`pid=${pid}, signal=${signal}`);
-    if (pid !== undefined) {
-      try {
-        this._clear_execute_code_queue();
-        process.kill(-pid, signal); // negative to kill the process group
-      } catch (err) {
-        dbg(`error: ${err}`);
-      }
+    if (pid == null) return;
+    try {
+      this.clear_execute_code_queue();
+      process.kill(-pid, signal); // negative to kill the process group
+    } catch (err) {
+      dbg(`error: ${err}`);
     }
   }
 
@@ -523,23 +570,20 @@ export class JupyterKernel
     process.removeListener("exit", this.close);
     if (this._kernel != null) {
       if (this._kernel.spawn != null) {
+        // Important to remove listeners before sending signals, since otherwise
+        // sending signals emits events that can lead to fork bombs going off.
+        this._kernel.spawn.removeAllListeners();
+        // OK, now tell kernel to terminate.
         if (this._kernel.spawn.pid) {
           try {
             process.kill(-this._kernel.spawn.pid, "SIGTERM");
           } catch (err) {}
         }
-        this._kernel.spawn.removeAllListeners();
-        if (this._kernel.spawn.close != null) {
-          // new enough nteract may make this fail.
-          this._kernel.spawn.close();
-        }
+        this._kernel.spawn.close?.();
       }
-      if (await exists(this._kernel.connectionFile)) {
+      if (await exists(this._kernel.connection_file)) {
         try {
-          // The https://github.com/nteract/spawnteract claim repeatedly that this
-          // is not necessary, but unfortunately it IS (based on testing). Sometimes
-          // it is not necessary, but sometimes it is.
-          await unlink(this._kernel.connectionFile);
+          await unlink(this._kernel.connection_file);
         } catch {
           // ignore
         }
@@ -567,11 +611,13 @@ export class JupyterKernel
     }
   }
 
-  _low_level_dbg() {
+  low_level_dbg(): void {
+    const dbg = this.dbg("low_level_debug", 10000);
+    this._kernel.spawn.all?.on("data", (data) => dbg("STDIO", data.toString()));
     // for low level debugging only...
     const f = (channel) => {
-      return this._channels[channel].subscribe((mesg) =>
-        console.log(channel, mesg)
+      this._channels[channel].subscribe((mesg) =>
+        dbg(channel, JSON.stringify(mesg))
       );
     };
     for (const channel of ["shell", "iopub", "control", "stdin"]) {
@@ -579,14 +625,22 @@ export class JupyterKernel
     }
   }
 
-  async _ensure_running(): Promise<void> {
-    if (this._state === "closed") {
+  private async ensure_running(): Promise<void> {
+    const dbg = this.dbg("ensure_running");
+    dbg(this._state);
+    if (this._state == "closed") {
       throw Error("closed so not possible to ensure running");
     }
-    if (this._state !== "running") {
-      await this.spawn();
-    } else {
+    if (this._state == "running") {
       return;
+    }
+    dbg("spawning");
+    await this.spawn();
+    if (!this.has_ensured_running) {
+      dbg("waiting for kernel info");
+      this.has_ensured_running = true;
+      await this._get_kernel_info();
+      dbg("got kernel info");
     }
   }
 
@@ -658,8 +712,7 @@ export class JupyterKernel
     }
     dbg(`queue has ${n} items; ensure kernel running`);
     try {
-      await this._ensure_running();
-      dbg("now launching oldest item in queue");
+      await this.ensure_running();
       this._execute_code_queue[0].go();
     } catch (err) {
       dbg(`error running kernel -- ${err}`);
@@ -670,15 +723,19 @@ export class JupyterKernel
     }
   }
 
-  _clear_execute_code_queue(): void {
+  public clear_execute_code_queue(): void {
+    const dbg = this.dbg("_clear_execute_code_queue");
     // ensure no future queued up evaluation occurs (currently running
     // one will complete and new executions could happen)
     if (this._state === "closed") {
+      dbg("no op since state is closed");
       return;
     }
     if (this._execute_code_queue == null) {
+      dbg("nothing to do since queue is null");
       return;
     }
+    dbg(`clearing queue of size ${this._execute_code_queue.length}`);
     const mesg = { done: true };
     for (const code_execution_emitter of this._execute_code_queue.slice(1)) {
       code_execution_emitter.emit_output(mesg);
@@ -691,6 +748,7 @@ export class JupyterKernel
   // and does not use the internal execution queue.
   // This is used for unit testing and interactive work at the terminal.
   async execute_code_now(opts: ExecOpts): Promise<object[]> {
+    this.dbg("execute_code_now")();
     if (this._state === "closed") {
       throw Error("closed");
     }
@@ -698,7 +756,7 @@ export class JupyterKernel
       // if not specified, default to true.
       opts.halt_on_error = true;
     }
-    await this._ensure_running();
+    await this.ensure_running();
     return await new CodeExecutionEmitter(this, opts).go();
   }
 
@@ -745,8 +803,10 @@ export class JupyterKernel
   }
 
   async call(msg_type: string, content?: any): Promise<any> {
-    await this._ensure_running();
-
+    this.dbg("call")(msg_type);
+    if (!this.has_ensured_running) {
+      await this.ensure_running();
+    }
     // Do a paranoid double check anyways...
     if (this._channels == null || this._state == "closed") {
       throw Error("not running, so can't call");

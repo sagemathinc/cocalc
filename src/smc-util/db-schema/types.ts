@@ -128,7 +128,10 @@ interface UserOrProjectQuery<F extends Fields> {
   get?: {
     fields: { [key in keyof Partial<F>]: any };
     throttle_changes?: number;
-    pg_where?: string[] | { [key: string]: string }[];
+    pg_where?:
+      | string[]
+      | { [key: string]: string }[]
+      | { [key: string]: string[] }[];
     pg_where_load?: string[] | { [key: string]: string }[]; // used instead of pg_where if server is under "heavy load"
     pg_changefeed?: string;
     remove_from_query?: string[];
@@ -245,6 +248,7 @@ interface TableSchema<F extends Fields> {
   fields?: F; // the fields -- required if virtual is not set.
   db_standby?: "unsafe" | "safer";
   pg_nestloop?: boolean; // default is whatever the database has set (usually "on")
+  pg_indexscan?: boolean; // --*--
   durability?: "soft" | "hard" | "ephemeral"; // Default is hard; soft is ??; ephemeral doesn't even involve the database (just used to specify SyncTable structure).
   unique_writes?: boolean; // If true, assume no reason for a user to write the same record twice.
   anonymous?: boolean;

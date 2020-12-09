@@ -20,7 +20,7 @@ import {
   deep_copy,
   uuid,
   trunc,
-} from "../smc-util/misc2";
+} from "../smc-util/misc";
 
 import {
   CodeExecutionEmitterInterface,
@@ -38,6 +38,9 @@ export class CodeExecutionEmitter
   readonly id?: string;
   readonly stdin?: StdinFunction;
   readonly halt_on_error: boolean;
+  // DO NOT set iopub_done or shell_done directly; instead
+  // set them using the function set_shell_done and set_iopub_done.
+  // This ensures that we call _finish when both vars have been set.
   private iopub_done: boolean = false;
   private shell_done: boolean = false;
   private state: State = "init";
@@ -153,29 +156,42 @@ export class CodeExecutionEmitter
     }
     const dbg = this.kernel.dbg("_handle_shell");
     dbg(`got SHELL message -- ${JSON.stringify(mesg)}`);
-    if ((mesg.content != null ? mesg.content.status : undefined) === "error") {
+    if (mesg.content?.status == "error" || mesg.content?.status == "abort") {
+      // NOTE: I'm adding support for "abort" status, since I was just reading
+      // the kernel docs and it exists but is deprecated.  Some old kernels
+      // might use it and we should thus properly support it:
+      // https://jupyter-client.readthedocs.io/en/stable/messaging.html#request-reply
       if (this.halt_on_error) {
-        this.kernel._clear_execute_code_queue();
+        this.kernel.clear_execute_code_queue();
       }
-      // just bail; actual error would have been reported on iopub channel, hopefully.
-      this._finish();
-    } else {
+      this.set_shell_done(true);
+    } else if (mesg.content?.status == "ok") {
       this._push_mesg(mesg);
-      this.shell_done = true;
-      if (this.iopub_done && this.shell_done) {
-        this._finish();
-      }
+      this.set_shell_done(true);
+    }
+  }
+
+  private set_shell_done(value: boolean): void {
+    this.shell_done = value;
+    if (this.iopub_done && this.shell_done) {
+      this._finish();
+    }
+  }
+
+  private set_iopub_done(value: boolean): void {
+    this.iopub_done = value;
+    if (this.iopub_done && this.shell_done) {
+      this._finish();
     }
   }
 
   _handle_iopub(mesg: any): void {
     if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
+      // iopub message for a different execute request so ignore it.
       return;
     }
     const dbg = this.kernel.dbg("_handle_iopub");
     dbg(`got IOPUB message -- ${JSON.stringify(mesg)}`);
-
-    this.iopub_done = !!this.killing || mesg.content?.execution_state == "idle";
 
     if (mesg.content?.comm_id != null) {
       // A comm message that is a result of execution of this code.
@@ -187,9 +203,9 @@ export class CodeExecutionEmitter
       this._push_mesg(mesg);
     }
 
-    if (this.iopub_done && this.shell_done) {
-      this._finish();
-    }
+    this.set_iopub_done(
+      !!this.killing || mesg.content?.execution_state == "idle"
+    );
   }
 
   // Called if the kernel is closed for some reason, e.g., crashing.

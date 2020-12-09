@@ -8,8 +8,7 @@ Apply various transformations to url's before downloading a file using the "+ Ne
 This is useful, since people often post a link to a page that *hosts* raw content, but isn't raw
 content, e.g., ipython nbviewer, trac patches, github source files (or repos?), etc.
 */
-
-import { endswith, startswith } from "smc-util/misc2";
+import { endswith, startswith } from "smc-util/misc";
 import { DNS } from "smc-util/theme";
 const COCALC_SHARE_SERVER = `https://share.${DNS}/share/`;
 

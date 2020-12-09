@@ -4,9 +4,7 @@
  */
 
 import { reuseInFlight } from "async-await-utils/hof";
-import { is_valid_email_address, is_valid_uuid_string } from "smc-util/misc2";
-
-import { sum } from "smc-util/misc";
+import { is_valid_email_address, is_valid_uuid_string, sum } from "smc-util/misc";
 import { redux, Actions } from "../app-framework";
 import { SupportState, Tags, Ticket } from "./types";
 import { get_browser, get_mobile } from "../feature";

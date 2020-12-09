@@ -101,7 +101,7 @@ export function message_colors(
     };
   } else {
     return {
-      background: "#efefef",
+      background: "#f8f8f8",
       color: "#000",
       lighten: { color: "#888" },
       message_class: "smc-message-from-other",

@@ -167,6 +167,13 @@ div#cocalc-react-crash > div > pre
 .CodeMirror, .CodeMirror-wrap
   line-height : normal
 
+/* This somewhat mostly fixes https://github.com/sagemathinc/cocalc/issues/4663
+   It's not 100% since some non-default themes also change the colors.
+   However #999 is at least *readable* usually. */
+.CodeMirror-linenumber::selection
+  color : #999
+
+
 /* see http://stackoverflow.com/questions/271067/how-can-i-make-a-textarea-100-width-without-overflowing-when-padding-is-present  */
 
 .boxsizingBorder

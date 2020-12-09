@@ -40,12 +40,9 @@ const MAX_FILE_SIZE_MB = 5;
 type XPatch = any;
 
 import { EventEmitter } from "events";
-
 import { debounce, throttle } from "lodash";
 import { Map, fromJS } from "immutable";
-
 import { delay } from "awaiting";
-
 import {
   callback2,
   cancel_scheduled,
@@ -53,9 +50,7 @@ import {
   retry_until_success,
   reuse_in_flight_methods,
 } from "../../../async-utils";
-
 import { wait } from "../../../async-wait";
-
 import {
   assertDefined,
   close,
@@ -64,22 +59,15 @@ import {
   filename_extension,
   keys,
   uuid,
-} from "../../../misc2";
-
-import { Evaluator } from "./evaluator";
-import { IpywidgetsState } from "./ipywidgets-state";
-
-const {
   hash_string,
   is_date,
   ISO_to_Date,
   minutes_ago,
-} = require("../../../misc");
-
-const schema = require("../../../schema");
-
+} from "../../../misc";
+import { Evaluator } from "./evaluator";
+import { IpywidgetsState } from "./ipywidgets-state";
+import * as schema from "../../../schema";
 import { SyncTable } from "../../table/synctable";
-
 import {
   Client,
   CompressedPatch,
@@ -88,11 +76,8 @@ import {
   Patch,
   FileWatcher,
 } from "./types";
-
 import { SortedPatchList } from "./sorted-patch-list";
-
 import { patch_cmp } from "./util";
-
 import { export_history, HistoryEntry, HistoryExportOptions } from "./export";
 
 export type State = "init" | "ready" | "closed";
@@ -991,7 +976,7 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg(_f: string = ""): Function {
-    if (!this.client?.is_project()) {
+    if (!this.client?.is_project() || this.state == "closed") {
       return (..._) => {};
     }
     return this.client.dbg(`sync-doc("${this.path}").${_f}`);
@@ -1564,9 +1549,14 @@ export class SyncDoc extends EventEmitter {
       dbg("bug -- not ready");
       throw Error("bug -- cannot save if doc and last are not initialized");
     }
-    if (this.state != "ready") {
-      // There's nothing to do regarding save if the table isn't
-      // opened yet or is already closed or closing.
+    if (this.state == "closed") {
+      // There's nothing to do regarding save if the table is
+      // already closed.  Note that we *do* have to save when
+      // the table is init stage, since the project has to
+      // record the newly opened version of the file to the
+      // database! See
+      //    https://github.com/sagemathinc/cocalc/issues/4986
+      dbg(`state=${this.state} not ready so not saving`);
       return;
     }
     await this.patches_table.save();
@@ -2642,7 +2632,7 @@ export class SyncDoc extends EventEmitter {
     const dbg = this.dbg("handle_patch_update_queue");
     try {
       this.handle_patch_update_queue_running = true;
-      while (this.patch_update_queue.length > 0) {
+      while (this.state != "closed" && this.patch_update_queue.length > 0) {
         dbg("queue size = ", this.patch_update_queue.length);
         const v: Patch[] = [];
         for (const key of this.patch_update_queue) {
@@ -2669,6 +2659,7 @@ export class SyncDoc extends EventEmitter {
         // *cause* new entries to be added to this.patch_update_queue.
         dbg("waiting for remote and doc to sync...");
         await this.sync_remote_and_doc();
+        if (this.state === ("closed" as State)) return; // closed during await; nothing further to do
         dbg("remote and doc now synced");
 
         if (this.patch_update_queue.length > 0) {
@@ -2685,6 +2676,8 @@ export class SyncDoc extends EventEmitter {
         }
       }
     } finally {
+      if (this.state == "closed") return; // got closed, so nothing further to do
+
       // OK, done and nothing in the queue
       // Notify save() to try again -- it may have
       // paused waiting for this to clear.

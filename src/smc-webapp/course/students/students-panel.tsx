@@ -5,8 +5,8 @@
 
 // CoCalc libraries
 import * as misc from "smc-util/misc";
+import { is_different, search_match, search_split } from "smc-util/misc";
 import { webapp_client } from "../../webapp-client";
-import { is_different } from "smc-util/misc2";
 import { keys } from "underscore";
 
 // React libraries and components
@@ -22,7 +22,6 @@ import {
 
 import {
   Button,
-  ButtonToolbar,
   ButtonGroup,
   FormGroup,
   FormControl,
@@ -31,7 +30,8 @@ import {
   Form,
 } from "../../antd-bootstrap";
 
-import { Alert, Card, Row, Col } from "antd";
+import { Alert, Card, Row, Col, Input } from "antd";
+import { DebounceInput } from "react-debounce-input";
 
 // CoCalc components
 import { User } from "../../users";
@@ -668,29 +668,18 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
 
       let num_omitted = 0;
       if (this.state.search) {
-        const words = misc.split(this.state.search.toLowerCase());
-        const search = (a) =>
-          (
-            (a.last_name != null ? a.last_name : "") +
-            (a.first_name != null ? a.first_name : "") +
-            (a.email_address != null ? a.email_address : "")
-          ).toLowerCase();
-        const match = function (s) {
-          for (const word of words) {
-            if (s.indexOf(word) === -1) {
-              num_omitted += 1;
-              return false;
-            }
-          }
-          return true;
-        };
-        const w3: any[] = [];
+        const words = search_split(this.state.search.toLowerCase());
+        const search = (x) =>
+          `${x.first_name ?? ""} ${x.last_name ?? ""} ${
+            x.email_address ?? ""
+          }`.toLowerCase();
+        const w: any[] = [];
         for (const x of students) {
-          if (match(search(x))) {
-            w3.push(x);
+          if (search_match(search(x), words)) {
+            w.push(x);
           }
         }
-        students = w3;
+        students = w;
       }
 
       this.student_list = { students, num_omitted, num_deleted };
@@ -736,7 +725,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       );
     }
 
-    private render_student_table_header(): Rendered {
+    private render_student_table_header(num_deleted: number): Rendered {
       // HACK: that marginRight is to get things to line up with students.
       // This is done all wrong due to using react-window...  We need
       // to make an extension to our WindowedList that supports explicit
@@ -756,8 +745,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
             <Col md={8}>
               {this.render_sort_link("last_active", "Last Active")}
             </Col>
-            <Col md={6}>
+            <Col md={3}>
               {this.render_sort_link("hosting", "Project Status")}
+            </Col>
+            <Col md={3}>
+              {num_deleted ? this.render_show_deleted(num_deleted) : undefined}
             </Col>
           </Row>
         </div>
@@ -840,52 +832,45 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       );
     }
 
-    render_show_deleted(num_deleted, shown_students) {
+    render_show_deleted(num_deleted) {
       if (this.state.show_deleted) {
         return (
-          <Button
-            style={styles.show_hide_deleted({
-              needs_margin: shown_students.length > 0,
-            })}
-            onClick={() => this.setState({ show_deleted: false })}
-          >
+          <a onClick={() => this.setState({ show_deleted: false })}>
             <Tip
               placement="left"
               title="Hide deleted"
-              tip="Students are never really deleted.  Click this button so that deleted students aren't included at the bottom of the list of students.  Deleted students are always hidden from the list of grades."
+              tip="Click here to hide deleted students from the bottom of the list of students."
             >
-              Hide {num_deleted} deleted students
+              (hide {num_deleted} deleted {misc.plural(num_deleted, "student")})
             </Tip>
-          </Button>
+          </a>
         );
       } else {
         return (
-          <Button
-            style={styles.show_hide_deleted({
-              needs_margin: shown_students.length > 0,
-            })}
-            onClick={() => this.setState({ show_deleted: true, search: "" })}
-          >
+          <a onClick={() => this.setState({ show_deleted: true, search: "" })}>
             <Tip
               placement="left"
               title="Show deleted"
-              tip="Students are not deleted forever, even after you delete them.  Click this button to show any deleted students at the bottom of the list.  You can then click on the student and click undelete to bring the assignment back."
+              tip="Click here to show all deleted students at the bottom of the list.  You can then click on the student and click undelete if necessary."
             >
-              Show {num_deleted} deleted students
+              (show {num_deleted} deleted {misc.plural(num_deleted, "student")})
             </Tip>
-          </Button>
+          </a>
         );
       }
     }
 
     private render_student_info(students, num_deleted): Rendered {
+      /* The "|| num_deleted > 0" below is because we show
+      header even if no non-deleted students if there are deleted
+      students, since it's important to show the link to show
+      deleted students if there are any. */
       return (
         <div className="smc-vfill">
-          {students.length > 0 ? this.render_student_table_header() : undefined}
-          {this.render_students(students)}
-          {num_deleted
-            ? this.render_show_deleted(num_deleted, students)
+          {students.length > 0 || num_deleted > 0
+            ? this.render_student_table_header(num_deleted)
             : undefined}
+          {this.render_students(students)}
         </div>
       );
     }
@@ -948,6 +933,7 @@ interface StudentState {
   edited_last_name: string;
   edited_email_address: string;
   more: boolean;
+  assignment_search: string;
 }
 
 class Student extends Component<StudentProps, StudentState> {
@@ -974,6 +960,7 @@ class Student extends Component<StudentProps, StudentState> {
       edited_last_name: this.props.student_name.last || "",
       edited_email_address: this.props.student.get("email_address") || "",
       more: false,
+      assignment_search: "",
     };
   }
 
@@ -985,6 +972,7 @@ class Student extends Component<StudentProps, StudentState> {
         "edited_first_name",
         "edited_last_name",
         "edited_email_address",
+        "assignment_search",
       ]) ||
       is_different(this.props, nextProps, [
         "name",
@@ -1194,7 +1182,7 @@ class Student extends Component<StudentProps, StudentState> {
     }
   }
 
-  render_project_access() {
+  render_project_access(): JSX.Element {
     // first check if the project is currently being created
     const create = this.props.student.get("create_project");
     if (create != null) {
@@ -1210,26 +1198,21 @@ class Student extends Component<StudentProps, StudentState> {
         );
       }
     }
-    // otherwise, maybe user killed file before finished or something and it is lost; give them the chance
+    // otherwise, maybe user killed file before finished or something and
+    // it is lost; give them the chance
     // to attempt creation again by clicking the create button.
-
     const student_project_id = this.props.student.get("project_id");
     if (student_project_id != null) {
       return (
-        <ButtonToolbar>
-          <ButtonGroup>
-            <Button onClick={this.open_project}>
-              <Tip
-                placement="right"
-                title="Student project"
-                tip="Open the course project for this student."
-              >
-                <Icon name="edit" /> Open student project
-              </Tip>
-            </Button>
-          </ButtonGroup>
-          {this.render_edit_student()}
-        </ButtonToolbar>
+        <Button onClick={this.open_project.bind(this)}>
+          <Tip
+            placement="right"
+            title="Student project"
+            tip="Open the course project for this student."
+          >
+            <Icon name="edit" /> Open student project
+          </Tip>
+        </Button>
       );
     } else {
       return (
@@ -1238,7 +1221,7 @@ class Student extends Component<StudentProps, StudentState> {
           title="Create the student project"
           tip="Create a new project for this student, then add the student as a collaborator, and also add any collaborators on the project containing this course."
         >
-          <Button onClick={this.create_project}>
+          <Button onClick={this.create_project.bind(this)}>
             <Icon name="plus-circle" /> Create student project
           </Button>
         </Tip>
@@ -1260,6 +1243,7 @@ class Student extends Component<StudentProps, StudentState> {
       const disable_save = !this.student_changed();
       return (
         <ButtonGroup>
+          <Button onClick={this.cancel_student_edit}>Cancel</Button>
           <Button
             onClick={this.save_student_changes}
             bsStyle="success"
@@ -1267,7 +1251,6 @@ class Student extends Component<StudentProps, StudentState> {
           >
             <Icon name="save" /> Save
           </Button>
-          <Button onClick={this.cancel_student_edit}>Cancel</Button>
         </ButtonGroup>
       );
     } else {
@@ -1277,6 +1260,19 @@ class Student extends Component<StudentProps, StudentState> {
         </Button>
       );
     }
+  }
+
+  render_search_assignment() {
+    return (
+      <DebounceInput
+        style={{ width: "100%" }}
+        debounceTimeout={500}
+        element={Input as any}
+        placeholder={"Find assignments..."}
+        value={this.state.assignment_search}
+        onChange={(e) => this.setState({ assignment_search: e.target.value })}
+      />
+    );
   }
 
   cancel_student_edit = () => {
@@ -1342,16 +1338,13 @@ class Student extends Component<StudentProps, StudentState> {
     }
     if (this.props.student.get("deleted")) {
       return (
-        <Button onClick={this.undelete_student} style={{ float: "right" }}>
+        <Button onClick={this.undelete_student}>
           <Icon name="trash-o" /> Undelete
         </Button>
       );
     } else {
       return (
-        <Button
-          onClick={() => this.setState({ confirm_delete: true })}
-          style={{ float: "right" }}
-        >
+        <Button onClick={() => this.setState({ confirm_delete: true })}>
           <Icon name="trash" /> Delete...
         </Button>
       );
@@ -1381,7 +1374,15 @@ class Student extends Component<StudentProps, StudentState> {
   render_assignments_info_rows() {
     const store = this.get_store();
     const result: any[] = [];
+    const terms = misc.search_split(this.state.assignment_search);
     for (const assignment of store.get_sorted_assignments()) {
+      if (terms.length > 0) {
+        if (
+          !misc.search_match(assignment.get("path")?.toLowerCase() ?? "", terms)
+        ) {
+          continue;
+        }
+      }
       const grade = store.get_grade(
         assignment.get("assignment_id"),
         this.props.student.get("student_id")
@@ -1399,12 +1400,6 @@ class Student extends Component<StudentProps, StudentState> {
         this.props.student.get("student_id")
       );
       const edited_feedback = this.props.active_feedback_edits.get(key);
-      let edited_comments: string | undefined;
-      let edited_grade: string | undefined;
-      if (edited_feedback != undefined) {
-        edited_comments = edited_feedback.get("edited_comments");
-        edited_grade = edited_feedback.get("edited_grade");
-      }
       result.push(
         <StudentAssignmentInfo
           key={assignment.get("assignment_id")}
@@ -1420,8 +1415,6 @@ class Student extends Component<StudentProps, StudentState> {
           )}
           info={info}
           is_editing={!!edited_feedback}
-          edited_comments={edited_comments}
-          edited_grade={edited_grade}
           nbgrader_run_info={this.props.nbgrader_run_info}
         />
       );
@@ -1548,8 +1541,12 @@ class Student extends Component<StudentProps, StudentState> {
     return (
       <div style={{ whiteSpace: "normal" }}>
         <Row>
-          <Col md={16}>{this.render_project_access()}</Col>
-          <Col md={8}>{this.render_delete_button()}</Col>
+          <Col md={4}>{this.render_project_access()}</Col>
+          <Col md={5}>{this.render_edit_student()}</Col>
+          <Col md={6}>{this.render_search_assignment()}</Col>
+          <Col md={4} offset={4}>
+            {this.render_delete_button()}
+          </Col>
         </Row>
         {this.state.editing_student ? (
           <Row>
@@ -1564,7 +1561,7 @@ class Student extends Component<StudentProps, StudentState> {
     return (
       <Well style={{ marginTop: "10px" }}>
         <Row>
-          <Col md={12}>
+          <Col md={12} style={{ paddingRight: "15px" }}>
             First Name
             <FormGroup>
               <FormControl

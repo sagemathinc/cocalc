@@ -30,7 +30,8 @@ export function useProjectStatus(actions: ProjectActions) {
       if (data != null) {
         set_status(data.toJS() as ProjectStatus);
       } else {
-        console.warn(`status_sync ${project_id}: got no data`);
+        // For debugging:
+        // console.warn(`status_sync ${project_id}: got no data`);
       }
     };
     status_sync.once("ready", update);

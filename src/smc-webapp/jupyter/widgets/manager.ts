@@ -16,8 +16,7 @@ import {
 } from "smc-util/sync/editor/generic/ipywidgets-state";
 import { once } from "smc-util/async-utils";
 import { Comm } from "./comm";
-import { copy, is_array, len, uuid } from "smc-util/misc2";
-
+import { copy, is_array, len, uuid } from "smc-util/misc";
 import * as react_output from "./output";
 import * as react_controls from "./controls";
 

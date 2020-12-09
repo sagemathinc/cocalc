@@ -14,7 +14,6 @@ import { JupyterActions as JupyterActions0 } from "./actions";
 import { WidgetManager } from "./widgets/manager";
 import { CursorManager } from "./cursor-manager";
 import { ConfirmDialogOptions } from "./confirm-dialog";
-import { callback } from "awaiting";
 import { callback2, once } from "smc-util/async-utils";
 import { JUPYTER_CLASSIC_MODERN } from "smc-util/theme";
 const { instantiate_snippets } = require("../assistant/main");
@@ -172,47 +171,6 @@ export class JupyterActions extends JupyterActions0 {
       this.setState({ cells });
     }
   };
-
-  public async show_code_snippets(id: string): Promise<void> {
-    if (this.snippet_actions == null) {
-      throw Error("code assistant not available");
-    }
-    const lang = this.store.get_kernel_language();
-
-    this.snippet_actions.init(lang);
-    const wait_for_user_input = (cb) => {
-      this.snippet_actions.set({
-        show: true,
-        lang,
-        lang_select: false,
-        handler: (data) => cb(undefined, data),
-        cell_id: id,
-      });
-    };
-
-    const data = await callback(wait_for_user_input);
-    this.code_snippet_handler(data);
-  }
-
-  private code_snippet_handler(data: {
-    code: string[];
-    descr?: string;
-    cell_id: string;
-  }): void {
-    const { cell_id, code, descr } = data;
-
-    let id = cell_id;
-    if (descr != null) {
-      id = this.insert_cell_adjacent(cell_id, +1);
-      this.set_cell_input(id, descr);
-      this.set_cell_type(id, "markdown");
-    }
-    for (const c of code) {
-      id = this.insert_cell_adjacent(id, +1);
-      this.set_cell_input(id, c);
-      this.run_code_cell(id);
-    }
-  }
 
   private account_change(state: Map<string, any>): void {
     // TODO: it might be better to implement redux
@@ -636,6 +594,21 @@ export class JupyterActions extends JupyterActions0 {
     });
     if (choice === "Restart") {
       this.restart();
+    }
+  }
+
+  public async confirm_halt_kernel(): Promise<void> {
+    const choice = await this.confirm_dialog({
+      title: "Halt kernel?",
+      body:
+        "Do you want to kill the running kernel?  All variables will be lost.  The kernel will only start if you try to evaluate some code.",
+      choices: [
+        { title: "Continue running" },
+        { title: "Halt", style: "danger", default: true },
+      ],
+    });
+    if (choice === "Halt") {
+      this.halt();
     }
   }
 

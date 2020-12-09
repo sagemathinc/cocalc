@@ -5,16 +5,18 @@
 
 /*
 Conversion from Markdown *to* HTML, trying not to horribly mangle math.
+
+TODO: right now [ ] in pre/code gets turned into a unicode checkbox, which is
+perhaps annoying... e.g., this is wrong:
+```
+X[ ]
+```
 */
 
 import * as MarkdownIt from "markdown-it";
-
 const MarkdownItFrontMatter = require("markdown-it-front-matter");
-
-const misc = require("smc-util/misc");
-
+import * as misc from "smc-util/misc";
 import { math_escape, math_unescape } from "smc-util/markdown-utils";
-
 const { remove_math, replace_math } = require("smc-util/mathjax-utils"); // from project Jupyter
 
 const checkboxes = function (s) {

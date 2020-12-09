@@ -7,134 +7,137 @@
 Viewing and configuring site licenses
 */
 
+function download_data(filename, data, type = "text/json") {
+  const blob = new Blob([data], { type });
+  if (typeof window.navigator.msSaveBlob == "function") {
+    window.navigator.msSaveBlob(blob, filename);
+  } else {
+    const elem = window.document.createElement("a");
+    elem.href = window.URL.createObjectURL(blob);
+    elem.download = filename;
+    document.body.appendChild(elem);
+    elem.click();
+    document.body.removeChild(elem);
+  }
+}
+
 import { DebounceInput } from "react-debounce-input";
 import {
   React,
   Rendered,
-  Component,
-  rtypes,
-  rclass,
-  TypedMap,
+  useState,
+  useTypedRedux,
+  useIsMountedRef,
 } from "../../app-framework";
 import { plural } from "smc-util/misc";
 import { ErrorDisplay, Icon, Loading, Space, r_join } from "../../r_misc";
-import { ManagerInfo, SiteLicense } from "./types";
 import { actions } from "./actions";
-import { List, Map, Set } from "immutable";
-import { Button, Popconfirm } from "antd";
+import { Alert, Button, Popconfirm } from "antd";
 import { License } from "./license";
-import { UserMap } from "../../todo-types";
+import { COLORS } from "smc-util/theme";
+import { webapp_client } from "../../webapp-client";
 
-interface Props {
-  view?: boolean; // if true, open for viewing/editing
-  error?: string;
-  loading?: boolean;
-  creating?: boolean;
-  site_licenses?: List<TypedMap<SiteLicense>>;
-  editing?: Set<string>;
-  saving?: Set<string>;
-  edits?: Map<string, TypedMap<SiteLicense>>;
-  show_projects?: Map<string, "now" | Date>;
-  search?: string;
-  usage_stats?: Map<string, number>;
+const LICENSE_QUERY = {
+  site_licenses: [
+    {
+      id: null,
+      title: null,
+      description: null,
+      info: null,
+      expires: null,
+      activates: null,
+      created: null,
+      last_used: null,
+      managers: null,
+      restricted: null,
+      upgrades: null,
+      quota: null,
+      run_limit: null,
+    },
+  ],
+};
 
-  user_map?: UserMap;
-  manager_info?: ManagerInfo;
-}
+export const SiteLicenses: React.FC<{}> = () => {
+  function useField(name) {
+    return useTypedRedux("admin-site-licenses", name);
+  }
+  const view = useField("view");
+  const error = useField("error");
+  const loading = useField("loading");
+  const creating = useField("creating");
+  const site_licenses = useField("site_licenses");
+  const editing = useField("editing");
+  const saving = useField("saving");
+  const edits = useField("edits");
+  const show_projects = useField("show_projects");
+  const search = useField("search");
+  const usage_stats = useField("usage_stats");
+  const manager_info = useField("manager_info");
 
-class SiteLicenses extends Component<Props> {
-  static reduxProps() {
-    return {
-      "admin-site-licenses": {
-        view: rtypes.bool,
-        error: rtypes.string,
-        loading: rtypes.bool,
-        creating: rtypes.bool,
-        site_licenses: rtypes.immutable.List,
-        editing: rtypes.immutable.Set,
-        saving: rtypes.immutable.Set,
-        edits: rtypes.immutable.Map,
-        show_projects: rtypes.immutable.Set,
-        search: rtypes.string,
-        usage_stats: rtypes.immutable.Map,
-        manager_info: rtypes.immutable.Map,
-      },
-      users: {
-        user_map: rtypes.immutable,
-      },
-    };
+  const [show_export, set_show_export] = useState<boolean>(false);
+  const [exporting, set_exporting] = useState<boolean>(false);
+
+  const isMountedRef = useIsMountedRef();
+
+  function render_error(): Rendered {
+    if (!error) return;
+    return <ErrorDisplay error={error} onClose={() => actions.set_error("")} />;
   }
 
-  private render_error(): Rendered {
-    if (!this.props.error) return;
-    return (
-      <ErrorDisplay
-        error={this.props.error}
-        onClose={() => actions.set_error("")}
-      />
-    );
-  }
-
-  private render_loading(): Rendered {
-    if (this.props.loading) {
+  function render_loading(): Rendered {
+    if (loading) {
       return (
         <Loading theme="medium" style={{ float: "right", fontSize: "20pt" }} />
       );
     }
   }
 
-  private render_license(license: TypedMap<SiteLicense>): Rendered {
+  function render_license(license): Rendered {
     const id = license.get("id");
     return (
       <License
         key={id}
         license={license}
-        editing={this.props.editing != null && this.props.editing.has(id)}
-        saving={this.props.saving != null && this.props.saving.has(id)}
-        edits={this.props.edits != null ? this.props.edits.get(id) : undefined}
-        show_projects={this.props.show_projects?.get(id)}
-        usage_stats={this.props.usage_stats?.get(id)}
-        user_map={this.props.user_map}
+        editing={editing != null && editing.has(id)}
+        saving={saving != null && saving.has(id)}
+        edits={edits != null ? edits.get(id) : undefined}
+        show_projects={show_projects?.get(id)}
+        usage_stats={usage_stats?.get(id)}
         manager_info={
-          this.props.manager_info?.get("license_id") == id
-            ? this.props.manager_info
-            : undefined
+          manager_info?.get("license_id") == id ? manager_info : undefined
         }
       />
     );
   }
 
-  private render_main(): void | Rendered[] {
-    if (!this.props.view) return;
-    if (!this.props.site_licenses) return;
+  function render_main(): void | Rendered[] {
+    if (!view) return;
+    if (!site_licenses) return;
     const v: Rendered[] = [];
-    for (const license of this.props.site_licenses) {
-      v.push(this.render_license(license));
+    for (const license of site_licenses) {
+      v.push(render_license(license));
     }
     return r_join(v, <div style={{ height: "20px" }}></div>);
   }
 
-  private render_header_toggle(): Rendered {
+  function render_header_toggle(): Rendered {
     return (
-      <h4
-        onClick={() => actions.set_view(!this.props.view)}
-        style={{ cursor: "pointer" }}
-      >
+      <h4 onClick={() => actions.set_view(!view)} style={{ cursor: "pointer" }}>
         <Icon
           style={{ width: "20px" }}
-          name={this.props.view ? "caret-down" : "caret-right"}
+          name={view ? "caret-down" : "caret-right"}
         />{" "}
         Licenses
       </h4>
     );
   }
 
-  private render_search_button(): Rendered {
-    if (!this.props.view) return;
+  function render_search_button(): Rendered {
+    if (!view) return;
     return (
       <Button
         onClick={() => actions.load()}
-        disabled={this.props.loading || !this.props.search}
+        disabled={loading || !search}
         style={{ margin: "15px 0" }}
       >
         Update Search
@@ -142,8 +145,8 @@ class SiteLicenses extends Component<Props> {
     );
   }
 
-  private render_create_new_license(): Rendered {
-    if (!this.props.view) return;
+  function render_create_new_license(): Rendered {
+    if (!view) return;
     return (
       <Popconfirm
         title={"Are you sure you want to create a new license?"}
@@ -152,18 +155,18 @@ class SiteLicenses extends Component<Props> {
         cancelText={"Cancel"}
       >
         <Button
-          disabled={this.props.creating}
+          disabled={creating}
           style={{ margin: "15px 0", float: "right" }}
         >
-          <Icon name="plus" spin={this.props.creating} />
+          <Icon name="plus" spin={creating} />
           <Space /> Create license...
         </Button>
       </Popconfirm>
     );
   }
 
-  private render_search(): Rendered {
-    if (!this.props.view) return;
+  function render_search(): Rendered {
+    if (!view) return;
     return (
       <div>
         <DebounceInput
@@ -175,7 +178,7 @@ class SiteLicenses extends Component<Props> {
             border: "1px solid lightgrey",
             borderRadius: "3px",
           }}
-          value={this.props.search ?? ""}
+          value={search ?? ""}
           onChange={(e) => actions.set_search((e.target as any).value)}
           onKeyUp={(e) => {
             if (e.keyCode === 13) {
@@ -183,7 +186,7 @@ class SiteLicenses extends Component<Props> {
             }
           }}
         />
-        <div style={{ color: "#666" }}>
+        <div style={{ color: COLORS.GRAY }}>
           Search licenses by id, title, description, info, manager name and
           email address.
         </div>
@@ -191,12 +194,12 @@ class SiteLicenses extends Component<Props> {
     );
   }
 
-  private render_search_restriction_note(): Rendered {
-    if (this.props.site_licenses?.size) {
+  function render_search_restriction_note(): Rendered {
+    if (site_licenses?.size) {
       return (
-        <b style={{ marginLeft: "10px" }}>
-          Showing the most recent {this.props.site_licenses.size}{" "}
-          {plural(this.props.site_licenses.size, "license")} matching the search{" "}
+        <b style={{ margin: "0 10px" }}>
+          Showing the most recent {site_licenses.size}{" "}
+          {plural(site_licenses.size, "license")} matching the search{" "}
           <a
             onClick={() => {
               actions.set_search("");
@@ -211,38 +214,78 @@ class SiteLicenses extends Component<Props> {
     }
   }
 
-  private render_body(): Rendered {
-    if (!this.props.view) return;
+  async function do_export(): Promise<void> {
+    set_exporting(true);
+    set_show_export(false);
+    const q = await webapp_client.query_client.query({
+      query: LICENSE_QUERY,
+      options: [{ limit: 9999999 }],
+    });
+    if (!isMountedRef.current) return;
+    const result = q.query.site_licenses;
+    download_data("license-export.json", JSON.stringify(result, undefined, 2));
+    set_exporting(false);
+  }
+
+  function render_export(): JSX.Element {
+    return (
+      <span>
+        <Button disabled={show_export} onClick={() => set_show_export(true)}>
+          Export...
+        </Button>
+        {show_export && (
+          <Alert
+            style={{ margin: "15px" }}
+            message={
+              <a onClick={do_export}>
+                {!search?.trim()
+                  ? "Click here to download ALL licenses as a single LARGE JSON file."
+                  : `Click here to download the ${site_licenses?.size} matching licenses as a JSON
+            file.`}
+              </a>
+            }
+            type="success"
+            closable
+            onClose={() => set_show_export(false)}
+          />
+        )}
+        {exporting && (
+          <span>
+            <Loading /> Exporting...
+          </span>
+        )}
+      </span>
+    );
+  }
+
+  function render_body(): Rendered {
+    if (!view) return;
     return (
       <div style={{ margin: "0 30px" }}>
-        {this.render_error()}
+        {render_error()}
         <div>
-          {this.render_search()}
+          {render_search()}
           <Space />
           <Space />
-          {this.render_search_button()}
+          {render_search_button()}
           <Space />
           <Space />
-          {this.render_create_new_license()}
+          {render_create_new_license()}
           <Space />
           <Space />
-          {this.render_search_restriction_note()}
-          {this.render_loading()}
+          {render_search_restriction_note()}
+          {render_export()}
+          {render_loading()}
         </div>
-        {this.render_main()}
+        {render_main()}
       </div>
     );
   }
 
-  render(): Rendered {
-    return (
-      <div>
-        {this.render_header_toggle()}
-        {this.render_body()}
-      </div>
-    );
-  }
-}
-
-const c = rclass(SiteLicenses);
-export { c as SiteLicenses };
+  return (
+    <div>
+      {render_header_toggle()}
+      {render_body()}
+    </div>
+  );
+};

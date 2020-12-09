@@ -11,7 +11,7 @@ import { React, ReactDOM, redux, Rendered } from "../app-framework";
 import { HelpEmailLink } from "../customize";
 import { Modal, FormGroup, FormControl, Row, Button } from "../antd-bootstrap";
 import { Space, Loading } from "../r_misc";
-import { unreachable } from "smc-util/misc2";
+import { unreachable } from "smc-util/misc";
 
 interface Props {
   reset_key: string;

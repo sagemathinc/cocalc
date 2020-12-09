@@ -7,18 +7,15 @@ import { EventEmitter } from "events";
 import { List, fromJS } from "immutable";
 import { throttle } from "lodash";
 import { delay } from "awaiting";
-
 import { SyncTable } from "smc-util/sync/table";
 import { webapp_client } from "../../webapp-client";
 import { redux, TypedMap } from "../../app-framework";
-import { close, merge, path_split } from "smc-util/misc2";
+import { close, merge, path_split } from "smc-util/misc";
 import { once } from "smc-util/async-utils";
 import { deleted_file_variations } from "smc-util/delete-files";
 import { exec, query } from "../../frame-editors/generic/client";
-
 import { get_directory_listing } from "../directory-listing";
 import { DirectoryListingEntry, DirectoryListing } from "smc-util/types";
-
 import { WATCH_TIMEOUT_MS } from "smc-util/db-schema/listings";
 export const WATCH_THROTTLE_MS = WATCH_TIMEOUT_MS / 2;
 

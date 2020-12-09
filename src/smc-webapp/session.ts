@@ -16,7 +16,7 @@ import { AppRedux } from "./app-framework";
 import { COCALC_MINIMAL } from "./fullscreen";
 import { callback2 } from "../smc-util/async-utils";
 import * as LS from "./misc/local-storage";
-import { bind_methods } from "smc-util/misc2";
+import { bind_methods } from "smc-util/misc";
 
 export function session_manager(name, redux): SessionManager | undefined {
   const sm = new SessionManager(name, redux);

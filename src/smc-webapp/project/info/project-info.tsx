@@ -20,7 +20,7 @@ import { Col, Row } from "../../antd-bootstrap";
 import { Alert, Table, Button, Form, Popconfirm, Modal, Switch } from "antd";
 import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
 import { webapp_client } from "../../webapp-client";
-import { seconds2hms } from "smc-util/misc";
+import { seconds2hms, unreachable } from "smc-util/misc";
 import { A, Tip, Loading } from "../../r_misc";
 import { RestartProject } from "../settings/restart-project";
 import { Channel } from "../../project/websocket/types";
@@ -39,7 +39,6 @@ import { ProcessRow, PTStats, CGroupInfo, DUState } from "./types";
 import { connect_ws, process_tree, sum_children, grid_warning } from "./utils";
 import { COLORS } from "smc-util/theme";
 import { SiteName } from "../../customize";
-import { unreachable } from "smc-util/misc2";
 
 const SSH_KEYS_DOC = "https://doc.cocalc.com/project-settings.html#ssh-keys";
 const DETAILS_BTN_TEXT = "Details";
@@ -103,6 +102,9 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
     const [cg_info, set_cg_info] = useState<CGroupInfo>(gc_info_init);
     const [disk_usage, set_disk_usage] = useState<DUState>(du_init);
     const [error, set_error] = useState<JSX.Element | null>(null);
+    const [modal, set_modal] = useState<string | Process | undefined>(
+      undefined
+    );
 
     React.useMemo(() => {
       if (project_map == null) return;
@@ -321,18 +323,6 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
       };
     }
 
-    function show_about(proc_about?: Process) {
-      // from render_about we already know it will not be null
-      if (proc_about == null) return;
-      const content = <AboutContent proc={proc_about} />;
-      Modal.info({
-        title: "Process info",
-        width: "75vw",
-        maskClosable: true,
-        content,
-      });
-    }
-
     function render_help() {
       return (
         <Form.Item label="Help:">
@@ -373,7 +363,7 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
             type={"primary"}
             icon={<InfoCircleOutlined />}
             disabled={proc == null}
-            onClick={() => show_about(proc)}
+            onClick={() => set_modal(proc)}
           >
             {DETAILS_BTN_TEXT}
           </Button>
@@ -388,7 +378,7 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
 
     function render_action_buttons() {
       const disabled = disconnected || selected.length == 0;
-      if (disabled) return;
+      if (disabled || info?.processes == null) return;
 
       return (
         <>
@@ -399,6 +389,7 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
             set_selected={set_selected}
             loading={loading}
             disabled={disabled}
+            processes={info.processes}
           />
         </>
       );
@@ -432,43 +423,76 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
       );
     }
 
+    function render_modal_footer() {
+      return (
+        <Button type={"primary"} onClick={() => set_modal(undefined)}>
+          Ok
+        </Button>
+      );
+    }
+
+    function render_modals() {
+      switch (modal) {
+        case "ssh":
+          return (
+            <Modal
+              title="Project's SSH Daemon"
+              visible={modal === "ssh"}
+              footer={render_modal_footer()}
+              onCancel={() => set_modal(undefined)}
+            >
+              <div>
+                This process allows to SSH into this project. Do not terminate
+                it!
+                <br />
+                Learn more: <A href={SSH_KEYS_DOC}>SSH keys documentation</A>
+              </div>
+            </Modal>
+          );
+        case "project":
+          return (
+            <Modal
+              title="Project's process"
+              visible={modal === "project"}
+              footer={render_modal_footer()}
+              onCancel={() => set_modal(undefined)}
+            >
+              <div>
+                This is the project's own management process. Do not terminate
+                it! If it uses too much resources, you can {restart_project()}.
+              </div>
+            </Modal>
+          );
+        default:
+          if (modal != null && typeof modal !== "string") {
+            return (
+              <Modal
+                title="Process info"
+                visible={true}
+                width={"75vw"}
+                footer={render_modal_footer()}
+                onCancel={() => set_modal(undefined)}
+              >
+                <AboutContent proc={modal} />;
+              </Modal>
+            );
+          }
+      }
+    }
+
     function render_cocalc({ cocalc }: ProcessRow) {
       if (cocalc == null) return;
       switch (cocalc.type) {
         case "project":
           return render_cocalc_btn({
             title: "Project",
-            onClick: () =>
-              Modal.info({
-                title: "Project's SSH Daemon",
-                maskClosable: true,
-                content: (
-                  <div>
-                    This is the project's own management process. Do not
-                    terminate it! If it uses too much resources, you can{" "}
-                    {restart_project()}.
-                  </div>
-                ),
-              }),
+            onClick: () => set_modal("project"),
           });
 
         case "sshd":
           return render_cocalc_btn({
             title: "SSH",
-            onClick: () =>
-              Modal.info({
-                title: "Project's SSH Daemon",
-                maskClosable: true,
-                content: (
-                  <div>
-                    This process allows to SSH into this project. Do not
-                    terminate it!
-                    <br />
-                    Learn more:{" "}
-                    <A href={SSH_KEYS_DOC}>SSH keys documentation</A>
-                  </div>
-                ),
-              }),
+            onClick: () => set_modal("ssh"),
           });
 
         case "terminal":
@@ -709,6 +733,7 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
             project_status={project_status}
           />
           {render_top()}
+          {render_modals()}
           {DEBUG && render_general_status()}
         </>
       );

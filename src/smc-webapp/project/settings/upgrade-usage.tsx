@@ -94,7 +94,6 @@ class UpgradeUsage extends React.Component<Props, State> {
     }
     return (
       <UpgradeAdjustor
-        project_id={this.props.project_id}
         upgrades_you_can_use={this.props.upgrades_you_can_use}
         upgrades_you_applied_to_all_projects={
           this.props.upgrades_you_applied_to_all_projects

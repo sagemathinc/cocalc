@@ -14,12 +14,11 @@ const HIGHLIGHT_TIME_S: number = 6;
 
 import { Icon, Loading, Markdown } from "smc-webapp/r_misc";
 import { Alert } from "antd";
-
 import { delay } from "awaiting";
 import { Map, Set } from "immutable";
 import { throttle } from "underscore";
 import * as $ from "jquery";
-import { is_different, seconds_ago, list_alternatives } from "smc-util/misc2";
+import { is_different, seconds_ago, list_alternatives } from "smc-util/misc";
 import { dblclick } from "./mouse-click";
 import {
   Component,
@@ -33,6 +32,7 @@ import { getDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import { Page, PAGE_GAP } from "./pdfjs-page";
 import { SyncHighlight } from "./pdfjs-annotation";
 import { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack";
+import { EditorState } from "../frame-tree/types"
 
 // Ensure this jQuery plugin is defined:
 import "./mouse-draggable";
@@ -40,7 +40,7 @@ import "./mouse-draggable";
 interface PDFJSProps {
   id: string;
   actions: any;
-  editor_state: Map<string, any>;
+  editor_state: EditorState;
   is_fullscreen: boolean;
   project_id: string;
   path: string;

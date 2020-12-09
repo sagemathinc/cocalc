@@ -8,10 +8,11 @@ import { isEqual } from "lodash";
 import { PostgreSQL } from "../types";
 import { query } from "../query";
 import { TypedMap } from "../../../smc-webapp/app-framework";
-import { is_valid_uuid_string, len } from "../../smc-util/misc2";
+import { is_valid_uuid_string, len } from "../../smc-util/misc";
 import { callback2 } from "../../smc-util/async-utils";
 import { number_of_running_projects_using_license } from "./analytics";
 import { QuotaMap } from "../../smc-util/db-schema/site-licenses";
+import { quota as compute_total_quota } from "../../smc-util/upgrades/quota";
 
 let licenses: any = undefined;
 
@@ -47,58 +48,83 @@ async function get_valid_licenses(db): Promise<Map<string, TypedMap<License>>> {
   return licenses.get();
 }
 
-// Call this any time about to *start* the project.
+/*
+Call this any time about to *start* the project.
+
+Check for site licenses, then set the site_license field for this project.
+The *value* for each key records what the license provides and whether or
+not it is actually being used by the project.
+
+If the license provides nothing new compared to what is already provided
+by already applied **licenses** and upgrades, then the license is *not*
+applied.   See
+      https://github.com/sagemathinc/cocalc/issues/4979
+*/
 
 export async function site_license_hook(
+  db: PostgreSQL,
+  project_id: string
+): Promise<void> {
+  try {
+    await site_license_hook0(db, project_id);
+  } catch (err) {
+    db._dbg("site_license_hook")(`ERROR -- ${err}`);
+    throw err;
+  }
+}
+
+async function site_license_hook0(
   db: PostgreSQL,
   project_id: string
 ): Promise<void> {
   const dbg = db._dbg(`site_license_hook("${project_id}")`);
   dbg("site_license_hook -- checking for site license");
 
-  // Check for site licenses, then set the site_license field for this project.
-
   const project = await query({
     db,
-    select: ["site_license"],
+    select: ["site_license", "settings", "users"],
     table: "projects",
     where: { project_id },
     one: true,
   });
-  dbg(`site_license_hook -- project=${JSON.stringify(project)}`);
+  dbg(`project=${JSON.stringify(project)}`);
 
   if (project.site_license == null || typeof project.site_license != "object") {
-    // no site licenses set for this project.
+    dbg("no site licenses set for this project.");
     return;
   }
 
   const site_license = project.site_license;
+  const new_site_license: { [license_id: string]: object } = {};
   // Next we check the keys of site_license to see what they contribute,
   // and fill that in.
   const licenses = await get_valid_licenses(db);
-  let changed: boolean = false;
   for (const license_id in site_license) {
     if (!is_valid_uuid_string(license_id)) {
       // The site_license is supposed to be a map from uuid's to settings...
       // We could put some sort of error here in case, though I don't know what
       // we would do with it.
+      dbg(`skipping invalid license ${license_id}`);
       continue;
     }
     const license = licenses.get(license_id);
+    dbg(
+      `considering license ${license_id}: ${JSON.stringify(license?.toJS())}`
+    );
     let is_valid: boolean;
     if (license == null) {
-      dbg(`site_license_hook -- License "${license_id}" does not exist.`);
+      dbg(`License "${license_id}" does not exist.`);
       is_valid = false;
     } else {
       const expires = license.get("expires");
       const activates = license.get("activates");
       const run_limit = license.get("run_limit");
       if (expires != null && expires <= new Date()) {
-        dbg(`site_license_hook -- License "${license_id}" expired ${expires}.`);
+        dbg(`License "${license_id}" expired ${expires}.`);
         is_valid = false;
       } else if (activates == null || activates > new Date()) {
         dbg(
-          `site_license_hook -- License "${license_id}" has not been explicitly activated yet ${activates}.`
+          `License "${license_id}" has not been explicitly activated yet ${activates}.`
         );
         is_valid = false;
       } else if (
@@ -107,10 +133,11 @@ export async function site_license_hook(
           run_limit
       ) {
         dbg(
-          `site_license_hook -- License "${license_id}" won't be applied since it would exceed the run limit ${run_limit}.`
+          `License "${license_id}" won't be applied since it would exceed the run limit ${run_limit}.`
         );
         is_valid = false;
       } else {
+        dbg(`license ${license_id} is valid`);
         is_valid = true;
       }
     }
@@ -131,41 +158,53 @@ export async function site_license_hook(
         }
       }
 
-      dbg(
-        `site_license_hook -- Found a valid license "${license_id}".  Upgrade using it to ${JSON.stringify(
-          upgrades
-        )}.`
+      dbg("computing run quotas...");
+      const run_quota = compute_total_quota(
+        project.settings,
+        project.users,
+        new_site_license
       );
-      if (!isEqual(site_license[license_id], upgrades)) {
-        site_license[license_id] = upgrades;
-        changed = true;
+      const run_quota_with_license = compute_total_quota(
+        project.settings,
+        project.users,
+        {
+          ...new_site_license,
+          ...{ [license_id]: upgrades },
+        }
+      );
+      dbg(`run_quota=${JSON.stringify(run_quota)}`);
+      dbg(`run_quota_with_license=${JSON.stringify(run_quota_with_license)}`);
+      if (!isEqual(run_quota, run_quota_with_license)) {
+        dbg(
+          `Found a valid license "${license_id}".  Upgrade using it to ${JSON.stringify(
+            upgrades
+          )}.`
+        );
+        new_site_license[license_id] = upgrades;
+      } else {
+        dbg(
+          `Found a valid license "${license_id}", but it provides nothing new so not using it.`
+        );
       }
     } else {
-      dbg(
-        `site_license_hook -- Not currently valid license -- "${license_id}".`
-      );
-      if (!isEqual(site_license[license_id], {})) {
-        // Delete any upgrades, so doesn't provide a benefit.
-        site_license[license_id] = {};
-        changed = true;
-      }
+      dbg(`Not currently valid license -- "${license_id}".`);
     }
   }
 
-  if (changed) {
-    // Now set the site license.
-    dbg(
-      `site_license_hook -- setup site license=${JSON.stringify(site_license)}`
-    );
+  if (!isEqual(site_license, new_site_license)) {
+    // Now set the site license since something changed.
+    dbg(`setup site license=${JSON.stringify(new_site_license)}`);
     await query({
       db,
       query: "UPDATE projects",
       where: { project_id },
-      jsonb_set: { site_license },
+      jsonb_set: { site_license: new_site_license },
     });
+  } else {
+    dbg("no change");
   }
-  for (const license_id in site_license) {
-    if (len(site_license[license_id]) > 0) {
+  for (const license_id in new_site_license) {
+    if (len(new_site_license[license_id]) > 0) {
       await update_last_used(db, license_id, dbg);
     }
   }

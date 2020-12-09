@@ -21,15 +21,16 @@ import {
   change_filename_extension,
   is_different,
   list_alternatives,
-} from "smc-util/misc2";
+} from "smc-util/misc";
 import { throttle } from "underscore";
 import { React, Component, ReactDOM, Rendered, CSS } from "../../app-framework";
 import { use_font_size_scaling } from "../frame-tree/hooks";
+import { EditorState } from "../frame-tree/types"
 
 interface Props {
   id: string;
   actions: any;
-  editor_state: Map<string, any>;
+  editor_state: EditorState;
   is_fullscreen: boolean;
   fullscreen_style?: any;
   project_id: string;

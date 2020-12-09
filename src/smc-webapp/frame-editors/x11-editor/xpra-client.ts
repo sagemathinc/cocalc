@@ -18,8 +18,7 @@ const { open_new_tab } = require("smc-webapp/misc_page");
 import { is_copy } from "./xpra/util";
 import { alert_message } from "smc-webapp/alerts";
 const sha1 = require("sha1");
-import { hash_string } from "smc-util/misc";
-import { close } from "smc-util/misc2";
+import { close, hash_string } from "smc-util/misc";
 
 const BASE_DPI: number = 96;
 
@@ -352,9 +351,10 @@ export class XpraClient extends EventEmitter {
       surface.destroy();
       return;
     }
-    //console.log("window_destroy", window);
-    surface.destroy();
+    // NOTE: surface.destroy() below deletes surface.wid -- https://github.com/sagemathinc/cocalc/issues/4904
+    // Hence we emit window:destroy first, so that the tab is removed.
     this.emit("window:destroy", surface.wid);
+    surface.destroy();
   }
 
   window_icon({ wid, src, w, h }): void {

@@ -48,10 +48,10 @@ class ProfileSettings extends Component<Props, State> {
   private render_header(): Rendered {
     return (
       <>
-        <Avatar account_id={this.props.account_id} size={40} />
+        <Avatar account_id={this.props.account_id} size={48} />
         <Space />
         <Space />
-        Profile
+        Avatar
       </>
     );
   }
@@ -69,7 +69,7 @@ class ProfileSettings extends Component<Props, State> {
             onChange={this.onColorChange}
           />
         </LabeledRow>
-        <LabeledRow label="Picture">
+        <LabeledRow label="Style">
           <ProfileImageSelector
             account_id={this.props.account_id}
             email_address={this.props.email_address}

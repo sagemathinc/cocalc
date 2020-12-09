@@ -17,6 +17,7 @@ import { redux, React, useMemo, useTypedRedux } from "../app-framework";
 import { A, Icon, ProjectState, Space, VisibleMDLG } from "../r_misc";
 import { DOC_TRIAL } from "./trial-banner";
 import { allow_project_to_run } from "./client-side-throttle";
+import { server_minutes_ago } from "smc-util/misc";
 
 interface Props {
   project_id: string;
@@ -38,9 +39,10 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
     const x = project_map?.getIn([project_id, "action_request"]);
     if (
       state?.get("state") == "running" ||
-      x == null ||
-      x.get("action") != "start" ||
-      x.get("finished") >= new Date(x.get("time"))
+      x == null /* no action request at all */ ||
+      x.get("action") != "start" /* a non-start action */ ||
+      x.get("finished") >= new Date(x.get("time")) /* already done */ ||
+      new Date(x.get("time")) <= server_minutes_ago(10) /* old -- ignore */
     ) {
       // already happened
       return false;

@@ -59,10 +59,15 @@ const AUX_FILE_EXT = "upload";
 import { join } from "path";
 import * as CodeMirror from "codemirror";
 type EventHandlerFunction = (cm: CodeMirror.Editor) => void;
-
-import { aux_file, len, path_split, trunc_middle, trunc } from "smc-util/misc2";
-import { timestamp_cmp, cmp } from "smc-util/misc";
-
+import {
+  aux_file,
+  len,
+  path_split,
+  trunc_middle,
+  trunc,
+  timestamp_cmp,
+  cmp,
+} from "smc-util/misc";
 import { IS_MOBILE } from "../../feature";
 import { A } from "../../r_misc";
 import {
@@ -97,26 +102,28 @@ const MENTION_CSS =
   "color:#7289da; background:rgba(114,137,218,.1); border-radius: 3px; padding: 0 2px;";
 
 interface Props {
-  project_id: string;
-  path: string;
+  project_id?: string; // must be set if enableUpload or enableMentions is set  (todo: enforce via typescript)
+  path?: string; // must be set if enableUpload or enableMentions is set (todo: enforce via typescript)
   value: string;
-  onChange: (value: string) => void;
+  onChange?: (value: string) => void;
   enableUpload?: boolean; // if true, enable drag-n-drop and pasted files
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
   enableMentions?: boolean;
   submitMentionsRef?: any;
   style?: React.CSSProperties;
-  onShiftEnter?: () => void;  // also ctrl/alt/cmd-enter call this; see https://github.com/sagemathinc/cocalc/issues/1914
+  onShiftEnter?: (value: string) => void; // also ctrl/alt/cmd-enter call this; see https://github.com/sagemathinc/cocalc/issues/1914
   onEscape?: () => void;
-  onBlur?: () => void;
+  onBlur?: (value: string) => void;
   onFocus?: () => void;
   placeholder?: string;
   height?: string;
   extraHelp?: string | JSX.Element;
+  hideHelp?: boolean;
   fontSize?: number;
   styleActiveLine?: boolean;
   lineWrapping?: boolean;
+  autoFocus?: boolean;
 }
 
 export const MarkdownInput: React.FC<Props> = ({
@@ -137,13 +144,12 @@ export const MarkdownInput: React.FC<Props> = ({
   placeholder,
   height,
   extraHelp,
+  hideHelp,
   fontSize,
   styleActiveLine,
   lineWrapping,
+  autoFocus,
 }) => {
-  // @ts-ignore
-  const deleteme = [project_id, path, enableUpload, enableMentions];
-
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
   const theme = useRedux(["account", "editor_settings", "theme"]);
@@ -153,7 +159,7 @@ export const MarkdownInput: React.FC<Props> = ({
   const dropzone_ref = useRef<Dropzone>(null);
   const upload_close_preview_ref = useRef<Function | null>(null);
   const current_uploads_ref = useRef<{ [name: string]: boolean } | null>(null);
-  const [is_focused, set_is_focused] = useState<boolean>(true);
+  const [is_focused, set_is_focused] = useState<boolean>(!!autoFocus);
 
   const [mentions, set_mentions] = useState<undefined | Item[]>(undefined);
   const [mentions_offset, set_mentions_offset] = useState<
@@ -171,10 +177,11 @@ export const MarkdownInput: React.FC<Props> = ({
     const node = ReactDOM.findDOMNode(textarea_ref.current);
     const extraKeys: CodeMirror.KeyMap = {};
     if (onShiftEnter != null) {
-      extraKeys["Shift-Enter"] = () => onShiftEnter();
-      extraKeys["Ctrl-Enter"] = () => onShiftEnter();
-      extraKeys["Alt-Enter"] = () => onShiftEnter();
-      extraKeys["Cmd-Enter"] = () => onShiftEnter();
+      const f = (cm) => onShiftEnter(cm.getValue());
+      extraKeys["Shift-Enter"] = f;
+      extraKeys["Ctrl-Enter"] = f;
+      extraKeys["Alt-Enter"] = f;
+      extraKeys["Cmd-Enter"] = f;
     }
     if (onEscape != null) {
       extraKeys["Esc"] = () => {
@@ -204,26 +211,28 @@ export const MarkdownInput: React.FC<Props> = ({
     // UNCOMMENT FOR DEBUGGING ONLY
     // (window as any).cm = cm.current;
     cm.current.setValue(value);
-    cm.current.on("change", (editor, change) => {
-      if (change.origin == "setValue") {
-        // Since this is a controlled component, firing onChange for this
-        // could lead to an infinite loop and randomly crash the browser.
-        return;
-      }
-      if (current_uploads_ref.current != null) {
-        // IMPORTANT: we do NOT report the latest version back while
-        // uploading files.  Otherwise, if more than one is being
-        // uploaded at once, then we end up with an infinite loop
-        // of updates.  In any case, once all the uploads finish
-        // we'll start reporting chanages again.  This is fine
-        // since you don't want to submit input *during* uploads anyways.
-        return;
-      }
-      onChange(editor.getValue());
-    });
+    if (onChange != null) {
+      cm.current.on("change", (editor, change) => {
+        if (change.origin == "setValue") {
+          // Since this is a controlled component, firing onChange for this
+          // could lead to an infinite loop and randomly crash the browser.
+          return;
+        }
+        if (current_uploads_ref.current != null) {
+          // IMPORTANT: we do NOT report the latest version back while
+          // uploading files.  Otherwise, if more than one is being
+          // uploaded at once, then we end up with an infinite loop
+          // of updates.  In any case, once all the uploads finish
+          // we'll start reporting chanages again.  This is fine
+          // since you don't want to submit input *during* uploads anyways.
+          return;
+        }
+        onChange(editor.getValue());
+      });
+    }
 
     if (onBlur != null) {
-      cm.current.on("blur", onBlur);
+      cm.current.on("blur", (editor) => onBlur(editor.getValue()));
     }
     if (onFocus != null) {
       cm.current.on("focus", onFocus);
@@ -253,6 +262,11 @@ export const MarkdownInput: React.FC<Props> = ({
 
     if (submitMentionsRef != null) {
       submitMentionsRef.current = () => {
+        if (project_id == null || path == null) {
+          throw Error(
+            "project_id and path must be set if enableMentions is set."
+          );
+        }
         const mentions: { account_id: string; description: string }[] = [];
         if (cm.current == null) return;
         // Get lines here, since we modify the doc as we go below.
@@ -280,8 +294,9 @@ export const MarkdownInput: React.FC<Props> = ({
       };
     }
 
-    cm.current.focus();
-
+    if (autoFocus) {
+      cm.current.focus();
+    }
     // clean up
     return () => {
       if (cm.current == null) return;
@@ -323,6 +338,10 @@ export const MarkdownInput: React.FC<Props> = ({
   }, [value]);
 
   function upload_sending(file: { name: string }): void {
+    if (project_id == null || path == null) {
+      throw Error("path must be set if enableUploads is set.");
+    }
+
     // console.log("upload_sending", file);
     if (current_uploads_ref.current == null) {
       current_uploads_ref.current = { [file.name]: true };
@@ -340,7 +359,7 @@ export const MarkdownInput: React.FC<Props> = ({
       return;
     }
     cm.current.replaceRange(s, cm.current.getCursor());
-    onChange(cm.current.getValue());
+    onChange?.(cm.current.getValue());
   }
 
   function upload_complete(file: {
@@ -348,6 +367,10 @@ export const MarkdownInput: React.FC<Props> = ({
     name: string;
     status: string;
   }): void {
+    if (path == null) {
+      throw Error("path must be set if enableUploads is set.");
+    }
+
     // console.log("upload_complete", file);
     if (current_uploads_ref.current != null) {
       delete current_uploads_ref.current[file.name];
@@ -372,12 +395,15 @@ export const MarkdownInput: React.FC<Props> = ({
       s1 = upload_link(path, file);
     }
     cm.current.setValue(input.replace(s0, s1));
-    onChange(cm.current.getValue());
+    onChange?.(cm.current.getValue());
   }
 
   function upload_removed(file: { name: string; type: string }): void {
     if (cm.current == null) return;
     // console.log("upload_removed", file);
+    if (project_id == null || path == null) {
+      throw Error("project_id and path must be set if enableUploads is set.");
+    }
     const input = cm.current.getValue();
     const s = upload_link(path, file);
     if (input.indexOf(s) == -1) {
@@ -385,7 +411,7 @@ export const MarkdownInput: React.FC<Props> = ({
       return;
     }
     cm.current.setValue(input.replace(s, ""));
-    onChange(cm.current.getValue());
+    onChange?.(cm.current.getValue());
     // delete from project itself
     const target = join(aux_file(path, AUX_FILE_EXT), file.name);
     // console.log("deleting target", target, { paths: [target] });
@@ -412,12 +438,16 @@ export const MarkdownInput: React.FC<Props> = ({
   }
 
   function render_mention_email(): JSX.Element | undefined {
+    if (project_id == null) {
+      throw Error("project_id and path must be set if enableMentions is set.");
+    }
     if (!redux.getStore("projects").has_internet_access(project_id)) {
       return <span> (enable the Internet Access upgrade to send emails)</span>;
     }
   }
 
   function render_mobile_instructions() {
+    if (hideHelp) return;
     // TODO: make clicking on drag and drop thing pop up dialog
     return (
       <div
@@ -441,6 +471,7 @@ export const MarkdownInput: React.FC<Props> = ({
   function render_desktop_instructions() {
     // TODO: make depend on the options
     // TODO: make clicking on drag and drop thing pop up dialog
+    if (hideHelp) return;
     return (
       <div style={{ fontSize: "12.5px", marginBottom: "5px" }}>
         Shift+Enter when done. {render_mention_instructions()}
@@ -508,6 +539,9 @@ export const MarkdownInput: React.FC<Props> = ({
   // "symmetry" things (like liking your own post) that people feel is right.
   function show_mentions() {
     if (cm.current == null) return;
+    if (project_id == null) {
+      throw Error("project_id and path must be set if enableMentions is set.");
+    }
     const users = redux
       .getStore("projects")
       .getIn(["project_map", project_id, "users"]);
@@ -573,14 +607,25 @@ export const MarkdownInput: React.FC<Props> = ({
       from: { line: cursor.line, ch: cursor.ch - 1 },
       cursor: (cm) => {
         const pos = cm.getCursor();
-        if (pos.line != last_cursor.line) {
+        // The hitSide and sticky attributes of pos below
+        // are set when you manually move the cursor, rather than
+        // it moving due to typing.  We check them to avoid
+        // confusion such as
+        //     https://github.com/sagemathinc/cocalc/issues/4833
+        // and in that case move the cursor back.
+        if (
+          pos.line != last_cursor.line ||
+          (pos as { hitSide?: boolean }).hitSide ||
+          (pos as { sticky?: string }).sticky != null
+        ) {
           cm.setCursor(last_cursor);
         } else {
           last_cursor = pos;
         }
       },
       change: (cm) => {
-        const search = cm.getRange(cursor, { line: cursor.line + 1, ch: 0 });
+        const pos = cm.getCursor();
+        const search = cm.getRange(cursor, pos);
         set_mentions_search(search.trim().toLowerCase());
       },
     };
@@ -610,6 +655,11 @@ export const MarkdownInput: React.FC<Props> = ({
       }
     }
     if (items.length == 0) {
+      if (mentions.length == 0) {
+        // See https://github.com/sagemathinc/cocalc/issues/4909
+        close_mentions();
+        return;
+      }
       items.push(mentions[0]); // ensure at least one
     }
 
@@ -623,12 +673,12 @@ export const MarkdownInput: React.FC<Props> = ({
             "@" +
             trunc_middle(redux.getStore("users").get_name(account_id), 64);
           if (cm.current == null) return;
-          const to = cm.current.getCursor();
           const from = mentions_cursor_ref.current.from;
+          const to = cm.current.getCursor();
           cm.current.replaceRange(text + " ", from, to);
           cm.current.markText(
             from,
-            { line: to.line, ch: to.ch + text.length - 1 },
+            { line: from.line, ch: from.ch + text.length },
             {
               atomic: true,
               css: MENTION_CSS,
@@ -668,6 +718,9 @@ export const MarkdownInput: React.FC<Props> = ({
       sending: upload_sending,
       removedfile: upload_removed,
     };
+    if (project_id == null || path == null) {
+      throw Error("project_id and path must be set if enableUploads is set.");
+    }
     body = (
       <FileUploadWrapper
         project_id={project_id}

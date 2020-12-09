@@ -13,6 +13,7 @@ that *that* is valid.
 */
 
 import { PostgreSQL } from "../types";
+import { TIMEOUT_S } from "./const";
 
 export async function sync_site_license_subscriptions(
   db: PostgreSQL,
@@ -45,6 +46,7 @@ export async function sync_site_license_subscriptions(
     table: "accounts",
     where:
       account_id == null ? "stripe_customer_id IS NOT NULL" : { account_id },
+    timeout_s: TIMEOUT_S,
   });
 
   let n = 0;

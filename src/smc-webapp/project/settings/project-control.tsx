@@ -13,7 +13,6 @@ import {
 } from "../../app-framework";
 import {
   A,
-  COLORS,
   CopyToClipBoard,
   Loading,
   ProjectState,
@@ -24,6 +23,7 @@ import {
   Icon,
   SettingBox,
 } from "../../r_misc";
+import { COLORS } from "smc-util/theme";
 import { Space as AntdSpace } from "antd";
 import {
   CUSTOM_SOFTWARE_HELP_URL,

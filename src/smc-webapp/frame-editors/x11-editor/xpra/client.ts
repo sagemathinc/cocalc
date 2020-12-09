@@ -36,7 +36,7 @@ import {
 } from "./util";
 
 import { EventEmitter } from "events";
-import { close } from "smc-util/misc2";
+import { close } from "smc-util/misc";
 
 function createConfiguration(defaults = {}, append = {}) {
   return Object.assign(

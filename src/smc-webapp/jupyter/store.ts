@@ -76,6 +76,8 @@ export interface JupyterStoreState {
   closestKernel?: Kernel;
   widget_model_ids: Set<string>;
   contents?: List<Map<string, any>>; // optional global contents info (about sections, problems, etc.)
+  connection_file?: string;
+  kernel_error?: string;
 }
 
 export const initial_jupyter_store_state: {

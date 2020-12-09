@@ -8,10 +8,6 @@ Comprehensive list of Jupyter notebook (version 5) commands
 we support and how they work.
 */
 
-// still in coffeescript...
-// for now we also use require here (see comment in actions.ts)
-const SNIPPET_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
-
 import { FORMAT_SOURCE_ICON } from "smc-webapp/frame-editors/frame-tree/config";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
@@ -168,6 +164,12 @@ export function commands(
       i: "refresh",
       k: [{ mode: "escape", which: 48, twice: true }],
       f: () => jupyter_actions.confirm_restart(),
+    },
+
+    "confirm halt kernel": {
+      m: "Halt kernel...",
+      i: "stop",
+      f: () => jupyter_actions.confirm_halt_kernel(),
     },
 
     "confirm restart kernel and clear output": {
@@ -712,15 +714,6 @@ export function commands(
       m: "Show keyboard shortcuts...",
       k: [{ mode: "escape", which: 72 }],
       f: () => jupyter_actions.show_keyboard_shortcuts(),
-    },
-
-    "show code snippets": {
-      i: SNIPPET_ICON_NAME,
-      m: "Show code snippets",
-      f: async () => {
-        await frame_actions.show_code_snippets();
-        frame_actions.scroll("cell visible");
-      },
     },
 
     "show toolbar": {

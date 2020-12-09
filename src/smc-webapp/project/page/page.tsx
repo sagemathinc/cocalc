@@ -5,7 +5,8 @@
 
 import { Modal } from "antd";
 import { NavItem, Nav } from "react-bootstrap";
-import { DeletedProjectWarning, Loading } from "../../r_misc";
+import { Loading } from "../../r_misc";
+import { DeletedProjectWarning } from "../warnings/deleted";
 import { Content } from "./content";
 import { tab_to_path } from "smc-util/misc";
 import {
@@ -153,6 +154,10 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
       return;
     }
     const path = tab_to_path(active_project_tab);
+    if (path == null) {
+      // bug -- tab is not a file tab.
+      return;
+    }
     const is_chat_open = open_files.getIn([path, "is_chat_open"]);
     return (
       <div style={INDICATOR_STYLE}>
@@ -317,10 +322,11 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
   }
 
   function render_project_modal() {
+    if (!is_active || !modal) return;
     return (
       <Modal
         title={modal?.get("title")}
-        visible={!!modal}
+        visible={is_active && modal != null}
         onOk={() => {
           actions?.clear_modal();
           modal?.get("onOk")?.();

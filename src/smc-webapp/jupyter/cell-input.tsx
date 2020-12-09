@@ -28,7 +28,7 @@ import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-noteb
 function href_transform(
   project_id: string | undefined,
   cell: Map<string, any>
-): Function {
+): (string) => string {
   return (href: string) => {
     if (!startswith(href, "attachment:")) {
       return href;
@@ -36,7 +36,7 @@ function href_transform(
     const name = href.slice("attachment:".length);
     const data = cell.getIn(["attachments", name]);
     let ext = filename_extension(name);
-    switch (data != null ? data.get("type") : undefined) {
+    switch (data?.get("type")) {
       case "sha1":
         const sha1 = data.get("value");
         if (project_id == null) {
@@ -176,7 +176,7 @@ export class CellInput extends Component<CellInputProps> {
         break;
     }
     if (this.props.is_readonly) {
-      opt = opt.set("readOnly", "nocursor");
+      opt = opt.set("readOnly", true);
     }
     if (this.props.cell.get("line_numbers") != null) {
       opt = opt.set("lineNumbers", this.props.cell.get("line_numbers"));

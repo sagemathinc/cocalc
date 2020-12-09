@@ -3,9 +3,4 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-.webapp-collaborator-choice {
-    transition: background-color 200ms linear;
-    &hover {
-        background-color: #aaa;
-    }
-}
+export { JupyterSnippets } from "./main";

@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { copy, keys, is_array, deep_copy } from "../../misc2";
-const { SCHEMA } = require("../../schema");
+import { copy, keys, is_array, deep_copy } from "../../misc";
+import { SCHEMA } from "../../schema";
 
 // Parse query description to allow for some convenient shortcuts
 // TODO: document them here!

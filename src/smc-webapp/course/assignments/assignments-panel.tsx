@@ -28,7 +28,7 @@ import {
   FormGroup,
 } from "../../antd-bootstrap";
 
-import { Alert, Card, Row, Col } from "antd";
+import { Alert, Card, Row, Col, Input } from "antd";
 
 import { Set, Map } from "immutable";
 
@@ -68,6 +68,7 @@ import { Progress } from "../common/progress";
 import { SkipCopy } from "./skip";
 import { ConfigurePeerGrading } from "./configure-peer";
 import { NbgraderButton } from "../nbgrader/nbgrader-button";
+import { DebounceInput } from "react-debounce-input";
 
 interface AssignmentsPanelReactProps {
   frame_id?: string;
@@ -439,6 +440,7 @@ interface AssignmentState {
   copy_confirm_peer_assignment: boolean;
   copy_confirm_peer_collect: boolean;
   copy_confirm_return_graded: boolean;
+  student_search: string;
 }
 
 class Assignment extends Component<AssignmentProps, AssignmentState> {
@@ -454,6 +456,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       copy_confirm_peer_assignment: false,
       copy_confirm_peer_collect: false,
       copy_confirm_return_graded: false,
+      student_search: "",
     };
   }
 
@@ -728,7 +731,18 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
       v.push(
         <Row key="header-control">
-          <Col md={20} offset={4} key="buttons">
+          <Col md={4} key="search" style={{ paddingRight: "15px" }}>
+            <DebounceInput
+              debounceTimeout={500}
+              element={Input as any}
+              placeholder={"Find students..."}
+              value={this.state.student_search}
+              onChange={(e) =>
+                this.setState({ student_search: e.target.value })
+              }
+            />
+          </Col>
+          <Col md={20} key="buttons">
             <Row>{buttons}</Row>
           </Col>
         </Row>
@@ -765,6 +779,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             active_student_sort={this.props.active_student_sort}
             active_feedback_edits={this.props.active_feedback_edits}
             nbgrader_run_info={this.props.nbgrader_run_info}
+            search={this.state.student_search}
           />
           {this.render_note()}
           <br />
@@ -1697,6 +1712,7 @@ interface StudentListForAssignmentProps {
   active_student_sort: SortDescription;
   active_feedback_edits: IsGradingMap;
   nbgrader_run_info?: NBgraderRunInfo;
+  search: string;
 }
 
 class StudentListForAssignment extends Component<
@@ -1713,6 +1729,7 @@ class StudentListForAssignment extends Component<
       "active_student_sort",
       "active_feedback_edits",
       "nbgrader_run_info",
+      "search",
     ]);
     if (x) {
       delete this.student_list;
@@ -1738,12 +1755,6 @@ class StudentListForAssignment extends Component<
       student_id
     );
     const edited_feedback = this.props.active_feedback_edits.get(key);
-    let edited_comments: string | undefined;
-    let edited_grade: string | undefined;
-    if (edited_feedback != undefined) {
-      edited_comments = edited_feedback.get("edited_comments");
-      edited_grade = edited_feedback.get("edited_grade");
-    }
     return (
       <StudentAssignmentInfo
         key={student_id}
@@ -1768,8 +1779,6 @@ class StudentListForAssignment extends Component<
           this.props.assignment.get("assignment_id")
         )}
         is_editing={!!edited_feedback}
-        edited_comments={edited_comments}
-        edited_grade={edited_grade}
         nbgrader_run_info={this.props.nbgrader_run_info}
       />
     );
@@ -1785,11 +1794,23 @@ class StudentListForAssignment extends Component<
       this.props.user_map,
       this.props.redux
     );
+    const store = this.get_store();
 
-    // Remove deleted students
+    // Remove deleted students or students not matching the search
+    const terms = misc.search_split(this.props.search);
     const v1: any[] = [];
     for (const x of v0) {
-      if (!x.deleted) v1.push(x);
+      if (x.deleted) continue;
+      if (
+        terms.length > 0 &&
+        !misc.search_match(
+          store.get_student_name(x.student_id).toLowerCase(),
+          terms
+        )
+      ) {
+        continue;
+      }
+      v1.push(x);
     }
 
     v1.sort(util.pick_student_sorter(this.props.active_student_sort.toJS()));

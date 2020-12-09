@@ -5,18 +5,20 @@
 
 import { Menu, Dropdown, Button } from "antd";
 import { DownOutlined } from "@ant-design/icons";
-import { merge } from "smc-util/misc2";
-import { Component, React } from "../app-framework";
+import { CSS, Component, React } from "../app-framework";
 
 interface Props {
   title?: JSX.Element | string;
   id?: string;
   onClick?: (key: string) => void;
-  style?: React.CSSProperties;
+  style?: CSS;
   disabled?: boolean;
   button?: boolean;
+  hide_down?: boolean;
   maxHeight?: string;
 }
+
+const STYLE = { margin: "6px 12px", cursor: "pointer" } as CSS;
 
 export class DropdownMenu extends Component<Props> {
   on_click(e): void {
@@ -33,32 +35,28 @@ export class DropdownMenu extends Component<Props> {
           disabled={this.props.disabled}
           id={this.props.id}
         >
-          {this.props.title} <DownOutlined />
+          {this.props.title} {!this.props.hide_down && <DownOutlined />}
         </Button>
       );
     } else {
-      let style = { margin: "6px 12px", cursor: "pointer" };
       if (this.props.disabled) {
         return (
           <span
             id={this.props.id}
-            style={merge(
-              {
+            style={{
+              ...{
                 color: "#777",
                 cursor: "not-allowed",
               },
-              style
-            )}
+              ...STYLE,
+            }}
           >
             <span style={this.props.style}>{this.props.title}</span>
           </span>
         );
       } else {
-        if (this.props.style) {
-          style = merge(style, this.props.style);
-        }
         return (
-          <span style={style} id={this.props.id}>
+          <span style={{ ...STYLE, ...this.props.style }} id={this.props.id}>
             {this.props.title}
           </span>
         );

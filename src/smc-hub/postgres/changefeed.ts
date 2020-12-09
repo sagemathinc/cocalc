@@ -15,14 +15,9 @@ You must recreate it.
 */
 
 import { EventEmitter } from "events";
-
 import * as misc from "../smc-util/misc";
-import { close } from "../smc-util/misc2";
-
 import { callback } from "awaiting";
-
 import { PostgreSQL, QuerySelect } from "./types";
-
 import { query } from "./changefeed-query";
 
 type WhereCondition = Function | object | object[];
@@ -133,7 +128,7 @@ export class Changes extends EventEmitter {
     this.db.removeListener(this.trigger_name, this.handle_change);
     this.db.removeListener("connect", this.close);
     this.db._stop_listening(this.table, this.select, this.watch);
-    close(this);
+    misc.close(this);
     this.closed = true;
   }
 

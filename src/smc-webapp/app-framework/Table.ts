@@ -5,7 +5,7 @@
 
 import { AppRedux } from "../app-framework";
 import { WebappClient } from "../client/client";
-import { bind_methods } from "../../smc-util/misc2";
+import { bind_methods } from "../../smc-util/misc";
 
 declare let Primus;
 

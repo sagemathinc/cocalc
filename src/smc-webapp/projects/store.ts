@@ -7,17 +7,17 @@ import { List, Map, Set } from "immutable";
 import { redux, Store } from "../app-framework";
 import { webapp_client } from "../webapp-client";
 import {
-  copy,
   coerce_codomain_to_numbers,
+  map_sum,
+  copy,
   cmp,
   keys,
   len,
-  map_sum,
   months_before,
+  parse_number_input,
 } from "smc-util/misc";
 import { CUSTOM_IMG_PREFIX } from "../custom-software/util";
 import { max_quota, site_license_quota } from "smc-util/upgrades/quota";
-
 import { PROJECT_UPGRADES } from "smc-util/schema";
 import { fromPairs } from "lodash";
 const ZERO_QUOTAS = fromPairs(
@@ -29,7 +29,8 @@ import { has_internet_access } from "../upgrades/upgrade-utils";
 
 import { WebsocketState } from "../project/websocket/websocket-state";
 
-export type ProjectMap = Map<string, Map<string, any>>;
+export type Project = Map<string, any>;
+export type ProjectMap = Map<string, Project>;
 
 export interface ProjectsState {
   project_map?: ProjectMap;
@@ -156,10 +157,6 @@ export class ProjectsStore extends Store<ProjectsState> {
     if (is_student && !this.is_deleted(project_id)) {
       // signed in user is the student
       let pay = info.get("pay");
-      if (pay === true) {
-        // bug -- can delete this workaround in March 2019.
-        pay = new Date("2019-02-15");
-      }
       if (pay) {
         if (webapp_client.server_time() >= months_before(-3, pay)) {
           // It's 3 months after date when sign up required, so course likely over,
@@ -290,7 +287,7 @@ export class ProjectsStore extends Store<ProjectsState> {
         .getIn(["users", webapp_client.account_id, "upgrades"])
         ?.toJS();
       if (upgrades == null) return;
-      total = map_sum(total, upgrades);
+      total = map_sum(total as any, upgrades);
     });
     return total;
   }
@@ -413,10 +410,11 @@ export class ProjectsStore extends Store<ProjectsState> {
       // contributions from old-format site license contribution
       for (let license_id in site_license) {
         const info = site_license[license_id];
-        const object = info != null ? info : {};
+        const object = info ?? {};
         for (let prop in object) {
           const val = object[prop];
-          upgrades[prop] = (upgrades[prop] ?? 0) + parseInt(val);
+          upgrades[prop] =
+            (upgrades[prop] ?? 0) + (parse_number_input(val) ?? 0);
         }
       }
     }
@@ -448,8 +446,8 @@ export class ProjectsStore extends Store<ProjectsState> {
       project_id
     );
     const quota = map_sum(
-      map_sum(base_values, upgrades),
-      site_license_upgrades
+      map_sum(base_values, upgrades as any),
+      site_license_upgrades as any
     );
     this.new_format_license_quota(project_id, quota);
 
@@ -496,7 +494,7 @@ export class ProjectsStore extends Store<ProjectsState> {
       delete license_quota["cpu_limit"];
       license_quota.memory = license_quota.memory_limit;
       delete license_quota["memory_limit"];
-      license_quota.cpu_shares = 1024 * license_quota.cpu_request;
+      license_quota.cpu_shares = 1024 * (license_quota.cpu_request ?? 0);
       delete license_quota["cpu_request"];
       max_quota(quota, license_quota);
     }

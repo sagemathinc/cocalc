@@ -32,11 +32,10 @@ Table({
 
     user_query: {
       get: {
-        // if you change the interval, change the text in projects.cjsx
-        pg_where: ["last_edited >= NOW() - interval '10 days'", "projects"],
+        pg_where: ["last_edited >= NOW() - interval '21 days'", "projects"],
         pg_where_load: ["last_edited >= NOW() - interval '2 days'", "projects"],
-        options: [{ limit: 20, order_by: "-last_edited" }],
-        options_load: [{ limit: 10, order_by: "-last_edited" }],
+        options: [{ limit: 100, order_by: "-last_edited" }],
+        options_load: [{ limit: 15, order_by: "-last_edited" }],
         pg_changefeed: "projects",
         throttle_changes: 2000,
         fields: {

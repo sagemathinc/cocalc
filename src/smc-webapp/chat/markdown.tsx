@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React } from "../app-framework";
 import { Markdown as Markdown0 } from "../r_misc";
 
@@ -22,7 +27,6 @@ export const Markdown: React.FC<Props> = ({
         project_id={project_id}
         file_path={file_path}
         className={className}
-        checkboxes={true}
       />
     </div>
   );

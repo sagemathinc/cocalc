@@ -22,7 +22,8 @@ export interface BillingStoreState {
   continue_first_purchase?: boolean;
   selected_plan?: string;
   course_pay: CoursePay;
-  managed_license_ids?: List<string[]>; // array of id's of license you manage. Not a changefeed -- you must explicitly call update_managed_licenses action.
+  managed_license_ids?: List<string[]>; // array of active (or recently expired) id's of license you manage. Not a changefeed -- you must explicitly call update_managed_licenses action.
+  all_managed_license_ids?: List<string[]>; // same as managed_license_ids, but also includes all expired licenses.
   managed_licenses?: Map<string, TypedMap<SiteLicense>>; // actual data of the licenses.
   subscription_list_state?: "view" | "buy_upgrades" | "buy_license";
 }

@@ -4,28 +4,36 @@
  */
 
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
-import { trunc_middle, merge, ensure_bound } from "smc-util/misc";
+import { ensure_bound, startswith, trunc_middle } from "smc-util/misc";
 import { webapp_client } from "../../webapp-client";
-import { React, redux, useTypedRedux } from "../../app-framework";
+import {
+  CSS,
+  React,
+  redux,
+  useAsyncEffect,
+  useState,
+  useTypedRedux,
+} from "../../app-framework";
 import { Space } from "../../r_misc";
 import { avatar_fontcolor } from "./font-color";
 import { ProjectTitle } from "../../projects/project-title";
+import { DEFAULT_COLOR } from "../../users/store";
 
 const CIRCLE_OUTER_STYLE = {
   textAlign: "center",
   cursor: "pointer",
-};
+} as CSS;
 
 const CIRCLE_INNER_STYLE = {
   display: "block",
   borderRadius: "50%",
   fontFamily: "sans-serif",
-};
+} as CSS;
 
 interface Props {
-  account_id: string;
-  size?: number;
-  max_age_s?: number;
+  account_id?: string; // if not given useful as a placeholder in the UI (e.g., if we don't know account_id yet)
+  size?: number; // in pixels
+  max_age_s?: number; // if given fade the avatar out over time.
   project_id?: string; // if given, showing avatar info for a project (or specific file)
   path?: string; // if given, showing avatar for a specific file
 
@@ -34,11 +42,41 @@ interface Props {
   // When defined, fade out over time; click goes to that file.
   no_tooltip?: boolean; // if true, do not show a tooltip with full name info
   no_loading?: boolean; // if true, do not show a loading indicator (show nothing)
+
+  first_name?: string; // optional name to use
+  last_name?: string;
 }
 
 export const Avatar: React.FC<Props> = (props) => {
   // we use the user_map to display the username and face:
   const user_map = useTypedRedux("users", "user_map");
+  const [image, set_image] = useState<string | undefined>(undefined);
+  const [background_color, set_background_color] = useState<string>(
+    DEFAULT_COLOR
+  );
+
+  useAsyncEffect(
+    async (isMounted) => {
+      if (!props.account_id) return;
+      const image = await redux.getStore("users").get_image(props.account_id);
+      if (isMounted()) {
+        if (startswith(image, "https://api.adorable.io")) {
+          // Adorable is gone -- see https://github.com/sagemathinc/cocalc/issues/5054
+          set_image(undefined);
+        } else {
+          set_image(image);
+        }
+      }
+      const background_color = await redux
+        .getStore("users")
+        .get_color(props.account_id);
+      if (isMounted()) {
+        set_background_color(background_color);
+      }
+    }, // Update image and/or color if the account_id changes *or* the profile itself changes:
+    //    https://github.com/sagemathinc/cocalc/issues/5013
+    [props.account_id, user_map.getIn([props.account_id, "profile"])]
+  );
 
   function click_avatar() {
     if (props.activity == null) {
@@ -66,6 +104,10 @@ export const Avatar: React.FC<Props> = (props) => {
   }
 
   function letter() {
+    if (props.first_name) {
+      return props.first_name.toUpperCase()[0];
+    }
+    if (!props.account_id) return "?";
     const first_name = user_map.getIn([props.account_id, "first_name"]);
     if (first_name) {
       return first_name.toUpperCase()[0];
@@ -75,18 +117,17 @@ export const Avatar: React.FC<Props> = (props) => {
   }
 
   function get_name() {
+    if (props.first_name != null || props.last_name != null) {
+      return trunc_middle(
+        `${props.first_name ?? ""} ${props.last_name ?? ""}`.trim(),
+        20
+      );
+    }
+    if (!props.account_id) return "Unknown";
     return trunc_middle(
       redux.getStore("users").get_name(props.account_id)?.trim(),
       20
     );
-  }
-
-  function get_background_color() {
-    return redux.getStore("users").get_color(props.account_id);
-  }
-
-  function get_image() {
-    return redux.getStore("users").get_image(props.account_id);
   }
 
   function viewing_what() {
@@ -114,7 +155,7 @@ export const Avatar: React.FC<Props> = (props) => {
   }
 
   function get_cursor_line() {
-    if (props.activity == null) {
+    if (props.activity == null || props.account_id == null) {
       return;
     }
     const { project_id, path } = props.activity;
@@ -165,35 +206,33 @@ export const Avatar: React.FC<Props> = (props) => {
   }
 
   function render_tooltip() {
-    return <Tooltip id={props.account_id}>{render_tooltip_content()}</Tooltip>;
+    return (
+      <Tooltip id={props.account_id ?? "unknown"}>
+        {render_tooltip_content()}
+      </Tooltip>
+    );
   }
 
   function render_inside() {
-    const url = get_image();
-    if (url) {
-      return render_image(url);
+    if (image) {
+      return (
+        <img
+          style={{ borderRadius: "50%", width: "100%", verticalAlign: "top" }}
+          src={image}
+        />
+      );
     } else {
       return render_letter();
     }
   }
 
-  function render_image(url) {
-    return (
-      <img
-        style={{ borderRadius: "50%", width: "100%", verticalAlign: "top" }}
-        src={url}
-      />
-    );
-  }
-
   function render_letter() {
-    const backgroundColor = get_background_color();
-    const color = avatar_fontcolor(backgroundColor);
+    const color = avatar_fontcolor(background_color);
     const style = {
-      backgroundColor, // onecolor doesn't provide magenta in some browsers
+      backgroundColor: background_color, // the onecolor library doesn't provide magenta in some browsers
       color,
     };
-    return <span style={merge(style, CIRCLE_INNER_STYLE)}>{letter()}</span>;
+    return <span style={{ ...style, ...CIRCLE_INNER_STYLE }}>{letter()}</span>;
   }
 
   function fade() {
@@ -224,7 +263,7 @@ export const Avatar: React.FC<Props> = (props) => {
   const elt = (
     <div style={{ display: "inline-block", cursor: "pointer" }}>
       <div
-        style={merge(outer_style, CIRCLE_OUTER_STYLE)}
+        style={{ ...outer_style, ...CIRCLE_OUTER_STYLE }}
         onClick={click_avatar}
       >
         {render_inside()}

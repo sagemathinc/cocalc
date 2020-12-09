@@ -6,10 +6,11 @@
 //TODO: Make useable without passing in user_map
 
 import { React, Component } from "../app-framework";
-import { TimeAgo, Tip } from "../r_misc";
+import { Space, TimeAgo, Tip } from "../r_misc";
 import { is_valid_uuid_string, trunc_middle } from "smc-util/misc";
 import { UserMap } from "./types";
 import { actions } from "./actions";
+import { Avatar } from "../account/avatar/avatar";
 
 interface Props {
   account_id: string;
@@ -17,6 +18,7 @@ interface Props {
   last_active?: Date | number;
   show_original?: boolean;
   name?: string;
+  show_avatar?: boolean; // if true, show an avatar to the left of the user
 }
 
 export class User extends Component<Props> {
@@ -73,7 +75,7 @@ export class User extends Component<Props> {
     } else if (info.last_name) {
       full_name = info.last_name;
     } else {
-      full_name = "";
+      full_name = "No Name";
     }
 
     if (this.props.show_original && full_name !== this.props.name) {
@@ -90,12 +92,16 @@ export class User extends Component<Props> {
   }
 
   name(info) {
-    return trunc_middle(
+    const x = trunc_middle(
       this.props.name != null
         ? this.props.name
         : `${info.first_name} ${info.last_name}`,
       50
-    );
+    ).trim();
+    if (x) {
+      return x;
+    }
+    return "No Name";
   }
 
   render() {
@@ -114,9 +120,16 @@ export class User extends Component<Props> {
       return <span>Loading...</span>;
     } else {
       info = info.toJS();
+      const n = this.name(info);
       return (
         <span>
-          {this.name(info)}
+          {this.props.show_avatar && (
+            <>
+              <Avatar account_id={this.props.account_id} first_name={n} />
+              <Space />
+            </>
+          )}
+          {n}
           {this.render_original(info)}
           {this.render_last_active()}
         </span>

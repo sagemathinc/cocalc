@@ -8,7 +8,6 @@ import {
   React,
   useEffect,
   useActions,
-  useRef,
   useState,
   useStore,
 } from "../app-framework";
@@ -25,22 +24,21 @@ export const ProjectsSearch: React.FC<Props> = ({
 }) => {
   const store = useStore("projects");
   const [search, set_search] = useState<string>(store.get("search") ?? "");
-  const projects_search_ref = useRef<any>(null);
   const actions = useActions("projects");
 
   useEffect(() => {
-    projects_search_ref.current?.clear_and_focus_search_input();
+    set_search("");
   }, [clear_and_focus_search]);
 
   const debounce_set_search = debounce((search) => {
-    actions.setState({ search });
+    actions.setState({ search: search.toLowerCase() });
   }, 300);
 
   return (
     <SearchInput
-      ref={projects_search_ref}
       autoFocus={true}
       value={search}
+      focus={clear_and_focus_search}
       on_change={(value) => {
         set_search(value);
         debounce_set_search(value);

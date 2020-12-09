@@ -16,7 +16,7 @@ import { IPynbImporter } from "../import-from-ipynb";
 import { WebappClient } from "../../webapp-client";
 
 import { NBViewerState, NBViewerStore } from "./store";
-import { close } from "smc-util/misc2";
+import { close } from "smc-util/misc";
 
 export class NBViewerActions extends Actions<NBViewerState> {
   private store: NBViewerStore;

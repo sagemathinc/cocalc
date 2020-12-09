@@ -74,7 +74,7 @@ type login_info_keys =
   | "full_name"
   | "emails";
 
-interface PassportStrategyDB extends PassportStrategy {
+export interface PassportStrategyDB extends PassportStrategy {
   clientID?: string; // Google, Twitter, ... and OAuth2
   clientSecret?: string; // Google, Twitter, ... and OAuth2
   authorizationURL?: string; // OAuth2
@@ -83,6 +83,7 @@ interface PassportStrategyDB extends PassportStrategy {
   login_info?: { [key in login_info_keys]?: string };
   public?: boolean; // if true it's a public SSO. this is only used in the UI, i.e. when there are no public ones, we allow token based email sign up
   disabled?: boolean; // if true, ignore this entry. default false.
+  exclusive_domains?: string[];
 }
 
 const { defaults, required } = misc;
@@ -466,6 +467,7 @@ export class PassportManager {
         "type",
         "icon",
         "public",
+        "exclusive_domains",
       ]);
       data.push(info);
     }
@@ -886,6 +888,7 @@ export class PassportManager {
     opts.id = `${opts.id}`; // convert to string (id is often a number)
 
     try {
+      // do we have a valid remember me cookie for a given account_id already?
       await this.check_remember_me_cookie(locals);
       // do we already have a passport?
       await this.check_passport_exists(opts, locals);
@@ -911,6 +914,15 @@ export class PassportManager {
     }
   } // end passport_login
 
+  // Check for a valid remember me cookie.  If there is one, set
+  // the account_id and has_valid_remember_me fields of locals.
+  // If not, do NOTHING except log some debugging messages.  Does
+  // not raise an exception.  See
+  //     https://github.com/sagemathinc/cocalc/issues/4767
+  // where this was failing the sign in if the remmeber me was
+  // invalid in any way, which is overkill... since rememember_me
+  // not being valid should just not entitle the user to having a
+  // a specific account_id.
   private async check_remember_me_cookie(
     locals: PassportLoginLocals
   ): Promise<void> {
@@ -921,7 +933,8 @@ export class PassportManager {
     const value = locals.remember_me_cookie;
     const x: string[] = value.split("$");
     if (x.length !== 4) {
-      throw Error("badly formatted remember_me cookie");
+      dbg("badly formatted remember_me cookie");
+      return;
     }
     let hash;
     try {
@@ -941,7 +954,8 @@ export class PassportManager {
         locals.account_id = signed_in_mesg.account_id;
         locals.has_valid_remember_me = true;
       } else {
-        throw Error("no valid remember_me token");
+        dbg("no valid remember_me token");
+        return;
       }
     }
   }

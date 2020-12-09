@@ -10,14 +10,15 @@ declare var Primus: any;
 const { delete_cookie } = require("../misc_page");
 import { QueryParams } from "../misc/query-params";
 import {
+  copy_without,
   delete_local_storage,
   from_json_socket,
   to_json_socket,
   set_local_storage,
   defaults,
   required,
+  uuid,
 } from "smc-util/misc";
-import { copy_without, uuid } from "smc-util/misc2";
 import * as message from "smc-util/message";
 import {
   do_anonymous_setup,
@@ -186,7 +187,7 @@ export class HubClient {
         this.client.account_id = mesg.account_id;
         this.set_signed_in();
         this.signed_in_time = new Date().valueOf();
-        set_local_storage(this.client.remember_me_key(), true);
+        set_local_storage(this.client.remember_me_key(), "true");
         this.signed_in_mesg = mesg;
         this.client.emit("signed_in", mesg);
         break;

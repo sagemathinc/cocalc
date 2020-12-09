@@ -29,24 +29,15 @@ export function set_debug(x: boolean): void {
 }
 
 import { delay } from "awaiting";
-
 import { global_cache_decref } from "./global-cache";
-
 import { EventEmitter } from "events";
 import { Map, fromJS, List } from "immutable";
-
 import { keys, throttle } from "underscore";
-
 import { callback2, cancel_scheduled, once } from "../../async-utils";
-
 import { wait } from "../../async-wait";
-
 import { query_function } from "./query-function";
-
-import { copy, is_array, is_object, len } from "../../misc2";
-
-const misc = require("../../misc");
-const schema = require("../../schema");
+import { assert_uuid, copy, is_array, is_object, len } from "../../misc";
+import * as schema from "../../schema";
 
 export type Query = any; // todo
 export type QueryOptions = any[]; // todo
@@ -362,7 +353,7 @@ export class SyncTable extends EventEmitter {
       }
     }
     if (DEBUG) {
-      //console.log(`set('${this.table}'): ${misc.to_json(changes.toJS())}`);
+      //console.log(`set('${this.table}'): ${JSON.stringify(changes.toJS())}`);
     }
 
     // For sanity!
@@ -1214,7 +1205,7 @@ export class SyncTable extends EventEmitter {
           return !!value;
         }
         if (desired === "uuid") {
-          misc.assert_uuid(value);
+          assert_uuid(value);
           return value;
         }
         return value;

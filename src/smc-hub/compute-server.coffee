@@ -445,7 +445,7 @@ class Project
                             if err
                                 cb(err)
                             else
-                                resp.assigned = result[0].assigned
+                                resp.assigned = result[0]?.assigned
                                 cb()
                 else
                     cb()

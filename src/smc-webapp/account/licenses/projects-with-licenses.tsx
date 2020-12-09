@@ -1,5 +1,9 @@
-import { Row, Col } from "antd";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
+import { Row, Col } from "antd";
 import {
   React,
   useMemo,
@@ -9,7 +13,7 @@ import {
 } from "../../app-framework";
 import { Loading, TimeAgo, WindowedList } from "../../r_misc";
 import { projects_with_licenses } from "./util";
-import { plural, trunc_middle } from "smc-util/misc2";
+import { plural, trunc_middle } from "smc-util/misc";
 import { LICENSES_STYLE } from "./managed-licenses";
 
 function open_project(project_id: string): void {

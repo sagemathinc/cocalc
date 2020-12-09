@@ -46,7 +46,7 @@ export class NoFiles extends React.PureComponent<Props> {
 
   handle_click = () => {
     if (this.props.file_search.length === 0) {
-      this.props.actions.toggle_new(true);
+      this.props.actions.set_active_tab('new');
     } else if (
       this.props.file_search[this.props.file_search.length - 1] === "/"
     ) {

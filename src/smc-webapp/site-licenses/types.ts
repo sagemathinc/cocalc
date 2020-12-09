@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Quota } from "smc-util/db-schema/site-licenses";
+
 export interface SiteLicensePublicInfo {
   id: string;
   title: string;
@@ -12,13 +14,8 @@ export interface SiteLicensePublicInfo {
   run_limit?: number;
   upgrades?: { [field: string]: number };
   is_manager?: boolean;
+  managers?: string[];
   running?: number;
-  quota?: {
-    ram?: number;
-    cpu?: number;
-    disk?: number;
-    always_running?: boolean;
-    member?: boolean;
-    user?: "academic" | "business";
-  };
+  applied?: number;
+  quota?: Quota;
 }

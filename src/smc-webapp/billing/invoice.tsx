@@ -7,7 +7,7 @@ import { React, useState } from "../app-framework";
 import { Row, Col } from "../antd-bootstrap";
 import { Icon } from "../r_misc";
 import { open_popup_window } from "../misc-page/open-browser-tab";
-import { stripe_date } from "smc-util/misc";
+import { capitalize, stripe_date } from "smc-util/misc";
 import { render_amount } from "./util";
 import { InvoiceMap, InvoiceLineMap } from "./types";
 
@@ -20,19 +20,27 @@ export const Invoice: React.FC<Props> = ({ invoice }) => {
 
   function download(e): void {
     e.preventDefault();
-    for (const [x, val] of invoice) {
-      if (x.endsWith("_url")) {
-        open_popup_window(val as string);
-        return;
-      }
+    const url = invoice.get("hosted_invoice_url");
+    if (url) {
+      open_popup_window(url as string);
     }
+    return;
   }
 
   function render_paid_status(): JSX.Element {
-    if (invoice.get("paid")) {
-      return <span>PAID {hide_line_items ? "" : " Thanks!"}</span>;
+    // The status of the invoice: one of draft, open, paid, uncollectible, or void
+    const status = capitalize(invoice.get("status") ?? "");
+    if (invoice.get("hosted_invoice_url")) {
+      return (
+        <a
+          style={status == "Open" ? { color: "red" } : undefined}
+          onClick={download}
+        >
+          {status == "Open" ? " Click here to pay..." : status}
+        </a>
+      );
     } else {
-      return <a style={{ color: "red" }} onClick={download}>UNPAID (click to pay)</a>;
+      return <span>{status}</span>;
     }
   }
 

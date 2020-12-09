@@ -18,8 +18,7 @@ import { A, Space } from "../../r_misc";
 import { CSS, React, useMemo, useState } from "../../app-framework";
 import { Quota } from "smc-util/db-schema/site-licenses";
 import { COSTS, GCE_COSTS, money } from "./util";
-import { plural } from "smc-util/misc2";
-import { round1 } from "smc-util/misc";
+import { plural, round1 } from "smc-util/misc";
 
 const ROW_STYLE: CSS = {
   border: "1px solid #eee",
@@ -46,6 +45,7 @@ interface Props {
   onChange: (change: Quota) => void;
   hideExtra?: boolean; // hide extra boxes, etc. -- this is used for admin editing, where they know what is up.
   disabled?: boolean;
+  show_advanced_default?: boolean; // if the "advanced" part should pop up by default
 }
 
 export const QuotaEditor: React.FC<Props> = ({
@@ -53,8 +53,11 @@ export const QuotaEditor: React.FC<Props> = ({
   onChange,
   hideExtra,
   disabled,
+  show_advanced_default,
 }) => {
-  const [show_advanced, set_show_advanced] = useState<boolean>(false);
+  const [show_advanced, set_show_advanced] = useState<boolean>(
+    show_advanced_default ?? false
+  );
   const hosting_multiplier = useMemo(() => {
     return (
       (quota.member ? COSTS.custom_cost.member : 1) *

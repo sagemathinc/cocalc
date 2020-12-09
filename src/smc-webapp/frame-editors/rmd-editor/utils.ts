@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { change_filename_extension, path_split } from "smc-util/misc2";
+import { change_filename_extension, path_split } from "smc-util/misc";
 import { join } from "path";
 
 // something in the rmarkdown source code replaces all spaces by dashes

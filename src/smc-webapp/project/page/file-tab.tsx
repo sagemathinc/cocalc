@@ -22,9 +22,9 @@ import {
   useState,
   useTypedRedux,
 } from "../../app-framework";
-import { path_to_tab } from "smc-util/misc";
-import { path_split } from "smc-util/misc2";
-import { COLORS, HiddenXS, Icon, Tip } from "../../r_misc";
+import { path_split, path_to_tab } from "smc-util/misc";
+import { HiddenXS, Icon, Tip } from "../../r_misc";
+import { COLORS } from "smc-util/theme";
 
 export const FIXED_PROJECT_TABS = {
   files: {
@@ -286,35 +286,3 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
     </NavItem>
   );
 });
-
-/*
-  propTypes: {
-    name: rtypes.string,
-    label: rtypes.string, // rendered tab title
-    icon: rtypes.string, // Affiliated icon
-    project_id: rtypes.string,
-    tooltip: rtypes.string,
-    is_selected: rtypes.bool,
-    file_tab: rtypes.bool, // Whether or not this tab holds a file *editor*
-    shrink: rtypes.bool, // Whether or not to shrink to just the icon
-    has_activity: rtypes.bool,
-  }, // Whether or not some activity is happening with the file
-
-  getInitialState() {
-    return { x_hovered: false };
-  },
-
-  componentDidMount() {
-    return this.strip_href();
-  },
-
-  componentDidUpdate() {
-    return this.strip_href();
-  },
-
-  strip_href() {
-    return __guard__(ReactDOM.findDOMNode(this.refs.tab), (x) =>
-      x.children[0].removeAttribute("href")
-    );
-  },
-*/

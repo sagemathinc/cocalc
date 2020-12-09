@@ -29,6 +29,9 @@ export interface QueryOptions {
   jsonb_merge?: object;
   cache?: boolean;
   retry_until_success?: any; // todo
+  offset?: number;
+  limit?: number;
+  timeout_s?: number;
   cb?: Function;
 }
 
@@ -189,6 +192,7 @@ export interface PostgreSQL extends EventEmitter {
   });
   get_passport_settings(opts: { strategy: string; cb: Function });
   get_all_passport_settings(opts: { cb: Function });
+  get_all_passport_settings_cached(opts: { cb: Function });
 
   change_password(opts: {
     account_id: string;

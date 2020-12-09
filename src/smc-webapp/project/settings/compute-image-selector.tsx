@@ -5,13 +5,11 @@
 
 // This is for selecting the "standard" compute images Ubuntu XX.YY, etc.
 
-import {
-  React,
-  // useTypedRedux,
-} from "../../app-framework";
+import { React } from "../../app-framework";
 import { fromJS } from "immutable";
-import { Icon, COLORS, Space } from "../../r_misc";
-import { unreachable } from "smc-util/misc2";
+import { Icon, Space } from "../../r_misc";
+import { COLORS } from "smc-util/theme";
+import { unreachable } from "smc-util/misc";
 import { Button, Menu, Dropdown } from "antd";
 import { Row, Col } from "../../antd-bootstrap";
 import { DownOutlined } from "@ant-design/icons";

@@ -8,12 +8,11 @@ Show the last latex build log, i.e., output from last time we ran the LaTeX buil
 */
 
 import Ansi from "ansi-to-react";
-import { path_split } from "smc-util/misc2";
+import { path_split } from "smc-util/misc";
 import { React, Rendered, useRedux } from "../../app-framework";
 import { BuildCommand } from "./build-command";
 import { Loading } from "smc-webapp/r_misc";
-import { Tabs } from "antd";
-const { TabPane } = Tabs;
+import { Tab, Tabs } from "../../antd-bootstrap";
 import { COLORS } from "../../../smc-util/theme";
 import { BuildLogs } from "./actions";
 import { use_build_logs } from "./hooks";
@@ -87,31 +86,15 @@ const BUILD_SPECS: IBuildSpecs = {
 };
 
 interface Props {
-  id: string;
   name: string;
   actions: any;
-  editor_state: Map<string, any>;
-  is_fullscreen: boolean;
-  project_id: string;
   path: string;
-  reload: number;
   font_size: number;
   status: string;
 }
 
 export const Build: React.FC<Props> = React.memo((props) => {
-  const {
-    /*id,*/
-    name,
-    actions,
-    /*project_id,*/
-    /*editor_state,*/
-    /*is_fullscreen,*/
-    path,
-    /*reload,*/
-    font_size: font_size_orig,
-    status,
-  } = props;
+  const { name, actions, path, font_size: font_size_orig, status } = props;
 
   const font_size = 0.8 * font_size_orig;
   const build_logs: BuildLogs = use_build_logs(name);
@@ -134,7 +117,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
       whiteSpace: "pre-line",
       color: COLORS.GRAY_D,
       background: COLORS.GRAY_LLL,
-      display: "block",
+      display: active_tab === title ? "block" : "none",
       width: "100%",
       padding: "5px",
       fontSize: `${font_size}px`,
@@ -144,10 +127,10 @@ export const Build: React.FC<Props> = React.memo((props) => {
     const err_style = error ? { background: COLORS.ATND_BG_RED_L } : undefined;
     const tab_button = <div style={err_style}>{title}</div>;
     return (
-      <TabPane tab={tab_button} key={title} style={style}>
+      <Tab key={title} eventKey={title} title={tab_button} style={style}>
         {time_str && `Build time: ${time_str}\n\n`}
         <Ansi>{value}</Ansi>
-      </TabPane>
+      </Tab>
     );
   }
 
@@ -182,17 +165,13 @@ export const Build: React.FC<Props> = React.memo((props) => {
 
   function render_logs(): Rendered {
     if (status) return;
-    // Regarding scrolling, it would be way better to have height 100% on Tabs and also on
-    // the container of the tab body, and then only overflowY on the tab body, so only the log
-    // itself scrolls rather than the tabs too.  But I don't see how to do that given what
-    // antd trivially exposes.  I'll leave that to followup works.
     return (
       <Tabs
-        style={{ height: "100%", overflowY: "auto" }}
+        activeKey={active_tab}
+        onSelect={set_active_tab}
         tabPosition={"left"}
         size={"small"}
-        activeKey={active_tab}
-        onTabClick={(key) => set_active_tab(key)}
+        style={{ height: "100%", overflowY: "auto" }}
       >
         {render_log("latex")}
         {render_log("sagetex")}

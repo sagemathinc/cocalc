@@ -10,9 +10,8 @@ import * as immutable from "immutable";
 import { Icon } from "../r_misc/icon";
 import { Loading } from "../r_misc/loading";
 import { Tip } from "../r_misc/tip";
-import { closest_kernel_match } from "smc-util/misc";
+import { closest_kernel_match, trunc } from "smc-util/misc";
 import { Logo } from "./logo";
-import { trunc } from "smc-util/misc2";
 import { JupyterActions } from "./browser-actions";
 
 interface ModeProps {
@@ -141,15 +140,16 @@ class Kernel0 extends Component<KernelProps> {
   }
 
   render_name() {
-    let display_name =
-      this.props.kernel_info != null
-        ? this.props.kernel_info.get("display_name")
-        : undefined;
-    if (display_name == null && this.props.kernels != null) {
+    let display_name = this.props.kernel_info?.get("display_name");
+    if (
+      display_name == null &&
+      this.props.kernel != null &&
+      this.props.kernels != null
+    ) {
       // Definitely an unknown kernel
       const closestKernel = closest_kernel_match(
         this.props.kernel,
-        this.props.kernels
+        this.props.kernels as any // TODO
       );
       if (closestKernel == null) {
         return <span style={KERNEL_ERROR_STYLE}>Unknown kernel</span>;

@@ -4,8 +4,8 @@
  */
 
 import { React } from "../app-framework";
-
-import { COLORS, Icon } from "../r_misc";
+import { Icon } from "../r_misc";
+import { COLORS } from "smc-util/theme";
 
 export function Connecting(_props) {
   return (

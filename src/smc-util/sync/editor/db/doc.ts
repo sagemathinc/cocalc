@@ -6,11 +6,7 @@
 import { CompressedPatch, Document } from "../generic/types";
 import * as immutable from "immutable";
 import { isEqual } from "underscore";
-
-import { is_array, is_object, copy_without } from "../../../misc";
-
-import { len } from "../../../misc2";
-
+import { is_array, is_object, copy_without, len } from "../../../misc";
 import {
   make_patch as string_make_patch,
   apply_patch as string_apply_patch,
@@ -468,7 +464,7 @@ export class DBDocument implements Document {
     } else {
       // The sparse array matches had nothing in it, so
       // append a new record.
-      for (const field in this.string_cols) {
+      for (const field of this.string_cols) {
         if (obj[field] != null && is_array(obj[field])) {
           // It's a patch -- but there is nothing to patch,
           // so discard this field

@@ -8,6 +8,8 @@ jQuery plugin to use KaTeX when possible to typeset all the math in a
 jQuery DOM tree.
 
 Falls back to mathjax *plugin* when katex fails, if said plugin is available.
+Also immediately falls back to mathjax if account prefs other settings katex
+is explicitly known and set to false.
 */
 
 const CACHE_SIZE = 300;
@@ -19,6 +21,7 @@ import { tex2jax } from "./tex2jax";
 import * as LRU from "lru-cache";
 
 const { macros } = require("../math_katex");
+import { redux } from "../app-framework";
 
 declare global {
   interface JQuery {
@@ -50,6 +53,10 @@ function katex_plugin(): void {
   //    <script type="math/tex; mode=display">x^2</script>
   tex2jax.PreProcess(elt[0]);
 
+  const always_use_mathjax: boolean = redux
+    .getStore("account")
+    ?.getIn(["other_settings", "katex"]) === false;
+
   // Select all the math and try to use katex on each part.
   elt.find("script").each(function () {
     // @ts-ignore
@@ -70,7 +77,7 @@ function katex_plugin(): void {
         return;
       }
       text = text.replace("\\newcommand{\\Bold}[1]{\\mathbf{#1}}", ""); // hack for sage kernel for now.
-      if (is_macro_definition(text)) {
+      if (always_use_mathjax || is_macro_definition(text)) {
         //console.log("using mathjax for text since is a macro defn", text);
         // Use mathjax for this.
         // 1. clear anything in cache involving the command
@@ -101,8 +108,12 @@ function katex_plugin(): void {
           node.replaceWith(rendered);
           math_cache.set(text, rendered.clone());
         } catch (err) {
-          // Failed -- use mathjax.
-          console.log("WARNING -- ", err.toString(), ' (will fall back to mathjax)'); // toString since the traceback has no real value.
+          // Failed -- use mathjax instead.
+          console.log(
+            "WARNING -- ",
+            err.toString(),
+            " (will fall back to mathjax)"
+          ); // toString since the traceback has no real value.
           // fallback to using mathjax on this -- should be rare; not horrible if this happens...
           // Except for this, this katex pluging is synchronous and does not depend on MathJax at all.
           const node0: any = node;
