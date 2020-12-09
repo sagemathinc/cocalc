@@ -3,9 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Table } from "react-bootstrap";
 import { CSS, React, useMemo, useTypedRedux } from "../app-framework";
 import { A } from "../r_misc";
-import { Table } from "react-bootstrap";
+import { by_lowercase } from "./utils";
 
 interface Props {
   lang: string;
@@ -26,6 +27,7 @@ export const LanguageTable: React.FC<Props> = ({ lang, version_click }) => {
   }
 
   function lang_table_header(): JSX.Element {
+    if (inventory == null || language_exes == null) return <></>;
     const v: JSX.Element[] = [];
     for (const inventory_idx of inventory.keys()) {
       v.push(
@@ -45,10 +47,11 @@ export const LanguageTable: React.FC<Props> = ({ lang, version_click }) => {
     );
   }
 
-  function lang_table_body_row_versions(component_idx): JSX.Element[] {
+  function lang_table_body_row_versions(component_idx: string): JSX.Element[] {
     const v: JSX.Element[] = [];
+    if (inventory == null) return v;
     const add_row = (inventory_idx) => {
-      const info = inventory.getIn([inventory_idx, component_idx]);
+      const info = inventory?.getIn([inventory_idx, component_idx]);
       if (info == null) {
         v.push(<td key={inventory_idx}></td>);
       } else {
@@ -69,11 +72,12 @@ export const LanguageTable: React.FC<Props> = ({ lang, version_click }) => {
     return v;
   }
 
-  function lang_table_body_row_name(component_idx): JSX.Element {
+  function lang_table_body_row_name(component_idx: string): JSX.Element {
     const style = { fontWeight: "bold" } as CSS;
     const summary = { fontSize: "80%" } as CSS;
 
-    const component_info = components.get(component_idx)?.toJS();
+    // @ts-ignore  -- just being lazy about sufficiently precise typing...
+    const component_info = components?.get(component_idx)?.toJS();
     if (component_info) {
       return (
         <td key={"__name"}>
@@ -98,7 +102,7 @@ export const LanguageTable: React.FC<Props> = ({ lang, version_click }) => {
     }
   }
 
-  function lang_table_body_row(component_idx): JSX.Element {
+  function lang_table_body_row(component_idx: string): JSX.Element {
     return (
       <tr key={component_idx}>
         {lang_table_body_row_name(component_idx)}
@@ -108,17 +112,12 @@ export const LanguageTable: React.FC<Props> = ({ lang, version_click }) => {
   }
 
   function lang_table_body(): JSX.Element {
+    if (components == null) return <></>;
     const component_idxs: string[] = [];
     for (const k of components.keys()) {
       component_idxs.push(k);
     }
-    component_idxs.sort((a, b) => {
-      return a.localeCompare(b);
-      // TOOD make this below work:
-      //name_a = (@props.components[a] ? a).toLowerCase()
-      //name_b = (@props.components[b] ? b).toLowerCase()
-      //return name_a.localeCompare(name_b)
-    });
+    component_idxs.sort(by_lowercase);
 
     return (
       <tbody>
