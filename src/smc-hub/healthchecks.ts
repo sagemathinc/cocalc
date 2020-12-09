@@ -17,7 +17,25 @@ interface Opts {
   db: PostgreSQL;
 }
 
-const startup = Date.now();
+// self termination is only activated, if there is a COCALC_HUB_SELF_TERMINATE environment variable
+// it's value is an interval in hours, minimum and maximum, for how long it should live.
+function init_self_terminate(): {
+  startup: number;
+  shutdown: number | undefined;
+} {
+  const startup = Date.now();
+
+  const conf = process.env.COCALC_HUB_SELF_TERMINATE;
+  const shutdown = conf != null ? 0 : undefined;
+  return { startup, shutdown };
+}
+
+const { startup, shutdown } = init_self_terminate();
+
+interface Check {
+  status: string;
+  abort?: boolean;
+}
 
 export async function setup_healthchecks(opts: Opts): Promise<void> {
   const { router, db } = opts;
@@ -34,14 +52,51 @@ export async function setup_healthchecks(opts: Opts): Promise<void> {
     }
   });
 
+  function check_concurrent(): Check {
+    const c = db.concurrent();
+    if (c >= db._concurrent_warn) {
+      return {
+        status: `hub not healthy, since concurrent ${c} >= ${db._concurrent_warn}`,
+        abort: true,
+      };
+    } else {
+      return { status: `concurrent ${c} < ${db._concurrent_warn}` };
+    }
+  }
+
+  function check_uptime(): Check {
+    const now = Date.now();
+    const uptime = seconds2hms((now - startup) / 1000);
+    L(`uptime ${uptime}`);
+    if (shutdown != null) {
+      if (now >= shutdown) {
+        return { status: `BAD – uptime ${uptime}`, abort: true };
+      } else {
+        const until = seconds2hms(shutdown - now);
+        return { status: `uptime ${uptime} – terminate in ${until}` };
+      }
+    } else {
+      return { status: `uptime ${uptime}` };
+    }
+  }
+
   // this is a more general check than concurrent-warn
   // additionally to checking the database condition, it also self-terminates
   // this hub if it is running for quite some time. beyond that, in the future
   // there could be even more checks on top of that.
   router.get("/healthcheck", (_, res) => {
-    const uptime_s = (Date.now() - startup) / 1000;
-    L(`uptime ${seconds2hms(uptime_s)}`);
-    res.send("OK");
+    res.write("healthchecks:\n");
+    let any_abort = false;
+    for (const test of [check_concurrent(), check_uptime()]) {
+      const { status, abort } = test;
+      L(status);
+      res.write(status + "\n");
+      any_abort = any_abort || abort === true;
+    }
+    if (any_abort) {
+      res.status(404);
+    }
+    res.write("OK").end();
   });
 
   // /concurrent-warn -- could be used by kubernetes to decide whether or not to kill the container; if
