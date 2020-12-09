@@ -3,48 +3,40 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { redux, Store } from "../app-framework";
-
-import { NAME } from "./store";
+import { redux, Actions } from "../app-framework";
+import { by_lowercase, NAME } from "./utils";
 
 class ComputeEnvironmentActions extends Actions {
-  get(key) {
-    return this.redux.getStore(this.name).get(key);
-  }
-
-  init_data(inventory, components) {
+  private init_data(inventory, components): void {
     // both are empty objects by default
-    const langs = (() => {
-      const result = [];
-      for (let k in inventory) {
-        const v = inventory[k];
-        if (k !== "language_exes") {
-          result.push(k);
-        }
+    const langs: string[] = [];
+    for (let k in inventory) {
+      const v = inventory[k];
+      if (k !== "language_exes") {
+        langs.push(k);
       }
-      return result;
-    })();
+    }
     langs.sort(by_lowercase);
-    return this.setState({
+    this.setState({
       langs,
       inventory,
       components,
     });
   }
-  //if DEBUG then console.log(inventory, components, langs)
 
-  load() {
-    if (this.get("loading")) {
+  public load(): void {
+    if (redux.getStore(NAME)?.get("loading")) {
       return;
     }
     this.setState({ loading: true });
     //if DEBUG then console.log("ComputeEnvironmentActions: loading ...")
-    return require.ensure([], () => {
+    require.ensure([], () => {
       // these files only contain "{}" per default!
       const inventory = require("webapp-lib/compute-inventory.json");
       const components = require("webapp-lib/compute-components.json");
-      return this.init_data(inventory, components);
+      this.init_data(inventory, components);
     });
   }
 }
-//if DEBUG then console.log("ComputeEnvironmentActions: loading done.")
+
+redux.createActions(NAME, ComputeEnvironmentActions);

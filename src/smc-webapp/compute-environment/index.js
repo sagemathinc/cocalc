@@ -3,4 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export { NAME } from "./store";
+export * from "./utils";
+import "./store";
+import "./actions";

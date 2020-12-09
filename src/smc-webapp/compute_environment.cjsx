@@ -7,7 +7,7 @@ require("./compute-environment");  # replacing this
 
 { Panel, Table, Tab, Tabs, Modal, Button} = require('react-bootstrap')
 { Col, Row } = require("./antd-bootstrap")
-{redux, Redux, rclass, rtypes, React, Actions, Store} = require('./app-framework')
+{redux, Redux, rclass, rtypes, React} = require('./app-framework')
 {Loading, Markdown} = require('./r_misc')
 {HelpEmailLink, SiteName} = require('./customize')
 
@@ -19,60 +19,8 @@ theme  = require('smc-util/theme')
 
 # This depends on two files: compute-inventory.json and compute-components.json described in webapp-lib/README.md
 
-NAME   = 'compute_environment'
+{NAME, full_lang_name, by_lowercase} = require('./compute-environment')
 
-# utils
-full_lang_name = (lang) ->
-    switch lang
-        when 'R'
-            return 'R Project'
-    return lang.charAt(0).toUpperCase() + lang[1..]
-
-by_lowercase = (a, b) ->
-    return a.toLowerCase().localeCompare(b.toLowerCase())
-
-###
-stateTypes:
-    inventory     : rtypes.object
-    components    : rtypes.object
-    langs         : rtypes.arrayOf(rtypes.string)
-    loading       : rtypes.bool
-    selected_lang : rtypes.string
-###
-class ComputeEnvironmentStore extends Store
-    getInitialState: ->
-        inventory      : undefined
-        components     : undefined
-        langs          : undefined
-        selected_lang  : 'executables'  # default to 'executables' this since it is MUCH shorter than the others, is the first tab (so faster to render!), and makes no assumptions about if the user is a "Python person" or "R person" or whatever.
-        loading        : false
-
-
-class ComputeEnvironmentActions extends Actions
-    get: (key) ->
-        @redux.getStore(@name).get(key)
-
-    init_data: (inventory, components) ->
-        # both are empty objects by default
-        langs = (k for k, v of inventory when k isnt 'language_exes')
-        langs.sort(by_lowercase)
-        @setState(
-            langs     : langs
-            inventory : inventory
-            components: components
-        )
-        #if DEBUG then console.log(inventory, components, langs)
-
-    load: ->
-        return if @get('loading')
-        @setState(loading: true)
-        #if DEBUG then console.log("ComputeEnvironmentActions: loading ...")
-        require.ensure [], =>
-            # these files only contain "{}" per default!
-            inventory  = require('webapp-lib/compute-inventory.json')
-            components = require('webapp-lib/compute-components.json')
-            @init_data(inventory, components)
-            #if DEBUG then console.log("ComputeEnvironmentActions: loading done.")
 
 
 # the components
@@ -424,24 +372,23 @@ ComputeEnvironment = rclass
 
     render: ->
         <Row>
-            <h3>Software and Programming Libraries Details</h3>
-            {
-                if @props.inventory? and @props.components?
-                    if @props.langs?.length > 0
-                        @ui()
+            <Col>
+                <h3>Software and Programming Libraries Details</h3>
+                {
+                    if @props.inventory? and @props.components?
+                        if @props.langs?.length > 0
+                            @ui()
+                        else
+                            # Only shown if explicitly requested but no data available
+                            <div>Compute environment information not available.</div>
                     else
-                        # Only shown if explicitly requested but no data available
-                        'Compute environment information not available.'
-                else
-                    <Loading/>
-            }
+                        <Loading/>
+                }
+            </Col>
         </Row>
 
 
 # react magic
-
-store    = redux.createStore(NAME, ComputeEnvironmentStore)
-actions  = redux.createActions(NAME, ComputeEnvironmentActions)
 
 exports.ComputeEnvironment = rclass
     displayName : 'ComputeEnvironment-redux'
@@ -454,5 +401,5 @@ exports.ComputeEnvironment = rclass
         if @props.kucalc != 'yes'
             return <span />
         <Redux redux={redux}>
-            <ComputeEnvironment actions={actions} />
+            <ComputeEnvironment actions={redux.getActions(NAME)} />
         </Redux>

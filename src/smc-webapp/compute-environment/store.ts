@@ -4,8 +4,7 @@
  */
 
 import { redux, Store } from "../app-framework";
-
-export const NAME = "compute-environment";
+import { NAME } from "./utils";
 
 class ComputeEnvironmentStore extends Store {
   getInitialState() {
