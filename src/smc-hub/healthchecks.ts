@@ -23,7 +23,8 @@ interface Opts {
 // e.g. "24,48" for between 1 and 2 days.
 function init_self_terminate(): {
   startup: number;
-  shutdown?: number;
+  shutdown?: number; // when to shutdown (causes a failed health check)
+  dead?: number; // when to return not-alive, causes a proxy server to no longer send traffic
 } {
   const startup = Date.now();
   const conf = process.env.COCALC_HUB_SELF_TERMINATE;
@@ -42,18 +43,21 @@ function init_self_terminate(): {
     throw Error(
       "COCALC_HUB_SELF_TERMINATE from must be smaller than to, e.g. '24,48'"
     );
-  const uptime = Math.random() * (to - from);
+  const uptime = Math.random() * (to - from); // hours
   const hours2ms = 1000 * 60 * 60;
   const shutdown = startup + uptime * hours2ms;
+  // controlled shutdown: send out being "dead" 10 minutes or 10% before the actual shutdown
+  const dead_period = Math.min(1 / 6, 0.1 * uptime); // hours
+  const dead = shutdown - dead_period * hours2ms;
   L(
-    `init_self_terminate: startup=${startup} shutdown=${shutdown} uptime=${seconds2hms(
+    `init_self_terminate: startup=${startup} dead=${dead} shutdown=${shutdown} uptime=${seconds2hms(
       hours2ms * uptime
     )}`
   );
-  return { startup, shutdown };
+  return { startup, shutdown, dead };
 }
 
-const { startup, shutdown } = init_self_terminate();
+const { startup, shutdown, dead } = init_self_terminate();
 
 interface Check {
   status: string;
@@ -66,14 +70,19 @@ export async function setup_healthchecks(opts: Opts): Promise<void> {
   // used by HAPROXY for testing that this hub is OK to receive traffic
   router.get("/alive", (_, res) => {
     res.type("txt");
+    let msg = "alive: YES";
+    let is_dead = true;
     if (!database_is_working()) {
       // this will stop haproxy from routing traffic to us
       // until db connection starts working again.
-      L("alive: answering *NO*");
-      res.status(404).end();
+      msg = "alive: NO – database not working";
+    } else if (dead != null && Date.now() > dead) {
+      msg = "alive: NO – shutdown initiated";
     } else {
-      res.send("alive");
+      is_dead = false;
     }
+    if (is_dead) res.status(404);
+    res.send(msg);
   });
 
   function check_concurrent(): Check {
