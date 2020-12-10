@@ -8,6 +8,7 @@
 import * as debug from "debug";
 const L = debug("hub:healthcheck");
 import { Router } from "express";
+import { isFloat } from "validator";
 import { seconds2hms } from "../smc-util/misc";
 const { database_is_working } = require("./hub_register");
 import { PostgreSQL } from "./postgres/types";
@@ -19,14 +20,36 @@ interface Opts {
 
 // self termination is only activated, if there is a COCALC_HUB_SELF_TERMINATE environment variable
 // it's value is an interval in hours, minimum and maximum, for how long it should live.
+// e.g. "24,48" for between 1 and 2 days.
 function init_self_terminate(): {
   startup: number;
-  shutdown: number | undefined;
+  shutdown?: number;
 } {
   const startup = Date.now();
-
   const conf = process.env.COCALC_HUB_SELF_TERMINATE;
-  const shutdown = conf != null ? 0 : undefined;
+  if (conf == null) {
+    L("COCALC_HUB_SELF_TERMINATE not set, hence no self-termination");
+    return { startup };
+  }
+  const [from_str, to_str] = conf.trim().split(",");
+  if (!isFloat(from_str, { gt: 0 }))
+    throw Error("COCALC_HUB_SELF_TERMINATE/from not a positive float");
+  if (!isFloat(to_str, { gt: 0 }))
+    throw Error("COCALC_HUB_SELF_TERMINATE/to not a positive float");
+  const from = parseFloat(from_str);
+  const to = parseFloat(to_str);
+  if (from > to)
+    throw Error(
+      "COCALC_HUB_SELF_TERMINATE from must be smaller than to, e.g. '24,48'"
+    );
+  const uptime = Math.random() * (to - from);
+  const hours2ms = 1000 * 60 * 60;
+  const shutdown = startup + uptime * hours2ms;
+  L(
+    `init_self_terminate: startup=${startup} shutdown=${shutdown} uptime=${seconds2hms(
+      hours2ms * uptime
+    )}`
+  );
   return { startup, shutdown };
 }
 
@@ -68,16 +91,21 @@ export async function setup_healthchecks(opts: Opts): Promise<void> {
   function check_uptime(): Check {
     const now = Date.now();
     const uptime = seconds2hms((now - startup) / 1000);
-    L(`uptime ${uptime}`);
     if (shutdown != null) {
       if (now >= shutdown) {
-        return { status: `uptime ${uptime} – terminating now`, abort: true };
+        const msg = `uptime ${uptime} – expired, terminating now`;
+        L(msg);
+        return { status: msg, abort: true };
       } else {
-        const until = seconds2hms(shutdown - now);
-        return { status: `uptime ${uptime} – terminating in ${until}` };
+        const until = seconds2hms((shutdown - now) / 1000);
+        const msg = `uptime ${uptime} – terminating in ${until}`;
+        L(msg);
+        return { status: msg };
       }
     } else {
-      return { status: `uptime ${uptime} – no self-termination` };
+      const msg = `uptime ${uptime} – no self-termination`;
+      L(msg);
+      return { status: msg };
     }
   }
 
