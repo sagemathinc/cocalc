@@ -147,7 +147,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   } = props;
 
   const site_name = useTypedRedux("customize", "site_name");
-  // const account = useTypedRedux("account", "editor_settings");
+  const editor_settings = useTypedRedux("account", "editor_settings");
 
   // status of tab completion
   const complete: undefined | immutable.Map<any, any> = useRedux([
@@ -230,14 +230,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     name,
     "edit_cell_metadata",
   ]);
-  const editor_settings: undefined | immutable.Map<any, any> = useRedux([
-    name,
-    "editor_settings",
-  ]);
-  // const metadata: undefined | immutable.Map<any, any> = useRedux([
-  //   name,
-  //   "metadata",
-  // ]);
   const trust: undefined | boolean = useRedux([name, "trust"]);
   const kernel_info: undefined | immutable.Map<any, any> = useRedux([
     name,
@@ -268,10 +260,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     name,
     "closestKernel",
   ]);
-  // const kernel_streams: undefined | immutable.Map<string, string> = useRedux([
-  //   name,
-  //   "kernel_streams",
-  // ]);
   const kernel_error: undefined | string = useRedux([name, "kernel_error"]);
   const kernel_usage: undefined | ImmutableUsageInfo = useRedux([
     name,
@@ -703,6 +691,10 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_main() {
+    console.log("render_main", {
+      check_select_kernel_init,
+      show_kernel_selector,
+    });
     if (!check_select_kernel_init) {
       return render_loading();
     } else if (show_kernel_selector) {
