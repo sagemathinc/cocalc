@@ -9,7 +9,7 @@ import * as debug from "debug";
 const L = debug("hub:healthcheck");
 import { Router } from "express";
 import { seconds2hms } from "../smc-util/misc";
-const { hub_register } = require("./hub_register");
+const { database_is_working } = require("./hub_register");
 import { PostgreSQL } from "./postgres/types";
 
 interface Opts {
@@ -42,7 +42,8 @@ export async function setup_healthchecks(opts: Opts): Promise<void> {
 
   // used by HAPROXY for testing that this hub is OK to receive traffic
   router.get("/alive", (_, res) => {
-    if (!hub_register.database_is_working()) {
+    res.type("txt");
+    if (!database_is_working()) {
       // this will stop haproxy from routing traffic to us
       // until db connection starts working again.
       L("alive: answering *NO*");
@@ -70,13 +71,13 @@ export async function setup_healthchecks(opts: Opts): Promise<void> {
     L(`uptime ${uptime}`);
     if (shutdown != null) {
       if (now >= shutdown) {
-        return { status: `BAD – uptime ${uptime}`, abort: true };
+        return { status: `uptime ${uptime} – terminating now`, abort: true };
       } else {
         const until = seconds2hms(shutdown - now);
-        return { status: `uptime ${uptime} – terminate in ${until}` };
+        return { status: `uptime ${uptime} – terminating in ${until}` };
       }
     } else {
-      return { status: `uptime ${uptime}` };
+      return { status: `uptime ${uptime} – no self-termination` };
     }
   }
 
@@ -85,18 +86,16 @@ export async function setup_healthchecks(opts: Opts): Promise<void> {
   // this hub if it is running for quite some time. beyond that, in the future
   // there could be even more checks on top of that.
   router.get("/healthcheck", (_, res) => {
-    res.write("healthchecks:\n");
+    res.type("txt");
     let any_abort = false;
+    let txt = "healthchecks:\n";
     for (const test of [check_concurrent(), check_uptime()]) {
       const { status, abort } = test;
-      L(status);
-      res.write(status + "\n");
+      txt += `${status} – ${abort === true ? "FAIL" : "OK"}\n`;
       any_abort = any_abort || abort === true;
     }
-    if (any_abort) {
-      res.status(404);
-    }
-    res.write("OK").end();
+    if (any_abort) res.status(404);
+    res.send(txt);
   });
 
   // /concurrent-warn -- could be used by kubernetes to decide whether or not to kill the container; if
@@ -104,7 +103,8 @@ export async function setup_healthchecks(opts: Opts): Promise<void> {
   // returns 404 error, meaning hub may be unhealthy.  Kubernetes will try a few times before
   // killing the container.  Will also return 404 if there is no working database connection.
   router.get("/concurrent-warn", (_, res) => {
-    if (!hub_register.database_is_working()) {
+    res.type("txt");
+    if (!database_is_working()) {
       L("/concurrent-warn: not healthy, since database connection not working");
       res.status(404).end();
       return;
@@ -123,6 +123,7 @@ export async function setup_healthchecks(opts: Opts): Promise<void> {
 
   // Return number of concurrent connections (could be useful)
   router.get("/concurrent", (_, res) => {
+    res.type("txt");
     res.send(`${db.concurrent()}`);
   });
 }

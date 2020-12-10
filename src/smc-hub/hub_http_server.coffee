@@ -124,18 +124,20 @@ exports.init_express_http_server = (opts) ->
     setup_analytics_js(router, opts.database, winston, opts.base_url)
 
     # setup all healthcheck endpoints
-    setup_healthchecks({router:router, db:opts.database})
+    setup_healthchecks(router:router, db:opts.database)
 
+    # this is basically the "/" index page + assets, for docker, on-prem, dev, etc. calls itself "open cocalc"
     open_cocalc.setup_open_cocalc(app:app, router:router, db:opts.database, cacheLongTerm:cacheLongTerm, base_url:opts.base_url)
 
-    # The /static content
+    # The /static content, used by docker, development, etc.
     router.use '/static',
         express.static(STATIC_PATH, setHeaders: cacheLongTerm)
 
-    # This is webapp-lib/resources !
+    # This is webapp-lib/resources – cocalc serves everything it needs on its own. no info leaks, less dependency!
     router.use '/res',
         express.static(WEBAPP_RES_PATH, setHeaders: cacheLongTerm)
 
+    # docker and development needs this endpoint in addition to serving /static
     router.get '/app', (req, res) ->
         #res.cookie(opts.base_url + 'has_remember_me', 'true', { maxAge: 60*60*1000, httpOnly: false })
         res.sendFile(path_module.join(STATIC_PATH, 'app.html'), {maxAge: 0})
