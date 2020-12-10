@@ -194,6 +194,7 @@ export interface StoreStates {
   projects: types.ProjectsState;
   support: types.SupportState;
   users: types.UsersState;
+  "compute-environment": types.ComputeEnvironmentState;
 }
 
 export function useTypedRedux<
@@ -330,6 +331,9 @@ export function useActions(name: "page"): types.PageActions;
 export function useActions(name: "projects"): types.ProjectsActions;
 export function useActions(name: "support"): types.SupportActions;
 export function useActions(name: "users"): types.UsersActions;
+export function useActions(
+  name: "compute-environment"
+): types.ComputeEnvironmentActions;
 
 // If it is none of the explicitly named ones... it's a project or just some general actions.
 // That said *always* use {project_id} as below to get the actions for a project, so you
@@ -389,6 +393,7 @@ export interface Stores {
   projects: types.ProjectsStore;
   support: types.SupportStore;
   users: types.UsersStore;
+  "compute-environment": types.ComputeEnvironmentStore;
 }
 
 // If it is none of the explicitly named ones... it's a project.

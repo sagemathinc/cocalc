@@ -280,7 +280,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     let data;
     try {
       data = await this.api_call("kernels");
+      if (this._state === "closed") return;
     } catch (err) {
+      if (this._state === "closed") return;
       this.set_error(err);
       return;
     }
