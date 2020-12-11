@@ -15,7 +15,7 @@ import { UsageInfoServer } from "../usage-info";
 import { UsageInfo, ImmutableUsageInfo } from "../usage-info/types";
 
 class UsageInfoTable {
-  private readonly table: SyncTable;
+  private readonly table?: SyncTable; // might be removed by close()
   private readonly project_id: string;
   private readonly servers: { [path: string]: UsageInfoServer } = {};
   private readonly log: Function;
@@ -71,11 +71,11 @@ class UsageInfoTable {
   }
 
   private is_ready(): boolean {
-    return this.table?.is_ready();
+    return !!this.table?.is_ready();
   }
 
   private get_table(): SyncTable {
-    if (!this.is_ready()) {
+    if (!this.is_ready() || this.table == null) {
       throw Error("table not ready");
     }
     return this.table;
@@ -113,7 +113,6 @@ class UsageInfoTable {
     // Make sure we watch this path for updates, since there is genuine current interest.
     this.ensure_watching(path);
     this.set({ path });
-    return;
   }
 
   private ensure_watching(path: string): void {
@@ -127,7 +126,6 @@ class UsageInfoTable {
     } catch (err) {
       this.log("failed to start watching", err);
     }
-    return;
   }
 
   private start_watching(path: string): void {

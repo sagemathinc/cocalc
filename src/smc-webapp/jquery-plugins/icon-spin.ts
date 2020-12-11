@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+export const jQuery = $;
+declare var $: any;
 import { defaults } from "smc-util/misc";
 
 $.fn.icon_spin = function (start: any, disable: boolean = false) {
@@ -18,13 +20,14 @@ $.fn.icon_spin = function (start: any, disable: boolean = false) {
     delay = 0;
   }
   this.each(function () {
+    // @ts-ignore
     const elt = $(this);
     if (start) {
       if (elt.data("fa-spin") != null) {
         // means that there is a timeout that hasn't gone off yet
         return;
       }
-      function f() {
+      const f = () => {
         if (disable) {
           elt.addClass("disabled");
         }
@@ -36,7 +39,7 @@ $.fn.icon_spin = function (start: any, disable: boolean = false) {
           );
           elt.find("i.fa-spinner").addClass("fa-spin");
         }
-      }
+      };
       if (delay) {
         elt.data("fa-spin", setTimeout(f, delay));
       } else {
