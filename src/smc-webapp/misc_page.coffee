@@ -60,31 +60,6 @@ get_inspect_dialog = (editor) ->
 #############################################
 {required, defaults} = require('smc-util/misc')
 
-# These should all get moved to this subdir and be in typescript.  For now there is one:
-require('./jquery-plugins/katex')
-
-
-# jQuery plugin for spinner (/spin/spin.min.js)
-$.fn.spin = (opts) ->
-    @each ->
-        $this = $(this)
-        data = $this.data()
-        if data.spinner
-            data.spinner.stop()
-            delete data.spinner
-        if opts isnt false
-            Spinner = require("spin/spin.min.js")
-            data.spinner = new Spinner($.extend({color: $this.css("color")}, opts)).spin(this)
-    return this
-
-# jQuery plugin for spinner (/spin/spin.min.js)
-$.fn.exactly_cover = (other) ->
-    @each ->
-        elt = $(this)
-        elt.offset(other.offset())
-        elt.width(other.width())
-        elt.height(other.height())
-    return this
 
 # Easily enable toggling details of some elements...
 # (grep code for usage examples)

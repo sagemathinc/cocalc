@@ -14,3 +14,13 @@ $.fn.hasParent = function (p) {
     return $(p).find(this).length;
   });
 };
+
+$.fn.exactly_cover = function (other) {
+  return this.each(function () {
+    // @ts-ignore
+    const elt = $(this);
+    elt.offset(other.offset());
+    elt.width(other.width());
+    elt.height(other.height());
+  });
+};
