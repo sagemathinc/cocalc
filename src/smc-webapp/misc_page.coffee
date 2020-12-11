@@ -63,17 +63,6 @@ get_inspect_dialog = (editor) ->
 # These should all get moved to this subdir and be in typescript.  For now there is one:
 require('./jquery-plugins/katex')
 
-# Highlight all code blocks that have CSS class language-r, language-python.
-# TODO: I just put in r and python for now, since this is mainly
-# motivated by rmd files.
-$.fn.highlight_code = (opts) ->
-    @each ->
-        for mode in ['r', 'python']
-            for elt in $(this).find("code.language-#{mode}")
-                code = $(elt)
-                CodeMirror.runMode(code.text(), mode, elt)
-                code.addClass('cm-s-default')
-                code.removeClass('language-#{mode}')  # done
 
 # jQuery plugin for spinner (/spin/spin.min.js)
 $.fn.spin = (opts) ->

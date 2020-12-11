@@ -9,3 +9,4 @@ import "./misc";
 import "./math-katex";
 import "./katex";
 import "./images";
+import "./codemirror";
