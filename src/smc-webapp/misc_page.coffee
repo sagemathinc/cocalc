@@ -55,41 +55,6 @@ get_inspect_dialog = (editor) ->
     return dialog
 
 
-local_diff = exports.local_diff = (before, after) ->
-    # Return object
-    #
-    #    {pos:index_into_before, orig:"substring of before starting at pos", repl:"what to replace string by"}
-    #
-    # that explains how to transform before into after via a substring
-    # replace.  This addresses the case when before has been *locally*
-    # edited to obtain after.
-    #
-    if not before?
-        return {pos:0, orig:'', repl:after}
-    i = 0
-    while i < before.length and before[i] == after[i]
-        i += 1
-    # We now know that they differ at position i
-    orig = before.slice(i)
-    repl = after.slice(i)
-
-    # Delete the biggest string in common at the end of orig and repl.
-    # This works well for local edits, which is what this command is
-    # aimed at.
-    j = orig.length - 1
-    d = repl.length - orig.length
-    while j >= 0 and d+j>=0 and orig[j] == repl[d+j]
-        j -= 1
-    # They differ at position j (resp., d+j)
-    orig = orig.slice(0, j+1)
-    repl = repl.slice(0, d+j+1)
-    return {pos:i, orig:orig, repl:repl}
-
-exports.scroll_top = () ->
-    # Scroll smoothly to the top of the page.
-    $("html, body").animate({ scrollTop: 0 })
-
-
 #############################################
 # JQuery Plugins
 #############################################
@@ -97,42 +62,6 @@ exports.scroll_top = () ->
 
 # These should all get moved to this subdir and be in typescript.  For now there is one:
 require('./jquery-plugins/katex')
-
-# Force reload all images by appending random query param to their src URL.
-# But not for base64 data images -- https://github.com/sagemathinc/cocalc/issues/3141
-$.fn.reload_images = (opts) ->
-    @each ->
-        for img in $(this).find('img')
-            src = $(img).attr('src')
-            if misc.startswith(src, 'data:')
-                continue
-            $(img).attr('src', src + '?' + Math.random())
-
-# Pluging to support smc-image-scale attribute, which is used to implement certain
-# Jupyter kernels for Sage worksheets.
-# See https://github.com/sagemathinc/cocalc/issues/1192 and
-#     https://github.com/sagemathinc/cocalc/issues/4421
-$.fn.smc_image_scaling = (opts) ->
-    @each ->
-        for x in $(this).find("img")
-            y = $(x)
-            # see https://github.com/sagemathinc/cocalc/issues/1192
-            img_scaling = y.attr('smc-image-scaling')
-            if not img_scaling?
-                continue
-            img = y.get(0)
-            scale_img = ->
-                width  = img.naturalWidth
-                factor = parseFloat(img_scaling)
-                if not isNaN(factor)
-                    new_width = width * factor
-                    y.css('width', "#{new_width}px")
-                else
-                    # fallback that is better than nothing!
-                    y.css('max-width', '800px')
-            scale_img()
-            img.onload = scale_img
-
 
 # Highlight all code blocks that have CSS class language-r, language-python.
 # TODO: I just put in r and python for now, since this is mainly

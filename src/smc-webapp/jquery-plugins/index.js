@@ -8,3 +8,4 @@ import "./icon-spin";
 import "./misc";
 import "./math-katex";
 import "./katex";
+import "./images";
