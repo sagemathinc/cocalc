@@ -24,3 +24,16 @@ $.fn.exactly_cover = function (other) {
     elt.height(other.height());
   });
 };
+
+// jQuery plugin that sets the innerHTML of an element and doesn't do anything with script tags;
+// in particular, doesn't explicitly remove and run them like jQuery does.
+$.fn.html_noscript = function (html: string) {
+  return this.each(function () {
+    // @ts-ignore
+    this.innerHTML = html;
+    // @ts-ignore
+    const t = $(this);
+    t.find("script").remove();
+    return t;
+  });
+};

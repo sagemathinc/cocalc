@@ -61,37 +61,6 @@ get_inspect_dialog = (editor) ->
 {required, defaults} = require('smc-util/misc')
 
 
-# Easily enable toggling details of some elements...
-# (grep code for usage examples)
-$.fn.smc_toggle_details = (opts) ->
-    opts = defaults opts,
-        show   : required   # string -- jquery selector
-        hide   : required   # string -- jquery selector
-        target : required   # string -- jquery selector
-    @each ->
-        elt = $(this)
-        elt.find(opts.show).click () ->
-            elt.find(opts.show).hide()
-            elt.find(opts.hide).show()
-            elt.find(opts.target).show()
-            elt.addClass('smc-toggle-show')
-        elt.find(opts.hide).click () ->
-            elt.find(opts.hide).hide()
-            elt.find(opts.show).show()
-            elt.find(opts.target).hide()
-            elt.removeClass('smc-toggle-show')
-        return elt
-
-
-# jQuery plugin that sets the innerHTML of an element and doesn't do anything with script tags;
-# in particular, doesn't explicitly remove and run them like jQuery does.
-$.fn.html_noscript = (html) ->
-    @each ->
-        this.innerHTML = html
-        t = $(this)
-        t.find('script').remove()
-        return t
-
 # MathJax some code -- jQuery plugin
 # ATTN: do not call MathJax directly, but always use this .mathjax() plugin.
 # from React.js, the canonical way to call it is $(ReactDOM.findDOMNode(@)).mathjax() (e.g. Markdown in r_misc)
