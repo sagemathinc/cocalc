@@ -4,3 +4,4 @@
  */
 
 export { BASE_URL, APP_BASE_URL } from "./base-url";
+export { mathjax_finish_startup } from "./mathjax";
