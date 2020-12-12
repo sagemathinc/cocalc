@@ -67,66 +67,8 @@ get_inspect_dialog = (editor) ->
 
 # We factor out this extension so it can be applied to CodeMirror's in iframes, e.g., Jupyter's.
 
-exports.cm_define_diffApply_extension = (cm) ->
-    # applies a diff and returns last pos modified
-    cm.defineExtension 'diffApply', (diff) ->
-        editor = @
-        next_pos = (val, pos) ->
-            # This functions answers the question:
-            # If you were to insert the string val at the CodeMirror position pos
-            # in a codemirror document, at what position (in codemirror) would
-            # the inserted string end at?
-            number_of_newlines = (val.match(/\n/g)||[]).length
-            if number_of_newlines == 0
-                return {line:pos.line, ch:pos.ch+val.length}
-            else
-                return {line:pos.line+number_of_newlines, ch:(val.length - val.lastIndexOf('\n')-1)}
+exports.cm_define_diffApply_extension = require('./codemirror/extensions/diff-apply').cm_define_diffApply_extension
 
-        pos = {line:0, ch:0}  # start at the beginning
-        last_pos = undefined
-        for chunk in diff
-            op  = chunk[0]  # 0 = stay same; -1 = delete; +1 = add
-            val = chunk[1]  # the actual text to leave same, delete, or add
-            pos1 = next_pos(val, pos)
-
-            switch op
-                when 0 # stay the same
-                    # Move our pos pointer to the next position
-                    pos = pos1
-                    #console.log("skipping to ", pos1)
-                when -1 # delete
-                    # Delete until where val ends; don't change pos pointer.
-                    editor.replaceRange("", pos, pos1)
-                    last_pos = pos
-                    #console.log("deleting from ", pos, " to ", pos1)
-                when +1 # insert
-                    # Insert the new text right here.
-                    editor.replaceRange(val, pos)
-                    #console.log("inserted new text at ", pos)
-                    # Move our pointer to just beyond the text we just inserted.
-                    pos = pos1
-                    last_pos = pos1
-        return last_pos
-
-exports.cm_define_testbot = (cm) ->
-    cm.defineExtension 'testbot', (opts) ->
-        opts = defaults opts,
-            n     : 30
-            delay : 500
-            f     : undefined  # if defined, gets called after each change.
-        e = @
-        pos = e.getCursor()
-        ch = pos.ch
-        k = 1
-        f = () ->
-            s = "#{k} "
-            ch += s.length
-            e.replaceRange(s, {line:pos.line, ch:ch})
-            opts.f?()
-            if k < opts.n
-                k += 1
-                setTimeout(f, opts.delay)
-        f()
 
 exports.define_codemirror_extensions = () ->
 
@@ -275,7 +217,6 @@ exports.define_codemirror_extensions = () ->
             @apply_changeObj(changeObj.next)
 
     exports.cm_define_diffApply_extension(CodeMirror)
-    exports.cm_define_testbot(CodeMirror)
 
     # Try to set the value of the buffer to something new by replacing just the ranges
     # that changed, so that the viewport/history/etc. doesn't get messed up.
@@ -1228,25 +1169,6 @@ exports.get_selection_start_node = () ->
         $(if node.nodeName is "#text" then node.parentNode else node)
     else
         $()
-
-###
-# This doesn't work yet, since it can only work when this is a
-# Chrome Extension, which I haven't done yet.  See http://www.pakzilla.com/2012/03/20/how-to-copy-to-clipboard-in-chrome-extension/
-# This is how hterm works.
-# Copy the given text to the clipboard.  This will only work
-# on a very limited range of browsers (like Chrome!),
-# but when it does... it is nice.
-exports.copy_to_clipboard = (text) ->
-    copyDiv = document.createElement('div')
-    copyDiv.contentEditable = true
-    document.body.appendChild(copyDiv)
-    copyDiv.innerHTML = text
-    copyDiv.unselectable = "off"
-    copyDiv.focus()
-    document.execCommand('SelectAll')
-    document.execCommand("Copy", false, null)
-    document.body.removeChild(copyDiv)
-###
 
 # return true if d is a valid string -- see http://stackoverflow.com/questions/1353684/detecting-an-invalid-date-date-instance-in-javascript
 exports.is_valid_date = (d) ->
