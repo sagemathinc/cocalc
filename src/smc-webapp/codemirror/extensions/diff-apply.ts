@@ -14,6 +14,7 @@ interface Pos {
 export function cm_define_diffApply_extension(cm) {
   // applies a diff and returns last pos modified
   cm.defineExtension("diffApply", function (diff) {
+    // @ts-ignore
     const editor = this;
     const next_pos = function (val: string, pos: Pos): Pos {
       // This functions answers the question:
