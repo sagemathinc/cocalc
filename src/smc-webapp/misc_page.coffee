@@ -71,139 +71,9 @@ exports.cm_define_diffApply_extension = require('./codemirror/extensions/diff-ap
 
 
 exports.define_codemirror_extensions = () ->
+    require('./codemirror/extensions/latex-code-folding');
+    require('./codemirror/extensions/unindent');
 
-    # LaTeX code folding (isn't included in CodeMirror)
-
-    get_latex_environ = (s) ->
-        i = s.indexOf('{')
-        j = s.indexOf('}')
-        if i != -1 and j != -1
-            return s.slice(i+1,j).trim()
-        else
-            return undefined
-
-    startswith = misc.startswith
-
-    CodeMirror.registerHelper "fold", "stex", (cm, start) ->
-        trimStart = require('lodash/trimStart')
-        line = trimStart(cm.getLine(start.line))
-        find_close = () ->
-            BEGIN = "\\begin"
-            if startswith(line, BEGIN)
-                # \begin{foo}
-                # ...
-                # \end{foo}
-                # find environment close
-                environ = get_latex_environ(line.slice(BEGIN.length))
-                if not environ?
-                    return [undefined, undefined]
-                # find environment close
-                END   = "\\end"
-                level = 0
-                begin = new RegExp("\\\\begin\\s*{#{environ}}")
-                end   = new RegExp("\\\\end\\s*{#{environ}}")
-                for i in [start.line..cm.lastLine()]
-                    cur = cm.getLine(i)
-                    m = cur.search(begin)
-                    j = cur.search(end)
-                    if m != -1 and (j == -1 or m < j)
-                        level += 1
-                    if j != -1
-                        level -= 1
-                        if level == 0
-                            return [i, j + END.length - 1]
-
-            else if startswith(line, "\\[")
-                for i in [start.line+1..cm.lastLine()]
-                    if startswith(trimStart(cm.getLine(i)), "\\]")
-                        return [i, 0]
-
-            else if startswith(line, "\\(")
-                for i in [start.line+1..cm.lastLine()]
-                    if startswith(trimStart(cm.getLine(i)), "\\)")
-                        return [i, 0]
-
-            else if startswith(line, "\\documentclass")
-                # pre-amble
-                for i in [start.line+1..cm.lastLine()]
-                    if startswith(trimStart(cm.getLine(i)), "\\begin{document}")
-                        return [i - 1, 0]
-
-            else if startswith(line, "\\chapter")
-                # book chapter
-                for i in [start.line+1..cm.lastLine()]
-                    if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\end{document}"])
-                        return [i - 1, 0]
-                return [cm.lastLine(), 0]
-
-            else if startswith(line, "\\section")
-                # article section
-                for i in [start.line+1..cm.lastLine()]
-                    if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\end{document}"])
-                        return [i - 1, 0]
-                return [cm.lastLine(), 0]
-
-            else if startswith(line, "\\subsection")
-                # article subsection
-                for i in [start.line+1..cm.lastLine()]
-                    if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\end{document}"])
-                        return [i - 1, 0]
-                return [cm.lastLine(), 0]
-
-            else if startswith(line, "\\subsubsection")
-                # article subsubsection
-                for i in [start.line+1..cm.lastLine()]
-                    if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\subsubsection", "\\end{document}"])
-                        return [i - 1, 0]
-                return [cm.lastLine(), 0]
-
-            else if startswith(line, "\\subsubsubsection")
-                # article subsubsubsection
-                for i in [start.line+1..cm.lastLine()]
-                    if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\subsubsection", "\\subsubsubsection", "\\end{document}"])
-                        return [i - 1, 0]
-                return [cm.lastLine(), 0]
-
-            else if startswith(line, "%\\begin{}")
-                # support what texmaker supports for custom folding -- http://tex.stackexchange.com/questions/44022/code-folding-in-latex
-                for i in [start.line+1..cm.lastLine()]
-                    if startswith(trimStart(cm.getLine(i)), "%\\end{}")
-                        return [i, 0]
-
-            return [undefined, undefined]  # no folding here...
-
-        [i, j] = find_close()
-        if i?
-            line = cm.getLine(start.line)
-            k = line.indexOf("}")
-            if k == -1
-                k = line.length
-            range =
-                from : CodeMirror.Pos(start.line, k+1)
-                to   : CodeMirror.Pos(i, j)
-            return range
-        else
-            # nothing to fold
-            return undefined
-
-    CodeMirror.defineExtension 'unindent_selection', () ->
-        editor     = @
-
-        for selection in editor.listSelections()
-            {start_line, end_line} = cm_start_end(selection)
-            all_need_unindent = true
-            for n in [start_line .. end_line]
-                s = editor.getLine(n)
-                if not s?
-                    return
-                if s.length ==0 or s[0] == '\t' or s[0] == ' '
-                    continue
-                else
-                    all_need_unindent = false
-                    break
-            if all_need_unindent
-                for n in [start_line .. end_line]
-                    editor.indentLine(n, "subtract")
 
     CodeMirror.defineExtension 'tab_as_space', () ->
         cursor = @getCursor()
@@ -1132,17 +1002,7 @@ exports.define_codemirror_extensions = () ->
     #CodeMirror.defineExtension 'setLine', (n, value) ->
     #    @replaceRange()
 
-cm_start_end = (selection) ->
-    {head, anchor} = selection
-    start = head
-    end   = anchor
-    if end.line <= start.line or (end.line ==start.line and end.ch <= start.ch)
-        [start, end] = [end, start]
-    start_line = start.line
-    end_line   = if end.ch > 0 then end.line else end.line - 1
-    if end_line < start_line
-        end_line = start_line
-    return {start_line:start_line, end_line:end_line}
+cm_start_end = require('./codemirror/extensions/util').cm_start_end;
 
 exports.download_file = (url) ->
     #console.log("download_file(#{url})")
