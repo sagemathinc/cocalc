@@ -54,7 +54,7 @@ Type `./info.py` to get the URL where you can reach your own running copy of CoC
 
 If you want, you can start several different services at once
 
-    ./tmux-start-all
+    dev/project/tmux-start-all
 
 to create a single tmux session with each of the servers running.
 
