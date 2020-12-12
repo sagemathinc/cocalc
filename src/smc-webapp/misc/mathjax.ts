@@ -37,6 +37,7 @@ function mathjax_typeset(el): void {
   try {
     mathjax_enqueue(["Typeset", el]);
   } catch (err) {
+    // console.warn("mathjax_typeset error", { el, err });
     // This exception *does* happen sometimes -- see
     //     https://github.com/sagemathinc/cocalc/issues/3620
     // This is probably a bug in Mathjax, but whatever.
@@ -67,17 +68,17 @@ $.fn.extend({
       if (opts.tex == null && !opts.display && !opts.inline) {
         // Doing this test is still much better than calling mathjax below, since I guess
         // it doesn't do a simple test first... and mathjax is painful.
-        html = t.html().toLowerCase();
-        if (
-          html.indexOf("$") === -1 &&
-          html.indexOf("\\") === -1 &&
-          html.indexOf("math/tex") === -1
-        ) {
-          opts.cb?.();
-          return t;
+        // This is a common special case - the code below would work, but would be
+        // stupid, since it involves converting back and forth between html.
+        // The test: it's definitely not <script type='math/text'> and it doesn't contain
+        // a dollar sign or backslash... then it's not going to be mathjax'd.
+        if (t.attr("type").indexOf("math/tex") == -1) {
+          html = t.html();
+          if (html.indexOf("$") === -1 && html.indexOf("\\") === -1) {
+            opts.cb?.();
+            return t;
+          }
         }
-        // this is a common special case - the code below would work, but would be
-        // stupid, since it involves converting back and forth between html
         element = t;
       } else {
         let tex;
