@@ -6,7 +6,7 @@
 import { React, Component, Rendered } from "smc-webapp/app-framework";
 
 import { Loading } from "../../r_misc";
-const { APP_BASE_URL } = require("../../misc_page");
+import { APP_BASE_URL } from "../../misc";
 
 import { webapp_client } from "../../webapp-client";
 

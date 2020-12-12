@@ -248,4 +248,5 @@ HTML.displayName = "Misc-HTML";
 HTML.defaultProps = {
   auto_render_math: true,
   safeHTML: true,
+  highlight_code: true,
 };

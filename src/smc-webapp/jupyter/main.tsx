@@ -691,10 +691,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_main() {
-    console.log("render_main", {
-      check_select_kernel_init,
-      show_kernel_selector,
-    });
     if (!check_select_kernel_init) {
       return render_loading();
     } else if (show_kernel_selector) {

@@ -13,7 +13,7 @@ declare var SMC_GIT_REV: string;
 import { webapp_client } from "./webapp-client";
 import { wrap_log } from "smc-util/misc";
 import { get_browser, IS_MOBILE, IS_TOUCH } from "./feature";
-const { mathjax_finish_startup } = require("./misc_page");
+import { mathjax_finish_startup } from "./misc";
 
 // see http://stackoverflow.com/questions/12197122/how-can-i-prevent-a-user-from-middle-clicking-a-link-with-javascript-or-jquery
 // I have some concern about performance.

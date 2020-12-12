@@ -1016,37 +1016,43 @@ export class JupyterActions extends JupyterActions0 {
     this.set_last_load();
   };
 
-  save_ipynb_file = (cb?: any) => {
-    let err;
+  save_ipynb_file = async (cb?: Function) => {
     const dbg = this.dbg("save_ipynb_file");
     dbg("saving to file");
     if (this.jupyter_kernel == null) {
-      err = "no kernel so cannot save";
-      dbg(err);
-      if (typeof cb === "function") {
-        cb(err);
+      // The kernel is needed to get access to the blob store, which
+      // may be needed to save to disk.
+      this.ensure_backend_kernel_setup();
+      if (this.jupyter_kernel == null) {
+        // still not null?  This would happen if no kernel is set at all,
+        // in which case it's OK that saving isn't possible.
+        const err = "no kernel so cannot save";
+        dbg(err);
+        cb?.(err);
+        return;
       }
-      return;
     }
     if (this.store.get("kernels") == null) {
-      err = "kernel info not known, so can't save";
-      dbg(err);
-      if (typeof cb === "function") {
-        cb(err);
+      await this.init_kernel_info();
+      if (this.store.get("kernels") == null) {
+        // This should never happen, but maybe could in case of a very
+        // messed up compute environment where the kernelspecs can't be listed.
+        const err =
+          "kernel info not known and can't be determined, so can't save";
+        dbg(err);
+        cb?.(err);
+        return;
       }
-      return;
     }
     dbg("going to try to save");
     const ipynb = this.store.get_ipynb(this.jupyter_kernel.get_blob_store());
-    // We use json_stable (and indent 1) to be more diff friendly to user, and more consistent
-    // with official Jupyter.
+    // We use json_stable (and indent 1) to be more diff friendly to user,
+    // and more consistent with official Jupyter.
     const data = json_stable(ipynb, { space: 1 });
     if (data == null) {
-      err = "ipynb not defined yet; can't save";
+      const err = "ipynb not defined yet; can't save";
       dbg(err);
-      if (typeof cb === "function") {
-        cb(err);
-      }
+      cb?.(err);
       return;
     }
     //dbg("got string version '#{data}'")
@@ -1062,7 +1068,7 @@ export class JupyterActions extends JupyterActions0 {
           this._last_save_ipynb_file = new Date();
           this.set_last_ipynb_save();
         }
-        return typeof cb === "function" ? cb(err) : undefined;
+        cb?.(err);
       },
     });
   };

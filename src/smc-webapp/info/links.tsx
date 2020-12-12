@@ -5,14 +5,10 @@
 
 import { React, Rendered } from "../app-framework";
 
-let BASE_URL;
-if (global["BACKEND"]) {
-  // set in ./render.coffee
-  BASE_URL = require("smc-util/theme").DOMAIN_NAME;
-} else {
-  // browser
-  ({ BASE_URL } = require("../misc_page"));
-}
+// smc-util/theme is set in ./render.coffee
+const BASE_URL = global["BACKEND"]
+  ? require("smc-util/theme").DOMAIN_NAME
+  : require("../misc").BASE_URL;
 
 import { SiteName, PolicyPricingPageUrl } from "../customize";
 

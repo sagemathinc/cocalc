@@ -11,15 +11,9 @@
 import { alert_message } from "./alerts";
 import { redux } from "./app-framework";
 import * as misc from "smc-util/misc";
-
 import { webapp_client } from "./webapp-client";
-
-const {
-  APP_BASE_URL,
-  should_load_target_url,
-  get_cookie,
-} = require("./misc_page");
-
+const { should_load_target_url, get_cookie } = require("./misc_page");
+import { APP_BASE_URL } from "./misc";
 import { reset_password_key } from "./client/password-reset";
 
 let first_login = true;

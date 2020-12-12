@@ -1126,7 +1126,7 @@ class CodeMirrorEditor extends FileEditor
                         date       : dialog.find(".webapp-file-print-date").text()
                         contents   : dialog.find(".webapp-file-print-contents").is(":checked")
                         subdir     : is_subdir
-                        base_url   : require('./misc_page').BASE_URL
+                        base_url   : require('./misc').BASE_URL
                         extra_data : misc.to_json(@syncdoc.print_to_pdf_data())  # avoid de/re-json'ing
 
                     printing.Printer(@, @filename + '.pdf').print
@@ -1553,7 +1553,6 @@ class CodeMirrorEditor extends FileEditor
         # not all textedit buttons are known
         textedit_only_show_known_buttons = (name) =>
             EDIT_COMMANDS = require('./editors/editor-button-bar').commands
-            {sagews_canonical_mode} = require('./misc_page')
             default_mode = @focused_codemirror()?.get_edit_mode() ? 'sage'
             mode = sagews_canonical_mode(name, default_mode)
             #if DEBUG then console.log "textedit_only_show_known_buttons: mode #{name} → #{mode}"
@@ -1958,3 +1957,26 @@ cm_refresh = (cm) ->
         cm.refresh()
     catch err
         console.warn("cm refresh err", err)
+
+
+
+sagews_canonical_mode = (name, default_mode) ->
+    switch name
+        when 'markdown'
+            return 'md'
+        when 'xml'
+            return 'html'
+        when 'mediawiki'
+            return 'mediawiki'
+        when 'stex'
+            return 'tex'
+        when 'python'
+            return 'python'
+        when 'r'
+            return 'r'
+        when 'sagews'
+            return 'sage'
+        when 'shell'
+            return 'shell'
+        else
+            return default_mode

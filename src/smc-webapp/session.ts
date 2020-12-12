@@ -17,6 +17,7 @@ import { COCALC_MINIMAL } from "./fullscreen";
 import { callback2 } from "../smc-util/async-utils";
 import * as LS from "./misc/local-storage";
 import { bind_methods } from "smc-util/misc";
+import { APP_BASE_URL} from "./misc";
 
 export function session_manager(name, redux): SessionManager | undefined {
   const sm = new SessionManager(name, redux);
@@ -80,7 +81,6 @@ class SessionManager {
 
   private async init_local_storage(): Promise<void> {
     if (this.name) {
-      const { APP_BASE_URL } = require("misc_page");
       const prefix = APP_BASE_URL ? `.${APP_BASE_URL}` : "";
       const postfix = `${webapp_client.account_id}.${this.name}`;
       this._local_storage_name = new LS.CustomKey(

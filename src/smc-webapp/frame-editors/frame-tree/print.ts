@@ -14,7 +14,7 @@ import { HTML } from "smc-webapp/r_misc";
 //import ReactDOMServer from "react-dom/server";
 const ReactDOMServer = require("react-dom/server");
 import { React, Redux, redux } from "../../app-framework";
-import { BASE_URL } from "../../misc/base-url";
+import { BASE_URL } from "../../misc";
 import { resource_links_string } from "smc-webapp/misc/resource-links";
 
 let BLOCKED: boolean | undefined = undefined;
