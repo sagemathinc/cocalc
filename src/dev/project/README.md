@@ -73,8 +73,9 @@ Edit files in smc-hub, e.g., `hub.coffee`.  Then hit control+c, then run `./star
 Set the environment variable, e.g.,
 
     \$ . $HOME/cocalc/src/dev/project/postgres-env
+    \$ . smc-env
 
-From the directory `~/cocalc/cocalc` you can do:
+From the directory `~/cocalc/src` you can do:
 
     \$ coffee
     coffee> require './c'; db()
