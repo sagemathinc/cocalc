@@ -73,12 +73,7 @@ exports.cm_define_diffApply_extension = require('./codemirror/extensions/diff-ap
 exports.define_codemirror_extensions = () ->
     require('./codemirror/extensions/latex-code-folding');
     require('./codemirror/extensions/unindent');
-
-
-    CodeMirror.defineExtension 'tab_as_space', () ->
-        cursor = @getCursor()
-        for i in [0...@.options.tabSize]
-            @replaceRange(' ', cursor)
+    require('./codemirror/extensions/tab-as-space');
 
     # Apply a CodeMirror changeObj to this editing buffer.
     CodeMirror.defineExtension 'apply_changeObj', (changeObj) ->
