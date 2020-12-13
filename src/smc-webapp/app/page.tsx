@@ -282,6 +282,16 @@ export const Page: React.FC = () => {
           hide_label={!show_label}
         />
         <NavItem className="divider-vertical hidden-xs" />
+          <NavTab
+            name={"public_files"}
+            label={"Public files"}
+            label_class={NAV_CLASS}
+            icon={"folder-plus"}
+            inner_style={{ padding: "10px", display: "flex" }}
+            active_top_tab={active_top_tab}
+            link={"/share"}
+            hide_label={!show_label}
+          />
         {render_support()}
         {logged_in && render_account_tab()}
         {render_bell()}

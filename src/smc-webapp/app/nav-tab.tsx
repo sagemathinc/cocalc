@@ -17,6 +17,7 @@ interface Props {
   label_class?: string;
   icon?: string | JSX.Element;
   close?: boolean;
+  link?: string;
   on_click?: () => void;
   active_top_tab?: string;
   style?: React.CSSProperties;
@@ -103,7 +104,23 @@ export const NavTab: React.FC<Props> = React.memo((props) => {
   if (props.add_inner_style) {
     inner_style = { ...inner_style, ...props.add_inner_style };
   }
-
+  
+  var link = "";
+  if (props.link) {
+    link = props.link;
+  }
+  
+  if (link) {
+    return (
+      <NavItem href={link} active={is_active} style={outer_style}>
+        <div style={inner_style}>
+          {render_icon()}
+          {render_label()}
+          {props.children}
+        </div>
+      </NavItem>
+  );
+  }
   return (
     <NavItem active={is_active} onClick={onClick} style={outer_style}>
       <div style={inner_style}>
