@@ -20,7 +20,6 @@ CodeMirror.defineExtension("foldCodeSelectionAware", function (
 ) {
   // @ts-ignore
   const editor: any = this;
-  (window as any).editor = editor;
   for (const selection of editor.listSelections()) {
     const { start_line, end_line } = cm_start_end(selection);
     for (let n = start_line; n <= end_line; n++) {
