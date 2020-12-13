@@ -75,6 +75,7 @@ exports.define_codemirror_extensions = () ->
     require('./codemirror/extensions/unindent');
     require('./codemirror/extensions/tab-as-space');
     require('./codemirror/extensions/set-value-nojump');
+    require('./codemirror/extensions/spellcheck-highlight');
     exports.cm_define_diffApply_extension(CodeMirror)
 
     # Apply a CodeMirror changeObj to this editing buffer.
@@ -93,6 +94,7 @@ exports.define_codemirror_extensions = () ->
         @diffApply(diff)
 
     # This is an improved rewrite of simple-hint.js from the CodeMirror3 distribution.
+    # It is used only by sage worksheets and nothing else, hence will get deprecated.
     CodeMirror.defineExtension 'showCompletions', (opts) ->
         {from, to, completions, target, completions_size} = defaults opts,
             from             : required
@@ -184,6 +186,7 @@ exports.define_codemirror_extensions = () ->
         sel.focus()
         return sel
 
+    # This is used only by sage worksheets and nothing else, hence will get deprecated.
     CodeMirror.defineExtension 'showIntrospect', (opts) ->
         opts = defaults opts,
             from      : required
@@ -205,33 +208,6 @@ exports.define_codemirror_extensions = () ->
             elt = element.find(".webapp-codemirror-introspect-content-docstring")[0]
             if elt?  # see https://github.com/sagemathinc/cocalc/issues/1993
                 CodeMirror.runMode(opts.content, 'text/x-rst', elt)
-
-    # Codemirror extension that takes as input an arrow of words (or undefined)
-    # and visibly keeps those marked as misspelled.  If given empty input, cancels this.
-    # If given another input, that replaces the current one.
-    CodeMirror.defineExtension 'spellcheck_highlight', (words) ->
-        cm = @
-        if cm._spellcheck_highlight_overlay?
-            cm.removeOverlay(cm._spellcheck_highlight_overlay)
-            delete cm._spellcheck_highlight_overlay
-        if words? and words.length > 0
-            v = {}
-            # make faster-to-check dictionary
-            for w in words
-                v[w] = true
-            words = v
-            # define overlay mode
-            token = (stream, state) ->
-                # stream.match(/^\w+/) means "begins with 1 or more word characters", and eats them all.
-                if stream.match(/^\w+/) and words[stream.current()]
-                    return 'spell-error'
-                # eat whitespace
-                while stream.next()?
-                    # stream.match(/^\w+/, false) means "begins with 1 or more word characters", but don't eat them up
-                    if stream.match(/^\w+/, false)
-                        return
-            cm._spellcheck_highlight_overlay = {token: token}
-            cm.addOverlay(cm._spellcheck_highlight_overlay)
 
     CodeMirror.defineExtension 'foldCodeSelectionAware', (mode) ->
         editor = @
