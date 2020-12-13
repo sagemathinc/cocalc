@@ -88,6 +88,11 @@ const PAGE_STYLE: React.CSSProperties = {
 
 const positionHackHeight = `${NAV_HEIGHT - 4}px`;
 
+// smc-util/theme is set in ./render.coffee
+const BASE_URL = global["BACKEND"]
+  ? require("smc-util/theme").DOMAIN_NAME
+  : require("../misc").BASE_URL;
+
 export const Page: React.FC = () => {
   const page_actions = useActions("page");
   const support_actions = useActions("support");
@@ -289,7 +294,7 @@ export const Page: React.FC = () => {
             icon={"folder-plus"}
             inner_style={{ padding: "10px", display: "flex" }}
             active_top_tab={active_top_tab}
-            link={"/share"}
+            link={`${BASE_URL}/share`}
             hide_label={!show_label}
           />
         {render_support()}
