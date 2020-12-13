@@ -3,10 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-interface Pos {
-  line: number;
-  ch: number;
-}
+import { Position } from "codemirror";
 
 // We define the diffApply extension separately so it can be applied to CodeMirror's
 // in iframes, e.g., Jupyter's.
@@ -16,7 +13,7 @@ export function cm_define_diffApply_extension(cm) {
   cm.defineExtension("diffApply", function (diff) {
     // @ts-ignore
     const editor = this;
-    const next_pos = function (val: string, pos: Pos): Pos {
+    const next_pos = function (val: string, pos: Position): Position {
       // This functions answers the question:
       // If you were to insert the string val at the CodeMirror position pos
       // in a codemirror document, at what position (in codemirror) would
@@ -32,8 +29,8 @@ export function cm_define_diffApply_extension(cm) {
       }
     };
 
-    let pos: Pos = { line: 0, ch: 0 }; // start at the beginning
-    let last_pos: Pos | undefined = undefined;
+    let pos: Position = { line: 0, ch: 0 }; // start at the beginning
+    let last_pos: Position | undefined = undefined;
     for (let chunk of diff) {
       const op = chunk[0]; // 0 = stay same; -1 = delete; +1 = add
       const val = chunk[1]; // the actual text to leave same, delete, or add

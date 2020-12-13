@@ -6,8 +6,10 @@
 import * as CodeMirror from "codemirror";
 
 CodeMirror.defineExtension("tab_as_space", function () {
-  const cursor = this.getCursor();
-  for (let i = 0; i < this.options.tabSize; i++) {
-    this.replaceRange(" ", cursor);
+  // @ts-ignore
+  const cm : any = this;
+  const cursor = cm.getCursor();
+  for (let i = 0; i < cm.options.tabSize; i++) {
+    cm.replaceRange(" ", cursor);
   }
 });

@@ -74,6 +74,8 @@ exports.define_codemirror_extensions = () ->
     require('./codemirror/extensions/latex-code-folding');
     require('./codemirror/extensions/unindent');
     require('./codemirror/extensions/tab-as-space');
+    require('./codemirror/extensions/set-value-nojump');
+    exports.cm_define_diffApply_extension(CodeMirror)
 
     # Apply a CodeMirror changeObj to this editing buffer.
     CodeMirror.defineExtension 'apply_changeObj', (changeObj) ->
@@ -81,82 +83,8 @@ exports.define_codemirror_extensions = () ->
         if changeObj.next?
             @apply_changeObj(changeObj.next)
 
-    exports.cm_define_diffApply_extension(CodeMirror)
-
-    # Try to set the value of the buffer to something new by replacing just the ranges
-    # that changed, so that the viewport/history/etc. doesn't get messed up.
-    # Setting scroll_last to true sets cursor to last changed position and puts cursors
-    # there; this is used for undo/redo.
-    # **NOTE:** there are no guarantees, since if the patch to transform from  current to
-    # value involves a "huge" (at least 500) number of chunks, then we just set the value
-    # directly since apply thousands of chunks will lock the cpu for seconds.  This will
-    # slightly mess up the scroll position, undo position, etc.  It's worth it.
-    CodeMirror.defineExtension 'setValueNoJump', (value, scroll_last) ->
-        if not value?
-            # Special case -- trying to set to value=undefined.  This is the sort of thing
-            # that might rarely happen right as the document opens or closes, for which
-            # there is no meaningful thing to do but "do nothing".  We detected this periodically
-            # by catching user stacktraces in production...  See https://github.com/sagemathinc/cocalc/issues/1768
-            return
-        current_value = @getValue()
-        if value == current_value
-            # Special case: nothing to do
-            return
-
-        r = @getOption('readOnly')
-        if not r
-            @setOption('readOnly', true)
-        @_setValueNoJump = true  # so the cursor events that happen as a direct result of this setValue know.
-
-        # Determine information so we can restore the scroll position
-        t      = @getScrollInfo().top
-        b      = @setBookmark(line:@lineAtHeight(t, 'local'))
-        before = @heightAtLine(@lineAtHeight(t, 'local'))
-
-        # Compute patch that transforms current_value to new value:
-        diff = dmp.diff_main(current_value, value)
-        if diff.length >= 500
-            # special case -- a really weird change that will take
-            # an enormous amount of time to apply using diffApply.
-            # For example, something that changes every line in a file
-            # slightly could do this.  In this case, instead of blocking
-            # the user browser for several seconds, we just take the
-            # hit and possibly unset the cursor.  Most diffs involve
-            # a much smaller number of patches.
-            scroll = @getScrollInfo().top - (before - @heightAtLine(b.find().line))
-            @setValue(value)
-            @scrollTo(undefined, scroll)  # make some attempt to fix scroll.
-        else
-            # Change the buffer in place by applying the diffs as we go; this avoids replacing the entire buffer,
-            # which would cause total chaos.
-            last_pos = @diffApply(diff)
-
-        # Now, if possible, restore the exact scroll position.
-        n = b.find()?.line
-        if n?
-            @scrollTo(undefined, @getScrollInfo().top - (before - @heightAtLine(b.find().line)))
-            b.clear()
-
-        if not r
-            @setOption('readOnly', false)
-            if scroll_last and last_pos?
-                @scrollIntoView(last_pos)
-                @setCursor(last_pos)
-
-        # Just do an expensive double check that the above worked.  I have no reason
-        # to believe the above could ever fail... but maybe it does in some very rare
-        # cases, and if it did, the results would be PAINFUL.  So... we just brutally
-        # do the set if it fails.  This will mess up cursors, etc., but that's a reasonable
-        # price to pay for correctness.
-        if value != @getValue()
-            console.warn("setValueNoJump failed -- just setting value directly")
-            @setValue(value)
-
-        delete @_setValueNoJump
-
-
     CodeMirror.defineExtension 'patchApply', (patch) ->
-        ## OPTIMIZATION: this is a very stupid/inefficient way to turn
+        ## OPTIMIZATION: this is a naive and inefficient way to turn
         ## a patch into a diff.  We should just directly rewrite
         ## the code below to work with patch.
         cur_value = @getValue()
