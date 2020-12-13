@@ -78,6 +78,7 @@ exports.define_codemirror_extensions = () ->
     require('./codemirror/extensions/spellcheck-highlight');
     require('./codemirror/extensions/fold-code-selection');
     require('./codemirror/extensions/latex-completions');
+    require('./codemirror/extensions/align-assignments');
     exports.cm_define_diffApply_extension(CodeMirror)
 
     # Apply a CodeMirror changeObj to this editing buffer.
@@ -798,67 +799,6 @@ exports.define_codemirror_extensions = () ->
             return false
         if line?
             return {line:line, ch:ch}
-
-    # Format the selected block (or blocks) of text, so it looks like this:
-    #    stuff  : 'abc'
-    #    foo    : 1
-    #    more_0 : 'blah'
-    # Or
-    #    stuff  = 'abc'
-    #    foo    = 1
-    #    more_0 = 'blah'
-    # The column separate is the first occurence in the first line of
-    # one of '=' or ':'.  Selected lines that don't contain either symbol
-    # are ignored.
-    CodeMirror.defineExtension 'align_assignments', () ->
-        for sel in @listSelections()
-            {start_line, end_line} = cm_start_end(sel)
-            symbol = undefined
-            column = 0
-            # first pass -- figure out what the symbol is and what column we will move it to.
-            for n in [start_line .. end_line]
-                x = @getLine(n)
-                if not symbol?
-                    # we still don't know what the separate symbol is.
-                    if ':' in x
-                        symbol = ':'
-                    else if '=' in x
-                        symbol = '='
-                i = x.indexOf(symbol)
-                if i == -1
-                    continue   # no symbol in this line, so skip
-                # reduce i until x[i-1] is NOT whitespace.
-                while i > 0 and x[i-1].trim() == ''
-                    i -= 1
-                i += 1
-                column = Math.max(i, column)
-            if not symbol? or not column
-                continue  # no symbol in this selection, or no need to move it.  Done.
-            # second pass -- move symbol over by inserting space
-            for n in [start_line .. end_line]
-                x = @getLine(n)
-                i = x.indexOf(symbol)
-                if i != -1
-                    # There is a symbol in this line -- put it in the spot where we want it.
-                    if i < column
-                        # symbol is too early -- add space
-                        spaces = (' ' for j in [0...(column-i)]).join('')  # column - i spaces
-                        # insert spaces in front of the symbol
-                        @replaceRange(spaces, {line:n, ch:i}, {line:n, ch:i})
-                    else if i > column
-                        # symbol is too late -- remove spaces
-                        @replaceRange('', {line:n, ch:column}, {line:n, ch:i})
-                    # Ensure the right amount of whitespace after the symbol -- exactly one space
-                    j = i + 1  # this will be the next position after x[i] that is not whitespace
-                    while j < x.length and x[j].trim() == ''
-                        j += 1
-                    if j - i >= 2
-                        # remove some spaces
-                        @replaceRange('', {line:n, ch:column+1}, {line:n, ch:column+(j-i-1)})
-                    else if j - i == 1
-                        # insert a space
-                        @replaceRange(' ', {line:n, ch:column+1}, {line:n, ch:column+1})
-
 
 
 
