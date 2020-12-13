@@ -127,6 +127,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @init_worksheet_buttons()
 
         v = [@codemirror, @codemirror1]
+        window.cm = @codemirror
         for cm in v
             cm.on 'beforeChange', (instance, changeObj) =>
                 #console.log("beforeChange (#{instance.name}): #{misc.to_json(changeObj)}")
@@ -1521,10 +1522,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             html = markdown.markdown_to_html(mesg.md)
             t = $('<div class="sagews-output-md">')
             if @editor.opts.allow_javascript_eval
-                console.log("setting with eval");
                 t.html(html)
             else
-                console.log("setting without eval");
                 t.html_noscript(html)
             t.katex()
             output.append(t)

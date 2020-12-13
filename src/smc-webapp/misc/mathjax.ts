@@ -72,7 +72,7 @@ $.fn.extend({
         // stupid, since it involves converting back and forth between html.
         // The test: it's definitely not <script type='math/text'> and it doesn't contain
         // a dollar sign or backslash... then it's not going to be mathjax'd.
-        if (t.attr("type").indexOf("math/tex") == -1) {
+        if ((t.attr("type") ?? "").indexOf("math/tex") == -1) {
           html = t.html();
           if (html.indexOf("$") === -1 && html.indexOf("\\") === -1) {
             opts.cb?.();
