@@ -76,6 +76,7 @@ exports.define_codemirror_extensions = () ->
     require('./codemirror/extensions/tab-as-space');
     require('./codemirror/extensions/set-value-nojump');
     require('./codemirror/extensions/spellcheck-highlight');
+    require('./codemirror/extensions/fold-code-selection');
     exports.cm_define_diffApply_extension(CodeMirror)
 
     # Apply a CodeMirror changeObj to this editing buffer.
@@ -209,29 +210,7 @@ exports.define_codemirror_extensions = () ->
             if elt?  # see https://github.com/sagemathinc/cocalc/issues/1993
                 CodeMirror.runMode(opts.content, 'text/x-rst', elt)
 
-    CodeMirror.defineExtension 'foldCodeSelectionAware', (mode) ->
-        editor = @
-        # The variable mode determines whether we are mode or unfolding *everything*
-        # selected.  If mode='fold', mode everything; if mode='unfold', unfolding everything;
-        # and if mode=undefined, not yet decided.  If undecided, it's decided on the first
-        # thing that we would toggle, e.g., if the first fold point is unfolded, we make sure
-        # everything is folded in all ranges, but if the first fold point is not folded, we then
-        # make everything unfolded.
-        for selection in editor.listSelections()
-            {start_line, end_line} = cm_start_end(selection)
-            for n in [start_line .. end_line]
-                pos = CodeMirror.Pos(n)
-                if mode?
-                    editor.foldCode(pos, null, mode)
-                else
-                    # try to toggle and see if anything happens
-                    is_folded = editor.isFolded(pos)
-                    editor.foldCode(pos)
-                    if editor.isFolded(pos) != is_folded
-                        # this is a foldable line, and what did we do?  keep doing it.
-                        mode = if editor.isFolded(pos) then "fold" else "unfold"
 
-    # $.get '/static/codemirror-extra/data/latex-completions.txt', (data) ->
     data = require('raw-loader!codemirror-extra/data/latex-completions.txt')
     s = data.split('\n')
     tex_hint = (editor) ->
