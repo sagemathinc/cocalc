@@ -796,10 +796,6 @@ exports.load_coffeescript_compiler = (cb) ->
             console.log("loaded CoffeeScript via require.ensure")
             cb?()
 
-exports.language = () ->
-    (if navigator?.languages then navigator?.languages[0] else (navigator?.language or navigator?.userLanguage))
-
-
 # get the currently selected html
 exports.save_selection = () ->
     if window.getSelection
@@ -844,14 +840,6 @@ exports.track_conversion = (type, amount) ->
         currency    : 'USD'
     )
 
-
-# These are used to disable pointer events for iframes when dragging something that may move over an iframe.
-# See http://stackoverflow.com/questions/3627217/jquery-draggable-and-resizeable-over-iframes-solution
-exports.drag_start_iframe_disable = ->
-    $("iframe:visible").css('pointer-events', 'none')
-
-exports.drag_stop_iframe_enable = ->
-    $("iframe:visible").css('pointer-events', 'auto')
 
 # for backward compatibility, and no circular import
 exports.open_popup_window = (args...) ->

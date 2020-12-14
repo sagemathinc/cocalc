@@ -41,10 +41,11 @@ import {
   Rendered,
 } from "../../app-framework";
 import { Map, Set } from "immutable";
-
 const Draggable = require("react-draggable");
-const misc_page = require("smc-webapp/misc_page");
-
+import {
+  drag_start_iframe_disable,
+  drag_stop_iframe_enable,
+} from "../../misc-page";
 import * as feature from "smc-webapp/feature";
 import { FrameTitleBar } from "./title-bar";
 import { FrameTreeLeaf } from "./leaf";
@@ -52,11 +53,9 @@ import * as tree_ops from "./tree-ops";
 import { Loading } from "../../r_misc";
 import { AvailableFeatures } from "../../project_configuration";
 import { get_file_editor } from "./register";
-
 import { TimeTravelActions } from "../time-travel-editor/actions";
 import { EditorSpec, EditorDescription, EditorState, NodeDesc } from "./types";
 import { Actions } from "../code-editor/actions";
-
 import { cm as cm_spec } from "../code-editor/editor";
 
 const drag_offset = feature.IS_TOUCH ? 5 : 2;
@@ -377,7 +376,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     };
 
     const handle_stop = async (_, ui) => {
-      misc_page.drag_stop_iframe_enable();
+      drag_stop_iframe_enable();
       const clientX = ui.node.offsetLeft + ui.x + drag_offset;
       const elt = ReactDOM.findDOMNode(this.refs.cols_container);
       const pos = (clientX - elt.offsetLeft) / elt.offsetWidth;
@@ -396,7 +395,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         ref={"cols_drag_bar"}
         axis={"x"}
         onStop={handle_stop}
-        onStart={misc_page.drag_start_iframe_disable}
+        onStart={drag_start_iframe_disable}
         defaultClassNameDragging={"cc-vertical-drag-bar-dragging"}
       >
         <div
@@ -483,7 +482,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     };
 
     const handle_stop = (_, ui) => {
-      misc_page.drag_stop_iframe_enable();
+      drag_stop_iframe_enable();
       const clientY = ui.node.offsetTop + ui.y + drag_offset;
       const elt = ReactDOM.findDOMNode(this.refs.rows_container);
       const pos = (clientY - elt.offsetTop) / elt.offsetHeight;
@@ -502,7 +501,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         ref={"rows_drag_bar"}
         axis={"y"}
         onStop={handle_stop}
-        onStart={misc_page.drag_start_iframe_disable}
+        onStart={drag_start_iframe_disable}
       >
         <div
           style={
