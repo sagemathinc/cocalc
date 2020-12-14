@@ -8,4 +8,5 @@ export * from "./misc";
 export * from "./sanitize";
 export * from "./language";
 export * from "./iframe";
+export * from "./cookies";
 import "./bootstrap-fixes";

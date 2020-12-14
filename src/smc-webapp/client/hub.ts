@@ -6,8 +6,7 @@
 import { callback } from "awaiting";
 import { throttle } from "lodash";
 import { WebappClient } from "./client";
-declare var Primus: any;
-const { delete_cookie } = require("../misc_page");
+import { delete_cookie } from "../misc-page";
 import { QueryParams } from "../misc/query-params";
 import {
   copy_without,
@@ -24,6 +23,8 @@ import {
   do_anonymous_setup,
   should_do_anonymous_setup,
 } from "./anonymous-setup";
+
+declare var Primus: any;
 
 // Maximum number of outstanding concurrent messages (that have responses)
 // to send at once to hub-websocket.
