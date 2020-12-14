@@ -796,10 +796,6 @@ exports.load_coffeescript_compiler = (cb) ->
             console.log("loaded CoffeeScript via require.ensure")
             cb?()
 
-# Convert html to text safely using jQuery (see http://api.jquery.com/jquery.parsehtml/)
-
-exports.html_to_text = require('./misc-page').html_to_text
-
 exports.language = () ->
     (if navigator?.languages then navigator?.languages[0] else (navigator?.language or navigator?.userLanguage))
 
