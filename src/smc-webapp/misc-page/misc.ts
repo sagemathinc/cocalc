@@ -7,10 +7,8 @@ import { delay } from "awaiting";
 declare var $: any;
 
 /*
-
 Misc random code that I don't really know how to classify further.  It's misc
 among misc...
-
 */
 
 // Cause a file at a given url to get downloaded.  Don't await this.
@@ -29,4 +27,8 @@ export async function download_file(src: string): Promise<void> {
 
   // Then get rid of that iframe
   iframe.remove();
+}
+
+export function html_to_text(html: string): string {
+  return $($.parseHTML(html)).text();
 }

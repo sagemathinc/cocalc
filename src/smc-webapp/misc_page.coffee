@@ -786,43 +786,6 @@ exports.define_codemirror_extensions = () ->
                 return false
 
 
-# Get the DOM node that the currently selected text starts at, as a jquery wrapped object;
-# if the selection is a caret (hence empty) returns empty object
-exports.get_selection_start_node = () ->
-    node = undefined
-    selection = undefined
-    if window.getSelection # FF3.6, Safari4, Chrome5, IE11 (DOM Standards)
-        selection = getSelection()
-        if selection.isCollapsed
-            return $()
-        node = selection.anchorNode
-    if not node and document.selection # old IE
-        selection = document.selection
-        range = (if selection.getRangeAt then selection.getRangeAt(0) else selection.createRange())
-        node = (if range.commonAncestorContainer then range.commonAncestorContainer else (if range.parentElement then range.parentElement() else range.item(0)))
-    if node
-        $(if node.nodeName is "#text" then node.parentNode else node)
-    else
-        $()
-
-# return true if d is a valid string -- see http://stackoverflow.com/questions/1353684/detecting-an-invalid-date-date-instance-in-javascript
-exports.is_valid_date = (d) ->
-    if Object::toString.call(d) isnt "[object Date]"
-        return false
-    else
-        return not isNaN(d.getTime())
-
-# Bootstrap 3 modal fix
-$("html").on "hide.bs.modal", "body > .modal", (e) ->
-    $(@).remove()
-    return
-
-# Bootstrap 3 tooltip fix
-$("body").on "show.bs.tooltip", (e) ->
-    setTimeout ( ->
-        $(e.target).parent().find(".tooltip").tooltip "hide"
-    ), 3000
-
 exports.load_coffeescript_compiler = (cb) ->
     if CoffeeScript?
         cb?()
