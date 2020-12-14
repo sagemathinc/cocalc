@@ -786,14 +786,6 @@ exports.define_codemirror_extensions = () ->
                 return false
 
 
-
-exports.download_file = (url) ->
-    #console.log("download_file(#{url})")
-    ## NOTE: the file has to be served with
-    ##    res.setHeader('Content-disposition', 'attachment')
-    iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
-    setTimeout((() -> iframe.remove()), 60000)
-
 # Get the DOM node that the currently selected text starts at, as a jquery wrapped object;
 # if the selection is a caret (hence empty) returns empty object
 exports.get_selection_start_node = () ->

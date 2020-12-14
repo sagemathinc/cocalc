@@ -25,10 +25,8 @@ import {
   syncdb2,
   syncstring2,
 } from "../generic/client";
-
 import { SyncDB } from "smc-util/sync/editor/db";
 import { SyncString } from "smc-util/sync/editor/string";
-
 import { aux_file } from "../frame-tree/util";
 import { callback_opts, once } from "smc-util/async-utils";
 import { filename_extension, history_path, len, uuid } from "smc-util/misc";
@@ -51,19 +49,14 @@ import "../generic/codemirror-plugins";
 import * as tree_ops from "../frame-tree/tree-ops";
 import { Actions as BaseActions, Store } from "../../app-framework";
 import { createTypedMap, TypedMap } from "../../app-framework";
-
 import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
 import { CodeEditorManager, CodeEditor } from "./code-editor-manager";
-
 import { AvailableFeatures } from "../../project_configuration";
-
 import { apply_patch } from "smc-util/sync/editor/generic/util";
-
 import { default_opts } from "../codemirror/cm-options";
-
 import { set_buffer, get_buffer } from "../../copy-paste-buffer";
-const { open_new_tab } = require("smc-webapp/misc_page");
+import { open_new_tab } from "../../misc-page";
 
 import {
   ext2syntax,

@@ -127,7 +127,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @init_worksheet_buttons()
 
         v = [@codemirror, @codemirror1]
-        window.cm = @codemirror
         for cm in v
             cm.on 'beforeChange', (instance, changeObj) =>
                 #console.log("beforeChange (#{instance.name}): #{misc.to_json(changeObj)}")

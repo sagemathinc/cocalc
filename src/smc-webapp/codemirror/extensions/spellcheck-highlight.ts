@@ -20,7 +20,7 @@ CodeMirror.defineExtension("spellcheck_highlight", function (
   if (words != null && words.length > 0) {
     const v: Set<string> = new Set(words);
     // define overlay mode
-    const token = function (stream, state) {
+    const token = function (stream) {
       // stream.match(/^\w+/) means "begins with 1 or more word characters", and eats them all.
       if (stream.match(/^\w+/) && v.has(stream.current())) {
         return "spell-error";

@@ -26,13 +26,15 @@ use longterm in a vastly better way.
 */
 
 CodeMirror.defineExtension("align_assignments", function () {
-  for (let sel of this.listSelections()) {
+  // @ts-ignore
+  const cm : any = this;
+  for (let sel of cm.listSelections()) {
     const { start_line, end_line } = cm_start_end(sel);
     let symbol: string | undefined = undefined;
     let column = 0;
     // first pass -- figure out what the symbol is and what column we will move it to.
     for (let n = start_line; n <= end_line; n++) {
-      const x = this.getLine(n);
+      const x = cm.getLine(n);
       if (symbol == null) {
         // we still don't know what the separate symbol is.
         if (x.indexOf(":") != -1) {
@@ -56,8 +58,8 @@ CodeMirror.defineExtension("align_assignments", function () {
       continue; // no symbol in this selection, or no need to move it.  Done.
     }
     // second pass -- move symbol over by inserting space
-    for (n = start_line; n <= end_line; n++) {
-      const x = this.getLine(n);
+    for (let n = start_line; n <= end_line; n++) {
+      const x = cm.getLine(n);
       const i = x.indexOf(symbol);
       if (i !== -1) {
         // There is a symbol in this line -- put it in the spot where we want it.
@@ -69,10 +71,10 @@ CodeMirror.defineExtension("align_assignments", function () {
             spaces += " ";
           }
           // insert spaces in front of the symbol
-          this.replaceRange(spaces, { line: n, ch: i }, { line: n, ch: i });
+          cm.replaceRange(spaces, { line: n, ch: i }, { line: n, ch: i });
         } else if (i > column) {
           // symbol is too late -- remove spaces
-          this.replaceRange("", { line: n, ch: column }, { line: n, ch: i });
+          cm.replaceRange("", { line: n, ch: column }, { line: n, ch: i });
         }
         // Ensure the right amount of whitespace after the symbol -- exactly one space
         let j = i + 1; // this will be the next position after x[i] that is not whitespace
@@ -81,14 +83,14 @@ CodeMirror.defineExtension("align_assignments", function () {
         }
         if (j - i >= 2) {
           // remove some spaces
-          this.replaceRange(
+          cm.replaceRange(
             "",
             { line: n, ch: column + 1 },
             { line: n, ch: column + (j - i - 1) }
           );
         } else if (j - i === 1) {
           // insert a space
-          this.replaceRange(
+          cm.replaceRange(
             " ",
             { line: n, ch: column + 1 },
             { line: n, ch: column + 1 }

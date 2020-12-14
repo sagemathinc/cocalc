@@ -14,10 +14,13 @@ Should be much faster than calling getLine or getValue.
 CodeMirror.defineExtension("find_in_line", function (
   s: string
 ): CodeMirror.Position | undefined {
-  let line: number | undefined = undefined;
-  let ch: number | undefined = undefined;
+  // @ts-ignore
+  const cm: any = this;
+
+  let line: number = -1;
+  let ch: number = 0;
   let i = 0;
-  this.eachLine(function (z) {
+  cm.eachLine(function (z) {
     ch = z.text.indexOf(s);
     if (ch !== -1) {
       line = i;
@@ -26,7 +29,7 @@ CodeMirror.defineExtension("find_in_line", function (
     i += 1;
     return false;
   });
-  if (line != null) {
+  if (line >= 0) {
     return { line, ch };
   }
 });
