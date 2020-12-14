@@ -36,6 +36,7 @@ import { ConnectionInfo } from "./connection-info";
 import { ConnectionIndicator } from "./connection-indicator";
 import { FileUsePage } from "../file-use/page";
 import { NotificationBell } from "./notification-bell";
+import { APP_BASE_URL } from "../misc/base-url";
 
 const HIDE_LABEL_THRESHOLD = 6;
 const NAV_HEIGHT = 36;
@@ -87,11 +88,6 @@ const PAGE_STYLE: React.CSSProperties = {
 } as const;
 
 const positionHackHeight = `${NAV_HEIGHT - 4}px`;
-
-// smc-util/theme is set in ./render.coffee
-const BASE_URL = global["BACKEND"]
-  ? require("smc-util/theme").DOMAIN_NAME
-  : require("../misc").BASE_URL;
 
 export const Page: React.FC = () => {
   const page_actions = useActions("page");
@@ -294,7 +290,7 @@ export const Page: React.FC = () => {
             icon={"folder-plus"}
             inner_style={{ padding: "10px", display: "flex" }}
             active_top_tab={active_top_tab}
-            link={`${BASE_URL}/share`}
+            link={`${APP_BASE_URL}/share`}
             hide_label={!show_label}
           />
         {render_support()}
