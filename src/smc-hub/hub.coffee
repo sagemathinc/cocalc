@@ -546,7 +546,7 @@ exports.start_server = start_server = (cb) ->
                 cb(); return
             # setting port must come before the hub_http_server.init_express_http_server below
             if program.agent_port
-                healthchecks.set_agent_port(program.agent_port)
+                healthchecks.set_agent_endpoint(program.agent_port, program.host)
             cb()
         (cb) ->
             try

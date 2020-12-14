@@ -63,8 +63,10 @@ function init_self_terminate(): {
 const { startup, shutdown, drain } = init_self_terminate();
 
 let agent_port = 0;
-export function set_agent_port(port: number) {
+let agent_host = "0.0.0.0";
+export function set_agent_endpoint(port: number, host: string) {
   agent_port = port;
+  agent_host = host;
 }
 
 let agent_check_server: any;
@@ -89,8 +91,8 @@ function setup_agent_check() {
     c.destroy();
   });
 
-  agent_check_server.listen(agent_port, "0.0.0.0");
-  L(`setup_agent_check: setup on port ${agent_port}`);
+  agent_check_server.listen(agent_port, agent_host);
+  L(`setup_agent_check: listening on ${agent_host}:${agent_port}`);
 }
 
 interface Opts {
