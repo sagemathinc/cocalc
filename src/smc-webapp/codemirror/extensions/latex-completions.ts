@@ -32,7 +32,7 @@ function tex_hint(editor) {
     // end up with two close braces. This helps compensate with the
     // "Auto close brackets: automatically close brackets" mode.
     const delete_trailing_brace = line[cur.ch] == "}";
-    const t = s.slice(i).toLowerCase();
+    const t = s.slice(i);
     for (const word of completions) {
       if (startswith(word, t)) {
         if (delete_trailing_brace && word[word.length - 1] == "}") {
