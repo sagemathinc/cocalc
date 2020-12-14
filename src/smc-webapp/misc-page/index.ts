@@ -5,4 +5,5 @@
 
 export { open_new_tab, open_popup_window } from "./open-browser-tab";
 export * from "./misc";
+export * from "./sanitize";
 import "./bootstrap-fixes";

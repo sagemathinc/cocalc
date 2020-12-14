@@ -13,6 +13,7 @@ import {
   useRef,
 } from "../app-framework";
 import { is_share_server } from "./share-server";
+import { sanitize_html, sanitize_html_safe } from "../misc-page";
 
 export interface Props {
   value?: string;
@@ -190,17 +191,9 @@ export const HTML: React.FC<Props> = (props) => {
       html = elt.html();
     } else {
       if (props.safeHTML) {
-        html = require("../misc_page").sanitize_html_safe(
-          props.value,
-          props.post_hook
-        );
+        html = sanitize_html_safe(props.value, props.post_hook);
       } else {
-        html = require("../misc_page").sanitize_html(
-          props.value,
-          true,
-          true,
-          props.post_hook
-        );
+        html = sanitize_html(props.value, true, true, props.post_hook);
       }
     }
 

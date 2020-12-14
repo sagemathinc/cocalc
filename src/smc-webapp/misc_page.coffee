@@ -827,59 +827,6 @@ exports.restore_selection = (selected_range) ->
     else if document.selection and selected_range
         selected_range.select()
 
-
-# this HTML sanitization is necessary in such a case, where the user enters
-# arbitrary HTML and then this HTML is added to the DOM. For example, a loose
-# open tag can cause the entire smc page to "crash", when it is inserted via
-# a chat message and show in the chat box as a message.
-# There are various tools available to do this, e.g.
-# * https://www.npmjs.com/package/sanitize-html (which depends on other utilitis, might be handy?)
-# * https://www.npmjs.com/package/sanitize or *-caja (from google, more standalone)
-# * https://www.npmjs.com/package/google-caja-sanitizer (only the google thing)
-# * another option: using <jQuery object>.html("<html>").html()
-#
-# in any case, almost all tags should be allowed here, no need to be too strict.
-#
-# FUTURE: the ones based on google-caja-sanitizer seem to have a smaller footprint,
-# but I (hsy) wasn't able to configure them in such a way that all tags/attributes are allowed.
-# It seems like there is some bug in the library, because the definitions to allow e.g. src in img are there.
-
-exports.sanitize_html = (html) ->
-    return jQuery("<div>").html(html).html()
-
-# http://api.jquery.com/jQuery.parseHTML/ (expanded behavior in version 3+)
-exports.sanitize_html = (html, keepScripts = true, keepUnsafeAttributes = true, post_hook = undefined) ->
-    {sanitize_html_attributes} = require('smc-util/misc')
-    sani = jQuery(jQuery.parseHTML('<div>' + html + '</div>', null, keepScripts))
-    if not keepUnsafeAttributes
-        sani.find('*').each ->
-            sanitize_html_attributes(jQuery, this)
-    if post_hook?
-        post_hook(sani)
-    return sani.html()
-
-exports.sanitize_html_safe = (html, post_hook=undefined) ->
-    exports.sanitize_html(html, false, false, post_hook)
-
-###
-_sanitize_html_lib = require('sanitize-html')
-
-_sanitize_html_allowedTags = [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'p', 'a', 'ul', 'ol',
-  'nl', 'li', 'b', 'i', 'strong', 'em', 'strike', 'code', 'hr', 'br', 'div',
-  'img', 'br', 'hr', 'section', 'code', 'input', "strong",
-  'table', 'thead', 'caption', 'tbody', 'tfoot', 'tr', 'th', 'td', 'pre' ]
-
-_sanitize_html_allowedAttributes =
-    a: [ 'href', 'name', 'target', 'style' ]
-    img: [ 'src', 'style' ]
-    '*': [ 'href', 'align', 'alt', 'center', 'bgcolor', 'style' ]
-
-return _sanitize_html_lib html,
-        allowedTags: _sanitize_html_allowedTags
-        allowedAttributes: _sanitize_html_allowedAttributes
-###
-
-
 # conversion tracking (commercial only)
 exports.track_conversion = (type, amount) ->
     return if not require('./customize').commercial
