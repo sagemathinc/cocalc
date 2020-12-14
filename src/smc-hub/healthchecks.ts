@@ -69,6 +69,7 @@ export function set_agent_port(port: number) {
 
 let agent_check_server: any;
 
+// HAProxy agent-check TCP endpoint
 // https://cbonte.github.io/haproxy-dconv/2.0/configuration.html#5.2-agent-check
 // for development, set the env var in your startup script or terminal init file
 // export COCALC_HUB_SELF_TERMINATE=.1,.2,1
@@ -81,8 +82,9 @@ function setup_agent_check() {
   }
 
   // TODO this could also return a "weight" for this server, based on load values
+  // there is also "drain", but we set it to "1%" to avoid a nasty situation, when all endpoints are draining
   agent_check_server = createServer((c) => {
-    let msg = Date.now() < drain ? "ready" : "drain";
+    let msg = Date.now() < drain ? "ready" : "1%";
     c.write(msg + "\r\n");
     c.destroy();
   });
