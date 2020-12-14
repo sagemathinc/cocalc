@@ -279,12 +279,16 @@ export class JupyterStore extends Store<JupyterStoreState> {
       if (kernel != null) {
         kernel = kernel.toLowerCase();
         // The kernel is just a string that names the kernel, so we use heuristics.
-        if (kernel.indexOf("python") != -1 || kernel.indexOf("sage") != -1) {
+        if (kernel.indexOf("python") != -1) {
           if (kernel.indexOf("python3") != -1) {
             mode = { name: "python", version: 3 };
           } else {
             mode = { name: "python", version: 2 };
           }
+        } else if (kernel.indexOf("sage") != -1) {
+          mode = { name: "python", version: 3 };
+        } else if (kernel.indexOf("anaconda") != -1) {
+          mode = { name: "python", version: 3 };
         } else if (kernel.indexOf("octave") != -1) {
           mode = "octave";
         } else if (kernel.indexOf("bash") != -1) {
@@ -297,6 +301,13 @@ export class JupyterStore extends Store<JupyterStoreState> {
           mode = "javascript";
         } else if (kernel.indexOf("ir") != -1) {
           mode = "r";
+        } else if (
+          kernel.indexOf("root") != -1 ||
+          kernel.indexOf("xeus") != -1
+        ) {
+          mode = "text/x-c++src";
+        } else if (kernel.indexOf("gap") != -1) {
+          mode = "gap";
         } else {
           // C is probably a good fallback.
           mode = "text/x-c";
