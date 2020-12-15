@@ -12,7 +12,6 @@ misc        = require('smc-util/misc')
 {dmp}       = require('smc-util/sync/editor/generic/util')
 markdown    = require('./markdown')
 theme       = require('smc-util/theme')
-{QueryParams} = require('./misc/query-params')
 
 get_inspect_dialog = (editor) ->
     dialog = $('''
@@ -338,7 +337,7 @@ exports.define_codemirror_extensions = () ->
 
             # this is an abuse, but having external links to the documentation is good
             if how?.url?
-                exports.open_new_tab(how.url)
+                open_new_tab(how.url)
                 done = true
 
             if how?.wrap?
@@ -841,14 +840,5 @@ exports.track_conversion = (type, amount) ->
     )
 
 
-# for backward compatibility, and no circular import
-exports.open_popup_window = (args...) ->
-    require('./misc-page/open-browser-tab').open_popup_window(args...)
-exports.open_new_tab = (args...) ->
+open_new_tab = (args...) ->
     require('./misc-page/open-browser-tab').open_new_tab(args...)
-
-# returns true, if a target page should be loaded
-exports.should_load_target_url = ->
-    return window.cocalc_target \
-        and window.cocalc_target != 'login' \
-        and not QueryParams.get('test')

@@ -11,13 +11,13 @@ Initially only the simplest possible client-side implementation.
 
 import { throttle } from "underscore";
 import { webapp_client } from "./webapp-client";
-const misc_page = require("./misc_page");
+import { should_load_target_url } from "./misc-page";
 import { AppRedux } from "./app-framework";
 import { COCALC_MINIMAL } from "./fullscreen";
 import { callback2 } from "../smc-util/async-utils";
 import * as LS from "./misc/local-storage";
 import { bind_methods } from "smc-util/misc";
-import { APP_BASE_URL} from "./misc";
+import { APP_BASE_URL } from "./misc";
 
 export function session_manager(name, redux): SessionManager | undefined {
   const sm = new SessionManager(name, redux);
@@ -73,7 +73,7 @@ class SessionManager {
     // **after** a possible session is restored,
     // and project tabs are in correct order (or nothing is opened yet)
     // we open up the URL target and put it into foreground
-    if (misc_page.should_load_target_url()) {
+    if (should_load_target_url()) {
       require("./history").load_target((window as any).cocalc_target, true);
       (window as any).cocalc_target = "";
     }

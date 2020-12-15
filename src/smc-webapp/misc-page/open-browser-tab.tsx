@@ -86,3 +86,4 @@ export function open_new_tab(
   tab.location = url;
   return tab;
 }
+

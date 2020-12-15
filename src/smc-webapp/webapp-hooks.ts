@@ -12,7 +12,7 @@ import { alert_message } from "./alerts";
 import { redux } from "./app-framework";
 import * as misc from "smc-util/misc";
 import { webapp_client } from "./webapp-client";
-const { should_load_target_url } = require("./misc_page");
+import { should_load_target_url } from "./misc-page";
 import { get_cookie } from "./misc-page";
 import { APP_BASE_URL } from "./misc";
 import { reset_password_key } from "./client/password-reset";
