@@ -33,6 +33,7 @@ IS_MOBILE = feature.IS_MOBILE
 
 misc = require('smc-util/misc')
 misc_page = require('./misc_page')
+{sagews_canonical_mode} = require('./misc-page')
 
 # Ensure CodeMirror is available and configured
 require('./codemirror/codemirror')
@@ -1958,25 +1959,3 @@ cm_refresh = (cm) ->
     catch err
         console.warn("cm refresh err", err)
 
-
-
-sagews_canonical_mode = (name, default_mode) ->
-    switch name
-        when 'markdown'
-            return 'md'
-        when 'xml'
-            return 'html'
-        when 'mediawiki'
-            return 'mediawiki'
-        when 'stex'
-            return 'tex'
-        when 'python'
-            return 'python'
-        when 'r'
-            return 'r'
-        when 'sagews'
-            return 'sage'
-        when 'shell'
-            return 'shell'
-        else
-            return default_mode
