@@ -13,7 +13,11 @@ import {
   useRef,
 } from "../app-framework";
 import { is_share_server } from "./share-server";
-import { sanitize_html, sanitize_html_safe } from "../misc-page";
+import { sanitize_html, sanitize_html_safe } from "../misc-page/sanitize";
+
+// required for highlight_code codemirror plugin (e.g., used on share server, but actually
+// doesn't work yet).
+import "../jquery-plugins/codemirror";
 
 export interface Props {
   value?: string;

@@ -14,8 +14,8 @@ interface WindowOpts {
   toolbar?: "yes" | "no";
   resizable?: "yes" | "no";
   scrollbar?: "yes" | "no";
-  width?: string;
-  height?: string;
+  width?: number;
+  height?: number;
 }
 
 export function open_popup_window(url: string, opts: WindowOpts = {}) {
@@ -36,8 +36,8 @@ export function open_new_tab(
     toolbar: "no",
     resizable: "yes",
     scrollbars: "yes",
-    width: "800",
-    height: "640",
+    width: 800,
+    height: 640,
   });
 
   if (popup) {
@@ -86,4 +86,3 @@ export function open_new_tab(
   tab.location = url;
   return tab;
 }
-

@@ -337,7 +337,7 @@ exports.define_codemirror_extensions = () ->
 
             # this is an abuse, but having external links to the documentation is good
             if how?.url?
-                open_new_tab(how.url)
+                require('./misc-page/open-browser-tab').open_new_tab(how.url)
                 done = true
 
             if how?.wrap?
@@ -795,50 +795,5 @@ exports.load_coffeescript_compiler = (cb) ->
             console.log("loaded CoffeeScript via require.ensure")
             cb?()
 
-# get the currently selected html
-exports.save_selection = () ->
-    if window.getSelection
-        sel = window.getSelection()
-        if sel.getRangeAt and sel.rangeCount
-            range = sel.getRangeAt(0)
-    else if document.selection
-        range = document.selection.createRange()
-    return range
-
-exports.restore_selection = (selected_range) ->
-    if window.getSelection || document.createRange
-        selection = window.getSelection()
-        if selected_range
-            try
-                selection.removeAllRanges()
-            catch ex
-                document.body.createTextRange().select()
-                document.selection.empty()
-            selection.addRange(selected_range)
-    else if document.selection and selected_range
-        selected_range.select()
-
-# conversion tracking (commercial only)
-exports.track_conversion = (type, amount) ->
-    return if not require('./customize').commercial
-    return if DEBUG
-
-    theme = require('smc-util/theme')
-    if type == 'create_account'
-        tag = theme.sign_up_id
-        amount = 1 # that's not true
-    else if type == 'subscription'
-        tag = theme.conversion_id
-    else
-        console.warn("unknown conversion type: #{type}")
-        return
-
-    window.gtag?('event', 'conversion',
-        send_to     : "#{theme.gtag_id}/#{tag}"
-        value       : amount
-        currency    : 'USD'
-    )
 
 
-open_new_tab = (args...) ->
-    require('./misc-page/open-browser-tab').open_new_tab(args...)

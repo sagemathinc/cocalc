@@ -9,4 +9,6 @@ export * from "./sanitize";
 export * from "./language";
 export * from "./iframe";
 export * from "./cookies";
+export * from "./tracking";
+
 import "./bootstrap-fixes";

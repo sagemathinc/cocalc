@@ -19,6 +19,7 @@ import {
 import { define, required } from "smc-util/fill";
 import { set_url } from "../history";
 import { APP_BASE_URL } from "../misc";
+import { track_conversion } from "../misc-page";
 
 // Define account actions
 export class AccountActions extends Actions<AccountState> {
@@ -153,7 +154,6 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
         return;
       case "signed_in":
         this.redux.getActions("page").set_active_tab("projects");
-        const { track_conversion } = require("../misc_page");
         track_conversion("create_account");
         return;
       default:
