@@ -785,15 +785,5 @@ exports.define_codemirror_extensions = () ->
                 return false
 
 
-exports.load_coffeescript_compiler = (cb) ->
-    if CoffeeScript?
-        cb?()
-    else
-        require.ensure [], =>
-            # this should define window.CoffeeScript as the compiler instance.
-            require("script-loader!coffeescript/lib/coffeescript/index.js")
-            console.log("loaded CoffeeScript via require.ensure")
-            cb?()
-
 
 

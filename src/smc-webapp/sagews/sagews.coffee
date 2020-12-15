@@ -1648,25 +1648,15 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             else
                 obj = undefined
             if mesg.javascript.coffeescript
-                if not CoffeeScript?
-                     # hotfix to catch problem #2752
-                    if false
-                        # DANGER: this is the only async code in process_output_mesg
-                        misc_page.load_coffeescript_compiler () =>
-                            sagews_eval(CoffeeScript?.compile(code), @, opts.element, undefined, obj, redux)
-                    else
-                        t = $('<div class="sagews-output-stderr">')
-                        t.html('''
-                               <div>
-                               <h4>Error: <code>%coffeescript</code> is currently broken.</h4>
-                               Please convert the block of code above to <code>%javascript</code>.
-                               See <a href="https://github.com/sagemathinc/cocalc/issues/2752">issue #2752</a> for more information.
-                               </div>
-                               ''')
-                        output.append(t)
-                else
-                    # DANGER: this is the only async code in process_output_mesg
-                    sagews_eval(CoffeeScript?.compile(code), @, opts.element, undefined, obj, redux)
+                t = $('<div class="sagews-output-stderr">')
+                t.html('''
+                       <div>
+                       <h4>Error: running <code>%coffeescript</code> is no longer supported.</h4>
+                       Please convert the block of code above to <code>%javascript</code>.
+                       See <a target="_blank" href="https://github.com/sagemathinc/cocalc/issues/2752">issue #2752</a> for more information.
+                       </div>
+                       ''')
+                output.append(t)
             else
                 # The eval below is an intentional cross-site scripting vulnerability
                 # in the fundamental design of CoCalc.
@@ -1735,24 +1725,12 @@ class SynchronizedWorksheet extends SynchronizedDocument2
     _receive_broadcast: (mesg) =>
         switch mesg.mesg.event
             when 'execute_javascript'
-                console.log mesg
                 if @allow_javascript_eval()
                     mesg = mesg.mesg
                     do () =>
                         code = mesg.code
-                        async.series([
-                            (cb) =>
-                                if mesg.coffeescript or code.indexOf('CoffeeScript') != -1
-                                    misc_page.load_coffeescript_compiler(cb)
-                                else
-                                    cb()
-                            (cb) =>
-                                if mesg.coffeescript
-                                    code = CoffeeScript.compile(code)
-                                obj = JSON.parse(mesg.obj)
-                                sagews_eval(code, @, undefined, mesg.cell_id, obj, redux)
-                                cb()
-                        ])
+                        obj = JSON.parse(mesg.obj)
+                        sagews_eval(code, @, undefined, mesg.cell_id, obj, redux)
 
     mark_cell_start: (cm, line) =>
         # Assuming the proper text is in the document for a new cell at this line,
