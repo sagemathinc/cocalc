@@ -13,6 +13,7 @@ misc        = require('smc-util/misc')
 markdown    = require('./markdown')
 theme       = require('smc-util/theme')
 {QueryParams} = require('./misc/query-params')
+{sagews_canonical_mode} = require('./misc-page')
 
 get_inspect_dialog = (editor) ->
     dialog = $('''
@@ -525,7 +526,7 @@ exports.define_codemirror_extensions = () ->
             default_mode = cm.get_edit_mode()
 
         canonical_mode = (name) ->
-            exports.sagews_canonical_mode(name, default_mode)
+            sagews_canonical_mode(name, default_mode)
 
         args = opts.args
         cmd = opts.cmd
