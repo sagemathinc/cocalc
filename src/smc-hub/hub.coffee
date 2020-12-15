@@ -682,6 +682,8 @@ exports.start_server = start_server = (cb) ->
 
             if program.proxy_port
                 winston.debug("initializing the http proxy server on port #{program.proxy_port}")
+                # proxy's http server has its own minimal health check – we only enable the agent check
+                healthchecks.setup_agent_check()
                 hub_proxy.init_http_proxy_server
                     database       : database
                     compute_server : compute_server

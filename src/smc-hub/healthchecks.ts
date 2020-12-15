@@ -65,6 +65,7 @@ const { startup, shutdown, drain } = init_self_terminate();
 let agent_port = 0;
 let agent_host = "0.0.0.0";
 export function set_agent_endpoint(port: number, host: string) {
+  L(`set_agent_endpoint ${agent_host}:${agent_port}`);
   agent_port = port;
   agent_host = host;
 }
@@ -77,7 +78,7 @@ let agent_check_server: any;
 // export COCALC_HUB_SELF_TERMINATE=.1,.2,1
 // and then query it like that
 // $ telnet 0.0.0.0 $(cat $SMC_ROOT/dev/project/ports/agent-port)
-function setup_agent_check() {
+export function setup_agent_check() {
   if (agent_port == 0 || drain == null) {
     L("setup_agent_check: agent_port not set, no agent checks");
     return;
