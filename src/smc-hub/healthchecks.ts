@@ -78,7 +78,7 @@ let agent_check_server: any;
 // export COCALC_HUB_SELF_TERMINATE=.1,.2,1
 // and then query it like that
 // $ telnet 0.0.0.0 $(cat $SMC_ROOT/dev/project/ports/agent-port)
-export function setup_agent_check() {
+function setup_agent_check() {
   if (agent_port == 0 || drain == null) {
     L("setup_agent_check: agent_port not set, no agent checks");
     return;

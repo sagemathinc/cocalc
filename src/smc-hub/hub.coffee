@@ -648,7 +648,6 @@ exports.start_server = start_server = (cb) ->
                 logger         : winston
             winston.debug("Time to initialize share server (jsdom, etc.): #{(new Date() - t0)/1000} seconds")
             winston.debug("starting share express webserver listening on #{program.share_host}:#{program.port}")
-            healthchecks.setup_agent_check()
             x.http_server.listen(program.share_port, program.host, cb)
         (cb) ->
             if database.is_standby
@@ -684,7 +683,6 @@ exports.start_server = start_server = (cb) ->
             if program.proxy_port
                 winston.debug("initializing the http proxy server on port #{program.proxy_port}")
                 # proxy's http server has its own minimal health check – we only enable the agent check
-                healthchecks.setup_agent_check()
                 hub_proxy.init_http_proxy_server
                     database       : database
                     compute_server : compute_server

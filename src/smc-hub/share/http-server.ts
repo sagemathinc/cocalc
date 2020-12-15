@@ -12,8 +12,7 @@ the main share server.
 import * as express from "express";
 import * as http from "http";
 
-// import * as hub_register from "../hub_register";
-const hub_register = require("../hub_register");
+import { setup_healthchecks } from "../healthchecks";
 
 // import * as share from "./share";
 const share = require("./share");
@@ -21,10 +20,11 @@ const share = require("./share");
 // import { virtual_hosts } from "./virtual-hosts";
 const { virtual_hosts } = require("./virtual-hosts");
 
-import { Database, Logger } from "./types";
+import { Logger } from "./types";
+import { PostgreSQL } from "../postgres/types";
 
 export async function init(opts: {
-  database: Database;
+  database: PostgreSQL;
   base_url: string;
   share_path: string;
   logger?: Logger;
@@ -53,18 +53,7 @@ export async function init(opts: {
 
   app.use(vhost);
 
-  router.get("/alive", function (_req, res): void {
-    if (!hub_register.database_is_working()) {
-      // this will stop haproxy from routing traffic to us
-      // until db connection starts working again.
-      if (opts.logger != null) {
-        opts.logger.debug("alive: answering *NO*");
-      }
-      res.status(404).end();
-    } else {
-      res.send("alive");
-    }
-  });
+  setup_healthchecks({ router: router, db: opts.database });
 
   let share_router: any;
 
