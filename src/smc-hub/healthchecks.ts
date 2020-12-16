@@ -108,6 +108,7 @@ export function setup_agent_check() {
 interface Opts {
   router: Router;
   db: PostgreSQL;
+  extra?: (() => Promise<{ status: string; abort: boolean }>)[]; // additional healthchecks
 }
 
 interface Check {
@@ -172,10 +173,14 @@ function check_uptime(): Check {
 }
 
 // same note as above for process_alive()
-export function process_healthcheck(db: PostgreSQL): HealthcheckData {
+export async function process_healthcheck(
+  db: PostgreSQL,
+  extra?
+): Promise<HealthcheckData> {
   let any_abort = false;
   let txt = "healthchecks:\n";
-  for (const test of [check_concurrent(db), check_uptime()]) {
+  const extra_results = extra != null ? extra.map(async (e) => await e()) : [];
+  for (const test of [check_concurrent(db), check_uptime(), ...extra_results]) {
     const { status, abort } = test;
     txt += `${status} – ${abort === true ? "FAIL" : "OK"}\n`;
     any_abort = any_abort || abort === true;
@@ -185,7 +190,7 @@ export function process_healthcheck(db: PostgreSQL): HealthcheckData {
 }
 
 export async function setup_healthchecks(opts: Opts): Promise<void> {
-  const { router, db } = opts;
+  const { router, db, extra } = opts;
   setup_agent_check();
 
   // used by HAPROXY for testing that this hub is OK to receive traffic
@@ -200,8 +205,8 @@ export async function setup_healthchecks(opts: Opts): Promise<void> {
   // additionally to checking the database condition, it also self-terminates
   // this hub if it is running for quite some time. beyond that, in the future
   // there could be even more checks on top of that.
-  router.get("/healthcheck", (_, res: Response) => {
-    const { txt, code } = process_healthcheck(db);
+  router.get("/healthcheck", async (_, res: Response) => {
+    const { txt, code } = await process_healthcheck(db, extra);
     res.status(code);
     res.type("txt");
     res.send(txt);
