@@ -14,6 +14,11 @@ import { seconds2hms } from "../smc-util/misc";
 const { database_is_working } = require("./hub_register");
 import { PostgreSQL } from "./postgres/types";
 
+interface HealthcheckData {
+  code: 200 | 404;
+  txt: string;
+}
+
 // self termination is only activated, if there is a COCALC_HUB_SELF_TERMINATE environment variable
 // it's value is an interval in hours, minimum and maximum, for how long it should be alive
 // and a drain period in minutes at the end.
@@ -23,10 +28,11 @@ function init_self_terminate(): {
   shutdown?: number; // when to shutdown (causes a failed health check)
   drain?: number; // when to start draining, causes a proxy server to no longer send traffic
 } {
+  const D = L.extend("init_self_terminate");
   const startup = Date.now();
   const conf = process.env.COCALC_HUB_SELF_TERMINATE;
   if (conf == null) {
-    L("COCALC_HUB_SELF_TERMINATE not set, hence no self-termination");
+    D("COCALC_HUB_SELF_TERMINATE env var not set, hence no self-termination");
     return { startup };
   }
   const [from_str, to_str, drain_str] = conf.trim().split(",");
@@ -39,6 +45,7 @@ function init_self_terminate(): {
   const from = parseFloat(from_str);
   const to = parseFloat(to_str);
   const drain_h = parseFloat(drain_str) / 60; // minutes to hours
+  D("parsed data:", { from, to, drain_h });
   if (from > to)
     throw Error(
       "COCALC_HUB_SELF_TERMINATE 'from' must be smaller than 'to', e.g. '24,48,15'"
@@ -52,11 +59,13 @@ function init_self_terminate(): {
       `COCALC_HUB_SELF_TERMINATE: startup must be smaller than drain – ${startup}>${drain}`
     );
   }
-  L(
-    `init_self_terminate: startup=${startup} drain=${drain} shutdown=${shutdown} uptime=${seconds2hms(
-      (hours2ms * uptime) / 1000
-    )} draintime=${seconds2hms((drain_h * hours2ms) / 1000)}`
-  );
+  D({
+    startup,
+    drain,
+    shutdown,
+    uptime: seconds2hms((hours2ms * uptime) / 1000),
+    draintime: seconds2hms((drain_h * hours2ms) / 1000),
+  });
   return { startup, shutdown, drain };
 }
 
@@ -78,7 +87,7 @@ let agent_check_server: any;
 // export COCALC_HUB_SELF_TERMINATE=.1,.2,1
 // and then query it like that
 // $ telnet 0.0.0.0 $(cat $SMC_ROOT/dev/project/ports/agent-port)
-function setup_agent_check() {
+export function setup_agent_check() {
   if (agent_port == 0 || drain == null) {
     L("setup_agent_check: agent_port not set, no agent checks");
     return;
@@ -106,22 +115,23 @@ interface Check {
   abort?: boolean;
 }
 
-// this could be directly in setup_healthchecks, but we need it in proxy.coffee
-export function handle_alive(res: Response) {
-  res.type("txt");
-  let msg = "alive: YES";
+// this could be directly in setup_healthchecks, but we also need it in proxy.coffee
+// proxy.coffee must be rewritten and restructured first – just wrapping it with a router
+// didn't work at all for me
+export function process_alive(): HealthcheckData {
+  let txt = "alive: YES";
   let is_dead = true;
   if (!database_is_working()) {
     // this will stop haproxy from routing traffic to us
     // until db connection starts working again.
-    msg = "alive: NO – database not working";
+    txt = "alive: NO – database not working";
   } else if (shutdown != null && Date.now() > shutdown) {
-    msg = "alive: NO – shutdown initiated";
+    txt = "alive: NO – shutdown initiated";
   } else {
     is_dead = false;
   }
-  if (is_dead) res.status(404);
-  res.send(msg);
+  const code = is_dead ? 404 : 200;
+  return { txt, code };
 }
 
 function check_concurrent(db: PostgreSQL): Check {
@@ -161,9 +171,8 @@ function check_uptime(): Check {
   }
 }
 
-// this could be directly in setup_healthchecks, but we need it in proxy.coffee
-export function handle_healthcheck(db: PostgreSQL, res: Response) {
-  res.type("txt");
+// same note as above for process_alive()
+export function process_healthcheck(db: PostgreSQL): HealthcheckData {
   let any_abort = false;
   let txt = "healthchecks:\n";
   for (const test of [check_concurrent(db), check_uptime()]) {
@@ -171,8 +180,8 @@ export function handle_healthcheck(db: PostgreSQL, res: Response) {
     txt += `${status} – ${abort === true ? "FAIL" : "OK"}\n`;
     any_abort = any_abort || abort === true;
   }
-  if (any_abort) res.status(404);
-  res.send(txt);
+  const code = any_abort ? 404 : 200;
+  return { code, txt };
 }
 
 export async function setup_healthchecks(opts: Opts): Promise<void> {
@@ -180,15 +189,23 @@ export async function setup_healthchecks(opts: Opts): Promise<void> {
   setup_agent_check();
 
   // used by HAPROXY for testing that this hub is OK to receive traffic
-  router.get("/alive", (_, res) => {
-    handle_alive(res);
+  router.get("/alive", (_, res: Response) => {
+    const { code, txt } = process_alive();
+    res.type("txt");
+    res.status(code);
+    res.send(txt);
   });
 
   // this is a more general check than concurrent-warn
   // additionally to checking the database condition, it also self-terminates
   // this hub if it is running for quite some time. beyond that, in the future
   // there could be even more checks on top of that.
-  router.get("/healthcheck", (_, res) => handle_healthcheck(db, res));
+  router.get("/healthcheck", (_, res: Response) => {
+    const { txt, code } = process_healthcheck(db);
+    res.status(code);
+    res.type("txt");
+    res.send(txt);
+  });
 
   // /concurrent-warn -- could be used by kubernetes to decide whether or not to kill the container; if
   // below the warn thresh, returns number of concurrent connection; if hits warn, then
