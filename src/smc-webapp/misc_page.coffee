@@ -84,42 +84,6 @@ exports.define_codemirror_extensions = () ->
     exports.cm_define_diffApply_extension(CodeMirror)
 
 
-
-    CodeMirror.defineExtension 'get_edit_mode', (opts) ->
-        opts = defaults opts, {}
-        cm = @
-        switch cm.getModeAt(cm.getCursor()).name
-            when 'markdown'
-                return 'md'
-            when 'xml'
-                return 'html'
-            when 'mediawiki'
-                return 'mediawiki'
-            when 'stex'
-                return 'tex'
-            when 'python' # FUTURE how to tell it to return sage when in a sagews file?
-                return 'python'
-            when 'r'
-                return 'r'
-            when 'julia'
-                return 'julia'
-            when 'sagews'    # WARNING: this doesn't work
-                return 'sage'
-            else
-                mode = cm.getOption('mode').name
-                if mode.slice(0,3) == 'gfm'
-                    return 'md'
-                else if mode.slice(0,9) == 'htmlmixed'
-                    return 'html'
-                else if mode.indexOf('mediawiki') != -1
-                    return 'mediawiki'
-                else if mode.indexOf('rst') != -1
-                    return 'rst'
-                else if mode.indexOf('stex') != -1
-                    return 'tex'
-                if mode not in ['md', 'html', 'tex', 'rst', 'mediawiki', 'sagews', 'r']
-                    return 'html'
-
     CodeMirror.defineExtension 'edit_selection', (opts) ->
         opts = defaults opts,
             cmd  : required
