@@ -14,7 +14,6 @@ url     = require('url')
 http    = require('http')
 mime    = require('mime')
 ms      = require('ms')
-express = require('express')
 
 misc    = require('smc-util/misc')
 {defaults, required} = misc
@@ -22,10 +21,10 @@ theme   = require('smc-util/theme')
 {DOMAIN_NAME} = theme
 {VERSION_COOKIE_NAME} = require('smc-util/consts')
 
-{setup_healthchecks} = require('./healthchecks')
 hub_projects = require('./projects')
 auth = require('./auth')
 access = require('./access')
+{handle_alive, handle_healthcheck} = require('./healthchecks')
 
 {once} = require('smc-util/async-utils')
 
@@ -378,18 +377,18 @@ exports.init_http_proxy_server = (opts) ->
 
     #proxy = http_proxy.createProxyServer(ws:true)
     proxy_cache = {}
-
-    router = express.Router()
-    app    = express()
-    http_proxy_server = http.createServer(app)
-
-    setup_healthchecks(router:router, db:opts.database)
-    app.use(router)
-
-    router.use (req, res) ->
+    http_proxy_server = http.createServer (req, res) ->
         tm = misc.walltime()
         {query, pathname} = url.parse(req.url, true)
         req_url = req.url.slice(base_url.length)  # strip base_url for purposes of determining project location/permissions
+
+        if req_url == "/alive"
+            handle_alive(res)
+            return
+
+        if req_url == '/healthcheck'
+            handle_healthcheck(opts.database, res)
+            return
 
         #buffer = http_proxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
 

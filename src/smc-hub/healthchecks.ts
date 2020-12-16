@@ -7,7 +7,7 @@
 
 import * as debug from "debug";
 const L = debug("hub:healthcheck");
-import { Router } from "express";
+import { Router, Response } from "express";
 import { createServer } from "net";
 import { isFloat } from "validator";
 import { seconds2hms } from "../smc-util/misc";
@@ -106,81 +106,89 @@ interface Check {
   abort?: boolean;
 }
 
+// this could be directly in setup_healthchecks, but we need it in proxy.coffee
+export function handle_alive(res: Response) {
+  res.type("txt");
+  let msg = "alive: YES";
+  let is_dead = true;
+  if (!database_is_working()) {
+    // this will stop haproxy from routing traffic to us
+    // until db connection starts working again.
+    msg = "alive: NO – database not working";
+  } else if (shutdown != null && Date.now() > shutdown) {
+    msg = "alive: NO – shutdown initiated";
+  } else {
+    is_dead = false;
+  }
+  if (is_dead) res.status(404);
+  res.send(msg);
+}
+
+function check_concurrent(db: PostgreSQL): Check {
+  const c = db.concurrent();
+  if (c >= db._concurrent_warn) {
+    return {
+      status: `hub not healthy, since concurrent ${c} >= ${db._concurrent_warn}`,
+      abort: true,
+    };
+  } else {
+    return { status: `concurrent ${c} < ${db._concurrent_warn}` };
+  }
+}
+
+function check_uptime(): Check {
+  const now = Date.now();
+  const uptime = seconds2hms((now - startup) / 1000);
+  if (shutdown != null && drain != null) {
+    if (now >= shutdown) {
+      const msg = `uptime ${uptime} – expired, terminating now`;
+      L(msg);
+      return { status: msg, abort: true };
+    } else {
+      const until = seconds2hms((shutdown - now) / 1000);
+      const drain_str =
+        drain > now
+          ? `draining in ${seconds2hms((drain - now) / 1000)}`
+          : "draining now";
+      const msg = `uptime ${uptime} – ${drain_str} – terminating in ${until}`;
+      L(msg);
+      return { status: msg };
+    }
+  } else {
+    const msg = `uptime ${uptime} – no self-termination`;
+    L(msg);
+    return { status: msg };
+  }
+}
+
+// this could be directly in setup_healthchecks, but we need it in proxy.coffee
+export function handle_healthcheck(db: PostgreSQL, res: Response) {
+  res.type("txt");
+  let any_abort = false;
+  let txt = "healthchecks:\n";
+  for (const test of [check_concurrent(db), check_uptime()]) {
+    const { status, abort } = test;
+    txt += `${status} – ${abort === true ? "FAIL" : "OK"}\n`;
+    any_abort = any_abort || abort === true;
+  }
+  if (any_abort) res.status(404);
+  res.send(txt);
+}
+
 export async function setup_healthchecks(opts: Opts): Promise<void> {
   const { router, db } = opts;
   setup_agent_check();
 
   // used by HAPROXY for testing that this hub is OK to receive traffic
   router.get("/alive", (_, res) => {
-    res.type("txt");
-    let msg = "alive: YES";
-    let is_dead = true;
-    if (!database_is_working()) {
-      // this will stop haproxy from routing traffic to us
-      // until db connection starts working again.
-      msg = "alive: NO – database not working";
-    } else if (shutdown != null && Date.now() > shutdown) {
-      msg = "alive: NO – shutdown initiated";
-    } else {
-      is_dead = false;
-    }
-    if (is_dead) res.status(404);
-    res.send(msg);
+    handle_alive(res);
   });
-
-  function check_concurrent(): Check {
-    const c = db.concurrent();
-    if (c >= db._concurrent_warn) {
-      return {
-        status: `hub not healthy, since concurrent ${c} >= ${db._concurrent_warn}`,
-        abort: true,
-      };
-    } else {
-      return { status: `concurrent ${c} < ${db._concurrent_warn}` };
-    }
-  }
-
-  function check_uptime(): Check {
-    const now = Date.now();
-    const uptime = seconds2hms((now - startup) / 1000);
-    if (shutdown != null && drain != null) {
-      if (now >= shutdown) {
-        const msg = `uptime ${uptime} – expired, terminating now`;
-        L(msg);
-        return { status: msg, abort: true };
-      } else {
-        const until = seconds2hms((shutdown - now) / 1000);
-        const drain_str =
-          drain > now
-            ? `draining in ${seconds2hms((drain - now) / 1000)}`
-            : "draining now";
-        const msg = `uptime ${uptime} – ${drain_str} – terminating in ${until}`;
-        L(msg);
-        return { status: msg };
-      }
-    } else {
-      const msg = `uptime ${uptime} – no self-termination`;
-      L(msg);
-      return { status: msg };
-    }
-  }
 
   // this is a more general check than concurrent-warn
   // additionally to checking the database condition, it also self-terminates
   // this hub if it is running for quite some time. beyond that, in the future
   // there could be even more checks on top of that.
-  router.get("/healthcheck", (_, res) => {
-    res.type("txt");
-    let any_abort = false;
-    let txt = "healthchecks:\n";
-    for (const test of [check_concurrent(), check_uptime()]) {
-      const { status, abort } = test;
-      txt += `${status} – ${abort === true ? "FAIL" : "OK"}\n`;
-      any_abort = any_abort || abort === true;
-    }
-    if (any_abort) res.status(404);
-    res.send(txt);
-  });
+  router.get("/healthcheck", (_, res) => handle_healthcheck(db, res));
 
   // /concurrent-warn -- could be used by kubernetes to decide whether or not to kill the container; if
   // below the warn thresh, returns number of concurrent connection; if hits warn, then
