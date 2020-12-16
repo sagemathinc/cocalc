@@ -11,7 +11,6 @@ $ = window.$
 misc        = require('smc-util/misc')
 {dmp}       = require('smc-util/sync/editor/generic/util')
 markdown    = require('./markdown')
-theme       = require('smc-util/theme')
 
 get_inspect_dialog = (editor) ->
     dialog = $('''
