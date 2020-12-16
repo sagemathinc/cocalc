@@ -127,7 +127,7 @@ CodeMirror.defineExtension("showCompletions", function (opts: {
         return false;
       case 27:
         close();
-        that.focus();
+        editor.focus();
         return false;
       default:
         if (
@@ -135,7 +135,7 @@ CodeMirror.defineExtension("showCompletions", function (opts: {
           code !== 40 &&
           code !== 33 &&
           code !== 34 &&
-          !CodeMirror.isModifierKey(event)
+          !(CodeMirror as any).isModifierKey(event)
         ) {
           close();
           editor.focus();
@@ -217,13 +217,13 @@ CodeMirror.defineExtension("showIntrospect", function (opts: {
     elt = element.find(".webapp-codemirror-introspect-content-source-code")[0];
     if (elt != null) {
       // see https://github.com/sagemathinc/cocalc/issues/1993
-      CodeMirror.runMode(opts.content, "python", elt);
+      (CodeMirror as any).runMode(opts.content, "python", elt);
     }
   } else {
     elt = element.find(".webapp-codemirror-introspect-content-docstring")[0];
     if (elt != null) {
       // see https://github.com/sagemathinc/cocalc/issues/1993
-      CodeMirror.runMode(opts.content, "text/x-rst", elt);
+      (CodeMirror as any).runMode(opts.content, "text/x-rst", elt);
     }
   }
 });

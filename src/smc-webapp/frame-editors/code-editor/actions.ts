@@ -28,7 +28,7 @@ import {
 import { SyncDB } from "smc-util/sync/editor/db";
 import { SyncString } from "smc-util/sync/editor/string";
 import { aux_file } from "../frame-tree/util";
-import { callback_opts, once } from "smc-util/async-utils";
+import { once } from "smc-util/async-utils";
 import { filename_extension, history_path, len, uuid } from "smc-util/misc";
 import { print_code } from "../frame-tree/print-code";
 import {
@@ -1816,10 +1816,7 @@ export class Actions<
       // format bar only makes sense when some cm is there...
       return;
     }
-    await callback_opts((opts) => cm.edit_selection(opts))({
-      cmd,
-      args,
-    });
+    await cm.edit_selection({ cmd, args });
     if (this._state !== "closed") {
       cm.focus();
       this.set_syncstring_to_codemirror();

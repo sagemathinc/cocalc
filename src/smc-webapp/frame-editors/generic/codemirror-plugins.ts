@@ -28,14 +28,6 @@ declare module "codemirror" {
       mode?: string;
       cb?: Function; // called after done; if there is a dialog, this could be a while.
     }): void;
-
-    insertCompletion(item: string): void;
   }
 }
 
-CodeMirror.defineExtension("insertCompletion", function (item: string): void {
-  // @ts-ignore
-  const cm : CodeMirror.Editor = this;
-  const cursor = cm.getCursor();
-  console.log("insertCompletion", cursor, item);
-});
