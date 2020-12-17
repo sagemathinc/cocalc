@@ -94,9 +94,11 @@ export function setup_agent_check() {
   }
 
   // TODO this could also return a "weight" for this server, based on load values
-  // there is also "drain", but we set it to "1%" to avoid a nasty situation, when all endpoints are draining
+  // there is also "drain", but we set it to "10%" to avoid a nasty situation, when all endpoints are draining.
+  // ATTN: weight must be set as well, which is poorly documented here:
+  // https://cbonte.github.io/haproxy-dconv/2.0/configuration.html#5.2-weight
   agent_check_server = createServer((c) => {
-    let msg = Date.now() < drain ? "ready" : "1%";
+    let msg = Date.now() < drain ? "ready up 100%" : "10%";
     c.write(msg + "\r\n");
     c.destroy();
   });
