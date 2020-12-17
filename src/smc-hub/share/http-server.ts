@@ -17,7 +17,7 @@ const fs_access = promisify(fs.access);
 import * as express from "express";
 import * as http from "http";
 
-import { setup_healthchecks } from "../healthchecks";
+import { setup_healthchecks, Check } from "../healthchecks";
 
 // import * as share from "./share";
 const share = require("./share");
@@ -28,7 +28,7 @@ const { virtual_hosts } = require("./virtual-hosts");
 import { Logger } from "./types";
 import { PostgreSQL } from "../postgres/types";
 
-function extra_healthcheck(share_path: string) {
+function extra_healthcheck(share_path: string): () => Promise<Check> {
   // this gives the parent dir of `/.../project-[...]/` !
   const share_path_dir = path.parse(share_path).dir;
   return async () => {

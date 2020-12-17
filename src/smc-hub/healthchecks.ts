@@ -52,7 +52,7 @@ function init_self_terminate(): {
     );
   const uptime = Math.random() * (to - from); // hours
   const hours2ms = 1000 * 60 * 60;
-  const shutdown = startup + uptime * hours2ms;
+  const shutdown = startup + (from + uptime) * hours2ms;
   const drain = shutdown - drain_h * hours2ms;
   if (startup > drain) {
     throw new Error(
@@ -60,9 +60,9 @@ function init_self_terminate(): {
     );
   }
   D({
-    startup,
-    drain,
-    shutdown,
+    startup: new Date(startup).toISOString(),
+    drain: new Date(drain).toISOString(),
+    shutdown: new Date(shutdown).toISOString(),
     uptime: seconds2hms((hours2ms * uptime) / 1000),
     draintime: seconds2hms((drain_h * hours2ms) / 1000),
   });
@@ -105,15 +105,15 @@ export function setup_agent_check() {
   L(`setup_agent_check: listening on ${agent_host}:${agent_port}`);
 }
 
+export interface Check {
+  status: string;
+  abort?: boolean;
+}
+
 interface Opts {
   router: Router;
   db: PostgreSQL;
-  extra?: (() => Promise<{ status: string; abort: boolean }>)[]; // additional healthchecks
-}
-
-interface Check {
-  status: string;
-  abort?: boolean;
+  extra?: (() => Promise<Check>)[]; // additional healthchecks
 }
 
 // this could be directly in setup_healthchecks, but we also need it in proxy.coffee
@@ -175,13 +175,12 @@ function check_uptime(): Check {
 // same note as above for process_alive()
 export async function process_healthcheck(
   db: PostgreSQL,
-  extra?
+  extra: (() => Promise<Check>)[] = []
 ): Promise<HealthcheckData> {
   let any_abort = false;
   let txt = "healthchecks:\n";
-  const extra_results = extra != null ? extra.map(async (e) => await e()) : [];
-  for (const test of [check_concurrent(db), check_uptime(), ...extra_results]) {
-    const { status, abort } = test;
+  for (const test of [() => check_concurrent(db), check_uptime, ...extra]) {
+    const { status, abort } = await test();
     txt += `${status} – ${abort === true ? "FAIL" : "OK"}\n`;
     any_abort = any_abort || abort === true;
   }
