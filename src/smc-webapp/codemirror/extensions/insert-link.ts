@@ -14,20 +14,20 @@ CodeMirror.defineExtension("insert_link", async function () {
   const dialog = $("#webapp-editor-templates")
     .find(".webapp-html-editor-link-dialog")
     .clone();
-  dialog.modal("show");
+  (dialog as any).modal("show");
   dialog
     .find(".btn-close")
     .off("click")
     .click(function () {
-      dialog.modal("hide");
+      (dialog as any).modal("hide");
       setTimeout(focus, 50);
       return false;
     });
-  let url = dialog.find(".webapp-html-editor-url");
+  let url : any = dialog.find(".webapp-html-editor-url");
   url.focus();
-  let display = dialog.find(".webapp-html-editor-display");
-  let target = dialog.find(".webapp-html-editor-target");
-  let title = dialog.find(".webapp-html-editor-title");
+  let display : any = dialog.find(".webapp-html-editor-display");
+  let target : any = dialog.find(".webapp-html-editor-target");
+  let title: any = dialog.find(".webapp-html-editor-title");
 
   const selected_text = cm.getSelection();
   display.val(selected_text);
@@ -39,8 +39,8 @@ CodeMirror.defineExtension("insert_link", async function () {
   }
 
   const submit = () => {
-    dialog.modal("hide");
-    let s : string;
+    (dialog as any).modal("hide");
+    let s: string;
     if (mode === "md") {
       // [Python](http://www.python.org/)
       title = title.val();
@@ -50,6 +50,7 @@ CodeMirror.defineExtension("insert_link", async function () {
       }
 
       const d = display.val();
+      // @ts-ignore
       if (d.length > 0) {
         s = `[${d}](${url.val()}${title})`;
       } else {
@@ -58,6 +59,7 @@ CodeMirror.defineExtension("insert_link", async function () {
     } else if (mode === "rst") {
       // `Python <http://www.python.org/#target>`_
 
+      // @ts-ignore
       if (display.val().length > 0) {
         display = `${display.val()}`;
       } else {
@@ -69,6 +71,7 @@ CodeMirror.defineExtension("insert_link", async function () {
       // \url{http://www.wikibooks.org}
       // \href{http://www.wikibooks.org}{Wikibooks home}
       cm.tex_ensure_preamble?.("\\usepackage{url}");
+      // @ts-ignore
       display = display.val().trim();
       url = url.val();
       url = url.replace(/#/g, "\\#"); // should end up as \#
@@ -89,7 +92,9 @@ CodeMirror.defineExtension("insert_link", async function () {
       s = `[${url.val()}${display}]`;
     } else {
       // if (mode == "html") ## HTML default fallback
+      // @ts-ignore
       target = target.val().trim();
+      // @ts-ignore
       title = title.val().trim();
 
       if (target === "_blank") {
@@ -131,7 +136,7 @@ CodeMirror.defineExtension("insert_link", async function () {
       }
       if (evt.which === 27) {
         // escape
-        dialog.modal("hide");
+        (dialog as any).modal("hide");
         cb();
         return false;
       }

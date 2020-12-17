@@ -32,7 +32,6 @@ feature = require('./feature')
 IS_MOBILE = feature.IS_MOBILE
 
 misc = require('smc-util/misc')
-misc_page = require('./misc_page')
 {drag_start_iframe_disable, drag_stop_iframe_enable, sagews_canonical_mode} = require('./misc-page')
 
 # Ensure CodeMirror is available and configured
@@ -94,7 +93,6 @@ exports.file_icon_class = file_icon_class = (ext) ->
 
 # This defines a bunch of custom modes and gets some info about special case of sagews
 {sagews_decorator_modes} = require('./codemirror/custom-modes')
-misc_page.define_codemirror_extensions()
 
 exports.file_options = require("./editor-tmp").file_options
 
@@ -1558,7 +1556,7 @@ class CodeMirrorEditor extends FileEditor
             mode = sagews_canonical_mode(name, default_mode)
             #if DEBUG then console.log "textedit_only_show_known_buttons: mode #{name} → #{mode}"
             known_commands = misc.keys(EDIT_COMMANDS[mode] ? {})
-            # see special cases in 'textedit_command' and misc_page: 'edit_selection'
+            # see special cases in 'textedit_command' and codemirror/extensions: 'edit_selection'
             known_commands = known_commands.concat(['link', 'image', 'SpecialChar', 'font_size'])
             for button in @textedit_buttons.find('a')
                 button = $(button)

@@ -20,8 +20,6 @@ misc             = require('smc-util/misc')
 {redux}          = require('./app-framework')
 {alert_message}  = require('./alerts')
 
-misc_page        = require('./misc_page')
-
 templates        = $("#webapp-console-templates")
 console_template = templates.find(".webapp-console")
 

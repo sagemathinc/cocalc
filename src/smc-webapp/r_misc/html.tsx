@@ -63,7 +63,6 @@ export interface Props {
   smc_image_scaling?: boolean;
 
   // if true, highlight some <code class='language-r'> </code> blocks.
-  // See misc_page for how tiny this is!
   highlight_code?: boolean;
 
   id?: string;
