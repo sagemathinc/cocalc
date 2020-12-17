@@ -66,6 +66,8 @@ Read more: [Saving-Data-on-Unexpected-Exits](https://www.gnu.org/software/octave
 `,
   "noext-a.out":
     "This is a binary executable, which you can run in a Terminal by typing ./a.out.",
+  dcm:
+    "This is a medical image file.  You cannot open it directly, but you may use it from a Python library or some other way.",
 };
 
 interface Props {
