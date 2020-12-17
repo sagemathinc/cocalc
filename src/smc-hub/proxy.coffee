@@ -390,7 +390,7 @@ exports.init_http_proxy_server = (opts) ->
         if req_url == "/alive" or req.url == '/alive'
             health_data = process_alive()
         else if req_url == '/healthcheck' or req.url == '/healthcheck'
-            health_data = process_healthcheck(opts.database)
+            health_data = await process_healthcheck(opts.database)
 
         if health_data != null
             { txt, code } = health_data
