@@ -7,6 +7,7 @@ import { React, useActions, useTypedRedux, CSS } from "../../app-framework";
 import { delay } from "awaiting";
 import { webapp_client } from "../../webapp-client";
 import { Button, Alert, Typography, Row, Col } from "antd";
+const { Text } = Typography;
 import { register_file_editor } from "../../frame-editors/frame-tree/register";
 import { filename_extension_notilde } from "smc-util/misc";
 import { Loading } from "../../r_misc";
@@ -16,7 +17,6 @@ import { Actions as CodeEditorActions } from "../../frame-editors/code-editor/ac
 const STYLE: CSS = {
   margin: "0 auto",
   padding: "20px",
-  overflow: "auto",
   maxWidth: "1000px",
 };
 
@@ -46,12 +46,12 @@ async function get_mime({ project_id, path, set_mime, set_err, set_snippet }) {
     const is_binary = !mime.startsWith("text/");
     const content_cmd = is_binary
       ? {
-          command: "head",
-          args: ["-n", "-20", "-c", "2000", path],
-        }
-      : {
           command: "hexdump",
           args: ["-C", "-n", "512", path],
+        }
+      : {
+          command: "head",
+          args: ["-n", "-20", "-c", "2000", path],
         };
 
     // limit number of lines and bytes – it could be a "one-line" monster file
@@ -72,7 +72,7 @@ async function get_mime({ project_id, path, set_mime, set_err, set_snippet }) {
             .slice(0, 20 * 80)
             .split(/(.{0,80})/g)
             .filter((x) => !!x)
-            .join("\n")
+            .join("")
         );
       }
     }
@@ -95,34 +95,35 @@ export const UnknownEditor: React.FC<Props> = (props: Props) => {
     get_mime({ project_id, path, set_mime, set_err, set_snippet });
   }, []);
 
+  function render_ext() {
+    return (
+      <Text strong>
+        <Text code>*.{ext}</Text>
+      </Text>
+    );
+  }
+
   const explanation = React.useMemo(() => {
     if (mime == "inode/x-empty") {
       return (
         <span>
-          This file is empty and has the unknown file-extension:{" "}
-          <Typography.Text strong>
-            <code>*.{ext}</code>
-          </Typography.Text>
-          .
+          This file is empty and has the unknown file-extension: {render_ext()}.
         </span>
       );
     } else if (mime.startsWith("text/")) {
       return (
         <span>
-          This file could contain plain text, but the file-extension:{" "}
-          <Typography.Text strong>
-            <code>*.{ext}</code>
-          </Typography.Text>{" "}
+          This file might contain plain text, but the file-extension:{" "}
+          {render_ext()}
           is unknown. Try the Code Editor!
         </span>
       );
     } else {
       return (
         <span>
-          This is likely a binary file and the file-extension:{" "}
-          <code>{ext}</code> is unknown. Most likely, you have to open this file
-          via a library/package in a programming environment, like a Jupyter
-          Notebook.
+          This is likely a binary file and the file-extension: {render_ext()} is
+          unknown. Preferrably, you have to open this file via a library/package
+          in a programming environment, like a Jupyter Notebook.
         </span>
       );
     }
@@ -159,14 +160,15 @@ export const UnknownEditor: React.FC<Props> = (props: Props) => {
   function render_info() {
     return (
       <div>
-        {NAME} does not know what to do with this file, ending in{" "}
-        <code>{ext}</code>. For this session, you can register on of the
-        existing editors to open up this file.
+        {NAME} does not know what to do with this file with the extension{" "}
+        {render_ext()}. For this session, you can register one of the editors to
+        open up this file.
       </div>
     );
   }
 
   function render_warning() {
+    if (mime.startsWith("text/")) return;
     return (
       <Alert
         message="Warning"
@@ -182,28 +184,26 @@ export const UnknownEditor: React.FC<Props> = (props: Props) => {
       <>
         <div>
           {NAME} detected that the file's content has the MIME code{" "}
-          <Typography.Text strong>
-            <code>{mime}</code>
-          </Typography.Text>
+          <Text strong>
+            <Text code>{mime}</Text>
+          </Text>
           . {explanation}
         </div>
         <div>The following editors are available:</div>
         <ul>
           <li>
             <Button onClick={() => register(ext, "code")}>
-              Register{" "}
-              <Typography.Text strong>
-                <code>.{ext}</code>
-              </Typography.Text>{" "}
-              with the <code>Code Editor</code>
+              Open {render_ext()} using <Text code>Code Editor</Text>
             </Button>
           </li>
         </ul>
         <div>
-          <Typography.Text strong>Note:</Typography.Text> by clicking this
-          button this file will open immediately. This will be remembered until
-          you open up {NAME} again or refresh this page. Alternatively, rename
-          this file's file extension.
+          <Text type="secondary">
+            <Text strong>Note:</Text> by clicking this button this file will
+            open immediately. This will be remembered until you open up {NAME}{" "}
+            again or refresh this page. Alternatively, rename this file's file
+            extension.
+          </Text>
         </div>
       </>
     );
@@ -213,7 +213,7 @@ export const UnknownEditor: React.FC<Props> = (props: Props) => {
     if (!snippet) return;
     return (
       <>
-        <div>The content of this file looks like that:</div>
+        <div>The content of this file starts like that:</div>
         <div>
           <pre style={{ fontSize: "70%" }}>{snippet}</pre>
         </div>
@@ -244,9 +244,11 @@ export const UnknownEditor: React.FC<Props> = (props: Props) => {
     );
   } else {
     return (
-      <Row style={STYLE} gutter={[24, 24]}>
-        {render()}
-      </Row>
+      <div style={{ overflow: "auto" }}>
+        <Row style={STYLE} gutter={[24, 24]}>
+          {render()}
+        </Row>
+      </div>
     );
   }
 };
