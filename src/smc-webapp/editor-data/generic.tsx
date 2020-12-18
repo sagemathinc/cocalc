@@ -44,6 +44,7 @@ const INFO = {
   docx: microsoft_word,
   ppt: microsoft_ppt,
   pptx: microsoft_ppt,
+  blend: "This is a [Blender](https://www.blender.org/) file.  CoCalc can only [open it via X11 Desktop](https://github.com/sagemathinc/cocalc/issues/5107).",
   kmz:
     "Editing [KMZ files](https://developers.google.com/kml/documentation/kmzarchives) is not supported. You could `unzip` them in a [Terminal](https://doc.cocalc.com/terminal.html).",
   jar:
