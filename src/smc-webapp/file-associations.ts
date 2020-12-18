@@ -98,7 +98,7 @@ const codemirror_associations: { [ext: string]: string } = {
   v: "verilog",
   vh: "verilog",
   "": "text",
-};
+} as const;
 
 export interface FileSpec {
   editor?: string;
