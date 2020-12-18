@@ -26,7 +26,9 @@ const microsoft_ppt =
 const windows_executable =
   "Windows Executable -- you must download this program and run it on a computer";
 const python_pickle =
-  "Python Pickle -- use Python's [pickle module](https://docs.python.org/3/library/pickle.html) to read this file.";
+  "Python Pickle -- use Python's [pickle module](https://docs.python.org/3/library/pickle.html) to read this file.s";
+const medical_imaging =
+  "This is a medical image file.  You cannot open it directly in CoCalc, but you might be able to use it from a Python library.";
 
 // ext: markdown string.
 const INFO = {
@@ -66,8 +68,9 @@ Read more: [Saving-Data-on-Unexpected-Exits](https://www.gnu.org/software/octave
 `,
   "noext-a.out":
     "This is a binary executable, which you can run in a Terminal by typing ./a.out.",
-  dcm:
-    "This is a medical image file.  You cannot open it directly, but you may use it from a Python library or some other way.",
+  dcm: medical_imaging,
+  fif: medical_imaging,
+  nii: medical_imaging,
 };
 
 interface Props {
