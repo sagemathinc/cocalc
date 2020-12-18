@@ -97,7 +97,7 @@ const codemirror_associations: { [ext: string]: string } = {
   ptx: "xml", // https://pretextbook.org/
   v: "verilog",
   vh: "verilog",
-};
+} as const;
 
 export interface FileSpec {
   editor?: string;
