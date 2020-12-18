@@ -151,7 +151,6 @@ async function get_insert_image_opts_from_user(): Promise<undefined | Options> {
 CodeMirror.defineExtension("insert_image", async function (): Promise<void> {
   // @ts-ignore
   const cm = this;
-  const mode = cm.get_edit_mode();
   let opts: Options | undefined = undefined;
   try {
     opts = await get_insert_image_opts_from_user();
@@ -164,10 +163,10 @@ CodeMirror.defineExtension("insert_image", async function (): Promise<void> {
     return; // user cancelled
   }
 
-  const link = insert_image(mode, opts);
   const selections = cm.listSelections();
   selections.reverse();
   for (const sel of selections) {
+    const link = insert_image(cm.get_edit_mode(sel.head), opts);
     if (sel.empty()) {
       cm.replaceRange(link, sel.head);
     } else {

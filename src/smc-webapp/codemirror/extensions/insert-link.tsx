@@ -89,7 +89,7 @@ async function get_insert_link_opts_from_user(
         }
         visible={true}
         footer={<Button onClick={() => cb()}>Cancel</Button>}
-        onCancel={()=>cb()}
+        onCancel={() => cb()}
       >
         <Form
           labelCol={{ span: 8 }}
@@ -161,10 +161,10 @@ CodeMirror.defineExtension("insert_link", async function () {
     return; // user cancelled
   }
 
-  const link = insert_link(mode, opts);
   const selections = cm.listSelections();
   selections.reverse();
   for (const sel of selections) {
+    const link = insert_link(cm.get_edit_mode(sel.head), opts);
     if (sel.empty()) {
       cm.replaceRange(link, sel.head);
     } else {

@@ -69,7 +69,6 @@ CodeMirror.defineExtension("insert_special_char", async function (): Promise<
 > {
   // @ts-ignore
   const cm = this;
-  const mode = cm.get_edit_mode();
   let opts: Options | undefined = undefined;
 
   try {
@@ -83,10 +82,10 @@ CodeMirror.defineExtension("insert_special_char", async function (): Promise<
     return; // user cancelled
   }
 
-  const link = insert_special_char(mode, opts);
   const selections = cm.listSelections();
   selections.reverse();
   for (const sel of selections) {
+    const link = insert_special_char(cm.get_edit_mode(sel.head), opts);
     if (sel.empty()) {
       cm.replaceRange(link, sel.head);
     } else {

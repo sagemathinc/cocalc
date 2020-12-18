@@ -19,3 +19,4 @@ import "./edit-selection";
 import "./insert-link";
 import "./insert-image";
 import "./insert-special-char";
+import "./get-edit-mode";
