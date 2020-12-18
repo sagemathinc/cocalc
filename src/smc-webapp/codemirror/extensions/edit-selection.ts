@@ -35,6 +35,19 @@ CodeMirror.defineExtension("edit_selection", async function (opts: {
   // @ts-ignore
   const cm = this;
 
+  // Special cases -- link/image/SpecialChar commands handle themselves:
+  switch (opts.cmd) {
+    case "link":
+      await cm.insert_link();
+      return;
+    case "image":
+      await cm.insert_image();
+      return;
+    case "SpecialChar":
+      await cm.insert_special_char();
+      return;
+  }
+
   const default_mode = opts.mode ?? cm.get_edit_mode();
   const canonical_mode = (name) => sagews_canonical_mode(name, default_mode);
 
@@ -195,15 +208,6 @@ CodeMirror.defineExtension("edit_selection", async function (opts: {
     }
 
     switch (cmd) {
-      case "link":
-        await cm.insert_link();
-        continue;
-      case "image":
-        await cm.insert_image();
-        continue;
-      case "SpecialChar":
-        await cm.insert_special_char();
-        continue;
       case "font_size":
         if (["html", "md", "mediawiki"].indexOf(mode) != -1) {
           for (let i = 1; i <= 7; i++) {
