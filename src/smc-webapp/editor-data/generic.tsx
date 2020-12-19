@@ -72,14 +72,14 @@ Read more: [Saving-Data-on-Unexpected-Exits](https://www.gnu.org/software/octave
   dcm: medical_imaging,
   fif: medical_imaging,
   nii: medical_imaging,
-};
+} as const;
 
 interface Props {
   project_id: string;
   path: string;
 }
 
-const DataGeneric: React.FC<Props> = React.memo((props) => {
+const DataGeneric: React.FC<Props> = React.memo((props: Props) => {
   const { project_id, path } = props;
   const ext = filename_extension(path);
   const src = webapp_client.project_client.read_file({ project_id, path });
