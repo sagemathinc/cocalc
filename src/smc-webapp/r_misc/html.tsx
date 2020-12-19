@@ -15,10 +15,6 @@ import {
 import { is_share_server } from "./share-server";
 import { sanitize_html, sanitize_html_safe } from "../misc-page/sanitize";
 
-// required for highlight_code codemirror plugin (e.g., used on share server, but actually
-// doesn't work yet).
-import "../jquery-plugins/codemirror";
-
 export interface Props {
   value?: string;
   style?: CSS;
@@ -135,7 +131,8 @@ export const HTML: React.FC<Props> = (props) => {
 
   function update_code(): void {
     if (isMountedRef.current && props.highlight_code) {
-      jq()?.highlight_code();
+      // note that the highlight_code plugin might not be defined.
+      jq()?.highlight_code?.();
     }
   }
 

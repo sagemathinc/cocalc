@@ -20,6 +20,7 @@ import { file_associations } from "../file-associations";
 // ```
 // Here language-[mode] will first see if "mode" is a filename extension and use
 // the corresponding mode, and otherwise fall back to the codemirror mode name.
+
 $.fn.highlight_code = function () {
   return this.each(function () {
     // @ts-ignore
