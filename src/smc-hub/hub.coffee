@@ -52,6 +52,7 @@ auth       = require('./auth')
 base_url   = require('./base-url')
 {migrate_account_token} = require('./postgres/migrate-account-token')
 {init_start_always_running_projects} = require('./postgres/always-running')
+healthchecks = require('./healthchecks')
 
 {handle_mentions_loop} = require('./mentions/handle')
 
@@ -541,6 +542,11 @@ exports.start_server = start_server = (cb) ->
             # This must happen *AFTER* update_schema above.
             init_smc_version(database, cb)
         (cb) ->
+            # setting port must come before the hub_http_server.init_express_http_server below
+            if program.agent_port
+                healthchecks.set_agent_endpoint(program.agent_port, program.host)
+            cb()
+        (cb) ->
             try
                 await migrate_account_token(database)
             catch err
@@ -676,6 +682,7 @@ exports.start_server = start_server = (cb) ->
 
             if program.proxy_port
                 winston.debug("initializing the http proxy server on port #{program.proxy_port}")
+                # proxy's http server has its own minimal health check – we only enable the agent check
                 hub_proxy.init_http_proxy_server
                     database       : database
                     compute_server : compute_server
@@ -747,6 +754,7 @@ command_line = () ->
     program.usage('[start/stop/restart/status/nodaemon] [options]')
         .option('--port <n>', 'port to listen on (default: 5000; 0 -- do not start)', ((n)->parseInt(n)), 5000)
         .option('--proxy_port <n>', 'port that the proxy server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
+        .option('--agent_port <n>', 'port for HAProxy agent-check (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
         .option('--share_path [string]', 'path that the share server finds shared files at (default: "")', String, '')
         .option('--share_port <n>', 'port that the share server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
         .option('--log_level [level]', "log level (default: debug) useful options include INFO, WARNING and DEBUG", String, "debug")

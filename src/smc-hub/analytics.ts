@@ -5,6 +5,7 @@
 
 import * as ms from "ms";
 import { isEqual } from "lodash";
+import { Router } from "express";
 import {
   analytics_cookie_name,
   is_valid_uuid_string,
@@ -171,7 +172,7 @@ It controls if the bounce back URL mentions the domain.
 */
 
 export async function setup_analytics_js(
-  router: any,
+  router: Router,
   database: PostgreSQL,
   logger: any,
   base_url: string
@@ -267,7 +268,7 @@ export async function setup_analytics_js(
       analytics_cookie(DNS, res);
     }
     res.header("Content-Type", "image/png");
-    res.header("Content-Length", PNG_1x1.length);
+    res.header("Content-Length", `${PNG_1x1.length}`);
     return res.end(PNG_1x1);
   });
 
