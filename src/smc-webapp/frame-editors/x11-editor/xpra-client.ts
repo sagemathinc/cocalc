@@ -14,7 +14,7 @@ import { XpraServer, ExecOpts0 } from "./xpra-server";
 import { ExecOutput } from "../generic/client";
 import { touch, touch_project } from "../generic/client";
 import { throttle } from "underscore";
-const { open_new_tab } = require("smc-webapp/misc_page");
+import { open_new_tab } from "../../misc-page";
 import { is_copy } from "./xpra/util";
 import { alert_message } from "smc-webapp/alerts";
 const sha1 = require("sha1");

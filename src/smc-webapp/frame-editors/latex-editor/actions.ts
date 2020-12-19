@@ -20,11 +20,9 @@ import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
 import { normalize as path_normalize } from "path";
 import { union } from "lodash";
-
 import { fromJS, List, Map } from "immutable";
 import { once } from "smc-util/async-utils";
 import { project_api } from "../generic/client";
-
 import {
   Actions as BaseActions,
   CodeEditorState,
@@ -62,7 +60,7 @@ import {
   sha1,
 } from "smc-util/misc";
 import { IBuildSpecs } from "./build";
-const { open_new_tab } = require("smc-webapp/misc_page");
+import { open_new_tab } from "../../misc-page";
 
 export interface BuildLog extends ExecOutput {
   parse?: IProcessedLatexLog;

@@ -50,8 +50,8 @@ misc                 = require('smc-util/misc')
 {webapp_client}      = require('./webapp-client')
 {redux}              = require('./app-framework')
 syncdoc              = require('./syncdoc')
-misc_page            = require('./misc_page')
 {JUPYTER_CLASSIC_OPEN}  = require('./misc/commands')
+{cm_define_diffApply_extension} = require('./codemirror/extensions')
 
 templates            = $(".smc-jupyter-templates")
 editor_templates     = $("#webapp-editor-templates")
@@ -262,7 +262,7 @@ class JupyterWrapper extends EventEmitter
             # get in a state where @frame is defined, but window is not.
             return
         @_already_monkey_patched = true
-        misc_page.cm_define_diffApply_extension(@frame.CodeMirror)
+        cm_define_diffApply_extension(@frame.CodeMirror)
         @monkey_patch_logo()
         if @read_only
             @monkey_patch_read_only()

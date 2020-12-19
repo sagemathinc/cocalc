@@ -9,8 +9,6 @@ $        = window.$
 misc     = require('smc-util/misc')
 {defaults, required} = misc
 
-misc_page = require('./misc_page')
-
 message  = require('smc-util/message')
 markdown = require('./markdown')
 

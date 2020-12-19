@@ -30,10 +30,10 @@ import {
 } from "../../app-framework";
 import { Loading } from "../../r_misc";
 import { editor_id } from "../utils";
-const {
+import {
   drag_start_iframe_disable,
   drag_stop_iframe_enable,
-} = require("../../misc_page");
+} from "../../misc-page";
 import { webapp_client } from "../../webapp-client";
 import { DeletedFile } from "../deleted-file";
 import { KioskModeBanner } from "../../app/kiosk-mode-banner";

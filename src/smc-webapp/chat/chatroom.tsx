@@ -9,7 +9,7 @@ import { useDebounce } from "use-debounce";
 
 // CoCalc libraries
 import { smiley, history_path, path_split } from "smc-util/misc";
-const { sanitize_html_safe } = require("../misc_page");
+import { sanitize_html_safe } from "../misc-page";
 import { SaveButton } from "../frame-editors/frame-tree/save-button";
 
 // have to rewrite buttons like SaveButton in antd before we can

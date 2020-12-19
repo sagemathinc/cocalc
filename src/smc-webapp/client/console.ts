@@ -37,7 +37,6 @@ export function setup_global_cocalc(client): void {
   const cocalc: any = {};
   cocalc.client = client;
   cocalc.misc = require("smc-util/misc");
-  cocalc.misc_page = require("../misc_page");
   cocalc.immutable = require("immutable");
   cocalc.done = cocalc.misc.done;
   cocalc.sha1 = require("sha1");

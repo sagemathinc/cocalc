@@ -45,6 +45,7 @@ import { ProjectEvent } from "./project/history/types";
 import { DEFAULT_COMPUTE_IMAGE } from "../smc-util/compute-images";
 import { download_href, url_href } from "./project/utils";
 import { ensure_project_running } from "./project/project-start-warning";
+import { download_file, open_new_tab, open_popup_window } from "./misc-page";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%';
@@ -694,7 +695,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       (window.app_base_url != null ? window.app_base_url : "") +
       this._url_in_project(`files/${path}`);
     url += "?session=&fullscreen=kiosk";
-    require("./misc_page").open_popup_window(url, {
+    open_popup_window(url, {
       width: 800,
       height: 640,
     });
@@ -2098,7 +2099,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   public async download_file(opts): Promise<void> {
     let url;
-    const { download_file, open_new_tab } = require("./misc_page");
     opts = defaults(opts, {
       path: required,
       log: false,
@@ -2128,13 +2128,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     if (opts.auto && !opts.print) {
       url = download_href(this.project_id, opts.path);
-      return download_file(url);
+      download_file(url);
     } else {
       url = url_href(this.project_id, opts.path);
       const tab = open_new_tab(url);
       if (tab != null && opts.print) {
         // "?" since there might be no print method -- could depend on browser API
-        return typeof tab.print === "function" ? tab.print() : undefined;
+        tab.print?.();
       }
     }
   }

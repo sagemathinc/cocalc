@@ -44,6 +44,7 @@ const INFO = {
   docx: microsoft_word,
   ppt: microsoft_ppt,
   pptx: microsoft_ppt,
+  blend: "This is a [Blender](https://www.blender.org/) file.  CoCalc can only [open it via X11 Desktop](https://github.com/sagemathinc/cocalc/issues/5107).",
   kmz:
     "Editing [KMZ files](https://developers.google.com/kml/documentation/kmzarchives) is not supported. You could `unzip` them in a [Terminal](https://doc.cocalc.com/terminal.html).",
   jar:
@@ -71,14 +72,14 @@ Read more: [Saving-Data-on-Unexpected-Exits](https://www.gnu.org/software/octave
   dcm: medical_imaging,
   fif: medical_imaging,
   nii: medical_imaging,
-};
+} as const;
 
 interface Props {
   project_id: string;
   path: string;
 }
 
-const DataGeneric: React.FC<Props> = React.memo((props) => {
+const DataGeneric: React.FC<Props> = React.memo((props: Props) => {
   const { project_id, path } = props;
   const ext = filename_extension(path);
   const src = webapp_client.project_client.read_file({ project_id, path });

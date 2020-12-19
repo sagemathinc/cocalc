@@ -13,6 +13,7 @@ import {
   useRef,
 } from "../app-framework";
 import { is_share_server } from "./share-server";
+import { sanitize_html, sanitize_html_safe } from "../misc-page/sanitize";
 
 export interface Props {
   value?: string;
@@ -58,7 +59,6 @@ export interface Props {
   smc_image_scaling?: boolean;
 
   // if true, highlight some <code class='language-r'> </code> blocks.
-  // See misc_page for how tiny this is!
   highlight_code?: boolean;
 
   id?: string;
@@ -131,7 +131,8 @@ export const HTML: React.FC<Props> = (props) => {
 
   function update_code(): void {
     if (isMountedRef.current && props.highlight_code) {
-      jq()?.highlight_code();
+      // note that the highlight_code plugin might not be defined.
+      jq()?.highlight_code?.();
     }
   }
 
@@ -190,17 +191,9 @@ export const HTML: React.FC<Props> = (props) => {
       html = elt.html();
     } else {
       if (props.safeHTML) {
-        html = require("../misc_page").sanitize_html_safe(
-          props.value,
-          props.post_hook
-        );
+        html = sanitize_html_safe(props.value, props.post_hook);
       } else {
-        html = require("../misc_page").sanitize_html(
-          props.value,
-          true,
-          true,
-          props.post_hook
-        );
+        html = sanitize_html(props.value, true, true, props.post_hook);
       }
     }
 

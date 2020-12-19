@@ -57,6 +57,7 @@ export class FormatBar extends Component<Props, {}> {
         title={title}
         onClick={() => this.props.actions.format_action(name)}
         bsSize="small"
+        style={{ maxHeight: "30px" }}
       >
         {label}
       </Button>
@@ -124,7 +125,7 @@ export class FormatBar extends Component<Props, {}> {
           ? this.render_button(
               "SpecialChar",
               "Insert special character...",
-              <span>&Omega;</span>
+              <span style={{ fontSize: "larger" }}>&Omega;</span>
             )
           : undefined}
       </ButtonGroup>

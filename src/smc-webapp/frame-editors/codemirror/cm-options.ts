@@ -370,14 +370,14 @@ export function cm_options(
   return options;
 }
 
-var tab_key = function (editor, spaces_instead_of_tabs) {
+function tab_key(editor, spaces_instead_of_tabs?: boolean): void {
   if (editor.somethingSelected()) {
-    return (CodeMirror as any).commands.defaultTab(editor);
+    (CodeMirror as any).commands.defaultTab(editor);
   } else {
     if (spaces_instead_of_tabs) {
-      return editor.tab_as_space();
+      editor.tab_as_space();
     } else {
-      return (CodeMirror as any).commands.defaultTab(editor);
+      (CodeMirror as any).commands.defaultTab(editor);
     }
   }
-};
+}

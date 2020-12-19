@@ -2081,7 +2081,7 @@ export function obj_key_subs(obj: object, subs: { [key: string]: any }): void {
 
 // this is a helper for sanitizing html. It is used in
 // * smc-util-node/misc_node → sanitize_html
-// * smc-webapp/misc_page    → sanitize_html
+// * smc-webapp/misc-page    → sanitize_html
 export function sanitize_html_attributes($, node): void {
   $.each(node.attributes, function () {
     // sometimes, "this" is undefined -- #2823
