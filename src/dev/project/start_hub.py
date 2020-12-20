@@ -27,9 +27,10 @@ if len(sys.argv) > 1:
     if 'landing' in sys.argv[1:]:
         landing = '--landing'
 
-cmd = "cd ../../ && . smc-env &&  service_hub.py --dev --foreground --hostname=0.0.0.0 --port={hub_port} --share_port=0 --proxy_port=0 --gap=0 --mentions --base_url={base_url} {test} {kucalc} {lti} {landing} start".format(
+cmd = "cd ../../ && . smc-env &&  service_hub.py --dev --foreground --hostname=0.0.0.0 --port={hub_port} --agent_port={agent_port} --share_port=0 --proxy_port=0 --gap=0 --mentions --base_url={base_url} {test} {kucalc} {lti} {landing} start".format(
     base_url=base_url,
     hub_port=ports['hub'],
+    agent_port=ports['agent-port'],
     test=util.test(),
     kucalc=kucalc,
     lti=lti,
