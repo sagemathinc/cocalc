@@ -131,7 +131,10 @@ export class WindowedList extends Component<Props, State> {
     this.is_mounted = false;
   }
 
-  public scrollToRow(row: number, align: string = "auto"): void {
+  // NOTE: avoid using "auto" as it is somewhat random and can be confusing.
+  // Try to specify one of these explicitly for align:
+  //      auto, end, start, center, top
+  public async scrollToRow(row: number, align: string = "auto"): Promise<void> {
     if (this.list_ref.current == null || this.props.row_count == 0) return;
     if (row < 0) {
       row = row % this.props.row_count;
@@ -144,6 +147,8 @@ export class WindowedList extends Component<Props, State> {
       // react-window doesn't have align=top, but we **need** it for jupyter
       // This implementation isn't done; it's just to prove we can do it.
       // Here "top" means the top of the row is in view nicely.
+      // NOTE: I ripped out all use of WindowedList from our Jupyter so no
+      // longer needed... but maybe I'll add it back someday (probably off by default).
       this.scrollToRow(row, "auto"); // at least get it into view, so metadata useful.
       const meta = this.get_row_metadata(row);
       if (meta == null) {
@@ -165,7 +170,15 @@ export class WindowedList extends Component<Props, State> {
       }
     } else {
       // align is auto, end, start, center
-      this.list_ref.current.scrollToItem(row, align);
+      while (this.is_mounted) {
+        const total_height = this.get_total_height();
+        this.list_ref.current.scrollToItem(row, align);
+        await delay(250);
+        if (this.get_total_height() <= total_height) {
+          // total height didn't increase as a result of scrolling...
+          break;
+        }
+      }
     }
   }
 
