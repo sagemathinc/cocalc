@@ -9,7 +9,10 @@ Single codemirror-based file editor
 This is a wrapper around a single codemirror editor view.
 */
 
-const SAVE_DEBOUNCE_MS = 1500;
+// This determines how long the user has to pause typing before
+// their changes are saved to time travel and broadcast to all other
+// users.
+export const SAVE_DEBOUNCE_MS = 1000;
 
 import { Map, Set } from "immutable";
 
@@ -376,8 +379,17 @@ export class CodemirrorEditor extends Component<Props, State> {
       SAVE_DEBOUNCE_MS
     );
 
+    this.cm.on("beforeChange", (_, changeObj) => {
+      if (changeObj.origin == "paste") {
+        // See https://github.com/sagemathinc/cocalc/issues/5110
+        this.save_syncstring();
+      }
+    });
+
     this.cm.on("change", (_, changeObj) => {
-      save_syncstring_debounce();
+      if (changeObj.origin != "paste") {
+        save_syncstring_debounce();
+      }
       if (changeObj.origin != null && changeObj.origin !== "setValue") {
         this.editor_actions.exit_undo_mode();
       }
