@@ -109,7 +109,12 @@ export class WindowedList extends Component<Props, State> {
   constructor(props) {
     super(props);
     this.list_ref = React.createRef();
-    this.resize_observer = new ResizeObserver(this.rows_resized.bind(this));
+    this.resize_observer = new ResizeObserver((entries) =>
+      // We wrap it in requestAnimationFrame to avoid this error - ResizeObserver loop limit exceeded
+      // See https://stackoverflow.com/questions/49384120/resizeobserver-loop-limit-exceeded
+      // This overflow happens frequently on Safari and results in glitchy behavior.
+      window.requestAnimationFrame(() => this.rows_resized(entries))
+    );
     let scroll_top: number | undefined = props.scroll_top;
     if (scroll_top == null && this.props.cache_id != null) {
       const x = scroll_cache[this.props.cache_id];
