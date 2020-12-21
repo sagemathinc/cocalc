@@ -131,14 +131,15 @@ if ((global as any).window != undefined) {
     navigator.maxTouchPoints &&
     navigator.maxTouchPoints > 2;
 
-  // This should work for both old and new ipads...
-  IS_IPAD =
-    isIpadOS ||
-    !!(typeof navigator !== "undefined" && navigator !== null
-      ? navigator.userAgent.match(/iPad/i)
-      : undefined);
-
   IS_IOS = isMobile.iOS();
+
+  // NOTE: iOS is the operating system of ipads and iPadOS is the operating system of ipads.
+  IS_IPAD =
+    !IS_IOS &&
+    (isIpadOS ||
+      !!(typeof navigator !== "undefined" && navigator !== null
+        ? navigator.userAgent.match(/iPad/i)
+        : undefined));
 
   // IS_TOUCH for us means multitouch tablet or mobile, the point being that it
   // is mostly *only* touch, so not something like a Chromebook with a touch screen.

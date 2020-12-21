@@ -84,11 +84,19 @@ const PROJECTS_STYLE: React.CSSProperties = {
 // container leads to extreme usability frustration
 // given the design of cocalc.  See
 //  https://github.com/sagemathinc/cocalc/issues/5112
+let page_height: string;
+if (IS_IPAD) {
+  page_height = "calc(100vh - 32px)";
+} else if (IS_IOS) {
+  page_height = "calc(100vh - 116px)";
+} else {
+  page_height = "100vh";
+}
 
 const PAGE_STYLE: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  height: IS_IPAD || IS_IOS ? "calc(100vh - 32px)" : "100vh", // see note
+  height: page_height, // see note
   width: "100vw",
   overflow: "hidden",
   background: "white",
