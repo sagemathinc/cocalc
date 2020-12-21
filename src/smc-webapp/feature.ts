@@ -10,6 +10,7 @@ declare const DEBUG: boolean;
 let IS_MOBILE,
   IS_TOUCH,
   IS_IPAD,
+  IS_IOS,
   isMobile,
   get_browser,
   get_mobile,
@@ -137,6 +138,8 @@ if ((global as any).window != undefined) {
       ? navigator.userAgent.match(/iPad/i)
       : undefined);
 
+  IS_IOS = isMobile.iOS();
+
   // IS_TOUCH for us means multitouch tablet or mobile, the point being that it
   // is mostly *only* touch, so not something like a Chromebook with a touch screen.
   IS_TOUCH = isMobile.tablet() || IS_MOBILE || isMobile.any() || IS_IPAD;
@@ -190,6 +193,7 @@ export {
   IS_MOBILE,
   IS_TOUCH,
   IS_IPAD,
+  IS_IOS,
   isMobile,
   is_responsive_mode,
   get_browser,
