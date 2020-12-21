@@ -84,10 +84,13 @@ const PROJECTS_STYLE: React.CSSProperties = {
 // container leads to extreme usability frustration
 // given the design of cocalc.  See
 //  https://github.com/sagemathinc/cocalc/issues/5112
+// Note - even this fix is pretty annoying since on some
+// devices and some modes there is a noticeable blank
+// at the bottom of the page sometimes.  This is just
+// something that makes ipads/iphones *usable*, and I really
+// can't spend more time on this now.
 let page_height: string;
-if (IS_IPAD) {
-  page_height = "calc(100vh - 32px)";
-} else if (IS_IOS) {
+if (IS_IPAD || IS_IOS) {
   page_height = "calc(100vh - 116px)";
 } else {
   page_height = "100vh";
