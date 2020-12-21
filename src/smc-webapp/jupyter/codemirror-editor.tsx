@@ -7,7 +7,7 @@
 
 declare const $: any;
 
-import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/codemirror-editor";
+import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
 
 import { delay } from "awaiting";
 import { React, Component } from "../app-framework";
