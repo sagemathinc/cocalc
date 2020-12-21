@@ -9,10 +9,7 @@ Single codemirror-based file editor
 This is a wrapper around a single codemirror editor view.
 */
 
-// This determines how long the user has to pause typing before
-// their changes are saved to time travel and broadcast to all other
-// users.
-export const SAVE_DEBOUNCE_MS = 1000;
+import { SAVE_DEBOUNCE_MS } from "./const";
 
 import { Map, Set } from "immutable";
 
