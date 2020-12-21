@@ -334,6 +334,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
       padding: 0,
       paddingLeft: "4px",
       background: is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK,
+      height: button_height(),
     };
     if (is_active) {
       style.position = "absolute";

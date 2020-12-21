@@ -6,6 +6,7 @@
 import { Menu, Dropdown, Button } from "antd";
 import { DownOutlined } from "@ant-design/icons";
 import { CSS, Component, React } from "../app-framework";
+import { IS_TOUCH } from "../feature";
 
 interface Props {
   title?: JSX.Element | string;
@@ -13,7 +14,7 @@ interface Props {
   onClick?: (key: string) => void;
   style?: CSS;
   disabled?: boolean;
-  button?: boolean;
+  button?: boolean; // show menu as a *Button* (disabled on touch devices -- https://github.com/sagemathinc/cocalc/issues/5113)
   hide_down?: boolean;
   maxHeight?: string;
 }
@@ -28,7 +29,7 @@ export class DropdownMenu extends Component<Props> {
   }
 
   render_body() {
-    if (this.props.button) {
+    if (this.props.button && !IS_TOUCH) {
       return (
         <Button
           style={this.props.style}

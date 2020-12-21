@@ -123,13 +123,23 @@ if ((global as any).window != undefined) {
   // See https://github.com/sagemathinc/cocalc/issues/1392
   IS_MOBILE = isMobile.any() && is_responsive_mode();
 
-  // IS_TOUCH for us means multitouch tablet or mobile.
-  IS_TOUCH = isMobile.tablet() || IS_MOBILE || isMobile.any();
+  // See https://stackoverflow.com/questions/56578799/tell-ipados-from-macos-on-the-web
+  const isIpadOS =
+    typeof navigator !== "undefined" &&
+    navigator?.userAgent?.match(/Mac/) &&
+    navigator.maxTouchPoints &&
+    navigator.maxTouchPoints > 2;
 
+  // This should work for both old and new ipads...
   IS_IPAD =
-    typeof navigator !== "undefined" && navigator !== null
+    isIpadOS ||
+    !!(typeof navigator !== "undefined" && navigator !== null
       ? navigator.userAgent.match(/iPad/i)
-      : undefined;
+      : undefined);
+
+  // IS_TOUCH for us means multitouch tablet or mobile, the point being that it
+  // is mostly *only* touch, so not something like a Chromebook with a touch screen.
+  IS_TOUCH = isMobile.tablet() || IS_MOBILE || isMobile.any() || IS_IPAD;
 
   // DEBUG
   // export IS_MOBILE = true
