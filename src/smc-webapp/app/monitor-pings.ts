@@ -8,11 +8,9 @@
 
 import { redux } from "../app-framework";
 import { webapp_client } from "../webapp-client";
+import * as prom_client from "../prom-client";
 
-const prom_client = require("../prom-client"); // still on coffeescript
-// import * as prom_client from "../prom-client";
-
-export  function init_ping(): void {
+export function init_ping(): void {
   let prom_ping_time: any = undefined,
     prom_ping_time_last: any = undefined;
   if (prom_client.enabled) {
