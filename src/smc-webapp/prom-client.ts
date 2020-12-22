@@ -19,10 +19,10 @@ console.log("initializing prometheus client. enabled =", enabled);
 import { webapp_client } from "./webapp-client";
 
 import { globalRegistry } from "prom-client/lib/registry";
-import { Counter } from "prom-client/lib/counter";
-import { Gauge } from "prom-client/lib/gauge";
-import { Histogram } from "prom-client/lib/histogram";
-import { Summary } from "prom-client/lib/summary";
+import * as Counter from "prom-client/lib/counter";
+import * as Gauge from "prom-client/lib/gauge";
+import * as Histogram from "prom-client/lib/histogram";
+import * as Summary from "prom-client/lib/summary";
 
 // ATTN: default metrics do not work, because they are only added upon "proper" export -- not our .get json trick
 // register.setDefaultLabels(defaultLabels)
@@ -35,7 +35,6 @@ async function send() {
   const metrics = await globalRegistry.getMetricsAsJSON();
   return webapp_client.tracking_client.send_metrics(metrics);
 }
-//console.log('prom-client.send: sending metrics')
 
 let _interval_s: ReturnType<typeof setInterval> | undefined = undefined;
 
@@ -57,7 +56,7 @@ function stop_metrics() {
 
 // a prometheus counter -- https://github.com/siimon/prom-client#counter
 // usage: counter.labels(labelA, labelB).inc([positive number or default is 1])
-export function new_counter(name: string, help: string, labels?: string[]) {
+export function new_counter(name: string, help: string, labels: string[] = []) {
   if (!name.endsWith("_total")) {
     throw `Counter metric names have to end in [_unit]_total but I got '${name}' -- https://prometheus.io/docs/practices/naming/`;
   }
@@ -66,7 +65,7 @@ export function new_counter(name: string, help: string, labels?: string[]) {
 
 // a prometheus gauge -- https://github.com/siimon/prom-client#gauge
 // usage: gauge.labels(labelA, labelB).set(value)
-export function new_gauge(name: string, help: string, labels?: string[]) {
+export function new_gauge(name: string, help: string, labels: string[] = []) {
   return new Gauge({ name: PREFIX + name, help, labelNames: labels });
 }
 
