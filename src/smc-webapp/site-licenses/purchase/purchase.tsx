@@ -33,7 +33,7 @@ import {
 } from "../../r_misc";
 import { PurchaseMethod } from "./purchase-method";
 import { RadioGroup } from "./radio-group";
-import { plural } from "smc-util/misc2";
+import { plural } from "smc-util/misc";
 import { DebounceInput } from "react-debounce-input";
 import { create_quote_support_ticket } from "./get-a-quote";
 import { QuotaEditor } from "./quota-editor";

@@ -10,11 +10,13 @@ History viewer for Jupyter notebooks
 import { fromJS, List, Map } from "immutable";
 
 import { SyncDB } from "smc-util/sync/editor/db/sync";
-import { React, Component, ReactDOM, Redux, redux } from "../app-framework";
+import { React, ReactDOM, Redux, useTypedRedux } from "../app-framework";
 import { path_split } from "smc-util/misc";
 import * as cell_utils from "./cell-utils";
 import { CellList } from "./cell-list";
 import { cm_options } from "./cm_options";
+import { ErrorDisplay } from "../r_misc";
+import { ERROR_STYLE } from "./main";
 
 function get_cells(
   syncdb: SyncDB,
@@ -37,57 +39,55 @@ interface HistoryViewerProps {
   font_size?: number;
 }
 
-export class HistoryViewer extends Component<HistoryViewerProps> {
-  render_cells() {
-    const project_id = this.props.syncdb.get_project_id();
-    const { head: directory } = path_split(this.props.syncdb.get_path());
-    const { cells, cell_list } = get_cells(
-      this.props.syncdb,
-      this.props.version
-    );
+export const HistoryViewer: React.FC<HistoryViewerProps> = ({
+  syncdb,
+  version,
+  font_size,
+}) => {
+  const default_font_size = useTypedRedux("account", "font_size") ?? 14;
+  const project_id = syncdb.get_project_id();
+  const { head: directory } = path_split(syncdb.get_path());
+  const { cells, cell_list } = get_cells(syncdb, version);
 
-    const options = fromJS({
-      markdown: undefined,
-      options: cm_options(),
-    });
+  const options = fromJS({
+    markdown: undefined,
+    options: cm_options(),
+  });
 
-    let font_size = this.props.font_size;
-    if (font_size == null) {
-      const account_store = redux.getStore("account") as any;
-      if (account_store != null) {
-        font_size = account_store.get("font_size", font_size);
-      }
-      if (font_size == null) font_size = 14;
-    }
-    return (
+  const kernel_error = syncdb
+    .version(version)
+    .get_one({ type: "settings" })
+    ?.get("kernel_error");
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        overflowY: "hidden",
+      }}
+    >
+      {kernel_error && (
+        <ErrorDisplay
+          bsStyle="warning"
+          error={kernel_error}
+          style={ERROR_STYLE}
+        />
+      )}
       <CellList
         cell_list={cell_list}
         cells={cells}
-        font_size={font_size}
+        font_size={font_size ?? default_font_size}
         mode="escape"
         cm_options={options}
         project_id={project_id}
         directory={directory}
         trust={false}
       />
-    );
-  }
-
-  render() {
-    return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          height: "100%",
-          overflowY: "hidden",
-        }}
-      >
-        {this.render_cells()}
-      </div>
-    );
-  }
-}
+    </div>
+  );
+};
 
 // The following is just for integrating the history viewer.
 import { export_to_ipynb } from "./export-to-ipynb";

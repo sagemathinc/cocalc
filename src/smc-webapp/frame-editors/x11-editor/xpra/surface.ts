@@ -26,7 +26,7 @@ export const MIN_WIDTH = 10;
 export const MIN_HEIGHT = 10;
 
 import { Renderer } from "./renderer";
-import { close } from "smc-util/misc2";
+import { close } from "smc-util/misc";
 
 export class Surface {
   public wid: number;

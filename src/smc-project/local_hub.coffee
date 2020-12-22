@@ -390,7 +390,7 @@ if program.kucalc
     kucalc.IN_KUCALC = true
     # clean environment to get rid of nvm and other variables
     process.env.PATH = process.env.PATH.split(':').filter(((x) -> not x.startsWith('/cocalc/nvm'))).join(':')
-    for name in ['NODE_PATH', 'NODE_ENV', 'NODE_VERSION', 'NVM_CD_FLAGS', 'NVM_DIR', 'NVM_BIN']
+    for name in ['NODE_PATH', 'NODE_ENV', 'NODE_VERSION', 'NVM_CD_FLAGS', 'NVM_DIR', 'NVM_BIN', 'DEBUG']
         delete process.env[name]
 
     if program.test_firewall

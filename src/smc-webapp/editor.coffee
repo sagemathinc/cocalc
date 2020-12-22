@@ -32,7 +32,7 @@ feature = require('./feature')
 IS_MOBILE = feature.IS_MOBILE
 
 misc = require('smc-util/misc')
-misc_page = require('./misc_page')
+{drag_start_iframe_disable, drag_stop_iframe_enable, sagews_canonical_mode} = require('./misc-page')
 
 # Ensure CodeMirror is available and configured
 require('./codemirror/codemirror')
@@ -93,7 +93,6 @@ exports.file_icon_class = file_icon_class = (ext) ->
 
 # This defines a bunch of custom modes and gets some info about special case of sagews
 {sagews_decorator_modes} = require('./codemirror/custom-modes')
-misc_page.define_codemirror_extensions()
 
 exports.file_options = require("./editor-tmp").file_options
 
@@ -596,9 +595,9 @@ class CodeMirrorEditor extends FileEditor
             axis        : 'y'
             containment : @element
             zIndex      : 10
-            start       : misc_page.drag_start_iframe_disable
+            start       : drag_start_iframe_disable
             stop        : (event, ui) =>
-                misc_page.drag_stop_iframe_enable()
+                drag_stop_iframe_enable()
                 # compute the position of bar as a number from 0 to 1, with
                 # 0 being at top (left), 1 at bottom (right), and .5 right in the middle
                 e   = @element.find(".webapp-editor-codemirror-input-container-layout-1")
@@ -615,9 +614,9 @@ class CodeMirrorEditor extends FileEditor
             axis        : 'x'
             containment : @element
             zIndex      : 100
-            start       : misc_page.drag_start_iframe_disable
+            start       : drag_start_iframe_disable
             stop        : (event, ui) =>
-                misc_page.drag_stop_iframe_enable()
+                drag_stop_iframe_enable()
                 # compute the position of bar as a number from 0 to 1, with
                 # 0 being at top (left), 1 at bottom (right), and .5 right in the middle
                 e     = @element.find(".webapp-editor-codemirror-input-container-layout-2")
@@ -1126,7 +1125,7 @@ class CodeMirrorEditor extends FileEditor
                         date       : dialog.find(".webapp-file-print-date").text()
                         contents   : dialog.find(".webapp-file-print-contents").is(":checked")
                         subdir     : is_subdir
-                        base_url   : require('./misc_page').BASE_URL
+                        base_url   : require('./misc').BASE_URL
                         extra_data : misc.to_json(@syncdoc.print_to_pdf_data())  # avoid de/re-json'ing
 
                     printing.Printer(@, @filename + '.pdf').print
@@ -1553,12 +1552,11 @@ class CodeMirrorEditor extends FileEditor
         # not all textedit buttons are known
         textedit_only_show_known_buttons = (name) =>
             EDIT_COMMANDS = require('./editors/editor-button-bar').commands
-            {sagews_canonical_mode} = require('./misc_page')
             default_mode = @focused_codemirror()?.get_edit_mode() ? 'sage'
             mode = sagews_canonical_mode(name, default_mode)
             #if DEBUG then console.log "textedit_only_show_known_buttons: mode #{name} → #{mode}"
             known_commands = misc.keys(EDIT_COMMANDS[mode] ? {})
-            # see special cases in 'textedit_command' and misc_page: 'edit_selection'
+            # see special cases in 'textedit_command' and codemirror/extensions: 'edit_selection'
             known_commands = known_commands.concat(['link', 'image', 'SpecialChar', 'font_size'])
             for button in @textedit_buttons.find('a')
                 button = $(button)
@@ -1958,3 +1956,4 @@ cm_refresh = (cm) ->
         cm.refresh()
     catch err
         console.warn("cm refresh err", err)
+

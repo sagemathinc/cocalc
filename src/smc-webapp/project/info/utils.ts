@@ -5,7 +5,7 @@
 
 import { CSS } from "../../app-framework";
 import { basename } from "path";
-import { separate_file_extension, trunc } from "smc-util/misc2";
+import { separate_file_extension, trunc } from "smc-util/misc";
 import { project_websocket } from "../../frame-editors/generic/client";
 import { Processes, Process, State } from "smc-project/project-info/types";
 import { ProcessRow, PTStats, DUState } from "./types";
@@ -153,7 +153,7 @@ export function process_tree(
           stats.sum_cpu_pct += proc.cpu.pct;
           stats.sum_memory += proc.stat.mem.rss;
         } else {
-          data.push(...children);
+          if (children != null) data.push(...children);
         }
       }
     }

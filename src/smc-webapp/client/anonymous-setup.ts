@@ -6,7 +6,8 @@
 import { once } from "smc-util/async-utils";
 import { redux } from "../app-framework";
 import { QueryParams } from "../misc/query-params";
-const { APP_BASE_URL, get_cookie } = require("../misc_page");
+import { get_cookie } from "../misc-page";
+import { APP_BASE_URL } from "../misc";
 import { WelcomeFile } from "./welcome-file";
 import { WebappClient } from "./client";
 import { NAME as LAUNCH_NAME } from "../launch/actions";

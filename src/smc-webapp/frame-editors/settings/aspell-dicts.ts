@@ -8,7 +8,7 @@ Got via `aspell dump dicts` on Ubuntu 18.04, after doing `apt-get install aspell
 and removing dups.  Maybe update this someday...
 */
 
-import { language } from "../generic/misc-page";
+import { language } from "../../misc-page";
 
 const langs = require("langs");
 

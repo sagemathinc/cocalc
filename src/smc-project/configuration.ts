@@ -24,7 +24,7 @@ import {
   LIBRARY_INDEX_FILE,
 } from "../smc-webapp/project_configuration";
 import { syntax2tool, Tool as FormatTool } from "../smc-util/code-formatter";
-import { copy } from "../smc-util/misc2";
+import { copy } from "../smc-util/misc";
 
 // we prefix the environment PATH by default bin paths pointing into it in order to pick up locally installed binaries.
 // they can't be set as defaults for projects since this could break it from starting up

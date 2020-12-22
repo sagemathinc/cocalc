@@ -3,23 +3,20 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// Removed svg because it breaks KaTeX
-.cocalc-jupyter-rendered :not(.katex)
-  img svg
+.cocalc-jupyter-rendered
+  img
     max-width    : 100%
     height       : auto
 
   table.table
     width        : auto
 
-// Disabled because it (1) breaks Mathjax, and (2) does this actually make sense
-// as the default?  It's basically wrong, isn't it?
-// See https://github.com/sagemathinc/cocalc/issues/1936
-// .cocalc-jupyter-rendered-md
-//   img, svg
-//     display      : block
-//     margin-left  : auto
-//     margin-right : auto
+.cocalc-jupyter-rendered-md
+  img
+    margin-left  : auto
+    margin-right : auto
+    max-width    : 100%
+    height       : auto
 
 .cocalc-jupyter-anchor-link
   visibility : hidden
@@ -28,3 +25,18 @@
   text-decoration : none !important
   padding         : 0px 20px
   visibility      : visible
+
+=smooth-background-color
+  transition-property: background-color, color
+  transition-timing-function: ease
+  transition-duration: .250s
+  transition-delay: 0s
+
+.cocalc-jupyter-usage-info
+  padding: 2px 2px 0px 2px
+  margin-right: 1em
+  border: 1px solid $COL_GRAY_L
+  +smooth-background-color
+
+.cocalc-jupyter-btn-interrupt
+  +smooth-background-color

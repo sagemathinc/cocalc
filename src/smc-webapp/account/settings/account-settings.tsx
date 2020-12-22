@@ -23,7 +23,7 @@ import {
   FormGroup,
 } from "../../antd-bootstrap";
 import { SiteName, TermsOfService } from "../../customize";
-import { keys, startswith } from "smc-util/misc2";
+import { keys, startswith } from "smc-util/misc";
 import { set_account_table, ugly_error } from "../util";
 import { webapp_client } from "../../webapp-client";
 import { A, ErrorDisplay, Icon, Space, TimeAgo } from "../../r_misc";

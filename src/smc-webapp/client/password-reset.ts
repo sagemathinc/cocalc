@@ -4,14 +4,14 @@
  */
 
 import { QueryParams } from "../misc/query-params";
-const { APP_BASE_URL } = require("../misc_page");
+import { APP_BASE_URL } from "../misc";
 
 const NAME = `${encodeURIComponent(APP_BASE_URL)}PWRESET`;
 
 import Cookies from "universal-cookie";
 const cookies = new Cookies();
 
-export function reset_password_key() {
+export function reset_password_key(): string | undefined {
   // we set a temporary session cookie earlier
   const forgot_cookie = cookies.get(NAME);
   if (forgot_cookie != null) {
@@ -25,5 +25,4 @@ export function reset_password_key() {
       return forgot.toLowerCase();
     }
   }
-  return undefined;
 }

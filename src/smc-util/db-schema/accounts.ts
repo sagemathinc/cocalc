@@ -133,7 +133,7 @@ Table({
     profile: {
       type: "map",
       desc:
-        "Information related to displaying this users location and presence in a document or chatroom.",
+        "Information related to displaying an avatar for this user's location and presence in a document or chatroom.",
     },
     groups: {
       type: "array",

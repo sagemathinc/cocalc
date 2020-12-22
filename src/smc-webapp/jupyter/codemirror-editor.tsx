@@ -7,7 +7,7 @@
 
 declare const $: any;
 
-const SAVE_DEBOUNCE_MS = 1500;
+import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
 
 import { delay } from "awaiting";
 import { React, Component } from "../app-framework";
@@ -517,6 +517,12 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
     this._cm_change = underscore.debounce(this._cm_save, SAVE_DEBOUNCE_MS);
     this.cm.on("change", this._cm_change);
+    this.cm.on("beforeChange", (_, changeObj) => {
+      if (changeObj.origin == "paste") {
+        // See https://github.com/sagemathinc/cocalc/issues/5110
+        this._cm_save();
+      }
+    });
     this.cm.on("focus", this._cm_focus);
     this.cm.on("blur", this._cm_blur);
     this.cm.on("cursorActivity", this._cm_cursor);

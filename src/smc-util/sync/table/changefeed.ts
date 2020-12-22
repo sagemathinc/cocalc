@@ -5,7 +5,7 @@
 
 import { EventEmitter } from "events";
 import { callback, delay } from "awaiting";
-import { close } from "../../misc2";
+import { close } from "../../misc";
 
 type State = "closed" | "disconnected" | "connecting" | "connected";
 

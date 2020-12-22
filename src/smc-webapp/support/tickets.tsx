@@ -11,9 +11,7 @@ import { Footer, HelpEmailLink } from "../customize";
 import { Icon, Loading, Markdown } from "../r_misc";
 import { isString } from "lodash";
 import { Alert, Button, Table } from "../antd-bootstrap";
-
-// import { open_new_tab } from "../misc_page";
-const { open_new_tab } = require("../misc_page");
+import { open_new_tab } from "../misc-page";
 
 export const SupportTickets: React.FC = () => {
   const support_tickets = useTypedRedux("support", "support_tickets");
@@ -64,7 +62,7 @@ export const SupportTickets: React.FC = () => {
             <Button
               bsStyle={style}
               onClick={() =>
-                open_new_tab(ticket_id_to_ticket_url(ticket.id), "_blank")
+                open_new_tab(ticket_id_to_ticket_url(ticket.id), true)
               }
             >
               {ticket.status.toUpperCase()}

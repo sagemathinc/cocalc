@@ -9,7 +9,7 @@ Display of basic information about a user, with link to get more information abo
 
 import { Icon, Space, TimeAgo } from "smc-webapp/r_misc";
 import { React, Component, Rendered } from "smc-webapp/app-framework";
-import { capitalize } from "smc-util/misc2";
+import { capitalize } from "smc-util/misc";
 import { Row, Col } from "react-bootstrap";
 import { User } from "smc-webapp/frame-editors/generic/client";
 import { Subscriptions } from "./subscriptions";

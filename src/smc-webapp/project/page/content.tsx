@@ -16,7 +16,7 @@ or Loading... if the file is still being loaded.
 
 import { Map } from "immutable";
 import Draggable from "react-draggable";
-import { hidden_meta_file } from "smc-util/misc2";
+import { hidden_meta_file } from "smc-util/misc";
 import { IS_MOBILE, IS_TOUCH } from "../../feature";
 import {
   React,
@@ -30,10 +30,10 @@ import {
 } from "../../app-framework";
 import { Loading } from "../../r_misc";
 import { editor_id } from "../utils";
-const {
+import {
   drag_start_iframe_disable,
   drag_stop_iframe_enable,
-} = require("../../misc_page");
+} from "../../misc-page";
 import { webapp_client } from "../../webapp-client";
 import { DeletedFile } from "../deleted-file";
 import { KioskModeBanner } from "../../app/kiosk-mode-banner";
@@ -68,7 +68,6 @@ export const Content: React.FC<Props> = React.memo(
     const force_update = useForceUpdate();
     const open_files =
       useTypedRedux({ project_id }, "open_files") ?? Map<string, any>();
-    const show_new = useTypedRedux({ project_id }, "show_new");
     const draggable_ref = useRef<any>(null);
     const editor_container_ref = useRef(null);
     const fullscreen = useTypedRedux("page", "fullscreen");
@@ -153,9 +152,10 @@ export const Content: React.FC<Props> = React.memo(
           axis="x"
           onStop={handle_drag_bar_stop}
           onStart={drag_start_iframe_disable}
+          defaultClassNameDragging={"cc-vertical-drag-bar-dragging"}
         >
           <div
-            className="smc-vertical-drag-bar"
+            className="cc-vertical-drag-bar"
             style={IS_TOUCH ? { width: "12px" } : undefined}
           >
             {" "}
@@ -281,8 +281,7 @@ export const Content: React.FC<Props> = React.memo(
       }
     }
 
-    // The className below is so we always make this div the remaining height,
-    // except for on the files page when New is being displayed.
+    // The className below is so we always make this div the remaining height.
     // The overflowY is hidden for editors (which don't scroll), but auto
     // otherwise, since some tabs (e.g., settings) *do* need to scroll. See
     // https://github.com/sagemathinc/cocalc/pull/4708.
@@ -293,7 +292,7 @@ export const Content: React.FC<Props> = React.memo(
           ...(!is_visible ? { display: "none" } : undefined),
           ...{ overflowY: tab_name.startsWith("editor-") ? "hidden" : "auto" },
         }}
-        className={tab_name === "files" && show_new ? undefined : "smc-vfill"}
+        className={"smc-vfill"}
       >
         {render_tab_content()}
       </div>

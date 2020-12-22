@@ -29,10 +29,9 @@ OutputHandler emits two events:
 import { callback } from "awaiting";
 import { EventEmitter } from "events";
 
-// using require because this file is used in smc-project and import is messe
-const { close } = require("smc-util/misc2");
+// using require because this file is used in smc-project and import is messed up...
 const misc = require("smc-util/misc");
-const { defaults, required } = misc;
+const { close, defaults, required } = misc;
 
 const now = () => misc.server_time() - 0;
 

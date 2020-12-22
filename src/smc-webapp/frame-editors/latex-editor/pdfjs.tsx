@@ -14,12 +14,11 @@ const HIGHLIGHT_TIME_S: number = 6;
 
 import { Icon, Loading, Markdown } from "smc-webapp/r_misc";
 import { Alert } from "antd";
-
 import { delay } from "awaiting";
 import { Map, Set } from "immutable";
 import { throttle } from "underscore";
 import * as $ from "jquery";
-import { is_different, seconds_ago, list_alternatives } from "smc-util/misc2";
+import { is_different, seconds_ago, list_alternatives } from "smc-util/misc";
 import { dblclick } from "./mouse-click";
 import {
   Component,

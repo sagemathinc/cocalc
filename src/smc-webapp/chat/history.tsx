@@ -6,7 +6,7 @@
 import { React } from "../app-framework";
 import { List, Map } from "immutable";
 import { smiley, trunc_middle } from "smc-util/misc";
-const { sanitize_html_safe } = require("../misc_page");
+import { sanitize_html_safe } from "../misc-page";
 import { Markdown, TimeAgo } from "../r_misc";
 import { ListGroupItem, Well } from "react-bootstrap";
 

@@ -5,21 +5,21 @@
 
 import { fromJS } from "immutable";
 import { Actions } from "../app-framework/Actions";
-
 import { webapp_client } from "../webapp-client";
 const remember_me = webapp_client.remember_me_key();
-
 import { alert_message } from "../alerts";
-
 import { show_announce_start, show_announce_end } from "./dates";
 import { AccountState } from "./types";
 import { AccountClient } from "../client/account";
-
-import * as misc from "smc-util/misc2";
-import { server_days_ago } from "smc-util/misc";
+import {
+  server_days_ago,
+  encode_path,
+  delete_local_storage,
+} from "smc-util/misc";
 import { define, required } from "smc-util/fill";
-
 import { set_url } from "../history";
+import { APP_BASE_URL } from "../misc";
+import { track_conversion } from "../misc-page";
 
 // Define account actions
 export class AccountActions extends Actions<AccountState> {
@@ -154,7 +154,6 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
         return;
       case "signed_in":
         this.redux.getActions("page").set_active_tab("projects");
-        const { track_conversion } = require("../misc_page");
         track_conversion("create_account");
         return;
       default:
@@ -231,13 +230,12 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     everywhere: boolean,
     sign_in: boolean = false
   ): Promise<void> {
-    misc.delete_local_storage(remember_me);
+    delete_local_storage(remember_me);
 
     // disable redirection from main index page to landing page
     // (existence of cookie signals this is a known client)
     // note: similar code is in account.coffee → signed_in
-    let { APP_BASE_URL } = require("../misc_page");
-    const exp = server_days_ago(-30).toGMTString();
+    const exp = server_days_ago(-30).toUTCString();
     document.cookie = `${APP_BASE_URL}has_remember_me=false; expires=${exp} ;path=/`;
     // Send a message to the server that the user explicitly
     // requested to sign out.  The server must clean up resources
@@ -261,7 +259,6 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     // or bleed into the next login somehow.
     $(window).off("beforeunload", this.redux.getActions("page").check_unload);
     window.location.hash = "";
-    ({ APP_BASE_URL } = require("../misc_page"));
     // redirect to sign in page
     window.location = (APP_BASE_URL + "/" + (sign_in ? "app" : "")) as any;
   }
@@ -274,7 +271,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
       url = "";
     }
     this._last_history_state = url;
-    set_url("/settings" + misc.encode_path(url));
+    set_url("/settings" + encode_path(url));
   }
 
   public set_active_tab(tab: string): void {

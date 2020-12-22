@@ -7,17 +7,24 @@
 Top-level react component, which ties everything together
 */
 
-import { React, Component, Rendered, rclass, rtypes } from "../app-framework";
+import {
+  CSS,
+  React,
+  useRedux,
+  useTypedRedux,
+  Rendered,
+} from "../app-framework";
 import * as immutable from "immutable";
 
-import { ErrorDisplay } from "../r_misc/error-display";
+import { A, ErrorDisplay } from "../r_misc";
 import { Loading } from "../r_misc/loading";
 
 // React components that implement parts of the Jupyter notebook.
 import { TopMenubar } from "./top-menubar";
 import { TopButtonbar } from "./top-buttonbar";
 import { CellList } from "./cell-list";
-import { Kernel, Mode } from "./status";
+import { Kernel } from "./status";
+import { Mode } from "./mode";
 import { About } from "./about";
 import { NBConvert } from "./nbconvert";
 import { InsertImage } from "./insert-image";
@@ -32,9 +39,15 @@ import { RawEditor } from "./raw-editor";
 // import { SnippetsDialog } from "smc-webapp/assistant/dialog";
 const { SnippetsDialog } = require("smc-webapp/assistant/dialog");
 import { Kernel as KernelType, Kernels as KernelsType } from "./util";
-import { Scroll } from "./types";
+import { Scroll, Usage, BackendState } from "./types";
+import { ImmutableUsageInfo } from "../../smc-project/usage-info/types";
+import { compute_usage } from "./usage";
 
-const KERNEL_STYLE: React.CSSProperties = {
+import { JupyterActions } from "./browser-actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
+
+const KERNEL_STYLE: CSS = {
   float: "right",
   paddingLeft: "5px",
   backgroundColor: "#eee",
@@ -43,14 +56,52 @@ const KERNEL_STYLE: React.CSSProperties = {
   borderLeft: "1px solid rgb(231,231,231)",
   borderBottom: "1px solid rgb(231,231,231)",
   whiteSpace: "nowrap",
-};
+} as const;
 
-import { JupyterActions } from "./browser-actions";
-import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
-import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
+export const ERROR_STYLE: CSS = {
+  margin: "1ex",
+  whiteSpace: "pre" as "pre",
+  fontSize: "12px",
+  fontFamily: "monospace" as "monospace",
+  maxHeight: "30vh",
+  overflow: "auto",
+} as const;
 
-interface JupyterEditorProps {
-  // PROPS
+// derive sorted list of timings from all cells
+function calc_cell_timings(cells?: immutable.Map<string, any>): number[] {
+  if (cells == null) return [];
+  return cells
+    .toList()
+    .map((v) => {
+      const start = v.get("start");
+      const end = v.get("end");
+      if (start != null && end != null) {
+        return (end - start) / 1000;
+      } else {
+        return null;
+      }
+    })
+    .filter((v) => v != null)
+    .sort()
+    .toJS();
+}
+
+// for the sorted list of cell timing, get the median or quantile.
+// a quick approximation is good enough for us!
+// we basically want to ignore long running cells, treat them as outliers.
+// Using the 75% quantile is quick and easy, avoids working with inter quantile differences
+// and proper outlier detection – like for boxplots, etc.
+// we also cap the lower end with a reasonable minimum.
+// Maybe another choice of quantile works better, something for later …
+function calc_quantile(data: number[], min_val = 3, q = 0.75): number {
+  if (data.length == 0) return min_val;
+  const idx_last = data.length - 1;
+  const idx_q = Math.floor(q * idx_last);
+  const idx = Math.min(idx_last, idx_q);
+  return Math.max(min_val, data[idx]);
+}
+
+interface Props {
   error?: string;
   actions: JupyterActions;
   frame_actions: NotebookFrameActions;
@@ -63,7 +114,7 @@ interface JupyterEditorProps {
   // opening the file (or refreshing browser), which is nice!
   is_focused?: boolean;
   is_fullscreen?: boolean; // this means fullscreened frame inside the editor!
-  mode: "edit" | "escape"; // oneOf(['edit', 'escape']).isRequired;
+  mode: "edit" | "escape";
   font_size?: number;
 
   cur_id?: string;
@@ -74,198 +125,320 @@ interface JupyterEditorProps {
   scrollTop?: number;
   hook_offset?: number;
   view_mode?: "normal" | "json" | "raw";
-
-  // TODO
-  complete?: immutable.Map<any, any>; // status of tab completion
-  more_output?: immutable.Map<any, any>;
-  find_and_replace?: boolean;
-  show_kernel_selector?: boolean;
-
-  // REDUX PROPS
-  kernel?: string; // string name of the kernel
-  kernels?: KernelsType;
-  cm_options?: immutable.Map<any, any>; // settings for all the codemirror editors
-  site_name?: string;
-  // error?: string; // TODO: repeated?
-  fatal?: string; // *FATAL* error; user must edit file to fix.
-  toolbar?: boolean;
-  has_unsaved_changes?: boolean;
-  cell_list?: immutable.List<string>; // list of ids of cells in order
-  cells?: immutable.Map<string, any>; // map from ids to cells
-  project_id?: string;
-  directory?: string;
-  version?: any;
-  about?: boolean;
-  backend_kernel_info?: immutable.Map<any, any>;
-  confirm_dialog?: immutable.Map<any, any>;
-  keyboard_shortcuts?: immutable.Map<any, any>;
-  nbconvert?: immutable.Map<any, any>; // backend convert state
-  nbconvert_dialog?: immutable.Map<any, any>; // frontend modal dialog state
-  path?: string;
-  cell_toolbar?: string;
-  insert_image?: string; // show insert image dialog
-  edit_attachments?: string;
-  edit_cell_metadata?: immutable.Map<any, any>;
-  editor_settings?: immutable.Map<any, any>;
-  metadata?: immutable.Map<any, any>;
-  trust?: boolean;
-  kernel_info?: immutable.Map<any, any>;
-  check_select_kernel_init?: boolean;
-  kernel_selection?: immutable.Map<string, any>;
-  kernels_by_name?: immutable.OrderedMap<string, immutable.Map<string, string>>;
-  kernels_by_language?: immutable.OrderedMap<string, immutable.List<string>>;
-  default_kernel?: string;
-  closestKernel?: KernelType;
 }
 
-class JupyterEditor0 extends Component<JupyterEditorProps> {
-  public static reduxProps({ name }) {
-    return {
-      [name]: {
-        kernel: rtypes.string, // string name of the kernel
-        kernels: rtypes.immutable.List,
-        error: rtypes.string,
-        fatal: rtypes.string, // *FATAL* error; user must edit file to fix.
-        toolbar: rtypes.bool,
-        has_unsaved_changes: rtypes.bool,
-        cell_list: rtypes.immutable.List, // list of ids of cells in order
-        cells: rtypes.immutable.Map, // map from ids to cells
-        cm_options: rtypes.immutable.Map, // settings for all the codemirror editors
-        project_id: rtypes.string,
-        directory: rtypes.string,
-        version: rtypes.object,
-        complete: rtypes.immutable.Map, // status of tab completion
-        more_output: rtypes.immutable.Map,
-        about: rtypes.bool,
-        backend_kernel_info: rtypes.immutable.Map,
-        confirm_dialog: rtypes.immutable.Map,
-        find_and_replace: rtypes.bool,
-        keyboard_shortcuts: rtypes.immutable.Map,
-        nbconvert: rtypes.immutable.Map, // backend convert state
-        nbconvert_dialog: rtypes.immutable.Map, // frontend modal dialog state
-        path: rtypes.string,
-        cell_toolbar: rtypes.string,
-        insert_image: rtypes.string, // show insert image dialog
-        edit_attachments: rtypes.string,
-        edit_cell_metadata: rtypes.immutable.Map,
-        metadata: rtypes.immutable.Map,
-        trust: rtypes.bool,
-        kernel_info: rtypes.immutable.Map,
-        check_select_kernel_init: rtypes.bool,
-        show_kernel_selector: rtypes.bool,
-        kernel_selection: rtypes.immutable.Map,
-        kernels_by_name: rtypes.immutable.Map,
-        kernels_by_language: rtypes.immutable.Map,
-        default_kernel: rtypes.string,
-        closestKernel: rtypes.immutable.Map,
-      },
-      customize: { site_name: rtypes.string },
-      account: { editor_settings: rtypes.immutable.Map },
+export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
+  const {
+    actions,
+    editor_actions,
+    frame_actions,
+    name,
+    is_focused,
+    is_fullscreen,
+    font_size,
+    mode,
+    cur_id,
+    sel_ids,
+    md_edit_ids,
+    scroll,
+    scrollTop,
+    hook_offset,
+    view_mode,
+  } = props;
+
+  const site_name = useTypedRedux("customize", "site_name");
+  const editor_settings = useTypedRedux("account", "editor_settings");
+
+  // status of tab completion
+  const complete: undefined | immutable.Map<any, any> = useRedux([
+    name,
+    "complete",
+  ]);
+  const more_output: undefined | immutable.Map<any, any> = useRedux([
+    name,
+    "more_output",
+  ]);
+  const find_and_replace: undefined | boolean = useRedux([
+    name,
+    "find_and_replace",
+  ]);
+  const show_kernel_selector: undefined | boolean = useRedux([
+    name,
+    "show_kernel_selector",
+  ]);
+  // string name of the kernel
+  const kernel: undefined | string = useRedux([name, "kernel"]);
+  const kernels: undefined | KernelsType = useRedux([name, "kernels"]);
+  const error: undefined | KernelsType = useRedux([name, "error"]);
+  // settings for all the codemirror editors
+  const cm_options: undefined | immutable.Map<any, any> = useRedux([
+    name,
+    "cm_options",
+  ]);
+  // *FATAL* error; user must edit file to fix.
+  const fatal: undefined | string = useRedux([name, "fatal"]);
+  const toolbar: undefined | boolean = useRedux([name, "toolbar"]);
+  // const has_unsaved_changes: undefined | boolean = useRedux([
+  //   name,
+  //   "has_unsaved_changes",
+  // ]);
+  // list of ids of cells in order
+  const cell_list: undefined | immutable.List<string> = useRedux([
+    name,
+    "cell_list",
+  ]);
+  // map from ids to cells
+  const cells: undefined | immutable.Map<string, any> = useRedux([
+    name,
+    "cells",
+  ]);
+  const project_id: undefined | string = useRedux([name, "project_id"]);
+  const directory: undefined | string = useRedux([name, "directory"]);
+  // const version: undefined | any = useRedux([name, "version"]);
+  const about: undefined | boolean = useRedux([name, "about"]);
+  const backend_kernel_info: undefined | immutable.Map<any, any> = useRedux([
+    name,
+    "backend_kernel_info",
+  ]);
+  const confirm_dialog: undefined | immutable.Map<any, any> = useRedux([
+    name,
+    "confirm_dialog",
+  ]);
+  const keyboard_shortcuts: undefined | immutable.Map<any, any> = useRedux([
+    name,
+    "keyboard_shortcuts",
+  ]);
+  // backend convert state
+  const nbconvert: undefined | immutable.Map<any, any> = useRedux([
+    name,
+    "nbconvert",
+  ]);
+  // frontend modal dialog state
+  const nbconvert_dialog: undefined | immutable.Map<any, any> = useRedux([
+    name,
+    "nbconvert_dialog",
+  ]);
+  const path: undefined | string = useRedux([name, "path"]);
+  const cell_toolbar: undefined | string = useRedux([name, "cell_toolbar"]);
+  // show insert image dialog
+  const insert_image: undefined | string = useRedux([name, "insert_image"]);
+  const edit_attachments: undefined | string = useRedux([
+    name,
+    "edit_attachments",
+  ]);
+  const edit_cell_metadata: undefined | immutable.Map<any, any> = useRedux([
+    name,
+    "edit_cell_metadata",
+  ]);
+  const trust: undefined | boolean = useRedux([name, "trust"]);
+  const kernel_info: undefined | immutable.Map<any, any> = useRedux([
+    name,
+    "kernel_info",
+  ]);
+  const check_select_kernel_init: undefined | boolean = useRedux([
+    name,
+    "check_select_kernel_init",
+  ]);
+  const kernel_selection: undefined | immutable.Map<string, any> = useRedux([
+    name,
+    "kernel_selection",
+  ]);
+  const kernels_by_name:
+    | undefined
+    | immutable.OrderedMap<string, immutable.Map<string, string>> = useRedux([
+    name,
+    "kernels_by_name",
+  ]);
+  const kernels_by_language:
+    | undefined
+    | immutable.OrderedMap<string, immutable.List<string>> = useRedux([
+    name,
+    "kernels_by_language",
+  ]);
+  const default_kernel: undefined | string = useRedux([name, "default_kernel"]);
+  const closestKernel: undefined | KernelType = useRedux([
+    name,
+    "closestKernel",
+  ]);
+  const kernel_error: undefined | string = useRedux([name, "kernel_error"]);
+  const kernel_usage: undefined | ImmutableUsageInfo = useRedux([
+    name,
+    "kernel_usage",
+  ]);
+  const backend_state: undefined | BackendState = useRedux([
+    name,
+    "backend_state",
+  ]);
+  const kernel_state: undefined | string = useRedux([name, "kernel_state"]);
+
+  // cell timing statistic
+  const cell_timings = React.useMemo(() => calc_cell_timings(cells), [cells]);
+  const expected_cell_runtime = React.useMemo(
+    () => calc_quantile(cell_timings),
+    [cell_timings]
+  );
+
+  // state of UI, derived from usage, timing stats, etc.
+  const [cpu_start, set_cpu_start] = React.useState<number | undefined>();
+  const [cpu_runtime, set_cpu_runtime] = React.useState<number>(0);
+  const timer1 = React.useRef<ReturnType<typeof setInterval> | undefined>();
+
+  // reset cpu_start time when state changes
+  React.useEffect(() => {
+    if (kernel_state == "busy") {
+      set_cpu_start(Date.now());
+    } else if (cpu_start != null) {
+      set_cpu_start(undefined);
+    }
+  }, [kernel_state]);
+
+  // count seconds when kernel is busy & reset counter
+  React.useEffect(() => {
+    if (cpu_start != null) {
+      timer1.current = setInterval(() => {
+        if (kernel_state == "busy") {
+          set_cpu_runtime((Date.now() - cpu_start) / 1000);
+        } else {
+          set_cpu_runtime(0);
+        }
+      }, 100);
+    } else if (timer1.current != null) {
+      set_cpu_runtime(0);
+      clearInterval(timer1.current);
+    }
+    return () => {
+      if (timer1.current != null) clearInterval(timer1.current);
     };
+  }, [cpu_start, kernel_state]);
+
+  // based on the info we know, we derive the "usage" object
+  // the "status.tsx" Kernel component and other UI details will visualize it
+  const usage: Usage = React.useMemo(
+    () =>
+      compute_usage({
+        kernel_usage,
+        backend_state,
+        cpu_runtime,
+        expected_cell_runtime,
+      }),
+    [kernel_usage, backend_state, cpu_runtime, expected_cell_runtime]
+  );
+
+  function render_kernel_error() {
+    if (!kernel_error) return;
+    // We use "warning" since this isn't necessarily an error.  It really is just
+    // explaining why the kernel stopped.
+    return (
+      <ErrorDisplay
+        bsStyle="warning"
+        error_component={
+          <A href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">
+            {kernel_error}
+          </A>
+        }
+        style={ERROR_STYLE}
+        onClose={() => actions.setState({ kernel_error: "" })}
+      />
+    );
   }
 
-  render_error() {
-    if (this.props.error) {
-      const style = {
-        margin: "1ex",
-        whiteSpace: "pre" as "pre",
-        fontSize: "12px",
-        fontFamily: "monospace" as "monospace",
-      };
+  function render_error() {
+    if (error) {
       return (
         <ErrorDisplay
-          error={this.props.error}
-          style={style}
-          onClose={() => this.props.actions.set_error(undefined)}
+          error={error}
+          style={ERROR_STYLE}
+          onClose={() => actions.set_error(undefined)}
         />
       );
     }
   }
 
-  render_fatal() {
-    if (this.props.fatal) {
-      return (
-        <div>
-          <h2 style={{ marginLeft: "10px" }}>Fatal Error loading ipynb file</h2>
+  function render_fatal() {
+    return (
+      <div>
+        <h2 style={{ marginLeft: "10px" }}>Fatal Error loading ipynb file</h2>
 
-          <ErrorDisplay error={this.props.fatal} style={{ margin: "1ex" }} />
-        </div>
-      );
-    }
+        <ErrorDisplay error={fatal} style={{ margin: "1ex" }} />
+      </div>
+    );
   }
 
-  render_kernel() {
+  function render_kernel() {
     return (
       <span style={KERNEL_STYLE}>
         <Kernel
-          is_fullscreen={this.props.is_fullscreen}
-          name={this.props.name}
-          actions={this.props.actions}
+          is_fullscreen={is_fullscreen}
+          name={name}
+          actions={actions}
+          usage={usage}
+          expected_cell_runtime={expected_cell_runtime}
         />
-        <Mode name={this.props.name} />
+        <Mode name={name} />
       </span>
     );
   }
 
-  render_menubar() {
+  function render_menubar() {
     if (
-      this.props.actions == null ||
-      this.props.frame_actions == null ||
-      this.props.cells == null ||
-      this.props.sel_ids == null ||
-      this.props.cur_id == null
+      actions == null ||
+      frame_actions == null ||
+      cells == null ||
+      sel_ids == null ||
+      cur_id == null
     ) {
       return;
     } else {
       return (
         <TopMenubar
-          actions={this.props.actions}
-          name={this.props.name}
-          frame_actions={this.props.frame_actions}
-          cells={this.props.cells}
-          cur_id={this.props.cur_id}
-          view_mode={this.props.view_mode}
+          actions={actions}
+          name={name}
+          frame_actions={frame_actions}
+          cells={cells}
+          cur_id={cur_id}
+          view_mode={view_mode}
         />
       );
     }
   }
 
-  render_buttonbar() {
+  function render_buttonbar() {
     if (
-      this.props.actions == null ||
-      this.props.frame_actions == null ||
-      this.props.cells == null ||
-      this.props.sel_ids == null ||
-      this.props.cur_id == null ||
-      this.props.name == null
+      actions == null ||
+      frame_actions == null ||
+      cells == null ||
+      sel_ids == null ||
+      cur_id == null ||
+      name == null
     ) {
       return;
     } else {
       return (
         <TopButtonbar
-          frame_actions={this.props.frame_actions}
-          name={this.props.name}
-          cells={this.props.cells}
-          cur_id={this.props.cur_id}
-          sel_ids={this.props.sel_ids}
-          cell_toolbar={this.props.cell_toolbar}
+          frame_actions={frame_actions}
+          name={name}
+          cells={cells}
+          cur_id={cur_id}
+          sel_ids={sel_ids}
+          cell_toolbar={cell_toolbar}
+          usage={usage}
         />
       );
     }
   }
 
-  render_heading() {
-    //if (!this.props.is_focused) return;
+  function render_heading() {
+    //if (!is_focused) return;
     return (
       <div style={{ border: "1px solid rgb(231, 231, 231)" }}>
-        {this.render_kernel()}
-        {this.render_menubar()}
-        {this.props.toolbar ? this.render_buttonbar() : undefined}
+        {render_kernel()}
+        {render_menubar()}
+        {toolbar ? render_buttonbar() : undefined}
       </div>
     );
   }
 
-  render_loading(): Rendered {
+  function render_loading(): Rendered {
     return (
       <Loading
         style={{
@@ -278,7 +451,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     );
   }
 
-  private use_windowed_list(): boolean {
+  function use_windowed_list(): boolean {
     // IMPORTANT: We are not using react-windowed at all
     // for Jupyter, due to situations like this
     //   https://github.com/sagemathinc/cocalc/issues/4727
@@ -291,10 +464,10 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
 
     /*
     if (
-      this.props.frame_actions == null ||
-      this.props.editor_settings == null ||
-      this.props.cell_list == null ||
-      this.props.editor_settings.get("disable_jupyter_windowing")
+      frame_actions == null ||
+      editor_settings == null ||
+      cell_list == null ||
+      editor_settings.get("disable_jupyter_windowing")
     ) {
       // very obvious reasons to disable windowing...
       return false;
@@ -310,13 +483,13 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     */
   }
 
-  render_cells() {
+  function render_cells() {
     if (
-      this.props.cell_list == null ||
-      this.props.font_size == null ||
-      this.props.cm_options == null ||
-      this.props.kernels == null ||
-      this.props.cells == null
+      cell_list == null ||
+      font_size == null ||
+      cm_options == null ||
+      kernels == null ||
+      cells == null
     ) {
       return (
         <Loading
@@ -332,143 +505,131 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
 
     return (
       <CellList
-        actions={this.props.actions}
-        frame_actions={this.props.frame_actions}
-        name={this.props.name}
-        cell_list={this.props.cell_list}
-        cells={this.props.cells}
-        font_size={this.props.font_size}
-        sel_ids={this.props.sel_ids}
-        md_edit_ids={this.props.md_edit_ids}
-        cur_id={this.props.cur_id}
-        mode={this.props.mode}
-        hook_offset={this.props.hook_offset}
-        cm_options={this.props.cm_options}
-        project_id={this.props.project_id}
-        directory={this.props.directory}
-        scrollTop={this.props.scrollTop}
-        complete={this.props.is_focused ? this.props.complete : undefined}
-        is_focused={this.props.is_focused}
-        more_output={this.props.more_output}
-        scroll={this.props.scroll}
-        cell_toolbar={this.props.cell_toolbar}
-        trust={this.props.trust}
-        use_windowed_list={this.use_windowed_list()}
+        actions={actions}
+        frame_actions={frame_actions}
+        name={name}
+        cell_list={cell_list}
+        cells={cells}
+        font_size={font_size}
+        sel_ids={sel_ids}
+        md_edit_ids={md_edit_ids}
+        cur_id={cur_id}
+        mode={mode}
+        hook_offset={hook_offset}
+        cm_options={cm_options}
+        project_id={project_id}
+        directory={directory}
+        scrollTop={scrollTop}
+        complete={is_focused ? complete : undefined}
+        is_focused={is_focused}
+        more_output={more_output}
+        scroll={scroll}
+        cell_toolbar={cell_toolbar}
+        trust={trust}
+        use_windowed_list={use_windowed_list()}
       />
     );
   }
 
-  render_about() {
+  function render_about() {
     return (
       <About
-        actions={this.props.actions}
-        about={this.props.about}
-        backend_kernel_info={this.props.backend_kernel_info}
+        actions={actions}
+        about={about}
+        backend_kernel_info={backend_kernel_info}
       />
     );
   }
 
-  render_nbconvert() {
-    if (this.props.path == null || this.props.project_id == null) return;
+  function render_nbconvert() {
+    if (path == null || project_id == null) return;
     return (
       <NBConvert
-        actions={this.props.actions}
-        path={this.props.path}
-        project_id={this.props.project_id}
-        nbconvert={this.props.nbconvert}
-        nbconvert_dialog={this.props.nbconvert_dialog}
-        backend_kernel_info={this.props.backend_kernel_info}
+        actions={actions}
+        path={path}
+        project_id={project_id}
+        nbconvert={nbconvert}
+        nbconvert_dialog={nbconvert_dialog}
+        backend_kernel_info={backend_kernel_info}
       />
     );
   }
 
-  render_insert_image() {
-    if (this.props.insert_image == null || this.props.project_id == null) {
+  function render_insert_image() {
+    if (insert_image == null || project_id == null) {
       return;
     }
     return (
       <InsertImage
-        actions={this.props.actions}
-        project_id={this.props.project_id}
-        insert_image={this.props.insert_image}
+        actions={actions}
+        project_id={project_id}
+        insert_image={insert_image}
       />
     );
   }
 
-  render_edit_attachments() {
-    if (this.props.edit_attachments == null || this.props.cells == null) {
+  function render_edit_attachments() {
+    if (edit_attachments == null || cells == null) {
       return;
     }
-    const cell = this.props.cells.get(this.props.edit_attachments);
+    const cell = cells.get(edit_attachments);
     if (cell == null) {
       return;
     }
-    return <EditAttachments actions={this.props.actions} cell={cell} />;
+    return <EditAttachments actions={actions} cell={cell} />;
   }
 
-  render_edit_cell_metadata() {
-    if (this.props.edit_cell_metadata == null) {
+  function render_edit_cell_metadata() {
+    if (edit_cell_metadata == null) {
       return;
     }
     return (
       <EditCellMetadata
-        actions={this.props.actions}
-        id={this.props.edit_cell_metadata.get("id")}
-        metadata={this.props.edit_cell_metadata.get("metadata")}
-        font_size={this.props.font_size}
-        cm_options={
-          this.props.cm_options != null
-            ? this.props.cm_options.get("options")
-            : undefined
-        }
+        actions={actions}
+        id={edit_cell_metadata.get("id")}
+        metadata={edit_cell_metadata.get("metadata")}
+        font_size={font_size}
+        cm_options={cm_options != null ? cm_options.get("options") : undefined}
       />
     );
   }
 
-  render_find_and_replace() {
-    if (this.props.cells == null || this.props.cur_id == null) {
+  function render_find_and_replace() {
+    if (cells == null || cur_id == null) {
       return;
     }
     return (
       <FindAndReplace
-        actions={this.props.actions}
-        find_and_replace={this.props.find_and_replace}
-        sel_ids={this.props.sel_ids}
-        cur_id={this.props.cur_id}
-        cells={this.props.cells}
-        cell_list={this.props.cell_list}
+        actions={actions}
+        find_and_replace={find_and_replace}
+        sel_ids={sel_ids}
+        cur_id={cur_id}
+        cells={cells}
+        cell_list={cell_list}
       />
     );
   }
 
-  render_confirm_dialog() {
-    if (this.props.confirm_dialog == null || this.props.actions == null) return;
-    return (
-      <ConfirmDialog
-        actions={this.props.actions}
-        confirm_dialog={this.props.confirm_dialog}
-      />
-    );
+  function render_confirm_dialog() {
+    if (confirm_dialog == null || actions == null) return;
+    return <ConfirmDialog actions={actions} confirm_dialog={confirm_dialog} />;
   }
 
-  render_select_kernel() {
-    if (this.props.editor_settings == null || this.props.site_name == null)
-      return;
+  function render_select_kernel() {
+    if (editor_settings == null || site_name == null) return;
 
-    const ask_jupyter_kernel = this.props.editor_settings.get(
-      "ask_jupyter_kernel"
-    );
+    const ask_jupyter_kernel = editor_settings.get("ask_jupyter_kernel");
     return (
       <KernelSelector
-        actions={this.props.actions}
-        kernel={this.props.kernel}
-        kernel_info={this.props.kernel_info}
-        kernel_selection={this.props.kernel_selection}
-        kernels_by_name={this.props.kernels_by_name}
-        kernels_by_language={this.props.kernels_by_language}
-        default_kernel={this.props.default_kernel}
-        closestKernel={this.props.closestKernel}
-        site_name={this.props.site_name}
+        actions={actions}
+        kernel={kernel}
+        kernel_info={kernel_info}
+        kernel_selection={kernel_selection}
+        kernels_by_name={kernels_by_name}
+        kernels_by_language={kernels_by_language}
+        default_kernel={default_kernel}
+        closestKernel={closestKernel}
+        site_name={site_name}
         ask_jupyter_kernel={
           ask_jupyter_kernel == null ? true : ask_jupyter_kernel
         }
@@ -476,112 +637,103 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     );
   }
 
-  render_keyboard_shortcuts() {
-    if (this.props.actions == null || this.props.frame_actions == null) return;
+  function render_keyboard_shortcuts() {
+    if (actions == null || frame_actions == null) return;
     return (
       <KeyboardShortcuts
-        actions={this.props.actions}
-        frame_actions={this.props.frame_actions}
-        editor_actions={this.props.editor_actions}
-        keyboard_shortcuts={this.props.keyboard_shortcuts}
+        actions={actions}
+        frame_actions={frame_actions}
+        editor_actions={editor_actions}
+        keyboard_shortcuts={keyboard_shortcuts}
       />
     );
   }
 
-  render_snippets_dialog() {
+  function render_snippets_dialog() {
     return (
       <SnippetsDialog
-        name={this.props.actions.snippet_actions.name}
-        actions={this.props.actions.snippet_actions}
+        name={actions.snippet_actions.name}
+        actions={actions.snippet_actions}
       />
     );
   }
 
-  render_json_viewer() {
-    if (this.props.cells == null) return <Loading />;
-    return (
-      <JSONView
-        actions={this.props.actions}
-        cells={this.props.cells}
-        font_size={this.props.font_size}
-      />
-    );
+  function render_json_viewer() {
+    if (cells == null) return <Loading />;
+    return <JSONView actions={actions} cells={cells} font_size={font_size} />;
   }
 
-  render_raw_editor() {
-    if (this.props.cm_options == null || this.props.font_size == null) {
+  function render_raw_editor() {
+    if (cm_options == null || font_size == null) {
       return <Loading />;
     }
     return (
       <RawEditor
-        name={this.props.name}
-        actions={this.props.actions}
-        font_size={this.props.font_size}
-        cm_options={this.props.cm_options.get("options")}
+        name={name}
+        actions={actions}
+        font_size={font_size}
+        cm_options={cm_options.get("options")}
       />
     );
   }
 
-  render_main_view() {
-    switch (this.props.view_mode) {
+  function render_main_view() {
+    switch (view_mode) {
       case "json":
-        return this.render_json_viewer();
+        return render_json_viewer();
       case "raw":
-        return this.render_raw_editor();
+        return render_raw_editor();
       case "normal":
-        return this.render_cells();
+        return render_cells();
       default:
-        return this.render_cells();
+        return render_cells();
     }
   }
 
-  render_main() {
-    if (!this.props.check_select_kernel_init) {
-      return this.render_loading();
-    } else if (this.props.show_kernel_selector) {
-      return this.render_select_kernel();
+  function render_main() {
+    if (!check_select_kernel_init) {
+      return render_loading();
+    } else if (show_kernel_selector) {
+      return render_select_kernel();
     } else {
-      return this.render_main_view();
+      return render_main_view();
     }
   }
 
-  render_modals() {
-    if (!this.props.is_focused) return;
+  function render_modals() {
+    if (!is_focused) return;
     return (
       <>
-        {this.render_about()}
-        {this.render_nbconvert()}
-        {this.render_insert_image()}
-        {this.render_edit_attachments()}
-        {this.render_edit_cell_metadata()}
-        {this.render_find_and_replace()}
-        {this.render_keyboard_shortcuts()}
-        {this.render_snippets_dialog()}
-        {this.render_confirm_dialog()}
+        {render_about()}
+        {render_nbconvert()}
+        {render_insert_image()}
+        {render_edit_attachments()}
+        {render_edit_cell_metadata()}
+        {render_find_and_replace()}
+        {render_keyboard_shortcuts()}
+        {render_snippets_dialog()}
+        {render_confirm_dialog()}
       </>
     );
   }
 
-  render() {
-    if (this.props.fatal) {
-      return this.render_fatal();
-    }
-    return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          height: "100%",
-          overflowY: "hidden",
-        }}
-      >
-        {this.render_error()}
-        {this.render_modals()}
-        {this.render_heading()}
-        {this.render_main()}
-      </div>
-    );
+  if (fatal) {
+    return render_fatal();
   }
-}
-
-export const JupyterEditor = rclass(JupyterEditor0);
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        overflowY: "hidden",
+      }}
+    >
+      {render_kernel_error()}
+      {render_error()}
+      {render_modals()}
+      {render_heading()}
+      {render_main()}
+    </div>
+  );
+});

@@ -8,7 +8,7 @@ import { isEqual } from "underscore";
 import * as lean_client from "lean-client-js-node";
 import { callback, delay } from "awaiting";
 import { once } from "../smc-util/async-utils";
-import { close } from "../smc-util/misc2";
+import { close } from "../smc-util/misc";
 import { reuseInFlight } from "async-await-utils/hof";
 import { EventEmitter } from "events";
 
@@ -70,7 +70,7 @@ export class Lean extends EventEmitter {
       new lean_client.ProcessTransport(
         "lean",
         process.env.HOME ? process.env.HOME : ".", // satisfy typescript.
-        []
+        ["-M 4096"]
       )
     );
     this._server.error.on((err) => this.dbg("error:", err));

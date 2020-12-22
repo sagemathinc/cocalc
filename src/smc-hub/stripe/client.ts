@@ -5,10 +5,14 @@
 
 import { reuseInFlight } from "async-await-utils/hof";
 import { callback } from "awaiting";
-import { callback2 } from "smc-util/async-utils";
-import { trunc_middle } from "smc-util/misc";
-import * as message from "smc-util/message";
-import { available_upgrades, get_total_upgrades } from "smc-util/upgrades";
+// STOPGAP FIX: relative dirs necessary for manage service
+import { callback2 } from "../../smc-util/async-utils";
+import { trunc_middle } from "../../smc-util/misc";
+import * as message from "../../smc-util/message";
+import {
+  available_upgrades,
+  get_total_upgrades,
+} from "../../smc-util/upgrades";
 import { PostgreSQL } from "../postgres/types";
 
 import Stripe from "stripe";

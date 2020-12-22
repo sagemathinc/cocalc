@@ -12,7 +12,7 @@ import { clear_hidden_tests } from "./clear-hidden-tests";
 import { clear_mark_regions } from "./clear-mark-regions";
 import { set_checksum } from "./compute-checksums";
 import { delay } from "awaiting";
-import { close, path_split } from "smc-util/misc2";
+import { close, path_split } from "smc-util/misc";
 import { STUDENT_SUBDIR } from "../../course/assignments/actions";
 
 export class NBGraderActions {
@@ -226,6 +226,9 @@ export class NBGraderActions {
     const kernel_language: string = this.jupyter_actions.store.get_kernel_language();
     this.jupyter_actions.store.get("cells").forEach((cell) => {
       if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
+      // we keep the "answer" cell of a multiple_choice question as it is
+      if (cell.getIn(["metadata", "nbgrader", "multiple_choice"]) == true)
+        return;
       const cell2 = clear_solution(cell, kernel_language);
       if (cell !== cell2) {
         // set the input

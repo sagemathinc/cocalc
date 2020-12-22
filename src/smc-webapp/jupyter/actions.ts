@@ -22,7 +22,6 @@ declare const localStorage: any;
 
 import * as immutable from "immutable";
 import { reuseInFlight } from "async-await-utils/hof";
-
 import { debounce } from "lodash";
 
 // NOTE! The smc-util relative path is so we can import this same
@@ -31,12 +30,9 @@ import { debounce } from "lodash";
 // **It's just a hack.**
 import { callback2, retry_until_success } from "../../smc-util/async-utils";
 import * as misc from "../../smc-util/misc";
-const { required, defaults } = misc;
-import { close } from "../../smc-util/misc2";
-
+const { close, required, defaults } = misc;
 import * as awaiting from "awaiting";
 import { three_way_merge } from "../../smc-util/sync/editor/generic/util";
-
 import { Cell, KernelInfo } from "./types";
 import { Syntax } from "../../smc-util/code-formatter";
 
@@ -284,7 +280,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     let data;
     try {
       data = await this.api_call("kernels");
+      if (this._state === "closed") return;
     } catch (err) {
+      if (this._state === "closed") return;
       this.set_error(err);
       return;
     }
@@ -572,7 +570,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
       // this.syncdb.get() returns an immutable.List of all the records
       // in the syncdb database.   These look like, e.g.,
-      //    {type: "settings", backend_state: "running", trust: true, kernel: "python3", kernel_usage: {…}, …}
+      //    {type: "settings", backend_state: "running", trust: true, kernel: "python3", …}
       //    {type: "cell", id: "22cc3e", pos: 0, input: "# small copy", state: "done"}
       let cells: immutable.Map<string, Cell> = immutable.Map();
       this.syncdb.get().forEach((record) => {
@@ -590,7 +588,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               trust: !!record.get("trust"), // case to boolean
               backend_state: record.get("backend_state"),
               kernel_state: record.get("kernel_state"),
-              kernel_usage: record.get("kernel_usage"),
               metadata: record.get("metadata"), // extra custom user-specified metadata
               max_output_length: bounded_integer(
                 record.get("max_output_length"),
@@ -606,7 +603,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             }
             this.setState(obj);
             if (!this.is_project && orig_kernel !== kernel) {
-              this.set_backend_kernel_info();
               this.set_cm_options();
             }
 
@@ -657,8 +653,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               trust: !!record.get("trust"), // case to boolean
               backend_state: record.get("backend_state"),
               kernel_state: record.get("kernel_state"),
-              kernel_usage: record.get("kernel_usage"),
+              kernel_error: record.get("kernel_error"),
               metadata: record.get("metadata"), // extra custom user-specified metadata
+              connection_file: record.get("connection_file") ?? "",
               max_output_length: bounded_integer(
                 record.get("max_output_length"),
                 100,
@@ -673,7 +670,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             }
             this.setState(obj);
             if (!this.is_project && orig_kernel !== kernel) {
-              this.set_backend_kernel_info();
               this.set_cm_options();
             }
 
@@ -687,6 +683,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     if (this.is_project) {
       if (do_init) {
+        // Since just opening the actions in the project, definitely the kernel
+        // isn't running so set this fact in the shared database.  It will make
+        // things always be in the right initial state.
+        this.syncdb.set({
+          type: "settings",
+          backend_state: "init",
+          kernel_state: "idle",
+          kernel_usage: { memory: 0, cpu: 0 },
+        });
+        this.syncdb.commit();
+
+        // Also initialize the execution manager, which runs cells that have been
+        // requested to run.
         this.initialize_manager();
       }
       if (this.store.get("kernel")) {
@@ -773,7 +782,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       !this.store.is_cell_editable(obj.id)
     ) {
       for (const protected_key of ["input", "cell_type", "attachments"]) {
-        if (misc.has_key(protected_key)) {
+        if (misc.has_key(obj, protected_key)) {
           throw CellWriteProtectedException;
         }
       }
@@ -827,11 +836,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     try {
       // Make sure syncdb content is all sent to the project.
       await this.syncdb.save();
+      if (this._state === "closed") return;
       // Export the ipynb file to disk.
       await this.api_call("save_ipynb_file", {});
+      if (this._state === "closed") return;
       // Save our custom-format syncdb to disk.
       await this.syncdb.save_to_disk();
     } catch (err) {
+      if (this._state === "closed") return;
       if (err.toString().indexOf("no kernel with path") != -1) {
         // This means that the kernel simply hasn't been initialized yet.
         // User can try to save later, once it has.
@@ -845,6 +857,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
       this.set_error(err.toString());
     } finally {
+      if (this._state === "closed") return;
       // And update the save status finally.
       if (typeof this.set_save_status === "function") {
         this.set_save_status();
@@ -1465,8 +1478,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const project_actions = this.redux.getProjectActions(
       this.store.get("project_id")
     );
-    project_actions.set_active_tab("files");
-    project_actions.toggle_new(true);
+    project_actions.set_active_tab("new");
   };
 
   private _get_cell_input = (id?: string | undefined): string => {
@@ -1764,7 +1776,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  restart = reuseInFlight(
+  halt = reuseInFlight(
     async (): Promise<void> => {
       await this.signal("SIGKILL");
       // Wait a little, since SIGKILL has to really happen on backend,
@@ -1775,8 +1787,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         return t != null && t.get("backend_state") != "running";
       };
       await this.syncdb.wait(not_running, 30);
+    }
+  );
+
+  restart = reuseInFlight(
+    async (): Promise<void> => {
+      await this.halt();
       if (this._state === "closed") return;
-      await this.set_backend_kernel_info();
+      // Actually start it running again (rather than waiting for
+      // user to do something), since this is called "restart".
+      await this.set_backend_kernel_info(); // causes kernel to start
     }
   );
 
@@ -2202,10 +2222,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   _attachment_markdown = (name: any) => {
-    // This is officially what it should probably be, but
-    // it looks so bad with (typical) big images, due to
-    // know maxwidth.
-    // return `![${name}](attachment:${name})`;
+    return `![${name}](attachment:${name})`;
+    // Don't use this because official Jupyter tooling can't deal with it. See
+    //    https://github.com/sagemathinc/cocalc/issues/5055
     return `<img src="attachment:${name}" style="max-width:100%">`;
   };
 
@@ -2571,7 +2590,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // unknown kernel, we try to find a close match
     if (kernel_info == null && kernel != null) {
       // kernel & kernels must be defined
-      closestKernel = misc.closest_kernel_match(kernel, kernels);
+      closestKernel = misc.closest_kernel_match(kernel, kernels as any) as any;
+      // TODO about that any above: closest_kernel_match should be moved here so it knows the typings
     }
     this.setState({
       kernel_selection,

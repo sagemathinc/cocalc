@@ -16,15 +16,13 @@ like is here:  https://tex.stackexchange.com/questions/6306/how-to-annotate-pdf-
 const HIGHLIGHT_HEIGHT: number = 30;
 
 import { Component, React, Rendered } from "../../app-framework";
-
 import { PDFAnnotationData, PDFPageProxy } from "pdfjs-dist/webpack";
 
 // Evidently the typescript code is wrong for this PDFJS.Util thing, so we use require.
 const PDFJS = require("pdfjs-dist/webpack");
 
 import { delay } from "awaiting";
-
-import { is_different } from "smc-util/misc2";
+import { is_different } from "smc-util/misc";
 
 export interface SyncHighlight {
   y: number;

@@ -43,7 +43,7 @@ import * as uuid from "node-uuid";
 import * as passport from "passport";
 import * as dot from "dot-object";
 import * as _ from "lodash";
-const misc = require("../smc-util/misc");
+import * as misc from "../smc-util/misc";
 import * as message from "../smc-util/message"; // message protocol between front-end and back-end
 const sign_in = require("./sign-in");
 import * as Cookies from "cookies";
@@ -74,7 +74,7 @@ type login_info_keys =
   | "full_name"
   | "emails";
 
-interface PassportStrategyDB extends PassportStrategy {
+export interface PassportStrategyDB extends PassportStrategy {
   clientID?: string; // Google, Twitter, ... and OAuth2
   clientSecret?: string; // Google, Twitter, ... and OAuth2
   authorizationURL?: string; // OAuth2
@@ -83,6 +83,7 @@ interface PassportStrategyDB extends PassportStrategy {
   login_info?: { [key in login_info_keys]?: string };
   public?: boolean; // if true it's a public SSO. this is only used in the UI, i.e. when there are no public ones, we allow token based email sign up
   disabled?: boolean; // if true, ignore this entry. default false.
+  exclusive_domains?: string[];
 }
 
 const { defaults, required } = misc;
@@ -466,6 +467,7 @@ export class PassportManager {
         "type",
         "icon",
         "public",
+        "exclusive_domains",
       ]);
       data.push(info);
     }

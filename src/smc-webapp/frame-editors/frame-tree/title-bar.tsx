@@ -37,9 +37,8 @@ import {
 } from "smc-webapp/r_misc";
 
 import { IS_TOUCH } from "../../feature";
-import { capitalize, copy } from "smc-util/misc";
+import { capitalize, copy, path_split, trunc_middle } from "smc-util/misc";
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
-import { path_split, trunc_middle } from "smc-util/misc2";
 import { ConnectionStatus, EditorSpec, EditorDescription } from "./types";
 import { Actions } from "../code-editor/actions";
 import { EditorFileInfoDropdown } from "../../editors/file-info-dropdown";
@@ -335,6 +334,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
       padding: 0,
       paddingLeft: "4px",
       background: is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK,
+      height: button_height(),
     };
     if (is_active) {
       style.position = "absolute";

@@ -14,11 +14,10 @@ import {
   RESET_ICON,
 } from "./util";
 import { ComputeImages } from "./init";
-const misc = require("smc-util/misc");
-import * as misc2 from "smc-util/misc2";
-const { open_new_tab } = require("smc-webapp/misc_page");
+import { path_split, trunc, trunc_middle } from "smc-util/misc";
+import { open_new_tab } from "../misc-page";
 import { Icon, Tip, HiddenXSSM, VisibleMDLG, VisibleXSSM } from "../r_misc";
-const { ButtonGroup, Button } = require("react-bootstrap");
+import { ButtonGroup, Button } from "react-bootstrap";
 import { Available as AvailableFeatures } from "../project_configuration";
 const { jupyterlab_server_url } = require("../project/jupyterlab-server");
 const { jupyter_server_url } = require("../editor_jupyter");
@@ -50,13 +49,13 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
     // boil down what user sees as the launch button description
     const display_path = path.endsWith("/")
       ? path.slice(0, -1)
-      : misc2.path_split(path).tail;
+      : path_split(path).tail;
 
     return (
       <Button onClick={onClick}>
         <Tip title={`Open '${path}'`} placement={"bottom"}>
           <Icon name={"rocket"} />{" "}
-          <VisibleMDLG>{misc.trunc_middle(display_path, 40)}</VisibleMDLG>
+          <VisibleMDLG>{trunc_middle(display_path, 40)}</VisibleMDLG>
         </Tip>
       </Button>
     );
@@ -129,7 +128,7 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
         </ButtonGroup>
         <div style={title_style}>
           <Tip title={this.img_info(img)} placement={"bottom"}>
-            {misc2.trunc(img.get("display", ""), 100)}
+            {trunc(img.get("display", ""), 100)}
           </Tip>
         </div>
       </>

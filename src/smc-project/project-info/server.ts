@@ -13,6 +13,8 @@ if (require.main === module) {
   require("coffee-register");
 }
 
+import * as debug from "debug";
+const L = debug("project:project-info:server");
 import { delay } from "awaiting";
 import { join } from "path";
 import { exec } from "./utils";
@@ -55,11 +57,11 @@ export class ProjectInfoServer extends EventEmitter {
   private pagesize: number;
   private delay_s: number;
 
-  constructor(L, testing = false) {
+  constructor(testing = false) {
     super();
     this.delay_s = 2;
     this.testing = testing;
-    this.dbg = (...msg) => L("ProjectInfoServer", ...msg);
+    this.dbg = L;
   }
 
   public latest(): ProjectInfo | undefined {
@@ -320,7 +322,7 @@ export class ProjectInfoServer extends EventEmitter {
 
   public async start(): Promise<void> {
     if (this.running) {
-      this.dbg("alerady running, cannot be started twice");
+      this.dbg("project-info/server: already running, cannot be started twice");
     } else {
       await this._start();
     }
@@ -357,6 +359,6 @@ export class ProjectInfoServer extends EventEmitter {
 
 // testing: $ ts-node server.ts
 if (require.main === module) {
-  const pis = new ProjectInfoServer(console.log, true);
+  const pis = new ProjectInfoServer(true);
   pis.start().then(() => process.exit());
 }

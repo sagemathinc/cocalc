@@ -13,6 +13,10 @@ const _ = require("underscore");
 import { PostgreSQL } from "./types";
 const { all_results } = require("../postgres-base");
 
+// some stats queries have to crunch a lot of rows, which could take a bit
+// we give them a couple of minutes each…
+const QUERY_TIMEOUT_S = 300;
+
 interface Opts {
   ttl_dt: number; // 15 secs subtracted from ttl to compensate for computation duration when called via a cronjob
   ttl: number; // how long cached version lives (in seconds)
@@ -70,6 +74,7 @@ async function _count_timespan(db: PostgreSQL, opts): Promise<any> {
     query: `SELECT COUNT(*) FROM ${table}`,
     where,
     priority: 9, // lowest
+    timeout_s: QUERY_TIMEOUT_S,
   });
   // count_result
   return parseInt(result?.rows?.[0]?.count);
@@ -107,6 +112,7 @@ ORDER BY ext
     query: q,
     params: [misc.minutes_ago(age_m)],
     priority: 9, // lowest
+    timeout_s: QUERY_TIMEOUT_S,
   });
 
   // misc.copy? see "all_results"
@@ -153,7 +159,7 @@ async function check_db_cache({
       return null;
     }
 
-    const x = misc.map_without_undefined(res.rows[0]);
+    const x = misc.map_without_undefined(res.rows[0]) as any;
     if (x == null) {
       dbg("no data (2)");
       return null;
@@ -240,7 +246,7 @@ async function _calc_stats({ db, dbg, start_t }): Promise<Stats> {
     age_m: R.active,
   });
 
-  await new Promise((done, reject) => {
+  await new Promise<void>((done, reject) => {
     db._query({
       query: "SELECT expire, host, clients FROM hub_servers",
       priority: 9, // lowest

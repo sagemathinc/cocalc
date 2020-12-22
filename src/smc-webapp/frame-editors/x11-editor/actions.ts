@@ -15,37 +15,27 @@ const HELP_URL = "https://doc.cocalc.com/x11.html";
 const CLIENT_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 
 import { Channel } from "smc-webapp/project/websocket/types";
-
 import { Map, Set as immutableSet, fromJS } from "immutable";
-
 import { project_api } from "../generic/client";
-
 import { set_buffer, get_buffer } from "../../copy-paste-buffer";
-
 import { reuseInFlight } from "async-await-utils/hof";
 import { callback, delay } from "awaiting";
-import { assertDefined } from "smc-util/misc2";
-
+import { assertDefined } from "smc-util/misc";
 import {
   X11Configuration,
   Capabilities,
   isMainConfiguration,
 } from "../../project_configuration";
-
 const WID_HISTORY_LENGTH = 40;
-
 import {
   Actions as BaseActions,
   CodeEditorState,
 } from "../code-editor/actions";
-
 import { ConnectionStatus, FrameTree } from "../frame-tree/types";
 import { XpraClient } from "./xpra-client";
 import { Store } from "../../app-framework";
-
-const { alert_message } = require("smc-webapp/alerts");
-
-const { open_new_tab } = require("smc-webapp/misc_page");
+import { alert_message } from "smc-webapp/alerts";
+import { open_new_tab } from "../../misc-page";
 
 interface X11EditorState extends CodeEditorState {
   windows: Map<number, any>;

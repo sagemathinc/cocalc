@@ -14,7 +14,6 @@ stringify = require('json-stable-stringify')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
-misc_page         = require('../misc_page')
 message           = require('smc-util/message')
 markdown          = require('../markdown')
 {webapp_client}   = require('../webapp-client')
@@ -360,216 +359,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         alert_message(type:"error", message:"Unable to restart worksheet (the system might be heavily loaded causing Sage to take a while to restart -- try again in a minute)")
             @focused_codemirror().focus()
             return false
-
-    html_editor_save_selection: () =>
-        if not @_html_editor_with_focus?
-            return
-        #console.log("save_selection")
-        @html_editor_selection = misc_page.save_selection()
-        @html_editor_div = @_html_editor_with_focus
-        @html_editor_scroll_info = @focused_codemirror().getScrollInfo()
-
-    html_editor_restore_selection: () =>
-        if @html_editor_selection?
-            misc_page.restore_selection(@html_editor_selection)
-            #delete @html_editor_selection
-
-    html_editor_link: () =>
-        @html_editor_restore_selection()
-        selection = document.getSelection()
-        displayed_text = selection+""
-
-        dialog = templates.find(".webapp-html-editor-link-dialog").clone()
-        dialog.modal('show')
-        dialog.find(".btn-close").off('click').click () ->
-            dialog.modal('hide')
-            setTimeout(focus, 50)
-            return false
-        url = dialog.find(".webapp-html-editor-url")
-        url.focus()
-        display = dialog.find(".webapp-html-editor-display")
-        target  = dialog.find(".webapp-html-editor-target")
-        title   = dialog.find(".webapp-html-editor-title")
-
-        display.val(displayed_text)
-
-        submit = () =>
-            dialog.modal('hide')
-            if target.val() == "_blank"
-                target = " target='_blank'"
-            else
-                target = ''
-            s = "<a href='#{url.val()}' title='#{title.val()}'#{target}>#{display.val()}</a>"
-            @html_editor_exec_command('insertHTML', s)  #TODO: won't work in IE
-
-        dialog.find(".btn-submit").off('click').click(submit)
-        dialog.keydown (evt) =>
-            if evt.which == 13 # enter
-                submit()
-                return false
-            if evt.which == 27 # escape
-                dialog.modal('hide')
-                return false
-
-    html_editor_insert_equation: (display) =>
-        if not @html_editor_div?
-            return
-        id = misc.uuid()
-        @html_editor_exec_command('insertHTML', "<span id=#{id} contenteditable=false></span>")
-
-        e = $("##{id}")
-        onchange = @html_editor_div.data('onchange')
-        e.equation_editor
-            display  : display
-            value    : 'x^2'
-            onchange : onchange
-        onchange()
-
-    html_editor_equation: () =>
-        @html_editor_insert_equation(false)
-
-    html_editor_display_equation: () =>
-        @html_editor_insert_equation(true)
-
-    html_editor_image: () =>
-        @html_editor_restore_selection()
-
-        dialog = templates.find(".webapp-html-editor-image-dialog").clone()
-        dialog.modal('show')
-        dialog.find(".btn-close").off('click').click () ->
-            dialog.modal('hide')
-            setTimeout(focus, 50)
-            return false
-        url = dialog.find(".webapp-html-editor-url")
-        url.focus()
-
-        submit = () =>
-            dialog.modal('hide')
-            height = width = ''
-            h = dialog.find(".webapp-html-editor-height").val().trim()
-            if h.length > 0
-                height = " height=#{h}"
-            w = dialog.find(".webapp-html-editor-width").val().trim()
-            if w.length > 0
-                width = " width=#{w}"
-            s = "<img src='#{url.val()}'#{width}#{height}>"
-            @html_editor_exec_command('insertHTML', s)
-
-        dialog.find(".btn-submit").off('click').click(submit)
-        dialog.keydown (evt) =>
-            if evt.which == 13 # enter
-                submit()
-                return false
-            if evt.which == 27 # escape
-                dialog.modal('hide')
-                return false
-
-    html_editor_exec_command: (cmd, args) =>
-        # TODO: get rid of all this rangy related editor code.
-        # this sucked, and the new codemirror-author stuff is the way to go.
-        if not rangy?
-            return
-        #console.log("html_editor_exec_command #{misc.to_json([cmd,args])}")
-        if @html_editor_scroll_info?
-            @focused_codemirror().scrollTo(@html_editor_scroll_info.left, @html_editor_scroll_info.top)
-        @html_editor_restore_selection()
-        if cmd == "ClassApplier"
-            rangy?.createClassApplier(args[0], args[1]).applyToSelection()
-        else
-            if cmd == "insertHTML"
-                # more solid and cross platform, e.g., insertHTML doesn't exist on IE
-                sel = rangy?.getSelection()
-                r = sel.getAllRanges()[0]
-                if typeof(args) != 'string'
-                    args = args[0]
-                r.insertNode($(args)[0])
-            else
-                document.execCommand(cmd, 0, args)  # TODO: make more cross platform
-        @html_editor_save_selection()
-        @html_editor_div?.data('onchange')?()
-
-    init_html_editor_buttons: () =>
-        @html_editor_bar = button_bar = @element.find(".webapp-editor-codemirror-worksheet-editable-buttons")
-        @html_editor_bar.find("a").tooltip(delay:{ show: 500, hide: 100 })
-        @html_editor_bar.find(".smc-tooltip").tooltip(delay:{ show: 500, hide: 100 })
-
-        that = @
-        button_bar.find("a").click () ->
-            that.html_editor_restore_selection()
-            args = $(this).data('args')
-            cmd  = $(this).attr('href').slice(1)
-            if args == 'special'
-                that["html_editor_#{cmd}"]()
-                return false
-            #console.log(cmd, args)
-            if args? and typeof(args) != 'object'
-                args = "#{args}"
-                if args.indexOf(',') != -1
-                    args = args.split(',')
-            #console.log("after", args)
-            that.html_editor_exec_command(cmd, args)
-            return false
-
-        # initialize the color control
-        init_color_control = () =>
-            elt   = button_bar.find(".sagews-output-editor-foreground-color-selector")
-            if IS_TOUCH
-                elt.hide()
-                return
-            button_bar_input = elt.find("input").colorpicker()
-            sample = elt.find("i")
-            set = (hex) ->
-                # The CSS wrapping version keeps wrapping new spans hence sucks.
-                #args = [null, {elementProperties:{style:{color:hex}}}]
-                #that.html_editor_exec_command("ClassApplier", args)
-                sample.css("color", hex)
-                button_bar_input.css("background-color", hex)
-                that.html_editor_exec_command("foreColor", hex)
-
-            button_bar_input.change (ev) ->
-                hex = button_bar_input.val()
-                set(hex)
-
-            button_bar_input.on "changeColor", (ev) ->
-                hex = ev.color.toHex()
-                set(hex)
-
-            sample.click (ev) ->
-                that.html_editor_restore_selection()
-                button_bar_input.colorpicker('show')
-
-            set("#000000")
-
-        init_color_control()
-
-        # initialize the color control
-        init_background_color_control = () =>
-            elt   = button_bar.find(".sagews-output-editor-background-color-selector")
-            if IS_TOUCH
-                elt.hide()
-                return
-            button_bar_input = elt.find("input").colorpicker()
-            sample = elt.find("i")
-            set = (hex) ->
-                button_bar_input.css("background-color", hex)
-                elt.find(".input-group-addon").css("background-color", hex)
-                that.html_editor_exec_command("hiliteColor", hex)
-
-            button_bar_input.change (ev) ->
-                hex = button_bar_input.val()
-                set(hex)
-
-            button_bar_input.on "changeColor", (ev) ->
-                hex = ev.color.toHex()
-                set(hex)
-
-            sample.click (ev) ->
-                that.html_editor_restore_selection()
-                button_bar_input.colorpicker('show')
-
-            set("#fff8bd")
-
-        init_background_color_control()
 
     _is_dangerous_undo_step: (cm, changes) =>
         if not changes?
@@ -1648,25 +1437,15 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             else
                 obj = undefined
             if mesg.javascript.coffeescript
-                if not CoffeeScript?
-                     # hotfix to catch problem #2752
-                    if false
-                        # DANGER: this is the only async code in process_output_mesg
-                        misc_page.load_coffeescript_compiler () =>
-                            sagews_eval(CoffeeScript?.compile(code), @, opts.element, undefined, obj, redux)
-                    else
-                        t = $('<div class="sagews-output-stderr">')
-                        t.html('''
-                               <div>
-                               <h4>Error: <code>%coffeescript</code> is currently broken.</h4>
-                               Please convert the block of code above to <code>%javascript</code>.
-                               See <a href="https://github.com/sagemathinc/cocalc/issues/2752">issue #2752</a> for more information.
-                               </div>
-                               ''')
-                        output.append(t)
-                else
-                    # DANGER: this is the only async code in process_output_mesg
-                    sagews_eval(CoffeeScript?.compile(code), @, opts.element, undefined, obj, redux)
+                t = $('<div class="sagews-output-stderr">')
+                t.html('''
+                       <div>
+                       <h4>Error: running <code>%coffeescript</code> is no longer supported.</h4>
+                       Please convert the block of code above to <code>%javascript</code>.
+                       See <a target="_blank" href="https://github.com/sagemathinc/cocalc/issues/2752">issue #2752</a> for more information.
+                       </div>
+                       ''')
+                output.append(t)
             else
                 # The eval below is an intentional cross-site scripting vulnerability
                 # in the fundamental design of CoCalc.
@@ -1739,19 +1518,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     mesg = mesg.mesg
                     do () =>
                         code = mesg.code
-                        async.series([
-                            (cb) =>
-                                if mesg.coffeescript or code.indexOf('CoffeeScript') != -1
-                                    misc_page.load_coffeescript_compiler(cb)
-                                else
-                                    cb()
-                            (cb) =>
-                                if mesg.coffeescript
-                                    code = CoffeeScript.compile(code)
-                                obj = JSON.parse(mesg.obj)
-                                sagews_eval(code, @, undefined, mesg.cell_id, obj, redux)
-                                cb()
-                        ])
+                        obj = JSON.parse(mesg.obj)
+                        sagews_eval(code, @, undefined, mesg.cell_id, obj, redux)
 
     mark_cell_start: (cm, line) =>
         # Assuming the proper text is in the document for a new cell at this line,

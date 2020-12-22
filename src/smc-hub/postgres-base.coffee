@@ -18,6 +18,10 @@ DEFAULT_TIMEOUT_DELAY_MS = DEFAULT_TIMEOUS_MS * 4
 
 QUERY_ALERT_THRESH_MS=5000
 
+# this is a limit for each query, unless timeout_s is specified.
+# https://postgresqlco.nf/en/doc/param/statement_timeout/
+DEFAULT_STATEMENT_TIMEOUT_S = 30
+
 EventEmitter = require('events')
 
 fs      = require('fs')
@@ -359,6 +363,13 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                         cb(err)
                 async.map(locals.clients, f, cb)
             (cb) =>
+                # we set a statement_timeout, to avoid queries locking up PG
+                f = (client, cb) =>
+                    statement_timeout_ms = DEFAULT_STATEMENT_TIMEOUT_S * 1000 # in millisecs
+                    client.query "SET statement_timeout TO #{statement_timeout_ms}", (err) =>
+                        cb(err)
+                async.map(locals.clients, f, cb)
+            (cb) =>
                 dbg("checking if ANY db server is in recovery, i.e., we are doing standby queries only")
                 @is_standby = false
                 f = (client, cb) =>
@@ -465,6 +476,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             retry_until_success : undefined  # if given, should be options to misc.retry_until_success
             pg_params   : undefined  # key/value map of postgres parameters, which will be set for the query in a single transaction
             priority    : undefined
+            timeout_s   : undefined  # by default, there is a "statement_timeout" set. set to 0 to disable or a number in seconds
             cb          : undefined
 
         # quick check for write query against read-only connection
@@ -815,6 +827,13 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 opts.cb?(err, result)
                 if query_time_ms >= QUERY_ALERT_THRESH_MS
                     dbg("QUERY_ALERT_THRESH: query_time_ms=#{query_time_ms}\nQUERY_ALERT_THRESH: query='#{opts.query}'\nQUERY_ALERT_THRESH: params='#{misc.to_json(opts.params)}'")
+
+            if opts.timeout_s? and typeof opts.timeout_s == 'number' and opts.timeout_s >= 0
+                dbg("set query timeout to #{opts.timeout_s}secs")
+                opts.pg_params ?= {}
+                # the actual param is in milliseconds
+                # https://postgresqlco.nf/en/doc/param/statement_timeout/
+                opts.pg_params.statement_timeout = 1000 * opts.timeout_s
 
             if opts.pg_params?
                 dbg("run query with specific postgres parameters in a transaction")

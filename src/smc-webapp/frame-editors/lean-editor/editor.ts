@@ -7,7 +7,7 @@
 Top-level react component for editing LEAN documents
 */
 
-import { set } from "smc-util/misc2";
+import { set } from "smc-util/misc";
 import { createEditor } from "../frame-tree/editor";
 import { LeanCodemirrorEditor } from "./lean-codemirror";
 import { LeanMessages } from "./lean-messages";

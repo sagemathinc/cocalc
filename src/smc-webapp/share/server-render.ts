@@ -20,6 +20,8 @@ set_share_server(true);
 
 // Load katex jQuery plugin.
 require("../jquery-plugins/katex");
+// this highlights code in .md, .ipynb, etc.
+require("../jquery-plugins/codemirror");
 
 /* Regarding the stream parameter below:
    if true, use streaming non-blocking rendering;

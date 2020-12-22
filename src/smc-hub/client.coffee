@@ -304,17 +304,6 @@ class exports.Client extends EventEmitter
                     @signed_in(signed_in_mesg)
                     @push_to_client(signed_in_mesg)
 
-    cap_session_limits: (limits) ->
-        ###
-        Capping resource limits; client can request anything.
-        We cap what they get based on the account type, etc...
-        This functions *modifies* the limits object in place.
-        ###
-        if @account_id?  # logged in
-            misc.min_object(limits, SESSION_LIMITS)  # TODO
-        else
-            misc.min_object(limits, SESSION_LIMITS_NOT_LOGGED_IN)  # TODO
-
     push_to_client: (mesg, cb) =>
         ###
         Pushing messages to this particular connected client

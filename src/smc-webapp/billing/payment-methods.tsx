@@ -14,7 +14,7 @@ import { AddPaymentMethod } from "./add-payment-method";
 import { PaymentMethod } from "./payment-method";
 import { ErrorDisplay } from "../r_misc/error-display";
 
-import { cmp } from "smc-util/misc2";
+import { cmp } from "smc-util/misc";
 
 interface Props {
   sources?: { data: Source[] }; // could be undefined, if it is a customer and all sources are removed

@@ -5,7 +5,7 @@
 
 import { PostgreSQL } from "../types";
 import { query } from "../query";
-import { is_valid_uuid_string } from "../../smc-util/misc2";
+import { is_valid_uuid_string } from "../../smc-util/misc";
 
 export async function site_license_is_manager(
   db: PostgreSQL,

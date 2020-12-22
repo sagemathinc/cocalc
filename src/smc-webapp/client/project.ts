@@ -7,12 +7,14 @@
 Functionality that mainly involves working with a specific project.
 */
 
-import { required, defaults } from "smc-util/misc";
 import {
   copy_without,
   encode_path,
   is_valid_uuid_string,
-} from "smc-util/misc2";
+  required,
+  defaults,
+  coerce_codomain_to_numbers,
+} from "smc-util/misc";
 import * as message from "smc-util/message";
 import { DirectoryListingEntry } from "smc-util/types";
 import { connection_to_project } from "../project/websocket/connect";
@@ -28,6 +30,7 @@ import {
   ProjectStatus,
   project_status,
 } from "../project/websocket/project-status";
+import { UsageInfoWS, get_usage_info } from "../project/websocket/usage-info";
 import { ensure_project_running } from "../project/project-start-warning";
 import { Configuration, ConfigurationAspect } from "../project_configuration";
 
@@ -137,7 +140,12 @@ export class ProjectClient {
     member_host?: number;
     always_running?: number;
   }): Promise<void> {
-    await this.call(message.project_set_quotas(opts));
+    // we do some extra work to ensure all the quotas are numbers (typescript isn't
+    // enough; sometimes client code provides strings, which can cause lots of trouble).
+    const x = coerce_codomain_to_numbers(copy_without(opts, ["project_id"]));
+    await this.call(
+      message.project_set_quotas({ ...x, ...{ project_id: opts.project_id } })
+    );
   }
 
   public async websocket(project_id: string): Promise<any> {
@@ -508,5 +516,9 @@ export class ProjectClient {
 
   public project_status(project_id: string): ProjectStatus {
     return project_status(this.client, project_id);
+  }
+
+  public usage_info(project_id: string): UsageInfoWS {
+    return get_usage_info(project_id);
   }
 }

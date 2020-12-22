@@ -8,7 +8,7 @@ Terminal Editor Actions
 */
 import { Actions } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
-const { open_new_tab } = require("smc-webapp/misc_page");
+import { open_new_tab } from "../../misc-page";
 
 const HELP_URL = "https://doc.cocalc.com/terminal.html";
 

@@ -10,9 +10,7 @@ import * as async from "async";
 import * as underscore from "underscore";
 import * as immutable from "immutable";
 import * as os_path from "path";
-
 import { client_db } from "smc-util/schema";
-
 import {
   ConfigurationAspect,
   Configuration,
@@ -21,7 +19,6 @@ import {
   LIBRARY_INDEX_FILE,
   is_available as feature_is_available,
 } from "./project_configuration";
-import { startswith, to_user_string } from "smc-util/misc2";
 import { query as client_query } from "./frame-editors/generic/client";
 import { callback, delay } from "awaiting";
 import { callback2, retry_until_success } from "smc-util/async-utils";
@@ -29,34 +26,26 @@ import { exec } from "./frame-editors/generic/client";
 import { API } from "./project/websocket/api";
 import { in_snapshot_path, NewFilenames, normalize } from "./project/utils";
 import { NEW_FILENAMES } from "smc-util/db-schema";
-
 import { transform_get_url } from "./project/transform-get-url";
-
 import { OpenFiles } from "./project/open-files";
 import { log_opened_time, open_file, log_file_open } from "./project/open-file";
-
 import * as project_file from "./project-file";
 import { get_editor } from "./editors/react-wrapper";
-
 import * as misc from "smc-util/misc";
 const { MARKERS } = require("smc-util/sagews");
 import { alert_message } from "./alerts";
 import { webapp_client } from "./webapp-client";
 const { defaults, required } = misc;
-
 import { set_url } from "./history";
-
 import { delete_files } from "./project/delete-files";
-
 import { get_directory_listing2 as get_directory_listing } from "./project/directory-listing";
-
 import { Actions, project_redux_name, redux } from "./app-framework";
-
 import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
 import { ProjectEvent } from "./project/history/types";
 import { DEFAULT_COMPUTE_IMAGE } from "../smc-util/compute-images";
 import { download_href, url_href } from "./project/utils";
 import { ensure_project_running } from "./project/project-start-warning";
+import { download_file, open_new_tab, open_popup_window } from "./misc-page";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%';
@@ -320,10 +309,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.toggle_panel("show_library", show);
   }
 
-  toggle_new(show?: boolean): void {
-    this.toggle_panel("show_new", show);
-  }
-
   set_url_to_path(current_path): void {
     if (current_path.length > 0 && !misc.endswith(current_path, "/")) {
       current_path += "/";
@@ -366,21 +351,24 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const closed_index = open_files_order.indexOf(path);
     const { size } = open_files_order;
     if (misc.path_to_tab(path) === active_project_tab) {
-      let next_active_tab;
+      let next_active_tab: string | undefined = undefined;
       if (size === 1) {
         next_active_tab = "files";
       } else {
+        let path: string | undefined;
+
         if (closed_index === size - 1) {
-          next_active_tab = misc.path_to_tab(
-            open_files_order.get(closed_index - 1)
-          );
+          path = open_files_order.get(closed_index - 1);
         } else {
-          next_active_tab = misc.path_to_tab(
-            open_files_order.get(closed_index + 1)
-          );
+          path = open_files_order.get(closed_index + 1);
+        }
+        if (path != null) {
+          next_active_tab = misc.path_to_tab(path);
         }
       }
-      this.set_active_tab(next_active_tab);
+      if (next_active_tab != null) {
+        this.set_active_tab(next_active_tab);
+      }
     }
     if (closed_index === size - 1) {
       this.clear_ghost_file_tabs();
@@ -416,7 +404,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     if (
       prev_active_project_tab !== key &&
-      startswith(prev_active_project_tab, "editor-")
+      misc.startswith(prev_active_project_tab, "editor-")
     ) {
       this.hide_file(misc.tab_to_path(prev_active_project_tab));
     }
@@ -467,6 +455,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       default:
         // editor...
         const path = misc.tab_to_path(key);
+        if (path == null) {
+          throw Error(`must be an editor path but is ${key}`);
+        }
         this.redux
           .getActions("file_use")
           ?.mark_file(this.project_id, path, "open");
@@ -704,7 +695,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       (window.app_base_url != null ? window.app_base_url : "") +
       this._url_in_project(`files/${path}`);
     url += "?session=&fullscreen=kiosk";
-    require("./misc_page").open_popup_window(url, {
+    open_popup_window(url, {
       width: 800,
       height: 640,
     });
@@ -2108,7 +2099,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   public async download_file(opts): Promise<void> {
     let url;
-    const { download_file, open_new_tab } = require("./misc_page");
     opts = defaults(opts, {
       path: required,
       log: false,
@@ -2138,13 +2128,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     if (opts.auto && !opts.print) {
       url = download_href(this.project_id, opts.path);
-      return download_file(url);
+      download_file(url);
     } else {
       url = url_href(this.project_id, opts.path);
       const tab = open_new_tab(url);
       if (tab != null && opts.print) {
         // "?" since there might be no print method -- could depend on browser API
-        return typeof tab.print === "function" ? tab.print() : undefined;
+        tab.print?.();
       }
     }
   }
@@ -2476,7 +2466,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     if (err) {
-      err = to_user_string(err);
+      err = misc.to_user_string(err);
     }
     if ((err && output == null) || (output != null && output.stdout == null)) {
       this.setState({ search_error: err });
@@ -2764,7 +2754,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const store = this.get_store();
     if (store == undefined) return; // project closed
     const a = store.get("active_project_tab");
-    if (!startswith(a, "editor-")) return;
+    if (!misc.startswith(a, "editor-")) return;
     await delay(0);
     this.show_file(misc.tab_to_path(a));
   }
@@ -2774,7 +2764,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const store = this.get_store();
     if (store == undefined) return; // project closed
     const a = store.get("active_project_tab");
-    if (!startswith(a, "editor-")) return;
+    if (!misc.startswith(a, "editor-")) return;
     this.hide_file(misc.tab_to_path(a));
   }
 

@@ -14,7 +14,7 @@ NOTES:
 
 import { upgrades } from "smc-util/upgrade-spec";
 import { Upgrades } from "./types";
-import { capitalize } from "smc-util/misc2";
+import { capitalize } from "smc-util/misc";
 
 interface Product {
   upgrades: Partial<Upgrades>;

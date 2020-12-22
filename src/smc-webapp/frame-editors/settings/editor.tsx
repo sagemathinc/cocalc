@@ -8,18 +8,13 @@ Settings and configuration for editing this file.
 */
 
 import { Map } from "immutable";
-
 import { React, Rendered, Component } from "../../app-framework";
-
-import { is_different } from "smc-util/misc2";
-
+import { is_different } from "smc-util/misc";
 // import from icon only necessary for testing via Jest
 // Change to import from r_misc when it's all typescript
 import { Icon } from "../../r_misc/icon";
 import { Loading } from "../../r_misc/loading";
-
 import { SpellCheck } from "./spell-check";
-
 import { AvailableFeatures } from "../../project_configuration";
 
 interface Props {

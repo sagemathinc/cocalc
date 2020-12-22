@@ -6,7 +6,6 @@
 import { Map as ImmutableMap } from "immutable";
 import { Button, ButtonToolbar, FormControl, Well } from "../antd-bootstrap";
 import { React, Component, Rendered, redux } from "../app-framework";
-import { Avatar } from "./avatar/avatar";
 import { ErrorDisplay, Icon, ProfileIcon } from "../r_misc";
 import * as md5 from "md5";
 
@@ -34,7 +33,6 @@ interface ProfileImageSelectorState {
   error?: any;
   show_default_explanation?: boolean;
   show_gravatar_explanation?: boolean;
-  show_adorable_explanation?: boolean;
   croppedImageUrl?: string;
 }
 
@@ -86,18 +84,6 @@ export class ProfileImageSelector extends Component<
       `https://www.gravatar.com/avatar/${md5(
         this.props.email_address.toLowerCase()
       )}?d=identicon&s=30`
-    );
-  };
-
-  handle_adorable_click = () => {
-    if (!this.props.email_address) {
-      // Should not be necessary, but to make typescript happy.
-      return;
-    }
-    this.set_image(
-      `https://api.adorable.io/avatars/100/${md5(
-        this.props.email_address.toLowerCase()
-      )}.png`
     );
   };
 
@@ -214,52 +200,6 @@ export class ProfileImageSelector extends Component<
     );
   }
 
-  render_options_adorable() {
-    if (!this.props.email_address) {
-      return;
-    }
-    return (
-      <>
-        <Button
-          style={{ marginTop: "5px" }}
-          onClick={this.handle_adorable_click}
-        >
-          Adorable
-        </Button>{" "}
-        <a
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            this.setState({ show_adorable_explanation: true });
-          }}
-        >
-          What is this?
-        </a>
-        {this.state.show_adorable_explanation ? (
-          <Well style={{ marginTop: "10px", marginBottom: "10px" }}>
-            Adorable creates a cute randomize monster face out of your email.
-            See{" "}
-            <a href="http://avatars.adorable.io" target="_blank" rel="noopener">
-              {"http://avatars.adorable.io"}
-            </a>{" "}
-            for more.
-            <br />
-            <br />
-            <Button
-              onClick={() =>
-                this.setState({ show_adorable_explanation: false })
-              }
-            >
-              Close
-            </Button>
-          </Well>
-        ) : (
-          <br />
-        )}
-      </>
-    );
-  }
-
   render_options() {
     return (
       <>
@@ -293,7 +233,6 @@ export class ProfileImageSelector extends Component<
           <br />
         )}
         {this.render_options_gravatar()}
-        {this.render_options_adorable()}
         <FormControl
           type="file"
           onChange={this.handle_image_file_input}
@@ -415,13 +354,6 @@ export class ProfileImageSelector extends Component<
     }
     return (
       <>
-        <Avatar
-          size={30}
-          account_id={this.props.account_id}
-          no_tooltip={true}
-          no_loading={true}
-        />
-        <br />
         {this.render_error()}
         <br />
         {this.render_options()}

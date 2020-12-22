@@ -38,12 +38,15 @@ def hub_args(server_id):
         else:
             share_port = 0
 
-    s = "--host={hostname} --port {port} --proxy_port {proxy_port} --share_port {share_port} {mentions} --share_path {share_path}  --base_url={base_url}".format(
+        agent_port = int(args.agent_port) if args.agent_port else 0
+
+    s = "--host={hostname} --port {port} --proxy_port {proxy_port} --agent_port {agent_port} --share_port {share_port} {mentions} --share_path {share_path}  --base_url={base_url}".format(
         hostname=args.hostname,
         server_id=server_id,
         port=port,
         proxy_port=proxy_port,
         share_port=share_port,
+        agent_port=agent_port,
         mentions="--mentions" if args.mentions else "",
         share_path=args.share_path,
         base_url=args.base_url)
@@ -220,6 +223,8 @@ if __name__ == "__main__":
                         default=-1)
 
     parser.add_argument('--share_port', dest='share_port', type=int, default=0)
+
+    parser.add_argument('--agent_port', dest='agent_port', type=int, default=0)
 
     parser.add_argument('--mentions',
                         help="mentions",

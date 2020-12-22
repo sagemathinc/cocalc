@@ -8,7 +8,6 @@ A single tab in a project.
    - There is one of these for each open file in a project.
    - There is ALSO one for each of the fixed tabs -- files, new, log, search, settings.
 */
-
 const { file_options } = require("../../editor");
 import { NavItem } from "react-bootstrap";
 import {
@@ -22,10 +21,11 @@ import {
   useState,
   useTypedRedux,
 } from "../../app-framework";
-import { path_to_tab } from "smc-util/misc";
-import { path_split } from "smc-util/misc2";
+import { path_split, path_to_tab, trunc_left } from "smc-util/misc";
 import { HiddenXS, Icon, Tip } from "../../r_misc";
 import { COLORS } from "smc-util/theme";
+import { PROJECT_INFO_TITLE } from "../info";
+import { IS_SAFARI } from "../../feature";
 
 export const FIXED_PROJECT_TABS = {
   files: {
@@ -52,16 +52,16 @@ export const FIXED_PROJECT_TABS = {
     tooltip: "Search files in the project",
     no_anonymous: false,
   },
-  info: {
-    label: "Info",
-    icon: "gear",
-    tooltip: "",
-    no_anonymous: true,
-  },
   settings: {
     label: "Settings",
     icon: "wrench",
     tooltip: "Project settings and controls",
+    no_anonymous: true,
+  },
+  info: {
+    label: PROJECT_INFO_TITLE,
+    icon: "microchip",
+    tooltip: "Running processes, resource usage, …",
     no_anonymous: true,
   },
 } as const;
@@ -199,12 +199,24 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
   }
   if (label == null) throw Error("label must not be null");
 
-  if (label.indexOf("/") !== -1) {
-    // using a full path for the label instead of just a filename
-    label_style.textOverflow = "ellipsis";
-    // so the ellipsis are on the left side of the path, which is most useful
-    label_style.direction = "rtl";
-    label_style.padding = "0 1px"; // need less since have ...
+  const i = label.lastIndexOf("/");
+  if (i !== -1) {
+    if (IS_SAFARI) {
+      // Safari's implementation of direction rtl combined with
+      // ellipses is really buggy.  E.g.,
+      //   https://developer.apple.com/forums/thread/87131
+      // so for Safari we just show the filename as usual.  I tried
+      // for many hours to find a palatable workaround, but failed.
+      // So we just do something really naive but probably sort of
+      // useful.
+      label = trunc_left(label, 20);
+    } else {
+      // using a full path for the label instead of just a filename
+      label_style.textOverflow = "ellipsis";
+      // so the ellipsis are on the left side of the path, which is most useful
+      label_style.direction = "rtl";
+      label_style.padding = "0 1px"; // need less since have ...
+    }
   }
 
   const x_button_style: React.CSSProperties = {
@@ -228,12 +240,12 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
 
   if (path != null) {
     // We ONLY show tooltip for filename (it provides the full path).
-    // The dir="ltr" below is needed because of the direction 'rtl' in label_style, which
+    // The "ltr" below is needed because of the direction 'rtl' in label_style, which
     // we have to compensate for in some situations, e.g.., a file name "this is a file!"
     // will have the ! moved to the beginning by rtl.
     displayed_label = (
       <div style={label_style}>
-        <span dir="ltr">
+        <span style={{ direction: "ltr" }}>
           <Tip title={tooltip} stable={false} placement={"bottom"}>
             {" "}
             {displayed_label}{" "}

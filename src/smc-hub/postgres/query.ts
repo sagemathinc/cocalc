@@ -24,6 +24,7 @@ interface QueryOpts {
   order_by?: string;
   limit?: number;
   params?: any[];
+  timeout_s?: number;
 }
 
 export async function query(opts: QueryOpts): Promise<any> {
@@ -39,7 +40,8 @@ export async function query(opts: QueryOpts): Promise<any> {
     opts.jsonb_merge,
     opts.order_by,
     opts.limit,
-    opts.params
+    opts.params,
+    opts.timeout_s
   );
 }
 
@@ -55,6 +57,7 @@ function all_query(
   order_by,
   limit,
   params,
+  timeout_s,
   cb
 ): void {
   db._query({
@@ -68,6 +71,7 @@ function all_query(
     order_by,
     limit,
     params,
+    timeout_s,
     cb: all_results(cb),
   });
 }
@@ -84,6 +88,7 @@ function one_query(
   order_by,
   limit,
   params,
+  timeout_s,
   cb
 ): void {
   db._query({
@@ -97,6 +102,7 @@ function one_query(
     order_by,
     limit,
     params,
+    timeout_s,
     cb: one_result(cb),
   });
 }

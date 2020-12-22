@@ -18,7 +18,7 @@ import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../r_misc";
 import { alert_message } from "../alerts";
 import { Alert, Button, Input, Popconfirm } from "antd";
 import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
-import { plural, trunc_left } from "smc-util/misc2";
+import { plural, trunc_left } from "smc-util/misc";
 import { DebounceInput } from "react-debounce-input";
 import { webapp_client } from "../webapp-client";
 import { describe_quota } from "smc-util/db-schema/site-licenses";
@@ -241,25 +241,34 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
     if (!info.run_limit) {
       return (
         <li>
-          This license can be applied to an unlimited number of simultaneous
-          running projects.
+          License can be used with an unlimited number of simultaneous running
+          projects.
         </li>
       );
     }
     return (
       <li>
-        This license can be applied to up to {info.run_limit} simultaneous
-        running projects.
+        License can be used with up to {info.run_limit} simultaneous running
+        projects.
       </li>
     );
   }
 
   function render_running(): JSX.Element | undefined {
-    if (!info || info.running == null) return;
+    if (info?.running == null) return;
     return (
       <li>
-        Currently {info.running}{" "}
-        {info.running == 1 ? "project is" : "projects are"} using this license.
+        License is being actively used by {info.running} running{" "}
+        {plural(info.running, "project")}.
+      </li>
+    );
+  }
+
+  function render_applied(): JSX.Element | undefined {
+    if (info?.applied == null) return;
+    return (
+      <li>
+        License is applied to {info.applied} {plural(info.applied, "project")}.
       </li>
     );
   }
@@ -316,6 +325,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
         <div>
           {render_id()}
           {render_what_license_provides_overall()}
+          {render_applied()}
           {render_run_limit()}
           {render_running()}
           {render_activated()}
@@ -340,7 +350,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
       // expired?
       // it is expired, so no point in explaining what upgrades it would
       // provide or telling you to restart your project.
-      provides = <li>This license is expired.</li>;
+      provides = <li>License is expired.</li>;
       show_run = false; // no point in showing these
     } else if (!provides_upgrades()) {
       // not providing any upgrades -- tell them why
@@ -365,9 +375,9 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
             <>
               <li>Currently providing no upgrades to this project.</li>
               <li>
-                <Icon name="warning" /> This license is already being used to
-                upgrade {info.running} other running projects, which is the
-                limit. If possible, stop one of those projects, then{" "}
+                <Icon name="warning" /> License is already being used to upgrade{" "}
+                {info.running} other running projects, which is the limit. If
+                possible, stop one of those projects, then{" "}
                 <a onClick={restart_project}>restart this project.</a>
               </li>
             </>
@@ -403,8 +413,9 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
       <ul>
         {render_id()}
         {provides}
-        {show_run ? render_run_limit() : undefined}
-        {show_run ? render_running() : undefined}
+        {show_run && render_applied()}
+        {show_run && render_run_limit()}
+        {show_run && render_running()}
         {render_activated()}
         {render_purchased()}
         {render_managers()}
@@ -683,8 +694,11 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
           margin: "15px",
         }}
       >
-        Add <b>{manager_search_result.first_name ?? ""}{" "}
-        {manager_search_result.last_name ?? ""}</b>
+        Add{" "}
+        <b>
+          {manager_search_result.first_name ?? ""}{" "}
+          {manager_search_result.last_name ?? ""}
+        </b>
         {active}?
         <br />
         <Button
@@ -751,8 +765,8 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
               <br />
               They will no longer see this license listed under licenses they
               manage.
-              <br /> This license will <i>not</i> be automatically removed from
-              any projects they applied it to.
+              <br /> License will <i>not</i> be automatically removed from any
+              projects they applied it to.
             </>
           }
           onConfirm={() => do_remove_manager(account_id)}

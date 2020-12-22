@@ -37,7 +37,7 @@ import * as mkdirp from "mkdirp";
 type StdIO = "pipe" | "ignore" | "inherit" | undefined;
 export interface LaunchJupyterOpts {
   detached: boolean;
-  stdio: StdIO | (StdIO | number)[];
+  stdio?: StdIO | (StdIO | number)[];
   env: { [key: string]: string };
   cwd?: string;
   cleanupConnectionFile?: boolean;
@@ -98,7 +98,6 @@ function cleanup(connectionFile) {
 }
 
 const DEFAULT_SPAWN_OPTIONS = {
-  stdio: "ignore",
   cleanupConnectionFile: true,
   env: {},
 } as const;

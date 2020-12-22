@@ -75,7 +75,7 @@ interface Props {
 
 export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   const {
-    // font_size,
+    font_size,
     actions: frame_actions,
     // project_id,
     local_view_state,
@@ -345,7 +345,11 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
       HEADER_SORTER,
       ([k, _]) => k,
     ]);
-    const style: CSS = { overflowY: "auto" };
+    const style: CSS = {
+      overflowY: "auto",
+      border: "0",
+      fontSize: `${font_size}px`,
+    };
     // when searching, expand the first three to aid the user
     const active_search =
       search === ""
@@ -367,7 +371,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         {lvl1.map(render_level1)}
       </Collapse>
     );
-  }, [snippets, insert_setup, search]);
+  }, [snippets, insert_setup, search, font_size]);
 
   // introduction at the top
   function render_help(): JSX.Element {
@@ -419,17 +423,13 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render(): JSX.Element {
-    return (
-      <>
-        <div style={{ margin: "10px" }}>
-          {render_help()}
-          {render_controlls()}
-        </div>
-        {render_snippets()}
-      </>
-    );
-  }
-
-  return render();
+  return (
+    <>
+      <div style={{ margin: "10px", fontSize: `${font_size}px` }}>
+        {render_help()}
+        {render_controlls()}
+      </div>
+      {render_snippets()}
+    </>
+  );
 });

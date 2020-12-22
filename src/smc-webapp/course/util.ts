@@ -7,13 +7,17 @@ import { Map } from "immutable";
 import { TypedMap } from "../app-framework";
 import { StudentsMap } from "./store";
 import { AssignmentCopyStep } from "./types";
-import { separate_file_extension } from "smc-util/misc2";
+import {
+  defaults,
+  required,
+  search_match,
+  search_split,
+  separate_file_extension,
+  merge,
+  cmp,
+} from "smc-util/misc";
 
 // Pure functions used in the course manager
-
-// CoCalc libraries
-import * as misc from "smc-util/misc";
-const { defaults, required } = misc;
 
 export function STEPS(peer: boolean): AssignmentCopyStep[] {
   if (peer) {
@@ -171,47 +175,34 @@ export function immutable_to_list(x: any, primary_key?): any {
     return;
   }
   const v: any[] = [];
-  x.map((val, key) => v.push(misc.merge(val.toJS(), { [primary_key]: key })));
+  x.map((val, key) => v.push(merge(val.toJS(), { [primary_key]: key })));
   return v;
 }
 
 // Returns a list of matched objects and the number of objects
 // which were in the original list but omitted in the returned list
-export function compute_match_list(opts) {
+export function compute_match_list(opts: {
+  list: any[];
+  search_key: string;
+  search: string;
+}) {
   opts = defaults(opts, {
     list: required, // list of objects<M>
     search_key: required, // M.search_key property to match over
     search: required, // matches to M.search_key
-    ignore_case: true,
   });
-  let { list, search, search_key, ignore_case } = opts;
+  let { list, search, search_key } = opts;
   if (!search) {
     // why are you even calling this..
     return { list, num_omitted: 0 };
   }
 
-  let num_omitted = 0;
-  const words = misc.split(search);
-  const matches = (x) => {
-    let k;
-    if (ignore_case) {
-      k =
-        typeof x[search_key].toLowerCase === "function"
-          ? x[search_key].toLowerCase()
-          : undefined;
-    } else {
-      k = x[search_key];
-    }
-    for (const w of words) {
-      if (k.indexOf(w) === -1) {
-        // no match
-        num_omitted += 1;
-        return false;
-      }
-    }
-    return true;
-  };
+  const words = search_split(search);
+  const matches = (x) =>
+    search_match(x[search_key]?.toLowerCase?.() ?? "", words);
+  const n = list.length;
   list = list.filter(matches);
+  const num_omitted = n - list.length;
   return { list, num_omitted };
 }
 
@@ -221,7 +212,7 @@ export function compute_match_list(opts) {
 // deleted is not included by default
 export function order_list<T extends { deleted: boolean }>(opts: {
   list: T[];
-  compare_function: (a: T, b: T) => 1 | -1 | 0;
+  compare_function: (a: T, b: T) => number;
   reverse: boolean;
   include_deleted: boolean;
 }) {
@@ -251,10 +242,10 @@ export function order_list<T extends { deleted: boolean }>(opts: {
 }
 
 const sort_on_string_field = (field) => (a, b) =>
-  misc.cmp(a[field].toLowerCase(), b[field].toLowerCase());
+  cmp(a[field].toLowerCase(), b[field].toLowerCase());
 
 const sort_on_numerical_field = (field) => (a, b) =>
-  misc.cmp(a[field] * -1, b[field] * -1);
+  cmp(a[field] * -1, b[field] * -1);
 
 export enum StudentField {
   email = "email",

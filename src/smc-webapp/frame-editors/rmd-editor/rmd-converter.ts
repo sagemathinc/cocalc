@@ -8,7 +8,7 @@ Convert R Markdown file to hidden Markdown file, then read.
 */
 
 // import { aux_file } from "../frame-tree/util";
-import { path_split } from "smc-util/misc2";
+import { path_split } from "smc-util/misc";
 import { exec, ExecOutput } from "../generic/client";
 
 export async function convert(

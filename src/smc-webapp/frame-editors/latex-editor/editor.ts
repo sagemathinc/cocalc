@@ -7,10 +7,8 @@
 Spec for editing LaTeX documents.
 */
 
-import { set } from "smc-util/misc2";
-
+import { set } from "smc-util/misc";
 import { createEditor } from "../frame-tree/editor";
-
 import { PDFJS } from "./pdfjs";
 import { PDFEmbed } from "./pdf-embed";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
@@ -20,8 +18,8 @@ import { LatexWordCount } from "./latex-word-count";
 import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
-
 import { pdf_path } from "./util";
+import { IS_IOS, IS_IPAD } from "../../feature";
 
 export const pdfjs_buttons = set([
   "print",
@@ -95,15 +93,6 @@ const EDITOR_SPEC = {
     ]),
   },
 
-  pdf_embed: {
-    short: "PDF (native)",
-    name: "PDF - Native",
-    icon: "file-pdf-o",
-    buttons: set(["print", "save", "download"]),
-    component: PDFEmbed,
-    path: pdf_path,
-  },
-
   word_count: {
     short: "Word Count",
     name: "Word Count",
@@ -146,6 +135,18 @@ const EDITOR_SPEC = {
         ])
     } */
 };
+
+// See https://github.com/sagemathinc/cocalc/issues/5114
+if (!IS_IPAD && !IS_IOS) {
+  (EDITOR_SPEC as any).pdf_embed = {
+    short: "PDF (native)",
+    name: "PDF - Native",
+    icon: "file-pdf-o",
+    buttons: set(["print", "save", "download"]),
+    component: PDFEmbed,
+    path: pdf_path,
+  };
+}
 
 export const Editor = createEditor({
   format_bar: true,

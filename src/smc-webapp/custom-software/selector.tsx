@@ -17,7 +17,7 @@ import {
 import { ComputeImages, ComputeImage, ComputeImageTypes } from "./init";
 import { SiteName, CompanyName, HelpEmailLink } from "../customize";
 import { Markdown, SearchInput, Icon, Space } from "../r_misc";
-import { unreachable } from "smc-util/misc2";
+import { unreachable } from "smc-util/misc";
 import {
   CUSTOM_SOFTWARE_HELP_URL,
   custom_image_name,

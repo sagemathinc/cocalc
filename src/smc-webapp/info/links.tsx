@@ -5,14 +5,10 @@
 
 import { React, Rendered } from "../app-framework";
 
-let BASE_URL;
-if (global["BACKEND"]) {
-  // set in ./render.coffee
-  BASE_URL = require("smc-util/theme").DOMAIN_NAME;
-} else {
-  // browser
-  ({ BASE_URL } = require("../misc_page"));
-}
+// smc-util/theme is set in ./render.coffee
+const BASE_URL = global["BACKEND"]
+  ? require("smc-util/theme").DOMAIN_NAME
+  : require("../misc").BASE_URL;
 
 import { SiteName, PolicyPricingPageUrl } from "../customize";
 
@@ -97,7 +93,7 @@ export const SUPPORT_LINKS: Links = {
     href: "https://github.com/sagemathinc/cocalc-docker",
     link: (
       <span>
-        Run open source CoCalc on your computer ($799 commercial license)
+        Run open source CoCalc on your computer ($999 commercial license)
       </span>
     ),
   },
