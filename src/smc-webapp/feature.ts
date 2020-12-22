@@ -6,12 +6,12 @@
 // Client device features and capabilities.
 
 declare const DEBUG: boolean;
-declare var $ : any;
 
 let IS_MOBILE,
   IS_TOUCH,
   IS_IPAD,
   IS_IOS,
+  IS_SAFARI,
   isMobile,
   get_browser,
   get_mobile,
@@ -94,6 +94,8 @@ if ((global as any).window != undefined) {
   $.browser.ie = !$.browser.chrome && user_agent.indexOf("windows") > 0;
   $.browser.blink = ($.browser.chrome || $.browser.opera) && !!window.CSS;
   $.browser.edge = /edge\/\d./i.test(user_agent);
+
+  IS_SAFARI = !!$.browser?.safari;
 
   get_browser = function () {
     for (const k in $.browser) {
@@ -196,10 +198,9 @@ export {
   IS_TOUCH,
   IS_IPAD,
   IS_IOS,
+  IS_SAFARI,
   isMobile,
   is_responsive_mode,
   get_browser,
   get_mobile,
 };
-
-export const IS_SAFARI = !!$.browser?.safari;
