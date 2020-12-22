@@ -10,6 +10,8 @@ declare const DEBUG: boolean;
 let IS_MOBILE,
   IS_TOUCH,
   IS_IPAD,
+  IS_IOS,
+  IS_SAFARI,
   isMobile,
   get_browser,
   get_mobile,
@@ -93,6 +95,8 @@ if ((global as any).window != undefined) {
   $.browser.blink = ($.browser.chrome || $.browser.opera) && !!window.CSS;
   $.browser.edge = /edge\/\d./i.test(user_agent);
 
+  IS_SAFARI = !!$.browser?.safari;
+
   get_browser = function () {
     for (const k in $.browser) {
       const v = $.browser[k];
@@ -130,12 +134,15 @@ if ((global as any).window != undefined) {
     navigator.maxTouchPoints &&
     navigator.maxTouchPoints > 2;
 
-  // This should work for both old and new ipads...
+  IS_IOS = isMobile.iOS();
+
+  // NOTE: iOS is the operating system of ipads and iPadOS is the operating system of ipads.
   IS_IPAD =
-    isIpadOS ||
-    !!(typeof navigator !== "undefined" && navigator !== null
-      ? navigator.userAgent.match(/iPad/i)
-      : undefined);
+    !IS_IOS &&
+    (isIpadOS ||
+      !!(typeof navigator !== "undefined" && navigator !== null
+        ? navigator.userAgent.match(/iPad/i)
+        : undefined));
 
   // IS_TOUCH for us means multitouch tablet or mobile, the point being that it
   // is mostly *only* touch, so not something like a Chromebook with a touch screen.
@@ -190,6 +197,8 @@ export {
   IS_MOBILE,
   IS_TOUCH,
   IS_IPAD,
+  IS_IOS,
+  IS_SAFARI,
   isMobile,
   is_responsive_mode,
   get_browser,

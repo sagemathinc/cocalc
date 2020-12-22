@@ -19,7 +19,7 @@ interface Props {
   maxHeight?: string;
 }
 
-const STYLE = { margin: "6px 12px", cursor: "pointer" } as CSS;
+const STYLE = { margin: "6px 10px", cursor: "pointer" } as CSS;
 
 export class DropdownMenu extends Component<Props> {
   on_click(e): void {

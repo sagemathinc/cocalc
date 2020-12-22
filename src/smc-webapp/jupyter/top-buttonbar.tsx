@@ -147,11 +147,16 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
         : undefined;
 
     return render_button_group([
-      { name: "run cell and select next" },
-      { name: "interrupt kernel", style: stop_style, className: "cocalc-jupyter-btn-interrupt" },
+      { name: "run cell and select next", label: "Run" },
+      {
+        name: "interrupt kernel",
+        style: stop_style,
+        className: "cocalc-jupyter-btn-interrupt",
+        label: "Stop",
+      },
+      { name: "tab key", label: "Tab" },
       "confirm restart kernel",
       "confirm restart kernel and run all cells",
-      { name: "tab key", label: "tab" },
     ]);
   }
 
@@ -248,7 +253,7 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
   }
 
   return (
-    <Form inline style={{ whiteSpace: "nowrap" }}>
+    <Form inline style={{ whiteSpace: "nowrap", margin: "2px 0" }}>
       {render_add_cell()}
       <span style={{ marginLeft: "5px" }} />
       {render_group_move()}
