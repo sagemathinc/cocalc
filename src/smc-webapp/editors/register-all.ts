@@ -36,3 +36,6 @@ import "../frame-editors/register";
 
 // The whiteboard
 import "./whiteboard/register";
+
+// Unknown files
+import "./unknown/register";

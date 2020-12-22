@@ -7,22 +7,6 @@ import { React } from "../app-framework";
 import { HTML } from "./html";
 import { markdown_to_html } from "../markdown";
 import { Props as HTMLProps } from "./html";
-/*
-
-  shouldComponentUpdate(next) {
-    return (
-      misc.is_different(this.props, next, [
-        "value",
-        "highlight",
-        "safeHTML",
-        "checkboxes",
-        "reload_images",
-        "smc_image_scaling",
-        "highlight_code",
-      ]) || !underscore.isEqual(props.style, next.style)
-    );
-  },
-*/
 
 type Props = HTMLProps & {
   // inject data attributes with line numbers to enable reverse search:
@@ -62,4 +46,4 @@ export const Markdown: React.FC<Props> = (props) => {
   );
 };
 
-Markdown.defaultProps = { safeHTML: true };
+Markdown.defaultProps = { safeHTML: true, highlight_code: true };

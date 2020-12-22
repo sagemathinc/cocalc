@@ -23,7 +23,6 @@ random_key = require("random-key")
 misc_node = require('smc-util-node/misc_node')
 misc2_node = require('smc-util-node/misc2_node')
 
-misc2 = require('smc-util/misc2')
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
@@ -37,7 +36,7 @@ PROJECT_GROUPS = misc.PROJECT_GROUPS
 
 {syncdoc_history} = require('./postgres/syncdoc-history')
 collab = require('./postgres/collab')
-{set_account_info_if_possible} = require('./postgres/account-queries')
+{is_paying_customer, set_account_info_if_possible} = require('./postgres/account-queries')
 
 {site_license_usage_stats, projects_using_site_license, number_of_projects_using_site_license} = require('./postgres/site-license/analytics')
 {update_site_license_usage_log} = require('./postgres/site-license/usage-log')
@@ -358,6 +357,21 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         @_query
             query : 'SELECT strategy, conf FROM passport_settings'
             cb    : all_results(opts.cb)
+
+    get_all_passport_settings_cached: (opts) =>
+        opts = defaults opts,
+            cb       : required
+        passports = SERVER_SETTINGS_CACHE.get('passports')
+        if passports != null
+            opts.cb(undefined, passports)
+            return
+        @get_all_passport_settings
+            cb: (err, res) =>
+                if err
+                    opts.cb(err)
+                else
+                    SERVER_SETTINGS_CACHE.set('passports', res)
+                    opts.cb(undefined, res)
 
     ###
     API Key Management
@@ -2563,6 +2577,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 @_query
                     query : "SELECT account_id FROM accounts"
                     where : "stripe_customer_id IS NOT NULL"
+                    timeout_s: 300
                     cb    : all_results 'account_id', (err, account_ids) =>
                         locals.account_ids = account_ids
                         cb(err)
@@ -3066,6 +3081,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     @_query
                         query : "DELETE FROM patches"
                         where : locals.where
+                        timeout_s: 300
                         cb    : cb
         ], opts.cb)
 
@@ -3137,3 +3153,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             query       : "UPDATE projects"
             jsonb_merge : {run_quota:run_quota}
             where       : {project_id:project_id}
+
+    # async -- true if they are a manager on a license or have
+    # any subscriptions.
+    is_paying_customer: (account_id) =>
+        return await is_paying_customer(@, account_id)

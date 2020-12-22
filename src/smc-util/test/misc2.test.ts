@@ -3,10 +3,22 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as misc2 from "../misc2";
+import * as misc from "../misc";
+
+describe("rpad_html", () => {
+  const rp = misc.rpad_html;
+  const round1 = misc.round1;
+  test("0", () => expect(rp(0, 3)).toEqual("&nbsp;&nbsp;0"));
+  test("99", () => expect(rp(99, 3)).toEqual("&nbsp;99"));
+  test("4444-5", () => expect(rp(4444, 5)).toEqual("&nbsp;4444"));
+  test("6666-4", () => expect(rp(6666, 4)).toEqual("6666"));
+  test("1000-4", () => expect(rp(1000, 4)).toEqual("1000"));
+  test("1000-3", () => expect(rp(1000, 3)).toEqual("1000"));
+  test("pi-1", () => expect(rp(3.1415, 4, round1)).toEqual("&nbsp;3.1"));
+});
 
 describe("path_split", () => {
-  const ps = misc2.path_split;
+  const ps = misc.path_split;
 
   test("full path", () =>
     expect(ps("foo/bar")).toEqual({ head: "foo", tail: "bar" }));
@@ -26,7 +38,7 @@ describe("path_split", () => {
 });
 
 describe("contains_url", () => {
-  const cu = misc2.contains_url;
+  const cu = misc.contains_url;
 
   test("normal html is fine", () =>
     expect(cu("<h2>foo</h2><div>bar</div>")).toBe(false));
@@ -40,13 +52,13 @@ describe("contains_url", () => {
 
 describe("date object some time ago", () => {
   test("roughly 10 mins ago", () => {
-    const res = misc2.minutes_ago(10);
+    const res = misc.minutes_ago(10);
     const diff = new Date().getTime() - res.getTime();
     expect(diff).toBeLessThan(10 * 60 * 1000 + 100);
     expect(diff).toBeGreaterThan(10 * 60 * 1000 - 100);
   });
   test("2 months ago", () => {
-    const res = misc2.months_ago(2);
+    const res = misc.months_ago(2);
     const diff = new Date().getTime() - res.getTime();
     expect(diff).toBeLessThan(2 * 31 * 24 * 60 * 60 * 1000);
     expect(diff).toBeGreaterThan(2 * 30 * 24 * 60 * 60 * 1000);
@@ -55,15 +67,15 @@ describe("date object some time ago", () => {
 
 describe("how_long_ago_m", () => {
   test("10 min ago  by Date", () => {
-    const past: Date = misc2.minutes_ago(10);
-    const diff = misc2.how_long_ago_m(past);
+    const past: Date = misc.minutes_ago(10);
+    const diff = misc.how_long_ago_m(past);
     expect(diff).toBeLessThan(10.1);
     expect(diff).toBeGreaterThan(9.9);
   });
 
   test("10 min ago  by timestamp", () => {
-    const past: number = misc2.minutes_ago(10).getTime();
-    const diff = misc2.how_long_ago_m(past);
+    const past: number = misc.minutes_ago(10).getTime();
+    const diff = misc.how_long_ago_m(past);
     expect(diff).toBeLessThan(10.1);
     expect(diff).toBeGreaterThan(9.9);
   });

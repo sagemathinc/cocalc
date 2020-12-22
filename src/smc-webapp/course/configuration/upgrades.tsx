@@ -267,7 +267,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
     );
     const limit = (available / num_projects) * display_factor;
 
-    let cur = round2(current / num_projects);
+    let cur: number | string = round2(current / num_projects);
     if (input_type === "checkbox") {
       if (cur > 0 && cur < 1) {
         cur = `${round2(cur * 100)}%`;
@@ -375,11 +375,11 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
     for (const project_id of project_ids) {
       your_upgrades = map_sum(
         your_upgrades,
-        projects_store.get_upgrades_you_applied_to_project(project_id)
+        projects_store.get_upgrades_you_applied_to_project(project_id) as any
       );
       total_upgrades = map_sum(
         total_upgrades,
-        projects_store.get_total_project_upgrades(project_id)
+        projects_store.get_total_project_upgrades(project_id) as any
       );
     }
 

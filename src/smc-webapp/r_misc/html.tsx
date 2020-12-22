@@ -13,6 +13,7 @@ import {
   useRef,
 } from "../app-framework";
 import { is_share_server } from "./share-server";
+import { sanitize_html, sanitize_html_safe } from "../misc-page/sanitize";
 
 export interface Props {
   value?: string;
@@ -58,7 +59,6 @@ export interface Props {
   smc_image_scaling?: boolean;
 
   // if true, highlight some <code class='language-r'> </code> blocks.
-  // See misc_page for how tiny this is!
   highlight_code?: boolean;
 
   id?: string;
@@ -67,25 +67,9 @@ export interface Props {
   // selector and never use katex.
   mathjax_selector?: string;
 
-  onClick?: (event?:any) => void;
-  onDoubleClick?: (event?:any) => void;
+  onClick?: (event?: any) => void;
+  onDoubleClick?: (event?: any) => void;
 }
-
-/*
-  shouldComponentUpdate(next) {
-    return (
-      misc.is_different(props, next, [
-        "value",
-        "auto_render_math",
-        "highlight",
-        "safeHTML",
-        "reload_images",
-        "smc_image_scaling",
-        "highlight_code",
-      ]) || !underscore.isEqual(props.style, next.style)
-    );
-  },
-  */
 
 export const HTML: React.FC<Props> = (props) => {
   const isMountedRef = useIsMountedRef();
@@ -147,7 +131,8 @@ export const HTML: React.FC<Props> = (props) => {
 
   function update_code(): void {
     if (isMountedRef.current && props.highlight_code) {
-      jq()?.highlight_code();
+      // note that the highlight_code plugin might not be defined.
+      jq()?.highlight_code?.();
     }
   }
 
@@ -197,20 +182,18 @@ export const HTML: React.FC<Props> = (props) => {
       if (props.highlight_code) {
         elt.highlight_code();
       }
+      require("smc-webapp/process-links");
+      elt.process_smc_links({
+        project_id: props.project_id,
+        file_path: props.file_path,
+        href_transform: props.href_transform,
+      });
       html = elt.html();
     } else {
       if (props.safeHTML) {
-        html = require("../misc_page").sanitize_html_safe(
-          props.value,
-          props.post_hook
-        );
+        html = sanitize_html_safe(props.value, props.post_hook);
       } else {
-        html = require("../misc_page").sanitize_html(
-          props.value,
-          true,
-          true,
-          props.post_hook
-        );
+        html = sanitize_html(props.value, true, true, props.post_hook);
       }
     }
 
@@ -258,4 +241,5 @@ HTML.displayName = "Misc-HTML";
 HTML.defaultProps = {
   auto_render_math: true,
   safeHTML: true,
+  highlight_code: true,
 };

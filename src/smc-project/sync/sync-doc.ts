@@ -19,7 +19,7 @@ import { SyncString } from "../smc-util/sync/editor/string/sync";
 import { SyncDoc } from "../smc-util/sync/editor/generic/sync-doc";
 import { Client } from "../smc-util/sync/editor/generic/types";
 import { once } from "../smc-util/async-utils";
-import { filename_extension } from "../smc-util/misc2";
+import { filename_extension } from "../smc-util/misc";
 import { jupyter_backend } from "../jupyter/jupyter";
 
 const COCALC_EPHEMERAL_STATE: boolean =

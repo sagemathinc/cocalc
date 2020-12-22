@@ -9,7 +9,7 @@ import { SettingBox, A, Icon, Loading } from "smc-webapp/r_misc";
 import { rclass, rtypes, redux, Rendered } from "../../app-framework";
 import { Project } from "./types";
 import { Map } from "immutable";
-import * as misc from "smc-util/misc2";
+import * as misc from "smc-util/misc";
 import { Button } from "antd";
 import { ReloadOutlined } from "@ant-design/icons";
 
@@ -101,12 +101,12 @@ export const ProjectCapabilities = rclass<ReactProps>(
       return [component, any_nonavail];
     }
 
-    private render_formatter(formatter): [Rendered, boolean] | Rendered {
+    private render_formatter(formatter): [Rendered, boolean] {
       if (formatter === false) {
-        return <div>No code formatters are available</div>;
+        return [<div>No code formatters are available</div>, true];
       }
       if (formatter === true) {
-        return <div>All code formatters are available</div>;
+        return [<div>All code formatters are available</div>, false];
       }
 
       const { tool2display } = require("smc-util/code-formatter");

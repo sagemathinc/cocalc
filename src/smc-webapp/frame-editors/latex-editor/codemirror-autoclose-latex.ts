@@ -20,7 +20,7 @@ declare module "codemirror" {
   function innerMode(mode: any, state: any): any;
 }
 
-import { splitlines } from "smc-util/misc2";
+import { splitlines } from "smc-util/misc";
 
 CodeMirror.defineOption("autoCloseLatex", false, function (cm, val, old) {
   if (old) {

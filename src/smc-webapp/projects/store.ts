@@ -6,12 +6,18 @@
 import { List, Map, Set } from "immutable";
 import { redux, Store } from "../app-framework";
 import { webapp_client } from "../webapp-client";
-import { copy, cmp, keys, len, months_before } from "smc-util/misc";
-import { coerce_codomain_to_numbers, map_sum } from "smc-util/misc2";
-import { parse_number_input } from "smc-util/misc2";
+import {
+  coerce_codomain_to_numbers,
+  map_sum,
+  copy,
+  cmp,
+  keys,
+  len,
+  months_before,
+  parse_number_input,
+} from "smc-util/misc";
 import { CUSTOM_IMG_PREFIX } from "../custom-software/util";
 import { max_quota, site_license_quota } from "smc-util/upgrades/quota";
-
 import { PROJECT_UPGRADES } from "smc-util/schema";
 import { fromPairs } from "lodash";
 const ZERO_QUOTAS = fromPairs(
@@ -23,7 +29,8 @@ import { has_internet_access } from "../upgrades/upgrade-utils";
 
 import { WebsocketState } from "../project/websocket/websocket-state";
 
-export type ProjectMap = Map<string, Map<string, any>>;
+export type Project = Map<string, any>;
+export type ProjectMap = Map<string, Project>;
 
 export interface ProjectsState {
   project_map?: ProjectMap;
@@ -443,7 +450,6 @@ export class ProjectsStore extends Store<ProjectsState> {
       site_license_upgrades as any
     );
     this.new_format_license_quota(project_id, quota);
-
 
     return quota;
   }

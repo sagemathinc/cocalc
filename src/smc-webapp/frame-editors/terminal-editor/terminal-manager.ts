@@ -9,7 +9,7 @@ Manage a collection of terminals in the frame tree.
 
 import { Actions, CodeEditorState } from "../code-editor/actions";
 import * as tree_ops from "../frame-tree/tree-ops";
-import { close, len } from "smc-util/misc2";
+import { close, len } from "smc-util/misc";
 import { Terminal } from "./connected-terminal";
 
 export class TerminalManager<T extends CodeEditorState = CodeEditorState> {

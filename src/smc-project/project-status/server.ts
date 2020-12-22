@@ -22,7 +22,7 @@ if (require.main === module) {
 import { EventEmitter } from "events";
 import { delay } from "awaiting";
 import { isEqual } from "lodash";
-import { how_long_ago_m } from "../../smc-util/misc2";
+import { how_long_ago_m } from "../../smc-util/misc";
 import {
   ALERT_HIGH_PCT /* ALERT_MEDIUM_PCT */,
   ALERT_DISK_FREE,
@@ -57,12 +57,12 @@ export class ProjectStatusServer extends EventEmitter {
   };
   private elevated_cpu_procs: { [pid: string]: number } = {};
 
-  constructor(L, testing = false) {
+  constructor(L: Function, testing = false) {
     super();
     //this.update = reuseInFlight(this.update.bind(this));
     this.testing = testing;
     this.dbg = (...msg) => L("ProjectStatusServer", ...msg);
-    this.project_info = get_ProjectInfoServer(L);
+    this.project_info = get_ProjectInfoServer();
   }
 
   private async init(): Promise<void> {
@@ -178,7 +178,9 @@ export class ProjectStatusServer extends EventEmitter {
 
   public async start(): Promise<void> {
     if (this.running) {
-      this.dbg("alerady running, cannot be started twice");
+      this.dbg(
+        "project-status/server: already running, cannot be started twice"
+      );
     } else {
       await this._start();
     }

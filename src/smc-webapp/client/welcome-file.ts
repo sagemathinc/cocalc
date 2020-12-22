@@ -15,7 +15,7 @@ import { delay } from "awaiting";
 import { once } from "smc-util/async-utils";
 import { redux } from "../app-framework";
 import { QueryParams } from "../misc/query-params";
-import { separate_file_extension } from "smc-util/misc2";
+import { separate_file_extension } from "smc-util/misc";
 import { JupyterActions } from "smc-webapp/jupyter/actions";
 
 type Kernel = "ir" | "python3" | "bash" | "octave";

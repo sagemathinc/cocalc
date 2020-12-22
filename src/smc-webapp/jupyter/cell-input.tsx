@@ -36,7 +36,7 @@ function href_transform(
     const name = href.slice("attachment:".length);
     const data = cell.getIn(["attachments", name]);
     let ext = filename_extension(name);
-    switch (data != null ? data.get("type") : undefined) {
+    switch (data?.get("type")) {
       case "sha1":
         const sha1 = data.get("value");
         if (project_id == null) {
@@ -71,8 +71,8 @@ function markdown_post_hook(elt) {
 export interface CellInputProps {
   actions?: JupyterActions; // if not defined, then everything read only
   frame_actions?: NotebookFrameActions;
-  cm_options: Map<string, any>; // TODO: what is this
-  cell: Map<string, any>; // TODO: what is this
+  cm_options: Map<string, any>;
+  cell: Map<string, any>;
   is_markdown_edit: boolean;
   is_focused: boolean;
   is_current: boolean;
@@ -176,7 +176,7 @@ export class CellInput extends Component<CellInputProps> {
         break;
     }
     if (this.props.is_readonly) {
-      opt = opt.set("readOnly", "nocursor");
+      opt = opt.set("readOnly", true);
     }
     if (this.props.cell.get("line_numbers") != null) {
       opt = opt.set("lineNumbers", this.props.cell.get("line_numbers"));

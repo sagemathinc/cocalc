@@ -54,6 +54,18 @@ export const AccountPage: React.FC = () => {
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
   const is_commercial = useTypedRedux("customize", "is_commercial");
 
+  const exclusive_sso_domains = React.useMemo(() => {
+    if (strategies == null) return;
+    const domains = new Set<string>([]);
+    for (const strat of strategies) {
+      const doms = strat.get("exclusive_domains");
+      for (const dom of doms ?? []) {
+        domains.add(dom);
+      }
+    }
+    return domains;
+  }, [strategies]);
+
   function handle_select(key: string): void {
     switch (key) {
       case "billing":
@@ -73,6 +85,7 @@ export const AccountPage: React.FC = () => {
     return (
       <LandingPage
         strategies={strategies}
+        exclusive_sso_domains={exclusive_sso_domains}
         sign_up_error={sign_up_error}
         sign_in_error={sign_in_error}
         signing_in={signing_in}

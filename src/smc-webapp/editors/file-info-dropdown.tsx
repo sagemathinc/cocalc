@@ -27,7 +27,7 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
         return;
       }
       if (name === "new") {
-        let new_ext = filename_extension(filename);
+        let new_ext: string | undefined = filename_extension(filename);
         if (new_ext == "") {
           // otherwise 'foo' leads to 'random.'
           new_ext = undefined;

@@ -7,7 +7,7 @@
 Manage a collection of code editors of various files in frame trees...
 */
 
-import { close, filename_extension } from "smc-util/misc2";
+import { close, filename_extension } from "smc-util/misc";
 import { Actions, CodeEditorState } from "../code-editor/actions";
 import { get_file_editor } from "../frame-tree/register";
 import { redux } from "../../app-framework";

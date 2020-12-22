@@ -5,7 +5,7 @@
 
 import { PostgreSQL } from "./types";
 
-import { is_valid_uuid_string } from "../smc-util/misc2";
+import { is_valid_uuid_string } from "../smc-util/misc";
 
 import { callback2 } from "../smc-util/async-utils";
 

@@ -22,7 +22,6 @@ declare const localStorage: any;
 
 import * as immutable from "immutable";
 import { reuseInFlight } from "async-await-utils/hof";
-
 import { debounce } from "lodash";
 
 // NOTE! The smc-util relative path is so we can import this same
@@ -31,12 +30,9 @@ import { debounce } from "lodash";
 // **It's just a hack.**
 import { callback2, retry_until_success } from "../../smc-util/async-utils";
 import * as misc from "../../smc-util/misc";
-const { required, defaults } = misc;
-import { close } from "../../smc-util/misc2";
-
+const { close, required, defaults } = misc;
 import * as awaiting from "awaiting";
 import { three_way_merge } from "../../smc-util/sync/editor/generic/util";
-
 import { Cell, KernelInfo } from "./types";
 import { Syntax } from "../../smc-util/code-formatter";
 
@@ -284,7 +280,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     let data;
     try {
       data = await this.api_call("kernels");
+      if (this._state === "closed") return;
     } catch (err) {
+      if (this._state === "closed") return;
       this.set_error(err);
       return;
     }
@@ -335,7 +333,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   // Set the input of the given cell in the syncdb, which will also change the store.
   // Might throw a CellWriteProtectedException
   public set_cell_input(id: string, input: string, save = true): void {
-    if (this.check_edit_protection(id)) {
+    if (this.check_edit_protection(id, "changing input")) {
       return;
     }
     this._set(
@@ -350,7 +348,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   }
 
-  set_cell_output = (id: any, output: any, save = true) => {
+  set_cell_output = (id: string, output: any, save = true) => {
     this._set(
       {
         type: "cell",
@@ -387,15 +385,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.clear_outputs(this.store.get_cell_list().toJS(), save);
   }
 
-  private show_not_xable_error(x: string, n: number): void {
+  private show_not_xable_error(x: string, n: number, reason?: string): void {
     if (n <= 0) return;
     const verb: string = n === 1 ? "is" : "are";
     const noun: string = misc.plural(n, "cell");
-    this.set_error(`${n} ${noun} ${verb} protected from ${x}.`);
+    this.set_error(
+      `${n} ${noun} ${verb} protected from ${x}${
+        reason ? " when " + reason : ""
+      }.`
+    );
   }
 
-  private show_not_editable_error(n: number = 1): void {
-    this.show_not_xable_error("editing", n);
+  private show_not_editable_error(reason?: string): void {
+    this.show_not_xable_error("editing", 1, reason);
   }
 
   private show_not_deletable_error(n: number = 1): void {
@@ -439,7 +441,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     cell_type: string = "code",
     save: boolean = true
   ): void {
-    if (this.check_edit_protection(id)) return;
+    if (this.check_edit_protection(id, "changing cell type")) return;
     if (
       cell_type !== "markdown" &&
       cell_type !== "raw" &&
@@ -465,7 +467,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.deprecated("set_selected_cell_type", cell_type);
   }
 
-  set_md_cell_editing = (id: any): void => {
+  set_md_cell_editing = (id: string): void => {
     this.deprecated("set_md_cell_editing", id);
   };
 
@@ -474,7 +476,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   // Set which cell is currently the cursor.
-  set_cur_id = (id: any): void => {
+  set_cur_id = (id: string): void => {
     this.deprecated("set_cur_id", id);
   };
 
@@ -568,7 +570,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
       // this.syncdb.get() returns an immutable.List of all the records
       // in the syncdb database.   These look like, e.g.,
-      //    {type: "settings", backend_state: "running", trust: true, kernel: "python3", kernel_usage: {…}, …}
+      //    {type: "settings", backend_state: "running", trust: true, kernel: "python3", …}
       //    {type: "cell", id: "22cc3e", pos: 0, input: "# small copy", state: "done"}
       let cells: immutable.Map<string, Cell> = immutable.Map();
       this.syncdb.get().forEach((record) => {
@@ -586,7 +588,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               trust: !!record.get("trust"), // case to boolean
               backend_state: record.get("backend_state"),
               kernel_state: record.get("kernel_state"),
-              kernel_usage: record.get("kernel_usage"),
               metadata: record.get("metadata"), // extra custom user-specified metadata
               max_output_length: bounded_integer(
                 record.get("max_output_length"),
@@ -602,7 +603,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             }
             this.setState(obj);
             if (!this.is_project && orig_kernel !== kernel) {
-              this.set_backend_kernel_info();
               this.set_cm_options();
             }
 
@@ -653,8 +653,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               trust: !!record.get("trust"), // case to boolean
               backend_state: record.get("backend_state"),
               kernel_state: record.get("kernel_state"),
-              kernel_usage: record.get("kernel_usage"),
+              kernel_error: record.get("kernel_error"),
               metadata: record.get("metadata"), // extra custom user-specified metadata
+              connection_file: record.get("connection_file") ?? "",
               max_output_length: bounded_integer(
                 record.get("max_output_length"),
                 100,
@@ -669,7 +670,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             }
             this.setState(obj);
             if (!this.is_project && orig_kernel !== kernel) {
-              this.set_backend_kernel_info();
               this.set_cm_options();
             }
 
@@ -683,6 +683,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     if (this.is_project) {
       if (do_init) {
+        // Since just opening the actions in the project, definitely the kernel
+        // isn't running so set this fact in the shared database.  It will make
+        // things always be in the right initial state.
+        this.syncdb.set({
+          type: "settings",
+          backend_state: "init",
+          kernel_state: "idle",
+          kernel_usage: { memory: 0, cpu: 0 },
+        });
+        this.syncdb.commit();
+
+        // Also initialize the execution manager, which runs cells that have been
+        // requested to run.
         this.initialize_manager();
       }
       if (this.store.get("kernel")) {
@@ -769,7 +782,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       !this.store.is_cell_editable(obj.id)
     ) {
       for (const protected_key of ["input", "cell_type", "attachments"]) {
-        if (misc.has_key(protected_key)) {
+        if (misc.has_key(obj, protected_key)) {
           throw CellWriteProtectedException;
         }
       }
@@ -823,11 +836,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     try {
       // Make sure syncdb content is all sent to the project.
       await this.syncdb.save();
+      if (this._state === "closed") return;
       // Export the ipynb file to disk.
       await this.api_call("save_ipynb_file", {});
+      if (this._state === "closed") return;
       // Save our custom-format syncdb to disk.
       await this.syncdb.save_to_disk();
     } catch (err) {
+      if (this._state === "closed") return;
       if (err.toString().indexOf("no kernel with path") != -1) {
         // This means that the kernel simply hasn't been initialized yet.
         // User can try to save later, once it has.
@@ -841,6 +857,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
       this.set_error(err.toString());
     } finally {
+      if (this._state === "closed") return;
       // And update the save status finally.
       if (typeof this.set_save_status === "function") {
         this.set_save_status();
@@ -1034,10 +1051,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.set_trust_notebook(true, save);
   }
 
-  clear_cell = (id: any, save = true) => {
-    if (this.check_edit_protection(id)) {
-      return;
-    }
+  clear_cell = (id: string, save = true) => {
     return this._set(
       {
         type: "cell",
@@ -1053,10 +1067,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
-  clear_cell_run_state = (id: any, save = true) => {
-    if (this.check_edit_protection(id)) {
-      return;
-    }
+  clear_cell_run_state = (id: string, save = true) => {
     return this._set(
       {
         type: "cell",
@@ -1120,7 +1131,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   public split_cell(id: string, cursor: { line: number; ch: number }): void {
-    if (this.check_edit_protection(id)) {
+    if (this.check_edit_protection(id, "splitting cell")) {
       return;
     }
     // insert a new cell before the currently selected one
@@ -1173,7 +1184,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
     for (const id of [cell_id, next_id]) {
-      if (this.check_edit_protection(id)) return;
+      if (this.check_edit_protection(id, "merging cell")) return;
     }
     if (this.check_delete_protection(next_id)) return;
 
@@ -1282,6 +1293,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         },
         merge: true,
         save,
+        bypass_edit_protection: true,
       });
     }
     if (save) {
@@ -1466,8 +1478,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const project_actions = this.redux.getProjectActions(
       this.store.get("project_id")
     );
-    project_actions.set_active_tab("files");
-    project_actions.toggle_new(true);
+    project_actions.set_active_tab("new");
   };
 
   private _get_cell_input = (id?: string | undefined): string => {
@@ -1765,7 +1776,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  restart = reuseInFlight(
+  halt = reuseInFlight(
     async (): Promise<void> => {
       await this.signal("SIGKILL");
       // Wait a little, since SIGKILL has to really happen on backend,
@@ -1776,8 +1787,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         return t != null && t.get("backend_state") != "running";
       };
       await this.syncdb.wait(not_running, 30);
+    }
+  );
+
+  restart = reuseInFlight(
+    async (): Promise<void> => {
+      await this.halt();
       if (this._state === "closed") return;
-      await this.set_backend_kernel_info();
+      // Actually start it running again (rather than waiting for
+      // user to do something), since this is called "restart".
+      await this.set_backend_kernel_info(); // causes kernel to start
     }
   );
 
@@ -1906,7 +1925,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  fetch_more_output = async (id: any): Promise<void> => {
+  fetch_more_output = async (id: string): Promise<void> => {
     const time = this._client.server_time() - 0;
     try {
       const more_output = await this.api_call("more_output", { id: id }, 60000);
@@ -1921,7 +1940,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   // NOTE: set_more_output on project-actions is different
-  set_more_output = (id: any, more_output: any, _?: any): void => {
+  set_more_output = (id: string, more_output: any, _?: any): void => {
     if (this.store.getIn(["cells", id]) == null) {
       return;
     }
@@ -1976,7 +1995,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   public insert_image(id: string): void {
-    if (this.check_edit_protection(id)) {
+    if (this.check_edit_protection(id, "inserting an image")) {
       return;
     }
     if (this.store.get_cell_type(id) != "markdown") {
@@ -2024,7 +2043,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.save_asap();
   }
 
-  submit_password = async (id: any, value: any): Promise<void> => {
+  submit_password = async (id: string, value: any): Promise<void> => {
     await this.set_in_backend_key_value_store(id, value);
   };
 
@@ -2157,7 +2176,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (!value) {
       value = null; // delete
     }
-    if (this.check_edit_protection(id)) {
+    if (this.check_edit_protection(id, "making a cell aslide")) {
       return;
     }
     this._set({
@@ -2198,19 +2217,18 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  edit_attachments = (id: any): void => {
+  edit_attachments = (id: string): void => {
     this.setState({ edit_attachments: id });
   };
 
   _attachment_markdown = (name: any) => {
-    // This is officially what it should probably be, but
-    // it looks so bad with (typical) big images, due to
-    // know maxwidth.
-    // return `![${name}](attachment:${name})`;
+    return `![${name}](attachment:${name})`;
+    // Don't use this because official Jupyter tooling can't deal with it. See
+    //    https://github.com/sagemathinc/cocalc/issues/5055
     return `<img src="attachment:${name}" style="max-width:100%">`;
   };
 
-  insert_input_at_cursor = (id: any, s: string, save: boolean = true) => {
+  insert_input_at_cursor = (id: string, s: string, save: boolean = true) => {
     // TODO: this maybe doesn't make sense anymore...
     // TODO: redo this -- note that the input below is wrong, since it is
     // from the store, not necessarily from what is live in the cell.
@@ -2218,7 +2236,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this.store.getIn(["cells", id]) == null) {
       return;
     }
-    if (this.check_edit_protection(id)) {
+    if (this.check_edit_protection(id, "inserting input")) {
       return;
     }
     let input = this.store.getIn(["cells", id, "input"], "");
@@ -2245,7 +2263,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (cell == null) {
       throw Error(`no cell ${id}`);
     }
-    if (this.check_edit_protection(id)) return;
+    if (this.check_edit_protection(id, "setting an attachment")) return;
     const attachments = cell.get("attachments", immutable.Map()).toJS();
     attachments[name] = val;
     this._set(
@@ -2259,7 +2277,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   public async add_attachment_to_cell(id: string, path: string): Promise<void> {
-    if (this.check_edit_protection(id)) {
+    if (this.check_edit_protection(id, "adding an attachment")) {
       return;
     }
     let name: string = encodeURIComponent(
@@ -2278,8 +2296,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.insert_input_at_cursor(id, this._attachment_markdown(name), true);
   }
 
-  delete_attachment_from_cell = (id: any, name: any) => {
-    if (this.check_edit_protection(id)) {
+  delete_attachment_from_cell = (id: string, name: any) => {
+    if (this.check_edit_protection(id, "deleting an attachment")) {
       return;
     }
     this.set_cell_attachment(id, name, null, false);
@@ -2294,7 +2312,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   add_tag(id: string, tag: string, save: boolean = true): void {
-    if (this.check_edit_protection(id)) {
+    if (this.check_edit_protection(id, "adding a tag")) {
       return;
     }
     return this._set(
@@ -2308,7 +2326,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   remove_tag(id: string, tag: string, save: boolean = true): void {
-    if (this.check_edit_protection(id)) {
+    if (this.check_edit_protection(id, "removing a tag")) {
       return;
     }
     return this._set(
@@ -2347,14 +2365,28 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     metadata?: object; // not given = delete it
     save?: boolean; // defaults to true if not given
     merge?: boolean; // defaults to false if not given, in which case sets metadata, rather than merge.  If true, does a SHALLOW merge.
+    bypass_edit_protection?: boolean;
   }): void {
-    let { id, metadata, save, merge } = (opts = defaults(opts, {
+    let {
+      id,
+      metadata,
+      save,
+      merge,
+      bypass_edit_protection,
+    } = (opts = defaults(opts, {
       id: required,
       metadata: required,
       save: true,
       merge: false,
+      bypass_edit_protection: false,
     }));
 
+    if (
+      !bypass_edit_protection &&
+      this.check_edit_protection(id, "editing cell metadata")
+    ) {
+      return;
+    }
     // Special case: delete metdata (unconditionally)
     if (metadata == null || misc.len(metadata) === 0) {
       this._set(
@@ -2558,7 +2590,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // unknown kernel, we try to find a close match
     if (kernel_info == null && kernel != null) {
       // kernel & kernels must be defined
-      closestKernel = misc.closest_kernel_match(kernel, kernels);
+      closestKernel = misc.closest_kernel_match(kernel, kernels as any) as any;
+      // TODO about that any above: closest_kernel_match should be moved here so it knows the typings
     }
     this.setState({
       kernel_selection,
@@ -2615,9 +2648,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  public check_edit_protection(id: string): boolean {
+  public check_edit_protection(id: string, reason?: string): boolean {
     if (!this.store.is_cell_editable(id)) {
-      this.show_not_editable_error();
+      this.show_not_editable_error(reason);
       return true;
     } else {
       return false;

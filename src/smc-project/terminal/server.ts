@@ -11,10 +11,14 @@ const { spawn } = require("node-pty");
 import { readFile, writeFile } from "fs";
 import { promises as fsPromises } from "fs";
 const { readlink } = fsPromises;
-import { len, merge, path_split } from "../smc-util/misc2";
-const { console_init_filename } = require("smc-util/misc");
+import {
+  console_init_filename,
+  len,
+  merge,
+  path_split,
+} from "../smc-util/misc";
 import { exists } from "../jupyter/async-utils-node";
-import { throttle } from "underscore";
+import { isEqual, throttle } from "lodash";
 import { callback, delay } from "awaiting";
 
 interface Terminal {
@@ -344,8 +348,19 @@ export async function terminal(
             break;
 
           case "set_command":
+            if (
+              isEqual(
+                [data.command, data.args],
+                [terminals[name].options.command, terminals[name].options.args]
+              )
+            ) {
+              // no actual change.
+              break;
+            }
             terminals[name].options.command = data.command;
             terminals[name].options.args = data.args;
+            // Also kill it so will respawn with new command/args:
+            process.kill(terminals[name].term.pid, "SIGKILL");
             break;
 
           case "kill":

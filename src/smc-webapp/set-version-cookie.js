@@ -18,8 +18,8 @@ way at all.
 import Cookies from "universal-cookie";
 const cookies = new Cookies();
 
-const { version } = require("smc-util/smc-version");
-const { APP_BASE_URL } = require("./misc_page");
+import { version } from "smc-util/smc-version";
+import { APP_BASE_URL } from "./misc";
 import { VERSION_COOKIE_NAME } from "smc-util/consts";
 
 // We don't really want this cookie to expire.  All it does is record the version of

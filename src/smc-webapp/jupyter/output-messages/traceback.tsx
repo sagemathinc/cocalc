@@ -5,7 +5,7 @@
 
 import { React, Component, Rendered } from "smc-webapp/app-framework";
 import { Map } from "immutable";
-import { endswith } from "smc-util/misc2";
+import { endswith } from "smc-util/misc";
 import { Ansi } from "./ansi";
 import { TRACEBACK_STYLE } from "./style";
 

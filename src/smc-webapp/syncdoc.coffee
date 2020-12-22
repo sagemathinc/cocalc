@@ -9,8 +9,6 @@ $        = window.$
 misc     = require('smc-util/misc')
 {defaults, required} = misc
 
-misc_page = require('./misc_page')
-
 message  = require('smc-util/message')
 markdown = require('./markdown')
 
@@ -52,13 +50,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
     focused_codemirror: () =>
         @editor.focused_codemirror()
-
-    # For testing.  To use on 'foo' do this in some consoles:   smc.editors['foo'].syncdoc.testbot()
-    testbot: (opts) =>
-        @focused_codemirror().testbot
-            n     : opts?.n
-            delay : opts?.delay
-            f     : @sync
 
 underscore = require('underscore')
 
@@ -535,7 +526,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             pos   = {line:loc.y, ch:loc.x}
             data  = x[i]
             name  = misc.trunc(@_users.get_first_name(account_id), 10)
-            color = @_users.get_color(account_id)
+            color = @_users.get_color_sync(account_id)
             if not data?
                 data = x[i] = {cursor: templates.find(".smc-editor-codemirror-cursor").clone().show()}
             if name != data.name

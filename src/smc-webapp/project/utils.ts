@@ -9,13 +9,11 @@ import {
   path_split,
   to_iso_path,
   startswith,
-} from "smc-util/misc";
-import {
   unreachable,
   capitalize,
   uuid,
   separate_file_extension,
-} from "smc-util/misc2";
+} from "smc-util/misc";
 import { generate as heroku } from "project-name-generator";
 import * as superb from "superb";
 import * as catNames from "cat-names";
@@ -23,7 +21,7 @@ import * as dogNames from "dog-names";
 import { file_options } from "../editor-tmp";
 import { DEFAULT_NEW_FILENAMES } from "smc-util/db-schema";
 import { webapp_client } from "../webapp-client";
-const { BASE_URL } = require("../misc_page");
+import { BASE_URL } from "../misc";
 
 export type NewFilenameTypes =
   | "iso"

@@ -6,12 +6,11 @@
 // Copy Operations Provider
 // Used in the "Client"
 
-import { callback2 } from "smc-util/async-utils";
-const message = require("smc-util/message");
 const access = require("./access");
-const misc = require("smc-util/misc");
+import { callback2 } from "../smc-util/async-utils";
+import * as message from "../smc-util/message";
 const { one_result } = require("./postgres");
-import { is_valid_uuid_string } from "../smc-util/misc2";
+import { is_valid_uuid_string, to_json } from "../smc-util/misc";
 
 type WhereQueries = ({ [query: string]: string } | string)[];
 
@@ -58,7 +57,7 @@ function err2str(err: string | { message?: string }) {
   } else if (err.message != null) {
     return err.message;
   } else {
-    return `ERROR: ${misc.to_json(err)}`;
+    return `ERROR: ${to_json(err)}`;
   }
 }
 
@@ -305,7 +304,7 @@ export class CopyPath {
           }
         } else {
           copy_op = x;
-          dbg(`copy_op=${misc.to_json(copy_op)}`);
+          dbg(`copy_op=${to_json(copy_op)}`);
         }
       })(undefined, statuses);
       return copy_op;

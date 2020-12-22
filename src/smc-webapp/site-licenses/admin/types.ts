@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Map, Set } from "immutable";
+import { List, Map, Set } from "immutable";
 import { TypedMap } from "../../app-framework";
 import { Quota } from "smc-util/db-schema/site-licenses";
 
@@ -111,7 +111,7 @@ export interface SiteLicensesState {
   error?: string;
   loading?: boolean;
   creating?: boolean;
-  site_licenses?: SiteLicense[]; // licenses that match the search
+  site_licenses?: List<TypedMap<SiteLicense>>; // licenses that match the search
   editing?: Set<string>; // id's of site licenses that are currently being edited.
   saving?: Set<string>; // id's of site licenses that are currently being saved to the backend.
   show_projects?: Map<string, Date | "now">; // id's where we should show the projects that are using the license and what cutoff date

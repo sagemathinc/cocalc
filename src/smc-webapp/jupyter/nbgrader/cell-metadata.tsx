@@ -4,13 +4,9 @@
  */
 
 import { Map } from "immutable";
-
 import { Component, React, Rendered } from "../../app-framework";
-
-import { plural } from "smc-util/misc2";
-
+import { plural } from "smc-util/misc";
 import { CELLTYPE_INFO_MAP, state_to_value } from "./cell-types";
-
 import { Tip } from "../../r_misc/tip";
 
 interface Props {
@@ -48,7 +44,8 @@ export class NBGraderMetadata extends Component<Props> {
 
   public render(): Rendered {
     const nbgrader = this.props.nbgrader.toJS();
-    const value: string = state_to_value(nbgrader);
+    const value: string | undefined = state_to_value(nbgrader);
+    if (value == null) return;
     const info = CELLTYPE_INFO_MAP[value];
     return (
       <Tip

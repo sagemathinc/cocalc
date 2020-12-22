@@ -97,8 +97,7 @@ const codemirror_associations: { [ext: string]: string } = {
   ptx: "xml", // https://pretextbook.org/
   v: "verilog",
   vh: "verilog",
-  "": "text",
-};
+} as const;
 
 export interface FileSpec {
   editor?: string;
@@ -411,9 +410,9 @@ const archive_association = {
 
 // Fallback for any type not otherwise explicitly specified
 file_associations[""] = {
-  editor: "codemirror",
-  icon: "fa-file-code-o",
-  opts: { mode: "text", indent_unit: 4, tab_size: 4 },
+  editor: "unknown",
+  icon: "fa-question-circle",
+  opts: {},
   name: "",
 };
 

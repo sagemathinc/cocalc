@@ -8,20 +8,15 @@ The format bar
 */
 
 import { React, Component, Rendered } from "../../app-framework";
-
-import { cmp } from "smc-util/misc2";
-
+import { cmp } from "smc-util/misc";
 import { SetMap } from "./types";
-
 const css_colors = require("css-color-names");
-
 const {
   ButtonGroup,
   Button,
   DropdownButton,
   MenuItem,
 } = require("react-bootstrap");
-
 import { FONT_FACES } from "../../editors/editor-button-bar";
 import { Icon, Space } from "smc-webapp/r_misc";
 
@@ -62,6 +57,7 @@ export class FormatBar extends Component<Props, {}> {
         title={title}
         onClick={() => this.props.actions.format_action(name)}
         bsSize="small"
+        style={{ maxHeight: "30px" }}
       >
         {label}
       </Button>
@@ -129,7 +125,7 @@ export class FormatBar extends Component<Props, {}> {
           ? this.render_button(
               "SpecialChar",
               "Insert special character...",
-              <span>&Omega;</span>
+              <span style={{ fontSize: "larger" }}>&Omega;</span>
             )
           : undefined}
       </ButtonGroup>

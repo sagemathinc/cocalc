@@ -30,7 +30,6 @@ import {
   FormControl,
   Radio,
 } from "react-bootstrap";
-
 import {
   React,
   ReactDOM,
@@ -39,13 +38,9 @@ import {
   rclass,
   rtypes,
 } from "../../app-framework";
-
-const { open_new_tab } = require("../../misc_page");
-
+import { open_new_tab } from "../../misc-page";
 import { CopyToClipBoard, Icon, VisibleMDLG, Space } from "../../r_misc";
-
 import { public_share_url, share_server_url } from "./util";
-
 import { License } from "./license";
 
 interface PublicInfo {
@@ -100,9 +95,7 @@ class Configure extends Component<Props, State> {
 
   private render_how_shared_heading(): Rendered {
     return (
-      <div style={{ color: "#444", fontSize: "15pt" }}>
-       Public or Private?
-      </div>
+      <div style={{ color: "#444", fontSize: "15pt" }}>Public or Private?</div>
     );
   }
 

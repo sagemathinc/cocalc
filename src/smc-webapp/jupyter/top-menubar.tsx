@@ -13,13 +13,10 @@ import * as immutable from "immutable";
 import { ButtonGroup, SelectCallback } from "react-bootstrap";
 import { Icon, r_join, DropdownMenu, MenuItem, MenuDivider } from "../r_misc";
 import { KeyboardShortcut } from "./keyboard-shortcuts";
-const misc_page = require("../misc_page");
-
-import { capitalize, copy, endswith } from "smc-util/misc2";
-
+import { open_new_tab } from "../misc-page";
+import { capitalize, copy, endswith } from "smc-util/misc";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
-
 import { get_help_links } from "./help-links";
 
 type MenuItemName =
@@ -367,6 +364,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     const names: any[] = [
       `${this.props.kernel_state !== "busy" ? "<" : ""}interrupt kernel`,
       "confirm restart kernel",
+      "confirm halt kernel",
       "<Restart and...",
       ">confirm restart kernel and clear output",
       ">confirm restart kernel and run all cells",
@@ -636,7 +634,7 @@ export const TopMenubar = rclass(TopMenubar0);
 
 function external_link(name: string, url: string): Rendered {
   return (
-    <MenuItem key={name} onClick={() => misc_page.open_new_tab(url)}>
+    <MenuItem key={name} onClick={() => open_new_tab(url)}>
       <Icon name="external-link" /> {name}
     </MenuItem>
   );

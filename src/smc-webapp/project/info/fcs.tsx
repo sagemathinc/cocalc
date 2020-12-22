@@ -20,7 +20,7 @@ import {
   PauseCircleOutlined,
   //WarningOutlined,
 } from "@ant-design/icons";
-import { seconds2hms } from "smc-util/misc";
+import { plural, seconds2hms, unreachable } from "smc-util/misc";
 import { Tip, TimeElapsed, Icon } from "../../r_misc";
 import { CGroupInfo, DUState } from "./types";
 import { warning_color_pct, warning_color_disk, filename } from "./utils";
@@ -33,9 +33,7 @@ import {
 } from "../../../smc-project/project-info/types";
 import { AlertType } from "../../../smc-project/project-status/types";
 import { Channel } from "../websocket/types";
-import { unreachable } from "smc-util/misc2";
 import { COLORS } from "smc-util/theme";
-import { plural } from "smc-util/misc2";
 import * as humanizeList from "humanize-list";
 
 export const CodeWhite: React.FC = ({ children }) => (
@@ -298,7 +296,7 @@ export const CGroupFC: React.FC<CGroupFCProps> = React.memo(
     const alert_style: CSS = {
       backgroundColor: COLORS.ATND_BG_RED_L,
       borderColor: COLORS.ANTD_RED_WARN,
-    };
+    } as const;
 
     const cpu_label = (
       <CGroupTip type={"cpu"} cg_info={cg_info} disk_usage={disk_usage}>

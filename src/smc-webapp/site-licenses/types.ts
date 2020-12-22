@@ -16,5 +16,6 @@ export interface SiteLicensePublicInfo {
   is_manager?: boolean;
   managers?: string[];
   running?: number;
+  applied?: number;
   quota?: Quota;
 }

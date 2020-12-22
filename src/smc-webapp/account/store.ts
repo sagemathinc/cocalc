@@ -7,7 +7,7 @@ import * as lodash from "lodash";
 import { Store } from "../app-framework/Store";
 import { AccountState } from "./types";
 import { get_total_upgrades } from "smc-util/upgrades";
-import * as misc from "smc-util/misc2";
+import * as misc from "smc-util/misc";
 import { Map, List } from "immutable";
 
 // Define account store
@@ -113,6 +113,8 @@ export class AccountStore extends Store<AccountState> {
   }
 
   // uses the total upgrades information to determine, if this is a paying member
+  // TODO: this is not used anywhere; but, if it was, it should also take into account
+  // being a license manager...
   is_paying_member(): boolean {
     const ups = this.get_total_upgrades();
     return (

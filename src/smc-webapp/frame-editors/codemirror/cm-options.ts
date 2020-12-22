@@ -11,7 +11,7 @@ using the given editor settings.
 import * as CodeMirror from "codemirror";
 import { file_associations } from "../../file-associations";
 import * as feature from "../../feature";
-import { path_split } from "smc-util/misc2";
+import { path_split } from "smc-util/misc";
 import { get_editor_settings } from "../generic/client";
 import { EDITOR_COLOR_SCHEMES } from "../../account/editor-settings/color-schemes";
 
@@ -96,8 +96,6 @@ export function cm_options(
       tab_key(cm, opts.spaces_instead_of_tabs);
     },
     "Shift-Tab"(cm) {
-      console.log("Shift-Tab");
-      (window as any).cm = cm;
       cm.unindent_selection();
     },
     "Shift-Cmd-L"(cm) {
@@ -372,14 +370,14 @@ export function cm_options(
   return options;
 }
 
-var tab_key = function (editor, spaces_instead_of_tabs) {
+function tab_key(editor, spaces_instead_of_tabs?: boolean): void {
   if (editor.somethingSelected()) {
-    return (CodeMirror as any).commands.defaultTab(editor);
+    (CodeMirror as any).commands.defaultTab(editor);
   } else {
     if (spaces_instead_of_tabs) {
-      return editor.tab_as_space();
+      editor.tab_as_space();
     } else {
-      return (CodeMirror as any).commands.defaultTab(editor);
+      (CodeMirror as any).commands.defaultTab(editor);
     }
   }
-};
+}

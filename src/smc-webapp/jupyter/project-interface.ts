@@ -80,15 +80,18 @@ export interface CodeExecutionEmitterInterface extends EventEmitterInterface {
 
 export type KernelInfo = object;
 
+interface JupyterKernelInterfaceSpawnOpts {
+  env: { [key: string]: string }; // environment variables
+}
+
 export interface JupyterKernelInterface extends EventEmitterInterface {
   name: string;
   store: any;
   readonly identity: string;
   get_state(): string;
   signal(signal: string): void;
-  usage(): Promise<{ cpu: number; memory: number }>;
   close(): Promise<void>;
-  spawn(): Promise<void>;
+  spawn(opts?: JupyterKernelInterfaceSpawnOpts): Promise<void>;
   execute_code(opts: ExecOpts): CodeExecutionEmitterInterface;
   cancel_execute(id: string): void;
   execute_code_now(opts: ExecOpts): Promise<object[]>;
@@ -106,4 +109,5 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   load_attachment(path: string): Promise<string>;
   process_attachment(base64, mime): string;
   send_comm_message_to_kernel(msg_id: string, comm_id: string, data: any): void;
+  get_connection_file(): string | undefined;
 }

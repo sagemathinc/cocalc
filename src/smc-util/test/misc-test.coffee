@@ -14,7 +14,6 @@
 require('ts-node').register()
 
 misc = require('../misc')
-misc2 = require('../misc2')
 underscore = require('underscore')
 immutable = require('immutable')
 
@@ -169,46 +168,6 @@ describe "endswith", ->
         endswith('...', undefined).should.be.false()
         endswith(undefined, undefined).should.be.false()
 
-describe 'random_choice and random_choice_from_obj', ->
-    rc = misc.random_choice
-    rcfo = misc.random_choice_from_obj
-    it 'checks that a randomly chosen element is in the given list', ->
-        for i in [1..10]
-            l = ["a", 5, 9, {"ohm": 123}, ["batz", "bar"]]
-            l.should.containEql rc(l)
-    it "random_choice properly selects *all* available elements", ->
-        l = [3, 1, "x", "uvw", 1, [1,2,3]]
-        while l.length > 0
-            l.pop(rc(l))
-        l.should.have.length 0
-    it 'checks that random choice works with only one element', ->
-        rc([123]).should.be.eql 123
-    it 'checks that random choice with no elements is also fine', ->
-        should(rc([])).be.undefined() # i.e. undefined or something like that
-    it 'checks that a randomly chosen key/value pair from an object exists', ->
-        o = {abc : [1, 2, 3], cdf : {a: 1, b:2}}
-        [["abc", [1, 2, 3]], ["cdf" , {a: 1, b:2}]].should.containEql rcfo(o)
-
-describe 'the Python flavoured randint function', ->
-    randint = misc.randint
-    it 'includes both interval bounds', ->
-        lb = -4; ub = 7
-        xmin = xmax = 0
-        for i in [1..1000]
-            x = randint(lb, ub)
-            x.should.be.within(lb, ub)
-            xmin = Math.min(xmin, x)
-            xmax = Math.max(xmax, x)
-            break if xmin == lb and xmax == ub
-        xmin.should.be.exactly lb
-        xmax.should.be.exactly ub
-    it 'behaves well for tight intervals', ->
-        randint(91, 91).should.be.exactly 91
-    it 'behaves badly with flipped intervals bounds', ->
-        # note about using should:
-        # this -> function invocation is vital to capture the error
-        (-> randint(5, 2)).should.throw /lower is larger than upper/
-
 describe 'the Python flavoured split function', ->
     split = misc.split
     it 'splits correctly on whitespace', ->
@@ -235,30 +194,6 @@ describe 'search_split is like split, but quoted terms are grouped together', ->
     it "also doesn't stumble over uneven quotations", ->
         s3 = """1 "a b c" d e f "g h i" "j k"""
         ss(s3).should.eql ["1", "a b c", "d", "e", "f", "g h i", "j", "k"]
-
-describe "count", ->
-    cnt = misc.count
-    it "correctly counts the number of occurrences of X in Y", ->
-        X = "bar"
-        Y = "bar batz barbar abar rabarbar"
-        cnt(Y, X).should.be.exactly 6
-    it "counts special characters", ->
-        cnt("we ¢ount ¢oins", "¢").should.eql 2
-    it "returns zero if nothing has been found", ->
-        cnt("'", '"').should.eql 0
-
-describe "min_object of target and upper_bound", ->
-    mo = misc.min_object
-    upper_bound = {a:5, b:20, xyz:-2}
-    it "modifies target in place", ->
-        target = {a:7, b:15, xyz:5.5}
-        exp = { a: 5, b: 15, xyz: -2 }
-        mo(target, upper_bound).should.eql exp
-        target.should.eql {a:5, b:15, xyz:-2}
-    it "works without a target", ->
-        mo(upper_bounds : {a : 42}).should.be.ok
-    it "returns empty object if nothing is given", ->
-        mo().should.be.eql {}
 
 describe 'merge', ->
     merge = misc.merge
@@ -327,10 +262,6 @@ describe "uuid", ->
             ivuuid("c56a4180-65aa-42ec-a945-5fd21dec0538").should.be.true()
             ivuuid("77897c43-dbbc-4672-9a16-6508f01e0039").should.be.true()
 
-describe "test_times_per_second", ->
-    it "checks that x*x runs really fast", ->
-        misc.times_per_second((x) -> x*x).should.be.greaterThan 10000
-
 describe "to_json", ->
     to_json = misc.to_json
     it "converts a list of objects to json", ->
@@ -397,27 +328,6 @@ describe "remove, like in python", ->
     it "works with an empty argument", ->
         (-> rm([], undefined)).should.throw /item not in array/
 
-describe "to_iso", ->
-    iso = misc.to_iso
-    it "correctly creates a truncated date string according to the ISO standard", ->
-        d1 = new Date()
-        iso(d1).should.containEql(":").and.containEql(":").and.containEql("T")
-        d2 = new Date(2015, 2, 3, 4, 5, 6)
-        iso(d2).should.eql "2015-03-03T04:05:06"
-
-describe "is_empty_object", ->
-    ie = misc.is_empty_object
-    it "detects empty objects", ->
-        ie({}).should.be.ok()
-        ie([]).should.be.ok()
-    it "doesn't detect anything else", ->
-        #ie("x").should.not.be.ok()
-        ie({a:5}).should.not.be.ok()
-        ie(b:undefined).should.not.be.ok()
-        #ie(undefined).should.not.be.ok()
-        #ie(null).should.not.be.ok()
-        #ie(false).should.not.be.ok()
-
 describe "len", ->
     l = misc.len
     it "counts the number of keys of an object", ->
@@ -445,47 +355,7 @@ describe "has_key", ->
         k(obj, 'c').should.be.ok()
         k(obj, 'd').should.be.ok()
 
-describe "pairs_to_obj", ->
-    pto = misc.pairs_to_obj
-    it "convert an array of 2-element arrays to an object", ->
-        pto([['a',5], ['xyz','10']]).should.be.eql({a:5, xyz:'10'}).and.be.an.object
-    it "doesn't fail for empty lists", ->
-        pto([]).should.be.eql({}).and.be.an.object
-    #it "and properly throws errors for wrong arguments", ->
-    #    (-> pto [["x", 1], ["y", 2, 3]]).should.throw()
-
-describe "obj_to_pairs", ->
-    otp = misc.obj_to_pairs
-    it "converts an object to a list of pairs", ->
-        input =
-            a: 12
-            b: [4, 5, 6]
-            c:
-                foo: "bar"
-                bar: "foo"
-        exp = [["a", 12], ["b", [4,5,6]], ["c", {"bar": "foo", "foo": "bar"}]]
-        otp(input).should.be.eql exp
-
-describe "substring_count", =>
-    @ssc = misc.substring_count
-    @string = "Foofoofoo Barbarbar   BatztztztzTatzDatz  Katz"
-    @substr1 = "oofoo"
-    @substr2 = "tztz"
-    @substr3 = "  "
-    it "number of occurrances of a string in a substring", =>
-        @ssc(@string, @substr1).should.be.exactly 1
-        @ssc(@string, @substr2).should.be.exactly 2
-        @ssc(@string, @substr3).should.be.exactly 2
-    it "number of occurrances of a string in a substring /w overlapping", =>
-        @ssc(@string, @substr1, true).should.be.exactly 2
-        @ssc(@string, @substr2, true).should.be.exactly 3
-        @ssc(@string, @substr3, true).should.be.exactly 3
-    it "counts empty strings", =>
-        @ssc(@string, "").should.be.exactly 47
-
-
 describe "min/max of array", =>
-    @a1 = []
     @a2 = ["f", "bar", "batz"]
     @a3 = [6, -3, 7, 3, -99, 4, 9, 9]
     it "minimum works", =>
@@ -493,11 +363,8 @@ describe "min/max of array", =>
     it "maximum works", =>
         misc.max(@a3).should.be.exactly 9
     it "doesn't work for strings", =>
-        misc.max(@a2).should.be.eql NaN
-        misc.min(@a2).should.be.eql NaN
-    it "fails for empty arrays", =>
-        (-> misc.min(@a1)).should.throw /Cannot read property 'reduce' of undefined/
-        (-> misc.max(@a1)).should.throw /Cannot read property 'reduce' of undefined/
+        misc.max(@a2).should.be.eql 'f'
+        misc.min(@a2).should.be.eql 'bar'
 
 
 describe "copy flavours:", =>
@@ -681,19 +548,6 @@ describe "trunc_middle", ->
         tl(input, 1).should.be.eql "…"
         (-> tl(input, 0)).should.throw /must be >= 1/
 
-describe "git_author", ->
-    it "correctly formats the author tag", ->
-        fn = "John"
-        ln = "Doe"
-        em = "jd@noreply.com"
-        misc.git_author(fn, ln, em).should.eql "John Doe <jd@noreply.com>"
-
-describe "canonicalize_email_address", ->
-    cea = misc.canonicalize_email_address
-    it "removes +bar@", ->
-        cea("foo+bar@example.com").should.be.eql "foo@example.com"
-    it "does work fine with objects", ->
-        cea({foo: "bar"}).should.be.eql '{"foo":"bar"}'
 
 describe "lower_email_address", ->
     lea = misc.lower_email_address
@@ -739,14 +593,6 @@ describe "delete_trailing_whitespace", ->
         dtw("   bar     ").should.be.eql "   bar"
         dtw("batz  ").should.be.eql "batz"
         dtw("").should.be.eql ""
-
-describe "misc.assert", ->
-    it "is throws an Error when condition is not met", ->
-        (-> misc.assert(false, new Error("x > 0"))).should.throw "x > 0"
-    it "does nothing when condition is met", ->
-        (-> misc.assert(true, new Error("x < 0"))).should.not.throw()
-    it "is throws a msg wrapped in Error when condition is not met", ->
-        (-> misc.assert(false, "x > 0")).should.throw "x > 0"
 
 describe "filename_extension", ->
     fe = misc.filename_extension
@@ -812,31 +658,6 @@ describe "retry_until_success", ->
             log: @log
             max_tries: 5
 
-describe "retry_until_success_wrapper", ->
-
-    it "is a thin wrapper around RetryUntilSuccess", (done) =>
-        ret = misc.retry_until_success_wrapper
-            f: () =>
-                done()
-        ret()
-
-describe "Retry Until Success", ->
-    # TODO: there is obvisouly much more to test, or to mock-out and check in detail
-
-    it "will retry to execute a function", (done) =>
-        fstub = sinon.stub()
-        fstub.callsArg(0)
-
-        ret = misc.retry_until_success_wrapper
-            f: fstub
-            start_delay  : 1
-
-        ret(() =>
-            fstub.should.have.callCount 1
-            done())
-
-describe "eval_until_defined", ->
-    # TODO
 
 # TODO: this is just a stub
 describe "StringCharMapping", ->
@@ -851,13 +672,6 @@ describe "StringCharMapping", ->
     it "works with calling to_string", =>
         # HSY: this just records what it does
         @scm.to_string(["A", "K"]).should.be.eql "BC"
-
-describe "uniquify_string", ->
-    it "removes duplicated characters", ->
-        s = "aabb ŋ→wbſß?- \nccccccccc\txxxöä"
-        res = misc.uniquify_string(s)
-        exp = "ab ŋ→wſß?-\nc\txöä"
-        res.should.eql exp
 
 describe "PROJECT_GROUPS", ->
     it "checks that there has not been an accedental edit of this array", ->
@@ -906,13 +720,6 @@ describe "parse_hashtags", ->
     it "makes sure hash followed by noncharacter is not a hashtag", ->
         ph("#hashtag # not hashtag ##").should.eql [[0,8]]
 
-describe "mathjax_escape", ->
-    me = misc.mathjax_escape
-    it "correctly escapes the right characters", ->
-        me("& < > \" \'").should.eql "&amp; &lt; &gt; &quot; &#39;"
-    it "doesn't escape already escaped sequences", ->
-        me("&dont;escape").should.eql "&dont;escape"
-
 describe "path_is_in_public_paths", ->
     p = misc.path_is_in_public_paths
     it "returns false for a path with no public paths", ->
@@ -937,66 +744,6 @@ describe "path_is_in_public_paths", ->
         p("../foo", ["foo"]).should.be.false()
 
 
-describe "call_lock", =>
-    before =>
-        @clock = sinon.useFakeTimers()
-
-    after =>
-        @clock.restore()
-
-    beforeEach =>
-        @objspy = sinon.spy()
-        @o = obj: @objspy, timeout_s: 5
-
-    it "adds a call lock to a given object", =>
-        misc.call_lock(@o)
-        @objspy.should.have.properties ["_call_lock", "_call_unlock", "_call_with_lock"]
-
-        fspy = sinon.spy()
-        @objspy._call_with_lock(fspy)
-        @objspy.should.have.properties __call_lock: true
-        fspy.should.have.callCount 1
-
-        fspy2 = sinon.spy()
-        cbspy2 = sinon.spy()
-        @objspy._call_with_lock(fspy2, cbspy2)
-
-        # check that the cb has been called with the error message
-        cbspy2.getCall(0).args[0].should.eql "error -- hit call_lock"
-        # and the function hasn't been called
-        fspy2.should.have.callCount 0
-
-    it "unlocks after the given timeout_s time", =>
-        misc.call_lock(@o)
-
-        fspy = sinon.spy()
-        @objspy._call_with_lock(fspy)
-
-        # turn clock 6 secs ahead
-        @clock.tick 6*1000
-        fspy3 = sinon.spy()
-        cbspy3 = sinon.spy()
-        @objspy._call_with_lock(fspy3, cbspy3)
-
-        cbspy3.should.have.callCount 0
-        fspy3.should.have.callCount 1
-
-    it "unlocks when function is called", =>
-        fcl = misc.call_lock(@o)
-
-        fspy = sinon.spy()
-        cbspy2 = sinon.spy()
-        f = () -> fspy()
-        @objspy._call_with_lock(f, cbspy2)
-
-        cbspy2.should.have.callCount 0
-        fspy.should.have.callCount 1
-
-        # TODO I have no idea how to actually call it in such a way,
-        # that this is false
-        @objspy.should.have.properties __call_lock: true
-
-
 describe "timestamp_cmp", ->
     tcmp = misc.timestamp_cmp
     a = timestamp: new Date("2015-01-01")
@@ -1012,89 +759,6 @@ describe "timestamp_cmp", ->
         tcmp(a, {}).should.eql -1
         tcmp({}, b).should.eql 1
 
-describe "ActivityLog", =>
-    beforeEach =>
-        # e1 and e2 are deliberately on the same file
-        @e1 =
-            id: "1234"
-            timestamp: new Date("2015-01-01T12:34:55")
-            project_id: "c26db83a-7fa2-44a4-832b-579c18fac65f"
-            path: "foo/bar.baz"
-
-        @e2 =
-            id: "2345"
-            timestamp: new Date("2015-01-02T12:34:56")
-            project_id: "c26db83a-7fa2-44a4-832b-579c18fac65f"
-            path: "foo/bar.baz"
-
-        @e3 =
-            id: "3456"
-            timestamp: new Date("2015-01-01T12:34:55")
-            project_id: "c26db83a-7fa2-44a4-832b-579c18fac65f"
-            path: "x/y.z"
-            action: 'c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz'
-            seen_by: "123456789"
-            read_by: "123456789"
-
-        @al = misc.activity_log
-                    events: [@e1, @e2, @e3]
-                    account_id: "123456789"
-                    notifications: {}
-
-    describe "constructor", =>
-        it "works correctly", =>
-            @al.should.have.properties
-                notifications:
-                    'c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz':
-                        id: '2345'
-                        timestamp: new Date("2015-01-02T12:34:56")
-                    'c26db83a-7fa2-44a4-832b-579c18fac65f/x/y.z':
-                        id: '3456'
-                        timestamp: new Date("2015-01-01T12:34:55")
-                        "c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz":
-                            "undefined": new Date("2015-01-01T12:34:55")
-                        read: new Date("2015-01-01T12:34:55")
-                        seen: new Date("2015-01-01T12:34:55")
-                account_id: "123456789"
-
-    describe "obj", =>
-        it "returns a map with the last notification", =>
-            @al.obj().should.eql
-                notifications:
-                    "c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz":
-                        id: "2345"
-                        timestamp: new Date("2015-01-02T12:34:56")
-                    "c26db83a-7fa2-44a4-832b-579c18fac65f/x/y.z":
-                        id: "3456"
-                        timestamp: new Date("2015-01-01T12:34:55")
-                        "c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz":
-                            "undefined": new Date("2015-01-01T12:34:55")
-                        read: new Date("2015-01-01T12:34:55")
-                        seen: new Date("2015-01-01T12:34:55")
-                account_id: "123456789"
-
-    describe "process", =>
-        it "correctly processes additional events", =>
-            @al.process([
-                id: "4567"
-                timestamp: new Date("2015-01-03T12:34:56")
-                project_id: "c26db83a-7fa2-44a4-832b-579c18fac65h"
-                path: "x/y.z"
-            ])
-            @al.notifications.should.eql
-                    "c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz":
-                        id: "2345"
-                        timestamp: new Date("2015-01-02T12:34:56")
-                    "c26db83a-7fa2-44a4-832b-579c18fac65f/x/y.z":
-                        id: "3456"
-                        timestamp: new Date("2015-01-01T12:34:55")
-                        "c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz":
-                            "undefined": new Date("2015-01-01T12:34:55")
-                        read: new Date("2015-01-01T12:34:55")
-                        seen: new Date("2015-01-01T12:34:55")
-                    "c26db83a-7fa2-44a4-832b-579c18fac65h/x/y.z":
-                        id: "4567"
-                        timestamp: new Date("2015-01-03T12:34:56")
 
 describe "encode_path", ->
     e = misc.encode_path
@@ -1104,64 +768,12 @@ describe "encode_path", ->
         e("a/b,&$:@=+").should.eql "a/b,&$:@=+"
 
 
-describe "remove_c_comments", ->
-    r = misc.remove_c_comments
-    it "removes a /* c style */ comment", ->
-        r("start/* remove me */ end").should.eql "start end"
-    it "doesn't touch a normal string", ->
-        r("foo").should.eql "foo"
-    it "removes multiple comments in one string", ->
-        r("/* */foo/*remove*/bar").should.eql "foobar"
-    it "discards one-sided comments", ->
-        r("foo /* bar").should.be.eql "foo /* bar"
-        r("foo */ bar").should.be.eql "foo */ bar"
-        r("foo */ bar /* baz").should.be.eql "foo */ bar /* baz"
-
-
 describe "capitalize", ->
     c = misc.capitalize
     it "capitalizes the first letter of a word", ->
         c("foo").should.eql "Foo"
     it "works with non ascii characters", ->
         c("å∫ç").should.eql "Å∫ç"
-
-describe "parse_mathjax returns list of index position pairs (i,j)", ->
-    pm = misc.parse_mathjax
-    it "but no indices when called on nothing", ->
-        pm().should.eql []
-    it "correctly for $", ->
-        pm("foo $bar$ batz").should.eql [[4, 9]]
-    it "works regarding issue #1795", ->
-        pm("$x_{x} x_{x}$").should.eql [[0, 13]]
-    it "ignores single $", ->
-        pm("$").should.eql []
-        pm("the amount is $100").should.eql []
-        pm("a $b$ and $").should.eql [[2, 5]]
-        pm("a $b$ and $ ignored").should.eql [[2, 5]]
-    it "correctly works for multiline strings", ->
-        s = """
-            This is a $formula$ or a huge $$formula$$
-            \\begin{align}
-            formula
-            \\end{align}
-            \\section{that's it}
-        """
-        pm(s).should.be.eql([[ 10, 19 ], [ 30, 41 ], [ 42, 75 ]])
-             .and.matchEach (x) -> s.slice(x[0], x[1]).should.containEql "formula"
-    it "detects brackets", ->
-        s = "\\(foo\\) and \\[foo\\]"
-        pm(s).should.eql([[0, 7], [12, 19]])
-             .and.matchEach (x) -> s.slice(x[0]+2, x[1]-2).should.eql "foo"
-    it "works for other environments", ->
-        pm("\\begin{equation}foobar\\end{equation}").should.eql [[0, 36]]
-        pm("\\begin{equation*}foobar\\end{equation*}").should.eql [[0, 38]]
-        pm('\\begin{align}foobar\\end{align}').should.eql [[0, 30]]
-        pm('\\begin{align*}foobar\\end{align*}').should.eql [[0, 32]]
-        pm('\\begin{eqnarray}foobar\\end{eqnarray}').should.eql [[0, 36]]
-        pm('\\begin{eqnarray*}foobar\\end{eqnarray*}').should.eql [[0, 38]]
-        pm('\\begin{bmatrix}foobar\\end{bmatrix}').should.eql [[0, 34]]
-    it "is not triggered by unknown environments", ->
-        pm('\\begin{cmatrix}foobar\\end{cmatrix}').should.eql []
 
 describe "replace_all", ->
     ra = misc.replace_all
@@ -1223,12 +835,12 @@ describe "peer grading", ->
         for n in [1..5]
             for s in [(n+1)...20]
                 students = ("S_#{i}" for i in [0...s])
-                asmnt = peer_grading(students, N=n)
+                assignment = peer_grading(students, N=n)
 
-                expect(students).toEqual misc.keys(asmnt)
-                expect(misc.keys(asmnt).length).toEqual s
+                expect(students).toEqual misc.keys(assignment)
+                expect(misc.keys(assignment).length).toEqual s
 
-                for k, v of asmnt
+                for k, v of assignment
                     # check student not assigned to him/herself
                     assert v.indexOf(k) == -1
                     # check all assigments have N students ...
@@ -1238,7 +850,7 @@ describe "peer grading", ->
                 # and each student has to grade n times
                 for s in students
                     c = underscore.filter(
-                        v.indexOf(s) for _, v of asmnt,
+                        v.indexOf(s) for _, v of assignment,
                         (x) -> x != -1).length
                     expect(c).toEqual n
 
@@ -1406,49 +1018,6 @@ describe 'create_dependency_graph', ->
         expect JSON.stringify(misc.create_dependency_graph(store_def))
         .toEqual DAG_string
 
-describe 'bind_objects', ->
-    scope =
-        get   : () -> "cake"
-        value : "cake"
-
-    obj1 =
-        func11: () -> @get()
-        func12: () -> @value
-
-    obj2 =
-        func21: () -> @get()
-        func22: () -> @value
-
-    obj1.func11.prop = "cake"
-
-    result = misc.bind_objects(scope, [obj1, obj2])
-
-    it 'Binds all functions in a list of objects of functions to a scope', ->
-        for obj in result
-            for key, val of obj
-                expect(val()).toEqual("cake")
-
-    it 'Leaves the original object unchanged', ->
-        expect(=> obj1.func11()).toThrow(/get is not a function/)
-
-    it 'Preserves the toString of the original function', ->
-        expect(result[0].func11.toString()).toEqual(obj1.func11.toString())
-
-    it 'Preserves properties of the original function', ->
-        expect(result[0].func11.prop).toEqual(obj1.func11.prop)
-
-    it 'Ignores non-function values', ->
-        scope =
-            value : "cake"
-
-        obj1 =
-            val : "lies"
-            func: () -> @value
-        [b_obj1] = misc.bind_objects(scope, [obj1])
-
-        expect(b_obj1.func()).toEqual("cake")
-        expect(b_obj1.val).toEqual("lies")
-
 describe 'test the date parser --- ', ->
     it 'a date with a zone', ->
         expect(misc.date_parser(undefined, "2016-12-12T02:12:03.239Z") - 0).toEqual(1481508723239)
@@ -1480,6 +1049,8 @@ describe 'test converting to and from JSON for sending over a socket -- ', ->
         obj = {first:{now:new Date()}, second:{a:new Date(0), b:'2016-12-12T02:12:03.239'}}
         expect(misc.from_json_socket(misc.to_json_socket(obj))).toEqual(obj)
 
+###
+# TOOD: transform_get_url is no longer in misc, and testing here doesn't work.
 describe 'misc.transform_get_url mangles some URLs or "understands" what action to take', ->
     turl = require('smc-webapp/project/transform-get-url').transform_get_url
     it 'preserves "normal" URLs', ->
@@ -1529,7 +1100,7 @@ describe 'misc.transform_get_url mangles some URLs or "understands" what action 
         turl('https://share.cocalc.com/share/df736005116ebb1998f6dda48c42719bcec2f46b/ASM_demo.sagews?viewer=share').should.eql
             command: 'wget'
             args: ['https://share.cocalc.com/share/raw/df736005116ebb1998f6dda48c42719bcec2f46b/ASM_demo.sagews']
-
+###
 
 describe 'test closest kernel matching method', ->
     octave   = immutable.fromJS {name:"octave", display_name:"Octave", language:"octave"}

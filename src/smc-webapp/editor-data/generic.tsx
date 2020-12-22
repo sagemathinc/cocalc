@@ -11,7 +11,7 @@ import { React, Rendered, useActions } from "../app-framework";
 import { register_file_editor } from "../project-file";
 import { Markdown } from "../r_misc";
 import { webapp_client } from "../webapp-client";
-import { keys, filename_extension } from "smc-util/misc2";
+import { keys, filename_extension } from "smc-util/misc";
 import { COLORS } from "../../smc-util/theme";
 import { Button, Well } from "../antd-bootstrap";
 
@@ -26,7 +26,9 @@ const microsoft_ppt =
 const windows_executable =
   "Windows Executable -- you must download this program and run it on a computer";
 const python_pickle =
-  "Python Pickle -- use Python's [pickle module](https://docs.python.org/3/library/pickle.html) to read this file.";
+  "Python Pickle -- use Python's [pickle module](https://docs.python.org/3/library/pickle.html) to read this file.s";
+const medical_imaging =
+  "This is a medical image file.  You cannot open it directly in CoCalc, but you might be able to use it from a Python library.";
 
 // ext: markdown string.
 const INFO = {
@@ -42,6 +44,7 @@ const INFO = {
   docx: microsoft_word,
   ppt: microsoft_ppt,
   pptx: microsoft_ppt,
+  blend: "This is a [Blender](https://www.blender.org/) file.  CoCalc can only [open it via X11 Desktop](https://github.com/sagemathinc/cocalc/issues/5107).",
   kmz:
     "Editing [KMZ files](https://developers.google.com/kml/documentation/kmzarchives) is not supported. You could `unzip` them in a [Terminal](https://doc.cocalc.com/terminal.html).",
   jar:
@@ -66,14 +69,17 @@ Read more: [Saving-Data-on-Unexpected-Exits](https://www.gnu.org/software/octave
 `,
   "noext-a.out":
     "This is a binary executable, which you can run in a Terminal by typing ./a.out.",
-};
+  dcm: medical_imaging,
+  fif: medical_imaging,
+  nii: medical_imaging,
+} as const;
 
 interface Props {
   project_id: string;
   path: string;
 }
 
-const DataGeneric: React.FC<Props> = React.memo((props) => {
+const DataGeneric: React.FC<Props> = React.memo((props: Props) => {
   const { project_id, path } = props;
   const ext = filename_extension(path);
   const src = webapp_client.project_client.read_file({ project_id, path });

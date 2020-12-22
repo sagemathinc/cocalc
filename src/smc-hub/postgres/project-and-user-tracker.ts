@@ -18,7 +18,7 @@ import { EventEmitter } from "events";
 import { callback } from "awaiting";
 import { callback2 } from "../smc-util/async-utils";
 
-import { close, len } from "../smc-util/misc2";
+import { close, len } from "../smc-util/misc";
 
 import { PostgreSQL, QueryOptions, QueryResult } from "./types";
 

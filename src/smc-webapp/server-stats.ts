@@ -39,7 +39,7 @@ redux.createStore(name, StatsStore, { loading: true } as StatsStoreState);
 const actions = redux.createActions(name, StatsActions);
 
 const { $ } = window as any;
-const { BASE_URL } = require("misc_page");
+import { BASE_URL } from "./misc";
 
 function get_stats_once() {
   $.getJSON(`${BASE_URL}/stats`, function (data) {

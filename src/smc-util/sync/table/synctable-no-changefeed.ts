@@ -20,10 +20,8 @@ Returned object is not cached in any way.
 */
 
 import { EventEmitter } from "events";
-
 import { SyncTable, Client } from "./synctable";
-
-import { bind_methods } from "../../misc2";
+import { bind_methods } from "../../misc";
 
 export function synctable_no_changefeed(
   query,

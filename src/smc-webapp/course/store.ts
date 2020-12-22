@@ -5,19 +5,14 @@
 
 // React libraries
 import { Store } from "../app-framework";
-
 // CoCalc libraries
-import * as misc from "smc-util/misc";
-import { set } from "smc-util/misc2";
+import { cmp, cmp_array, set } from "smc-util/misc";
 import { DirectoryListingEntry } from "smc-util/types";
-
 // Course Library
 import { STEPS } from "./util";
 import { Map, Set, List } from "immutable";
 import { TypedMap, createTypedMap } from "../app-framework";
-
 import { SITE_NAME } from "smc-util/theme";
-
 // Upgrades
 import * as project_upgrades from "./project-upgrades";
 
@@ -426,7 +421,7 @@ export class CourseStore extends Store<CourseState> {
       }
     }
     v.sort((a, b) =>
-      misc.cmp(
+      cmp(
         this.get_student_sort_name(a.get("student_id")),
         this.get_student_sort_name(b.get("student_id"))
       )
@@ -482,7 +477,7 @@ export class CourseStore extends Store<CourseState> {
     const f = function (a: AssignmentRecord) {
       return [a.get("due_date", 0), a.get("path", "")];
     };
-    v.sort((a, b) => misc.cmp_array(f(a), f(b)));
+    v.sort((a, b) => cmp_array(f(a), f(b)));
     return v;
   }
 

@@ -9,17 +9,17 @@ Single codemirror-based file editor
 This is a wrapper around a single codemirror editor view.
 */
 
-const SAVE_DEBOUNCE_MS = 1500;
+import { SAVE_DEBOUNCE_MS } from "./const";
 
 import { Map, Set } from "immutable";
 
 import { is_safari } from "../generic/browser";
 import * as CodeMirror from "codemirror";
-import { React, ReactDOM, Rendered, Component } from "../../app-framework";
+import { React, ReactDOM, Rendered, CSS, Component } from "../../app-framework";
 
 import { debounce, throttle, isEqual } from "underscore";
 
-import * as misc from "smc-util/misc";
+import { copy, is_different, filename_extension } from "smc-util/misc";
 
 import { Cursors } from "smc-webapp/jupyter/cursors";
 
@@ -34,7 +34,7 @@ import { CodeEditor } from "./code-editor-manager";
 import { Actions } from "./actions";
 import { Icon } from "../../r_misc";
 import { file_associations } from "../../file-associations";
-import { EditorState } from "../frame-tree/types"
+import { EditorState } from "../frame-tree/types";
 
 const STYLE = {
   width: "100%",
@@ -43,7 +43,7 @@ const STYLE = {
   minheight: "2em",
   border: "0px",
   background: "#fff",
-};
+} as CSS;
 
 interface Props {
   id: string;
@@ -90,8 +90,8 @@ export class CodemirrorEditor extends Component<Props, State> {
 
   shouldComponentUpdate(props, state): boolean {
     return (
-      misc.is_different(this.state, state, ["has_cm"]) ||
-      misc.is_different(this.props, props, [
+      is_different(this.state, state, ["has_cm"]) ||
+      is_different(this.props, props, [
         "editor_settings",
         "font_size",
         "cursors",
@@ -376,8 +376,17 @@ export class CodemirrorEditor extends Component<Props, State> {
       SAVE_DEBOUNCE_MS
     );
 
+    this.cm.on("beforeChange", (_, changeObj) => {
+      if (changeObj.origin == "paste") {
+        // See https://github.com/sagemathinc/cocalc/issues/5110
+        this.save_syncstring();
+      }
+    });
+
     this.cm.on("change", (_, changeObj) => {
-      save_syncstring_debounce();
+      if (changeObj.origin != "paste") {
+        save_syncstring_debounce();
+      }
       if (changeObj.origin != null && changeObj.origin !== "setValue") {
         this.editor_actions.exit_undo_mode();
       }
@@ -489,7 +498,11 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   render_gutter_markers(): Rendered {
-    if (!this.state.has_cm || this.props.gutter_markers == null || this.cm == null) {
+    if (
+      !this.state.has_cm ||
+      this.props.gutter_markers == null ||
+      this.cm == null
+    ) {
       return;
     }
     return (
@@ -526,7 +539,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       style.background = "#337ab7";
       style.color = "white";
     }
-    const ext = misc.filename_extension(this.props.path);
+    const ext = filename_extension(this.props.path);
     const x = file_associations[ext];
     let icon: any = undefined;
     if (x != null && x.icon != null) {
@@ -540,7 +553,7 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   render(): Rendered {
-    const style = misc.copy(STYLE);
+    const style = copy(STYLE);
     style.fontSize = `${this.props.font_size}px`;
     return (
       <div className="smc-vfill cocalc-editor-div">

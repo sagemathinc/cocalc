@@ -51,18 +51,15 @@ import {
 const _ = set_debug;
 
 import { init_syncdoc } from "./sync-doc";
-
 import { key, register_synctable } from "./open-synctables";
-
 import { reuseInFlight } from "async-await-utils/hof";
 import { once } from "../smc-util/async-utils";
 import { delay } from "awaiting";
-
-const { close, deep_copy, len } = require("../smc-util/misc2");
-
+import { close, deep_copy, len } from "../smc-util/misc";
 import { register_listings_table } from "./listings";
 import { register_project_info_table } from "./project-info";
 import { register_project_status_table } from "./project-status";
+import { register_usage_info_table } from "./usage-info";
 
 type Query = { [key: string]: any };
 
@@ -533,6 +530,11 @@ async function synctable_channel0(
       register_project_status_table(
         synctable_channels[name].get_synctable(),
         logger,
+        client.client_id()
+      );
+    } else if (query?.usage_info != null) {
+      register_usage_info_table(
+        synctable_channels[name].get_synctable(),
         client.client_id()
       );
     }

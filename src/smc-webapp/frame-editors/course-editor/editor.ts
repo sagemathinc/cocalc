@@ -7,11 +7,10 @@
 Spec for editing Jupyter notebooks via a frame tree.
 */
 
-import { set } from "smc-util/misc2";
+import { set } from "smc-util/misc";
 import { createEditor } from "../frame-tree/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
-
 import {
   Assignments,
   Configuration,
@@ -19,7 +18,6 @@ import {
   Students,
   Handouts,
 } from "./course-panels";
-//import { Overview } from "./overview";
 
 const buttons = set([
   "decrease_font_size",
@@ -31,19 +29,6 @@ const buttons = set([
 ]);
 
 export const EDITOR_SPEC = {
-  /*
-  course_overview: {
-    short: "Overview",
-    name: "Course Overview",
-    icon: "file",
-    component: Overview,
-    buttons: set([
-      "decrease_font_size",
-      "increase_font_size",
-      "save",
-      "time_travel"
-    ])
-  },*/
   course_students: {
     short: "Students",
     name: "Students",

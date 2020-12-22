@@ -2892,7 +2892,6 @@ def show(*objs, **kwds):
         elif isinstance(obj, Graphics3d):
 
             # _extra_kwds processing follows the example of
-            # src/smc_sagews/smc_sagews/graphics.py:show_3d_plot_using_threejs()
             extra_kwds = {} if obj._extra_kwds is None else obj._extra_kwds
             for k in [
                     'spin',
@@ -2916,7 +2915,6 @@ def show(*objs, **kwds):
                 if kwds.get('online'):
                     del kwds['online']
                 salvus.threed(obj, **kwds)
-                # graphics.show_3d_plot_using_threejs(obj, **kwds)
         elif isinstance(obj, Tachyon):
             show_3d_plot_using_tachyon(obj, **kwds)
         elif isinstance(

@@ -5,13 +5,17 @@
 
 import * as ms from "ms";
 import { isEqual } from "lodash";
-import { analytics_cookie_name } from "smc-util/misc";
+import { Router } from "express";
+import {
+  analytics_cookie_name,
+  is_valid_uuid_string,
+  uuid,
+} from "smc-util/misc";
 import { PostgreSQL } from "./postgres/types";
 import { get_server_settings, pii_retention_to_future } from "./utils";
 import * as fs from "fs";
 import * as TS from "typescript";
 const UglifyJS = require("uglify-js");
-import { is_valid_uuid_string, uuid } from "../smc-util/misc2";
 // express-js cors plugin
 import * as cors from "cors";
 import {
@@ -168,7 +172,7 @@ It controls if the bounce back URL mentions the domain.
 */
 
 export async function setup_analytics_js(
-  router: any,
+  router: Router,
   database: PostgreSQL,
   logger: any,
   base_url: string
@@ -264,7 +268,7 @@ export async function setup_analytics_js(
       analytics_cookie(DNS, res);
     }
     res.header("Content-Type", "image/png");
-    res.header("Content-Length", PNG_1x1.length);
+    res.header("Content-Length", `${PNG_1x1.length}`);
     return res.end(PNG_1x1);
   });
 

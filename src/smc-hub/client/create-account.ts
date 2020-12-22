@@ -11,20 +11,27 @@ const MAX_ACCOUNTS_PER_30MIN = 150;
 const MAX_ACCOUNTS_PER_30MIN_GOLD = 1500;
 
 const auth = require("../auth");
-
+import { parseDomain, ParseResultType } from "parse-domain";
 import * as message from "smc-util/message";
+import { CreateAccount } from "smc-util/message-types";
 import {
   walltime,
   lower_email_address,
   required,
   defaults,
+  is_valid_email_address,
+  len,
+  to_json,
 } from "smc-util/misc";
 import { delay } from "awaiting";
-import { is_valid_email_address, len, to_json } from "smc-util/misc2";
 import { callback2 } from "smc-util/async-utils";
 import { PostgreSQL } from "../postgres/types";
 const { api_key_action } = require("../api/manage");
-import { get_server_settings, have_active_registration_tokens } from "../utils";
+import {
+  get_server_settings,
+  have_active_registration_tokens,
+  get_passports,
+} from "../utils";
 
 export function is_valid_password(password: string) {
   if (typeof password !== "string") {
@@ -62,6 +69,31 @@ async function get_db_client(db: PostgreSQL) {
     }
   }
   throw new Error("Unable to get a database client");
+}
+
+// if the email address's domain should go through SSO, return the domain name
+async function is_domain_exclusive_sso(
+  db: PostgreSQL,
+  email?: string
+): Promise<string | undefined> {
+  if (email == null) return undefined;
+  const raw_domain = email.split("@")[1]?.trim().toLowerCase();
+  if (raw_domain == null) return;
+  const parsed = parseDomain(raw_domain);
+  const passports = await get_passports(db);
+  const blocked = new Set<string>([]);
+  for (const pp of passports) {
+    for (const domain of pp.conf.exclusive_domains ?? []) {
+      blocked.add(domain);
+    }
+  }
+  if (parsed.type == ParseResultType.Listed) {
+    const { domain, topLevelDomains } = parsed;
+    const canonical = [domain ?? "", ...topLevelDomains].join(".");
+    if (blocked.has(canonical)) {
+      return canonical;
+    }
+  }
 }
 
 // return true if allowed to continue creating an account (either no token required or token matches)
@@ -138,7 +170,7 @@ async function check_registration_token(
 
 interface AccountCreationOptions {
   client: any;
-  mesg: any;
+  mesg: CreateAccount;
   database: PostgreSQL;
   logger?: Function;
   host?: string;
@@ -150,7 +182,7 @@ interface CreateAccountData {
   account_id: string;
   first_name: string;
   last_name: string;
-  email_address: string;
+  email_address?: string;
   created_by: string;
   analytics_token?: string;
 }
@@ -267,6 +299,18 @@ export async function create_account(
     );
     if (check_token) {
       reason = { token: check_token };
+      throw Error();
+    }
+
+    dbg("check if email domain has to go through an SSO mechanism");
+    const check_domain = await is_domain_exclusive_sso(
+      opts.database,
+      opts.mesg.email_address
+    );
+    if (check_domain != null) {
+      reason = {
+        email_address: `To sign up with "@${check_domain}", you have to use the corresponding SSO connect mechanism listed above!`,
+      };
       throw Error();
     }
 

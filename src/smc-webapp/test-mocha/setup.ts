@@ -5,7 +5,7 @@
 
 import * as $ from "jquery";
 import { callback, delay } from "awaiting";
-import { startswith } from "smc-util/misc2";
+import { startswith } from "smc-util/misc";
 
 const MOCHA_CSS_ID = "mocha-css";
 const MOCHA_JS_ID = "mocha-js";

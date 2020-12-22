@@ -5,7 +5,7 @@
 
 import * as React from "react";
 import { List } from "immutable";
-import { capitalize } from "smc-util/misc2";
+import { capitalize } from "smc-util/misc";
 import { Icon, Tip } from "./r_misc";
 import { SiteName } from "./customize";
 import { PassportStrategy, PRIMARY_SSO } from "./account/passport-types";

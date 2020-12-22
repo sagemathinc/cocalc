@@ -24,17 +24,16 @@ import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../r_misc";
 import { ProjectInviteToken } from "smc-util/db-schema/project-invite-tokens";
 import { webapp_client } from "../webapp-client";
 import { alert_message } from "../alerts";
-import { secure_random_token } from "smc-util/misc2";
-import { server_weeks_ago } from "smc-util/misc";
+import { secure_random_token, server_weeks_ago } from "smc-util/misc";
 
 const TOKEN_LENGTH = 16;
 const MAX_TOKENS = 200;
 const COLUMNS = [
   { title: "Token", dataIndex: "token", key: "token" },
   { title: "Created", dataIndex: "created", key: "created" },
+  { title: "Expires", dataIndex: "expires", key: "expires" },
   { title: "Uses", dataIndex: "counter", key: "counter" },
   /* { title: "Limit", dataIndex: "usage_limit", key: "usage_limit" },*/
-  { title: "Expires", dataIndex: "expires", key: "expires" },
 ];
 
 interface Props {
@@ -97,7 +96,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
           style={{ width: "20px" }}
           name={expanded ? "caret-down" : "caret-right"}
         />{" "}
-        Or invite people via a project invite token...
+        Invite collaborators by sending them a project invite token...
       </a>
     );
     if (!expanded) {
@@ -270,16 +269,24 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
     }
 
     return (
-      <div>
-        {heading}
-        <br />
-        <br />
-        {render_create_token()}
-        <Space />
-        {render_refresh()}
-        <br />
-        <br />
-        {render_tokens()}
+      <div style={{ width: "100%", overflowX: "auto" }}>
+        <div
+          style={{
+            minWidth: "800px",
+            border: "1px solid grey",
+            padding: "15px",
+          }}
+        >
+          {heading}
+          <br />
+          <br />
+          {render_create_token()}
+          <Space />
+          {render_refresh()}
+          <br />
+          <br />
+          {render_tokens()}
+        </div>
       </div>
     );
   }

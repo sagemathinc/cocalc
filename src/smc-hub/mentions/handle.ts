@@ -19,7 +19,7 @@ if (process.env.COCALC_MENTIONS_POLL_INTERVAL_S != undefined) {
 }
 
 import { callback2 } from "smc-util/async-utils";
-import { trunc } from "smc-util/misc2";
+import { trunc } from "smc-util/misc";
 import { callback, delay } from "awaiting";
 
 import { project_has_network_access } from "../postgres/project-queries";

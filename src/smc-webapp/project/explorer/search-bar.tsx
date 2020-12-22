@@ -200,6 +200,9 @@ export class SearchBar extends React.Component<Props, State> {
   };
 
   search_submit = (value: string, opts: { ctrl_down: boolean }): void => {
+    if (this.props.current_path == null) {
+      return;
+    }
     if (value[0] === TERM_MODE_CHAR && !this.props.public_view) {
       const command = value.slice(1, value.length);
       this.execute_command(command);

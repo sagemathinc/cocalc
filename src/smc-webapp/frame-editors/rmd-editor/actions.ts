@@ -16,7 +16,7 @@ import { markdown_to_html_frontmatter } from "../../markdown";
 import { FrameTree } from "../frame-tree/types";
 import { redux } from "../../app-framework";
 import { ExecOutput } from "../generic/client";
-import { path_split } from "smc-util/misc2";
+import { path_split } from "smc-util/misc";
 import { derive_rmd_output_filename } from "./utils";
 import {
   Actions as BaseActions,

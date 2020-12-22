@@ -4,7 +4,7 @@
  */
 
 // using require because this file is used in smc-project and import is messe
-const { close } = require("smc-util/misc2");
+const { close } = require("smc-util/misc");
 import { delay } from "awaiting";
 import { JupyterActions } from "./project-actions";
 

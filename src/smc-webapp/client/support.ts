@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { replace_all } from "smc-util/misc2";
+import { replace_all } from "smc-util/misc";
 import * as message from "smc-util/message";
 import { AsyncCall } from "./client";
 

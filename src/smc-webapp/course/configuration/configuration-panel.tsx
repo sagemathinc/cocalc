@@ -4,11 +4,9 @@
  */
 
 // CoCalc libraries
-import * as misc from "smc-util/misc";
 import { webapp_client } from "../../webapp-client";
-import { contains_url } from "smc-util/misc2";
+import { contains_url, days_ago } from "smc-util/misc";
 import { debounce } from "lodash";
-
 // React libraries and Components
 import {
   React,
@@ -20,9 +18,7 @@ import {
   useTypedRedux,
 } from "../../app-framework";
 import { Button, ButtonGroup, Checkbox } from "../../antd-bootstrap";
-
 import { Alert, Card, Row, Col } from "antd";
-
 // CoCalc Components
 import {
   DateTimePicker,
@@ -35,7 +31,6 @@ import {
   TimeAgo,
   ErrorDisplay,
 } from "../../r_misc";
-
 import { StudentProjectUpgrades } from "./upgrades";
 import { CourseActions } from "../actions";
 import { ProjectMap } from "../../todo-types";
@@ -316,7 +311,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
       if (date) {
         return date;
       } else {
-        return misc.days_ago(-7);
+        return days_ago(-7);
       }
     }
 

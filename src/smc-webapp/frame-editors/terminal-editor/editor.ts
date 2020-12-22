@@ -10,7 +10,7 @@ Top-level React component for the terminal
 import { createEditor } from "../frame-tree/editor";
 import { TerminalFrame } from "./terminal";
 import { CommandsGuide } from "./commands-guide";
-import { set } from "smc-util/misc2";
+import { set } from "smc-util/misc";
 
 export const terminal = {
   short: "Terminal",

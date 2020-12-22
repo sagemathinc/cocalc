@@ -24,6 +24,7 @@ theme   = require('smc-util/theme')
 hub_projects = require('./projects')
 auth = require('./auth')
 access = require('./access')
+{process_alive, process_healthcheck, setup_agent_check} = require('./healthchecks')
 
 {once} = require('smc-util/async-utils')
 
@@ -50,7 +51,7 @@ exports.version_check = (req, res, base_url) ->
     #             the same in order to *properly* deal with / characters.
     # post Nov'19: switching to universal-cookie in the client, because it supports
     #              SameSite=none. Now, the client explicitly encodes the base_url.
-    #              The cookie name is set in smc-util/misc2
+    #              The cookie name is set in smc-util/misc
     raw_val = c.get(encodeURIComponent(base_url) + VERSION_COOKIE_NAME)
     if not raw_val?
         # try legacy cookie fallback
@@ -127,6 +128,9 @@ exports.init_http_proxy_server = (opts) ->
     winston.debug("init_smc_version: start...")
     await init_smc_version(opts.database)
     winston.debug("init_smc_version: done")
+
+    # healthcheck agent enpoint setup
+    setup_agent_check()
 
     # Checks for access to project, and in case of write access,
     # also touch's project thus recording that user is interested
@@ -380,8 +384,18 @@ exports.init_http_proxy_server = (opts) ->
         tm = misc.walltime()
         {query, pathname} = url.parse(req.url, true)
         req_url = req.url.slice(base_url.length)  # strip base_url for purposes of determining project location/permissions
-        if req_url == "/alive"
-            res.end('')
+
+        health_data = null
+        # keep in mind, "internally", there is no base url prefix – we check for both situations
+        if req_url == "/alive" or req.url == '/alive'
+            health_data = process_alive()
+        else if req_url == '/healthcheck' or req.url == '/healthcheck'
+            health_data = await process_healthcheck(opts.database)
+
+        if health_data != null
+            { txt, code } = health_data
+            res.writeHead(code, { 'Content-Type': 'text/plain' });
+            res.end(txt)
             return
 
         #buffer = http_proxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy

@@ -9,7 +9,7 @@ Functions for determining various things about applying upgrades to a project.
 WARNING: This should stay as simple typescript with no crazy dependencies for easy node.js unit testing.
 */
 
-import * as misc from "smc-util/misc";
+import { copy, keys, map_diff, map_sum } from "smc-util/misc";
 import { ProjectMap } from "../projects/store";
 
 interface ExistenceMap {
@@ -32,7 +32,7 @@ export function available_upgrades(opts: {
 
     This is a map {quota0:x, quota1:y, ...}
     */
-  let available = misc.copy(opts.purchased_upgrades);
+  let available = copy(opts.purchased_upgrades);
   opts.project_map.forEach(function (project, project_id) {
     if (opts.student_project_ids[project_id]) {
       // do not count projects in course
@@ -40,7 +40,7 @@ export function available_upgrades(opts: {
     }
     const upgrades = project.getIn(["users", opts.account_id, "upgrades"]);
     if (upgrades != null) {
-      available = misc.map_diff(available, upgrades.toJS());
+      available = map_diff(available as any, upgrades.toJS());
     }
   });
   return available;
@@ -64,7 +64,7 @@ export function current_student_project_upgrades(opts: {
     if (users == null) {
       continue;
     }
-    var x = undefined;
+    var x: any = undefined;
     users.forEach(function (info, user_id) {
       if (user_id === opts.account_id) {
         return;
@@ -73,7 +73,7 @@ export function current_student_project_upgrades(opts: {
       if (upgrades == null) {
         return;
       }
-      x = misc.map_sum(upgrades.toJS(), x != null ? x : {});
+      x = map_sum(upgrades.toJS(), x != null ? x : {});
     });
     if (x != null) {
       other[project_id] = x;
@@ -126,7 +126,7 @@ export function upgrade_plan(opts: {
     student_project_ids: opts.student_project_ids,
   });
 
-  const ids = misc.keys(opts.student_project_ids);
+  const ids = keys(opts.student_project_ids);
   ids.sort();
   const plan = {};
   for (const project_id of ids) {

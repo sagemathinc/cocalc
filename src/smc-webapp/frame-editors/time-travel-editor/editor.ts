@@ -13,7 +13,7 @@ TimeTravel for them.
 
 import { createEditor } from "../frame-tree/editor";
 import { TimeTravel } from "./time-travel";
-import { set } from "smc-util/misc2";
+import { set } from "smc-util/misc";
 
 export const time_travel = {
   short: "TimeTravel",

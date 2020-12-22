@@ -25,18 +25,11 @@ import {
   syncdb2,
   syncstring2,
 } from "../generic/client";
-
 import { SyncDB } from "smc-util/sync/editor/db";
 import { SyncString } from "smc-util/sync/editor/string";
-
 import { aux_file } from "../frame-tree/util";
-import { callback_opts, once } from "smc-util/async-utils";
-import {
-  filename_extension,
-  history_path,
-  len,
-  uuid,
-} from "smc-util/misc2";
+import { once } from "smc-util/async-utils";
+import { filename_extension, history_path, len, uuid } from "smc-util/misc";
 import { print_code } from "../frame-tree/print-code";
 import {
   ConnectionStatus,
@@ -56,19 +49,14 @@ import "../generic/codemirror-plugins";
 import * as tree_ops from "../frame-tree/tree-ops";
 import { Actions as BaseActions, Store } from "../../app-framework";
 import { createTypedMap, TypedMap } from "../../app-framework";
-
 import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
 import { CodeEditorManager, CodeEditor } from "./code-editor-manager";
-
 import { AvailableFeatures } from "../../project_configuration";
-
 import { apply_patch } from "smc-util/sync/editor/generic/util";
-
 import { default_opts } from "../codemirror/cm-options";
-
 import { set_buffer, get_buffer } from "../../copy-paste-buffer";
-const { open_new_tab } = require("smc-webapp/misc_page");
+import { open_new_tab } from "../../misc-page";
 
 import {
   ext2syntax,
@@ -1828,10 +1816,7 @@ export class Actions<
       // format bar only makes sense when some cm is there...
       return;
     }
-    await callback_opts((opts) => cm.edit_selection(opts))({
-      cmd,
-      args,
-    });
+    await cm.edit_selection({ cmd, args });
     if (this._state !== "closed") {
       cm.focus();
       this.set_syncstring_to_codemirror();
@@ -2292,7 +2277,7 @@ export class Actions<
     return SHELLS[filename_extension(this.path)];
   }
 
-  public async shell(id: string): Promise<void> {
+  public async shell(id: string, no_switch: boolean = false): Promise<void> {
     const x = await this.get_shell_spec(id);
     let command: string | undefined = undefined;
     let args: string[] | undefined = undefined;
@@ -2318,7 +2303,15 @@ export class Actions<
     } else {
       // Change command/args.
       this.terminals.set_command(shell_id, command, args);
+      // Also change the frame description so that the top of the terminal display
+      // updates with the correct command.
+      this.set_frame_tree({
+        id: shell_id,
+        command,
+        args,
+      });
     }
+    if (no_switch) return;
 
     // De-maximize if in full screen mode.
     this.unset_frame_full();

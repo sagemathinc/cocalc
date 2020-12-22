@@ -11,7 +11,7 @@ import {
   path_split,
   splitlines,
   change_filename_extension,
-} from "smc-util/misc2";
+} from "smc-util/misc";
 import { exec, ExecOutput, project_api } from "../generic/client";
 
 interface SyncTex {

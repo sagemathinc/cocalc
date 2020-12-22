@@ -9,6 +9,7 @@ import {
   search_match,
   search_split,
 } from "../../smc-util/misc";
+import { query } from "../query";
 
 // This works and does the entire search in the database.
 // Unfortunately, it is unusably slow and I just don't have
@@ -114,4 +115,21 @@ export async function manager_site_licenses(
   const query = "SELECT * FROM site_licenses WHERE $1=ANY(managers)";
   const params = [account_id];
   return (await db.async_query({ query, params })).rows;
+}
+
+// Return true if the given user is a manager of any site licenses.
+export async function is_a_site_license_manager(
+  db: PostgreSQL,
+  account_id: string
+): Promise<boolean> {
+  return (
+    (
+      await query({
+        db,
+        query: "SELECT COUNT(*) FROM site_licenses WHERE $1=ANY(managers)",
+        one: true,
+        params: [account_id],
+      })
+    ).count > 0
+  );
 }

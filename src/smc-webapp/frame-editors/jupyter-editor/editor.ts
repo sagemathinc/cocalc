@@ -7,11 +7,10 @@
 Spec for editing Jupyter notebooks via a frame tree.
 */
 
-import { set } from "smc-util/misc2";
+import { set } from "smc-util/misc";
 import { createEditor } from "../frame-tree/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
-
 import { CellNotebook } from "./cell-notebook/cell-notebook";
 import { RawIPynb } from "./raw-ipynb";
 
@@ -32,6 +31,8 @@ import { ClassicalNotebook } from "./classical-notebook";
 import { Slideshow } from "./slideshow-revealjs/slideshow";
 import { TableOfContents } from "./table-of-contents/contents";
 import { Introspect } from "./introspect/introspect";
+const SNIPPET_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
+import { JupyterSnippets } from "./snippets";
 
 export const EDITOR_SPEC = {
   jupyter_cell_notebook: {
@@ -52,9 +53,14 @@ export const EDITOR_SPEC = {
       "redo",
       "format",
       "show_table_of_contents",
-      /* ,
-      "shell" -- disable for now since not fully implemented*/
+      "guide",
+      "shell",
     ]),
+    guide_info: {
+      title: "Snippets",
+      icon: SNIPPET_ICON_NAME,
+      descr: "Open a panel containing code snippets.",
+    },
     customize_buttons: {
       shell: {
         text: "Console",
@@ -62,6 +68,13 @@ export const EDITOR_SPEC = {
           "Open command line Jupyter console session attached to the same kernel as notebook",
       },
     },
+  },
+  commands_guide: {
+    short: "Snippets",
+    name: "Snippets",
+    icon: SNIPPET_ICON_NAME,
+    component: JupyterSnippets,
+    buttons: set(["decrease_font_size", "increase_font_size"]),
   },
   jupyter_slideshow_revealjs: {
     short: "Slideshow",

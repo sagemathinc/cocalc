@@ -8,7 +8,8 @@
 import { PostgreSQL } from "./types";
 
 import { callback2 } from "../smc-util/async-utils";
-import { len } from "../smc-util/misc2";
+import { len } from "../smc-util/misc";
+import { is_a_site_license_manager } from "./site-license/search";
 
 /* For now we define "paying customer" to mean they have a subscription.
   It's OK if it expired.  They at least bought one once.
@@ -24,14 +25,16 @@ export async function is_paying_customer(
       account_id,
       columns: ["stripe_customer"],
     });
-  } catch (err) {
-    // error probably means there is no such project or project_id is badly formatted.
+  } catch (_err) {
+    // error probably means there is no such account or account_id is badly formatted.
     return false;
   }
-  if (x.stripe_customer == null || x.stripe_customer.subscriptions == null) {
-    return false;
+  if (!!x.stripe_customer?.subscriptions?.total_count) {
+    // they have at least one subscription of some form -- so that's enough to count.
+    return true;
   }
-  return !!x.stripe_customer.subscriptions.total_count;
+  // If they manage any licenses then they also count:
+  return await is_a_site_license_manager(db, account_id);
 }
 
 export async function set_account_info_if_possible(opts: {
