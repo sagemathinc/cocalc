@@ -141,8 +141,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         if (display_name == null) {
           display_name = kernel ?? "No Kernel";
         }
-        const chars = is_fullscreen ? 16 : 8;
-        const style = { ...KERNEL_NAME_STYLE, maxWidth: `${chars}em` };
+        const style = { ...KERNEL_NAME_STYLE, maxWidth: "8em" };
         return (
           <div
             style={style}
@@ -352,7 +351,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       return (
         <div style={style}>
           <span style={usage_style}>
-            {is_fullscreen && "CPU: "}
+            {is_fullscreen && "CPU "}
             <Progress
               style={pstyle}
               showInfo={false}
@@ -364,7 +363,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
             />
           </span>
           <span style={usage_style}>
-            {is_fullscreen && "Memory: "}
+            {is_fullscreen && "Memory "}
             <Progress
               style={pstyle}
               showInfo={false}
@@ -415,7 +414,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       return (
         <p style={style}>
           <span>
-            CPU:{" "}
+            CPU{" "}
             <span
               className={"cocalc-jupyter-usage-info"}
               style={cpu_style}
@@ -431,7 +430,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
             />
           </span>
           <span>
-            Memory:{" "}
+            Memory{" "}
             <span
               className={"cocalc-jupyter-usage-info"}
               style={memory_style}
