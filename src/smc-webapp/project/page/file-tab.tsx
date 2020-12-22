@@ -200,7 +200,6 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
   if (label == null) throw Error("label must not be null");
 
   const i = label.lastIndexOf("/");
-  console.log({ IS_SAFARI, i, label: label.slice(i + 1) });
   if (i !== -1) {
     if (IS_SAFARI) {
       // Safari's implementation of direction rtl combined with
