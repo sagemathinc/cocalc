@@ -6,6 +6,7 @@
 // Client device features and capabilities.
 
 declare const DEBUG: boolean;
+declare var $ : any;
 
 let IS_MOBILE,
   IS_TOUCH,
@@ -200,3 +201,5 @@ export {
   get_browser,
   get_mobile,
 };
+
+export const IS_SAFARI = !!$.browser?.safari;
