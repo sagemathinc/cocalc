@@ -72,7 +72,6 @@
     "safe-json-stringify": "^1.2.0",
     "sanitize-html": "^1.20.1",
     "serve-index": "^1.9.1",
-    "sharp": "^0.26.2",
     "snappy": "^6.3.5",
     "sql-string-escape": "^1.1.6",
     "start-stop-daemon": "^0.1.1",
