@@ -77,7 +77,7 @@ def install_project():
         print(f"TOTAL PROJECT PKG BUILD TIME: {total:.1f}s")
 
     # UGLY; hard codes the path -- TODO: fix at some point.
-    cmd("cd /usr/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn ci --unsafe-perm=true --progress=false --upgrade"
+    cmd("cd /usr/local/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn ci --unsafe-perm=true --progress=false --upgrade"
         % SUDO)
 
     # At least run typescript...
@@ -88,7 +88,7 @@ def install_project():
 
     # Pre-compile everything to Javascript, so that loading is much faster and more efficient.
     # This can easily save more than 2 seconds, given how big things have got.
-    cmd("cd /usr/lib/node_modules && coffee -c smc-util smc-util-node smc-webapp smc-project smc-project/jupyter"
+    cmd("cd /usr/local/lib/node_modules && coffee -c smc-util smc-util-node smc-webapp smc-project smc-project/jupyter"
         )
 
 
