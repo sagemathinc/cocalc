@@ -20,7 +20,7 @@
     "node-pre-gyp": "^0.14.0",
     "nyc": "^15.0.1",
     "shell-escape": "^0.2.0",
-    "sqlite3": "^4.2.0",
+    "sqlite3": "^5.0.0",
     "temp": "^0.9.1",
     "winston": "^2.4.4"
   },
