@@ -14,6 +14,7 @@ import { webapp_client } from "./webapp-client";
 import { wrap_log } from "smc-util/misc";
 import { get_browser, IS_MOBILE, IS_TOUCH } from "./feature";
 import { mathjax_finish_startup } from "./misc";
+import * as prom_client from "./prom-client";
 
 // see http://stackoverflow.com/questions/12197122/how-can-i-prevent-a-user-from-middle-clicking-a-link-with-javascript-or-jquery
 // I have some concern about performance.
@@ -79,7 +80,6 @@ $(function () {
 
   // finally, record start time
   // TODO compute and report startup initialization time
-  const prom_client = require("./prom-client");
   if (prom_client.enabled) {
     const browser_info_gauge = prom_client.new_gauge(
       "browser_info",
