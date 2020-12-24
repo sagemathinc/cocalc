@@ -173,6 +173,7 @@ init_primus_server = (http_server) ->
             compute_server : compute_server
             host           : program.host
             port           : program.port
+            personal       : program.personal
         dbg("num_clients=#{misc.len(clients)}")
 
 #######################################################
@@ -783,9 +784,8 @@ command_line = () ->
         .option('--db_concurrent_warn <n>', 'be very unhappy if number of concurrent db requests exceeds this (default: 300)', ((n)->parseInt(n)), 300)
         .option('--lti', 'just start the LTI service')
         .option('--landing', 'serve landing pages')
+        .option('--personal', 'run in VERY UNSAFE personal mode; there is only one user and no authentication')
         .parse(process.argv)
-
-        # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
 
     if program._name.slice(0,3) == 'hub'
         # run as a server/daemon (otherwise, is being imported as a library)

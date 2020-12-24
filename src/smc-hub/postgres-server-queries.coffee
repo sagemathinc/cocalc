@@ -49,6 +49,7 @@ collab = require('./postgres/collab')
 {permanently_unlink_all_deleted_projects_of_user} = require('./postgres/delete-projects')
 {unlist_all_public_paths} = require('./postgres/public-paths')
 {get_remember_me} = require('./postgres/remember-me')
+{get_personal_user} = require('./postgres/personal')
 {projects_that_need_to_be_started} = require('./postgres/always-running');
 {calc_stats} = require('./postgres/stats')
 
@@ -1524,6 +1525,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             where :
                 'hash = $::TEXT' : opts.hash.slice(0,127)
             cb    : opts.cb
+
+    # ASYNC FUNCTION
+    get_personal_user: () =>
+        return await get_personal_user(@)
 
     ###
     # Changing password/email, etc. sensitive info about a user
