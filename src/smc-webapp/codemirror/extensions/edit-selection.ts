@@ -6,7 +6,7 @@
 import * as CodeMirror from "codemirror";
 
 import { defaults, required, startswith } from "smc-util/misc";
-import { sagews_canonical_mode } from "../../misc-page";
+import { sagews_canonical_mode, open_new_tab } from "../../misc-page";
 import {
   FONT_FACES,
   commands as EDIT_COMMANDS,
@@ -137,7 +137,7 @@ CodeMirror.defineExtension("edit_selection", async function (opts: {
 
     // this is an abuse, but having external links to the documentation is good
     if (how?.url != null) {
-      exports.open_new_tab(how.url);
+      open_new_tab(how.url);
       done = true;
     }
 
