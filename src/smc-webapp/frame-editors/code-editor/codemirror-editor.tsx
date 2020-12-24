@@ -384,9 +384,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     });
 
     this.cm.on("change", (_, changeObj) => {
-      if (changeObj.origin != "paste") {
-        save_syncstring_debounce();
-      }
+      save_syncstring_debounce();
       if (changeObj.origin != null && changeObj.origin !== "setValue") {
         this.editor_actions.exit_undo_mode();
       }
