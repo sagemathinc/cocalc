@@ -425,8 +425,8 @@ exports.init_http_proxy_server = (opts) ->
         remember_me = x.remember_me
         req.headers['cookie'] = x.cookie
 
-        if not remember_me?
-            # before giving an error, check on possibility that file is public
+        if not remember_me? and not is_personal
+            # before giving an error, check on possibility that file is public  (also, not important if is_personal is true)
             public_raw req_url, query, res, (err, is_public) ->
                 if err or not is_public
                     res.writeHead(500, {'Content-Type':'text/html'})
