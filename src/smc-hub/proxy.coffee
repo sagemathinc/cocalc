@@ -412,7 +412,8 @@ exports.init_http_proxy_server = (opts) ->
                 winston.debug("http_proxy_server(#{req_url}): #{m}")
         dbg('got request')
 
-        if exports.version_check(req, res, base_url)
+        # version check not needed in personal mode
+        if not is_personal and exports.version_check(req, res, base_url)
             dbg("version check failed")
             return
 
@@ -493,7 +494,8 @@ exports.init_http_proxy_server = (opts) ->
         req_url = req.url.slice(base_url.length)  # strip base_url for purposes of determining project location/permissions
         dbg = (m) -> winston.debug("http_proxy_server websocket(#{req_url}): #{m}")
 
-        if exports.version_check(req, undefined, base_url)
+        # version check not needed in personal mode
+        if not is_personal and exports.version_check(req, undefined, base_url)
             dbg("websocket upgrade -- version check failed")
             return
 
