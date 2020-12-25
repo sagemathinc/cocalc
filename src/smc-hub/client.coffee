@@ -731,6 +731,9 @@ class exports.Client extends EventEmitter
 
     # Messages: Account creation, deletion, sign in, sign out
     mesg_create_account: (mesg) =>
+        if @_opts.personal
+            @error_to_client(id:mesg.id, error:"account creation not allowed on personal server")
+            return
         create_account
             client   : @
             mesg     : mesg
