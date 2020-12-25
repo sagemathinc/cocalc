@@ -47,6 +47,7 @@ exports.init_express_http_server = (opts) ->
     opts = defaults opts,
         base_url       : required
         dev            : false       # if true, serve additional dev stuff, e.g., a proxyserver.
+        is_personal       : false       # if true, includes that is in personal mode in customize info (so frontend can take this into account).
         database       : required
         compute_server : required
         cookie_options : undefined   # they're for the new behavior (legacy fallback implemented below)
@@ -257,6 +258,8 @@ exports.init_express_http_server = (opts) ->
             country = req.headers['cf-ipcountry'] ? 'XX'
             host = req.headers["host"]
             config = await webapp_config.get(host:host, country:country)
+            if opts.is_personal
+                config.configuration.is_personal = true
             if req.query.type == 'full'
                 res.header("Content-Type", "text/javascript")
                 mapping = '{configuration:window.CUSTOMIZE, registration:window.REGISTER, strategies:window.STRATEGIES}'

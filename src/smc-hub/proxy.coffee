@@ -121,7 +121,8 @@ exports.init_http_proxy_server = (opts) ->
         base_url       : required
         port           : required
         host           : required
-    {database, compute_server, base_url} = opts
+        is_personal    : undefined
+    {database, compute_server, base_url, is_personal} = opts
 
     winston.debug("init_http_proxy_server")
 
@@ -209,6 +210,11 @@ exports.init_http_proxy_server = (opts) ->
 
     _remember_me_cache = {}
     remember_me_check_for_access_to_project = (opts) ->
+        if is_personal
+            # In personal mode, anyone who can access localhost has full access to everything, since
+            # this is meant to be used on a personal computer.
+            opts.cb(undefined, true)
+            return
         opts = defaults opts,
             project_id  : required
             remember_me : required

@@ -30,6 +30,7 @@ async function _get_personal_user(database: PostgreSQL): Promise<string> {
       first_name: "Your",
       last_name: "Name",
       created: new Date(),
+      groups: ["admin"],
     },
   });
   return account_id;

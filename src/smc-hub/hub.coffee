@@ -630,6 +630,7 @@ exports.start_server = start_server = (cb) ->
             x = await hub_http_server.init_express_http_server
                 base_url       : BASE_URL
                 dev            : program.dev
+                is_personal    : program.personal
                 compute_server : compute_server
                 database       : database
                 cookie_options : client.COOKIE_OPTIONS
@@ -690,6 +691,7 @@ exports.start_server = start_server = (cb) ->
                     base_url       : BASE_URL
                     port           : program.proxy_port
                     host           : program.host
+                    is_personal    : program.personal
 
             if program.port or program.share_port or program.proxy_port
                 winston.debug("Starting registering periodically with the database and updating a health check...")
