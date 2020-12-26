@@ -154,7 +154,8 @@ export function init_websocket_proxy(
   database: any,
   base_url: string,
   compute_server: any,
-  logger: any
+  logger: any,
+  is_personal: boolean = false
 ): void {
   async function handle_upgrade(req, socket, head): Promise<void> {
     if (!is_personal && hub_proxy.version_check(req, undefined, base_url)) {
