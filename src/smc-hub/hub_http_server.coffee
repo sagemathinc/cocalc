@@ -303,7 +303,7 @@ exports.init_express_http_server = (opts) ->
 
     if opts.dev
         dev = require('./dev/hub-http-server')
-        await dev.init_http_proxy(app, opts.database, opts.base_url, opts.compute_server, winston)
+        await dev.init_http_proxy(app, opts.database, opts.base_url, opts.compute_server, winston, opts.is_personal)
         dev.init_websocket_proxy(http_server, opts.database, opts.base_url, opts.compute_server, winston)
         dev.init_share_server(app, opts.database, opts.base_url, winston);
 
