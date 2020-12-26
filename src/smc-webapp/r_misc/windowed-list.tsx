@@ -25,7 +25,7 @@ import { delay } from "awaiting";
 
 import ResizeObserver from "resize-observer-polyfill";
 
-const SHRINK_THRESH: number = 10;
+const SHRINK_THRESH: number = 3;
 const BIG: number = 9999999;
 
 import { VariableSizeList as List, ListOnScrollProps } from "react-window";
@@ -83,7 +83,6 @@ export class WindowedList extends Component<Props, State> {
   private list_ref;
   private row_heights_cache: { [key: string]: number } = {};
   private row_heights_stale: { [key: string]: boolean } = {};
-  private row_heights_removed: { [key: string]: boolean } = {};
   public resize_observer: any; // ResizeObserver, but can't because that's only for the polyfill...
   private is_mounted: boolean = true;
   private _disable_refresh: boolean = false;
@@ -252,43 +251,14 @@ export class WindowedList extends Component<Props, State> {
     const key = elt.getAttribute("data-key");
     if (key == null) return;
     const height = entry.contentRect.height;
-
-    if (isNaN(height) || height == 0) {
-      if ((this.row_heights_cache[key] ?? 0) > 0) {
-        // A row was deleted (or isn't visible!), so goes from a
-        // possibly big height to 0.  This would really
-        // confuse everything to resize all these to 0.
-        this.row_heights_removed[key] = true;
-      }
+    if (height == null || isNaN(height)) {
       return;
     }
 
-    if (this.row_heights_removed[key]) {
-      // The row was resized to 0 in the previous call, and now
-      // it is no longer 0. We ignore sizing the first time this happens
-      // unless the height was bigger than before.  The next time sizing
-      // happens we'll take that into account.   Basically ResizeObserver
-      // and react-window seems to produce behavior like this, and we're
-      // working around that:
-      //   1. Scroll a row out of view
-      //   2. It resizes to 0 (maybe a browser optimization?)
-      //   3. A fraction of a second later it resizes to around 100
-      //   4. Then it sizes back to what it was.
-      // This sequence has no impact on us due to row_heights_removed.
-      // In the absolute worse case, our heuristic could temporarily
-      // refuse to shrink a row.
-      delete this.row_heights_removed[key];
-      if (height <= (this.row_heights_cache[key] ?? 0)) {
-        return;
-      }
-    }
-
     const index = elt.getAttribute("data-index");
-
     const s = height - this.row_heights_cache[key];
-    if (s == 0 || (s < 0 && -s <= SHRINK_THRESH)) {
-      // not really changed or just disappeared from DOM or just
-      // shrunk a little,
+    if (s < 0 && -s <= SHRINK_THRESH) {
+      // just shrunk a little,
       // ... so continue using what we have cached (or the default).
       return;
     }
@@ -514,3 +484,4 @@ function create_row_component(windowed_list: WindowedList) {
   }
   return RowComponent;
 }
+
