@@ -24,6 +24,7 @@ import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { Icon, Loading } from "../r_misc";
 import { SignOut } from "../account/sign-out";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
+import { PublicFiles } from "./public-files/public-files";
 
 export const AccountPage: React.FC = () => {
   const active_page = useTypedRedux("account", "active_page");
@@ -199,6 +200,19 @@ export const AccountPage: React.FC = () => {
         </Tab>
       );
     }
+    v.push(
+      <Tab
+        key="public-files"
+        eventKey="public-files"
+        title={
+          <span>
+            <Icon name="bullhorn" /> Public files
+          </span>
+        }
+      >
+        {active_page === "public-files" && <PublicFiles />}
+      </Tab>
+    );
     return v;
   }
 
