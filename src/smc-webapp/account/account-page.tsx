@@ -24,7 +24,7 @@ import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { Icon, Loading } from "../r_misc";
 import { SignOut } from "../account/sign-out";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
-import { PublicFiles } from "./public-files/public-files";
+import { PublicPaths } from "./public-paths/public-paths";
 
 export const AccountPage: React.FC = () => {
   const active_page = useTypedRedux("account", "active_page");
@@ -210,7 +210,7 @@ export const AccountPage: React.FC = () => {
           </span>
         }
       >
-        {active_page === "public-files" && <PublicFiles />}
+        {active_page === "public-files" && <PublicPaths />}
       </Tab>
     );
     return v;

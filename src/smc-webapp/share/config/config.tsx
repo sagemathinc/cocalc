@@ -31,6 +31,7 @@ import {
   Radio,
 } from "react-bootstrap";
 import {
+  redux,
   React,
   ReactDOM,
   Component,
@@ -42,6 +43,7 @@ import { open_new_tab } from "../../misc-page";
 import { CopyToClipBoard, Icon, VisibleMDLG, Space } from "../../r_misc";
 import { public_share_url, share_server_url } from "./util";
 import { License } from "./license";
+import { trunc_middle } from "smc-util/misc";
 
 interface PublicInfo {
   created: Date;
@@ -414,6 +416,18 @@ class Configure extends Component<Props, State> {
 
     return (
       <div>
+        <div style={{ float: "right" }}>{this.render_close_button()}</div>
+        <h2 style={{ color: "#666", textAlign: "center" }}>
+          <a
+            onClick={() => {
+              redux
+                .getProjectActions(this.props.project_id)
+                ?.load_target("files/" + this.props.path);
+            }}
+          >
+            {trunc_middle(this.props.path, 128)}
+          </a>
+        </h2>
         <Row>
           <VisibleMDLG>
             <Col sm={6}>{this.render_how_shared_heading()}</Col>

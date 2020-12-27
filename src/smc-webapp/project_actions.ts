@@ -2819,4 +2819,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       timeout: 99999,
     });
   }
+
+  public show_public_config(path: string): void {
+    this.set_current_path(misc.path_split(path).head);
+    this.set_all_files_unchecked();
+    this.set_file_checked(path, true);
+    this.set_file_action("share");
+  }
 }

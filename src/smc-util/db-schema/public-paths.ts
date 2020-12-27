@@ -7,6 +7,23 @@ import { deep_copy } from "../misc";
 import { SCHEMA as schema } from "./index";
 import { Table } from "./types";
 
+export interface PublicPath {
+  id: string;
+  project_id: string;
+  path: string;
+  description?: string;
+  disabled?: boolean;
+  unlisted?: boolean;
+  created?: Date;
+  license?: string;
+  last_edited?: Date;
+  last_saved?: Date;
+  counter?: number;
+  vhost?: string;
+  auth?: string;
+  compute_image?: string;
+}
+
 // Get publicly available information about a project.
 Table({
   name: "public_projects",
