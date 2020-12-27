@@ -195,3 +195,37 @@ Table({
     },
   },
 });
+
+// WARNING: the fields in queries to all_publics_paths are ignored; all of them are always returned.
+Table({
+  name: "all_public_paths",
+  rules: {
+    anonymous: true,
+    virtual: "public_paths",
+    user_query: {
+      get: {
+        async instead_of_query(database, opts, cb): Promise<void> {
+          try {
+            cb(undefined, await database.get_all_public_paths(opts.account_id));
+          } catch (err) {
+            cb(err);
+          }
+        },
+        fields: {
+          id: null,
+          project_id: null,
+          path: null,
+          description: null,
+          disabled: null, // if true then disabled
+          unlisted: null, // if true then do not show in main listing (so doesn't get google indexed)
+          license: null,
+          last_edited: null,
+          created: null,
+          last_saved: null,
+          counter: null,
+          compute_image: null,
+        },
+      },
+    },
+  },
+});
