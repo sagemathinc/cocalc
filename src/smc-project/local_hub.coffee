@@ -98,6 +98,9 @@ jupyter_manager = require('./jupyter_manager')
 # Saving blobs to a hub
 blobs = require('./blobs')
 
+# Tame processes if they use a lot of CPU
+autorenice = require('./autorenice')
+
 # Client for connecting back to a hub
 {Client} = require('./client')
 
@@ -325,7 +328,7 @@ start_server = (tcp_port, raw_port, cb) ->
                 cb         : cb
         (cb) ->
             if program.kucalc
-                # not needed, since in kucalc supervisord manages processes.
+                # not needed in kucalc
                 cb()
                 return
             # This is also written by forever; however, by writing it directly it's also possible
@@ -395,6 +398,8 @@ if program.kucalc
 
     if program.test_firewall
         kucalc.init_gce_firewall_test(winston)
+
+    autorenice.activate()
 else
     winston.debug("NOT running in kucalc")
     kucalc.IN_KUCALC = false
