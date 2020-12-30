@@ -10,6 +10,7 @@ import { Terminal } from "./connected-terminal";
 import { throttle } from "lodash";
 import { background_color } from "./themes";
 import {
+  CSS,
   React,
   Rendered,
   ReactDOM,
@@ -31,6 +32,14 @@ interface Props {
   resize: number;
 }
 
+const COMMAND_STYLE = {
+  borderBottom: "1px solid grey",
+  paddingLeft: "5px",
+  background: "rgb(248, 248, 248)",
+  height: "20px",
+  overflow: "hidden",
+} as CSS;
+
 export const TerminalFrame: React.FC<Props> = React.memo((props) => {
   const terminalRef = useRef<Terminal | undefined>(undefined);
   const terminalDOMRef = useRef<any>(null);
@@ -50,15 +59,15 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
   }, [props.id]);
 
   useEffect(() => {
-    if (props.is_current && terminalRef.current != null) {
-      terminalRef.current.focus();
+    if (props.is_current) {
+      terminalRef.current?.focus();
     }
   }, [props.is_current]);
 
   useEffect(measure_size, [props.resize]);
 
   function delete_terminal(): void {
-    if (terminalRef.current == null) return;
+    if (terminalRef.current == null) return; // already deleted
     terminalRef.current.element?.remove();
     terminalRef.current.is_mounted = false;
     // Ignore size for this terminal.
@@ -92,7 +101,6 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
       return false;
     });
 
-    // TODO: Obviously restoring the exact scroll position would be better...
     terminalRef.current.scroll_to_bottom();
   }
 
@@ -109,43 +117,34 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
   useEffect(set_font_size, [props.font_size]);
 
   function measure_size(): void {
-    if (terminalRef.current == null || !isMountedRef.current) {
-      return;
+    if (isMountedRef.current) {
+      terminalRef.current?.measure_size();
     }
-    terminalRef.current.measure_size();
   }
 
   function render_command(): Rendered {
     const command = props.desc.get("command");
     if (!command) return;
-    const args: string[] | undefined = props.desc.get("args"); // TODO: need to quote if args have spaces...
+    const args: string[] = props.desc.get("args") ?? []; // TODO: should quote if args have spaces...
     return (
-      <div
-        style={{
-          borderBottom: "1px solid grey",
-          paddingLeft: "5px",
-          background: "rgb(248, 248, 248)",
-          height: "20px",
-          overflow: "hidden",
-        }}
-      >
-        {command} {args != null ? args.join(" ") : ""}
+      <div style={COMMAND_STYLE}>
+        {command} {args.join(" ")}
       </div>
     );
   }
 
-  const color = background_color(props.terminal.get("color_scheme"));
+  const backgroundColor = background_color(props.terminal.get("color_scheme"));
   /* 4px padding is consistent with CodeMirror */
   return (
     <div className={"smc-vfill"}>
       {render_command()}
       <div
         className={"smc-vfill"}
-        style={{ backgroundColor: color, padding: "0 0 0 4px" }}
+        style={{ backgroundColor, padding: "0 0 0 4px" }}
         onClick={() => {
-          /* otherwise, clicking right outside term defocuses,
-             which is confusing */
-          if (terminalRef.current != null) terminalRef.current.focus();
+          // Focus on click, since otherwise, clicking right outside term defocuses,
+          // which is confusing.
+          terminalRef.current?.focus();
         }}
       >
         <div className={"smc-vfill cocalc-xtermjs"} ref={terminalDOMRef} />
