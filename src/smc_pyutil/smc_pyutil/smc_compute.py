@@ -41,6 +41,7 @@ USER_SWAP_MB = 1000  # amount of swap users get
 
 import errno, hashlib, json, math, os, platform, shutil, signal, socket, sys, time, uuid, random
 
+
 from subprocess import Popen, PIPE
 
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
@@ -468,9 +469,13 @@ class Project(object):
         os.environ[
             'PATH'] = "{salvus_root}/smc-project/bin:{salvus_root}/smc_pyutil/smc_pyutil:{path}".format(
                 salvus_root=os.environ['SALVUS_ROOT'], path=os.environ['PATH'])
-        os.environ[
-            'PYTHONPATH'] = "{home}/.local/lib/python3.8/site-packages".format(
-                home=os.environ['HOME'])
+        home = os.environ['HOME']
+        if os.path.exists(f"{home}/Library/Python"):
+            # dev mode on macOS
+            os.environ['PYTHONPATH'] = f"{home}/Library/Python/3.8/lib/python/site-packages"
+        else:
+            # dev mode on Linux
+            os.environ['PYTHONPATH'] = f"{home}/.local/lib/python3.8/site-packages"
         os.environ['SMC_LOCAL_HUB_HOME'] = self.project_path
         os.environ['SMC_HOST'] = 'localhost'
         os.environ['SMC'] = self.smc_path
