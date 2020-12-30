@@ -991,7 +991,7 @@ export class JupyterActions extends JupyterActions0 {
     } catch (err) {
       // It would be better to have a button to push instead of suggesting running a
       // command in the terminal, but adding that took 1 second.
-      const error = `Error reading ipynb file '${path}': ${err.toString()}.  Fix this to continue.  You can delete all output by typing cc-jupyter-no-output [filename].ipybn in a terminal.`;
+      const error = `Error reading ipynb file '${path}': ${err.toString()}.  Fix this to continue.  You can delete all output by typing cc-jupyter-no-output [filename].ipynb in a terminal.`;
       this.syncdb.set({ type: "fatal", error });
       throw Error(error);
     }
