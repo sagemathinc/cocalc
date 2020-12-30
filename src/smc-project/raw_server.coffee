@@ -83,7 +83,7 @@ exports.start_raw_server = (opts) ->
                         cb(err)
                         return
                     port = _port
-                    fs.writeFile(raw_port_file, port, cb) # since not specified, write it
+                    fs.writeFile(raw_port_file, port+"", cb) # since not specified, write it
         (cb) ->
             base = "#{base_url}/#{project_id}/raw/"
             opts.logger?.info("raw server: port=#{port}, host='#{host}', base='#{base}'")
