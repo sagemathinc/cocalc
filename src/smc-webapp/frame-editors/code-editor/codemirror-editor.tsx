@@ -10,27 +10,27 @@ This is a wrapper around a single codemirror editor view.
 */
 
 import { SAVE_DEBOUNCE_MS } from "./const";
-
 import { Map, Set } from "immutable";
-
 import { is_safari } from "../generic/browser";
 import * as CodeMirror from "codemirror";
-import { React, ReactDOM, Rendered, CSS, Component } from "../../app-framework";
-
-import { debounce, throttle, isEqual } from "underscore";
-
-import { copy, is_different, filename_extension } from "smc-util/misc";
-
+import {
+  React,
+  ReactDOM,
+  Rendered,
+  CSS,
+  useEffect,
+  useIsMountedRef,
+  useRef,
+  useState,
+} from "../../app-framework";
+import { debounce, throttle, isEqual } from "lodash";
+import { filename_extension } from "smc-util/misc";
 import { Cursors } from "smc-webapp/jupyter/cursors";
-
 import { cm_options } from "../codemirror/cm-options";
 import { init_style_hacks } from "../codemirror/util";
-import * as codemirror_state from "../codemirror/codemirror-state";
-import * as doc from "./doc";
-
+import { get_state, set_state } from "../codemirror/codemirror-state";
+import { has_doc, set_doc, get_linked_doc } from "./doc";
 import { GutterMarkers } from "./codemirror-gutter-markers";
-
-import { CodeEditor } from "./code-editor-manager";
 import { Actions } from "./actions";
 import { Icon } from "../../r_misc";
 import { file_associations } from "../../file-associations";
@@ -65,97 +65,72 @@ interface Props {
   is_subframe?: boolean;
 }
 
-interface State {
-  has_cm: boolean;
-}
+export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
+  const [has_cm, set_has_cm] = useState<boolean>(false);
 
-export class CodemirrorEditor extends Component<Props, State> {
-  private cm?: CodeMirror.Editor;
-  private style_active_line: boolean = false;
-  static defaultProps = { value: "" };
-  private manager?: CodeEditor;
-  private editor_actions: Actions;
+  const cmRef = useRef<CodeMirror.Editor | undefined>(undefined);
+  const styleActiveLineRef = useRef<boolean>(false);
+  const textareaRef = useRef<any>(null);
+  const divRef = useRef<any>(null);
+  const isMountedRef = useIsMountedRef();
 
-  constructor(props) {
-    super(props);
-    this.state = { has_cm: false };
-    if (props.is_subframe && this.props.actions != null) {
-      this.manager = this.props.actions.get_code_editor(this.props.id);
-      if (this.manager == null) throw Error("BUG");
-      this.editor_actions = this.manager.get_actions();
+  function editor_actions(): Actions | undefined {
+    if (props.is_subframe && props.actions != null) {
+      return props.actions.get_code_editor(props.id)?.get_actions();
     } else {
-      this.editor_actions = this.props.actions;
+      return props.actions;
     }
   }
 
-  shouldComponentUpdate(props, state): boolean {
-    return (
-      is_different(this.state, state, ["has_cm"]) ||
-      is_different(this.props, props, [
-        "editor_settings",
-        "font_size",
-        "cursors",
-        "read_only",
-        "value",
-        "is_public",
-        "resize",
-        "editor_state",
-        "gutter_markers",
-        "is_subframe",
-        "is_current",
-        "path",
-      ])
-    );
-  }
-
-  componentDidMount(): void {
-    this.init_codemirror(this.props);
-  }
-
-  componentWillReceiveProps(next: Props): void {
-    if (this.cm == null) {
-      return;
-    }
-    if (this.props.font_size !== next.font_size) {
-      this.cm_update_font_size();
-    }
-    if (this.props.read_only !== next.read_only) {
-      this.cm.setOption("readOnly", next.read_only);
-    }
-    if (this.props.is_public && this.props.value !== next.value) {
-      if (next.value !== undefined) {
-        // we really know that this will be undefined.
-        this.cm.setValueNoJump(next.value);
+  useEffect(() => {
+    init_codemirror(props);
+    return () => {
+      // clean up because unmounting.
+      if (cmRef.current != null && props.is_public == null) {
+        save_editor_state();
+        save_syncstring();
+        cm_destroy();
       }
+    };
+  }, []);
+
+  useEffect(cm_update_font_size, [props.font_size]);
+
+  useEffect(() => {
+    if (cmRef.current != null) {
+      cmRef.current.setOption("readOnly", props.read_only);
     }
-    if (this.props.misspelled_words !== next.misspelled_words) {
-      this.cm_highlight_misspelled_words(next.misspelled_words);
+  }, [props.read_only]);
+
+  useEffect(() => {
+    if (props.is_public && cmRef.current != null && props.value != null) {
+      // we really know that this will be undefined.
+      cmRef.current.setValueNoJump(props.value);
     }
-    if (this.props.resize !== next.resize) {
-      this.cm_refresh();
-    }
-    if (this.props.editor_settings != next.editor_settings) {
-      this.update_codemirror(next);
-    }
+  }, [props.value]);
+
+  useEffect(cm_highlight_misspelled_words, [props.misspelled_words]);
+  useEffect(cm_refresh, [props.resize]);
+  useEffect(update_codemirror, [props.editor_settings]);
+
+  function cm_refresh(): void {
+    if (cmRef.current == null) return;
+    cmRef.current.refresh();
   }
 
-  private cm_refresh(): void {
-    if (this.cm == null) return;
-    this.cm.refresh();
-  }
-
-  cm_highlight_misspelled_words(words: Set<string> | string): void {
-    if (this.cm == null) return;
+  function cm_highlight_misspelled_words(): void {
+    const words = props.misspelled_words;
+    if (cmRef.current == null) return;
     if (words == "browser") {
       // just ensure browser spellcheck is enabled
-      this.cm.setOption("spellcheck", true);
-      (this.cm as any).spellcheck_highlight([]);
+      cmRef.current.setOption("spellcheck", true);
+      (cmRef.current as any).spellcheck_highlight([]);
       return;
     }
     if (words == "disabled") {
       // disabled
-      this.cm.setOption("spellcheck", false);
-      (this.cm as any).spellcheck_highlight([]);
+      cmRef.current.setOption("spellcheck", false);
+      (cmRef.current as any).spellcheck_highlight([]);
       return;
     }
     if (typeof words == "string") {
@@ -163,115 +138,110 @@ export class CodemirrorEditor extends Component<Props, State> {
       console.warn("unsupported words option", words);
       return;
     }
-    this.cm.setOption("spellcheck", false);
-    (this.cm as any).spellcheck_highlight(words.toJS());
+    cmRef.current.setOption("spellcheck", false);
+    (cmRef.current as any).spellcheck_highlight(words.toJS());
   }
 
-  cm_update_font_size(): void {
-    if (this.cm == null) return;
+  function cm_update_font_size(): void {
+    if (cmRef.current == null) return;
     // It's important to move the scroll position upon zooming -- otherwise the cursor line
     // move UP/DOWN after zoom, which is very annoying.
-    const state = codemirror_state.get_state(this.cm);
+    const state = get_state(cmRef.current);
     // actual restore happens in next refresh cycle after render.
-    if (state != null) codemirror_state.set_state(this.cm, state);
+    if (state != null) set_state(cmRef.current, state);
   }
 
-  componentWillUnmount(): void {
-    if (this.cm != null && this.props.is_public == null) {
-      this.save_editor_state();
-      this.save_syncstring();
-      this._cm_destroy();
-    }
+  function cm_undo(): void {
+    editor_actions()?.undo(props.id);
   }
 
-  _cm_undo(): void {
-    this.editor_actions.undo(this.props.id);
+  function cm_redo(): void {
+    editor_actions()?.redo(props.id);
   }
 
-  _cm_redo(): void {
-    this.editor_actions.redo(this.props.id);
-  }
-
-  _cm_destroy(): void {
-    if (this.cm == null) {
+  function cm_destroy(): void {
+    if (cmRef.current == null) {
       return;
     }
-    delete (this.cm as any).undo;
-    delete (this.cm as any).redo;
-    $(this.cm.getWrapperElement()).remove(); // remove from DOM -- "Remove this from your tree to delete an editor instance."  NOTE: there is still potentially a reference to the cm in actions._cm[id]; that's how we can bring back this frame (with given id) very efficiently.
-    delete this.cm;
+    delete (cmRef.current as any).undo;
+    delete (cmRef.current as any).redo;
+    // remove from DOM -- "Remove this from your tree to delete an editor instance."
+    // NOTE: there is still potentially a reference to the cm in actions._cm[id];
+    // that's how we can bring back this frame (with given id) very efficiently.
+    $(cmRef.current.getWrapperElement()).remove();
+    cmRef.current = undefined;
   }
 
-  _cm_cursor(): void {
-    if (!this.props.is_current) {
+  function cm_cursor(): void {
+    if (!props.is_current) {
       // not in focus, so any cursor movement is not to be broadcast.
       return;
     }
-    if (this.cm == null) {
+    if (cmRef.current == null) {
       // not yet done initializing/mounting or already unmounting,
       // so nothing to do.
       return;
     }
-    const locs = this.cm
+    const locs = cmRef.current
       .getDoc()
       .listSelections()
       .map((c) => ({ x: c.anchor.ch, y: c.anchor.line }));
     // side_effect is whether or not the cursor move is being caused by an
     // external setValueNoJump, so just a side effect of something another user did.
-    const side_effect = (this.cm as any)._setValueNoJump;
+    const side_effect = (cmRef.current as any)._setValueNoJump;
     if (side_effect) {
       // cursor movement is a side effect of upstream change, so ignore.
       return;
     }
-    this.editor_actions.set_cursor_locs(locs);
+    editor_actions()?.set_cursor_locs(locs);
   }
 
   // Save the UI state of the CM (not the actual content) -- scroll position, selections, etc.
-  save_editor_state(): void {
-    if (this.cm == null) {
+  function save_editor_state(): void {
+    if (cmRef.current == null) {
       return;
     }
-    const state = codemirror_state.get_state(this.cm);
+    const state = get_state(cmRef.current);
     if (state != null) {
-      this.props.actions.save_editor_state(this.props.id, state);
+      props.actions.save_editor_state(props.id, state);
     }
   }
 
   // Save the underlying syncstring content.
-  save_syncstring(): void {
-    if (this.cm == null || this.props.is_public) {
+  function save_syncstring(): void {
+    if (cmRef.current == null || props.is_public) {
       return;
     }
-    this.editor_actions.set_syncstring_to_codemirror();
-    this.editor_actions.syncstring_commit();
+    editor_actions()?.set_syncstring_to_codemirror();
+    editor_actions()?.syncstring_commit();
   }
 
-  safari_hack(): void {
+  function safari_hack(): void {
     if (is_safari()) {
-      $(ReactDOM.findDOMNode(this)).make_height_defined();
+      $(ReactDOM.findDOMNode(divRef.current)).make_height_defined();
     }
   }
 
-  async init_codemirror(props: Props): Promise<void> {
-    const node: HTMLTextAreaElement = ReactDOM.findDOMNode(this.refs.textarea);
+  async function init_codemirror(props: Props): Promise<void> {
+    const node: HTMLTextAreaElement = ReactDOM.findDOMNode(textareaRef.current);
     if (node == null) {
       return;
     }
 
-    this.safari_hack();
+    safari_hack();
 
     const options: any = cm_options(
       props.path,
       props.editor_settings,
       props.gutters,
-      this.editor_actions,
+      editor_actions(),
       props.actions,
       props.id
     );
     if (options == null) throw Error("bug"); // make typescript happy.
 
     // we will explicitly enable and disable styleActiveLine depending focus
-    this.style_active_line = options.styleActiveLine;
+    styleActiveLineRef.current = options.styleActiveLine;
     options.styleActiveLine = false;
 
     if (props.is_public) {
@@ -282,246 +252,219 @@ export class CodemirrorEditor extends Component<Props, State> {
       options.extraKeys = {};
     }
 
-    options.extraKeys["Tab"] = this.tab_key;
-    // options.extraKeys["Shift-Tab"] = this.shift_tab_key;
-    // options.extraKeys["Up"] = this.up_key;
-    // options.extraKeys["Down"] = this.down_key;
-    // options.extraKeys["PageUp"] = this.page_up_key;
-    // options.extraKeys["PageDown"] = this.page_down_key;
+    options.extraKeys["Tab"] = tab_key;
     options.extraKeys["Cmd-/"] = "toggleComment";
     options.extraKeys["Ctrl-/"] = "toggleComment";
 
     // Needed e.g., for vim ":w" support; obviously this is global, so be careful.
     if ((CodeMirror as any).commands.save == null) {
       (CodeMirror as any).commands.save = (cm: any) => {
-        this.props.actions.explicit_save();
+        props.actions.explicit_save();
         if (cm._actions) {
           cm._actions.save(true);
         }
       };
     }
 
-    const cm: CodeMirror.Editor = (this.editor_actions as any)._cm[
-      this.props.id
-    ];
+    const cm: CodeMirror.Editor = (editor_actions() as any)._cm[props.id];
     if (cm != undefined) {
       // Reuse existing codemirror editor, rather
       // than creating a new one -- faster and preserves
       // state such as code folding.
-      if (!this.cm) {
-        this.cm = cm;
+      if (!cmRef.current) {
+        cmRef.current = cm;
         if (!node.parentNode) {
           // this never happens, but is needed for typescript.
           return;
         }
         node.parentNode.insertBefore(cm.getWrapperElement(), node.nextSibling);
-        this.update_codemirror(props, options);
+        update_codemirror(options);
       }
     } else {
-      this.cm = CodeMirror.fromTextArea(node, options);
-      this.init_new_codemirror();
+      cmRef.current = CodeMirror.fromTextArea(node, options);
+      init_new_codemirror();
     }
 
     if (props.editor_state != null) {
-      codemirror_state.set_state(this.cm, props.editor_state.toJS() as any);
+      set_state(cmRef.current, props.editor_state.toJS() as any);
     }
 
     if (!props.is_public) {
-      this.cm_highlight_misspelled_words(props.misspelled_words);
+      cm_highlight_misspelled_words();
     }
 
-    this.setState({ has_cm: true });
+    set_has_cm(true);
 
     if (props.is_current) {
-      this.cm.focus();
+      cmRef.current.focus();
     }
-    this.cm.setOption("readOnly", props.read_only);
-    this.cm_refresh();
+    cmRef.current.setOption("readOnly", props.read_only);
+    cm_refresh();
   }
 
-  init_new_codemirror(): void {
-    if (this.cm == null) return;
-    (this.cm as any)._actions = this.editor_actions;
+  function init_new_codemirror(): void {
+    if (cmRef.current == null) return;
+    (cmRef.current as any)._actions = editor_actions();
 
-    if (this.props.is_public) {
-      if (this.props.value !== undefined) {
+    if (props.is_public) {
+      if (props.value !== undefined) {
         // should always be the case if public.
-        this.cm.setValue(this.props.value);
+        cmRef.current.setValue(props.value);
       }
     } else {
-      if (!doc.has_doc(this.props.project_id, this.props.path)) {
+      if (!has_doc(props.project_id, props.path)) {
         // save it to cache so can be used by other components/editors
-        doc.set_doc(this.props.project_id, this.props.path, this.cm);
+        set_doc(props.project_id, props.path, cmRef.current);
       } else {
         // has it already, so use that.
-        this.cm.swapDoc(
-          doc.get_linked_doc(this.props.project_id, this.props.path)
-        );
+        cmRef.current.swapDoc(get_linked_doc(props.project_id, props.path));
       }
     }
 
-    const save_editor_state = throttle(() => this.save_editor_state(), 150);
-    this.cm.on("scroll", save_editor_state);
-    init_style_hacks(this.cm);
+    const throttled_save_editor_state = throttle(save_editor_state, 150);
+    cmRef.current.on("scroll", throttled_save_editor_state);
+    init_style_hacks(cmRef.current);
 
-    this.editor_actions.set_cm(this.props.id, this.cm);
+    editor_actions()?.set_cm(props.id, cmRef.current);
 
-    if (this.props.is_public) {
+    if (props.is_public) {
       return;
     }
 
     // After this only stuff that we use for the non-public version!
     const save_syncstring_debounce = debounce(
-      () => this.save_syncstring(),
+      save_syncstring,
       SAVE_DEBOUNCE_MS
     );
 
-    this.cm.on("beforeChange", (_, changeObj) => {
+    cmRef.current.on("beforeChange", (_, changeObj) => {
       if (changeObj.origin == "paste") {
         // See https://github.com/sagemathinc/cocalc/issues/5110
-        this.save_syncstring();
+        save_syncstring();
       }
     });
 
-    this.cm.on("change", (_, changeObj) => {
+    cmRef.current.on("change", (_, changeObj) => {
       save_syncstring_debounce();
       if (changeObj.origin != null && changeObj.origin !== "setValue") {
-        this.editor_actions.exit_undo_mode();
+        editor_actions()?.exit_undo_mode();
       }
     });
 
-    this.cm.on("focus", () => {
-      this.props.actions.set_active_id(this.props.id);
-      if (this.style_active_line && this.cm) {
+    cmRef.current.on("focus", () => {
+      if (!isMountedRef.current) return;
+      props.actions.set_active_id(props.id);
+      if (styleActiveLineRef.current && cmRef.current) {
         // any because the typing doesn't recognize extensions
-        this.cm.setOption("styleActiveLine" as any, true);
+        cmRef.current.setOption("styleActiveLine" as any, true);
       }
     });
 
-    this.cm.on("blur", () => {
-      if (this.style_active_line && this.cm) {
-        this.cm.setOption("styleActiveLine" as any, false);
+    cmRef.current.on("blur", () => {
+      if (styleActiveLineRef.current && cmRef.current) {
+        cmRef.current.setOption("styleActiveLine" as any, false);
       }
     });
 
-    this.cm.on("cursorActivity", () => {
-      this._cm_cursor();
-      save_editor_state();
+    cmRef.current.on("cursorActivity", () => {
+      cm_cursor();
+      throttled_save_editor_state();
     });
 
     // replace undo/redo by our sync aware versions
-    (this.cm as any).undo = () => this._cm_undo();
-    (this.cm as any).redo = () => this._cm_redo();
+    (cmRef.current as any).undo = cm_undo;
+    (cmRef.current as any).redo = cm_redo;
   }
 
-  update_codemirror(props: Props, options?): void {
-    if (this.cm == null) return;
+  function update_codemirror(options?): void {
+    if (cmRef.current == null) return;
     if (!options) {
       options = cm_options(
         props.path,
         props.editor_settings,
         props.gutters,
-        this.editor_actions,
+        editor_actions(),
         props.actions,
         props.id
       );
     }
-
-    const cm = this.cm;
-    let key: string;
-    for (key of [
-      "lineNumbers",
-      "showTrailingSpace",
-      "indentUnit",
-      "tabSize",
-      "smartIndent",
-      "electricChars",
-      "matchBrackets",
-      "autoCloseBrackets",
-      "autoCloseLatex",
-      "leanSymbols",
-      "lineWrapping",
-      "indentWithTabs",
-      "theme",
-    ]) {
-      if (!isEqual(cm.options[key], options[key])) {
-        cm.setOption(key as any, options[key]);
+    const cm = cmRef.current;
+    for (const key in options) {
+      const opt = options[key];
+      if (!isEqual(cm.options[key], opt)) {
+        cm.setOption(key as any, opt);
       }
     }
   }
 
-  tab_nothing_selected = (): void => {
-    if (this.cm == null) return;
-    const cursor = this.cm.getDoc().getCursor();
+  function tab_nothing_selected(): void {
+    if (cmRef.current == null) return;
+    const cursor = cmRef.current.getDoc().getCursor();
     if (
       cursor.ch === 0 ||
-      /\s/.test(this.cm.getDoc().getLine(cursor.line)[cursor.ch - 1])
+      /\s/.test(cmRef.current.getDoc().getLine(cursor.line)[cursor.ch - 1])
     ) {
       // whitespace before cursor -- just do normal tab
-      if (this.cm.options.indentWithTabs) {
-        (CodeMirror as any).commands.defaultTab(this.cm);
+      if (cmRef.current.options.indentWithTabs) {
+        (CodeMirror.commands as any).defaultTab(cmRef.current);
       } else {
-        (this.cm as any).tab_as_space();
+        (cmRef.current as any).tab_as_space();
       }
       return;
     }
     // Do completion at cursor.
-    this.complete_at_cursor();
-  };
+    complete_at_cursor();
+  }
 
-  tab_key = (): void => {
-    if (this.cm == null) return;
-    if ((this.cm as any).somethingSelected()) {
-      (CodeMirror as any).commands.defaultTab(this.cm);
+  function tab_key(): void {
+    if (cmRef.current == null) return;
+    if ((cmRef.current as any).somethingSelected()) {
+      (CodeMirror as any).commands.defaultTab(cmRef.current);
     } else {
-      this.tab_nothing_selected();
+      tab_nothing_selected();
     }
-  };
+  }
 
   // Do completion at the current cursor position -- this uses
   // the codemirror plugin, which can be configured with lots of
   // ways of completing -- see "show-hint.js" at
   // https://codemirror.net/doc/manual.html#addons
-  complete_at_cursor = (): void => {
-    if (this.cm == null) return;
-    this.cm.execCommand("autocomplete");
-  };
+  function complete_at_cursor(): void {
+    if (cmRef.current == null) return;
+    cmRef.current.execCommand("autocomplete");
+  }
 
-  render_cursors(): Rendered {
-    if (this.props.cursors != null && this.cm != null && this.state.has_cm) {
+  function render_cursors(): Rendered {
+    if (props.cursors != null && cmRef.current != null && has_cm) {
       // Very important not to render without cm defined, because that renders
       // to static Codemirror instead.
-      return <Cursors cursors={this.props.cursors} codemirror={this.cm} />;
+      return <Cursors cursors={props.cursors} codemirror={cmRef.current} />;
     }
   }
 
-  render_gutter_markers(): Rendered {
-    if (
-      !this.state.has_cm ||
-      this.props.gutter_markers == null ||
-      this.cm == null
-    ) {
+  function render_gutter_markers(): Rendered {
+    if (!has_cm || props.gutter_markers == null || cmRef.current == null) {
       return;
     }
     return (
       <GutterMarkers
-        gutter_markers={this.props.gutter_markers}
-        codemirror={this.cm}
+        gutter_markers={props.gutter_markers}
+        codemirror={cmRef.current}
         set_handle={(id, handle) =>
-          this.props.actions._set_gutter_handle(id, handle)
+          props.actions._set_gutter_handle(id, handle)
         }
       />
     );
   }
 
-  private click_on_path(evt): void {
+  function click_on_path(evt): void {
     if (!evt.shiftKey) return;
-    const project_actions = this.props.actions._get_project_actions();
-    project_actions.open_file({ path: this.props.path, foreground: true });
+    const project_actions = props.actions._get_project_actions();
+    project_actions.open_file({ path: props.path, foreground: true });
   }
 
   // todo: move this render_path to a component in a separate file.
-  render_path(): Rendered {
+  function render_path(): Rendered {
     const style: any = {
       borderBottom: "1px solid lightgrey",
       borderRight: "1px solid lightgrey",
@@ -533,35 +476,36 @@ export class CodemirrorEditor extends Component<Props, State> {
       width: "100%",
       fontSize: "10pt",
     };
-    if (this.props.is_current) {
+    if (props.is_current) {
       style.background = "#337ab7";
       style.color = "white";
     }
-    const ext = filename_extension(this.props.path);
+    const ext = filename_extension(props.path);
     const x = file_associations[ext];
     let icon: any = undefined;
     if (x != null && x.icon != null) {
       icon = <Icon name={x.icon} />;
     }
     return (
-      <div style={style} onClick={this.click_on_path.bind(this)}>
-        {icon} {this.props.path}
+      <div style={style} onClick={click_on_path}>
+        {icon} {props.path}
       </div>
     );
   }
 
-  render(): Rendered {
-    const style = copy(STYLE);
-    style.fontSize = `${this.props.font_size}px`;
-    return (
-      <div className="smc-vfill cocalc-editor-div">
-        {this.render_path()}
-        <div style={style} className="smc-vfill">
-          {this.render_cursors()}
-          {this.render_gutter_markers()}
-          <textarea ref="textarea" style={{ display: "none" }} />
-        </div>
+  return (
+    <div className="smc-vfill cocalc-editor-div" ref={divRef}>
+      {render_path()}
+      <div
+        style={{ ...STYLE, fontSize: `${props.font_size}px` }}
+        className="smc-vfill"
+      >
+        {render_cursors()}
+        {render_gutter_markers()}
+        <textarea ref={textareaRef} style={{ display: "none" }} />
       </div>
-    );
-  }
-}
+    </div>
+  );
+});
+
+CodemirrorEditor.defaultProps = { value: "" };
