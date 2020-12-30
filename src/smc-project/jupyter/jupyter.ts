@@ -31,6 +31,8 @@ export const VERSION = "5.3";
 
 import { EventEmitter } from "events";
 import { exists, unlink } from "./async-utils-node";
+import { createMainChannel } from "enchannel-zmq-backend";
+import { Channels, MessageType } from "@nteract/messaging";
 
 const { do_not_laod_transpilers } = require("../init-program");
 
@@ -223,7 +225,7 @@ export class JupyterKernel
   private _kernel: any;
   private _kernel_info: KernelInfo;
   _execute_code_queue: CodeExecutionEmitter[] = [];
-  _channels: any;
+  public channel?: Channels;
   private has_ensured_running: boolean = false;
 
   constructor(name, _dbg, _path, _actions) {
@@ -363,40 +365,49 @@ export class JupyterKernel
       // no data gets dropped.  See https://github.com/sagemathinc/cocalc/issues/5065
     });
 
-    this._channels = require("enchannel-zmq-backend").createChannels(
-      this.identity,
-      this._kernel.config
+    this.channel = await createMainChannel(
+      this._kernel.config,
+      "",
+      this.identity
     );
 
     if (DEBUG) {
       this.low_level_dbg();
     }
 
-    this._channels.shell.subscribe((mesg) => {
-      this.emit("shell", mesg);
-    });
+    this.channel?.subscribe((mesg) => {
+      switch (mesg.channel) {
+        case "shell":
+          this.emit("shell", mesg);
+          break;
+        case "stdin":
+          this.emit("stdin", mesg);
+          break;
+        case "iopub":
+          if (mesg.content != null && mesg.content.execution_state != null) {
+            this.emit("execution_state", mesg.content.execution_state);
+          }
 
-    this._channels.stdin.subscribe((mesg) => this.emit("stdin", mesg));
+          if (
+            (mesg.content != null ? mesg.content.comm_id : undefined) !==
+            undefined
+          ) {
+            // A comm message, which gets handled directly.
+            this.process_comm_message_from_kernel(mesg);
+            break;
+          }
 
-    this._channels.iopub.subscribe((mesg) => {
-      if (mesg.content != null && mesg.content.execution_state != null) {
-        this.emit("execution_state", mesg.content.execution_state);
+          if (
+            this._actions != null &&
+            this._actions.capture_output_message(mesg)
+          ) {
+            // captured an output message -- do not process further
+            break;
+          }
+
+          this.emit("iopub", mesg);
+          break;
       }
-
-      if (
-        (mesg.content != null ? mesg.content.comm_id : undefined) !== undefined
-      ) {
-        // A comm message, which gets handled directly.
-        this.process_comm_message_from_kernel(mesg);
-        return;
-      }
-
-      if (this._actions != null && this._actions.capture_output_message(mesg)) {
-        // captured an output message -- do not process further
-        return;
-      }
-
-      this.emit("iopub", mesg);
     });
 
     this._kernel.spawn.on("exit", (exit_code, signal) => {
@@ -531,7 +542,7 @@ export class JupyterKernel
         }
       }
       delete this._kernel;
-      delete this._channels;
+      delete this.channel;
     }
     if (this._execute_code_queue != null) {
       for (const code_snippet of this._execute_code_queue) {
@@ -557,14 +568,9 @@ export class JupyterKernel
     const dbg = this.dbg("low_level_debug", 10000);
     this._kernel.spawn.all?.on("data", (data) => dbg("STDIO", data.toString()));
     // for low level debugging only...
-    const f = (channel) => {
-      this._channels[channel].subscribe((mesg) =>
-        dbg(channel, JSON.stringify(mesg))
-      );
-    };
-    for (const channel of ["shell", "iopub", "control", "stdin"]) {
-      f(channel);
-    }
+    this.channel?.subscribe((mesg) => {
+      dbg(JSON.stringify(mesg));
+    });
   }
 
   private async ensure_running(): Promise<void> {
@@ -750,23 +756,27 @@ export class JupyterKernel
       await this.ensure_running();
     }
     // Do a paranoid double check anyways...
-    if (this._channels == null || this._state == "closed") {
+    if (this.channel == null || this._state == "closed") {
       throw Error("not running, so can't call");
     }
 
     const message = {
+      parent_header: {},
+      metadata: {},
+      channel: "shell",
       content,
       header: {
         msg_id: uuid(),
         username: "",
         session: "",
-        msg_type: msg_type,
+        msg_type: msg_type as MessageType,
         version: VERSION,
+        date: new Date().toISOString(),
       },
     };
 
     // Send the message
-    this._channels.shell.next(message);
+    this.channel?.next(message);
 
     // Wait for the response that has the right msg_id.
     let the_mesg: any = undefined;
@@ -900,20 +910,24 @@ export class JupyterKernel
     const dbg = this.dbg("send_comm_message_to_kernel");
 
     const message = {
+      parent_header: {},
+      metadata: {},
+      channel: "shell",
       content: { comm_id, data },
       header: {
         msg_id,
         username: "user",
         session: "",
-        msg_type: "comm_msg",
+        msg_type: "comm_msg" as MessageType,
         version: VERSION,
+        date: new Date().toISOString(),
       },
     };
 
     dbg("sending ", JSON.stringify(message));
     // "The Kernel listens for these messages on the Shell channel,
     // and the Frontend listens for them on the IOPub channel." -- docs
-    this._channels.shell.next(message);
+    this.channel?.next(message);
   }
 }
 
