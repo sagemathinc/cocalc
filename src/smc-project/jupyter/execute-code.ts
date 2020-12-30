@@ -13,6 +13,7 @@ TODO: for easy testing/debugging, at an "async run() : Messages[]" method.
 import { callback, delay } from "awaiting";
 import { EventEmitter } from "events";
 import { JupyterKernel, VERSION } from "./jupyter";
+import { MessageType } from "@nteract/messaging";
 
 import {
   bind_methods,
@@ -60,12 +61,16 @@ export class CodeExecutionEmitter
     this.halt_on_error = !!opts.halt_on_error;
     this.timeout_ms = opts.timeout_ms;
     this._message = {
+      parent_header: {},
+      metadata: {},
+      channel: "shell",
       header: {
         msg_id: `execute_${uuid()}`,
         username: "",
         session: "",
-        msg_type: "execute_request",
+        msg_type: "execute_request" as MessageType,
         version: VERSION,
+        date: new Date().toISOString(),
       },
       content: {
         code: this.code,
@@ -134,20 +139,23 @@ export class CodeExecutionEmitter
     }
     dbg(`STDIN client --> server ${JSON.stringify(response)}`);
     const m = {
+      channel: "stdin",
       parent_header: this._message.header,
+      metadata: {},
       header: {
         msg_id: uuid(), // this._message.header.msg_id
         username: "",
         session: "",
-        msg_type: "input_reply",
+        msg_type: "input_reply" as MessageType,
         version: VERSION,
+        date: new Date().toISOString(),
       },
       content: {
         value: response,
       },
     };
     dbg(`STDIN server --> kernel: ${JSON.stringify(m)}`);
-    this.kernel._channels.stdin.next(m);
+    this.kernel.channel?.next(m);
   }
 
   _handle_shell(mesg: any): void {
@@ -288,7 +296,7 @@ export class CodeExecutionEmitter
     this.kernel.on("iopub", this._handle_iopub);
 
     dbg("send the message to get things rolling");
-    this.kernel._channels.shell.next(this._message);
+    this.kernel.channel?.next(this._message);
 
     this.kernel.on("closed", this.handle_closed);
 

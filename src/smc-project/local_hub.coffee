@@ -299,7 +299,7 @@ start_tcp_server = (secret_token, port, cb) ->
             cb(err)
         else
             winston.info("tcp_server listening 0.0.0.0:#{server.address().port}")
-            fs.writeFile(port_file, server.address().port, cb)
+            fs.writeFile(port_file, server.address().port + "", cb)
 
 # Start listening for connections on the socket.
 start_server = (tcp_port, raw_port, cb) ->
