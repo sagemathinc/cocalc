@@ -989,7 +989,9 @@ export class JupyterActions extends JupyterActions0 {
         maxsize_MB: 50,
       });
     } catch (err) {
-      const error = `Error reading ipynb file '${path}': ${err.toString()}.  Fix this to continue.`;
+      // It would be better to have a button to push instead of suggesting running a
+      // command in the terminal, but adding that took 1 second.
+      const error = `Error reading ipynb file '${path}': ${err.toString()}.  Fix this to continue.  You can delete all output by typing cc-jupyter-no-output [filename].ipybn in a terminal.`;
       this.syncdb.set({ type: "fatal", error });
       throw Error(error);
     }
