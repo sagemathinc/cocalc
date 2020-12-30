@@ -16,7 +16,7 @@ import { Table } from "antd";
 import { PublicPath } from "smc-util/db-schema/public-paths";
 import { trunc_middle } from "smc-util/misc";
 import { webapp_client } from "../../webapp-client";
-import { Loading, TimeAgo } from "../../r_misc";
+import { ErrorDisplay, Loading, TimeAgo } from "../../r_misc";
 
 export const PublicPaths: React.FC = () => {
   const [data, set_data] = useState<PublicPath[] | undefined>(undefined);
@@ -122,16 +122,12 @@ export const PublicPaths: React.FC = () => {
 
   return (
     <div>
-      Public Files
-      {loading}
+      <h2>Public Files</h2>
+      {loading && <Loading />}
       <br />
-      {error}
+      {error != "" && <ErrorDisplay error={error}/>}
       <br />
-      {data == null ? (
-        <Loading />
-      ) : (
-        <Table rowKey="id" columns={COLUMNS} dataSource={data} />
-      )}
+      <Table rowKey="id" columns={COLUMNS} dataSource={data} />
     </div>
   );
 };
