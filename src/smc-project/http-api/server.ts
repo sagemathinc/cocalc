@@ -52,7 +52,7 @@ export async function start_server(opts: ServerOpts): Promise<void> {
 
   if (opts.port_path) {
     dbg(`writing port to file "${opts.port_path}"`);
-    await callback(writeFile, opts.port_path, opts.port);
+    await callback(writeFile, opts.port_path, opts.port+"");
   }
 
   // TODO/RANT: I cannot figure out how to catch an error
