@@ -469,6 +469,8 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     }
     // Workaround a major and annoying bug in Safari:
     //     https://github.com/philipwalton/flexbugs/issues/132
+    // NOTE: **This bug seems to have been fixed in 2018.** It is
+    // definitely not present in the latest version of Safari on macOS...
     return $(ReactDOM.findDOMNode(this))
       .find(".cocalc-editor-div")
       .make_height_defined();
