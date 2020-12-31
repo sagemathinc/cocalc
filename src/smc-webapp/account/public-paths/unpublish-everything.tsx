@@ -40,7 +40,7 @@ export const UnpublishEverything: React.FC<Props> = React.memo(
             {`Are you sure you want to unpublish ALL ${num_published} listed and unlisted ${plural(
               num_published,
               "path"
-            )} published in all projects on which you collaborate?  You cannot easily undo this operation, though you could tediously republish everything.  To unpublish everything type "${goal}" below, then click the button.`}
+            )} published in all projects on which you collaborate and have been active?  You cannot easily undo this operation, though you could tediously republish everything.  To unpublish everything type "${goal}" below, then click the button.`}
           </div>
           <br />
           <br />

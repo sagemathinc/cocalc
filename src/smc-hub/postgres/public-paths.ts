@@ -47,6 +47,6 @@ export async function get_all_public_paths(
   }
   return await query({
     db,
-    query: `SELECT public_paths.id, public_paths.project_id, public_paths.path, public_paths.description, public_paths.disabled, public_paths.unlisted, public_paths.license, public_paths.last_edited, public_paths.created, public_paths.last_saved, public_paths.counter, public_paths.compute_image FROM public_paths, projects WHERE public_paths.project_id = projects.project_id AND projects.last_active ? '${account_id}' ORDER BY public_paths.last_edited DESC`,
+    query: `SELECT public_paths.id, public_paths.project_id, public_paths.path, public_paths.description, public_paths.disabled, public_paths.unlisted, public_paths.license, public_paths.last_edited, public_paths.created, public_paths.last_saved, public_paths.counter, public_paths.compute_image FROM public_paths, projects WHERE public_paths.project_id = projects.project_id AND projects.users ? '${account_id}' AND projects.last_active ? '${account_id}' ORDER BY public_paths.last_edited DESC`,
   });
 }

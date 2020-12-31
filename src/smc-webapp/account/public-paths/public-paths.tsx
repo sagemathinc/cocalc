@@ -191,6 +191,9 @@ export const PublicPaths: React.FC = () => {
         <Space /> <Space /> {loading ? "Loading..." : "Refresh"}
       </Button>
       <h2>Public files ({paths?.length ?? "?"})</h2>
+      Files that have been published in any project that you have actively used.
+      <br />
+      <br />
       {loading && <Loading />}
       {!loading && (
         <Checkbox.Group
