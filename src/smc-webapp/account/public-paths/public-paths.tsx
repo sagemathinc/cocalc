@@ -10,13 +10,19 @@ import {
   useState,
   useEffect,
   useIsMountedRef,
+  useMemo,
   useTypedRedux,
 } from "../../app-framework";
 import { Table } from "antd";
-import { PublicPath } from "smc-util/db-schema/public-paths";
+import { PublicPath as PublicPath0 } from "smc-util/db-schema/public-paths";
 import { trunc_middle } from "smc-util/misc";
 import { webapp_client } from "../../webapp-client";
 import { ErrorDisplay, Loading, TimeAgo } from "../../r_misc";
+import { UnpublishEverything } from "./unpublish-everything";
+
+interface PublicPath extends PublicPath0 {
+  status?: string;
+}
 
 export const PublicPaths: React.FC = () => {
   const [data, set_data] = useState<PublicPath[] | undefined>(undefined);
@@ -25,6 +31,34 @@ export const PublicPaths: React.FC = () => {
   const isMountedRef = useIsMountedRef();
   const project_map = useTypedRedux("projects", "project_map");
   const actions = useActions("projects");
+
+  const paths: {
+    published: PublicPath[];
+    unlisted: PublicPath[];
+    unpublished: PublicPath[];
+  } = useMemo(() => {
+    const published: PublicPath[] = [];
+    const unlisted: PublicPath[] = [];
+    const unpublished: PublicPath[] = [];
+
+    if (data != null) {
+      for (const path of data) {
+        if (path.disabled) {
+          unpublished.push(path);
+          path.status = "Private (disabled)";
+          continue;
+        }
+        if (path.unlisted) {
+          unlisted.push(path);
+          path.status = "Public (unlisted)";
+          continue;
+        }
+        path.status = "Public (listed)";
+        published.push(path);
+      }
+    }
+    return { published, unlisted, unpublished };
+  }, [data]);
 
   const COLUMNS = [
     {
@@ -76,6 +110,11 @@ export const PublicPaths: React.FC = () => {
       key: "last_edited",
       render: (date) => <TimeAgo date={date} />,
     },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+    },
   ];
 
   async function fetch() {
@@ -121,13 +160,16 @@ export const PublicPaths: React.FC = () => {
   }, []);
 
   return (
-    <div>
-      <h2>Public Files</h2>
+    <div style={{ marginBottom: "64px" }}>
+      <h2>Public files</h2>
       {loading && <Loading />}
       <br />
-      {error != "" && <ErrorDisplay error={error}/>}
+      {error != "" && <ErrorDisplay error={error} />}
       <br />
-      <Table rowKey="id" columns={COLUMNS} dataSource={data} />
+      {data != null && (
+        <Table rowKey="id" columns={COLUMNS} dataSource={paths.published} />
+      )}
+      <UnpublishEverything data={data} />
     </div>
   );
 };
