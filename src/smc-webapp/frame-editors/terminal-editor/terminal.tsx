@@ -30,6 +30,7 @@ interface Props {
   terminal: Map<string, any>;
   desc: Map<string, any>;
   resize: number;
+  is_visible: boolean;
 }
 
 const COMMAND_STYLE = {
@@ -46,10 +47,16 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
   const isMountedRef = useIsMountedRef();
 
   useEffect(() => {
-    init_terminal();
-    if (terminalRef.current == null) return;
-    return delete_terminal; // clean up
+    return delete_terminal; // clean up on unmount
   }, []);
+
+  useEffect(() => {
+    // We *only* init the terminal if it is visible
+    // or switches to being visible and was not initialized.
+    // See https://github.com/sagemathinc/cocalc/issues/5133
+    if (terminalRef.current != null || !props.is_visible) return;
+    init_terminal();
+  }, [props.is_visible]);
 
   useEffect(() => {
     // yes, this can change!! -- see https://github.com/sagemathinc/cocalc/issues/3819
@@ -76,6 +83,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
   }
 
   function init_terminal(): void {
+    if (!props.is_visible) return;
     const node: any = ReactDOM.findDOMNode(terminalDOMRef.current);
     if (node == null) {
       throw Error("terminalDOMRef.current MUST be defined");
@@ -83,7 +91,6 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
     try {
       terminalRef.current = props.actions._get_terminal(props.id, node);
     } catch (err) {
-      console.log("init_terminal warning -- ", err);
       return; // not yet ready -- might be ok; will try again.
     }
     if (terminalRef.current == null) return; // should be impossible.
@@ -125,7 +132,16 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
   function render_command(): Rendered {
     const command = props.desc.get("command");
     if (!command) return;
-    const args: string[] = props.desc.get("args") ?? []; // TODO: should quote if args have spaces...
+    const args: string[] = props.desc.get("args") ?? [];
+    // Quote if args have spaces:
+    for (let i = 0; i < args.length; i++) {
+      if (/\s/.test(args[i])) {
+        // has whitespace -- this is not bulletproof, since
+        // args[i] could have a " in it. But this is just for
+        // display purposes, so it doesn't have to be bulletproof.
+        args[i] = `"${args[i]}"`;
+      }
+    }
     return (
       <div style={COMMAND_STYLE}>
         {command} {args.join(" ")}

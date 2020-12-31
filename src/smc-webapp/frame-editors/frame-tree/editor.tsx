@@ -55,6 +55,7 @@ interface FrameTreeEditorReduxProps {
   complete: Map<string, any>;
   derived_file_types: Set<string>;
   available_features: AvailableFeatures;
+  visible?: boolean;
 }
 
 type FrameTreeEditorProps = FrameTreeEditorReactProps &
@@ -108,6 +109,8 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
         complete: rtypes.immutable.Map.isRequired,
 
         derived_file_types: rtypes.immutable.Set,
+
+        visible: rtypes.bool,
       },
       [project_store_name]: {
         available_features: rtypes.immutable.Map,
@@ -149,6 +152,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
         "complete",
         "derived_file_types",
         "available_features",
+        "visible",
       ]) ||
       this.props.editor_settings.get("extra_button_bar") !==
         next.editor_settings.get("extra_button_bar")
@@ -209,6 +213,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           derived_file_types={this.props.derived_file_types}
           available_features={this.props.available_features}
           local_view_state={this.props.local_view_state}
+          is_visible={this.props.visible ?? true}
         />
       </div>
     );

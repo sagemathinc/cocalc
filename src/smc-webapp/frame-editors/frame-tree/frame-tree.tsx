@@ -109,6 +109,7 @@ interface FrameTreeProps {
   derived_file_types: Set<string>;
   available_features: AvailableFeatures;
   local_view_state: Map<string, any>;
+  is_visible: boolean;
 }
 
 interface FrameTreeState {
@@ -155,6 +156,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         "derived_file_types",
         "available_features",
         "local_view_state",
+        "is_visible",
       ])
     );
   }
@@ -191,6 +193,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         derived_file_types={this.props.derived_file_types}
         available_features={this.props.available_features}
         local_view_state={this.props.local_view_state}
+        is_visible={this.props.is_visible}
       />
     );
   }
@@ -315,6 +318,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         reload={this.props.reload.get(type)}
         resize={this.props.resize}
         is_subframe={is_subframe}
+        is_visible={this.props.is_visible}
       />
     );
   }
