@@ -84,7 +84,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private conn?: any;
   private touch_interval: any; // number doesn't work anymore and Timer doesn't exist everywhere... headache. Todo.
 
-  public is_mounted: boolean = false;
+  public is_visible: boolean = false;
   public element: HTMLElement;
 
   private command?: string;
@@ -613,7 +613,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   open_paths(paths: Path[]): void {
-    if (!this.is_mounted) {
+    if (!this.is_visible) {
       return;
     }
     const project_actions = this.actions._get_project_actions();
@@ -644,7 +644,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   close_paths(paths: Path[]): void {
-    if (!this.is_mounted) {
+    if (!this.is_visible) {
       return;
     }
     for (const x of paths) {
