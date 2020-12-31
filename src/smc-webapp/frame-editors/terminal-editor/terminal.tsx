@@ -51,6 +51,9 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
   }, []);
 
   useEffect(() => {
+    if (terminalRef.current != null) {
+      terminalRef.current.is_visible = props.is_visible;
+    }
     // We *only* init the terminal if it is visible
     // or switches to being visible and was not initialized.
     // See https://github.com/sagemathinc/cocalc/issues/5133
@@ -76,7 +79,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
   function delete_terminal(): void {
     if (terminalRef.current == null) return; // already deleted
     terminalRef.current.element?.remove();
-    terminalRef.current.is_mounted = false;
+    terminalRef.current.is_visible = false;
     // Ignore size for this terminal.
     terminalRef.current.conn_write({ cmd: "size", rows: 0, cols: 0 });
     terminalRef.current = undefined;
@@ -94,7 +97,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
       return; // not yet ready -- might be ok; will try again.
     }
     if (terminalRef.current == null) return; // should be impossible.
-    terminalRef.current.is_mounted = true;
+    terminalRef.current.is_visible = true;
     set_font_size();
     measure_size();
     if (props.is_current) {
