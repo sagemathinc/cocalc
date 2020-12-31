@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Checkbox, Table } from "antd";
+import { Button, Checkbox, Table } from "antd";
 import {
   redux,
   React,
@@ -15,22 +15,34 @@ import {
   useTypedRedux,
 } from "../../app-framework";
 import { PublicPath as PublicPath0 } from "smc-util/db-schema/public-paths";
-import { trunc_middle } from "smc-util/misc";
+import { trunc, trunc_middle } from "smc-util/misc";
 import { webapp_client } from "../../webapp-client";
-import { ErrorDisplay, Loading, TimeAgo } from "../../r_misc";
+import { ErrorDisplay, Icon, Loading, Space, TimeAgo } from "../../r_misc";
 import { UnpublishEverything } from "./unpublish-everything";
+import { LICENSES } from "../../share/config/licenses";
 
 interface PublicPath extends PublicPath0 {
   status?: string;
 }
 
+type filters = "Listed" | "Unlisted" | "Unpublished";
+const DEFAULT_CHECKED: filters[] = ["Listed", "Unlisted"];
+
 export const PublicPaths: React.FC = () => {
   const [data, set_data] = useState<PublicPath[] | undefined>(undefined);
   const [error, set_error] = useState<string>("");
   const [loading, set_loading] = useState<boolean>(false);
-  const [show_listed, set_show_listed] = useState<boolean>(true);
-  const [show_unlisted, set_show_unlisted] = useState<boolean>(false);
-  const [show_unpublished, set_show_unpublished] = useState<boolean>(false);
+
+  const [show_listed, set_show_listed] = useState<boolean>(
+    DEFAULT_CHECKED.indexOf("Listed") != -1
+  );
+  const [show_unlisted, set_show_unlisted] = useState<boolean>(
+    DEFAULT_CHECKED.indexOf("Unlisted") != -1
+  );
+  const [show_unpublished, set_show_unpublished] = useState<boolean>(
+    DEFAULT_CHECKED.indexOf("Unpublished") != -1
+  );
+
   const isMountedRef = useIsMountedRef();
   const project_map = useTypedRedux("projects", "project_map");
   const actions = useActions("projects");
@@ -104,13 +116,24 @@ export const PublicPaths: React.FC = () => {
       title: "Description",
       dataIndex: "description",
       key: "description",
-      render: (description) => <span>{trunc_middle(description, 64)}</span>,
+      render: (description) => <span>{trunc(description, 32)}</span>,
     },
     {
       title: "Last edited",
       dataIndex: "last_edited",
       key: "last_edited",
       render: (date) => <TimeAgo date={date} />,
+    },
+    {
+      title: "License",
+      dataIndex: "license",
+      key: "license",
+      render: (license) => trunc_middle(LICENSES[license] ?? "None", 32),
+    },
+    {
+      title: "Counter",
+      dataIndex: "counter",
+      key: "counter",
     },
     {
       title: "Status",
@@ -163,12 +186,16 @@ export const PublicPaths: React.FC = () => {
 
   return (
     <div style={{ marginBottom: "64px" }}>
-      <h2>Public files</h2>
+      <Button onClick={fetch} disabled={loading} style={{ float: "right" }}>
+        <Icon name="redo" />
+        <Space /> <Space /> {loading ? "Loading..." : "Refresh"}
+      </Button>
+      <h2>Public files ({paths?.length ?? "?"})</h2>
       {loading && <Loading />}
       {!loading && (
         <Checkbox.Group
           options={["Listed", "Unlisted", "Unpublished"]}
-          defaultValue={["Listed"]}
+          defaultValue={DEFAULT_CHECKED}
           onChange={(v) => {
             set_show_listed(v.indexOf("Listed") != -1);
             set_show_unlisted(v.indexOf("Unlisted") != -1);
