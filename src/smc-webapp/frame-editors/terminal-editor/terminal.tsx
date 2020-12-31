@@ -94,6 +94,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
       return; // not yet ready -- might be ok; will try again.
     }
     if (terminalRef.current == null) return; // should be impossible.
+    terminalRef.current.is_mounted = true;
     set_font_size();
     measure_size();
     if (props.is_current) {
