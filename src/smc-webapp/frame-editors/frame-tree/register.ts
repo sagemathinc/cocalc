@@ -38,7 +38,7 @@ export function register_file_editor(opts: Register) {
 const reference_count: { [name: string]: number } = {};
 
 // uncomment for debugging
-(window as any).frame_editor_reference_count = reference_count;
+// (window as any).frame_editor_reference_count = reference_count;
 
 function register(
   icon: string | undefined,
