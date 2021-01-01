@@ -47,7 +47,7 @@ collab = require('./postgres/collab')
 {add_license_to_project, remove_license_from_project} = require('./postgres/site-license/add-remove')
 
 {permanently_unlink_all_deleted_projects_of_user} = require('./postgres/delete-projects')
-{unlist_all_public_paths} = require('./postgres/public-paths')
+{get_all_public_paths, unlist_all_public_paths} = require('./postgres/public-paths')
 {get_remember_me} = require('./postgres/remember-me')
 {get_personal_user} = require('./postgres/personal')
 {projects_that_need_to_be_started} = require('./postgres/always-running');
@@ -3163,3 +3163,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # any subscriptions.
     is_paying_customer: (account_id) =>
         return await is_paying_customer(@, account_id)
+
+    # async
+    get_all_public_paths: (account_id) =>
+        return await get_all_public_paths(@, account_id)

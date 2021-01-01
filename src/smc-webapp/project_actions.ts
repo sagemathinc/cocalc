@@ -20,7 +20,7 @@ import {
   is_available as feature_is_available,
 } from "./project_configuration";
 import { query as client_query } from "./frame-editors/generic/client";
-import { callback, delay } from "awaiting";
+import { callback } from "awaiting";
 import { callback2, retry_until_success } from "smc-util/async-utils";
 import { exec } from "./frame-editors/generic/client";
 import { API } from "./project/websocket/api";
@@ -2399,6 +2399,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
     }
     table.set(obj);
+    table.save();
 
     if (log) {
       this.log({
@@ -2755,7 +2756,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) return; // project closed
     const a = store.get("active_project_tab");
     if (!misc.startswith(a, "editor-")) return;
-    await delay(0);
     this.show_file(misc.tab_to_path(a));
   }
 
@@ -2818,5 +2818,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       until: (s) => !s.get("modal") && this.modal == null,
       timeout: 99999,
     });
+  }
+
+  public show_public_config(path: string): void {
+    this.set_current_path(misc.path_split(path).head);
+    this.set_all_files_unchecked();
+    this.set_file_checked(path, true);
+    this.set_file_action("share");
   }
 }
