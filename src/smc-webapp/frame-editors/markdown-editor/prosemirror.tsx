@@ -8,7 +8,8 @@
 /* TODO:
 
 #v0
-- [ ] bug in lists: https://github.com/ProseMirror/prosemirror-markdown/issues/51
+- [ ] bug in lists: #upstream -- https://github.com/ProseMirror/prosemirror-markdown/issues/51
+- [ ] font size/zoom.
 
 #v1
 - [ ] use our undo/redo, not prosemirror's
@@ -17,12 +18,15 @@
 - [ ] unclear -- run prettier to make things more canonical?
 - [ ] show cursors for other users
 - [ ] katex/mathjax rendering (and editing?)
-
+- [ ] forward/inverse search/sync
+- [ ] drag and drop images and file attachments
+- [ ] maintain scroll position and cursor/selection state between sessions.
 */
 
 import { SAVE_DEBOUNCE_MS } from "../code-editor/const";
 import { debounce } from "lodash";
 import { React, ReactDOM, useEffect, useRef } from "../../app-framework";
+
 import { EditorView } from "prosemirror-view";
 import { EditorState } from "prosemirror-state";
 import {
@@ -51,7 +55,11 @@ interface Props {
 
 const plugins = exampleSetup({ schema });
 
-export const ProseMirrorMarkdown: React.FC<Props> = ({ actions, value }) => {
+export const ProseMirrorMarkdown: React.FC<Props> = ({
+  actions,
+  font_size,
+  value,
+}) => {
   const viewRef = useRef<any>(null);
   const divRef = useRef<any>(null);
   const lastSavedValueRef = useRef<string>("");
@@ -110,7 +118,7 @@ export const ProseMirrorMarkdown: React.FC<Props> = ({ actions, value }) => {
 
   return (
     <div
-      style={{ margin: "0 10px", overflowY: "auto" }}
+      style={{ margin: "0 10px", overflowY: "auto", fontSize: font_size }}
       className="smc-vfill"
       ref={divRef}
     ></div>
