@@ -1,0 +1,5 @@
+/* https://stackoverflow.com/questions/2260782/how-do-i-remove-the-border-around-a-focused-contenteditable-pre */
+
+[contenteditable]:focus.ProseMirror {
+    outline: 0px solid transparent;
+}

@@ -22,9 +22,10 @@ import { process_checkboxes } from "../../editors/task-editor/desc-rendering";
 import { apply_without_math } from "smc-util/mathjax-utils-2";
 import { MAX_WIDTH_NUM } from "../options";
 import { EditorState } from "../frame-tree/types";
+import { Actions } from "./actions";
 
 interface Props {
-  actions: any;
+  actions: Actions;
   id: string;
   path: string;
   project_id: string;
