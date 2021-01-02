@@ -120,7 +120,7 @@ export class AuthorInfo {
     if (!is_valid_uuid_string(account_id)) {
       throw Error(`account_id=${account_id} must be a valid uuid string`);
     }
-    const query = `select public_paths.id from public_paths, projects where public_paths.project_id = projects.project_id and projects.last_active ? '${account_id}' and (public_paths.unlisted is null or public_paths.unlisted = false) and (public_paths.disabled is null or public_paths.disabled = false) order by public_paths.last_edited desc`;
+    const query = `SELECT public_paths.id FROM public_paths, projects WHERE public_paths.project_id = projects.project_id AND projects.last_active ? '${account_id}' AND projects.users ? '${account_id}' AND (public_paths.unlisted is null OR public_paths.unlisted = false) AND (public_paths.disabled is null OR public_paths.disabled = false) ORDER BY public_paths.last_edited DESC`;
     const result = await callback2(this.database._query, { query });
     const ids: string[] = [];
     if (result == null) return [];

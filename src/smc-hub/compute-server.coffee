@@ -874,6 +874,9 @@ kill_idle_projects = (cb) ->
     )
 
 init_mintime = (cb) ->
+    if process.env.COCALC_PERSONAL == 'yes'
+       cb()
+       return
     setInterval(kill_idle_projects, 3*60*1000)
     kill_idle_projects(cb)
 

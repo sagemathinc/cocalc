@@ -42,6 +42,12 @@ interface Props {
   reload?: number;
   is_subframe: boolean;
   local_view_state: Map<string, any>;
+  // is_visible: true if the entire frame tree is visible (i.e., the tab is shown);
+  // knowing this can be critical for rendering certain types of editors, e.g.,
+  // see https://github.com/sagemathinc/cocalc/issues/5133 where xterm.js would get
+  // randomly rendered wrong if it was initialized when the div was in the DOM,
+  // but hidden.
+  is_visible: boolean;
 }
 
 interface ReduxProps {
@@ -128,6 +134,7 @@ class FrameTreeLeaf extends Component<Props & ReduxProps> {
         desc={desc}
         available_features={this.props.available_features}
         is_subframe={this.props.is_subframe}
+        is_visible={this.props.is_visible}
       />
     );
   }
