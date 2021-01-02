@@ -9,9 +9,7 @@
 
 */
 
-//import { SAVE_DEBOUNCE_MS } from "../code-editor/const";
-//import { debounce } from "lodash";
-import { SAVE_DEBOUNCE_MS } from "../code-editor/const";
+import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
 import { debounce } from "lodash";
 import {
   React,
@@ -19,10 +17,12 @@ import {
   useMemo,
   useRef,
   useState,
-} from "../../app-framework";
-import { Actions } from "./actions";
+} from "../../../app-framework";
+import { Actions } from "../actions";
 import { Node, createEditor } from "slate";
 import { Slate, Editable, withReact } from "slate-react";
+import { slate_to_markdown } from "./slate-to-markdown";
+import { markdown_to_slate } from "./markdown-to-slate";
 
 interface Props {
   actions: Actions;
@@ -79,16 +79,3 @@ export const EditableMarkdown: React.FC<Props> = ({
     </div>
   );
 };
-
-function slate_to_markdown(data: Node[]): string {
-  return (data[0]?.children as any)[0]?.text ?? "";
-}
-
-function markdown_to_slate(text): Node[] {
-  return [
-    {
-      type: "paragraph",
-      children: [{ text }],
-    },
-  ];
-}

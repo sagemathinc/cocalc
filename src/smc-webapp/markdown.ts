@@ -30,7 +30,7 @@ const OPTIONS: MarkdownIt.Options = {
   linkify: true,
 };
 
-const markdown_it = new MarkdownIt(OPTIONS);
+export const markdown_it = new MarkdownIt(OPTIONS);
 
 /*
 Inject line numbers for sync.
