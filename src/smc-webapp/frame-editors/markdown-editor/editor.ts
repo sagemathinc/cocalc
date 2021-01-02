@@ -9,6 +9,7 @@ Top-level react component for editing markdown documents
 
 import { createEditor } from "../frame-tree/editor";
 import { RenderedMarkdown } from "./rendered-markdown";
+import { EditableMarkdown } from "./editable-markdown";
 import { set } from "smc-util/misc";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { SETTINGS_SPEC } from "../settings/editor";
@@ -53,6 +54,28 @@ const EDITOR_SPEC = {
       "redo",
     ]),
   },
+  editable: {
+    short: "Editable",
+    name: "Editable (experimental)",
+    icon: "pen",
+    component: EditableMarkdown,
+    buttons: set([
+      "print",
+      "decrease_font_size",
+      "increase_font_size",
+      "save",
+      "time_travel",
+      "replace",
+      "find",
+      "goto_line",
+      "cut",
+      "paste",
+      "copy",
+      "undo",
+      "redo",
+      "format",
+    ]),
+  },
   terminal,
   settings: SETTINGS_SPEC,
   time_travel,
@@ -63,18 +86,3 @@ export const Editor = createEditor({
   editor_spec: EDITOR_SPEC,
   display_name: "MarkdownEditor",
 });
-
-/*
-    prosemirror :
-        short     : 'Editable'
-        name      : 'Editable view'
-        icon      : 'compass'
-        component : ProseMirror
-        buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel'])
-    content_editable :
-        short     : 'Content'
-        name      : 'ContentEditable (test)'
-        icon      : 'crosshairs'
-        component : ContentEditable
-        buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel'])
-*/

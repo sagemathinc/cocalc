@@ -1,0 +1,94 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// Component that allows WYSIWYG editing of markdown.
+
+/* TODO:
+
+*/
+
+//import { SAVE_DEBOUNCE_MS } from "../code-editor/const";
+//import { debounce } from "lodash";
+import { SAVE_DEBOUNCE_MS } from "../code-editor/const";
+import { debounce } from "lodash";
+import {
+  React,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "../../app-framework";
+import { Actions } from "./actions";
+import { Node, createEditor } from "slate";
+import { Slate, Editable, withReact } from "slate-react";
+
+interface Props {
+  actions: Actions;
+  id: string;
+  path: string;
+  project_id: string;
+  font_size: number;
+  read_only: boolean;
+  value: string;
+  reload_images: boolean;
+}
+
+export const EditableMarkdown: React.FC<Props> = ({
+  actions,
+  font_size,
+  value,
+}) => {
+  const editor = useMemo(() => withReact(createEditor()), []);
+  const lastSavedValueRef = useRef<string>();
+  const [editor_value, setEditorValue] = useState<Node[]>([]);
+
+  // We don't want to do save_value too much, since it presumably can be slow,
+  // especially if the document is large. By debouncing, we only do this when
+  // the user pauses typing for a moment. Also, this avoids making too many commits.
+  const save_value = debounce((slate) => {
+    const new_value: string = slate_to_markdown(slate);
+    lastSavedValueRef.current = new_value;
+    actions.set_value(new_value);
+  }, SAVE_DEBOUNCE_MS);
+
+  useEffect(() => {
+    if (value === lastSavedValueRef.current) {
+      // Setting to the value we just saved -- no-op
+      return;
+    }
+    setEditorValue(markdown_to_slate(value));
+  }, [value]);
+
+  return (
+    <div
+      style={{ margin: "0 10px", overflowY: "auto", fontSize: font_size }}
+      className="smc-vfill"
+    >
+      <Slate
+        editor={editor}
+        value={editor_value}
+        onChange={(new_value) => {
+          setEditorValue(new_value);
+          save_value(new_value);
+        }}
+      >
+        <Editable />
+      </Slate>
+    </div>
+  );
+};
+
+function slate_to_markdown(data: Node[]): string {
+  return (data[0]?.children as any)[0]?.text ?? "";
+}
+
+function markdown_to_slate(text): Node[] {
+  return [
+    {
+      type: "paragraph",
+      children: [{ text }],
+    },
+  ];
+}
