@@ -10,6 +10,8 @@
 #v0
 - [ ] bug in lists: #upstream -- https://github.com/ProseMirror/prosemirror-markdown/issues/51
 - [ ] font size/zoom.
+- [ ] command+s to save when prosemirror window is focused.
+- [ ] an about page (crediting prosemirror; explaining pros and cons, etc.)
 
 #v1
 - [ ] use our undo/redo, not prosemirror's
