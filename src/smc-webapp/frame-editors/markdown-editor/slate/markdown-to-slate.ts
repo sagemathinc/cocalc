@@ -5,7 +5,7 @@
 
 import { Node } from "slate";
 import { markdown_it } from "../../../markdown";
-import { endswith } from "smc-util/misc";
+import { dict, endswith } from "smc-util/misc";
 
 type State = { [key: string]: any };
 
@@ -48,7 +48,11 @@ function parse(token, state: State, level: number = 0): Node[] {
         const type = state.close_type.slice(0, i);
         state.close_type = null;
         state.contents = null;
-        return [{ type, tag: token.tag, children }];
+        const node: Node = { type, tag: token.tag, children };
+        if (state.attrs != null) {
+          node.attrs = dict(state.attrs);
+        }
+        return [node];
       }
     }
 
@@ -64,6 +68,7 @@ function parse(token, state: State, level: number = 0): Node[] {
     state.close_type = token.type.slice(0, i) + "_close";
     state.open_type = token.type;
     state.nesting = 0;
+    state.attrs = token.attrs;
     return [];
   }
 

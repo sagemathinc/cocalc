@@ -23,6 +23,7 @@ import { Node, createEditor } from "slate";
 import { Slate, Editable, withReact } from "slate-react";
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
+import { renderElement} from "./render-element";
 
 interface Props {
   actions: Actions;
@@ -33,31 +34,6 @@ interface Props {
   read_only: boolean;
   value: string;
   reload_images: boolean;
-}
-
-function renderElement(props): JSX.Element {
-  if (props.element.tag) {
-    // We use some extra classes for certain tags so things just look better.
-    let className: undefined | string = undefined;
-    if (props.element.tag == "table") {
-      className = "table";
-    }
-    return React.createElement(
-      props.element.tag,
-      { ...props.attributes, ...{ className } },
-      props.children
-    );
-  }
-  switch (props.element.type) {
-    case "html_inline":
-      return (
-        <code {...props.attributes} style={{ color: "#666" }}>
-          {props.children}
-        </code>
-      );
-    default:
-      return <p {...props.attributes}>{props.children}</p>;
-  }
 }
 
 export const EditableMarkdown: React.FC<Props> = ({
