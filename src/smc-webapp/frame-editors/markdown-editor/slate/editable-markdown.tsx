@@ -12,6 +12,7 @@
 import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
 import { debounce } from "lodash";
 import {
+  CSS,
   React,
   useEffect,
   useMemo,
@@ -23,7 +24,17 @@ import { Node, createEditor } from "slate";
 import { Slate, Editable, withReact } from "slate-react";
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
-import { renderElement} from "./render-element";
+import { renderElement } from "./render-element";
+import { MAX_WIDTH_NUM } from "../../options";
+import { use_font_size_scaling } from "../../frame-tree/hooks";
+
+const STYLE = {
+  overflowY: "auto",
+  width: "100%",
+  margin: "10px auto",
+  padding: "0px 10px",
+  border: "1px solid lightgrey",
+} as CSS;
 
 interface Props {
   actions: Actions;
@@ -44,6 +55,7 @@ export const EditableMarkdown: React.FC<Props> = ({
   const editor = useMemo(() => withReact(createEditor()), []);
   const lastSavedValueRef = useRef<string>();
   const [editor_value, setEditorValue] = useState<Node[]>([]);
+  const scaling = use_font_size_scaling(font_size);
 
   // We don't want to do save_value too much, since it presumably can be slow,
   // especially if the document is large. By debouncing, we only do this when
@@ -69,12 +81,9 @@ export const EditableMarkdown: React.FC<Props> = ({
   return (
     <div
       style={{
-        overflowY: "auto",
+        ...STYLE,
         fontSize: font_size,
-        width: "100%",
-        maxWidth: "900px",
-        margin: "10px auto",
-        padding: "0px 10px",
+        maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
       }}
       className="smc-vfill"
     >
