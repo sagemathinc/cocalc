@@ -35,6 +35,31 @@ interface Props {
   reload_images: boolean;
 }
 
+function renderElement(props): JSX.Element {
+  if (props.element.tag) {
+    // We use some extra classes for certain tags so things just look better.
+    let className: undefined | string = undefined;
+    if (props.element.tag == "table") {
+      className = "table";
+    }
+    return React.createElement(
+      props.element.tag,
+      { ...props.attributes, ...{ className } },
+      props.children
+    );
+  }
+  switch (props.element.type) {
+    case "html_inline":
+      return (
+        <code {...props.attributes} style={{ color: "#666" }}>
+          {props.children}
+        </code>
+      );
+    default:
+      return <p {...props.attributes}>{props.children}</p>;
+  }
+}
+
 export const EditableMarkdown: React.FC<Props> = ({
   actions,
   font_size,
@@ -47,11 +72,15 @@ export const EditableMarkdown: React.FC<Props> = ({
   // We don't want to do save_value too much, since it presumably can be slow,
   // especially if the document is large. By debouncing, we only do this when
   // the user pauses typing for a moment. Also, this avoids making too many commits.
-  const save_value = debounce((slate) => {
-    const new_value: string = slate_to_markdown(slate);
-    lastSavedValueRef.current = new_value;
-    actions.set_value(new_value);
-  }, SAVE_DEBOUNCE_MS);
+  const save_value = useMemo(
+    () =>
+      debounce((doc) => {
+        const new_value: string = slate_to_markdown(doc);
+        lastSavedValueRef.current = new_value;
+        actions.set_value(new_value);
+      }, SAVE_DEBOUNCE_MS),
+    []
+  );
 
   useEffect(() => {
     if (value === lastSavedValueRef.current) {
@@ -63,7 +92,14 @@ export const EditableMarkdown: React.FC<Props> = ({
 
   return (
     <div
-      style={{ margin: "0 10px", overflowY: "auto", fontSize: font_size }}
+      style={{
+        overflowY: "auto",
+        fontSize: font_size,
+        width: "100%",
+        maxWidth: "900px",
+        margin: "10px auto",
+        padding: "0px 10px",
+      }}
       className="smc-vfill"
     >
       <Slate
@@ -74,7 +110,7 @@ export const EditableMarkdown: React.FC<Props> = ({
           save_value(new_value);
         }}
       >
-        <Editable />
+        <Editable renderElement={renderElement} />
       </Slate>
     </div>
   );
