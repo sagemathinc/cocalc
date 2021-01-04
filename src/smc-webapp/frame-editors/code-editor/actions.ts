@@ -1049,7 +1049,7 @@ export class Actions<
       return;
     }
     const omit_lines: SetMap = {};
-    const cursors = this._syncstring.get_cursors();
+    const cursors = this._syncstring.get_cursors?.(); // there are situations where get_cursors isn't defined (seen this).
     if (cursors) {
       cursors.map((user, _) => {
         const locs = user.get("locs");
