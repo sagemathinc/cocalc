@@ -2,12 +2,11 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-import { escape } from "html-escaper";
 import { Node, Text } from "slate";
 
 function serialize(node: Node, info?: { parent: Node; index?: number }) {
   if (Text.isText(node)) {
-    let text = escape(node.text);
+    let text = node.text;
     if (node.bold) {
       text = `**${text}**`;
     }

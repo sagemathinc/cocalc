@@ -5,7 +5,7 @@
 
 import { Node } from "slate";
 import { markdown_it } from "../../../markdown";
-import { dict, endswith } from "smc-util/misc";
+import { capitalize, dict, endswith } from "smc-util/misc";
 
 interface Token {
   hidden?: boolean;
@@ -110,7 +110,11 @@ function parse(token: Token, state: State, level: number = 0): Node[] {
 
         const node: Node = { type, tag: token.tag, children };
         if (state.attrs != null) {
-          node.attrs = dict(state.attrs as any);
+          const a: any = dict(state.attrs as any);
+          if (a.style != null) {
+            a.style = string_to_style(a.style as any);
+          }
+          state.attrs = a;
         }
         return [node];
       }
@@ -192,4 +196,19 @@ export function markdown_to_slate(text): Node[] {
   console.log("markdown_to_slate", (window as any).x);
 
   return doc;
+}
+
+function string_to_style(style: string): any {
+  const obj: any = {};
+  for (const x of style.split(";")) {
+    const j = x.indexOf("=");
+    if (j == -1) continue;
+    let key = x.slice(0, j);
+    const i = key.indexOf("-");
+    if (i != -1) {
+      key = x.slice(0, i) + capitalize(x.slice(i + 1));
+    }
+    obj[key] = x.slice(j + 1);
+  }
+  return obj;
 }

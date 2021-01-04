@@ -32,9 +32,10 @@ import { Element, Leaf } from "./render";
 const STYLE = {
   overflowY: "auto",
   width: "100%",
-  margin: "10px auto",
-  padding: "0px 10px",
+  margin: "0 auto",
+  padding: "50px 75px",
   border: "1px solid lightgrey",
+  background: "white",
 } as CSS;
 
 interface Props {
@@ -80,24 +81,26 @@ export const EditableMarkdown: React.FC<Props> = ({
   }, [value]);
 
   return (
-    <div
-      style={{
-        ...STYLE,
-        fontSize: font_size,
-        maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
-      }}
-      className="smc-vfill"
-    >
-      <Slate
-        editor={editor}
-        value={editor_value}
-        onChange={(new_value) => {
-          setEditorValue(new_value);
-          save_value(new_value);
+    <div className="smc-vfill" style={{ backgroundColor: "#eee" }}>
+      <div
+        style={{
+          ...STYLE,
+          fontSize: font_size,
+          maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
         }}
+        className="smc-vfill"
       >
-        <Editable renderElement={Element} renderLeaf={Leaf} />
-      </Slate>
+        <Slate
+          editor={editor}
+          value={editor_value}
+          onChange={(new_value) => {
+            setEditorValue(new_value);
+            save_value(new_value);
+          }}
+        >
+          <Editable renderElement={Element} renderLeaf={Leaf} />
+        </Slate>
+      </div>
     </div>
   );
 };

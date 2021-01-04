@@ -139,8 +139,10 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
   const style_inner: CSS = {
     ...{
       maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
-      margin: "10px auto",
-      padding: "0 10px",
+      margin: "0 auto",
+      padding: "50px 75px",
+      backgroundColor: "white",
+      border: "1px solid lightgrey",
     },
     ...{
       // transform: scale() and transformOrigin: "0 0" or "center 0"
@@ -150,25 +152,27 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
   };
 
   return (
-    <div
-      style={style}
-      ref={scroll}
-      onScroll={throttle(() => on_scroll(), 250)}
-      onClick={(e) => on_click(e)}
-      /* this cocalc-editor-div class is needed for a safari hack only */
-      className={"cocalc-editor-div"}
-    >
-      <div style={style_inner}>
-        <Markdown
-          line_numbers={true}
-          onDoubleClick={goto_source_line}
-          value={value_md}
-          project_id={project_id}
-          file_path={path_split(path).head}
-          safeHTML={true}
-          reload_images={reload_images}
-          highlight_code={true}
-        />
+    <div className="smc-vfill" style={{ backgroundColor: "#eee" }}>
+      <div
+        style={style}
+        ref={scroll}
+        onScroll={throttle(() => on_scroll(), 250)}
+        onClick={(e) => on_click(e)}
+        /* this cocalc-editor-div class is needed for a safari hack only */
+        className={"cocalc-editor-div"}
+      >
+        <div style={style_inner}>
+          <Markdown
+            line_numbers={true}
+            onDoubleClick={goto_source_line}
+            value={value_md}
+            project_id={project_id}
+            file_path={path_split(path).head}
+            safeHTML={true}
+            reload_images={reload_images}
+            highlight_code={true}
+          />
+        </div>
       </div>
     </div>
   );
