@@ -22,11 +22,12 @@ import {
 import { Actions } from "../actions";
 import { Node, createEditor } from "slate";
 import { Slate, Editable, withReact } from "slate-react";
-import { slate_to_markdown } from "./slate-to-markdown";
-import { markdown_to_slate } from "./markdown-to-slate";
-import { renderElement } from "./render-element";
 import { MAX_WIDTH_NUM } from "../../options";
 import { use_font_size_scaling } from "../../frame-tree/hooks";
+
+import { slate_to_markdown } from "./slate-to-markdown";
+import { markdown_to_slate } from "./markdown-to-slate";
+import { Element, Leaf } from "./render";
 
 const STYLE = {
   overflowY: "auto",
@@ -95,7 +96,7 @@ export const EditableMarkdown: React.FC<Props> = ({
           save_value(new_value);
         }}
       >
-        <Editable renderElement={renderElement} />
+        <Editable renderElement={Element} renderLeaf={Leaf} />
       </Slate>
     </div>
   );

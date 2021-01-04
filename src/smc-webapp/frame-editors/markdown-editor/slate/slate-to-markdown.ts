@@ -7,7 +7,20 @@ import { Node, Text } from "slate";
 
 function serialize(node: Node, info?: { parent: Node; index?: number }) {
   if (Text.isText(node)) {
-    return escape(node.text);
+    let text = escape(node.text);
+    if (node.bold) {
+      text = `**${text}**`;
+    }
+    if (node.italic) {
+      text = `_${text}_`;
+    }
+    if (node.underline) {
+      text = `<u>${text}</u>`;
+    }
+    if (node.strikethrough) {
+      text = `~~${text}~~`;
+    }
+    return text;
   }
 
   switch (node.type) {
@@ -25,8 +38,6 @@ function serialize(node: Node, info?: { parent: Node; index?: number }) {
     .join("");
 
   switch (node.type) {
-    case "strong":
-      return `**${children}**`;
     case "list_item":
       if (info?.parent == null) {
         return `- ${children}`;
@@ -53,5 +64,6 @@ function serialize(node: Node, info?: { parent: Node; index?: number }) {
 export function slate_to_markdown(data: Node[]): string {
   const r = serialize({ children: data });
   console.log("slate_to_markdown", { data, r });
+  (window as any).y = { doc: { ...data }, r };
   return r;
 }
