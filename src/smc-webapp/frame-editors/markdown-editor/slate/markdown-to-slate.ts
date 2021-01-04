@@ -5,7 +5,9 @@
 
 import { Node } from "slate";
 import { markdown_it } from "../../../markdown";
-import { capitalize, dict, endswith } from "smc-util/misc";
+import { capitalize, dict, endswith, startswith } from "smc-util/misc";
+import { math_escape } from "smc-util/markdown-utils";
+import { remove_math } from "smc-util/mathjax-utils"; // from project Jupyter
 
 interface Token {
   hidden?: boolean;
@@ -33,10 +35,34 @@ interface State {
   attrs?: string[][];
 }
 
-function parse(token: Token, state: State, level: number = 0): Node[] {
+function parse(
+  token: Token,
+  state: State,
+  level: number,
+  math: string[]
+): Node[] {
   if (token.hidden) {
     // See https://markdown-it.github.io/markdown-it/#Token.prototype.hidden
     return [];
+  }
+
+  // Handle code
+  if (token.type == "code_inline" && token.tag == "code") {
+    if (
+      startswith(token.content, MATH_ESCAPE) &&
+      endswith(token.content, MATH_ESCAPE)
+    ) {
+      // we encode math as escaped code in markdown, since the markdown parser
+      // and latex are not compatible, but the markdown process can process math fine..
+      return [math_node(token.content, math)];
+    }
+    // inline code
+    return [{ text: token.content, code: true }];
+  }
+
+  if (token.type == "fence" && token.tag == "code") {
+    // block of code
+    return [{ type: "code", tag: "code", children: [{ text: token.content }] }];
   }
 
   if (token.type == "html_inline") {
@@ -94,21 +120,23 @@ function parse(token: Token, state: State, level: number = 0): Node[] {
         const children: Node[] = [];
         let is_empty = true;
         for (const token2 of state.contents) {
-          for (const node of parse(token2, child_state, level + 1)) {
+          for (const node of parse(token2, child_state, level + 1, math)) {
             is_empty = false;
             children.push(node);
           }
         }
         if (is_empty) {
-          // it is illegal for the children to be empty (breaks slatejs).
+          // it is illegal for the children to be empty.
           children.push({ text: "" });
         }
         const i = state.close_type.lastIndexOf("_");
         const type = state.close_type.slice(0, i);
         delete state.close_type;
         delete state.contents;
-
-        const node: Node = { type, tag: token.tag, children };
+        const node: Node = { type, children };
+        if (token.tag && token.tag != "p") {
+          node.tag = token.tag;
+        }
         if (state.attrs != null) {
           const a: any = dict(state.attrs as any);
           if (a.style != null) {
@@ -141,7 +169,7 @@ function parse(token: Token, state: State, level: number = 0): Node[] {
     const child_state: State = { marks: { ...state.marks }, nesting: 0 };
     const children: Node[] = [];
     for (const token2 of token.children) {
-      for (const node of parse(token2, child_state, level + 1)) {
+      for (const node of parse(token2, child_state, level + 1, math)) {
         children.push(node);
       }
     }
@@ -153,6 +181,7 @@ function parse(token: Token, state: State, level: number = 0): Node[] {
     case "inline":
       return [mark({ text: token.content }, state.marks)];
     case "html_inline":
+      // something else
       return [
         {
           type: "html_inline",
@@ -181,18 +210,28 @@ function mark(text: Node, marks: Marks): Node {
   return text;
 }
 
-export function markdown_to_slate(text): Node[] {
-  (window as any).x = { text, markdown_it };
+const MATH_ESCAPE = "\uFE22\uFE23\uFE24\uFE25\uFE26"; // unused unicode
+
+export function markdown_to_slate(markdown): Node[] {
+  (window as any).x = { markdown, markdown_it };
 
   const doc: Node[] = [];
   const state: State = { marks: {}, nesting: 0 };
   const obj: any = {};
+  const [text, math] = remove_math(
+    math_escape(markdown),
+    "`" + MATH_ESCAPE,
+    MATH_ESCAPE + "`"
+  );
+
   for (const token of markdown_it.parse(text, obj)) {
-    for (const node of parse(token, state)) {
+    for (const node of parse(token, state, 0, math)) {
       doc.push(node);
     }
   }
   (window as any).x.doc = doc;
+  (window as any).x.math = math;
+  (window as any).x.text = text;
   console.log("markdown_to_slate", (window as any).x);
 
   return doc;
@@ -211,4 +250,11 @@ function string_to_style(style: string): any {
     obj[key] = x.slice(j + 1);
   }
   return obj;
+}
+
+function math_node(content: string, math: string[]): Node {
+  const i = MATH_ESCAPE.length;
+  const n = parseInt(content.slice(i, content.length - i));
+  const value = math[n] ?? "?"; // if not defined (so ?) there is a bug in the parser...
+  return { type: "math", value, children: [{ text: value }] };
 }

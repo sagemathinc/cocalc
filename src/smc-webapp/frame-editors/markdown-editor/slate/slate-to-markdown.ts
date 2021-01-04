@@ -4,7 +4,10 @@
  */
 import { Node, Text } from "slate";
 
-function serialize(node: Node, info?: { parent: Node; index?: number }) {
+function serialize(
+  node: Node,
+  info?: { parent: Node; index?: number }
+): string {
   if (Text.isText(node)) {
     let text = node.text;
     if (node.bold) {
@@ -54,7 +57,9 @@ function serialize(node: Node, info?: { parent: Node; index?: number }) {
       }
       return `${h} ${children}\n\n`;
     case "paragraph":
-      return `${children}\n`;
+      return `${children}\n\n`;
+    case "math":
+      return children;
     default:
       return `${children}\n`;
   }

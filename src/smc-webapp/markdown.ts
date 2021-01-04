@@ -17,7 +17,7 @@ import * as MarkdownIt from "markdown-it";
 const MarkdownItFrontMatter = require("markdown-it-front-matter");
 import * as misc from "smc-util/misc";
 import { math_escape, math_unescape } from "smc-util/markdown-utils";
-const { remove_math, replace_math } = require("smc-util/mathjax-utils"); // from project Jupyter
+import { remove_math, replace_math } from "smc-util/mathjax-utils"; // from project Jupyter
 
 const checkboxes = function (s) {
   s = misc.replace_all(s, "[ ]", "☐");

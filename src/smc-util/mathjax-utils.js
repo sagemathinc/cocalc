@@ -14,28 +14,28 @@
 
 // MATHSPLIT contains the pattern for math delimiters and special symbols
 // needed for searching for math in the text input.
-var MATHSPLIT = /(\$\$?|\\(?:begin|end)\{[a-z]*\*?\}|\\[{}$]|[{}]|(?:\n\s*)+|@@\d+@@|\\\\(?:\(|\)|\[|\]))/i;
+const MATHSPLIT = /(\$\$?|\\(?:begin|end)\{[a-z]*\*?\}|\\[{}$]|[{}]|(?:\n\s*)+|@@\d+@@|\\\\(?:\(|\)|\[|\]))/i;
 
-regex_split = require("./regex-split").regex_split;
+import { regex_split } from "./regex-split";
 
 //  The math is in blocks i through j, so
 //    collect it into one block and clear the others.
 //  Clear the current math positions and store the index of the
 //    math, then push the math string onto the storage array.
 //  The preProcess function is called on all blocks if it has been passed in
-var process_math = function (i, j, pre_process, math, blocks) {
-  var block = blocks.slice(i, j + 1).join("");
+function process_math(i, j, pre_process, math, blocks, open_tag, close_tag) {
+  let block = blocks.slice(i, j + 1).join("");
   while (j > i) {
     blocks[j] = "";
     j--;
   }
-  blocks[i] = "@@" + math.length + "@@"; // replace the current block text with a unique tag to find later
+  blocks[i] = open_tag + math.length + close_tag; // replace the current block text with a unique tag to find later
   if (pre_process) {
     block = pre_process(block);
   }
   math.push(block);
   return blocks;
-};
+}
 
 //  Break up the text into its component parts and search
 //    through them for math delimiters, braces, linebreaks, etc.
@@ -43,12 +43,12 @@ var process_math = function (i, j, pre_process, math, blocks) {
 //  Don't allow math to pass through a double linebreak
 //    (which will be a paragraph).
 //
-exports.remove_math = function (text) {
-  var math = []; // stores math strings for later
-  var start;
-  var end;
-  var last;
-  var braces;
+export function remove_math(text, open_tag = "@@", close_tag = "@@") {
+  let math = []; // stores math strings for later
+  let start;
+  let end;
+  let last;
+  let braces;
 
   // Except for extreme edge cases, this should catch precisely those pieces of the markdown
   // source that will later be turned into code spans. While MathJax will not TeXify code spans,
@@ -56,7 +56,7 @@ exports.remove_math = function (text) {
   //
   //     `$foo` and `$bar` are variables.  -->  <code>$foo ` and `$bar</code> are variables.
 
-  var hasCodeSpans = /`/.test(text),
+  let hasCodeSpans = /`/.test(text),
     de_tilde;
   if (hasCodeSpans) {
     text = text
@@ -96,7 +96,15 @@ exports.remove_math = function (text) {
         if (braces) {
           last = i;
         } else {
-          blocks = process_math(start, i, de_tilde, math, blocks);
+          blocks = process_math(
+            start,
+            i,
+            de_tilde,
+            math,
+            blocks,
+            open_tag,
+            close_tag
+          );
           start = null;
           end = null;
           last = null;
@@ -104,7 +112,15 @@ exports.remove_math = function (text) {
       } else if (block.match(/\n.*\n/)) {
         if (last) {
           i = last;
-          blocks = process_math(start, i, de_tilde, math, blocks);
+          blocks = process_math(
+            start,
+            i,
+            de_tilde,
+            math,
+            blocks,
+            open_tag,
+            close_tag
+          );
         }
         start = null;
         end = null;
@@ -136,21 +152,29 @@ exports.remove_math = function (text) {
     }
   }
   if (last) {
-    blocks = process_math(start, last, de_tilde, math, blocks);
+    blocks = process_math(
+      start,
+      last,
+      de_tilde,
+      math,
+      blocks,
+      open_tag,
+      close_tag
+    );
     start = null;
     end = null;
     last = null;
   }
   return [de_tilde(blocks.join("")), math];
-};
+}
 
 //
 //  Put back the math strings that were saved.
 //
-exports.replace_math = function (text, math) {
+export function replace_math(text, math) {
   // Replace all the math group placeholders in the text
   // with the saved strings.
   return text.replace(/@@(\d+)@@/g, function (match, n) {
     return math[n];
   });
-};
+}

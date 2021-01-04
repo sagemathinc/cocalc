@@ -54,7 +54,7 @@ export const EditableMarkdown: React.FC<Props> = ({
   font_size,
   value,
 }) => {
-  const editor = useMemo(() => withReact(createEditor()), []);
+  const editor = useMemo(() => withMath(withReact(createEditor())), []);
   const lastSavedValueRef = useRef<string>();
   const [editor_value, setEditorValue] = useState<Node[]>([]);
   const scaling = use_font_size_scaling(font_size);
@@ -103,4 +103,14 @@ export const EditableMarkdown: React.FC<Props> = ({
       </div>
     </div>
   );
+};
+
+const withMath = (editor) => {
+  const { isVoid } = editor;
+
+  editor.isVoid = (element) => {
+    return element.type == "math" ? true : isVoid(element);
+  };
+
+  return editor;
 };
