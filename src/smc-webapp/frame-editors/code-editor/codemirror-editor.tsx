@@ -86,9 +86,12 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     init_codemirror(props);
     return () => {
       // clean up because unmounting.
-      if (cmRef.current != null && props.is_public == null) {
+      if (cmRef.current != null && !props.is_public) {
         save_editor_state();
-        save_syncstring();
+        // We can't just use save_syncstring(), since if this is
+        // the last editor, then editor_actions()._cm may already be empty.
+        editor_actions()?.set_value(cmRef.current.getValue());
+        editor_actions()?.syncstring_commit();
         cm_destroy();
       }
     };

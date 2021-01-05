@@ -962,7 +962,7 @@ f = open('example.csv', 'rt')
 try:
     reader = csv.reader(f)
     for row in reader:
-        print row
+        print(row)
 finally:
     f.close()\
 `,
@@ -981,7 +981,7 @@ try:
 finally:
     f.close()
 
-print open('example.csv', 'rt').read()\
+print(open('example.csv', 'rt').read())\
 `,
     },
     dict: {
@@ -996,56 +996,56 @@ print open('example.csv', 'rt').read()\
     forloop: {
       insert: `\
 for i in range(5):
-    print i\
+    print(i)\
 `,
     },
     forlistloop: {
       insert: `\
 l = [1, 2, 5, 8, 10]
 for i in l:
-    print i\
+    print(i)\
 `,
     },
     forelseloop: {
       insert: `\
 for k in [1, 2, 5, 10]:
     if k == 3:
-        print "found k, returning"
+        print("found k, returning")
         break
 else:
-    print "Haven't found k == 3"\
+    print("Haven't found k == 3")\
 `,
     },
     whileloop: {
       insert: `\
 n = 0
 while n < 5:
-    print n
+    print(n)
     n += 1\
 `,
     },
     if: {
       insert: `\
 if i == 1:
-    print 'i equals 1'\
+    print('i equals 1')\
 `,
     },
     ifelse: {
       insert: `\
 if i == 1:
-    print 'i equals 1'
+    print('i equals 1')
 else:
-    print 'i is not 1'\
+    print('i is not 1')\
 `,
     },
     cases: {
       insert: `\
 if i == 0:
-    print "i is zero"
+    print("i is zero")
 elif i == 1:
-    print "i is one"
+    print("i is one")
 else:
-    print "i is neither zero or one"\
+    print("i is neither zero or one")\
 `,
     },
     function: {
@@ -2133,8 +2133,8 @@ const initialize_sage_python_r_toolbar = function () {
       ["Properties"],
       ["Length", "#len"],
       ["CSV"],
-      ["Read CSV file", "#read_csv_file"],
       ["Write CSV file", "#write_csv_file"],
+      ["Read CSV file", "#read_csv_file"],
     ],
   ];
   add_menu(pybar, py_control);
