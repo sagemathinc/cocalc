@@ -25,6 +25,19 @@ export const Element: React.FC<RenderElementProps> = ({
     );
   }
   switch (element.type) {
+    case "hr":
+      // See https://css-tricks.com/examples/hrs/ for the cool style...
+      return (
+        <hr
+          {...attributes}
+          style={{
+            border: 0,
+            height: "1px",
+            background: "#333",
+            backgroundImage: "linear-gradient(to right, #ccc, #333, #ccc)",
+          }}
+        />
+      );
     case "html_inline":
       return (
         <code {...attributes} {...element.attrs} style={{ color: "#666" }}>

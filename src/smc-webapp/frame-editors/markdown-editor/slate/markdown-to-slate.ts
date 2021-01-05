@@ -192,6 +192,8 @@ function parse(
       return [{ text: "\n" }];
     case "hardbreak": // TODO: I don't know how to represent this in slatejs.
       return [{ text: "\n" }];
+    case "hr":
+      return [{ type: "hr", children: [{ text: "" }] }];
     default:
       return [mark({ text: token.content }, state.marks)];
   }

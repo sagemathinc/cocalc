@@ -60,6 +60,8 @@ function serialize(
       return `${children}\n\n`;
     case "math":
       return children;
+    case "hr":
+      return "---\n\n";
     default:
       return `${children}\n`;
   }

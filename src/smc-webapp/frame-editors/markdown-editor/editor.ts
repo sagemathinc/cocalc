@@ -56,7 +56,7 @@ const EDITOR_SPEC = {
   },
   editable: {
     short: "Editable",
-    name: "Editable (experimental)",
+    name: "Editable Markdown",
     icon: "pen",
     component: EditableMarkdown,
     buttons: set([
