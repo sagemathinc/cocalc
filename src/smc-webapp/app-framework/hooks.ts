@@ -8,7 +8,14 @@
 declare const window: any;
 
 import { delay } from "awaiting";
-export { useState, useEffect, useMemo, useRef, useLayoutEffect } from "react";
+export {
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useLayoutEffect,
+} from "react";
 import { useAsyncEffect } from "use-async-effect";
 export { useAsyncEffect };
 export { useSelector } from "react-redux";
