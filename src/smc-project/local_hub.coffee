@@ -241,7 +241,7 @@ handle_mesg = (socket, mesg, handler) ->
 
 ###
 Use exports.client object below to work with the local_hub
-interactively for debugging purposes when developing SMC in an SMC project.
+interactively for debugging purposes when developing CoCalc in an CoCalc project.
 
 1. Cd to the directory of the project, e.g.,
     /projects/45f4aab5-7698-4ac8-9f63-9fd307401ad7/smc/src/data/projects/f821cc2a-a6a2-4c3d-89a7-bcc6de780ebb
@@ -403,6 +403,9 @@ if program.kucalc
 else
     winston.debug("NOT running in kucalc")
     kucalc.IN_KUCALC = false
+
+if process.env.COCALC_PROJECT_AUTORENICE? or program.kucalc
+    autorenice.activate(process.env.COCALC_PROJECT_AUTORENICE)
 
 set_extra_env()
 
