@@ -184,6 +184,7 @@ function parse(
       // something else
       return [
         {
+          isVoid: true,
           type: "html_inline",
           children: [{ text: token.content }],
         },
@@ -193,7 +194,7 @@ function parse(
     case "hardbreak": // TODO: I don't know how to represent this in slatejs.
       return [{ text: "\n" }];
     case "hr":
-      return [{ type: "hr", children: [{ text: "" }] }];
+      return [{ type: "hr", isVoid: true, children: [{ text: "" }] }];
     default:
       return [mark({ text: token.content }, state.marks)];
   }
@@ -258,5 +259,5 @@ function math_node(content: string, math: string[]): Node {
   const i = MATH_ESCAPE.length;
   const n = parseInt(content.slice(i, content.length - i));
   const value = math[n] ?? "?"; // if not defined (so ?) there is a bug in the parser...
-  return { type: "math", value, children: [{ text: value }] };
+  return { type: "math", value, isVoid: true, children: [{ text: value }] };
 }

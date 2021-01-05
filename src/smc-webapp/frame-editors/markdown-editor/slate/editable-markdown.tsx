@@ -5,9 +5,8 @@
 
 // Component that allows WYSIWYG editing of markdown.
 
-/* TODO:
-
-*/
+import { Node, createEditor } from "slate";
+import { Slate, Editable, withReact } from "slate-react";
 
 import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
 import { debounce } from "lodash";
@@ -21,8 +20,7 @@ import {
   useState,
 } from "../../../app-framework";
 import { Actions } from "../actions";
-import { Node, createEditor } from "slate";
-import { Slate, Editable, withReact } from "slate-react";
+
 import { MAX_WIDTH_NUM } from "../../options";
 import { use_font_size_scaling } from "../../frame-tree/hooks";
 
@@ -54,7 +52,7 @@ export const EditableMarkdown: React.FC<Props> = ({
   font_size,
   value,
 }) => {
-  const editor = useMemo(() => withMath(withReact(createEditor())), []);
+  const editor = useMemo(() => withIsVoid(withReact(createEditor())), []);
 
   // TODO: DEBUGGING
   (window as any).ed = { editor };
@@ -133,11 +131,11 @@ export const EditableMarkdown: React.FC<Props> = ({
   );
 };
 
-const withMath = (editor) => {
+const withIsVoid = (editor) => {
   const { isVoid } = editor;
 
   editor.isVoid = (element) => {
-    return element.type == "math" ? true : isVoid(element);
+    return element.isVoid != null ? element.isVoid : isVoid(element);
   };
 
   return editor;
