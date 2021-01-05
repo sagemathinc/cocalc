@@ -247,7 +247,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     styleActiveLineRef.current = options.styleActiveLine;
     options.styleActiveLine = false;
 
-    if (props.is_public) {
+    if (props.is_public || props.read_only) {
       options.readOnly = true;
     }
 
@@ -396,7 +396,9 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     for (const key in options) {
       const opt = options[key];
       if (!isEqual(cm.options[key], opt)) {
-        cm.setOption(key as any, opt);
+        if (opt != null) {
+          cm.setOption(key as any, opt);
+        }
       }
     }
   }
