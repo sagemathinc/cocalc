@@ -55,16 +55,26 @@ export const EditableMarkdown: React.FC<Props> = ({
   value,
 }) => {
   const editor = useMemo(() => withMath(withReact(createEditor())), []);
-  const lastSavedValueRef = useRef<string>(value);
-  const [editor_value, setEditorValue] = useState<Node[]>(
+
+  // TODO: DEBUGGING
+  (window as any).ed = { editor };
+
+  const editorMarkdownValue = useRef<string | undefined>(undefined);
+  const [editor_value, setEditorValue] = useState<Node[]>(() =>
     markdown_to_slate(value)
   );
   const scaling = use_font_size_scaling(font_size);
 
-  const save_value = useCallback((doc) => {
-    const new_value: string = slate_to_markdown(doc);
-    lastSavedValueRef.current = new_value;
-    actions.set_value(new_value);
+  const editor_markdown_value = useCallback(() => {
+    if (editorMarkdownValue.current != null) {
+      return editorMarkdownValue.current;
+    }
+    editorMarkdownValue.current = slate_to_markdown(editor.children);
+    return editorMarkdownValue.current;
+  }, []);
+
+  const save_value = useCallback(() => {
+    actions.set_value(editor_markdown_value());
     actions.ensure_syncstring_is_saved();
   }, []);
 
@@ -77,10 +87,11 @@ export const EditableMarkdown: React.FC<Props> = ({
   );
 
   useEffect(() => {
-    if (value === lastSavedValueRef.current) {
-      // Setting to the value we just saved -- no-op
+    if (value == editorMarkdownValue.current) {
+      // Setting to current value, so no-op.
       return;
     }
+    editorMarkdownValue.current = value;
     setEditorValue(markdown_to_slate(value));
   }, [value]);
 
@@ -102,7 +113,8 @@ export const EditableMarkdown: React.FC<Props> = ({
           onChange={(new_value) => {
             scroll_hack();
             setEditorValue(new_value);
-            save_value_debounce(new_value);
+            save_value_debounce();
+            editorMarkdownValue.current = undefined; // markdown value now not known.
           }}
         >
           <Editable
@@ -112,7 +124,7 @@ export const EditableMarkdown: React.FC<Props> = ({
               // save immediately rather than waiting for the debounced save_value.
               // This is important since the user might edit the codemirror instance
               // immediately before the debounced save_value happens.
-              save_value(editor_value);
+              save_value();
             }}
           />
         </Slate>
