@@ -1381,6 +1381,15 @@ export class Actions<
     }
   }
 
+  public set_value(value: string, do_not_exit_undo_mode?: boolean): void {
+    if (this._state === "closed") return;
+    const cm = this._get_cm();
+    if (cm != null) {
+      cm.setValueNoJump(value);
+    }
+    this.set_syncstring(value, do_not_exit_undo_mode);
+  }
+
   set_syncstring_to_codemirror(
     id?: string,
     do_not_exit_undo_mode?: boolean
