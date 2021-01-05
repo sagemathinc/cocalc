@@ -14,7 +14,7 @@
 
 // MATHSPLIT contains the pattern for math delimiters and special symbols
 // needed for searching for math in the text input.
-const MATHSPLIT = /(\$\$?|\\(?:begin|end)\{[a-z]*\*?\}|\\[{}$]|[{}]|(?:\n\s*)+|@@\d+@@|\\\\(?:\(|\)|\[|\]))/i;
+const MATHSPLIT = /(\$\$?|\\(?:begin|end)\{[a-z]*\*?\}|\\[{}$]|[{}]|(?:\n\s*)+|\uFE32\uFE33\d+\uFE32\uFE33|\\\\(?:\(|\)|\[|\]))/i;
 
 import { regex_split } from "./regex-split";
 
@@ -43,7 +43,15 @@ function process_math(i, j, pre_process, math, blocks, open_tag, close_tag) {
 //  Don't allow math to pass through a double linebreak
 //    (which will be a paragraph).
 //
-export function remove_math(text, open_tag = "@@", close_tag = "@@") {
+
+// Do *NOT* conflict with the ones used in ./markdown-utils.ts
+export const MATH_ESCAPE = "\uFE32\uFE33"; // unused unicode -- hardcoded below too
+
+export function remove_math(
+  text,
+  open_tag = MATH_ESCAPE,
+  close_tag = MATH_ESCAPE
+) {
   let math = []; // stores math strings for later
   let start;
   let end;
@@ -75,18 +83,11 @@ export function remove_math(text, open_tag = "@@", close_tag = "@@") {
     };
   }
 
-  var blocks = regex_split(text.replace(/\r\n?/g, "\n"), MATHSPLIT);
+  let blocks = regex_split(text.replace(/\r\n?/g, "\n"), MATHSPLIT);
 
-  for (var i = 1, m = blocks.length; i < m; i += 2) {
-    var block = blocks[i];
-    if (block.charAt(0) === "@") {
-      //
-      //  Things that look like our math markers will get
-      //  stored and then retrieved along with the math.
-      //
-      blocks[i] = "@@" + math.length + "@@";
-      math.push(block);
-    } else if (start) {
+  for (let i = 1, m = blocks.length; i < m; i += 2) {
+    const block = blocks[i];
+    if (start) {
       //
       //  If we are in math, look for the end delimiter,
       //    but don't go past double line breaks, and
@@ -96,15 +97,7 @@ export function remove_math(text, open_tag = "@@", close_tag = "@@") {
         if (braces) {
           last = i;
         } else {
-          blocks = process_math(
-            start,
-            i,
-            de_tilde,
-            math,
-            blocks,
-            open_tag,
-            close_tag
-          );
+          blocks = process_math(start, i, de_tilde, math, blocks, open_tag, close_tag);
           start = null;
           end = null;
           last = null;
@@ -112,15 +105,7 @@ export function remove_math(text, open_tag = "@@", close_tag = "@@") {
       } else if (block.match(/\n.*\n/)) {
         if (last) {
           i = last;
-          blocks = process_math(
-            start,
-            i,
-            de_tilde,
-            math,
-            blocks,
-            open_tag,
-            close_tag
-          );
+          blocks = process_math(start, i, de_tilde, math, blocks, open_tag, close_tag);
         }
         start = null;
         end = null;
@@ -152,15 +137,7 @@ export function remove_math(text, open_tag = "@@", close_tag = "@@") {
     }
   }
   if (last) {
-    blocks = process_math(
-      start,
-      last,
-      de_tilde,
-      math,
-      blocks,
-      open_tag,
-      close_tag
-    );
+    blocks = process_math(start, last, de_tilde, math, blocks, open_tag, close_tag);
     start = null;
     end = null;
     last = null;
@@ -174,7 +151,7 @@ export function remove_math(text, open_tag = "@@", close_tag = "@@") {
 export function replace_math(text, math) {
   // Replace all the math group placeholders in the text
   // with the saved strings.
-  return text.replace(/@@(\d+)@@/g, function (match, n) {
+  return text.replace(/\uFE32\uFE33(\d+)\uFE32\uFE33/g, function (match, n) {
     return math[n];
   });
 }

@@ -55,11 +55,12 @@ export const Element: React.FC<RenderElementProps> = ({
         </span>
       );
     case "math":
+      console.log("rendering math as html with value ", element.value);
       return (
-        <p {...attributes}>
+        <span {...attributes}>
           <HTML auto_render_math={true} value={element.value as string} />
           {children}
-        </p>
+        </span>
       );
     default:
       return (

@@ -13,7 +13,7 @@
 // (https://daringfireball.net/projects/markdown/syntax#backslash),
 // and breaks things.  So we remove them first.
 
-const { replace_all } = require("./misc");
+import { replace_all } from "./misc";
 
 const escape_map = "$()[]";
 const unescape_map =

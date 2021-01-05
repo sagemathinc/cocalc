@@ -3,11 +3,25 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Node } from "slate";
+import { Node, Text } from "slate";
 import { markdown_it } from "../../../markdown";
-import { capitalize, dict, endswith, startswith } from "smc-util/misc";
-import { math_escape } from "smc-util/markdown-utils";
-import { remove_math } from "smc-util/mathjax-utils"; // from project Jupyter
+import {
+  capitalize,
+  dict,
+  endswith,
+  replace_all,
+  startswith,
+} from "smc-util/misc";
+import { math_escape, math_unescape } from "smc-util/markdown-utils";
+import { remove_math, MATH_ESCAPE } from "smc-util/mathjax-utils";
+
+function replace_math(text, math) {
+  // Replace all the math group placeholders in the text
+  // with the saved strings.
+  return text.replace(/`\uFE32\uFE33(\d+)\uFE32\uFE33`/g, function (_, n) {
+    return math[n];
+  });
+}
 
 interface Token {
   hidden?: boolean;
@@ -41,6 +55,10 @@ function parse(
   level: number,
   math: string[]
 ): Node[] {
+  if (token.content != null) {
+    token.content = math_unescape(token.content);
+  }
+  // console.log("parse", JSON.stringify({ token, state, level, math }));
   if (token.hidden) {
     // See https://markdown-it.github.io/markdown-it/#Token.prototype.hidden
     return [];
@@ -53,7 +71,7 @@ function parse(
       endswith(token.content, MATH_ESCAPE)
     ) {
       // we encode math as escaped code in markdown, since the markdown parser
-      // and latex are not compatible, but the markdown process can process math fine..
+      // and latex are not compatible, but the markdown process can process code fine..
       return [math_node(token.content, math)];
     }
     // inline code
@@ -190,7 +208,7 @@ function parse(
           isInline: token.type == "html_inline",
           isVoid: true,
           type: token.type,
-          html: token.content,
+          html: replace_math(token.content, math),
           children: [{ text: "" }],
         },
       ];
@@ -205,11 +223,15 @@ function parse(
   }
 }
 
-function mark(text: Node, marks: Marks): Node {
+function mark(text: Text, marks: Marks): Node {
   if (!text.text) {
     // don't mark empty string
     return text;
   }
+
+  // unescape dollar signs (in markdown we have to escape them so they aren't interpreted as math).
+  text.text = replace_all(text.text, "\\$", "$");
+
   for (const mark in marks) {
     if (marks[mark]) {
       text[mark] = true;
@@ -218,10 +240,14 @@ function mark(text: Node, marks: Marks): Node {
   return text;
 }
 
-const MATH_ESCAPE = "\uFE22\uFE23\uFE24\uFE25\uFE26"; // unused unicode
-
 export function markdown_to_slate(markdown): Node[] {
-  (window as any).x = { markdown, markdown_it };
+  (window as any).x = {
+    markdown,
+    markdown_it,
+    remove_math,
+    math_escape,
+    markdown_to_slate,
+  };
 
   const doc: Node[] = [];
   const state: State = { marks: {}, nesting: 0 };
@@ -264,5 +290,11 @@ function math_node(content: string, math: string[]): Node {
   const i = MATH_ESCAPE.length;
   const n = parseInt(content.slice(i, content.length - i));
   const value = math[n] ?? "?"; // if not defined (so ?) there is a bug in the parser...
-  return { type: "math", value, isVoid: true, children: [{ text: value }] };
+  return {
+    type: "math",
+    value,
+    isVoid: true,
+    isInline: true,
+    children: [{ text: "" }],
+  };
 }

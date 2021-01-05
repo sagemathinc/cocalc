@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 import { Node, Text } from "slate";
+import { replace_all } from "smc-util/misc";
 
 function serialize(
   node: Node,
@@ -11,6 +12,7 @@ function serialize(
   console.log(Text.isText(node), node);
   if (Text.isText(node)) {
     let text = node.text;
+    text = replace_all(text, "$", "\\$");
     if (node.bold) {
       text = `**${text}**`;
     }
