@@ -1902,6 +1902,10 @@ export class Actions<
   async ensure_latest_changes_are_saved(): Promise<boolean> {
     this.set_status("Ensuring your latest changes are saved...");
     this.set_syncstring_to_codemirror();
+    return await this.ensure_syncstring_is_saved();
+  }
+
+  async ensure_syncstring_is_saved(): Promise<boolean> {
     try {
       await this._syncstring.save();
       return true;
