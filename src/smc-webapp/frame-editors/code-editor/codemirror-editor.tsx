@@ -86,9 +86,12 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     init_codemirror(props);
     return () => {
       // clean up because unmounting.
-      if (cmRef.current != null && props.is_public == null) {
+      if (cmRef.current != null && !props.is_public) {
         save_editor_state();
-        save_syncstring();
+        // We can't just use save_syncstring(), since if this is
+        // the last editor, then editor_actions()._cm may already be empty.
+        editor_actions()?.set_value(cmRef.current.getValue());
+        editor_actions()?.syncstring_commit();
         cm_destroy();
       }
     };
@@ -244,7 +247,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     styleActiveLineRef.current = options.styleActiveLine;
     options.styleActiveLine = false;
 
-    if (props.is_public) {
+    if (props.is_public || props.read_only) {
       options.readOnly = true;
     }
 
@@ -364,6 +367,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
       if (styleActiveLineRef.current && cmRef.current) {
         cmRef.current.setOption("styleActiveLine" as any, false);
       }
+      save_syncstring();
     });
 
     cmRef.current.on("cursorActivity", () => {
@@ -392,7 +396,9 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     for (const key in options) {
       const opt = options[key];
       if (!isEqual(cm.options[key], opt)) {
-        cm.setOption(key as any, opt);
+        if (opt != null) {
+          cm.setOption(key as any, opt);
+        }
       }
     }
   }

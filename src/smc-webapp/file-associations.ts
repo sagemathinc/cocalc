@@ -46,6 +46,7 @@ const codemirror_associations: { [ext: string]: string } = {
   hs: "text/x-haskell",
   lhs: "text/x-haskell",
   html: "htmlmixed",
+  init: "shell",
   java: "text/x-java",
   jl: "text/x-julia",
   js: "javascript",

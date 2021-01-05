@@ -327,6 +327,7 @@ export class CellList extends Component<CellListProps> {
     index: number
   ): Rendered {
     const cell = this.props.cells.get(id);
+    if (cell == null) return;
     return (
       <Cell
         key={id}
