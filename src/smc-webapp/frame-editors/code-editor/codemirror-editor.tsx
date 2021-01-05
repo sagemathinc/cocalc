@@ -367,6 +367,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
       if (styleActiveLineRef.current && cmRef.current) {
         cmRef.current.setOption("styleActiveLine" as any, false);
       }
+      save_syncstring();
     });
 
     cmRef.current.on("cursorActivity", () => {
