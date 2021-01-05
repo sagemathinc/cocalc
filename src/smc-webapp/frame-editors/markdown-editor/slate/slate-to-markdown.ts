@@ -8,6 +8,7 @@ function serialize(
   node: Node,
   info?: { parent: Node; index?: number }
 ): string {
+  console.log(Text.isText(node), node);
   if (Text.isText(node)) {
     let text = node.text;
     if (node.bold) {
@@ -62,6 +63,10 @@ function serialize(
       return children;
     case "hr":
       return "---\n\n";
+    case "html_block":
+      return node.html as string;
+    case "html_inline":
+      return node.html as string;
     default:
       return `${children}\n`;
   }

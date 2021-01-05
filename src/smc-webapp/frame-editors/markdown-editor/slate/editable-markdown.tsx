@@ -52,7 +52,10 @@ export const EditableMarkdown: React.FC<Props> = ({
   font_size,
   value,
 }) => {
-  const editor = useMemo(() => withIsVoid(withReact(createEditor())), []);
+  const editor = useMemo(
+    () => withIsInline(withIsVoid(withReact(createEditor()))),
+    []
+  );
 
   // TODO: DEBUGGING
   (window as any).ed = { editor };
@@ -136,6 +139,16 @@ const withIsVoid = (editor) => {
 
   editor.isVoid = (element) => {
     return element.isVoid != null ? element.isVoid : isVoid(element);
+  };
+
+  return editor;
+};
+
+const withIsInline = (editor) => {
+  const { isInline } = editor;
+
+  editor.isInline = (element) => {
+    return element.isInline != null ? element.isInline : isInline(element);
   };
 
   return editor;

@@ -66,8 +66,10 @@ function parse(
   }
 
   if (token.type == "html_inline") {
+    // special case for underlining, which markdown doesn't have.
     switch (token.content.toLowerCase()) {
       case "<u>":
+        // Special case of underlining.
         state.marks.underline = true;
         return [];
       case "</u>":
@@ -180,13 +182,16 @@ function parse(
   switch (token.type) {
     case "inline":
       return [mark({ text: token.content }, state.marks)];
+    case "html_block":
     case "html_inline":
       // something else
       return [
         {
+          isInline: token.type == "html_inline",
           isVoid: true,
-          type: "html_inline",
-          children: [{ text: token.content }],
+          type: token.type,
+          html: token.content,
+          children: [{ text: "" }],
         },
       ];
     case "softbreak":

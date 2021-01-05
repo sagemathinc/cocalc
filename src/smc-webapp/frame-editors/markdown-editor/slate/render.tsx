@@ -40,11 +40,19 @@ export const Element: React.FC<RenderElementProps> = ({
           {children}
         </div>
       );
+    case "html_block":
+      return (
+        <span {...attributes}>
+          <HTML auto_render_math={true} value={element.html as string} />
+          {children}
+        </span>
+      );
     case "html_inline":
       return (
-        <code {...attributes} {...element.attrs} style={{ color: "#a00" }}>
+        <span {...attributes}>
+          <code style={{ color: "#a00" }}>{element.html as string}</code>
           {children}
-        </code>
+        </span>
       );
     case "math":
       return (
