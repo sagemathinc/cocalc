@@ -62,7 +62,7 @@ function serialize(
     case "paragraph":
       return `${children}\n\n`;
     case "math":
-      return children;
+      return node.value as string;
     case "hr":
       return "---\n\n";
     case "html_block":

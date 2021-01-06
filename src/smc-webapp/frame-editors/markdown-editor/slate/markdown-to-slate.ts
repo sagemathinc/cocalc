@@ -252,6 +252,14 @@ export function markdown_to_slate(markdown): Node[] {
   const doc: Node[] = [];
   const state: State = { marks: {}, nesting: 0 };
   const obj: any = {};
+
+  // Any math edited with our editor gets canonicalized
+  // to use $'s instead of various other ways of delineating
+  // mathematics.
+  markdown = replace_all(markdown, "\\[", "$$");
+  markdown = replace_all(markdown, "\\]", "$$");
+  markdown = replace_all(markdown, "\\(", "$");
+  markdown = replace_all(markdown, "\\)", "$");
   const [text, math] = remove_math(
     math_escape(markdown),
     "`" + MATH_ESCAPE,

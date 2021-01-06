@@ -14,7 +14,8 @@
 
 // MATHSPLIT contains the pattern for math delimiters and special symbols
 // needed for searching for math in the text input.
-const MATHSPLIT = /(\$\$?|\\(?:begin|end)\{[a-z]*\*?\}|\\[{}$]|[{}]|(?:\n\s*)+|\uFE32\uFE33\d+\uFE32\uFE33|\\\\(?:\(|\)|\[|\]))/i;
+
+const MATHSPLIT = /(\$\$?|\\(?:begin|end)\{[a-z]*\*?\}|(?:\n\s*)+|\\(?:\(|\)|\[|\]))/i;
 
 import { regex_split } from "./regex-split";
 
@@ -97,7 +98,15 @@ export function remove_math(
         if (braces) {
           last = i;
         } else {
-          blocks = process_math(start, i, de_tilde, math, blocks, open_tag, close_tag);
+          blocks = process_math(
+            start,
+            i,
+            de_tilde,
+            math,
+            blocks,
+            open_tag,
+            close_tag
+          );
           start = null;
           end = null;
           last = null;
@@ -105,7 +114,15 @@ export function remove_math(
       } else if (block.match(/\n.*\n/)) {
         if (last) {
           i = last;
-          blocks = process_math(start, i, de_tilde, math, blocks, open_tag, close_tag);
+          blocks = process_math(
+            start,
+            i,
+            de_tilde,
+            math,
+            blocks,
+            open_tag,
+            close_tag
+          );
         }
         start = null;
         end = null;
@@ -137,7 +154,15 @@ export function remove_math(
     }
   }
   if (last) {
-    blocks = process_math(start, last, de_tilde, math, blocks, open_tag, close_tag);
+    blocks = process_math(
+      start,
+      last,
+      de_tilde,
+      math,
+      blocks,
+      open_tag,
+      close_tag
+    );
     start = null;
     end = null;
     last = null;
