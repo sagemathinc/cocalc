@@ -398,8 +398,6 @@ if program.kucalc
 
     if program.test_firewall
         kucalc.init_gce_firewall_test(winston)
-
-    autorenice.activate()
 else
     winston.debug("NOT running in kucalc")
     kucalc.IN_KUCALC = false
