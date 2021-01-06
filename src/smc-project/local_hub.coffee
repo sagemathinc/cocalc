@@ -98,6 +98,9 @@ jupyter_manager = require('./jupyter_manager')
 # Saving blobs to a hub
 blobs = require('./blobs')
 
+# Tame processes if they use a lot of CPU
+autorenice = require('./autorenice')
+
 # Client for connecting back to a hub
 {Client} = require('./client')
 
@@ -238,7 +241,7 @@ handle_mesg = (socket, mesg, handler) ->
 
 ###
 Use exports.client object below to work with the local_hub
-interactively for debugging purposes when developing SMC in an SMC project.
+interactively for debugging purposes when developing CoCalc in an CoCalc project.
 
 1. Cd to the directory of the project, e.g.,
     /projects/45f4aab5-7698-4ac8-9f63-9fd307401ad7/smc/src/data/projects/f821cc2a-a6a2-4c3d-89a7-bcc6de780ebb
@@ -325,7 +328,7 @@ start_server = (tcp_port, raw_port, cb) ->
                 cb         : cb
         (cb) ->
             if program.kucalc
-                # not needed, since in kucalc supervisord manages processes.
+                # not needed in kucalc
                 cb()
                 return
             # This is also written by forever; however, by writing it directly it's also possible
@@ -398,6 +401,9 @@ if program.kucalc
 else
     winston.debug("NOT running in kucalc")
     kucalc.IN_KUCALC = false
+
+if process.env.COCALC_PROJECT_AUTORENICE? or program.kucalc
+    autorenice.activate(process.env.COCALC_PROJECT_AUTORENICE)
 
 set_extra_env()
 
