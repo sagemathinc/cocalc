@@ -51,6 +51,7 @@ interface Props {
 export const EditableMarkdown: React.FC<Props> = ({
   actions,
   font_size,
+  read_only,
   value,
 }) => {
   const editor = useMemo(
@@ -177,6 +178,7 @@ export const EditableMarkdown: React.FC<Props> = ({
           }}
         >
           <Editable
+            readOnly={read_only}
             renderElement={Element}
             renderLeaf={Leaf}
             onBlur={() => {
