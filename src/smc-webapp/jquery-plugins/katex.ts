@@ -36,6 +36,10 @@ $.fn.katex = function () {
 
 const math_cache = new LRU({ max: CACHE_SIZE });
 
+function get_key(text: string, display?: boolean): string {
+  return `${display ? "d" : "i"}${text}`;
+}
+
 function is_macro_definition(s: string): boolean {
   for (const k of ["\\newcommand", "\\renewcommand", "\\providecommand"]) {
     if (s.indexOf(k) != -1) return true;
@@ -70,7 +74,8 @@ function katex_plugin(): void {
         trust: true,
       } as KatexOptions; // cast required due to macros not being in the typescript def file yet.
       let text = node.text();
-      const cached: any = math_cache.get(text);
+      const key: string = get_key(text, katex_options.displayMode);
+      const cached: any = math_cache.get(key);
       if (cached !== undefined) {
         node.replaceWith(cached.clone());
         return;
@@ -84,9 +89,9 @@ function katex_plugin(): void {
         const j = text.indexOf("}");
         if (i != -1 && j != -1) {
           const cmd = text.slice(i + 1, j);
-          math_cache.forEach(function (_, key) {
-            if ((key as string).indexOf(cmd) != -1) {
-              math_cache.del(key);
+          math_cache.forEach(function (_, k) {
+            if ((k as string).indexOf(cmd) != -1) {
+              math_cache.del(k);
             }
           });
         }
@@ -96,7 +101,7 @@ function katex_plugin(): void {
           node0.mathjax({
             cb: () => {
               // prev since mathjax puts the rendered content NEXT to the script node0, not inside it (of course).
-              math_cache.set(text, node0.prev().clone());
+              math_cache.set(key, node0.prev().clone());
             },
           });
         }
@@ -105,7 +110,7 @@ function katex_plugin(): void {
         try {
           const rendered = $(renderToString(text, katex_options));
           node.replaceWith(rendered);
-          math_cache.set(text, rendered.clone());
+          math_cache.set(key, rendered.clone());
         } catch (err) {
           // Failed -- use mathjax instead.
           console.log(
@@ -120,7 +125,7 @@ function katex_plugin(): void {
             node0.mathjax({
               cb: () => {
                 // prev since mathjax puts the rendered content NEXT to the script node0, not inside it (of course).
-                math_cache.set(text, node0.prev().clone());
+                math_cache.set(key, node0.prev().clone());
               },
             });
           }
