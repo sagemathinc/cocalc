@@ -22,6 +22,7 @@ import * as LRU from "lru-cache";
 
 import { macros } from "./math-katex";
 import { redux } from "../app-framework";
+import { is_share_server } from "../r_misc/share-server";
 
 declare global {
   interface JQuery {
@@ -81,7 +82,10 @@ function katex_plugin(): void {
         return;
       }
       text = text.replace("\\newcommand{\\Bold}[1]{\\mathbf{#1}}", ""); // hack for sage kernel for now.
-      if (always_use_mathjax || is_macro_definition(text)) {
+      if (
+        (always_use_mathjax || is_macro_definition(text)) &&
+        !is_share_server()
+      ) {
         //console.log("using mathjax for text since is a macro defn", text);
         // Use mathjax for this.
         // 1. clear anything in cache involving the command
@@ -112,6 +116,14 @@ function katex_plugin(): void {
           node.replaceWith(rendered);
           math_cache.set(key, rendered.clone());
         } catch (err) {
+          if (is_share_server()) {
+            node.replaceWith(
+              $(
+                "<div style='text-align: center;color: red;'>(Share server only supports KaTeX; open in CoCalc to see this formula.)</div>"
+              )
+            );
+            return;
+          }
           // Failed -- use mathjax instead.
           console.log(
             "WARNING -- ",
