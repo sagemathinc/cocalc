@@ -3,16 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 import { Node, Text } from "slate";
-import { replace_all } from "smc-util/misc";
+import { markdown_escape } from "./util";
 
 function serialize(
   node: Node,
   info?: { parent: Node; index?: number }
 ): string {
-  console.log(Text.isText(node), node);
   if (Text.isText(node)) {
     let text = node.text;
-    text = replace_all(text, "$", "\\$");
+    text = markdown_escape(text);
     if (node.bold) {
       text = `**${text}**`;
     }

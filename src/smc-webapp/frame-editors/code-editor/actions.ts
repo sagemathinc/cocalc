@@ -357,6 +357,13 @@ export class Actions<
     this._syncstring.on("change", this.activity);
   }
 
+  // NOTE: I am exposing this only so editors cna listen for
+  // the before-change event and save their state before new
+  // changes come in.
+  public get_syncstring() {
+    return this._syncstring;
+  }
+
   // Flag that there is activity (causes icon to turn orange).
   private activity(): void {
     this._get_project_actions().flag_file_activity(this.path);

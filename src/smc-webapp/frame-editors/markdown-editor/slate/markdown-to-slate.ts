@@ -282,6 +282,14 @@ export function markdown_to_slate(markdown): Node[] {
   (window as any).x.text = text;
   console.log("markdown_to_slate", (window as any).x);
 
+  if (doc.length == 0) {
+    // empty doc isn't allowed; use the simplest doc.
+    doc.push({
+      type: "paragraph",
+      children: [{ text: "" }],
+    });
+  }
+
   return doc;
 }
 

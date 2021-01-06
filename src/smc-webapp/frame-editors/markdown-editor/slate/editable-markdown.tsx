@@ -5,8 +5,9 @@
 
 // Component that allows WYSIWYG editing of markdown.
 
+import { delay } from "awaiting";
 import { Node, createEditor } from "slate";
-import { Slate, Editable, withReact} from "slate-react";
+import { Slate, ReactEditor, Editable, withReact } from "slate-react";
 
 import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
 import { debounce } from "lodash";
@@ -75,8 +76,31 @@ export const EditableMarkdown: React.FC<Props> = ({
   }, []);
 
   const save_value = useCallback(() => {
+    if (!ReactEditor.isFocused(editor)) {
+      // ASSUMPTION: The editor never gets changed by the user
+      // when it is not focused.  Very important!  Do not change
+      // this; or, if you do, you must put in a good "dirty" check
+      // instead, since save_value gets called via debounce at
+      // random times after the editor is defocused, and this will
+      // cause bugs (e.g., type, switch from slate to codemirror, type, and
+      // see what you typed into codemirror disappear).
+      return;
+    }
     actions.set_value(editor_markdown_value());
     actions.ensure_syncstring_is_saved();
+  }, []);
+
+  // Make sure to save the state of the slate editor
+  // to the syncstring *before* merging in a change
+  // from upstream.
+  useEffect(() => {
+    function before_change() {
+      if (ReactEditor.isFocused(editor)) {
+        actions.set_value(editor_markdown_value());
+      }
+    }
+    actions.get_syncstring().on("before-change", before_change);
+    return () => actions.get_syncstring().off("before-change", before_change);
   }, []);
 
   // We don't want to do save_value too much, since it presumably can be slow,
@@ -87,13 +111,47 @@ export const EditableMarkdown: React.FC<Props> = ({
     []
   );
 
+  const setEditorValueNoJump = useCallback(async (new_value) => {
+    ReactEditor.blur(editor);
+    setEditorValue(new_value);
+    // Critical to wait until after next render loop, or
+    // ReactEditor.toDOMPoint below will not detect the problem.
+    await delay(0);
+    if (editor.selection != null) {
+      try {
+        ReactEditor.toDOMPoint(editor, editor.selection.anchor);
+        ReactEditor.toDOMPoint(editor, editor.selection.focus);
+        ReactEditor.focus(editor);
+      } catch (_err) {
+        // Do not focus -- better than crashing the browser.
+        // When the user clicks again to focus, they will choose
+        // a valid cursor point.
+        // TODO: we need to either figure out where the cursor
+        // would move to, etc., or we need to use a sequences of
+        // Transforms rather than just setting the editor value.
+        // This is of course very hard, but it is the right thing
+        // to do in general.
+        // Another option might be to insert something in the DOM
+        // at the cursor, make changes, find that thing, and put the
+        // cursor back there.  But that might not work if it disrupts
+        // a user while they are typing.
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (value == editorMarkdownValue.current) {
       // Setting to current value, so no-op.
       return;
     }
     editorMarkdownValue.current = value;
-    setEditorValue(markdown_to_slate(value));
+    const new_value = markdown_to_slate(value);
+
+    if (ReactEditor.isFocused(editor) && editor.selection != null) {
+      setEditorValueNoJump(new_value);
+    } else {
+      setEditorValue(new_value);
+    }
   }, [value]);
 
   return (
@@ -112,10 +170,10 @@ export const EditableMarkdown: React.FC<Props> = ({
           editor={editor}
           value={editor_value}
           onChange={(new_value) => {
+            editorMarkdownValue.current = undefined; // markdown value now not known.
             scroll_hack();
             setEditorValue(new_value);
             save_value_debounce();
-            editorMarkdownValue.current = undefined; // markdown value now not known.
           }}
         >
           <Editable
@@ -125,6 +183,8 @@ export const EditableMarkdown: React.FC<Props> = ({
               // save immediately rather than waiting for the debounced save_value.
               // This is important since the user might edit the codemirror instance
               // immediately before the debounced save_value happens.
+              // Important: isFocused is still true when onBlur is called,
+              // so save_value actually does the save.
               save_value();
             }}
           />
