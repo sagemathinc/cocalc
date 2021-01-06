@@ -63,6 +63,8 @@ function serialize(
       return `${children}\n\n`;
     case "math":
       return node.value as string;
+    case "checkbox":
+      return node.checked ? "[x]" : "[ ]";
     case "hr":
       return "---\n\n";
     case "html_block":

@@ -6,7 +6,7 @@
 // Component that allows WYSIWYG editing of markdown.
 
 import { Node, createEditor } from "slate";
-import { Slate, Editable, withReact } from "slate-react";
+import { Slate, Editable, withReact} from "slate-react";
 
 import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
 import { debounce } from "lodash";

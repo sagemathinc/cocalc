@@ -5,13 +5,21 @@
 
 import { React } from "../../../app-framework";
 import { HTML } from "../../../r_misc";
-import { RenderElementProps, RenderLeafProps } from "slate-react";
+import {
+  RenderElementProps,
+  RenderLeafProps,
+  useSlate,
+  ReactEditor,
+} from "slate-react";
+import { Transforms } from "slate";
+import { Checkbox } from "antd";
 
 export const Element: React.FC<RenderElementProps> = ({
   attributes,
   children,
   element,
 }) => {
+  const editor = useSlate();
   if (element.tag) {
     // We use some extra classes for certain tags so things just look better.
     let className: undefined | string = undefined;
@@ -58,6 +66,22 @@ export const Element: React.FC<RenderElementProps> = ({
       return (
         <span {...attributes}>
           <HTML auto_render_math={true} value={element.value as string} />
+          {children}
+        </span>
+      );
+    case "checkbox":
+      return (
+        <span {...attributes}>
+          <Checkbox
+            checked={!!element.checked}
+            onChange={(e) => {
+              Transforms.setNodes(
+                editor,
+                { checked: e.target.checked },
+                { at: ReactEditor.findPath(editor, element) }
+              );
+            }}
+          />
           {children}
         </span>
       );

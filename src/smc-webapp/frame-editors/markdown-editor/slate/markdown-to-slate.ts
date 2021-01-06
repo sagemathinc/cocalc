@@ -66,6 +66,9 @@ function parse(
 
   // Handle code
   if (token.type == "code_inline" && token.tag == "code") {
+    if (token.content == "☐" || token.content == "☑") {
+      return [checkbox(token.content)];
+    }
     if (
       startswith(token.content, MATH_ESCAPE) &&
       endswith(token.content, MATH_ESCAPE)
@@ -260,11 +263,14 @@ export function markdown_to_slate(markdown): Node[] {
   markdown = replace_all(markdown, "\\]", "$$");
   markdown = replace_all(markdown, "\\(", "$");
   markdown = replace_all(markdown, "\\)", "$");
-  const [text, math] = remove_math(
+  let [text, math] = remove_math(
     math_escape(markdown),
     "`" + MATH_ESCAPE,
     MATH_ESCAPE + "`"
   );
+  // must do this after removing math, since math very
+  // naturally might contain [x], e.g., $R[x]$.
+  text = checkboxes(text);
 
   for (const token of markdown_it.parse(text, obj)) {
     for (const node of parse(token, state, 0, math)) {
@@ -303,6 +309,21 @@ function math_node(content: string, math: string[]): Node {
     value,
     isVoid: true,
     isInline: true,
+    children: [{ text: "" }],
+  };
+}
+
+function checkboxes(s: string): string {
+  s = replace_all(s, "[ ]", "`☐`");
+  return replace_all(s, "[x]", "`☑`");
+}
+
+function checkbox(content: "☐" | "☑"): Node {
+  return {
+    isVoid: true,
+    isInline: true,
+    type: "checkbox",
+    checked: content == "☑",
     children: [{ text: "" }],
   };
 }

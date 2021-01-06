@@ -15,14 +15,14 @@ X[ ]
 
 import * as MarkdownIt from "markdown-it";
 const MarkdownItFrontMatter = require("markdown-it-front-matter");
-import * as misc from "smc-util/misc";
+import { replace_all } from "smc-util/misc";
 import { math_escape, math_unescape } from "smc-util/markdown-utils";
 import { remove_math, replace_math } from "smc-util/mathjax-utils"; // from project Jupyter
 
-const checkboxes = function (s) {
-  s = misc.replace_all(s, "[ ]", "☐");
-  return misc.replace_all(s, "[x]", "☑");
-};
+function checkboxes(s: string): string {
+  s = replace_all(s, "[ ]", "☐");
+  return replace_all(s, "[x]", "☑");
+}
 
 const OPTIONS: MarkdownIt.Options = {
   html: true,
