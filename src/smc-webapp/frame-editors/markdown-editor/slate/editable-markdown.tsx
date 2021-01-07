@@ -81,8 +81,8 @@ export const EditableMarkdown: React.FC<Props> = ({
     return editorMarkdownValue.current;
   }, []);
 
-  const save_value = useCallback(() => {
-    if (!ReactEditor.isFocused(editor)) {
+  const save_value = useCallback((force?: boolean) => {
+    if (!force && !is_current) {
       // ASSUMPTION: The editor never gets changed by the user
       // when it is not focused.  Very important!  Do not change
       // this; or, if you do, you must put in a good "dirty" check
@@ -193,7 +193,7 @@ export const EditableMarkdown: React.FC<Props> = ({
               // immediately before the debounced save_value happens.
               // Important: isFocused is still true when onBlur is called,
               // so save_value actually does the save.
-              save_value();
+              save_value(true);
             }}
           />
         </Slate>
