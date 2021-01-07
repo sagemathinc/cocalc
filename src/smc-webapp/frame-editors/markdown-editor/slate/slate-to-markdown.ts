@@ -4,12 +4,15 @@
  */
 import { Node, Text } from "slate";
 import { markdown_escape } from "./util";
+const linkify = require("linkify-it")();
 
 function serialize(
   node: Node,
   info?: { parent: Node; index?: number }
 ): string {
+  console.log("serialize", node);
   if (Text.isText(node)) {
+    console.log("  serialize as text", node);
     let text = node.text;
     text = markdown_escape(text);
     if (node.bold) {
@@ -30,6 +33,7 @@ function serialize(
   switch (node.type) {
     case "bullet_list":
     case "ordered_list":
+      console.log("  serializing as list", node);
       const v: string[] = [];
       for (let i = 0; i < node.children.length; i++) {
         v.push(serialize(node.children[i], { parent: node, index: i }));
@@ -51,6 +55,9 @@ function serialize(
         return `${
           (info.index ?? 0) + ((info.parent.attrs as any)?.start ?? 1)
         }. ${children}`;
+      } else {
+        // Unknown list type??
+        return children;
       }
     case "heading":
       let h = "#";
@@ -70,14 +77,28 @@ function serialize(
       return node.html as string;
     case "html_inline":
       return node.html as string;
+    case "link":
+      // [my website](wstein.org "here")
+      const attrs = (node as any).attrs;
+      const href = attrs.href ? `${attrs.href}` : "";
+      const title = attrs.title ? ` "${attrs.title}"` : "";
+      let link;
+      if (title == "" && children == href && linkify.test(href)) {
+        // special case where the url is easily parsed by the linkify plugin.
+        link = href;
+      } else {
+        link = `[${children}](${href}${title})`;
+      }
+      return link;
     default:
+      console.log("WARNING: serialize Node as UNKNOWN", { node, children });
       return `${children}\n`;
   }
 }
 
 export function slate_to_markdown(data: Node[]): string {
-  const r = serialize({ children: data });
-  console.log("slate_to_markdown", { data, r });
+  console.log("slate_to_markdown", { data });
+  const r = data.map((node) => serialize(node, { parent: node })).join("");
   (window as any).y = { doc: { ...data }, r };
   return r;
 }

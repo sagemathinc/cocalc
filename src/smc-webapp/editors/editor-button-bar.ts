@@ -552,21 +552,21 @@ $$\
     justifycenter: {
       strip: ["justifycenter", "justifyright", "justifyleft"],
       wrap: {
-        left: "<div align='center'>",
+        left: "<div style='text-align:center'>",
         right: "</div>",
       },
     },
     justifyright: {
       strip: ["justifycenter", "justifyright", "justifyleft"],
       wrap: {
-        left: "<div align='right'>",
+        left: "<div style='text-align:right'>",
         right: "</div>",
       },
     },
     justifyfull: {
       strip: ["justifycenter", "justifyright", "justifyleft"],
       wrap: {
-        left: "<div align='justify'>",
+        left: "<div style='text-align:justify'>",
         right: "</div>",
       },
     },

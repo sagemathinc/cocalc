@@ -50,10 +50,17 @@ export const Element: React.FC<RenderElementProps> = ({
       );
     case "html_block":
       return (
-        <span {...attributes}>
+        <div
+          {...attributes}
+          style={{
+            borderLeft: "3px solid #a00",
+            marginLeft: "-8px",
+            paddingLeft: "5px",
+          }}
+        >
           <HTML auto_render_math={true} value={element.html as string} />
           {children}
-        </span>
+        </div>
       );
     case "html_inline":
       return (

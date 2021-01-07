@@ -30,6 +30,7 @@ interface Token {
   attrs?: string[][];
   children?: Token[];
   content: string;
+  block?: boolean;
 }
 
 interface Marks {
@@ -47,6 +48,7 @@ interface State {
   close_type?: string;
   contents?: Token[];
   attrs?: string[][];
+  block?: boolean;
 }
 
 function parse(
@@ -157,6 +159,9 @@ function parse(
         delete state.close_type;
         delete state.contents;
         const node: Node = { type, children };
+        if (!state.block) {
+          node.isInline = true;
+        }
         if (token.tag && token.tag != "p") {
           node.tag = token.tag;
         }
@@ -165,7 +170,7 @@ function parse(
           if (a.style != null) {
             a.style = string_to_style(a.style as any);
           }
-          state.attrs = a;
+          node.attrs = a;
         }
         return [node];
       }
@@ -184,6 +189,7 @@ function parse(
     state.open_type = token.type;
     state.nesting = 0;
     state.attrs = token.attrs;
+    state.block = token.block;
     return [];
   }
 
