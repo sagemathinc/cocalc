@@ -24,6 +24,7 @@ import { Actions } from "../actions";
 
 import { MAX_WIDTH_NUM } from "../../options";
 import { use_font_size_scaling } from "../../frame-tree/hooks";
+import { Path } from "../../frame-tree/path";
 
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
@@ -46,6 +47,7 @@ interface Props {
   read_only: boolean;
   value: string;
   reload_images: boolean;
+  is_current?: boolean;
 }
 
 export const EditableMarkdown: React.FC<Props> = ({
@@ -53,6 +55,9 @@ export const EditableMarkdown: React.FC<Props> = ({
   font_size,
   read_only,
   value,
+  project_id,
+  path,
+  is_current,
 }) => {
   const editor = useMemo(
     () => withIsInline(withIsVoid(withReact(createEditor()))),
@@ -160,6 +165,7 @@ export const EditableMarkdown: React.FC<Props> = ({
       className="smc-vfill"
       style={{ overflowY: "auto", backgroundColor: "#eee" }}
     >
+      <Path is_current={is_current} path={path} project_id={project_id} />
       <div
         style={{
           ...STYLE,
