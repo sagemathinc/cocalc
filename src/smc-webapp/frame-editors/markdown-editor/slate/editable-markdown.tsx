@@ -65,7 +65,7 @@ export const EditableMarkdown: React.FC<Props> = ({
   );
 
   // TODO: DEBUGGING
-  (window as any).ed = { editor };
+  (window as any).ed = { editor, ReactEditor };
 
   const editorMarkdownValue = useRef<string | undefined>(undefined);
   const [editor_value, setEditorValue] = useState<Node[]>(() =>

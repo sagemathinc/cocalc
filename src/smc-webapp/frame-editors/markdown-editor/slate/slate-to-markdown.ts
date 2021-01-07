@@ -10,9 +10,9 @@ function serialize(
   node: Node,
   info?: { parent: Node; index?: number }
 ): string {
-  console.log("serialize", node);
+  //console.log("serialize", node);
   if (Text.isText(node)) {
-    console.log("  serialize as text", node);
+    //console.log("  serialize as text", node);
     let text = node.text;
     text = markdown_escape(text);
     if (node.bold) {
@@ -33,12 +33,16 @@ function serialize(
   switch (node.type) {
     case "bullet_list":
     case "ordered_list":
-      console.log("  serializing as list", node);
+      // console.log("  serializing as list", node);
       const v: string[] = [];
       for (let i = 0; i < node.children.length; i++) {
-        v.push(serialize(node.children[i], { parent: node, index: i }));
+        v.push(
+          ensure_ends_in_newline(
+            serialize(node.children[i], { parent: node, index: i })
+          )
+        );
       }
-      return `${v.join("\n")}\n`;
+      return `${v.join("")}\n`;
   }
 
   const children = node.children
@@ -91,7 +95,7 @@ function serialize(
       }
       return link;
     default:
-      console.log("WARNING: serialize Node as UNKNOWN", { node, children });
+      // console.log("WARNING: serialize Node as UNKNOWN", { node, children });
       return `${children}\n`;
   }
 }
@@ -101,4 +105,12 @@ export function slate_to_markdown(data: Node[]): string {
   const r = data.map((node) => serialize(node, { parent: node })).join("");
   (window as any).y = { doc: { ...data }, r };
   return r;
+}
+
+function ensure_ends_in_newline(s: string): string {
+  if (s[s.length - 1] != "\n") {
+    return s + "\n";
+  } else {
+    return s;
+  }
 }
