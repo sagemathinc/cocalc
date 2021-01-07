@@ -1817,13 +1817,14 @@ export class Actions<
   async format_action(cmd, args, force_main: boolean = false): Promise<void> {
     if (!force_main) {
       const id = this._get_active_id();
-      try {
-        return await this.get_code_editor(id)
-          .get_actions()
-          .format_action(cmd, args, true);
-      } catch (err) {
-        // active frame is not a different code editor, so we fallback
-        // to case below that we want the main doc (if there is one).
+      const editor = this.get_code_editor(id);
+      if (editor != null) {
+        try {
+          return await editor.get_actions().format_action(cmd, args, true);
+        } catch (err) {
+          // active frame is not a different code editor, so we fallback
+          // to case below that we want the main doc (if there is one).
+        }
       }
     }
 
@@ -2545,7 +2546,7 @@ export class Actions<
     this.set_frame_tree({ id, path, type: "cm" });
   }
 
-  public get_code_editor(id: string): CodeEditor {
+  public get_code_editor(id: string): CodeEditor | undefined {
     return this.code_editors.get_code_editor(id);
   }
 

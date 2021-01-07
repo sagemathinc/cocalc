@@ -24,7 +24,6 @@ import {
   useState,
 } from "../../app-framework";
 import { debounce, throttle, isEqual } from "lodash";
-import { filename_extension } from "smc-util/misc";
 import { Cursors } from "smc-webapp/jupyter/cursors";
 import { cm_options } from "../codemirror/cm-options";
 import { init_style_hacks } from "../codemirror/util";
@@ -32,9 +31,8 @@ import { get_state, set_state } from "../codemirror/codemirror-state";
 import { has_doc, set_doc, get_linked_doc } from "./doc";
 import { GutterMarkers } from "./codemirror-gutter-markers";
 import { Actions } from "./actions";
-import { Icon } from "../../r_misc";
-import { file_associations } from "../../file-associations";
 import { EditorState } from "../frame-tree/types";
+import { Path } from "../frame-tree/path";
 
 const STYLE = {
   width: "100%",
@@ -463,45 +461,13 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     );
   }
 
-  function click_on_path(evt): void {
-    if (!evt.shiftKey) return;
-    const project_actions = props.actions._get_project_actions();
-    project_actions.open_file({ path: props.path, foreground: true });
-  }
-
-  // todo: move this render_path to a component in a separate file.
-  function render_path(): Rendered {
-    const style: any = {
-      borderBottom: "1px solid lightgrey",
-      borderRight: "1px solid lightgrey",
-      padding: "0 5px",
-      borderTopLeftRadius: "5px",
-      borderTopRightRadius: "5px",
-      color: "#337ab7",
-      cursor: "pointer",
-      width: "100%",
-      fontSize: "10pt",
-    };
-    if (props.is_current) {
-      style.background = "#337ab7";
-      style.color = "white";
-    }
-    const ext = filename_extension(props.path);
-    const x = file_associations[ext];
-    let icon: any = undefined;
-    if (x != null && x.icon != null) {
-      icon = <Icon name={x.icon} />;
-    }
-    return (
-      <div style={style} onClick={click_on_path}>
-        {icon} {props.path}
-      </div>
-    );
-  }
-
   return (
     <div className="smc-vfill cocalc-editor-div" ref={divRef}>
-      {render_path()}
+      <Path
+        project_id={props.project_id}
+        path={props.path}
+        is_current={props.is_current}
+      />
       <div
         style={{ ...STYLE, fontSize: `${props.font_size}px` }}
         className="smc-vfill"
