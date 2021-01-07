@@ -69,6 +69,12 @@ export const Element: React.FC<RenderElementProps> = ({
           {children}
         </span>
       );
+    case "code":
+      return (
+        <pre {...attributes}>
+          <code>{children}</code>
+        </pre>
+      );
     case "math":
       return (
         <span {...attributes}>

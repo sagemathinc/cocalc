@@ -24,7 +24,7 @@ function replace_math(text, math) {
 }
 
 interface Token {
-  hidden?: boolean;   // See https://markdown-it.github.io/markdown-it/#Token.prototype.hidden
+  hidden?: boolean; // See https://markdown-it.github.io/markdown-it/#Token.prototype.hidden
   type: string;
   tag?: string;
   attrs?: string[][];
@@ -75,13 +75,15 @@ function parse(
       // and latex are not compatible, but the markdown process can process code fine..
       return [math_node(token.content, math)];
     }
-    // inline code
-    return [{ text: token.content, code: true }];
+    // inline code -- important: put anything we thought was math back in.
+    return [{ text: replace_math(token.content, math), code: true }];
   }
 
   if (token.type == "fence" && token.tag == "code") {
     // block of code
-    return [{ type: "code", tag: "code", children: [{ text: token.content }] }];
+    return [
+      { type: "code", children: [{ text: replace_math(token.content, math) }] },
+    ];
   }
 
   if (token.type == "html_inline") {

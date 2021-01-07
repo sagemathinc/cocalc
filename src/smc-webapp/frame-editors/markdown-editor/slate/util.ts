@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { splitlines } from "smc-util/misc";
+import { is_whitespace } from "smc-util/misc";
 
 // Note: this markdown_escape is based on https://github.com/edwmurph/escape-markdown/blob/master/index.js
 
@@ -36,21 +36,14 @@ export function indent(s: string, n: number): string {
     left += " ";
   }
 
-  // add space at beginning of all lines
-  let r = left + splitlines(s.trim()).join("\n" + left);
-
-  // put leading and trailing newlines back.
-  let i = s.length - 1;
-  while (s[i] == "\n") {
-    r += "\n";
-    i -= 1;
+  // add space at beginning of all non-whitespace lines
+  const v = s.split("\n");
+  for (let i = 0; i < v.length; i++) {
+    if (!is_whitespace(v[i])) {
+      v[i] = left + v[i];
+    }
   }
-  i = 0;
-  while (s[i] == "\n") {
-    r = "\n" + r;
-    i += 1;
-  }
-  return r;
+  return v.join("\n");
 }
 
 export function li_indent(s: string): string {

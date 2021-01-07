@@ -6,15 +6,14 @@ import { Node, Text } from "slate";
 import { li_indent, markdown_escape } from "./util";
 const linkify = require("linkify-it")();
 
-function serialize(
-  node: Node,
-  info: { parent: Node; index?: number }
-): string {
+function serialize(node: Node, info: { parent: Node; index?: number }): string {
   //console.log("serialize", node);
   if (Text.isText(node)) {
     //console.log("  serialize as text", node);
     let text = node.text;
-    text = markdown_escape(text);
+    if (!node.code && info.parent.type != "code") {
+      text = markdown_escape(text);
+    }
     if (node.bold) {
       text = `**${text}**`;
     }
@@ -26,6 +25,9 @@ function serialize(
     }
     if (node.strikethrough) {
       text = `~~${text}~~`;
+    }
+    if (node.code) {
+      text = `\`${text}\``;
     }
     return text;
   }
@@ -40,12 +42,17 @@ function serialize(
           ensure_ends_in_newline(
             serialize(node.children[i], {
               parent: node,
-              index: i
+              index: i,
             })
           )
         );
       }
-      return v.join("");
+      let s = v.join("");
+      if (s[s.length - 2] != "\n") {
+        // lists should end with two new lines.
+        s += "\n";
+      }
+      return s;
   }
 
   const children = node.children
@@ -99,6 +106,8 @@ function serialize(
         link = `[${children}](${href}${title})`;
       }
       return link;
+    case "code":
+      return "```\n" + children + "```\n\n";
     default:
       // console.log("WARNING: serialize Node as UNKNOWN", { node, children });
       return `${children}\n`;
