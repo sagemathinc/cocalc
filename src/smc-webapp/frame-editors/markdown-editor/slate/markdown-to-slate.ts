@@ -81,9 +81,13 @@ function parse(
 
   if (token.type == "fence" && token.tag == "code") {
     // block of code
-    return [
-      { type: "code", children: [{ text: replace_math(token.content, math) }] },
-    ];
+    // put any math we removed back in unchanged (since the math parsing doesn't
+    // know anything about code blocks, and doesn't know to ignore them).
+    let text = replace_math(token.content, math);
+    // We also remove the last carriage return (right before ```), since it
+    // is much easier to do that here...
+    text = text.slice(0, text.length - 1);
+    return [{ type: "code", children: [{ text }] }];
   }
 
   if (token.type == "html_inline") {

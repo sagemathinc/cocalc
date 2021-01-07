@@ -67,34 +67,47 @@ export const EditableMarkdown: React.FC<Props> = ({
   // TODO: DEBUGGING
   (window as any).ed = { editor, ReactEditor };
 
-  const editorMarkdownValue = useRef<string | undefined>(undefined);
+  const editorMarkdownValueRef = useRef<string | undefined>(undefined);
+  const hasUnsavedChangesRef = useRef<boolean>(false);
   const [editor_value, setEditorValue] = useState<Node[]>(() =>
     markdown_to_slate(value)
   );
   const scaling = use_font_size_scaling(font_size);
 
   const editor_markdown_value = useCallback(() => {
-    if (editorMarkdownValue.current != null) {
-      return editorMarkdownValue.current;
+    if (editorMarkdownValueRef.current != null) {
+      return editorMarkdownValueRef.current;
     }
-    editorMarkdownValue.current = slate_to_markdown(editor.children);
-    return editorMarkdownValue.current;
+    editorMarkdownValueRef.current = slate_to_markdown(editor.children);
+    return editorMarkdownValueRef.current;
   }, []);
 
-  const save_value = useCallback((force?: boolean) => {
-    if (!force && !is_current) {
-      // ASSUMPTION: The editor never gets changed by the user
-      // when it is not focused.  Very important!  Do not change
-      // this; or, if you do, you must put in a good "dirty" check
-      // instead, since save_value gets called via debounce at
-      // random times after the editor is defocused, and this will
-      // cause bugs (e.g., type, switch from slate to codemirror, type, and
-      // see what you typed into codemirror disappear).
-      return;
-    }
+  const save_value = useCallback(() => {
+    if (!hasUnsavedChangesRef.current) return;
+    hasUnsavedChangesRef.current = false;
     actions.set_value(editor_markdown_value());
     actions.ensure_syncstring_is_saved();
   }, []);
+
+  // We don't want to do save_value too much, since it presumably can be slow,
+  // especially if the document is large. By debouncing, we only do this when
+  // the user pauses typing for a moment. Also, this avoids making too many commits.
+  const save_value_debounce = useMemo(
+    () => debounce(save_value, SAVE_DEBOUNCE_MS),
+    []
+  );
+
+  useEffect(() => {
+    if (!is_current) {
+      if (hasUnsavedChangesRef.current) {
+        // just switched from focused to not and there was an unsaved change,
+        // so save state.
+        hasUnsavedChangesRef.current = false;
+        actions.set_value(editor_markdown_value());
+        actions.ensure_syncstring_is_saved();
+      }
+    }
+  }, [is_current]);
 
   // Make sure to save the state of the slate editor
   // to the syncstring *before* merging in a change
@@ -108,14 +121,6 @@ export const EditableMarkdown: React.FC<Props> = ({
     actions.get_syncstring().on("before-change", before_change);
     return () => actions.get_syncstring().off("before-change", before_change);
   }, []);
-
-  // We don't want to do save_value too much, since it presumably can be slow,
-  // especially if the document is large. By debouncing, we only do this when
-  // the user pauses typing for a moment. Also, this avoids making too many commits.
-  const save_value_debounce = useMemo(
-    () => debounce(save_value, SAVE_DEBOUNCE_MS),
-    []
-  );
 
   const setEditorValueNoJump = useCallback(async (new_value) => {
     ReactEditor.blur(editor);
@@ -146,11 +151,11 @@ export const EditableMarkdown: React.FC<Props> = ({
   }, []);
 
   useEffect(() => {
-    if (value == editorMarkdownValue.current) {
+    if (value == editorMarkdownValueRef.current) {
       // Setting to current value, so no-op.
       return;
     }
-    editorMarkdownValue.current = value;
+    editorMarkdownValueRef.current = value;
     const new_value = markdown_to_slate(value);
 
     if (ReactEditor.isFocused(editor) && editor.selection != null) {
@@ -177,24 +182,26 @@ export const EditableMarkdown: React.FC<Props> = ({
           editor={editor}
           value={editor_value}
           onChange={(new_value) => {
-            editorMarkdownValue.current = undefined; // markdown value now not known.
+            if (!is_current) {
+              // Do not save when editor not current since user could be typing
+              // into another editor of the same underlying document.   This will
+              // cause bugs (e.g., type, switch from slate to codemirror, type, and
+              // see what you typed into codemirror disappear). E.g., this
+              // happens due to a spurious change when the editor is defocused.
+              return;
+            }
+            hasUnsavedChangesRef.current = true;
+            editorMarkdownValueRef.current = undefined; // markdown value now not known.
             scroll_hack();
             setEditorValue(new_value);
             save_value_debounce();
           }}
+          onBlur={save_value}
         >
           <Editable
             readOnly={read_only}
             renderElement={Element}
             renderLeaf={Leaf}
-            onBlur={() => {
-              // save immediately rather than waiting for the debounced save_value.
-              // This is important since the user might edit the codemirror instance
-              // immediately before the debounced save_value happens.
-              // Important: isFocused is still true when onBlur is called,
-              // so save_value actually does the save.
-              save_value(true);
-            }}
           />
         </Slate>
       </div>

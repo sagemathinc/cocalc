@@ -55,3 +55,11 @@ export function li_indent(s: string): string {
     return s;
   }
 }
+
+export function ensure_ends_in_newline(s: string): string {
+  if (s[s.length - 1] != "\n") {
+    return s + "\n";
+  } else {
+    return s;
+  }
+}

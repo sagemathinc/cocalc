@@ -43,7 +43,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
           type: "cm",
         },
         second: {
-          type: "markdown",
+          type: "editable",
         },
       };
     }

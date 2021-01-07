@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 import { Node, Text } from "slate";
-import { li_indent, markdown_escape } from "./util";
+import { ensure_ends_in_newline, li_indent, markdown_escape } from "./util";
 const linkify = require("linkify-it")();
 
 function serialize(node: Node, info: { parent: Node; index?: number }): string {
@@ -107,7 +107,7 @@ function serialize(node: Node, info: { parent: Node; index?: number }): string {
       }
       return link;
     case "code":
-      return "```\n" + children + "```\n\n";
+      return "```\n" + ensure_ends_in_newline(children) + "```\n\n";
     default:
       // console.log("WARNING: serialize Node as UNKNOWN", { node, children });
       return `${children}\n`;
@@ -119,12 +119,4 @@ export function slate_to_markdown(data: Node[]): string {
   const r = data.map((node) => serialize(node, { parent: node })).join("");
   (window as any).y = { doc: { ...data }, r };
   return r;
-}
-
-function ensure_ends_in_newline(s: string): string {
-  if (s[s.length - 1] != "\n") {
-    return s + "\n";
-  } else {
-    return s;
-  }
 }

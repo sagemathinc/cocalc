@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../../../app-framework";
+import { CSS, React } from "../../../app-framework";
 import { HTML } from "../../../r_misc";
 import {
   RenderElementProps,
@@ -114,6 +114,15 @@ export const Element: React.FC<RenderElementProps> = ({
   }
 };
 
+// Temporary to match markdown-it demo, so at least it is usable.
+const CODE_STYLE = {
+  padding: "2px 4px",
+  fontSize: "90%",
+  color: "#c7254e",
+  backgroundColor: "#f9f2f4",
+  borderRadius: "4px",
+} as CSS;
+
 export const Leaf: React.FC<RenderLeafProps> = ({
   attributes,
   children,
@@ -132,7 +141,7 @@ export const Leaf: React.FC<RenderLeafProps> = ({
     children = <u>{children}</u>;
   }
   if (leaf.code) {
-    children = <code>{children}</code>;
+    children = <code style={CODE_STYLE}>{children}</code>;
   }
 
   return <span {...attributes}>{children}</span>;
