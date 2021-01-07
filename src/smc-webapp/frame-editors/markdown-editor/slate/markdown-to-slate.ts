@@ -24,7 +24,7 @@ function replace_math(text, math) {
 }
 
 interface Token {
-  hidden?: boolean;
+  hidden?: boolean;   // See https://markdown-it.github.io/markdown-it/#Token.prototype.hidden
   type: string;
   tag?: string;
   attrs?: string[][];
@@ -61,10 +61,6 @@ function parse(
     token.content = math_unescape(token.content);
   }
   // console.log("parse", JSON.stringify({ token, state, level, math }));
-  if (token.hidden) {
-    // See https://markdown-it.github.io/markdown-it/#Token.prototype.hidden
-    return [];
-  }
 
   // Handle code
   if (token.type == "code_inline" && token.tag == "code") {
@@ -144,6 +140,12 @@ function parse(
         const child_state: State = { marks: state.marks, nesting: 0 };
         const children: Node[] = [];
         let is_empty = true;
+        // Note a RULE: "Block nodes can only contain other blocks, or inline and text nodes."
+        // See https://docs.slatejs.org/concepts/10-normalizing
+        // This means that all children nodes here have to be either *inline/text* or they
+        // all have to be blocks themselves -- no mixing.  Our markdown parser I think also
+        // does this, except for one weird special case which involves hidden:true that is
+        // used for tight lists.
         for (const token2 of state.contents) {
           for (const node of parse(token2, child_state, level + 1, math)) {
             is_empty = false;
@@ -159,6 +161,9 @@ function parse(
         delete state.close_type;
         delete state.contents;
         const node: Node = { type, children };
+        if (token.hidden) {
+          node.tight = true;
+        }
         if (!state.block) {
           node.isInline = true;
         }

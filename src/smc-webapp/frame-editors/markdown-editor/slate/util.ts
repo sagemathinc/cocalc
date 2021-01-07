@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { splitlines } from "smc-util/misc";
+
 // Note: this markdown_escape is based on https://github.com/edwmurph/escape-markdown/blob/master/index.js
 
 // We do NOT escape []() since \[ \] and \( \) is used to delineate
@@ -22,5 +24,41 @@ const MAP = {
 } as const;
 
 export function markdown_escape(s: string): string {
-  return s.replace(/\*\\_`#<>$&]/g, (m) => MAP[m]);
+  return s.replace(/[\*\\_`#<>$&]/g, (m) => MAP[m]);
+}
+
+export function indent(s: string, n: number): string {
+  if (n == 0) {
+    return s;
+  }
+  let left = "";
+  for (let i = 0; i < n; i++) {
+    left += " ";
+  }
+
+  // add space at beginning of all lines
+  let r = left + splitlines(s.trim()).join("\n" + left);
+
+  // put leading and trailing newlines back.
+  let i = s.length - 1;
+  while (s[i] == "\n") {
+    r += "\n";
+    i -= 1;
+  }
+  i = 0;
+  while (s[i] == "\n") {
+    r = "\n" + r;
+    i += 1;
+  }
+  return r;
+}
+
+export function li_indent(s: string): string {
+  // indent all but the first line by 2.
+  const i = s.indexOf("\n");
+  if (i != -1 && i != s.length - 1) {
+    return s.slice(0, i + 1) + indent(s.slice(i + 1), 2);
+  } else {
+    return s;
+  }
 }

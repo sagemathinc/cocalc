@@ -93,6 +93,13 @@ export const Element: React.FC<RenderElementProps> = ({
         </span>
       );
     default:
+      if (element.tight) {
+        return (
+          <span {...attributes} {...element.attrs}>
+            {children}
+          </span>
+        );
+      }
       return (
         <p {...attributes} {...element.attrs}>
           {children}

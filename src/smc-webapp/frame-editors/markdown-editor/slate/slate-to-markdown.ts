@@ -3,12 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 import { Node, Text } from "slate";
-import { markdown_escape } from "./util";
+import { li_indent, markdown_escape } from "./util";
 const linkify = require("linkify-it")();
 
 function serialize(
   node: Node,
-  info?: { parent: Node; index?: number }
+  info: { parent: Node; index?: number }
 ): string {
   //console.log("serialize", node);
   if (Text.isText(node)) {
@@ -38,11 +38,14 @@ function serialize(
       for (let i = 0; i < node.children.length; i++) {
         v.push(
           ensure_ends_in_newline(
-            serialize(node.children[i], { parent: node, index: i })
+            serialize(node.children[i], {
+              parent: node,
+              index: i
+            })
           )
         );
       }
-      return `${v.join("")}\n`;
+      return v.join("");
   }
 
   const children = node.children
@@ -52,13 +55,15 @@ function serialize(
   switch (node.type) {
     case "list_item":
       if (info?.parent == null) {
-        return `- ${children}`;
+        return li_indent(`- ${children}`);
       } else if (info.parent.type == "bullet_list") {
-        return `- ${children}`;
+        return li_indent(`- ${children}`);
       } else if (info.parent.type == "ordered_list") {
-        return `${
-          (info.index ?? 0) + ((info.parent.attrs as any)?.start ?? 1)
-        }. ${children}`;
+        return li_indent(
+          `${
+            (info.index ?? 0) + ((info.parent.attrs as any)?.start ?? 1)
+          }. ${children}`
+        );
       } else {
         // Unknown list type??
         return children;
@@ -70,13 +75,13 @@ function serialize(
       }
       return `${h} ${children}\n\n`;
     case "paragraph":
-      return `${children}\n\n`;
+      return `${children}${node.tight ? "\n" : "\n\n"}`;
     case "math":
       return node.value as string;
     case "checkbox":
       return node.checked ? "[x]" : "[ ]";
     case "hr":
-      return "---\n\n";
+      return "\n---\n\n";
     case "html_block":
       return node.html as string;
     case "html_inline":
@@ -101,7 +106,7 @@ function serialize(
 }
 
 export function slate_to_markdown(data: Node[]): string {
-  console.log("slate_to_markdown", { data });
+  console.log("slate_to_markdown", JSON.stringify(data, undefined, 2));
   const r = data.map((node) => serialize(node, { parent: node })).join("");
   (window as any).y = { doc: { ...data }, r };
   return r;
