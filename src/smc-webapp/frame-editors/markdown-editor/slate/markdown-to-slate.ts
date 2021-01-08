@@ -32,6 +32,7 @@ interface Token {
   content: string;
   block?: boolean;
   markup?: string;
+  checked?: boolean;
 }
 
 interface Marks {
@@ -258,6 +259,16 @@ function parse(
           markup: token.markup,
         },
       ];
+    case "checkbox_input":
+      return [
+        {
+          type: "checkbox",
+          isVoid: true,
+          isInline: true,
+          checked: token.checked,
+          children: [{ text: "" }],
+        },
+      ];
     default:
       return [mark({ text: token.content }, state.marks)];
   }
@@ -298,10 +309,6 @@ export function markdown_to_slate(markdown): Node[] {
     "`" + MATH_ESCAPE,
     MATH_ESCAPE + "`"
   );
-
-  // must do this after removing math, since math very
-  // naturally might contain [x], e.g., $R[x]$.
-  text = checkboxes(text);
 
   for (const token of markdown_it.parse(text, obj)) {
     for (const node of parse(token, state, 0, math)) {
@@ -352,11 +359,6 @@ function math_node(content: string, math: string[]): Node {
   };
 }
 
-function checkboxes(s: string): string {
-  s = replace_all(s, "[ ]", "`☐`");
-  return replace_all(s, "[x]", "`☑`");
-}
-
 function checkbox(content: "☐" | "☑"): Node {
   return {
     isVoid: true,
@@ -366,4 +368,3 @@ function checkbox(content: "☐" | "☑"): Node {
     children: [{ text: "" }],
   };
 }
-

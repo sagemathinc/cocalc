@@ -98,6 +98,7 @@ export const Element: React.FC<RenderElementProps> = ({
       return (
         <span {...attributes}>
           <Checkbox
+            style={{ marginRight: "1em", verticalAlign: "middle" }}
             checked={!!element.checked}
             onChange={(e) => {
               Transforms.setNodes(

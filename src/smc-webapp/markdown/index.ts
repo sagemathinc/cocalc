@@ -6,24 +6,18 @@
 /*
 Conversion from Markdown *to* HTML, trying not to horribly mangle math.
 
-TODO: right now [ ] in pre/code gets turned into a unicode checkbox, which is
-perhaps annoying... e.g., this is wrong:
-```
-X[ ]
+We also define and configure our Markdown parsers below, which are used
+in other code directly, e.g, in supporting use of the slate editor.
 ```
 */
 
 import * as MarkdownIt from "markdown-it";
-import * as emoji from "markdown-it-emoji";
+import * as emojiPlugin from "markdown-it-emoji";
+import { checkboxPlugin } from "./checkbox-plugin";
+
 const MarkdownItFrontMatter = require("markdown-it-front-matter");
-import { replace_all } from "smc-util/misc";
 import { math_escape, math_unescape } from "smc-util/markdown-utils";
 import { remove_math, replace_math } from "smc-util/mathjax-utils"; // from project Jupyter
-
-function checkboxes(s: string): string {
-  s = replace_all(s, "[ ]", "☐");
-  return replace_all(s, "[x]", "☑");
-}
 
 const OPTIONS: MarkdownIt.Options = {
   html: true,
@@ -32,7 +26,8 @@ const OPTIONS: MarkdownIt.Options = {
 };
 
 export const markdown_it = new MarkdownIt(OPTIONS);
-markdown_it.use(emoji);
+markdown_it.use(emojiPlugin);
+markdown_it.use(checkboxPlugin);
 
 /*
 Inject line numbers for sync.
@@ -58,19 +53,20 @@ function inject_linenumbers_plugin(md) {
 }
 const markdown_it_line_numbers = new MarkdownIt(OPTIONS);
 markdown_it_line_numbers.use(inject_linenumbers_plugin);
-markdown_it_line_numbers.use(emoji);
+markdown_it_line_numbers.use(emojiPlugin);
+markdown_it_line_numbers.use(checkboxPlugin);
 
 /*
 Turn the given markdown *string* into an HTML *string*.
 We heuristically try to remove and put back the math via
-remove_math, so that checkboxes and markdown itself don't
+remove_math, so that markdown itself doesn't
 mangle it too much before Mathjax/Katex finally see it.
 Note that remove_math is NOT perfect, e.g., it messes up
 
 <a href="http://abc" class="foo-$">test $</a>
 
-However, at least it is from Jupyter, so agrees with them, so
-people are used it it as a standard.
+However, at least it is based on code in Jupyter classical,
+so agrees with them, so people are used it it as a "standard".
 
 See https://github.com/sagemathinc/cocalc/issues/2863
 for another example where remove_math is annoying.
@@ -88,12 +84,7 @@ function process(
 ): MD2html {
   let text: string;
   let math: string[];
-  // console.log(0, JSON.stringify(markdown_string));
-  // console.log(1, JSON.stringify(math_escape(markdown_string)));
   [text, math] = remove_math(math_escape(markdown_string));
-  // console.log(2, JSON.stringify(text), JSON.stringify(math));
-  // Process checkboxes [ ].
-  text = checkboxes(text);
 
   let html: string;
   let frontmatter = "";

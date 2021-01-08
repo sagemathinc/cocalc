@@ -92,7 +92,7 @@ function serialize(node: Node, info: { parent: Node; index?: number }): string {
     case "math":
       return node.value as string;
     case "checkbox":
-      return node.checked ? "[x]" : "[ ]";
+      return node.checked ? "[x] " : "[ ] ";
     case "hr":
       return "\n---\n\n";
     case "html_block":
