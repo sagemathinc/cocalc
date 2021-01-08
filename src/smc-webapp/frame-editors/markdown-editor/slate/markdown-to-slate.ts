@@ -33,6 +33,7 @@ interface Token {
   block?: boolean;
   markup?: string;
   checked?: boolean;
+  info?: string;
 }
 
 interface Marks {
@@ -210,6 +211,7 @@ function parse(
         type: "code_block",
         fence: token.type == "fence",
         value,
+        info: token.info,
         children: [{ text: "" }],
       },
     ];

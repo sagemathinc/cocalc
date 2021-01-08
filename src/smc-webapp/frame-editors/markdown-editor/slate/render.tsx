@@ -54,15 +54,13 @@ export const Element: React.FC<RenderElementProps> = ({
         </div>
       );
     case "html_block":
-      return (
-        <div
-          {...attributes}
-          style={{
+      /*style={ maybe only see when **focused** {
             borderLeft: "3px solid #a00",
             marginLeft: "-8px",
             paddingLeft: "5px",
-          }}
-        >
+          }}*/
+      return (
+        <div {...attributes}>
           <HTML auto_render_math={true} value={element.html as string} />
           {children}
         </div>
@@ -86,6 +84,7 @@ export const Element: React.FC<RenderElementProps> = ({
         <div {...attributes}>
           <SlateCodeMirror
             value={element.value as string}
+            info={element.info as string | undefined}
             onChange={(value) => {
               Transforms.setNodes(
                 editor,

@@ -3,21 +3,86 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../../../app-framework";
+/*
+TODO: a lot!
+- syntax highlight in users theme
+- keyboard with user settings
+- when info changes update editor
+ and so much more!
+*/
+
+import { file_associations } from "../../../file-associations";
+import {
+  CSS,
+  React,
+  ReactDOM,
+  useEffect,
+  useRef,
+} from "../../../app-framework";
+import * as CodeMirror from "codemirror";
+
+const STYLE = {
+  width: "100%",
+  overflow: "auto",
+  overflowX: "hidden",
+  border: "1px solid #cfcfcf",
+  borderRadius: "2px",
+  lineHeight: "1.21429em",
+  marginBottom: "1em", // consistent with <p> tag.
+} as CSS;
 
 interface Props {
   onChange: (string) => void;
+  info?: string;
   value: string;
 }
-export const SlateCodeMirror: React.FC<Props> = ({ value, onChange }) => {
+export const SlateCodeMirror: React.FC<Props> = ({ info, value, onChange }) => {
+  const cmRef = useRef<CodeMirror.Editor | undefined>(undefined);
+  const textareaRef = useRef<any>(null);
+
+  useEffect(() => {
+    const node: HTMLTextAreaElement = ReactDOM.findDOMNode(textareaRef.current);
+    if (node == null) return;
+    const options: any = {};
+    if (info) {
+      if (info[0] == "{") {
+        // Rmarkdown format -- looks like {r stuff,engine=python,stuff}.
+        // https://github.com/yihui/knitr-examples/blob/master/023-engine-python.Rmd
+        // TODO: For now just do this, but find a spec and parse in the future...
+        info = 'r';
+      }
+      const spec = file_associations[info];
+      options.mode = spec?.opts.mode;
+    }
+    const cm = (cmRef.current = CodeMirror.fromTextArea(node, options));
+
+    cm.on("change", (_, _changeObj) => {
+      onChange(cm.getValue());
+    });
+
+    // Make it so editor height matches text.
+    const css: any = { height: "auto", padding: "5px" };
+    if (options.theme == null) {
+      css.backgroundColor = "#f7f7f7";
+    }
+    $(cm.getWrapperElement()).css(css);
+
+    return () => {
+      if (cmRef.current == null) return;
+      $(cmRef.current.getWrapperElement()).remove();
+      cmRef.current = undefined;
+    };
+  }, []);
+
   return (
-    <textarea
-      contentEditable={false}
-      rows={4}
-      value={value}
-      onChange={(e) => {
-        onChange(e.target.value);
-      }}
-    ></textarea>
+    <div contentEditable={false} style={STYLE} className="smc-vfill">
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+        }}
+      ></textarea>
+    </div>
   );
 };

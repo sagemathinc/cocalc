@@ -119,7 +119,8 @@ function serialize(node: Node, info: { parent: Node; index?: number }): string {
     case "code_block":
       const value = node.value as string;
       if (node.fence) {
-        return "```\n" + ensure_ends_in_newline(value) + "```\n\n";
+        const info = node.info ?? "";
+        return "```" + info + "\n" + ensure_ends_in_newline(value) + "```\n\n";
       } else {
         return indent(ensure_ends_in_newline(value), 4) + "\n";
       }
