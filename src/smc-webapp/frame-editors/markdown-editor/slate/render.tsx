@@ -13,6 +13,7 @@ import {
 } from "slate-react";
 import { Transforms } from "slate";
 import { Checkbox } from "antd";
+import { SlateCodeMirror } from "./codemirror";
 
 export const Element: React.FC<RenderElementProps> = ({
   attributes,
@@ -81,11 +82,20 @@ export const Element: React.FC<RenderElementProps> = ({
         </span>
       );
     case "code_block":
-    case "fence":
       return (
-        <pre {...attributes}>
-          <code>{children}</code>
-        </pre>
+        <div {...attributes}>
+          <SlateCodeMirror
+            value={element.value as string}
+            onChange={(value) => {
+              Transforms.setNodes(
+                editor,
+                { value },
+                { at: ReactEditor.findPath(editor, element) }
+              );
+            }}
+          />
+          {children}
+        </div>
       );
     case "math":
       return (

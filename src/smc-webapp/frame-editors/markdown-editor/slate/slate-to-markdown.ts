@@ -17,11 +17,7 @@ function serialize(node: Node, info: { parent: Node; index?: number }): string {
   if (Text.isText(node)) {
     //console.log("  serialize as text", node);
     let text = node.text;
-    if (
-      !node.code &&
-      info.parent.type != "code_block" &&
-      info.parent.type != "fence"
-    ) {
+    if (!node.code && info.parent.type != "code_block") {
       text = markdown_escape(text);
     }
     if (node.bold) {
@@ -121,9 +117,12 @@ function serialize(node: Node, info: { parent: Node; index?: number }): string {
       }
       return link;
     case "code_block":
-      return indent(ensure_ends_in_newline(children), 4) + "\n";
-    case "fence":
-      return "```\n" + ensure_ends_in_newline(children) + "```\n\n";
+      const value = node.value as string;
+      if (node.fence) {
+        return "```\n" + ensure_ends_in_newline(value) + "```\n\n";
+      } else {
+        return indent(ensure_ends_in_newline(value), 4) + "\n";
+      }
     default:
       // console.log("WARNING: serialize Node as UNKNOWN", { node, children });
       return `${children}\n`;
@@ -131,7 +130,7 @@ function serialize(node: Node, info: { parent: Node; index?: number }): string {
 }
 
 export function slate_to_markdown(data: Node[]): string {
-  console.log("slate_to_markdown", JSON.stringify(data, undefined, 2));
+  //console.log("slate_to_markdown", JSON.stringify(data, undefined, 2));
   const r = data.map((node) => serialize(node, { parent: node })).join("");
   (window as any).y = { doc: { ...data }, r };
   return r;
