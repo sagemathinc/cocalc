@@ -19,7 +19,10 @@ function checkboxReplace(md, _options) {
     // before <input type="checkbox" data-index="{n}" checked="true"> after
     const checkbox_token = new Token("checkbox_input", "input", 0);
     checkbox_token.attrs = [
-      ["style", "margin: 0 0.2em 0.2em 0.2em; transform: scale(1.5); vertical-align: middle;"],
+      [
+        "style",
+        "margin: 0 0.2em 0.2em 0.2em; transform: scale(1.5); vertical-align: middle;",
+      ],
       ["type", "checkbox"],
       ["data-index", `${index}`],
       [
@@ -34,9 +37,6 @@ function checkboxReplace(md, _options) {
     }
 
     const before_token = new Token("text", "", 0);
-    if (before[before.length - 1] != " ") {
-      before = before + " ";
-    }
     before_token.content = before;
 
     const after_token = new Token("text", "", 0);
