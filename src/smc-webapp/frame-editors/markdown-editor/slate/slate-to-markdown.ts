@@ -3,7 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 import { Node, Text } from "slate";
-import { ensure_ends_in_newline, li_indent, markdown_escape, markdown_quote } from "./util";
+import {
+  ensure_ends_in_newline,
+  indent,
+  li_indent,
+  markdown_escape,
+  markdown_quote,
+} from "./util";
 const linkify = require("linkify-it")();
 
 function serialize(node: Node, info: { parent: Node; index?: number }): string {
@@ -110,7 +116,9 @@ function serialize(node: Node, info: { parent: Node; index?: number }): string {
         link = `[${children}](${href}${title})`;
       }
       return link;
-    case "code":
+    case "code_block":
+      return indent(ensure_ends_in_newline(children), 4) + "\n";
+    case "fence":
       return "```\n" + ensure_ends_in_newline(children) + "```\n\n";
     default:
       // console.log("WARNING: serialize Node as UNKNOWN", { node, children });

@@ -80,7 +80,8 @@ export const Element: React.FC<RenderElementProps> = ({
           {children}
         </span>
       );
-    case "code":
+    case "code_block":
+    case "fence":
       return (
         <pre {...attributes}>
           <code>{children}</code>

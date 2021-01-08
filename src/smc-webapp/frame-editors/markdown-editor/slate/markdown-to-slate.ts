@@ -195,15 +195,22 @@ function parse(
     return [{ text: replace_math(token.content, math), code: true }];
   }
 
-  if (token.type == "fence" && token.tag == "code") {
-    // block of code
-    // put any math we removed back in unchanged (since the math parsing doesn't
+  if (token.type == "fence") {
+    // fence =block of code with ``` around it, but not indented.
+    // Put any math we removed back in unchanged (since the math parsing doesn't
     // know anything about code blocks, and doesn't know to ignore them).
     let text = replace_math(token.content, math);
     // We also remove the last carriage return (right before ```), since it
     // is much easier to do that here...
     text = text.slice(0, text.length - 1);
-    return [{ type: "code", children: [{ text }] }];
+    return [{ type: "fence", children: [{ text }] }];
+  }
+
+  if (token.type == "code_block") {
+    // code_block = from a code block indented by four spaces with no ``` around it.
+    let text = replace_math(token.content, math);
+    text = text.slice(0, text.length - 1);
+    return [{ type: "code_block", children: [{ text }] }];
   }
 
   if (token.type == "html_inline") {
