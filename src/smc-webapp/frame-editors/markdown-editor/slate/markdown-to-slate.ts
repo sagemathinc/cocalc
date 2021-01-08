@@ -58,52 +58,6 @@ function parse(
   level: number,
   math: string[]
 ): Node[] {
-  if (token.content != null) {
-    token.content = math_unescape(token.content);
-  }
-  // console.log("parse", JSON.stringify({ token, state, level, math }));
-
-  // Handle code
-  if (token.type == "code_inline" && token.tag == "code") {
-    if (token.content == "☐" || token.content == "☑") {
-      return [checkbox(token.content)];
-    }
-    if (
-      startswith(token.content, MATH_ESCAPE) &&
-      endswith(token.content, MATH_ESCAPE)
-    ) {
-      // we encode math as escaped code in markdown, since the markdown parser
-      // and latex are not compatible, but the markdown process can process code fine..
-      return [math_node(token.content, math)];
-    }
-    // inline code -- important: put anything we thought was math back in.
-    return [{ text: replace_math(token.content, math), code: true }];
-  }
-
-  if (token.type == "fence" && token.tag == "code") {
-    // block of code
-    // put any math we removed back in unchanged (since the math parsing doesn't
-    // know anything about code blocks, and doesn't know to ignore them).
-    let text = replace_math(token.content, math);
-    // We also remove the last carriage return (right before ```), since it
-    // is much easier to do that here...
-    text = text.slice(0, text.length - 1);
-    return [{ type: "code", children: [{ text }] }];
-  }
-
-  if (token.type == "html_inline") {
-    // special case for underlining, which markdown doesn't have.
-    switch (token.content.toLowerCase()) {
-      case "<u>":
-        // Special case of underlining.
-        state.marks.underline = true;
-        return [];
-      case "</u>":
-        state.marks.underline = false;
-        return [];
-    }
-  }
-
   switch (token.type) {
     case "em_open":
       state.marks.italic = true;
@@ -218,6 +172,53 @@ function parse(
   }
 
   // No children and not wrapped in anything:
+
+  if (token.content != null) {
+    token.content = math_unescape(token.content);
+  }
+  // console.log("parse", JSON.stringify({ token, state, level, math }));
+
+  // Handle code
+  if (token.type == "code_inline" && token.tag == "code") {
+    if (token.content == "☐" || token.content == "☑") {
+      return [checkbox(token.content)];
+    }
+    if (
+      startswith(token.content, MATH_ESCAPE) &&
+      endswith(token.content, MATH_ESCAPE)
+    ) {
+      // we encode math as escaped code in markdown, since the markdown parser
+      // and latex are not compatible, but the markdown process can process code fine..
+      return [math_node(token.content, math)];
+    }
+    // inline code -- important: put anything we thought was math back in.
+    return [{ text: replace_math(token.content, math), code: true }];
+  }
+
+  if (token.type == "fence" && token.tag == "code") {
+    // block of code
+    // put any math we removed back in unchanged (since the math parsing doesn't
+    // know anything about code blocks, and doesn't know to ignore them).
+    let text = replace_math(token.content, math);
+    // We also remove the last carriage return (right before ```), since it
+    // is much easier to do that here...
+    text = text.slice(0, text.length - 1);
+    return [{ type: "code", children: [{ text }] }];
+  }
+
+  if (token.type == "html_inline") {
+    // special case for underlining, which markdown doesn't have.
+    switch (token.content.toLowerCase()) {
+      case "<u>":
+        // Special case of underlining.
+        state.marks.underline = true;
+        return [];
+      case "</u>":
+        state.marks.underline = false;
+        return [];
+    }
+  }
+
   switch (token.type) {
     case "inline":
       return [mark({ text: token.content }, state.marks)];

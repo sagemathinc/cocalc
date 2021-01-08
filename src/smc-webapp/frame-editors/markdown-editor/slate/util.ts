@@ -63,3 +63,15 @@ export function ensure_ends_in_newline(s: string): string {
     return s;
   }
 }
+
+export function markdown_quote(s: string): string {
+  const v: string[] = [];
+  for (const line of s.trim().split("\n")) {
+    if (is_whitespace(line)) {
+      v.push(">");
+    } else {
+      v.push("> " + line);
+    }
+  }
+  return v.join("\n") + "\n\n";
+}

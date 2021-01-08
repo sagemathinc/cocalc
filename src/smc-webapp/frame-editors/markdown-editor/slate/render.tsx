@@ -28,7 +28,11 @@ export const Element: React.FC<RenderElementProps> = ({
     }
     return React.createElement(
       element.tag as string,
-      { ...attributes, ...(element.attrs as object), ...{ className } },
+      {
+        ...attributes,
+        ...(element.attrs as object),
+        ...{ className },
+      },
       children
     );
   }

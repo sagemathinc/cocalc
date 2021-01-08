@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 import { Node, Text } from "slate";
-import { ensure_ends_in_newline, li_indent, markdown_escape } from "./util";
+import { ensure_ends_in_newline, li_indent, markdown_escape, markdown_quote } from "./util";
 const linkify = require("linkify-it")();
 
 function serialize(node: Node, info: { parent: Node; index?: number }): string {
@@ -91,6 +91,8 @@ function serialize(node: Node, info: { parent: Node; index?: number }): string {
       return "\n---\n\n";
     case "html_block":
       return node.html as string;
+    case "blockquote":
+      return markdown_quote(children);
     case "html_inline":
       return node.html as string;
     case "emoji":
