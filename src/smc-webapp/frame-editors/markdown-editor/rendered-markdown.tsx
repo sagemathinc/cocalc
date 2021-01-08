@@ -11,15 +11,12 @@
 //    - [x] is scrollable
 //    - [x] is zoomable
 //    - [x] math is properly typeset
-//    - [x] checkbox in markdown are interactive (can click them, which edits file)
 
 import { Markdown } from "smc-webapp/r_misc";
 import { is_different, path_split } from "smc-util/misc";
 import { throttle } from "underscore";
 import { React, ReactDOM, CSS } from "../../app-framework";
 import { use_font_size_scaling } from "../frame-tree/hooks";
-import { process_checkboxes } from "../../editors/task-editor/desc-rendering";
-import { apply_without_math } from "smc-util/mathjax-utils-2";
 import { MAX_WIDTH_NUM } from "../options";
 import { EditorState } from "../frame-tree/types";
 
@@ -54,7 +51,6 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
     path,
     project_id,
     font_size,
-    read_only,
     value,
     editor_state,
     reload_images,
@@ -101,21 +97,6 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  function on_click(e): void {
-    if (read_only) {
-      return;
-    }
-    if (!e.target) return;
-    const data = e.target.dataset;
-    if (!data || !data.checkbox) return;
-    e.stopPropagation();
-    actions.toggle_markdown_checkbox(
-      id,
-      parseInt(data.index),
-      data.checkbox === "true"
-    );
-  }
-
   function goto_source_line(event) {
     let elt = event.target;
     (window as any).elt = elt;
@@ -130,7 +111,6 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  const value_md = apply_without_math(value, process_checkboxes);
   const style: CSS = {
     overflowY: "auto",
     width: "100%",
@@ -157,7 +137,6 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
         style={style}
         ref={scroll}
         onScroll={throttle(() => on_scroll(), 250)}
-        onClick={(e) => on_click(e)}
         /* this cocalc-editor-div class is needed for a safari hack only */
         className={"cocalc-editor-div"}
       >
@@ -165,7 +144,7 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
           <Markdown
             line_numbers={true}
             onDoubleClick={goto_source_line}
-            value={value_md}
+            value={value}
             project_id={project_id}
             file_path={path_split(path).head}
             safeHTML={true}
