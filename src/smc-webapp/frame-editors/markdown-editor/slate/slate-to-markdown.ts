@@ -17,7 +17,11 @@ function serialize(node: Node, info: { parent: Node; index?: number }): string {
   if (Text.isText(node)) {
     //console.log("  serialize as text", node);
     let text = node.text;
-    if (!node.code && info.parent.type != "code") {
+    if (
+      !node.code &&
+      info.parent.type != "code_block" &&
+      info.parent.type != "fence"
+    ) {
       text = markdown_escape(text);
     }
     if (node.bold) {
@@ -92,7 +96,7 @@ function serialize(node: Node, info: { parent: Node; index?: number }): string {
     case "math":
       return node.value as string;
     case "checkbox":
-      return node.checked ? "[x] " : "[ ] ";
+      return `[${node.checked ? "x" : " "}]`;
     case "hr":
       return "\n---\n\n";
     case "html_block":
