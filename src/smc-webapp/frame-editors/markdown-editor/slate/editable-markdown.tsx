@@ -192,7 +192,10 @@ export const EditableMarkdown: React.FC<Props> = ({
             }
             hasUnsavedChangesRef.current = true;
             editorMarkdownValueRef.current = undefined; // markdown value now not known.
-            scroll_hack();
+            if (ReactEditor.isFocused(editor)) {
+              // If editor is focused, scroll cursor into view.
+              scroll_into_view();
+            }
             setEditorValue(new_value);
             save_value_debounce();
           }}
@@ -232,7 +235,8 @@ const withIsInline = (editor) => {
 // Scroll the current contenteditable cursor into view if necessary.
 // This is needed on Chrome (on macOS) at least, but not with Safari.
 // This is similar to https://github.com/ianstormtaylor/slate/issues/1032
-function scroll_hack() {
+// and is definitely working around a bug in slatejs.
+function scroll_into_view() {
   (window.getSelection()?.focusNode
     ?.parentNode as any)?.scrollIntoViewIfNeeded?.();
 }
