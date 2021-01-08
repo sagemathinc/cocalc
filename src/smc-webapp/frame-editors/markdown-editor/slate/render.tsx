@@ -69,6 +69,13 @@ export const Element: React.FC<RenderElementProps> = ({
           {children}
         </span>
       );
+    case "emoji":
+      return (
+        <span {...attributes}>
+          {element.content}
+          {children}
+        </span>
+      );
     case "code":
       return (
         <pre {...attributes}>

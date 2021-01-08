@@ -14,6 +14,7 @@ X[ ]
 */
 
 import * as MarkdownIt from "markdown-it";
+import * as emoji from "markdown-it-emoji";
 const MarkdownItFrontMatter = require("markdown-it-front-matter");
 import { replace_all } from "smc-util/misc";
 import { math_escape, math_unescape } from "smc-util/markdown-utils";
@@ -31,6 +32,7 @@ const OPTIONS: MarkdownIt.Options = {
 };
 
 export const markdown_it = new MarkdownIt(OPTIONS);
+markdown_it.use(emoji);
 
 /*
 Inject line numbers for sync.
@@ -56,6 +58,7 @@ function inject_linenumbers_plugin(md) {
 }
 const markdown_it_line_numbers = new MarkdownIt(OPTIONS);
 markdown_it_line_numbers.use(inject_linenumbers_plugin);
+markdown_it_line_numbers.use(emoji);
 
 /*
 Turn the given markdown *string* into an HTML *string*.

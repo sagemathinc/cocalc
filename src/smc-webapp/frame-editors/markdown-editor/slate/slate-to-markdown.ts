@@ -93,6 +93,8 @@ function serialize(node: Node, info: { parent: Node; index?: number }): string {
       return node.html as string;
     case "html_inline":
       return node.html as string;
+    case "emoji":
+      return `:${node.markup}:`;
     case "link":
       // [my website](wstein.org "here")
       const attrs = (node as any).attrs;

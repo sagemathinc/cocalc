@@ -31,6 +31,7 @@ interface Token {
   children?: Token[];
   content: string;
   block?: boolean;
+  markup?: string;
 }
 
 interface Marks {
@@ -238,6 +239,17 @@ function parse(
       return [{ text: "\n" }];
     case "hr":
       return [{ type: "hr", isVoid: true, children: [{ text: "" }] }];
+    case "emoji":
+      return [
+        {
+          type: "emoji",
+          isVoid: true,
+          isInline: true,
+          content: token.content,
+          children: [{ text: "" }],
+          markup: token.markup,
+        },
+      ];
     default:
       return [mark({ text: token.content }, state.marks)];
   }
