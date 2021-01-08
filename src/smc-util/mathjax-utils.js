@@ -15,7 +15,11 @@
 // MATHSPLIT contains the pattern for math delimiters and special symbols
 // needed for searching for math in the text input.
 
-const MATHSPLIT = /(\$\$?|\\(?:begin|end)\{[a-z]*\*?\}|(?:\n\s*)+|\\(?:\(|\)|\[|\]))/i;
+const MATHSPLIT = /(\$\$?|\\(?:begin|end)\{[a-z]*\*?\}|(?:\n\s*)+)/i;
+
+// This would also capture \[ \]  \( \), but I don't want to do that because
+// Jupyter classic doesn't and it conflicts too much with markdown.  Use $'s and e.g., \begin{equation}.
+// const MATHSPLIT = /(\$\$?|\\(?:begin|end)\{[a-z]*\*?\}|(?:\n\s*)+|\\(?:\(|\)|\[|\]))/i;
 
 import { regex_split } from "./regex-split";
 

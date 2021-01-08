@@ -293,18 +293,12 @@ export function markdown_to_slate(markdown): Node[] {
   const state: State = { marks: {}, nesting: 0 };
   const obj: any = {};
 
-  // Any math edited with our editor gets canonicalized
-  // to use $'s instead of various other ways of delineating
-  // mathematics.
-  markdown = replace_all(markdown, "\\[", "$$");
-  markdown = replace_all(markdown, "\\]", "$$");
-  markdown = replace_all(markdown, "\\(", "$");
-  markdown = replace_all(markdown, "\\)", "$");
   let [text, math] = remove_math(
     math_escape(markdown),
     "`" + MATH_ESCAPE,
     MATH_ESCAPE + "`"
   );
+
   // must do this after removing math, since math very
   // naturally might contain [x], e.g., $R[x]$.
   text = checkboxes(text);
@@ -372,3 +366,4 @@ function checkbox(content: "☐" | "☑"): Node {
     children: [{ text: "" }],
   };
 }
+

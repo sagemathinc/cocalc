@@ -7,15 +7,15 @@
  * license
  */
 
-// The markdown processor markedown-it seems to escape
-// a bunch of characters that are relevant to later mathjax
-// processing.  This is annoying, violates the Markdown spec
-// (https://daringfireball.net/projects/markdown/syntax#backslash),
-// and breaks things.  So we remove them first.
-
 import { replace_all } from "./misc";
 
-const escape_map = "$()[]";
+const escape_map = "$";
+
+// We used to do this since we wanted to support math delineated by \[ ... \];
+// however, that just conflicts too much with markdown itself and Jupyter classic
+// doesn't do it.  Use $.
+//const escape_map = "$()[]";
+
 const unescape_map =
   "\uFE22\uFE23\uFE24\uFE25\uFE26"; /* we just use some unallocated unicode... */
 

@@ -7,13 +7,15 @@ import { is_whitespace } from "smc-util/misc";
 
 // Note: this markdown_escape is based on https://github.com/edwmurph/escape-markdown/blob/master/index.js
 
-// We do NOT escape []() since \[ \] and \( \) is used to delineate
-// mathematics. Also escaping -/+ are used for simple math so don't
-// escape.
+// We do NOT escape -/+ since they do not seem to cause any trouble (?).
 
 const MAP = {
   "*": "\\*",
   "#": "\\#",
+  "(": "\\(",
+  ")": "\\)",
+  "[": "\\[",
+  "]": "\\]",
   _: "\\_",
   "\\": "\\\\",
   "`": "\\`",
@@ -24,7 +26,7 @@ const MAP = {
 } as const;
 
 export function markdown_escape(s: string): string {
-  return s.replace(/[\*\\_`#<>$&]/g, (m) => MAP[m]);
+  return s.replace(/[\(\)\[\]\*\\_`#<>$&]/g, (m) => MAP[m]);
 }
 
 export function indent(s: string, n: number): string {
