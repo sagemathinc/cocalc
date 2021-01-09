@@ -14,6 +14,7 @@ import {
 import { Transforms } from "slate";
 import { Checkbox } from "antd";
 import { SlateCodeMirror } from "./codemirror";
+import { SlateMath } from "./math";
 
 export const Element: React.FC<RenderElementProps> = ({
   attributes,
@@ -99,7 +100,7 @@ export const Element: React.FC<RenderElementProps> = ({
     case "math":
       return (
         <span {...attributes}>
-          <HTML auto_render_math={true} value={element.value as string} />
+          <SlateMath value={element.value as string} />
           {children}
         </span>
       );

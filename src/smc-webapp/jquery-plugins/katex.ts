@@ -69,9 +69,9 @@ function katex_plugin(): void {
       (node[0] as any).type == "math/tex" ||
       (node[0] as any).type == "math/tex; mode=display"
     ) {
-      const katex_options: KatexOptions = {
+      const katex_options = {
         displayMode: (node[0] as any).type == "math/tex; mode=display",
-        macros: macros,
+        macros,
         trust: true,
       } as KatexOptions; // cast required due to macros not being in the typescript def file yet.
       let text = node.text();
