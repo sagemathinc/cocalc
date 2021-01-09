@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSS, React } from "../../../app-framework";
+import { CSS, React, useCallback } from "../../../app-framework";
 import { HTML } from "../../../r_misc";
 import {
   RenderElementProps,
@@ -23,11 +23,15 @@ export const Element: React.FC<RenderElementProps> = ({
 }) => {
   const editor = useSlate();
 
-  function set(obj): void {
-    Transforms.setNodes(editor, obj, {
-      at: ReactEditor.findPath(editor, element),
-    });
-  }
+  const set = useCallback((element, obj) => {
+    try {
+      const at = ReactEditor.findPath(editor, element);
+      Transforms.setNodes(editor, obj, { at });
+    } catch (err) {
+      console.log("SLATE error setting ", obj, err, element);
+      return;
+    }
+  }, []);
 
   if (element.tag) {
     // We use some extra classes for certain tags so things just look better.
@@ -93,7 +97,7 @@ export const Element: React.FC<RenderElementProps> = ({
           <SlateCodeMirror
             value={element.value as string}
             info={element.info as string | undefined}
-            onChange={(value) => set({ value })}
+            onChange={(value) => set(element, { value })}
           />
           {children}
         </div>
@@ -103,7 +107,9 @@ export const Element: React.FC<RenderElementProps> = ({
         <span {...attributes}>
           <SlateMath
             value={element.value as string}
-            onChange={(value) => set({ value })}
+            onChange={(value) => {
+              set(element, { value });
+            }}
           />
           {children}
         </span>
@@ -115,11 +121,7 @@ export const Element: React.FC<RenderElementProps> = ({
             style={{ margin: "0 0.5em", verticalAlign: "middle" }}
             checked={!!element.checked}
             onChange={(e) => {
-              Transforms.setNodes(
-                editor,
-                { checked: e.target.checked },
-                { at: ReactEditor.findPath(editor, element) }
-              );
+              set(element, { checked: e.target.checked });
             }}
           />
           {children}

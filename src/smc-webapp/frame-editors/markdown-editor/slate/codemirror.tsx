@@ -71,11 +71,11 @@ export const SlateCodeMirror: React.FC<Props> = ({
 
     const cm = (cmRef.current = CodeMirror.fromTextArea(node, options));
 
-    if (onChange != null) {
-      cm.on("change", (_, _changeObj) => {
+    cm.on("change", (_, _changeObj) => {
+      if (onChange != null) {
         onChange(cm.getValue());
-      });
-    }
+      }
+    });
 
     if (onBlur != null) {
       cm.on("blur", onBlur);

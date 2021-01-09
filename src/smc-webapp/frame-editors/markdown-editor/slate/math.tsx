@@ -22,22 +22,15 @@ export const SlateMath: React.FC<Props> = React.memo(({ value, onChange }) => {
 
   const { err, __html } = useMemo(() => mathToHtml(value), [value]);
 
-  if (editMode) {
+  function renderEditMode() {
+    if (!editMode) return;
     return (
       <SlateCodeMirror
         value={value}
-        onChange={
-          onChange != null
-            ? (value) => {
-                // ensure value is always math to not weirdly break document.
-                onChange(
-                  (value[0] != "$" ? "$" : "") +
-                    value +
-                    (value[value.length - 1] != "$" ? "$" : "")
-                );
-              }
-            : undefined
-        }
+        onChange={(value) => {
+          if (onChange == null) return;
+          onChange(ensureMathMode(value));
+        }}
         onShiftEnter={() => setEditMode?.(false)}
         info="tex"
         options={{
@@ -48,28 +41,48 @@ export const SlateMath: React.FC<Props> = React.memo(({ value, onChange }) => {
       />
     );
   }
-  // view mode
+
+  function renderLaTeX() {
+    return (
+      <span
+        onClick={() => {
+          // switch to edit mode when you click on it.
+          setEditMode?.(true);
+        }}
+      >
+        {err ? (
+          <span
+            style={{
+              backgroundColor: "#fff2f0",
+              border: "1px solid #ffccc7",
+              padding: "5px 10px",
+            }}
+          >
+            {err}
+          </span>
+        ) : (
+          <span dangerouslySetInnerHTML={{ __html }}></span>
+        )}
+      </span>
+    );
+  }
+
   return (
     <span
-      style={{ cursor: "pointer" }}
-      onClick={() => {
-        // switch to edit mode when you click on it.
-        setEditMode?.(true);
-      }}
+      style={
+        editMode
+          ? {
+              display: "block",
+              padding: "10px",
+              cursor: "pointer",
+              background: "lightyellow",
+              border: "1px solid lightgrey",
+            }
+          : { cursor: "pointer" }
+      }
     >
-      {err ? (
-        <span
-          style={{
-            backgroundColor: "#fff2f0",
-            border: "1px solid #ffccc7",
-            padding: "5px 10px",
-          }}
-        >
-          {err}
-        </span>
-      ) : (
-        <span dangerouslySetInnerHTML={{ __html }}></span>
-      )}
+      {renderEditMode()}
+      {renderLaTeX()}
     </span>
   );
 });
@@ -96,4 +109,13 @@ function mathToHtml(
     cache.set(math, { html, err, displayMode });
   }
   return { __html: html ?? "", err };
+}
+
+// ensure value is always math to not weirdly break document.
+function ensureMathMode(value: string): string {
+  return (
+    (value[0] != "$" ? "$" : "") +
+    value +
+    (value[value.length - 1] != "$" ? "$" : "")
+  );
 }
