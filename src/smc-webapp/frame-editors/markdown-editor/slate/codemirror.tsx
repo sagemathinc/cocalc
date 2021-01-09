@@ -32,33 +32,54 @@ const STYLE = {
 } as CSS;
 
 interface Props {
-  onChange: (string) => void;
+  onChange?: (string) => void;
   info?: string;
   value: string;
+  onShiftEnter?: () => void;
+  onBlur?: () => void;
+  options?: any;
 }
-export const SlateCodeMirror: React.FC<Props> = ({ info, value, onChange }) => {
+export const SlateCodeMirror: React.FC<Props> = ({
+  info,
+  value,
+  onChange,
+  onShiftEnter,
+  onBlur,
+  options,
+}) => {
   const cmRef = useRef<CodeMirror.Editor | undefined>(undefined);
   const textareaRef = useRef<any>(null);
 
   useEffect(() => {
     const node: HTMLTextAreaElement = ReactDOM.findDOMNode(textareaRef.current);
     if (node == null) return;
-    const options: any = {};
+    if (options == null) options = {};
     if (info) {
       if (info[0] == "{") {
         // Rmarkdown format -- looks like {r stuff,engine=python,stuff}.
         // https://github.com/yihui/knitr-examples/blob/master/023-engine-python.Rmd
         // TODO: For now just do this, but find a spec and parse in the future...
-        info = 'r';
+        info = "r";
       }
       const spec = file_associations[info];
       options.mode = spec?.opts.mode;
     }
+
+    if (onShiftEnter != null) {
+      options.extraKeys = { "Shift-Enter": onShiftEnter };
+    }
+
     const cm = (cmRef.current = CodeMirror.fromTextArea(node, options));
 
-    cm.on("change", (_, _changeObj) => {
-      onChange(cm.getValue());
-    });
+    if (onChange != null) {
+      cm.on("change", (_, _changeObj) => {
+        onChange(cm.getValue());
+      });
+    }
+
+    if (onBlur != null) {
+      cm.on("blur", onBlur);
+    }
 
     // Make it so editor height matches text.
     const css: any = { height: "auto", padding: "5px" };
@@ -74,15 +95,13 @@ export const SlateCodeMirror: React.FC<Props> = ({ info, value, onChange }) => {
     };
   }, []);
 
+  useEffect(() => {
+    cmRef.current?.setValueNoJump(value);
+  }, [value]);
+
   return (
-    <div contentEditable={false} style={STYLE} className="smc-vfill">
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={(e) => {
-          onChange(e.target.value);
-        }}
-      ></textarea>
-    </div>
+    <span contentEditable={false} style={STYLE} className="smc-vfill">
+      <textarea ref={textareaRef} defaultValue={value}></textarea>
+    </span>
   );
 };

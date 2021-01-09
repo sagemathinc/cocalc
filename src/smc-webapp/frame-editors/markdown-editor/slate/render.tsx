@@ -22,6 +22,13 @@ export const Element: React.FC<RenderElementProps> = ({
   element,
 }) => {
   const editor = useSlate();
+
+  function set(obj): void {
+    Transforms.setNodes(editor, obj, {
+      at: ReactEditor.findPath(editor, element),
+    });
+  }
+
   if (element.tag) {
     // We use some extra classes for certain tags so things just look better.
     let className: undefined | string = undefined;
@@ -86,13 +93,7 @@ export const Element: React.FC<RenderElementProps> = ({
           <SlateCodeMirror
             value={element.value as string}
             info={element.info as string | undefined}
-            onChange={(value) => {
-              Transforms.setNodes(
-                editor,
-                { value },
-                { at: ReactEditor.findPath(editor, element) }
-              );
-            }}
+            onChange={(value) => set({ value })}
           />
           {children}
         </div>
@@ -100,7 +101,10 @@ export const Element: React.FC<RenderElementProps> = ({
     case "math":
       return (
         <span {...attributes}>
-          <SlateMath value={element.value as string} />
+          <SlateMath
+            value={element.value as string}
+            onChange={(value) => set({ value })}
+          />
           {children}
         </span>
       );
@@ -130,7 +134,7 @@ export const Element: React.FC<RenderElementProps> = ({
         );
       }
       return (
-        <p {...attributes} {...element.attrs}>
+        <p {...attributes} {...element.attrs} style={{ whiteSpace: "normal" }}>
           {children}
         </p>
       );
