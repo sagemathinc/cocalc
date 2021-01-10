@@ -54,7 +54,7 @@ const EDITOR_SPEC = {
       "redo",
     ]),
   },
-  editable: {
+  slate: {
     short: "Editable",
     name: "Editable Markdown",
     icon: "pen",

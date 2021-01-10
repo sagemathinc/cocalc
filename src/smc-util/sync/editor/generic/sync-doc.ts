@@ -409,11 +409,11 @@ export class SyncDoc extends EventEmitter {
   }
 
   public set_doc(doc: Document, exit_undo_mode: boolean = true): void {
-    if (exit_undo_mode) this.undo_state = undefined;
     if (doc.is_equal(this.doc)) {
       // no change.
       return;
     }
+    if (exit_undo_mode) this.undo_state = undefined;
     // console.log(`sync-doc.set_doc("${doc.to_str()}")`);
     this.doc = doc;
     this.emit_change();

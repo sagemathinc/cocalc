@@ -1475,7 +1475,8 @@ export class Actions<
     this._syncstring.exit_undo_mode();
   }
 
-  // per-session sync-aware undo
+  // per-session sync-aware undo -- only work when editing text in
+  // a codemirror editor!
   undo(id: string): void {
     const cm = this._get_cm(id);
     if (cm == null) {
@@ -1491,7 +1492,8 @@ export class Actions<
     this._syncstring.commit();
   }
 
-  // per-session sync-aware redo
+  // per-session sync-aware redo -- only work when editing text in
+  // a codemirror editor!
   redo(id: string): void {
     const cm = this._get_cm(id);
     if (cm == null) {

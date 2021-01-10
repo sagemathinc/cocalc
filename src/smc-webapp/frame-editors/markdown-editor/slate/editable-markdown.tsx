@@ -52,6 +52,7 @@ interface Props {
 
 export const EditableMarkdown: React.FC<Props> = ({
   actions,
+  id,
   font_size,
   read_only,
   value,
@@ -83,6 +84,7 @@ export const EditableMarkdown: React.FC<Props> = ({
   }, []);
 
   const save_value = useCallback(() => {
+    // console.log("save_value", { hasUnsaved: hasUnsavedChangesRef.current });
     if (!hasUnsavedChangesRef.current) return;
     hasUnsavedChangesRef.current = false;
     actions.set_value(editor_markdown_value());
@@ -96,6 +98,39 @@ export const EditableMarkdown: React.FC<Props> = ({
     () => debounce(save_value, SAVE_DEBOUNCE_MS),
     []
   );
+
+  function onKeyDown(e) {
+    if (read_only) return;
+    // console.log("onKeyDown", { keyCode: e.keyCode, key: e.key });
+    if ((e.ctrlKey || e.metaKey) && e.keyCode == 83) {
+      actions.save(true);
+      e.preventDefault();
+      return;
+    }
+    if ((e.ctrlKey && e.keyCode == 188) || (e.metaKey && e.keyCode == 189)) {
+      actions.change_font_size(-1);
+      e.preventDefault();
+      return;
+    }
+    if ((e.ctrlKey && e.keyCode == 190) || (e.metaKey && e.keyCode == 187)) {
+      actions.change_font_size(+1);
+      e.preventDefault();
+      return;
+    }
+    if ((e.metaKey || e.ctrlKey) && e.keyCode == 90) {
+      if (e.shiftKey) {
+        // redo
+        actions.redo(id);
+      } else {
+        // undo
+        actions.undo(id);
+      }
+      hasUnsavedChangesRef.current = false;
+      e.preventDefault();
+      ReactEditor.focus(editor);
+      return;
+    }
+  }
 
   useEffect(() => {
     if (!is_current) {
@@ -205,6 +240,7 @@ export const EditableMarkdown: React.FC<Props> = ({
             readOnly={read_only}
             renderElement={Element}
             renderLeaf={Leaf}
+            onKeyDown={!read_only ? onKeyDown : undefined}
           />
         </Slate>
       </div>

@@ -43,7 +43,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
           type: "cm",
         },
         second: {
-          type: "editable",
+          type: "slate",
         },
       };
     }
@@ -82,4 +82,38 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
 
   // Never delete trailing whitespace for markdown files.
   delete_trailing_whitespace(): void {}
+
+  // per-session sync-aware undo; aware of more than one editor type
+  undo(id: string): void {
+    if (this._get_frame_type(id) != "slate") {
+      super.undo(id);
+      return;
+    }
+    const value = this._syncstring.undo().to_str();
+    this._syncstring.set(value, true);
+    this._syncstring.commit();
+    // Important: also set codemirror editor state, if there is one (otherwise it will be out of sync!)
+    this._get_cm()?.setValueNoJump(value, true);
+  }
+
+  // per-session sync-aware redo ; aware of more than one editor type
+  redo(id: string): void {
+    if (this._get_frame_type(id) != "slate") {
+      super.redo(id);
+      return;
+    }
+    if (!this._syncstring.in_undo_mode()) {
+      return;
+    }
+    const doc = this._syncstring.redo();
+    if (doc == null) {
+      // can't redo if version not defined/not available.
+      return;
+    }
+    const value = doc.to_str();
+    this._syncstring.set(value, true);
+    this._syncstring.commit();
+    // Important: also set codemirror editor state, as for undo above.
+    this._get_cm()?.setValueNoJump(value, true);
+  }
 }
