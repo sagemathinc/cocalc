@@ -1821,6 +1821,8 @@ export class Actions<
       const id = this._get_active_id();
       const editor = this.get_code_editor(id);
       if (editor != null) {
+        // This happens when you have a different file being
+        // edited in the same tab, e.g., multifile latex uses this.
         try {
           return await editor.get_actions().format_action(cmd, args, true);
         } catch (err) {

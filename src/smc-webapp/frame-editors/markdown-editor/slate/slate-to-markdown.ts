@@ -12,12 +12,15 @@ import {
 } from "./util";
 const linkify = require("linkify-it")();
 
-function serialize(node: Node, info: { parent: Node; index?: number }): string {
+function serialize(
+  node: Node,
+  info: { parent: Node; index?: number; no_escape: boolean }
+): string {
   //console.log("serialize", node);
   if (Text.isText(node)) {
     //console.log("  serialize as text", node);
     let text = node.text;
-    if (!node.code && info.parent.type != "code_block") {
+    if (!info.no_escape && !node.code && info.parent.type != "code_block") {
       text = markdown_escape(text);
     }
     if (node.bold) {
@@ -28,6 +31,12 @@ function serialize(node: Node, info: { parent: Node; index?: number }): string {
     }
     if (node.underline) {
       text = `<u>${text}</u>`;
+    }
+    if (node.sup) {
+      text = `<sup>${text}</sup>`;
+    }
+    if (node.sub) {
+      text = `<sub>${text}</sub>`;
     }
     if (node.strikethrough) {
       text = `~~${text}~~`;
@@ -49,6 +58,7 @@ function serialize(node: Node, info: { parent: Node; index?: number }): string {
             serialize(node.children[i], {
               parent: node,
               index: i,
+              no_escape: info.no_escape,
             })
           )
         );
@@ -62,7 +72,7 @@ function serialize(node: Node, info: { parent: Node; index?: number }): string {
   }
 
   const children = node.children
-    .map((n) => serialize(n, { parent: node }))
+    .map((n) => serialize(n, { parent: node, no_escape: info.no_escape }))
     .join("");
 
   switch (node.type) {
@@ -130,9 +140,15 @@ function serialize(node: Node, info: { parent: Node; index?: number }): string {
   }
 }
 
-export function slate_to_markdown(data: Node[]): string {
+export function slate_to_markdown(
+  data: Node[],
+  options?: { no_escape?: boolean }
+): string {
   //console.log("slate_to_markdown", JSON.stringify(data, undefined, 2));
-  const r = data.map((node) => serialize(node, { parent: node })).join("");
-  (window as any).y = { doc: { ...data }, r };
+  const r = data
+    .map((node) =>
+      serialize(node, { parent: node, no_escape: !!options?.no_escape })
+    )
+    .join("");
   return r;
 }

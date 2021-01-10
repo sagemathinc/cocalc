@@ -41,6 +41,8 @@ interface Marks {
   bold?: boolean;
   strikethrough?: boolean;
   underline?: boolean;
+  sup?: boolean;
+  sub?: boolean;
 }
 
 interface State {
@@ -218,14 +220,25 @@ function parse(
   }
 
   if (token.type == "html_inline") {
-    // special case for underlining, which markdown doesn't have.
+    // special cases for underlining, sup, sub, which markdown doesn't have.
     switch (token.content.toLowerCase()) {
       case "<u>":
-        // Special case of underlining.
         state.marks.underline = true;
         return [];
       case "</u>":
         state.marks.underline = false;
+        return [];
+      case "<sup>":
+        state.marks.sup = true;
+        return [];
+      case "</sup>":
+        state.marks.sup = false;
+        return [];
+      case "<sub>":
+        state.marks.sub = true;
+        return [];
+      case "</sub>":
+        state.marks.sub = false;
         return [];
     }
   }

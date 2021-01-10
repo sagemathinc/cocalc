@@ -71,8 +71,17 @@ export class FormatBar extends Component<Props, {}> {
         {this.render_button("italic", "Make selected text italics")}
         {this.render_button("underline", "Underline selected text")}
         {this.render_button("strikethrough", "Strike through selected text")}
-        {this.render_button("subscript", "Make selected text a subscript")}
-        {this.render_button("superscript", "Make selected text a superscript")}
+        {this.render_button("code", "Format selected text as code")}
+        {this.render_button(
+          "sub",
+          "Make selected text a subscript",
+          "subscript"
+        )}
+        {this.render_button(
+          "sup",
+          "Make selected text a superscript",
+          "superscript"
+        )}
         {this.render_button("comment", "Comment out selected text")}
       </ButtonGroup>
     );

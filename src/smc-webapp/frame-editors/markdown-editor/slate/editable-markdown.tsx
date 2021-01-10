@@ -8,7 +8,6 @@
 import { delay } from "awaiting";
 import { createEditor, Node } from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "slate-react";
-
 import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
 import { debounce } from "lodash";
 import {
@@ -29,7 +28,7 @@ import { Path } from "../../frame-tree/path";
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
 import { Element, Leaf } from "./render";
-import { format_selected_text } from "./format";
+import { formatSelectedText } from "./format";
 
 const STYLE = {
   width: "100%",
@@ -61,13 +60,13 @@ export const EditableMarkdown: React.FC<Props> = ({
   path,
   is_current,
 }) => {
-  const editor = useMemo(
-    () => withIsInline(withIsVoid(withReact(createEditor()))),
-    []
-  );
-
-  // TODO: DEBUGGING
-  (window as any).ed = { editor, ReactEditor };
+  const editor: ReactEditor = useMemo(() => {
+    const cur = actions.getSlateEditor();
+    if (cur != null) return cur;
+    const ed = withIsInline(withIsVoid(withReact(createEditor())));
+    actions.registerSlateEditor(ed);
+    return ed;
+  }, []);
 
   const editorMarkdownValueRef = useRef<string | undefined>(undefined);
   const hasUnsavedChangesRef = useRef<boolean>(false);
@@ -148,7 +147,7 @@ export const EditableMarkdown: React.FC<Props> = ({
       case "x":
         if (e.key == "x" && !e.shiftKey) return;
         e.preventDefault();
-        format_selected_text(
+        formatSelectedText(
           editor,
           { b: "bold", i: "italic", u: "underline", x: "strikethrough" }[e.key]
         );

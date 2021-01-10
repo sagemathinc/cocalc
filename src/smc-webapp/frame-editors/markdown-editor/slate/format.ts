@@ -4,35 +4,107 @@
  */
 
 import { is_array } from "smc-util/misc";
-import { Editor, Text, Transforms } from "slate";
+import { Editor, Node, Text, Transforms } from "slate";
+import { slate_to_markdown } from "./slate-to-markdown";
 
-export function format_selected_text(editor: Editor, mark: "string"): void {
+export function formatSelectedText(editor: Editor, mark: string): void {
   if (!editor.selection) return; // nothing to do.
   Transforms.setNodes(
     editor,
-    { [mark]: !is_already_marked(editor, mark) },
+    { [mark]: !isAlreadyMarked(editor, mark) },
     { match: (node) => Text.isText(node), split: true }
   );
 }
 
 // returns true if current selection *starts* with mark.
-function is_already_marked(editor: Editor, mark: "string"): boolean {
+function isAlreadyMarked(editor: Editor, mark: string): boolean {
   if (!editor.selection) return false;
-  return is_fragment_already_marked(
+  return isFragmentAlreadyMarked(
     Editor.fragment(editor, editor.selection),
     mark
   );
 }
 
 // returns true if fragment *starts* with mark.
-function is_fragment_already_marked(fragment, mark: "string"): boolean {
+function isFragmentAlreadyMarked(fragment, mark: string): boolean {
   if (is_array(fragment)) {
     fragment = fragment[0];
     if (fragment == null) return false;
   }
   if (Text.isText(fragment) && fragment[mark]) return true;
   if (fragment.children) {
-    return is_fragment_already_marked(fragment.children, mark);
+    return isFragmentAlreadyMarked(fragment.children, mark);
   }
   return false;
+}
+
+export async function formatAction(
+  editor: Editor,
+  cmd: string,
+  args
+): Promise<void> {
+  console.log("slate.format_action", { cmd, args, editor });
+  if (
+    cmd == "bold" ||
+    cmd == "italic" ||
+    cmd == "underline" ||
+    cmd == "strikethrough" ||
+    cmd == "code" ||
+    cmd == "sup" ||
+    cmd == "sub"
+  ) {
+    formatSelectedText(editor, cmd);
+    return;
+  }
+
+  if (cmd == "equation") {
+    transformToEquation(editor, false);
+    return;
+  }
+
+  if (cmd == "display_equation") {
+    transformToEquation(editor, true);
+    return;
+  }
+}
+
+function transformToEquation(editor: Editor, display: boolean): void {
+  let content = selectionToText(editor).trim();
+  if (!content) {
+    content = "x"; // placeholder math
+  } else {
+    // eliminate blank lines which break math apart
+    content = content.replace(/^\s*\n/gm, "");
+  }
+  const wrap = "$" + (display ? "$" : "");
+  const fragment: Node[] = [
+    {
+      type: "math",
+      value: wrap + content + wrap,
+      isVoid: true,
+      isInline: true,
+      children: [{ text: "" }],
+    },
+  ];
+  Transforms.insertFragment(editor, fragment);
+}
+
+function selectionToText(editor: Editor): string {
+  if (!editor.selection) return "";
+  let fragment = Editor.fragment(editor, editor.selection);
+  while (fragment[0].children != null && !Text.isText(fragment[0])) {
+    fragment = fragment[0].children;
+  }
+  return fragmentToMarkdown(fragment);
+}
+
+/*
+function selectionToMarkdown(editor: Editor): string {
+  if (!editor.selection) return "";
+  return fragmentToMarkdown(Editor.fragment(editor, editor.selection));
+}
+*/
+
+function fragmentToMarkdown(fragment): string {
+  return slate_to_markdown(fragment, { no_escape: true });
 }

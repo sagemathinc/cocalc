@@ -11,6 +11,8 @@ import { is_whitespace } from "smc-util/misc";
 
 const MAP = {
   "*": "\\*",
+  "+": "\\+",
+  "-": "\\-",
   "#": "\\#",
   "(": "\\(",
   ")": "\\)",
@@ -26,7 +28,7 @@ const MAP = {
 } as const;
 
 export function markdown_escape(s: string): string {
-  return s.replace(/[\(\)\[\]\*\\_`#<>$&]/g, (m) => MAP[m]);
+  return s.replace(/[\(\)\[\]\*\+\-\\_`#<>$&]/g, (m) => MAP[m]);
 }
 
 export function indent(s: string, n: number): string {

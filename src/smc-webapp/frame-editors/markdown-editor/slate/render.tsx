@@ -169,6 +169,12 @@ export const Leaf: React.FC<RenderLeafProps> = ({
   if (leaf.underline) {
     children = <u>{children}</u>;
   }
+  if (leaf.sup) {
+    children = <sup>{children}</sup>;
+  }
+  if (leaf.sub) {
+    children = <sub>{children}</sub>;
+  }
   if (leaf.code) {
     children = <code style={CODE_STYLE}>{children}</code>;
   }

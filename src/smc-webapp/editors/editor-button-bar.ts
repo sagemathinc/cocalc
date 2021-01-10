@@ -415,6 +415,12 @@ $$\
         right: "~~",
       },
     },
+    code: {
+      wrap: {
+        left: "`",
+        right: "`",
+      },
+    },
     insertunorderedlist: {
       wrap: {
         left: " - ",

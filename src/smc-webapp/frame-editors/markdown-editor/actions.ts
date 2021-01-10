@@ -15,6 +15,8 @@ import {
 } from "../code-editor/actions";
 import { print_html } from "../frame-tree/print";
 import { FrameTree } from "../frame-tree/types";
+import { ReactEditor as SlateEditor } from "slate-react";
+import { formatAction as slateFormatAction } from "./slate/format";
 
 interface MarkdownEditorState extends CodeEditorState {
   custom_pdf_error_message: string; // currently used only in rmd editor, but we could easily add pdf output to the markdown editor
@@ -25,6 +27,8 @@ interface MarkdownEditorState extends CodeEditorState {
 }
 
 export class Actions extends CodeEditorActions<MarkdownEditorState> {
+  private slate_editor: SlateEditor | undefined = undefined;
+
   _init2(): void {
     if (!this.is_public) {
       this._init_syncstring_value();
@@ -115,5 +119,22 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
     this._syncstring.commit();
     // Important: also set codemirror editor state, as for undo above.
     this._get_cm()?.setValueNoJump(value, true);
+  }
+
+  async format_action(cmd, args, force_main: boolean = false): Promise<void> {
+    const id = this._get_active_id();
+    if (this._get_frame_type(id) != "slate" || this.slate_editor == null) {
+      super.format_action(cmd, args, force_main);
+      return;
+    }
+    slateFormatAction(this.slate_editor, cmd, args);
+  }
+
+  public getSlateEditor(): SlateEditor | undefined {
+    return this.slate_editor;
+  }
+
+  public registerSlateEditor(editor: SlateEditor): void {
+    this.slate_editor = editor;
   }
 }
