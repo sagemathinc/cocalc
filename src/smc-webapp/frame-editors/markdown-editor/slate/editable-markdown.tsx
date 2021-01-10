@@ -6,7 +6,7 @@
 // Component that allows WYSIWYG editing of markdown.
 
 import { delay } from "awaiting";
-import { Node, createEditor } from "slate";
+import { createEditor, Node } from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "slate-react";
 
 import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
@@ -29,6 +29,7 @@ import { Path } from "../../frame-tree/path";
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
 import { Element, Leaf } from "./render";
+import { format_selected_text } from "./format";
 
 const STYLE = {
   width: "100%",
@@ -129,6 +130,29 @@ export const EditableMarkdown: React.FC<Props> = ({
       e.preventDefault();
       ReactEditor.focus(editor);
       return;
+    }
+    if (handleFormatCommands(e)) {
+      return;
+    }
+  }
+
+  function handleFormatCommands(e) {
+    if (!(e.ctrlKey || e.metaKey)) {
+      return;
+    }
+
+    switch (e.key) {
+      case "b":
+      case "i":
+      case "u":
+      case "x":
+        if (e.key == "x" && !e.shiftKey) return;
+        e.preventDefault();
+        format_selected_text(
+          editor,
+          { b: "bold", i: "italic", u: "underline", x: "strikethrough" }[e.key]
+        );
+        return true;
     }
   }
 

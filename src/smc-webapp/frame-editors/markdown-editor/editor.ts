@@ -17,6 +17,27 @@ import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 
 const EDITOR_SPEC = {
+  slate: {
+    short: "Editable",
+    name: "Editable Markdown",
+    icon: "pen",
+    component: EditableMarkdown,
+    buttons: set([
+      //"print",
+      "decrease_font_size",
+      "increase_font_size",
+      "save",
+      "time_travel",
+      //"replace",
+      //"find",
+      //"goto_line",
+      //"cut",
+      //"paste",
+      //"copy",
+      "undo",
+      "redo",
+    ]),
+  },
   cm: {
     short: "Code",
     name: "Source Code",
@@ -52,28 +73,6 @@ const EDITOR_SPEC = {
       "time_travel",
       "undo", // need these because button bars at top let you do something even in rendered only view.
       "redo",
-    ]),
-  },
-  slate: {
-    short: "Editable",
-    name: "Editable Markdown",
-    icon: "pen",
-    component: EditableMarkdown,
-    buttons: set([
-      "print",
-      "decrease_font_size",
-      "increase_font_size",
-      "save",
-      "time_travel",
-      "replace",
-      "find",
-      "goto_line",
-      "cut",
-      "paste",
-      "copy",
-      "undo",
-      "redo",
-      "format",
     ]),
   },
   terminal,
