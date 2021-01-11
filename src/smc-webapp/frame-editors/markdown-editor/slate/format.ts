@@ -45,7 +45,6 @@ export async function formatAction(
   cmd: string,
   args
 ): Promise<void> {
-  console.log("slate.format_action", { cmd, args, editor });
   if (
     cmd == "bold" ||
     cmd == "italic" ||
@@ -79,6 +78,12 @@ export async function formatAction(
     insertSnippet(editor, cmd);
     return;
   }
+
+  console.log("WARNING -- slate.format_action not implemented", {
+    cmd,
+    args,
+    editor,
+  });
 }
 
 function insertSnippet(editor: Editor, name: string): boolean {

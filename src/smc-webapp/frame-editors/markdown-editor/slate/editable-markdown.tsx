@@ -62,10 +62,10 @@ export const EditableMarkdown: React.FC<Props> = ({
   is_current,
 }) => {
   const editor: ReactEditor = useMemo(() => {
-    const cur = actions.getSlateEditor();
+    const cur = actions.getSlateEditor(id);
     if (cur != null) return cur;
     const ed = withIsInline(withIsVoid(withReact(createEditor())));
-    actions.registerSlateEditor(ed);
+    actions.registerSlateEditor(id, ed);
     return ed;
   }, []);
 

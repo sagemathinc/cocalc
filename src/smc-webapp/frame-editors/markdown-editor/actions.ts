@@ -27,7 +27,7 @@ interface MarkdownEditorState extends CodeEditorState {
 }
 
 export class Actions extends CodeEditorActions<MarkdownEditorState> {
-  private slate_editor: SlateEditor | undefined = undefined;
+  private slateEditors: { [id: string]: SlateEditor } = {};
 
   _init2(): void {
     if (!this.is_public) {
@@ -123,18 +123,18 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
 
   async format_action(cmd, args, force_main: boolean = false): Promise<void> {
     const id = this._get_active_id();
-    if (this._get_frame_type(id) != "slate" || this.slate_editor == null) {
+    if (this._get_frame_type(id) != "slate" || this.slateEditors[id] == null) {
       super.format_action(cmd, args, force_main);
       return;
     }
-    slateFormatAction(this.slate_editor, cmd, args);
+    slateFormatAction(this.slateEditors[id], cmd, args);
   }
 
-  public getSlateEditor(): SlateEditor | undefined {
-    return this.slate_editor;
+  public getSlateEditor(id: string): SlateEditor | undefined {
+    return this.slateEditors[id];
   }
 
-  public registerSlateEditor(editor: SlateEditor): void {
-    this.slate_editor = editor;
+  public registerSlateEditor(id: string, editor: SlateEditor): void {
+    this.slateEditors[id] = editor;
   }
 }
