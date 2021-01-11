@@ -99,6 +99,10 @@ function serialize(
       return `${h} ${children}\n\n`;
     case "paragraph":
       return `${children}${node.tight ? "\n" : "\n\n"}`;
+    case "softbreak":
+      return "\n";
+    case "hardbreak":
+      return "  \n";
     case "math":
       return node.value as string;
     case "checkbox":

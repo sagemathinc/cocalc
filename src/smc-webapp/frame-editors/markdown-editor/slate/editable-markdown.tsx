@@ -6,7 +6,7 @@
 // Component that allows WYSIWYG editing of markdown.
 
 import { delay } from "awaiting";
-import { createEditor, Node } from "slate";
+import { createEditor, Node, Transforms } from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "slate-react";
 import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
 import { debounce } from "lodash";
@@ -26,7 +26,7 @@ import { use_font_size_scaling } from "../../frame-tree/hooks";
 import { Path } from "../../frame-tree/path";
 
 import { slate_to_markdown } from "./slate-to-markdown";
-import { markdown_to_slate } from "./markdown-to-slate";
+import { markdown_to_slate, hardbreak } from "./markdown-to-slate";
 import { Element, Leaf } from "./render";
 import { formatSelectedText } from "./format";
 
@@ -102,7 +102,13 @@ export const EditableMarkdown: React.FC<Props> = ({
 
   function onKeyDown(e) {
     if (read_only) return;
-    // console.log("onKeyDown", { keyCode: e.keyCode, key: e.key });
+    //console.log("onKeyDown", { keyCode: e.keyCode, key: e.key });
+    if (e.shiftKey && e.key == "Enter") {
+      // insert a hard break instead of a new pagraph like enter creates.
+      Transforms.insertNodes(editor, [hardbreak()]);
+      e.preventDefault();
+      return;
+    }
     if ((e.ctrlKey || e.metaKey) && e.keyCode == 83) {
       actions.save(true);
       e.preventDefault();

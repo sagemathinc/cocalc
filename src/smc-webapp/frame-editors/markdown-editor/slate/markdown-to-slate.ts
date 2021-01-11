@@ -269,9 +269,9 @@ function parse(
         },
       ];
     case "softbreak":
-      return [{ text: "\n" }];
-    case "hardbreak": // TODO: I don't know how to represent this in slatejs.
-      return [{ text: "\n" }];
+      return [softbreak()];
+    case "hardbreak":
+      return [hardbreak()];
     case "hr":
       return [{ type: "hr", isVoid: true, children: [{ text: "" }] }];
     case "emoji":
@@ -328,11 +328,6 @@ export function markdown_to_slate(markdown): Node[] {
     MATH_ESCAPE + "`"
   );
 
-  (window as any).x = {
-    last_parse: markdown_it.parse(text, obj),
-    parser: (text) => markdown_it.parse(text, {}),
-  };
-
   for (const token of markdown_it.parse(text, obj)) {
     for (const node of parse(token, state, 0, math)) {
       doc.push(node);
@@ -346,6 +341,12 @@ export function markdown_to_slate(markdown): Node[] {
       children: [{ text: "" }],
     });
   }
+
+  (window as any).x = {
+    last_parse: markdown_it.parse(text, obj),
+    parser: (text) => markdown_it.parse(text, {}),
+    doc,
+  };
 
   return doc;
 }
@@ -385,5 +386,23 @@ function checkbox(content: "☐" | "☑"): Node {
     type: "checkbox",
     checked: content == "☑",
     children: [{ text: "" }],
+  };
+}
+
+export function hardbreak() {
+  return {
+    type: "hardbreak",
+    isInline: true,
+    isVoid: false,
+    children: [{ text: "\n" }],
+  };
+}
+
+export function softbreak() {
+  return {
+    type: "softbreak",
+    isInline: true,
+    isVoid: false,
+    children: [{ text: "\n" }],
   };
 }

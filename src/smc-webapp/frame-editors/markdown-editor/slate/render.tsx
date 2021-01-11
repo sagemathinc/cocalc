@@ -99,6 +99,18 @@ export const Element: React.FC<RenderElementProps> = ({
           {children}
         </span>
       );
+    case "hardbreak":
+      return (
+        <span {...attributes}>
+          <span style={{ whiteSpace: "pre" }}>{children}</span>
+        </span>
+      );
+    case "softbreak":
+      return (
+        <span {...attributes}>
+          <span style={{ whiteSpace: "normal" }}>{children}</span>
+        </span>
+      );
     case "code_block":
       return (
         <div {...attributes}>
@@ -144,7 +156,11 @@ export const Element: React.FC<RenderElementProps> = ({
         );
       }
       return (
-        <p {...attributes} {...element.attrs} style={{ whiteSpace: "normal" }}>
+        <p
+          {...attributes}
+          {...element.attrs}
+          style={{ whiteSpace: "pre-wrap" }}
+        >
           {children}
         </p>
       );
@@ -165,6 +181,7 @@ export const Leaf: React.FC<RenderLeafProps> = ({
   children,
   leaf,
 }) => {
+  //console.log("Leaf ", { children });
   if (leaf.bold) {
     children = <strong>{children}</strong>;
   }
