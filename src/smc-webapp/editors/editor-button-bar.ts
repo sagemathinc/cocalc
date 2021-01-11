@@ -423,7 +423,7 @@ $$\
     },
     insertunorderedlist: {
       wrap: {
-        left: " - ",
+        left: " - first\n - second\n",
         right: "",
         multi: true,
         space: false,
@@ -433,7 +433,7 @@ $$\
     },
     insertorderedlist: {
       wrap: {
-        left: "1. ",
+        left: "1. first\n2. second\n",
         right: "",
         multi: true,
         space: false,

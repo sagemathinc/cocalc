@@ -6,6 +6,8 @@
 import { is_array } from "smc-util/misc";
 import { Editor, Node, Text, Transforms } from "slate";
 import { slate_to_markdown } from "./slate-to-markdown";
+import { markdown_to_slate } from "./markdown-to-slate";
+import { commands } from "../../../editors/editor-button-bar";
 
 export function formatSelectedText(editor: Editor, mark: string): void {
   if (!editor.selection) return; // nothing to do.
@@ -66,12 +68,31 @@ export async function formatAction(
     transformToEquation(editor, true);
     return;
   }
+
+  if (
+    cmd == "insertunorderedlist" ||
+    cmd == "insertorderedlist" ||
+    cmd == "table" ||
+    cmd == "horizontalRule" ||
+    cmd == "quote"
+  ) {
+    insertSnippet(editor, cmd);
+    return;
+  }
+}
+
+function insertSnippet(editor: Editor, name: string): boolean {
+  const markdown = commands.md[name]?.wrap?.left;
+  if (markdown == null) return false;
+  const nodes = markdown_to_slate(markdown.trim());
+  Transforms.insertNodes(editor, nodes);
+  return true;
 }
 
 function transformToEquation(editor: Editor, display: boolean): void {
   let content = selectionToText(editor).trim();
   if (!content) {
-    content = "x"; // placeholder math
+    content = "x^2"; // placeholder math
   } else {
     // eliminate blank lines which break math apart
     content = content.replace(/^\s*\n/gm, "");

@@ -32,6 +32,7 @@ export const SlateMath: React.FC<Props> = React.memo(({ value, onChange }) => {
           onChange(ensureMathMode(value));
         }}
         onShiftEnter={() => setEditMode?.(false)}
+        onEscape={() => setEditMode?.(false)}
         info="tex"
         options={{
           lineWrapping: true,
@@ -75,8 +76,9 @@ export const SlateMath: React.FC<Props> = React.memo(({ value, onChange }) => {
               display: "block",
               padding: "10px",
               cursor: "pointer",
-              background: "lightyellow",
               border: "1px solid lightgrey",
+              boxShadow: "8px 8px 4px #888",
+              borderRadius: "5px",
             }
           : { cursor: "pointer" }
       }

@@ -36,6 +36,7 @@ const STYLE = {
   padding: "50px 75px",
   border: "1px solid lightgrey",
   background: "white",
+  overflowX: "auto",
 } as CSS;
 
 interface Props {

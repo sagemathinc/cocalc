@@ -308,14 +308,6 @@ function mark(text: Text, marks: Marks): Node {
 }
 
 export function markdown_to_slate(markdown): Node[] {
-  (window as any).x = {
-    markdown,
-    markdown_it,
-    remove_math,
-    math_escape,
-    markdown_to_slate,
-  };
-
   const doc: Node[] = [];
   const state: State = { marks: {}, nesting: 0 };
   const obj: any = {};
@@ -331,10 +323,6 @@ export function markdown_to_slate(markdown): Node[] {
       doc.push(node);
     }
   }
-  (window as any).x.doc = doc;
-  (window as any).x.math = math;
-  (window as any).x.text = text;
-  console.log("markdown_to_slate", (window as any).x);
 
   if (doc.length == 0) {
     // empty doc isn't allowed; use the simplest doc.

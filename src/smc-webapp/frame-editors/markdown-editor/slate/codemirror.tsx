@@ -36,6 +36,7 @@ interface Props {
   info?: string;
   value: string;
   onShiftEnter?: () => void;
+  onEscape?: () => void;
   onBlur?: () => void;
   options?: any;
 }
@@ -44,6 +45,7 @@ export const SlateCodeMirror: React.FC<Props> = ({
   value,
   onChange,
   onShiftEnter,
+  onEscape,
   onBlur,
   options,
 }) => {
@@ -65,8 +67,15 @@ export const SlateCodeMirror: React.FC<Props> = ({
       options.mode = spec?.opts.mode;
     }
 
+    if (options.extraKeys == null) {
+      options.extraKeys = {};
+    }
     if (onShiftEnter != null) {
-      options.extraKeys = { "Shift-Enter": onShiftEnter };
+      options.extraKeys["Shift-Enter"] = onShiftEnter;
+    }
+
+    if (onEscape != null) {
+      options.extraKeys["Esc"] = onEscape;
     }
 
     const cm = (cmRef.current = CodeMirror.fromTextArea(node, options));
