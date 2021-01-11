@@ -21,7 +21,8 @@ const MATHSPLIT = /(\$\$?|\\(?:begin|end)\{[a-z]*\*?\}|(?:\n\s*)+)/i;
 // Jupyter classic doesn't and it conflicts too much with markdown.  Use $'s and e.g., \begin{equation}.
 // const MATHSPLIT = /(\$\$?|\\(?:begin|end)\{[a-z]*\*?\}|(?:\n\s*)+|\\(?:\(|\)|\[|\]))/i;
 
-import { regex_split } from "./regex-split";
+// This runs under node.js and is js (not ts) so can't use import.
+const { regex_split } = require("./regex-split");
 
 //  The math is in blocks i through j, so
 //    collect it into one block and clear the others.
@@ -50,9 +51,10 @@ function process_math(i, j, pre_process, math, blocks, open_tag, close_tag) {
 //
 
 // Do *NOT* conflict with the ones used in ./markdown-utils.ts
-export const MATH_ESCAPE = "\uFE32\uFE33"; // unused unicode -- hardcoded below too
+const MATH_ESCAPE = "\uFE32\uFE33"; // unused unicode -- hardcoded below too
+exports.MATH_ESCAPE = MATH_ESCAPE;
 
-export function remove_math(
+function remove_math(
   text,
   open_tag = MATH_ESCAPE,
   close_tag = MATH_ESCAPE
@@ -173,14 +175,17 @@ export function remove_math(
   }
   return [de_tilde(blocks.join("")), math];
 }
+exports.remove_math = remove_math;
 
 //
 //  Put back the math strings that were saved.
 //
-export function replace_math(text, math) {
+function replace_math(text, math) {
   // Replace all the math group placeholders in the text
   // with the saved strings.
   return text.replace(/\uFE32\uFE33(\d+)\uFE32\uFE33/g, function (match, n) {
     return math[n];
   });
 }
+
+exports.replace_math = replace_math;
