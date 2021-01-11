@@ -64,8 +64,8 @@ function serialize(
         );
       }
       let s = v.join("");
-      if (s[s.length - 2] != "\n") {
-        // lists should end with two new lines.
+      if (s[s.length - 2] != "\n" && info.parent.type != "list_item") {
+        // lists should end with two new lines, unless parent is a list item itself.
         s += "\n";
       }
       return s;
