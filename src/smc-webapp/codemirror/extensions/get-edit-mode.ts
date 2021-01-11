@@ -13,6 +13,7 @@ CodeMirror.defineExtension("get_edit_mode", function (cur?: {
   const editor = this;
   switch (editor.getModeAt(cur ?? editor.getCursor()).name) {
     case "markdown":
+    case "yaml-frontmatter":
       return "md";
     case "xml":
       return "html";
@@ -30,7 +31,7 @@ CodeMirror.defineExtension("get_edit_mode", function (cur?: {
       return "sage";
     default:
       const { name } = editor.getOption("mode");
-      if (name.slice(0, 3) === "gfm") {
+      if (name.slice(0, 3) === "gfm" || name == "yaml-frontmatter") {
         return "md";
       } else if (name.slice(0, 9) === "htmlmixed") {
         return "html";
