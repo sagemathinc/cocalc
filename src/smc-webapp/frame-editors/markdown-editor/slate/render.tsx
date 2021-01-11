@@ -39,12 +39,20 @@ export const Element: React.FC<RenderElementProps> = ({
     if (element.tag == "table") {
       className = "table";
     }
+    let style = {} as CSS;
+    if ((element.tag == "ol" || element.tag == "ul") && !element.tight) {
+      // There is a shortcoming in how markdown-it parses nested
+      // non-tight lists (at least with the CSS in cocalc), and this
+      // is a workaround.  If it is not tight, add space below.
+      style.marginBottom = "1em";
+    }
     return React.createElement(
       element.tag as string,
       {
         ...attributes,
         ...(element.attrs as object),
         ...{ className },
+        ...{ style },
       },
       children
     );

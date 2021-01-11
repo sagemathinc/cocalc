@@ -111,8 +111,18 @@ function parse(
         // all have to be blocks themselves -- no mixing.  Our markdown parser I think also
         // does this, except for one weird special case which involves hidden:true that is
         // used for tight lists.
+
+        // We use all_tight to make it so if one node is marked tight, then all are.
+        // This is useful to better render nested markdown lists.
+        let all_tight: boolean = false;
         for (const token2 of state.contents) {
           for (const node of parse(token2, child_state, level + 1, math)) {
+            if (node.tight) {
+              all_tight = true;
+            }
+            if (all_tight) {
+              node.tight = true;
+            }
             is_empty = false;
             children.push(node);
           }
@@ -317,6 +327,11 @@ export function markdown_to_slate(markdown): Node[] {
     "`" + MATH_ESCAPE,
     MATH_ESCAPE + "`"
   );
+
+  (window as any).x = {
+    last_parse: markdown_it.parse(text, obj),
+    parser: (text) => markdown_it.parse(text, {}),
+  };
 
   for (const token of markdown_it.parse(text, obj)) {
     for (const node of parse(token, state, 0, math)) {
