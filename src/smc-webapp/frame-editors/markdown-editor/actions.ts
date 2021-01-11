@@ -30,10 +30,15 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
   private slateEditors: { [id: string]: SlateEditor } = {};
 
   _init2(): void {
-    if (!this.is_public) {
-      this._init_syncstring_value();
-      this._init_spellcheck();
-    }
+    if (this.is_public) return;
+    this._init_syncstring_value();
+    this._init_spellcheck();
+
+    this.store.on("close-frame", ({ id, type }) => {
+      if (type == "slate" && this.slateEditors[id]) {
+        delete this.slateEditors[id];
+      }
+    });
   }
 
   _raw_default_frame_tree(): FrameTree {

@@ -41,6 +41,14 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     this.create_jupyter_actions();
     this.init_new_frame();
     this.init_changes_state();
+
+    this.store.on("close-frame", async ({ id }) => {
+      if (this.frame_actions[id] != null) {
+        await delay(1);
+        this.frame_actions[id].close();
+        delete this.frame_actions[id];
+      }
+    });
   }
 
   public close(): void {
@@ -112,16 +120,6 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
       // This will update the connection file
       this.shell(id, true);
     });
-  }
-
-  async close_frame_hook(id: string, type: string): Promise<void> {
-    if (type != "jupyter_cell_notebook") return;
-    // TODO: need to free up frame actions when frame is destroyed.
-    if (this.frame_actions[id] != null) {
-      await delay(1);
-      this.frame_actions[id].close();
-      delete this.frame_actions[id];
-    }
   }
 
   public focus(id?: string): void {
