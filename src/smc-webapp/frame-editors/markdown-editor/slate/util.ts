@@ -27,8 +27,20 @@ const MAP = {
   $: "\\$",
 } as const;
 
+// Matches any markdown link.
+const LINK = new RegExp(/\[([^\]]+)\]\(([^\)]+)\)/g);
+
 export function markdown_escape(s: string): string {
-  return s.replace(/[\(\)\[\]\*\+\-\\_`#<>$&]/g, (m) => MAP[m]);
+  // some keys from the map above are purposely missing here, since overescaping
+  // makes the generated markdown ugly.
+
+  // The 1-character replacements we make in any text.
+  s = s.replace(/[\\_`<>$&]/g, (m) => MAP[m]);
+
+  // Links - we do this to avoid escaping [ and ] when not necessary.
+  s = s.replace(LINK, (link) => link.replace(/[\[\]]/g, (m) => MAP[m]));
+
+  return s;
 }
 
 export function indent(s: string, n: number): string {
