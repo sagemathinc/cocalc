@@ -103,6 +103,13 @@ export const EditableMarkdown: React.FC<Props> = ({
   function onKeyDown(e) {
     if (read_only) return;
     //console.log("onKeyDown", { keyCode: e.keyCode, key: e.key });
+    if (!e.shiftKey && !e.ctrlKey && !e.metaKey && e.key == "Tab") {
+      // Markdown doesn't have a notion of tabs in text...
+      // Putting in four spaces for now, but we'll probably change this...
+      editor.insertText("    ");
+      e.preventDefault();
+      return;
+    }
     if (e.shiftKey && e.key == "Enter") {
       // insert a hard break instead of a new pagraph like enter creates.
       Transforms.insertNodes(editor, [hardbreak()]);

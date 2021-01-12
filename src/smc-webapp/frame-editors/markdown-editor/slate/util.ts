@@ -7,8 +7,6 @@ import { is_whitespace } from "smc-util/misc";
 
 // Note: this markdown_escape is based on https://github.com/edwmurph/escape-markdown/blob/master/index.js
 
-// We do NOT escape -/+ since they do not seem to cause any trouble (?).
-
 const MAP = {
   "*": "\\*",
   "+": "\\+",
@@ -27,9 +25,6 @@ const MAP = {
   $: "\\$",
 } as const;
 
-// Matches any markdown link.
-const LINK = new RegExp(/\[([^\]]+)\]\(([^\)]+)\)/g);
-
 export function markdown_escape(s: string): string {
   // some keys from the map above are purposely missing here, since overescaping
   // makes the generated markdown ugly.
@@ -38,9 +33,28 @@ export function markdown_escape(s: string): string {
   s = s.replace(/[\\_`<>$&]/g, (m) => MAP[m]);
 
   // Links - we do this to avoid escaping [ and ] when not necessary.
-  s = s.replace(LINK, (link) => link.replace(/[\[\]]/g, (m) => MAP[m]));
+  s = s.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, (link) =>
+    link.replace(/[\[\]]/g, (m) => MAP[m])
+  );
+
+  // Escape multiple spaces in a row so they don't just collapse to one space.
+  s = s.replace(/\s+/g, escape_whitespace);
 
   return s;
+}
+
+// The input string s consists of 1 or more whitespace characters.
+// The output is escaped so the whitespace from *spaces* is preserved
+// be making all but the first space be a non breaking space in the
+// text document.  We use *unicode* rather than &nbsp; so that it is
+// rendered like a space in codemirror.  See
+//    https://stackoverflow.com/questions/6046263/how-to-indent-a-few-lines-in-markdown-markup/53112628#53112628
+function escape_whitespace(s: string): string {
+  let t = s[0];
+  for (let i = 1; i < s.length; i++) {
+    t += s[i] == " " ? "\u00a0" : s[i];
+  }
+  return t;
 }
 
 export function indent(s: string, n: number): string {

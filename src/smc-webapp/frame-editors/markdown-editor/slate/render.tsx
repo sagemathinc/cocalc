@@ -158,11 +158,7 @@ export const Element: React.FC<RenderElementProps> = ({
         );
       }
       return (
-        <p
-          {...attributes}
-          {...element.attrs}
-          style={{ whiteSpace: "pre-wrap" }}
-        >
+        <p {...attributes} {...element.attrs}>
           {children}
         </p>
       );
