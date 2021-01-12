@@ -81,12 +81,16 @@ export function ensure_ends_in_newline(s: string): string {
 }
 
 export function markdown_quote(s: string): string {
+  return mark_block(s, ">");
+}
+
+export function mark_block(s: string, mark: string): string {
   const v: string[] = [];
   for (const line of s.trim().split("\n")) {
     if (is_whitespace(line)) {
-      v.push(">");
+      v.push(mark);
     } else {
-      v.push("> " + line);
+      v.push(mark + " " + line);
     }
   }
   return v.join("\n") + "\n\n";

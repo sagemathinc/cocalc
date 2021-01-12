@@ -136,21 +136,27 @@ function parse(
         delete state.close_type;
         delete state.contents;
         const node: Node = { type, children };
-        if (token.hidden) {
-          node.tight = true;
-        }
-        if (!state.block) {
-          node.isInline = true;
-        }
-        if (token.tag && token.tag != "p") {
-          node.tag = token.tag;
-        }
-        if (state.attrs != null) {
-          const a: any = dict(state.attrs as any);
-          if (a.style != null) {
-            a.style = string_to_style(a.style as any);
-          }
-          node.attrs = a;
+        switch (type) {
+          case "heading":
+            node.level = parseInt(token.tag?.slice(1) ?? "1");
+            break;
+          default:
+            if (token.hidden) {
+              node.tight = true;
+            }
+            if (!state.block) {
+              node.isInline = true;
+            }
+            if (token.tag && token.tag != "p") {
+              node.tag = token.tag;
+            }
+            if (state.attrs != null) {
+              const a: any = dict(state.attrs as any);
+              if (a.style != null) {
+                a.style = string_to_style(a.style as any);
+              }
+              node.attrs = a;
+            }
         }
         return [node];
       }

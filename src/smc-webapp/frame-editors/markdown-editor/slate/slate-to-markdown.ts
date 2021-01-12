@@ -11,6 +11,7 @@ import {
   markdown_quote,
 } from "./util";
 const linkify = require("linkify-it")();
+import { mark_block } from "./util";
 
 function serialize(
   node: Node,
@@ -92,11 +93,11 @@ function serialize(
         return children;
       }
     case "heading":
-      let h = "#";
-      for (let n = 1; n < parseInt((node.tag as string).slice(1)); n++) {
+      let h = "\n#";
+      for (let n = 1; n < (node.level as any); n++) {
         h += "#";
       }
-      return `${h} ${children}\n\n`;
+      return mark_block(children, h).trim() + "\n\n";
     case "paragraph":
       return `${children}${node.tight ? "\n" : "\n\n"}`;
     case "softbreak":

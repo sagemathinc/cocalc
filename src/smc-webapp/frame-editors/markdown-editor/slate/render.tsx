@@ -134,6 +134,8 @@ export const Element: React.FC<RenderElementProps> = ({
           {children}
         </span>
       );
+    case "heading":
+      return React.createElement(`h${element.level}`, attributes, children);
     case "checkbox":
       return (
         <span {...attributes}>
