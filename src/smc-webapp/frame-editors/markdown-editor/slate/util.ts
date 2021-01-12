@@ -109,3 +109,42 @@ export function mark_block(s: string, mark: string): string {
   }
   return v.join("\n") + "\n\n";
 }
+
+function indexOfNonWhitespace(s: string): number {
+  // regexp finds where the first non-whitespace starts
+  return /\S/.exec(s)?.index ?? -1;
+}
+
+function lastIndexOfNonWhitespace(s: string): number {
+  // regexp finds where the whitespace starts at the end of the string.
+  return (/\s+$/.exec(s)?.index ?? s.length) - 1;
+}
+
+export function stripWhitespace(
+  s: string
+): { before: string; trimmed: string; after: string } {
+  const i = indexOfNonWhitespace(s);
+  const j = lastIndexOfNonWhitespace(s);
+  return {
+    before: s.slice(0, i),
+    trimmed: s.slice(i, j + 1),
+    after: s.slice(j + 1),
+  };
+}
+
+export function mark_inline_text(
+  text: string,
+  left: string,
+  right?: string // defaults to left if not given
+): string {
+  // We have to put the mark *inside* of any whitespace on the outside.
+  // See https://www.markdownguide.org/basic-syntax/#bold
+  // where it says "... without spaces ...".
+  // In particular, `** bold **` does NOT work.
+  const { before, trimmed, after } = stripWhitespace(text);
+  if (trimmed.length == 0) {
+    // all whitespace, so don't mark it.
+    return text;
+  }
+  return `${before}${left}${trimmed}${right ?? left}${after}`;
+}

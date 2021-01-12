@@ -8,6 +8,7 @@ import {
   indent,
   li_indent,
   mark_block,
+  mark_inline_text,
   markdown_escape,
   markdown_quote,
 } from "./util";
@@ -25,35 +26,50 @@ function serialize(
     if (!info.no_escape && !node.code && info.parent.type != "code_block") {
       text = markdown_escape(text);
     }
+
+    const marks: { left: string; right?: string }[] = [];
+    // Proper markdown annotation.
     if (node.bold) {
-      text = `**${text}**`;
+      marks.push({ left: "**" });
     }
     if (node.italic) {
-      text = `_${text}_`;
-    }
-    if (node.underline) {
-      text = `<u>${text}</u>`;
-    }
-    if (node.sup) {
-      text = `<sup>${text}</sup>`;
-    }
-    if (node.sub) {
-      text = `<sub>${text}</sub>`;
+      marks.push({ left: "_" });
     }
     if (node.strikethrough) {
-      text = `~~${text}~~`;
+      marks.push({ left: "~~" });
     }
     if (node.code) {
-      text = `\`${text}\``;
+      marks.push({ left: "`" });
+    }
+
+    // Using html to provide some things markdown doesn't provide,
+    // but they can be VERY useful in practice for our users.
+    if (node.underline) {
+      marks.push({ left: "<u>", right: "</u>" });
+    }
+    if (node.sup) {
+      marks.push({ left: "<sup>", right: "</sup>" });
+    }
+    if (node.sub) {
+      marks.push({ left: "<sub>", right: "</sub>" });
     }
     // colors and fonts
     for (const mark in node) {
       if (mark[0] == "#" && mark.length == 7) {
-        text = `<span style='color:${mark}'>${text}</span>`;
+        marks.push({
+          left: `<span style='color:${mark}'>`,
+          right: "</span>",
+        });
       }
       if (startswith(mark, "font-")) {
-        text = `<span style='font-family:${mark.slice(5)}'>${text}</span>`;
+        marks.push({
+          left: `<span style='font-family:${mark.slice(5)}'>`,
+          right: "</span>",
+        });
       }
+    }
+    for (const mark of marks) {
+      text = mark_inline_text(text, mark.left, mark.right);
     }
     return text;
   }
