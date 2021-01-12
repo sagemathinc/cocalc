@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { is_array } from "smc-util/misc";
+import { is_array, startswith } from "smc-util/misc";
 import { Editor, Node, Text, Transforms } from "slate";
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
@@ -16,6 +16,25 @@ export function formatSelectedText(editor: Editor, mark: string): void {
     { [mark]: !isAlreadyMarked(editor, mark) },
     { match: (node) => Text.isText(node), split: true }
   );
+}
+
+function unformatSelectedText(
+  editor: Editor,
+  options: { prefix?: string }
+): void {
+  if (options.prefix) {
+    // Remove all formatting of the selected text
+    // that begins with the given prefix.
+    while (true) {
+      const mark = findMarkWithPrefix(editor, options.prefix);
+      if (!mark) break;
+      Transforms.setNodes(
+        editor,
+        { [mark]: false },
+        { match: (node) => Text.isText(node), split: true }
+      );
+    }
+  }
 }
 
 // returns true if current selection *starts* with mark.
@@ -40,6 +59,40 @@ function isFragmentAlreadyMarked(fragment, mark: string): boolean {
   return false;
 }
 
+// returns mark if current selection *starts* with a mark with the given prefix.
+function findMarkWithPrefix(
+  editor: Editor,
+  prefix: string
+): string | undefined {
+  if (!editor.selection) return;
+  return findMarkedFragmentWithPrefix(
+    Editor.fragment(editor, editor.selection),
+    prefix
+  );
+}
+
+// returns mark if fragment *starts* with a mark that starts with prefix
+function findMarkedFragmentWithPrefix(
+  fragment,
+  prefix: string
+): string | undefined {
+  if (is_array(fragment)) {
+    fragment = fragment[0];
+    if (fragment == null) return;
+  }
+  if (Text.isText(fragment)) {
+    for (const mark in fragment) {
+      if (startswith(mark, prefix) && fragment[mark]) {
+        return mark;
+      }
+    }
+  }
+  if (fragment.children) {
+    return findMarkedFragmentWithPrefix(fragment.children, prefix);
+  }
+  return;
+}
+
 export async function formatAction(
   editor: Editor,
   cmd: string,
@@ -60,13 +113,14 @@ export async function formatAction(
 
   if (cmd == "color") {
     // args = #aa00bc (the hex color) **is** the mark.
-    // TODO: we need to remove all color formatting first.
+    unformatSelectedText(editor, { prefix: "#" });
     formatSelectedText(editor, args);
     return;
   }
 
   if (cmd == "font_family") {
     // TODO: need to remove all other fonts first...
+    unformatSelectedText(editor, { prefix: "font-" });
     formatSelectedText(editor, "font-" + args.toLowerCase());
     return;
   }

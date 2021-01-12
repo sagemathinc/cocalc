@@ -55,6 +55,7 @@ function serialize(
     }
     // colors and fonts
     for (const mark in node) {
+      if (!node[mark]) continue; // only if true
       if (mark[0] == "#" && mark.length == 7) {
         marks.push({
           left: `<span style='color:${mark}'>`,

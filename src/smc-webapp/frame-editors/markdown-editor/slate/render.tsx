@@ -204,6 +204,7 @@ export const Leaf: React.FC<RenderLeafProps> = ({
   }
   // check for colors:
   for (const mark in leaf) {
+    if (!leaf[mark]) continue; // only if it is true
     if (mark[0] == "#") {
       children = <span style={{ color: mark }}>{children}</span>;
     }
