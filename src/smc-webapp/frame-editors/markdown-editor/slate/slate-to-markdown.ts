@@ -7,11 +7,12 @@ import {
   ensure_ends_in_newline,
   indent,
   li_indent,
+  mark_block,
   markdown_escape,
   markdown_quote,
 } from "./util";
 const linkify = require("linkify-it")();
-import { mark_block } from "./util";
+import { startswith } from "smc-util/misc";
 
 function serialize(
   node: Node,
@@ -44,6 +45,15 @@ function serialize(
     }
     if (node.code) {
       text = `\`${text}\``;
+    }
+    // colors and fonts
+    for (const mark in node) {
+      if (mark[0] == "#" && mark.length == 7) {
+        text = `<span style='color:${mark}'>${text}</span>`;
+      }
+      if (startswith(mark, "font-")) {
+        text = `<span style='font-family:${mark.slice(5)}'>${text}</span>`;
+      }
     }
     return text;
   }

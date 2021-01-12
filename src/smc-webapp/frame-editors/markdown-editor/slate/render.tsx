@@ -15,6 +15,7 @@ import { Transforms } from "slate";
 import { Checkbox } from "antd";
 import { SlateCodeMirror } from "./codemirror";
 import { SlateMath } from "./math";
+import { startswith } from "smc-util/misc";
 
 export const Element: React.FC<RenderElementProps> = ({
   attributes,
@@ -200,6 +201,15 @@ export const Leaf: React.FC<RenderLeafProps> = ({
   }
   if (leaf.code) {
     children = <code style={CODE_STYLE}>{children}</code>;
+  }
+  // check for colors:
+  for (const mark in leaf) {
+    if (mark[0] == "#") {
+      children = <span style={{ color: mark }}>{children}</span>;
+    }
+    if (startswith(mark, "font-")) {
+      children = <span style={{ fontFamily: mark.slice(5) }}>{children}</span>;
+    }
   }
 
   return <span {...attributes}>{children}</span>;

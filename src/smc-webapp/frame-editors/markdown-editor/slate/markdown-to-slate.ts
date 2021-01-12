@@ -43,6 +43,7 @@ interface Marks {
   underline?: boolean;
   sup?: boolean;
   sub?: boolean;
+  color?: string;
 }
 
 interface State {
@@ -237,7 +238,8 @@ function parse(
 
   if (token.type == "html_inline") {
     // special cases for underlining, sup, sub, which markdown doesn't have.
-    switch (token.content.toLowerCase()) {
+    const x = token.content.toLowerCase();
+    switch (x) {
       case "<u>":
         state.marks.underline = true;
         return [];
@@ -256,6 +258,44 @@ function parse(
       case "</sub>":
         state.marks.sub = false;
         return [];
+      case "</span>":
+        for (const mark in state.marks) {
+          if (mark[0] == "#") {
+            delete state.marks[mark];
+            return [];
+          }
+          if (startswith(mark, "font-")) {
+            delete state.marks[mark];
+            return [];
+          }
+        }
+        break;
+    }
+    // Colors look like <span style='color:#ff7f50'>:
+    if (startswith(x, "<span style='color:")) {
+      const n = "<span style='color:".length;
+      // delete any other colors -- only one at a time
+      for (const mark in state.marks) {
+        if (mark[0] == "#") {
+          delete state.marks[mark];
+        }
+      }
+      // now set our color
+      state.marks[x.slice(n, n + 7)] = true;
+      return [];
+    }
+
+    if (startswith(x, "<span style='font-family:")) {
+      const n = "<span style='font-family:".length;
+      // delete any other fonts -- only one at a time
+      for (const mark in state.marks) {
+        if (startswith(mark, "font-")) {
+          delete state.marks[mark];
+        }
+      }
+      // now set our font
+      state.marks["font-" + x.slice(n, x.length - 2)] = true;
+      return [];
     }
   }
 

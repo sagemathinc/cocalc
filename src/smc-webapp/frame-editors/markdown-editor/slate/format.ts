@@ -58,6 +58,19 @@ export async function formatAction(
     return;
   }
 
+  if (cmd == "color") {
+    // args = #aa00bc (the hex color) **is** the mark.
+    // TODO: we need to remove all color formatting first.
+    formatSelectedText(editor, args);
+    return;
+  }
+
+  if (cmd == "font_family") {
+    // TODO: need to remove all other fonts first...
+    formatSelectedText(editor, "font-" + args.toLowerCase());
+    return;
+  }
+
   if (cmd == "equation") {
     transformToEquation(editor, false);
     return;
