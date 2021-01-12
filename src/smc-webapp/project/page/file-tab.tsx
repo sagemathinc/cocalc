@@ -152,6 +152,44 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
+  function render_displayed_label({ path, label }) {
+    if (path != null) {
+      // We ONLY show tooltip for filename (it provides the full path).
+      // The "ltr" below is needed because of the direction 'rtl' in label_style, which
+      // we have to compensate for in some situations, e.g.., a file name "this is a file!"
+      // will have the ! moved to the beginning by rtl.
+      const shift_open_info = (
+        <span style={{ color: COLORS.GRAY }}>
+          Hint: Shift-Click to open in new window.
+        </span>
+      );
+      // The ! after name is needed since TS doesn't infer that if path is null then name is not null,
+      // though our union type above guarantees this.
+      const tooltip = (
+        <span style={{ fontWeight: "bold" }}>
+          {path != null ? path : FIXED_PROJECT_TABS[name!].tooltip}
+        </span>
+      );
+
+      return (
+        <div style={label_style}>
+          <span style={{ direction: "ltr" }}>
+            <Tip
+              title={tooltip}
+              tip={shift_open_info}
+              stable={false}
+              placement={"bottom"}
+            >
+              {label}
+            </Tip>
+          </span>
+        </div>
+      );
+    } else {
+      return <HiddenXS>{label}</HiddenXS>;
+    }
+  }
+
   let style: React.CSSProperties;
   if (path != null) {
     if (is_selected) {
@@ -227,33 +265,12 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
     x_button_style.color = "lightblue";
   }
 
-  // The ! after name is needed since TS doesn't infer that if path is null then name is not null,
-  // though our union type above guarantees this.
-  const tooltip = path != null ? path : FIXED_PROJECT_TABS[name!].tooltip;
   const icon =
     path != null
       ? file_options(path)?.icon ?? "code-o"
       : FIXED_PROJECT_TABS[name!].icon;
 
-  let displayed_label: JSX.Element =
-    path != null ? <>{label}</> : <HiddenXS>{label}</HiddenXS>;
-
-  if (path != null) {
-    // We ONLY show tooltip for filename (it provides the full path).
-    // The "ltr" below is needed because of the direction 'rtl' in label_style, which
-    // we have to compensate for in some situations, e.g.., a file name "this is a file!"
-    // will have the ! moved to the beginning by rtl.
-    displayed_label = (
-      <div style={label_style}>
-        <span style={{ direction: "ltr" }}>
-          <Tip title={tooltip} stable={false} placement={"bottom"}>
-            {" "}
-            {displayed_label}{" "}
-          </Tip>
-        </span>
-      </div>
-    );
-  }
+  const displayed_label: JSX.Element = render_displayed_label({ path, label });
 
   const color = is_selected
     ? "white"
