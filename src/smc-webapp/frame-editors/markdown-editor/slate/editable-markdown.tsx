@@ -32,8 +32,6 @@ import { formatSelectedText } from "./format";
 
 const STYLE = {
   width: "100%",
-  margin: "0 auto",
-  padding: "50px 75px",
   border: "1px solid lightgrey",
   background: "white",
   overflowX: "auto",
@@ -274,6 +272,7 @@ export const EditableMarkdown: React.FC<Props> = ({
           onBlur={save_value}
         >
           <Editable
+            style={{ margin: "0 auto", padding: "50px 75px" }}
             readOnly={read_only}
             renderElement={Element}
             renderLeaf={Leaf}

@@ -245,10 +245,13 @@ export class FormatBar extends Component<Props, {}> {
 
   render_heading_dropdown(): Rendered {
     const items: Rendered[] = [];
-    for (let heading = 1; heading <= 6; heading++) {
+    for (let heading = 0; heading <= 6; heading++) {
       var c;
-      const label = `Heading ${heading}`;
+      const label = heading == 0 ? "Paragraph" : `Heading ${heading}`;
       switch (heading) {
+        case 0:
+          c = <span>{label}</span>;
+          break;
         case 1:
           c = <h1>{label}</h1>;
           break;

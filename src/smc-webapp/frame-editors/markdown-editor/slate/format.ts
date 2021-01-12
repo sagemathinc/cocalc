@@ -151,6 +151,13 @@ export async function formatAction(
     return;
   }
 
+  if (startswith(cmd, "format_heading_")) {
+    // single digit is fine, since headings only go up to level 6.
+    const level = parseInt(cmd[cmd.length - 1]);
+    formatHeading(editor, level);
+    return;
+  }
+
   console.log("WARNING -- slate.format_action not implemented", {
     cmd,
     args,
@@ -205,4 +212,21 @@ function selectionToMarkdown(editor: Editor): string {
 
 function fragmentToMarkdown(fragment): string {
   return slate_to_markdown(fragment, { no_escape: true });
+}
+
+function formatHeading(editor, level: number): void {
+  console.log("formatHeading", editor, level);
+  console.log("before unwrap", JSON.stringify(editor.children));
+  Transforms.unwrapNodes(editor, {
+    match: (node) => node.type == "heading",
+    mode: "all",
+  });
+  console.log("after unwrap", JSON.stringify(editor.children));
+  (window as any).format = { editor, Transforms, Editor };
+  if (level == 0) return; // paragraph mode -- no heading.
+  Transforms.wrapNodes(
+    editor,
+    { type: "heading", level, children: [] },
+    { match: (node) => Editor.isBlock(editor, node) }
+  );
 }

@@ -290,6 +290,15 @@ $$\
         right: "\\end{enumerate}",
       },
     },
+    format_heading_0: {
+      strip: [
+        "format_heading_1",
+        "format_heading_2",
+        "format_heading_3",
+        "format_heading_4",
+      ],
+      wrap: { left: "", right: "" },
+    },
     format_heading_1: {
       strip: ["format_heading_2", "format_heading_3", "format_heading_4"],
       wrap: {
@@ -451,6 +460,17 @@ $$\
         trim: false,
       },
     },
+    format_heading_0: {
+      strip: [
+        "format_heading_1",
+        "format_heading_2",
+        "format_heading_3",
+        "format_heading_4",
+        "format_heading_5",
+        "format_heading_6",
+      ],
+      wrap: { left: "", right: "" },
+    },
     indent: {
       wrap: {
         left: "> ",
@@ -581,6 +601,15 @@ $$\
         left: "<blockquote>",
         right: "</blockquote>",
       },
+    },
+    format_heading_0: {
+      strip: [
+        "format_heading_1",
+        "format_heading_2",
+        "format_heading_3",
+        "format_heading_4",
+      ],
+      wrap: { left: "", right: "" },
     },
     format_heading_1: {
       // FUTURE -- define via for loop below
@@ -739,6 +768,15 @@ $$\
         right: "",
       },
     },
+    format_heading_0: {
+      strip: [
+        "format_heading_1",
+        "format_heading_2",
+        "format_heading_3",
+        "format_heading_4",
+      ],
+      wrap: { left: "", right: "" },
+    },
     format_heading_1: {
       // FUTURE -- define via for loop below
       strip: ["format_heading_2", "format_heading_3", "format_heading_4"],
@@ -878,6 +916,16 @@ $$\
         left: "\n<pre>",
         right: "</pre>\n",
       },
+    },
+    format_heading_0: {
+      // FUTURE -- define via for loop below
+      strip: [
+        "format_heading_1",
+        "format_heading_2",
+        "format_heading_3",
+        "format_heading_4",
+      ],
+      wrap: { left: "", right: "" },
     },
     format_heading_1: {
       // FUTURE -- define via for loop below
