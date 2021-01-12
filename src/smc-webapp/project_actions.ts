@@ -690,15 +690,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  public open_in_new_browser_window(path: string): void {
-    let url =
-      (window.app_base_url != null ? window.app_base_url : "") +
-      this._url_in_project(`files/${path}`);
-    url += "?session=&fullscreen=kiosk";
-    open_popup_window(url, {
-      width: 800,
-      height: 640,
-    });
+  public open_in_new_browser_window(path: string, fullscreen = "kiosk"): void {
+    let url = window.app_base_url ?? "";
+    url += this._url_in_project(`files/${path}`);
+    url += "?session=";
+    if (fullscreen) url += `&fullscreen=${fullscreen}`;
+    const width = Math.round(window.screen.width * 0.75);
+    const height = Math.round(window.screen.height * 0.75);
+    open_popup_window(url, { width, height });
   }
 
   public async open_word_document(path): Promise<void> {
