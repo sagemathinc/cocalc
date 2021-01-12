@@ -66,11 +66,12 @@ export async function open_file(
   });
   opts.path = normalize(opts.path);
 
-  // intercept any requests if in kiosk mode
-  if (
+  const is_kiosk = () =>
     !opts.ignore_kiosk &&
-    (redux.getStore("page") as any).get("fullscreen") === "kiosk"
-  ) {
+    (redux.getStore("page") as any).get("fullscreen") === "kiosk";
+
+  // intercept any requests if in kiosk mode
+  if (is_kiosk()) {
     alert_message({
       type: "error",
       message: `CoCalc is in Kiosk mode, so you may not open new files.  Please try visiting ${document.location.origin} directly.`,
@@ -82,7 +83,9 @@ export async function open_file(
   if (opts.new_browser_window) {
     // options other than path are ignored in this case.
     // TODO: do not ignore anchor option.
-    actions.open_in_new_browser_window(opts.path);
+    // if there is no path, we open the entire project and want to show the tabs – unless in kiosk mode
+    const fullscreen = is_kiosk() ? "kiosk" : opts.path ? "default" : "";
+    actions.open_in_new_browser_window(opts.path, fullscreen);
     return;
   }
 
