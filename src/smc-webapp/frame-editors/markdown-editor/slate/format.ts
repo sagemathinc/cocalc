@@ -112,16 +112,21 @@ export async function formatAction(
   }
 
   if (cmd == "color") {
-    // args = #aa00bc (the hex color) **is** the mark.
-    unformatSelectedText(editor, { prefix: "#" });
-    formatSelectedText(editor, args);
+    // args = #aa00bc (the hex color)
+    unformatSelectedText(editor, { prefix: "color:" });
+    formatSelectedText(editor, `color:${args.toLowerCase()}`);
     return;
   }
 
   if (cmd == "font_family") {
-    // TODO: need to remove all other fonts first...
-    unformatSelectedText(editor, { prefix: "font-" });
-    formatSelectedText(editor, "font-" + args.toLowerCase());
+    unformatSelectedText(editor, { prefix: "font-family:" });
+    formatSelectedText(editor, `font-family:${args.toLowerCase()}`);
+    return;
+  }
+
+  if (startswith(cmd, "font_size")) {
+    unformatSelectedText(editor, { prefix: "font-size:" });
+    formatSelectedText(editor, `font-size:${args.toLowerCase()}`);
     return;
   }
 

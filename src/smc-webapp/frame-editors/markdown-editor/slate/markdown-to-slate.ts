@@ -260,42 +260,48 @@ function parse(
         return [];
       case "</span>":
         for (const mark in state.marks) {
-          if (mark[0] == "#") {
+          if (startswith(mark, "color:")) {
             delete state.marks[mark];
             return [];
           }
-          if (startswith(mark, "font-")) {
-            delete state.marks[mark];
-            return [];
+          for (const c of ["family", "size"]) {
+            if (startswith(mark, `font-${c}:`)) {
+              delete state.marks[mark];
+              return [];
+            }
           }
         }
         break;
     }
     // Colors look like <span style='color:#ff7f50'>:
     if (startswith(x, "<span style='color:")) {
-      const n = "<span style='color:".length;
       // delete any other colors -- only one at a time
       for (const mark in state.marks) {
-        if (mark[0] == "#") {
+        if (startswith(mark, "color:")) {
           delete state.marks[mark];
         }
       }
       // now set our color
-      state.marks[x.slice(n, n + 7)] = true;
+      const c = x.split(":")[1]?.split("'")[0];
+      if (c) {
+        state.marks["color:" + c] = true;
+      }
       return [];
     }
 
-    if (startswith(x, "<span style='font-family:")) {
-      const n = "<span style='font-family:".length;
-      // delete any other fonts -- only one at a time
-      for (const mark in state.marks) {
-        if (startswith(mark, "font-")) {
-          delete state.marks[mark];
+    for (const c of ["family", "size"]) {
+      if (startswith(x, `<span style='font-${c}:`)) {
+        const n = `<span style='font-${c}:`.length;
+        // delete any other fonts -- only one at a time
+        for (const mark in state.marks) {
+          if (startswith(mark, `font-${c}:`)) {
+            delete state.marks[mark];
+          }
         }
+        // now set our font
+        state.marks[`font-${c}:${x.slice(n, x.length - 2)}`] = true;
+        return [];
       }
-      // now set our font
-      state.marks["font-" + x.slice(n, x.length - 2)] = true;
-      return [];
     }
   }
 

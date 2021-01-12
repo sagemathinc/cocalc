@@ -202,14 +202,21 @@ export const Leaf: React.FC<RenderLeafProps> = ({
   if (leaf.code) {
     children = <code style={CODE_STYLE}>{children}</code>;
   }
-  // check for colors:
+  // check for colors, fonts, etc.
   for (const mark in leaf) {
     if (!leaf[mark]) continue; // only if it is true
-    if (mark[0] == "#") {
-      children = <span style={{ color: mark }}>{children}</span>;
+    if (startswith(mark, "color:")) {
+      children = <span style={{ color: mark.split(":")[1] }}>{children}</span>;
     }
-    if (startswith(mark, "font-")) {
-      children = <span style={{ fontFamily: mark.slice(5) }}>{children}</span>;
+    if (startswith(mark, "font-family:")) {
+      children = (
+        <span style={{ fontFamily: mark.split(":")[1] }}>{children}</span>
+      );
+    }
+    if (startswith(mark, "font-size:")) {
+      children = (
+        <span style={{ fontSize: mark.split(":")[1] }}>{children}</span>
+      );
     }
   }
 

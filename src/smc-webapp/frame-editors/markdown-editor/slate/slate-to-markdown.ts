@@ -47,26 +47,21 @@ function serialize(
     if (node.underline) {
       marks.push({ left: "<u>", right: "</u>" });
     }
-    if (node.sup) {
-      marks.push({ left: "<sup>", right: "</sup>" });
-    }
-    if (node.sub) {
-      marks.push({ left: "<sub>", right: "</sub>" });
+    for (const c of ["sup", "sub"]) {
+      if (node[c]) {
+        marks.push({ left: `<${c}>`, right: `</${c}>` });
+      }
     }
     // colors and fonts
     for (const mark in node) {
       if (!node[mark]) continue; // only if true
-      if (mark[0] == "#" && mark.length == 7) {
-        marks.push({
-          left: `<span style='color:${mark}'>`,
-          right: "</span>",
-        });
-      }
-      if (startswith(mark, "font-")) {
-        marks.push({
-          left: `<span style='font-family:${mark.slice(5)}'>`,
-          right: "</span>",
-        });
+      for (const c of ["color", "font-family", "font-size"]) {
+        if (startswith(mark, `${c}:`)) {
+          marks.push({
+            left: `<span style='${mark}'>`,
+            right: "</span>",
+          });
+        }
       }
     }
     for (const mark of marks) {
