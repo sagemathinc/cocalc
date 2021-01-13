@@ -237,6 +237,13 @@ export const EditableMarkdown: React.FC<Props> = ({
     }
   }, [value]);
 
+  (window as any).z = {
+    editor,
+    Transforms,
+    Node,
+    ReactEditor,
+  };
+
   return (
     <div
       className="smc-vfill"

@@ -215,14 +215,10 @@ function fragmentToMarkdown(fragment): string {
 }
 
 function formatHeading(editor, level: number): void {
-  console.log("formatHeading", editor, level);
-  console.log("before unwrap", JSON.stringify(editor.children));
   Transforms.unwrapNodes(editor, {
     match: (node) => node.type == "heading",
     mode: "all",
   });
-  console.log("after unwrap", JSON.stringify(editor.children));
-  (window as any).format = { editor, Transforms, Editor };
   if (level == 0) return; // paragraph mode -- no heading.
   Transforms.wrapNodes(
     editor,

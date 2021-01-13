@@ -9,7 +9,6 @@ import {
   RenderElementProps,
   RenderLeafProps,
   useSlate,
-  ReactEditor,
 } from "slate-react";
 import { Transforms } from "slate";
 import { Checkbox } from "antd";
@@ -24,12 +23,18 @@ export const Element: React.FC<RenderElementProps> = ({
 }) => {
   const editor = useSlate();
 
-  const set = useCallback((element, obj) => {
+  // I could find no reliable way to locate a specific element that
+  // comes into the render, since slate is using immutable js and we
+  // haven't broken down and assigned uuid's to nodes yet (and
+  // then searched for them.)  So we support setting the part of the
+  // selection with a given type, which suffices for our
+  // custom editors, since when you focus them, their node is
+  // in that selection.
+  const set_selection = useCallback((type, obj) => {
     try {
-      const at = ReactEditor.findPath(editor, element);
-      Transforms.setNodes(editor, obj, { at });
+      Transforms.setNodes(editor, obj, { match: (node) => node.type == type });
     } catch (err) {
-      console.log("SLATE error setting ", obj, err, element);
+      console.log("ERROR: set_selection ", { err, type, obj });
       return;
     }
   }, []);
@@ -118,7 +123,7 @@ export const Element: React.FC<RenderElementProps> = ({
           <SlateCodeMirror
             value={element.value as string}
             info={element.info as string | undefined}
-            onChange={(value) => set(element, { value })}
+            onChange={(value) => set_selection(element.type, { value })}
           />
           {children}
         </div>
@@ -129,7 +134,7 @@ export const Element: React.FC<RenderElementProps> = ({
           <SlateMath
             value={element.value as string}
             onChange={(value) => {
-              set(element, { value });
+              set_selection(element.type, { value });
             }}
           />
           {children}
@@ -148,7 +153,9 @@ export const Element: React.FC<RenderElementProps> = ({
             style={{ margin: "0 0.5em", verticalAlign: "middle" }}
             checked={!!element.checked}
             onChange={(e) => {
-              set(element, { checked: e.target.checked });
+              set_selection(element.type, {
+                checked: e.target.checked,
+              });
             }}
           />
           {children}

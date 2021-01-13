@@ -40,77 +40,73 @@ interface Props {
   onBlur?: () => void;
   options?: any;
 }
-export const SlateCodeMirror: React.FC<Props> = ({
-  info,
-  value,
-  onChange,
-  onShiftEnter,
-  onEscape,
-  onBlur,
-  options,
-}) => {
-  const cmRef = useRef<CodeMirror.Editor | undefined>(undefined);
-  const textareaRef = useRef<any>(null);
+export const SlateCodeMirror: React.FC<Props> = React.memo(
+  ({ info, value, onChange, onShiftEnter, onEscape, onBlur, options }) => {
+    const cmRef = useRef<CodeMirror.Editor | undefined>(undefined);
+    const textareaRef = useRef<any>(null);
 
-  useEffect(() => {
-    const node: HTMLTextAreaElement = ReactDOM.findDOMNode(textareaRef.current);
-    if (node == null) return;
-    if (options == null) options = {};
-    if (info) {
-      if (info[0] == "{") {
-        // Rmarkdown format -- looks like {r stuff,engine=python,stuff}.
-        // https://github.com/yihui/knitr-examples/blob/master/023-engine-python.Rmd
-        // TODO: For now just do this, but find a spec and parse in the future...
-        info = "r";
+    useEffect(() => {
+      const node: HTMLTextAreaElement = ReactDOM.findDOMNode(
+        textareaRef.current
+      );
+      if (node == null) return;
+      if (options == null) options = {};
+      if (info) {
+        if (info[0] == "{") {
+          // Rmarkdown format -- looks like {r stuff,engine=python,stuff}.
+          // https://github.com/yihui/knitr-examples/blob/master/023-engine-python.Rmd
+          // TODO: For now just do this, but find a spec and parse in the future...
+          info = "r";
+        }
+        const spec = file_associations[info];
+        options.mode = spec?.opts.mode;
       }
-      const spec = file_associations[info];
-      options.mode = spec?.opts.mode;
-    }
 
-    if (options.extraKeys == null) {
-      options.extraKeys = {};
-    }
-    if (onShiftEnter != null) {
-      options.extraKeys["Shift-Enter"] = onShiftEnter;
-    }
-
-    if (onEscape != null) {
-      options.extraKeys["Esc"] = onEscape;
-    }
-
-    const cm = (cmRef.current = CodeMirror.fromTextArea(node, options));
-
-    cm.on("change", (_, _changeObj) => {
-      if (onChange != null) {
-        onChange(cm.getValue());
+      if (options.extraKeys == null) {
+        options.extraKeys = {};
       }
-    });
+      if (onShiftEnter != null) {
+        options.extraKeys["Shift-Enter"] = onShiftEnter;
+      }
 
-    if (onBlur != null) {
-      cm.on("blur", onBlur);
-    }
+      if (onEscape != null) {
+        options.extraKeys["Esc"] = onEscape;
+      }
 
-    // Make it so editor height matches text.
-    const css: any = { height: "auto", padding: "5px" };
-    if (options.theme == null) {
-      css.backgroundColor = "#f7f7f7";
-    }
-    $(cm.getWrapperElement()).css(css);
+      const cm = (cmRef.current = CodeMirror.fromTextArea(node, options));
 
-    return () => {
-      if (cmRef.current == null) return;
-      $(cmRef.current.getWrapperElement()).remove();
-      cmRef.current = undefined;
-    };
-  }, []);
+      cm.on("change", (_, _changeObj) => {
+        if (onChange != null) {
+          onChange(cm.getValue());
+        }
+      });
 
-  useEffect(() => {
-    cmRef.current?.setValueNoJump(value);
-  }, [value]);
+      if (onBlur != null) {
+        cm.on("blur", onBlur);
+      }
 
-  return (
-    <span contentEditable={false} style={STYLE} className="smc-vfill">
-      <textarea ref={textareaRef} defaultValue={value}></textarea>
-    </span>
-  );
-};
+      // Make it so editor height matches text.
+      const css: any = { height: "auto", padding: "5px" };
+      if (options.theme == null) {
+        css.backgroundColor = "#f7f7f7";
+      }
+      $(cm.getWrapperElement()).css(css);
+
+      return () => {
+        if (cmRef.current == null) return;
+        $(cmRef.current.getWrapperElement()).remove();
+        cmRef.current = undefined;
+      };
+    }, []);
+
+    useEffect(() => {
+      cmRef.current?.setValueNoJump(value);
+    }, [value]);
+
+    return (
+      <span contentEditable={false} style={STYLE} className="smc-vfill">
+        <textarea ref={textareaRef} defaultValue={value}></textarea>
+      </span>
+    );
+  }
+);
