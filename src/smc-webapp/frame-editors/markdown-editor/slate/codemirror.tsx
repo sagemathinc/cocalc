@@ -18,6 +18,7 @@ import {
   ReactDOM,
   useEffect,
   useRef,
+  useState,
 } from "../../../app-framework";
 import * as CodeMirror from "codemirror";
 
@@ -38,11 +39,12 @@ interface Props {
   onShiftEnter?: () => void;
   onEscape?: () => void;
   onBlur?: () => void;
-  options?: any;
+  options?: { [option: string]: any };
 }
 export const SlateCodeMirror: React.FC<Props> = React.memo(
   ({ info, value, onChange, onShiftEnter, onEscape, onBlur, options }) => {
     const cmRef = useRef<CodeMirror.Editor | undefined>(undefined);
+    const [isFocused, setIsFocused] = useState<boolean>(!!options?.autofocus);
     const textareaRef = useRef<any>(null);
 
     useEffect(() => {
@@ -85,6 +87,9 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         cm.on("blur", onBlur);
       }
 
+      cm.on("blur", () => setIsFocused(false));
+      cm.on("focus", () => setIsFocused(true));
+
       // Make it so editor height matches text.
       const css: any = { height: "auto", padding: "5px" };
       if (options.theme == null) {
@@ -104,7 +109,16 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     }, [value]);
 
     return (
-      <span contentEditable={false} style={STYLE} className="smc-vfill">
+      <span
+        contentEditable={false}
+        style={{
+          ...STYLE,
+          ...{ /* The focused color is "Jupyter notebook classic" focused cell green. */
+            border: `1px solid ${isFocused ? "rgb(102,187,106)" : "#cfcfcf"}`,
+          },
+        }}
+        className="smc-vfill"
+      >
         <textarea ref={textareaRef} defaultValue={value}></textarea>
       </span>
     );
