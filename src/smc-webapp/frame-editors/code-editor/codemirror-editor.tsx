@@ -166,8 +166,6 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     if (cmRef.current == null) {
       return;
     }
-    delete (cmRef.current as any).undo;
-    delete (cmRef.current as any).redo;
     // remove from DOM -- "Remove this from your tree to delete an editor instance."
     // NOTE: there is still potentially a reference to the cm in actions._cm[id];
     // that's how we can bring back this frame (with given id) very efficiently.
@@ -212,7 +210,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
 
   // Save the underlying syncstring content.
   function save_syncstring(): void {
-    if (cmRef.current == null || props.is_public) {
+    if (props.is_public) {
       return;
     }
     editor_actions()?.set_syncstring_to_codemirror();
@@ -306,29 +304,30 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
   }
 
   function init_new_codemirror(): void {
-    if (cmRef.current == null) return;
-    (cmRef.current as any)._actions = editor_actions();
+    const cm = cmRef.current;
+    if (cm == null) return;
+    (cm as any)._actions = editor_actions();
 
     if (props.is_public) {
       if (props.value !== undefined) {
         // should always be the case if public.
-        cmRef.current.setValue(props.value);
+        cm.setValue(props.value);
       }
     } else {
       if (!has_doc(props.project_id, props.path)) {
         // save it to cache so can be used by other components/editors
-        set_doc(props.project_id, props.path, cmRef.current);
+        set_doc(props.project_id, props.path, cm);
       } else {
         // has it already, so use that.
-        cmRef.current.swapDoc(get_linked_doc(props.project_id, props.path));
+        cm.swapDoc(get_linked_doc(props.project_id, props.path));
       }
     }
 
     const throttled_save_editor_state = throttle(save_editor_state, 150);
-    cmRef.current.on("scroll", throttled_save_editor_state);
-    init_style_hacks(cmRef.current);
+    cm.on("scroll", throttled_save_editor_state);
+    init_style_hacks(cm);
 
-    editor_actions()?.set_cm(props.id, cmRef.current);
+    editor_actions()?.set_cm(props.id, cm);
 
     if (props.is_public) {
       return;
@@ -340,44 +339,44 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
       SAVE_DEBOUNCE_MS
     );
 
-    cmRef.current.on("beforeChange", (_, changeObj) => {
+    cm.on("beforeChange", (_, changeObj) => {
       if (changeObj.origin == "paste") {
         // See https://github.com/sagemathinc/cocalc/issues/5110
         save_syncstring();
       }
     });
 
-    cmRef.current.on("change", (_, changeObj) => {
+    cm.on("change", (_, changeObj) => {
       save_syncstring_debounce();
       if (changeObj.origin != null && changeObj.origin !== "setValue") {
         editor_actions()?.exit_undo_mode();
       }
     });
 
-    cmRef.current.on("focus", () => {
+    cm.on("focus", () => {
       if (!isMountedRef.current) return;
       props.actions.set_active_id(props.id);
-      if (styleActiveLineRef.current && cmRef.current) {
+      if (styleActiveLineRef.current && cm) {
         // any because the typing doesn't recognize extensions
-        cmRef.current.setOption("styleActiveLine" as any, true);
+        cm.setOption("styleActiveLine" as any, true);
       }
     });
 
-    cmRef.current.on("blur", () => {
-      if (styleActiveLineRef.current && cmRef.current) {
-        cmRef.current.setOption("styleActiveLine" as any, false);
+    cm.on("blur", () => {
+      if (styleActiveLineRef.current && cm) {
+        cm.setOption("styleActiveLine" as any, false);
       }
       save_syncstring();
     });
 
-    cmRef.current.on("cursorActivity", () => {
+    cm.on("cursorActivity", () => {
       cm_cursor();
       throttled_save_editor_state();
     });
 
     // replace undo/redo by our sync aware versions
-    (cmRef.current as any).undo = cm_undo;
-    (cmRef.current as any).redo = cm_redo;
+    (cm as any).undo = cm_undo;
+    (cm as any).redo = cm_redo;
   }
 
   function update_codemirror(options?): void {
