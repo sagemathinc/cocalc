@@ -82,6 +82,9 @@ const EDITOR_SPEC = {
 
 export const Editor = createEditor({
   format_bar: true,
+  format_bar_exclude: {
+    format_buttons: true,
+  },
   editor_spec: EDITOR_SPEC,
   display_name: "MarkdownEditor",
 });

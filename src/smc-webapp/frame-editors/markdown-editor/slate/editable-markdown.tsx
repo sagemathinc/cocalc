@@ -35,6 +35,8 @@ const STYLE = {
   border: "1px solid lightgrey",
   background: "white",
   overflowX: "auto",
+  margin: "0 auto",
+  boxShadow: "1px 1px 15px 1px #aaa",
 } as CSS;
 
 interface Props {

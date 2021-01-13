@@ -42,7 +42,7 @@ export class FormatBar extends Component<Props, {}> {
     // component for the button, show that in the button; if not given, use
     // icon with given name.
   ): Rendered {
-    if (this.props.exclude && this.props.exclude[name]) {
+    if (this.props.exclude?.[name]) {
       return;
     }
     if (typeof label === "undefined") {
@@ -142,8 +142,12 @@ export class FormatBar extends Component<Props, {}> {
   }
 
   render_format_buttons(): Rendered {
+    if (this.props.exclude?.["format_buttons"]) {
+      return;
+    }
     return (
       <>
+        <Space />
         <ButtonGroup key={"format"}>
           {this.render_button(
             "format_code",
@@ -343,8 +347,7 @@ export class FormatBar extends Component<Props, {}> {
   }
 
   render_font_dropdowns(): Rendered {
-    if (this.props.extension === "tex") {
-      // these are mostly not implemented for latex... yet! (except heading, sort of).
+    if (this.props.exclude?.["font_dropdowns"]) {
       return;
     }
     return (
@@ -370,7 +373,6 @@ export class FormatBar extends Component<Props, {}> {
           {this.render_insert_buttons()}
           <Space />
           {this.render_insert_dialog_buttons()}
-          <Space />
           {this.render_format_buttons()}
           <Space />
         </div>
