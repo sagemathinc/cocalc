@@ -11,14 +11,24 @@ import {
   mark_inline_text,
   markdown_escape,
   markdown_quote,
+  padLeft,
+  padRight,
+  padCenter,
 } from "./util";
 const linkify = require("linkify-it")();
 import { startswith } from "smc-util/misc";
 
-function serialize(
-  node: Node,
-  info: { parent: Node; index?: number; no_escape: boolean }
-): string {
+// table is extra global information used in formatting columns.
+type TableInfo = { width: number; align: "left" | "center" | "right" }[];
+
+interface Info {
+  parent: Node; // the parent of the node being serialized
+  index?: number; // index of this node among its siblings
+  no_escape: boolean; // if true, do not escape text in this node.
+  table?: TableInfo;
+}
+
+function serialize(node: Node, info: Info): string {
   //console.log("serialize", node);
   if (Text.isText(node)) {
     //console.log("  serialize as text", node);
@@ -94,9 +104,19 @@ function serialize(
       return s;
   }
 
-  const children = node.children
-    .map((n) => serialize(n, { parent: node, no_escape: info.no_escape }))
-    .join("");
+  const child_info = {
+    ...info,
+    ...{ parent: node },
+  } as Info;
+  if (node.type == "table") {
+    child_info.table = extract_table_info(node);
+  }
+
+  const v: string[] = [];
+  for (let index = 0; index < node.children.length; index++) {
+    v.push(serialize(node.children[index], { ...child_info, ...{ index } }));
+  }
+  let children = v.join("");
 
   switch (node.type) {
     case "list_item":
@@ -187,16 +207,19 @@ function serialize(
         headings = [];
       }
       for (let i = 0; i < headings.length; i++) {
-        let bar = "---";
+        const n = (child_info.table?.[i]?.width ?? 5) - 2;
+        let bar = "-";
+        for (let j = 0; j < n; j++) bar += "-";
         switch (headings[i].align) {
-          case "left":
-            bar = ":---";
-            break;
           case "center":
-            bar = ":---:";
+            bar = ":" + bar.slice(1) + ":";
             break;
           case "right":
-            bar = "---:";
+            bar = bar + ":";
+            break;
+          case "left":
+          default:
+            bar = ":" + bar;
             break;
         }
         sep += ` ${bar} |`;
@@ -213,9 +236,23 @@ function serialize(
       return "| " + children.trim() + "\n";
 
     case "th": // a heading entry in a row in the thead
-      return children + " | ";
-
     case "td": // a data entry in a row
+      if (info.index != null) {
+        const data = info.table?.[info.index];
+        if (data != null) {
+          switch (data.align) {
+            case "left":
+              children = padRight(children, data.width);
+              break;
+            case "right":
+              children = padLeft(children, data.width);
+              break;
+            case "center":
+              children = padCenter(children, data.width);
+              break;
+          }
+        }
+      }
       return children + " | ";
 
     default:
@@ -235,4 +272,35 @@ export function slate_to_markdown(
     )
     .join("");
   return r;
+}
+
+// NOTE/OPTIMIZATION: We end up serializing the cells twice; first to
+// get their length, then later to do a final render and pad everything
+// to look nice.
+function extract_table_info(node: Node): TableInfo {
+  const thead_tr = (node as any).children[0].children[0];
+  const tbody_rows = (node as any).children[1].children;
+  const info: TableInfo = [];
+  for (let i = 0; i < thead_tr.children.length; i++) {
+    info.push({
+      width:
+        serialize(thead_tr.children[i], {
+          parent: thead_tr,
+          no_escape: false,
+        }).length - 3,
+      align: thead_tr.children[i].align,
+    });
+  }
+  for (const tr of tbody_rows) {
+    for (let i = 0; i < tr.children.length; i++) {
+      info[i].width = Math.max(
+        info[i].width,
+        serialize(tr.children[i], {
+          parent: tr,
+          no_escape: false,
+        }).length - 3
+      );
+    }
+  }
+  return info;
 }

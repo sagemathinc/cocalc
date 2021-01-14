@@ -148,3 +148,24 @@ export function mark_inline_text(
   }
   return `${before}${left}${trimmed}${right ?? left}${after}`;
 }
+
+export function padLeft(s: string, n: number): string {
+  while (s.length < n) {
+    s = " " + s;
+  }
+  return s;
+}
+
+export function padRight(s: string, n: number): string {
+  while (s.length < n) {
+    s += " ";
+  }
+  return s;
+}
+
+export function padCenter(s: string, n: number): string {
+  while (s.length < n) {
+    s = " " + s + " ";
+  }
+  return s;
+}
