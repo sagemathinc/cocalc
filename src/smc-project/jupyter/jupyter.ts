@@ -307,6 +307,10 @@ export class JupyterKernel
     // https://github.com/sagemathinc/cocalc/issues/4259
     opts.env.PLOTLY_RENDERER = "colab";
 
+    // expose path of jupyter notebook -- https://github.com/sagemathinc/cocalc/issues/5165
+    opts.env.COCALC_JUPYTER_FILENAME = this._path;
+    opts.env.COCALC_JUPYTER_KERNELNAME = this.name;
+
     if (this._directory !== "") {
       opts.cwd = this._directory;
     }
