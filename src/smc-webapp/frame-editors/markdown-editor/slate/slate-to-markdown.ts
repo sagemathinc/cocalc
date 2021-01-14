@@ -174,6 +174,37 @@ function serialize(
       } else {
         return indent(ensure_ends_in_newline(value), 4) + "\n";
       }
+
+    case "table": // a table
+      const i = children.indexOf("\n");
+      const thead = children.slice(0, i);
+      const tbody = children.slice(i + 1);
+      let sep = "|",
+        n = 0;
+      try {
+        n = (node as any).children[0].children[0].children.length;
+      } catch (_err) {}
+
+      for (let i = 0; i < n; i++) {
+        sep += " --- |";
+      }
+      return `${thead}\n${sep}\n${tbody}\n`;
+
+    case "thead": // the heading row of a table
+      return children; // the one child is a tr, which renders fine by itself
+
+    case "tbody": // the body of the table
+      return children;
+
+    case "tr": // a row of a table
+      return "| " + children.trim() + "\n";
+
+    case "th": // a heading entry in a row in the thead
+      return children + " | ";
+
+    case "td": // a data entry in a row
+      return children + " | ";
+
     default:
       // console.log("WARNING: serialize Node as UNKNOWN", { node, children });
       return `${children}\n`;

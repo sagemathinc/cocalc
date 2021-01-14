@@ -141,6 +141,8 @@ function parse(
           case "heading":
             node.level = parseInt(token.tag?.slice(1) ?? "1");
             break;
+          case "table":
+            break;
           default:
             if (token.hidden) {
               node.tight = true;

@@ -5,11 +5,7 @@
 
 import { CSS, React, useCallback } from "../../../app-framework";
 import { HTML } from "../../../r_misc";
-import {
-  RenderElementProps,
-  RenderLeafProps,
-  useSlate,
-} from "slate-react";
+import { RenderElementProps, RenderLeafProps, useSlate } from "slate-react";
 import { Transforms } from "slate";
 import { Checkbox } from "antd";
 import { SlateCodeMirror } from "./codemirror";
@@ -160,6 +156,12 @@ export const Element: React.FC<RenderElementProps> = ({
           />
           {children}
         </span>
+      );
+    case "table":
+      return (
+        <table {...attributes} className="table">
+          {children}
+        </table>
       );
     default:
       if (element.tight) {
