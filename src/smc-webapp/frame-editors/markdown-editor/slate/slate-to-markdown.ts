@@ -180,13 +180,26 @@ function serialize(
       const thead = children.slice(0, i);
       const tbody = children.slice(i + 1);
       let sep = "|",
-        n = 0;
+        headings: { align: string }[];
       try {
-        n = (node as any).children[0].children[0].children.length;
-      } catch (_err) {}
-
-      for (let i = 0; i < n; i++) {
-        sep += " --- |";
+        headings = (node as any).children[0].children[0].children;
+      } catch (_err) {
+        headings = [];
+      }
+      for (let i = 0; i < headings.length; i++) {
+        let bar = "---";
+        switch (headings[i].align) {
+          case "left":
+            bar = ":---";
+            break;
+          case "center":
+            bar = ":---:";
+            break;
+          case "right":
+            bar = "---:";
+            break;
+        }
+        sep += ` ${bar} |`;
       }
       return `${thead}\n${sep}\n${tbody}\n`;
 
