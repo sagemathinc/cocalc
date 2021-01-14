@@ -141,13 +141,18 @@ function parse(
           case "heading":
             node.level = parseInt(token.tag?.slice(1) ?? "1");
             break;
+
           case "table":
           case "thead":
           case "tbody":
-          case "th":
-          case "td":
           case "tr":
             break;
+
+          case "th":
+          case "td":
+            node.align = state.attrs?.[0]?.[1]?.split(":")?.[1] ?? "left";
+            break;
+
           default:
             if (token.hidden) {
               node.tight = true;

@@ -195,13 +195,21 @@ export const Element: React.FC<RenderElementProps> = ({
       );
     case "td":
       return (
-        <td {...attributes} className="ant-table-cell">
+        <td
+          {...attributes}
+          style={{ textAlign: element.align ?? "left" } as CSS}
+          className="ant-table-cell"
+        >
           {children}
         </td>
       );
     case "th":
       return (
-        <th {...attributes} className="ant-table-cell">
+        <th
+          {...attributes}
+          style={{ textAlign: element.align ?? "left" } as CSS}
+          className="ant-table-cell"
+        >
           {children}
         </th>
       );
