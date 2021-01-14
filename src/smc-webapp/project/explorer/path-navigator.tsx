@@ -19,7 +19,7 @@ export function PathNavigator({
 }): JSX.Element {
   const current_path = useTypedRedux({ project_id }, "current_path");
   const history_path = useTypedRedux({ project_id }, "history_path");
-  const actions = useActions({project_id});
+  const actions = useActions({ project_id });
 
   function make_path(): JSX.Element[] {
     const v: JSX.Element[] = [];
@@ -57,8 +57,12 @@ export function PathNavigator({
     return v;
   }
 
+  // The lineHeight below is needed for very long paths that make it wrap around
+  // to the next line.  Without that, it overlaps and cuts the letters off.
   return (
-    <Breadcrumb style={{ ...{ marginBottom: "0" }, ...style }}>
+    <Breadcrumb
+      style={{ ...{ marginBottom: "0", lineHeight: "58px" }, ...style }}
+    >
       {make_path()}
     </Breadcrumb>
   );
