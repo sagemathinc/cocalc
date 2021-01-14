@@ -157,11 +157,53 @@ export const Element: React.FC<RenderElementProps> = ({
           {children}
         </span>
       );
+
+    /* We render tables using straight HTML and the antd
+       CSS classes.  We do NOT use the actual antd Table
+       class, since it doesn't play well with slatejs.
+       I just looked at the DOM in a debugger to figure out
+       these tags; the main risk is that things change, but
+       it's purely style so that is OK.
+    */
     case "table":
       return (
-        <table {...attributes} className="table">
+        <div
+          {...attributes}
+          className="ant-table"
+          style={{ fontSize: "inherit" }}
+        >
+          <table style={{ tableLayout: "auto" }}>{children}</table>
+        </div>
+      );
+    case "thead":
+      return (
+        <thead {...attributes} className="ant-table-thead">
           {children}
-        </table>
+        </thead>
+      );
+    case "tbody":
+      return (
+        <tbody {...attributes} className="ant-table-tbody">
+          {children}
+        </tbody>
+      );
+    case "tr":
+      return (
+        <tr {...attributes} className="ant-table-row">
+          {children}
+        </tr>
+      );
+    case "td":
+      return (
+        <td {...attributes} className="ant-table-cell">
+          {children}
+        </td>
+      );
+    case "th":
+      return (
+        <th {...attributes} className="ant-table-cell">
+          {children}
+        </th>
       );
     default:
       if (element.tight) {

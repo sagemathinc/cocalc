@@ -142,6 +142,11 @@ function parse(
             node.level = parseInt(token.tag?.slice(1) ?? "1");
             break;
           case "table":
+          case "thead":
+          case "tbody":
+          case "th":
+          case "td":
+          case "tr":
             break;
           default:
             if (token.hidden) {
