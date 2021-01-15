@@ -21,6 +21,7 @@ import {
   useState,
 } from "../../../app-framework";
 import * as CodeMirror from "codemirror";
+import { FOCUSED_COLOR } from "./util";
 
 const STYLE = {
   width: "100%",
@@ -114,7 +115,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         style={{
           ...STYLE,
           ...{ /* The focused color is "Jupyter notebook classic" focused cell green. */
-            border: `1px solid ${isFocused ? "rgb(102,187,106)" : "#cfcfcf"}`,
+            border: `1px solid ${isFocused ? FOCUSED_COLOR : "#cfcfcf"}`,
           },
         }}
         className="smc-vfill"

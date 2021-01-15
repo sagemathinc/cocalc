@@ -168,5 +168,10 @@ export function padCenter(s: string, n: number): string {
   while (s.length < n) {
     s = " " + s + " ";
   }
-  return s;
+  return s.slice(0, n);
 }
+
+/* This focused color is "Jupyter notebook classic" focused cell green. */
+//export const FOCUSED_COLOR = "#66bb6a";
+
+export const FOCUSED_COLOR = "#2196f3";

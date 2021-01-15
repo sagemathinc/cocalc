@@ -283,6 +283,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             editor={editor}
             value={editorValue}
             onChange={(newEditorValue) => {
+              console.log("onChange");
               if (editorValue === newEditorValue) {
                 // Editor didn't actually change value so nothing to do.
                 hasUnsavedChangesRef.current = false;

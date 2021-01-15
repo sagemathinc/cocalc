@@ -9,6 +9,8 @@ import { renderToString } from "katex";
 import { startswith } from "smc-util/misc";
 import { SlateCodeMirror } from "./codemirror";
 import * as LRU from "lru-cache";
+import { useFocused, useSelected } from "slate-react";
+import { FOCUSED_COLOR } from "./util";
 
 const cache = new LRU({ max: 300 });
 
@@ -21,6 +23,9 @@ export const SlateMath: React.FC<Props> = React.memo(({ value, onChange }) => {
   const [editMode, setEditMode] = useState<boolean>(false);
 
   const { err, __html } = useMemo(() => mathToHtml(value), [value]);
+
+  const focused = useFocused();
+  const selected = useSelected();
 
   function renderEditMode() {
     if (!editMode) return;
@@ -80,7 +85,10 @@ export const SlateMath: React.FC<Props> = React.memo(({ value, onChange }) => {
               boxShadow: "8px 8px 4px #888",
               borderRadius: "5px",
             }
-          : { cursor: "pointer" }
+          : {
+              cursor: "pointer",
+              border: focused && selected ? `1px solid ${FOCUSED_COLOR}` : undefined,
+            }
       }
     >
       {renderEditMode()}

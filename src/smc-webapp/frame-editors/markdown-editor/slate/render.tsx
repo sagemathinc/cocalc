@@ -7,10 +7,11 @@ import { CSS, React, useCallback } from "../../../app-framework";
 import { HTML } from "../../../r_misc";
 import { RenderElementProps, RenderLeafProps, useSlate } from "slate-react";
 import { Transforms } from "slate";
-import { Checkbox } from "antd";
+import { Checkbox } from "./checkbox";
 import { SlateCodeMirror } from "./codemirror";
 import { SlateMath } from "./math";
 import { startswith } from "smc-util/misc";
+import { TableElement } from "./render-table";
 
 export const Element: React.FC<RenderElementProps> = ({
   attributes,
@@ -26,11 +27,11 @@ export const Element: React.FC<RenderElementProps> = ({
   // selection with a given type, which suffices for our
   // custom editors, since when you focus them, their node is
   // in that selection.
-  const set_selection = useCallback((type, obj) => {
+  const set_props_of_selected_node = useCallback((type, obj) => {
     try {
       Transforms.setNodes(editor, obj, { match: (node) => node.type == type });
     } catch (err) {
-      console.log("ERROR: set_selection ", { err, type, obj });
+      console.log("ERROR: set_props_of_selected_node ", { err, type, obj });
       return;
     }
   }, []);
@@ -120,7 +121,9 @@ export const Element: React.FC<RenderElementProps> = ({
           <SlateCodeMirror
             value={element.value as string}
             info={element.info as string | undefined}
-            onChange={(value) => set_selection(element.type, { value })}
+            onChange={(value) =>
+              set_props_of_selected_node(element.type, { value })
+            }
           />
           {children}
         </div>
@@ -131,7 +134,7 @@ export const Element: React.FC<RenderElementProps> = ({
           <SlateMath
             value={element.value as string}
             onChange={(value) => {
-              set_selection(element.type, { value });
+              set_props_of_selected_node(element.type, { value });
             }}
           />
           {children}
@@ -143,77 +146,30 @@ export const Element: React.FC<RenderElementProps> = ({
         return <b>{children}</b>;
       }
       return React.createElement(`h${level}`, attributes, children);
+
     case "checkbox":
       return (
-        <span {...attributes}>
-          <Checkbox
-            style={{ margin: "0 0.5em", verticalAlign: "middle" }}
-            checked={!!element.checked}
-            onChange={(e) => {
-              set_selection(element.type, {
-                checked: e.target.checked,
-              });
-            }}
-          />
-          {children}
-        </span>
+        <Checkbox
+          attributes={attributes}
+          children={children}
+          element={element}
+        />
       );
 
-    /* We render tables using straight HTML and the antd
-       CSS classes.  We do NOT use the actual antd Table
-       class, since it doesn't play well with slatejs.
-       I just looked at the DOM in a debugger to figure out
-       these tags; the main risk is that things change, but
-       it's purely style so that is OK.
-    */
     case "table":
-      return (
-        <div
-          {...attributes}
-          className="ant-table"
-          style={{ fontSize: "inherit" }}
-        >
-          <table style={{ tableLayout: "auto" }}>{children}</table>
-        </div>
-      );
     case "thead":
-      return (
-        <thead {...attributes} className="ant-table-thead">
-          {children}
-        </thead>
-      );
     case "tbody":
-      return (
-        <tbody {...attributes} className="ant-table-tbody">
-          {children}
-        </tbody>
-      );
     case "tr":
-      return (
-        <tr {...attributes} className="ant-table-row">
-          {children}
-        </tr>
-      );
+    case "th":
     case "td":
       return (
-        <td
-          {...attributes}
-          style={{ textAlign: element.align ?? "left" } as CSS}
-          className="ant-table-cell"
-        >
-          {children}
-        </td>
+        <TableElement
+          attributes={attributes}
+          children={children}
+          element={element}
+        />
       );
-    case "th":
-      return (
-        <th
-          {...attributes}
-          style={{ textAlign: element.align ?? "left" } as CSS}
-          className="ant-table-cell"
-        >
-          {children}
-        </th>
-      );
+
     default:
       if (element.tight) {
         return (
