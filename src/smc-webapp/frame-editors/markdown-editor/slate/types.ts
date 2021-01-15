@@ -6,3 +6,4 @@
 // Register all the types.
 
 import "./checkbox";
+import "./emoji";

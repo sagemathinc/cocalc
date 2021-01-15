@@ -11,7 +11,7 @@ import { Token } from "./markdown-to-slate";
 interface Handler {
   slateType: string;
   Element: React.FC<RenderElementProps>;
-  markdownType: string; // type of the markdown token
+  markdownType?: string; // type of the markdown token if different than slateType
   toSlate: (token: Token) => Node;
   fromSlate: (node: Node, children: string) => string;
 }
@@ -24,7 +24,7 @@ const slateToMarkdown: {
 
 export function register(h: Handler): void {
   renderer[h.slateType] = h.Element;
-  markdownToSlate[h.markdownType] = h.toSlate;
+  markdownToSlate[h.markdownType ?? h.slateType] = h.toSlate;
   slateToMarkdown[h.slateType] = h.fromSlate;
 }
 

@@ -345,17 +345,6 @@ function parse(
       return [hardbreak()];
     case "hr":
       return [{ type: "hr", isVoid: true, children: [{ text: "" }] }];
-    case "emoji":
-      return [
-        {
-          type: "emoji",
-          isVoid: true,
-          isInline: true,
-          content: token.content,
-          children: [{ text: "" }],
-          markup: token.markup,
-        },
-      ];
     default:
       const markdownToSlate = getMarkdownToSlate(token.type);
       if (markdownToSlate != null) {
