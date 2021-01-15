@@ -279,22 +279,24 @@ export function slate_to_markdown(
 // to look nice.
 function extract_table_info(node: Node): TableInfo {
   const thead_tr = (node as any).children[0].children[0];
-  const tbody_rows = (node as any).children[1].children;
+  const tbody_rows = (node as any).children[1]?.children ?? []; // can have no tbody
   const info: TableInfo = [];
-  for (let i = 0; i < thead_tr.children.length; i++) {
+  for (let i = 0; i < thead_tr.children?.length ?? 0; i++) {
     info.push({
-      width:
+      width: Math.max(
+        3,
         serialize(thead_tr.children[i], {
           parent: thead_tr,
           no_escape: false,
-        }).length - 3,
+        }).length - 3
+      ),
       align: thead_tr.children[i].align,
     });
   }
   for (const tr of tbody_rows) {
-    for (let i = 0; i < tr.children.length; i++) {
+    for (let i = 0; i < tr.children?.length ?? 0; i++) {
       info[i].width = Math.max(
-        info[i].width,
+        info[i]?.width ?? 3,
         serialize(tr.children[i], {
           parent: tr,
           no_escape: false,

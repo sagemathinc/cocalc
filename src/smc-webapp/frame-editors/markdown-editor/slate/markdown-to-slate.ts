@@ -144,10 +144,19 @@ function parse(
 
           case "table":
           case "thead":
-          case "tbody":
           case "tr":
             break;
-
+          case "tbody":
+            // Special case -- if there are no children, do NOT include
+            // the tbody either in the slatejs document.
+            // In markdown a table can have 0 rows, but
+            // this is not possible to *render* in slatejs, due to
+            // DOM structure (there's always leaf nodes for the cursor).
+            if (is_empty) {
+              return [];
+            } else {
+              break;
+            }
           case "th":
           case "td":
             node.align = state.attrs?.[0]?.[1]?.split(":")?.[1] ?? "left";
