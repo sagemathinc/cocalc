@@ -16,22 +16,33 @@ export interface markdownToSlateOptions {
   children: Node[];
 }
 
-export type markdownToSlate = (markdownToSlateOptions) => Node;
+export interface slateToMarkdownOptions {
+  node: Node;
+  children: string;
+}
+
+type markdownToSlateFunction = (markdownToSlateOptions) => Node;
+
+type slateToMarkdownFunction = (slateToMarkdownOptions) => string;
 
 interface Handler {
   slateType: string;
   Element: React.FC<RenderElementProps>;
-  markdownType?: string | string[]; // type of the markdown token if different than slateType
-  toSlate: markdownToSlate;
-  fromSlate: (node: Node, children: string) => string;
+  // markdownType is the optional type of the markdown token
+  // if different than slateType; use an array if there are
+  // multiple distinct types of markdown tokens to handle
+  // with the same plugin.
+  markdownType?: string | string[];
+  toSlate: markdownToSlateFunction;
+  fromSlate: slateToMarkdownFunction;
 }
 
 const renderer: { [slateType: string]: React.FC<RenderElementProps> } = {};
 const markdownToSlate: {
-  [tokenType: string]: (markdownToSlateOptions) => Node;
+  [tokenType: string]: markdownToSlateFunction;
 } = {};
 const slateToMarkdown: {
-  [slateType: string]: (node: Node, children: string) => string;
+  [slateType: string]: slateToMarkdownFunction;
 } = {};
 
 export function register(h: Handler): void {
@@ -65,15 +76,15 @@ export function getRender(
 
 export function getMarkdownToSlate(
   tokenType: string
-): markdownToSlate | undefined {
+): markdownToSlateFunction | undefined {
   return markdownToSlate[tokenType];
 }
 
 export function getSlateToMarkdown(
   slateType: string
-): ((node: Node, children: string) => string) | undefined {
+): slateToMarkdownFunction | undefined {
   return slateToMarkdown[slateType];
 }
 
-// Now import all the plugins:
+// Now import all the element plugins:
 import "./elements";

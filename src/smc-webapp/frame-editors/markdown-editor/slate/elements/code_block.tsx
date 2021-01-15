@@ -5,7 +5,7 @@
 
 import { React } from "../../../../app-framework";
 import { RenderElementProps, useSlate } from "slate-react";
-import { Node, Transforms } from "slate";
+import { Transforms } from "slate";
 import { register } from "../register";
 import { SlateCodeMirror } from "../codemirror";
 import { ensure_ends_in_newline, indent, replace_math } from "../util";
@@ -53,7 +53,7 @@ function toSlate({ token, children, math }) {
   };
 }
 
-function fromSlate(node: Node): string {
+function fromSlate({ node }) {
   const value = node.value as string;
   if (node.fence) {
     const info = node.info ?? "";

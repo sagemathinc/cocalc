@@ -6,7 +6,6 @@
 import { React } from "../../../../app-framework";
 import { RenderElementProps, useFocused, useSelected } from "slate-react";
 import { FOCUSED_COLOR } from "../util";
-import { Node } from "slate";
 import { register } from "../register";
 
 const Element: React.FC<RenderElementProps> = ({
@@ -28,24 +27,18 @@ const Element: React.FC<RenderElementProps> = ({
   );
 };
 
-function toSlate({token}) {
-  return {
-    type: "emoji",
-    isVoid: true,
-    isInline: true,
-    content: token.content,
-    children: [{ text: " " }],
-    markup: token.markup,
-  };
-}
-
-function fromSlate(node: Node): string {
-  return `:${node.markup}:`;
-}
-
 register({
   slateType: "emoji",
   Element,
-  toSlate,
-  fromSlate,
+  toSlate: ({ token }) => {
+    return {
+      type: "emoji",
+      isVoid: true,
+      isInline: true,
+      content: token.content,
+      children: [{ text: " " }],
+      markup: token.markup,
+    };
+  },
+  fromSlate: ({ node }) => `:${node.markup}:`,
 });

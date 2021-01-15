@@ -11,7 +11,7 @@ import {
   useSlate,
 } from "slate-react";
 import { FOCUSED_COLOR } from "../util";
-import { Node, Transforms } from "slate";
+import { Transforms } from "slate";
 import { register } from "../register";
 import { Checkbox } from "antd";
 
@@ -49,24 +49,19 @@ const Element: React.FC<RenderElementProps> = ({
   );
 };
 
-function toSlate({ token }) {
-  return {
-    type: "checkbox",
-    isVoid: true,
-    isInline: true,
-    checked: token.checked,
-    children: [{ text: "" }],
-  };
-}
-
-function fromSlate(node: Node): string {
-  return `[${node.checked ? "x" : " "}]`;
-}
 
 register({
   slateType: "checkbox",
   Element,
   markdownType: "checkbox_input",
-  toSlate,
-  fromSlate,
+  toSlate: ({ token }) => {
+    return {
+      type: "checkbox",
+      isVoid: true,
+      isInline: true,
+      checked: token.checked,
+      children: [{ text: "" }],
+    };
+  },
+  fromSlate: ({ node }) => `[${node.checked ? "x" : " "}]`,
 });

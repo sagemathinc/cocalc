@@ -6,7 +6,6 @@
 import { React } from "../../../../app-framework";
 import { RenderElementProps, useFocused, useSelected } from "slate-react";
 import { FOCUSED_COLOR } from "../util";
-import { Node } from "slate";
 import { register } from "../register";
 
 const Element: React.FC<RenderElementProps> = ({ attributes, children }) => {
@@ -29,17 +28,11 @@ const Element: React.FC<RenderElementProps> = ({ attributes, children }) => {
   );
 };
 
-function toSlate({ children }) {
-  return { type: "hr", isVoid: true, children };
-}
-
-function fromSlate(_node: Node): string {
-  return "\n---\n\n";
-}
-
 register({
   slateType: "hr",
   Element,
-  toSlate,
-  fromSlate,
+  toSlate: ({ children }) => {
+    return { type: "hr", isVoid: true, children };
+  },
+  fromSlate: () => "\n---\n\n",
 });

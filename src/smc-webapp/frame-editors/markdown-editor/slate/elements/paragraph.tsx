@@ -19,21 +19,16 @@ const Element: React.FC<RenderElementProps> = ({
   return <p {...attributes}>{children}</p>;
 };
 
-function toSlate({ token, children }) {
-  const node = { type: "paragraph", children } as Node;
-  if (token.hidden) {
-    node.tight = true;
-  }
-  return node;
-}
-
-function fromSlate(node: Node, children: string): string {
-  return `${children}${node.tight ? "\n" : "\n\n"}`;
-}
-
 register({
   slateType: "paragraph",
   Element,
-  toSlate,
-  fromSlate,
+  toSlate: ({ token, children }) => {
+    // We include a tight property when hidden is true, since that's the
+    // hack that markdown-it uses for parsing tight lights.
+    return {
+      ...{ type: "paragraph", children },
+      ...(token.hidden ? { tight: true } : {}),
+    };
+  },
+  fromSlate: ({ node, children }) => `${children}${node.tight ? "\n" : "\n\n"}`,
 });
