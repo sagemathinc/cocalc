@@ -33,8 +33,8 @@ const Element: React.FC<RenderElementProps> = ({
   );
 };
 
-function toSlate(_token: Token): Node {
-  return { type: "hr", isVoid: true, children: [{ text: "" }] };
+function toSlate(_token: Token, children:Node[]): Node {
+  return { type: "hr", isVoid: true, children};
 }
 
 function fromSlate(_node: Node): string {

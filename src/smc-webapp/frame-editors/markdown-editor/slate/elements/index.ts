@@ -8,3 +8,4 @@
 import "./checkbox";
 import "./emoji";
 import "./hr";
+import "./paragraph";

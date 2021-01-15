@@ -19,7 +19,7 @@ export function PathNavigator({
 }): JSX.Element {
   const current_path = useTypedRedux({ project_id }, "current_path");
   const history_path = useTypedRedux({ project_id }, "history_path");
-  const actions = useActions({project_id});
+  const actions = useActions({ project_id });
 
   function make_path(): JSX.Element[] {
     const v: JSX.Element[] = [];
@@ -57,8 +57,12 @@ export function PathNavigator({
     return v;
   }
 
+  // Background color below is so that things look good even for
+  // multiline long paths.
   return (
-    <Breadcrumb style={{ ...{ marginBottom: "0" }, ...style }}>
+    <Breadcrumb
+      style={{ ...{ marginBottom: "0", backgroundColor: "inherit" }, ...style }}
+    >
       {make_path()}
     </Breadcrumb>
   );

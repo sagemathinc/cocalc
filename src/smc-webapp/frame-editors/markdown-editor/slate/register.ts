@@ -12,12 +12,14 @@ interface Handler {
   slateType: string;
   Element: React.FC<RenderElementProps>;
   markdownType?: string; // type of the markdown token if different than slateType
-  toSlate: (token: Token) => Node;
+  toSlate: (token: Token, children: Node[]) => Node;
   fromSlate: (node: Node, children: string) => string;
 }
 
 const renderer: { [slateType: string]: React.FC<RenderElementProps> } = {};
-const markdownToSlate: { [tokenType: string]: (token: Token) => Node } = {};
+const markdownToSlate: {
+  [tokenType: string]: (token: Token, children: Node[]) => Node;
+} = {};
 const slateToMarkdown: {
   [slateType: string]: (node: Node, children: string) => string;
 } = {};
@@ -50,7 +52,7 @@ export function getRender(
 
 export function getMarkdownToSlate(
   tokenType: string
-): ((token: Token) => Node) | undefined {
+): ((token: Token, children: Node[]) => Node) | undefined {
   return markdownToSlate[tokenType];
 }
 

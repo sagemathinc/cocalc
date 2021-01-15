@@ -137,49 +137,54 @@ function parse(
         const type = state.close_type.slice(0, i);
         delete state.close_type;
         delete state.contents;
-        const node: Node = { type, children };
-        switch (type) {
-          case "heading":
-            node.level = parseInt(token.tag?.slice(1) ?? "1");
-            break;
 
-          case "table":
-          case "thead":
-          case "tr":
-            break;
-          case "tbody":
-            // Special case -- if there are no children, do NOT include
-            // the tbody either in the slatejs document.
-            // In markdown a table can have 0 rows, but
-            // this is not possible to *render* in slatejs, due to
-            // DOM structure (there's always leaf nodes for the cursor).
-            if (is_empty) {
-              return [];
-            } else {
+        let node: Node;
+
+        const f = getMarkdownToSlate(type);
+        if (f != null) {
+          node = f(token, children);
+        } else {
+          node = { type, children };
+          switch (type) {
+            case "heading":
+              node.level = parseInt(token.tag?.slice(1) ?? "1");
               break;
-            }
-          case "th":
-          case "td":
-            node.align = state.attrs?.[0]?.[1]?.split(":")?.[1] ?? "left";
-            break;
 
-          default:
-            if (token.hidden) {
-              node.tight = true;
-            }
-            if (!state.block) {
-              node.isInline = true;
-            }
-            if (token.tag && token.tag != "p") {
-              node.tag = token.tag;
-            }
-            if (state.attrs != null) {
-              const a: any = dict(state.attrs as any);
-              if (a.style != null) {
-                a.style = string_to_style(a.style as any);
+            case "table":
+            case "thead":
+            case "tr":
+              break;
+            case "tbody":
+              // Special case -- if there are no children, do NOT include
+              // the tbody either in the slatejs document.
+              // In markdown a table can have 0 rows, but
+              // this is not possible to *render* in slatejs, due to
+              // DOM structure (there's always leaf nodes for the cursor).
+              if (is_empty) {
+                return [];
+              } else {
+                break;
               }
-              node.attrs = a;
-            }
+            case "th":
+            case "td":
+              node.align = state.attrs?.[0]?.[1]?.split(":")?.[1] ?? "left";
+              break;
+
+            default:
+              if (!state.block) {
+                node.isInline = true;
+              }
+              if (token.tag && token.tag != "p") {
+                node.tag = token.tag;
+              }
+              if (state.attrs != null) {
+                const a: any = dict(state.attrs as any);
+                if (a.style != null) {
+                  a.style = string_to_style(a.style as any);
+                }
+                node.attrs = a;
+              }
+          }
         }
         return [node];
       }
@@ -346,7 +351,7 @@ function parse(
     default:
       const markdownToSlate = getMarkdownToSlate(token.type);
       if (markdownToSlate != null) {
-        return [markdownToSlate(token)];
+        return [markdownToSlate(token, [{ text: "" }])];
       }
       return [mark({ text: token.content }, state.marks)];
   }

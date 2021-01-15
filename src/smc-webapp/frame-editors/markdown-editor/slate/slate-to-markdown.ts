@@ -141,8 +141,6 @@ function serialize(node: Node, info: Info): string {
         h += "#";
       }
       return mark_block(children, h).trim() + "\n\n";
-    case "paragraph":
-      return `${children}${node.tight ? "\n" : "\n\n"}`;
     case "softbreak":
       return "\n";
     case "hardbreak":
