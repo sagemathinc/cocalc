@@ -72,6 +72,8 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
       "https://doc.cocalc.com/billing.html#what-exactly-is-the-internet-access-quota";
     const memberquota =
       "https://doc.cocalc.com/billing.html#what-is-member-hosting";
+    const add_license =
+      "https://doc.cocalc.com/project-settings.html#project-add-license";
     const buy_and_upgrade = (
       <>
         <a
@@ -84,14 +86,9 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
           <u>buy a license</u> (starting at about $3/month)
         </a>{" "}
         and{" "}
-        <a
-          style={A_STYLE}
-          onClick={() => {
-            redux.getProjectActions(project_id).set_active_tab("settings");
-          }}
-        >
+        <A style={A_STYLE} href={add_license}>
           <u>apply it to this project</u>
-        </a>
+        </A>
       </>
     );
     if (!allow_run) {
@@ -116,7 +113,7 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
         <span>
           {trial_project} – upgrade to{" "}
           <A href={memberquota} style={A_STYLE}>
-            Member Hosting
+            <u>Member Hosting</u>
           </A>{" "}
           or {humanizeList(no_host)}
           {"."}
@@ -127,7 +124,7 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
         <span>
           <strong>No internet access</strong> – upgrade{" "}
           <A href={inetquota} style={A_STYLE}>
-            Internet Access
+            <u>Internet Access</u>
           </A>{" "}
           or {no_internet}
           {"."}
@@ -145,7 +142,7 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
       <>
         {" – "}
         <A href={DOC_TRIAL} style={style}>
-          more info
+          <u>more info</u>
         </A>
         {"..."}
       </>
