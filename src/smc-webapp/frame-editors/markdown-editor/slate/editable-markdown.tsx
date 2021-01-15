@@ -286,7 +286,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             onChange={(newEditorValue) => {
               if (editorValue === newEditorValue) {
                 // Editor didn't actually change value so nothing to do.
-                hasUnsavedChangesRef.current = false;
                 return;
               }
               hasUnsavedChangesRef.current = true;
@@ -303,6 +302,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
                 // cause bugs (e.g., type, switch from slate to codemirror, type, and
                 // see what you typed into codemirror disappear). E.g., this
                 // happens due to a spurious change when the editor is defocused.
+
                 return;
               }
               save_value_debounce();
