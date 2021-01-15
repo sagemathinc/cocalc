@@ -23,8 +23,22 @@ const slateToMarkdown: {
 } = {};
 
 export function register(h: Handler): void {
+  if (renderer[h.slateType] != null) {
+    throw Error(`render for slateType '${h.slateType}' already registered!`);
+  }
   renderer[h.slateType] = h.Element;
-  markdownToSlate[h.markdownType ?? h.slateType] = h.toSlate;
+
+  const type = h.markdownType ?? h.slateType;
+  if (markdownToSlate[type] != null) {
+    throw Error(`markdownToSlate for type '${type}' already registered!`);
+  }
+  markdownToSlate[type] = h.toSlate;
+
+  if (slateToMarkdown[h.slateType] != null) {
+    throw Error(
+      `slateToMarkdown for type '${h.slateType}' already registered!`
+    );
+  }
   slateToMarkdown[h.slateType] = h.fromSlate;
 }
 
@@ -46,4 +60,5 @@ export function getSlateToMarkdown(
   return slateToMarkdown[slateType];
 }
 
-import "./types";
+// Now import all the plugins:
+import "./elements";

@@ -7,3 +7,4 @@
 
 import "./checkbox";
 import "./emoji";
+import "./hr";

@@ -149,8 +149,6 @@ function serialize(node: Node, info: Info): string {
       return "  \n";
     case "math":
       return node.value as string;
-    case "hr":
-      return "\n---\n\n";
     case "html_block":
       return node.html as string;
     case "blockquote":

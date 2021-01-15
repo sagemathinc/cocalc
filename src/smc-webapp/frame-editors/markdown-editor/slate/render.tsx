@@ -61,21 +61,6 @@ export const Element: React.FC<RenderElementProps> = ({
     );
   }
   switch (element.type) {
-    case "hr":
-      // See https://css-tricks.com/examples/hrs/ for the cool style...
-      return (
-        <div {...attributes}>
-          <hr
-            style={{
-              border: 0,
-              height: "1px",
-              background: "#333",
-              backgroundImage: "linear-gradient(to right, #ccc, #333, #ccc)",
-            }}
-          />
-          {children}
-        </div>
-      );
     case "html_block":
       /*style={ maybe only see when **focused** {
             borderLeft: "3px solid #a00",
@@ -164,6 +149,7 @@ export const Element: React.FC<RenderElementProps> = ({
         });
       }
 
+      console.log("TODO: using generic default rendering for ", element);
       if (element.tight) {
         return (
           <span {...attributes} {...element.attrs}>

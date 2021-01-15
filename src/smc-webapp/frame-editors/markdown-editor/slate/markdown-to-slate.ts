@@ -343,8 +343,6 @@ function parse(
       return [softbreak()];
     case "hardbreak":
       return [hardbreak()];
-    case "hr":
-      return [{ type: "hr", isVoid: true, children: [{ text: "" }] }];
     default:
       const markdownToSlate = getMarkdownToSlate(token.type);
       if (markdownToSlate != null) {

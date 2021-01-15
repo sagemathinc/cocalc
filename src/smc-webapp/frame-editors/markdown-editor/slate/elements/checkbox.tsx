@@ -3,18 +3,18 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../../../app-framework";
+import { React } from "../../../../app-framework";
 import {
   RenderElementProps,
   useFocused,
   useSelected,
   useSlate,
 } from "slate-react";
-import { FOCUSED_COLOR } from "./util";
+import { FOCUSED_COLOR } from "../util";
 import { Checkbox } from "antd";
 import { Node, Transforms } from "slate";
-import { Token } from "./markdown-to-slate";
-import { register } from "./register";
+import { Token } from "../markdown-to-slate";
+import { register } from "../register";
 
 const Element: React.FC<RenderElementProps> = ({
   attributes,
