@@ -317,4 +317,10 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
   public set_other_settings(name: string, value: any): void {
     this.set_account_table({ other_settings: { [name]: value } });
   }
+
+  public set_show_purchase_form(show: boolean) {
+    // this controlls the default state of the "buy a license" purchase form in account → licenses
+    // by default, it's not showing up
+    this.setState({ show_purchase_form: show });
+  }
 }
