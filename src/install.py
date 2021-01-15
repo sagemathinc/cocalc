@@ -81,8 +81,12 @@ def install_project():
         print(f"TOTAL PROJECT PKG BUILD TIME: {total:.1f}s")
 
     # UGLY; hard codes the path -- TODO: fix at some point.
-    cmd("cd /usr/local/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn ci --unsafe-perm=true --progress=false --upgrade"
-        % SUDO)
+    try:
+        cmd("cd /usr/local/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn ci --unsafe-perm=true --progress=false --upgrade"
+            % SUDO)
+    except:
+        cmd("cd /usr/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn ci --unsafe-perm=true --progress=false --upgrade"
+            % SUDO)
 
     # At least run typescript...
     # TODO: currently this errors somewhere in building something in node_modules in smc-webapp, since I can't get
@@ -92,8 +96,12 @@ def install_project():
 
     # Pre-compile everything to Javascript, so that loading is much faster and more efficient.
     # This can easily save more than 2 seconds, given how big things have got.
-    cmd("cd /usr/local/lib/node_modules && coffee -c smc-util smc-util-node smc-webapp smc-project smc-project/jupyter"
-        )
+    try:
+        cmd("cd /usr/local/lib/node_modules && coffee -c smc-util smc-util-node smc-webapp smc-project smc-project/jupyter"
+            )
+    except:
+        cmd("cd /usr/lib/node_modules && coffee -c smc-util smc-util-node smc-webapp smc-project smc-project/jupyter"
+            )
 
 
 def install_hub():
