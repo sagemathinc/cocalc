@@ -11,10 +11,9 @@ import {
   useSlate,
 } from "slate-react";
 import { FOCUSED_COLOR } from "../util";
-import { Checkbox } from "antd";
 import { Node, Transforms } from "slate";
-import { Token } from "../markdown-to-slate";
 import { register } from "../register";
+import { Checkbox } from "antd";
 
 const Element: React.FC<RenderElementProps> = ({
   attributes,
@@ -50,7 +49,7 @@ const Element: React.FC<RenderElementProps> = ({
   );
 };
 
-function toSlate(token: Token): Node {
+function toSlate({ token }) {
   return {
     type: "checkbox",
     isVoid: true,

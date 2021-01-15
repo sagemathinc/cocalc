@@ -7,7 +7,6 @@ import { React } from "../../../../app-framework";
 import { RenderElementProps, useFocused, useSelected } from "slate-react";
 import { FOCUSED_COLOR } from "../util";
 import { Node } from "slate";
-import { Token } from "../markdown-to-slate";
 import { register } from "../register";
 
 const Element: React.FC<RenderElementProps> = ({
@@ -29,7 +28,7 @@ const Element: React.FC<RenderElementProps> = ({
   );
 };
 
-function toSlate(token: Token): Node {
+function toSlate({token}) {
   return {
     type: "emoji",
     isVoid: true,

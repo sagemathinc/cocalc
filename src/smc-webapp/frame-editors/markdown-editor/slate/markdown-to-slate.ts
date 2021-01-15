@@ -40,7 +40,7 @@ interface Marks {
   color?: string;
 }
 
-interface State {
+export interface State {
   marks: Marks;
   nesting: number;
 
@@ -133,9 +133,9 @@ function parse(
 
         let node: Node;
 
-        const f = getMarkdownToSlate(type);
-        if (f != null) {
-          node = f(token, children);
+        const markdownToSlate = getMarkdownToSlate(type);
+        if (markdownToSlate != null) {
+          node = markdownToSlate({ token, children, state, level, math });
         } else {
           node = { type, children };
           switch (type) {
@@ -324,7 +324,15 @@ function parse(
     default:
       const markdownToSlate = getMarkdownToSlate(token.type);
       if (markdownToSlate != null) {
-        return [markdownToSlate(token, [{ text: "" }], state, level, math)];
+        return [
+          markdownToSlate({
+            token,
+            children: [{ text: "" }],
+            state,
+            level,
+            math,
+          }),
+        ];
       }
       return [mark({ text: token.content }, state.marks)];
   }

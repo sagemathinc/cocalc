@@ -6,7 +6,6 @@
 import { React } from "../../../../app-framework";
 import { RenderElementProps, useSlate } from "slate-react";
 import { Node, Transforms } from "slate";
-import { Token } from "../markdown-to-slate";
 import { register } from "../register";
 import { SlateCodeMirror } from "../codemirror";
 import { ensure_ends_in_newline, indent, replace_math } from "../util";
@@ -36,7 +35,7 @@ const Element: React.FC<RenderElementProps> = ({
   );
 };
 
-function toSlate(token: Token, children: Node[], state, level, math): Node {
+function toSlate({ token, children, math }) {
   // fence =block of code with ``` around it, but not indented.
   // Put any math we removed back in unchanged (since the math parsing doesn't
   // know anything about code blocks, and doesn't know to ignore them).
@@ -54,7 +53,7 @@ function toSlate(token: Token, children: Node[], state, level, math): Node {
   };
 }
 
-function fromSlate(node: Node, children: string): string {
+function fromSlate(node: Node): string {
   const value = node.value as string;
   if (node.fence) {
     const info = node.info ?? "";

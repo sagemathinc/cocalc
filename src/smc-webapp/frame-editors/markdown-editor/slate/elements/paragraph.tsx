@@ -6,7 +6,6 @@
 import { React } from "../../../../app-framework";
 import { RenderElementProps } from "slate-react";
 import { Node } from "slate";
-import { Token } from "../markdown-to-slate";
 import { register } from "../register";
 
 const Element: React.FC<RenderElementProps> = ({
@@ -20,7 +19,7 @@ const Element: React.FC<RenderElementProps> = ({
   return <p {...attributes}>{children}</p>;
 };
 
-function toSlate(token: Token, children: Node[]): Node {
+function toSlate({ token, children }) {
   const node = { type: "paragraph", children } as Node;
   if (token.hidden) {
     node.tight = true;

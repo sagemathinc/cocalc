@@ -6,21 +6,29 @@
 import { React } from "../../../app-framework";
 import { RenderElementProps } from "slate-react";
 import { Node } from "slate";
-import { Token } from "./markdown-to-slate";
+import { Token, State as MarkdownParserState } from "./markdown-to-slate";
 
-interface markdownToSlateOptions {}
+export interface markdownToSlateOptions {
+  token: Token;
+  state: MarkdownParserState;
+  level: number;
+  math: string[];
+  children: Node[];
+}
+
+export type markdownToSlate = (markdownToSlateOptions) => Node;
 
 interface Handler {
   slateType: string;
   Element: React.FC<RenderElementProps>;
   markdownType?: string | string[]; // type of the markdown token if different than slateType
-  toSlate: (token: Token, children: Node[]) => Node;
+  toSlate: markdownToSlate;
   fromSlate: (node: Node, children: string) => string;
 }
 
 const renderer: { [slateType: string]: React.FC<RenderElementProps> } = {};
 const markdownToSlate: {
-  [tokenType: string]: (token: Token, children: Node[]) => Node;
+  [tokenType: string]: (markdownToSlateOptions) => Node;
 } = {};
 const slateToMarkdown: {
   [slateType: string]: (node: Node, children: string) => string;
@@ -57,7 +65,7 @@ export function getRender(
 
 export function getMarkdownToSlate(
   tokenType: string
-): ((token: Token, children: Node[]) => Node) | undefined {
+): markdownToSlate | undefined {
   return markdownToSlate[tokenType];
 }
 
