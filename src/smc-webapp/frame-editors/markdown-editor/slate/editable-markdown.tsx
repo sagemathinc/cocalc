@@ -26,7 +26,8 @@ import { use_font_size_scaling } from "../../frame-tree/hooks";
 import { Path } from "../../frame-tree/path";
 
 import { slate_to_markdown } from "./slate-to-markdown";
-import { markdown_to_slate, hardbreak } from "./markdown-to-slate";
+import { markdown_to_slate } from "./markdown-to-slate";
+import { hardbreak } from "./elements/linebreak";
 import { Element, Leaf } from "./render";
 import { formatSelectedText } from "./format";
 

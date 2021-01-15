@@ -80,18 +80,6 @@ export const Element: React.FC<RenderElementProps> = ({
           {children}
         </span>
       );
-    case "hardbreak":
-      return (
-        <span {...attributes}>
-          <span style={{ whiteSpace: "pre" }}>{children}</span>
-        </span>
-      );
-    case "softbreak":
-      return (
-        <span {...attributes}>
-          <span style={{ whiteSpace: "normal" }}>{children}</span>
-        </span>
-      );
     case "math":
       return (
         <span {...attributes}>

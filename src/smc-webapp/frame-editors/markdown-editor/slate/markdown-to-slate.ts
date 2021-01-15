@@ -317,10 +317,6 @@ function parse(
           children: [{ text: " " }],
         },
       ];
-    case "softbreak":
-      return [softbreak()];
-    case "hardbreak":
-      return [hardbreak()];
     default:
       const markdownToSlate = getMarkdownToSlate(token.type);
       if (markdownToSlate != null) {
@@ -414,23 +410,5 @@ function math_node(content: string, math: string[]): Node {
     isVoid: true,
     isInline: true,
     children: [{ text: "" }],
-  };
-}
-
-export function hardbreak() {
-  return {
-    type: "hardbreak",
-    isInline: true,
-    isVoid: false,
-    children: [{ text: "\n" }],
-  };
-}
-
-export function softbreak() {
-  return {
-    type: "softbreak",
-    isInline: true,
-    isVoid: false,
-    children: [{ text: "\n" }],
   };
 }

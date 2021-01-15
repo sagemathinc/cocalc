@@ -5,7 +5,6 @@
 
 import { React } from "../../../../app-framework";
 import { RenderElementProps } from "slate-react";
-import { Node } from "slate";
 import { register } from "../register";
 
 const Element: React.FC<RenderElementProps> = ({

@@ -10,3 +10,4 @@ import "./emoji";
 import "./hr";
 import "./paragraph";
 import "./code_block";
+import "./linebreak";
