@@ -14,6 +14,7 @@ import {
 } from "smc-util/misc";
 import { math_escape, math_unescape } from "smc-util/markdown-utils";
 import { remove_math, MATH_ESCAPE } from "smc-util/mathjax-utils";
+import { getMarkdownToSlate } from "./register";
 
 function replace_math(text, math) {
   // Replace all the math group placeholders in the text
@@ -23,7 +24,7 @@ function replace_math(text, math) {
   });
 }
 
-interface Token {
+export interface Token {
   hidden?: boolean; // See https://markdown-it.github.io/markdown-it/#Token.prototype.hidden
   type: string;
   tag?: string;
@@ -222,9 +223,6 @@ function parse(
 
   // Handle code
   if (token.type == "code_inline" && token.tag == "code") {
-    if (token.content == "☐" || token.content == "☑") {
-      return [checkbox(token.content)];
-    }
     if (
       startswith(token.content, MATH_ESCAPE) &&
       endswith(token.content, MATH_ESCAPE)
@@ -358,17 +356,11 @@ function parse(
           markup: token.markup,
         },
       ];
-    case "checkbox_input":
-      return [
-        {
-          type: "checkbox",
-          isVoid: true,
-          isInline: true,
-          checked: token.checked,
-          children: [{ text: "" }],
-        },
-      ];
     default:
+      const markdownToSlate = getMarkdownToSlate(token.type);
+      if (markdownToSlate != null) {
+        return [markdownToSlate(token)];
+      }
       return [mark({ text: token.content }, state.marks)];
   }
 }
@@ -448,16 +440,6 @@ function math_node(content: string, math: string[]): Node {
     value,
     isVoid: true,
     isInline: true,
-    children: [{ text: "" }],
-  };
-}
-
-function checkbox(content: "☐" | "☑"): Node {
-  return {
-    isVoid: true,
-    isInline: true,
-    type: "checkbox",
-    checked: content == "☑",
     children: [{ text: "" }],
   };
 }

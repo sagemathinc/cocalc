@@ -11,10 +11,12 @@ import {
   useSlate,
 } from "slate-react";
 import { FOCUSED_COLOR } from "./util";
-import { Checkbox as AntCheckbox } from "antd";
-import { Transforms } from "slate";
+import { Checkbox } from "antd";
+import { Node, Transforms } from "slate";
+import { Token } from "./markdown-to-slate";
+import { register } from "./register";
 
-export const Checkbox: React.FC<RenderElementProps> = ({
+const Element: React.FC<RenderElementProps> = ({
   attributes,
   children,
   element,
@@ -28,7 +30,7 @@ export const Checkbox: React.FC<RenderElementProps> = ({
 
   return (
     <span {...attributes}>
-      <AntCheckbox
+      <Checkbox
         style={{
           border,
           padding: "0 0.2em",
@@ -47,3 +49,25 @@ export const Checkbox: React.FC<RenderElementProps> = ({
     </span>
   );
 };
+
+function toSlate(token: Token): Node {
+  return {
+    type: "checkbox",
+    isVoid: true,
+    isInline: true,
+    checked: token.checked,
+    children: [{ text: "" }],
+  };
+}
+
+function fromSlate(node: Node): string {
+  return `[${node.checked ? "x" : " "}]`;
+}
+
+register({
+  slateType: "checkbox",
+  Element,
+  markdownType: "checkbox_input",
+  toSlate,
+  fromSlate,
+});

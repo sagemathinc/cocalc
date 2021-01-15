@@ -17,6 +17,7 @@ import {
 } from "./util";
 const linkify = require("linkify-it")();
 import { startswith } from "smc-util/misc";
+import { getSlateToMarkdown } from "./register";
 
 // table is extra global information used in formatting columns.
 type TableInfo = { width: number; align: "left" | "center" | "right" }[];
@@ -148,8 +149,6 @@ function serialize(node: Node, info: Info): string {
       return "  \n";
     case "math":
       return node.value as string;
-    case "checkbox":
-      return `[${node.checked ? "x" : " "}]`;
     case "hr":
       return "\n---\n\n";
     case "html_block":
@@ -256,6 +255,11 @@ function serialize(node: Node, info: Info): string {
       return children + " | ";
 
     default:
+      const slateToMarkdown = getSlateToMarkdown(node.type as string);
+      if (slateToMarkdown != null) {
+        return slateToMarkdown(node, children);
+      }
+
       // console.log("WARNING: serialize Node as UNKNOWN", { node, children });
       return `${children}\n`;
   }

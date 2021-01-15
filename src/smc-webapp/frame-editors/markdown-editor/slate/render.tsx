@@ -7,11 +7,11 @@ import { CSS, React, useCallback } from "../../../app-framework";
 import { HTML } from "../../../r_misc";
 import { RenderElementProps, RenderLeafProps, useSlate } from "slate-react";
 import { Transforms } from "slate";
-import { Checkbox } from "./checkbox";
 import { SlateCodeMirror } from "./codemirror";
 import { SlateMath } from "./math";
 import { startswith } from "smc-util/misc";
 import { TableElement } from "./render-table";
+import { getRender } from "./register";
 
 export const Element: React.FC<RenderElementProps> = ({
   attributes,
@@ -147,15 +147,6 @@ export const Element: React.FC<RenderElementProps> = ({
       }
       return React.createElement(`h${level}`, attributes, children);
 
-    case "checkbox":
-      return (
-        <Checkbox
-          attributes={attributes}
-          children={children}
-          element={element}
-        />
-      );
-
     case "table":
     case "thead":
     case "tbody":
@@ -171,6 +162,15 @@ export const Element: React.FC<RenderElementProps> = ({
       );
 
     default:
+      const C = getRender(element.type as string);
+      if (C != null) {
+        return React.createElement(C, {
+          attributes,
+          children,
+          element,
+        });
+      }
+
       if (element.tight) {
         return (
           <span {...attributes} {...element.attrs}>
