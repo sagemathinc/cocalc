@@ -80,12 +80,14 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
           style={A_STYLE}
           onClick={() => {
             redux.getActions("page").set_active_tab("account");
-            redux.getActions("account").set_active_tab("licenses");
+            const account_actions = redux.getActions("account");
+            account_actions.set_show_purchase_form(true);
+            account_actions.set_active_tab("licenses");
           }}
         >
           <u>buy a license</u> (starting at about $3/month)
         </a>{" "}
-        and{" "}
+        and then{" "}
         <A style={A_STYLE} href={add_license}>
           <u>apply it to this project</u>
         </A>

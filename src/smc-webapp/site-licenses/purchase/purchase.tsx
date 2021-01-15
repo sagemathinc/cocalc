@@ -38,6 +38,7 @@ import { DebounceInput } from "react-debounce-input";
 import { create_quote_support_ticket } from "./get-a-quote";
 import { QuotaEditor } from "./quota-editor";
 import { DOC_LICENSE_URL } from "../../billing/data";
+import { COLORS } from "smc-util/theme";
 
 const LENGTH_PRESETS = [
   { label: "2 Days", desc: { n: 2, key: "days" } },
@@ -738,11 +739,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div style={{ marginBottom: "15px" }}>
         Buy licenses or request a quote below, as{" "}
-        <A href={DOC_LICENSE_URL}>
-          explained here
-        </A>
-        . If you are planning on making a significant purchase, but need to test
-        things out first,{" "}
+        <A href={DOC_LICENSE_URL}>explained here</A>. If you are planning on
+        making a significant purchase, but need to test things out first,{" "}
         <a onClick={() => redux.getActions("support").set_show(true)}>
           please request a free trial.
         </a>
@@ -758,6 +756,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         </>
       }
       extra={<a onClick={onClose}>close</a>}
+      style={{ borderColor: COLORS.BLUE }}
     >
       {render_instructions()}
       {render_user()}
