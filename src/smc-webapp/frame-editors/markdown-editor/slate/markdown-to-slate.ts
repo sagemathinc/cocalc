@@ -329,7 +329,7 @@ function parse(
           isVoid: true,
           type: token.type,
           html: replace_math(token.content, math),
-          children: [{ text: "" }],
+          children: [{ text: " " }],
         },
       ];
     case "softbreak":

@@ -90,7 +90,8 @@ export const Element: React.FC<RenderElementProps> = ({
     case "html_inline":
       return (
         <span {...attributes}>
-          <code style={{ color: "#a00" }}>{element.html as string}</code>
+          <code style={{ color: "#aaa" }}>{element.html as string}</code>
+          {is_br(element.html as string) && <br />}
           {children}
         </span>
       );
@@ -285,3 +286,8 @@ export const Leaf: React.FC<RenderLeafProps> = ({
 
   return <span {...attributes}>{children}</span>;
 };
+
+function is_br(s: string): boolean {
+  const x = s.toLowerCase().replace(/\s/g, "");
+  return x == "<br>" || x == "<br/>";
+}

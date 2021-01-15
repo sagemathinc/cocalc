@@ -113,7 +113,25 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         return;
       }
       if (e.shiftKey && e.key == "Enter") {
-        // insert a hard break instead of a new pagraph like enter creates.
+        // In a table, the only option is to insert a <br/>.
+        const fragment = editor.getFragment();
+        if (fragment?.[0]?.type == "table") {
+          const br = {
+            isInline: true,
+            isVoid: true,
+            type: "html_inline",
+            html: "<br />",
+            children: [{ text: " " }],
+          };
+          Transforms.insertNodes(editor, [br]);
+          // Also, move cursor forward so it is *after* the br.
+          Transforms.move(editor, { distance: 1 });
+          e.preventDefault();
+          return;
+        }
+
+        // Not in a table, so insert a hard break instead of a new
+        // pagraph like enter creates.
         Transforms.insertNodes(editor, [hardbreak()]);
         e.preventDefault();
         return;

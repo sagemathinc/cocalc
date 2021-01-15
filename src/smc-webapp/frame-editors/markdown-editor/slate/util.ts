@@ -16,6 +16,7 @@ const MAP = {
   ")": "\\)",
   "[": "\\[",
   "]": "\\]",
+  "|": "\\|",
   _: "\\_",
   "\\": "\\\\",
   "`": "\\`",
@@ -30,7 +31,7 @@ export function markdown_escape(s: string): string {
   // makes the generated markdown ugly.
 
   // The 1-character replacements we make in any text.
-  s = s.replace(/[\\_`<>$&]/g, (m) => MAP[m]);
+  s = s.replace(/[\\_`<>$&|]/g, (m) => MAP[m]);
 
   // Links - we do this to avoid escaping [ and ] when not necessary.
   s = s.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, (link) =>
