@@ -175,3 +175,11 @@ export function padCenter(s: string, n: number): string {
 //export const FOCUSED_COLOR = "#66bb6a";
 
 export const FOCUSED_COLOR = "#2196f3";
+
+export function replace_math(text, math) {
+  // Replace all the math group placeholders in the text
+  // with the saved strings.
+  return text.replace(/`\uFE32\uFE33(\d+)\uFE32\uFE33`/g, function (_, n) {
+    return math[n];
+  });
+}

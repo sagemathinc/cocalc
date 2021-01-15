@@ -62,7 +62,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
           info = "r";
         }
         const spec = file_associations[info];
-        options.mode = spec?.opts.mode;
+        options.mode = spec?.opts.mode ?? info; // if nothing in file associations, maybe info is the mode, e.g. "python".
       }
 
       if (options.extraKeys == null) {

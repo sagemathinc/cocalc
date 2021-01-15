@@ -5,7 +5,6 @@
 import { Node, Text } from "slate";
 import {
   ensure_ends_in_newline,
-  indent,
   li_indent,
   mark_block,
   mark_inline_text,
@@ -166,27 +165,6 @@ function serialize(node: Node, info: Info): string {
         link = `[${children}](${href}${title})`;
       }
       return link;
-    case "code_block":
-      const value = node.value as string;
-      if (node.fence) {
-        const info = node.info ?? "";
-        // There is one special case with fenced codeblocks that we
-        // have to worry about -- if they contain ```, then we need
-        // to wrap with *more* than the max sequence of backticks
-        // actually in the codeblock!   See
-        //    https://stackoverflow.com/questions/49267811/how-can-i-escape-3-backticks-code-block-in-3-backticks-code-block
-        // for an excellent discussion of this, and also
-        // https://github.com/mwouts/jupytext/issues/712
-        let fence = "```";
-        while (value.indexOf(fence) != -1) {
-          fence += "`";
-        }
-        return (
-          fence + info + "\n" + ensure_ends_in_newline(value) + fence + "\n\n"
-        );
-      } else {
-        return indent(ensure_ends_in_newline(value), 4) + "\n";
-      }
 
     case "table": // a table
       const i = children.indexOf("\n");

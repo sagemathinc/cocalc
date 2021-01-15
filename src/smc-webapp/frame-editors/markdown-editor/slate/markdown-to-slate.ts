@@ -15,14 +15,7 @@ import {
 import { math_escape, math_unescape } from "smc-util/markdown-utils";
 import { remove_math, MATH_ESCAPE } from "smc-util/mathjax-utils";
 import { getMarkdownToSlate } from "./register";
-
-function replace_math(text, math) {
-  // Replace all the math group placeholders in the text
-  // with the saved strings.
-  return text.replace(/`\uFE32\uFE33(\d+)\uFE32\uFE33`/g, function (_, n) {
-    return math[n];
-  });
-}
+import { replace_math } from "./util";
 
 export interface Token {
   hidden?: boolean; // See https://markdown-it.github.io/markdown-it/#Token.prototype.hidden
@@ -240,26 +233,6 @@ function parse(
     return [{ text: replace_math(token.content, math), code: true }];
   }
 
-  if (token.type == "fence" || token.type == "code_block") {
-    // fence =block of code with ``` around it, but not indented.
-    // Put any math we removed back in unchanged (since the math parsing doesn't
-    // know anything about code blocks, and doesn't know to ignore them).
-    let value = replace_math(token.content, math);
-    // We also remove the last carriage return (right before ```), since it
-    // is much easier to do that here...
-    value = value.slice(0, value.length - 1);
-    return [
-      {
-        isVoid: true,
-        type: "code_block",
-        fence: token.type == "fence",
-        value,
-        info: token.info,
-        children: [{ text: "" }],
-      },
-    ];
-  }
-
   if (token.type == "html_inline") {
     // special cases for underlining, sup, sub, which markdown doesn't have.
     const x = token.content.toLowerCase();
@@ -351,7 +324,7 @@ function parse(
     default:
       const markdownToSlate = getMarkdownToSlate(token.type);
       if (markdownToSlate != null) {
-        return [markdownToSlate(token, [{ text: "" }])];
+        return [markdownToSlate(token, [{ text: "" }], state, level, math)];
       }
       return [mark({ text: token.content }, state.marks)];
   }

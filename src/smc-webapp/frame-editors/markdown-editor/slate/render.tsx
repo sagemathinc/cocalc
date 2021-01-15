@@ -7,7 +7,6 @@ import { CSS, React, useCallback } from "../../../app-framework";
 import { HTML } from "../../../r_misc";
 import { RenderElementProps, RenderLeafProps, useSlate } from "slate-react";
 import { Transforms } from "slate";
-import { SlateCodeMirror } from "./codemirror";
 import { SlateMath } from "./math";
 import { startswith } from "smc-util/misc";
 import { TableElement } from "./render-table";
@@ -92,19 +91,6 @@ export const Element: React.FC<RenderElementProps> = ({
         <span {...attributes}>
           <span style={{ whiteSpace: "normal" }}>{children}</span>
         </span>
-      );
-    case "code_block":
-      return (
-        <div {...attributes}>
-          <SlateCodeMirror
-            value={element.value as string}
-            info={element.info as string | undefined}
-            onChange={(value) =>
-              set_props_of_selected_node(element.type, { value })
-            }
-          />
-          {children}
-        </div>
       );
     case "math":
       return (

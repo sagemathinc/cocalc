@@ -8,10 +8,12 @@ import { RenderElementProps } from "slate-react";
 import { Node } from "slate";
 import { Token } from "./markdown-to-slate";
 
+interface markdownToSlateOptions {}
+
 interface Handler {
   slateType: string;
   Element: React.FC<RenderElementProps>;
-  markdownType?: string; // type of the markdown token if different than slateType
+  markdownType?: string | string[]; // type of the markdown token if different than slateType
   toSlate: (token: Token, children: Node[]) => Node;
   fromSlate: (node: Node, children: string) => string;
 }
@@ -30,11 +32,14 @@ export function register(h: Handler): void {
   }
   renderer[h.slateType] = h.Element;
 
-  const type = h.markdownType ?? h.slateType;
-  if (markdownToSlate[type] != null) {
-    throw Error(`markdownToSlate for type '${type}' already registered!`);
+  const x = h.markdownType ?? h.slateType;
+  const types = typeof x == "string" ? [x] : x;
+  for (const type of types) {
+    if (markdownToSlate[type] != null) {
+      throw Error(`markdownToSlate for type '${type}' already registered!`);
+    }
+    markdownToSlate[type] = h.toSlate;
   }
-  markdownToSlate[type] = h.toSlate;
 
   if (slateToMarkdown[h.slateType] != null) {
     throw Error(
