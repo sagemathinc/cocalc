@@ -106,7 +106,7 @@ export function getSlateToMarkdown(slateType: string): slateToMarkdownFunction {
 // Create a generic plugin for the given type since it was
 // requested, but wasn't defined.
 function createGenericPlugin(type: string) {
-  // console.log("createGenericPlugin", { type });
+  console.log("TODO: createGenericPlugin", { type });
   renderer[type] = renderer[""];
   markdownToSlate[type] = markdownToSlate[""];
   slateToMarkdown[type] = slateToMarkdown[""];

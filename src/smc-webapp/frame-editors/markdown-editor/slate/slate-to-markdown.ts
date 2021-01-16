@@ -8,7 +8,6 @@ import {
   li_indent,
   mark_inline_text,
   markdown_escape,
-  markdown_quote,
 } from "./util";
 const linkify = require("linkify-it")();
 import { startswith } from "smc-util/misc";
@@ -130,8 +129,6 @@ function serialize(node: Node, info: Info): string {
         // Unknown list type??
         return children;
       }
-    case "blockquote":
-      return markdown_quote(children);
     case "link":
       // [my website](wstein.org "here")
       const attrs = (node as any).attrs;

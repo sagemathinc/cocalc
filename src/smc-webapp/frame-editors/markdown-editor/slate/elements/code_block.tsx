@@ -56,7 +56,7 @@ function toSlate({ token, children, math }) {
 function fromSlate({ node }) {
   const value = node.value as string;
   if (node.fence) {
-    const info = node.info ?? "";
+    const info = node.info.trim() ?? "";
     // There is one special case with fenced codeblocks that we
     // have to worry about -- if they contain ```, then we need
     // to wrap with *more* than the max sequence of backticks
