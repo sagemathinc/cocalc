@@ -5,13 +5,7 @@
 
 import { Node, Text } from "slate";
 import { markdown_it } from "../../../markdown";
-import {
-  capitalize,
-  dict,
-  endswith,
-  replace_all,
-  startswith,
-} from "smc-util/misc";
+import { endswith, replace_all, startswith } from "smc-util/misc";
 import { math_escape, math_unescape } from "smc-util/markdown-utils";
 import { remove_math, MATH_ESCAPE } from "smc-util/mathjax-utils";
 import { getMarkdownToSlate } from "./register";
@@ -144,37 +138,18 @@ function parse(
         delete state.close_type;
         delete state.contents;
 
-        let node: Node | undefined;
-
         const markdownToSlate = getMarkdownToSlate(type);
-        if (markdownToSlate != null) {
-          node = markdownToSlate({
-            type,
-            token,
-            children,
-            state,
-            level,
-            math,
-            isEmpty,
-          });
-          if (node == null) {
-            return [];
-          }
-        } else {
-          node = { type, children };
-          if (!state.block) {
-            node.isInline = true;
-          }
-          if (token.tag && token.tag != "p") {
-            node.tag = token.tag;
-          }
-          if (state.attrs != null) {
-            const a: any = dict(state.attrs as any);
-            if (a.style != null) {
-              a.style = string_to_style(a.style as any);
-            }
-            node.attrs = a;
-          }
+        const node = markdownToSlate({
+          type,
+          token,
+          children,
+          state,
+          level,
+          math,
+          isEmpty,
+        });
+        if (node == null) {
+          return [];
         }
         return [node];
       }
@@ -291,28 +266,30 @@ function parse(
     }
   }
 
-  switch (token.type) {
-    case "inline":
-      return [mark({ text: token.content }, state.marks)];
-    default:
-      const markdownToSlate = getMarkdownToSlate(token.type);
-      if (markdownToSlate != null) {
-        const node = markdownToSlate({
-          type: token.type,
-          token,
-          children: [{ text: "" }],
-          state,
-          level,
-          math,
-          isEmpty: false,
-        });
-        if (node != null) {
-          return [node];
-        } else {
-          return [];
-        }
-      }
-      return [mark({ text: token.content }, state.marks)];
+  if (token.type == "inline" || token.type == "text") {
+    // text
+    return [mark({ text: token.content }, state.marks)];
+  } else {
+    // everything else
+    const markdownToSlate = getMarkdownToSlate(token.type);
+    const node = markdownToSlate({
+      type: token.type,
+      token,
+      children: [{ text: "" }],
+      state,
+      level,
+      math,
+      isEmpty: false,
+    });
+    if (node != null) {
+      return [node];
+    } else {
+      // node == undefied/null means that we want no node
+      // at all; markdown-it sometimes uses tokens to
+      // convey state but nothing that should be included
+      // in the slate doc tree.
+      return [];
+    }
   }
 }
 
@@ -365,19 +342,4 @@ export function markdown_to_slate(markdown): Node[] {
   };
 
   return doc;
-}
-
-function string_to_style(style: string): any {
-  const obj: any = {};
-  for (const x of style.split(";")) {
-    const j = x.indexOf("=");
-    if (j == -1) continue;
-    let key = x.slice(0, j);
-    const i = key.indexOf("-");
-    if (i != -1) {
-      key = x.slice(0, i) + capitalize(x.slice(i + 1));
-    }
-    obj[key] = x.slice(j + 1);
-  }
-  return obj;
 }

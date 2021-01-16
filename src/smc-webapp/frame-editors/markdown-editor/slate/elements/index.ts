@@ -15,3 +15,4 @@ import "./math";
 import "./heading";
 import "./html";
 import "./table";
+import "./generic";

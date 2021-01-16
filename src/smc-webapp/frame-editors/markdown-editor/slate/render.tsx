@@ -8,61 +8,11 @@ import { RenderElementProps, RenderLeafProps } from "slate-react";
 import { startswith } from "smc-util/misc";
 import { getRender } from "./register";
 
-export const Element: React.FC<RenderElementProps> = ({
-  attributes,
-  children,
-  element,
-}) => {
-  if (element.tag) {
-    // We use some extra classes for certain tags so things just look better.
-    let className: undefined | string = undefined;
-    if (element.tag == "table") {
-      className = "table";
-    }
-    let style = {} as CSS;
-    if ((element.tag == "ol" || element.tag == "ul") && !element.tight) {
-      // There is a shortcoming in how markdown-it parses nested
-      // non-tight lists (at least with the CSS in cocalc), and this
-      // is a workaround.  If it is not tight, add space below.
-      style.marginBottom = "1em";
-    }
-    return React.createElement(
-      element.tag as string,
-      {
-        ...attributes,
-        ...(element.attrs as object),
-        ...{ className },
-        ...{ style },
-      },
-      children
-    );
-  }
-
-  const C = getRender(element.type as string);
-  if (C != null) {
-    return React.createElement(C, {
-      attributes,
-      children,
-      element,
-    });
-  }
-
-  console.log("TODO: using generic default rendering for ", element);
-  if (element.tight) {
-    return (
-      <span {...attributes} {...element.attrs}>
-        {children}
-      </span>
-    );
-  }
-  return (
-    <p {...attributes} {...element.attrs}>
-      {children}
-    </p>
-  );
+export const Element: React.FC<RenderElementProps> = (props) => {
+  const Component = getRender(props.element.type as string);
+  return React.createElement(Component, props);
 };
 
-// Temporary to match markdown-it demo, so at least it is usable.
 const CODE_STYLE = {
   padding: "2px 4px",
   fontSize: "90%",
@@ -98,7 +48,7 @@ export const Leaf: React.FC<RenderLeafProps> = ({
   if (leaf.code) {
     children = <code style={CODE_STYLE}>{children}</code>;
   }
-  // check for colors, fonts, etc.
+  // check for colors, fonts, etc.  
   for (const mark in leaf) {
     if (!leaf[mark]) continue; // only if it is true
     if (startswith(mark, "color:")) {

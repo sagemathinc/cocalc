@@ -148,12 +148,7 @@ function serialize(node: Node, info: Info): string {
 
     default:
       const slateToMarkdown = getSlateToMarkdown(node.type as string);
-      if (slateToMarkdown != null) {
-        return slateToMarkdown({ node, children, info, child_info });
-      }
-
-      // console.log("WARNING: serialize Node as UNKNOWN", { node, children });
-      return `${children}\n`;
+      return slateToMarkdown({ node, children, info, child_info });
   }
 }
 

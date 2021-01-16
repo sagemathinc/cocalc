@@ -73,22 +73,50 @@ export function register(h: Handler): void {
   slateToMarkdown[h.slateType] = h.fromSlate;
 }
 
-export function getRender(
-  slateType: string
-): React.FC<RenderElementProps> | undefined {
+export function getRender(slateType: string): React.FC<RenderElementProps> {
+  if (renderer[slateType] == null) {
+    createGenericPlugin(slateType);
+    if (renderer[slateType] == null) {
+      throw Error("getRender -- bug creating generic element plugin");
+    }
+  }
   return renderer[slateType];
 }
 
-export function getMarkdownToSlate(
-  tokenType: string
-): markdownToSlateFunction | undefined {
+export function getMarkdownToSlate(tokenType: string): markdownToSlateFunction {
+  if (markdownToSlate[tokenType] == null) {
+    createGenericPlugin(tokenType);
+    if (markdownToSlate[tokenType] == null) {
+      throw Error("getMarkdownToSlate -- bug creating generic element plugin");
+    }
+  }
   return markdownToSlate[tokenType];
 }
 
-export function getSlateToMarkdown(
-  slateType: string
-): slateToMarkdownFunction | undefined {
+export function getSlateToMarkdown(slateType: string): slateToMarkdownFunction {
+  if (slateToMarkdown[slateType] == null) {
+    createGenericPlugin(slateType);
+    if (slateToMarkdown[slateType] == null) {
+      throw Error("getSlateToMarkdown -- bug creating generic element plugin");
+    }
+  }
   return slateToMarkdown[slateType];
+}
+
+// Create a generic plugin for the given type since it was
+// requested, but wasn't defined.
+function createGenericPlugin(type: string) {
+  // console.log("createGenericPlugin", { type });
+  renderer[type] = renderer[""];
+  markdownToSlate[type] = markdownToSlate[""];
+  slateToMarkdown[type] = slateToMarkdown[""];
+  if (
+    renderer[type] == null ||
+    markdownToSlate[type] == null ||
+    slateToMarkdown[type] == null
+  ) {
+    throw Error("no generic plugin -- define generic plugin with type ''");
+  }
 }
 
 // Now import all the element plugins:

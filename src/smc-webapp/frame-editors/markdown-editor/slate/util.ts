@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { is_whitespace } from "smc-util/misc";
+import { capitalize, is_whitespace } from "smc-util/misc";
 
 // Note: this markdown_escape is based on https://github.com/edwmurph/escape-markdown/blob/master/index.js
 
@@ -182,4 +182,19 @@ export function replace_math(text, math) {
   return text.replace(/`\uFE32\uFE33(\d+)\uFE32\uFE33`/g, function (_, n) {
     return math[n];
   });
+}
+
+export function string_to_style(style: string): any {
+  const obj: any = {};
+  for (const x of style.split(";")) {
+    const j = x.indexOf("=");
+    if (j == -1) continue;
+    let key = x.slice(0, j);
+    const i = key.indexOf("-");
+    if (i != -1) {
+      key = x.slice(0, i) + capitalize(x.slice(i + 1));
+    }
+    obj[key] = x.slice(j + 1);
+  }
+  return obj;
 }
