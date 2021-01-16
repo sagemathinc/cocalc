@@ -9,9 +9,6 @@ import {
   mark_inline_text,
   markdown_escape,
   markdown_quote,
-  padLeft,
-  padRight,
-  padCenter,
 } from "./util";
 const linkify = require("linkify-it")();
 import { startswith } from "smc-util/misc";
@@ -20,7 +17,7 @@ import { getSlateToMarkdown } from "./register";
 // table is extra global information used in formatting columns.
 type TableInfo = { width: number; align: "left" | "center" | "right" }[];
 
-interface Info {
+export interface Info {
   parent: Node; // the parent of the node being serialized
   index?: number; // index of this node among its siblings
   no_escape: boolean; // if true, do not escape text in this node.
@@ -149,70 +146,10 @@ function serialize(node: Node, info: Info): string {
       }
       return link;
 
-    case "table": // a table
-      const i = children.indexOf("\n");
-      const thead = children.slice(0, i);
-      const tbody = children.slice(i + 1);
-      let sep = "|",
-        headings: { align: string }[];
-      try {
-        headings = (node as any).children[0].children[0].children;
-      } catch (_err) {
-        headings = [];
-      }
-      for (let i = 0; i < headings.length; i++) {
-        const n = (child_info.table?.[i]?.width ?? 5) - 2;
-        let bar = "-";
-        for (let j = 0; j < n; j++) bar += "-";
-        switch (headings[i].align) {
-          case "center":
-            bar = ":" + bar.slice(1) + ":";
-            break;
-          case "right":
-            bar = bar + ":";
-            break;
-          case "left":
-          default:
-            bar = ":" + bar;
-            break;
-        }
-        sep += ` ${bar} |`;
-      }
-      return `${thead}\n${sep}\n${tbody}\n`;
-
-    case "thead": // the heading row of a table
-      return children; // the one child is a tr, which renders fine by itself
-
-    case "tbody": // the body of the table
-      return children;
-
-    case "tr": // a row of a table
-      return "| " + children.trim() + "\n";
-
-    case "th": // a heading entry in a row in the thead
-    case "td": // a data entry in a row
-      if (info.index != null) {
-        const data = info.table?.[info.index];
-        if (data != null) {
-          switch (data.align) {
-            case "left":
-              children = padRight(children, data.width);
-              break;
-            case "right":
-              children = padLeft(children, data.width);
-              break;
-            case "center":
-              children = padCenter(children, data.width);
-              break;
-          }
-        }
-      }
-      return children + " | ";
-
     default:
       const slateToMarkdown = getSlateToMarkdown(node.type as string);
       if (slateToMarkdown != null) {
-        return slateToMarkdown({ node, children });
+        return slateToMarkdown({ node, children, info, child_info });
       }
 
       // console.log("WARNING: serialize Node as UNKNOWN", { node, children });
@@ -254,8 +191,9 @@ function extract_table_info(node: Node): TableInfo {
   }
   for (const tr of tbody_rows) {
     for (let i = 0; i < tr.children?.length ?? 0; i++) {
+      if (info[i] == null) continue;
       info[i].width = Math.max(
-        info[i]?.width ?? 3,
+        info[i].width ?? 3,
         serialize(tr.children[i], {
           parent: tr,
           no_escape: false,

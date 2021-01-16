@@ -5,9 +5,8 @@
 
 import { React } from "../../../../app-framework";
 import { register } from "../register";
-import { replace_math } from "../util";
+import { FOCUSED_COLOR, replace_math } from "../util";
 import { useFocused, useSelected } from "slate-react";
-import { FOCUSED_COLOR } from "../util";
 
 function toSlate({ token, math, children }) {
   return {

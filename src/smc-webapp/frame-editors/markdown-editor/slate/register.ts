@@ -7,21 +7,26 @@ import { React } from "../../../app-framework";
 import { RenderElementProps } from "slate-react";
 import { Node } from "slate";
 import { Token, State as MarkdownParserState } from "./markdown-to-slate";
+import { Info } from "./slate-to-markdown";
 
 export interface markdownToSlateOptions {
+  type: string;
   token: Token;
   state: MarkdownParserState;
   level: number;
   math: string[];
   children: Node[];
+  isEmpty: boolean;
 }
 
 export interface slateToMarkdownOptions {
   node: Node;
   children: string;
+  info: Info;
+  child_info: Info;
 }
 
-type markdownToSlateFunction = (markdownToSlateOptions) => Node;
+type markdownToSlateFunction = (markdownToSlateOptions) => Node | undefined;
 
 type slateToMarkdownFunction = (slateToMarkdownOptions) => string;
 

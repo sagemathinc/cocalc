@@ -6,7 +6,6 @@
 import { CSS, React } from "../../../app-framework";
 import { RenderElementProps, RenderLeafProps } from "slate-react";
 import { startswith } from "smc-util/misc";
-import { TableElement } from "./render-table";
 import { getRender } from "./register";
 
 export const Element: React.FC<RenderElementProps> = ({
@@ -38,45 +37,29 @@ export const Element: React.FC<RenderElementProps> = ({
       children
     );
   }
-  switch (element.type) {
-    case "table":
-    case "thead":
-    case "tbody":
-    case "tr":
-    case "th":
-    case "td":
-      return (
-        <TableElement
-          attributes={attributes}
-          children={children}
-          element={element}
-        />
-      );
 
-    default:
-      const C = getRender(element.type as string);
-      if (C != null) {
-        return React.createElement(C, {
-          attributes,
-          children,
-          element,
-        });
-      }
-
-      console.log("TODO: using generic default rendering for ", element);
-      if (element.tight) {
-        return (
-          <span {...attributes} {...element.attrs}>
-            {children}
-          </span>
-        );
-      }
-      return (
-        <p {...attributes} {...element.attrs}>
-          {children}
-        </p>
-      );
+  const C = getRender(element.type as string);
+  if (C != null) {
+    return React.createElement(C, {
+      attributes,
+      children,
+      element,
+    });
   }
+
+  console.log("TODO: using generic default rendering for ", element);
+  if (element.tight) {
+    return (
+      <span {...attributes} {...element.attrs}>
+        {children}
+      </span>
+    );
+  }
+  return (
+    <p {...attributes} {...element.attrs}>
+      {children}
+    </p>
+  );
 };
 
 // Temporary to match markdown-it demo, so at least it is usable.
@@ -135,4 +118,3 @@ export const Leaf: React.FC<RenderLeafProps> = ({
 
   return <span {...attributes}>{children}</span>;
 };
-

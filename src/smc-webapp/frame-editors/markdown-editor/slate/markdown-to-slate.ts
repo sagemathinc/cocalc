@@ -112,7 +112,7 @@ function parse(
         // using a new state:
         const child_state: State = { marks: state.marks, nesting: 0 };
         const children: Node[] = [];
-        let is_empty = true;
+        let isEmpty = true;
         // Note a RULE: "Block nodes can only contain other blocks, or inline and text nodes."
         // See https://docs.slatejs.org/concepts/10-normalizing
         // This means that all children nodes here have to be either *inline/text* or they
@@ -131,11 +131,11 @@ function parse(
             if (all_tight) {
               node.tight = true;
             }
-            is_empty = false;
+            isEmpty = false;
             children.push(node);
           }
         }
-        if (is_empty) {
+        if (isEmpty) {
           // it is illegal for the children to be empty.
           children.push({ text: "" });
         }
@@ -144,48 +144,36 @@ function parse(
         delete state.close_type;
         delete state.contents;
 
-        let node: Node;
+        let node: Node | undefined;
 
         const markdownToSlate = getMarkdownToSlate(type);
         if (markdownToSlate != null) {
-          node = markdownToSlate({ token, children, state, level, math });
+          node = markdownToSlate({
+            type,
+            token,
+            children,
+            state,
+            level,
+            math,
+            isEmpty,
+          });
+          if (node == null) {
+            return [];
+          }
         } else {
           node = { type, children };
-          switch (type) {
-            case "table":
-            case "thead":
-            case "tr":
-              break;
-            case "tbody":
-              // Special case -- if there are no children, do NOT include
-              // the tbody either in the slatejs document.
-              // In markdown a table can have 0 rows, but
-              // this is not possible to *render* in slatejs, due to
-              // DOM structure (there's always leaf nodes for the cursor).
-              if (is_empty) {
-                return [];
-              } else {
-                break;
-              }
-            case "th":
-            case "td":
-              node.align = state.attrs?.[0]?.[1]?.split(":")?.[1] ?? "left";
-              break;
-
-            default:
-              if (!state.block) {
-                node.isInline = true;
-              }
-              if (token.tag && token.tag != "p") {
-                node.tag = token.tag;
-              }
-              if (state.attrs != null) {
-                const a: any = dict(state.attrs as any);
-                if (a.style != null) {
-                  a.style = string_to_style(a.style as any);
-                }
-                node.attrs = a;
-              }
+          if (!state.block) {
+            node.isInline = true;
+          }
+          if (token.tag && token.tag != "p") {
+            node.tag = token.tag;
+          }
+          if (state.attrs != null) {
+            const a: any = dict(state.attrs as any);
+            if (a.style != null) {
+              a.style = string_to_style(a.style as any);
+            }
+            node.attrs = a;
           }
         }
         return [node];
@@ -309,15 +297,20 @@ function parse(
     default:
       const markdownToSlate = getMarkdownToSlate(token.type);
       if (markdownToSlate != null) {
-        return [
-          markdownToSlate({
-            token,
-            children: [{ text: "" }],
-            state,
-            level,
-            math,
-          }),
-        ];
+        const node = markdownToSlate({
+          type: token.type,
+          token,
+          children: [{ text: "" }],
+          state,
+          level,
+          math,
+          isEmpty: false,
+        });
+        if (node != null) {
+          return [node];
+        } else {
+          return [];
+        }
       }
       return [mark({ text: token.content }, state.marks)];
   }

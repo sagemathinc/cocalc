@@ -14,3 +14,4 @@ import "./linebreak";
 import "./math";
 import "./heading";
 import "./html";
+import "./table";
