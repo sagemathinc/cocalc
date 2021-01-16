@@ -23,3 +23,4 @@ import "./html";
 import "./table";
 import "./blockquote";
 import "./link";
+import "./list-item";

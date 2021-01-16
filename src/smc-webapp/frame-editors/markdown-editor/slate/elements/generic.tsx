@@ -12,7 +12,23 @@ import { Node } from "slate";
 register({
   slateType: "", // this is the generic plugin
 
-  fromSlate: ({ children }) => `${children}\n`,
+  toSlate: ({ token, type, children, state }) => {
+    const node = { type, children } as Node;
+    if (!state.block) {
+      node.isInline = true;
+    }
+    if (token.tag && token.tag != "p") {
+      node.tag = token.tag;
+    }
+    if (state.attrs != null) {
+      const a: any = dict(state.attrs as any);
+      if (a.style != null) {
+        a.style = string_to_style(a.style as any);
+      }
+      node.attrs = a;
+    }
+    return node;
+  },
 
   Element: ({ attributes, children, element }) => {
     if (element.tag) {
@@ -50,21 +66,5 @@ register({
     );
   },
 
-  toSlate: ({ token, type, children, state }) => {
-    const node = { type, children } as Node;
-    if (!state.block) {
-      node.isInline = true;
-    }
-    if (token.tag && token.tag != "p") {
-      node.tag = token.tag;
-    }
-    if (state.attrs != null) {
-      const a: any = dict(state.attrs as any);
-      if (a.style != null) {
-        a.style = string_to_style(a.style as any);
-      }
-      node.attrs = a;
-    }
-    return node;
-  },
+  fromSlate: ({ children }) => `${children}\n`,
 });

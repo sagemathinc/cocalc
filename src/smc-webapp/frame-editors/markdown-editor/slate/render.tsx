@@ -48,7 +48,7 @@ export const Leaf: React.FC<RenderLeafProps> = ({
   if (leaf.code) {
     children = <code style={CODE_STYLE}>{children}</code>;
   }
-  // check for colors, fonts, etc.  
+  // check for colors, fonts, etc.
   for (const mark in leaf) {
     if (!leaf[mark]) continue; // only if it is true
     if (startswith(mark, "color:")) {

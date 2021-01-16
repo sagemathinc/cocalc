@@ -5,7 +5,6 @@
 import { Node, Text } from "slate";
 import {
   ensure_ends_in_newline,
-  li_indent,
   mark_inline_text,
   markdown_escape,
 } from "./util";
@@ -111,27 +110,8 @@ function serialize(node: Node, info: Info): string {
     v.push(serialize(node.children[index], { ...child_info, ...{ index } }));
   }
   let children = v.join("");
-
-  switch (node.type) {
-    case "list_item":
-      if (info?.parent == null) {
-        return li_indent(`- ${children}`);
-      } else if (info.parent.type == "bullet_list") {
-        return li_indent(`- ${children}`);
-      } else if (info.parent.type == "ordered_list") {
-        return li_indent(
-          `${
-            (info.index ?? 0) + ((info.parent.attrs as any)?.start ?? 1)
-          }. ${children}`
-        );
-      } else {
-        // Unknown list type??
-        return children;
-      }
-    default:
-      const slateToMarkdown = getSlateToMarkdown(node.type as string);
-      return slateToMarkdown({ node, children, info, child_info });
-  }
+  const slateToMarkdown = getSlateToMarkdown(node.type as string);
+  return slateToMarkdown({ node, children, info, child_info });
 }
 
 export function slate_to_markdown(
