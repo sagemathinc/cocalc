@@ -98,7 +98,9 @@ setup(
     author_email='office@sagemath.com',
     license='GPLv3+',
     packages=find_packages(),
-    install_requires=['markdown2', 'psutil', 'PyYAML', 'ansi2html'],
+    install_requires=[
+        'markdown2', 'psutil', 'PyYAML', 'ansi2html', 'nbformat'
+    ],
     zip_safe=False,
     classifiers=[
         'License :: OSI Approved :: GPLv3',
