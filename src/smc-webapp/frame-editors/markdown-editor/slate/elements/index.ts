@@ -13,3 +13,4 @@ import "./code_block";
 import "./linebreak";
 import "./math";
 import "./heading";
+import "./html";

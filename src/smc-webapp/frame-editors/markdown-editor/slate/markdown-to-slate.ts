@@ -306,18 +306,6 @@ function parse(
   switch (token.type) {
     case "inline":
       return [mark({ text: token.content }, state.marks)];
-    case "html_block":
-    case "html_inline":
-      // something else
-      return [
-        {
-          isInline: token.type == "html_inline",
-          isVoid: true,
-          type: token.type,
-          html: replace_math(token.content, math),
-          children: [{ text: " " }],
-        },
-      ];
     default:
       const markdownToSlate = getMarkdownToSlate(token.type);
       if (markdownToSlate != null) {

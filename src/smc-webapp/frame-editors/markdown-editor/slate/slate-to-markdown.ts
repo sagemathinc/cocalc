@@ -133,12 +133,8 @@ function serialize(node: Node, info: Info): string {
         // Unknown list type??
         return children;
       }
-    case "html_block":
-      return node.html as string;
     case "blockquote":
       return markdown_quote(children);
-    case "html_inline":
-      return node.html as string;
     case "link":
       // [my website](wstein.org "here")
       const attrs = (node as any).attrs;

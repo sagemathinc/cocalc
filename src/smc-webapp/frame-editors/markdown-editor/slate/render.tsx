@@ -4,7 +4,6 @@
  */
 
 import { CSS, React } from "../../../app-framework";
-import { HTML } from "../../../r_misc";
 import { RenderElementProps, RenderLeafProps } from "slate-react";
 import { startswith } from "smc-util/misc";
 import { TableElement } from "./render-table";
@@ -40,26 +39,6 @@ export const Element: React.FC<RenderElementProps> = ({
     );
   }
   switch (element.type) {
-    case "html_block":
-      /*style={ maybe only see when **focused** {
-            borderLeft: "3px solid #a00",
-            marginLeft: "-8px",
-            paddingLeft: "5px",
-          }}*/
-      return (
-        <div {...attributes}>
-          <HTML auto_render_math={true} value={element.html as string} />
-          {children}
-        </div>
-      );
-    case "html_inline":
-      return (
-        <span {...attributes}>
-          <code style={{ color: "#aaa" }}>{element.html as string}</code>
-          {is_br(element.html as string) && <br />}
-          {children}
-        </span>
-      );
     case "table":
     case "thead":
     case "tbody":
@@ -157,7 +136,3 @@ export const Leaf: React.FC<RenderLeafProps> = ({
   return <span {...attributes}>{children}</span>;
 };
 
-function is_br(s: string): boolean {
-  const x = s.toLowerCase().replace(/\s/g, "");
-  return x == "<br>" || x == "<br/>";
-}
