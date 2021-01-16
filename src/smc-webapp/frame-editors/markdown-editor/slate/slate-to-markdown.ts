@@ -140,8 +140,6 @@ function serialize(node: Node, info: Info): string {
         h += "#";
       }
       return mark_block(children, h).trim() + "\n\n";
-    case "math":
-      return node.value as string;
     case "html_block":
       return node.html as string;
     case "blockquote":

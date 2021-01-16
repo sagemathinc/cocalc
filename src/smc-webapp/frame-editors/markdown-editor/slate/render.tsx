@@ -3,11 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSS, React, useCallback } from "../../../app-framework";
+import { CSS, React } from "../../../app-framework";
 import { HTML } from "../../../r_misc";
-import { RenderElementProps, RenderLeafProps, useSlate } from "slate-react";
-import { Transforms } from "slate";
-import { SlateMath } from "./math";
+import { RenderElementProps, RenderLeafProps } from "slate-react";
 import { startswith } from "smc-util/misc";
 import { TableElement } from "./render-table";
 import { getRender } from "./register";
@@ -17,24 +15,6 @@ export const Element: React.FC<RenderElementProps> = ({
   children,
   element,
 }) => {
-  const editor = useSlate();
-
-  // I could find no reliable way to locate a specific element that
-  // comes into the render, since slate is using immutable js and we
-  // haven't broken down and assigned uuid's to nodes yet (and
-  // then searched for them.)  So we support setting the part of the
-  // selection with a given type, which suffices for our
-  // custom editors, since when you focus them, their node is
-  // in that selection.
-  const set_props_of_selected_node = useCallback((type, obj) => {
-    try {
-      Transforms.setNodes(editor, obj, { match: (node) => node.type == type });
-    } catch (err) {
-      console.log("ERROR: set_props_of_selected_node ", { err, type, obj });
-      return;
-    }
-  }, []);
-
   if (element.tag) {
     // We use some extra classes for certain tags so things just look better.
     let className: undefined | string = undefined;
@@ -77,18 +57,6 @@ export const Element: React.FC<RenderElementProps> = ({
         <span {...attributes}>
           <code style={{ color: "#aaa" }}>{element.html as string}</code>
           {is_br(element.html as string) && <br />}
-          {children}
-        </span>
-      );
-    case "math":
-      return (
-        <span {...attributes}>
-          <SlateMath
-            value={element.value as string}
-            onChange={(value) => {
-              set_props_of_selected_node(element.type, { value });
-            }}
-          />
           {children}
         </span>
       );

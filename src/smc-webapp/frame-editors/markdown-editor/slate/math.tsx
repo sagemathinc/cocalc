@@ -86,8 +86,10 @@ export const SlateMath: React.FC<Props> = React.memo(({ value, onChange }) => {
               borderRadius: "5px",
             }
           : {
+              display: startswith(value, "$$") ? "block" : "inline",
               cursor: "pointer",
-              border: focused && selected ? `1px solid ${FOCUSED_COLOR}` : undefined,
+              border:
+                focused && selected ? `1px solid ${FOCUSED_COLOR}` : undefined,
             }
       }
     >

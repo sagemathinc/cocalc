@@ -89,7 +89,11 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       }
 
       cm.on("blur", () => setIsFocused(false));
-      cm.on("focus", () => setIsFocused(true));
+      cm.on("focus", async () => {
+        setIsFocused(true);
+        await delay(1);
+        cm.focus();
+      });
 
       // Make it so editor height matches text.
       const css: any = { height: "auto", padding: "5px" };
@@ -114,7 +118,8 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         contentEditable={false}
         style={{
           ...STYLE,
-          ...{ /* The focused color is "Jupyter notebook classic" focused cell green. */
+          ...{
+            /* The focused color is "Jupyter notebook classic" focused cell green. */
             border: `1px solid ${isFocused ? FOCUSED_COLOR : "#cfcfcf"}`,
           },
         }}

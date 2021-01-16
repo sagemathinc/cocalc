@@ -57,6 +57,19 @@ function parse(
   level: number,
   math: string[]
 ): Node[] {
+  if (
+    token.type == "code_inline" &&
+    startswith(token.content, MATH_ESCAPE) &&
+    endswith(token.content, MATH_ESCAPE)
+  ) {
+    // A pre-processor encodes math formulas as inline code, since
+    // markdown-it doesn't have a math type, and I believe the markdown-it
+    // katex (or math) plugin simply doesn't work well enough due to
+    // limitations of markdown parsing.  Here we set the type that we
+    // would like the token to have had.
+    token.type = "math";
+  }
+
   switch (token.type) {
     case "em_open":
       state.marks.italic = true;
@@ -220,15 +233,7 @@ function parse(
   // console.log("parse", JSON.stringify({ token, state, level, math }));
 
   // Handle code
-  if (token.type == "code_inline" && token.tag == "code") {
-    if (
-      startswith(token.content, MATH_ESCAPE) &&
-      endswith(token.content, MATH_ESCAPE)
-    ) {
-      // we encode math as escaped code in markdown, since the markdown parser
-      // and latex are not compatible, but the markdown process can process code fine..
-      return [math_node(token.content, math)];
-    }
+  if (token.type == "code_inline") {
     // inline code -- important: put anything we thought was math back in.
     return [{ text: replace_math(token.content, math), code: true }];
   }
@@ -398,17 +403,4 @@ function string_to_style(style: string): any {
     obj[key] = x.slice(j + 1);
   }
   return obj;
-}
-
-function math_node(content: string, math: string[]): Node {
-  const i = MATH_ESCAPE.length;
-  const n = parseInt(content.slice(i, content.length - i));
-  const value = math[n] ?? "?"; // if not defined (so ?) there is a bug in the parser...
-  return {
-    type: "math",
-    value,
-    isVoid: true,
-    isInline: true,
-    children: [{ text: "" }],
-  };
 }
