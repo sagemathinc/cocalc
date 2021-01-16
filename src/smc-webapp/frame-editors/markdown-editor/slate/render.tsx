@@ -60,13 +60,6 @@ export const Element: React.FC<RenderElementProps> = ({
           {children}
         </span>
       );
-    case "heading":
-      const level = element.level as number;
-      if (!level || level < 1 || level > 6) {
-        return <b>{children}</b>;
-      }
-      return React.createElement(`h${level}`, attributes, children);
-
     case "table":
     case "thead":
     case "tbody":

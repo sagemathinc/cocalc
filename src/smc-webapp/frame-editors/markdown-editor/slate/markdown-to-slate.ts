@@ -152,10 +152,6 @@ function parse(
         } else {
           node = { type, children };
           switch (type) {
-            case "heading":
-              node.level = parseInt(token.tag?.slice(1) ?? "1");
-              break;
-
             case "table":
             case "thead":
             case "tr":

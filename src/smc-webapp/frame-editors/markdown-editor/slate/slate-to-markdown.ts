@@ -6,7 +6,6 @@ import { Node, Text } from "slate";
 import {
   ensure_ends_in_newline,
   li_indent,
-  mark_block,
   mark_inline_text,
   markdown_escape,
   markdown_quote,
@@ -134,12 +133,6 @@ function serialize(node: Node, info: Info): string {
         // Unknown list type??
         return children;
       }
-    case "heading":
-      let h = "\n#";
-      for (let n = 1; n < (node.level as any); n++) {
-        h += "#";
-      }
-      return mark_block(children, h).trim() + "\n\n";
     case "html_block":
       return node.html as string;
     case "blockquote":
