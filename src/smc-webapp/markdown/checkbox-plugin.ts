@@ -9,7 +9,7 @@
 
 function checkboxReplace(md, _options) {
   let index = 0;
-  const pattern = /\[(X|\s)\]\s(.*)/i;
+  const pattern = /\[(X|\s)\](.*)/i;
   function createTokens(
     checked: boolean,
     before: string,
