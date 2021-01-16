@@ -65,7 +65,7 @@ function fromSlate({ node, children, info, child_info }) {
       return children;
 
     case "tr": // a row of a table
-      return "| " + children.trim() + "\n";
+      return "| " + children.trimEnd() + "\n";
 
     case "th": // a heading entry in a row in the thead
     case "td": // a data entry in a row
