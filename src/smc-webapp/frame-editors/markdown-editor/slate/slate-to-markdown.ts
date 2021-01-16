@@ -9,7 +9,6 @@ import {
   mark_inline_text,
   markdown_escape,
 } from "./util";
-const linkify = require("linkify-it")();
 import { startswith } from "smc-util/misc";
 import { getSlateToMarkdown } from "./register";
 
@@ -129,20 +128,6 @@ function serialize(node: Node, info: Info): string {
         // Unknown list type??
         return children;
       }
-    case "link":
-      // [my website](wstein.org "here")
-      const attrs = (node as any).attrs;
-      const href = attrs.href ? `${attrs.href}` : "";
-      const title = attrs.title ? ` "${attrs.title}"` : "";
-      let link;
-      if (title == "" && children == href && linkify.test(href)) {
-        // special case where the url is easily parsed by the linkify plugin.
-        link = href;
-      } else {
-        link = `[${children}](${href}${title})`;
-      }
-      return link;
-
     default:
       const slateToMarkdown = getSlateToMarkdown(node.type as string);
       return slateToMarkdown({ node, children, info, child_info });

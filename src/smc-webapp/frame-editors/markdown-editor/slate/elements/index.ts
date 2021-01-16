@@ -22,3 +22,4 @@ import "./heading";
 import "./html";
 import "./table";
 import "./blockquote";
+import "./link";
