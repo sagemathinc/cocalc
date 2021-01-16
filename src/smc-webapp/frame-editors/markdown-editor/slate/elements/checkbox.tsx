@@ -49,12 +49,13 @@ const Element: React.FC<RenderElementProps> = ({
   );
 };
 
-
 register({
   slateType: "checkbox",
   markdownType: "checkbox_input",
 
   toSlate: ({ token }) => {
+    // NOTE: the checkbox markdown-it plugin that finds the checkboxes in the input
+    // markdown is something I also wrote.  It is in smc-webapp/markdown/checkbox-plugin.ts.
     return {
       type: "checkbox",
       isVoid: true,

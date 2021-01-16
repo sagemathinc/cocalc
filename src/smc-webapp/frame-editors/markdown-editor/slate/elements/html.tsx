@@ -38,10 +38,15 @@ const Element = ({ attributes, children, element }) => {
       </span>
     );
   } else {
+    // for userSelect below, see
+    // https://github.com/ianstormtaylor/slate/issues/3723#issuecomment-761566218
     return (
       <div {...attributes}>
         <div
-          style={{ border }}
+          style={{
+            border,
+            userSelect: "none",
+          }}
           contentEditable={false}
           dangerouslySetInnerHTML={{ __html: element.html as string }}
         ></div>
