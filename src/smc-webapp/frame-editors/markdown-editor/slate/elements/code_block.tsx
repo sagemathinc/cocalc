@@ -76,8 +76,8 @@ function fromSlate({ node }) {
 
 register({
   slateType: "code_block",
-  Element,
   markdownType: ["fence", "code_block"],
-  toSlate,
   fromSlate,
+  Element,
+  toSlate,
 });

@@ -4,32 +4,30 @@
  */
 
 import { React } from "../../../../app-framework";
-import { RenderElementProps, useFocused, useSelected } from "slate-react";
+import { useFocused, useSelected } from "slate-react";
 import { FOCUSED_COLOR } from "../util";
 import { register } from "../register";
 
-const Element: React.FC<RenderElementProps> = ({
-  attributes,
-  children,
-  element,
-}) => {
-  const focused = useFocused();
-  const selected = useSelected();
-
-  const border =
-    focused && selected ? `1px solid ${FOCUSED_COLOR}` : `1px solid white`;
-
-  return (
-    <span {...attributes} style={{ border }}>
-      {element.content}
-      {children}
-    </span>
-  );
-};
-
 register({
   slateType: "emoji",
-  Element,
+
+  fromSlate: ({ node }) => `:${node.markup}:`,
+
+  Element: ({ attributes, children, element }) => {
+    const focused = useFocused();
+    const selected = useSelected();
+
+    const border =
+      focused && selected ? `1px solid ${FOCUSED_COLOR}` : `1px solid white`;
+
+    return (
+      <span {...attributes} style={{ border }}>
+        {element.content}
+        {children}
+      </span>
+    );
+  },
+
   toSlate: ({ token }) => {
     return {
       type: "emoji",
@@ -40,5 +38,4 @@ register({
       markup: token.markup,
     };
   },
-  fromSlate: ({ node }) => `:${node.markup}:`,
 });

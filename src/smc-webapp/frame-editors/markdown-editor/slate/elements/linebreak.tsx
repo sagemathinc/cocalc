@@ -8,11 +8,7 @@ import { register } from "../register";
 
 register({
   slateType: "softbreak",
-  Element: ({ attributes, children }) => (
-    <span {...attributes}>
-      <span style={{ whiteSpace: "normal" }}>{children}</span>
-    </span>
-  ),
+
   toSlate: () => {
     return {
       type: "softbreak",
@@ -21,6 +17,13 @@ register({
       children: [{ text: "\n" }],
     };
   },
+
+  Element: ({ attributes, children }) => (
+    <span {...attributes}>
+      <span style={{ whiteSpace: "normal" }}>{children}</span>
+    </span>
+  ),
+
   fromSlate: () => "\n",
 });
 
@@ -35,11 +38,14 @@ export function hardbreak() {
 
 register({
   slateType: "hardbreak",
+
+  fromSlate: () => "  \n",
+
   Element: ({ attributes, children }) => (
     <span {...attributes}>
       <span style={{ whiteSpace: "pre" }}>{children}</span>
     </span>
   ),
+
   toSlate: hardbreak,
-  fromSlate: () => "  \n",
 });

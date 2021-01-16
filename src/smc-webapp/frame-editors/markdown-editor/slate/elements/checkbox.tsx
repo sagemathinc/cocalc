@@ -52,8 +52,8 @@ const Element: React.FC<RenderElementProps> = ({
 
 register({
   slateType: "checkbox",
-  Element,
   markdownType: "checkbox_input",
+
   toSlate: ({ token }) => {
     return {
       type: "checkbox",
@@ -63,5 +63,8 @@ register({
       children: [{ text: "" }],
     };
   },
+
+  Element,
+
   fromSlate: ({ node }) => `[${node.checked ? "x" : " "}]`,
 });
