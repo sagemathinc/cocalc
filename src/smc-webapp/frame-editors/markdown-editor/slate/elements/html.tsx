@@ -5,7 +5,7 @@
 
 import { React } from "../../../../app-framework";
 import { register } from "../register";
-import { FOCUSED_COLOR } from "../util";
+import { ensure_ends_in_two_newline, FOCUSED_COLOR } from "../util";
 import { useFocused, useSelected } from "slate-react";
 import { startswith, endswith } from "smc-util/misc";
 
@@ -69,18 +69,16 @@ const Element = ({ attributes, children, element }) => {
   }
 };
 
-const fromSlate = ({ node }) => node.html as string;
-
 register({
   slateType: "html_inline",
   toSlate,
   Element,
-  fromSlate,
+  fromSlate: ({ node }) => node.html as string,
 });
 
 register({
   slateType: "html_block",
   toSlate,
   Element,
-  fromSlate,
+  fromSlate: ({ node }) => ensure_ends_in_two_newline(node.html as string),
 });

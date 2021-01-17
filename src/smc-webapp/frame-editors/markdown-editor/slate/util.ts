@@ -95,6 +95,16 @@ export function ensure_ends_in_newline(s: string): string {
   }
 }
 
+export function ensure_ends_in_two_newline(s: string): string {
+  if (s[s.length - 1] !== "\n") {
+    return s + "\n\n";
+  } else if (s[s.length - 2] !== "\n") {
+    return s + "\n";
+  } else {
+    return s;
+  }
+}
+
 export function mark_block(s: string, mark: string): string {
   const v: string[] = [];
   for (const line of s.trim().split("\n")) {
