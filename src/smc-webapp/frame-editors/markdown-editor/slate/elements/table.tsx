@@ -8,6 +8,7 @@ import { register } from "../register";
 import { Node } from "slate";
 import { FOCUSED_COLOR, padLeft, padRight, padCenter } from "../util";
 import { useFocused, useSelected } from "slate-react";
+import { serialize } from "../slate-to-markdown";
 
 function toSlate({ type, children, isEmpty, state }) {
   if (type == "tbody" && isEmpty) {
@@ -25,7 +26,7 @@ function toSlate({ type, children, isEmpty, state }) {
   return node;
 }
 
-function fromSlate({ node, children, info, child_info }) {
+function fromSlate({ node, children, info, childInfo }) {
   switch (node.type) {
     case "table": // a table
       const i = children.indexOf("\n");
@@ -39,7 +40,7 @@ function fromSlate({ node, children, info, child_info }) {
         headings = [];
       }
       for (let i = 0; i < headings.length; i++) {
-        const n = (child_info.table?.[i]?.width ?? 5) - 2;
+        const n = (childInfo.table?.[i]?.width ?? 5) - 2;
         let bar = "-";
         for (let j = 0; j < n; j++) bar += "-";
         switch (headings[i].align) {
@@ -160,7 +161,7 @@ export const Element = ({ attributes, children, element }) => {
   }
 };
 
-for (const slateType of ["table", "thead", "tbody", "tr", "th", "td"]) {
+for (const slateType of ["thead", "tbody", "tr", "th", "td"]) {
   register({
     slateType,
     toSlate,
@@ -168,3 +169,46 @@ for (const slateType of ["table", "thead", "tbody", "tr", "th", "td"]) {
     fromSlate,
   });
 }
+
+// NOTE/OPTIMIZATION: We end up serializing the cells twice; first to
+// get their length, then later to do a final render and pad everything
+// to look nice.
+// table is extra global information used in formatting columns.
+type TableInfo = { width: number; align: "left" | "center" | "right" }[];
+
+register({
+  slateType: "table",
+  toSlate,
+  Element,
+  childInfoHook: ({ childInfo, node }) => {
+    const thead_tr = (node as any).children[0].children[0];
+    const tbody_rows = (node as any).children[1]?.children ?? []; // can have no tbody
+    const info: TableInfo = [];
+    for (let i = 0; i < thead_tr.children?.length ?? 0; i++) {
+      info.push({
+        width: Math.max(
+          3,
+          serialize(thead_tr.children[i], {
+            parent: thead_tr,
+            no_escape: false,
+          }).length - 3
+        ),
+        align: thead_tr.children[i].align,
+      });
+    }
+    for (const tr of tbody_rows) {
+      for (let i = 0; i < tr.children?.length ?? 0; i++) {
+        if (info[i] == null) continue;
+        info[i].width = Math.max(
+          info[i].width ?? 3,
+          serialize(tr.children[i], {
+            parent: tr,
+            no_escape: false,
+          }).length - 3
+        );
+      }
+    }
+    childInfo.table = info;
+  },
+  fromSlate,
+});

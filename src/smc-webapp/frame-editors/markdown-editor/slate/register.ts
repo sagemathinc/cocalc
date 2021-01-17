@@ -7,7 +7,7 @@ import { React } from "../../../app-framework";
 import { RenderElementProps } from "slate-react";
 import { Node } from "slate";
 import { Token, State as MarkdownParserState } from "./markdown-to-slate";
-import { Info } from "./slate-to-markdown";
+import { ChildInfo, Info } from "./slate-to-markdown";
 
 export interface markdownToSlateOptions {
   type: string;
@@ -23,22 +23,36 @@ export interface slateToMarkdownOptions {
   node: Node;
   children: string;
   info: Info;
-  child_info: Info;
+  childInfo: ChildInfo;
 }
 
 type markdownToSlateFunction = (markdownToSlateOptions) => Node | undefined;
 
 type slateToMarkdownFunction = (slateToMarkdownOptions) => string;
 
+// This hook is called before the children of the node are serialized.
+// Use this to mutate childInfo and add in extra information that the
+// parent can deduce, but the children can't, since they have no way
+// to get at the parent.
+type childInfoHookFunction = (opts: {
+  node: Node;
+  childInfo: ChildInfo;
+}) => void;
+
 interface Handler {
-  slateType: string | string[]; // if array, register handlers for each entry
-  Element: React.FC<RenderElementProps>;
+  // if array, register handlers for each entry
+  slateType: string | string[];
+
   // markdownType is the optional type of the markdown token
   // if different than slateType; use an array if there are
   // multiple distinct types of markdown tokens to handle
   // with the same plugin.
   markdownType?: string | string[];
   toSlate: markdownToSlateFunction;
+
+  Element: React.FC<RenderElementProps>;
+
+  childInfoHook?: childInfoHookFunction;
   fromSlate: slateToMarkdownFunction;
 }
 
@@ -49,6 +63,7 @@ const markdownToSlate: {
 const slateToMarkdown: {
   [slateType: string]: slateToMarkdownFunction;
 } = {};
+const childInfoHooks: { [slateType: string]: childInfoHookFunction } = {};
 
 export function register(h: Handler): void {
   const t = typeof h.slateType == "string" ? [h.slateType] : h.slateType;
@@ -73,6 +88,10 @@ export function register(h: Handler): void {
       );
     }
     slateToMarkdown[slateType] = h.fromSlate;
+
+    if (h.childInfoHook != null) {
+      childInfoHooks[slateType] = h.childInfoHook;
+    }
   }
 }
 
@@ -104,6 +123,12 @@ export function getSlateToMarkdown(slateType: string): slateToMarkdownFunction {
     }
   }
   return slateToMarkdown[slateType];
+}
+
+export function getChildInfoHook(
+  slateType: string
+): childInfoHookFunction | undefined {
+  return childInfoHooks[slateType];
 }
 
 // Create a generic plugin for the given type since it was
