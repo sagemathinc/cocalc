@@ -5,7 +5,7 @@
 
 import { React } from "../../../../app-framework";
 import { li_indent } from "../util";
-import { register } from "../register";
+import { register } from "./register";
 
 register({
   slateType: "list_item",

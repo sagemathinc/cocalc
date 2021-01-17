@@ -5,7 +5,7 @@
 
 import { Node, Text } from "slate";
 import { Info, serialize } from "./slate-to-markdown";
-import { getChildInfoHook, getSlateToMarkdown } from "./register";
+import { getChildInfoHook, getSlateToMarkdown } from "./elements";
 
 export interface ChildInfo extends Info {
   // Child info is like info, but we all any other property -- see

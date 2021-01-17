@@ -5,7 +5,7 @@
 
 import { Node, Text } from "slate";
 import { endswith, replace_all, startswith } from "smc-util/misc";
-import { getMarkdownToSlate } from "./register";
+import { getMarkdownToSlate } from "./elements";
 import { parse_markdown, Token } from "./parse-markdown";
 
 const DEFAULT_CHILDREN = [{ text: "" }];

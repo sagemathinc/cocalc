@@ -12,7 +12,7 @@ import {
 } from "slate-react";
 import { FOCUSED_COLOR } from "../util";
 import { Transforms } from "slate";
-import { register } from "../register";
+import { register } from "./register";
 import { Checkbox } from "antd";
 
 const Element: React.FC<RenderElementProps> = ({

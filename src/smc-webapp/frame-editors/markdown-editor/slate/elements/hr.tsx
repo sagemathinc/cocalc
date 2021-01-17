@@ -6,7 +6,7 @@
 import { React } from "../../../../app-framework";
 import { useFocused, useSelected } from "slate-react";
 import { FOCUSED_COLOR } from "../util";
-import { register } from "../register";
+import { register } from "./register";
 
 register({
   slateType: "hr",

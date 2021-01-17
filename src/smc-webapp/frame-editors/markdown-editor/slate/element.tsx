@@ -5,7 +5,7 @@
 
 import { React } from "../../../app-framework";
 import { RenderElementProps } from "slate-react";
-import { getRender } from "./register";
+import { getRender } from "./elements";
 
 export const Element: React.FC<RenderElementProps> = (props) => {
   const Component = getRender(props.element.type as string);

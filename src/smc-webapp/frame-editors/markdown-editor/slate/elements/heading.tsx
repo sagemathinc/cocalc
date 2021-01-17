@@ -4,7 +4,7 @@
  */
 
 import { React } from "../../../../app-framework";
-import { register } from "../register";
+import { register } from "./register";
 import { mark_block } from "../util";
 
 register({

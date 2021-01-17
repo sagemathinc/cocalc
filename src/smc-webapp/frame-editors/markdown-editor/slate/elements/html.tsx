@@ -4,7 +4,7 @@
  */
 
 import { React } from "../../../../app-framework";
-import { register } from "../register";
+import { register } from "./register";
 import { ensure_ends_in_two_newline, FOCUSED_COLOR } from "../util";
 import { useFocused, useSelected } from "slate-react";
 import { startswith, endswith } from "smc-util/misc";

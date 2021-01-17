@@ -6,7 +6,7 @@
 import { React } from "../../../../app-framework";
 import { RenderElementProps, useSlate } from "slate-react";
 import { Transforms } from "slate";
-import { register } from "../register";
+import { register } from "./register";
 import { SlateCodeMirror } from "../codemirror";
 import { ensure_ends_in_newline, indent } from "../util";
 

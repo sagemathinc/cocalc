@@ -4,7 +4,7 @@
  */
 
 import { CSS, React } from "../../../../app-framework";
-import { register } from "../register";
+import { register } from "./register";
 
 register({
   slateType: ["bullet_list", "ordered_list"],

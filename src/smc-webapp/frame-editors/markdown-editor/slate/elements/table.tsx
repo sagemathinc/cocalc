@@ -4,7 +4,7 @@
  */
 
 import { CSS, React } from "../../../../app-framework";
-import { register } from "../register";
+import { register } from "./register";
 import { Node } from "slate";
 import { FOCUSED_COLOR, padLeft, padRight, padCenter } from "../util";
 import { useFocused, useSelected } from "slate-react";

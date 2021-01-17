@@ -3,9 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+
+export * from "./register";
+
 // Register all the types.
-
-
 import "./generic"; // dynamically covers unregistered types
 
 // The order of registering these does NOT matter and has no

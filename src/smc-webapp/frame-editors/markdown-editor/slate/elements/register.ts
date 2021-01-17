@@ -3,13 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../../../app-framework";
+import { React } from "../../../../app-framework";
 import { RenderElementProps } from "slate-react";
 import { Node } from "slate";
-import { State as MarkdownParserState } from "./markdown-to-slate";
-import { Token } from "./parse-markdown";
-import { Info } from "./slate-to-markdown";
-import { ChildInfo } from "./element-to-markdown";
+import { State as MarkdownParserState } from "../markdown-to-slate";
+import { Token } from "../parse-markdown";
+import { Info } from "../slate-to-markdown";
+import { ChildInfo } from "../element-to-markdown";
 
 export interface markdownToSlateOptions {
   type: string;
@@ -146,6 +146,3 @@ function createGenericPlugin(type: string) {
     throw Error("no generic plugin -- define generic plugin with type ''");
   }
 }
-
-// Now import all the element plugins:
-import "./elements";

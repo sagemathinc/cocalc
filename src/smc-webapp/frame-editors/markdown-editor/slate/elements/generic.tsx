@@ -5,7 +5,7 @@
 
 import { CSS, React } from "../../../../app-framework";
 import { string_to_style } from "../util";
-import { register } from "../register";
+import { register } from "./register";
 import { dict } from "smc-util/misc";
 import { Node } from "slate";
 
