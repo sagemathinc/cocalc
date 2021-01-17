@@ -7,7 +7,8 @@ import { React } from "../../../app-framework";
 import { RenderElementProps } from "slate-react";
 import { Node } from "slate";
 import { Token, State as MarkdownParserState } from "./markdown-to-slate";
-import { ChildInfo, Info } from "./slate-to-markdown";
+import { Info } from "./slate-to-markdown";
+import { ChildInfo } from "./element-to-markdown";
 
 export interface markdownToSlateOptions {
   type: string;
