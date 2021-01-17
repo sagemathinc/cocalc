@@ -65,4 +65,5 @@ export interface AccountState {
   email_address_verified?: immutable.Map<string, Date>;
   evaluate_key?: string;
   autosave?: number;
+  show_purchase_form?: boolean;
 }
