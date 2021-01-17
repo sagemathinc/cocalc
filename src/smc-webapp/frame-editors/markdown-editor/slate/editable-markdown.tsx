@@ -6,7 +6,7 @@
 // Component that allows WYSIWYG editing of markdown.
 
 import { delay } from "awaiting";
-import { createEditor, Node, Transforms } from "slate";
+import { Editor, createEditor, Node, Transforms } from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "slate-react";
 import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
 import { debounce } from "lodash";
@@ -107,12 +107,27 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     function onKeyDown(e) {
       if (read_only) return;
       //console.log("onKeyDown", { keyCode: e.keyCode, key: e.key });
-      if (!e.shiftKey && !e.ctrlKey && !e.metaKey && e.key == "Tab") {
-        // Markdown doesn't have a notion of tabs in text...
-        // Putting in four spaces for now, but we'll probably change this...
-        editor.insertText("    ");
-        e.preventDefault();
-        return;
+      if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        if (e.key == "Tab") {
+          // Markdown doesn't have a notion of tabs in text...
+          // Putting in four spaces for now, but we'll probably change this...
+          editor.insertText("    ");
+          e.preventDefault();
+          return;
+        }
+        if (e.key == "Enter") {
+          const fragment = editor.getFragment();
+          const type = fragment?.[0]?.type;
+          if (type == "bullet_list" || type == "ordered_list") {
+            Transforms.insertNodes(
+              editor,
+              [{ type: "list_item", children: [{ text: "" }] }],
+              { match: (node) => node.type == "list_item" }
+            );
+            e.preventDefault();
+            return;
+          }
+        }
       }
       if (e.shiftKey && e.key == "Enter") {
         // In a table, the only option is to insert a <br/>.
@@ -266,6 +281,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       Transforms,
       Node,
       ReactEditor,
+      Editor,
     };
 
     return (
