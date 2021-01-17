@@ -28,7 +28,8 @@ import { Path } from "../../frame-tree/path";
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
 import { hardbreak } from "./elements/linebreak";
-import { Element, Leaf } from "./render";
+import { Element } from "./element";
+import { Leaf } from "./leaf";
 import { formatSelectedText } from "./format";
 
 const STYLE = {

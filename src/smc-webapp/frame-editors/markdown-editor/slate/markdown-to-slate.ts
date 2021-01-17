@@ -56,11 +56,11 @@ function parse(
     startswith(token.content, MATH_ESCAPE) &&
     endswith(token.content, MATH_ESCAPE)
   ) {
-    // A pre-processor encodes math formulas as inline code, since
-    // markdown-it doesn't have a math type, and I believe the markdown-it
+    // We have a pre-processor that encodes math formulas as inline code, since
+    // markdown-it doesn't have a "math" type, and I think the markdown-it
     // katex (or math) plugin simply doesn't work well enough due to
-    // limitations of markdown parsing.  Here we set the type that we
-    // would like the token to have had.
+    // limitations of markdown parsing (and complexity of latex formulas!).
+    // Here we set the type that we would like the token to have had.
     token.type = "math";
   }
 
@@ -185,13 +185,11 @@ function parse(
   }
 
   // No children and not wrapped in anything:
-
   if (token.content != null) {
     token.content = math_unescape(token.content);
   }
-  // console.log("parse", JSON.stringify({ token, state, level, math }));
 
-  // Handle code
+  // Handle inline code as a leaf node with style
   if (token.type == "code_inline") {
     // inline code -- important: put anything we thought was math back in.
     return [{ text: replace_math(token.content, math), code: true }];
@@ -234,6 +232,7 @@ function parse(
         }
         break;
     }
+
     // Colors look like <span style='color:#ff7f50'>:
     if (startswith(x, "<span style='color:")) {
       // delete any other colors -- only one at a time
