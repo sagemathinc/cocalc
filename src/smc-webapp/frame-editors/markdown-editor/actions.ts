@@ -135,7 +135,14 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
     slateFormatAction(this.slateEditors[id], cmd, args);
   }
 
-  public getSlateEditor(id: string): SlateEditor | undefined {
+  public getSlateEditor(id?: string): SlateEditor | undefined {
+    if (id == null) {
+      // mainly for interactive use and debugging.
+      for (const id0 in this.slateEditors) {
+        return this.slateEditors[id0];
+      }
+      throw Error("no slate editors");
+    }
     return this.slateEditors[id];
   }
 
