@@ -6,8 +6,7 @@
 import { React } from "../../../../app-framework";
 import { RenderElementProps } from "slate-react";
 import { Node } from "slate";
-import { State as MarkdownParserState } from "../markdown-to-slate";
-import { Token } from "../parse-markdown";
+import { State as MarkdownParserState, Token } from "../markdown-to-slate";
 import { Info } from "../slate-to-markdown";
 import { ChildInfo } from "../element-to-markdown";
 

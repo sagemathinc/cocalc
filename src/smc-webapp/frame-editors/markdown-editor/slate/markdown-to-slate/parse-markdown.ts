@@ -11,24 +11,12 @@ issues with math formulas that can be mistaken for markdown
 syntax, which is a problem with many math markdown plugins.
 */
 
-import { markdown_it } from "../../../markdown";
+import { markdown_it } from "../../../../markdown";
 import { math_escape, math_unescape } from "smc-util/markdown-utils";
 import { remove_math, MATH_ESCAPE } from "smc-util/mathjax-utils";
 import { endswith, startswith } from "smc-util/misc";
-import { replace_math } from "./util";
-
-export interface Token {
-  hidden?: boolean; // See https://markdown-it.github.io/markdown-it/#Token.prototype.hidden
-  type: string;
-  tag?: string;
-  attrs?: string[][];
-  children?: Token[];
-  content: string;
-  block?: boolean;
-  markup?: string;
-  checked?: boolean;
-  info?: string;
-}
+import { replace_math } from "../util";
+import { Token } from "./types";
 
 // Set math tokens to have the math type, rather than "code_inline", which
 // is what the markdown-it parser delivered them as.
