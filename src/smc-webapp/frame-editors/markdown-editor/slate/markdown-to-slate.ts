@@ -4,25 +4,11 @@
  */
 
 import { Node, Text } from "slate";
-import { markdown_it } from "../../../markdown";
 import { endswith, replace_all, startswith } from "smc-util/misc";
-import { math_escape, math_unescape } from "smc-util/markdown-utils";
-import { remove_math, MATH_ESCAPE } from "smc-util/mathjax-utils";
-import { getMarkdownToSlate } from "./register";
+import { math_unescape } from "smc-util/markdown-utils";
 import { replace_math } from "./util";
-
-export interface Token {
-  hidden?: boolean; // See https://markdown-it.github.io/markdown-it/#Token.prototype.hidden
-  type: string;
-  tag?: string;
-  attrs?: string[][];
-  children?: Token[];
-  content: string;
-  block?: boolean;
-  markup?: string;
-  checked?: boolean;
-  info?: string;
-}
+import { getMarkdownToSlate } from "./register";
+import { parse_markdown, Token } from "./parse-markdown";
 
 interface Marks {
   italic?: boolean;
@@ -51,19 +37,6 @@ function parse(
   level: number,
   math: string[]
 ): Node[] {
-  if (
-    token.type == "code_inline" &&
-    startswith(token.content, MATH_ESCAPE) &&
-    endswith(token.content, MATH_ESCAPE)
-  ) {
-    // We have a pre-processor that encodes math formulas as inline code, since
-    // markdown-it doesn't have a "math" type, and I think the markdown-it
-    // katex (or math) plugin simply doesn't work well enough due to
-    // limitations of markdown parsing (and complexity of latex formulas!).
-    // Here we set the type that we would like the token to have had.
-    token.type = "math";
-  }
-
   switch (token.type) {
     case "em_open":
       state.marks.italic = true;
@@ -191,7 +164,8 @@ function parse(
 
   // Handle inline code as a leaf node with style
   if (token.type == "code_inline") {
-    // inline code -- important: put anything we thought was math back in.
+    // inline code -- important: put anything we incorrectly
+    // thought was math back in.
     return [{ text: replace_math(token.content, math), code: true }];
   }
 
@@ -309,18 +283,13 @@ function mark(text: Text, marks: Marks): Node {
   return text;
 }
 
-export function markdown_to_slate(markdown): Node[] {
+export function markdown_to_slate(markdown: string): Node[] {
+  // Parse the markdown:
+  const { tokens, math } = parse_markdown(markdown);
+
   const doc: Node[] = [];
   const state: State = { marks: {}, nesting: 0 };
-  const obj: any = {};
-
-  let [text, math] = remove_math(
-    math_escape(markdown),
-    "`" + MATH_ESCAPE,
-    MATH_ESCAPE + "`"
-  );
-
-  for (const token of markdown_it.parse(text, obj)) {
+  for (const token of tokens) {
     for (const node of parse(token, state, 0, math)) {
       doc.push(node);
     }
@@ -335,8 +304,7 @@ export function markdown_to_slate(markdown): Node[] {
   }
 
   (window as any).x = {
-    last_parse: markdown_it.parse(text, obj),
-    parser: (text) => markdown_it.parse(text, {}),
+    tokens,
     doc,
   };
 

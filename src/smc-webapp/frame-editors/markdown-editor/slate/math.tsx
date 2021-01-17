@@ -11,6 +11,7 @@ import { SlateCodeMirror } from "./codemirror";
 import * as LRU from "lru-cache";
 import { useFocused, useSelected } from "slate-react";
 import { FOCUSED_COLOR } from "./util";
+import { delay } from "awaiting";
 
 const cache = new LRU({ max: 300 });
 
@@ -51,8 +52,9 @@ export const SlateMath: React.FC<Props> = React.memo(({ value, onChange }) => {
   function renderLaTeX() {
     return (
       <span
-        onClick={() => {
+        onClick={async () => {
           // switch to edit mode when you click on it.
+          await delay(0);
           setEditMode?.(true);
         }}
       >
