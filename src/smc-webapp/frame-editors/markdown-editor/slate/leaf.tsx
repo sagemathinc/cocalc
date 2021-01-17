@@ -42,6 +42,12 @@ export const Leaf: React.FC<RenderLeafProps> = ({
   if (leaf.code) {
     children = <code style={CODE_STYLE}>{children}</code>;
   }
+  if (leaf.small) {
+    children = <small>{children}</small>;
+  }
+  if (leaf.tt) {
+    children = <span style={{ fontFamily: "monospace" }}>{children}</span>;
+  }
   // check for colors, fonts, etc.
   for (const mark in leaf) {
     if (!leaf[mark]) continue; // only if it is true

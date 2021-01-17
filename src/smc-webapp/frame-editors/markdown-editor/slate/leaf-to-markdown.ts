@@ -28,13 +28,21 @@ export function serializeLeaf(node: Text, info: Info): string {
   if (node.code) {
     marks.push({ left: "`" });
   }
+  if (node.tt) {
+    // tt is deprecated, so we don't want to encourage it; we automatically
+    // normalize it to equivalent span.
+    marks.push({
+      left: "<span style='font-family:monospace'>",
+      right: "</span>",
+    });
+  }
 
   // Using html to provide some things markdown doesn't provide,
   // but they can be VERY useful in practice for our users.
   if (node.underline) {
     marks.push({ left: "<u>", right: "</u>" });
   }
-  for (const c of ["sup", "sub"]) {
+  for (const c of ["sup", "sub", "small"]) {
     if (node[c]) {
       marks.push({ left: `<${c}>`, right: `</${c}>` });
     }
