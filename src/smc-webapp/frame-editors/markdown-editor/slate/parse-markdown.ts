@@ -12,7 +12,7 @@ syntax, which is a problem with many math markdown plugins.
 */
 
 import { markdown_it } from "../../../markdown";
-import { math_escape } from "smc-util/markdown-utils";
+import { math_escape, math_unescape } from "smc-util/markdown-utils";
 import { remove_math, MATH_ESCAPE } from "smc-util/mathjax-utils";
 import { endswith, startswith } from "smc-util/misc";
 import { replace_math } from "./util";
@@ -55,7 +55,10 @@ function process_math_tokens(tokens: Token[], math): void {
       // know anything about thigs like code blocks, html, etc., and doesn't know
       // to ignore them).  Basically, this works around that the heuristic in
       // remove_math is not 100% perfect.
-      token.content = replace_math(token.content, math);
+      if (token.content != null) {
+        token.content = replace_math(token.content, math);
+        token.content = math_unescape(token.content);
+      }
     }
     if (token.children != null) {
       process_math_tokens(token.children, math);

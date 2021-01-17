@@ -5,7 +5,6 @@
 
 import { Node, Text } from "slate";
 import { endswith, replace_all, startswith } from "smc-util/misc";
-import { math_unescape } from "smc-util/markdown-utils";
 import { getMarkdownToSlate } from "./register";
 import { parse_markdown, Token } from "./parse-markdown";
 
@@ -148,11 +147,6 @@ function parse(token: Token, state: State, level: number): Node[] {
       }
     }
     return children;
-  }
-
-  // No children and not wrapped in anything:
-  if (token.content != null) {
-    token.content = math_unescape(token.content);
   }
 
   // Handle inline code as a leaf node with style

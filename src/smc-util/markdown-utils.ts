@@ -13,7 +13,7 @@ const escape_map = "$";
 
 // We used to do this since we wanted to support math delineated by \[ ... \];
 // however, that just conflicts too much with markdown itself and Jupyter classic
-// doesn't do it.  Use $.
+// doesn't do it.  Use $ only.
 //const escape_map = "$()[]";
 
 const unescape_map =
