@@ -135,6 +135,11 @@ export async function formatAction(
     return;
   }
 
+  if (cmd == "comment") {
+    transformToComment(editor);
+    return;
+  }
+
   if (cmd == "display_equation") {
     transformToEquation(editor, true);
     return;
@@ -188,6 +193,20 @@ function transformToEquation(editor: Editor, display: boolean): void {
       value: wrap + content + wrap,
       isVoid: true,
       isInline: true,
+      children: [{ text: "" }],
+    },
+  ];
+  Transforms.insertFragment(editor, fragment);
+}
+
+function transformToComment(editor: Editor): void {
+  const html = "<!--" + selectionToText(editor).trim() + "-->\n\n";
+  const fragment: Node[] = [
+    {
+      type: "html_block",
+      html,
+      isVoid: true,
+      isInline: false,
       children: [{ text: "" }],
     },
   ];
