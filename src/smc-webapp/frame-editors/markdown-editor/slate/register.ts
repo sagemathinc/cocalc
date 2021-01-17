@@ -15,7 +15,6 @@ export interface markdownToSlateOptions {
   type: string;
   token: Token;
   state: MarkdownParserState;
-  level: number;
   children: Node[];
   isEmpty: boolean;
 }

@@ -149,21 +149,21 @@ function handleOpen({ token, state }): Node[] | undefined {
   return [];
 }
 
-function handleChildren({ token, state, level }): Node[] | undefined {
+function handleChildren({ token, state }): Node[] | undefined {
   if (!token.children) return;
   // Parse all the children with own state, partly inherited
   // from us (e.g., the text marks).
   const child_state: State = { marks: { ...state.marks }, nesting: 0 };
   const children: Node[] = [];
   for (const token2 of token.children) {
-    for (const node of parse(token2, child_state, level + 1)) {
+    for (const node of parse(token2, child_state)) {
       children.push(node);
     }
   }
   return children;
 }
 
-function convertToSlate({ token, state, level }): Node[] {
+function convertToSlate({ token, state }): Node[] {
   // Handle inline code as a leaf node with style
   if (token.type == "code_inline") {
     return [{ text: token.content, code: true }];
@@ -180,7 +180,6 @@ function convertToSlate({ token, state, level }): Node[] {
       token,
       children: DEFAULT_CHILDREN,
       state,
-      level,
       isEmpty: false,
     });
     if (node != null) {
@@ -195,7 +194,7 @@ function convertToSlate({ token, state, level }): Node[] {
   }
 }
 
-function handleClose({ token, state, level }): Node[] | undefined {
+function handleClose({ token, state }): Node[] | undefined {
   if (!state.close_type) return;
   if (state.contents == null) {
     throw Error("bug -- state.contents must not be null");
@@ -203,7 +202,7 @@ function handleClose({ token, state, level }): Node[] | undefined {
 
   // Currently collecting the contents to parse when we hit the close_type.
   if (token.type == state.open_type) {
-    // Hitting same open type *again* (its nested), so increase nesting level.
+    // Hitting same open type *again* (its nested), so increase nesting.
     state.nesting += 1;
   }
 
@@ -229,7 +228,7 @@ function handleClose({ token, state, level }): Node[] | undefined {
       // This is useful to better render nested markdown lists.
       let all_tight: boolean = false;
       for (const token2 of state.contents) {
-        for (const node of parse(token2, child_state, level + 1)) {
+        for (const node of parse(token2, child_state)) {
           if (node.tight) {
             all_tight = true;
           }
@@ -255,7 +254,6 @@ function handleClose({ token, state, level }): Node[] | undefined {
         token,
         children,
         state,
-        level,
         isEmpty,
       });
       if (node == null) {
@@ -277,9 +275,9 @@ const parseHandlers = [
   convertToSlate,
 ];
 
-function parse(token: Token, state: State, level: number): Node[] {
+function parse(token: Token, state: State): Node[] {
   for (const handler of parseHandlers) {
-    const nodes: Node[] | undefined = handler({ token, state, level });
+    const nodes: Node[] | undefined = handler({ token, state });
     if (nodes != null) {
       return nodes;
     }
@@ -313,7 +311,7 @@ export function markdown_to_slate(markdown: string): Node[] {
   const doc: Node[] = [];
   const state: State = { marks: {}, nesting: 0 };
   for (const token of tokens) {
-    for (const node of parse(token, state, 0)) {
+    for (const node of parse(token, state)) {
       doc.push(node);
     }
   }
