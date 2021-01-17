@@ -6,7 +6,6 @@
 import { Node, Text } from "slate";
 import { endswith, replace_all, startswith } from "smc-util/misc";
 import { math_unescape } from "smc-util/markdown-utils";
-import { replace_math } from "./util";
 import { getMarkdownToSlate } from "./register";
 import { parse_markdown, Token } from "./parse-markdown";
 
@@ -31,12 +30,7 @@ export interface State {
   block?: boolean;
 }
 
-function parse(
-  token: Token,
-  state: State,
-  level: number,
-  math: string[]
-): Node[] {
+function parse(token: Token, state: State, level: number): Node[] {
   switch (token.type) {
     case "em_open":
       state.marks.italic = true;
@@ -91,7 +85,7 @@ function parse(
         // This is useful to better render nested markdown lists.
         let all_tight: boolean = false;
         for (const token2 of state.contents) {
-          for (const node of parse(token2, child_state, level + 1, math)) {
+          for (const node of parse(token2, child_state, level + 1)) {
             if (node.tight) {
               all_tight = true;
             }
@@ -118,7 +112,6 @@ function parse(
           children,
           state,
           level,
-          math,
           isEmpty,
         });
         if (node == null) {
@@ -150,7 +143,7 @@ function parse(
     const child_state: State = { marks: { ...state.marks }, nesting: 0 };
     const children: Node[] = [];
     for (const token2 of token.children) {
-      for (const node of parse(token2, child_state, level + 1, math)) {
+      for (const node of parse(token2, child_state, level + 1)) {
         children.push(node);
       }
     }
@@ -164,9 +157,10 @@ function parse(
 
   // Handle inline code as a leaf node with style
   if (token.type == "code_inline") {
+    return [{ text: token.content, code: true }];
     // inline code -- important: put anything we incorrectly
     // thought was math back in.
-    return [{ text: replace_math(token.content, math), code: true }];
+    //return [{ text: replace_math(token.content, math), code: true }];
   }
 
   if (token.type == "html_inline") {
@@ -251,7 +245,6 @@ function parse(
       children: [{ text: "" }],
       state,
       level,
-      math,
       isEmpty: false,
     });
     if (node != null) {
@@ -285,12 +278,12 @@ function mark(text: Text, marks: Marks): Node {
 
 export function markdown_to_slate(markdown: string): Node[] {
   // Parse the markdown:
-  const { tokens, math } = parse_markdown(markdown);
+  const tokens = parse_markdown(markdown);
 
   const doc: Node[] = [];
   const state: State = { marks: {}, nesting: 0 };
   for (const token of tokens) {
-    for (const node of parse(token, state, 0, math)) {
+    for (const node of parse(token, state, 0)) {
       doc.push(node);
     }
   }

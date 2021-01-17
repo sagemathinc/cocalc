@@ -5,15 +5,15 @@
 
 import { React } from "../../../../app-framework";
 import { register } from "../register";
-import { FOCUSED_COLOR, replace_math } from "../util";
+import { FOCUSED_COLOR } from "../util";
 import { useFocused, useSelected } from "slate-react";
 
-function toSlate({ token, math, children }) {
+function toSlate({ token, children }) {
   return {
     type: token.type,
     isVoid: true,
     isInline: token.type == "html_inline",
-    html: replace_math(token.content, math),
+    html: token.content,
     children,
   };
 }

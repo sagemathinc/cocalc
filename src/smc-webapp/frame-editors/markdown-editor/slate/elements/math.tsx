@@ -7,7 +7,6 @@ import { React } from "../../../../app-framework";
 import { RenderElementProps, useSlate } from "slate-react";
 import { Transforms } from "slate";
 import { register } from "../register";
-import { MATH_ESCAPE } from "smc-util/mathjax-utils";
 import { SlateMath } from "../math";
 
 const Element: React.FC<RenderElementProps> = ({
@@ -33,13 +32,10 @@ const Element: React.FC<RenderElementProps> = ({
   );
 };
 
-function toSlate({ token, children, math }) {
-  const i = MATH_ESCAPE.length;
-  const n = parseInt(token.content.slice(i, token.content.length - i));
-  const value = math[n] ?? "?"; // ? if not defined, so there is a bug in the parser...?
+function toSlate({ token, children }) {
   return {
     type: "math",
-    value,
+    value: token.content,
     isVoid: true,
     isInline: true,
     children,

@@ -8,7 +8,7 @@ import { RenderElementProps, useSlate } from "slate-react";
 import { Transforms } from "slate";
 import { register } from "../register";
 import { SlateCodeMirror } from "../codemirror";
-import { ensure_ends_in_newline, indent, replace_math } from "../util";
+import { ensure_ends_in_newline, indent } from "../util";
 
 const Element: React.FC<RenderElementProps> = ({
   attributes,
@@ -35,14 +35,14 @@ const Element: React.FC<RenderElementProps> = ({
   );
 };
 
-function toSlate({ token, children, math }) {
+function toSlate({ token, children }) {
   // fence =block of code with ``` around it, but not indented.
-  // Put any math we removed back in unchanged (since the math parsing doesn't
-  // know anything about code blocks, and doesn't know to ignore them).
-  let value = replace_math(token.content, math);
-  // We also remove the last carriage return (right before ```), since it
+  let value = token.content;
+  // We remove the last carriage return (right before ```), since it
   // is much easier to do that here...
-  value = value.slice(0, value.length - 1);
+  if (value[value.length - 1] == "\n") {
+    value = value.slice(0, value.length - 1);
+  }
   return {
     isVoid: true,
     type: "code_block",

@@ -42,7 +42,6 @@ export const SlateMath: React.FC<Props> = React.memo(({ value, onChange }) => {
         info="tex"
         options={{
           lineWrapping: true,
-          styleActiveLine: true,
           autofocus: true,
         }}
       />
