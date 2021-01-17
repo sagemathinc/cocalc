@@ -270,7 +270,7 @@ function parse(
     // text
     return [mark({ text: token.content }, state.marks)];
   } else {
-    // everything else
+    // everything else -- via our element plugin mechanism.
     const markdownToSlate = getMarkdownToSlate(token.type);
     const node = markdownToSlate({
       type: token.type,

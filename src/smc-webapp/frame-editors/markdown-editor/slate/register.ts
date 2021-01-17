@@ -31,7 +31,7 @@ type markdownToSlateFunction = (markdownToSlateOptions) => Node | undefined;
 type slateToMarkdownFunction = (slateToMarkdownOptions) => string;
 
 interface Handler {
-  slateType: string;
+  slateType: string | string[]; // if array, register handlers for each entry
   Element: React.FC<RenderElementProps>;
   // markdownType is the optional type of the markdown token
   // if different than slateType; use an array if there are
@@ -51,26 +51,29 @@ const slateToMarkdown: {
 } = {};
 
 export function register(h: Handler): void {
-  if (renderer[h.slateType] != null) {
-    throw Error(`render for slateType '${h.slateType}' already registered!`);
-  }
-  renderer[h.slateType] = h.Element;
-
-  const x = h.markdownType ?? h.slateType;
-  const types = typeof x == "string" ? [x] : x;
-  for (const type of types) {
-    if (markdownToSlate[type] != null) {
-      throw Error(`markdownToSlate for type '${type}' already registered!`);
+  const t = typeof h.slateType == "string" ? [h.slateType] : h.slateType;
+  for (const slateType of t) {
+    if (renderer[slateType] != null) {
+      throw Error(`render for slateType '${slateType}' already registered!`);
     }
-    markdownToSlate[type] = h.toSlate;
-  }
+    renderer[slateType] = h.Element;
 
-  if (slateToMarkdown[h.slateType] != null) {
-    throw Error(
-      `slateToMarkdown for type '${h.slateType}' already registered!`
-    );
+    const x = h.markdownType ?? slateType;
+    const types = typeof x == "string" ? [x] : x;
+    for (const type of types) {
+      if (markdownToSlate[type] != null) {
+        throw Error(`markdownToSlate for type '${type}' already registered!`);
+      }
+      markdownToSlate[type] = h.toSlate;
+    }
+
+    if (slateToMarkdown[slateType] != null) {
+      throw Error(
+        `slateToMarkdown for type '${slateType}' already registered!`
+      );
+    }
+    slateToMarkdown[slateType] = h.fromSlate;
   }
-  slateToMarkdown[h.slateType] = h.fromSlate;
 }
 
 export function getRender(slateType: string): React.FC<RenderElementProps> {

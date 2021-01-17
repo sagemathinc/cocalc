@@ -20,18 +20,17 @@ register({
 
   fromSlate: ({ children, info }) => {
     if (info?.parent == null) {
+      // should never happen
       return li_indent(`- ${children}`);
     } else if (info.parent.type == "bullet_list") {
       return li_indent(`- ${children}`);
     } else if (info.parent.type == "ordered_list") {
       return li_indent(
-        `${
-          (info.index ?? 0) + ((info.parent.attrs as any)?.start ?? 1)
-        }. ${children}`
+        `${(info.index ?? 0) + (info.parent.start ?? 1)}. ${children}`
       );
     } else {
-      // Unknown list type??
-      return children;
+      // should also never happen
+      return li_indent(`- ${children}`);
     }
   },
 });

@@ -4,7 +4,6 @@
  */
 import { Node, Text } from "slate";
 import {
-  ensure_ends_in_newline,
   mark_inline_text,
   markdown_escape,
 } from "./util";
@@ -21,7 +20,7 @@ export interface Info {
   table?: TableInfo;
 }
 
-function serialize(node: Node, info: Info): string {
+export function serialize(node: Node, info: Info): string {
   //console.log("serialize", node);
   if (Text.isText(node)) {
     //console.log("  serialize as text", node);
@@ -71,30 +70,6 @@ function serialize(node: Node, info: Info): string {
       text = mark_inline_text(text, mark.left, mark.right);
     }
     return text;
-  }
-
-  switch (node.type) {
-    case "bullet_list":
-    case "ordered_list":
-      // console.log("  serializing as list", node);
-      const v: string[] = [];
-      for (let i = 0; i < node.children.length; i++) {
-        v.push(
-          ensure_ends_in_newline(
-            serialize(node.children[i], {
-              parent: node,
-              index: i,
-              no_escape: info.no_escape,
-            })
-          )
-        );
-      }
-      let s = v.join("");
-      if (s[s.length - 2] != "\n" && info.parent.type != "list_item") {
-        // lists should end with two new lines, unless parent is a list item itself.
-        s += "\n";
-      }
-      return s;
   }
 
   const child_info = {
