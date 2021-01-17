@@ -8,6 +8,8 @@ import { endswith, replace_all, startswith } from "smc-util/misc";
 import { getMarkdownToSlate } from "./register";
 import { parse_markdown, Token } from "./parse-markdown";
 
+const DEFAULT_CHILDREN = [{ text: "" }];
+
 interface Marks {
   italic?: boolean;
   bold?: boolean;
@@ -29,7 +31,18 @@ export interface State {
   block?: boolean;
 }
 
-function parse(token: Token, state: State, level: number): Node[] {
+/*
+updateMarkState updates the state of text marks if this token
+just changing marking state.  If there is a change, return true
+to stop further processing.
+*/
+function handleMarks({
+  token,
+  state,
+}: {
+  token: Token;
+  state: State;
+}): Node[] | undefined {
   switch (token.type) {
     case "em_open":
       state.marks.italic = true;
@@ -49,112 +62,6 @@ function parse(token: Token, state: State, level: number): Node[] {
     case "s_close":
       state.marks.strikethrough = false;
       return [];
-  }
-
-  if (state.close_type) {
-    if (state.contents == null) {
-      throw Error("bug -- contents must not be null");
-    }
-
-    // Currently collecting the contents to parse when we hit the close_type.
-    if (token.type == state.open_type) {
-      // Hitting same open type *again* (its nested), so increase nesting level.
-      state.nesting += 1;
-    }
-
-    if (token.type === state.close_type) {
-      // Hit the close_type
-      if (state.nesting > 0) {
-        // We're nested, so just go back one.
-        state.nesting -= 1;
-      } else {
-        // Not nested, so done: parse the accumulated array of children
-        // using a new state:
-        const child_state: State = { marks: state.marks, nesting: 0 };
-        const children: Node[] = [];
-        let isEmpty = true;
-        // Note a RULE: "Block nodes can only contain other blocks, or inline and text nodes."
-        // See https://docs.slatejs.org/concepts/10-normalizing
-        // This means that all children nodes here have to be either *inline/text* or they
-        // all have to be blocks themselves -- no mixing.  Our markdown parser I think also
-        // does this, except for one weird special case which involves hidden:true that is
-        // used for tight lists.
-
-        // We use all_tight to make it so if one node is marked tight, then all are.
-        // This is useful to better render nested markdown lists.
-        let all_tight: boolean = false;
-        for (const token2 of state.contents) {
-          for (const node of parse(token2, child_state, level + 1)) {
-            if (node.tight) {
-              all_tight = true;
-            }
-            if (all_tight) {
-              node.tight = true;
-            }
-            isEmpty = false;
-            children.push(node);
-          }
-        }
-        if (isEmpty) {
-          // it is illegal for the children to be empty.
-          children.push({ text: "" });
-        }
-        const i = state.close_type.lastIndexOf("_");
-        const type = state.close_type.slice(0, i);
-        delete state.close_type;
-        delete state.contents;
-
-        const markdownToSlate = getMarkdownToSlate(type);
-        const node = markdownToSlate({
-          type,
-          token,
-          children,
-          state,
-          level,
-          isEmpty,
-        });
-        if (node == null) {
-          return [];
-        }
-        return [node];
-      }
-    }
-
-    state.contents.push(token);
-    return [];
-  }
-
-  if (endswith(token.type, "_open")) {
-    // Opening for new array of children.  We start collecting them
-    // until hitting a token with close_type.
-    state.contents = [];
-    const i = token.type.lastIndexOf("_open");
-    state.close_type = token.type.slice(0, i) + "_close";
-    state.open_type = token.type;
-    state.nesting = 0;
-    state.attrs = token.attrs;
-    state.block = token.block;
-    return [];
-  }
-
-  if (token.children) {
-    // Parse all the children with own state.
-    const child_state: State = { marks: { ...state.marks }, nesting: 0 };
-    const children: Node[] = [];
-    for (const token2 of token.children) {
-      for (const node of parse(token2, child_state, level + 1)) {
-        children.push(node);
-      }
-    }
-    return children;
-  }
-
-  // Handle inline code as a leaf node with style
-  if (token.type == "code_inline") {
-    return [{ text: token.content, code: true }];
-    // inline code -- important: put anything we incorrectly
-    // thought was math back in.
-    //return [{ text: replace_math(token.content, math), code: true }];
   }
 
   if (token.type == "html_inline") {
@@ -226,8 +133,43 @@ function parse(token: Token, state: State, level: number): Node[] {
       }
     }
   }
+}
 
-  if (token.type == "inline" || token.type == "text") {
+function handleOpen({ token, state }): Node[] | undefined {
+  if (!endswith(token.type, "_open")) return;
+  // Opening for new array of children.  We start collecting them
+  // until hitting a token with close_type (taking into acocunt nesting).
+  state.contents = [];
+  const i = token.type.lastIndexOf("_open");
+  state.close_type = token.type.slice(0, i) + "_close";
+  state.open_type = token.type;
+  state.nesting = 0;
+  state.attrs = token.attrs;
+  state.block = token.block;
+  return [];
+}
+
+function handleChildren({ token, state, level }): Node[] | undefined {
+  if (!token.children) return;
+  // Parse all the children with own state, partly inherited
+  // from us (e.g., the text marks).
+  const child_state: State = { marks: { ...state.marks }, nesting: 0 };
+  const children: Node[] = [];
+  for (const token2 of token.children) {
+    for (const node of parse(token2, child_state, level + 1)) {
+      children.push(node);
+    }
+  }
+  return children;
+}
+
+function convertToSlate({ token, state, level }): Node[] {
+  // Handle inline code as a leaf node with style
+  if (token.type == "code_inline") {
+    return [{ text: token.content, code: true }];
+  }
+
+  if (token.type == "text" || token.type == "inline") {
     // text
     return [mark({ text: token.content }, state.marks)];
   } else {
@@ -236,7 +178,7 @@ function parse(token: Token, state: State, level: number): Node[] {
     const node = markdownToSlate({
       type: token.type,
       token,
-      children: [{ text: "" }],
+      children: DEFAULT_CHILDREN,
       state,
       level,
       isEmpty: false,
@@ -251,6 +193,100 @@ function parse(token: Token, state: State, level: number): Node[] {
       return [];
     }
   }
+}
+
+function handleClose({ token, state, level }): Node[] | undefined {
+  if (!state.close_type) return;
+  if (state.contents == null) {
+    throw Error("bug -- state.contents must not be null");
+  }
+
+  // Currently collecting the contents to parse when we hit the close_type.
+  if (token.type == state.open_type) {
+    // Hitting same open type *again* (its nested), so increase nesting level.
+    state.nesting += 1;
+  }
+
+  if (token.type === state.close_type) {
+    // Hit the close_type
+    if (state.nesting > 0) {
+      // We're nested, so just go back one.
+      state.nesting -= 1;
+    } else {
+      // Not nested, so done: parse the accumulated array of children
+      // using a new state:
+      const child_state: State = { marks: state.marks, nesting: 0 };
+      const children: Node[] = [];
+      let isEmpty = true;
+      // Note a RULE: "Block nodes can only contain other blocks, or inline and text nodes."
+      // See https://docs.slatejs.org/concepts/10-normalizing
+      // This means that all children nodes here have to be either *inline/text* or they
+      // all have to be blocks themselves -- no mixing.  Our markdown parser I think also
+      // does this, except for one weird special case which involves hidden:true that is
+      // used for tight lists.
+
+      // We use all_tight to make it so if one node is marked tight, then all are.
+      // This is useful to better render nested markdown lists.
+      let all_tight: boolean = false;
+      for (const token2 of state.contents) {
+        for (const node of parse(token2, child_state, level + 1)) {
+          if (node.tight) {
+            all_tight = true;
+          }
+          if (all_tight) {
+            node.tight = true;
+          }
+          isEmpty = false;
+          children.push(node);
+        }
+      }
+      if (isEmpty) {
+        // it is illegal for the children to be empty.
+        children.push({ text: "" });
+      }
+      const i = state.close_type.lastIndexOf("_");
+      const type = state.close_type.slice(0, i);
+      delete state.close_type;
+      delete state.contents;
+
+      const markdownToSlate = getMarkdownToSlate(type);
+      const node = markdownToSlate({
+        type,
+        token,
+        children,
+        state,
+        level,
+        isEmpty,
+      });
+      if (node == null) {
+        return [];
+      }
+      return [node];
+    }
+  }
+
+  state.contents.push(token);
+  return [];
+}
+
+const parseHandlers = [
+  handleMarks,
+  handleClose,
+  handleOpen,
+  handleChildren,
+  convertToSlate,
+];
+
+function parse(token: Token, state: State, level: number): Node[] {
+  for (const handler of parseHandlers) {
+    const nodes: Node[] | undefined = handler({ token, state, level });
+    if (nodes != null) {
+      return nodes;
+    }
+  }
+  throw Error(
+    `some handler must process every token -- ${JSON.stringify(token)}`
+  );
 }
 
 function mark(text: Text, marks: Marks): Node {
