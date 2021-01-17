@@ -15,6 +15,7 @@ See LICENSE for licensing information.
 from __future__ import absolute_import, print_function
 
 import logging
+# TODO for python 3, get rid of lxml dependency and port this to use xml.etree
 from lxml import etree
 from .py23 import text_type, py2encodestr
 try:

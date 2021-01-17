@@ -99,7 +99,7 @@ setup(
     license='GPLv3+',
     packages=find_packages(),
     install_requires=[
-        'markdown2', 'psutil', 'PyYAML', 'ansi2html', 'nbformat'
+        'markdown2', 'psutil', 'PyYAML', 'ansi2html', 'nbformat', 'lxml'
     ],
     zip_safe=False,
     classifiers=[
