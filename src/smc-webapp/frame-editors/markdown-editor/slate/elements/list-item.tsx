@@ -4,7 +4,7 @@
  */
 
 import { React } from "../../../../app-framework";
-import { li_indent } from "../util";
+import { ensure_ends_in_newline, li_indent } from "../util";
 import { register } from "./register";
 
 register({
@@ -19,18 +19,20 @@ register({
   },
 
   fromSlate: ({ children, info }) => {
-    if (info?.parent == null) {
-      // should never happen
-      return li_indent(`- ${children}`);
-    } else if (info.parent.type == "bullet_list") {
-      return li_indent(`- ${children}`);
-    } else if (info.parent.type == "ordered_list") {
-      return li_indent(
-        `${(info.index ?? 0) + (info.parent.start ?? 1)}. ${children}`
-      );
-    } else {
-      // should also never happen
-      return li_indent(`- ${children}`);
-    }
+    return ensure_ends_in_newline(li_indent(item({ children, info })));
   },
 });
+
+function item({ children, info }): string {
+  if (info?.parent == null) {
+    // should never happen
+    return `- ${children}`;
+  } else if (info.parent.type == "bullet_list") {
+    return `- ${children}`;
+  } else if (info.parent.type == "ordered_list") {
+    return `${(info.index ?? 0) + (info.parent.start ?? 1)}. ${children}`;
+  } else {
+    // should also never happen
+    return `- ${children}`;
+  }
+}
