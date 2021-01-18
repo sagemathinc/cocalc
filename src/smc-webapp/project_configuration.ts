@@ -50,6 +50,7 @@ export interface MainCapabilities {
   library: boolean;
   sshd: boolean;
   html2pdf: boolean; // via chrome/chromium
+  pandoc: boolean;  // e.g. for docx2md conversion
 }
 
 export interface Available {
@@ -63,6 +64,7 @@ export interface Available {
   spellcheck: boolean;
   library: boolean;
   html2pdf: boolean;
+  pandoc: boolean;
   formatting: Capabilities | boolean;
 }
 
@@ -80,6 +82,7 @@ const NO_AVAIL: Readonly<Available> = {
   library: false,
   formatting: false,
   html2pdf: false,
+  pandoc: false,
 } as const;
 
 export const ALL_AVAIL: Readonly<Available> = {
@@ -94,6 +97,7 @@ export const ALL_AVAIL: Readonly<Available> = {
   library: true,
   formatting: true,
   html2pdf: true,
+  pandoc: true,
 } as const;
 
 // detecting certain datastructures, only used for TS typing
@@ -190,6 +194,7 @@ export function is_available(configuration?: ProjectConfiguration): Available {
       spellcheck: !!capabilities.spellcheck,
       library: !!capabilities.library,
       html2pdf: capabilities.html2pdf ?? true,
+      pandoc: capabilities.pandoc ?? true,
       formatting,
     };
   } else {

@@ -142,6 +142,11 @@ async function get_html2pdf(): Promise<boolean> {
   return (await have("chromium-browser")) || (await have("google-chrome"));
 }
 
+// do we have pandoc, e.g. used for docx2md
+async function get_pandoc(): Promise<boolean> {
+  return await have("pandoc");
+}
+
 // this is for rnw RMarkdown files.
 // This just tests R, which provides knitr out of the box?
 async function get_rmd(): Promise<boolean> {
@@ -211,6 +216,7 @@ async function capabilities(): Promise<MainCapabilities> {
     jupyter,
     spellcheck,
     html2pdf,
+    pandoc,
     sshd,
     library,
     x11,
@@ -221,6 +227,7 @@ async function capabilities(): Promise<MainCapabilities> {
     get_jupyter(),
     get_spellcheck(),
     get_html2pdf(),
+    get_pandoc(),
     get_sshd(),
     get_library(),
     get_x11(),
@@ -239,6 +246,7 @@ async function capabilities(): Promise<MainCapabilities> {
     library,
     sshd,
     html2pdf,
+    pandoc,
   };
   const sage = await sage_info_future;
   caps.sage = sage.exists;
