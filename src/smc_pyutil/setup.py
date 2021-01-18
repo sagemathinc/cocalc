@@ -67,7 +67,6 @@ for prefix in ['smc', 'cc', 'cocalc']:
     add = cs.append
     add('%s-sagews2pdf = smc_pyutil.sagews2pdf:main' % prefix)
     add('%s-sws2sagews = smc_pyutil.sws2sagews:main' % prefix)
-    add('%s-docx2txt   = smc_pyutil.docx2txt:main' % prefix)
     add('%s-open       = smc_pyutil.smc_open:main' % prefix)
     add('%s-new-file   = smc_pyutil.new_file:main' % prefix)
     add('%s-status     = smc_pyutil.status:main' % prefix)

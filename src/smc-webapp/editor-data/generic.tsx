@@ -106,7 +106,7 @@ const DataGeneric: React.FC<Props> = React.memo((props: Props) => {
         <div>
           It is possible to{" "}
           <Button onClick={() => project_actions?.open_word_document(path)}>
-            convert this file to text
+            convert this file to markdown
           </Button>{" "}
           .
         </div>
