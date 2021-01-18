@@ -899,12 +899,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   private async convert_docx_file(filename): Promise<string> {
+    const conf = await this.init_configuration("main");
+    if (conf != null && conf.capabilities.pandoc === false) {
+      throw new Error(
+        "Pandoc not installed – unable to convert docx to markdown."
+      );
+    }
+    const md_fn = misc.change_filename_extension(filename, "md");
+    // pandoc -s example30.docx -t markdown -o example35.md
     await webapp_client.project_client.exec({
       project_id: this.project_id,
-      command: "cc-docx2txt",
-      args: [filename],
+      command: "pandoc",
+      args: ["-s", filename, "-t", "markdown", "-o", md_fn],
     });
-    return filename.slice(0, filename.length - 4) + "txt";
+    return md_fn;
   }
 
   // Closes all files and removes all references
