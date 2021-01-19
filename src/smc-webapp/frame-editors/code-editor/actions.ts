@@ -1812,7 +1812,7 @@ export class Actions<
       const id = this._get_active_id();
       try {
         return await this.get_code_editor(id)
-          .get_actions()
+          ?.get_actions()
           .format_action(cmd, args, true);
       } catch (err) {
         // active frame is not a different code editor, so we fallback
@@ -2534,7 +2534,7 @@ export class Actions<
     this.set_frame_tree({ id, path, type: "cm" });
   }
 
-  public get_code_editor(id: string): CodeEditor {
+  public get_code_editor(id: string): CodeEditor | undefined {
     return this.code_editors.get_code_editor(id);
   }
 

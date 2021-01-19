@@ -198,7 +198,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     );
   }
 
-  private get_editor_actions(desc: NodeDesc): Actions {
+  private get_editor_actions(desc: NodeDesc): Actions | undefined {
     if (desc.get("type") == "cm" && this.props.editor_spec["cm"] == null) {
       // make it so the spec includes info about cm editor.
       this.props.editor_spec.cm = copy(cm_spec);
@@ -209,7 +209,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
       desc.get("path", this.props.path) != this.props.path
     ) {
       const manager = this.props.actions.get_code_editor(desc.get("id"));
-      return manager.get_actions();
+      return manager?.get_actions();
     } else {
       return this.props.actions;
     }
@@ -337,9 +337,12 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     }
     // NOTE: get_editor_actions may mutate props.editor_spec
     // if necessary for subframe, etc. So we call it first!
-    let editor_actions: Actions, spec: EditorDescription, component: any;
+    let editor_actions: Actions | undefined,
+      spec: EditorDescription,
+      component: any;
     try {
       editor_actions = this.get_editor_actions(desc);
+      if (editor_actions == null) return;
       spec = this.props.editor_spec[type];
       component = spec != null ? spec.component : undefined;
       if (component == null) throw Error(`unknown type '${type}'`);

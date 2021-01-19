@@ -24,7 +24,7 @@ export class CodeEditor {
     let editor = get_file_editor(ext, false);
     if (editor == null) {
       // fallback to text
-      editor = get_file_editor('txt', false);
+      editor = get_file_editor("txt", false);
     }
     const name = editor.init(this.path, redux, this.project_id);
     this.actions = (redux.getActions(name) as unknown) as Actions; // definitely right
@@ -65,17 +65,15 @@ export class CodeEditorManager<T extends CodeEditorState = CodeEditorState> {
     delete this.code_editors[id];
   }
 
-  get_code_editor(id: string, path?: string): CodeEditor {
+  get_code_editor(id: string, path?: string): CodeEditor | undefined {
     if (path == null) {
       let node = this.actions._get_frame_node(id);
       if (node == null) {
-        throw Error("no such node");
+        return;
       }
       path = node.get("path");
       if (path == null || path == this.actions.path) {
-        throw Error(
-          "path must be set as attribute of node and different than main path"
-        );
+        return;
       }
     }
     let code_editor: CodeEditor | undefined = this.code_editors[id];
