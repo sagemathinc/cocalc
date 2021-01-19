@@ -204,3 +204,5 @@ export function string_to_style(style: string): any {
   }
   return obj;
 }
+
+export const DEFAULT_CHILDREN = [{ text: "" }];

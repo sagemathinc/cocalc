@@ -5,12 +5,25 @@
 
 import { CSS, React } from "../../../../app-framework";
 import { register } from "./register";
+import { DEFAULT_CHILDREN } from "../util";
+
+export function bullet_list(children = DEFAULT_CHILDREN) {
+  return { type: "bullet_list", tag: "ul", children };
+}
+
+export function ordered_list(children = DEFAULT_CHILDREN, start) {
+  return { type: "ordered_list", tag: "ol", children, start };
+}
 
 register({
   slateType: ["bullet_list", "ordered_list"],
 
-  toSlate: ({ token, type, children, state }) => {
-    return { type, tag: token.tag, children, start: state.attrs?.[0]?.[1] };
+  toSlate: ({ type, children, state }) => {
+    if (type == "bullet_list") {
+      return bullet_list(children);
+    } else {
+      return ordered_list(children, state.attrs?.[0]?.[1]);
+    }
   },
 
   Element: ({ attributes, children, element }) => {

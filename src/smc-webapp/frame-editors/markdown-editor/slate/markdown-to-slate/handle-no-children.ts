@@ -8,8 +8,7 @@ import { getMarkdownToSlate } from "../elements";
 import { replace_all } from "smc-util/misc";
 import { Marks } from "./types";
 import { register } from "./register";
-
-const DEFAULT_CHILDREN = [{ text: "" }];
+import { DEFAULT_CHILDREN } from "../util";
 
 export function handleNoChildren({ token, state }): Node[] {
   if (token.children != null) {
