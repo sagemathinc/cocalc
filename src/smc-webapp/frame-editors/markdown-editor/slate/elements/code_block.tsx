@@ -5,29 +5,36 @@
 
 import { React } from "../../../../app-framework";
 import { RenderElementProps, useSlate } from "slate-react";
-import { Transforms } from "slate";
-import { register } from "./register";
+import { Element as Element0, Transforms } from "slate";
+import { register, SlateElement } from "./register";
 import { SlateCodeMirror } from "../codemirror";
 import { ensure_ends_in_newline, indent } from "../util";
+
+export interface CodeBlock extends SlateElement {
+  type: "code_block";
+  isVoid: true;
+  fence: boolean;
+  value: string;
+  info: string;
+}
 
 const Element: React.FC<RenderElementProps> = ({
   attributes,
   children,
   element,
 }) => {
+  if (element.type != "code_block") throw Error("bug");
   const editor = useSlate();
 
   return (
     <div {...attributes}>
       <SlateCodeMirror
-        value={element.value as string}
-        info={element.info as string | undefined}
+        value={element.value}
+        info={element.info}
         onChange={(value) => {
-          Transforms.setNodes(
-            editor,
-            { value },
-            { match: (node) => node.type == "code_block" }
-          );
+          Transforms.setNodes(editor, { value } as any, {
+            match: (node) => node["type"] == "code_block",
+          });
         }}
       />
       {children}
@@ -43,14 +50,18 @@ function toSlate({ token, children }) {
   if (value[value.length - 1] == "\n") {
     value = value.slice(0, value.length - 1);
   }
+  const info = token.info ?? "";
+  if (typeof info != "string") {
+    throw Error("info must be a string");
+  }
   return {
-    isVoid: true,
     type: "code_block",
+    isVoid: true,
     fence: token.type == "fence",
     value,
-    info: token.info,
+    info,
     children,
-  };
+  } as Element0;
 }
 
 function fromSlate({ node }) {

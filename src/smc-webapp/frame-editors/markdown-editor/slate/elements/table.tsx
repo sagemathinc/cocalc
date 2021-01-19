@@ -4,11 +4,36 @@
  */
 
 import { CSS, React } from "../../../../app-framework";
-import { register } from "./register";
-import { Node } from "slate";
+import { register, SlateElement } from "./register";
 import { FOCUSED_COLOR, padLeft, padRight, padCenter } from "../util";
 import { useFocused, useSelected } from "slate-react";
 import { serialize } from "../slate-to-markdown";
+
+export interface Table extends SlateElement {
+  type: "table";
+}
+
+export interface THead extends SlateElement {
+  type: "thead";
+}
+
+export interface TBody extends SlateElement {
+  type: "tbody";
+}
+
+export interface TR extends SlateElement {
+  type: "tr";
+}
+
+export interface TH extends SlateElement {
+  type: "th";
+  align: "left" | "center" | "right";
+}
+
+export interface TD extends SlateElement {
+  type: "td";
+  align: "left" | "center" | "right";
+}
 
 function toSlate({ type, children, isEmpty, state }) {
   if (type == "tbody" && isEmpty) {
@@ -19,11 +44,15 @@ function toSlate({ type, children, isEmpty, state }) {
     // DOM structure (there's always leaf nodes for the cursor).
     return;
   }
-  const node = { type, children } as Node;
   if (type == "th" || type == "td") {
-    node.align = state.attrs?.[0]?.[1]?.split(":")?.[1] ?? "left";
+    let align = state.attrs?.[0]?.[1]?.split(":")?.[1] ?? "left";
+    if (align != "left" && align != "right" && align != "center") {
+      align = "left"; // should be impossible; makes typescript happy
+    }
+    return { type, children, align };
+  } else {
+    return { type, children };
   }
-  return node;
 }
 
 function fromSlate({ node, children, info, childInfo }) {

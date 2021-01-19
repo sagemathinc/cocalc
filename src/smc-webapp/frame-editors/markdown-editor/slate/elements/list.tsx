@@ -4,15 +4,25 @@
  */
 
 import { CSS, React } from "../../../../app-framework";
-import { register } from "./register";
+import { register, SlateElement } from "./register";
 import { DEFAULT_CHILDREN } from "../util";
+import { Element } from "slate";
 
-export function bullet_list(children = DEFAULT_CHILDREN) {
-  return { type: "bullet_list", tag: "ul", children };
+export interface BulletList extends SlateElement {
+  type: "bullet_list";
 }
 
-export function ordered_list(children = DEFAULT_CHILDREN, start) {
-  return { type: "ordered_list", tag: "ol", children, start };
+export interface OrderedList extends SlateElement {
+  type: "ordered_list";
+  start?: number;
+}
+
+export function bullet_list(children = DEFAULT_CHILDREN): Element {
+  return { type: "bullet_list", children };
+}
+
+export function ordered_list(children = DEFAULT_CHILDREN, start): Element {
+  return { type: "ordered_list", children, start };
 }
 
 register({
@@ -34,13 +44,17 @@ register({
       // is a workaround.  If it is not tight, add space below.
       style.marginBottom = "1em";
     }
+    const start =
+      element.type == "ordered_list" && element.start
+        ? { start: element.start }
+        : {};
 
     return React.createElement(
-      element.tag as string,
+      "bullet_list" ? "ul" : "ol",
       {
         ...attributes,
         ...{ style },
-        ...{ start: element.start },
+        ...start,
       },
       children
     );

@@ -4,8 +4,13 @@
  */
 
 import { React } from "../../../../app-framework";
-import { register } from "./register";
+import { register, SlateElement } from "./register";
 import { mark_block } from "../util";
+
+export interface Heading extends SlateElement {
+  type: "heading";
+  level: number;
+}
 
 register({
   slateType: "heading",
@@ -19,7 +24,8 @@ register({
   },
 
   Element: ({ attributes, children, element }) => {
-    const level = element.level as number;
+    if (element.type != "heading") throw Error("bug");
+    const { level } = element;
     if (!level || level < 1 || level > 6) {
       return <b>{children}</b>;
     }

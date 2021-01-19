@@ -3,14 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Node, Text } from "slate";
+import { Text } from "slate";
 import { getMarkdownToSlate } from "../elements";
 import { replace_all } from "smc-util/misc";
 import { Marks } from "./types";
 import { register } from "./register";
 import { DEFAULT_CHILDREN } from "../util";
 
-export function handleNoChildren({ token, state }): Node[] {
+export function handleNoChildren({ token, state }) {
   if (token.children != null) {
     throw Error(
       `handleNoChildren -- the token must not have children ${JSON.stringify(
@@ -50,7 +50,7 @@ export function handleNoChildren({ token, state }): Node[] {
 
 register(handleNoChildren);
 
-function mark(text: Text, marks: Marks): Node {
+function mark(text: Text, marks: Marks): Text {
   if (!text.text) {
     // don't mark empty string
     return text;

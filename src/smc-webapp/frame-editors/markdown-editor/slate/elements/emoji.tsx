@@ -6,7 +6,12 @@
 import { React } from "../../../../app-framework";
 import { useFocused, useSelected } from "slate-react";
 import { FOCUSED_COLOR } from "../util";
-import { register } from "./register";
+import { SlateElement, register } from "./register";
+
+export interface Emoji extends SlateElement {
+  type: "emoji";
+  content: string;
+}
 
 register({
   slateType: "emoji",
@@ -14,6 +19,7 @@ register({
   fromSlate: ({ node }) => `:${node.markup}:`,
 
   Element: ({ attributes, children, element }) => {
+    if (element.type != 'emoji') throw Error('bug');
     const focused = useFocused();
     const selected = useSelected();
 

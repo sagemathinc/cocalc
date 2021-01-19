@@ -4,10 +4,24 @@
  */
 
 import { React } from "../../../../app-framework";
-import { register } from "./register";
+import { register, SlateElement } from "./register";
 import { ensure_ends_in_two_newline, FOCUSED_COLOR } from "../util";
 import { useFocused, useSelected } from "slate-react";
 import { startswith, endswith } from "smc-util/misc";
+
+export interface HtmlInline extends SlateElement {
+  type: "html_inline";
+  isInline: true;
+  isVoid: true;
+  html: string;
+}
+
+export interface HtmlBlock extends SlateElement {
+  type: "html_block";
+  isInline: false;
+  isVoid: true;
+  html: string;
+}
 
 function toSlate({ token, children }) {
   return {

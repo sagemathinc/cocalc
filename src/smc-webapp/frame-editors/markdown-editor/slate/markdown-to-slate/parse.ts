@@ -3,14 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Node } from "slate";
+import { Descendant } from "slate";
 import { handlers } from "./register";
 import { State, Token } from "./types";
 import { parse_markdown } from "./parse-markdown";
 
-export function parse(token: Token, state: State): Node[] {
+export function parse(token: Token, state: State): Descendant[] {
   for (const handler of handlers) {
-    const nodes: Node[] | undefined = handler({ token, state });
+    const nodes: Descendant[] | undefined = handler({ token, state });
     if (nodes != null) {
       return nodes;
     }
@@ -21,11 +21,11 @@ export function parse(token: Token, state: State): Node[] {
   );
 }
 
-export function markdown_to_slate(markdown: string): Node[] {
+export function markdown_to_slate(markdown: string): Descendant[] {
   // Parse the markdown:
   const tokens = parse_markdown(markdown);
 
-  const doc: Node[] = [];
+  const doc: Descendant[] = [];
   const state: State = { marks: {}, nesting: 0 };
   for (const token of tokens) {
     for (const node of parse(token, state)) {

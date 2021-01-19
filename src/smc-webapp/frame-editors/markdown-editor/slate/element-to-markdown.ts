@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Node, Text } from "slate";
+import { Element } from "slate";
 import { Info, serialize } from "./slate-to-markdown";
 import { getChildInfoHook, getSlateToMarkdown } from "./elements";
 
@@ -15,10 +15,10 @@ export interface ChildInfo extends Info {
   [field: string]: any;
 }
 
-export function serializeElement(node: Node, info: Info): string {
-  if (Text.isText(node)) {
+export function serializeElement(node: Element, info: Info): string {
+  if (!Element.isElement(node)) {
     // make typescript happier.
-    throw Error("BUG -- do not pass Text objects to serializeElement");
+    throw Error("BUG -- serializeElement takes an element as input");
   }
 
   const childInfo = {
@@ -26,7 +26,7 @@ export function serializeElement(node: Node, info: Info): string {
     ...{ parent: node },
   } as ChildInfo;
 
-  const hook = getChildInfoHook(node.type as string);
+  const hook = getChildInfoHook(node["type"]);
   if (hook != null) {
     hook({ node, childInfo });
   }
@@ -35,6 +35,6 @@ export function serializeElement(node: Node, info: Info): string {
     v.push(serialize(node.children[index], { ...childInfo, ...{ index } }));
   }
   let children = v.join("");
-  const slateToMarkdown = getSlateToMarkdown(node.type as string);
+  const slateToMarkdown = getSlateToMarkdown(node["type"]);
   return slateToMarkdown({ node, children, info, childInfo });
 }

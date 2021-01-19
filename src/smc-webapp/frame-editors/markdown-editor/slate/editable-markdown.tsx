@@ -6,7 +6,14 @@
 // Component that allows WYSIWYG editing of markdown.
 
 import { delay } from "awaiting";
-import { Editor, createEditor, Node, Transforms } from "slate";
+import {
+  Editor,
+  createEditor,
+  Descendant,
+  Node,
+  Transforms,
+  Element as SlateElement,
+} from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "slate-react";
 import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
 import { debounce } from "lodash";
@@ -27,10 +34,18 @@ import { Path } from "../../frame-tree/path";
 
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
-import { hardbreak } from "./elements/linebreak";
+import { isElementOfType } from "./elements";
 import { Element } from "./element";
 import { Leaf } from "./leaf";
 import { formatSelectedText } from "./format";
+
+/*import { ListItem } from "./elements/list-item";
+declare module "slate" {
+  export interface CustomTypes {
+    Element: ListItem;
+    Text: { bold?: boolean; italic?: boolean };
+  }
+}*/
 
 const STYLE = {
   width: "100%",
@@ -74,7 +89,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     const editorMarkdownValueRef = useRef<string | undefined>(undefined);
     const hasUnsavedChangesRef = useRef<boolean>(false);
-    const [editorValue, setEditorValue] = useState<Node[]>(() =>
+    const [editorValue, setEditorValue] = useState<Descendant[]>(() =>
       markdown_to_slate(value)
     );
     const scaling = use_font_size_scaling(font_size);
@@ -117,12 +132,14 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         }
         if (e.key == "Enter") {
           const fragment = editor.getFragment();
-          const type = fragment?.[0]?.type;
-          if (type == "bullet_list" || type == "ordered_list") {
+          const x = fragment?.[0];
+          if (isElementOfType(x, ["bullet_list", "ordered_list"])) {
             Transforms.insertNodes(
               editor,
-              [{ type: "list_item", children: [{ text: "" }] }],
-              { match: (node) => node.type == "list_item" }
+              [{ type: "list_item", children: [{ text: "" }] } as SlateElement],
+              {
+                match: (node) => isElementOfType(node, "list_item"),
+              }
             );
             e.preventDefault();
             return;
@@ -132,14 +149,14 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       if (e.shiftKey && e.key == "Enter") {
         // In a table, the only option is to insert a <br/>.
         const fragment = editor.getFragment();
-        if (fragment?.[0]?.type == "table") {
+        if (isElementOfType(fragment?.[0], "table")) {
           const br = {
             isInline: true,
             isVoid: true,
             type: "html_inline",
             html: "<br />",
             children: [{ text: " " }],
-          };
+          } as Node;
           Transforms.insertNodes(editor, [br]);
           // Also, move cursor forward so it is *after* the br.
           Transforms.move(editor, { distance: 1 });
@@ -149,7 +166,14 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
         // Not in a table, so insert a hard break instead of a new
         // pagraph like enter creates.
-        Transforms.insertNodes(editor, [hardbreak()]);
+        Transforms.insertNodes(editor, [
+          {
+            type: "hardbreak",
+            isInline: true,
+            isVoid: false,
+            children: [{ text: "\n" }],
+          } as Node,
+        ]);
         e.preventDefault();
         return;
       }

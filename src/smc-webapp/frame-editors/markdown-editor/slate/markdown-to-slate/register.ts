@@ -3,10 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Node } from "slate";
+import { Descendant } from "slate";
 import { State, Token } from "./types";
 
-type Handler = (opts: { token: Token; state: State }) => Node[] | undefined;
+type Handler = (opts: {
+  token: Token;
+  state: State;
+}) => Descendant[] | undefined;
 
 export const handlers: Handler[] = [];
 

@@ -2,7 +2,7 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-import { Node, Text } from "slate";
+import { Node, Element, Text } from "slate";
 import { serializeLeaf } from "./leaf-to-markdown";
 import { serializeElement } from "./element-to-markdown";
 
@@ -15,8 +15,12 @@ export interface Info {
 export function serialize(node: Node, info: Info): string {
   if (Text.isText(node)) {
     return serializeLeaf(node, info);
-  } else {
+  } else if (Element.isElement(node)) {
     return serializeElement(node, info);
+  } else {
+    throw Error(
+      `bug:  node must be Text or Element -- ${JSON.stringify(node)}`
+    );
   }
 }
 

@@ -10,7 +10,7 @@ import { Info } from "./slate-to-markdown";
 
 export function serializeLeaf(node: Text, info: Info): string {
   let text = node.text;
-  if (!info.no_escape && !node.code && info.parent.type != "code_block") {
+  if (!info.no_escape && !node.code && info.parent["type"] != "code_block") {
     text = markdown_escape(text);
   }
 

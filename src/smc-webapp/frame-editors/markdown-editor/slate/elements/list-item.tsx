@@ -5,7 +5,11 @@
 
 import { React } from "../../../../app-framework";
 import { ensure_ends_in_newline, li_indent } from "../util";
-import { register } from "./register";
+import { register, SlateElement } from "./register";
+
+export interface ListItem extends SlateElement {
+  type: "list_item";
+}
 
 register({
   slateType: "list_item",

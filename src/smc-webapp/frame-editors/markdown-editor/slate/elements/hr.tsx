@@ -6,7 +6,11 @@
 import { React } from "../../../../app-framework";
 import { useFocused, useSelected } from "slate-react";
 import { FOCUSED_COLOR } from "../util";
-import { register } from "./register";
+import { register, SlateElement } from "./register";
+
+export interface HR extends SlateElement {
+  type: "hr";
+}
 
 register({
   slateType: "hr",

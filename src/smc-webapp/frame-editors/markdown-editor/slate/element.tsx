@@ -8,6 +8,6 @@ import { RenderElementProps } from "slate-react";
 import { getRender } from "./elements";
 
 export const Element: React.FC<RenderElementProps> = (props) => {
-  const Component = getRender(props.element.type as string);
+  const Component = getRender(props.element["type"]);
   return React.createElement(Component, props);
 };

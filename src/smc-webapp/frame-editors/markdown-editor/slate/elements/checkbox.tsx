@@ -12,14 +12,22 @@ import {
 } from "slate-react";
 import { FOCUSED_COLOR } from "../util";
 import { Transforms } from "slate";
-import { register } from "./register";
-import { Checkbox } from "antd";
+import { SlateElement, register } from "./register";
+import { Checkbox as AntdCheckbox } from "antd";
+
+export interface Checkbox extends SlateElement {
+  type: "checkbox";
+  checked?: boolean;
+}
 
 const Element: React.FC<RenderElementProps> = ({
   attributes,
   children,
   element,
 }) => {
+  if (element.type != "checkbox") {
+    throw Error("bug");
+  }
   const focused = useFocused();
   const selected = useSelected();
   const editor = useSlate();
@@ -29,7 +37,7 @@ const Element: React.FC<RenderElementProps> = ({
 
   return (
     <span {...attributes}>
-      <Checkbox
+      <AntdCheckbox
         style={{
           border,
           padding: "0 0.2em",
@@ -39,8 +47,8 @@ const Element: React.FC<RenderElementProps> = ({
         onChange={(e) => {
           Transforms.setNodes(
             editor,
-            { checked: e.target.checked },
-            { match: (node) => node.type == "checkbox" }
+            { checked: e.target.checked } as any,
+            { match: (node) => node['type'] == "checkbox" }
           );
         }}
       />
@@ -69,3 +77,4 @@ register({
 
   fromSlate: ({ node }) => `[${node.checked ? "x" : " "}]`,
 });
+

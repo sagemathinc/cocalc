@@ -6,6 +6,18 @@
 import { startswith } from "smc-util/misc";
 import { register } from "./register";
 
+export interface Marks {
+  italic?: boolean;
+  bold?: boolean;
+  strikethrough?: boolean;
+  underline?: boolean;
+  sup?: boolean;
+  sub?: boolean;
+  tt?: boolean;
+  code?: boolean;
+  small?: boolean;
+}
+
 // Map from prefix of markdown token types to Slate marks.
 // This shouldn't need to change ever, since markdown is done,
 // though maybe a markdown-it plugin could add to this.

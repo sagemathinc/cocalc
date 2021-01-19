@@ -4,7 +4,14 @@
  */
 
 import { React } from "../../../../app-framework";
-import { register } from "./register";
+import { register, SlateElement } from "./register";
+import { Element } from "slate";
+
+export interface Softbreak extends SlateElement {
+  type: "softbreak";
+  isInline: true;
+  isVoid: false;
+}
 
 register({
   slateType: "softbreak",
@@ -27,13 +34,19 @@ register({
   fromSlate: () => "\n",
 });
 
+export interface Hardbreak extends SlateElement {
+  type: "hardbreak";
+  isInline: true;
+  isVoid: false;
+}
+
 export function hardbreak() {
   return {
     type: "hardbreak",
     isInline: true,
     isVoid: false,
     children: [{ text: "\n" }],
-  };
+  } as Element;
 }
 
 register({

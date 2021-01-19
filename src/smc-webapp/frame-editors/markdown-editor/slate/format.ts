@@ -4,10 +4,11 @@
  */
 
 import { is_array, startswith } from "smc-util/misc";
-import { Editor, Node, Text, Transforms } from "slate";
+import { Editor, Element, Node, Text, Transforms } from "slate";
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
 import { commands } from "../../../editors/editor-button-bar";
+import { DEFAULT_CHILDREN } from "./util";
 
 export function formatSelectedText(editor: Editor, mark: string): void {
   if (!editor.selection) return; // nothing to do.
@@ -216,7 +217,7 @@ function transformToComment(editor: Editor): void {
 function selectionToText(editor: Editor): string {
   if (!editor.selection) return "";
   let fragment = Editor.fragment(editor, editor.selection);
-  while (fragment[0].children != null && !Text.isText(fragment[0])) {
+  while (Element.isElement(fragment[0])) {
     fragment = fragment[0].children;
   }
   return fragmentToMarkdown(fragment);
@@ -235,13 +236,13 @@ function fragmentToMarkdown(fragment): string {
 
 function formatHeading(editor, level: number): void {
   Transforms.unwrapNodes(editor, {
-    match: (node) => node.type == "heading",
+    match: (node) => node["type"] == "heading",
     mode: "all",
   });
   if (level == 0) return; // paragraph mode -- no heading.
   Transforms.wrapNodes(
     editor,
-    { type: "heading", level, children: [] },
+    { type: "heading", level, children: DEFAULT_CHILDREN } as Element,
     { match: (node) => Editor.isBlock(editor, node) }
   );
 }

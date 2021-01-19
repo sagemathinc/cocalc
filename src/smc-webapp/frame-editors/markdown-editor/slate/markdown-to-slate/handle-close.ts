@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Node } from "slate";
+import { Descendant } from "slate";
 import { State } from "./types";
 import { getMarkdownToSlate } from "../elements";
 import { register } from "./register";
@@ -30,7 +30,7 @@ function handleClose({ token, state }) {
       // Not nested, so done: parse the accumulated array of children
       // using a new state:
       const child_state: State = { marks: state.marks, nesting: 0 };
-      const children: Node[] = [];
+      const children: Descendant[] = [];
       let isEmpty = true;
       // Note a RULE: "Block nodes can only contain other blocks, or inline and text nodes."
       // See https://docs.slatejs.org/concepts/10-normalizing
@@ -44,11 +44,11 @@ function handleClose({ token, state }) {
       let all_tight: boolean = false;
       for (const token2 of state.contents) {
         for (const node of parse(token2, child_state)) {
-          if (node.tight) {
+          if (node["tight"]) {
             all_tight = true;
           }
           if (all_tight) {
-            node.tight = true;
+            node["tight"] = true;
           }
           isEmpty = false;
           children.push(node);

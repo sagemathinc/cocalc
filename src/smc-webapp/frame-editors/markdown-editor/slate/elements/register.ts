@@ -5,10 +5,14 @@
 
 import { React } from "../../../../app-framework";
 import { RenderElementProps } from "slate-react";
-import { Node } from "slate";
+import { Element } from "slate";
 import { State as MarkdownParserState, Token } from "../markdown-to-slate";
 import { Info } from "../slate-to-markdown";
 import { ChildInfo } from "../element-to-markdown";
+
+export interface SlateElement {
+  tight?: boolean;
+}
 
 export interface markdownToSlateOptions {
   type: string;
@@ -25,7 +29,7 @@ export interface slateToMarkdownOptions {
   childInfo: ChildInfo;
 }
 
-type markdownToSlateFunction = (markdownToSlateOptions) => Node | undefined;
+type markdownToSlateFunction = (markdownToSlateOptions) => Element | undefined;
 
 type slateToMarkdownFunction = (slateToMarkdownOptions) => string;
 
@@ -34,7 +38,7 @@ type slateToMarkdownFunction = (slateToMarkdownOptions) => string;
 // parent can deduce, but the children can't, since they have no way
 // to get at the parent.
 type childInfoHookFunction = (opts: {
-  node: Node;
+  node: Element;
   childInfo: ChildInfo;
 }) => void;
 
@@ -96,30 +100,28 @@ export function register(h: Handler): void {
 
 export function getRender(slateType: string): React.FC<RenderElementProps> {
   if (renderer[slateType] == null) {
-    createGenericPlugin(slateType);
-    if (renderer[slateType] == null) {
-      throw Error("getRender -- bug creating generic element plugin");
-    }
+    //console.log(`getRender: using generic plugin for type '${slateType}'`);
+    return renderer["generic"];
   }
   return renderer[slateType];
 }
 
-export function getMarkdownToSlate(tokenType: string): markdownToSlateFunction {
+export function getMarkdownToSlate(
+  tokenType: string = ""
+): markdownToSlateFunction {
   if (markdownToSlate[tokenType] == null) {
-    createGenericPlugin(tokenType);
-    if (markdownToSlate[tokenType] == null) {
-      throw Error("getMarkdownToSlate -- bug creating generic element plugin");
-    }
+    //console.log(`getMarkdownToSlate: using generic plugin for type '${tokenType}'`);
+    return markdownToSlate["generic"];
   }
   return markdownToSlate[tokenType];
 }
 
-export function getSlateToMarkdown(slateType: string): slateToMarkdownFunction {
+export function getSlateToMarkdown(
+  slateType: string = ""
+): slateToMarkdownFunction {
   if (slateToMarkdown[slateType] == null) {
-    createGenericPlugin(slateType);
-    if (slateToMarkdown[slateType] == null) {
-      throw Error("getSlateToMarkdown -- bug creating generic element plugin");
-    }
+    //console.log(`getSlateToMarkdown: using generic plugin for type '${slateType}'`);
+    return slateToMarkdown["generic"];
   }
   return slateToMarkdown[slateType];
 }
@@ -128,20 +130,4 @@ export function getChildInfoHook(
   slateType: string
 ): childInfoHookFunction | undefined {
   return childInfoHooks[slateType];
-}
-
-// Create a generic plugin for the given type since it was
-// requested, but wasn't defined.
-function createGenericPlugin(type: string) {
-  console.log("TODO: createGenericPlugin", { type });
-  renderer[type] = renderer[""];
-  markdownToSlate[type] = markdownToSlate[""];
-  slateToMarkdown[type] = slateToMarkdown[""];
-  if (
-    renderer[type] == null ||
-    markdownToSlate[type] == null ||
-    slateToMarkdown[type] == null
-  ) {
-    throw Error("no generic plugin -- define generic plugin with type ''");
-  }
 }

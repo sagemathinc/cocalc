@@ -4,7 +4,11 @@
  */
 
 import { React } from "../../../../app-framework";
-import { register } from "./register";
+import { register, SlateElement } from "./register";
+
+export interface Paragraph extends SlateElement {
+  type: "paragraph";
+}
 
 register({
   slateType: "paragraph",
@@ -19,6 +23,7 @@ register({
   },
 
   Element: ({ attributes, children, element }) => {
+    if (element.type != "paragraph") throw Error("bug");
     if (element.tight) {
       return <span {...attributes}>{children}</span>;
     }

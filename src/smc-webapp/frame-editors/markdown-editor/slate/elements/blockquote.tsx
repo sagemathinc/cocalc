@@ -5,7 +5,11 @@
 
 import { React } from "../../../../app-framework";
 import { mark_block } from "../util";
-import { register } from "./register";
+import { register, SlateElement } from "./register";
+
+export interface BlockQuote extends SlateElement {
+  type: "blockquote";
+}
 
 register({
   slateType: "blockquote",

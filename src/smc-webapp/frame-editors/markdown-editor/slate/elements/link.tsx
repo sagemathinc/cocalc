@@ -4,9 +4,16 @@
  */
 
 import { React } from "../../../../app-framework";
-import { register } from "./register";
+import { register, SlateElement } from "./register";
 import { dict } from "smc-util/misc";
+import { open_new_tab } from "../../../../misc-page";
 const linkify = require("linkify-it")();
+
+export interface Link extends SlateElement {
+  type: "link";
+  isInline: true;
+  attrs: object;
+}
 
 register({
   slateType: "link",
@@ -29,7 +36,15 @@ register({
   Element: ({ attributes, children, element }) => {
     const attrs = (element as any).attrs as object;
     return (
-      <a {...attributes} {...attrs}>
+      <a
+        {...attributes}
+        {...attrs}
+        onDoubleClick={() => {
+          if (attrs["href"]) {
+            open_new_tab(attrs["href"]);
+          }
+        }}
+      >
         {children}
       </a>
     );

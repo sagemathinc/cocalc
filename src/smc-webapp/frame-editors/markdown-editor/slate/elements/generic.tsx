@@ -5,62 +5,68 @@
 
 import { CSS, React } from "../../../../app-framework";
 import { string_to_style } from "../util";
-import { register } from "./register";
+import { register, SlateElement } from "./register";
 import { dict } from "smc-util/misc";
-import { Node } from "slate";
+
+export interface Generic extends SlateElement {
+  type: "generic";
+  isInline: boolean;
+  tag: string | undefined;
+  attrs: object | undefined;
+}
 
 register({
-  slateType: "", // this is the generic plugin
+  slateType: "generic", // this is the generic plugin
 
-  toSlate: ({ token, type, children, state }) => {
-    const node = { type, children } as Node;
-    if (!state.block) {
-      node.isInline = true;
-    }
-    if (token.tag && token.tag != "p") {
-      node.tag = token.tag;
-    }
+  toSlate: ({ token, state, children }) => {
+    let attrs: object | undefined;
     if (state.attrs != null) {
       const a: any = dict(state.attrs as any);
       if (a.style != null) {
         a.style = string_to_style(a.style as any);
       }
-      node.attrs = a;
+      attrs = a;
+    } else {
+      attrs = undefined;
     }
-    return node;
+    return {
+      type: "generic",
+      isInline: !state.block,
+      tag: token.tag ? (token.tag as string) : undefined,
+      attrs,
+      children,
+    };
   },
 
   Element: ({ attributes, children, element }) => {
-    if (element.tag) {
+    const elt = element as Generic;
+    if (elt.tag) {
       let style = {} as CSS;
-      if ((element.tag == "ol" || element.tag == "ul") && !element.tight) {
-        // TODO: move to plugin specifically for lists!!
-
-        // There is a shortcoming in how markdown-it parses nested
-        // non-tight lists (at least with the CSS in cocalc), and this
-        // is a workaround.  If it is not tight, add space below.
+      if ((elt.tag == "ol" || elt.tag == "ul") && !elt.tight) {
+        // NOTE: this is done correctly of course in the list plugin.
+        // doing it here is just redundant...
         style.marginBottom = "1em";
       }
 
       return React.createElement(
-        element.tag as string,
+        elt.tag as string,
         {
           ...attributes,
-          ...(element.attrs as object),
+          ...(elt.attrs as object),
           ...{ style },
         },
         children
       );
     }
-    if (element.tight) {
+    if (elt.tight) {
       return (
-        <span {...attributes} {...element.attrs}>
+        <span {...attributes} {...elt.attrs}>
           {children}
         </span>
       );
     }
     return (
-      <p {...attributes} {...element.attrs}>
+      <p {...attributes} {...elt.attrs}>
         {children}
       </p>
     );
