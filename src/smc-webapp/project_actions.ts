@@ -906,11 +906,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       );
     }
     const md_fn = misc.change_filename_extension(filename, "md");
-    // pandoc -s example30.docx -t markdown -o example35.md
+    // pandoc -s example30.docx -t gfm [or markdown] -o example35.md
     await webapp_client.project_client.exec({
       project_id: this.project_id,
       command: "pandoc",
-      args: ["-s", filename, "-t", "markdown", "-o", md_fn],
+      args: ["-s", filename, "-t", "gfm", "-o", md_fn],
     });
     return md_fn;
   }
