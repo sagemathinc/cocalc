@@ -69,7 +69,7 @@ export class CodeEditorManager<T extends CodeEditorState = CodeEditorState> {
     if (path == null) {
       let node = this.actions._get_frame_node(id);
       if (node == null) {
-        throw Error("no such node");
+        return;
       }
       path = node.get("path");
       if (path == null || path == this.actions.path) {
