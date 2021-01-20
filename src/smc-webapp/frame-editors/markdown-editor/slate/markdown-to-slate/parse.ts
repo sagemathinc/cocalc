@@ -3,6 +3,18 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+/*
+NOTE: It's very important from a performance perspective that the slatejs
+tree produced by this code is normalized, as defined here:
+
+    https://docs.slatejs.org/concepts/10-normalizing
+
+... and also as it is carried out in practice. The reason is that any time
+normalization results in a change from the source markdown document, then
+every single update to the document keeps redoing exactly that extra update!
+
+*/
+
 import { Descendant } from "slate";
 import { handlers } from "./register";
 import { State, Token } from "./types";

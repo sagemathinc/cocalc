@@ -21,7 +21,7 @@ import {
   React,
   useCallback,
   useEffect,
-  useIsMountedRef,
+  //useIsMountedRef,
   useMemo,
   useRef,
   useState,
@@ -39,7 +39,9 @@ import { Element } from "./element";
 import { Leaf } from "./leaf";
 import { formatSelectedText } from "./format";
 
-const RENDER_SIZE = 25;
+import { slateDiff } from "./diff";
+
+//const RENDER_SIZE = 25;
 
 const STYLE = {
   width: "100%",
@@ -62,6 +64,23 @@ interface Props {
   is_current?: boolean;
 }
 
+async function applyOperations(editor, operations): Promise<void> {
+  //await new Promise(requestAnimationFrame);
+  const t0 = new Date().valueOf();
+  for (const op of operations) {
+    editor.apply(op);
+  }
+  console.log(
+    `apply ${operations.length} operations`,
+    new Date().valueOf() - t0,
+    "ms"
+  );
+  (window as any).operations = operations;
+  const t1 = new Date().valueOf();
+  await new Promise(requestAnimationFrame);
+  console.log("rendered", new Date().valueOf() - t1, "ms");
+}
+
 export const EditableMarkdown: React.FC<Props> = React.memo(
   ({
     actions,
@@ -73,7 +92,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     path,
     is_current,
   }) => {
-    const isMountedRef = useIsMountedRef();
+    //const isMountedRef = useIsMountedRef();
 
     const editor: ReactEditor = useMemo(() => {
       const cur = actions.getSlateEditor(id);
@@ -85,7 +104,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     const editorMarkdownValueRef = useRef<string | undefined>(undefined);
     const hasUnsavedChangesRef = useRef<boolean>(false);
-    const [editorValue, setEditorValue] = useState<Descendant[]>([]);
+    // const [editorValue, setEditorValue] = useState<Descendant[]>([]);
+    const [editorValue, setEditorValue] = useState<Descendant[]>(() =>
+      markdown_to_slate(value)
+    );
 
     const scaling = use_font_size_scaling(font_size);
 
@@ -252,6 +274,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       return () => actions.get_syncstring().off("before-change", before_change);
     }, []);
 
+    /*
     const setEditorValueNoCrash = useCallback(async (new_value) => {
       ReactEditor.blur(editor);
       const t0 = new Date().valueOf();
@@ -281,13 +304,31 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         }
       }
     }, []);
+    */
+
+    /*
+    const setEditorValueNoJump = useCallback(
+      (new_value) => {
+        const operations = slateDiff(value, new_value);
+        for (const op of operations) {
+          editor.apply(op);
+        }
+      },
+      [value]
+    );
+    */
 
     useEffect(() => {
       if (value == editorMarkdownValueRef.current) {
         // Setting to current value, so no-op.
         return;
       }
+      editorMarkdownValueRef.current = value;
+      const nextEditorValue = markdown_to_slate(value);
+      const operations = slateDiff(editor.children, nextEditorValue);
+      applyOperations(editor, operations);
 
+      /*
       let editor_value = markdown_to_slate(value);
       if (editor_value.length > RENDER_SIZE) {
         // This code renders long documents in batches, since it's
@@ -322,6 +363,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       } else {
         setEditorValue(editor_value);
       }
+      */
     }, [value]);
 
     (window as any).z = {

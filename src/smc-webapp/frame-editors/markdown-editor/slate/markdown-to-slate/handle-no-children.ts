@@ -18,6 +18,13 @@ export function handleNoChildren({ token, state }) {
       )}`
     );
   }
+  if (token.content == "") {
+    // Empty text nodes often get deleted by the normalization process
+    // unless they are the first/last children next to inline nodes,
+    // and our code adds those back in all cases anyways.
+    return [];
+  }
+
   // Handle inline code as a leaf node with style
   if (token.type == "code_inline") {
     return [{ text: token.content, code: true }];
