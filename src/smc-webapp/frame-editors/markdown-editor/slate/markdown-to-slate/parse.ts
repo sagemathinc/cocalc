@@ -23,6 +23,7 @@ export function parse(token: Token, state: State): Descendant[] {
 
 export function markdown_to_slate(markdown: string): Descendant[] {
   // Parse the markdown:
+  const t0 = new Date().valueOf();
   const tokens = parse_markdown(markdown);
 
   const doc: Descendant[] = [];
@@ -45,6 +46,7 @@ export function markdown_to_slate(markdown: string): Descendant[] {
     tokens,
     doc,
   };
+  console.log("markdown_to_slate", new Date().valueOf() - t0, "ms");
 
   return doc;
 }

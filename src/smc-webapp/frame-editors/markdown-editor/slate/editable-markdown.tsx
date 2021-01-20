@@ -5,7 +5,6 @@
 
 // Component that allows WYSIWYG editing of markdown.
 
-import { delay } from "awaiting";
 import {
   Editor,
   createEditor,
@@ -22,6 +21,7 @@ import {
   React,
   useCallback,
   useEffect,
+  useIsMountedRef,
   useMemo,
   useRef,
   useState,
@@ -39,13 +39,7 @@ import { Element } from "./element";
 import { Leaf } from "./leaf";
 import { formatSelectedText } from "./format";
 
-/*import { ListItem } from "./elements/list-item";
-declare module "slate" {
-  export interface CustomTypes {
-    Element: ListItem;
-    Text: { bold?: boolean; italic?: boolean };
-  }
-}*/
+const RENDER_SIZE = 25;
 
 const STYLE = {
   width: "100%",
@@ -79,6 +73,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     path,
     is_current,
   }) => {
+    const isMountedRef = useIsMountedRef();
+
     const editor: ReactEditor = useMemo(() => {
       const cur = actions.getSlateEditor(id);
       if (cur != null) return cur;
@@ -89,9 +85,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     const editorMarkdownValueRef = useRef<string | undefined>(undefined);
     const hasUnsavedChangesRef = useRef<boolean>(false);
-    const [editorValue, setEditorValue] = useState<Descendant[]>(() =>
-      markdown_to_slate(value)
-    );
+    const [editorValue, setEditorValue] = useState<Descendant[]>([]);
+
     const scaling = use_font_size_scaling(font_size);
 
     const editor_markdown_value = useCallback(() => {
@@ -257,12 +252,14 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       return () => actions.get_syncstring().off("before-change", before_change);
     }, []);
 
-    const setEditorValueNoJump = useCallback(async (new_value) => {
+    const setEditorValueNoCrash = useCallback(async (new_value) => {
       ReactEditor.blur(editor);
+      const t0 = new Date().valueOf();
       setEditorValue(new_value);
       // Critical to wait until after next render loop, or
       // ReactEditor.toDOMPoint below will not detect the problem.
-      await delay(0);
+      await new Promise(requestAnimationFrame);
+      console.log("render time", new Date().valueOf() - t0);
       if (editor.selection != null) {
         try {
           ReactEditor.toDOMPoint(editor, editor.selection.anchor);
@@ -290,13 +287,40 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         // Setting to current value, so no-op.
         return;
       }
-      const new_value = markdown_to_slate(value);
+
+      let editor_value = markdown_to_slate(value);
+      if (editor_value.length > RENDER_SIZE) {
+        // This code renders long documents in batches, since it's
+        // vastly better to immediately *see* your document and be
+        // able to scroll as the bottom renders, than to have your
+        // entire browser block for 10 seconds.
+        const t0 = new Date().valueOf();
+        const lazyRender = async (items) => {
+          if (!isMountedRef.current) {
+            // no longer mounted, so don't do this anymore...
+            return;
+          }
+          if (items.length == 0) {
+            // done -- nothing more to append.
+            console.log("rendered", new Date().valueOf() - t0, "ms");
+            return;
+          }
+          await new Promise(requestAnimationFrame);
+          Transforms.insertNodes(editor, items.slice(0, RENDER_SIZE), {
+            at: [editor.children.length],
+          });
+          lazyRender(items.slice(RENDER_SIZE));
+        };
+        lazyRender(editor_value.slice(RENDER_SIZE));
+        editor_value = editor_value.slice(0, RENDER_SIZE);
+      }
+
       editorMarkdownValueRef.current = value;
 
       if (ReactEditor.isFocused(editor) && editor.selection != null) {
-        setEditorValueNoJump(new_value);
+        setEditorValueNoCrash(editor_value);
       } else {
-        setEditorValue(new_value);
+        setEditorValue(editor_value);
       }
     }, [value]);
 

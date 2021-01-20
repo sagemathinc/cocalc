@@ -28,10 +28,12 @@ export function slate_to_markdown(
   data: Node[],
   options?: { no_escape?: boolean }
 ): string {
+  const t = new Date().valueOf();
   const r = data
     .map((node) =>
       serialize(node, { parent: node, no_escape: !!options?.no_escape })
     )
     .join("");
+  console.log("slate_to_markdown ", new Date().valueOf() - t, "ms");
   return r;
 }
