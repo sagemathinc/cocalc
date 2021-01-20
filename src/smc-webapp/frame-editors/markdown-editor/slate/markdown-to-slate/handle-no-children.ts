@@ -9,8 +9,9 @@ import { replace_all } from "smc-util/misc";
 import { Marks } from "./types";
 import { register } from "./register";
 import { DEFAULT_CHILDREN } from "../util";
+import { CURSOR } from "../leaf-to-markdown";
 
-export function handleNoChildren({ token, state }) {
+export function handleNoChildren({ token, state, options }) {
   if (token.children != null) {
     throw Error(
       `handleNoChildren -- the token must not have children ${JSON.stringify(
@@ -20,12 +21,12 @@ export function handleNoChildren({ token, state }) {
   }
   // Handle inline code as a leaf node with style
   if (token.type == "code_inline") {
-    return [{ text: token.content, code: true }];
+    return [createTextNode(token.content, { code: true }, options.cursorRef)];
   }
 
   if (token.type == "text" || token.type == "inline") {
     // text
-    return [mark({ text: token.content }, state.marks)];
+    return [createTextNode(token.content, state.marks, options.cursorRef)];
   } else {
     // everything else -- via our element plugin mechanism.
     const markdownToSlate = getMarkdownToSlate(token.type);
@@ -50,19 +51,32 @@ export function handleNoChildren({ token, state }) {
 
 register(handleNoChildren);
 
-function mark(text: Text, marks: Marks): Text {
-  if (!text.text) {
+function createTextNode(
+  text: string,
+  marks: Marks,
+  cursorRef?: { current: { node: Text; offset: number } }
+): Text {
+  if (!text) {
     // don't mark empty string
-    return text;
+    return { text };
   }
 
   // unescape dollar signs (in markdown we have to escape them so they aren't interpreted as math).
-  text.text = replace_all(text.text, "\\$", "$");
+  text = replace_all(text, "\\$", "$");
+  const node = { text } as Text;
 
   for (const mark in marks) {
     if (marks[mark]) {
-      text[mark] = true;
+      node[mark] = true;
     }
   }
-  return text;
+
+  if (cursorRef != null) {
+    const offset = text.indexOf(CURSOR);
+    if (offset != -1) {
+      node.text = text.slice(0, offset) + text.slice(offset + 2); // +2 because utf16
+      cursorRef.current = { node, offset };
+    }
+  }
+  return node;
 }

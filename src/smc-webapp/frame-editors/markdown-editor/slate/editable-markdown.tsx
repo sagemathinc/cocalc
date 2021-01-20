@@ -15,6 +15,13 @@ import {
   Element as SlateElement,
 } from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "slate-react";
+
+import { hash_string } from "smc-util/misc";
+ReactEditor.findKey = (editor, node) => {
+  return { id: `${hash_string(JSON.stringify(node))}` };
+};
+
+
 import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
 import { debounce } from "lodash";
 import {
@@ -33,19 +40,13 @@ import { use_font_size_scaling } from "../../frame-tree/hooks";
 import { Path } from "../../frame-tree/path";
 
 import { slate_to_markdown } from "./slate-to-markdown";
-import { markdown_to_slate } from "./markdown-to-slate";
+import { CursorRef, markdown_to_slate } from "./markdown-to-slate";
 import { isElementOfType } from "./elements";
 import { Element } from "./element";
 import { Leaf } from "./leaf";
 import { formatSelectedText } from "./format";
 
-/*import { ListItem } from "./elements/list-item";
-declare module "slate" {
-  export interface CustomTypes {
-    Element: ListItem;
-    Text: { bold?: boolean; italic?: boolean };
-  }
-}*/
+import { three_way_merge } from "smc-util/sync/editor/generic/util";
 
 const STYLE = {
   width: "100%",
@@ -257,44 +258,91 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       return () => actions.get_syncstring().off("before-change", before_change);
     }, []);
 
-    const setEditorValueNoJump = useCallback(async (new_value) => {
-      ReactEditor.blur(editor);
-      setEditorValue(new_value);
-      // Critical to wait until after next render loop, or
-      // ReactEditor.toDOMPoint below will not detect the problem.
-      await delay(0);
-      if (editor.selection != null) {
-        try {
-          ReactEditor.toDOMPoint(editor, editor.selection.anchor);
-          ReactEditor.toDOMPoint(editor, editor.selection.focus);
+    const setEditorValueNoJump = useCallback(
+      async (new_value, cursorRef?: CursorRef) => {
+        console.log("setEditorValueNoJump ", cursorRef);
+        ReactEditor.blur(editor);
+        const t = new Date();
+        setEditorValue(new_value);
+        if (cursorRef?.current != null) {
+          await new Promise(requestAnimationFrame);
+          console.log("time to set value", new Date() - t, " ms");
+          console.log("cursor restore = ", cursorRef.current);
+          const path = ReactEditor.findPath(editor, cursorRef.current.node);
+          console.log("path = ", path);
+          const { offset } = cursorRef.current;
+          Transforms.select(editor, { path, offset });
+          // We have to blur and focus, since otherwise the cursor
+          // is displayed at the beginning (though when the user moves
+          // it, then it is in the right place).
+          await new Promise(requestAnimationFrame);
+          ReactEditor.blur(editor);
+          await new Promise(requestAnimationFrame);
           ReactEditor.focus(editor);
-        } catch (_err) {
-          // Do not focus -- better than crashing the browser.
-          // When the user clicks again to focus, they will choose
-          // a valid cursor point.
-          // TODO: we need to either figure out where the cursor
-          // would move to, etc., or we need to use a sequences of
-          // Transforms rather than just setting the editor value.
-          // This is of course very hard, but it is the right thing
-          // to do in general.
-          // Another option might be to insert something in the DOM
-          // at the cursor, make changes, find that thing, and put the
-          // cursor back there.  But that might not work if it disrupts
-          // a user while they are typing.
         }
-      }
-    }, []);
+        // Critical to wait until after next render loop, or
+        // ReactEditor.toDOMPoint below will not detect the problem.
+        await new Promise(requestAnimationFrame);
+        if (editor.selection != null) {
+          try {
+            ReactEditor.focus(editor);
+            ReactEditor.toDOMPoint(editor, editor.selection.anchor);
+            ReactEditor.toDOMPoint(editor, editor.selection.focus);
+          } catch (_err) {
+            // Do not focus -- better than crashing the browser.
+            // When the user clicks again to focus, they will choose
+            // a valid cursor point.
+            // TODO: we need to either figure out where the cursor
+            // would move to, etc., or we need to use a sequences of
+            // Transforms rather than just setting the editor value.
+            // This is of course very hard, but it is the right thing
+            // to do in general.
+            // Another option might be to insert something in the DOM
+            // at the cursor, make changes, find that thing, and put the
+            // cursor back there.  But that might not work if it disrupts
+            // a user while they are typing.
+          }
+        }
+      },
+      []
+    );
 
     useEffect(() => {
       if (value == editorMarkdownValueRef.current) {
         // Setting to current value, so no-op.
         return;
       }
-      const new_value = markdown_to_slate(value);
+
+      let new_value;
+      const cursorRef = {} as CursorRef;
+      if (editor.selection != null && editorMarkdownValueRef.current != null) {
+        const t = new Date();
+        // Preserve the cursor!
+        let options: any = {};
+        const node = Editor.node(editor, editor.selection.focus)?.[0];
+        const offset = editor.selection.focus.offset;
+        if (node == null || offset == null) throw Error("bug");
+        options = { cursor: { node, offset } };
+        const base = editorMarkdownValueRef.current;
+        const base_with_cursor = slate_to_markdown(editor.children, options);
+        const value_with_cursor = three_way_merge({
+          base,
+          remote: value,
+          local: base_with_cursor,
+        });
+        new_value = markdown_to_slate(value_with_cursor, {
+          cursorRef,
+        });
+        console.log("cursorRef.current = ", cursorRef.current);
+        console.log("time ", new Date() - t, "ms");
+      } else {
+        new_value = markdown_to_slate(value);
+      }
+
       editorMarkdownValueRef.current = value;
 
       if (ReactEditor.isFocused(editor) && editor.selection != null) {
-        setEditorValueNoJump(new_value);
+        setEditorValueNoJump(new_value, cursorRef);
       } else {
         setEditorValue(new_value);
       }

@@ -11,6 +11,7 @@ export interface Marks {
   sup?: boolean;
   sub?: boolean;
   color?: string;
+  code?: boolean;
 }
 
 export interface State {

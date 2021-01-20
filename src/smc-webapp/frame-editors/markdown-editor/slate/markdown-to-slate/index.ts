@@ -12,4 +12,4 @@ import "./handle-open";
 import "./handle-children";
 import "./handle-no-children";
 
-export { markdown_to_slate } from "./parse";
+export { markdown_to_slate, CursorRef } from "./parse";

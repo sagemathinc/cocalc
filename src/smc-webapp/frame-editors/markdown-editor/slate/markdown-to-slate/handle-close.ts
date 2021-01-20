@@ -9,7 +9,7 @@ import { getMarkdownToSlate } from "../elements";
 import { register } from "./register";
 import { parse } from "./parse";
 
-function handleClose({ token, state }) {
+function handleClose({ token, state, options }) {
   if (!state.close_type) return;
   if (state.contents == null) {
     throw Error("bug -- state.contents must not be null");
@@ -43,7 +43,7 @@ function handleClose({ token, state }) {
       // This is useful to better render nested markdown lists.
       let all_tight: boolean = false;
       for (const token2 of state.contents) {
-        for (const node of parse(token2, child_state)) {
+        for (const node of parse(token2, child_state, options)) {
           if (node["tight"]) {
             all_tight = true;
           }

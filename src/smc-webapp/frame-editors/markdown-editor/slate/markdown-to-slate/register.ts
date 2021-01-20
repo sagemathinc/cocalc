@@ -5,10 +5,12 @@
 
 import { Descendant } from "slate";
 import { State, Token } from "./types";
+import { Options } from "./parse";
 
 type Handler = (opts: {
   token: Token;
   state: State;
+  options?: Options;
 }) => Descendant[] | undefined;
 
 export const handlers: Handler[] = [];
