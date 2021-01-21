@@ -100,7 +100,7 @@ export function register(h: Handler): void {
 
 export function getRender(slateType: string): React.FC<RenderElementProps> {
   if (renderer[slateType] == null) {
-    //console.log(`getRender: using generic plugin for type '${slateType}'`);
+    console.log(`getRender: using generic plugin for type '${slateType}'`);
     return renderer["generic"];
   }
   return renderer[slateType];
@@ -110,7 +110,9 @@ export function getMarkdownToSlate(
   tokenType: string = ""
 ): markdownToSlateFunction {
   if (markdownToSlate[tokenType] == null) {
-    //console.log(`getMarkdownToSlate: using generic plugin for type '${tokenType}'`);
+    console.log(
+      `getMarkdownToSlate: using generic plugin for type '${tokenType}'`
+    );
     return markdownToSlate["generic"];
   }
   return markdownToSlate[tokenType];
@@ -120,7 +122,9 @@ export function getSlateToMarkdown(
   slateType: string = ""
 ): slateToMarkdownFunction {
   if (slateToMarkdown[slateType] == null) {
-    //console.log(`getSlateToMarkdown: using generic plugin for type '${slateType}'`);
+    console.log(
+      `getSlateToMarkdown: using generic plugin for type '${slateType}'`
+    );
     return slateToMarkdown["generic"];
   }
   return slateToMarkdown[slateType];

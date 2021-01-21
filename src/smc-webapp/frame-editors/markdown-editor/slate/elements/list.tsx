@@ -50,7 +50,7 @@ register({
         : {};
 
     return React.createElement(
-      "bullet_list" ? "ul" : "ol",
+      element.type == "bullet_list" ? "ul" : "ol",
       {
         ...attributes,
         ...{ style },
