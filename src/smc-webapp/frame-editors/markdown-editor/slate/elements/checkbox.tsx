@@ -17,7 +17,7 @@ import { Checkbox as AntdCheckbox } from "antd";
 
 export interface Checkbox extends SlateElement {
   type: "checkbox";
-  checked?: boolean;
+  value?: boolean;  // important: using the field value results in more efficient diffs
 }
 
 const Element: React.FC<RenderElementProps> = ({
@@ -43,13 +43,11 @@ const Element: React.FC<RenderElementProps> = ({
           padding: "0 0.2em",
           verticalAlign: "middle",
         }}
-        checked={!!element.checked}
+        checked={!!element.value}
         onChange={(e) => {
-          Transforms.setNodes(
-            editor,
-            { checked: e.target.checked } as any,
-            { match: (node) => node['type'] == "checkbox" }
-          );
+          Transforms.setNodes(editor, { value: e.target.checked } as any, {
+            match: (node) => node["type"] == "checkbox",
+          });
         }}
       />
       {children}
@@ -68,13 +66,12 @@ register({
       type: "checkbox",
       isVoid: true,
       isInline: true,
-      checked: token.checked,
+      value: token.checked,
       children: [{ text: "" }],
     };
   },
 
   Element,
 
-  fromSlate: ({ node }) => `[${node.checked ? "x" : " "}]`,
+  fromSlate: ({ node }) => `[${node.value ? "x" : " "}]`,
 });
-

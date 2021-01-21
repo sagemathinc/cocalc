@@ -17,7 +17,7 @@ editor_jupyter.coffee.
 import { Node, Operation } from "slate";
 import * as stringify from "json-stable-stringify";
 import { dmp } from "smc-util/sync/editor/generic/util";
-import { copy_with, copy_without, StringCharMapping } from "smc-util/misc";
+import { copy_without, StringCharMapping } from "smc-util/misc";
 
 function docToStrings(doc: Node[]): string[] {
   const v: string[] = [];
@@ -98,11 +98,19 @@ export function slateDiff(
           } else if (a.text != null && b.text != null && a.text == b.text) {
             // Two text nodes with same text and different marks; we can transform one
             // to the other.
+            const properties = copy_without(a, "text");
+            const newProperties = copy_without(b, "text");
+            // We also must explicitly remove any properties that got dropped!
+            for (const key in properties) {
+              if (newProperties[key] === undefined) {
+                newProperties[key] = undefined;
+              }
+            }
             operations.push({
               type: "set_node",
               path: path.concat([index]),
-              properties: copy_without(a, "text"),
-              newProperties: copy_without(b, "text"),
+              properties,
+              newProperties,
             });
           } else if (
             /* non-Text, same except for a value property, so handle checkboxes, code blocks, etc. */
@@ -114,8 +122,8 @@ export function slateDiff(
             operations.push({
               type: "set_node",
               path: path.concat([index]),
-              properties: copy_with(a, "value"),
-              newProperties: copy_with(b, "value"),
+              properties: { value: a.value },
+              newProperties: { value: b.value },
             });
           } else {
             // For now, we just remove and set, since that's the only
