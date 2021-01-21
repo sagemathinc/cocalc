@@ -69,6 +69,7 @@ async function applyOperations(editor, operations): Promise<void> {
   //await new Promise(requestAnimationFrame);
   const t0 = new Date().valueOf();
 
+  const is_focused = ReactEditor.isFocused(editor);
   // IMPORTANT: we use transform to apply all but the last operation,
   // then use editor.apply for the very last operation.  Why?
   // Because editor.apply normalize the document and does a bunch of
@@ -76,12 +77,12 @@ async function applyOperations(editor, operations): Promise<void> {
   // are no longer valid, e.g., their paths are wrong, etc.
   // Obviously, it is also much better to not normalize every single
   // time too.
-  ReactEditor.blur(editor);
+  if (is_focused) ReactEditor.blur(editor);
   for (const op of operations.slice(0, operations.length - 1)) {
     Transforms.transform(editor, op);
   }
   editor.apply(operations[operations.length - 1]);
-  ReactEditor.focus(editor);
+  if (is_focused) ReactEditor.focus(editor);
   console.log(
     `apply ${operations.length} operations`,
     new Date().valueOf() - t0,
