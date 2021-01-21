@@ -65,11 +65,23 @@ interface Props {
 }
 
 async function applyOperations(editor, operations): Promise<void> {
+  if (operations.length == 0) return;
   //await new Promise(requestAnimationFrame);
   const t0 = new Date().valueOf();
-  for (const op of operations) {
-    editor.apply(op);
+
+  // IMPORTANT: we use transform to apply all but the last operation,
+  // then use editor.apply for the very last operation.  Why?
+  // Because editor.apply normalize the document and does a bunch of
+  // other things which can easily make it so the operations
+  // are no longer valid, e.g., their paths are wrong, etc.
+  // Obviously, it is also much better to not normalize every single
+  // time too.
+  ReactEditor.blur(editor);
+  for (const op of operations.slice(0, operations.length - 1)) {
+    Transforms.transform(editor, op);
   }
+  editor.apply(operations[operations.length - 1]);
+  ReactEditor.focus(editor);
   console.log(
     `apply ${operations.length} operations`,
     new Date().valueOf() - t0,
@@ -326,6 +338,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       editorMarkdownValueRef.current = value;
       const nextEditorValue = markdown_to_slate(value);
       const operations = slateDiff(editor.children, nextEditorValue);
+      (window as any).diff = {
+        operations,
+        doc0: editor.children,
+        doc1: nextEditorValue,
+      };
       applyOperations(editor, operations);
 
       /*
