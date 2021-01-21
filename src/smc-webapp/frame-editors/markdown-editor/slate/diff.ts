@@ -15,9 +15,14 @@ editor_jupyter.coffee.
 */
 
 import { Node, Operation } from "slate";
-import * as stringify from "json-stable-stringify";
 import { dmp } from "smc-util/sync/editor/generic/util";
 import { copy_without, StringCharMapping } from "smc-util/misc";
+
+// We could instead use
+//    import * as stringify from "json-stable-stringify";
+// which might sometimes avoid a safe "false positive", but
+// is significantly slower.
+const stringify = JSON.stringify;
 
 function docToStrings(doc: Node[]): string[] {
   const v: string[] = [];
