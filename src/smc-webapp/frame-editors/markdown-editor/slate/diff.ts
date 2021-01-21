@@ -17,7 +17,7 @@ editor_jupyter.coffee.
 import { Node, Operation } from "slate";
 import * as stringify from "json-stable-stringify";
 import { dmp } from "smc-util/sync/editor/generic/util";
-import { StringCharMapping } from "smc-util/misc";
+import { copy_with, copy_without, StringCharMapping } from "smc-util/misc";
 
 function docToStrings(doc: Node[]): string[] {
   const v: string[] = [];
@@ -27,7 +27,11 @@ function docToStrings(doc: Node[]): string[] {
   return v;
 }
 
-export function slateDiff(doc0: Node[], doc1: Node[]): Operation[] {
+export function slateDiff(
+  doc0: Node[],
+  doc1: Node[],
+  path: number[] = []
+): Operation[] {
   const t0 = new Date().valueOf();
   const string_mapping = new StringCharMapping();
   const s0 = docToStrings(doc0);
@@ -67,27 +71,66 @@ export function slateDiff(doc0: Node[], doc1: Node[]): Operation[] {
           // due to a shocking browser bug in JSON.stringify!
           const node = JSON.parse(string_mapping._to_string[x]);
           if (node == null) throw Error("bug");
-          // TODO: we will do something like this recursively in some cases:
-          /*
+
+          /* This change has happened:
+                a = doc0[index] |---> b = node
+             Instead of always just deleting a and creating b, let's try harder.
+             If they are the same except children compare their children and instead
+             do operations on those.
+          */
+          const a = doc0[index] as any,
+            b = node as any;
+          if (
+            /* same except for children */
+            a.children != null &&
+            b.children != null &&
+            stringify(copy_without(a, "children")) ==
+              stringify(copy_without(b, "children"))
+          ) {
+            // OK, just transform the children instead!
+            for (const op of slateDiff(
+              a["children"],
+              b["children"],
+              path.concat([index])
+            )) {
+              operations.push(op);
+            }
+          } else if (a.text != null && b.text != null && a.text == b.text) {
+            // Two text nodes with same text and different marks; we can transform one
+            // to the other.
             operations.push({
               type: "set_node",
-              path: [index],
-              properties: doc0[index],
-              newProperties: obj,
+              path: path.concat([index]),
+              properties: copy_without(a, "text"),
+              newProperties: copy_without(b, "text"),
             });
-            */
-          // For now, we just remove and set, since that's the only
-          // thing to do generically.
-          operations.push({
-            type: "remove_node",
-            path: [index],
-            node: doc0[index],
-          });
-          operations.push({
-            type: "insert_node",
-            path: [index],
-            node,
-          });
+          } else if (
+            /* non-Text, same except for a value property, so handle checkboxes, code blocks, etc. */
+            a.children != null &&
+            b.children != null &&
+            stringify(copy_without(a, "value")) ==
+              stringify(copy_without(b, "value"))
+          ) {
+            operations.push({
+              type: "set_node",
+              path: path.concat([index]),
+              properties: copy_with(a, "value"),
+              newProperties: copy_with(b, "value"),
+            });
+          } else {
+            // For now, we just remove and set, since that's the only
+            // thing to do generically.
+            operations.push({
+              type: "remove_node",
+              path: path.concat([index]),
+              node: doc0[index],
+            });
+            operations.push({
+              type: "insert_node",
+              path: path.concat([index]),
+              node,
+            });
+          }
           index += 1;
         }
         i += 1; // skip over next chunk -- (since we turned remove/add into "set/mutate").
@@ -96,7 +139,7 @@ export function slateDiff(doc0: Node[], doc1: Node[]): Operation[] {
         for (let j = 0; j < val.length; j++) {
           operations.push({
             type: "remove_node",
-            path: [index],
+            path: path.concat([index]),
             node: doc0[index],
           });
         }
@@ -108,7 +151,7 @@ export function slateDiff(doc0: Node[], doc1: Node[]): Operation[] {
         if (node == null) throw Error("bug");
         operations.push({
           type: "insert_node",
-          path: [index],
+          path: path.concat([index]),
           node,
         });
         index += 1;
