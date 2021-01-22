@@ -7,4 +7,4 @@ export NODE_PATH=$SALVUS_ROOT/smc-hub/node_modules/:$NODE_PATH
 cd $SALVUS_ROOT/webapp-lib/primus
 node update-primus.js $*
 
-uglifyjs primus-engine.js > primus-engine.min.js
+terser primus-engine.js > primus-engine.min.js

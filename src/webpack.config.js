@@ -279,10 +279,12 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 // this way, we can be 100% sure
 function smcChunkSorter(a, b) {
   const order = ["css", "fill", "vendor", "smc"];
-  if (order.indexOf(a.names[0]) < order.indexOf(b.names[0])) {
+  if (order.indexOf(a) < order.indexOf(b)) {
     return -1;
-  } else {
+  } else if (order.indexOf(a) > order.indexOf(b)) {
     return 1;
+  } else {
+    return 0;
   }
 }
 
@@ -455,26 +457,21 @@ if (PRODMODE) {
 
 plugins.push(...[assetsPlugin, statsWriterPlugin]);
 
-const UglifyJsPlugin = require("uglifyjs-webpack-plugin");
-const minimizer = new UglifyJsPlugin({
-  uglifyOptions: {
-    output: {
-      comments: new RegExp(`This file is part of ${TITLE}`, "g"),
-    },
-  },
-}); // to keep the banner inserted above
+const TerserPlugin = require("terser-webpack-plugin");
+
+const minimizer = new TerserPlugin({ parallel: 2 });
 
 // tuning generated filenames and the configs for the aux files loader.
 // FIXME this setting isn't picked up properly
 if (PRODMODE) {
-  hashname = "[sha256:hash:base62:33].cacheme.[ext]"; // don't use base64, it's not recommended for some reason.
+  hashname = "[sha256:fullhash:base62:33].cacheme.[ext]"; // don't use base64, it's not recommended for some reason.
 } else {
   hashname = "[path][name].nocache.[ext]";
 }
-const pngconfig = `name=${hashname}&limit=16000&mimetype=image/png`;
-const svgconfig = `name=${hashname}&limit=16000&mimetype=image/svg+xml`;
-const icoconfig = `name=${hashname}&mimetype=image/x-icon`;
-const woffconfig = `name=${hashname}&mimetype=application/font-woff`;
+const pngconfig = { name: hashname, limit: 16000, mimetype: "image/png" };
+const svgconfig = { name: hashname, limit: 16000, mimetype: "image/svg+xml" };
+const icoconfig = { name: hashname, mimetype: "image/x-icon" };
+const woffconfig = { name: hashname, mimetype: "application/font-woff" };
 
 // publicPath: either locally, or a CDN, see https://github.com/webpack/docs/wiki/configuration#outputpublicpath
 // In order to use the CDN, copy all files from the `OUTPUT` directory over there.
@@ -500,11 +497,12 @@ module.exports = {
   // https://webpack.js.org/configuration/devtool/#devtool
   // **do** use cheap-module-eval-source-map; it produces too large files, but who cares since we are not
   // using this in production.  DO NOT use 'source-map', which is VERY slow.
-  devtool: SOURCE_MAP ? "#cheap-module-eval-source-map" : undefined,
+  devtool: SOURCE_MAP ? "eval-cheap-module-source-map" : undefined,
 
   mode: PRODMODE ? "production" : "development",
 
   optimization: {
+    minimize: true,
     minimizer: [minimizer],
 
     // this doesn't play nice with a loading indicator on the app page. probably best to not use it.
@@ -523,16 +521,22 @@ module.exports = {
 
   output: {
     path: OUTPUT,
+    pathinfo: true,
     publicPath,
-    filename: PRODMODE ? "[name]-[hash].cacheme.js" : "[name].nocache.js",
-    chunkFilename: PRODMODE ? "[id]-[hash].cacheme.js" : "[id].nocache.js",
+    filename: PRODMODE ? "[name]-[fullhash].cacheme.js" : "[name].nocache.js",
+    chunkFilename: PRODMODE ? "[id]-[fullhash].cacheme.js" : "[id].nocache.js",
     hashFunction: "sha256",
+  },
+
+  // since webpack 5, the patch-poll CLI param seems to be gone?
+  watchOptions: {
+    poll: 1000, // Check for changes every second
   },
 
   module: {
     rules: [
       { test: /\.coffee$/, loader: "coffee-loader" },
-      { test: /\.cjsx$/, loader: ["coffee-loader", "cjsx-loader"] },
+      { test: /\.cjsx$/, use: ["coffee-loader", "cjsx-loader"] },
       { test: [/node_modules\/prom-client\/.*\.js$/], loader: "babel-loader" },
       { test: [/latex-editor\/.*\.jsx?$/], loader: "babel-loader" },
       // Note: see https://github.com/TypeStrong/ts-loader/issues/552
@@ -593,29 +597,51 @@ module.exports = {
           `sass-loader?${cssConfig}&indentedSyntax`,
         ],
       },
-      { test: /\.png$/, loader: `file-loader?${pngconfig}` },
-      { test: /\.ico$/, loader: `file-loader?${icoconfig}` },
-      { test: /\.svg(\?[a-z0-9\.-=]+)?$/, loader: `url-loader?${svgconfig}` },
-      { test: /\.(jpg|jpeg|gif)$/, loader: `file-loader?name=${hashname}` },
+      {
+        test: /\.png$/,
+        use: [{ loader: "file-loader", options: pngconfig }],
+      },
+      {
+        test: /\.ico$/,
+        use: [{ loader: "file-loader", options: icoconfig }],
+      },
+      {
+        test: /\.svg(\?[a-z0-9\.-=]+)?$/,
+        use: [{ loader: "url-loader", options: svgconfig }],
+      },
+      {
+        test: /\.(jpg|jpeg|gif)$/,
+        use: [{ loader: "file-loader", options: { name: hashname } }],
+      },
       {
         test: /\.html$/,
         include: [path.resolve(__dirname, "smc-webapp")],
-        use: ["raw-loader", "html-minify-loader?conservativeCollapse"],
+        use: [
+          { loader: "raw-loader" },
+          {
+            loader: "html-minify-loader",
+            options: { conservativeCollapse: true },
+          },
+        ],
       },
       { test: /\.hbs$/, loader: "handlebars-loader" },
       {
         test: /\.woff(2)?(\?[a-z0-9\.-=]+)?$/,
-        loader: `url-loader?${woffconfig}`,
+        use: [{ loader: "url-loader", options: woffconfig }],
       },
       {
         test: /\.ttf(\?[a-z0-9\.-=]+)?$/,
-        loader: "url-loader?limit=10000&mimetype=application/octet-stream",
+        use: [
+          {
+            loader: "url-loader",
+            options: { limit: 10000, mimetype: "application/octet-stream" },
+          },
+        ],
       },
       {
         test: /\.eot(\?[a-z0-9\.-=]+)?$/,
-        loader: `file-loader?name=${hashname}`,
+        use: [{ loader: "file-loader", options: { name: hashname } }],
       },
-      // ---
       {
         test: /\.css$/i,
         use: [
@@ -655,6 +681,12 @@ module.exports = {
       path.resolve(__dirname, "smc-webapp/node_modules"),
       path.resolve(__dirname, "node_modules"),
     ],
+    fallback: {
+      path: require.resolve("path-browserify"),
+      crypto: require.resolve("crypto-browserify"),
+      util: require.resolve("util/"),
+      stream: require.resolve("stream-browserify"),
+    },
   },
 
   plugins,
