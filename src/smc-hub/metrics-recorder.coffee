@@ -66,12 +66,12 @@ exports.new_counter = new_counter = (name, help, labels) ->
     # use it like counter.labels(labelA, labelB).inc([positive number or default is 1])
     if not name.endsWith('_total')
         throw "Counter metric names have to end in [_unit]_total but I got '#{name}' -- https://prometheus.io/docs/practices/naming/"
-    return new prom_client.Counter(name: PREFIX + name, help: help, labelNames: labels)
+    return new prom_client.Counter(name: PREFIX + name, help: help, labelNames: labels ? [])
 
 exports.new_gauge = new_gauge = (name, help, labels) ->
     # a prometheus gauge -- https://github.com/siimon/prom-client#gauge
     # basically, use it like gauge.labels(labelA, labelB).set(value)
-    return new prom_client.Gauge(name: PREFIX + name, help: help, labelNames: labels)
+    return new prom_client.Gauge(name: PREFIX + name, help: help, labelNames: labels ? [])
 
 exports.new_quantile = new_quantile = (name, help, config={}) ->
     # invoked as quantile.observe(value)
