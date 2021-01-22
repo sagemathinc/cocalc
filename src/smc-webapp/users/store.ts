@@ -21,7 +21,7 @@ interface Profile {
 const profiles = new LRU({ maxAge: 1000 * 120 });
 
 // Define user store: all the users you collaborate with
-class UsersStore extends Store<UsersState> {
+export class UsersStore extends Store<UsersState> {
   public get_first_name(account_id: string): string {
     return this.getIn(["user_map", account_id, "first_name"], "Unknown");
   }

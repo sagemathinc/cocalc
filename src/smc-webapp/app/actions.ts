@@ -5,12 +5,12 @@
 
 import { redux, Actions } from "../app-framework";
 import { set_window_title } from "../browser";
-import { update_params, set_url} from "../history";
+import { update_params, set_url } from "../history";
 import { disconnect_from_project } from "../project/websocket/connect";
 import { session_manager } from "../session";
 import { PageState } from "./store";
 
-class PageActions extends Actions<PageState> {
+export class PageActions extends Actions<PageState> {
   private session_manager?: any;
   private active_key_handler?: any;
   private suppress_key_handlers: boolean = false;
@@ -61,7 +61,7 @@ class PageActions extends Actions<PageState> {
 
   // Actually removes the handler from active memory
   // takes a handler to only remove if it's the active one
-  public erase_active_key_handler(handler) {
+  public erase_active_key_handler(handler?) {
     if (handler == null || handler === this.active_key_handler) {
       $(window).off("keydown", this.active_key_handler);
       this.active_key_handler = undefined;
@@ -81,7 +81,7 @@ class PageActions extends Actions<PageState> {
     this.setState({ num_ghost_tabs: current_num + 1 });
   }
 
-  private clear_ghost_tabs(): void {
+  public clear_ghost_tabs(): void {
     this.setState({ num_ghost_tabs: 0 });
   }
 

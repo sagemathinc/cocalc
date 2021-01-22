@@ -36,6 +36,9 @@ export function init_query_params(): void {
   const test_query_value = QueryParams.get("test");
   if (test_query_value) {
     // include entryway for running mocha tests.
+    const val: string = Array.isArray(test_query_value)
+      ? test_query_value[0]
+      : test_query_value;
     actions.setState({ test: test_query_value });
     console.log("TESTING mode -- waiting for sign in...");
     webapp_client.once("signed_in", async () => {

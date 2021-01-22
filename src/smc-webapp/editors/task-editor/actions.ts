@@ -49,7 +49,7 @@ export class TaskActions extends Actions<TaskState> {
   private _save_local_view_state: Function;
   private _update_visible: Function;
   private is_closed: boolean = false;
-  private key_handler?: Function;
+  private key_handler?: (e: any) => void;
   private set_save_status?: () => void;
 
   public _init(
@@ -221,7 +221,7 @@ export class TaskActions extends Actions<TaskState> {
     const current_task_id = this.store.get("current_task_id");
     const counts = this.store.get("counts");
 
-    let obj : any = update_visible(
+    let obj: any = update_visible(
       tasks,
       local_task_state,
       view,

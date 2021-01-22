@@ -49,3 +49,4 @@ export { NoUpgrades, UPGRADE_ERROR_STYLE } from "./no-upgrades";
 export { UpgradeAdjustor } from "./upgrade-adjustor";
 export { HTML } from "./html";
 export { Markdown } from "./markdown";
+export { COLORS } from "../../smc-util/theme";

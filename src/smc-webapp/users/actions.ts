@@ -9,7 +9,7 @@ import { webapp_client } from "../webapp-client";
 import { UsersState } from "./types";
 import { store } from "./store";
 
-class UsersActions extends Actions<UsersState> {
+export class UsersActions extends Actions<UsersState> {
   public async fetch_non_collaborator(account_id: string): Promise<void> {
     if (!account_id) {
       return;

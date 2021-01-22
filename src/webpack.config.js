@@ -459,7 +459,12 @@ plugins.push(...[assetsPlugin, statsWriterPlugin]);
 
 const TerserPlugin = require("terser-webpack-plugin");
 
-const minimizer = new TerserPlugin({ parallel: 2 });
+// disabling compression should speed it up
+// https://github.com/terser/terser#terser-fast-minify-mode
+const minimizer = new TerserPlugin({
+  parallel: 2,
+  terserOptions: DEVMODE ? { compress: false, mangle: false } : {},
+});
 
 // tuning generated filenames and the configs for the aux files loader.
 // FIXME this setting isn't picked up properly
@@ -686,6 +691,8 @@ module.exports = {
       crypto: require.resolve("crypto-browserify"),
       util: require.resolve("util/"),
       stream: require.resolve("stream-browserify"),
+      vm: require.resolve("vm-browserify"),
+      assert: require.resolve("assert/"),
     },
   },
 
