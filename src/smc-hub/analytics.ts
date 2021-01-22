@@ -15,7 +15,7 @@ import { PostgreSQL } from "./postgres/types";
 import { get_server_settings, pii_retention_to_future } from "./utils";
 import * as fs from "fs";
 import * as TS from "typescript";
-const UglifyJS = require("uglify-js");
+import { minify } from "terser";
 // express-js cors plugin
 import * as cors from "cors";
 import {
@@ -26,11 +26,19 @@ import {
 } from "parse-domain";
 
 // compiling analytics-script.ts and minifying it.
-export const analytics_js = UglifyJS.minify(
-  TS.transpileModule(fs.readFileSync("./analytics-script.ts").toString(), {
-    compilerOptions: { module: TS.ModuleKind.CommonJS },
-  }).outputText
-).code;
+let analytics_js_cached: string | undefined = undefined;
+
+async function get_analytics_js() {
+  if (analytics_js_cached != null) return analytics_js_cached;
+  const ajs_code = TS.transpileModule(
+    fs.readFileSync("./analytics-script.ts").toString(),
+    {
+      compilerOptions: { module: TS.ModuleKind.CommonJS },
+    }
+  ).outputText;
+  analytics_js_cached = (await minify(ajs_code)).code;
+  return analytics_js_cached;
+}
 
 function create_log(name, logger) {
   if (logger != null) {
@@ -216,7 +224,7 @@ export async function setup_analytics_js(
     },
   };
 
-  router.get("/analytics.js", cors(analytics_cors), function (req, res) {
+  router.get("/analytics.js", cors(analytics_cors), async function (req, res) {
     res.header("Content-Type", "text/javascript");
     // in case user was already here, do not send it again.
     // only the first hit is interesting.
@@ -254,7 +262,7 @@ export async function setup_analytics_js(
       const prefix = `//${DOMAIN}${base_url}`;
       res.write(`var PREFIX = '${prefix}';\n\n`);
     }
-    res.write(analytics_js);
+    res.write(await get_analytics_js());
     return res.end();
   });
 
