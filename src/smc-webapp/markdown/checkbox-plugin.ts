@@ -7,7 +7,7 @@
 
 // However it is meant to behave much like Github, in terms of parsing.
 
-function checkboxReplace(md, _options) {
+function checkboxReplace(_md, _options) {
   let index = 0;
   const pattern = /\[(X|\s)\](.*)/i;
   function createTokens(
@@ -52,7 +52,7 @@ function checkboxReplace(md, _options) {
     const text = original.content;
     const match = text.match(pattern);
     if (match === null) {
-      return original;
+      return null;
     }
     const before = text.slice(0, match.index);
     const value = match[1];
@@ -62,20 +62,30 @@ function checkboxReplace(md, _options) {
   }
 
   return (state) => {
-    index = 0;
-    const blockTokens = state.tokens;
-    for (let j = 0; j < blockTokens.length; j++) {
-      if (blockTokens[j].type !== "inline") {
+    for (const token of state.tokens) {
+      if (token.type !== "inline") {
+        // fenced blocks, etc., should be ignored of course.
         continue;
       }
-      let tokens = blockTokens[j].children;
-      for (let i = tokens.length - 1; i >= 0; i--) {
-        const token = tokens[i];
-        blockTokens[j].children = tokens = md.utils.arrayReplaceAt(
-          tokens,
-          i,
-          splitTextToken(token, state.Token)
-        );
+      // Process all the children, setting has_checkboxes
+      // to true if any are found.
+      let has_checkboxes: boolean = false;
+      const v: any[] = [];
+      for (const child of token.children) {
+        const x = splitTextToken(child, state.Token);
+        if (x != null) {
+          has_checkboxes = true;
+          v.push(x);
+        } else {
+          v.push([child]);
+        }
+      }
+
+      if (has_checkboxes) {
+        // Found at least one checkbox, so replace children.  See
+        // https://stackoverflow.com/questions/5080028/what-is-the-most-efficient-way-to-concatenate-n-arrays
+        // for why we concat arrays this way.
+        token.children = [].concat.apply([], v);
       }
     }
   };

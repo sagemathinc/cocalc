@@ -12,6 +12,12 @@ syntax, which is a problem with many math markdown plugins.
 */
 
 import { markdown_it } from "../../../../markdown";
+
+// Use this instead of the above to test with no plugins, which
+// can be useful for isolating performance issues.
+//import * as MarkdownIt from "markdown-it";
+//const markdown_it = new MarkdownIt();
+
 import { math_escape, math_unescape } from "smc-util/markdown-utils";
 import { remove_math, MATH_ESCAPE } from "smc-util/mathjax-utils";
 import { endswith, startswith } from "smc-util/misc";
@@ -55,6 +61,8 @@ function process_math_tokens(tokens: Token[], math): void {
 }
 
 export function parse_markdown(markdown: string, obj: object = {}): Token[] {
+  const t0 = new Date().valueOf();
+  console.log(0);
   let [text, math] = remove_math(
     math_escape(markdown),
     "`" + MATH_ESCAPE,
@@ -63,6 +71,6 @@ export function parse_markdown(markdown: string, obj: object = {}): Token[] {
 
   const tokens: Token[] = markdown_it.parse(text, obj);
   process_math_tokens(tokens, math);
-
+  console.log("parse_markdown", new Date().valueOf() - t0, " ms");
   return tokens;
 }

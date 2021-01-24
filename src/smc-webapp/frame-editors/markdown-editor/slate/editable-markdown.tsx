@@ -94,6 +94,22 @@ async function applyOperations(editor, operations): Promise<void> {
   console.log("rendered", new Date().valueOf() - t1, "ms");
 }
 
+/*
+// This makes it possible to play around with high keys are
+// assigned...
+const nodeToKey = new WeakMap();
+let id = 0;
+ReactEditor.findKey = (editor: ReactEditor, node: Node) => {
+  let k = nodeToKey.get(node);
+  if (k != null) return k;
+  id += 1;
+  console.log("key ", id);
+  k = { id: `${id}` };
+  nodeToKey.set(node, k);
+  return k;
+};
+*/
+
 export const EditableMarkdown: React.FC<Props> = React.memo(
   ({
     actions,
