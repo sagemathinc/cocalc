@@ -19,6 +19,7 @@ import { Descendant } from "slate";
 import { handlers } from "./register";
 import { State, Token } from "./types";
 import { parse_markdown } from "./parse-markdown";
+import { ensureDocPadding } from "../padding";
 
 export function parse(token: Token, state: State): Descendant[] {
   for (const handler of handlers) {
@@ -46,13 +47,7 @@ export function markdown_to_slate(markdown: string): Descendant[] {
     }
   }
 
-  if (doc.length == 0) {
-    // empty doc isn't allowed; use the simplest doc.
-    doc.push({
-      type: "paragraph",
-      children: [{ text: "" }],
-    });
-  }
+  ensureDocPadding(doc);
 
   (window as any).x = {
     tokens,

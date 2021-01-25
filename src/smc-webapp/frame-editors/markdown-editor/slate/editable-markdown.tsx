@@ -38,7 +38,7 @@ import { isElementOfType } from "./elements";
 import { Element } from "./element";
 import { Leaf } from "./leaf";
 import { formatSelectedText } from "./format";
-
+import { ensureEditorPadding } from "./padding";
 import { withShortcuts } from "./shortcuts";
 
 import { slateDiff } from "./diff";
@@ -164,8 +164,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     // We don't want to do save_value too much, since it presumably can be slow,
     // especially if the document is large. By debouncing, we only do this when
     // the user pauses typing for a moment. Also, this avoids making too many commits.
-    const save_value_debounce = useMemo(
+    const saveValueDebounce = useMemo(
       () => debounce(save_value, SAVE_DEBOUNCE_MS),
+      []
+    );
+
+    const ensureEditorPaddingDebounce = useMemo(
+      () => debounce(() => ensureEditorPadding(editor), 300),
       []
     );
 
@@ -365,6 +370,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         doc1: nextEditorValue,
       };
       applyOperations(editor, operations);
+      ensureEditorPaddingDebounce();
 
       /*
       let editor_value = markdown_to_slate(value);
@@ -450,11 +456,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
                 return;
               }
-              save_value_debounce();
+              saveValueDebounce();
+              ensureEditorPaddingDebounce();
             }}
           >
             <Editable
-              style={{ margin: "0 auto", padding: "50px 75px" }}
+              style={{ margin: "0 auto", padding: "15px 75px" }}
               readOnly={read_only}
               renderElement={Element}
               renderLeaf={Leaf}
