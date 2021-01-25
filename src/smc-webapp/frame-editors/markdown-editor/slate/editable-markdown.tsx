@@ -39,6 +39,8 @@ import { Element } from "./element";
 import { Leaf } from "./leaf";
 import { formatSelectedText } from "./format";
 
+import { withShortcuts } from "./shortcuts";
+
 import { slateDiff } from "./diff";
 
 //const RENDER_SIZE = 25;
@@ -84,14 +86,14 @@ async function applyOperations(editor, operations): Promise<void> {
   editor.apply(operations[operations.length - 1]);
   if (is_focused) ReactEditor.focus(editor);
   console.log(
-    `apply ${operations.length} operations`,
+    `time: apply ${operations.length} operations`,
     new Date().valueOf() - t0,
     "ms"
   );
   (window as any).operations = operations;
   const t1 = new Date().valueOf();
   await new Promise(requestAnimationFrame);
-  console.log("rendered", new Date().valueOf() - t1, "ms");
+  console.log("time: rendered", new Date().valueOf() - t1, "ms");
 }
 
 /*
@@ -126,7 +128,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const editor: ReactEditor = useMemo(() => {
       const cur = actions.getSlateEditor(id);
       if (cur != null) return cur;
-      const ed = withIsInline(withIsVoid(withReact(createEditor())));
+      const ed = withShortcuts(
+        withIsInline(withIsVoid(withReact(createEditor())))
+      );
       actions.registerSlateEditor(id, ed);
       return ed;
     }, []);

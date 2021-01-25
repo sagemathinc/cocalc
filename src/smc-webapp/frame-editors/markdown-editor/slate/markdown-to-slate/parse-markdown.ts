@@ -62,7 +62,6 @@ function process_math_tokens(tokens: Token[], math): void {
 
 export function parse_markdown(markdown: string, obj: object = {}): Token[] {
   const t0 = new Date().valueOf();
-  console.log(0);
   let [text, math] = remove_math(
     math_escape(markdown),
     "`" + MATH_ESCAPE,
@@ -71,6 +70,6 @@ export function parse_markdown(markdown: string, obj: object = {}): Token[] {
 
   const tokens: Token[] = markdown_it.parse(text, obj);
   process_math_tokens(tokens, math);
-  console.log("parse_markdown", new Date().valueOf() - t0, " ms");
+  console.log("time: parse_markdown", new Date().valueOf() - t0, " ms");
   return tokens;
 }

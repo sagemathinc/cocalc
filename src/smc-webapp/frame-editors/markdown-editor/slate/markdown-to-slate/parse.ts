@@ -58,7 +58,7 @@ export function markdown_to_slate(markdown: string): Descendant[] {
     tokens,
     doc,
   };
-  console.log("markdown_to_slate", new Date().valueOf() - t0, "ms");
+  console.log("time: markdown_to_slate", new Date().valueOf() - t0, "ms");
 
   return doc;
 }

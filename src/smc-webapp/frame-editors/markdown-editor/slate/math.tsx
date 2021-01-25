@@ -101,7 +101,7 @@ export const SlateMath: React.FC<Props> = React.memo(({ value, onChange }) => {
 });
 
 function isDisplayMode(math: string): boolean {
-  return startswith(math, "$$");
+  return startswith(math, "$$") && math.length > 2;
 }
 
 function mathToHtml(
@@ -111,8 +111,12 @@ function mathToHtml(
   if (displayMode == null) {
     displayMode = isDisplayMode(math);
     const i = displayMode ? 2 : 1;
+    let code = math.slice(i, math.length - i).trim();
+    if (!code) {
+      code = "\\LaTeX";
+    }
     try {
-      html = renderToString(math.slice(i, math.length - i), {
+      html = renderToString(code, {
         displayMode,
         macros,
       });

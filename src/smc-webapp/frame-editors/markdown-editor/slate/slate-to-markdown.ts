@@ -34,6 +34,6 @@ export function slate_to_markdown(
       serialize(node, { parent: node, no_escape: !!options?.no_escape })
     )
     .join("");
-  console.log("slate_to_markdown ", new Date().valueOf() - t, "ms");
+  console.log("time: slate_to_markdown ", new Date().valueOf() - t, "ms");
   return r;
 }

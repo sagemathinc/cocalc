@@ -174,7 +174,7 @@ export function slateDiff(
     }
     i += 1;
   }
-  console.log("slateDiff", new Date().valueOf() - t0, "ms");
+  console.log("time: slateDiff", new Date().valueOf() - t0, "ms");
 
   return operations;
 }
