@@ -125,7 +125,12 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
       // fallback
       select_engine(ENGINES[0]);
     } else {
-      actions.set_build_command(build_command);
+      // NOTE: we no longer allow the command to be arbitrary -- it gets some sanity checks
+      // and improvements. This does make certain things that used to be possible now IMPOSSIBLE.
+      // Sorry, but that's the best we can do without significant changes.  See #5183
+      const sanitized = actions.sanitize_build_cmd_str(build_command);
+      actions.set_build_command(sanitized);
+      set_build_command(sanitized);
     }
     set_dirty(false);
     set_focus(false);
@@ -193,7 +198,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
           <h4>Build Command</h4>
           Select a build engine from the menu at the right, or enter absolutely
           any custom build command line you want. Custom build commands are run
-          using bash, so you can separate multiple commands with a semicolon.
+          using bash, so you can separate multiple commands with a semicolon.  If there is no semicolon, then the command line must end with the filename (not including the directory).
         </div>
       </Alert>
     );
@@ -208,7 +213,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  if (!build_command) {
+  if (build_command == null) {
     return <Loading />;
   } else {
     return render_body();
