@@ -4,9 +4,8 @@
  */
 
 import { React } from "../../../../app-framework";
-import { useFocused, useSelected } from "slate-react";
 import { FOCUSED_COLOR } from "../util";
-import { SlateElement, register } from "./register";
+import { SlateElement, register, useFocused, useSelected } from "./register";
 
 export interface Emoji extends SlateElement {
   type: "emoji";

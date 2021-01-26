@@ -4,7 +4,7 @@
  */
 
 import { CSS, React } from "../../../app-framework";
-import { RenderLeafProps } from "slate-react";
+import { RenderLeafProps } from "./slate-react";
 import { startswith } from "smc-util/misc";
 
 const CODE_STYLE = {

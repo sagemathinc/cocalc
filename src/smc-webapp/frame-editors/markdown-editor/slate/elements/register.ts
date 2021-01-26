@@ -3,8 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+export {
+  RenderElementProps,
+  useFocused,
+  useSelected,
+  useSlate,
+} from "../slate-react";
+
 import { React } from "../../../../app-framework";
-import { RenderElementProps } from "slate-react";
+import { RenderElementProps } from "../slate-react";
 import { Element } from "slate";
 import { State as MarkdownParserState, Token } from "../markdown-to-slate";
 import { Info } from "../slate-to-markdown";

@@ -15,7 +15,7 @@ import {
 } from "../code-editor/actions";
 import { print_html } from "../frame-tree/print";
 import { FrameTree } from "../frame-tree/types";
-import { ReactEditor as SlateEditor } from "slate-react";
+import { ReactEditor as SlateEditor } from "./slate/slate-react";
 import { formatAction as slateFormatAction } from "./slate/format";
 
 interface MarkdownEditorState extends CodeEditorState {

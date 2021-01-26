@@ -4,9 +4,8 @@
  */
 
 import { React } from "../../../../app-framework";
-import { RenderElementProps, useSlate } from "slate-react";
 import { Transforms, Element as Element0 } from "slate";
-import { register, SlateElement } from "./register";
+import { register, SlateElement,  RenderElementProps, useSlate  } from "./register";
 import { SlateMath } from "../math";
 
 export interface Math extends SlateElement {

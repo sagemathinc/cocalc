@@ -9,7 +9,7 @@ import { renderToString } from "katex";
 import { startswith } from "smc-util/misc";
 import { SlateCodeMirror } from "./codemirror";
 import * as LRU from "lru-cache";
-import { useFocused, useSelected } from "slate-react";
+import { useFocused, useSelected } from "./slate-react";
 import { FOCUSED_COLOR } from "./util";
 import { delay } from "awaiting";
 

@@ -4,9 +4,8 @@
  */
 
 import { React } from "../../../../app-framework";
-import { register, SlateElement } from "./register";
+import { register, SlateElement, useFocused, useSelected  } from "./register";
 import { ensure_ends_in_two_newline, FOCUSED_COLOR } from "../util";
-import { useFocused, useSelected } from "slate-react";
 import { startswith, endswith } from "smc-util/misc";
 
 export interface HtmlInline extends SlateElement {

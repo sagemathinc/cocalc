@@ -4,20 +4,21 @@
  */
 
 import { React } from "../../../../app-framework";
+import { FOCUSED_COLOR } from "../util";
+import { Transforms } from "slate";
 import {
-  RenderElementProps,
+  SlateElement,
+  register,
   useFocused,
   useSelected,
   useSlate,
-} from "slate-react";
-import { FOCUSED_COLOR } from "../util";
-import { Transforms } from "slate";
-import { SlateElement, register } from "./register";
+  RenderElementProps,
+} from "./register";
 import { Checkbox as AntdCheckbox } from "antd";
 
 export interface Checkbox extends SlateElement {
   type: "checkbox";
-  value?: boolean;  // important: using the field value results in more efficient diffs
+  value?: boolean; // important: using the field value results in more efficient diffs
 }
 
 const Element: React.FC<RenderElementProps> = ({

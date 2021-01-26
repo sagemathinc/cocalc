@@ -4,9 +4,13 @@
  */
 
 import { React } from "../../../../app-framework";
-import { RenderElementProps, useSlate } from "slate-react";
 import { Element as Element0, Transforms } from "slate";
-import { register, SlateElement } from "./register";
+import {
+  register,
+  SlateElement,
+  RenderElementProps,
+  useSlate,
+} from "./register";
 import { SlateCodeMirror } from "../codemirror";
 import { ensure_ends_in_newline, indent } from "../util";
 

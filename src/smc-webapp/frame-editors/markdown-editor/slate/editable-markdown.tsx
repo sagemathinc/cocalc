@@ -13,7 +13,7 @@ import {
   Transforms,
   Element as SlateElement,
 } from "slate";
-import { Slate, ReactEditor, Editable, withReact } from "slate-react";
+import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
 import { debounce } from "lodash";
 import {

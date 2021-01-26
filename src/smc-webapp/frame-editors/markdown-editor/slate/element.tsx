@@ -4,7 +4,7 @@
  */
 
 import { React } from "../../../app-framework";
-import { RenderElementProps } from "slate-react";
+import { RenderElementProps } from "./slate-react";
 import { getRender } from "./elements";
 
 export const Element: React.FC<RenderElementProps> = (props) => {

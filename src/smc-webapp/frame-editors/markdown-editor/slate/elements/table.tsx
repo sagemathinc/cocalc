@@ -4,9 +4,8 @@
  */
 
 import { CSS, React } from "../../../../app-framework";
-import { register, SlateElement } from "./register";
+import { register, SlateElement, useFocused, useSelected } from "./register";
 import { FOCUSED_COLOR, padLeft, padRight, padCenter } from "../util";
-import { useFocused, useSelected } from "slate-react";
 import { serialize } from "../slate-to-markdown";
 
 export interface Table extends SlateElement {
