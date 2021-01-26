@@ -425,6 +425,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       >
         <Path is_current={is_current} path={path} project_id={project_id} />
         <div
+          className="smc-vfill"
           style={{
             ...STYLE,
             fontSize: font_size,
@@ -461,7 +462,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             }}
           >
             <Editable
-              style={{ margin: "0 auto", padding: "15px 75px" }}
+              className="smc-vfill"
+              style={{ padding: "15px 75px" }}
               readOnly={read_only}
               renderElement={Element}
               renderLeaf={Leaf}

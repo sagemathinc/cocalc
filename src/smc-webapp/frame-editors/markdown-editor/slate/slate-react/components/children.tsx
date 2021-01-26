@@ -7,6 +7,7 @@ import { ReactEditor } from "..";
 import { useSlateStatic } from "../hooks/use-slate-static";
 import { NODE_TO_INDEX, NODE_TO_PARENT } from "../utils/weak-maps";
 import { RenderElementProps, RenderLeafProps } from "./editable";
+import { WindowedList } from "smc-webapp/r_misc";
 
 function timer(...args): () => void {
   const t0 = new Date().valueOf();
@@ -44,9 +45,10 @@ const Children = (props: {
     !editor.isInline(node) &&
     Editor.hasInlines(editor, node);
 
-  const renderChild = (i) => {
-    const p = path.concat(i);
-    const n = node.children[i] as Descendant;
+  const renderChild = ({ index }) => {
+    //console.log("renderChild", { index });
+    const n = node.children[index] as Descendant;
+    const p = path.concat(index);
     const key = ReactEditor.findKey(editor, n);
     const range = Editor.range(editor, p);
     const sel = selection && Range.intersection(range, selection);
@@ -77,7 +79,7 @@ const Children = (props: {
         <TextComponent
           decorations={ds}
           key={key.id}
-          isLast={isLeafBlock && i === node.children.length - 1}
+          isLast={isLeafBlock && index === node.children.length - 1}
           parent={node as Element}
           renderLeaf={renderLeaf}
           text={n}
@@ -92,14 +94,33 @@ const Children = (props: {
     NODE_TO_PARENT.set(n, node);
   }
 
+  /*
   let t = timer("rendering all children", node.children.length);
   const children: JSX.Element[] = [];
   for (let i = 0; i < node.children.length; i++) {
     children.push(renderChild(i));
   }
   t();
-
-  return <React.Fragment>{children}</React.Fragment>;
+  */
+  if (path.length == 0) {
+    // top level -- using windowing!
+    return (
+      <WindowedList
+        row_count={node.children.length}
+        row_renderer={renderChild}
+        overscan_row_count={5}
+        estimated_row_size={22}
+        row_key={(index) => `${index}`}
+      />
+    );
+  } else {
+    // proceed as usual for now
+    const children: JSX.Element[] = [];
+    for (let index = 0; index < node.children.length; index++) {
+      children.push(renderChild({ index }));
+    }
+    return <>{children}</>;
+  }
 };
 
 export default Children;

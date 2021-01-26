@@ -33,7 +33,7 @@ const Element: React.FC<RenderElementProps> = ({
   return (
     <div {...attributes}>
       <SlateCodeMirror
-        options={{ lineWrapping: true, lineNumbers: true }}
+        options={{ lineWrapping: true /*, lineNumbers: true*/ }}
         value={element.value}
         info={element.info}
         onChange={(value) => {
