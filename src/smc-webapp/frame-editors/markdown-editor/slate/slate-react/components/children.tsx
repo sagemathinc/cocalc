@@ -8,6 +8,15 @@ import { useSlateStatic } from "../hooks/use-slate-static";
 import { NODE_TO_INDEX, NODE_TO_PARENT } from "../utils/weak-maps";
 import { RenderElementProps, RenderLeafProps } from "./editable";
 
+function timer(...args): () => void {
+  const t0 = new Date().valueOf();
+  const label = args.join(" ");
+  console.log(`start: ${label}...`);
+  return () => {
+    console.log(`done : ${label} -- ${new Date().valueOf() - t0}ms`);
+  };
+}
+
 /**
  * Children.
  */
@@ -30,14 +39,12 @@ const Children = (props: {
   } = props;
   const editor = useSlateStatic();
   const path = ReactEditor.findPath(editor, node);
-  const children: JSX.Element[] = [];
   const isLeafBlock =
     Element.isElement(node) &&
     !editor.isInline(node) &&
     Editor.hasInlines(editor, node);
 
-  console.log("for loop", node.children.length);
-  for (let i = 0; i < node.children.length; i++) {
+  const renderChild = (i) => {
     const p = path.concat(i);
     const n = node.children[i] as Descendant;
     const key = ReactEditor.findKey(editor, n);
@@ -54,7 +61,7 @@ const Children = (props: {
     }
 
     if (Element.isElement(n)) {
-      children.push(
+      return (
         <ElementComponent
           decorate={decorate}
           decorations={ds}
@@ -66,7 +73,7 @@ const Children = (props: {
         />
       );
     } else {
-      children.push(
+      return (
         <TextComponent
           decorations={ds}
           key={key.id}
@@ -77,10 +84,20 @@ const Children = (props: {
         />
       );
     }
+  };
 
+  for (let i = 0; i < node.children.length; i++) {
+    const n = node.children[i];
     NODE_TO_INDEX.set(n, i);
     NODE_TO_PARENT.set(n, node);
   }
+
+  let t = timer("rendering all children", node.children.length);
+  const children: JSX.Element[] = [];
+  for (let i = 0; i < node.children.length; i++) {
+    children.push(renderChild(i));
+  }
+  t();
 
   return <React.Fragment>{children}</React.Fragment>;
 };
