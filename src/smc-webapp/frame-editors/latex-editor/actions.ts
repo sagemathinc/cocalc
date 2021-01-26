@@ -58,6 +58,7 @@ import {
   startswith,
   change_filename_extension,
   sha1,
+  endswith,
 } from "smc-util/misc";
 import { IBuildSpecs } from "./build";
 import { open_new_tab } from "../../misc-page";
@@ -268,6 +269,7 @@ export class Actions extends BaseActions<LatexEditorState> {
           if (cmd.length > 0) {
             const build_command = this.sanitize_build_cmd_str(cmd);
             this.setState({ build_command });
+            this.set_build_command(build_command);
             return;
           }
         } else if (cmd.size > 0) {
@@ -277,6 +279,7 @@ export class Actions extends BaseActions<LatexEditorState> {
           // we implemented output directory support.
           const build_command: List<string> = this.sanitize_build_cmd(cmd);
           this.setState({ build_command });
+          this.set_build_command(build_command.toJS());
           return;
         }
       }
@@ -307,9 +310,47 @@ export class Actions extends BaseActions<LatexEditorState> {
     return `-output-directory=${dir}`;
   }
 
-  private sanitize_build_cmd_str(cmd: string): string {
-    // this is when users manually set the command
-    // we ignore the output directory part, only focus on setting -deps for latexmk
+  public sanitize_build_cmd_str(cmd: string): string {
+    if (cmd.indexOf(";") != -1) {
+      // if there is a semicolon we allow anything...
+      return cmd;
+    }
+    // This is when users manually set the command or possibly slightly edited it.
+    // It's very important NOT to ignore the output directory part!!! See #5183,
+    // where we see ignoring this leads to massive problems.
+
+    // Make sure the output directory matches what we are actually using (the sha1 hash).
+    const i = cmd.indexOf("-output-directory=");
+    if (i != -1) {
+      let j = cmd.indexOf(" ", i);
+      if (j == -1) {
+        // at the end
+        j = cmd.length;
+      }
+      if (this.output_directory) {
+        // ensure it is set properly
+        if (
+          cmd.slice(i + "-output-directory=".length, j) != this.output_directory
+        ) {
+          cmd =
+            cmd.slice(0, i) +
+            `-output-directory=${this.output_directory} ` +
+            cmd.slice(j);
+        }
+      } else {
+        // ensure it is NOT set since it will definitely break things
+        cmd = cmd.slice(0, i) + cmd.slice(j);
+      }
+    }
+
+    // Make sure the filename is correct.
+    const filename = path_split(this.path).tail;
+    if (!endswith(cmd, " " + filename)) {
+      const i = cmd.lastIndexOf(" ");
+      cmd = cmd.slice(0, i + 1) + filename;
+    }
+
+    // We also focus on setting -deps for latexmk
     if (!cmd.trim().startsWith("latexmk")) return cmd;
     // -dependents- or -deps- ← don't shows the dependency list, we remove these
     // surrounded with spaces, to reduce changes of wrong matches
@@ -326,13 +367,38 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   private sanitize_build_cmd(cmd: List<string>): List<string> {
-    const has_output_dir = cmd.some(
-      (x) => x.indexOf("-output-directory=") != -1
-    );
-    if (!has_output_dir && this.output_directory != null) {
-      // no output directory option.
-      cmd = cmd.splice(cmd.size - 2, 0, this.output_directory_cmd_flag());
+    // First ensure the output directory is correct.
+
+    let outdir: string | undefined = undefined;
+    let i: number = -1;
+    for (const x of cmd) {
+      i += 1;
+      if (startswith(x, "-output-directory")) {
+        outdir = x;
+        break;
+      }
     }
+    if (this.output_directory != null) {
+      // make sure it is right
+      const should_be = this.output_directory_cmd_flag();
+      if (outdir != should_be) {
+        if (outdir == null) {
+          // The build command must specify the output directory option (but doesn't),
+          // so we set it.
+          cmd = cmd.splice(cmd.size - 2, 0, should_be);
+        } else {
+          // change it
+          cmd = cmd.set(i, should_be);
+        }
+      }
+    } else {
+      // make sure it is null -- otherwise remove it.
+      if (outdir != null) {
+        // need to remove it
+        cmd = cmd.delete(i);
+      }
+    }
+
     // -dependents- or -deps- ← don't shows the dependency list, we remove these
     for (const bad of ["-dependents-", "-deps-"]) {
       const idx = cmd.indexOf(bad);
@@ -344,6 +410,13 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (!cmd.some((x) => x === "-deps" || x === "-dependents")) {
       cmd = cmd.splice(3, 0, "-deps");
     }
+
+    // Finally make sure the filename is right.
+    const filename = path_split(this.path).tail;
+    if (filename != cmd.get(cmd.size - 1)) {
+      cmd = cmd.set(cmd.size - 1, filename);
+    }
+
     return cmd;
   }
 
