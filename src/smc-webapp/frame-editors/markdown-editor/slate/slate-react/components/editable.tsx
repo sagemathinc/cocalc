@@ -30,10 +30,8 @@ import { useIsomorphicLayoutEffect } from "../hooks/use-isomorphic-layout-effect
 import {
   DOMElement,
   DOMNode,
-  DOMRange,
   isDOMElement,
   isDOMNode,
-  isDOMText,
   DOMStaticRange,
   isPlainTextOnlyPaste,
 } from "../utils/dom";
@@ -94,8 +92,8 @@ export type EditableProps = {
   readOnly?: boolean;
   role?: string;
   style?: React.CSSProperties;
-  renderElement?: (props: RenderElementProps) => JSX.Element;
-  renderLeaf?: (props: RenderLeafProps) => JSX.Element;
+  renderElement?: React.FC<RenderElementProps>;
+  renderLeaf?: React.FC<RenderLeafProps>;
   as?: React.ElementType;
 } & React.TextareaHTMLAttributes<HTMLDivElement>;
 
@@ -462,7 +460,7 @@ export const Editable = (props: EditableProps) => {
       placeholder,
       anchor: start,
       focus: start,
-    });
+    } as any);
   }
 
   return (
@@ -999,22 +997,6 @@ export const Editable = (props: EditableProps) => {
 
 const defaultDecorate = () => [];
 
-/**
- * Check if two DOM range objects are equal.
- */
-
-const isRangeEqual = (a: DOMRange, b: DOMRange) => {
-  return (
-    (a.startContainer === b.startContainer &&
-      a.startOffset === b.startOffset &&
-      a.endContainer === b.endContainer &&
-      a.endOffset === b.endOffset) ||
-    (a.startContainer === b.endContainer &&
-      a.startOffset === b.endOffset &&
-      a.endContainer === b.startContainer &&
-      a.endOffset === b.startOffset)
-  );
-};
 
 /**
  * Check if the target is in the editor.

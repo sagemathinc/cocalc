@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useMemo, useState, useCallback, useEffect } from "react";
-import { Node, Element, Descendant } from "slate";
+import { Descendant } from "slate";
 
 import { ReactEditor } from "../plugin/react-editor";
 import { FocusedContext } from "../hooks/use-focused";

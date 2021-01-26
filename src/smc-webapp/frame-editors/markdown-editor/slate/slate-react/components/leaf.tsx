@@ -12,7 +12,7 @@ const Leaf = (props: {
   isLast: boolean;
   leaf: Text;
   parent: Element;
-  renderLeaf?: (props: RenderLeafProps) => JSX.Element;
+  renderLeaf?: React.FC<RenderLeafProps>;
   text: Text;
 }) => {
   const {
@@ -45,7 +45,7 @@ const Leaf = (props: {
             textDecoration: "none",
           }}
         >
-          {leaf.placeholder}
+          {leaf['placeholder']}
         </span>
         {children}
       </React.Fragment>

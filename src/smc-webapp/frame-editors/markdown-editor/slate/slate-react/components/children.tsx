@@ -16,8 +16,8 @@ const Children = (props: {
   decorate: (entry: NodeEntry) => Range[];
   decorations: Range[];
   node: Ancestor;
-  renderElement?: (props: RenderElementProps) => JSX.Element;
-  renderLeaf?: (props: RenderLeafProps) => JSX.Element;
+  renderElement?: React.FC<RenderElementProps>;
+  renderLeaf?: React.FC<RenderLeafProps>;
   selection: Range | null;
 }) => {
   const {
@@ -30,7 +30,7 @@ const Children = (props: {
   } = props;
   const editor = useSlateStatic();
   const path = ReactEditor.findPath(editor, node);
-  const children = [];
+  const children: JSX.Element[] = [];
   const isLeafBlock =
     Element.isElement(node) &&
     !editor.isInline(node) &&
@@ -71,7 +71,7 @@ const Children = (props: {
           decorations={ds}
           key={key.id}
           isLast={isLeafBlock && i === node.children.length - 1}
-          parent={node}
+          parent={node as Element}
           renderLeaf={renderLeaf}
           text={n}
         />

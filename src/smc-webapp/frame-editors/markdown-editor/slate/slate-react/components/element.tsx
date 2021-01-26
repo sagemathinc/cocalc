@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useRef } from "react";
-import * as getDirection from "direction";
+const getDirection = require("direction");
 import { Editor, Node, Range, NodeEntry, Element as SlateElement } from "slate";
 
 import Text from "./text";
@@ -25,8 +25,8 @@ const Element = (props: {
   decorate: (entry: NodeEntry) => Range[];
   decorations: Range[];
   element: SlateElement;
-  renderElement?: (props: RenderElementProps) => JSX.Element;
-  renderLeaf?: (props: RenderLeafProps) => JSX.Element;
+  renderElement?: React.FC<RenderElementProps>;
+  renderLeaf?: React.FC<RenderLeafProps>;
   selection: Range | null;
 }) => {
   const {

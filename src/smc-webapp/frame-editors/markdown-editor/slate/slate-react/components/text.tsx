@@ -20,7 +20,7 @@ const Text = (props: {
   decorations: Range[];
   isLast: boolean;
   parent: Element;
-  renderLeaf?: (props: RenderLeafProps) => JSX.Element;
+  renderLeaf?: React.FC<RenderLeafProps>;
   text: SlateText;
 }) => {
   const { decorations, isLast, parent, renderLeaf, text } = props;
@@ -28,7 +28,7 @@ const Text = (props: {
   const ref = useRef<HTMLSpanElement>(null);
   const leaves = SlateText.decorations(text, decorations);
   const key = ReactEditor.findKey(editor, text);
-  const children = [];
+  const children : JSX.Element[] = [];
 
   for (let i = 0; i < leaves.length; i++) {
     const leaf = leaves[i];
