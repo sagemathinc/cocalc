@@ -178,7 +178,6 @@ export const Editable = (props: EditableProps) => {
     }
 
     // Otherwise the DOM selection is out of sync, so update it.
-    const el = ReactEditor.toDOMNode(editor, editor);
     state.isUpdatingSelection = true;
 
     let newDomRange;
@@ -210,6 +209,7 @@ export const Editable = (props: EditableProps) => {
         );
       }
       const leafEl = newDomRange.startContainer.parentElement!;
+      const el = ReactEditor.toDOMNode(editor, editor);
       scrollIntoView(leafEl, {
         scrollMode: "if-needed",
         boundary: el,
@@ -222,7 +222,12 @@ export const Editable = (props: EditableProps) => {
       // COMPAT: In Firefox, it's not enough to create a range, you also need
       // to focus the contenteditable element too. (2016/11/16)
       if (newDomRange && IS_FIREFOX) {
-        el.focus();
+        try {
+          const el = ReactEditor.toDOMNode(editor, editor);
+          el.focus();
+        } catch (err) {
+          console.log("WARNING: failed to find DOMNode to focus on firefox");
+        }
       }
 
       state.isUpdatingSelection = false;

@@ -12,6 +12,8 @@ import {
   Node,
   Transforms,
   Element as SlateElement,
+  Point,
+  Operation,
 } from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
@@ -66,12 +68,28 @@ interface Props {
   is_current?: boolean;
 }
 
-async function applyOperations(editor, operations): Promise<void> {
+function transformPoint(
+  point: Point | null,
+  operations: Operation[]
+): Point | null {
+  for (const op of operations) {
+    if (point == null) break;
+    point = Point.transform(point, op);
+  }
+  return point;
+}
+
+async function applyOperations(editor, operations: Operation[]): Promise<void> {
   if (operations.length == 0) return;
   //await new Promise(requestAnimationFrame);
   const t0 = new Date().valueOf();
 
-  const is_focused = ReactEditor.isFocused(editor);
+  // First transform the selection.
+  const focus = editor.selection?.focus;
+  const new_focus = transformPoint(focus, operations);
+  console.log("transformPoint", { focus, new_focus, operations });
+
+  //const is_focused = ReactEditor.isFocused(editor);
   // IMPORTANT: we use transform to apply all but the last operation,
   // then use editor.apply for the very last operation.  Why?
   // Because editor.apply normalize the document and does a bunch of
@@ -79,12 +97,12 @@ async function applyOperations(editor, operations): Promise<void> {
   // are no longer valid, e.g., their paths are wrong, etc.
   // Obviously, it is also much better to not normalize every single
   // time too.
-  if (is_focused) ReactEditor.blur(editor);
+  //if (is_focused) ReactEditor.blur(editor);
   for (const op of operations.slice(0, operations.length - 1)) {
     Transforms.transform(editor, op);
   }
   editor.apply(operations[operations.length - 1]);
-  if (is_focused) ReactEditor.focus(editor);
+  //if (is_focused) ReactEditor.focus(editor);
   console.log(
     `time: apply ${operations.length} operations`,
     new Date().valueOf() - t0,

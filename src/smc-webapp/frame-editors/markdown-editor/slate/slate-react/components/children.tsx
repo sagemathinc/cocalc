@@ -88,19 +88,19 @@ const Children = (props: {
     }
   };
 
-  const t0 = new Date().valueOf();
+  //const t0 = new Date().valueOf();
   for (let i = 0; i < node.children.length; i++) {
     const n = node.children[i];
     NODE_TO_INDEX.set(n, i);
     NODE_TO_PARENT.set(n, node);
   }
-  console.log(
+  /*  console.log(
     "update weakmap for ",
     node.children.length,
     " nodes in ",
     new Date().valueOf() - t0,
     "ms"
-  );
+  );*/
 
   if (path.length == 0) {
     // top level -- using windowing!
@@ -115,19 +115,19 @@ const Children = (props: {
       />
     );
   } else {
-    const t0 = new Date().valueOf();
+    //const t0 = new Date().valueOf();
     // anything else -- just render the children
     const children: JSX.Element[] = [];
     for (let index = 0; index < node.children.length; index++) {
       children.push(renderChild({ index }));
     }
-    console.log(
+    /* console.log(
       "update children for ",
       node.children.length,
       " nodes in ",
       new Date().valueOf() - t0,
       "ms"
-    );
+    );*/
 
     return <>{children}</>;
   }

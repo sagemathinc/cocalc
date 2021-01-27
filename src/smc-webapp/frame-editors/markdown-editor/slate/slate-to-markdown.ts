@@ -5,7 +5,7 @@
 import { Node, Element, Text } from "slate";
 import { serializeLeaf } from "./leaf-to-markdown";
 import { serializeElement } from "./element-to-markdown";
-import { trimPaddingFromMarkdown } from "./padding";
+//import { trimPaddingFromMarkdown } from "./padding";
 
 export interface Info {
   parent: Node; // the parent of the node being serialized
@@ -30,14 +30,15 @@ export function slate_to_markdown(
   options?: { no_escape?: boolean }
 ): string {
   const t = new Date().valueOf();
-  const r = trimPaddingFromMarkdown(
-    data
-      .map((node) =>
-        serialize(node, { parent: node, no_escape: !!options?.no_escape })
-      )
-      .join("")
-  );
+  const r = data
+    .map((node) =>
+      serialize(node, { parent: node, no_escape: !!options?.no_escape })
+    )
+    .join("");
+  // not doing this for now, since it is causing more trouble than it is worth...
+  // const r = trimPaddingFromMarkdown(r);
 
   console.log("time: slate_to_markdown ", new Date().valueOf() - t, "ms");
+  console.log({ slate_to_markdown: r });
   return r;
 }

@@ -4,19 +4,15 @@
  */
 
 /*
-TODO:
-
-- [ ] This could very easily be pulled out of cocalc and make a useful
-MIT licensed slatejs plugin.  It might be very useful to some people.
-
-- [ ] The diff function below is very similar to some code in
-editor_jupyter.coffee.
-
+NOTE: The diff function below is very similar to
+some code in editor_jupyter.coffee.
 */
 
 import { Node, Operation } from "slate";
 import { dmp } from "smc-util/sync/editor/generic/util";
 import { copy_without, StringCharMapping } from "smc-util/misc";
+import { isEqual } from "lodash";
+import { slateTextDiff } from "./diff-text";
 
 // We could instead use
 //    import * as stringify from "json-stable-stringify";
@@ -101,28 +97,52 @@ export function slateDiff(
             )) {
               operations.push(op);
             }
-          } else if (
-            a != null &&
-            a.text != null &&
-            b.text != null &&
-            a.text == b.text
-          ) {
-            // Two text nodes with same text and different marks; we can transform one
-            // to the other.
+          } else if (a?.text != null && b.text != null) {
+            // changing a text node
+            // First, change any modified properties
             const properties = copy_without(a, "text");
             const newProperties = copy_without(b, "text");
-            // We also must explicitly remove any properties that got dropped!
-            for (const key in properties) {
-              if (newProperties[key] === undefined) {
-                newProperties[key] = undefined;
+            if (!isEqual(properties, newProperties)) {
+              // We also must explicitly remove any properties that got dropped!
+              for (const key in properties) {
+                if (newProperties[key] === undefined) {
+                  newProperties[key] = undefined;
+                }
+              }
+              operations.push({
+                type: "set_node",
+                path: path.concat([index]),
+                properties,
+                newProperties,
+              });
+            }
+            if (a.text.trim() == b.text.trim()) {
+              // Text itself is the same, so nothing further to do.
+              // NOTE regarding the trim -- for something like
+              //   {text: "a "} |--> {text: "a"}
+              // we do NOT make this change, since it happens naturally when
+              // typing a sentence and making the change would delete whitespace
+              // as you type.
+            } else {
+              // actual text changed.
+              // Slatejs operations allow us to insert and remove text from node b,
+              // but do NOT allow us to simply replace the text.  That's kind of
+              // annoying.  Fortunately, this is exactly the sort of thing that
+              // diff-match-patch is built for, so we use it again, but now specifically
+              // for this text inside this text node.  This isn't that annoying, since
+              // we can do this way better using diff-match-patch than slatejs could
+              // possibly do without depending on diff-match-patch!  Also, imagine editing
+              // a single large text node collaboratively; of course we have to very carefully
+              // merge in changes, rather than setting the whole thing.
+              for (const op of slateTextDiff(a.text, b.text)) {
+                operations.push({
+                  ...{
+                    path: path.concat([index]),
+                  } /* path to text not known to slateTextDiff */,
+                  ...op,
+                });
               }
             }
-            operations.push({
-              type: "set_node",
-              path: path.concat([index]),
-              properties,
-              newProperties,
-            });
           } else if (
             /* non-Text, same except for a value property, so handle checkboxes, code blocks, etc. */
             a != null &&
@@ -138,17 +158,21 @@ export function slateDiff(
               newProperties: { value: b.value },
             });
           } else {
+            console.log("diff: generic node swap", a, " |--> ", b);
             // For now, we just remove and set, since that's the only
             // thing to do generically.
+            // TODO: as much as possible figure out how to do this via mutation.
+            // deleting and adding breaks Point.transform if the selection intersects with
+            // the deleted node.
             operations.push({
               type: "remove_node",
               path: path.concat([index]),
-              node: doc0[index],
+              node: a,
             });
             operations.push({
               type: "insert_node",
               path: path.concat([index]),
-              node,
+              node: b,
             });
           }
           index += 1;
