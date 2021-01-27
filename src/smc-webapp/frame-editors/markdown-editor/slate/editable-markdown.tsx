@@ -371,43 +371,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       };
       applyOperations(editor, operations);
       ensureEditorPaddingDebounce();
-
-      /*
-      let editor_value = markdown_to_slate(value);
-      if (editor_value.length > RENDER_SIZE) {
-        // This code renders long documents in batches, since it's
-        // vastly better to immediately *see* your document and be
-        // able to scroll as the bottom renders, than to have your
-        // entire browser block for 10 seconds.
-        const t0 = new Date().valueOf();
-        const lazyRender = async (items) => {
-          if (!isMountedRef.current) {
-            // no longer mounted, so don't do this anymore...
-            return;
-          }
-          if (items.length == 0) {
-            // done -- nothing more to append.
-            console.log("rendered", new Date().valueOf() - t0, "ms");
-            return;
-          }
-          await new Promise(requestAnimationFrame);
-          Transforms.insertNodes(editor, items.slice(0, RENDER_SIZE), {
-            at: [editor.children.length],
-          });
-          lazyRender(items.slice(RENDER_SIZE));
-        };
-        lazyRender(editor_value.slice(RENDER_SIZE));
-        editor_value = editor_value.slice(0, RENDER_SIZE);
-      }
-
-      editorMarkdownValueRef.current = value;
-
-      if (ReactEditor.isFocused(editor) && editor.selection != null) {
-        setEditorValueNoCrash(editor_value);
-      } else {
-        setEditorValue(editor_value);
-      }
-      */
     }, [value]);
 
     (window as any).z = {
@@ -417,6 +380,14 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       ReactEditor,
       Editor,
     };
+
+    useEffect(() => {
+      (editor as any).rowStyle = {
+        maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
+        margin: "auto",
+        padding: "0 50px",
+      };
+    }, [editor, scaling]);
 
     return (
       <div
@@ -429,7 +400,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           style={{
             ...STYLE,
             fontSize: font_size,
-            maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
           }}
         >
           <Slate
@@ -463,7 +433,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           >
             <Editable
               className="smc-vfill"
-              style={{ padding: "15px 75px" }}
               readOnly={read_only}
               renderElement={Element}
               renderLeaf={Leaf}

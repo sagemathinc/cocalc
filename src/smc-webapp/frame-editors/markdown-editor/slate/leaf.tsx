@@ -7,12 +7,12 @@ import { CSS, React } from "../../../app-framework";
 import { RenderLeafProps } from "./slate-react";
 import { startswith } from "smc-util/misc";
 
-const CODE_STYLE = {
-  padding: "2px 4px",
-  fontSize: "90%",
-  color: "#c7254e",
-  backgroundColor: "#f9f2f4",
-  borderRadius: "4px",
+const CODE_STYLE = {  /* copied from GitHub */
+  padding: ".2em .4em",
+  margin: 0,
+  fontSize: "85%",
+  backgroundColor: "rgba(27,31,35,.05)",
+  borderRadius: "6px",
 } as CSS;
 
 export const Leaf: React.FC<RenderLeafProps> = ({

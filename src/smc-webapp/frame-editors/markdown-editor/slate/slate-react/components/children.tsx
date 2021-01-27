@@ -9,15 +9,6 @@ import { NODE_TO_INDEX, NODE_TO_PARENT } from "../utils/weak-maps";
 import { RenderElementProps, RenderLeafProps } from "./editable";
 import { WindowedList } from "smc-webapp/r_misc";
 
-function timer(...args): () => void {
-  const t0 = new Date().valueOf();
-  const label = args.join(" ");
-  console.log(`start: ${label}...`);
-  return () => {
-    console.log(`done : ${label} -- ${new Date().valueOf() - t0}ms`);
-  };
-}
-
 /**
  * Children.
  */
@@ -94,27 +85,20 @@ const Children = (props: {
     NODE_TO_PARENT.set(n, node);
   }
 
-  /*
-  let t = timer("rendering all children", node.children.length);
-  const children: JSX.Element[] = [];
-  for (let i = 0; i < node.children.length; i++) {
-    children.push(renderChild(i));
-  }
-  t();
-  */
   if (path.length == 0) {
     // top level -- using windowing!
     return (
       <WindowedList
         row_count={node.children.length}
         row_renderer={renderChild}
-        overscan_row_count={5}
-        estimated_row_size={22}
+        overscan_row_count={1}
+        estimated_row_size={32}
         row_key={(index) => `${index}`}
+        row_style={(editor as any).rowStyle}
       />
     );
   } else {
-    // proceed as usual for now
+    // anything else -- just render the children
     const children: JSX.Element[] = [];
     for (let index = 0; index < node.children.length; index++) {
       children.push(renderChild({ index }));

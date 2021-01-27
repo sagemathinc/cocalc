@@ -35,7 +35,7 @@ export interface ScrollInfo extends ListOnScrollProps {
   maxScrollOffset?: number;
 }
 
-import { React, Component, Rendered } from "../app-framework";
+import { React, Component, Rendered, CSS } from "../app-framework";
 
 interface Props {
   overscan_row_count: number; // how many not visible cells to render on each side of window
@@ -56,6 +56,7 @@ interface Props {
   hide_resize?: boolean;
   render_info?: boolean; // if true, record RenderInfo; also makes isVisible available for row_renderer.
   scroll_margin?: number;
+  row_style?: CSS;
 }
 
 interface State {
@@ -441,8 +442,8 @@ function create_row_component(windowed_list: WindowedList) {
       return (
         <div
           style={{
-            display: "flex",
-            flexDirection: "column",
+            ...windowed_list.props.row_style,
+            ...{ display: "flex", flexDirection: "column" },
           }}
           data-key={key}
           data-index={index}
@@ -484,4 +485,3 @@ function create_row_component(windowed_list: WindowedList) {
   }
   return RowComponent;
 }
-

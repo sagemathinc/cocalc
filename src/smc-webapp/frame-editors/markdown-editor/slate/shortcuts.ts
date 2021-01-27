@@ -50,7 +50,6 @@ export const withShortcuts = (editor) => {
       const range = { anchor, focus: start };
       const beforeText = Editor.string(editor, range);
       let shortcut: Partial<SlateElement> = SHORTCUTS[beforeText];
-      console.log({ beforeText, shortcut });
 
       if (shortcut != null) {
         Transforms.select(editor, range);
