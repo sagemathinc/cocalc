@@ -18,8 +18,8 @@ import { time_travel } from "../time-travel-editor/editor";
 
 const EDITOR_SPEC = {
   slate: {
-    short: "Editable",
-    name: "Editable Markdown",
+    short: "Edit",
+    name: "Editable",
     icon: "pen",
     component: EditableMarkdown,
     buttons: set([
@@ -61,8 +61,8 @@ const EDITOR_SPEC = {
     ]),
   },
   markdown: {
-    short: "View",
-    name: "Rendered View",
+    short: "Readonly",
+    name: "Readonly View",
     icon: "eye",
     component: RenderedMarkdown,
     buttons: set([

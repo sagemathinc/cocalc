@@ -5,7 +5,7 @@
 
 import { Text } from "slate";
 import { getMarkdownToSlate } from "../elements";
-import { replace_all } from "smc-util/misc";
+//import { replace_all } from "smc-util/misc";
 import { Marks } from "./types";
 import { register } from "./register";
 import { DEFAULT_CHILDREN } from "../util";
@@ -65,7 +65,8 @@ function mark(text: Text, marks: Marks): Text {
   }
 
   // unescape dollar signs (in markdown we have to escape them so they aren't interpreted as math).
-  text.text = replace_all(text.text, "\\$", "$");
+  // TODO: disabled since we aren't escaping in the other direction right now.
+  // text.text = replace_all(text.text, "\\$", "$");
 
   for (const mark in marks) {
     if (marks[mark]) {
