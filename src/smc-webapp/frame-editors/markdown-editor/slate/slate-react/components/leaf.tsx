@@ -45,7 +45,7 @@ const Leaf = (props: {
             textDecoration: "none",
           }}
         >
-          {leaf['placeholder']}
+          {leaf["placeholder"]}
         </span>
         {children}
       </React.Fragment>
@@ -61,7 +61,7 @@ const Leaf = (props: {
     "data-slate-leaf": true,
   };
 
-  return renderLeaf({ attributes, children, leaf, text });
+  return React.createElement(renderLeaf, { attributes, children, leaf, text });
 };
 
 const MemoizedLeaf = React.memo(Leaf, (prev, next) => {

@@ -126,7 +126,7 @@ const Element = (props: {
 
   return (
     <SelectedContext.Provider value={!!selection}>
-      {renderElement({ attributes, children, element })}
+      {React.createElement(renderElement, { attributes, children, element })}
     </SelectedContext.Provider>
   );
 };
