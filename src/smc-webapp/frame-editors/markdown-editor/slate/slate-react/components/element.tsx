@@ -132,7 +132,7 @@ const Element = (props: {
 };
 
 const MemoizedElement = React.memo(Element, (prev, next) => {
-  return (
+  const is_equal =
     prev.decorate === next.decorate &&
     prev.element === next.element &&
     prev.renderElement === next.renderElement &&
@@ -141,8 +141,9 @@ const MemoizedElement = React.memo(Element, (prev, next) => {
     (prev.selection === next.selection ||
       (!!prev.selection &&
         !!next.selection &&
-        Range.equals(prev.selection, next.selection)))
-  );
+        Range.equals(prev.selection, next.selection)));
+  //console.log("MemoizedElement", { prev, next, is_equal });
+  return is_equal;
 });
 
 /**

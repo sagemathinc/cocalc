@@ -88,11 +88,19 @@ const Children = (props: {
     }
   };
 
+  const t0 = new Date().valueOf();
   for (let i = 0; i < node.children.length; i++) {
     const n = node.children[i];
     NODE_TO_INDEX.set(n, i);
     NODE_TO_PARENT.set(n, node);
   }
+  console.log(
+    "update weakmap for ",
+    node.children.length,
+    " nodes in ",
+    new Date().valueOf() - t0,
+    "ms"
+  );
 
   if (path.length == 0) {
     // top level -- using windowing!
@@ -100,18 +108,27 @@ const Children = (props: {
       <WindowedList
         row_count={node.children.length}
         row_renderer={renderChild}
-        overscan_row_count={1}
+        overscan_row_count={20}
         estimated_row_size={32}
         row_key={(index) => `${index}`}
         row_style={(editor as any).rowStyle}
       />
     );
   } else {
+    const t0 = new Date().valueOf();
     // anything else -- just render the children
     const children: JSX.Element[] = [];
     for (let index = 0; index < node.children.length; index++) {
       children.push(renderChild({ index }));
     }
+    console.log(
+      "update children for ",
+      node.children.length,
+      " nodes in ",
+      new Date().valueOf() - t0,
+      "ms"
+    );
+
     return <>{children}</>;
   }
 };

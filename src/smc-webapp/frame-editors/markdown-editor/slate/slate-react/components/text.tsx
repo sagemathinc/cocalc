@@ -28,7 +28,7 @@ const Text = (props: {
   const ref = useRef<HTMLSpanElement>(null);
   const leaves = SlateText.decorations(text, decorations);
   const key = ReactEditor.findKey(editor, text);
-  const children : JSX.Element[] = [];
+  const children: JSX.Element[] = [];
 
   for (let i = 0; i < leaves.length; i++) {
     const leaf = leaves[i];
@@ -65,12 +65,30 @@ const Text = (props: {
 };
 
 const MemoizedText = React.memo(Text, (prev, next) => {
-  return (
-    next.parent === prev.parent &&
-    next.isLast === prev.isLast &&
+  // I think including parent is wrong here. E.g.,
+  // parent is not included in the analogous function
+  // in element.tsx. See my comment here:
+  // https://github.com/ianstormtaylor/slate/issues/4056#issuecomment-768059323
+
+  const is_equal =
+    /* next.parent === prev.parent && */
     next.renderLeaf === prev.renderLeaf &&
-    next.text === prev.text
-  );
+    next.isLast === prev.isLast &&
+    next.text === prev.text;
+  
+  /*
+  console.log("MemoizedText cmp", {
+    prev,
+    next,
+    is_equal,
+    c: [
+      next.parent === prev.parent,
+      next.isLast === prev.isLast,
+      next.renderLeaf === prev.renderLeaf,
+      next.text === prev.text,
+    ],
+  });*/
+  return is_equal;
 });
 
 export default MemoizedText;
