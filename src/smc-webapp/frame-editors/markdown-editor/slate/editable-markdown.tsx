@@ -16,7 +16,6 @@ import {
   Operation,
 } from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
-import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
 import { debounce } from "lodash";
 import {
   CSS,
@@ -68,13 +67,30 @@ interface Props {
   is_current?: boolean;
 }
 
+// Longer is better, due to the auto-parsing of markdown.
+const SAVE_DEBOUNCE_MS = 1500;
+
 function transformPoint(
   point: Point | null,
   operations: Operation[]
 ): Point | null {
   for (const op of operations) {
     if (point == null) break;
-    point = Point.transform(point, op);
+    const new_point = Point.transform(point, op);
+    if (new_point != null) {
+      point = new_point;
+    } else {
+      // this happens when the node where the cursor should go
+      // gets deleted.
+      console.log({ op });
+      const path = op["replace_path"];
+      if (path != null) {
+        point = { path, offset: 0 };
+      } else {
+        // TODO: find closest path...
+        return null;
+      }
+    }
   }
   return point;
 }
@@ -88,6 +104,8 @@ async function applyOperations(editor, operations: Operation[]): Promise<void> {
   const focus = editor.selection?.focus;
   const new_focus = transformPoint(focus, operations);
   console.log("transformPoint", { focus, new_focus, operations });
+  const anchor = editor.selection?.anchor;
+  const new_anchor = transformPoint(anchor, operations);
 
   //const is_focused = ReactEditor.isFocused(editor);
   // IMPORTANT: we use transform to apply all but the last operation,
@@ -97,12 +115,12 @@ async function applyOperations(editor, operations: Operation[]): Promise<void> {
   // are no longer valid, e.g., their paths are wrong, etc.
   // Obviously, it is also much better to not normalize every single
   // time too.
-  //if (is_focused) ReactEditor.blur(editor);
   for (const op of operations.slice(0, operations.length - 1)) {
+    console.log("apply ", op);
     Transforms.transform(editor, op);
   }
+  console.log("apply last ", operations[operations.length - 1]);
   editor.apply(operations[operations.length - 1]);
-  //if (is_focused) ReactEditor.focus(editor);
   console.log(
     `time: apply ${operations.length} operations`,
     new Date().valueOf() - t0,
@@ -110,6 +128,9 @@ async function applyOperations(editor, operations: Operation[]): Promise<void> {
   );
   (window as any).operations = operations;
   const t1 = new Date().valueOf();
+  if (new_focus != null && new_anchor != null) {
+    Transforms.setSelection(editor, { focus: new_focus, anchor: new_anchor });
+  }
   await new Promise(requestAnimationFrame);
   console.log("time: rendered", new Date().valueOf() - t1, "ms");
 }

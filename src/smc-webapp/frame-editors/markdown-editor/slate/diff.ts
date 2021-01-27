@@ -8,11 +8,11 @@ NOTE: The diff function below is very similar to
 some code in editor_jupyter.coffee.
 */
 
-import { Node, Operation } from "slate";
+import { Node, Operation, Text } from "slate";
 import { dmp } from "smc-util/sync/editor/generic/util";
 import { copy_without, StringCharMapping } from "smc-util/misc";
 import { isEqual } from "lodash";
-import { slateTextDiff } from "./diff-text";
+import { slateTextDiff, isAllText, splitTextNodes } from "./diff-text";
 
 // We could instead use
 //    import * as stringify from "json-stable-stringify";
@@ -41,6 +41,7 @@ export function slateDiff(
   const m1 = string_mapping.to_string(s1);
   const diff = dmp.diff_main(m0, m1);
   const operations: Operation[] = [];
+  console.log({ m0, m1, diff, to_string: string_mapping._to_string });
 
   let index = 0;
   let i = 0;
@@ -58,7 +59,7 @@ export function slateDiff(
         diff[i + 1][1].length === val.length
       ) {
         /*
-        Replace node, which is expressed as "insert and delete" in dmp's diffs. A
+        Replace one or more nodes, which is expressed as "delete and insert" one letter in dmp's diffs. A
         common special case arises when one is editing a single node, which gets
         represented in dmp as deleting node, then adding a slightly modified version.
         Replacing is far more efficient than delete and add, and opens up the
@@ -135,10 +136,11 @@ export function slateDiff(
               // a single large text node collaboratively; of course we have to very carefully
               // merge in changes, rather than setting the whole thing.
               for (const op of slateTextDiff(a.text, b.text)) {
+                // TODO: maybe path has to be changed if there are multiple OPS?
                 operations.push({
                   ...{
                     path: path.concat([index]),
-                  } /* path to text not known to slateTextDiff */,
+                  } /* since path to text not known to slateTextDiff */,
                   ...op,
                 });
               }
@@ -167,8 +169,9 @@ export function slateDiff(
             operations.push({
               type: "remove_node",
               path: path.concat([index]),
+              replace_path: path.concat([index]),
               node: a,
-            });
+            } as Operation);
             operations.push({
               type: "insert_node",
               path: path.concat([index]),
@@ -178,6 +181,42 @@ export function slateDiff(
           index += 1;
         }
         i += 1; // skip over next chunk -- (since we turned remove/add into "set/mutate").
+      } else if (
+        val.length == 1 &&
+        i < diff.length - 1 &&
+        diff[i + 1][0] === 1 &&
+        diff[i + 1][1].length > val.length
+      ) {
+        /* Possibly splitting one node:
+           {"text":"A **B** C"} ->
+               {"text":"A "} {"text":"B","bold":true} {"text":" C"}
+        */
+        // We'll implement only this sort of text case first.
+        const before_node = doc0[index];
+        const after_nodes: any[] = [];
+        for (const x of diff[i + 1][1]) {
+          after_nodes.push(JSON.parse(string_mapping._to_string[x]));
+        }
+        if (Text.isText(before_node) && isAllText(after_nodes)) {
+          for (const op of splitTextNodes(
+            before_node,
+            after_nodes,
+            path.concat([index])
+          )) {
+            operations.push(op);
+          }
+          i += after_nodes.length;
+          index += after_nodes.length;  // TODO: is this right or should it be 1.
+        } else {
+          // Fallback -- delete node(s)
+          for (let j = 0; j < val.length; j++) {
+            operations.push({
+              type: "remove_node",
+              path: path.concat([index]),
+              node: doc0[index],
+            });
+          }
+        }
       } else {
         // Deleting node(s)
         for (let j = 0; j < val.length; j++) {
