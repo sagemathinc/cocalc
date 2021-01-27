@@ -181,7 +181,17 @@ export const Editable = (props: EditableProps) => {
     const el = ReactEditor.toDOMNode(editor, editor);
     state.isUpdatingSelection = true;
 
-    const newDomRange = selection && ReactEditor.toDOMRange(editor, selection);
+    let newDomRange;
+    try {
+      newDomRange = selection && ReactEditor.toDOMRange(editor, selection);
+    } catch (err) {
+      console.log(
+        "TODO: deal with toDOMRange when selection is not contained in the visible window. Just resetting for now.",
+        selection,
+        err
+      );
+      newDomRange = undefined;
+    }
 
     if (newDomRange) {
       if (Range.isBackward(selection!)) {
@@ -996,7 +1006,6 @@ export const Editable = (props: EditableProps) => {
  */
 
 const defaultDecorate = () => [];
-
 
 /**
  * Check if the target is in the editor.

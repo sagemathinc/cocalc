@@ -37,7 +37,7 @@ const Children = (props: {
     Editor.hasInlines(editor, node);
 
   const renderChild = ({ index }) => {
-    //console.log("renderChild", { index });
+    // if (path.length == 0) console.log("renderChild", index);
     const n = node.children[index] as Descendant;
     const p = path.concat(index);
     const key = ReactEditor.findKey(editor, n);
