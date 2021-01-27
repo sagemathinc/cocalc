@@ -83,10 +83,11 @@ export function slateDiff(
              If they are the same except children compare their children and instead
              do operations on those.
           */
-          const a = doc0[index] as any,
+          const a = doc0[index] as any, // this can be null (I observed it happen)
             b = node as any;
           if (
             /* same except for children */
+            a != null &&
             a.children != null &&
             b.children != null &&
             stringify(copy_without(a, "children")) ==
@@ -100,7 +101,12 @@ export function slateDiff(
             )) {
               operations.push(op);
             }
-          } else if (a.text != null && b.text != null && a.text == b.text) {
+          } else if (
+            a != null &&
+            a.text != null &&
+            b.text != null &&
+            a.text == b.text
+          ) {
             // Two text nodes with same text and different marks; we can transform one
             // to the other.
             const properties = copy_without(a, "text");
@@ -119,6 +125,7 @@ export function slateDiff(
             });
           } else if (
             /* non-Text, same except for a value property, so handle checkboxes, code blocks, etc. */
+            a != null &&
             a.children != null &&
             b.children != null &&
             stringify(copy_without(a, "value")) ==
