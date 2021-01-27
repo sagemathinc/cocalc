@@ -357,18 +357,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     */
 
     useEffect(() => {
-      if (value == editorMarkdownValueRef.current) {
+      /*if (value == editorMarkdownValueRef.current) {
         // Setting to current value, so no-op.
         return;
-      }
+      }*/
       editorMarkdownValueRef.current = value;
       const nextEditorValue = markdown_to_slate(value);
       const operations = slateDiff(editor.children, nextEditorValue);
-      (window as any).diff = {
-        operations,
-        doc0: editor.children,
-        doc1: nextEditorValue,
-      };
       applyOperations(editor, operations);
       ensureEditorPaddingDebounce();
     }, [value]);

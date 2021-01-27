@@ -30,7 +30,17 @@ const Children = (props: {
     selection,
   } = props;
   const editor = useSlateStatic();
-  const path = ReactEditor.findPath(editor, node);
+  let path;
+  try {
+    path = ReactEditor.findPath(editor, node);
+  } catch (err) {
+    console.log(
+      "TODO: unable to find path to node! So not rendering...",
+      node,
+      err
+    );
+    return <></>;
+  }
   const isLeafBlock =
     Element.isElement(node) &&
     !editor.isInline(node) &&
@@ -42,7 +52,6 @@ const Children = (props: {
     const p = path.concat(index);
     const key = ReactEditor.findKey(editor, n);
     const range = Editor.range(editor, p);
-    const sel = selection && Range.intersection(range, selection);
     const ds = decorate([n, p]);
 
     for (const dec of decorations) {
@@ -62,7 +71,7 @@ const Children = (props: {
           key={key.id}
           renderElement={renderElement}
           renderLeaf={renderLeaf}
-          selection={sel}
+          selection={selection && Range.intersection(range, selection)}
         />
       );
     } else {
