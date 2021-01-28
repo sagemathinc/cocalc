@@ -9,26 +9,35 @@ import { NODE_TO_INDEX, NODE_TO_PARENT } from "../utils/weak-maps";
 import { RenderElementProps, RenderLeafProps } from "./editable";
 import { WindowedList } from "smc-webapp/r_misc";
 
+export interface WindowingParams {
+  rowStyle?: React.CSSProperties;
+  overscanRowCount?: number;
+  estimatedRowSize?: number;
+}
+
 /**
  * Children.
  */
 
-const Children = (props: {
+interface Props {
   decorate: (entry: NodeEntry) => Range[];
   decorations: Range[];
   node: Ancestor;
   renderElement?: React.FC<RenderElementProps>;
   renderLeaf?: React.FC<RenderLeafProps>;
   selection: Range | null;
+  windowing?: WindowingParams;
+}
+
+const Children: React.FC<Props> = ({
+  decorate,
+  decorations,
+  node,
+  renderElement,
+  renderLeaf,
+  selection,
+  windowing,
 }) => {
-  const {
-    decorate,
-    decorations,
-    node,
-    renderElement,
-    renderLeaf,
-    selection,
-  } = props;
   const editor = useSlateStatic();
   let path;
   try {
@@ -102,16 +111,16 @@ const Children = (props: {
     "ms"
   );*/
 
-  if (path.length == 0) {
-    // top level -- using windowing!
+  if (path.length == 0 && windowing != null) {
+    // top level and using windowing!
     return (
       <WindowedList
         row_count={node.children.length}
         row_renderer={renderChild}
-        overscan_row_count={20}
-        estimated_row_size={32}
+        overscan_row_count={windowing.overscanRowCount ?? 10}
+        estimated_row_size={windowing.estimatedRowSize ?? 32}
         row_key={(index) => `${index}`}
-        row_style={(editor as any).rowStyle}
+        row_style={windowing.rowStyle}
       />
     );
   } else {

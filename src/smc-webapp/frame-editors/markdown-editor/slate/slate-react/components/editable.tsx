@@ -16,6 +16,7 @@ import { throttle } from "lodash";
 import scrollIntoView from "scroll-into-view-if-needed";
 
 import Children from "./children";
+import { WindowingParams } from "./children";
 import Hotkeys from "../utils/hotkeys";
 import {
   IS_FIREFOX,
@@ -95,14 +96,16 @@ export type EditableProps = {
   renderElement?: React.FC<RenderElementProps>;
   renderLeaf?: React.FC<RenderLeafProps>;
   as?: React.ElementType;
+  windowing?: WindowingParams;
 } & React.TextareaHTMLAttributes<HTMLDivElement>;
 
 /**
  * Editable.
  */
 
-export const Editable = (props: EditableProps) => {
+export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
   const {
+    windowing,
     autoFocus,
     decorate = defaultDecorate,
     onDOMBeforeInput: propsOnDOMBeforeInput,
@@ -1000,6 +1003,7 @@ export const Editable = (props: EditableProps) => {
           renderElement={renderElement}
           renderLeaf={renderLeaf}
           selection={editor.selection}
+          windowing={windowing}
         />
       </Component>
     </ReadOnlyContext.Provider>

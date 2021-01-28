@@ -44,14 +44,15 @@ import { withShortcuts } from "./shortcuts";
 
 import { slateDiff } from "./slate-diff";
 
-//const RENDER_SIZE = 25;
+// Longer is better, due to the auto-parsing of markdown.
+const SAVE_DEBOUNCE_MS = 1500;
+const USE_WINDOWING = true;
+//const USE_WINDOWING = false;
 
 const STYLE = {
   width: "100%",
   border: "1px solid lightgrey",
-  background: "white",
-  overflowX: "auto",
-  paddingTop: "5px",
+  overflow: "auto",
   boxShadow: "1px 1px 15px 1px #aaa",
 } as CSS;
 
@@ -66,9 +67,6 @@ interface Props {
   reload_images: boolean;
   is_current?: boolean;
 }
-
-// Longer is better, due to the auto-parsing of markdown.
-const SAVE_DEBOUNCE_MS = 1500;
 
 function transformPoint(
   point: Point | null,
@@ -415,18 +413,21 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       Editor,
     };
 
+    const [rowStyle, setRowStyle] = useState<CSS>({});
+
     useEffect(() => {
-      (editor as any).rowStyle = {
+      setRowStyle({
         maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
         margin: "auto",
         padding: "0 50px",
-      };
+        background: "white",
+      });
     }, [editor, scaling]);
 
     return (
       <div
         className="smc-vfill"
-        style={{ overflowY: "auto", backgroundColor: "#eee" }}
+        style={{ overflow: "auto", backgroundColor: "#eee" }}
       >
         <Path is_current={is_current} path={path} project_id={project_id} />
         <div
@@ -466,12 +467,26 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             }}
           >
             <Editable
-              className="smc-vfill"
+              className={USE_WINDOWING ? "smc-vfill" : undefined}
               readOnly={read_only}
               renderElement={Element}
               renderLeaf={Leaf}
               onKeyDown={!read_only ? onKeyDown : undefined}
               onBlur={save_value}
+              style={
+                USE_WINDOWING
+                  ? undefined
+                  : {
+                      maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
+                      minWidth: "80%",
+                      margin: "auto",
+                      padding: "70px",
+                      background: "white",
+                    }
+              }
+              windowing={
+                USE_WINDOWING ? { rowStyle, overscanRowCount: 15 } : undefined
+              }
             />
           </Slate>
         </div>

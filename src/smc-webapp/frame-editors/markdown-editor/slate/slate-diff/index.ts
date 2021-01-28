@@ -16,8 +16,8 @@ import { slateTextDiff, isAllText, splitTextNodes } from "./text";
 
 // We could instead use
 //    import * as stringify from "json-stable-stringify";
-// which might sometimes avoid a safe "false positive", but
-// is significantly slower.
+// which might sometimes avoid a safe "false positive" (i.e., slightly
+// less efficient patch), but is significantly slower.
 const stringify = JSON.stringify;
 
 function docToStrings(doc: Node[]): string[] {
