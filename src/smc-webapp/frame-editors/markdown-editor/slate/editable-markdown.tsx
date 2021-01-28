@@ -42,7 +42,7 @@ import { formatSelectedText } from "./format";
 import { ensureEditorPadding } from "./padding";
 import { withShortcuts } from "./shortcuts";
 
-import { slateDiff } from "./diff";
+import { slateDiff } from "./slate-diff";
 
 //const RENDER_SIZE = 25;
 
@@ -51,7 +51,7 @@ const STYLE = {
   border: "1px solid lightgrey",
   background: "white",
   overflowX: "auto",
-  margin: "0 auto",
+  paddingTop: "5px",
   boxShadow: "1px 1px 15px 1px #aaa",
 } as CSS;
 
@@ -82,7 +82,7 @@ function transformPoint(
     } else {
       // this happens when the node where the cursor should go
       // gets deleted.
-      console.log({ op });
+      // console.log({ op });
       const path = op["replace_path"];
       if (path != null) {
         point = { path, offset: 0 };
@@ -103,7 +103,7 @@ async function applyOperations(editor, operations: Operation[]): Promise<void> {
   // First transform the selection.
   const focus = editor.selection?.focus;
   const new_focus = transformPoint(focus, operations);
-  console.log("transformPoint", { focus, new_focus, operations });
+  // console.log("transformPoint", { focus, new_focus, operations });
   const anchor = editor.selection?.anchor;
   const new_anchor = transformPoint(anchor, operations);
 
@@ -116,10 +116,10 @@ async function applyOperations(editor, operations: Operation[]): Promise<void> {
   // Obviously, it is also much better to not normalize every single
   // time too.
   for (const op of operations.slice(0, operations.length - 1)) {
-    console.log("apply ", op);
+    //console.log("apply ", op);
     Transforms.transform(editor, op);
   }
-  console.log("apply last ", operations[operations.length - 1]);
+  //console.log("apply last ", operations[operations.length - 1]);
   editor.apply(operations[operations.length - 1]);
   console.log(
     `time: apply ${operations.length} operations`,

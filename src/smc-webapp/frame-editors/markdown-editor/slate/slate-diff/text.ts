@@ -36,7 +36,7 @@ export function slateTextDiff(a: string, b: string): Op[] {
     }
     i += 1;
   }
-  console.log("slateTextDiff", { a, b, diff, operations });
+  //console.log("slateTextDiff", { a, b, diff, operations });
 
   return operations;
 }

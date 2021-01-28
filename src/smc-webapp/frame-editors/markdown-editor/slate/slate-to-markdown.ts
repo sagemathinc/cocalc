@@ -39,6 +39,6 @@ export function slate_to_markdown(
   // const r = trimPaddingFromMarkdown(r);
 
   console.log("time: slate_to_markdown ", new Date().valueOf() - t, "ms");
-  console.log({ slate_to_markdown: r });
+  //  console.log({ slate_to_markdown: r });
   return r;
 }

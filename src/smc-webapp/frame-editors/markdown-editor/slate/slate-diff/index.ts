@@ -8,11 +8,11 @@ NOTE: The diff function below is very similar to
 some code in editor_jupyter.coffee.
 */
 
+import { isEqual } from "lodash";
 import { Node, Operation, Text } from "slate";
 import { dmp } from "smc-util/sync/editor/generic/util";
 import { copy_without, StringCharMapping } from "smc-util/misc";
-import { isEqual } from "lodash";
-import { slateTextDiff, isAllText, splitTextNodes } from "./diff-text";
+import { slateTextDiff, isAllText, splitTextNodes } from "./text";
 
 // We could instead use
 //    import * as stringify from "json-stable-stringify";
@@ -41,7 +41,7 @@ export function slateDiff(
   const m1 = string_mapping.to_string(s1);
   const diff = dmp.diff_main(m0, m1);
   const operations: Operation[] = [];
-  console.log({ m0, m1, diff, to_string: string_mapping._to_string });
+  //console.log({ m0, m1, diff, to_string: string_mapping._to_string });
 
   let index = 0;
   let i = 0;
@@ -160,7 +160,7 @@ export function slateDiff(
               newProperties: { value: b.value },
             });
           } else {
-            console.log("diff: generic node swap", a, " |--> ", b);
+            //console.log("diff: generic node swap", a, " |--> ", b);
             // For now, we just remove and set, since that's the only
             // thing to do generically.
             // TODO: as much as possible figure out how to do this via mutation.

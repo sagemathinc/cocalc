@@ -48,6 +48,7 @@ export function markdown_to_slate(markdown: string): Descendant[] {
     }
   }
 
+  // TODO -- try to find another way
   ensureDocPadding(doc);
 
   (window as any).x = {
@@ -55,7 +56,7 @@ export function markdown_to_slate(markdown: string): Descendant[] {
     doc,
   };
   console.log("time: markdown_to_slate", new Date().valueOf() - t0, "ms");
-  console.log({ markdown_to_slate: JSON.stringify(doc) });
+  // console.log({ markdown_to_slate: JSON.stringify(doc) });
 
   return doc;
 }
