@@ -41,7 +41,7 @@ export function slateTextDiff(a: string, b: string): Op[] {
   return operations;
 }
 
-export function isAllText(nodes: any[]): boolean {
+export function isAllText(nodes: any[]): nodes is Text[] {
   for (const node of nodes) {
     if (!Text.isText(node)) return false;
   }

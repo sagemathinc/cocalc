@@ -39,7 +39,7 @@ import { isElementOfType } from "./elements";
 import { Element } from "./element";
 import { Leaf } from "./leaf";
 import { formatSelectedText } from "./format";
-import { ensureEditorPadding } from "./padding";
+// import { ensureEditorPadding } from "./padding";
 import { withShortcuts } from "./shortcuts";
 
 import { slateDiff } from "./slate-diff";
@@ -81,12 +81,20 @@ function transformPoint(
       // this happens when the node where the cursor should go
       // gets deleted.
       // console.log({ op });
-      const path = op["replace_path"];
-      if (path != null) {
+      // TODO: better algo to find closest path...
+      let path = [...point.path];
+      while (path.length > 0) {
         point = { path, offset: 0 };
-      } else {
-        // TODO: find closest path...
-        return null;
+        const new_point = Point.transform(point, op);
+        if (new_point != null) {
+          point = new_point;
+          break;
+        }
+        // try moving up
+        path[path.length - 1] -= 1;
+        if (path[path.length - 1] < 0) {
+          path = path.slice(0, path.length - 1);
+        }
       }
     }
   }
@@ -101,7 +109,7 @@ async function applyOperations(editor, operations: Operation[]): Promise<void> {
   // First transform the selection.
   const focus = editor.selection?.focus;
   const new_focus = transformPoint(focus, operations);
-  // console.log("transformPoint", { focus, new_focus, operations });
+  console.log("transformPoint", { focus, new_focus, operations });
   const anchor = editor.selection?.anchor;
   const new_anchor = transformPoint(anchor, operations);
 
@@ -206,10 +214,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       []
     );
 
-    const ensureEditorPaddingDebounce = useMemo(
+    /* const ensureEditorPaddingDebounce = useMemo(
       () => debounce(() => ensureEditorPadding(editor), 300),
       []
-    );
+    );*/
 
     function onKeyDown(e) {
       if (read_only) return;
@@ -402,7 +410,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       const nextEditorValue = markdown_to_slate(value);
       const operations = slateDiff(editor.children, nextEditorValue);
       applyOperations(editor, operations);
-      ensureEditorPaddingDebounce();
+      //ensureEditorPaddingDebounce();
     }, [value]);
 
     (window as any).z = {
@@ -427,7 +435,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     return (
       <div
         className="smc-vfill"
-        style={{ overflow: "auto", backgroundColor: "#eee" }}
+        style={{ overflow: "auto", backgroundColor: "white" }}
       >
         <Path is_current={is_current} path={path} project_id={project_id} />
         <div
@@ -463,7 +471,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
                 return;
               }
               saveValueDebounce();
-              ensureEditorPaddingDebounce();
+              //ensureEditorPaddingDebounce();
             }}
           >
             <Editable
