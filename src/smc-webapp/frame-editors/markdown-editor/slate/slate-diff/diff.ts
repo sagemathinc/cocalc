@@ -8,12 +8,19 @@ NOTE: The diff function below is very similar to
 some code in editor_jupyter.coffee.
 */
 
-import { Node, Operation } from "slate";
+import { Node, Operation, Text } from "slate";
 import { dmp } from "smc-util/sync/editor/generic/util";
 import { StringCharMapping } from "smc-util/misc";
 import { handleChangeOneNode } from "./handle-change-one-node";
 import { handleChangeTextNodes } from "./handle-change-text-nodes";
-import { isAllText } from "./text";
+
+function isAllText(nodes: any[]): nodes is Text[] {
+  for (const node of nodes) {
+    if (!Text.isText(node)) return false;
+  }
+  return true;
+}
+
 
 // We could instead use
 //    import * as stringify from "json-stable-stringify";

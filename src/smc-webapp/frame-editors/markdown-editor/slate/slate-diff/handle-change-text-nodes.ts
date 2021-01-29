@@ -4,7 +4,7 @@
  */
 
 import { Operation, Text } from "slate";
-import { splitTextNodes } from "./text";
+import { nextPath, splitTextNodes } from "./split-text-nodes";
 import { copy_without } from "smc-util/misc";
 import { isEqual } from "lodash";
 
@@ -37,13 +37,14 @@ export function handleChangeTextNodes(
   }
 
   const operations: Operation[] = [];
+
   let node = nodes[0];
   if (nodes.length > 1) {
     // join together everything in nodes first
     for (let i = 1; i < nodes.length; i++) {
       operations.push({
         type: "merge_node",
-        path: [...path.slice(0, path.length - 1), path[path.length - 1] + 1],
+        path: nextPath(path),
         position: 0, // make TS happy; seems ignored in source code
         properties: {}, // make TS happy; seems ignored in source code -- probably a typescript error.
       });
@@ -51,5 +52,19 @@ export function handleChangeTextNodes(
     }
   }
 
-  return operations.concat(splitTextNodes(node, nextNodes, path));
+  for (const op of splitTextNodes(node, nextNodes, path)) {
+    operations.push(op);
+  }
+
+  /*
+  console.log({
+    node,
+    nodes,
+    nextNodes,
+    path,
+    isLast,
+    operations,
+  });*/
+
+  return operations;
 }
