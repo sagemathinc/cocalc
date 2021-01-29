@@ -63,6 +63,14 @@ function markdownReplace(editor: Editor): boolean {
     return false;
   }
 
+  if (p.type == "hr") {
+    // Inserting a horizontal rule.
+    Transforms.setNodes(editor, p, {
+      match: (n) => Editor.isBlock(editor, n),
+    });
+    return true;
+  }
+
   if (p.type == "paragraph") {
     if (isAllText(p.children)) {
       // paragraph and all text nodes -- can do it via our diff code.
