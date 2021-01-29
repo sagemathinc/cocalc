@@ -12,9 +12,16 @@ import {
   Range,
   Point,
   Element as SlateElement,
+  Text,
 } from "slate";
 import { markdown_to_slate } from "./markdown-to-slate";
-import { len } from "smc-util/misc";
+
+import { applyOperations } from "./operations";
+
+import {
+  handleChangeTextNodes,
+  isAllText,
+} from "./slate-diff/handle-change-text-nodes";
 
 /*
 const SHORTCUTS = {
@@ -38,6 +45,38 @@ const SHORTCUTS = {
 };
 */
 
+function markdownReplace(editor: Editor): boolean {
+  const { selection } = editor;
+  if (!selection) return false;
+  const [node, path] = Editor.node(editor, selection.focus);
+  if (!Text.isText(node)) return false;
+
+  console.log("insertText", node);
+  const slate = markdown_to_slate(node.text.trim());
+  console.log("insertText --> ", slate);
+  if (slate.length != 1) return false;
+  const p = slate[0];
+  if (Text.isText(p)) return false;
+
+  if (!isAllText(p.children)) return false;
+  if (p.children.length == 1 && p.children[0].text.trim() == node.text.trim()) {
+    return false;
+  }
+
+  if (p.type == "paragraph") {
+    if (isAllText(p.children)) {
+      // paragraph and all text nodes -- can do it via our diff code.
+      const nextNodes = p.children.concat([{ text: " " }]);
+      const operations = handleChangeTextNodes([node], nextNodes, path, false);
+      console.log({ nextNodes, operations });
+      applyOperations(editor, operations);
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export const withShortcuts = (editor) => {
   const { deleteBackward, insertText } = editor;
 
@@ -45,65 +84,8 @@ export const withShortcuts = (editor) => {
     const { selection } = editor;
 
     if (text === " " && selection && Range.isCollapsed(selection)) {
-      const { anchor } = selection;
-      const block = Editor.above(editor, {
-        match: (n) => Editor.isBlock(editor, n),
-      });
-      const path = block ? block[1] : [];
-      const start = Editor.start(editor, path);
-      const range = { anchor, focus: start };
-      const beforeText = Editor.string(editor, range);
-      const slate = markdown_to_slate(beforeText);
-      console.log(`beforeText = "${beforeText}" --> `, slate);
-      const node = slate[0] as any;
-      if (node.type == "paragraph") {
-        if (
-          !(
-            node.children.length == 1 &&
-            len(node.children[0]) == 1 &&
-            node.children[0].text.trim() == beforeText.trim()
-          )
-        ) {
-          Transforms.select(editor, range);
-          Transforms.delete(editor);
-          Transforms.insertNodes(editor, node.children);
-          return;
-        }
-      }
-
-      /*
-      let shortcut: Partial<SlateElement> = SHORTCUTS[beforeText];
-      if (false && shortcut != null) {
-        Transforms.select(editor, range);
-        Transforms.delete(editor);
-        if (editor.isInline(shortcut)) {
-          Transforms.wrapNodes(editor, shortcut as any);
-        } else {
-          Transforms.setNodes(editor, shortcut, {
-            match: (n) => Editor.isBlock(editor, n),
-          });
-        }
-
-        if (shortcut.type === "list_item") {
-          let list;
-          if (beforeText == "1.") {
-            list = { type: "ordered_list", children: [], start: 1 };
-          } else {
-            list = { type: "bullet_list", children: [] };
-          }
-          Transforms.wrapNodes(editor, list, {
-            match: (n) =>
-              !Editor.isEditor(n) &&
-              SlateElement.isElement(n) &&
-              n.type === "list_item",
-          });
-        }
-
-        return;
-      }
-      */
+      if (markdownReplace(editor)) return;
     }
-
     insertText(text);
   };
 

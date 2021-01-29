@@ -8,18 +8,11 @@ NOTE: The diff function below is very similar to
 some code in editor_jupyter.coffee.
 */
 
-import { Node, Operation, Text } from "slate";
+import { Node, Operation } from "slate";
 import { dmp } from "smc-util/sync/editor/generic/util";
 import { StringCharMapping } from "smc-util/misc";
 import { handleChangeOneNode } from "./handle-change-one-node";
-import { handleChangeTextNodes } from "./handle-change-text-nodes";
-
-function isAllText(nodes: any[]): nodes is Text[] {
-  for (const node of nodes) {
-    if (!Text.isText(node)) return false;
-  }
-  return true;
-}
+import { handleChangeTextNodes, isAllText } from "./handle-change-text-nodes";
 
 // We could instead use
 //    import * as stringify from "json-stable-stringify";
@@ -48,7 +41,7 @@ export function slateDiff(
   const m1 = string_mapping.to_string(s1);
   const diff = dmp.diff_main(m0, m1);
   const operations: Operation[] = [];
-  console.log({ diff, to_string: string_mapping._to_string });
+  //console.log({ diff, to_string: string_mapping._to_string });
 
   function letterToNode(x: string): Node {
     const node = JSON.parse(string_mapping._to_string[x]);
@@ -99,32 +92,50 @@ export function slateDiff(
           i += 2; // this consumed two entries from the diff array.
           continue;
         }
-        if (nodes.length == nextNodes.length) {
-          // replace corresponding nodes 1-by-1
-          for (let j = 0; j < nodes.length; j++) {
-            for (const op of handleChangeOneNode(
-              nodes[j],
-              nextNodes[j],
-              path.concat([index])
-            )) {
-              operations.push(op);
-            }
-            index += 1;
+        while (nodes.length > 0 && nextNodes.length > 0) {
+          // replace corresponding node
+          for (const op of handleChangeOneNode(
+            nodes[0],
+            nextNodes[0],
+            path.concat([index])
+          )) {
+            operations.push(op);
           }
-          i += 2; // this consumed two entries from the diff array.
-          continue;
+          index += 1;
+          nodes.shift();
+          nextNodes.shift();
         }
+        // delete anything left in nodes
+        for (const node of nodes) {
+          operations.push({
+            type: "remove_node",
+            path: path.concat([index]),
+            node,
+          } as Operation);
+        }
+        // insert anything left in nextNodes
+        for (const node of nextNodes) {
+          operations.push({
+            type: "insert_node",
+            path: path.concat([index]),
+            node,
+          } as Operation);
+          index += 1;
+        }
+        i += 2; // this consumed two entries from the diff array.
+        continue;
+      } else {
+        // Plain delete of some nodes (with no insert immediately after)
+        for (const node of nodes) {
+          operations.push({
+            type: "remove_node",
+            path: path.concat([index]),
+            node,
+          } as Operation);
+        }
+        i += 1; // consumes only one entry from diff array.
+        continue;
       }
-      // not using above strategies, so only option is to just delete nodes
-      for (const node of nodes) {
-        operations.push({
-          type: "remove_node",
-          path: path.concat([index]),
-          node,
-        } as Operation);
-      }
-      i += 1; // consumes only one entry from diff array.
-      continue;
     }
     if (op === 1) {
       // insert new nodes.

@@ -12,8 +12,6 @@ import {
   Node,
   Transforms,
   Element as SlateElement,
-  Point,
-  Operation,
 } from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce } from "lodash";
@@ -43,6 +41,7 @@ import { formatSelectedText } from "./format";
 import { withShortcuts } from "./shortcuts";
 
 import { slateDiff } from "./slate-diff";
+import { applyOperations } from "./operations";
 
 // A bit longer is better, due to escaping of markdown and multiple users
 // with one user editing source and the other editing with slate.
@@ -67,85 +66,6 @@ interface Props {
   value: string;
   reload_images: boolean;
   is_current?: boolean;
-}
-
-function transformPoint(
-  point: Point | undefined,
-  operations: Operation[]
-): Point | undefined {
-  for (const op of operations) {
-    if (point == null) break;
-    const new_point = Point.transform(point, op);
-    if (new_point != null) {
-      point = new_point;
-    } else {
-      // this happens when the node where the cursor should go
-      // gets deleted.
-      // console.log({ op });
-      // TODO: better algo to find closest path...
-      let path = [...point.path];
-      while (path.length > 0) {
-        point = { path, offset: 0 };
-        const new_point = Point.transform(point, op);
-        if (new_point != null) {
-          point = new_point;
-          break;
-        }
-        // try moving up
-        path[path.length - 1] -= 1;
-        if (path[path.length - 1] < 0) {
-          path = path.slice(0, path.length - 1);
-        }
-      }
-    }
-  }
-  return point;
-}
-
-async function applyOperations(
-  editor: Editor,
-  operations: Operation[]
-): Promise<void> {
-  if (operations.length == 0) return;
-  //await new Promise(requestAnimationFrame);
-  const t0 = new Date().valueOf();
-  try {
-    (editor as any).applyingOperations = true;
-
-    // First transform the selection.
-    const focus = editor.selection?.focus;
-    const new_focus = transformPoint(focus, operations);
-    //console.log("transformPoint", { focus, new_focus, operations });
-    const anchor = editor.selection?.anchor;
-    const new_anchor = transformPoint(anchor, operations);
-
-    //const is_focused = ReactEditor.isFocused(editor);
-    // IMPORTANT: we use transform to apply all but the last operation,
-    // then use editor.apply for the very last operation.  Why?
-    // Because editor.apply normalize the document and does a bunch of
-    // other things which can easily make it so the operations
-    // are no longer valid, e.g., their paths are wrong, etc.
-    // Obviously, it is also much better to not normalize every single
-    // time too.
-    for (const op of operations.slice(0, operations.length - 1)) {
-      //console.log("apply ", op);
-      Transforms.transform(editor, op);
-    }
-    //console.log("apply last ", operations[operations.length - 1]);
-    editor.apply(operations[operations.length - 1]);
-    console.log(
-      `time: apply ${operations.length} operations`,
-      new Date().valueOf() - t0,
-      "ms"
-    );
-    (window as any).operations = operations;
-    if (new_focus != null && new_anchor != null) {
-      Transforms.setSelection(editor, { focus: new_focus, anchor: new_anchor });
-    }
-  } finally {
-    (editor as any).applyingOperations = false;
-  }
-  await new Promise(requestAnimationFrame);
 }
 
 /*
@@ -272,7 +192,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         }
 
         // Not in a table, so insert a hard break instead of a new
-        // pagraph like enter creates.
+        // paragraph like enter creates.
         Transforms.insertNodes(editor, [
           {
             type: "hardbreak",

@@ -68,3 +68,10 @@ export function handleChangeTextNodes(
 
   return operations;
 }
+
+export function isAllText(nodes: any[]): nodes is Text[] {
+  for (const node of nodes) {
+    if (!Text.isText(node)) return false;
+  }
+  return true;
+}
