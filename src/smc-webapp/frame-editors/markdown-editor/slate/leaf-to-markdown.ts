@@ -4,23 +4,22 @@
  */
 
 import { Text } from "slate";
-import { mark_inline_text /* markdown_escape */ } from "./util";
+import { mark_inline_text, markdown_escape } from "./util";
 import { startswith } from "smc-util/misc";
 import { Info } from "./slate-to-markdown";
 
-export function serializeLeaf(node: Text, _info: Info): string {
+export function serializeLeaf(node: Text, info: Info): string {
   let text = node.text;
   /*
-  TODO: For now we are NOT doing markdown escaping, since it breaks having one user
-  working in the source side and the other in slatejs at the same time.  What
-  we should do instead is this escaping only when the user is actively typing
-  or pasting something into slate.js.
-  Also, disabling this has interesting implications for being able to type markdown
+  TODO: Markdown escaping is confusing when one user is
+  working in the source side and the other in slatejs at the same time.
+  I don't know any solution for that yet.
+  NOTE: disabling this would have interesting implications for being able to type markdown
   into slatej, and have it autoconvert to rendered (e.g., backticks --> code).
+  */
   if (!info.no_escape && !node.code && info.parent["type"] != "code_block") {
     text = markdown_escape(text);
   }
-  */
 
   const marks: { left: string; right?: string }[] = [];
   // Proper markdown annotation.

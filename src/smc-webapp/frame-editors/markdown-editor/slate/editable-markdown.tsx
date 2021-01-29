@@ -44,8 +44,9 @@ import { withShortcuts } from "./shortcuts";
 
 import { slateDiff } from "./slate-diff";
 
-// Longer is better, due to the auto-parsing of markdown.
-const SAVE_DEBOUNCE_MS = 1500;
+// A bit longer is better, due to escaping of markdown and multiple users
+// with one user editing source and the other editing with slate.
+const SAVE_DEBOUNCE_MS = 2000;
 const USE_WINDOWING = true;
 //const USE_WINDOWING = false;
 
@@ -109,7 +110,7 @@ async function applyOperations(editor, operations: Operation[]): Promise<void> {
   // First transform the selection.
   const focus = editor.selection?.focus;
   const new_focus = transformPoint(focus, operations);
-  console.log("transformPoint", { focus, new_focus, operations });
+  //console.log("transformPoint", { focus, new_focus, operations });
   const anchor = editor.selection?.anchor;
   const new_anchor = transformPoint(anchor, operations);
 
@@ -357,55 +358,15 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       return () => actions.get_syncstring().off("before-change", before_change);
     }, []);
 
-    /*
-    const setEditorValueNoCrash = useCallback(async (new_value) => {
-      ReactEditor.blur(editor);
-      const t0 = new Date().valueOf();
-      setEditorValue(new_value);
-      // Critical to wait until after next render loop, or
-      // ReactEditor.toDOMPoint below will not detect the problem.
-      await new Promise(requestAnimationFrame);
-      console.log("render time", new Date().valueOf() - t0);
-      if (editor.selection != null) {
-        try {
-          ReactEditor.toDOMPoint(editor, editor.selection.anchor);
-          ReactEditor.toDOMPoint(editor, editor.selection.focus);
-          ReactEditor.focus(editor);
-        } catch (_err) {
-          // Do not focus -- better than crashing the browser.
-          // When the user clicks again to focus, they will choose
-          // a valid cursor point.
-          // TODO: we need to either figure out where the cursor
-          // would move to, etc., or we need to use a sequences of
-          // Transforms rather than just setting the editor value.
-          // This is of course very hard, but it is the right thing
-          // to do in general.
-          // Another option might be to insert something in the DOM
-          // at the cursor, make changes, find that thing, and put the
-          // cursor back there.  But that might not work if it disrupts
-          // a user while they are typing.
-        }
-      }
-    }, []);
-    */
-
-    /*
-    const setEditorValueNoJump = useCallback(
-      (new_value) => {
-        const operations = slateDiff(value, new_value);
-        for (const op of operations) {
-          editor.apply(op);
-        }
-      },
-      [value]
-    );
-    */
-
     useEffect(() => {
-      /*if (value == editorMarkdownValueRef.current) {
+      // NOTE: if we comment this if out and disable escaping, then
+      // one can type markdown in the slatejs side and it gets converted
+      // to rendered... which is fun but really unpredictable and confusing.
+      if (value == editorMarkdownValueRef.current) {
         // Setting to current value, so no-op.
         return;
-      }*/
+      }
+
       editorMarkdownValueRef.current = value;
       const nextEditorValue = markdown_to_slate(value);
       const operations = slateDiff(editor.children, nextEditorValue);
