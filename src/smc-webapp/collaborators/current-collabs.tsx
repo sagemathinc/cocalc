@@ -63,7 +63,7 @@ export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
           disabled={group === "owner"}
           style={{ marginBottom: "0", float: "right" }}
         >
-          <Icon name="user-times" /> Remove...
+          <Icon name="user-times" /><Space/> Remove...
         </Button>
       </Popconfirm>
     );
