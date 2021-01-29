@@ -20,6 +20,7 @@ import { handlers } from "./register";
 import { State, Token } from "./types";
 import { parse_markdown } from "./parse-markdown";
 // import { ensureDocPadding } from "../padding";
+import { ensureDocNonempty } from "../padding";
 
 export function parse(token: Token, state: State): Descendant[] {
   for (const handler of handlers) {
@@ -50,6 +51,7 @@ export function markdown_to_slate(markdown: string): Descendant[] {
 
   // TODO -- try to find another way
   //ensureDocPadding(doc);
+  ensureDocNonempty(doc);
 
   (window as any).x = {
     tokens,

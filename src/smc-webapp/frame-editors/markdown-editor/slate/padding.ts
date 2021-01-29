@@ -32,6 +32,12 @@ function isTextParagraph(node: Descendant | undefined): boolean {
   );
 }
 
+export function ensureDocNonempty(doc: Descendant[]): void {
+  if (doc.length == 0) {
+    doc.push(PARAGRAPH);
+  }
+}
+
 // It is very important that the following two functions
 // basically do the same thing.
 
