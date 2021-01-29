@@ -13,7 +13,10 @@ import {
   Point,
   Element as SlateElement,
 } from "slate";
+import { markdown_to_slate } from "./markdown-to-slate";
+import { len } from "smc-util/misc";
 
+/*
 const SHORTCUTS = {
   $: { type: "math", value: "$x^2$", isVoid: true, isInline: true },
   $$: { type: "math", value: "$$x^3$$", isVoid: true, isInline: false },
@@ -33,6 +36,7 @@ const SHORTCUTS = {
   "######": { type: "heading", level: 6 },
   "---": { type: "hr", isVoid: true },
 };
+*/
 
 export const withShortcuts = (editor) => {
   const { deleteBackward, insertText } = editor;
@@ -49,9 +53,27 @@ export const withShortcuts = (editor) => {
       const start = Editor.start(editor, path);
       const range = { anchor, focus: start };
       const beforeText = Editor.string(editor, range);
-      let shortcut: Partial<SlateElement> = SHORTCUTS[beforeText];
+      const slate = markdown_to_slate(beforeText);
+      console.log(`beforeText = "${beforeText}" --> `, slate);
+      const node = slate[0] as any;
+      if (node.type == "paragraph") {
+        if (
+          !(
+            node.children.length == 1 &&
+            len(node.children[0]) == 1 &&
+            node.children[0].text.trim() == beforeText.trim()
+          )
+        ) {
+          Transforms.select(editor, range);
+          Transforms.delete(editor);
+          Transforms.insertNodes(editor, node.children);
+          return;
+        }
+      }
 
-      if (shortcut != null) {
+      /*
+      let shortcut: Partial<SlateElement> = SHORTCUTS[beforeText];
+      if (false && shortcut != null) {
         Transforms.select(editor, range);
         Transforms.delete(editor);
         if (editor.isInline(shortcut)) {
@@ -79,6 +101,7 @@ export const withShortcuts = (editor) => {
 
         return;
       }
+      */
     }
 
     insertText(text);
