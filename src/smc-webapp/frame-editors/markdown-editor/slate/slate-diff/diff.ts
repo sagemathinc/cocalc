@@ -78,8 +78,8 @@ export function slateDiff(
       i += 1;
       continue;
     }
+    const nodes = stringToNodes(val);
     if (op === -1) {
-      const nodes = stringToNodes(val);
       if (i < diff.length - 1 && diff[i + 1][0] == 1) {
         // next one is an insert, so this is really a "replace".
         const nextVal = diff[i + 1][1];
@@ -95,11 +95,10 @@ export function slateDiff(
           )) {
             operations.push(op);
           }
-          index += nextVal.length;
+          index += nextNodes.length;
           i += 2; // this consumed two entries from the diff array.
           continue;
         }
-
         if (nodes.length == nextNodes.length) {
           // replace corresponding nodes 1-by-1
           for (let j = 0; j < nodes.length; j++) {
@@ -110,13 +109,13 @@ export function slateDiff(
             )) {
               operations.push(op);
             }
+            index += 1;
           }
-          index += nextVal.length;
           i += 2; // this consumed two entries from the diff array.
           continue;
         }
       }
-      // last one -- only option is to delete nodes
+      // not using above strategies, so only option is to just delete nodes
       for (const node of nodes) {
         operations.push({
           type: "remove_node",
@@ -124,14 +123,12 @@ export function slateDiff(
           node,
         } as Operation);
       }
-      //index += val.length;
       i += 1; // consumes only one entry from diff array.
       continue;
     }
     if (op === 1) {
       // insert new nodes.
-      for (const x of val) {
-        const node = letterToNode(x);
+      for (const node of nodes) {
         operations.push({
           type: "insert_node",
           path: path.concat([index]),

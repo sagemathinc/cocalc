@@ -70,9 +70,9 @@ interface Props {
 }
 
 function transformPoint(
-  point: Point | null,
+  point: Point | undefined,
   operations: Operation[]
-): Point | null {
+): Point | undefined {
   for (const op of operations) {
     if (point == null) break;
     const new_point = Point.transform(point, op);
@@ -102,44 +102,50 @@ function transformPoint(
   return point;
 }
 
-async function applyOperations(editor, operations: Operation[]): Promise<void> {
+async function applyOperations(
+  editor: Editor,
+  operations: Operation[]
+): Promise<void> {
   if (operations.length == 0) return;
   //await new Promise(requestAnimationFrame);
   const t0 = new Date().valueOf();
+  try {
+    (editor as any).applyingOperations = true;
 
-  // First transform the selection.
-  const focus = editor.selection?.focus;
-  const new_focus = transformPoint(focus, operations);
-  //console.log("transformPoint", { focus, new_focus, operations });
-  const anchor = editor.selection?.anchor;
-  const new_anchor = transformPoint(anchor, operations);
+    // First transform the selection.
+    const focus = editor.selection?.focus;
+    const new_focus = transformPoint(focus, operations);
+    //console.log("transformPoint", { focus, new_focus, operations });
+    const anchor = editor.selection?.anchor;
+    const new_anchor = transformPoint(anchor, operations);
 
-  //const is_focused = ReactEditor.isFocused(editor);
-  // IMPORTANT: we use transform to apply all but the last operation,
-  // then use editor.apply for the very last operation.  Why?
-  // Because editor.apply normalize the document and does a bunch of
-  // other things which can easily make it so the operations
-  // are no longer valid, e.g., their paths are wrong, etc.
-  // Obviously, it is also much better to not normalize every single
-  // time too.
-  for (const op of operations.slice(0, operations.length - 1)) {
-    //console.log("apply ", op);
-    Transforms.transform(editor, op);
-  }
-  //console.log("apply last ", operations[operations.length - 1]);
-  editor.apply(operations[operations.length - 1]);
-  console.log(
-    `time: apply ${operations.length} operations`,
-    new Date().valueOf() - t0,
-    "ms"
-  );
-  (window as any).operations = operations;
-  const t1 = new Date().valueOf();
-  if (new_focus != null && new_anchor != null) {
-    Transforms.setSelection(editor, { focus: new_focus, anchor: new_anchor });
+    //const is_focused = ReactEditor.isFocused(editor);
+    // IMPORTANT: we use transform to apply all but the last operation,
+    // then use editor.apply for the very last operation.  Why?
+    // Because editor.apply normalize the document and does a bunch of
+    // other things which can easily make it so the operations
+    // are no longer valid, e.g., their paths are wrong, etc.
+    // Obviously, it is also much better to not normalize every single
+    // time too.
+    for (const op of operations.slice(0, operations.length - 1)) {
+      //console.log("apply ", op);
+      Transforms.transform(editor, op);
+    }
+    //console.log("apply last ", operations[operations.length - 1]);
+    editor.apply(operations[operations.length - 1]);
+    console.log(
+      `time: apply ${operations.length} operations`,
+      new Date().valueOf() - t0,
+      "ms"
+    );
+    (window as any).operations = operations;
+    if (new_focus != null && new_anchor != null) {
+      Transforms.setSelection(editor, { focus: new_focus, anchor: new_anchor });
+    }
+  } finally {
+    (editor as any).applyingOperations = false;
   }
   await new Promise(requestAnimationFrame);
-  console.log("time: rendered", new Date().valueOf() - t1, "ms");
 }
 
 /*
@@ -414,11 +420,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
                 // Editor didn't actually change value so nothing to do.
                 return;
               }
-              hasUnsavedChangesRef.current = true;
-              editorMarkdownValueRef.current = undefined; // markdown value now not known.
-              if (ReactEditor.isFocused(editor)) {
-                // If editor is focused, scroll cursor into view.
-                scroll_into_view();
+              if (!(editor as any).applyingOperations) {
+                hasUnsavedChangesRef.current = true;
+                editorMarkdownValueRef.current = undefined; // markdown value now not known.
+                if (ReactEditor.isFocused(editor)) {
+                  // If editor is focused, scroll cursor into view.
+                  scroll_into_view();
+                }
               }
               setEditorValue(newEditorValue);
 
@@ -431,7 +439,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
                 return;
               }
-              saveValueDebounce();
+              if (!(editor as any).applyingOperations) {
+                saveValueDebounce();
+              }
               //ensureEditorPaddingDebounce();
             }}
           >
