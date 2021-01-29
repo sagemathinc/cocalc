@@ -52,10 +52,8 @@ STRATEGIES.push((node, nextNode, path) => {
       copy_without(nextNode, ["children"])
     )
   ) {
-    console.log("using diff strategy");
     return slateDiff(node["children"], nextNode["children"], path);
   }
-  console.log("NOT using diff", { node, nextNode });
 });
 
 /*

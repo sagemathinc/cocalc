@@ -42,7 +42,7 @@ export function slateDiff(
   const m1 = string_mapping.to_string(s1);
   const diff = dmp.diff_main(m0, m1);
   const operations: Operation[] = [];
-  console.log({ diff });
+  //console.log({ diff });
 
   function letterToNode(x: string): Node {
     const node = JSON.parse(string_mapping._to_string[x]);
@@ -78,12 +78,6 @@ export function slateDiff(
         // next one is an insert, so this is really a "replace".
         const nextVal = diff[i + 1][1];
         const nextNodes = stringToNodes(nextVal);
-        console.log("text?", {
-          nodes,
-          nextNodes,
-          one: isAllText(nodes),
-          two: isAllText(nextNodes),
-        });
         if (isAllText(nodes) && isAllText(nextNodes)) {
           // Every single node involved is a text node.  This can be done
           // via modifying and splitting and joining.

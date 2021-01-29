@@ -132,9 +132,10 @@ function getProperties(node: Text, before?: Text): any {
   }
   if (before != null) {
     // also be sure to explicitly remove props
+    // WARNING: this might change in slatejs; I saw a discussion about this.
     for (const x in before) {
-      if (x != "text" && node[x] === undefined) {
-        props[x] = undefined;
+      if (x != "text" && node[x] == null) {
+        props[x] = null;
       }
     }
   }
