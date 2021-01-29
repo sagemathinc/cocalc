@@ -21,7 +21,6 @@ function isAllText(nodes: any[]): nodes is Text[] {
   return true;
 }
 
-
 // We could instead use
 //    import * as stringify from "json-stable-stringify";
 // which might sometimes avoid a safe "false positive" (i.e., slightly
@@ -49,7 +48,7 @@ export function slateDiff(
   const m1 = string_mapping.to_string(s1);
   const diff = dmp.diff_main(m0, m1);
   const operations: Operation[] = [];
-  //console.log({ diff });
+  console.log({ diff, to_string: string_mapping._to_string });
 
   function letterToNode(x: string): Node {
     const node = JSON.parse(string_mapping._to_string[x]);
@@ -96,7 +95,7 @@ export function slateDiff(
           )) {
             operations.push(op);
           }
-          index += val.length;
+          index += nextVal.length;
           i += 2; // this consumed two entries from the diff array.
           continue;
         }
@@ -112,7 +111,7 @@ export function slateDiff(
               operations.push(op);
             }
           }
-          index += val.length;
+          index += nextVal.length;
           i += 2; // this consumed two entries from the diff array.
           continue;
         }
@@ -125,7 +124,7 @@ export function slateDiff(
           node,
         } as Operation);
       }
-      index += val.length;
+      //index += val.length;
       i += 1; // consumes only one entry from diff array.
       continue;
     }

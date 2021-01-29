@@ -4,7 +4,7 @@
  */
 
 import { Text } from "slate";
-import { mark_inline_text, markdown_escape } from "./util";
+import { markInlineText, markdownEscape } from "./util";
 import { startswith } from "smc-util/misc";
 import { Info } from "./slate-to-markdown";
 
@@ -18,7 +18,7 @@ export function serializeLeaf(node: Text, info: Info): string {
   into slatej, and have it autoconvert to rendered (e.g., backticks --> code).
   */
   if (!info.no_escape && !node.code && info.parent["type"] != "code_block") {
-    text = markdown_escape(text);
+    text = markdownEscape(text);
   }
 
   const marks: { left: string; right?: string }[] = [];
@@ -67,7 +67,7 @@ export function serializeLeaf(node: Text, info: Info): string {
     }
   }
   for (const mark of marks) {
-    text = mark_inline_text(text, mark.left, mark.right);
+    text = markInlineText(text, mark.left, mark.right);
   }
   return text;
 }

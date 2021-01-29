@@ -26,11 +26,11 @@ export function serialize(node: Node, info: Info): string {
 }
 
 export function slate_to_markdown(
-  data: Node[],
+  slate: Node[],
   options?: { no_escape?: boolean }
 ): string {
   const t = new Date().valueOf();
-  const r = data
+  const markdown = slate
     .map((node) =>
       serialize(node, { parent: node, no_escape: !!options?.no_escape })
     )
@@ -39,6 +39,6 @@ export function slate_to_markdown(
   // const r = trimPaddingFromMarkdown(r);
 
   console.log("time: slate_to_markdown ", new Date().valueOf() - t, "ms");
-  //  console.log({ slate_to_markdown: r });
-  return r;
+  console.log("slate_to_markdown", { slate, markdown });
+  return markdown;
 }

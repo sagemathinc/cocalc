@@ -26,7 +26,7 @@ const MAP = {
   $: "\\$",
 } as const;
 
-export function markdown_escape(s: string): string {
+export function markdownEscape(s: string): string {
   // some keys from the map above are purposely missing here, since overescaping
   // makes the generated markdown ugly.
 
@@ -139,15 +139,21 @@ export function stripWhitespace(
   };
 }
 
-export function mark_inline_text(
+export function markInlineText(
   text: string,
   left: string,
   right?: string // defaults to left if not given
 ): string {
-  // We have to put the mark *inside* of any whitespace on the outside.
+  // For non-HTML, we have to put the mark *inside* of any
+  // whitespace on the outside.
   // See https://www.markdownguide.org/basic-syntax/#bold
   // where it says "... without spaces ...".
   // In particular, `** bold **` does NOT work.
+  // This is NOT true for html, of course.
+  if (left.indexOf("<") != -1) {
+    // html - always has right set.
+    return left + text + right;
+  }
   const { before, trimmed, after } = stripWhitespace(text);
   if (trimmed.length == 0) {
     // all whitespace, so don't mark it.
