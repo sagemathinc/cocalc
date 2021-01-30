@@ -3,14 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useMemo, useState } from "../../../app-framework";
-import { macros } from "../../../jquery-plugins/math-katex";
+import { React, useMemo, useState } from "../../../../app-framework";
+import { macros } from "../../../../jquery-plugins/math-katex";
 import { renderToString } from "katex";
 import { startswith } from "smc-util/misc";
 import { SlateCodeMirror } from "./codemirror";
 import * as LRU from "lru-cache";
-import { useFocused, useSelected } from "./slate-react";
-import { FOCUSED_COLOR } from "./util";
+import { useFocused, useSelected } from "../slate-react";
+import { FOCUSED_COLOR } from "../util";
 import { delay } from "awaiting";
 
 const cache = new LRU({ max: 300 });

@@ -11,7 +11,7 @@ import {
   RenderElementProps,
   useSlate,
 } from "./register";
-import { SlateCodeMirror } from "../codemirror";
+import { SlateCodeMirror } from "./codemirror";
 import { ensure_ends_in_newline, indent } from "../util";
 
 export interface CodeBlock extends SlateElement {

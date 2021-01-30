@@ -6,7 +6,7 @@
 import { React } from "../../../../app-framework";
 import { Transforms, Element as Element0 } from "slate";
 import { register, SlateElement,  RenderElementProps, useSlate  } from "./register";
-import { SlateMath } from "../math";
+import { SlateMath } from "./math-widget";
 
 export interface Math extends SlateElement {
   type: "math";

@@ -11,17 +11,20 @@ TODO: a lot!
  and so much more!
 */
 
-import { file_associations } from "../../../file-associations";
+import { Range } from "slate";
+import { file_associations } from "../../../../file-associations";
 import {
   CSS,
   React,
   ReactDOM,
+  useCallback,
   useEffect,
   useRef,
   useState,
-} from "../../../app-framework";
+} from "../../../../app-framework";
 import * as CodeMirror from "codemirror";
-import { FOCUSED_COLOR } from "./util";
+import { FOCUSED_COLOR } from "../util";
+import { useFocused, useSelected, useSlate } from "./register";
 
 const STYLE = {
   width: "100%",
@@ -42,12 +45,46 @@ interface Props {
   onEscape?: () => void;
   onBlur?: () => void;
   options?: { [option: string]: any };
+  selected?: boolean; // if switches from false to true, should focus codemirror
 }
+
 export const SlateCodeMirror: React.FC<Props> = React.memo(
   ({ info, value, onChange, onShiftEnter, onEscape, onBlur, options }) => {
+    const focused = useFocused();
+    const selected = useSelected();
+    const editor = useSlate();
+
     const cmRef = useRef<CodeMirror.Editor | undefined>(undefined);
     const [isFocused, setIsFocused] = useState<boolean>(!!options?.autofocus);
     const textareaRef = useRef<any>(null);
+
+    const setCSS = useCallback((css) => {
+      if (cmRef.current == null) return;
+      $(cmRef.current.getWrapperElement()).css(css);
+    }, []);
+
+    useEffect(() => {
+      if (!cmRef.current) return;
+      if (focused && selected) {
+        if (editor.selection && Range.isCollapsed(editor.selection)) {
+          cmRef.current.focus();
+          setCSS({
+            backgroundColor: options?.theme != null ? "" : "#f7f7f7",
+            color: "",
+          });
+        } else {
+          setCSS({
+            backgroundColor: "#1990ff",
+            color: "white",
+          });
+        }
+      } else {
+        setCSS({
+          backgroundColor: options?.theme != null ? "" : "#f7f7f7",
+          color: "",
+        });
+      }
+    }, [selected, focused]);
 
     useEffect(() => {
       const node: HTMLTextAreaElement = ReactDOM.findDOMNode(
@@ -64,6 +101,8 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         }
         const spec = file_associations[info];
         options.mode = spec?.opts.mode ?? info; // if nothing in file associations, maybe info is the mode, e.g. "python".
+      } else {
+        options.mode = "txt";
       }
 
       if (options.extraKeys == null) {
@@ -101,7 +140,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       if (options.theme == null) {
         css.backgroundColor = "#f7f7f7";
       }
-      $(cm.getWrapperElement()).css(css);
+      setCSS(css);
 
       return () => {
         if (cmRef.current == null) return;
