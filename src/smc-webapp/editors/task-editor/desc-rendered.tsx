@@ -64,6 +64,8 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
       v.push((x) => process_hashtags(x, selected_hashtags));
       value = apply_without_math(value, v);
 
+      // we use the no_hashtags option below so the generic Markdown
+      // renderer doesn't do any processing of hashtags.
       return (
         <>
           <Markdown
@@ -71,6 +73,7 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
             project_id={project_id}
             file_path={path ? path_split(path).head : undefined}
             highlight={search_terms}
+            no_hashtags={true}
           />
           {show_more_link && (
             <a onClick={() => actions?.toggle_full_desc(task_id)}>

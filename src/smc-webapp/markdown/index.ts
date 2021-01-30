@@ -28,14 +28,14 @@ const OPTIONS: MarkdownIt.Options = {
 
 const PLUGINS = [emojiPlugin, checkboxPlugin, hashtagPlugin];
 
-function usePlugins(m) {
-  for (const plugin of PLUGINS) {
+function usePlugins(m, plugins) {
+  for (const plugin of plugins) {
     m.use(plugin);
   }
 }
 
 export const markdown_it = new MarkdownIt(OPTIONS);
-usePlugins(markdown_it);
+usePlugins(markdown_it, PLUGINS);
 
 /*
 Inject line numbers for sync.
@@ -61,7 +61,7 @@ function inject_linenumbers_plugin(md) {
 }
 const markdown_it_line_numbers = new MarkdownIt(OPTIONS);
 markdown_it_line_numbers.use(inject_linenumbers_plugin);
-usePlugins(markdown_it_line_numbers);
+usePlugins(markdown_it_line_numbers, PLUGINS);
 
 /*
 Turn the given markdown *string* into an HTML *string*.
@@ -87,7 +87,7 @@ export interface MD2html {
 function process(
   markdown_string: string,
   mode: "default" | "frontmatter",
-  options?: { line_numbers?: boolean }
+  options?: { line_numbers?: boolean; no_hashtags?: boolean }
 ): MD2html {
   let text: string;
   let math: string[];
@@ -106,7 +106,9 @@ function process(
     );
     html = md_frontmatter.render(text);
   } else {
-    if (options?.line_numbers) {
+    if (options?.no_hashtags) {
+      html = markdown_it_no_hashtags.render(text);
+    } else if (options?.line_numbers) {
       html = markdown_it_line_numbers.render(text);
     } else {
       html = markdown_it.render(text);
@@ -126,9 +128,14 @@ export function markdown_to_html_frontmatter(s: string): MD2html {
   return process(s, "frontmatter");
 }
 
+// This is needed right now for todo list (*ONLY* because they use an
+// old approach to parsing hashtags).
+const markdown_it_no_hashtags = new MarkdownIt(OPTIONS);
+usePlugins(markdown_it, [emojiPlugin, checkboxPlugin]);
+
 export function markdown_to_html(
   s: string,
-  options?: { line_numbers?: boolean }
+  options?: { line_numbers?: boolean; no_hashtags?: boolean }
 ): string {
   return process(s, "default", options).html;
 }
