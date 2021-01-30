@@ -186,7 +186,8 @@ export function padCenter(s: string, n: number): string {
 /* This focused color is "Jupyter notebook classic" focused cell green. */
 //export const FOCUSED_COLOR = "#66bb6a";
 
-export const FOCUSED_COLOR = "#2196f3";
+//export const FOCUSED_COLOR = "#2196f3";
+export const FOCUSED_COLOR = "rgb(126,182,226)";
 
 export function replace_math(text, math) {
   // Replace all the math group placeholders in the text

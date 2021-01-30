@@ -384,7 +384,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
                     }
               }
               windowing={
-                USE_WINDOWING ? { rowStyle, overscanRowCount: 15 } : undefined
+                USE_WINDOWING ? { rowStyle, overscanRowCount: 100 } : undefined
               }
             />
           </Slate>

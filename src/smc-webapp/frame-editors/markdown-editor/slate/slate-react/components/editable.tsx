@@ -187,11 +187,15 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
     try {
       newDomRange = selection && ReactEditor.toDOMRange(editor, selection);
     } catch (err) {
+      // To get this to happen, try select all and doubling the "large document" example on
+      // slatejs to get to over 300 cells. The select all again and get this.
+      /*
       console.log(
         "TODO: deal with toDOMRange when selection is not contained in the visible window. Just resetting for now.",
         selection,
         err
       );
+      */
       newDomRange = undefined;
     }
 

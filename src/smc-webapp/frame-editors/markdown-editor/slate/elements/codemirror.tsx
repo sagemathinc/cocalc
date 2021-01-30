@@ -11,7 +11,8 @@ TODO: a lot!
  and so much more!
 */
 
-import { Range } from "slate";
+import { Editor, Range, Transforms } from "slate";
+import { ReactEditor } from "../slate-react";
 import { file_associations } from "../../../../file-associations";
 import {
   CSS,
@@ -31,7 +32,7 @@ const STYLE = {
   overflow: "auto",
   overflowX: "hidden",
   border: "1px solid #cfcfcf",
-  borderRadius: "2px",
+  borderRadius: "5px",
   lineHeight: "1.21429em",
   marginBottom: "1em", // consistent with <p> tag.
   userSelect: "none", // see https://github.com/ianstormtaylor/slate/issues/3723#issuecomment-761566218
@@ -45,11 +46,20 @@ interface Props {
   onEscape?: () => void;
   onBlur?: () => void;
   options?: { [option: string]: any };
-  selected?: boolean; // if switches from false to true, should focus codemirror
+  isInline?: boolean; // impacts how cursor moves out of codemirror.
 }
 
 export const SlateCodeMirror: React.FC<Props> = React.memo(
-  ({ info, value, onChange, onShiftEnter, onEscape, onBlur, options }) => {
+  ({
+    info,
+    value,
+    onChange,
+    onShiftEnter,
+    onEscape,
+    onBlur,
+    options,
+    isInline,
+  }) => {
     const focused = useFocused();
     const selected = useSelected();
     const editor = useSlate();
@@ -64,14 +74,22 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     }, []);
 
     useEffect(() => {
-      if (!cmRef.current) return;
+      const cm = cmRef.current;
+      if (cm == null) return;
       if (focused && selected) {
         if (editor.selection && Range.isCollapsed(editor.selection)) {
-          cmRef.current.focus();
+          // focus the editor
+          cm.focus();
+          // set the CSS to indicate this
           setCSS({
             backgroundColor: options?.theme != null ? "" : "#f7f7f7",
             color: "",
           });
+          // move cursor to the beginning of the line (matching Jupyter behavior).
+          const cur = cm.getCursor();
+          if (!isInline && cur != null) {
+            cm.setCursor({ line: cur.line, ch: 0 });
+          }
         } else {
           setCSS({
             backgroundColor: "#1990ff",
@@ -108,6 +126,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       if (options.extraKeys == null) {
         options.extraKeys = {};
       }
+
       if (onShiftEnter != null) {
         options.extraKeys["Shift-Enter"] = onShiftEnter;
       }
@@ -115,6 +134,8 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       if (onEscape != null) {
         options.extraKeys["Esc"] = onEscape;
       }
+
+      cursorHandlers(options, editor, isInline);
 
       const cm = (cmRef.current = CodeMirror.fromTextArea(node, options));
 
@@ -159,8 +180,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         style={{
           ...STYLE,
           ...{
-            /* The focused color is "Jupyter notebook classic" focused cell green. */
-            border: `1px solid ${isFocused ? FOCUSED_COLOR : "#cfcfcf"}`,
+            border: `2px solid ${isFocused ? FOCUSED_COLOR : "#cfcfcf"}`,
           },
         }}
         className="smc-vfill"
@@ -170,3 +190,68 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     );
   }
 );
+
+function moveCursorToBeginningOfBlock(editor: Editor): void {
+  const selection = editor.selection;
+  if (selection == null || !Range.isCollapsed(selection)) {
+    return;
+  }
+  const path = [...selection.focus.path];
+  if (path.length == 0) return;
+  path[path.length - 1] = 0;
+  const focus = { path, offset: 0 };
+  Transforms.setSelection(editor, { focus, anchor: focus });
+}
+
+function cursorHandlers(options, editor, isInline?: boolean): void {
+  options.extraKeys["Up"] = (cm) => {
+    const cur = cm.getCursor();
+    if (cur?.line === cm.firstLine() && cur?.ch == 0) {
+      Transforms.move(editor, { distance: 1, unit: "line", reverse: true });
+      if (!isInline) {
+        moveCursorToBeginningOfBlock(editor);
+      }
+      ReactEditor.focus(editor);
+    } else {
+      CodeMirror.commands.goLineUp(cm);
+    }
+  };
+
+  options.extraKeys["Left"] = (cm) => {
+    const cur = cm.getCursor();
+    if (cur?.line === cm.firstLine() && cur?.ch == 0) {
+      Transforms.move(editor, { distance: 1, unit: "line", reverse: true });
+      ReactEditor.focus(editor);
+    } else {
+      CodeMirror.commands.goCharLeft(cm);
+    }
+  };
+
+  const exitDown = (cm) => {
+    const cur = cm.getCursor();
+    const n = cm.lastLine();
+    const cur_line = cur?.line;
+    const cur_ch = cur?.ch;
+    const line = cm.getLine(n);
+    const line_length = line?.length;
+    if (cur_line === n && cur_ch === line_length) {
+      Transforms.move(editor, { distance: 1, unit: "line" });
+      ReactEditor.focus(editor);
+      return true;
+    } else {
+      return false;
+    }
+  };
+
+  options.extraKeys["Right"] = (cm) => {
+    if (!exitDown(cm)) {
+      CodeMirror.commands.goCharRight(cm);
+    }
+  };
+
+  options.extraKeys["Down"] = (cm) => {
+    if (!exitDown(cm)) {
+      CodeMirror.commands.goLineDown(cm);
+    }
+  };
+}

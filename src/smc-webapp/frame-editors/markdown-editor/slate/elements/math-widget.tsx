@@ -44,6 +44,7 @@ export const SlateMath: React.FC<Props> = React.memo(({ value, onChange }) => {
           lineWrapping: true,
           autofocus: true,
         }}
+        isInline={true}
       />
     );
   }
