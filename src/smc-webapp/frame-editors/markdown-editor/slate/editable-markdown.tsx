@@ -43,10 +43,23 @@ import { withShortcuts } from "./shortcuts";
 import { slateDiff } from "./slate-diff";
 import { applyOperations } from "./operations";
 
-// A bit longer is better, due to escaping of markdown and multiple users
+// (??) A bit longer is better, due to escaping of markdown and multiple users
 // with one user editing source and the other editing with slate.
-const SAVE_DEBOUNCE_MS = 2000;
+// const SAVE_DEBOUNCE_MS = 2000;
+// Actually, I think the right way to fix this issue is to not merge in upstream
+// changes until the active editor (in any way) pauses for 2s (say), and that
+// does NOT mean we need to stop saving here.
+import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
+
+// Set this to false for testing.
 const USE_WINDOWING = true;
+// We set this to be as large as possible, since it might be a while until
+// we fully implement cursor/selection handling and windowing properly. In
+// the meantime, this will make everything work 100% with at least 300
+// blocks around the cursor, which handles 99% of cases.   On the other hand,
+// in those cases when somebody opens say Moby Dick (with 2000+ blocks),
+// it also works at all (rather than just locking the browser!).
+const OVERSCAN_ROW_COUNT = 150;
 //const USE_WINDOWING = false;
 
 const STYLE = {
@@ -384,7 +397,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
                     }
               }
               windowing={
-                USE_WINDOWING ? { rowStyle, overscanRowCount: 100 } : undefined
+                USE_WINDOWING
+                  ? { rowStyle, overscanRowCount: OVERSCAN_ROW_COUNT }
+                  : undefined
               }
             />
           </Slate>
