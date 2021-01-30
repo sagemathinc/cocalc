@@ -3,11 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// BUT note, this is derived initially from a slatejs example
-// https://github.com/ianstormtaylor/slate/blob/master/site/examples/markdown-shortcuts.tsx
-
 import {
   Editor,
+  Operation,
   Transforms,
   Range,
   Point,
@@ -17,72 +15,88 @@ import {
 import { markdown_to_slate } from "./markdown-to-slate";
 
 import { applyOperations } from "./operations";
-
-import {
-  handleChangeTextNodes,
-  isAllText,
-} from "./slate-diff/handle-change-text-nodes";
-
-/*
-const SHORTCUTS = {
-  $: { type: "math", value: "$x^2$", isVoid: true, isInline: true },
-  $$: { type: "math", value: "$$x^3$$", isVoid: true, isInline: false },
-  "*": { type: "list_item" },
-  "-": { type: "list_item" },
-  "+": { type: "list_item" },
-  "1.": { type: "list_item" }, // need regexp...
-  ">": { type: "blockquote" },
-  "```": { type: "code_block", isVoid: true, fence: true, value: "", info: "" },
-  "[ ]": { type: "checkbox", value: false, isInline: true, isVoid: true },
-  "[x]": { type: "checkbox", value: true, isInline: true, isVoid: true },
-  "#": { type: "heading", level: 1 },
-  "##": { type: "heading", level: 2 },
-  "###": { type: "heading", level: 3 },
-  "####": { type: "heading", level: 4 },
-  "#####": { type: "heading", level: 5 },
-  "######": { type: "heading", level: 6 },
-  "---": { type: "hr", isVoid: true },
-};
-*/
+import { slateDiff } from "./slate-diff";
+import { len } from "smc-util/misc";
 
 function markdownReplace(editor: Editor): boolean {
   const { selection } = editor;
   if (!selection) return false;
   const [node, path] = Editor.node(editor, selection.focus);
   if (!Text.isText(node)) return false;
+  const pos = path[path.length - 1]; // position among siblings.
 
-  console.log("insertText", node);
   const slate = markdown_to_slate(node.text.trim());
-  console.log("insertText --> ", slate);
   if (slate.length != 1) return false;
   const p = slate[0];
   if (Text.isText(p)) return false;
 
-  if (!isAllText(p.children)) return false;
-  if (p.children.length == 1 && p.children[0].text.trim() == node.text.trim()) {
+  if (
+    p.type == "paragraph" &&
+    p.children.length == 1 &&
+    Text.isText(p.children[0]) &&
+    p.children[0].text.trim() == node.text.trim()
+  ) {
+    // No "auto format" action.
     return false;
   }
 
-  if (p.type == "hr") {
-    // Inserting a horizontal rule.
-    Transforms.setNodes(editor, p, {
-      match: (n) => Editor.isBlock(editor, n),
-    });
+  // First the inline case:
+  if (p.type == "paragraph" && Text.isText(p.children[0])) {
+    // Add whitespace to the beginning of the first node.
+    for (let i = 0; i < node.text.length; i++) {
+      if (node.text[i] == " ") {
+        p.children[0].text = " " + p.children[0].text;
+      } else {
+        break;
+      }
+    }
+    // And one space at the end.
+    if (len(p.children[p.children.length - 1]) == 1) {
+      p.children[p.children.length - 1]["text"] += " ";
+    } else {
+      p.children.push({ text: " " });
+    }
+
+    // Find a sequence of operations that converts our input
+    // text node into the new list of inline nodes.
+    const operations = slateDiff(
+      [node],
+      p.children,
+      path.slice(0, path.length - 1)
+    );
+
+    // Adjust the last entry in path to account for fact that
+    // node might not be first sibling.
+    for (const op of operations) {
+      shift_path(op, pos);
+    }
+    applyOperations(editor, operations);
+
+    // Move the cursor to be after all our new nodes.
+    const new_path = [...path];
+    new_path[new_path.length - 1] += p.children.length - 1;
+    const new_cursor = {
+      offset: p.children[p.children.length - 1]["text"].length,
+      path: new_path,
+    };
+    Transforms.setSelection(editor, { focus: new_cursor, anchor: new_cursor });
+
     return true;
   }
 
-  if (p.type == "paragraph") {
-    if (isAllText(p.children)) {
-      // paragraph and all text nodes -- can do it via our diff code.
-      const nextNodes = p.children.concat([{ text: " " }]);
-      const operations = handleChangeTextNodes([node], nextNodes, path, false);
-      console.log({ nextNodes, operations });
-      applyOperations(editor, operations);
-      return true;
-    }
+  // Next the non-inline case.
+  // Split the node at the beginning of the text leaf
+  // that we are replacing.
+  Transforms.splitNodes(editor, { at: { path, offset: 0 } });
+  Transforms.removeNodes(editor);
+  Transforms.insertNodes(editor, [
+    p,
+    { type: "paragraph", children: [{ text: "" }] },
+  ]);
+  if (p.type == "hr") {
+    Transforms.move(editor, { distance: 1 });
   }
-
-  return false;
+  return true;
 }
 
 export const withShortcuts = (editor) => {
@@ -140,3 +154,9 @@ export const withShortcuts = (editor) => {
 
   return editor;
 };
+
+function shift_path(op: Operation, shift: number): void {
+  const path = [...op["path"]];
+  path[path.length - 1] += shift;
+  op["path"] = path;
+}
