@@ -14,6 +14,7 @@ in other code directly, e.g, in supporting use of the slate editor.
 import * as MarkdownIt from "markdown-it";
 import * as emojiPlugin from "markdown-it-emoji";
 import { checkboxPlugin } from "./checkbox-plugin";
+import { hashtagPlugin } from "./hashtag-plugin";
 
 const MarkdownItFrontMatter = require("markdown-it-front-matter");
 import { math_escape, math_unescape } from "smc-util/markdown-utils";
@@ -25,9 +26,16 @@ const OPTIONS: MarkdownIt.Options = {
   linkify: true,
 };
 
+const PLUGINS = [emojiPlugin, checkboxPlugin, hashtagPlugin];
+
+function usePlugins(m) {
+  for (const plugin of PLUGINS) {
+    m.use(plugin);
+  }
+}
+
 export const markdown_it = new MarkdownIt(OPTIONS);
-markdown_it.use(emojiPlugin);
-markdown_it.use(checkboxPlugin);
+usePlugins(markdown_it);
 
 /*
 Inject line numbers for sync.
@@ -53,8 +61,7 @@ function inject_linenumbers_plugin(md) {
 }
 const markdown_it_line_numbers = new MarkdownIt(OPTIONS);
 markdown_it_line_numbers.use(inject_linenumbers_plugin);
-markdown_it_line_numbers.use(emojiPlugin);
-markdown_it_line_numbers.use(checkboxPlugin);
+usePlugins(markdown_it_line_numbers);
 
 /*
 Turn the given markdown *string* into an HTML *string*.

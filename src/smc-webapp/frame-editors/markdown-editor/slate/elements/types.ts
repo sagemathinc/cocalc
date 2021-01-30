@@ -17,6 +17,9 @@ import "./checkbox";
 import { Emoji } from "./emoji";
 import "./emoji";
 
+import { Hashtag } from "./hashtag";
+import "./hashtag";
+
 import { HR } from "./hr";
 import "./hr";
 
@@ -63,6 +66,7 @@ declare module "slate" {
     Element:
       | Checkbox
       | Emoji
+      | Hashtag
       | HR
       | Paragraph
       | CodeBlock

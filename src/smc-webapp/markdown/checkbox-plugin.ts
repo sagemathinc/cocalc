@@ -1,6 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  LICENSE: MIT (same as upstream)
  */
 
 // This code is inspired by https://github.com/mcecot/markdown-it-checkbox

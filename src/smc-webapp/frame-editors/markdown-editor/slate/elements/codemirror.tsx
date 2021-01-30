@@ -25,7 +25,7 @@ import {
 } from "../../../../app-framework";
 import * as CodeMirror from "codemirror";
 import { FOCUSED_COLOR } from "../util";
-import { useFocused, useSelected, useSlate } from "./register";
+import { useFocused, useSelected, useSlate, useCollapsed } from "./register";
 
 const STYLE = {
   width: "100%",
@@ -63,6 +63,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     const focused = useFocused();
     const selected = useSelected();
     const editor = useSlate();
+    const collapsed = useCollapsed();
 
     const cmRef = useRef<CodeMirror.Editor | undefined>(undefined);
     const [isFocused, setIsFocused] = useState<boolean>(!!options?.autofocus);
@@ -79,7 +80,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     const focusEditor = () => {
       const cm = cmRef.current;
       if (cm == null) return;
-      if (editor.selection && Range.isCollapsed(editor.selection)) {
+      if (collapsed) {
         // focus the editor
         cm.focus();
         // set the CSS to indicate this

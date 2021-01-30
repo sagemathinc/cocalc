@@ -38,7 +38,7 @@ import { Element } from "./element";
 import { Leaf } from "./leaf";
 import { formatSelectedText } from "./format";
 // import { ensureEditorPadding } from "./padding";
-import { withShortcuts } from "./shortcuts";
+import { withAutoFormat } from "./auto-format";
 
 import { slateDiff } from "./slate-diff";
 import { applyOperations } from "./operations";
@@ -81,22 +81,6 @@ interface Props {
   is_current?: boolean;
 }
 
-/*
-// This makes it possible to play around with high keys are
-// assigned...
-const nodeToKey = new WeakMap();
-let id = 0;
-ReactEditor.findKey = (editor: ReactEditor, node: Node) => {
-  let k = nodeToKey.get(node);
-  if (k != null) return k;
-  id += 1;
-  console.log("key ", id);
-  k = { id: `${id}` };
-  nodeToKey.set(node, k);
-  return k;
-};
-*/
-
 export const EditableMarkdown: React.FC<Props> = React.memo(
   ({
     actions,
@@ -113,7 +97,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const editor: ReactEditor = useMemo(() => {
       const cur = actions.getSlateEditor(id);
       if (cur != null) return cur;
-      const ed = withShortcuts(
+      const ed = withAutoFormat(
         withIsInline(withIsVoid(withReact(createEditor())))
       );
       actions.registerSlateEditor(id, ed);

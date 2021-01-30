@@ -3,6 +3,32 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+/* Automatic formatting
+
+The idea is you type some markdown in a text cell, then space, and
+if the markdown processor does something nontrivial given that text,
+then the text gets replaced by the result.
+
+The actual implementation of this is **much deeper** than what is done
+in the "shortcuts" slatejs demo here
+
+    https://www.slatejs.org/examples/markdown-shortcuts
+
+in two ways:
+
+1. This automatically supports everything the markdown-to-slate
+implementation supports.  Instead of having to reimplement bits
+and pieces of markdown that we think of, we automatically get
+absolutely everything the processor supports with 100% correct
+results.  If at any point we ever add a new plugin to markdown-it,
+or change options, they just automatically work.
+
+2. We use our slate-diff implementation to make the transformation
+rather than coding it up for different special cases.  This slate-diff
+is itself  deep, being based on diff-match-patch, and using numerous
+heuristics.
+*/
+
 import {
   Editor,
   Operation,
@@ -99,19 +125,23 @@ function markdownReplace(editor: Editor): boolean {
   return true;
 }
 
-export const withShortcuts = (editor) => {
+export const withAutoFormat = (editor) => {
   const { deleteBackward, insertText } = editor;
 
   editor.insertText = (text) => {
     const { selection } = editor;
 
     if (text === " " && selection && Range.isCollapsed(selection)) {
+      // This is fundamentally different than
+      // https://www.slatejs.org/examples/markdown-shortcuts
       if (markdownReplace(editor)) return;
     }
     insertText(text);
   };
 
   editor.deleteBackward = (...args) => {
+    // This code is pretty much exactly like
+    // https://www.slatejs.org/examples/markdown-shortcuts
     const { selection } = editor;
 
     if (selection && Range.isCollapsed(selection)) {
