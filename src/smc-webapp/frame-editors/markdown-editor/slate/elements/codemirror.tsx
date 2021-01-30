@@ -68,41 +68,48 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     const [isFocused, setIsFocused] = useState<boolean>(!!options?.autofocus);
     const textareaRef = useRef<any>(null);
 
-    const setCSS = useCallback((css) => {
-      if (cmRef.current == null) return;
-      $(cmRef.current.getWrapperElement()).css(css);
-    }, []);
+    const setCSS = useCallback(
+      (css) => {
+        if (cmRef.current == null) return;
+        $(cmRef.current.getWrapperElement()).css(css);
+      },
+      [cmRef]
+    );
 
-    useEffect(() => {
+    const focusEditor = () => {
       const cm = cmRef.current;
       if (cm == null) return;
-      if (focused && selected) {
-        if (editor.selection && Range.isCollapsed(editor.selection)) {
-          // focus the editor
-          cm.focus();
-          // set the CSS to indicate this
-          setCSS({
-            backgroundColor: options?.theme != null ? "" : "#f7f7f7",
-            color: "",
-          });
-          // move cursor to the beginning of the line (matching Jupyter behavior).
-          const cur = cm.getCursor();
-          if (!isInline && cur != null) {
-            cm.setCursor({ line: cur.line, ch: 0 });
-          }
-        } else {
-          setCSS({
-            backgroundColor: "#1990ff",
-            color: "white",
-          });
+      if (editor.selection && Range.isCollapsed(editor.selection)) {
+        // focus the editor
+        cm.focus();
+        // set the CSS to indicate this
+        setCSS({
+          backgroundColor: options?.theme != null ? "" : "#f7f7f7",
+          color: "",
+        });
+        // move cursor to the beginning of the line (matching Jupyter behavior).
+        const cur = cm.getCursor();
+        if (!isInline && cur != null) {
+          cm.setCursor({ line: cur.line, ch: 0 });
         }
+      } else {
+        setCSS({
+          backgroundColor: "#1990ff",
+          color: "white",
+        });
+      }
+    };
+
+    useEffect(() => {
+      if (focused && selected) {
+        focusEditor();
       } else {
         setCSS({
           backgroundColor: options?.theme != null ? "" : "#f7f7f7",
           color: "",
         });
       }
-    }, [selected, focused]);
+    }, [selected, focused, options]);
 
     useEffect(() => {
       const node: HTMLTextAreaElement = ReactDOM.findDOMNode(
@@ -162,6 +169,10 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         css.backgroundColor = "#f7f7f7";
       }
       setCSS(css);
+
+      if (focused && selected) {
+        focusEditor();
+      }
 
       return () => {
         if (cmRef.current == null) return;
