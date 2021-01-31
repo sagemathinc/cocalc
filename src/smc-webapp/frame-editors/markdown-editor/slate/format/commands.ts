@@ -5,12 +5,12 @@
 
 import { is_array, startswith } from "smc-util/misc";
 import { Editor, Element, Node, Text, Transforms } from "slate";
-import { ReactEditor } from "./slate-react";
-import { slate_to_markdown } from "./slate-to-markdown";
-import { markdown_to_slate } from "./markdown-to-slate";
-import { commands } from "../../../editors/editor-button-bar";
-import { DEFAULT_CHILDREN } from "./util";
+import { ReactEditor } from "../slate-react";
+import { markdown_to_slate } from "../markdown-to-slate";
+import { commands } from "../../../../editors/editor-button-bar";
+import { DEFAULT_CHILDREN } from "../util";
 import { delay } from "awaiting";
+import { insertLink } from "./insert-link";
 
 export function formatSelectedText(editor: Editor, mark: string): void {
   if (!editor.selection) return; // nothing to do.
@@ -96,15 +96,7 @@ function findMarkedFragmentWithPrefix(
   return;
 }
 
-export async function formatAction(
-  editor: ReactEditor,
-  cmd: string,
-  args
-): Promise<void> {
-  /*console.log("formatAction", {
-    cmd,
-    args,
-  });*/
+export async function restoreSelection(editor: ReactEditor): Promise<void> {
   let selection = editor.selection;
   if (selection == null) {
     selection = (editor as any).lastSelection;
@@ -115,6 +107,15 @@ export async function formatAction(
     await delay(0);
     Transforms.setSelection(editor, selection);
   }
+}
+
+export async function formatAction(
+  editor: ReactEditor,
+  cmd: string,
+  args
+): Promise<void> {
+  // console.log("formatAction", cmd, args);
+  await restoreSelection(editor);
 
   if (
     cmd == "bold" ||
@@ -171,6 +172,11 @@ export async function formatAction(
     cmd == "quote"
   ) {
     insertSnippet(editor, cmd);
+    return;
+  }
+
+  if (cmd == "link") {
+    insertLink(editor);
     return;
   }
 
@@ -238,13 +244,22 @@ function transformToComment(editor: Editor): void {
   Transforms.insertFragment(editor, fragment);
 }
 
-function selectionToText(editor: Editor): string {
+// TODO: This is very buggy
+export function selectionToText(editor: Editor): string {
   if (!editor.selection) return "";
+  // This is just directly using DOM API, not slatejs, so
+  // could run into a subtle problem e.g., due to windowing.
+  // However, that's very unlikely given our application.
+  return getSelection()?.toString() ?? "";
+
+  // The following is complicated but doesn't work in general.
+  /*
   let fragment = Editor.fragment(editor, editor.selection);
   while (Element.isElement(fragment[0])) {
     fragment = fragment[0].children;
   }
   return fragmentToMarkdown(fragment);
+  */
 }
 
 /*
@@ -253,10 +268,11 @@ function selectionToMarkdown(editor: Editor): string {
   return fragmentToMarkdown(Editor.fragment(editor, editor.selection));
 }
 */
-
+/*
 function fragmentToMarkdown(fragment): string {
   return slate_to_markdown(fragment, { no_escape: true });
 }
+*/
 
 function formatHeading(editor, level: number): void {
   Transforms.unwrapNodes(editor, {

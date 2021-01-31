@@ -10,7 +10,7 @@ import { show_react_modal } from "../../misc-page";
 import { Icon } from "../../r_misc";
 import { alert_message } from "../../alerts";
 
-interface Options {
+export interface Options {
   url: string;
   displayed_text: string;
   target: boolean; // if true, opens in a new window
@@ -26,7 +26,7 @@ function insert_link(mode: string, opts: Options): string {
   let { url, displayed_text, target, title } = opts;
   let s: string = "";
   if (mode === "md") {
-    // [Python](http://www.python.org/)
+    // [Python](http://www.python.org/ "the python website")
     if (title.length > 0) {
       title = ` \"${title}\"`;
     }
@@ -75,7 +75,7 @@ function insert_link(mode: string, opts: Options): string {
   return s;
 }
 
-async function get_insert_link_opts_from_user(
+export async function get_insert_link_opts_from_user(
   default_display: string,
   show_target: boolean
 ): Promise<undefined | Options> {

@@ -12,7 +12,8 @@ const linkify = require("linkify-it")();
 export interface Link extends SlateElement {
   type: "link";
   isInline: true;
-  attrs: object;
+  url?: string;
+  title?: string;
 }
 
 register({
@@ -20,28 +21,31 @@ register({
 
   fromSlate: ({ node, children }) => {
     // [my website](wstein.org "here")
-    const attrs = (node as any).attrs;
-    const href = attrs.href ? `${attrs.href}` : "";
-    const title = attrs.title ? ` "${attrs.title}"` : "";
-    let link;
-    if (title == "" && children == href && linkify.test(href)) {
-      // special case where the url is easily parsed by the linkify plugin.
-      link = href;
-    } else {
-      link = `[${children}](${href}${title})`;
+    const url = node.url ?? "";
+    let title = node.title ?? "";
+    if (title.length > 0) {
+      title = ` \"${title}\"`;
     }
-    return link;
+    if (title == "" && children == url && linkify.test(url)) {
+      // special case where the url is easily parsed by the linkify plugin,
+      // and there is no title.
+      return url;
+    } else {
+      return `[${children}](${url}${title})`;
+    }
   },
 
   Element: ({ attributes, children, element }) => {
-    const attrs = (element as any).attrs as object;
+    const node = element as Link;
+    const { url, title } = node;
     return (
       <a
         {...attributes}
-        {...attrs}
+        href={url}
+        title={title}
         onDoubleClick={() => {
-          if (attrs["href"]) {
-            open_new_tab(attrs["href"]);
+          if (url) {
+            open_new_tab(url);
           }
         }}
       >
@@ -52,6 +56,12 @@ register({
 
   toSlate: ({ type, children, state }) => {
     const attrs = dict(state.attrs as any);
-    return { type, children, isInline: true, attrs };
+    return {
+      type,
+      children,
+      isInline: true,
+      url: attrs.href,
+      title: attrs.title,
+    };
   },
 });

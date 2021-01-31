@@ -36,8 +36,7 @@ import { markdown_to_slate } from "./markdown-to-slate";
 import { isElementOfType } from "./elements";
 import { Element } from "./element";
 import { Leaf } from "./leaf";
-import { formatSelectedText } from "./format";
-import { withAutoFormat } from "./auto-format";
+import { withAutoFormat, formatSelectedText } from "./format";
 
 import { slateDiff } from "./slate-diff";
 import { applyOperations } from "./operations";

@@ -38,11 +38,10 @@ import {
   Element as SlateElement,
   Text,
 } from "slate";
-import { markdown_to_slate } from "./markdown-to-slate";
-
-import { applyOperations } from "./operations";
-import { slateDiff } from "./slate-diff";
 import { len } from "smc-util/misc";
+import { markdown_to_slate } from "../markdown-to-slate";
+import { applyOperations } from "../operations";
+import { slateDiff } from "../slate-diff";
 
 async function markdownReplace(editor: Editor): Promise<boolean> {
   const { selection } = editor;
