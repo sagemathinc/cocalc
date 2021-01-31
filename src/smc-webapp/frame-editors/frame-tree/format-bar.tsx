@@ -7,16 +7,13 @@
 The format bar
 */
 
+const css_colors = require("css-color-names");
+
 import { React, Component, Rendered } from "../../app-framework";
 import { cmp } from "smc-util/misc";
 import { SetMap } from "./types";
-const css_colors = require("css-color-names");
-const {
-  ButtonGroup,
-  Button,
-  DropdownButton,
-  MenuItem,
-} = require("react-bootstrap");
+import { DropdownMenu, MenuItem } from "../../r_misc";
+import { ButtonGroup, Button } from "../../antd-bootstrap";
 import { FONT_FACES } from "../../editors/editor-button-bar";
 import { Icon, Space } from "smc-webapp/r_misc";
 
@@ -56,7 +53,6 @@ export class FormatBar extends Component<Props, {}> {
         key={name}
         title={title}
         onClick={() => this.props.actions.format_action(name)}
-        bsSize="small"
         style={{ maxHeight: "30px" }}
       >
         {label}
@@ -191,28 +187,24 @@ export class FormatBar extends Component<Props, {}> {
     const items: Rendered[] = [];
     for (const family of FONT_FACES) {
       const item: Rendered = (
-        <MenuItem
-          key={family}
-          eventKey={family}
-          onSelect={(family) =>
-            this.props.actions.format_action("font_family", family)
-          }
-        >
+        <MenuItem key={family} eventKey={family}>
           <span style={{ fontFamily: family }}>{family}</span>
         </MenuItem>
       );
       items.push(item);
     }
     return (
-      <DropdownButton
-        pullRight
+      <DropdownMenu
+        button={true}
         title={<Icon name={"font"} />}
         key={"font-family"}
         id={"font-family"}
-        bsSize="small"
+        onClick={(family) =>
+          this.props.actions.format_action("font_family", family)
+        }
       >
         {items}
-      </DropdownButton>
+      </DropdownMenu>
     );
   }
 
@@ -220,13 +212,7 @@ export class FormatBar extends Component<Props, {}> {
     const items: Rendered[] = [];
     for (const size of FONT_SIZES) {
       const item: Rendered = (
-        <MenuItem
-          key={size}
-          eventKey={size}
-          onSelect={(size) =>
-            this.props.actions.format_action("font_size_new", size)
-          }
-        >
+        <MenuItem key={size} eventKey={size}>
           <span style={{ fontSize: size }}>
             {size} {size === "medium" ? "(default)" : undefined}
           </span>
@@ -235,15 +221,17 @@ export class FormatBar extends Component<Props, {}> {
       items.push(item);
     }
     return (
-      <DropdownButton
-        pullRight
+      <DropdownMenu
+        button={true}
         title={<Icon name={"text-height"} />}
         key={"font-size"}
         id={"font-size"}
-        bsSize="small"
+        onClick={(size) =>
+          this.props.actions.format_action("font_size_new", size)
+        }
       >
         {items}
-      </DropdownButton>
+      </DropdownMenu>
     );
   }
 
@@ -276,28 +264,24 @@ export class FormatBar extends Component<Props, {}> {
           break;
       }
       const item = (
-        <MenuItem
-          key={heading}
-          eventKey={heading}
-          onSelect={(heading) =>
-            this.props.actions.format_action(`format_heading_${heading}`)
-          }
-        >
+        <MenuItem key={heading} eventKey={heading}>
           {c}
         </MenuItem>
       );
       items.push(item);
     }
     return (
-      <DropdownButton
-        pullRight
+      <DropdownMenu
+        button={true}
         title={<Icon name={"header"} />}
         key={"heading"}
         id={"heading"}
-        bsSize="small"
+        onClick={(heading) =>
+          this.props.actions.format_action(`format_heading_${heading}`)
+        }
       >
         {items}
-      </DropdownButton>
+      </DropdownMenu>
     );
   }
 
@@ -317,11 +301,7 @@ export class FormatBar extends Component<Props, {}> {
       color = x[0];
       code = x[1];
       const item = (
-        <MenuItem
-          key={color}
-          eventKey={code}
-          onSelect={(code) => this.props.actions.format_action("color", code)}
-        >
+        <MenuItem key={color} eventKey={code}>
           <span style={{ background: code }}>
             <Space />
             <Space />
@@ -334,15 +314,15 @@ export class FormatBar extends Component<Props, {}> {
       items.push(item);
     }
     return (
-      <DropdownButton
-        pullRight
+      <DropdownMenu
+        button={true}
         title={<Icon name={"paint-brush"} />}
         key={"font-color"}
         id={"font-color"}
-        bsSize="small"
+        onClick={(code) => this.props.actions.format_action("color", code)}
       >
         {items}
-      </DropdownButton>
+      </DropdownMenu>
     );
   }
 
