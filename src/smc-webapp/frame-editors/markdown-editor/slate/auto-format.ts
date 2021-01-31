@@ -137,7 +137,7 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
 export const withAutoFormat = (editor) => {
   const { deleteBackward, insertText } = editor;
 
-  editor.insertText = async (text, noFormat?) => {
+  editor.insertText = (text, noFormat?) => {
     if (noFormat) {
       insertText(text);
       return;
@@ -148,7 +148,8 @@ export const withAutoFormat = (editor) => {
       insertText(text);
       // This is fundamentally different than
       // https://www.slatejs.org/examples/markdown-shortcuts
-      if (await markdownReplace(editor)) return;
+      markdownReplace(editor);
+      return;
     }
     insertText(text);
   };
