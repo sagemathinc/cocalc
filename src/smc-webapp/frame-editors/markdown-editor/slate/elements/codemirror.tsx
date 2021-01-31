@@ -95,7 +95,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
             // from below
             cur = {
               line: cm.lastLine(),
-              ch: isInline ? cm.getLine(cm.lastLine()).length - 1 : 0,
+              ch: isInline ? cm.getLine(cm.lastLine()).length : 0,
             };
           }
           cm.setCursor(cur);

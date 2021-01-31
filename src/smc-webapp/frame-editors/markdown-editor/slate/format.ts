@@ -180,24 +180,31 @@ function insertSnippet(editor: Editor, name: string): boolean {
 }
 
 function transformToEquation(editor: Editor, display: boolean): void {
-  let content = selectionToText(editor).trim();
-  if (!content) {
-    content = "x^2"; // placeholder math
+  let value = selectionToText(editor).trim();
+  if (!value) {
+    value = "x^2"; // placeholder math
   } else {
     // eliminate blank lines which break math apart
-    content = content.replace(/^\s*\n/gm, "");
+    value = value.replace(/^\s*\n/gm, "");
   }
-  const wrap = "$" + (display ? "$" : "");
-  const fragment: Node[] = [
-    {
-      type: "math",
-      value: wrap + content + wrap,
+  let node: Node;
+  if (display) {
+    node = {
+      type: "display_math",
+      value,
+      isVoid: true,
+      children: [{ text: "" }],
+    };
+  } else {
+    node = {
+      type: "inline_math",
+      value,
       isVoid: true,
       isInline: true,
       children: [{ text: "" }],
-    },
-  ];
-  Transforms.insertFragment(editor, fragment);
+    };
+  }
+  Transforms.insertFragment(editor, [node]);
 }
 
 function transformToComment(editor: Editor): void {

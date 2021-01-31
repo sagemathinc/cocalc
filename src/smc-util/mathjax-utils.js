@@ -29,13 +29,18 @@ const { regex_split } = require("./regex-split");
 //  Clear the current math positions and store the index of the
 //    math, then push the math string onto the storage array.
 //  The preProcess function is called on all blocks if it has been passed in
-function process_math(i, j, pre_process, math, blocks, open_tag, close_tag) {
+function process_math(i, j, pre_process, math, blocks, tags) {
   let block = blocks.slice(i, j + 1).join("");
   while (j > i) {
     blocks[j] = "";
     j--;
   }
-  blocks[i] = open_tag + math.length + close_tag; // replace the current block text with a unique tag to find later
+  // replace the current block text with a unique tag to find later
+  if (block[0] === "$" && block[1] === "$") {
+    blocks[i] = tags.display_open + math.length + tags.display_close;
+  } else {
+    blocks[i] = tags.open + math.length + tags.close;
+  }
   if (pre_process) {
     block = pre_process(block);
   }
@@ -54,11 +59,14 @@ function process_math(i, j, pre_process, math, blocks, open_tag, close_tag) {
 const MATH_ESCAPE = "\uFE32\uFE33"; // unused unicode -- hardcoded below too
 exports.MATH_ESCAPE = MATH_ESCAPE;
 
-function remove_math(
-  text,
-  open_tag = MATH_ESCAPE,
-  close_tag = MATH_ESCAPE
-) {
+const DEFAULT_TAGS = {
+  open: MATH_ESCAPE,
+  close: MATH_ESCAPE,
+  display_open: MATH_ESCAPE,
+  display_close: MATH_ESCAPE,
+};
+
+function remove_math(text, tags = DEFAULT_TAGS) {
   let math = []; // stores math strings for later
   let start;
   let end;
@@ -104,15 +112,7 @@ function remove_math(
         if (braces) {
           last = i;
         } else {
-          blocks = process_math(
-            start,
-            i,
-            de_tilde,
-            math,
-            blocks,
-            open_tag,
-            close_tag
-          );
+          blocks = process_math(start, i, de_tilde, math, blocks, tags);
           start = null;
           end = null;
           last = null;
@@ -120,15 +120,7 @@ function remove_math(
       } else if (block.match(/\n.*\n/)) {
         if (last) {
           i = last;
-          blocks = process_math(
-            start,
-            i,
-            de_tilde,
-            math,
-            blocks,
-            open_tag,
-            close_tag
-          );
+          blocks = process_math(start, i, de_tilde, math, blocks, tags);
         }
         start = null;
         end = null;
@@ -160,15 +152,7 @@ function remove_math(
     }
   }
   if (last) {
-    blocks = process_math(
-      start,
-      last,
-      de_tilde,
-      math,
-      blocks,
-      open_tag,
-      close_tag
-    );
+    blocks = process_math(start, last, de_tilde, math, blocks, tags);
     start = null;
     end = null;
     last = null;

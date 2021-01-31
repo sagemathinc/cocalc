@@ -5,11 +5,22 @@
 
 import { React } from "../../../../app-framework";
 import { Transforms, Element as Element0 } from "slate";
-import { register, SlateElement,  RenderElementProps, useSlate  } from "./register";
+import {
+  register,
+  SlateElement,
+  RenderElementProps,
+  useSlate,
+} from "./register";
 import { SlateMath } from "./math-widget";
 
-export interface Math extends SlateElement {
-  type: "math";
+export interface DisplayMath extends SlateElement {
+  type: "display_math";
+  value: string;
+  isVoid: true;
+}
+
+export interface InlineMath extends SlateElement {
+  type: "inline_math";
   value: string;
   isVoid: true;
   isInline: true;
@@ -20,15 +31,20 @@ const Element: React.FC<RenderElementProps> = ({
   children,
   element,
 }) => {
-  if (element.type != "math") throw Error("bug");
+  if (element.type != "display_math" && element.type != "inline_math") {
+    // type guard.
+    throw Error("bug");
+  }
   const editor = useSlate();
   return (
     <span {...attributes}>
       <SlateMath
         value={element.value}
+        isInline={!!element["isInline"]}
         onChange={(value) => {
           Transforms.setNodes(editor, { value } as any, {
-            match: (node) => node["type"] == "math",
+            match: (node) =>
+              node["type"] == "inline_math" || node["type"] == "display_math",
           });
         }}
       />
@@ -37,19 +53,35 @@ const Element: React.FC<RenderElementProps> = ({
   );
 };
 
-function toSlate({ token, children }) {
-  return {
-    type: "math",
-    value: token.content,
-    isVoid: true,
-    isInline: true,
-    children,
-  } as Element0;
-}
+register({
+  slateType: "inline_math",
+  Element,
+  toSlate: ({ token }) => {
+    return {
+      type: "inline_math",
+      value: token.content,
+      isVoid: true,
+      isInline: true,
+      children: [{ text: "" }],
+    } as Element0;
+  },
+  fromSlate: ({ node }) => {
+    return "$" + node.value + "$";
+  },
+});
 
 register({
-  slateType: "math",
+  slateType: "display_math",
   Element,
-  toSlate,
-  fromSlate: ({ node }) => node.value,
+  toSlate: ({ token }) => {
+    return {
+      type: "display_math",
+      value: token.content.trim(),
+      isVoid: true,
+      children: [{ text: "" }],
+    } as Element0;
+  },
+  fromSlate: ({ node }) => {
+    return "$$\n" + node.value + "\n$$\n\n";
+  },
 });

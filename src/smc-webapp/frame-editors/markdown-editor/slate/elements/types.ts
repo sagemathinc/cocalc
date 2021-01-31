@@ -32,7 +32,7 @@ import "./code_block";
 import { Hardbreak, Softbreak } from "./linebreak";
 import "./linebreak";
 
-import { Math } from "./math";
+import { DisplayMath, InlineMath } from "./math";
 import "./math";
 
 import { Heading } from "./heading";
@@ -72,7 +72,8 @@ declare module "slate" {
       | CodeBlock
       | Hardbreak
       | Softbreak
-      | Math
+      | DisplayMath
+      | InlineMath
       | Heading
       | HtmlBlock
       | HtmlInline
