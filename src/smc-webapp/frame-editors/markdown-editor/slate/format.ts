@@ -5,10 +5,12 @@
 
 import { is_array, startswith } from "smc-util/misc";
 import { Editor, Element, Node, Text, Transforms } from "slate";
+import { ReactEditor } from "./slate-react";
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
 import { commands } from "../../../editors/editor-button-bar";
 import { DEFAULT_CHILDREN } from "./util";
+import { delay } from "awaiting";
 
 export function formatSelectedText(editor: Editor, mark: string): void {
   if (!editor.selection) return; // nothing to do.
@@ -95,10 +97,25 @@ function findMarkedFragmentWithPrefix(
 }
 
 export async function formatAction(
-  editor: Editor,
+  editor: ReactEditor,
   cmd: string,
   args
 ): Promise<void> {
+  /*console.log("formatAction", {
+    cmd,
+    args,
+  });*/
+  let selection = editor.selection;
+  if (selection == null) {
+    selection = (editor as any).lastSelection;
+    if (selection == null) return;
+    ReactEditor.focus(editor);
+    // This delay is critical since otherwise the focus itself
+    // also sets the selection cancelling out the setSelection below.
+    await delay(0);
+    Transforms.setSelection(editor, selection);
+  }
+
   if (
     cmd == "bold" ||
     cmd == "italic" ||

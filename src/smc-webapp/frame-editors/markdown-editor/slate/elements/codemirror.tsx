@@ -194,7 +194,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         focusEditor();
       }
 
-      refresh(cm);
+      cm.refresh();
 
       return () => {
         if (cmRef.current == null) return;
@@ -223,11 +223,6 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     );
   }
 );
-
-async function refresh(cm): Promise<void> {
-  new Promise(requestAnimationFrame);
-  cm.refresh();
-}
 
 function moveCursorToBeginningOfBlock(editor: Editor): void {
   const selection = editor.selection;
