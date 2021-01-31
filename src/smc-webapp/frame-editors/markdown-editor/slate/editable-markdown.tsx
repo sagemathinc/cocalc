@@ -37,7 +37,6 @@ import { isElementOfType } from "./elements";
 import { Element } from "./element";
 import { Leaf } from "./leaf";
 import { formatSelectedText } from "./format";
-// import { ensureEditorPadding } from "./padding";
 import { withAutoFormat } from "./auto-format";
 
 import { slateDiff } from "./slate-diff";
@@ -140,11 +139,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       () => debounce(() => saveValue(), SAVE_DEBOUNCE_MS),
       []
     );
-
-    /* const ensureEditorPaddingDebounce = useMemo(
-      () => debounce(() => ensureEditorPadding(editor), 300),
-      []
-    );*/
 
     function onKeyDown(e) {
       if (read_only) return;
@@ -303,7 +297,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       const nextEditorValue = markdown_to_slate(value);
       const operations = slateDiff(editor.children, nextEditorValue);
       applyOperations(editor, operations);
-      //ensureEditorPaddingDebounce();
     }, [value]);
 
     (window as any).z = {
@@ -364,7 +357,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
               if (!(editor as any).applyingOperations) {
                 saveValueDebounce();
               }
-              //ensureEditorPaddingDebounce();
             }}
           >
             <Editable
