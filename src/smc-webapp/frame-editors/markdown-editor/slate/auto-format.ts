@@ -44,7 +44,7 @@ import { applyOperations } from "./operations";
 import { slateDiff } from "./slate-diff";
 import { len } from "smc-util/misc";
 
-function markdownReplace(editor: Editor): boolean {
+async function markdownReplace(editor: Editor): Promise<boolean> {
   const { selection } = editor;
   if (!selection) return false;
   const [node, path] = Editor.node(editor, selection.focus);
@@ -65,6 +65,15 @@ function markdownReplace(editor: Editor): boolean {
     // No "auto format" action.
     return false;
   }
+
+  // Do an immediate save so that it is easy and possible
+  // to undo exactly the result of auto format, in case user
+  // doesn't like it.
+  // @ts-ignore
+  editor.saveValue();
+  // Wait for next time to finish before applying operations below; if
+  // we don't do this, then things get all messed up.
+  await delay(0);
 
   // First the inline case:
   if (p.type == "paragraph" && Text.isText(p.children[0])) {
@@ -128,13 +137,18 @@ function markdownReplace(editor: Editor): boolean {
 export const withAutoFormat = (editor) => {
   const { deleteBackward, insertText } = editor;
 
-  editor.insertText = (text) => {
+  editor.insertText = async (text, noFormat?) => {
+    if (noFormat) {
+      insertText(text);
+      return;
+    }
     const { selection } = editor;
 
     if (text === " " && selection && Range.isCollapsed(selection)) {
+      insertText(text);
       // This is fundamentally different than
       // https://www.slatejs.org/examples/markdown-shortcuts
-      if (markdownReplace(editor)) return;
+      if (await markdownReplace(editor)) return;
     }
     insertText(text);
   };

@@ -121,7 +121,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       return editorMarkdownValueRef.current;
     }, []);
 
-    const save_value = useCallback(() => {
+    const saveValue = useCallback(() => {
       if (!hasUnsavedChangesRef.current) {
         return;
       }
@@ -130,11 +130,14 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       actions.ensure_syncstring_is_saved();
     }, []);
 
-    // We don't want to do save_value too much, since it presumably can be slow,
+    // @ts-ignore
+    editor.saveValue = saveValue;
+
+    // We don't want to do saveValue too much, since it presumably can be slow,
     // especially if the document is large. By debouncing, we only do this when
     // the user pauses typing for a moment. Also, this avoids making too many commits.
     const saveValueDebounce = useMemo(
-      () => debounce(save_value, SAVE_DEBOUNCE_MS),
+      () => debounce(() => saveValue(), SAVE_DEBOUNCE_MS),
       []
     );
 
@@ -145,7 +148,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     function onKeyDown(e) {
       if (read_only) return;
-      //console.log("onKeyDown", { keyCode: e.keyCode, key: e.key });
+      // console.log("onKeyDown", { keyCode: e.keyCode, key: e.key });
+      if (e.key == " " && (e.shiftKey || e.ctrlKey || e.metaKey)) {
+        // @ts-ignore - that true below is "unsanctioned"
+        editor.insertText(" ", true); // true so no format
+        e.preventDefault();
+        return;
+      }
       if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
         if (e.key == "Tab") {
           // Markdown doesn't have a notion of tabs in text...
@@ -259,8 +268,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     useEffect(() => {
       if (!is_current) {
         if (hasUnsavedChangesRef.current) {
-          // just switched from focused to not and there was an unsaved change,
-          // so save state.
+          // just switched from focused to not and there was
+          // an unsaved change, so save state.
           hasUnsavedChangesRef.current = false;
           actions.set_value(editor_markdown_value());
           actions.ensure_syncstring_is_saved();
@@ -340,10 +349,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
               if (!(editor as any).applyingOperations) {
                 hasUnsavedChangesRef.current = true;
                 editorMarkdownValueRef.current = undefined; // markdown value now not known.
-                if (ReactEditor.isFocused(editor)) {
-                  // If editor is focused, scroll cursor into view.
-                  scroll_into_view();
-                }
               }
               setEditorValue(newEditorValue);
 
@@ -368,7 +373,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
               renderElement={Element}
               renderLeaf={Leaf}
               onKeyDown={!read_only ? onKeyDown : undefined}
-              onBlur={save_value}
+              onBlur={saveValue}
               style={
                 USE_WINDOWING
                   ? undefined
@@ -412,12 +417,3 @@ const withIsInline = (editor) => {
 
   return editor;
 };
-
-// Scroll the current contenteditable cursor into view if necessary.
-// This is needed on Chrome (on macOS) at least, but not with Safari.
-// This is similar to https://github.com/ianstormtaylor/slate/issues/1032
-// and is definitely working around a bug in slatejs.
-function scroll_into_view() {
-  (window.getSelection()?.focusNode
-    ?.parentNode as any)?.scrollIntoViewIfNeeded?.();
-}
