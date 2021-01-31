@@ -81,18 +81,34 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       const cm = cmRef.current;
       if (cm == null) return;
       if (collapsed) {
+        // Put the cursor at the top or bottom,
+        // depending on where it was recently:
+        // @ts-ignore
+        const last = editor.lastSelection?.focus?.path;
+        const path = editor.selection?.focus?.path;
+        if (last != null && path != null) {
+          let cur;
+          if (isLessThan(last, path)) {
+            // from above
+            cur = { line: 0, ch: 0 };
+          } else {
+            // from below
+            cur = {
+              line: cm.lastLine(),
+              ch: isInline ? cm.getLine(cm.lastLine()).length - 1 : 0,
+            };
+          }
+          cm.setCursor(cur);
+        }
+
         // focus the editor
         cm.focus();
+
         // set the CSS to indicate this
         setCSS({
           backgroundColor: options?.theme != null ? "" : "#f7f7f7",
           color: "",
         });
-        // move cursor to the beginning of the line (matching Jupyter behavior).
-        const cur = cm.getCursor();
-        if (!isInline && cur != null) {
-          cm.setCursor({ line: cur.line, ch: 0 });
-        }
       } else {
         setCSS({
           backgroundColor: "#1990ff",
@@ -276,4 +292,13 @@ function cursorHandlers(options, editor, isInline?: boolean): void {
       CodeMirror.commands.goLineDown(cm);
     }
   };
+}
+
+function isLessThan(p1: number[], p2: number[]): boolean {
+  for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
+    if ((p1[i] ?? 0) < (p2[i] ?? 0)) {
+      return true;
+    }
+  }
+  return false;
 }

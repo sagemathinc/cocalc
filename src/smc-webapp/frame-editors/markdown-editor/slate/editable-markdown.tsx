@@ -14,7 +14,7 @@ import {
   Element as SlateElement,
 } from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
-import { debounce } from "lodash";
+import { debounce, isEqual } from "lodash";
 import {
   CSS,
   React,
@@ -335,6 +335,15 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             editor={editor}
             value={editorValue}
             onChange={(newEditorValue) => {
+              // Track where the last editor selection was,
+              // since this is very useful to know...
+              // @ts-ignore
+              if (!isEqual(editor.selection, editor.curSelection)) {
+                // @ts-ignore
+                editor.lastSelection = editor.curSelection;
+                // @ts-ignore
+                editor.curSelection = editor.selection;
+              }
               if (editorValue === newEditorValue) {
                 // Editor didn't actually change value so nothing to do.
                 return;
