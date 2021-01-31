@@ -336,13 +336,16 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             value={editorValue}
             onChange={(newEditorValue) => {
               // Track where the last editor selection was,
-              // since this is very useful to know...
+              // since this is very useful to know, e.g., for
+              // understanding cursor movement, format fallback, etc.
               // @ts-ignore
               if (!isEqual(editor.selection, editor.curSelection)) {
                 // @ts-ignore
                 editor.lastSelection = editor.curSelection;
-                // @ts-ignore
-                editor.curSelection = editor.selection;
+                if (editor.selection != null) {
+                  // @ts-ignore
+                  editor.curSelection = editor.selection;
+                }
               }
               if (editorValue === newEditorValue) {
                 // Editor didn't actually change value so nothing to do.
