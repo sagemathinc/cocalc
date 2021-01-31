@@ -165,7 +165,10 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       });
 
       // Make it so editor height matches text.
-      const css: any = { height: "auto", padding: "5px" };
+      const css: any = {
+        height: "auto",
+        padding: "5px",
+      };
       if (options.theme == null) {
         css.backgroundColor = "#f7f7f7";
       }
@@ -174,6 +177,8 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       if (focused && selected) {
         focusEditor();
       }
+
+      refresh(cm);
 
       return () => {
         if (cmRef.current == null) return;
@@ -202,6 +207,11 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     );
   }
 );
+
+async function refresh(cm): Promise<void> {
+  new Promise(requestAnimationFrame);
+  cm.refresh();
+}
 
 function moveCursorToBeginningOfBlock(editor: Editor): void {
   const selection = editor.selection;

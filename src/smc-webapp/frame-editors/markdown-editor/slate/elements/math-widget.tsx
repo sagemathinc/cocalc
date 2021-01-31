@@ -3,13 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useMemo, useState } from "../../../../app-framework";
+import { React, useEffect, useMemo, useState } from "../../../../app-framework";
 import { macros } from "../../../../jquery-plugins/math-katex";
 import { renderToString } from "katex";
 import { startswith } from "smc-util/misc";
 import { SlateCodeMirror } from "./codemirror";
 import * as LRU from "lru-cache";
 import { useFocused, useSelected } from "../slate-react";
+import { useCollapsed } from "../elements/register";
 import { FOCUSED_COLOR } from "../util";
 import { delay } from "awaiting";
 
@@ -27,6 +28,13 @@ export const SlateMath: React.FC<Props> = React.memo(({ value, onChange }) => {
 
   const focused = useFocused();
   const selected = useSelected();
+  const collapsed = useCollapsed();
+
+  useEffect(() => {
+    if (focused && selected && collapsed) {
+      setEditMode(true);
+    }
+  }, [selected, focused, collapsed]);
 
   function renderEditMode() {
     if (!editMode) return;
@@ -37,8 +45,7 @@ export const SlateMath: React.FC<Props> = React.memo(({ value, onChange }) => {
           if (onChange == null) return;
           onChange(ensureMathMode(value));
         }}
-        onShiftEnter={() => setEditMode?.(false)}
-        onEscape={() => setEditMode?.(false)}
+        onBlur={() => setEditMode(false)}
         info="tex"
         options={{
           lineWrapping: true,
@@ -86,6 +93,7 @@ export const SlateMath: React.FC<Props> = React.memo(({ value, onChange }) => {
               border: "1px solid lightgrey",
               boxShadow: "8px 8px 4px #888",
               borderRadius: "5px",
+              margin: "5px 10%",
             }
           : {
               display: startswith(value, "$$") ? "block" : "inline",
