@@ -38,7 +38,7 @@ type Handler = (
 const STRATEGIES: Handler[] = [];
 
 /*
-Case when only the children change:
+Common special case -- only the children change:
 
 If we have two blocks and only the children change,
 we recursively call our top level diff algorithm on
@@ -56,14 +56,52 @@ STRATEGIES.push((node, nextNode, path) => {
   }
 });
 
+/* Common special case -- only the value property changes:
+
+A common special case is that one (or more) properties changes, e.g.,
+when editing a fenced code block, checkbox, etc., the value
+property changes but nothing else does.  Using set_node we can
+deal with anything changing except children/text.
+*/
+STRATEGIES.push((node, nextNode, path) => {
+  const properties: any = {};
+  const newProperties: any = {};
+  for (const key in node) {
+    if (!isEqual(node[key], nextNode[key])) {
+      if (key == "children" || key == "text") return; // can't do via set_node
+      properties[key] = node[key];
+      newProperties[key] = nextNode[key];
+    }
+  }
+  for (const key in nextNode) {
+    if (node[key] == undefined) {
+      if (key == "children" || key == "text") return; // can't do via set_node
+      newProperties[key] = nextNode[key];
+    }
+  }
+  // set_node can change everything except the children and text fields.
+  return [
+    {
+      type: "set_node",
+      path,
+      properties,
+      newProperties,
+    },
+  ];
+});
+
+// TODO: we could combine the above two, where children changes *and* any
+// property changes (except text).
+// I can't think of any case where that actually happens though.
+
 /*
 Generic fallback strategy if nothing else works:
 
 Just remove and set, since that's the only thing to do generically.
 We want to avoid this as much as possible, since it is not efficient
-and breaks the cursor selection!
+and breaks the cursor selection!  This will always work though.
 */
-// IMPORTANT: this should be added last!
+// IMPORTANT: this must be added last!
 STRATEGIES.push((node, nextNode, path) => {
   return [
     {

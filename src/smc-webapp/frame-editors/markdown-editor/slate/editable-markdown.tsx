@@ -57,7 +57,7 @@ const USE_WINDOWING = true;
 // blocks around the cursor, which handles 99% of cases.   On the other hand,
 // in those cases when somebody opens say Moby Dick (with 2000+ blocks),
 // it also works at all (rather than just locking the browser!).
-const OVERSCAN_ROW_COUNT = 150;
+const OVERSCAN_ROW_COUNT = 100;
 //const USE_WINDOWING = false;
 
 const STYLE = {
