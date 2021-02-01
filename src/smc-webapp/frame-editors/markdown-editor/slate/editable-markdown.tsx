@@ -342,6 +342,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
               // since this is very useful to know, e.g., for
               // understanding cursor movement, format fallback, etc.
               // @ts-ignore
+              if (editor.lastSelection == null && editor.selection != null) {
+                // initialize
+                // @ts-ignore
+                editor.lastSelection = editor.curSelection = editor.selection;
+              }
+              // @ts-ignore
               if (!isEqual(editor.selection, editor.curSelection)) {
                 // @ts-ignore
                 editor.lastSelection = editor.curSelection;

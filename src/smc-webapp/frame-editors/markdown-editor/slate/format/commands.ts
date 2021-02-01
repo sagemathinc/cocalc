@@ -12,6 +12,7 @@ import { DEFAULT_CHILDREN } from "../util";
 import { delay } from "awaiting";
 import { insertLink } from "./insert-link";
 import { insertImage } from "./insert-image";
+import { insertSpecialChar } from "./insert-special-char";
 
 export function formatSelectedText(editor: Editor, mark: string): void {
   if (!editor.selection) return; // nothing to do.
@@ -183,6 +184,11 @@ export async function formatAction(
 
   if (cmd == "image") {
     insertImage(editor);
+    return;
+  }
+
+  if (cmd == "SpecialChar") {
+    insertSpecialChar(editor);
     return;
   }
 
