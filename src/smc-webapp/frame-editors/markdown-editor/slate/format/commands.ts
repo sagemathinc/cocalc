@@ -11,6 +11,7 @@ import { commands } from "../../../../editors/editor-button-bar";
 import { DEFAULT_CHILDREN } from "../util";
 import { delay } from "awaiting";
 import { insertLink } from "./insert-link";
+import { insertImage } from "./insert-image";
 
 export function formatSelectedText(editor: Editor, mark: string): void {
   if (!editor.selection) return; // nothing to do.
@@ -177,6 +178,11 @@ export async function formatAction(
 
   if (cmd == "link") {
     insertLink(editor);
+    return;
+  }
+
+  if (cmd == "image") {
+    insertImage(editor);
     return;
   }
 

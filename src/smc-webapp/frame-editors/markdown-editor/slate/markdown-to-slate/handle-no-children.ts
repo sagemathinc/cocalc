@@ -11,7 +11,7 @@ import { register } from "./register";
 import { DEFAULT_CHILDREN } from "../util";
 
 export function handleNoChildren({ token, state }) {
-  if (token.children != null) {
+  if (token.children != null && token.children.length > 0) {
     throw Error(
       `handleNoChildren -- the token must not have children ${JSON.stringify(
         token

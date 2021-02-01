@@ -50,6 +50,9 @@ import "./blockquote";
 import { Link } from "./link";
 import "./link";
 
+import { Image } from "./image";
+import "./image";
+
 import { ListItem } from "./list-item";
 import "./list-item";
 
@@ -85,6 +88,7 @@ declare module "slate" {
       | TH
       | BlockQuote
       | Link
+      | Image
       | ListItem
       | BulletList
       | OrderedList

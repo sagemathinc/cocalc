@@ -10,7 +10,7 @@ import { show_react_modal } from "../../misc-page";
 import { Icon } from "../../r_misc";
 import { alert_message } from "../../alerts";
 
-interface Options {
+export interface Options {
   url: string;
   title: string;
   height: string;
@@ -90,7 +90,7 @@ function insert_image(mode: string, opts: Options): string {
   return s;
 }
 
-async function get_insert_image_opts_from_user(): Promise<undefined | Options> {
+export async function get_insert_image_opts_from_user(): Promise<undefined | Options> {
   return await show_react_modal((cb) => {
     return (
       <Modal

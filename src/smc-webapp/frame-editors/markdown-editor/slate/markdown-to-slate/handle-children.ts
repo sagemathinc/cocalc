@@ -9,7 +9,7 @@ import { parse } from "./parse";
 import { State } from "./types";
 
 function handleChildren({ token, state }) {
-  if (!token.children) return;
+  if (!token.children || token.children.length == 0) return;
   // Parse all the children with own state, partly inherited
   // from us (e.g., the text marks).
   const child_state: State = { marks: { ...state.marks }, nesting: 0 };
