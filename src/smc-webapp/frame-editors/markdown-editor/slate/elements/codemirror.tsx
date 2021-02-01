@@ -153,9 +153,11 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         options.extraKeys = {};
       }
 
-      if (onShiftEnter != null) {
-        options.extraKeys["Shift-Enter"] = onShiftEnter;
-      }
+      options.extraKeys["Shift-Enter"] = () => {
+        Transforms.move(editor, { distance: 1, unit: "line" });
+        ReactEditor.focus(editor);
+        onShiftEnter?.();
+      };
 
       if (onEscape != null) {
         options.extraKeys["Esc"] = onEscape;
@@ -244,7 +246,23 @@ function moveCursorToBeginningOfBlock(editor: Editor): void {
   Transforms.setSelection(editor, { focus, anchor: focus });
 }
 
-function cursorHandlers(options, editor, isInline?: boolean): void {
+function cursorHandlers(options, editor, isInline: boolean | undefined): void {
+  const exitDown = (cm) => {
+    const cur = cm.getCursor();
+    const n = cm.lastLine();
+    const cur_line = cur?.line;
+    const cur_ch = cur?.ch;
+    const line = cm.getLine(n);
+    const line_length = line?.length;
+    if (cur_line === n && cur_ch === line_length) {
+      Transforms.move(editor, { distance: 1, unit: "line" });
+      ReactEditor.focus(editor);
+      return true;
+    } else {
+      return false;
+    }
+  };
+
   options.extraKeys["Up"] = (cm) => {
     const cur = cm.getCursor();
     if (cur?.line === cm.firstLine() && cur?.ch == 0) {
@@ -265,22 +283,6 @@ function cursorHandlers(options, editor, isInline?: boolean): void {
       ReactEditor.focus(editor);
     } else {
       CodeMirror.commands.goCharLeft(cm);
-    }
-  };
-
-  const exitDown = (cm) => {
-    const cur = cm.getCursor();
-    const n = cm.lastLine();
-    const cur_line = cur?.line;
-    const cur_ch = cur?.ch;
-    const line = cm.getLine(n);
-    const line_length = line?.length;
-    if (cur_line === n && cur_ch === line_length) {
-      Transforms.move(editor, { distance: 1, unit: "line" });
-      ReactEditor.focus(editor);
-      return true;
-    } else {
-      return false;
     }
   };
 
