@@ -50,7 +50,7 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
   if (!Text.isText(node)) return false;
   const pos = path[path.length - 1]; // position among siblings.
 
-  const slate = markdown_to_slate(node.text.trim());
+  const slate = markdown_to_slate(node.text.trim(), true);
   if (slate.length != 1) return false;
   const p = slate[0];
   if (Text.isText(p)) return false;

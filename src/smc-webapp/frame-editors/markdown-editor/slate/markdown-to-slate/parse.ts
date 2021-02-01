@@ -37,10 +37,13 @@ export function parse(token: Token, state: State): Descendant[] {
   );
 }
 
-export function markdown_to_slate(markdown: string): Descendant[] {
+export function markdown_to_slate(
+  markdown: string,
+  no_meta?: boolean
+): Descendant[] {
   // Parse the markdown:
   const t0 = new Date().valueOf();
-  const { tokens, meta } = parse_markdown(markdown);
+  const { tokens, meta } = parse_markdown(markdown, no_meta);
   //console.log({ tokens });
 
   const doc: Descendant[] = [];
